@@ -7,6 +7,7 @@ mod flow;
 mod node;
 mod start_executor;
 mod storage;
+mod validator;
 
 // 公开类型导出
 pub use command::*;
@@ -16,6 +17,7 @@ pub use executor::{ExecutionContext, ExecutionResult, FlowExecutor, NodeExecutor
 pub use flow::Flow;
 pub use node::{Node, NodePosition, NodeType, Port, PortType};
 pub use start_executor::StartNodeExecutor;
+pub use validator::{FlowValidator, ValidationResult};
 
 // 导出存储模块
 pub use storage::{ensure_flows_dir, get_data_dir, get_flows_dir, load_flow, save_flow};
