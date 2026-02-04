@@ -2,6 +2,7 @@
 mod command;
 mod commands;
 mod connection;
+mod executor;
 mod flow;
 mod node;
 mod storage;
@@ -10,6 +11,7 @@ mod storage;
 pub use command::*;
 pub use commands::{create_flow, delete_node, execute_flow, update_node};
 pub use connection::Connection;
+pub use executor::{ExecutionContext, ExecutionResult, FlowExecutor};
 pub use flow::Flow;
 pub use node::{Node, NodePosition, NodeType, Port, PortType};
 
