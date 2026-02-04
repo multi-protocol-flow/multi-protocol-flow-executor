@@ -1,16 +1,68 @@
-// 节点模块 - 基础结构
-// Node 结构体和 NodeType 枚举将在任务 1.2 中完整实现
+// 节点模块 - 完整结构体实现
+
+use serde_json::Value;
 
 /// 节点类型枚举
-/// 暂时使用空枚举，后续任务将扩展完整实现
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum NodeType {
-    // TODO: 在任务 1.2 中实现完整的 NodeType 枚举
+    /// 开始节点
+    Start,
+    /// HTTP 请求节点
+    Http,
+    /// 条件分支节点
+    Conditional,
+    /// 数据转换节点
+    Transform,
+    /// 结束节点
+    End,
+}
+
+/// 节点位置结构体
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct NodePosition {
+    /// X 坐标
+    pub x: f64,
+    /// Y 坐标
+    pub y: f64,
+}
+
+/// 端口类型枚举
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PortType {
+    /// 输入端口
+    Input,
+    /// 输出端口
+    Output,
+}
+
+/// 端口结构体
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Port {
+    /// 端口唯一标识符
+    pub id: String,
+    /// 端口类型
+    #[serde(rename = "type")]
+    pub port_type: PortType,
+    /// 端口标签（可选）
+    pub label: Option<String>,
 }
 
 /// 节点数据结构
-/// 暂时使用空结构体，后续任务将扩展完整实现
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Node {
-    // TODO: 在任务 1.2 中实现完整的 Node 结构体
+    /// 节点唯一标识符
+    pub id: String,
+    /// 节点类型
+    #[serde(rename = "type")]
+    pub node_type: NodeType,
+    /// 节点名称
+    pub name: String,
+    /// 节点位置
+    pub position: NodePosition,
+    /// 节点特定数据（使用 serde_json::Value 支持动态数据）
+    pub data: Value,
+    /// 端口数组（可选）
+    pub ports: Option<Vec<Port>>,
 }

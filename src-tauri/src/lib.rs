@@ -1,6 +1,14 @@
 // 导入基础模块
+mod command;
+mod connection;
 mod flow;
 mod node;
+
+// 公开类型导出
+pub use command::*;
+pub use connection::Connection;
+pub use flow::Flow;
+pub use node::{Node, NodePosition, NodeType, Port, PortType};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
