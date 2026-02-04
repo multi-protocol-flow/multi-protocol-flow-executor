@@ -47,9 +47,14 @@ pub fn get_flows_dir() -> Result<PathBuf, String> {
 pub fn ensure_flows_dir() -> Result<PathBuf, String> {
     let flows_dir = get_flows_dir()?;
 
-    // 直接创建目录，忽略已存在的错误
-    // create_dir_all 可以处理目录已存在的情况
-    fs::create_dir_all(&flows_dir).map_err(|e| format!("创建 flows 目录失败: {}", e))?;
+    // 检查目录是否已存在（使用 try_exists 避免竞态条件）
+    if !flows_dir
+        .try_exists()
+        .map_err(|e| format!("检查目录失败: {}", e))?
+    {
+        // 创建目录（包括所有必要的父目录）
+        fs::create_dir_all(&flows_dir).map_err(|e| format!("创建 flows 目录失败: {}", e))?;
+    }
 
     Ok(flows_dir)
 }
@@ -65,7 +70,10 @@ pub fn ensure_flows_dir() -> Result<PathBuf, String> {
 /// - `Err(String)`: 保存失败，包含错误信息
 pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
     let file_path = if std::path::Path::new(path).is_absolute() {
+        // 规范化绝对路径以避免重复分隔符
         PathBuf::from(path)
+            .canonicalize()
+            .unwrap_or_else(|_| PathBuf::from(path))
     } else {
         // 相对路径，使用 flows 目录
         ensure_flows_dir()?.join(path)
@@ -73,7 +81,10 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
 
     // 确保父目录存在（处理 Windows 上的竞态条件）
     if let Some(parent) = file_path.parent() {
-        if !parent.exists() {
+        if !parent
+            .try_exists()
+            .map_err(|e| format!("检查父目录失败: {}", e))?
+        {
             fs::create_dir_all(parent)
                 .map_err(|e| format!("创建父目录 {:?} 失败: {}", parent, e))?;
         }
@@ -103,7 +114,10 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
 /// - `Err(String)`: 加载失败，包含错误信息
 pub fn load_flow(path: &str) -> Result<Flow, String> {
     let file_path = if std::path::Path::new(path).is_absolute() {
+        // 规范化绝对路径以避免重复分隔符
         PathBuf::from(path)
+            .canonicalize()
+            .unwrap_or_else(|_| PathBuf::from(path))
     } else {
         // 相对路径，使用 flows 目录
         get_flows_dir()?.join(path)
@@ -194,8 +208,8 @@ mod tests {
         let file_path = flows_dir.join("test-flow.json");
         assert!(file_path.exists(), "文件 {:?} 应该存在", file_path);
 
-        // 加载流程
-        let loaded_flow = load_flow(&format!("{}", file_path.display()));
+        // 加载流程（使用相对路径而非绝对路径）
+        let loaded_flow = load_flow("test-flow.json");
         assert!(loaded_flow.is_ok());
 
         let loaded = loaded_flow.unwrap();
