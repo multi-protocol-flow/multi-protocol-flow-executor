@@ -10,7 +10,7 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet';
+} from './ui/sheet';
 import {
   Form,
   FormControl,
@@ -18,9 +18,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+} from './ui/form';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
 
 /**
  * 表单验证 Schema

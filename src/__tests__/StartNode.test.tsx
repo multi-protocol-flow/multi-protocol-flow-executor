@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { StartNode } from '@/nodes/StartNode';
+import { StartNode } from '../nodes/StartNode';
 
 // Mock CSS imports
 vi.mock('@xyflow/react/dist/style.css', () => ({}));

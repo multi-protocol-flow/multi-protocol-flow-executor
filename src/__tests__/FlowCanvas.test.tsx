@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { FlowCanvas } from '@/components/FlowCanvas';
+import { FlowCanvas } from '../components/FlowCanvas';
 import type { Node, Edge } from '@xyflow/react';
 
 describe('FlowCanvas', () => {

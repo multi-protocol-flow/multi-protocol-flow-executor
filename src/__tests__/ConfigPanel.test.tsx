@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { ConfigPanel } from '@/components/ConfigPanel';
+import { ConfigPanel } from '../components/ConfigPanel';
 import type { Node } from '@xyflow/react';
 
 // Mock CSS imports

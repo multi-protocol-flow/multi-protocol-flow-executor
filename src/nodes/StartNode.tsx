@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { Card } from '../components/ui/card';
+import { cn } from '../lib/utils';
 
 /**
  * StartNode 组件的 data 接口
