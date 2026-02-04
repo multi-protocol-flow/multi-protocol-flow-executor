@@ -3,12 +3,16 @@ mod command;
 mod connection;
 mod flow;
 mod node;
+mod storage;
 
 // 公开类型导出
 pub use command::*;
 pub use connection::Connection;
 pub use flow::Flow;
 pub use node::{Node, NodePosition, NodeType, Port, PortType};
+
+// 导出存储模块
+pub use storage::{ensure_flows_dir, get_data_dir, get_flows_dir, load_flow, save_flow};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
