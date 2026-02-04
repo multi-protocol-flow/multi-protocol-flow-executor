@@ -5,15 +5,17 @@ mod connection;
 mod executor;
 mod flow;
 mod node;
+mod start_executor;
 mod storage;
 
 // 公开类型导出
 pub use command::*;
 pub use commands::{create_flow, delete_node, execute_flow, update_node};
 pub use connection::Connection;
-pub use executor::{ExecutionContext, ExecutionResult, FlowExecutor};
+pub use executor::{ExecutionContext, ExecutionResult, FlowExecutor, NodeExecutor};
 pub use flow::Flow;
 pub use node::{Node, NodePosition, NodeType, Port, PortType};
+pub use start_executor::StartNodeExecutor;
 
 // 导出存储模块
 pub use storage::{ensure_flows_dir, get_data_dir, get_flows_dir, load_flow, save_flow};

@@ -1,5 +1,6 @@
 // 执行引擎模块 - FlowExecutor 实现
 
+use crate::connection::Connection;
 use crate::flow::Flow;
 use crate::node::{Node, NodeType};
 use serde_json::json;
@@ -28,6 +29,31 @@ pub struct ExecutionContext {
     pub current_node_id: Option<String>,
     /// 执行变量
     pub variables: serde_json::Value,
+}
+
+/// 节点执行器 trait
+///
+/// 定义了所有节点执行器必须实现的接口
+pub trait NodeExecutor {
+    /// 执行节点
+    ///
+    /// # 参数
+    /// - `node`: 要执行的节点
+    /// - `context`: 执行上下文
+    /// - `connections`: 流程的所有连接
+    /// - `node_map`: 节点 ID 到节点的映射
+    ///
+    /// # 返回
+    /// - `Result<(Option<String>, Option<serde_json::Value>), String>`:
+    ///   - Ok((next_node_id, output_data)): 执行成功，返回下一个节点 ID 和输出数据
+    ///   - Err(error): 执行失败，返回错误信息
+    fn execute(
+        &self,
+        node: &Node,
+        context: &ExecutionContext,
+        connections: &[Connection],
+        node_map: &HashMap<String, &Node>,
+    ) -> Result<(Option<String>, Option<serde_json::Value>), String>;
 }
 
 /// 流程执行器
