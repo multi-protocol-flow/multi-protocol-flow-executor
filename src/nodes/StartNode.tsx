@@ -54,9 +54,10 @@ export const StartNode = memo(({ data, selected }: NodeProps<StartNodeData>) => 
         // 最小宽度确保文字显示
         'min-w-[120px]'
       )}
+      data-testid="start-node-card"
     >
       {/* 节点标签 */}
-      <div className="font-medium text-sm text-center">
+      <div className="font-medium text-sm text-center" data-testid="node-label">
         {data?.label || '开始'}
       </div>
 
