@@ -9,7 +9,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "check-types": "tsc --noEmit",
-    "test": "npx vitest"
+    "test": "npx vitest",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:headed": "npx playwright test --headed"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -52,6 +55,7 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
-    "vitest": "^2.0.0"
+    "vitest": "^2.0.0",
+    "@playwright/test": "^1.50.0"
   }
 }
