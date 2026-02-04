@@ -2,6 +2,8 @@
 
 use crate::command::CreateFlowCommandInput;
 use crate::command::CreateFlowCommandOutput;
+use crate::command::DeleteNodeCommandInput;
+use crate::command::DeleteNodeCommandOutput;
 use crate::command::ExecuteFlowCommandInput;
 use crate::command::ExecuteFlowCommandOutput;
 use crate::command::UpdateNodeCommandInput;
@@ -133,6 +135,56 @@ pub fn update_node(_input: UpdateNodeCommandInput, _flow: Flow) -> UpdateNodeCom
     UpdateNodeCommandOutput {
         success: false,
         error: Some("暂未实现持久化：update_node 需要先加载流程、更新节点、再保存流程".to_string()),
+    }
+}
+
+/// 删除节点命令（桩实现）
+///
+/// 删除指定流程中的节点和相关连接
+///
+/// # 参数
+/// - `flow`: 流程对象
+/// - `input`: 包含流程 ID 和节点 ID 的输入参数
+///
+/// # 返回
+/// - `DeleteNodeCommandOutput`: 包含删除结果
+///
+/// # 桩实现说明
+/// - 如果节点是开始节点，返回错误 "不能删除开始节点"
+/// - 否则返回错误信息 "暂未实现持久化"
+/// - 说明原因：delete_node 需要先加载流程、删除节点和相关连接、再保存流程
+/// - 这将在任务 2.5（保存流程）中完整实现
+#[tauri::command]
+pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeCommandOutput {
+    // 查找节点
+    let node = flow.nodes.iter().find(|n| n.id == input.node_id);
+
+    // 验证节点存在
+    let node = match node {
+        Some(node) => node,
+        None => {
+            return DeleteNodeCommandOutput {
+                success: false,
+                error: Some(format!("节点 {} 不存在", input.node_id)),
+            };
+        }
+    };
+
+    // 检查是否是开始节点
+    if matches!(node.node_type, NodeType::Start) {
+        return DeleteNodeCommandOutput {
+            success: false,
+            error: Some("不能删除开始节点".to_string()),
+        };
+    }
+
+    // 桩实现：返回持久化未实现的错误
+    DeleteNodeCommandOutput {
+        success: false,
+        error: Some(
+            "暂未实现持久化：delete_node 需要先加载流程、删除节点和相关连接、再保存流程"
+                .to_string(),
+        ),
     }
 }
 
@@ -366,6 +418,97 @@ mod tests {
         );
         assert!(
             error.contains("update_node 需要先加载流程、更新节点、再保存流程"),
+            "错误信息应该说明原因"
+        );
+    }
+
+    #[test]
+    fn test_delete_start_node() {
+        // 创建一个测试流程
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            id: format!("start-{}", flow_id),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: json!({}),
+            ports: None,
+        };
+
+        let flow = Flow {
+            id: flow_id.clone(),
+            name: "测试流程".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        let input = DeleteNodeCommandInput {
+            flow_id: flow_id.clone(),
+            node_id: format!("start-{}", flow_id),
+        };
+
+        // 尝试删除开始节点
+        let output = delete_node(input, flow);
+
+        // 验证删除失败
+        assert!(!output.success, "删除开始节点应该失败");
+        assert!(output.error.is_some(), "应该有错误信息");
+        let error = output.error.unwrap();
+        assert!(
+            error.contains("不能删除开始节点"),
+            "错误信息应该包含 '不能删除开始节点'，实际: {}",
+            error
+        );
+    }
+
+    #[test]
+    fn test_delete_node_not_implemented() {
+        // 创建一个测试流程
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            id: format!("start-{}", flow_id),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: json!({}),
+            ports: None,
+        };
+
+        let http_node = Node {
+            id: format!("http-{}", flow_id),
+            node_type: NodeType::Http,
+            name: "HTTP 请求".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: json!({}),
+            ports: None,
+        };
+
+        let flow = Flow {
+            id: flow_id.clone(),
+            name: "测试流程".to_string(),
+            nodes: vec![start_node, http_node],
+            connections: vec![],
+        };
+
+        let input = DeleteNodeCommandInput {
+            flow_id: flow_id.clone(),
+            node_id: format!("http-{}", flow_id),
+        };
+
+        // 尝试删除非开始节点
+        let output = delete_node(input, flow);
+
+        // 验证删除失败（持久化未实现）
+        assert!(!output.success, "delete_node 应该返回失败");
+        assert!(output.error.is_some(), "应该有错误信息");
+        let error = output.error.unwrap();
+        assert!(
+            error.contains("暂未实现持久化"),
+            "错误信息应该包含 '暂未实现持久化'，实际: {}",
+            error
+        );
+        assert!(
+            error.contains("delete_node 需要先加载流程、删除节点和相关连接、再保存流程"),
             "错误信息应该说明原因"
         );
     }

@@ -8,7 +8,7 @@ mod storage;
 
 // 公开类型导出
 pub use command::*;
-pub use commands::{create_flow, execute_flow, update_node};
+pub use commands::{create_flow, delete_node, execute_flow, update_node};
 pub use connection::Connection;
 pub use flow::Flow;
 pub use node::{Node, NodePosition, NodeType, Port, PortType};
@@ -32,7 +32,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             create_flow,
             execute_flow,
-            update_node
+            update_node,
+            delete_node
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

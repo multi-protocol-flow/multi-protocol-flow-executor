@@ -88,3 +88,21 @@ pub struct UpdateNodeCommandOutput {
     /// 错误信息（可选）
     pub error: Option<String>,
 }
+
+/// 删除节点命令的输入参数
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct DeleteNodeCommandInput {
+    /// 流程 ID
+    pub flow_id: String,
+    /// 节点 ID
+    pub node_id: String,
+}
+
+/// 删除节点命令的输出结果
+#[derive(Debug, serde::Serialize)]
+pub struct DeleteNodeCommandOutput {
+    /// 是否删除成功
+    pub success: bool,
+    /// 错误信息（可选）
+    pub error: Option<String>,
+}
