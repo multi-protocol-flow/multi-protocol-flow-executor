@@ -4,6 +4,8 @@ use crate::command::CreateFlowCommandInput;
 use crate::command::CreateFlowCommandOutput;
 use crate::command::ExecuteFlowCommandInput;
 use crate::command::ExecuteFlowCommandOutput;
+use crate::command::UpdateNodeCommandInput;
+use crate::command::UpdateNodeCommandOutput;
 use crate::flow::Flow;
 use crate::node::{Node, NodePosition, NodeType};
 use serde_json::json;
@@ -107,6 +109,30 @@ pub fn execute_flow(_input: ExecuteFlowCommandInput, flow: Flow) -> ExecuteFlowC
         data: Some(json!({ "flow_id": flow.id })),
         error: None,
         execution_time: start_time.elapsed().as_millis() as u64,
+    }
+}
+
+/// 更新节点命令（桩实现）
+///
+/// 更新指定流程中的节点数据
+///
+/// # 参数
+/// - `flow`: 流程对象
+/// - `input`: 包含流程 ID、节点 ID 和新数据的输入参数
+///
+/// # 返回
+/// - `UpdateNodeCommandOutput`: 包含更新结果
+///
+/// # 桩实现说明
+/// - 返回错误信息 "暂未实现持久化"
+/// - 说明原因：update_node 需要先加载流程、更新节点、再保存流程
+/// - 这将在任务 2.5（保存流程）中完整实现
+#[tauri::command]
+pub fn update_node(_input: UpdateNodeCommandInput, _flow: Flow) -> UpdateNodeCommandOutput {
+    // 桩实现：返回持久化未实现的错误
+    UpdateNodeCommandOutput {
+        success: false,
+        error: Some("暂未实现持久化：update_node 需要先加载流程、更新节点、再保存流程".to_string()),
     }
 }
 
@@ -297,6 +323,50 @@ mod tests {
         assert!(
             output.error.unwrap().contains("缺少开始节点"),
             "错误信息应该包含 '缺少开始节点'"
+        );
+    }
+
+    #[test]
+    fn test_update_node_not_implemented() {
+        // 创建一个测试流程
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            id: format!("start-{}", flow_id),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: json!({}),
+            ports: None,
+        };
+
+        let flow = Flow {
+            id: flow_id.clone(),
+            name: "测试流程".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        let input = UpdateNodeCommandInput {
+            flow_id: flow_id.clone(),
+            node_id: format!("start-{}", flow_id),
+            data: json!({ "updated": true }),
+        };
+
+        // 更新节点
+        let output = update_node(input, flow);
+
+        // 验证更新失败（持久化未实现）
+        assert!(!output.success, "update_node 应该返回失败");
+        assert!(output.error.is_some(), "应该有错误信息");
+        let error = output.error.unwrap();
+        assert!(
+            error.contains("暂未实现持久化"),
+            "错误信息应该包含 '暂未实现持久化'，实际: {}",
+            error
+        );
+        assert!(
+            error.contains("update_node 需要先加载流程、更新节点、再保存流程"),
+            "错误信息应该说明原因"
         );
     }
 }

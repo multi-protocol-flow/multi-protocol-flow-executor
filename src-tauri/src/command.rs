@@ -68,3 +68,23 @@ pub struct ExecuteFlowCommandOutput {
     /// 执行时间（毫秒）
     pub execution_time: u64,
 }
+
+/// 更新节点命令的输入参数
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct UpdateNodeCommandInput {
+    /// 流程 ID
+    pub flow_id: String,
+    /// 节点 ID
+    pub node_id: String,
+    /// 节点数据
+    pub data: Value,
+}
+
+/// 更新节点命令的输出结果
+#[derive(Debug, serde::Serialize)]
+pub struct UpdateNodeCommandOutput {
+    /// 是否更新成功
+    pub success: bool,
+    /// 错误信息（可选）
+    pub error: Option<String>,
+}
