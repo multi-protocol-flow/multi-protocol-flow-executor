@@ -185,31 +185,32 @@ mod tests {
 
     #[test]
     fn test_save_and_load_flow() {
-        // 清理并重新创建 flows 目录
-        cleanup_test_data();
-        let flows_dir = ensure_flows_dir().expect("Failed to create flows dir");
+        // 使用临时测试目录，避免系统目录的权限问题
+        let test_dir = std::env::current_dir().unwrap().join("test-flows");
+        let _ = fs::remove_dir_all(&test_dir);
+        fs::create_dir_all(&test_dir).expect("Failed to create test dir");
 
         eprintln!(
             "测试 flows dir: {:?}, exists: {}",
-            flows_dir,
-            flows_dir.exists()
+            test_dir,
+            test_dir.exists()
         );
 
         let flow = create_test_flow();
 
-        // 保存流程
-        let save_result = save_flow(&flow, "test-flow.json");
+        // 使用绝对路径保存流程
+        let file_path = test_dir.join("test-flow.json");
+        let save_result = save_flow(&flow, file_path.to_str().unwrap());
         if !save_result.is_ok() {
             eprintln!("保存失败: {:?}", save_result);
         }
         assert!(save_result.is_ok());
 
         // 验证文件已创建
-        let file_path = flows_dir.join("test-flow.json");
         assert!(file_path.exists(), "文件 {:?} 应该存在", file_path);
 
-        // 加载流程（使用相对路径而非绝对路径）
-        let loaded_flow = load_flow("test-flow.json");
+        // 从绝对路径加载流程
+        let loaded_flow = load_flow(file_path.to_str().unwrap());
         assert!(loaded_flow.is_ok());
 
         let loaded = loaded_flow.unwrap();
@@ -218,7 +219,8 @@ mod tests {
         assert_eq!(flow.nodes.len(), loaded.nodes.len());
         assert_eq!(flow.connections.len(), loaded.connections.len());
 
-        cleanup_test_data();
+        // 清理测试目录
+        let _ = fs::remove_dir_all(&test_dir);
     }
 
     #[test]

@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
+import { memo } from 'react';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
 
@@ -31,8 +31,8 @@ export interface StartNodeData {
  * - 使用 rounded-full 实现圆形形状
  * - 使用 Tailwind 的 ring 类实现边框效果
  */
-export const StartNode = memo(({ data, selected }: NodeProps<StartNodeData>) => {
-  const isError = data?.error === true;
+export const StartNode = memo(({ data, selected }: NodeProps) => {
+  const isError = (data as StartNodeData)?.error === true;
 
   return (
     <Card
@@ -54,11 +54,11 @@ export const StartNode = memo(({ data, selected }: NodeProps<StartNodeData>) => 
         // 最小宽度确保文字显示
         'min-w-[120px]'
       )}
-      data-testid="start-node-card"
+      data-testid={data?.dataTestId || 'start-node'}
     >
       {/* 节点标签 */}
       <div className="font-medium text-sm text-center" data-testid="node-label">
-        {data?.label || '开始'}
+        {(data as StartNodeData)?.label || '开始'}
       </div>
 
       {/* 输出端口 - 位于右侧 */}

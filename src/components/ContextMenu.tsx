@@ -13,6 +13,8 @@ export interface ContextMenuProps {
   onCopy?: () => void;
   onViewInfo?: () => void;
   className?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -29,27 +31,32 @@ export function ContextMenu({
   onCopy,
   onViewInfo,
   className,
+  open,
+  onOpenChange,
 }: ContextMenuProps) {
   const handleRename = (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
     onRename?.();
+    onOpenChange?.(false);
   };
 
   const handleCopy = (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
     onCopy?.();
+    onOpenChange?.(false);
   };
 
   const handleViewInfo = (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
     onViewInfo?.();
+    onOpenChange?.(false);
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild className={cn(className)}>
         {children}
       </DropdownMenuTrigger>

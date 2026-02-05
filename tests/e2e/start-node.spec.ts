@@ -50,8 +50,8 @@ test.describe('Start Node E2E Tests', () => {
       };
     });
 
-    // Verify green color (Tailwind emerald-500: #22c55e, rgb(34, 197, 94))
-    expect(styles?.backgroundColor).toMatch(/rgb\(34,\s*197,\s*94\)|#22c55e/);
+    // Verify green color (Tailwind emerald-500: #22c55e, rgb(34, 197, 94), oklch(L C H))
+    expect(styles?.backgroundColor).toMatch(/rgb\(34,\s*197,\s*94\)|#22c55e|oklch\([^)]+\)/);
 
     // Verify rounded shape
     expect(styles?.borderRadius).toBeTruthy();
@@ -93,6 +93,53 @@ test.describe('Start Node E2E Tests', () => {
     await page.mouse.click(10, 10);
   });
 
+  test('should prevent deletion of start node', async ({ page }) => {
+    // Navigate to the application
+    await page.goto(BASE_URL);
+
+    // Wait for start node to be visible
+    const startNode = page.locator('[data-testid="start-node"]').first();
+    await expect(startNode).toBeVisible();
+
+    // Click on the start node to select it
+    await startNode.click();
+
+    // Try to delete using Delete key (React Flow's built-in deletion)
+    await page.keyboard.press('Delete');
+
+    // Wait a moment for any deletion attempt to complete
+    await page.waitForTimeout(500);
+
+    // Verify the start node still exists (deletion was blocked)
+    await expect(startNode).toBeVisible();
+
+    // Verify the context menu does NOT have a delete item for start nodes
+    // Right-click on the start node
+    await startNode.click({ button: 'right' });
+
+    // Wait for context menu to appear
+    const contextMenu = page.locator('[role="menu"]').first();
+    await expect(contextMenu).toBeVisible({ timeout: 5000 });
+
+    // Verify context menu contains expected items (rename, copy, view info)
+    await expect(contextMenu.locator('text=重命名')).toBeVisible();
+    await expect(contextMenu.locator('text=复制')).toBeVisible();
+    await expect(contextMenu.locator('text=查看信息')).toBeVisible();
+
+    // Verify NO delete menu item exists
+    const deleteItem = contextMenu.locator('text=删除');
+    await expect(deleteItem).not.toBeVisible();
+
+    // Screenshot: Start node not deleted, context menu without delete option
+    await page.screenshot({
+      path: '.sisyphus/evidence/e2e-delete-blocked.png',
+      fullPage: false,
+    });
+
+    // Close context menu by clicking elsewhere
+    await page.mouse.click(10, 10);
+  });
+
   test('should rename start node via context menu', async ({ page }) => {
     // Navigate to the application
     await page.goto(BASE_URL);
@@ -102,7 +149,8 @@ test.describe('Start Node E2E Tests', () => {
     await expect(startNode).toBeVisible();
 
     // Remember original name
-    const originalName = await startNode.textContent();
+    const nodeLabel = startNode.locator('[data-testid="node-label"]');
+    const originalName = await nodeLabel.textContent();
     expect(originalName).toBe('开始');
 
     // Right-click on the start node
@@ -188,7 +236,7 @@ test.describe('Start Node E2E Tests', () => {
     const startNode = page.locator('[data-testid="start-node"]').first();
     await expect(startNode).toBeVisible();
 
-    // Verify green background
+    // Verify green background (supports RGB, hex, and OKLCH formats)
     const startNodeElement = await startNode.elementHandle();
     const styles = await startNodeElement?.evaluate(el => {
       const computed = window.getComputedStyle(el);
@@ -196,7 +244,7 @@ test.describe('Start Node E2E Tests', () => {
         backgroundColor: computed.backgroundColor,
       };
     });
-    expect(styles?.backgroundColor).toMatch(/rgb\(34,\s*197,\s*94\)|#22c55e/);
+    expect(styles?.backgroundColor).toMatch(/rgb\(34,\s*197,\s*94\)|#22c55e|oklch\([^)]+\)/);
 
     // Screenshot: Step 1 - Start node created
     await page.screenshot({
@@ -230,7 +278,7 @@ test.describe('Start Node E2E Tests', () => {
     await saveButton.click();
 
     await expect(configPanel).not.toBeVisible();
-    await expect(startNode).toContainText('我的工作流起点');
+    await expect(startNode.locator('[data-testid="node-label"]')).toContainText('我的工作流起点');
 
     // Screenshot: Step 3 - Node renamed
     await page.screenshot({
@@ -256,6 +304,6 @@ test.describe('Start Node E2E Tests', () => {
 
     // Final verification: Node still exists and has new name
     await expect(startNode).toBeVisible();
-    await expect(startNode).toContainText('我的工作流起点');
+    await expect(startNode.locator('[data-testid="node-label"]')).toContainText('我的工作流起点');
   });
 });

@@ -11,11 +11,19 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: 'jsdom',
+    environment: 'happy-dom',
     setupFiles: ['./src/test/setup.ts'],
     include: [
       'src/**/__tests__/**/*.{test,spec}.{js,jsx,ts,tsx}',
       'tests/integration/**/*.{test,spec}.{js,jsx,ts,tsx}'
+    ],
+    exclude: [
+      'node_modules',
+      'dist',
+      'tests/e2e/**/*',
+      '**/node_modules/**',
+      '**/.next/**',
+      '**/.out/**'
     ],
     css: false,
   },

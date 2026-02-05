@@ -5,19 +5,20 @@ import {
   Controls,
   MiniMap,
   useReactFlow,
-  Node,
-  Edge,
-  Connection,
   addEdge,
-  NodeChange,
-  EdgeChange,
   applyNodeChanges,
   applyEdgeChanges,
   BackgroundVariant,
 } from '@xyflow/react';
+import type {
+  Node,
+  Edge,
+  Connection,
+  NodeChange,
+  EdgeChange,
+} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { cn } from '../lib/utils';
-import type { NodeType } from '../types/node';
 
 export interface FlowCanvasProps {
   nodes: Node[];

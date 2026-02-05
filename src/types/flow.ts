@@ -1,5 +1,5 @@
-import type { Node } from './node';
-import type { Connection } from './connection';
+import type { Node as CustomNode } from './node';
+import type { Connection as CustomConnection } from './connection';
 
 /**
  * 流程接口
@@ -7,6 +7,16 @@ import type { Connection } from './connection';
 export interface Flow {
   id: string;
   name: string;
-  nodes: Node[];
-  connections: Connection[];
+  nodes: CustomNode[];
+  connections: CustomConnection[];
+}
+
+/**
+ * Flow interface using custom Node type
+ */
+export interface Flow {
+  id: string;
+  name: string;
+  nodes: CustomNode[];
+  connections: CustomConnection[];
 }

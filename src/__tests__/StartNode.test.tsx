@@ -7,22 +7,20 @@ vi.mock('@xyflow/react/dist/style.css', () => ({}));
 vi.mock('*.css', () => ({}));
 
 // Mock Handle component from @xyflow/react to avoid Zustand provider issue
-vi.mock('@xyflow/react', async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    Handle: ({ children, className, type, position }: { children?: React.ReactNode; className?: string; type?: string; position?: any }) => (
-      <div
-        className={className}
-        data-testid={type === 'source' ? 'output-handle' : 'input-handle'}
-        data-type={type}
-        data-position={position}
-      >
-        {children}
-      </div>
-    ),
-  };
-});
+vi.mock('@xyflow/react', () => ({
+  Handle: ({ children, className, type, position }: { children?: React.ReactNode; className?: string; type?: string; position?: any }) => (
+    <div
+      className={className}
+      data-testid={type === 'source' ? 'output-handle' : 'input-handle'}
+      data-type={type}
+      data-position={position}
+    >
+      {children}
+    </div>
+  ),
+  Position: {},
+  NodeProps: {},
+}));
 
 describe('StartNode', () => {
   const defaultProps = {
@@ -43,7 +41,7 @@ describe('StartNode', () => {
     expect(screen.getByText('开始')).toBeInTheDocument();
     
     // 验证绿色背景
-    const cardElement = container.querySelector('[data-testid="start-node-card"]');
+    const cardElement = container.querySelector('[data-testid="start-node"]');
     expect(cardElement).toHaveClass('bg-emerald-500');
     
     // 验证圆形形状
@@ -72,13 +70,13 @@ describe('StartNode', () => {
 
   it('应该有绿色背景 (bg-emerald-500)', () => {
     const { container } = render(<StartNode {...defaultProps} />);
-    const cardElement = container.querySelector('[data-testid="start-node-card"]');
+    const cardElement = container.querySelector('[data-testid="start-node"]');
     expect(cardElement).toHaveClass('bg-emerald-500');
   });
 
   it('应该是圆形 (rounded-full)', () => {
     const { container } = render(<StartNode {...defaultProps} />);
-    const cardElement = container.querySelector('[data-testid="start-node-card"]');
+    const cardElement = container.querySelector('[data-testid="start-node"]');
     expect(cardElement).toHaveClass('rounded-full');
   });
 
@@ -98,7 +96,7 @@ describe('StartNode', () => {
     };
     const { container } = render(<StartNode {...props} />);
     
-    const cardElement = container.querySelector('[data-testid="start-node-card"]');
+    const cardElement = container.querySelector('[data-testid="start-node"]');
     expect(cardElement).toHaveClass('ring-2', 'ring-blue-500', 'ring-offset-2');
   });
 
@@ -109,7 +107,7 @@ describe('StartNode', () => {
     };
     const { container } = render(<StartNode {...props} />);
     
-    const cardElement = container.querySelector('[data-testid="start-node-card"]');
+    const cardElement = container.querySelector('[data-testid="start-node"]');
     expect(cardElement).toHaveClass('ring-2', 'ring-red-500', 'ring-offset-2');
   });
 
@@ -121,7 +119,7 @@ describe('StartNode', () => {
     };
     const { container } = render(<StartNode {...props} />);
     
-    const cardElement = container.querySelector('[data-testid="start-node-card"]');
+    const cardElement = container.querySelector('[data-testid="start-node"]');
     // 当同时存在 selected 和 error 时，error 样式的优先级更高
     expect(cardElement).toHaveClass('ring-2', 'ring-red-500');
   });
@@ -146,13 +144,13 @@ describe('StartNode', () => {
 
   it('应该有最小宽度 (min-w-[120px])', () => {
     const { container } = render(<StartNode {...defaultProps} />);
-    const cardElement = container.querySelector('[data-testid="start-node-card"]');
+    const cardElement = container.querySelector('[data-testid="start-node"]');
     expect(cardElement).toHaveClass('min-w-[120px]');
   });
 
   it('文字应该是白色且居中', () => {
     const { container } = render(<StartNode {...defaultProps} />);
-    const cardElement = container.querySelector('[data-testid="start-node-card"]');
+    const cardElement = container.querySelector('[data-testid="start-node"]');
 
     const textElement = cardElement.querySelector('[data-testid="node-label"]');
     expect(textElement).toHaveClass('font-medium', 'text-sm', 'text-center');
@@ -160,13 +158,13 @@ describe('StartNode', () => {
 
   it('应该有过渡动画 (transition-all)', () => {
     const { container } = render(<StartNode {...defaultProps} />);
-    const cardElement = container.querySelector('[data-testid="start-node-card"]');
+    const cardElement = container.querySelector('[data-testid="start-node"]');
     expect(cardElement).toHaveClass('transition-all', 'duration-200');
   });
 
   it('应该有阴影效果 (shadow-lg)', () => {
     const { container } = render(<StartNode {...defaultProps} />);
-    const cardElement = container.querySelector('[data-testid="start-node-card"]');
+    const cardElement = container.querySelector('[data-testid="start-node"]');
     expect(cardElement).toHaveClass('shadow-lg');
   });
 
