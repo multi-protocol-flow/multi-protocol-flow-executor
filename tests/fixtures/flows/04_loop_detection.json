@@ -1,0 +1,23 @@
+{
+  "id": "6ba7b812-9dad-11d1-80b4-00c04fd430c8",
+  "name": "无效流程 - 循环检测",
+  "nodes": [
+    {
+      "id": "start-6ba7b812-9dad-11d1-80b4-00c04fd430c8",
+      "type": "start",
+      "name": "开始",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": {},
+      "ports": null
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-6ba7b812-9dad-11d1-80b4-00c04fd430c8",
+      "source_node_id": "start-6ba7b812-9dad-11d1-80b4-00c04fd430c8",
+      "target_node_id": "start-6ba7b812-9dad-11d1-80b4-00c04fd430c8",
+      "source_port_id": "output",
+      "target_port_id": "input"
+    }
+  ]
+}
