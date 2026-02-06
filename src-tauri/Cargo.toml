@@ -28,3 +28,9 @@ log = "0.4"
 tauri = { version = "2.10.0", features = [] }
 tauri-plugin-log = "2"
 uuid = { version = "1.0", features = ["v4", "serde"] }
+
+[dev-dependencies]
+assert_cmd = "2.0"
+cargo-llvm-cov = "0.6"
+tempfile = "3.0"
+predicates = "3"

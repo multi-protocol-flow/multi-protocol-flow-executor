@@ -343,4 +343,196 @@ mod tests {
             avg_time_ms
         );
     }
+
+    #[test]
+    fn test_find_next_node_uses_source_node_uuid() {
+        // 测试 find_next_node 方法使用 conn.source_node_uuid
+        let start_node_uuid = "test-source-uuid";
+        let end_node_uuid = "test-target-uuid";
+
+        let connection = Connection {
+            id: "conn-test".to_string(),
+            source_node_uuid: start_node_uuid.to_string(), // 使用 source_node_uuid
+            target_node_uuid: end_node_uuid.to_string(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let executor = StartNodeExecutor::new();
+        let next_node_id = executor.find_next_node(start_node_uuid, &[connection]);
+
+        // 验证 find_next_node 使用 source_node_uuid 匹配连接
+        assert_eq!(next_node_id, Some(end_node_uuid.to_string()));
+    }
+
+    #[test]
+    fn test_find_next_node_uses_target_node_uuid() {
+        // 测试 find_next_node 方法使用 conn.target_node_uuid
+        let start_node_uuid = "start-uuid-target-test";
+        let target_node_uuid = "target-uuid-result";
+
+        let connection = Connection {
+            id: "conn-target-test".to_string(),
+            source_node_uuid: start_node_uuid.to_string(),
+            target_node_uuid: target_node_uuid.to_string(), // 使用 target_node_uuid
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let executor = StartNodeExecutor::new();
+        let next_node_id = executor.find_next_node(start_node_uuid, &[connection]);
+
+        // 验证 find_next_node 返回 target_node_uuid
+        assert_eq!(next_node_id, Some(target_node_uuid.to_string()));
+    }
+
+    #[test]
+    fn test_execute_uses_node_uuid() {
+        // 测试 execute 方法使用 node.uuid
+        let node_uuid = "test-node-uuid-execute";
+        let start_node = Node {
+            uuid: node_uuid.to_string(),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let end_node = Node {
+            uuid: "end-node-uuid".to_string(),
+            node_type: NodeType::End,
+            name: "结束".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        // 连接使用 node.uuid 作为 source_node_uuid
+        let connection = Connection {
+            id: "conn-execute-uuid".to_string(),
+            source_node_uuid: start_node.uuid.clone(), // 使用 node.uuid
+            target_node_uuid: end_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let context = ExecutionContext {
+            flow_id: "flow-1".to_string(),
+            current_node_id: Some(start_node.uuid.clone()),
+            variables: json!({}),
+        };
+
+        let mut node_map = HashMap::new();
+        node_map.insert(start_node.uuid.clone(), &start_node);
+        node_map.insert(end_node.uuid.clone(), &end_node);
+
+        let executor = StartNodeExecutor::new();
+        let result = executor.execute(&start_node, &context, &[connection], &node_map);
+
+        // 验证 execute 方法正确使用了 node.uuid
+        assert!(result.is_ok());
+        let (next_node_id, _) = result.unwrap();
+        assert!(next_node_id.is_some());
+    }
+
+    #[test]
+    fn test_node_execution_logic_correct() {
+        // 测试节点执行逻辑正确
+        let start_node = Node {
+            uuid: "logic-test-start".to_string(),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let next_node = Node {
+            uuid: "logic-test-next".to_string(),
+            node_type: NodeType::End,
+            name: "下一个".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let connection = Connection {
+            id: "conn-logic-test".to_string(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: next_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let context = ExecutionContext {
+            flow_id: "flow-logic-test".to_string(),
+            current_node_id: Some(start_node.uuid.clone()),
+            variables: json!({}),
+        };
+
+        let mut node_map = HashMap::new();
+        node_map.insert(start_node.uuid.clone(), &start_node);
+        node_map.insert(next_node.uuid.clone(), &next_node);
+
+        let executor = StartNodeExecutor::new();
+        let result = executor.execute(&start_node, &context, &[connection], &node_map);
+
+        // 验证执行逻辑正确：
+        // 1. 执行成功
+        assert!(result.is_ok());
+        // 2. 返回下一个节点 ID
+        let (next_node_id, output_data) = result.unwrap();
+        assert_eq!(next_node_id, Some("logic-test-next".to_string()));
+        // 3. 开始节点不产生数据
+        assert!(output_data.is_none());
+    }
+
+    #[test]
+    fn test_multiple_connections_same_source_uuid() {
+        // 测试多个连接使用相同的 source_node_uuid
+        let source_uuid = "multi-source-uuid";
+        let target1_uuid = "multi-target-1-uuid";
+        let target2_uuid = "multi-target-2-uuid";
+
+        let connection1 = Connection {
+            id: "conn-multi-1".to_string(),
+            source_node_uuid: source_uuid.to_string(),
+            target_node_uuid: target1_uuid.to_string(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let connection2 = Connection {
+            id: "conn-multi-2".to_string(),
+            source_node_uuid: source_uuid.to_string(),
+            target_node_uuid: target2_uuid.to_string(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let executor = StartNodeExecutor::new();
+        let next_node_id = executor.find_next_node(source_uuid, &[connection1, connection2]);
+
+        // 验证返回第一个连接的 target_node_uuid
+        assert_eq!(next_node_id, Some(target1_uuid.to_string()));
+    }
+
+    #[test]
+    fn test_find_next_node_no_matching_source_uuid() {
+        // 测试没有匹配的 source_node_uuid
+        let connection = Connection {
+            id: "conn-no-match".to_string(),
+            source_node_uuid: "actual-source-uuid".to_string(),
+            target_node_uuid: "target-uuid".to_string(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let executor = StartNodeExecutor::new();
+        let next_node_id = executor.find_next_node("different-source-uuid", &[connection]);
+
+        // 验证返回 None（没有匹配的 source_node_uuid）
+        assert!(next_node_id.is_none());
+    }
 }

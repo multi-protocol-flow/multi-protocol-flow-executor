@@ -372,4 +372,196 @@ mod tests {
         assert_eq!(result.errors.len(), 1);
         assert!(result.errors[0].contains("没有输出连接"));
     }
+
+    #[test]
+    fn test_validator_uses_source_node_uuid() {
+        // 测试开始节点输出连接检查使用 conn.source_node_uuid
+        let start_node = create_start_node();
+        let end_node = create_end_node();
+
+        // 连接使用 source_node_uuid 字段
+        let connection = Connection {
+            id: "test-conn-id".to_string(),
+            source_node_uuid: start_node.uuid.clone(), // 明确使用 source_node_uuid
+            target_node_uuid: end_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "测试流程".to_string(),
+            initial_variables: None,
+            nodes: vec![start_node.clone(), end_node],
+            connections: vec![connection],
+        };
+
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+
+        // 验证通过（因为开始节点有输出连接）
+        assert!(result.valid);
+        assert!(result.errors.is_empty());
+    }
+
+    #[test]
+    fn test_validator_uses_start_node_uuid() {
+        // 测试开始节点输出连接检查使用 start_node.uuid
+        let start_node = Node {
+            uuid: "start-uuid-test".to_string(),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+        let end_node = create_end_node();
+
+        // 创建不匹配的连接（source 不是 start_node.uuid）
+        let other_node = Node {
+            uuid: "other-node-uuid".to_string(),
+            node_type: NodeType::End,
+            name: "其他节点".to_string(),
+            position: NodePosition { x: 200.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let connection = Connection {
+            id: "test-conn-id".to_string(),
+            source_node_uuid: other_node.uuid.clone(), // 不是 start_node.uuid
+            target_node_uuid: end_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "测试流程".to_string(),
+            initial_variables: None,
+            nodes: vec![start_node, other_node, end_node],
+            connections: vec![connection],
+        };
+
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+
+        // 验证检测到错误（开始节点没有输出连接）
+        assert!(!result.valid);
+        assert!(result.errors.iter().any(|e| e.contains("没有输出连接")));
+    }
+
+    #[test]
+    fn test_validator_create_connection_helper() {
+        // 测试 create_connection 辅助函数使用 source_node_uuid 和 target_node_uuid
+        let source_uuid = "source-node-test-uuid";
+        let target_uuid = "target-node-test-uuid";
+
+        let connection = create_connection(source_uuid, target_uuid);
+
+        // 验证连接正确使用了 source_node_uuid 和 target_node_uuid
+        assert_eq!(connection.source_node_uuid, source_uuid);
+        assert_eq!(connection.target_node_uuid, target_uuid);
+    }
+
+    #[test]
+    fn test_validator_error_messages_correct() {
+        // 测试验证错误消息正确
+        let start_node = Node {
+            uuid: "error-test-start".to_string(),
+            node_type: NodeType::Start,
+            name: "错误测试开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "错误测试流程".to_string(),
+            initial_variables: None,
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+
+        // 验证错误消息正确
+        assert!(!result.valid);
+        assert_eq!(result.errors.len(), 1);
+        let error_msg = &result.errors[0];
+        assert!(error_msg.contains("没有输出连接"));
+    }
+
+    #[test]
+    fn test_validator_multiple_connections_same_source() {
+        // 测试多个连接从同一个源节点发出
+        let start_node = create_start_node();
+        let end_node_1 = create_end_node();
+        let end_node_2 = create_end_node();
+
+        let connection_1 = create_connection(&start_node.uuid, &end_node_1.uuid);
+        let connection_2 = create_connection(&start_node.uuid, &end_node_2.uuid);
+
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "测试流程".to_string(),
+            initial_variables: None,
+            nodes: vec![start_node, end_node_1, end_node_2],
+            connections: vec![connection_1, connection_2],
+        };
+
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+
+        // 验证通过（开始节点有输出连接）
+        assert!(result.valid);
+        assert!(result.errors.is_empty());
+    }
+
+    #[test]
+    fn test_validator_connection_with_specific_uuids() {
+        // 测试使用特定 UUID 的连接
+        let start_node = Node {
+            uuid: "specific-start-uuid-001".to_string(),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let end_node = Node {
+            uuid: "specific-end-uuid-002".to_string(),
+            node_type: NodeType::End,
+            name: "结束".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        // 使用特定 UUID 创建连接
+        let connection = Connection {
+            id: "specific-conn-uuid-003".to_string(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "测试流程".to_string(),
+            initial_variables: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+        };
+
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+
+        // 验证通过
+        assert!(result.valid);
+    }
 }

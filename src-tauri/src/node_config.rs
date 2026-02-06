@@ -256,6 +256,30 @@ mod tests {
     }
 
     #[test]
+    fn test_start_config_empty_structure() {
+        // 测试 StartConfig 是空结构
+        let config = StartConfig {};
+        let json = serde_json::to_string(&config).unwrap();
+        assert_eq!(json, "{}");
+    }
+
+    #[test]
+    fn test_start_config_no_initial_variables_field() {
+        // 验证 StartConfig 不包含 initial_variables 字段
+        let config = StartConfig::default();
+        let json = serde_json::to_string(&config).unwrap();
+        assert!(!json.contains("initial_variables"));
+    }
+
+    #[test]
+    fn test_start_config_default_impl() {
+        // 测试 Default impl
+        let config = StartConfig::default();
+        let json = serde_json::to_string(&config).unwrap();
+        assert_eq!(json, "{}");
+    }
+
+    #[test]
     fn test_http_config_serialization() {
         let config = HttpConfig {
             url: "https://api.example.com/users".to_string(),

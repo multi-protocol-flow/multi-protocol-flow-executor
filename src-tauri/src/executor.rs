@@ -529,4 +529,324 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("尚未实现"));
     }
+
+    #[test]
+    fn test_execution_context_uses_flow_uuid() {
+        // 测试 ExecutionContext 初始化使用 flow.uuid
+        let flow_id = "test-flow-uuid-123".to_string();
+        let start_node = Node {
+            uuid: "start-1".to_string(),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试流程".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None);
+
+        // 验证上下文中的 flow_id 使用了 flow.uuid
+        assert!(!result.success); // 由于缺少连接，应该失败
+                                  // 验证错误消息中可能包含 flow_id 相关信息
+    }
+
+    #[test]
+    fn test_node_map_uses_node_uuid() {
+        // 测试节点映射构建使用 node.uuid
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let end_node = Node {
+            uuid: format!("end-{}", flow_id),
+            node_type: NodeType::End,
+            name: "结束".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let connection = Connection {
+            id: format!("conn-{}", flow_id),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试流程".to_string(),
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None);
+
+        // 验证执行成功（节点映射通过 node.uuid 查找成功）
+        assert!(result.success);
+        assert!(result.data.is_some());
+    }
+
+    #[test]
+    fn test_connection_map_uses_source_and_target_uuid() {
+        // 测试连接映射构建使用 conn.source_node_uuid 和 conn.target_node_uuid
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: "start-uuid-123".to_string(),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let end_node = Node {
+            uuid: "end-uuid-456".to_string(),
+            node_type: NodeType::End,
+            name: "结束".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let connection = Connection {
+            id: "conn-uuid-789".to_string(),
+            source_node_uuid: start_node.uuid.clone(), // 使用 source_node_uuid
+            target_node_uuid: end_node.uuid.clone(),   // 使用 target_node_uuid
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试流程".to_string(),
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None);
+
+        // 验证连接映射成功使用了 source_node_uuid 和 target_node_uuid
+        assert!(result.success);
+        assert_eq!(result.executed_nodes.len(), 1);
+    }
+
+    #[test]
+    fn test_current_node_id_uses_start_node_uuid() {
+        // 测试当前节点 ID 追踪使用 start_node.uuid
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: "start-uuid-tracker".to_string(),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let end_node = Node {
+            uuid: "end-uuid-tracker".to_string(),
+            node_type: NodeType::End,
+            name: "结束".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let connection = Connection {
+            id: "conn-tracker".to_string(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试流程".to_string(),
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None);
+
+        // 验证执行的第一个节点是 start_node.uuid
+        assert!(result.success);
+        assert_eq!(result.executed_nodes.len(), 1);
+        assert_eq!(result.executed_nodes[0], "start-uuid-tracker");
+    }
+
+    #[test]
+    fn test_error_message_uses_node_uuid() {
+        // 测试错误消息使用 node.uuid
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: "loop-node-uuid".to_string(),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        // 创建自连接以触发循环错误
+        let connection = Connection {
+            id: "loop-conn".to_string(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: start_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试流程".to_string(),
+            nodes: vec![start_node],
+            connections: vec![connection],
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None);
+
+        // 验证错误消息包含 node.uuid
+        assert!(!result.success);
+        assert!(result.error.is_some());
+        let error_msg = result.error.unwrap();
+        assert!(error_msg.contains("检测到循环"));
+        assert!(error_msg.contains("loop-node-uuid")); // 错误消息包含 node.uuid
+    }
+
+    #[test]
+    fn test_execution_result_data_uses_flow_uuid() {
+        // 测试执行结果数据使用 flow.uuid
+        let flow_id = "result-flow-uuid-999".to_string();
+        let start_node = Node {
+            uuid: "start-1".to_string(),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let end_node = Node {
+            uuid: "end-1".to_string(),
+            node_type: NodeType::End,
+            name: "结束".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let connection = Connection {
+            id: "conn-1".to_string(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试流程".to_string(),
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None);
+
+        // 验证执行结果数据包含 flow.uuid
+        assert!(result.success);
+        assert!(result.data.is_some());
+        let data = result.data.unwrap();
+        assert_eq!(data["flow_id"], "result-flow-uuid-999"); // 验证使用了 flow.uuid
+    }
+
+    #[test]
+    fn test_multiple_connections_uses_uuids() {
+        // 测试多个连接使用 source_node_uuid 和 target_node_uuid
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: "start-multi".to_string(),
+            node_type: NodeType::Start,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let end_node_1 = Node {
+            uuid: "end-1-multi".to_string(),
+            node_type: NodeType::End,
+            name: "结束 1".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let end_node_2 = Node {
+            uuid: "end-2-multi".to_string(),
+            node_type: NodeType::End,
+            name: "结束 2".to_string(),
+            position: NodePosition { x: 100.0, y: 100.0 },
+            data: NodeData::start(),
+            ports: None,
+        };
+
+        let connection_1 = Connection {
+            id: "conn-1-multi".to_string(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node_1.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let connection_2 = Connection {
+            id: "conn-2-multi".to_string(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node_2.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试流程".to_string(),
+            nodes: vec![start_node, end_node_1, end_node_2],
+            connections: vec![connection_1, connection_2],
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None);
+
+        // 验证执行成功，连接映射正确使用了 UUID
+        assert!(result.success);
+        assert_eq!(result.executed_nodes.len(), 1);
+    }
 }

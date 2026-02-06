@@ -257,4 +257,55 @@ mod tests {
         // 清理临时文件
         let _ = fs::remove_file(&temp_file_path);
     }
+
+    #[test]
+    fn test_create_test_flow_uses_uuid_field() {
+        let flow = create_test_flow();
+
+        // 验证 uuid 字段存在且不为空
+        assert!(!flow.uuid.is_empty(), "flow.uuid 不应该为空");
+        assert_eq!(flow.uuid, "test-flow-1", "flow.uuid 应该是 'test-flow-1'");
+    }
+
+    #[test]
+    fn test_flow_uuid_preserved_across_save_load() {
+        // 创建多个具有不同 uuid 的 flow
+        let flow1 = Flow {
+            uuid: "uuid-12345".to_string(),
+            name: "流程1".to_string(),
+            initial_variables: None,
+            nodes: vec![],
+            connections: vec![],
+        };
+
+        let flow2 = Flow {
+            uuid: "uuid-67890".to_string(),
+            name: "流程2".to_string(),
+            initial_variables: None,
+            nodes: vec![],
+            connections: vec![],
+        };
+
+        let test_dir = std::env::current_dir().unwrap().join("test-flows-uuid");
+        let _ = fs::remove_dir_all(&test_dir);
+        fs::create_dir_all(&test_dir).expect("Failed to create test dir");
+
+        // 保存两个 flow
+        let path1 = test_dir.join("flow1.json");
+        let path2 = test_dir.join("flow2.json");
+
+        save_flow(&flow1, path1.to_str().unwrap()).expect("Failed to save flow1");
+        save_flow(&flow2, path2.to_str().unwrap()).expect("Failed to save flow2");
+
+        // 加载并验证 uuid 保留
+        let loaded1 = load_flow(path1.to_str().unwrap()).expect("Failed to load flow1");
+        let loaded2 = load_flow(path2.to_str().unwrap()).expect("Failed to load flow2");
+
+        assert_eq!(loaded1.uuid, "uuid-12345", "flow1.uuid 应该被正确保留");
+        assert_eq!(loaded2.uuid, "uuid-67890", "flow2.uuid 应该被正确保留");
+        assert_ne!(loaded1.uuid, loaded2.uuid, "不同 flow 的 uuid 应该不同");
+
+        // 清理测试目录
+        let _ = fs::remove_dir_all(&test_dir);
+    }
 }
