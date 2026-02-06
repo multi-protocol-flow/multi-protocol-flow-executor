@@ -34,7 +34,7 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
 
     // 创建开始节点
     let start_node = Node {
-        id: format!("start-{}", flow_id),
+        uuid: format!("start-{}", flow_id),
         node_type: NodeType::Start,
         name: "开始".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
@@ -44,10 +44,11 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
 
     // 创建流程对象
     let flow = Flow {
-        id: flow_id.clone(),
+        uuid: flow_id.clone(),
         name: input.name,
         nodes: vec![start_node],
         connections: vec![],
+        initial_variables: None,
     };
 
     CreateFlowCommandOutput { flow }
@@ -95,7 +96,7 @@ pub fn execute_flow(_input: ExecuteFlowCommandInput, flow: Flow) -> ExecuteFlowC
     let has_connection = flow
         .connections
         .iter()
-        .any(|conn| conn.source_node_id == start_node.id);
+        .any(|conn| conn.source_node_uuid == start_node.uuid);
 
     if !has_connection {
         return ExecuteFlowCommandOutput {
@@ -109,7 +110,7 @@ pub fn execute_flow(_input: ExecuteFlowCommandInput, flow: Flow) -> ExecuteFlowC
     // 执行成功（桩实现：开始节点立即传递）
     ExecuteFlowCommandOutput {
         success: true,
-        data: Some(json!({ "flow_id": flow.id })),
+        data: Some(json!({ "flow_id": flow.uuid })),
         error: None,
         execution_time: start_time.elapsed().as_millis() as u64,
     }
@@ -158,7 +159,7 @@ pub fn update_node(_input: UpdateNodeCommandInput, _flow: Flow) -> UpdateNodeCom
 #[tauri::command]
 pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeCommandOutput {
     // 查找节点
-    let node = flow.nodes.iter().find(|n| n.id == input.node_id);
+    let node = flow.nodes.iter().find(|n| n.uuid == input.node_id);
 
     // 验证节点存在
     let node = match node {
@@ -205,7 +206,7 @@ mod tests {
         assert_eq!(output.flow.name, "测试流程");
 
         // 验证流程有唯一 ID
-        assert!(!output.flow.id.is_empty());
+        assert!(!output.flow.uuid.is_empty());
 
         // 验证流程包含一个开始节点
         assert_eq!(output.flow.nodes.len(), 1);
@@ -217,8 +218,8 @@ mod tests {
         assert_eq!(output.flow.nodes[0].name, "开始");
 
         // 验证开始节点 ID 格式
-        assert!(output.flow.nodes[0].id.starts_with("start-"));
-        assert!(output.flow.nodes[0].id.contains(&output.flow.id));
+        assert!(output.flow.nodes[0].uuid.starts_with("start-"));
+        assert!(output.flow.nodes[0].uuid.contains(&output.flow.uuid));
 
         // 验证连接列表为空
         assert_eq!(output.flow.connections.len(), 0);
@@ -237,10 +238,10 @@ mod tests {
         let output2 = create_flow(input2);
 
         // 验证两个流程有不同的 ID
-        assert_ne!(output1.flow.id, output2.flow.id);
+        assert_ne!(output1.flow.uuid, output2.flow.uuid);
 
         // 验证两个开始节点有不同的 ID
-        assert_ne!(output1.flow.nodes[0].id, output2.flow.nodes[0].id);
+        assert_ne!(output1.flow.nodes[0].uuid, output2.flow.nodes[0].uuid);
     }
 
     #[test]
@@ -248,7 +249,7 @@ mod tests {
         // 创建一个测试流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
-            id: format!("start-{}", flow_id),
+            uuid: format!("start-{}", flow_id),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -257,7 +258,7 @@ mod tests {
         };
 
         let end_node = Node {
-            id: format!("end-{}", flow_id),
+            uuid: format!("end-{}", flow_id),
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
@@ -267,17 +268,18 @@ mod tests {
 
         let connection = Connection {
             id: format!("conn-{}", flow_id),
-            source_node_id: start_node.id.clone(),
-            target_node_id: end_node.id.clone(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
             source_port_id: "output".to_string(),
             target_port_id: "input".to_string(),
         };
 
         let flow = Flow {
-            id: flow_id.clone(),
+            uuid: flow_id.clone(),
             name: "测试流程".to_string(),
             nodes: vec![start_node, end_node],
             connections: vec![connection],
+            initial_variables: None,
         };
 
         let input = ExecuteFlowCommandInput {
@@ -309,7 +311,7 @@ mod tests {
         // 创建一个没有连接的测试流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
-            id: format!("start-{}", flow_id),
+            uuid: format!("start-{}", flow_id),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -318,10 +320,11 @@ mod tests {
         };
 
         let flow = Flow {
-            id: flow_id.clone(),
+            uuid: flow_id.clone(),
             name: "测试流程".to_string(),
             nodes: vec![start_node],
             connections: vec![],
+            initial_variables: None,
         };
 
         let input = ExecuteFlowCommandInput {
@@ -347,7 +350,7 @@ mod tests {
         // 创建一个没有开始节点的测试流程
         let flow_id = Uuid::new_v4().to_string();
         let http_node = Node {
-            id: format!("http-{}", flow_id),
+            uuid: format!("http-{}", flow_id),
             node_type: NodeType::Http,
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -356,10 +359,11 @@ mod tests {
         };
 
         let flow = Flow {
-            id: flow_id.clone(),
+            uuid: flow_id.clone(),
             name: "测试流程".to_string(),
             nodes: vec![http_node],
             connections: vec![],
+            initial_variables: None,
         };
 
         let input = ExecuteFlowCommandInput {
@@ -384,7 +388,7 @@ mod tests {
         // 创建一个测试流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
-            id: format!("start-{}", flow_id),
+            uuid: format!("start-{}", flow_id),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -393,10 +397,11 @@ mod tests {
         };
 
         let flow = Flow {
-            id: flow_id.clone(),
+            uuid: flow_id.clone(),
             name: "测试流程".to_string(),
             nodes: vec![start_node],
             connections: vec![],
+            initial_variables: None,
         };
 
         let input = UpdateNodeCommandInput {
@@ -428,7 +433,7 @@ mod tests {
         // 创建一个测试流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
-            id: format!("start-{}", flow_id),
+            uuid: format!("start-{}", flow_id),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -437,10 +442,11 @@ mod tests {
         };
 
         let flow = Flow {
-            id: flow_id.clone(),
+            uuid: flow_id.clone(),
             name: "测试流程".to_string(),
             nodes: vec![start_node],
             connections: vec![],
+            initial_variables: None,
         };
 
         let input = DeleteNodeCommandInput {
@@ -467,7 +473,7 @@ mod tests {
         // 创建一个测试流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
-            id: format!("start-{}", flow_id),
+            uuid: format!("start-{}", flow_id),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -476,7 +482,7 @@ mod tests {
         };
 
         let http_node = Node {
-            id: format!("http-{}", flow_id),
+            uuid: format!("http-{}", flow_id),
             node_type: NodeType::Http,
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
@@ -485,10 +491,11 @@ mod tests {
         };
 
         let flow = Flow {
-            id: flow_id.clone(),
+            uuid: flow_id.clone(),
             name: "测试流程".to_string(),
             nodes: vec![start_node, http_node],
             connections: vec![],
+            initial_variables: None,
         };
 
         let input = DeleteNodeCommandInput {
