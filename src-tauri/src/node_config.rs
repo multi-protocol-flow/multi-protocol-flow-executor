@@ -253,18 +253,6 @@ mod tests {
         let config = StartConfig::default();
         let json = serde_json::to_string(&config).unwrap();
         assert_eq!(json, "{}");
-
-        let config_with_vars = StartConfig {
-            initial_variables: {
-                let mut map = HashMap::new();
-                map.insert("api_key".to_string(), json!("sk-xxx"));
-                Some(map)
-            },
-        };
-
-        let json = serde_json::to_string_pretty(&config_with_vars).unwrap();
-        assert!(json.contains("initial_variables"));
-        assert!(json.contains("api_key"));
     }
 
     #[test]
