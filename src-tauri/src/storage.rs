@@ -146,8 +146,9 @@ mod tests {
     // 测试用的辅助函数：创建一个简单的 Flow
     fn create_test_flow() -> Flow {
         Flow {
-            id: "test-flow-1".to_string(),
+            uuid: "test-flow-1".to_string(),
             name: "测试流程".to_string(),
+            initial_variables: None,
             nodes: vec![],
             connections: vec![],
         }
@@ -214,7 +215,7 @@ mod tests {
         assert!(loaded_flow.is_ok());
 
         let loaded = loaded_flow.unwrap();
-        assert_eq!(flow.id, loaded.id);
+        assert_eq!(flow.uuid, loaded.uuid);
         assert_eq!(flow.name, loaded.name);
         assert_eq!(flow.nodes.len(), loaded.nodes.len());
         assert_eq!(flow.connections.len(), loaded.connections.len());
@@ -251,7 +252,7 @@ mod tests {
         // 从绝对路径加载
         let loaded_flow = load_flow(temp_file_path.to_str().unwrap());
         assert!(loaded_flow.is_ok());
-        assert_eq!(flow.id, loaded_flow.unwrap().id);
+        assert_eq!(flow.uuid, loaded_flow.unwrap().uuid);
 
         // 清理临时文件
         let _ = fs::remove_file(&temp_file_path);
