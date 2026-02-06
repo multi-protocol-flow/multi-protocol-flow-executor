@@ -5,10 +5,10 @@
 pub struct Connection {
     /// 连接唯一标识符
     pub id: String,
-    /// 源节点 ID
-    pub source_node_id: String,
-    /// 目标节点 ID
-    pub target_node_id: String,
+    /// 源节点的 UUID（引用 node.uuid）
+    pub source_node_uuid: String,
+    /// 目标节点的 UUID（引用 node.uuid）
+    pub target_node_uuid: String,
     /// 源端口 ID
     pub source_port_id: String,
     /// 目标端口 ID
