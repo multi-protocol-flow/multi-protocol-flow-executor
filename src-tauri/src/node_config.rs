@@ -7,19 +7,13 @@ use std::collections::HashMap;
 // Start 节点配置
 // ============================================================================
 
-/// Start 节点配置
+/// Start 节点配置（初始变量已移到 Flow 层级）
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StartConfig {
-    /// 初始变量定义
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub initial_variables: Option<HashMap<String, serde_json::Value>>,
-}
+pub struct StartConfig {}
 
 impl Default for StartConfig {
     fn default() -> Self {
-        Self {
-            initial_variables: None,
-        }
+        Self {}
     }
 }
 
