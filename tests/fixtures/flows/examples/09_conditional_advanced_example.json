@@ -1,9 +1,9 @@
 {
-  "id": "conditional-advanced-example-flow",
+  "uuid": "conditional-advanced-example-flow",
   "name": "高级条件表达式示例",
   "nodes": [
     {
-      "id": "start-001",
+      "uuid": "start-001",
       "type": "start",
       "name": "开始",
       "position": { "x": 0.0, "y": 0.0 },
@@ -13,7 +13,7 @@
       "ports": null
     },
     {
-      "id": "conditional-001",
+      "uuid": "conditional-001",
       "type": "conditional",
       "name": "复合条件判断",
       "position": { "x": 100.0, "y": 0.0 },
@@ -25,7 +25,7 @@
       "ports": null
     },
     {
-      "id": "end-001",
+      "uuid": "end-001",
       "type": "end",
       "name": "结束",
       "position": { "x": 200.0, "y": 0.0 },
@@ -38,15 +38,15 @@
   "connections": [
     {
       "id": "conn-001",
-      "source_node_id": "start-001",
-      "target_node_id": "conditional-001",
+      "source_node_uuid": "start-001",
+      "target_node_uuid": "conditional-001",
       "source_port_id": "output",
       "target_port_id": "input"
     },
     {
       "id": "conn-002",
-      "source_node_id": "conditional-001",
-      "target_node_id": "end-001",
+      "source_node_uuid": "conditional-001",
+      "target_node_uuid": "end-001",
       "source_port_id": "true",
       "target_port_id": "input"
     }

@@ -1,9 +1,9 @@
 {
-  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
   "name": "有效流程 - 开始节点连接到结束节点",
   "nodes": [
     {
-      "id": "start-550e8400-e29b-41d4-a716-446655440000",
+      "uuid": "start-550e8400-e29b-41d4-a716-446655440000",
       "type": "start",
       "name": "开始",
       "position": { "x": 0.0, "y": 0.0 },
@@ -11,7 +11,7 @@
       "ports": null
     },
     {
-      "id": "end-550e8400-e29b-41d4-a716-446655440000",
+      "uuid": "end-550e8400-e29b-41d4-a716-446655440000",
       "type": "end",
       "name": "结束",
       "position": { "x": 100.0, "y": 0.0 },
@@ -22,8 +22,8 @@
   "connections": [
     {
       "id": "conn-550e8400-e29b-41d4-a716-446655440000",
-      "source_node_id": "start-550e8400-e29b-41d4-a716-446655440000",
-      "target_node_id": "end-550e8400-e29b-41d4-a716-446655440000",
+      "source_node_uuid": "start-550e8400-e29b-41d4-a716-446655440000",
+      "target_node_uuid": "end-550e8400-e29b-41d4-a716-446655440000",
       "source_port_id": "output",
       "target_port_id": "input"
     }
