@@ -83,7 +83,7 @@ impl FlowExecutor {
         let start_time = Instant::now();
         let mut executed_nodes = Vec::new();
         let mut context = ExecutionContext {
-            flow_id: flow.id.clone(),
+            flow_id: flow.uuid.clone(),
             current_node_id: None,
             variables: variables.unwrap_or_else(|| json!({})),
         };
@@ -109,20 +109,20 @@ impl FlowExecutor {
         let node_map: HashMap<String, &Node> = flow
             .nodes
             .iter()
-            .map(|node| (node.id.clone(), node))
+            .map(|node| (node.uuid.clone(), node))
             .collect();
 
-        // 构建连接映射：source_node_id -> Vec<target_node_id>
+        // 构建连接映射：source_node_uuid -> Vec<target_node_uuid>
         let mut connection_map: HashMap<String, Vec<String>> = HashMap::new();
         for conn in &flow.connections {
             connection_map
-                .entry(conn.source_node_id.clone())
+                .entry(conn.source_node_uuid.clone())
                 .or_default()
-                .push(conn.target_node_id.clone());
+                .push(conn.target_node_uuid.clone());
         }
 
         // 从开始节点开始遍历
-        let mut current_node_id = start_node.id.clone();
+        let mut current_node_id = start_node.uuid.clone();
         let mut visited = std::collections::HashSet::new();
 
         while let Some(node) = node_map.get(&current_node_id) {
@@ -131,7 +131,7 @@ impl FlowExecutor {
                 return ExecutionResult {
                     success: false,
                     data: None,
-                    error: Some(format!("检测到循环：节点 {} 已被访问", node.id)),
+                    error: Some(format!("检测到循环：节点 {} 已被访问", node.uuid)),
                     executed_nodes,
                 };
             }
@@ -198,7 +198,7 @@ impl FlowExecutor {
         ExecutionResult {
             success: true,
             data: Some(json!({
-                "flow_id": flow.id,
+                "flow_id": flow.uuid,
                 "executed_nodes": executed_nodes,
                 "execution_time": start_time.elapsed().as_millis() as u64,
             })),
@@ -242,7 +242,7 @@ mod tests {
         // 创建测试流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
-            id: format!("start-{}", flow_id),
+            uuid: format!("start-{}", flow_id),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -251,7 +251,8 @@ mod tests {
         };
 
         let flow = Flow {
-            id: flow_id.clone(),
+            uuid: flow_id.clone(),
+            initial_variables: None,
             name: "测试流程".to_string(),
             nodes: vec![start_node],
             connections: vec![],
@@ -271,7 +272,7 @@ mod tests {
         // 创建测试流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
-            id: format!("start-{}", flow_id),
+            uuid: format!("start-{}", flow_id),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -280,7 +281,7 @@ mod tests {
         };
 
         let end_node = Node {
-            id: format!("end-{}", flow_id),
+            uuid: format!("end-{}", flow_id),
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
@@ -290,14 +291,15 @@ mod tests {
 
         let connection = Connection {
             id: format!("conn-{}", flow_id),
-            source_node_id: start_node.id.clone(),
-            target_node_id: end_node.id.clone(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
             source_port_id: "output".to_string(),
             target_port_id: "input".to_string(),
         };
 
         let flow = Flow {
-            id: flow_id.clone(),
+            uuid: flow_id.clone(),
+            initial_variables: None,
             name: "测试流程".to_string(),
             nodes: vec![start_node, end_node],
             connections: vec![connection],
@@ -326,7 +328,7 @@ mod tests {
         // 创建没有开始节点的流程
         let flow_id = Uuid::new_v4().to_string();
         let http_node = Node {
-            id: format!("http-{}", flow_id),
+            uuid: format!("http-{}", flow_id),
             node_type: NodeType::Http,
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -335,7 +337,8 @@ mod tests {
         };
 
         let flow = Flow {
-            id: flow_id.clone(),
+            uuid: flow_id.clone(),
+            initial_variables: None,
             name: "测试流程".to_string(),
             nodes: vec![http_node],
             connections: vec![],
@@ -356,7 +359,7 @@ mod tests {
         // 创建循环连接的流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
-            id: format!("start-{}", flow_id),
+            uuid: format!("start-{}", flow_id),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -367,14 +370,15 @@ mod tests {
         // 创建一个自连接
         let connection = Connection {
             id: format!("conn-{}", flow_id),
-            source_node_id: start_node.id.clone(),
-            target_node_id: start_node.id.clone(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: start_node.uuid.clone(),
             source_port_id: "output".to_string(),
             target_port_id: "input".to_string(),
         };
 
         let flow = Flow {
-            id: flow_id.clone(),
+            uuid: flow_id.clone(),
+            initial_variables: None,
             name: "测试流程".to_string(),
             nodes: vec![start_node],
             connections: vec![connection],
@@ -394,7 +398,7 @@ mod tests {
         // 创建测试流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
-            id: format!("start-{}", flow_id),
+            uuid: format!("start-{}", flow_id),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -403,7 +407,7 @@ mod tests {
         };
 
         let end_node = Node {
-            id: format!("end-{}", flow_id),
+            uuid: format!("end-{}", flow_id),
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
@@ -413,14 +417,15 @@ mod tests {
 
         let connection = Connection {
             id: format!("conn-{}", flow_id),
-            source_node_id: start_node.id.clone(),
-            target_node_id: end_node.id.clone(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
             source_port_id: "output".to_string(),
             target_port_id: "input".to_string(),
         };
 
         let flow = Flow {
-            id: flow_id.clone(),
+            uuid: flow_id.clone(),
+            initial_variables: None,
             name: "测试流程".to_string(),
             nodes: vec![start_node, end_node],
             connections: vec![connection],
@@ -445,7 +450,7 @@ mod tests {
         // 创建测试流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
-            id: format!("start-{}", flow_id),
+            uuid: format!("start-{}", flow_id),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -454,7 +459,7 @@ mod tests {
         };
 
         let end_node = Node {
-            id: format!("end-{}", flow_id),
+            uuid: format!("end-{}", flow_id),
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
@@ -464,14 +469,15 @@ mod tests {
 
         let connection = Connection {
             id: format!("conn-{}", flow_id),
-            source_node_id: start_node.id.clone(),
-            target_node_id: end_node.id.clone(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
             source_port_id: "output".to_string(),
             target_port_id: "input".to_string(),
         };
 
         let flow = Flow {
-            id: flow_id.clone(),
+            uuid: flow_id.clone(),
+            initial_variables: None,
             name: "测试流程".to_string(),
             nodes: vec![start_node, end_node],
             connections: vec![connection],
@@ -502,7 +508,7 @@ mod tests {
         // 创建未实现的节点类型
         let flow_id = Uuid::new_v4().to_string();
         let http_node = Node {
-            id: format!("http-{}", flow_id),
+            uuid: format!("http-{}", flow_id),
             node_type: NodeType::Http,
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -513,7 +519,7 @@ mod tests {
         let executor = FlowExecutor::new();
         let context = ExecutionContext {
             flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.id.clone()),
+            current_node_id: Some(http_node.uuid.clone()),
             variables: json!({}),
         };
 
