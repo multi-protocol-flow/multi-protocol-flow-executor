@@ -50,8 +50,8 @@ pub struct Port {
 /// 节点数据结构
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Node {
-    /// 节点唯一标识符
-    pub id: String,
+    /// 节点唯一标识符（前端生成UUID，用于连接关联）
+    pub uuid: String,
     /// 节点类型
     #[serde(rename = "type")]
     pub node_type: NodeType,
