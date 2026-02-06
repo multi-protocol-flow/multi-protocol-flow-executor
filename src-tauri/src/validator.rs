@@ -83,7 +83,7 @@ impl FlowValidator {
             let has_output = flow
                 .connections
                 .iter()
-                .any(|conn| conn.source_node_id == start_node.id);
+                .any(|conn| conn.source_node_uuid == start_node.uuid);
 
             if !has_output {
                 errors.push(format!("开始节点 '{}' 没有输出连接", start_node.name));
@@ -120,7 +120,7 @@ mod tests {
     /// 创建测试用的开始节点
     fn create_start_node() -> Node {
         Node {
-            id: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4().to_string(),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -132,7 +132,7 @@ mod tests {
     /// 创建测试用的结束节点
     fn create_end_node() -> Node {
         Node {
-            id: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4().to_string(),
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
@@ -142,11 +142,11 @@ mod tests {
     }
 
     /// 创建连接
-    fn create_connection(source_id: &str, target_id: &str) -> Connection {
+    fn create_connection(source_uuid: &str, target_uuid: &str) -> Connection {
         Connection {
             id: Uuid::new_v4().to_string(),
-            source_node_id: source_id.to_string(),
-            target_node_id: target_id.to_string(),
+            source_node_uuid: source_uuid.to_string(),
+            target_node_uuid: target_uuid.to_string(),
             source_port_id: "output".to_string(),
             target_port_id: "input".to_string(),
         }
@@ -156,8 +156,9 @@ mod tests {
     fn test_validator_no_start_node() {
         // 创建没有开始节点的流程
         let flow = Flow {
-            id: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4().to_string(),
             name: "测试流程".to_string(),
+            initial_variables: None,
             nodes: vec![create_end_node()],
             connections: vec![],
         };
@@ -178,8 +179,9 @@ mod tests {
         let start_node2 = create_start_node();
 
         let flow = Flow {
-            id: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4().to_string(),
             name: "测试流程".to_string(),
+            initial_variables: None,
             nodes: vec![start_node1, start_node2],
             connections: vec![],
         };
@@ -200,8 +202,9 @@ mod tests {
         let start_node = create_start_node();
 
         let flow = Flow {
-            id: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4().to_string(),
             name: "测试流程".to_string(),
+            initial_variables: None,
             nodes: vec![start_node],
             connections: vec![],
         };
@@ -220,11 +223,12 @@ mod tests {
         // 创建有效的流程
         let start_node = create_start_node();
         let end_node = create_end_node();
-        let connection = create_connection(&start_node.id, &end_node.id);
+        let connection = create_connection(&start_node.uuid, &end_node.uuid);
 
         let flow = Flow {
-            id: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4().to_string(),
             name: "测试流程".to_string(),
+            initial_variables: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
         };
@@ -244,8 +248,9 @@ mod tests {
         let start_node2 = create_start_node();
 
         let flow = Flow {
-            id: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4().to_string(),
             name: "测试流程".to_string(),
+            initial_variables: None,
             nodes: vec![start_node1, start_node2],
             connections: vec![],
         };
@@ -264,11 +269,12 @@ mod tests {
         // 测试 execute 方法
         let start_node = create_start_node();
         let end_node = create_end_node();
-        let connection = create_connection(&start_node.id, &end_node.id);
+        let connection = create_connection(&start_node.uuid, &end_node.uuid);
 
         let flow = Flow {
-            id: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4().to_string(),
             name: "测试流程".to_string(),
+            initial_variables: None,
             nodes: vec![start_node, end_node],
             connections: vec![connection],
         };
@@ -284,8 +290,9 @@ mod tests {
     fn test_validator_empty_flow() {
         // 创建空流程
         let flow = Flow {
-            id: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4().to_string(),
             name: "空流程".to_string(),
+            initial_variables: None,
             nodes: vec![],
             connections: vec![],
         };
@@ -304,7 +311,7 @@ mod tests {
         // 创建包含其他节点的有效流程
         let start_node = create_start_node();
         let http_node = Node {
-            id: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4().to_string(),
             node_type: NodeType::Http,
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
@@ -313,12 +320,13 @@ mod tests {
         };
         let end_node = create_end_node();
 
-        let connection1 = create_connection(&start_node.id, &http_node.id);
-        let connection2 = create_connection(&http_node.id, &end_node.id);
+        let connection1 = create_connection(&start_node.uuid, &http_node.uuid);
+        let connection2 = create_connection(&http_node.uuid, &end_node.uuid);
 
         let flow = Flow {
-            id: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4().to_string(),
             name: "复杂测试流程".to_string(),
+            initial_variables: None,
             nodes: vec![start_node, http_node, end_node],
             connections: vec![connection1, connection2],
         };
@@ -336,7 +344,7 @@ mod tests {
         // 创建从非开始节点发出的连接的流程
         let start_node = create_start_node();
         let http_node = Node {
-            id: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4().to_string(),
             node_type: NodeType::Http,
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
@@ -346,11 +354,12 @@ mod tests {
         let end_node = create_end_node();
 
         // 只从 HTTP 节点发出连接
-        let connection = create_connection(&http_node.id, &end_node.id);
+        let connection = create_connection(&http_node.uuid, &end_node.uuid);
 
         let flow = Flow {
-            id: Uuid::new_v4().to_string(),
+            uuid: Uuid::new_v4().to_string(),
             name: "测试流程".to_string(),
+            initial_variables: None,
             nodes: vec![start_node, http_node, end_node],
             connections: vec![connection],
         };
