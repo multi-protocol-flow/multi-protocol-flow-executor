@@ -32,8 +32,8 @@ impl StartNodeExecutor {
         // 查找从当前节点出发的所有连接
         connections
             .iter()
-            .find(|conn| conn.source_node_id == node_id)
-            .map(|conn| conn.target_node_id.clone())
+            .find(|conn| conn.source_node_uuid == node_id)
+            .map(|conn| conn.target_node_uuid.clone())
     }
 }
 
@@ -60,7 +60,7 @@ impl NodeExecutor for StartNodeExecutor {
     ) -> Result<(Option<String>, Option<Value>), String> {
         // 立即传递，不执行任何逻辑（<1ms 执行时间）
         // 查找下一个节点
-        let next_node_id = self.find_next_node(&node.id, connections);
+        let next_node_id = self.find_next_node(&node.uuid, connections);
 
         // 验证：开始节点必须有输出连接
         if next_node_id.is_none() {
@@ -84,7 +84,7 @@ mod tests {
     fn test_start_node_executor_success() {
         // 创建测试流程
         let start_node = Node {
-            id: "start-1".to_string(),
+            uuid: "start-1".to_string(),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -93,7 +93,7 @@ mod tests {
         };
 
         let end_node = Node {
-            id: "end-1".to_string(),
+            uuid: "end-1".to_string(),
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
@@ -103,21 +103,21 @@ mod tests {
 
         let connection = Connection {
             id: "conn-1".to_string(),
-            source_node_id: start_node.id.clone(),
-            target_node_id: end_node.id.clone(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
             source_port_id: "output".to_string(),
             target_port_id: "input".to_string(),
         };
 
         let context = ExecutionContext {
             flow_id: "flow-1".to_string(),
-            current_node_id: Some(start_node.id.clone()),
+            current_node_id: Some(start_node.uuid.clone()),
             variables: json!({}),
         };
 
         let mut node_map = HashMap::new();
-        node_map.insert(start_node.id.clone(), &start_node);
-        node_map.insert(end_node.id.clone(), &end_node);
+        node_map.insert(start_node.uuid.clone(), &start_node);
+        node_map.insert(end_node.uuid.clone(), &end_node);
 
         let executor = StartNodeExecutor::new();
         let start_time = Instant::now();
@@ -144,7 +144,7 @@ mod tests {
     fn test_start_node_executor_no_connection() {
         // 创建没有连接的开始节点
         let start_node = Node {
-            id: "start-1".to_string(),
+            uuid: "start-1".to_string(),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -154,7 +154,7 @@ mod tests {
 
         let context = ExecutionContext {
             flow_id: "flow-1".to_string(),
-            current_node_id: Some(start_node.id.clone()),
+            current_node_id: Some(start_node.uuid.clone()),
             variables: json!({}),
         };
 
@@ -172,7 +172,7 @@ mod tests {
     fn test_start_node_executor_find_next_node() {
         // 测试 find_next_node 方法
         let start_node = Node {
-            id: "start-1".to_string(),
+            uuid: "start-1".to_string(),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -181,7 +181,7 @@ mod tests {
         };
 
         let end_node = Node {
-            id: "end-1".to_string(),
+            uuid: "end-1".to_string(),
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
@@ -191,14 +191,14 @@ mod tests {
 
         let connection = Connection {
             id: "conn-1".to_string(),
-            source_node_id: start_node.id.clone(),
-            target_node_id: end_node.id.clone(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
             source_port_id: "output".to_string(),
             target_port_id: "input".to_string(),
         };
 
         let executor = StartNodeExecutor::new();
-        let next_node_id = executor.find_next_node(&start_node.id, &[connection]);
+        let next_node_id = executor.find_next_node(&start_node.uuid, &[connection]);
 
         // 验证找到下一个节点
         assert_eq!(next_node_id, Some("end-1".to_string()));
@@ -218,7 +218,7 @@ mod tests {
     fn test_start_node_executor_multiple_connections() {
         // 测试多个连接的情况（MVP 范围：仅返回第一个）
         let start_node = Node {
-            id: "start-1".to_string(),
+            uuid: "start-1".to_string(),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -227,7 +227,7 @@ mod tests {
         };
 
         let end_node_1 = Node {
-            id: "end-1".to_string(),
+            uuid: "end-1".to_string(),
             node_type: NodeType::End,
             name: "结束 1".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
@@ -236,7 +236,7 @@ mod tests {
         };
 
         let end_node_2 = Node {
-            id: "end-2".to_string(),
+            uuid: "end-2".to_string(),
             node_type: NodeType::End,
             name: "结束 2".to_string(),
             position: NodePosition { x: 100.0, y: 100.0 },
@@ -246,30 +246,30 @@ mod tests {
 
         let connection_1 = Connection {
             id: "conn-1".to_string(),
-            source_node_id: start_node.id.clone(),
-            target_node_id: end_node_1.id.clone(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node_1.uuid.clone(),
             source_port_id: "output".to_string(),
             target_port_id: "input".to_string(),
         };
 
         let connection_2 = Connection {
             id: "conn-2".to_string(),
-            source_node_id: start_node.id.clone(),
-            target_node_id: end_node_2.id.clone(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node_2.uuid.clone(),
             source_port_id: "output".to_string(),
             target_port_id: "input".to_string(),
         };
 
         let context = ExecutionContext {
             flow_id: "flow-1".to_string(),
-            current_node_id: Some(start_node.id.clone()),
+            current_node_id: Some(start_node.uuid.clone()),
             variables: json!({}),
         };
 
         let mut node_map = HashMap::new();
-        node_map.insert(start_node.id.clone(), &start_node);
-        node_map.insert(end_node_1.id.clone(), &end_node_1);
-        node_map.insert(end_node_2.id.clone(), &end_node_2);
+        node_map.insert(start_node.uuid.clone(), &start_node);
+        node_map.insert(end_node_1.uuid.clone(), &end_node_1);
+        node_map.insert(end_node_2.uuid.clone(), &end_node_2);
 
         let executor = StartNodeExecutor::new();
         let result = executor.execute(
@@ -291,7 +291,7 @@ mod tests {
     fn test_start_node_executor_execution_time() {
         // 测试执行时间 < 1ms
         let start_node = Node {
-            id: "start-1".to_string(),
+            uuid: "start-1".to_string(),
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
@@ -300,7 +300,7 @@ mod tests {
         };
 
         let end_node = Node {
-            id: "end-1".to_string(),
+            uuid: "end-1".to_string(),
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
@@ -310,21 +310,21 @@ mod tests {
 
         let connection = Connection {
             id: "conn-1".to_string(),
-            source_node_id: start_node.id.clone(),
-            target_node_id: end_node.id.clone(),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
             source_port_id: "output".to_string(),
             target_port_id: "input".to_string(),
         };
 
         let context = ExecutionContext {
             flow_id: "flow-1".to_string(),
-            current_node_id: Some(start_node.id.clone()),
+            current_node_id: Some(start_node.uuid.clone()),
             variables: json!({}),
         };
 
         let mut node_map = HashMap::new();
-        node_map.insert(start_node.id.clone(), &start_node);
-        node_map.insert(end_node.id.clone(), &end_node);
+        node_map.insert(start_node.uuid.clone(), &start_node);
+        node_map.insert(end_node.uuid.clone(), &end_node);
 
         let executor = StartNodeExecutor::new();
 
