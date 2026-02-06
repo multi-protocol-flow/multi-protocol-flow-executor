@@ -1,6 +1,6 @@
 // 节点模块 - 完整结构体实现
 
-use serde_json::Value;
+use crate::node_config::NodeData;
 
 /// 节点类型枚举
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -12,8 +12,6 @@ pub enum NodeType {
     Http,
     /// 条件分支节点
     Conditional,
-    /// 数据转换节点
-    Transform,
     /// 结束节点
     End,
 }
@@ -61,8 +59,8 @@ pub struct Node {
     pub name: String,
     /// 节点位置
     pub position: NodePosition,
-    /// 节点特定数据（使用 serde_json::Value 支持动态数据）
-    pub data: Value,
+    /// 节点特定数据（强类型配置）
+    pub data: NodeData,
     /// 端口数组（可选）
     pub ports: Option<Vec<Port>>,
 }

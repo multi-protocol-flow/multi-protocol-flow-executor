@@ -7,10 +7,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+ node_modules
+ dist
+ dist-ssr
+ *.local
+
+# Ignore auto-generated JS files in src (by Vite/TypeScript)
+ src/**/*.js
 
 # Editor directories and files
 .vscode/*
@@ -24,3 +27,5 @@ dist-ssr
 *.sw?
 playwright-report
 test-results
+check-types-output.txt
+node_modules

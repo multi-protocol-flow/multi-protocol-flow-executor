@@ -118,13 +118,7 @@ export function FlowCanvas({
    */
   const handleConnect = useCallback(
     (connection: Connection) => {
-      const newEdge = {
-        ...connection,
-        id: `edge-${connection.source}-${connection.target}`,
-        type: 'smoothstep',
-        animated: true,
-      };
-      setEdges((eds) => addEdge(newEdge, eds));
+      setEdges((eds) => addEdge(connection, eds));
       onConnect?.(connection);
     },
     [onConnect]

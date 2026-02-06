@@ -5,6 +5,7 @@ mod connection;
 mod executor;
 mod flow;
 mod node;
+mod node_config;
 mod start_executor;
 mod storage;
 mod validator;
@@ -16,6 +17,7 @@ pub use connection::Connection;
 pub use executor::{ExecutionContext, ExecutionResult, FlowExecutor, NodeExecutor};
 pub use flow::Flow;
 pub use node::{Node, NodePosition, NodeType, Port, PortType};
+pub use node_config::*;
 pub use start_executor::StartNodeExecutor;
 pub use validator::{FlowValidator, ValidationResult};
 

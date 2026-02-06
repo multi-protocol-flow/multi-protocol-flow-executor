@@ -1,0 +1,40 @@
+{
+  "id": "start-example-flow",
+  "name": "开始节点示例",
+  "nodes": [
+    {
+      "id": "start-001",
+      "type": "start",
+      "name": "开始",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": {
+        "type": "start",
+        "initial_variables": {
+          "api_key": "sk-xxxxx",
+          "environment": "production",
+          "timeout": 30000
+        }
+      },
+      "ports": null
+    },
+    {
+      "id": "end-001",
+      "type": "end",
+      "name": "结束",
+      "position": { "x": 100.0, "y": 0.0 },
+      "data": {
+        "type": "end"
+      },
+      "ports": null
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-001",
+      "source_node_id": "start-001",
+      "target_node_id": "end-001",
+      "source_port_id": "output",
+      "target_port_id": "input"
+    }
+  ]
+}

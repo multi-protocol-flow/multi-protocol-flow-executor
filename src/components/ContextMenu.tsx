@@ -12,6 +12,7 @@ export interface ContextMenuProps {
   onRename?: () => void;
   onCopy?: () => void;
   onViewInfo?: () => void;
+  onChangeType?: () => void;
   className?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -30,6 +31,7 @@ export function ContextMenu({
   onRename,
   onCopy,
   onViewInfo,
+  onChangeType,
   className,
   open,
   onOpenChange,
@@ -55,6 +57,13 @@ export function ContextMenu({
     onOpenChange?.(false);
   };
 
+  const handleChangeType = (e: Event) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onChangeType?.();
+    onOpenChange?.(false);
+  };
+
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild className={cn(className)}>
@@ -64,6 +73,11 @@ export function ContextMenu({
         {onRename && (
           <DropdownMenuItem onSelect={handleRename}>
             重命名
+          </DropdownMenuItem>
+        )}
+        {onChangeType && (
+          <DropdownMenuItem onSelect={handleChangeType}>
+            更改类型
           </DropdownMenuItem>
         )}
         {onCopy && (

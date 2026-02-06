@@ -1,0 +1,59 @@
+{
+  "id": "http-example-flow",
+  "name": "HTTP 节点示例",
+  "nodes": [
+    {
+      "id": "start-001",
+      "type": "start",
+      "name": "开始",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": {
+        "type": "start"
+      },
+      "ports": null
+    },
+    {
+      "id": "http-001",
+      "type": "http",
+      "name": "调用用户 API",
+      "position": { "x": 100.0, "y": 0.0 },
+      "data": {
+        "type": "http",
+        "url": "https://api.example.com/users",
+        "method": "get",
+        "headers": {
+          "Authorization": "Bearer {{initial_variables.api_key}}",
+          "Content-Type": "application/json"
+        },
+        "body": null
+      },
+      "ports": null
+    },
+    {
+      "id": "end-001",
+      "type": "end",
+      "name": "结束",
+      "position": { "x": 200.0, "y": 0.0 },
+      "data": {
+        "type": "end"
+      },
+      "ports": null
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-001",
+      "source_node_id": "start-001",
+      "target_node_id": "http-001",
+      "source_port_id": "output",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-002",
+      "source_node_id": "http-001",
+      "target_node_id": "end-001",
+      "source_port_id": "output",
+      "target_port_id": "input"
+    }
+  ]
+}

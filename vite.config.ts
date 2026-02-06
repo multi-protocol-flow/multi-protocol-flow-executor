@@ -12,4 +12,9 @@ export default defineConfig({
   esbuild: {
     jsx: 'automatic',
   },
+  build: {
+    // Ensure build output goes to dist, not src
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
 })

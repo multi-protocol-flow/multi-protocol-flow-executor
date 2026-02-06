@@ -233,6 +233,7 @@ mod tests {
     use super::*;
     use crate::connection::Connection;
     use crate::node::{Node, NodePosition, NodeType};
+    use crate::node_config::NodeData;
     use serde_json::json;
     use uuid::Uuid;
 
@@ -245,7 +246,7 @@ mod tests {
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -274,7 +275,7 @@ mod tests {
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -283,7 +284,7 @@ mod tests {
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -329,7 +330,7 @@ mod tests {
             node_type: NodeType::Http,
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -359,7 +360,7 @@ mod tests {
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -397,7 +398,7 @@ mod tests {
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -406,7 +407,7 @@ mod tests {
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -448,7 +449,7 @@ mod tests {
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -457,7 +458,7 @@ mod tests {
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -505,7 +506,7 @@ mod tests {
             node_type: NodeType::Http,
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 

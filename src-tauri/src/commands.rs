@@ -10,6 +10,7 @@ use crate::command::UpdateNodeCommandInput;
 use crate::command::UpdateNodeCommandOutput;
 use crate::flow::Flow;
 use crate::node::{Node, NodePosition, NodeType};
+use crate::node_config::NodeData;
 use serde_json::json;
 use std::time::Instant;
 use uuid::Uuid;
@@ -37,7 +38,7 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
         node_type: NodeType::Start,
         name: "开始".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
-        data: json!({}),
+        data: NodeData::start(),
         ports: None,
     };
 
@@ -251,7 +252,7 @@ mod tests {
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -260,7 +261,7 @@ mod tests {
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::end(),
             ports: None,
         };
 
@@ -312,7 +313,7 @@ mod tests {
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -350,7 +351,7 @@ mod tests {
             node_type: NodeType::Http,
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::http("https://example.com"),
             ports: None,
         };
 
@@ -387,7 +388,7 @@ mod tests {
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -431,7 +432,7 @@ mod tests {
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -470,7 +471,7 @@ mod tests {
             node_type: NodeType::Start,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::start(),
             ports: None,
         };
 
@@ -479,7 +480,7 @@ mod tests {
             node_type: NodeType::Http,
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: json!({}),
+            data: NodeData::http("https://example.com"),
             ports: None,
         };
 
