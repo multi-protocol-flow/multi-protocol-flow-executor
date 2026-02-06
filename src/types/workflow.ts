@@ -28,8 +28,8 @@ export interface HttpNodeData {
 
 interface Connection {
   id: string;
-  sourceNodeId: string;
-  targetNodeId: string;
+  source: string;
+  target: string;
 }
 
 interface Workflow {
