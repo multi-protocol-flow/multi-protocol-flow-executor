@@ -1,6 +1,7 @@
 // 导入基础模块
 mod command;
 mod commands;
+mod conditional_executor;
 mod connection;
 mod executor;
 mod flow;
@@ -9,12 +10,14 @@ mod node;
 mod node_config;
 mod report;
 mod start_executor;
+mod end_executor;
 mod storage;
 mod validator;
 
 // 公开类型导出
 pub use command::*;
 pub use commands::{create_flow, delete_node, execute_flow, update_node};
+pub use conditional_executor::ConditionalNodeExecutor;
 pub use connection::Connection;
 pub use executor::{ExecutionContext, ExecutionResult, FlowExecutor, NodeExecutor};
 pub use flow::Flow;
@@ -23,6 +26,7 @@ pub use node::{Node, NodePosition, NodeType, Port, PortType};
 pub use node_config::*;
 pub use report::*;
 pub use start_executor::StartNodeExecutor;
+pub use end_executor::EndNodeExecutor;
 pub use validator::{FlowValidator, ValidationResult};
 
 // 导出存储模块

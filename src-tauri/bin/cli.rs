@@ -86,7 +86,7 @@ fn parse_args(args: Vec<String>) -> Result<Option<String>, String> {
     Ok(flow_path)
 }
 
-fn run() -> Result<(), String> {
+async fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
 
     // 解析命令行参数
@@ -107,7 +107,7 @@ fn run() -> Result<(), String> {
 
     // 执行流程（使用 FlowExecutor，不重新实现）
     let executor = FlowExecutor::new();
-    let result: ExecutionResult = executor.execute_flow(&flow, None);
+    let result: ExecutionResult = executor.execute_flow(&flow, None).await;
 
     // 计算总执行时间
     let execution_time = start_time.elapsed().as_millis() as u64;
@@ -139,7 +139,11 @@ fn run() -> Result<(), String> {
 }
 
 fn main() {
-    if let Err(error) = run() {
+    // 创建 Tokio 运行时
+    let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+
+    // 在运行时中运行 async main 逻辑
+    if let Err(error) = rt.block_on(run()) {
         // 输出错误信息到 stderr
         eprintln!("错误: {}", error);
         // 使用非零退出码表示失败

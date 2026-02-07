@@ -220,57 +220,72 @@ impl FlowExecutor {
             context.current_node_id = Some(current_node_id.clone());
 
             // 执行当前节点
-            match self.execute_node(node, &context, &flow.connections).await {
-                Ok(_result) => {
+            match self.execute_node(node, &context, &flow.connections, &node_map).await {
+                Ok((next_node_id_from_executor, output_data)) => {
                     executed_nodes.push(current_node_id.clone());
 
-                    // 开始节点立即传递
-                    if matches!(node.node_type, NodeType::Start) {
-                        // 查找下一个节点
-                        let next_nodes = connection_map.get(&current_node_id);
-                        if let Some(targets) = next_nodes {
-                            if targets.is_empty() {
-                                // 开始节点没有输出连接
-                                return ExecutionResult {
-                                    success: false,
-                                    data: None,
-                                    error: Some("开始节点没有输出连接".to_string()),
-                                    executed_nodes,
-                                };
+                    // 如果有输出数据，更新上下文变量
+                    if let Some(data) = output_data {
+                        log::info!("节点 {} 输出数据: {}", node.name, data);
+                        // 将输出数据合并到上下文中
+                        if let Some(obj) = data.as_object() {
+                            for (key, value) in obj {
+                                context.variables[key] = value.clone();
                             }
-                            // 简单遍历：取第一个连接的目标节点
-                            current_node_id = targets[0].clone();
-                        } else {
-                            // 开始节点没有输出连接
-                            return ExecutionResult {
-                                success: false,
-                                data: None,
-                                error: Some("开始节点没有输出连接".to_string()),
-                                executed_nodes,
-                            };
                         }
+                    }
+
+                    // 处理 Conditional 节点：如果返回 None 表示条件为 false，停止执行
+                    if matches!(node.node_type, NodeType::Conditional) && next_node_id_from_executor.is_none() {
+                        log::info!("条件节点 {} 返回 false，停止流程", node.name);
+                        // 条件为 false 是正常的流程终止，返回成功
+                        break;
+                    }
+
+                    // 处理 End 节点：返回 None 表示流程结束
+                    if matches!(node.node_type, NodeType::End) {
+                        log::info!("结束节点 {}，流程终止", node.name);
+                        // End 节点表示正常结束流程
+                        break;
+                    }
+
+                    // 查找下一个节点
+                    let next_node_id = if next_node_id_from_executor.is_some() {
+                        // 如果执行器返回了下一个节点 ID，使用它
+                        next_node_id_from_executor
                     } else {
-                        // 查找下一个节点（非Start节点的通用逻辑）
-                        let next_nodes = connection_map.get(&current_node_id);
-                        if let Some(targets) = next_nodes {
+                        // 否则，使用连接映射查找下一个节点
+                        connection_map.get(&current_node_id).and_then(|targets| {
                             if targets.is_empty() {
-                                // 节点没有输出连接，执行完成
-                                break;
+                                None
+                            } else {
+                                Some(targets[0].clone())
                             }
-                            // 简单遍历：取第一个连接的目标节点
-                            current_node_id = targets[0].clone();
-                        } else {
-                            // 节点没有输出连接，执行完成
-                            break;
-                        }
+                        })
+                    };
+
+                    if let Some(next_id) = next_node_id {
+                        current_node_id = next_id;
+                    } else {
+                        // 节点没有输出连接或执行器返回 None，执行完成
+                        log::info!("节点 {} 没有下一个节点，执行完成", node.name);
+                        break;
                     }
                 }
                 Err(error) => {
+                    // 检查是否是条件节点返回 false 的情况
+                    if matches!(node.node_type, NodeType::Conditional) && error == "条件评估为false，停止执行" {
+                        log::info!("条件节点 {} 评估为 false，停止流程", node.name);
+                        // 这是正常的流程终止（条件不满足），返回成功
+                        break;
+                    }
+
                     // 如果节点尚未实现（占位符），优雅终止流程
                     // 检查错误消息是否包含"尚未实现"
                     if error.contains("尚未实现") {
                         // 遇到占位符节点，表示流程已到达未实现部分
                         // 返回成功，已执行的节点都成功完成
+                        log::info!("节点 {} 尚未实现，流程终止", node.name);
                         break;
                     } else {
                         // 其他错误，返回失败
@@ -306,21 +321,37 @@ impl FlowExecutor {
     /// - `connections`: 流程的所有连接
     ///
     /// # 返回
-    /// - `Result<(), String>`: 执行结果或错误
-    async fn execute_node(&self, node: &Node, context: &ExecutionContext, connections: &[Connection]) -> Result<(), String> {
+    /// - `Result<(Option<String>, Option<serde_json::Value>), String>`:
+    ///   - Ok((next_node_id, output_data)): 执行成功，返回下一个节点 ID 和输出数据
+    ///   - Err(error): 执行失败，返回错误信息
+    async fn execute_node(
+        &self,
+        node: &Node,
+        context: &ExecutionContext,
+        connections: &[Connection],
+        node_map: &HashMap<String, &Node>,
+    ) -> Result<(Option<String>, Option<serde_json::Value>), String> {
         match node.node_type {
             NodeType::Start => {
                 log::info!("执行开始节点: {}", node.name);
                 let executor = crate::start_executor::StartNodeExecutor::new();
-                executor.execute(node, context, connections, &HashMap::new()).await.map(|_| ())
+                executor.execute(node, context, connections, node_map).await
             }
             NodeType::Http => {
                 log::info!("执行HTTP节点: {}", node.name);
                 let executor = crate::http_executor::HttpNodeExecutor::new();
-                executor.execute(node, context, connections, &HashMap::new()).await.map(|_| ())
+                executor.execute(node, context, connections, node_map).await
             }
-            NodeType::Conditional => Err("条件节点执行器尚未实现".to_string()),
-            NodeType::End => Err("结束节点执行器尚未实现".to_string()),
+            NodeType::Conditional => {
+                log::info!("执行条件节点: {}", node.name);
+                let executor = crate::conditional_executor::ConditionalNodeExecutor::new();
+                executor.execute(node, context, connections, node_map).await
+            }
+            NodeType::End => {
+                log::info!("执行结束节点: {}", node.name);
+                let executor = crate::end_executor::EndNodeExecutor::new();
+                executor.execute(node, context, connections, node_map).await
+            }
         }
     }
 }
@@ -412,12 +443,16 @@ mod tests {
 
         let data = result.data.unwrap();
         assert_eq!(data["flow_id"], flow_id);
-        assert_eq!(data["executed_nodes"].as_array().unwrap().len(), 1);
+        assert_eq!(data["executed_nodes"].as_array().unwrap().len(), 2);
         assert!(data["executed_nodes"].as_array().unwrap()[0]
             .as_str()
             .unwrap()
             .starts_with("start-"));
-        assert_eq!(result.executed_nodes.len(), 1);
+        assert!(data["executed_nodes"].as_array().unwrap()[1]
+            .as_str()
+            .unwrap()
+            .starts_with("end-"));
+        assert_eq!(result.executed_nodes.len(), 2);
     }
 
     #[tokio::test]
@@ -539,7 +574,7 @@ mod tests {
         // 验证执行成功
         assert!(result.success);
         assert!(result.error.is_none());
-        assert_eq!(result.executed_nodes.len(), 1);
+        assert_eq!(result.executed_nodes.len(), 2);
     }
 
     #[tokio::test]
@@ -622,11 +657,11 @@ mod tests {
             variables: json!({}),
         };
 
-        let result = executor.execute_node(&conditional_node, &context, &[]).await;
+        let result = executor.execute_node(&conditional_node, &context, &[], &HashMap::new()).await;
 
         // 验证执行失败
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("尚未实现"));
+        assert!(result.unwrap_err().contains("节点数据类型不是ConditionalConfig"));
     }
 
     #[tokio::test]
@@ -718,11 +753,11 @@ mod tests {
         };
 
         let end_node = Node {
-            uuid: "end-uuid-456".to_string(),
+            uuid: format!("end-{}", flow_id),
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::end(),
             ports: None,
         };
 
@@ -747,7 +782,7 @@ mod tests {
 
         // 验证连接映射成功使用了 source_node_uuid 和 target_node_uuid
         assert!(result.success);
-        assert_eq!(result.executed_nodes.len(), 1);
+        assert_eq!(result.executed_nodes.len(), 2);
     }
 
     #[tokio::test]
@@ -768,7 +803,7 @@ mod tests {
             node_type: NodeType::End,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::end(),
             ports: None,
         };
 
@@ -793,8 +828,9 @@ mod tests {
 
         // 验证执行的第一个节点是 start_node.uuid
         assert!(result.success);
-        assert_eq!(result.executed_nodes.len(), 1);
+        assert_eq!(result.executed_nodes.len(), 2);
         assert_eq!(result.executed_nodes[0], "start-uuid-tracker");
+        assert_eq!(result.executed_nodes[1], "end-uuid-tracker");
     }
 
     #[tokio::test]
@@ -904,7 +940,7 @@ mod tests {
             node_type: NodeType::End,
             name: "结束 1".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::end(),
             ports: None,
         };
 
@@ -913,7 +949,7 @@ mod tests {
             node_type: NodeType::End,
             name: "结束 2".to_string(),
             position: NodePosition { x: 100.0, y: 100.0 },
-            data: NodeData::start(),
+            data: NodeData::end(),
             ports: None,
         };
 
@@ -946,7 +982,9 @@ mod tests {
 
         // 验证执行成功，连接映射正确使用了 UUID
         assert!(result.success);
-        assert_eq!(result.executed_nodes.len(), 1);
+        assert_eq!(result.executed_nodes.len(), 2);
+        assert_eq!(result.executed_nodes[0], "start-multi");
+        assert_eq!(result.executed_nodes[1], "end-1-multi");
     }
 
     #[test]
