@@ -3,9 +3,9 @@
 use crate::connection::Connection;
 use crate::flow::Flow;
 use crate::node::{Node, NodeType};
+use regex::Regex;
 use serde_json::json;
 use std::collections::HashMap;
-use std::time::Instant;
 
 /// 执行结果
 #[derive(Debug, Clone)]
@@ -31,9 +31,89 @@ pub struct ExecutionContext {
     pub variables: serde_json::Value,
 }
 
+/// 替换模板中的变量
+///
+/// # 参数
+/// - `template`: 包含变量占位符的模板字符串，使用 `{{variable_path}}` 语法
+/// - `context`: 执行上下文，包含变量数据
+///
+/// # 返回
+/// - `Result<String, String>`: 替换后的字符串，或错误信息
+///
+/// # 功能
+/// - 支持简单的变量替换，如 `{{initial_variables.api_key}}`
+/// - 支持嵌套路径访问，如 `{{user.profile.name}}`
+/// - 严格模式：变量不存在时返回错误
+/// - 不支持索引访问（如 `items[0]`）和函数调用
+pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<String, String> {
+    let re = Regex::new(r"\{\{([^}]+)\}\}").map_err(|e| format!("正则表达式错误: {}", e))?;
+    let mut result = template.to_string();
+
+    for cap in re.captures_iter(template) {
+        let full_match = cap.get(0).unwrap().as_str();
+        let variable_path = cap.get(1).unwrap().as_str().trim();
+
+        // 检查是否包含索引访问（不支持）
+        if variable_path.contains('[') {
+            return Err(format!("不支持索引访问: {}", variable_path));
+        }
+
+        // 检查是否包含函数调用（不支持）
+        if variable_path.contains('(') {
+            return Err(format!("不支持函数调用: {}", variable_path));
+        }
+
+        // 按点分割路径
+        let path_parts: Vec<&str> = variable_path.split('.').collect();
+
+        // 从 context.variables 中获取值
+        let mut current_value = &context.variables;
+        let mut current_path = String::new();
+
+        for (_i, part) in path_parts.iter().enumerate() {
+            if !current_path.is_empty() {
+                current_path.push('.');
+            }
+            current_path.push_str(part);
+
+            match current_value {
+                serde_json::Value::Object(map) => {
+                    if let Some(value) = map.get(*part) {
+                        current_value = value;
+                    } else {
+                        return Err(format!("未找到变量: {}", current_path));
+                    }
+                }
+                _ => {
+                    return Err(format!("变量路径 '{}' 不是对象类型", current_path));
+                }
+            }
+        }
+
+        // 将值转换为字符串
+        let replacement = match current_value {
+            serde_json::Value::String(s) => s.clone(),
+            serde_json::Value::Number(n) => n.to_string(),
+            serde_json::Value::Bool(b) => b.to_string(),
+            serde_json::Value::Null => "null".to_string(),
+            serde_json::Value::Array(_) | serde_json::Value::Object(_) => {
+                return Err(format!(
+                    "变量 '{}' 不支持直接替换（复杂类型）",
+                    variable_path
+                ));
+            }
+        };
+
+        result = result.replace(full_match, &replacement);
+    }
+
+    Ok(result)
+}
+
 /// 节点执行器 trait
 ///
 /// 定义了所有节点执行器必须实现的接口
+#[async_trait::async_trait]
 pub trait NodeExecutor {
     /// 执行节点
     ///
@@ -47,7 +127,7 @@ pub trait NodeExecutor {
     /// - `Result<(Option<String>, Option<serde_json::Value>), String>`:
     ///   - Ok((next_node_id, output_data)): 执行成功，返回下一个节点 ID 和输出数据
     ///   - Err(error): 执行失败，返回错误信息
-    fn execute(
+    async fn execute(
         &self,
         node: &Node,
         context: &ExecutionContext,
@@ -75,12 +155,12 @@ impl FlowExecutor {
     ///
     /// # 返回
     /// - `ExecutionResult`: 执行结果
-    pub fn execute_flow(
+    pub async fn execute_flow(
         &self,
         flow: &Flow,
         variables: Option<serde_json::Value>,
     ) -> ExecutionResult {
-        let start_time = Instant::now();
+        let start_time = tokio::time::Instant::now();
         let mut executed_nodes = Vec::new();
         let mut context = ExecutionContext {
             flow_id: flow.uuid.clone(),
@@ -140,7 +220,7 @@ impl FlowExecutor {
             context.current_node_id = Some(current_node_id.clone());
 
             // 执行当前节点
-            match self.execute_node(node, &context) {
+            match self.execute_node(node, &context, &flow.connections).await {
                 Ok(_result) => {
                     executed_nodes.push(current_node_id.clone());
 
@@ -223,27 +303,24 @@ impl FlowExecutor {
     /// # 参数
     /// - `node`: 要执行的节点
     /// - `context`: 执行上下文
+    /// - `connections`: 流程的所有连接
     ///
     /// # 返回
     /// - `Result<(), String>`: 执行结果或错误
-    fn execute_node(&self, node: &Node, _context: &ExecutionContext) -> Result<(), String> {
+    async fn execute_node(&self, node: &Node, context: &ExecutionContext, connections: &[Connection]) -> Result<(), String> {
         match node.node_type {
             NodeType::Start => {
-                // 开始节点立即传递（无逻辑，<1ms）
-                Ok(())
+                log::info!("执行开始节点: {}", node.name);
+                let executor = crate::start_executor::StartNodeExecutor::new();
+                executor.execute(node, context, connections, &HashMap::new()).await.map(|_| ())
             }
             NodeType::Http => {
-                // HTTP节点执行器尚未实现
-                Err("HTTP节点执行器尚未实现".to_string())
+                log::info!("执行HTTP节点: {}", node.name);
+                let executor = crate::http_executor::HttpNodeExecutor::new();
+                executor.execute(node, context, connections, &HashMap::new()).await.map(|_| ())
             }
-            NodeType::Conditional => {
-                // 条件节点执行器尚未实现
-                Err("条件节点执行器尚未实现".to_string())
-            }
-            NodeType::End => {
-                // 结束节点执行器尚未实现
-                Err("结束节点执行器尚未实现".to_string())
-            }
+            NodeType::Conditional => Err("条件节点执行器尚未实现".to_string()),
+            NodeType::End => Err("结束节点执行器尚未实现".to_string()),
         }
     }
 }
@@ -257,8 +334,8 @@ mod tests {
     use serde_json::json;
     use uuid::Uuid;
 
-    #[test]
-    fn test_flow_executor_success() {
+    #[tokio::test]
+    async fn test_flow_executor_success() {
         // 创建测试流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
@@ -279,7 +356,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None);
+        let result = executor.execute_flow(&flow, None).await;
 
         // 验证执行结果（开始节点没有输出连接，应该失败）
         assert!(!result.success);
@@ -287,8 +364,8 @@ mod tests {
         assert!(result.error.unwrap().contains("开始节点没有输出连接"));
     }
 
-    #[test]
-    fn test_flow_executor_with_connection() {
+    #[tokio::test]
+    async fn test_flow_executor_with_connection() {
         // 创建测试流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
@@ -326,7 +403,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None);
+        let result = executor.execute_flow(&flow, None).await;
 
         // 验证执行结果
         assert!(result.success);
@@ -343,8 +420,8 @@ mod tests {
         assert_eq!(result.executed_nodes.len(), 1);
     }
 
-    #[test]
-    fn test_flow_executor_no_start_node() {
+    #[tokio::test]
+    async fn test_flow_executor_no_start_node() {
         // 创建没有开始节点的流程
         let flow_id = Uuid::new_v4().to_string();
         let http_node = Node {
@@ -365,7 +442,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None);
+        let result = executor.execute_flow(&flow, None).await;
 
         // 验证执行失败
         assert!(!result.success);
@@ -374,8 +451,8 @@ mod tests {
         assert!(result.executed_nodes.is_empty());
     }
 
-    #[test]
-    fn test_flow_executor_loop_detection() {
+    #[tokio::test]
+    async fn test_flow_executor_loop_detection() {
         // 创建循环连接的流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
@@ -405,7 +482,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None);
+        let result = executor.execute_flow(&flow, None).await;
 
         // 验证执行失败（检测到循环）
         assert!(!result.success);
@@ -413,8 +490,8 @@ mod tests {
         assert!(result.error.unwrap().contains("检测到循环"));
     }
 
-    #[test]
-    fn test_flow_executor_with_variables() {
+    #[tokio::test]
+    async fn test_flow_executor_with_variables() {
         // 创建测试流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
@@ -457,7 +534,7 @@ mod tests {
         });
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, Some(variables));
+        let result = executor.execute_flow(&flow, Some(variables)).await;
 
         // 验证执行成功
         assert!(result.success);
@@ -465,9 +542,11 @@ mod tests {
         assert_eq!(result.executed_nodes.len(), 1);
     }
 
-    #[test]
-    fn test_flow_executor_start_node_execution_time() {
+    #[tokio::test]
+    async fn test_flow_executor_start_node_execution_time() {
         // 创建测试流程
+        use std::time::Instant;
+
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -505,7 +584,7 @@ mod tests {
 
         let executor = FlowExecutor::new();
         let start_time = Instant::now();
-        let result = executor.execute_flow(&flow, None);
+        let result = executor.execute_flow(&flow, None).await;
         let elapsed = start_time.elapsed();
 
         // 验证执行成功
@@ -523,14 +602,14 @@ mod tests {
         assert!(execution_time < 10);
     }
 
-    #[test]
-    fn test_execute_node_unimplemented_type() {
+    #[tokio::test]
+    async fn test_execute_node_unimplemented_type() {
         // 创建未实现的节点类型
         let flow_id = Uuid::new_v4().to_string();
-        let http_node = Node {
-            uuid: format!("http-{}", flow_id),
-            node_type: NodeType::Http,
-            name: "HTTP 请求".to_string(),
+        let conditional_node = Node {
+            uuid: format!("conditional-{}", flow_id),
+            node_type: NodeType::Conditional,
+            name: "条件判断".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::start(),
             ports: None,
@@ -539,19 +618,19 @@ mod tests {
         let executor = FlowExecutor::new();
         let context = ExecutionContext {
             flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
+            current_node_id: Some(conditional_node.uuid.clone()),
             variables: json!({}),
         };
 
-        let result = executor.execute_node(&http_node, &context);
+        let result = executor.execute_node(&conditional_node, &context, &[]).await;
 
         // 验证执行失败
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("尚未实现"));
     }
 
-    #[test]
-    fn test_execution_context_uses_flow_uuid() {
+    #[tokio::test]
+    async fn test_execution_context_uses_flow_uuid() {
         // 测试 ExecutionContext 初始化使用 flow.uuid
         let flow_id = "test-flow-uuid-123".to_string();
         let start_node = Node {
@@ -572,15 +651,15 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None);
+        let result = executor.execute_flow(&flow, None).await;
 
         // 验证上下文中的 flow_id 使用了 flow.uuid
         assert!(!result.success); // 由于缺少连接，应该失败
                                   // 验证错误消息中可能包含 flow_id 相关信息
     }
 
-    #[test]
-    fn test_node_map_uses_node_uuid() {
+    #[tokio::test]
+    async fn test_node_map_uses_node_uuid() {
         // 测试节点映射构建使用 node.uuid
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
@@ -618,15 +697,15 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None);
+        let result = executor.execute_flow(&flow, None).await;
 
         // 验证执行成功（节点映射通过 node.uuid 查找成功）
         assert!(result.success);
         assert!(result.data.is_some());
     }
 
-    #[test]
-    fn test_connection_map_uses_source_and_target_uuid() {
+    #[tokio::test]
+    async fn test_connection_map_uses_source_and_target_uuid() {
         // 测试连接映射构建使用 conn.source_node_uuid 和 conn.target_node_uuid
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
@@ -664,15 +743,15 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None);
+        let result = executor.execute_flow(&flow, None).await;
 
         // 验证连接映射成功使用了 source_node_uuid 和 target_node_uuid
         assert!(result.success);
         assert_eq!(result.executed_nodes.len(), 1);
     }
 
-    #[test]
-    fn test_current_node_id_uses_start_node_uuid() {
+    #[tokio::test]
+    async fn test_current_node_id_uses_start_node_uuid() {
         // 测试当前节点 ID 追踪使用 start_node.uuid
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
@@ -710,7 +789,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None);
+        let result = executor.execute_flow(&flow, None).await;
 
         // 验证执行的第一个节点是 start_node.uuid
         assert!(result.success);
@@ -718,8 +797,8 @@ mod tests {
         assert_eq!(result.executed_nodes[0], "start-uuid-tracker");
     }
 
-    #[test]
-    fn test_error_message_uses_node_uuid() {
+    #[tokio::test]
+    async fn test_error_message_uses_node_uuid() {
         // 测试错误消息使用 node.uuid
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
@@ -749,7 +828,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None);
+        let result = executor.execute_flow(&flow, None).await;
 
         // 验证错误消息包含 node.uuid
         assert!(!result.success);
@@ -759,8 +838,8 @@ mod tests {
         assert!(error_msg.contains("loop-node-uuid")); // 错误消息包含 node.uuid
     }
 
-    #[test]
-    fn test_execution_result_data_uses_flow_uuid() {
+    #[tokio::test]
+    async fn test_execution_result_data_uses_flow_uuid() {
         // 测试执行结果数据使用 flow.uuid
         let flow_id = "result-flow-uuid-999".to_string();
         let start_node = Node {
@@ -798,7 +877,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None);
+        let result = executor.execute_flow(&flow, None).await;
 
         // 验证执行结果数据包含 flow.uuid
         assert!(result.success);
@@ -807,8 +886,8 @@ mod tests {
         assert_eq!(data["flow_id"], "result-flow-uuid-999"); // 验证使用了 flow.uuid
     }
 
-    #[test]
-    fn test_multiple_connections_uses_uuids() {
+    #[tokio::test]
+    async fn test_multiple_connections_uses_uuids() {
         // 测试多个连接使用 source_node_uuid 和 target_node_uuid
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
@@ -863,10 +942,78 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None);
+        let result = executor.execute_flow(&flow, None).await;
 
         // 验证执行成功，连接映射正确使用了 UUID
         assert!(result.success);
         assert_eq!(result.executed_nodes.len(), 1);
+    }
+
+    #[test]
+    fn test_replace_variables_simple() {
+        // 测试简单变量替换
+        let template = "Bearer {{initial_variables.api_key}}";
+        let context = ExecutionContext {
+            flow_id: "test-flow".to_string(),
+            current_node_id: None,
+            variables: json!({
+                "initial_variables": {
+                    "api_key": "test-key"
+                }
+            }),
+        };
+        let result = replace_variables(template, &context);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Bearer test-key");
+    }
+
+    #[test]
+    fn test_replace_variables_nested_path() {
+        // 测试嵌套路径
+        let template = "Hello {{user.profile.name}}";
+        let context = ExecutionContext {
+            flow_id: "test-flow".to_string(),
+            current_node_id: None,
+            variables: json!({
+                "user": {
+                    "profile": {
+                        "name": "Alice"
+                    }
+                }
+            }),
+        };
+        let result = replace_variables(template, &context);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Hello Alice");
+    }
+
+    #[test]
+    fn test_replace_variables_strict_mode() {
+        // 测试严格模式（变量不存在时报错）
+        let template = "{{nonexistent.var}}";
+        let context = ExecutionContext {
+            flow_id: "test-flow".to_string(),
+            current_node_id: None,
+            variables: json!({}),
+        };
+        let result = replace_variables(template, &context);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("未找到"));
+    }
+
+    #[test]
+    fn test_replace_variables_index_not_supported() {
+        // 测试索引访问不支持
+        let template = "{{items[0]}}";
+        let context = ExecutionContext {
+            flow_id: "test-flow".to_string(),
+            current_node_id: None,
+            variables: json!({
+                "items": ["a", "b", "c"]
+            }),
+        };
+        let result = replace_variables(template, &context);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("不支持索引访问"));
     }
 }

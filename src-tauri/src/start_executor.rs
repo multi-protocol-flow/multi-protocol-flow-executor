@@ -37,6 +37,7 @@ impl StartNodeExecutor {
     }
 }
 
+#[async_trait::async_trait]
 impl NodeExecutor for StartNodeExecutor {
     /// 执行开始节点
     ///
@@ -51,7 +52,7 @@ impl NodeExecutor for StartNodeExecutor {
     /// # 返回
     /// - `Ok((next_node_id, output_data))`: 执行成功，返回下一个节点 ID 和空输出数据
     /// - `Err(error)`: 执行失败，返回错误信息
-    fn execute(
+    async fn execute(
         &self,
         node: &Node,
         _context: &ExecutionContext,
@@ -80,8 +81,8 @@ mod tests {
     use serde_json::json;
     use std::time::Instant;
 
-    #[test]
-    fn test_start_node_executor_success() {
+    #[tokio::test]
+    async fn test_start_node_executor_success() {
         // 创建测试流程
         let start_node = Node {
             uuid: "start-1".to_string(),
@@ -121,7 +122,7 @@ mod tests {
 
         let executor = StartNodeExecutor::new();
         let start_time = Instant::now();
-        let result = executor.execute(&start_node, &context, &[connection], &node_map);
+        let result = executor.execute(&start_node, &context, &[connection], &node_map).await;
         let elapsed = start_time.elapsed();
 
         // 验证执行成功
@@ -140,8 +141,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_start_node_executor_no_connection() {
+    #[tokio::test]
+    async fn test_start_node_executor_no_connection() {
         // 创建没有连接的开始节点
         let start_node = Node {
             uuid: "start-1".to_string(),
@@ -161,15 +162,15 @@ mod tests {
         let node_map = HashMap::new();
 
         let executor = StartNodeExecutor::new();
-        let result = executor.execute(&start_node, &context, &[], &node_map);
+        let result = executor.execute(&start_node, &context, &[], &node_map).await;
 
         // 验证执行失败
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "开始节点没有输出连接");
     }
 
-    #[test]
-    fn test_start_node_executor_find_next_node() {
+    #[tokio::test]
+    async fn test_start_node_executor_find_next_node() {
         // 测试 find_next_node 方法
         let start_node = Node {
             uuid: "start-1".to_string(),
@@ -204,8 +205,8 @@ mod tests {
         assert_eq!(next_node_id, Some("end-1".to_string()));
     }
 
-    #[test]
-    fn test_start_node_executor_find_next_node_empty_connections() {
+    #[tokio::test]
+    async fn test_start_node_executor_find_next_node_empty_connections() {
         // 测试没有连接的情况
         let executor = StartNodeExecutor::new();
         let next_node_id = executor.find_next_node("start-1", &[]);
@@ -214,8 +215,8 @@ mod tests {
         assert!(next_node_id.is_none());
     }
 
-    #[test]
-    fn test_start_node_executor_multiple_connections() {
+    #[tokio::test]
+    async fn test_start_node_executor_multiple_connections() {
         // 测试多个连接的情况（MVP 范围：仅返回第一个）
         let start_node = Node {
             uuid: "start-1".to_string(),
@@ -277,7 +278,7 @@ mod tests {
             &context,
             &[connection_1, connection_2],
             &node_map,
-        );
+        ).await;
 
         // 验证执行成功
         assert!(result.is_ok());
@@ -287,8 +288,8 @@ mod tests {
         assert_eq!(next_node_id, Some("end-1".to_string()));
     }
 
-    #[test]
-    fn test_start_node_executor_execution_time() {
+    #[tokio::test]
+    async fn test_start_node_executor_execution_time() {
         // 测试执行时间 < 1ms
         let start_node = Node {
             uuid: "start-1".to_string(),
@@ -331,7 +332,7 @@ mod tests {
         // 执行 1000 次以获得稳定的执行时间
         let start_time = Instant::now();
         for _ in 0..1000 {
-            let _ = executor.execute(&start_node, &context, &[connection.clone()], &node_map);
+            let _ = executor.execute(&start_node, &context, &[connection.clone()], &node_map).await;
         }
         let elapsed = start_time.elapsed();
 
@@ -344,8 +345,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_find_next_node_uses_source_node_uuid() {
+    #[tokio::test]
+    async fn test_find_next_node_uses_source_node_uuid() {
         // 测试 find_next_node 方法使用 conn.source_node_uuid
         let start_node_uuid = "test-source-uuid";
         let end_node_uuid = "test-target-uuid";
@@ -365,8 +366,8 @@ mod tests {
         assert_eq!(next_node_id, Some(end_node_uuid.to_string()));
     }
 
-    #[test]
-    fn test_find_next_node_uses_target_node_uuid() {
+    #[tokio::test]
+    async fn test_find_next_node_uses_target_node_uuid() {
         // 测试 find_next_node 方法使用 conn.target_node_uuid
         let start_node_uuid = "start-uuid-target-test";
         let target_node_uuid = "target-uuid-result";
@@ -386,8 +387,8 @@ mod tests {
         assert_eq!(next_node_id, Some(target_node_uuid.to_string()));
     }
 
-    #[test]
-    fn test_execute_uses_node_uuid() {
+    #[tokio::test]
+    async fn test_execute_uses_node_uuid() {
         // 测试 execute 方法使用 node.uuid
         let node_uuid = "test-node-uuid-execute";
         let start_node = Node {
@@ -428,7 +429,7 @@ mod tests {
         node_map.insert(end_node.uuid.clone(), &end_node);
 
         let executor = StartNodeExecutor::new();
-        let result = executor.execute(&start_node, &context, &[connection], &node_map);
+        let result = executor.execute(&start_node, &context, &[connection], &node_map).await;
 
         // 验证 execute 方法正确使用了 node.uuid
         assert!(result.is_ok());
@@ -436,8 +437,8 @@ mod tests {
         assert!(next_node_id.is_some());
     }
 
-    #[test]
-    fn test_node_execution_logic_correct() {
+    #[tokio::test]
+    async fn test_node_execution_logic_correct() {
         // 测试节点执行逻辑正确
         let start_node = Node {
             uuid: "logic-test-start".to_string(),
@@ -476,7 +477,7 @@ mod tests {
         node_map.insert(next_node.uuid.clone(), &next_node);
 
         let executor = StartNodeExecutor::new();
-        let result = executor.execute(&start_node, &context, &[connection], &node_map);
+        let result = executor.execute(&start_node, &context, &[connection], &node_map).await;
 
         // 验证执行逻辑正确：
         // 1. 执行成功
@@ -488,8 +489,8 @@ mod tests {
         assert!(output_data.is_none());
     }
 
-    #[test]
-    fn test_multiple_connections_same_source_uuid() {
+    #[tokio::test]
+    async fn test_multiple_connections_same_source_uuid() {
         // 测试多个连接使用相同的 source_node_uuid
         let source_uuid = "multi-source-uuid";
         let target1_uuid = "multi-target-1-uuid";
@@ -518,8 +519,8 @@ mod tests {
         assert_eq!(next_node_id, Some(target1_uuid.to_string()));
     }
 
-    #[test]
-    fn test_find_next_node_no_matching_source_uuid() {
+    #[tokio::test]
+    async fn test_find_next_node_no_matching_source_uuid() {
         // 测试没有匹配的 source_node_uuid
         let connection = Connection {
             id: "conn-no-match".to_string(),
