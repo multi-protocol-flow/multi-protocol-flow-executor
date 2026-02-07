@@ -381,6 +381,7 @@ impl ConditionalNodeExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::node::NodePosition;
     use crate::node_config::{ConditionalConfig, NodeData};
     use std::collections::HashMap;
 
@@ -756,5 +757,271 @@ mod tests {
 
         let result = executor.extract_field_value(&data, "user.age");
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_empty_string() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("user.name".to_string()),
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!("")),
+            advanced_expression: None,
+        };
+        let node = create_test_node(config);
+        let context = create_test_context(serde_json::json!({
+            "user": {
+                "name": ""
+            }
+        }));
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        assert!(result.is_ok(), "空字符串相等应该返回Ok");
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_null_value() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("user.email".to_string()),
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::Value::Null),
+            advanced_expression: None,
+        };
+        let node = create_test_node(config);
+        let context = create_test_context(serde_json::json!({
+            "user": {
+                "email": null
+            }
+        }));
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        assert!(result.is_ok(), "null值相等应该返回Ok");
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_exists_with_null() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("user.email".to_string()),
+            operator: Some(ConditionOperator::Exists),
+            expected_value: None,
+            advanced_expression: None,
+        };
+        let node = create_test_node(config);
+        let context = create_test_context(serde_json::json!({
+            "user": {
+                "email": null
+            }
+        }));
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        assert!(result.is_err(), "exists操作符对于null值应该返回false");
+        assert_eq!(result.unwrap_err(), "条件评估为false，停止执行");
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_type_mismatch() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("user.age".to_string()),
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!(25)),
+            advanced_expression: None,
+        };
+        let node = create_test_node(config);
+        let context = create_test_context(serde_json::json!({
+            "user": {
+                "age": "twenty-five"  // 字符串而非数字
+            }
+        }));
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        assert!(result.is_err(), "类型不匹配应该返回错误");
+    }
+
+    #[tokio::test]
+    async fn test_extract_nested_field_value() {
+        let executor = ConditionalNodeExecutor::new();
+        let data = serde_json::json!({
+            "user": {
+                "profile": {
+                    "address": {
+                        "city": "Beijing",
+                        "country": "China"
+                    }
+                }
+            }
+        });
+
+        let result = executor.extract_field_value(&data, "user.profile.address.city");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), serde_json::json!("Beijing"));
+
+        let result = executor.extract_field_value(&data, "user.profile.address.country");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), serde_json::json!("China"));
+    }
+
+    #[tokio::test]
+    async fn test_advanced_condition_syntax_error() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Advanced,
+            field_path: None,
+            operator: None,
+            expected_value: None,
+            advanced_expression: Some("age > 20 && name ==".to_string()), // 语法错误
+        };
+        let node = create_test_node(config);
+        let context = create_test_context(serde_json::json!({
+            "age": 25,
+            "name": "John"
+        }));
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        assert!(result.is_err(), "语法错误应该返回错误");
+        assert!(result.unwrap_err().contains("评估表达式"), "错误信息应该包含'评估表达式'");
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_missing_field_path() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: None, // 缺少field_path
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!(25)),
+            advanced_expression: None,
+        };
+        let node = create_test_node(config);
+        let context = create_test_context(serde_json::json!({
+            "age": 25
+        }));
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        assert!(result.is_err(), "缺少field_path应该返回错误");
+        assert!(result.unwrap_err().contains("缺少field_path"), "错误信息应该包含'缺少field_path'");
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_missing_operator() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("age".to_string()),
+            operator: None, // 缺少operator
+            expected_value: Some(serde_json::json!(25)),
+            advanced_expression: None,
+        };
+        let node = create_test_node(config);
+        let context = create_test_context(serde_json::json!({
+            "age": 25
+        }));
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        assert!(result.is_err(), "缺少operator应该返回错误");
+        assert!(result.unwrap_err().contains("缺少operator"), "错误信息应该包含'缺少operator'");
+    }
+
+    #[tokio::test]
+    async fn test_advanced_condition_missing_expression() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Advanced,
+            field_path: None,
+            operator: None,
+            expected_value: None,
+            advanced_expression: None, // 缺少advanced_expression
+        };
+        let node = create_test_node(config);
+        let context = create_test_context(serde_json::json!({
+            "age": 25
+        }));
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        assert!(result.is_err(), "缺少advanced_expression应该返回错误");
+        assert!(result.unwrap_err().contains("缺少advanced_expression"), "错误信息应该包含'缺少advanced_expression'");
+    }
+
+    #[tokio::test]
+    async fn test_advanced_condition_not_operator() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Advanced,
+            field_path: None,
+            operator: None,
+            expected_value: None,
+            advanced_expression: Some("!(age > 30)".to_string()),
+        };
+        let node = create_test_node(config);
+        let context = create_test_context(serde_json::json!({
+            "age": 25
+        }));
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        assert!(result.is_ok(), "非操作符应该正确工作");
+    }
+
+    #[tokio::test]
+    async fn test_advanced_condition_variable_usage() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Advanced,
+            field_path: None,
+            operator: None,
+            expected_value: None,
+            advanced_expression: Some("status == \"active\" && count > 0".to_string()),
+        };
+        let node = create_test_node(config);
+        let context = create_test_context(serde_json::json!({
+            "status": "active",
+            "count": 5
+        }));
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        assert!(result.is_ok(), "变量使用应该正确工作");
+    }
+
+    #[tokio::test]
+    async fn test_advanced_condition_numeric_operations() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Advanced,
+            field_path: None,
+            operator: None,
+            expected_value: None,
+            advanced_expression: Some("(age * 2) > 40 && (age + 5) < 60".to_string()),
+        };
+        let node = create_test_node(config);
+        let context = create_test_context(serde_json::json!({
+            "age": 25
+        }));
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        assert!(result.is_ok(), "数值运算应该正确工作");
+    }
+
+    #[tokio::test]
+    async fn test_advanced_condition_string_comparison() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Advanced,
+            field_path: None,
+            operator: None,
+            expected_value: None,
+            advanced_expression: Some("name != \"\" && name == \"John\"".to_string()),
+        };
+        let node = create_test_node(config);
+        let context = create_test_context(serde_json::json!({
+            "name": "John"
+        }));
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        assert!(result.is_ok(), "字符串比较应该正确工作");
     }
 }

@@ -7,7 +7,7 @@
       "type": "start",
       "name": "开始",
       "position": { "x": 0.0, "y": 0.0 },
-      "data": {},
+      "data": { "type": "start" },
       "ports": null
     }
   ],

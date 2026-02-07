@@ -7,7 +7,7 @@
       "type": "end",
       "name": "结束",
       "position": { "x": 0.0, "y": 0.0 },
-      "data": {},
+      "data": { "type": "end" },
       "ports": null
     }
   ],

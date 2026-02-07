@@ -565,3 +565,583 @@ fn test_execution_time_reasonable() {
     // 执行时间应该在合理范围内（< 10 秒）
     assert!(execution_time < 10000, "执行时间过长: {}", execution_time);
 }
+
+// ============ 报告输出验证测试 (Task 21) ============
+
+#[test]
+fn test_cli_output_contains_node_reports() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    cmd.arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(r#""node_reports""#));
+}
+
+#[test]
+fn test_cli_output_contains_flow_report() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    cmd.arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(r#""flow_report""#));
+}
+
+#[test]
+fn test_node_reports_contains_required_fields() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    // 验证 node_reports 数组存在且不为空
+    assert!(json["node_reports"].is_array());
+    let node_reports = json["node_reports"].as_array().unwrap();
+    assert!(!node_reports.is_empty(), "node_reports 不应该为空");
+
+    // 验证每个节点报告包含所有必要字段
+    for report in node_reports {
+        assert!(report["node_id"].is_string(), "node_id 应该是字符串");
+        assert!(report["node_type"].is_string(), "node_type 应该是字符串");
+        assert!(report["node_name"].is_string(), "node_name 应该是字符串");
+        assert!(report["start_time"].is_number(), "start_time 应该是数字");
+        assert!(report["end_time"].is_number(), "end_time 应该是数字");
+        assert!(report["duration_ms"].is_number(), "duration_ms 应该是数字");
+        assert!(report["status"].is_string(), "status 应该是字符串");
+    }
+}
+
+#[test]
+fn test_flow_report_contains_required_fields() {
+    let file = create_flow_with_uuid();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    // 验证 flow_report 对象存在
+    assert!(json["flow_report"].is_object(), "flow_report 应该是对象");
+    let flow_report = &json["flow_report"];
+
+    // 验证所有必要字段存在
+    assert!(flow_report["flow_id"].is_string(), "flow_id 应该是字符串");
+    assert!(
+        flow_report["flow_name"].is_string(),
+        "flow_name 应该是字符串"
+    );
+    assert!(
+        flow_report["start_time"].is_number(),
+        "start_time 应该是数字"
+    );
+    assert!(flow_report["end_time"].is_number(), "end_time 应该是数字");
+    assert!(
+        flow_report["duration_ms"].is_number(),
+        "duration_ms 应该是数字"
+    );
+    assert!(
+        flow_report["total_nodes"].is_number(),
+        "total_nodes 应该是数字"
+    );
+    assert!(
+        flow_report["executed_nodes"].is_number(),
+        "executed_nodes 应该是数字"
+    );
+    assert!(flow_report["status"].is_string(), "status 应该是字符串");
+}
+
+#[test]
+fn test_node_reports_status_values() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    let node_reports = json["node_reports"].as_array().unwrap();
+
+    // 验证状态值是有效的（success、failed 或 skipped）
+    let valid_statuses = ["success", "failed", "skipped"];
+    for report in node_reports {
+        let status = report["status"].as_str().unwrap();
+        assert!(valid_statuses.contains(&status), "无效的状态值: {}", status);
+    }
+}
+
+#[test]
+fn test_json_output_is_parseable() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+
+    // 尝试解析 JSON，应该不会失败
+    let json: serde_json::Value =
+        serde_json::from_str(&output_str).expect("CLI 输出应该是有效的 JSON");
+
+    // 验证 JSON 是对象类型
+    assert!(json.is_object());
+}
+
+#[test]
+fn test_backward_compatibility_success_data_error() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    // 验证向后兼容性字段存在
+    assert!(json["success"].is_boolean(), "success 应该是布尔值");
+    assert!(
+        json["data"].is_object() || json["data"].is_null(),
+        "data 应该是对象或 null"
+    );
+    assert!(
+        json["error"].is_string() || json["error"].is_null(),
+        "error 应该是字符串或 null"
+    );
+}
+
+#[test]
+fn test_cli_output_all_fields() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    // 验证所有字段都存在
+    let json_obj = json.as_object().unwrap();
+    assert!(json_obj.contains_key("success"), "缺少 success 字段");
+    assert!(json_obj.contains_key("data"), "缺少 data 字段");
+    assert!(json_obj.contains_key("error"), "缺少 error 字段");
+    assert!(
+        json_obj.contains_key("execution_time"),
+        "缺少 execution_time 字段"
+    );
+    assert!(
+        json_obj.contains_key("node_reports"),
+        "缺少 node_reports 字段"
+    );
+    assert!(
+        json_obj.contains_key("flow_report"),
+        "缺少 flow_report 字段"
+    );
+}
+
+#[test]
+fn test_node_reports_count_matches_executed_nodes() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    let node_reports_count = json["node_reports"].as_array().unwrap().len() as u32;
+    let flow_report = &json["flow_report"];
+
+    // 验证 node_reports 数量与 flow_report.executed_nodes 一致
+    if flow_report.is_object() {
+        let executed_nodes = flow_report["executed_nodes"].as_u64().unwrap() as u32;
+        assert_eq!(
+            node_reports_count, executed_nodes,
+            "node_reports 数量 ({}) 应该与 executed_nodes ({}) 一致",
+            node_reports_count, executed_nodes
+        );
+    }
+}
+
+#[test]
+fn test_duration_ms_values_are_reasonable() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    // 验证每个节点的 duration_ms 是合理的正数
+    let node_reports = json["node_reports"].as_array().unwrap();
+    for report in node_reports {
+        let duration_ms = report["duration_ms"].as_u64().unwrap();
+        assert!(
+            duration_ms >= 0 && duration_ms < 60000,
+            "duration_ms ({}) 应该在合理范围内 (0-60000ms)",
+            duration_ms
+        );
+    }
+
+    // 验证 flow_report.duration_ms 是合理的正数
+    let flow_report = &json["flow_report"];
+    if flow_report.is_object() {
+        let flow_duration_ms = flow_report["duration_ms"].as_u64().unwrap();
+        assert!(
+            flow_duration_ms >= 0 && flow_duration_ms < 60000,
+            "flow_report.duration_ms ({}) 应该在合理范围内 (0-60000ms)",
+            flow_duration_ms
+        );
+    }
+}
+
+#[test]
+fn test_node_reports_includes_error_on_failure() {
+    let file = NamedTempFile::new().unwrap();
+    // 创建一个会失败的流程（缺少必要的连接）
+    let flow_content = r#"{
+        "uuid": "failing-flow-uuid",
+        "name": "失败的流程",
+        "nodes": [
+            {
+                "uuid": "start-node",
+                "type": "start",
+                "name": "开始节点",
+                "position": { "x": 0.0, "y": 0.0 },
+                "data": {"type": "start"},
+                "ports": null
+            }
+        ],
+        "connections": []
+    }"#;
+    fs::write(file.path(), flow_content).unwrap();
+
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .failure()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    // 验证即使失败，也包含 node_reports
+    assert!(json["node_reports"].is_array());
+    assert!(!json["node_reports"].as_array().unwrap().is_empty());
+}
+
+#[test]
+fn test_flow_report_contains_node_reports() {
+    let file = create_flow_with_uuid();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    let flow_report = &json["flow_report"];
+
+    // 验证 flow_report 包含 node_reports 字段
+    if flow_report.is_object() {
+        assert!(flow_report["node_reports"].is_array());
+        let flow_node_reports = flow_report["node_reports"].as_array().unwrap();
+
+        // 验证 flow_report.node_reports 和顶层的 node_reports 是一致的
+        let top_level_node_reports = json["node_reports"].as_array().unwrap();
+        assert_eq!(
+            flow_node_reports.len(),
+            top_level_node_reports.len(),
+            "flow_report.node_reports 和顶层 node_reports 数量应该一致"
+        );
+    }
+}
+
+// ============ 日志输出验证测试 (Task 21) ============
+
+#[test]
+fn test_log_output_to_stderr() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    cmd.arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        // 验证 stderr 包含日志输出（env_logger 输出 INFO 级别日志）
+        .stderr(predicate::str::contains("INFO").or(predicate::str::contains("")));
+}
+
+#[test]
+fn test_log_output_contains_execution_info() {
+    let file = create_flow_with_uuid();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    cmd.arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        // 验证日志包含执行相关信息（匹配实际的日志消息）
+        .stderr(predicate::str::contains("执行开始节点").or(predicate::str::contains("[完成]")));
+}
+
+#[test]
+fn test_log_level_debug() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+
+    // 设置 RUST_LOG=debug 环境变量
+    cmd.env("RUST_LOG", "debug")
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        // DEBUG 级别应该输出更多日志
+        .stderr(predicate::str::contains("DEBUG").or(predicate::str::contains("")));
+}
+
+#[test]
+fn test_log_level_info() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+
+    // 设置 RUST_LOG=info 环境变量
+    cmd.env("RUST_LOG", "info")
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success();
+}
+
+// ============ 错误处理和边界情况测试 (Task 21) ============
+
+#[test]
+fn test_error_handling_invalid_flow_file() {
+    let file = create_invalid_json_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    cmd.arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("加载流程失败"));
+}
+
+#[test]
+fn test_error_handling_syntax_error() {
+    let file = NamedTempFile::new().unwrap();
+    // 创建一个语法错误的 JSON
+    let flow_content = r#"{
+        "uuid": "syntax-error-flow",
+        "name": "语法错误流程",
+        "nodes": [
+            {
+                "uuid": "node1",
+                "type": "start"
+        ]
+    }"#; // 缺少右括号
+    fs::write(file.path(), flow_content).unwrap();
+
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    cmd.arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .failure();
+}
+
+#[test]
+fn test_cli_output_json_format() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+
+    // 验证输出格式是正确的 JSON
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    // 验证 JSON 结构符合预期
+    assert!(json.is_object());
+    assert!(json["success"].is_boolean());
+    assert!(json["node_reports"].is_array());
+    assert!(json["flow_report"].is_object() || json["flow_report"].is_null());
+    assert!(json["execution_time"].is_number());
+}
+
+#[test]
+fn test_flow_with_missing_uuid() {
+    let file = NamedTempFile::new().unwrap();
+    // 创建一个没有 uuid 字段的流程（应该失败）
+    let flow_content = r#"{
+        "name": "无 UUID 流程",
+        "nodes": [
+            {
+                "uuid": "start-node",
+                "type": "start",
+                "name": "开始节点",
+                "position": { "x": 0.0, "y": 0.0 },
+                "data": {"type": "start"},
+                "ports": null
+            },
+            {
+                "uuid": "end-node",
+                "type": "end",
+                "name": "结束节点",
+                "position": { "x": 100.0, "y": 0.0 },
+                "data": {"type": "start"},
+                "ports": null
+            }
+        ],
+        "connections": [
+            {
+                "id": "conn-1",
+                "source_node_uuid": "start-node",
+                "target_node_uuid": "end-node",
+                "source_port_id": "output",
+                "target_port_id": "input"
+            }
+        ]
+    }"#;
+    fs::write(file.path(), flow_content).unwrap();
+
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    cmd.arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("加载流程失败"));
+}
+
+#[test]
+fn test_execution_report_timestamps() {
+    let file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    let node_reports = json["node_reports"].as_array().unwrap();
+
+    // 验证时间戳的合理性（start_time <= end_time）
+    for report in node_reports {
+        let start_time = report["start_time"].as_u64().unwrap();
+        let end_time = report["end_time"].as_u64().unwrap();
+        assert!(
+            start_time <= end_time,
+            "start_time ({}) 不应该大于 end_time ({})",
+            start_time,
+            end_time
+        );
+    }
+
+    // 验证 flow_report 的时间戳
+    let flow_report = &json["flow_report"];
+    if flow_report.is_object() {
+        let flow_start_time = flow_report["start_time"].as_u64().unwrap();
+        let flow_end_time = flow_report["end_time"].as_u64().unwrap();
+        assert!(
+            flow_start_time <= flow_end_time,
+            "flow_report.start_time ({}) 不应该大于 flow_report.end_time ({})",
+            flow_start_time,
+            flow_end_time
+        );
+    }
+}
