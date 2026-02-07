@@ -18,6 +18,10 @@ pub struct ExecutionResult {
     pub error: Option<String>,
     /// 已执行的节点列表
     pub executed_nodes: Vec<String>,
+    /// 节点执行报告列表
+    pub node_reports: Vec<crate::report::NodeExecutionReport>,
+    /// 流程执行报告
+    pub flow_report: Option<crate::report::FlowExecutionReport>,
 }
 
 /// 执行上下文
@@ -162,6 +166,7 @@ impl FlowExecutor {
     ) -> ExecutionResult {
         let start_time = tokio::time::Instant::now();
         let mut executed_nodes = Vec::new();
+        let mut node_reports = Vec::new();
         let mut context = ExecutionContext {
             flow_id: flow.uuid.clone(),
             current_node_id: None,
@@ -181,6 +186,8 @@ impl FlowExecutor {
                     data: None,
                     error: Some("流程缺少开始节点".to_string()),
                     executed_nodes,
+                    node_reports: vec![],
+                    flow_report: None,
                 };
             }
         };
@@ -213,16 +220,47 @@ impl FlowExecutor {
                     data: None,
                     error: Some(format!("检测到循环：节点 {} 已被访问", node.uuid)),
                     executed_nodes,
+                    node_reports,
+                    flow_report: None,
                 };
             }
 
             visited.insert(current_node_id.clone());
             context.current_node_id = Some(current_node_id.clone());
 
+            // 记录节点开始时间
+            let node_start_time = tokio::time::Instant::now();
+            let node_start_ms = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64;
+
             // 执行当前节点
             match self.execute_node(node, &context, &flow.connections, &node_map).await {
                 Ok((next_node_id_from_executor, output_data)) => {
+                    // 记录节点结束时间
+                    let node_end_ms = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_millis() as u64;
+                    let node_duration = node_start_time.elapsed().as_millis() as u64;
+
                     executed_nodes.push(current_node_id.clone());
+
+                    // 创建节点执行报告
+                    let node_report = crate::report::NodeExecutionReport {
+                        node_id: node.uuid.clone(),
+                        node_type: format!("{:?}", node.node_type),
+                        node_name: node.name.clone(),
+                        start_time: node_start_ms,
+                        end_time: node_end_ms,
+                        duration_ms: node_duration,
+                        status: crate::report::ExecutionStatus::Success,
+                        input_data: Some(context.variables.clone()),
+                        output_data: output_data.clone(),
+                        error: None,
+                    };
+                    node_reports.push(node_report);
 
                     // 如果有输出数据，更新上下文变量
                     if let Some(data) = output_data {
@@ -273,10 +311,33 @@ impl FlowExecutor {
                     }
                 }
                 Err(error) => {
+                    // 记录节点结束时间
+                    let node_end_ms = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_millis() as u64;
+                    let node_duration = node_start_time.elapsed().as_millis() as u64;
+
                     // 检查是否是条件节点返回 false 的情况
                     if matches!(node.node_type, NodeType::Conditional) && error == "条件评估为false，停止执行" {
                         log::info!("条件节点 {} 评估为 false，停止流程", node.name);
-                        // 这是正常的流程终止（条件不满足），返回成功
+
+                        // 创建节点执行报告（Skipped状态）
+                        let node_report = crate::report::NodeExecutionReport {
+                            node_id: node.uuid.clone(),
+                            node_type: format!("{:?}", node.node_type),
+                            node_name: node.name.clone(),
+                            start_time: node_start_ms,
+                            end_time: node_end_ms,
+                            duration_ms: node_duration,
+                            status: crate::report::ExecutionStatus::Skipped,
+                            input_data: Some(context.variables.clone()),
+                            output_data: None,
+                            error: Some(error.clone()),
+                        };
+                        node_reports.push(node_report);
+
+                        // 这是正常的流程终止（条件不满足），继续处理
                         break;
                     }
 
@@ -284,21 +345,78 @@ impl FlowExecutor {
                     // 检查错误消息是否包含"尚未实现"
                     if error.contains("尚未实现") {
                         // 遇到占位符节点，表示流程已到达未实现部分
-                        // 返回成功，已执行的节点都成功完成
                         log::info!("节点 {} 尚未实现，流程终止", node.name);
+
+                        // 创建节点执行报告（Skipped状态）
+                        let node_report = crate::report::NodeExecutionReport {
+                            node_id: node.uuid.clone(),
+                            node_type: format!("{:?}", node.node_type),
+                            node_name: node.name.clone(),
+                            start_time: node_start_ms,
+                            end_time: node_end_ms,
+                            duration_ms: node_duration,
+                            status: crate::report::ExecutionStatus::Skipped,
+                            input_data: Some(context.variables.clone()),
+                            output_data: None,
+                            error: Some(error.clone()),
+                        };
+                        node_reports.push(node_report);
+
+                        // 返回成功，已执行的节点都成功完成
                         break;
                     } else {
+                        // 创建节点执行报告（Failed状态）
+                        let node_report = crate::report::NodeExecutionReport {
+                            node_id: node.uuid.clone(),
+                            node_type: format!("{:?}", node.node_type),
+                            node_name: node.name.clone(),
+                            start_time: node_start_ms,
+                            end_time: node_end_ms,
+                            duration_ms: node_duration,
+                            status: crate::report::ExecutionStatus::Failed,
+                            input_data: Some(context.variables.clone()),
+                            output_data: None,
+                            error: Some(error.clone()),
+                        };
+                        node_reports.push(node_report);
+
                         // 其他错误，返回失败
                         return ExecutionResult {
                             success: false,
                             data: None,
                             error: Some(error),
                             executed_nodes,
+                            node_reports,
+                            flow_report: None,
                         };
                     }
                 }
             }
         }
+
+        // 生成流程执行报告
+        let end_time = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+        let start_time_ms = start_time.elapsed().as_millis() as u64;
+        let flow_status = if node_reports.iter().any(|r| r.status == crate::report::ExecutionStatus::Failed) {
+            crate::report::ExecutionStatus::Failed
+        } else {
+            crate::report::ExecutionStatus::Success
+        };
+
+        let flow_report = crate::report::FlowExecutionReport {
+            flow_id: flow.uuid.clone(),
+            flow_name: flow.name.clone(),
+            start_time: end_time - start_time_ms,
+            end_time,
+            duration_ms: start_time_ms,
+            total_nodes: flow.nodes.len() as u32,
+            executed_nodes: executed_nodes.len() as u32,
+            status: flow_status,
+            node_reports: node_reports.clone(),
+        };
 
         // 执行成功
         ExecutionResult {
@@ -306,10 +424,12 @@ impl FlowExecutor {
             data: Some(json!({
                 "flow_id": flow.uuid,
                 "executed_nodes": executed_nodes,
-                "execution_time": start_time.elapsed().as_millis() as u64,
+                "execution_time": start_time_ms,
             })),
             error: None,
             executed_nodes,
+            node_reports,
+            flow_report: Some(flow_report),
         }
     }
 

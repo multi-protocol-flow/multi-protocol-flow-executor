@@ -8,7 +8,7 @@ mod flow;
 mod http_executor;
 mod node;
 mod node_config;
-mod report;
+pub mod report;
 mod start_executor;
 mod end_executor;
 mod storage;

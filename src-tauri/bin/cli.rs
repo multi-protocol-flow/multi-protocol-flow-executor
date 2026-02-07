@@ -5,7 +5,8 @@ use std::process;
 use std::time::Instant;
 
 // 导入类型和函数
-use app_lib::{load_flow, ExecutionResult, FlowExecutor};
+use app_lib::{load_flow, report, ExecutionResult, FlowExecutor};
+use report::{NodeExecutionReport, FlowExecutionReport};
 
 /// CLI 输出结果结构（与期望的 JSON 格式匹配）
 #[derive(serde::Serialize)]
@@ -14,6 +15,8 @@ struct CliOutput {
     data: Option<serde_json::Value>,
     error: Option<String>,
     execution_time: u64,
+    node_reports: Vec<NodeExecutionReport>,
+    flow_report: Option<FlowExecutionReport>,
 }
 
 fn print_help() {
@@ -118,6 +121,8 @@ async fn run() -> Result<(), String> {
         data: result.data,
         error: result.error,
         execution_time,
+        node_reports: result.node_reports,
+        flow_report: result.flow_report,
     };
 
     // 序列化为 JSON 并输出到 stdout
@@ -139,6 +144,8 @@ async fn run() -> Result<(), String> {
 }
 
 fn main() {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+
     // 创建 Tokio 运行时
     let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
 
