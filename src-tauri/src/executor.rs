@@ -126,7 +126,7 @@ impl FlowExecutor {
         let mut visited = std::collections::HashSet::new();
 
         while let Some(node) = node_map.get(&current_node_id) {
-            // 检测循环（MVP 范围，简单防止无限循环）
+            // 检测循环（简单防止无限循环）
             if visited.contains(&current_node_id) {
                 return ExecutionResult {
                     success: false,
@@ -158,7 +158,7 @@ impl FlowExecutor {
                                     executed_nodes,
                                 };
                             }
-                            // 简单遍历：取第一个连接的目标节点（MVP 范围）
+                            // 简单遍历：取第一个连接的目标节点
                             current_node_id = targets[0].clone();
                         } else {
                             // 开始节点没有输出连接
@@ -170,19 +170,30 @@ impl FlowExecutor {
                             };
                         }
                     } else {
-                        // 其他节点（MVP 范围：只处理开始节点，其他节点尚未实现）
-                        // 到达其他节点表示开始节点已成功执行，返回成功
-                        break;
+                        // 查找下一个节点（非Start节点的通用逻辑）
+                        let next_nodes = connection_map.get(&current_node_id);
+                        if let Some(targets) = next_nodes {
+                            if targets.is_empty() {
+                                // 节点没有输出连接，执行完成
+                                break;
+                            }
+                            // 简单遍历：取第一个连接的目标节点
+                            current_node_id = targets[0].clone();
+                        } else {
+                            // 节点没有输出连接，执行完成
+                            break;
+                        }
                     }
                 }
                 Err(error) => {
-                    // MVP 范围：如果遇到未实现的节点类型，停止执行但返回成功
-                    // 因为开始节点已经成功执行
-                    if matches!(node.node_type, NodeType::End)
-                        || matches!(node.node_type, NodeType::Http)
-                    {
+                    // 如果节点尚未实现（占位符），优雅终止流程
+                    // 检查错误消息是否包含"尚未实现"
+                    if error.contains("尚未实现") {
+                        // 遇到占位符节点，表示流程已到达未实现部分
+                        // 返回成功，已执行的节点都成功完成
                         break;
                     } else {
+                        // 其他错误，返回失败
                         return ExecutionResult {
                             success: false,
                             data: None,
@@ -209,8 +220,6 @@ impl FlowExecutor {
 
     /// 执行单个节点
     ///
-    /// MVP 范围：仅处理开始节点（立即传递）
-    ///
     /// # 参数
     /// - `node`: 要执行的节点
     /// - `context`: 执行上下文
@@ -223,7 +232,18 @@ impl FlowExecutor {
                 // 开始节点立即传递（无逻辑，<1ms）
                 Ok(())
             }
-            _ => Err(format!("节点类型 {:?} 尚未实现", node.node_type)),
+            NodeType::Http => {
+                // HTTP节点执行器尚未实现
+                Err("HTTP节点执行器尚未实现".to_string())
+            }
+            NodeType::Conditional => {
+                // 条件节点执行器尚未实现
+                Err("条件节点执行器尚未实现".to_string())
+            }
+            NodeType::End => {
+                // 结束节点执行器尚未实现
+                Err("结束节点执行器尚未实现".to_string())
+            }
         }
     }
 }
