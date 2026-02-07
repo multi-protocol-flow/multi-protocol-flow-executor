@@ -4,6 +4,7 @@ use crate::connection::Connection;
 use crate::executor::{ExecutionContext, NodeExecutor};
 use crate::node::Node;
 use std::collections::HashMap;
+use std::time::Instant;
 
 /// End 节点执行器
 pub struct EndNodeExecutor;
@@ -24,10 +25,12 @@ impl NodeExecutor for EndNodeExecutor {
         _connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
     ) -> Result<(Option<String>, Option<serde_json::Value>), String> {
-        log::info!("执行 End 节点: {}", node.name);
+        // 执行前日志
+        let start_time = Instant::now();
+        log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: end", context.flow_id, node.uuid, node.name);
 
         // 标记流程结束
-        log::info!("流程结束 - 流程ID: {}", context.flow_id);
+        log::info!("[流程 {}] [流程结束]", context.flow_id);
 
         // 从 context 中收集执行结果
         let executed_nodes = context
@@ -36,6 +39,21 @@ impl NodeExecutor for EndNodeExecutor {
             .and_then(|v| v.as_array())
             .map(|arr| arr.len())
             .unwrap_or(0);
+
+        // 尝试获取总执行时间（如果存在于上下文中）
+        let total_duration_ms = context
+            .variables
+            .get("execution_time_ms")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+
+        // 流程结束日志
+        log::info!(
+            "[流程 {}] [流程结束] 总执行时间: {}ms, 已执行节点数: {}",
+            context.flow_id,
+            total_duration_ms,
+            executed_nodes
+        );
 
         let variables_count = if context.variables.is_object() {
             context.variables.as_object().unwrap().len()
@@ -53,15 +71,19 @@ impl NodeExecutor for EndNodeExecutor {
         };
 
         // 记录执行结果
-        log::info!("执行统计 - 已执行节点数: {}, 变量数: {}", executed_nodes, variables_count);
-        log::info!("流程最终状态: {}", status);
+        log::info!("[流程 {}] [执行统计] 已执行节点数: {}, 变量数: {}", context.flow_id, executed_nodes, variables_count);
+        log::info!("[流程 {}] [流程最终状态] {}", context.flow_id, status);
 
         // 记录变量详情（如果存在）
         if !context.variables.is_null() {
-            log::info!("最终变量: {}", context.variables);
+            log::info!("[流程 {}] [最终变量] {}", context.flow_id, context.variables);
         }
 
-        log::info!("流程执行完成，结束节点: {}", node.uuid);
+        // 计算End节点执行时间
+        let duration_ms = start_time.elapsed().as_millis();
+
+        // 执行后日志
+        log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: success", context.flow_id, node.uuid, duration_ms);
 
         // 返回 None 表示流程结束，没有下一个节点
         Ok((None, None))

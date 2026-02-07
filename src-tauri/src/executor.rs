@@ -264,7 +264,7 @@ impl FlowExecutor {
 
                     // 如果有输出数据，更新上下文变量
                     if let Some(data) = output_data {
-                        log::info!("节点 {} 输出数据: {}", node.name, data);
+                        log::info!("[流程 {}] 节点 {} 输出数据: {}", context.flow_id, node.name, data);
                         // 将输出数据合并到上下文中
                         if let Some(obj) = data.as_object() {
                             for (key, value) in obj {
@@ -275,14 +275,14 @@ impl FlowExecutor {
 
                     // 处理 Conditional 节点：如果返回 None 表示条件为 false，停止执行
                     if matches!(node.node_type, NodeType::Conditional) && next_node_id_from_executor.is_none() {
-                        log::info!("条件节点 {} 返回 false，停止流程", node.name);
+                        log::info!("[流程 {}] 条件节点 {} 返回 false，停止流程", context.flow_id, node.name);
                         // 条件为 false 是正常的流程终止，返回成功
                         break;
                     }
 
                     // 处理 End 节点：返回 None 表示流程结束
                     if matches!(node.node_type, NodeType::End) {
-                        log::info!("结束节点 {}，流程终止", node.name);
+                        log::info!("[流程 {}] 结束节点 {}，流程终止", context.flow_id, node.name);
                         // End 节点表示正常结束流程
                         break;
                     }
@@ -306,7 +306,7 @@ impl FlowExecutor {
                         current_node_id = next_id;
                     } else {
                         // 节点没有输出连接或执行器返回 None，执行完成
-                        log::info!("节点 {} 没有下一个节点，执行完成", node.name);
+                        log::info!("[流程 {}] 节点 {} 没有下一个节点，执行完成", context.flow_id, node.name);
                         break;
                     }
                 }
@@ -320,7 +320,7 @@ impl FlowExecutor {
 
                     // 检查是否是条件节点返回 false 的情况
                     if matches!(node.node_type, NodeType::Conditional) && error == "条件评估为false，停止执行" {
-                        log::info!("条件节点 {} 评估为 false，停止流程", node.name);
+                        log::info!("[流程 {}] 条件节点 {} 评估为 false，停止流程", context.flow_id, node.name);
 
                         // 创建节点执行报告（Skipped状态）
                         let node_report = crate::report::NodeExecutionReport {
@@ -345,7 +345,7 @@ impl FlowExecutor {
                     // 检查错误消息是否包含"尚未实现"
                     if error.contains("尚未实现") {
                         // 遇到占位符节点，表示流程已到达未实现部分
-                        log::info!("节点 {} 尚未实现，流程终止", node.name);
+                        log::info!("[流程 {}] 节点 {} 尚未实现，流程终止", context.flow_id, node.name);
 
                         // 创建节点执行报告（Skipped状态）
                         let node_report = crate::report::NodeExecutionReport {
@@ -453,22 +453,22 @@ impl FlowExecutor {
     ) -> Result<(Option<String>, Option<serde_json::Value>), String> {
         match node.node_type {
             NodeType::Start => {
-                log::info!("执行开始节点: {}", node.name);
+                log::info!("[流程 {}] 执行开始节点: {} ({})", context.flow_id, node.name, node.uuid);
                 let executor = crate::start_executor::StartNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::Http => {
-                log::info!("执行HTTP节点: {}", node.name);
+                log::info!("[流程 {}] 执行HTTP节点: {} ({})", context.flow_id, node.name, node.uuid);
                 let executor = crate::http_executor::HttpNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::Conditional => {
-                log::info!("执行条件节点: {}", node.name);
+                log::info!("[流程 {}] 执行条件节点: {} ({})", context.flow_id, node.name, node.uuid);
                 let executor = crate::conditional_executor::ConditionalNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::End => {
-                log::info!("执行结束节点: {}", node.name);
+                log::info!("[流程 {}] 执行结束节点: {} ({})", context.flow_id, node.name, node.uuid);
                 let executor = crate::end_executor::EndNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }

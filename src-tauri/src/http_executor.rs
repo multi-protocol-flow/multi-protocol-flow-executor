@@ -2,6 +2,7 @@ use crate::connection::Connection;
 use crate::executor::{ExecutionContext, NodeExecutor};
 use crate::node::Node;
 use std::collections::HashMap;
+use std::time::Instant;
 
 /// HTTP节点执行器
 pub struct HttpNodeExecutor;
@@ -22,29 +23,41 @@ impl NodeExecutor for HttpNodeExecutor {
         _connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
     ) -> Result<(Option<String>, Option<serde_json::Value>), String> {
-        log::info!("执行HTTP节点: {}", node.name);
+        // 执行前日志
+        let start_time = Instant::now();
+        log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: http", context.flow_id, node.uuid, node.name);
 
         // 从Node的data字段提取HttpConfig
         let http_config = match &node.data {
             crate::node_config::NodeData::Http(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是HttpConfig: {}", node.uuid)),
+            _ => {
+                let error_msg = format!("节点数据类型不是HttpConfig: {}", node.uuid);
+                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                return Err(error_msg);
+            }
         };
 
         // 使用replace_variables替换URL
         let url = crate::executor::replace_variables(&http_config.url, context)
-            .map_err(|e| format!("URL变量替换失败: {}", e))?;
+            .map_err(|e| {
+                let error_msg = format!("URL变量替换失败: {}", e);
+                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                error_msg
+            })?;
 
-        log::info!(
-            "发送HTTP请求: {} {}",
-            format!("{:?}", http_config.method).to_uppercase(),
-            url
-        );
+        // HTTP请求日志
+        let method_str = format!("{:?}", http_config.method).to_uppercase();
+        log::info!("[流程 {}] [HTTP请求] URL: {}, 方法: {}", context.flow_id, url, method_str);
 
         // 创建HTTP客户端（默认超时30秒）
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
-            .map_err(|e| format!("创建HTTP客户端失败: {}", e))?;
+            .map_err(|e| {
+                let error_msg = format!("创建HTTP客户端失败: {}", e);
+                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                error_msg
+            })?;
 
         // 构建请求
         let mut request = match http_config.method {
@@ -59,7 +72,11 @@ impl NodeExecutor for HttpNodeExecutor {
         if let Some(headers) = &http_config.headers {
             for (key, value) in headers {
                 let replaced_value = crate::executor::replace_variables(value, context)
-                    .map_err(|e| format!("请求头变量替换失败 ({}): {}", key, e))?;
+                    .map_err(|e| {
+                        let error_msg = format!("请求头变量替换失败 ({}): {}", key, e);
+                        log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                        error_msg
+                    })?;
                 request = request.header(key, replaced_value);
             }
         }
@@ -68,23 +85,37 @@ impl NodeExecutor for HttpNodeExecutor {
         if let Some(body) = &http_config.body {
             let body_str = body.to_string();
             let replaced_body = crate::executor::replace_variables(&body_str, context)
-                .map_err(|e| format!("请求体变量替换失败: {}", e))?;
+                .map_err(|e| {
+                    let error_msg = format!("请求体变量替换失败: {}", e);
+                    log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                    error_msg
+                })?;
             request = request.body(replaced_body);
         }
+
+        // 记录HTTP请求开始时间
+        let http_start_time = Instant::now();
 
         // 发送请求并获取响应
         let response = request
             .send()
             .await
-            .map_err(|e| format!("HTTP请求失败: {}", e))?;
+            .map_err(|e| {
+                let error_msg = format!("HTTP请求失败: {}", e);
+                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                error_msg
+            })?;
 
         let status = response.status();
         let status_code = status.as_u16();
+        let http_duration_ms = http_start_time.elapsed().as_millis();
 
+        // HTTP响应日志
         log::info!(
-            "HTTP响应状态码: {} {}",
+            "[流程 {}] [HTTP响应] 状态码: {}, 耗时: {}ms",
+            context.flow_id,
             status_code,
-            status.canonical_reason().unwrap_or("Unknown")
+            http_duration_ms
         );
 
         // 验证HTTP状态码（2xx视为成功，其他视为失败）
@@ -94,7 +125,7 @@ impl NodeExecutor for HttpNodeExecutor {
                 status_code,
                 status.canonical_reason().unwrap_or("Unknown")
             );
-            log::error!("{}", error_msg);
+            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
             return Err(error_msg);
         }
 
@@ -117,12 +148,20 @@ impl NodeExecutor for HttpNodeExecutor {
         let body_text = response
             .text()
             .await
-            .map_err(|e| format!("读取响应体失败: {}", e))?;
+            .map_err(|e| {
+                let error_msg = format!("读取响应体失败: {}", e);
+                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                error_msg
+            })?;
 
         // 解析响应体为JSON（如果Content-Type是application/json）
         let body_json = if is_json {
             serde_json::from_str(&body_text)
-                .map_err(|e| format!("解析JSON响应体失败: {}", e))?
+                .map_err(|e| {
+                    let error_msg = format!("解析JSON响应体失败: {}", e);
+                    log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                    error_msg
+                })?
         } else {
             serde_json::Value::String(body_text)
         };
@@ -134,7 +173,11 @@ impl NodeExecutor for HttpNodeExecutor {
             "body": body_json
         });
 
-        log::info!("HTTP请求成功完成: {}", url);
+        // 计算总执行时间
+        let duration_ms = start_time.elapsed().as_millis();
+
+        // 执行后日志
+        log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: success", context.flow_id, node.uuid, duration_ms);
 
         Ok((None, Some(output_data)))
     }
