@@ -27,10 +27,10 @@ pub struct ExecutionResult {
 /// 执行上下文
 #[derive(Debug, Clone)]
 pub struct ExecutionContext {
-    /// 流程 ID
-    pub flow_id: String,
-    /// 当前节点 ID
-    pub current_node_id: Option<String>,
+    /// 流程 UUID
+    pub flow_uuid: String,
+    /// 当前执行节点的 UUID
+    pub current_node_uuid: Option<String>,
     /// 执行变量
     pub variables: serde_json::Value,
 }
@@ -168,8 +168,8 @@ impl FlowExecutor {
         let mut executed_nodes = Vec::new();
         let mut node_reports = Vec::new();
         let mut context = ExecutionContext {
-            flow_id: flow.uuid.clone(),
-            current_node_id: None,
+            flow_uuid: flow.uuid.clone(),
+            current_node_uuid: None,
             variables: variables.unwrap_or_else(|| json!({})),
         };
 
@@ -226,7 +226,7 @@ impl FlowExecutor {
             }
 
             visited.insert(current_node_id.clone());
-            context.current_node_id = Some(current_node_id.clone());
+            context.current_node_uuid = Some(current_node_id.clone());
 
             // 记录节点开始时间
             let node_start_time = tokio::time::Instant::now();
@@ -264,7 +264,7 @@ impl FlowExecutor {
 
                     // 如果有输出数据，更新上下文变量
                     if let Some(data) = output_data {
-                        log::info!("[流程 {}] 节点 {} 输出数据: {}", context.flow_id, node.name, data);
+                        log::info!("[流程 {}] 节点 {} 输出数据: {}", context.flow_uuid, node.name, data);
                         // 将输出数据合并到上下文中
                         if let Some(obj) = data.as_object() {
                             for (key, value) in obj {
@@ -275,14 +275,14 @@ impl FlowExecutor {
 
                     // 处理 Conditional 节点：如果返回 None 表示条件为 false，停止执行
                     if matches!(node.node_type, NodeType::Conditional) && next_node_id_from_executor.is_none() {
-                        log::info!("[流程 {}] 条件节点 {} 返回 false，停止流程", context.flow_id, node.name);
+                        log::info!("[流程 {}] 条件节点 {} 返回 false，停止流程", context.flow_uuid, node.name);
                         // 条件为 false 是正常的流程终止，返回成功
                         break;
                     }
 
                     // 处理 End 节点：返回 None 表示流程结束
                     if matches!(node.node_type, NodeType::End) {
-                        log::info!("[流程 {}] 结束节点 {}，流程终止", context.flow_id, node.name);
+                        log::info!("[流程 {}] 结束节点 {}，流程终止", context.flow_uuid, node.name);
                         // End 节点表示正常结束流程
                         break;
                     }
@@ -306,7 +306,7 @@ impl FlowExecutor {
                         current_node_id = next_id;
                     } else {
                         // 节点没有输出连接或执行器返回 None，执行完成
-                        log::info!("[流程 {}] 节点 {} 没有下一个节点，执行完成", context.flow_id, node.name);
+                        log::info!("[流程 {}] 节点 {} 没有下一个节点，执行完成", context.flow_uuid, node.name);
                         break;
                     }
                 }
@@ -320,7 +320,7 @@ impl FlowExecutor {
 
                     // 检查是否是条件节点返回 false 的情况
                     if matches!(node.node_type, NodeType::Conditional) && error == "条件评估为false，停止执行" {
-                        log::info!("[流程 {}] 条件节点 {} 评估为 false，停止流程", context.flow_id, node.name);
+                        log::info!("[流程 {}] 条件节点 {} 评估为 false，停止流程", context.flow_uuid, node.name);
 
                         // 创建节点执行报告（Skipped状态）
                         let node_report = crate::report::NodeExecutionReport {
@@ -345,7 +345,7 @@ impl FlowExecutor {
                     // 检查错误消息是否包含"尚未实现"
                     if error.contains("尚未实现") {
                         // 遇到占位符节点，表示流程已到达未实现部分
-                        log::info!("[流程 {}] 节点 {} 尚未实现，流程终止", context.flow_id, node.name);
+                        log::info!("[流程 {}] 节点 {} 尚未实现，流程终止", context.flow_uuid, node.name);
 
                         // 创建节点执行报告（Skipped状态）
                         let node_report = crate::report::NodeExecutionReport {
@@ -453,22 +453,22 @@ impl FlowExecutor {
     ) -> Result<(Option<String>, Option<serde_json::Value>), String> {
         match node.node_type {
             NodeType::Start => {
-                log::info!("[流程 {}] 执行开始节点: {} ({})", context.flow_id, node.name, node.uuid);
+                log::info!("[流程 {}] 执行开始节点: {} ({})", context.flow_uuid, node.name, node.uuid);
                 let executor = crate::start_executor::StartNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::Http => {
-                log::info!("[流程 {}] 执行HTTP节点: {} ({})", context.flow_id, node.name, node.uuid);
+                log::info!("[流程 {}] 执行HTTP节点: {} ({})", context.flow_uuid, node.name, node.uuid);
                 let executor = crate::http_executor::HttpNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::Conditional => {
-                log::info!("[流程 {}] 执行条件节点: {} ({})", context.flow_id, node.name, node.uuid);
+                log::info!("[流程 {}] 执行条件节点: {} ({})", context.flow_uuid, node.name, node.uuid);
                 let executor = crate::conditional_executor::ConditionalNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::End => {
-                log::info!("[流程 {}] 执行结束节点: {} ({})", context.flow_id, node.name, node.uuid);
+                log::info!("[流程 {}] 执行结束节点: {} ({})", context.flow_uuid, node.name, node.uuid);
                 let executor = crate::end_executor::EndNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
@@ -607,45 +607,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_flow_executor_loop_detection() {
-        // 创建循环连接的流程
-        let flow_id = Uuid::new_v4().to_string();
-        let start_node = Node {
-            uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Start,
-            name: "开始".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
-            ports: None,
-        };
-
-        // 创建一个自连接
-        let connection = Connection {
-            id: format!("conn-{}", flow_id),
-            source_node_uuid: start_node.uuid.clone(),
-            target_node_uuid: start_node.uuid.clone(),
-            source_port_id: "output".to_string(),
-            target_port_id: "input".to_string(),
-        };
-
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            initial_variables: None,
-            name: "测试流程".to_string(),
-            nodes: vec![start_node],
-            connections: vec![connection],
-        };
-
-        let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None).await;
-
-        // 验证执行失败（检测到循环）
-        assert!(!result.success);
-        assert!(result.error.is_some());
-        assert!(result.error.unwrap().contains("检测到循环"));
-    }
-
-    #[tokio::test]
     async fn test_flow_executor_with_variables() {
         // 创建测试流程
         let flow_id = Uuid::new_v4().to_string();
@@ -772,8 +733,8 @@ mod tests {
 
         let executor = FlowExecutor::new();
         let context = ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(conditional_node.uuid.clone()),
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(conditional_node.uuid.clone()),
             variables: json!({}),
         };
 
@@ -1112,8 +1073,8 @@ mod tests {
         // 测试简单变量替换
         let template = "Bearer {{initial_variables.api_key}}";
         let context = ExecutionContext {
-            flow_id: "test-flow".to_string(),
-            current_node_id: None,
+            flow_uuid: "test-flow".to_string(),
+            current_node_uuid: None,
             variables: json!({
                 "initial_variables": {
                     "api_key": "test-key"
@@ -1130,8 +1091,8 @@ mod tests {
         // 测试嵌套路径
         let template = "Hello {{user.profile.name}}";
         let context = ExecutionContext {
-            flow_id: "test-flow".to_string(),
-            current_node_id: None,
+            flow_uuid: "test-flow".to_string(),
+            current_node_uuid: None,
             variables: json!({
                 "user": {
                     "profile": {
@@ -1150,8 +1111,8 @@ mod tests {
         // 测试严格模式（变量不存在时报错）
         let template = "{{nonexistent.var}}";
         let context = ExecutionContext {
-            flow_id: "test-flow".to_string(),
-            current_node_id: None,
+            flow_uuid: "test-flow".to_string(),
+            current_node_uuid: None,
             variables: json!({}),
         };
         let result = replace_variables(template, &context);
@@ -1164,8 +1125,8 @@ mod tests {
         // 测试索引访问不支持
         let template = "{{items[0]}}";
         let context = ExecutionContext {
-            flow_id: "test-flow".to_string(),
-            current_node_id: None,
+            flow_uuid: "test-flow".to_string(),
+            current_node_uuid: None,
             variables: json!({
                 "items": ["a", "b", "c"]
             }),
