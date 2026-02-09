@@ -225,8 +225,8 @@ impl FlowExecutor {
                 };
             }
 
-            visited.insert(current_node_id.clone());
-            context.current_node_uuid = Some(current_node_id.clone());
+            visited.insert(current_node_uuid.clone());
+            context.current_node_uuid = Some(current_node_uuid.clone());
 
             // 记录节点开始时间
             let node_start_time = tokio::time::Instant::now();
