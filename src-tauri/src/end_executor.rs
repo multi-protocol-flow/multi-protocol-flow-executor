@@ -27,10 +27,10 @@ impl NodeExecutor for EndNodeExecutor {
     ) -> Result<(Option<String>, Option<serde_json::Value>), String> {
         // 执行前日志
         let start_time = Instant::now();
-        log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: end", context.flow_id, node.uuid, node.name);
+        log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: end", context.flow_uuid, node.uuid, node.name);
 
         // 标记流程结束
-        log::info!("[流程 {}] [流程结束]", context.flow_id);
+        log::info!("[流程 {}] [流程结束]", context.flow_uuid);
 
         // 从 context 中收集执行结果
         let executed_nodes = context
@@ -50,7 +50,7 @@ impl NodeExecutor for EndNodeExecutor {
         // 流程结束日志
         log::info!(
             "[流程 {}] [流程结束] 总执行时间: {}ms, 已执行节点数: {}",
-            context.flow_id,
+            context.flow_uuid,
             total_duration_ms,
             executed_nodes
         );
@@ -71,19 +71,19 @@ impl NodeExecutor for EndNodeExecutor {
         };
 
         // 记录执行结果
-        log::info!("[流程 {}] [执行统计] 已执行节点数: {}, 变量数: {}", context.flow_id, executed_nodes, variables_count);
-        log::info!("[流程 {}] [流程最终状态] {}", context.flow_id, status);
+        log::info!("[流程 {}] [执行统计] 已执行节点数: {}, 变量数: {}", context.flow_uuid, executed_nodes, variables_count);
+        log::info!("[流程 {}] [流程最终状态] {}", context.flow_uuid, status);
 
         // 记录变量详情（如果存在）
         if !context.variables.is_null() {
-            log::info!("[流程 {}] [最终变量] {}", context.flow_id, context.variables);
+            log::info!("[流程 {}] [最终变量] {}", context.flow_uuid, context.variables);
         }
 
         // 计算End节点执行时间
         let duration_ms = start_time.elapsed().as_millis();
 
         // 执行后日志
-        log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: success", context.flow_id, node.uuid, duration_ms);
+        log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: success", context.flow_uuid, node.uuid, duration_ms);
 
         // 返回 None 表示流程结束，没有下一个节点
         Ok((None, None))
@@ -110,8 +110,8 @@ mod tests {
         };
 
         let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(end_node.uuid.clone()),
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(end_node.uuid.clone()),
             variables: json!({}),
         };
 
@@ -141,8 +141,8 @@ mod tests {
         };
 
         let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(end_node.uuid.clone()),
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(end_node.uuid.clone()),
             variables: json!({
                 "executed_nodes": ["node-1", "node-2"],
                 "http_response": {
@@ -177,8 +177,8 @@ mod tests {
         };
 
         let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(end_node.uuid.clone()),
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(end_node.uuid.clone()),
             variables: json!({
                 "executed_nodes": ["node-1", "node-2", "node-3"],
                 "result": "completed"
@@ -210,8 +210,8 @@ mod tests {
         };
 
         let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(end_node.uuid.clone()),
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(end_node.uuid.clone()),
             variables: json!({
                 "executed_nodes": ["node-1", "node-2"],
                 "error": "HTTP request failed"
@@ -243,8 +243,8 @@ mod tests {
         };
 
         let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(end_node.uuid.clone()),
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(end_node.uuid.clone()),
             variables: json!({
                 "executed_nodes": ["node-1"],
                 "errors": [
@@ -279,8 +279,8 @@ mod tests {
         };
 
         let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(end_node.uuid.clone()),
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(end_node.uuid.clone()),
             variables: json!({}),
         };
 
@@ -309,8 +309,8 @@ mod tests {
         };
 
         let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(end_node.uuid.clone()),
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(end_node.uuid.clone()),
             variables: json!(null),
         };
 
@@ -339,8 +339,8 @@ mod tests {
         };
 
         let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(end_node.uuid.clone()),
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(end_node.uuid.clone()),
             variables: json!({
                 "executed_nodes": ["node-1", "node-2", "node-3", "node-4"],
                 "http_response": {
@@ -388,8 +388,8 @@ mod tests {
         };
 
         let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(end_node.uuid.clone()),
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(end_node.uuid.clone()),
             variables: json!({
                 "message": "No nodes executed"
             }),
@@ -420,8 +420,8 @@ mod tests {
         };
 
         let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(end_node.uuid.clone()),
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(end_node.uuid.clone()),
             variables: json!({
                 "executed_nodes": []
             }),

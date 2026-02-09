@@ -27,14 +27,14 @@ impl NodeExecutor for ConditionalNodeExecutor {
     ) -> Result<(Option<String>, Option<serde_json::Value>), String> {
         // 执行前日志
         let start_time = Instant::now();
-        log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: conditional", context.flow_id, node.uuid, node.name);
+        log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: conditional", context.flow_uuid, node.uuid, node.name);
 
         // 从Node的data字段提取ConditionalConfig
         let conditional_config = match &node.data {
             NodeData::Conditional(config) => config.clone(),
             _ => {
                 let error_msg = format!("节点数据类型不是ConditionalConfig: {}", node.uuid);
-                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                 return Err(error_msg);
             }
         };
@@ -53,7 +53,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                     &conditional_config,
                     &context.variables,
                 )?;
-                log::info!("[流程 {}] [条件判断] 条件类型: Simple, 表达式: {}, 结果: {}", context.flow_id, expression, result);
+                log::info!("[流程 {}] [条件判断] 条件类型: Simple, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
                 result
             }
             ConditionType::Advanced => {
@@ -63,7 +63,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                     &conditional_config,
                     &context.variables,
                 )?;
-                log::info!("[流程 {}] [条件判断] 条件类型: Advanced, 表达式: {}, 结果: {}", context.flow_id, expression, result);
+                log::info!("[流程 {}] [条件判断] 条件类型: Advanced, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
                 result
             }
         };
@@ -78,13 +78,13 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 .map(|conn| conn.target_node_uuid.clone());
 
             // 执行后日志
-            log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: success", context.flow_id, node.uuid, duration_ms);
+            log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: success", context.flow_uuid, node.uuid, duration_ms);
 
             // 返回next_node_id和空output_data
             Ok((next_node_id, None))
         } else {
             // 执行后日志（条件评估为false）
-            log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: false", context.flow_id, node.uuid, duration_ms);
+            log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: false", context.flow_uuid, node.uuid, duration_ms);
             Err("条件评估为false，停止执行".to_string())
         }
     }
@@ -398,9 +398,9 @@ mod tests {
 
     fn create_test_context(variables: serde_json::Value) -> ExecutionContext {
         ExecutionContext {
-            flow_id: "test-flow-id".to_string(),
+            flow_uuid: "test-flow-id".to_string(),
             variables,
-            current_node_id: None,
+            current_node_uuid: None,
         }
     }
 
