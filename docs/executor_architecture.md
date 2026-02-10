@@ -2,7 +2,7 @@
 
 **文档位置**：`docs/executor_architecture.md`
 **语言**：中文
-**版本**：v1.0
+**版本**：v1.3
 
 ---
 
@@ -10,14 +10,12 @@
 
 > **快速摘要**：本文档描述 Multi-Protocol Flow Executor 后端执行引擎的整体架构设计，基于现有实现优化改进。
 >
-> **核心设计决策**：
-> - **条件节点**：双分支设计（true/false）
-> - **失败策略**：容错模式（节点可配置失败后继续）
-> - **变量管理**：节点隔离（独立输出空间）
-> - **循环检测**：允许重入（限制最大执行次数）
-> - **执行模式**：顺序执行（单线程简单可靠）
-> - **End 节点**：执行逻辑（可自定义最终处理）
-> - **执行上下文**：完整上下文（历史+元数据）
+  > **核心设计决策**：
+  > - **条件节点**：双分支设计（true/false），根据条件评估结果选择分支；匹配到的分支有连接则执行，无连接则流程终止（与普通节点无下游节点逻辑一致）
+  > - **变量管理**：节点隔离（独立输出空间）
+  > - **执行模式**：顺序执行（单线程简单可靠）
+  > - **流程终止**：没有下一个节点时生成报告
+  > - **执行上下文**：完整上下文（历史+元数据）
 >
 > **目标读者**：后端开发人员、系统架构师
 > **相关文档**：`docs/node_structure.md`、`docs/report_structure.md`
@@ -53,8 +51,8 @@ Multi-Protocol Flow Executor 的执行引擎负责：
 │                    FlowExecutor (主执行引擎)              │
 │  ┌─────────────────────────────────────────────────┐   │
 │  │  execute_flow(flow, variables)                 │   │
-│  │  ├─ 初始化执行上下文                           │   │
-│  │  ├─ 验证流程（查找Start节点）                   │   │
+│  │  ├─ 初始化执行上下文（flow_uuid, node_uuid）    │   │
+│  │  ├─ 验证流程（查找Entry节点）                   │   │
 │  │  ├─ 构建映射表（node_map, connection_map）      │   │
 │  │  └─ 执行循环 (while let Some(node))           │   │
 │  └─────────────────────────────────────────────────┘   │
@@ -66,11 +64,13 @@ Multi-Protocol Flow Executor 的执行引擎负责：
 │ ExecutionContext │  │ NodeExecutor │  │   Reporter    │
 │   (执行上下文)  │  │  (trait接口)  │  │  (报告生成)  │
 └──────────────┘  └──────────────┘  └──────────────┘
-          ↓
-┌────────────────┼────────────────┬────────────────┬────────────────┐
-↓                ↓                ↓                ↓                ↓
-StartNodeExecutor HttpNodeExecutor ConditionalNodeExecutor EndNodeExecutor LoopNodeExecutor
-(开始节点)         (HTTP请求)        (条件判断)           (结束)           (循环)
+           ↓
+ ┌────────────────┼────────────────┐
+  ↓                ↓                ↓
+  EntryNodeExecutor HttpNodeExecutor ConditionalNodeExecutor
+  (入口节点)         (HTTP请求)        (条件判断)
+
+   **节点端口**：详见 `docs/node_structure.md` 端口类型定义
 ```
 
 ### 2.2 数据流向图
@@ -78,28 +78,29 @@ StartNodeExecutor HttpNodeExecutor ConditionalNodeExecutor EndNodeExecutor LoopN
 ```
 Flow Definition (输入)
     ↓
-初始化 ExecutionContext
-    ├─ flow_id: String
-    ├─ variables: Value (初始变量）
-    ├─ execution_history: Vec<ExecutionRecord>
-    └─ metadata: ExecutionMetadata
-    ↓
-┌─────────────────────────────────┐
-│  执行循环 (顺序遍历）             │
-│  ┌───────────────────────────┐  │
-│  │ 1. 检测循环/限制重入      │  │
-│  │ 2. 执行当前节点          │  │
-│  │ 3. 处理结果/错误         │  │
-│  │ 4. 更新上下文          │  │
-│  │ 5. 查找下一个节点        │  │
-│  └───────────────────────────┘  │
-└─────────────────────────────────┘
-    ↓
-生成执行报告
-    ├─ NodeExecutionReport (每个节点）
-    └─ FlowExecutionReport (整体）
-    ↓
-ExecutionResult (输出)
+  初始化 ExecutionContext
+      ├─ flow_uuid: String (流程 UUID)
+      ├─ current_node_uuid: Option<String>
+      ├─ variables: VariableStorage (初始变量 + 节点隔离）
+      ├─ node_reports: Vec<NodeExecutionReport>
+      └─ flow_trigger_time: u64
+     ↓
+  ┌─────────────────────────────────┐
+  │  执行循环 (顺序遍历）             │
+  │  ┌───────────────────────────┐  │
+  │  │ 1. 执行当前节点          │  │
+  │  │ 2. 处理结果/错误         │  │
+  │  │ 3. 更新上下文          │  │
+  │  │ 4. 查找下一个节点        │  │
+  │  │ 5. 如果没有下一个节点，生成报告并终止 │  │
+  │  └───────────────────────────┘  │
+  └─────────────────────────────────┘
+     ↓
+ 生成执行报告
+     ├─ NodeExecutionReport (每个节点）
+     └─ FlowExecutionReport (整体）
+     ↓
+ ExecutionResult (输出)
 ```
 
 ---
@@ -112,16 +113,16 @@ ExecutionResult (输出)
 /// 执行上下文
 #[derive(Debug, Clone)]
 pub struct ExecutionContext {
-    /// 流程 ID
-    pub flow_id: String,
-    /// 当前节点 ID
-    pub current_node_id: Option<String>,
+    /// 流程 UUID（前端生成）
+    pub flow_uuid: String,
+    /// 当前执行节点的 UUID
+    pub current_node_uuid: Option<String>,
     /// 执行变量（用于变量替换）
     pub variables: VariableStorage,
-    /// 执行历史
-    pub execution_history: Vec<ExecutionRecord>,
-    /// 执行元数据
-    pub metadata: ExecutionMetadata,
+    /// 执行历史记录（每个节点的详细执行报告）
+    pub node_reports: Vec<NodeExecutionReport>,
+    /// 流程触发时间（用于记录触发和开始执行的时间差）
+    pub flow_trigger_time: u64,
 }
 
 /// 变量存储（节点隔离）
@@ -132,43 +133,17 @@ pub struct VariableStorage {
     pub nodes: HashMap<String, HashMap<String, serde_json::Value>>,
 }
 
-/// 执行历史记录
-#[derive(Debug, Clone)]
-pub struct ExecutionRecord {
-    /// 节点 UUID
-    pub node_uuid: String,
-    /// 执行时间
-    pub timestamp: u64,
-    /// 执行结果
-    pub result: ExecutionResultType,
-}
+/// 节点执行报告（详见 `docs/report_structure.md`）
+/// 定义位于 `docs/report_structure.md`，此处仅引用以说明上下文关系
+pub type NodeExecutionReport = crate::report_structure::NodeExecutionReport;
 
-/// 执行结果类型
-#[derive(Debug, Clone)]
-pub enum ExecutionResultType {
-    Success,
-    Failed(String),
-    Skipped(String),
-}
+**职责**：在流程执行期间维护所有必要的状态信息。
 
-/// 执行元数据
-#[derive(Debug, Clone)]
-pub struct ExecutionMetadata {
-    /// 流程开始时间
-    pub flow_start_time: u64,
-    /// 已执行节点数
-    pub executed_nodes: u32,
-    /// 失败节点数
-    pub failed_nodes: u32,
-    /// 跳过节点数
-    pub skipped_nodes: u32,
-}
-```
-
-**设计要点：**
+**设计要点**：
 - **变量隔离**：`VariableStorage` 分离全局变量和节点局部变量
-- **执行历史**：记录每个节点的执行记录，便于调试
-- **元数据**：跟踪执行统计信息
+- **完整报告结构**：使用 `NodeExecutionReport` 统一记录所有节点执行信息（详见 `docs/report_structure.md`），无需区分内部记录和外部报告
+- **统一状态**：使用 `ExecutionStatus` 作为统一的状态枚举（详见 `docs/report_structure.md`）
+- **时间区分**：`flow_trigger_time` 是流程触发时间（外部请求到达时间），`FlowExecutionReport.start_time` 是真正开始执行的时间（完成初始化后），两者可能有一定误差
 
 ### 3.2 NodeExecutor Trait（节点执行器接口）
 
@@ -185,8 +160,12 @@ pub trait NodeExecutor {
     ///
     /// # 返回
     /// - `Ok((next_node_ids, output_data))`:
-    ///   - `next_node_ids`: 下一个节点的 UUID 列表（支持多分支）
+    ///   - `next_node_ids`: 下一个节点的 UUID 列表
+    ///     - 返回 0 或 1 个节点 UUID（空列表表示流程终止）
     ///   - `output_data`: 节点输出数据
+    ///     - Entry 节点：必须为 `None`（不产生数据，仅作为流程入口）
+    ///     - Http 节点：HTTP 响应数据
+    ///     - Conditional 节点：条件评估结果的布尔值
     /// - `Err(error)`: 执行失败
     async fn execute(
         &self,
@@ -195,172 +174,51 @@ pub trait NodeExecutor {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String>;
-
-    /// 检查节点是否支持容错
-    ///
-    /// 默认返回 false（不支持容错）
-    fn is_fault_tolerant(&self, _node: &Node) -> bool {
-        false
-    }
-
-    /// 获取最大重试次数
-    ///
-    /// 默认返回 0（不重试）
-    fn max_retries(&self, _node: &Node) -> u32 {
-        0
-    }
 }
 ```
 
-**设计要点：**
-- **多分支支持**：返回 `Vec<String>` 支持多个下一个节点
-- **容错配置**：`is_fault_tolerant()` 判断节点是否支持容错
-- **重试机制**：`max_retries()` 配置最大重试次数
+**职责**：定义节点的执行行为接口，所有节点类型必须实现此 trait。
+
+**设计要点**：
+- **统一返回类型**：所有节点类型使用统一的 `Vec<String>` 返回类型，避免为条件节点单独使用特殊类型（如 `Option<String>`），保持接口一致性
+- **返回值语义**：
+  - 空列表 `[]`：没有下一个节点，流程终止
+  - 单元素列表 `[node_uuid]`：有下一个节点，继续执行
+  - `Vec<String>` 类型为未来可能的并行执行预留扩展空间
+- **条件节点行为**：根据条件评估结果选择分支：
+  - 条件为 true 时返回 true 端口连接的节点（true 端口无连接时返回空列表，流程终止）
+  - 条件为 false 时返回 false 端口连接的节点（false 端口无连接时返回空列表，流程终止）
+  - 与普通节点保持一致：匹配到的分支（true/false）无下游连接时流程终止
 
 ### 3.3 FlowExecutor（流程执行器）
 
 ```rust
-pub struct FlowExecutor {
-    /// 最大执行次数（防止无限重入）
-    max_execution_count: HashMap<String, u32>,
-    /// 每个节点的当前执行次数
-    execution_count: HashMap<String, u32>,
-}
-
-impl FlowExecutor {
-    /// 执行流程
-    pub async fn execute_flow(
-        &self,
-        flow: &Flow,
-        variables: Option<serde_json::Value>,
-    ) -> ExecutionResult {
-        // 1. 初始化执行上下文
-        let mut context = ExecutionContext {
-            flow_id: flow.uuid.clone(),
-            current_node_id: None,
-            variables: VariableStorage::from_initial_variables(variables),
-            execution_history: Vec::new(),
-            metadata: ExecutionMetadata::new(),
-        };
-
-        // 2. 验证流程（查找 Start 节点）
-        let start_node = self.validate_and_find_start_node(&flow)?;
-
-        // 3. 构建映射表
-        let node_map = self.build_node_map(&flow);
-        let connection_map = self.build_connection_map(&flow);
-
-        // 4. 从 Start 节点开始遍历
-        let current_node_ids = vec![start_node.uuid.clone()];
-
-        // 5. 执行循环
-        while !current_node_ids.is_empty() {
-            // 取出第一个节点（顺序执行）
-            let current_node_id = current_node_ids[0].clone();
-
-            // 检测重入限制
-            if !self.check_execution_limit(&current_node_id) {
-                return ExecutionResult {
-                    success: false,
-                    error: Some(format!("节点 {} 超过最大执行次数", current_node_id)),
-                    // ...
-                };
-            }
-
-            // 查找节点
-            let node = match node_map.get(&current_node_id) {
-                Some(n) => n,
-                None => {
-                    return ExecutionResult {
-                        success: false,
-                        error: Some(format!("节点 {} 不存在", current_node_id)),
-                        // ...
-                    };
-                }
-            };
-
-            // 执行节点
-            match self.execute_node(node, &context, &flow.connections, &node_map).await {
-                Ok((next_node_ids, output_data)) => {
-                    // 执行成功
-
-                    // 记录执行历史
-                    context.execution_history.push(ExecutionRecord {
-                        node_uuid: node.uuid.clone(),
-                        timestamp: /* 当前时间戳 */,
-                        result: ExecutionResultType::Success,
-                    });
-
-                    // 更新变量
-                    context.variables.insert_node_output(&node.uuid, output_data);
-
-                    // 更新元数据
-                    context.metadata.executed_nodes += 1;
-
-                    // 处理下一个节点
-                    if next_node_ids.is_empty() {
-                        // 没有下一个节点，终止执行
-                        break;
-                    } else {
-                        // 设置当前节点 ID 为第一个下一个节点
-                        context.current_node_id = Some(next_node_ids[0].clone());
-                        // 更新 current_node_ids（这里简化处理，实际应该处理多个）
-                    }
-                }
-                Err(error) => {
-                    // 执行失败
-
-                    // 检查是否支持容错
-                    if node.executor().is_fault_tolerant(node) {
-                        // 容错模式：标记为失败但继续执行
-
-                        // 记录执行历史
-                        context.execution_history.push(ExecutionRecord {
-                            node_uuid: node.uuid.clone(),
-                            timestamp: /* 当前时间戳 */,
-                            result: ExecutionResultType::Failed(error.clone()),
-                        });
-
-                        // 更新元数据
-                        context.metadata.failed_nodes += 1;
-
-                        // 继续执行下一个节点
-                        continue;
-                    } else {
-                        // 严格模式：立即终止
-
-                        return ExecutionResult {
-                            success: false,
-                            error: Some(error),
-                            // ...
-                        };
-                    }
-                }
-            }
-        }
-
-        // 6. 生成报告
-        let flow_report = self.generate_flow_report(&context, &flow);
-
-        // 7. 返回结果
-        ExecutionResult {
-            success: true,
-            data: Some(json!({
-                "flow_id": flow.uuid,
-                "executed_nodes": context.metadata.executed_nodes,
-                "failed_nodes": context.metadata.failed_nodes,
-                "skipped_nodes": context.metadata.skipped_nodes,
-            })),
-            error: None,
-            executed_nodes: context.execution_history
-                .iter()
-                .map(|r| r.node_uuid.clone())
-                .collect(),
-            flow_report: Some(flow_report),
-        }
-    }
-}
+pub struct FlowExecutor;
 ```
+
+**职责**：管理整个流程的执行生命周期，从初始化到报告生成。
+
+**执行流程**：
+
+**1. 初始化阶段**
+- 记录流程触发时间
+- 创建执行上下文（包括变量存储、执行报告等）
+- 验证流程完整性（查找 Entry 节点）
+- 构建节点映射表和连接映射表
+
+**2. 执行循环**
+- 从 Entry 节点开始，顺序执行节点
+- 节点执行成功：记录执行报告、更新变量、继续下一个节点
+- 节点执行失败：记录失败状态，立即终止流程
+
+**3. 报告生成**
+- 当没有下一个节点时，根据节点报告生成完整的流程报告
+- 计算统计信息（成功数、失败数等）
+- 返回执行结果和报告
+
+**错误处理策略**：
+- 节点不存在：立即终止
+- 节点执行失败：立即终止
 
 ---
 
@@ -368,12 +226,12 @@ impl FlowExecutor {
 
 | 设计领域 | 决策 | 说明 |
 |---------|------|------|
-| **条件分支** | 双分支 | 条件节点有两个输出端口（true/false），根据评估结果选择分支 |
-| **失败策略** | 容错模式 | 节点可配置"失败时是否继续"，支持非关键节点的容错 |
+| **条件分支** | 双分支 | 条件节点有两个输出端口（true/false），根据条件评估结果选择分支；匹配到的分支有连接则执行，无连接则流程终止（与普通节点无下游节点逻辑一致） |
+| **失败策略** | 严格模式 | 节点失败时立即终止流程 |
 | **变量管理** | 节点隔离 | 每个节点有独立的输出空间，通过 `nodes.{uuid}.{key}` 访问 |
-| **循环检测** | 允许重入 | 限制每个节点的最大执行次数，允许 Loop 节点重复执行 |
 | **执行模式** | 顺序执行 | 单线程顺序执行，简单可靠 |
-| **End 节点** | 执行逻辑 | 可以执行自定义逻辑，返回最终结果 |
+| **流程终止** | 无下游节点 | 没有下一个节点时生成报告并终止 |
+| **ID 命名** | UUID 规范 | 流程和节点使用 UUID v4 作为唯一标识，由前端生成 |
 | **执行上下文** | 完整上下文 | 包含执行历史和元数据，便于调试和监控 |
 
 ---
@@ -388,100 +246,11 @@ impl FlowExecutor {
 3. 创建新的执行器实现 `NodeExecutor` trait
 4. 在 `FlowExecutor::execute_node()` 中注册新执行器
 
-**示例：**
-```rust
-// 1. 添加节点类型
-pub enum NodeType {
-    Start,
-    Http,
-    Conditional,
-    End,
-    Loop,  // 新增
-}
-
-// 2. 添加节点配置
-pub enum NodeData {
-    Start(StartConfig),
-    Http(HttpConfig),
-    Conditional(ConditionalConfig),
-    End(EndConfig),
-    Loop(LoopConfig),  // 新增
-}
-
-// 3. 实现执行器
-pub struct LoopNodeExecutor;
-
-#[async_trait::async_trait]
-impl NodeExecutor for LoopNodeExecutor {
-    async fn execute(
-        &self,
-        node: &Node,
-        context: &ExecutionContext,
-        connections: &[Connection],
-        node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        // 实现 Loop 节点的执行逻辑
-    }
-}
-
-// 4. 注册执行器
-NodeType::Loop => {
-    let executor = crate::loop_executor::LoopNodeExecutor::new();
-    executor.execute(node, context, connections, node_map).await
-}
-```
+详见 `docs/node_structure.md` 扩展性设计。
 
 ### 5.2 添加新功能
 
-**并行执行（未来）：**
-```rust
-// 修改 NodeExecutor 返回值，支持并行执行
-async fn execute(
-    &self,
-    node: &Node,
-    context: &ExecutionContext,
-    connections: &[Connection],
-    node_map: &HashMap<String, &Node>,
-) -> Result<ExecutionOutput, String>;
-
-pub enum ExecutionOutput {
-    /// 顺序执行（下一个节点串行执行）
-    Sequential(Vec<String>),
-    /// 并行执行（多个节点并行执行）
-    Parallel(Vec<String>),
-    /// 无下一个节点
-    None,
-}
-```
-
-**重试机制（未来）：**
-```rust
-// 在 FlowExecutor 中实现重试逻辑
-async fn execute_node_with_retry(
-    &self,
-    node: &Node,
-    context: &ExecutionContext,
-    connections: &[Connection],
-    node_map: &HashMap<String, &Node>,
-) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-    let max_retries = node.executor().max_retries(node);
-    let mut last_error = None;
-
-    for attempt in 0..=max_retries {
-        match node.executor().execute(node, context, connections, node_map).await {
-            Ok(result) => return Ok(result),
-            Err(error) => {
-                last_error = Some(error);
-                if attempt < max_retries {
-                    tokio::time::sleep(std::time::Duration::from_millis(1000 * (attempt as u64 + 1))).await;
-                }
-            }
-        }
-    }
-
-    Err(last_error.unwrap_or_else(|| "重试次数耗尽".to_string()))
-}
-```
+**并行执行（未来）**：修改 `NodeExecutor` 返回值支持并行执行模式。
 
 ---
 
@@ -494,7 +263,6 @@ async fn execute_node_with_retry(
 - **错误处理详细设计**：`docs/executor/error_handling.md`（待创建）
 - **变量管理详细设计**：`docs/executor/variable_management.md`（待创建）
 - **循环检测详细设计**：`docs/executor/loop_detection.md`（待创建）
-- **End 节点详细设计**：`docs/executor/end_node.md`（待创建）
 - **报告生成详细设计**：`docs/executor/reporting.md`（待创建）
 - **上下文管理详细设计**：`docs/executor/context_management.md`（待创建）
 
@@ -507,19 +275,25 @@ async fn execute_node_with_retry(
 | 术语 | 说明 |
 |-----|------|
 | Flow | 流程定义，包含节点和连接 |
-| Node | 节点，流程的基本执行单元 |
+| Node | 节点，流程的基本执行单元，使用 UUID v4 作为唯一标识 |
 | Connection | 连接，定义节点之间的依赖关系 |
 | ExecutionContext | 执行上下文，包含流程执行期间的所有状态 |
 | NodeExecutor | 节点执行器接口，定义节点的执行行为 |
 | VariableStorage | 变量存储，管理全局变量和节点局部变量 |
-| ExecutionRecord | 执行记录，记录节点的执行历史 |
-| ExecutionMetadata | 执行元数据，包含执行统计信息 |
 
-### 7.2 设计演进历史
+**数据结构定义详见**：
+- `docs/node_structure.md`：Flow、Node、Connection、Port
+- `docs/report_structure.md`：ExecutionStatus、NodeExecutionReport、FlowExecutionReport、ExecutionResult
 
-| 版本 | 日期 | 主要变更 |
-|-----|------|---------|
-| v1.0 | 2025-02-07 | 初始版本，定义整体架构和关键设计决策 |
+### 7.2 版本历史
+
+**当前版本**：v1.9 (2026-02-10)
+
+**主要变更**：
+- v1.8-v1.9：条件节点双分支设计，统一报告结构
+- v1.4-v1.7：重构节点类型（Start→Entry），移除End节点
+- v1.1-v1.3：统一 UUID 命名，简化文档结构
+- v1.0：初始版本
 
 ---
 

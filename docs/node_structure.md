@@ -18,23 +18,8 @@
 
 ### ID 使用规则
 
-**节点（Node）:**
-- `uuid`: 前端创建节点时生成，用于前端状态管理和连接关联
-
-**连接（Connection）:**
-- `source_node_uuid`: 引用源节点的 `uuid`
-- `target_node_uuid`: 引用目标节点的 `uuid`
-
-### 典型流程
-
-```
-1. 前端创建节点 → 生成 uuid（如：uuid-123）
-2. 前端连接节点 → 使用 node.uuid（如：uuid-123 → uuid-456）
-3. 前端保存流程 → 发送完整数据（包含 uuid）
-4. 后端保存流程 → 保存完整数据
-5. 后端返回流程 → 返回完整数据
-6. 前端接收数据 → 使用 uuid 恢复前端状态
-```
+**节点**：`uuid` 用于前端状态管理和连接关联  
+**连接**：`source_node_uuid`/`target_node_uuid` 引用节点的 `uuid`
 
 ---
 
@@ -57,10 +42,7 @@ pub struct Flow {
     pub connections: Vec<Connection>,
 }
 ```
-
-流程是顶层容器，包含所有节点和连接，以及流程级别的初始变量。
-
----
+ 
 
 ### 2. Node（节点）
 
@@ -85,10 +67,9 @@ pub struct Node {
 **节点类型枚举：**
 ```rust
 pub enum NodeType {
-    Start,        // 开始节点 - 流程入口（必需）
+    Entry,        // 入口节点 - 流程入口（必需）
     Http,         // HTTP 请求
     Conditional,  // 条件分支
-    End,          // 结束节点
 }
 ```
 
@@ -101,17 +82,16 @@ pub enum NodeType {
 ```rust
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum NodeData {
-    Start(StartConfig),
+    Entry(EntryConfig),
     Http(HttpConfig),
     Conditional(ConditionalConfig),
-    End(EndConfig),
 }
 ```
 
-#### Start 节点配置
+#### Entry 节点配置
 
 ```rust
-pub struct StartConfig {}
+pub struct EntryConfig {}
 ```
 
 #### Http 节点配置
@@ -137,8 +117,6 @@ pub enum HttpMethod {
 ```rust
 pub struct ConditionalConfig {
     #[serde(default)]
-    pub condition_type: ConditionType,
-    #[serde(default)]
     pub field_path: Option<String>,
     #[serde(default)]
     pub operator: Option<ConditionOperator>,
@@ -148,22 +126,28 @@ pub struct ConditionalConfig {
     pub advanced_expression: Option<String>,
 }
 
-pub enum ConditionType {
-    Simple,    // 简单条件
-    Advanced,  // 高级表达式
-}
-
 pub enum ConditionOperator {
     Equal, NotEqual, Greater, GreaterOrEqual,
     Less, LessOrEqual, Contains, StartsWith, EndsWith, Exists,
 }
 ```
 
-#### End 节点配置
+**字段组合规则与默认行为**：
 
-```rust
-pub struct EndConfig {}
-```
+| 条件类型 | 字段组合 | 说明 |
+|---------|---------|------|
+| **简单条件** | `field_path` + `operator` + `expected_value` | 使用简单字段比较：`input.{field_path} {operator} {expected_value}`<br/>示例：`user_age >= 18` |
+| **高级表达式** | 仅 `advanced_expression` | 使用自定义表达式引擎评估，支持复杂逻辑（如 `user.age >= 18 AND user.status == "active"`） |
+| **无效配置** | 任意字段缺失或组合错误 | 条件评估失败，节点返回 `Failed` 状态，流程终止 |
+
+**优先级**：
+- 如果 `advanced_expression` 有值，忽略简单条件字段（`field_path`、`operator`、`expected_value`）
+- 如果 `advanced_expression` 为空，必须提供完整的简单条件（`field_path` + `operator` + `expected_value`）
+
+**验证规则**：
+- 简单条件：`field_path`、`operator`、`expected_value` 必须同时提供
+- 高级表达式：`advanced_expression` 单独提供
+- 不允许同时使用简单条件和高级表达式
 
 ---
 
@@ -208,6 +192,19 @@ pub enum PortType {
 }
 ```
 
+**端口类型说明：**
+
+| 节点类型 | 输入端口 | 输出端口 |
+|---------|---------|---------|
+| Entry | 0 个 | 1 个（ID: `out`，类型: Output） |
+| Http | 1 个（ID: `in`，类型: Input） | 1 个（ID: `out`，类型: Output） |
+| Conditional | 1 个（ID: `in`，类型: Input） | 2 个（ID: `true`, `false`，类型: Output） |
+
+**端口功能**：
+- **Entry**：仅输出 `out`，流程起始点
+- **Http**：输入 `in` 接收上游数据，输出 `out` 传递 HTTP 响应
+- **Conditional**：输入 `in` 接收数据，根据条件选择 `true`/`false` 端口输出
+
 ---
 
 ## 节点关系
@@ -216,103 +213,130 @@ pub enum PortType {
 Flow
 ├── uuid: String        // 唯一标识符（前端生成）
 ├── nodes: Vec<Node>
-│   ├── Start (必需，唯一入口)
+│   ├── Entry (必需，唯一入口)
 │   │   ├── uuid: String    // 前端生成UUID
 │   │   └── ...
 │   ├── Http
-│   ├── Conditional
-│   └── End
+│   └── Conditional
 └── connections: Vec<Connection>
     ├── source_node_uuid        // 引用源节点的 uuid
     └── target_node_uuid        // 引用目标节点的 uuid
 ```
 
 **连接规则：**
-1. 每个流程必须有且仅有一个 Start 节点
-2. Start 节点必须至少有一个输出连接
-3. 连接必须从 Output 端口指向 Input 端口
+1. 每个流程必须有且仅有一个 Entry 节点
+2. Entry 节点必须至少有一个输出连接
+3. 连接必须从 Output 端口指向 Input 端口（端口类型验证）
+   - `source_port_id` 必须对应目标节点的 Output 类型端口
+   - `target_port_id` 必须对应目标节点的 Input 类型端口
 4. 不允许自环（节点不能连接到自己）
 5. 连接通过节点的 `uuid` 建立关联，而非 `id`
+6. Conditional 节点有两个输出端口（true/false），根据条件评估结果选择分支：
+   - 条件为 true 时使用 true 端口的连接（true 端口无连接时流程终止）
+   - 条件为 false 时使用 false 端口的连接（false 端口无连接时流程终止）
+   - 与普通节点保持一致：匹配到的分支（true/false）无下游连接时流程终止
 
----
 
-## 执行引擎
 
-### ExecutionContext
+## Flow JSON 示例
 
-```rust
-pub struct ExecutionContext {
-    /// 流程 UUID
-    pub flow_uuid: String,
-    /// 当前执行节点的 UUID
-    pub current_node_uuid: Option<String>,
-    /// 执行变量
-    pub variables: serde_json::Value,
-}
-```
-
-### ExecutionResult
-
-```rust
-pub struct ExecutionResult {
-    /// 执行是否成功
-    pub success: bool,
-    /// 返回数据
-    pub data: Option<serde_json::Value>,
-    /// 错误信息
-    pub error: Option<String>,
-    /// 已执行节点的 UUID 列表
-    pub executed_nodes: Vec<String>,
-}
-```
-
-### 执行流程
-
-1. 验证流程（检查 Start 节点、连接完整性）
-2. 初始化执行上下文
-3. 通过 uuid 查找 Start 节点
-4. 按连接顺序遍历节点（使用 uuid 定位）
-5. 每个节点通过 `NodeExecutor` trait 执行
-6. 返回执行结果
-
----
-
-## 完整 Flow JSON 示例
+### 简单流程（Entry → Http）
 
 ```json
 {
-  "uuid": "flow-550e8400-e29b-41d4-a716-446655440000",
+  "uuid": "flow-uuid",
   "name": "用户注册流程",
+  "nodes": [
+    { "uuid": "node-001", "type": "entry", "data": {"type": "entry"} },
+    { "uuid": "node-002", "type": "http", "data": {"type": "http", "url": "..."} }
+  ],
+  "connections": [
+    { "source_node_uuid": "node-001", "target_node_uuid": "node-002", "source_port_id": "out", "target_port_id": "in" }
+  ]
+}
+```
+
+### 条件分支流程（Entry → Conditional → Http）
+
+```json
+{
+  "nodes": [
+    { "uuid": "n1", "type": "entry" },
+    {
+      "uuid": "n2",
+      "type": "conditional",
+      "data": {"type": "conditional", "field_path": "user_age", "operator": "GreaterOrEqual", "expected_value": 18},
+      "ports": [{"id": "in"}, {"id": "true"}, {"id": "false"}]
+    },
+    { "uuid": "n3", "type": "http", "name": "成年人接口" },
+    { "uuid": "n4", "type": "http", "name": "未成年人接口" }
+  ],
+  "connections": [
+    {"source_node_uuid": "n1", "target_node_uuid": "n2", "source_port_id": "out", "target_port_id": "in"},
+    {"source_node_uuid": "n2", "target_node_uuid": "n3", "source_port_id": "true", "target_port_id": "in"},
+    {"source_node_uuid": "n2", "target_node_uuid": "n4", "source_port_id": "false", "target_port_id": "in"}
+  ]
+}
+```
+
+**Conditional 节点示例（包含两个输出端口）**：
+
+```json
+{
+  "uuid": "flow-conditional-example",
+  "name": "条件分支流程",
   "initial_variables": {
-    "api_key": "sk-xxx",
-    "base_url": "https://api.example.com"
+    "user_age": 25
   },
   "nodes": [
     {
       "uuid": "550e8400-e29b-41d4-a716-446655440000",
-      "type": "start",
-      "name": "开始",
+      "type": "entry",
+      "name": "入口",
       "position": { "x": 100, "y": 100 },
-      "data": { "type": "start" }
+      "data": { "type": "entry" },
+      "ports": [
+        { "id": "out", "type": "output" }
+      ]
     },
     {
       "uuid": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
-      "type": "http",
-      "name": "发送请求",
+      "type": "conditional",
+      "name": "年龄判断",
       "position": { "x": 400, "y": 100 },
       "data": {
+        "type": "conditional",
+        "field_path": "user_age",
+        "operator": "GreaterOrEqual",
+        "expected_value": 18
+      },
+      "ports": [
+        { "id": "in", "type": "input" },
+        { "id": "true", "type": "output" },
+        { "id": "false", "type": "output" }
+      ]
+    },
+    {
+      "uuid": "9ba7b810-9dad-11d1-80b4-00c04fd430c9",
+      "type": "http",
+      "name": "成年人接口",
+      "position": { "x": 700, "y": 50 },
+      "data": {
         "type": "http",
-        "url": "https://api.example.com/users",
-        "method": "post",
-        "body": { "name": "张三" }
+        "url": "https://api.example.com/adult",
+        "method": "post"
       }
     },
     {
-      "uuid": "93283471-6ba7-11d1-9b6b-00c04fd430c8",
-      "type": "end",
-      "name": "结束",
-      "position": { "x": 700, "y": 100 },
-      "data": { "type": "end" }
+      "uuid": "a1a7b810-9dad-11d1-80b4-00c04fd430ca",
+      "type": "http",
+      "name": "未成年人接口",
+      "position": { "x": 700, "y": 150 },
+      "data": {
+        "type": "http",
+        "url": "https://api.example.com/minor",
+        "method": "post"
+      }
     }
   ],
   "connections": [
@@ -324,8 +348,14 @@ pub struct ExecutionResult {
     },
     {
       "source_node_uuid": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
-      "target_node_uuid": "93283471-6ba7-11d1-9b6b-00c04fd430c8",
-      "source_port_id": "out",
+      "target_node_uuid": "9ba7b810-9dad-11d1-80b4-00c04fd430c9",
+      "source_port_id": "true",
+      "target_port_id": "in"
+    },
+    {
+      "source_node_uuid": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "target_node_uuid": "a1a7b810-9dad-11d1-80b4-00c04fd430ca",
+      "source_port_id": "false",
       "target_port_id": "in"
     }
   ]
@@ -351,16 +381,17 @@ src-tauri/src/
 
 ## 注意事项
 
-### 前端开发注意
-1. 节点创建时必须生成 `uuid`（使用 UUID v4）
-2. 连接建立时使用节点的 `uuid`
-3. 保存和加载流程时，`uuid` 是前端状态恢复的唯一标识
-4. 所有节点和连接都通过 `uuid` 进行关联和引用
+**前端开发**：节点创建时生成 `uuid`（UUID v4），连接时使用 `node.uuid`
 
-### 后端开发注意
-1. 接收前端数据时，必须包含 `uuid` 字段
-2. 保存时保留 `uuid` 不变
-3. 连接的 `source_node_uuid` 和 `target_node_uuid` 必须引用节点的 `uuid`
-4. 执行引擎使用 `uuid` 定位节点
+**后端开发**：保存时保留 `uuid`，连接必须引用节点的 `uuid`
+
+---
+
+## 相关文档
+
+- **执行器架构设计**：`docs/executor_architecture.md` - 执行引擎、ExecutionContext、NodeExecutor trait、执行流程
+- **报告结构设计**：`docs/report_structure.md`
+- **执行流程详细设计**：`docs/executor/execution_flow.md`
+- **变量管理详细设计**：`docs/executor/variable_management.md`
 
 
