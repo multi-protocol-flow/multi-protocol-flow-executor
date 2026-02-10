@@ -55,15 +55,15 @@ impl NodeExecutor for EndNodeExecutor {
             executed_nodes
         );
 
-        let variables_count = if context.variables.is_object() {
-            context.variables.as_object().unwrap().len()
+        let variables_count = if context.variables.global.global.is_object() {
+            context.variables.global.global.as_object().unwrap().len()
         } else {
             0
         };
 
         // 汇总执行状态（success/error）
-        let status = if context.variables.get("error").is_some()
-            || context.variables.get("errors").is_some()
+        let status = if context.variables.global.get("error").is_some()
+            || context.variables.global.get("errors").is_some()
         {
             "error"
         } else {
@@ -74,10 +74,10 @@ impl NodeExecutor for EndNodeExecutor {
         log::info!("[流程 {}] [执行统计] 已执行节点数: {}, 变量数: {}", context.flow_uuid, executed_nodes, variables_count);
         log::info!("[流程 {}] [流程最终状态] {}", context.flow_uuid, status);
 
-        // 记录变量详情（如果存在）
-        if !context.variables.is_null() {
-            log::info!("[流程 {}] [最终变量] {}", context.flow_uuid, context.variables);
-        }
+         // 记录变量详情（如果存在）
+         if !context.variables.global.global.is_null() {
+             log::info!("[流程 {}] [最终变量] {}", context.flow_uuid, serde_json::json!(context.variables.global.global));
+         }
 
         // 计算End节点执行时间
         let duration_ms = start_time.elapsed().as_millis();

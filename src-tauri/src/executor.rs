@@ -25,7 +25,7 @@ pub struct ExecutionResult {
 }
 
 /// 执行上下文
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, std::fmt::Display)]
 pub struct ExecutionContext {
     /// 流程 UUID
     pub flow_uuid: String,
@@ -225,8 +225,8 @@ impl FlowExecutor {
                 };
             }
 
-            visited.insert(current_node_uuid.clone());
-            context.current_node_uuid = Some(current_node_uuid.clone());
+            visited.insert(current_node_id.clone());
+            context.current_node_uuid = Some(current_node_id.clone());
 
             // 记录节点开始时间
             let node_start_time = tokio::time::Instant::now();

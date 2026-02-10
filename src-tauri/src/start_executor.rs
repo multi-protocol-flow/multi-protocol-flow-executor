@@ -62,7 +62,7 @@ impl NodeExecutor for StartNodeExecutor {
     ) -> Result<(Option<String>, Option<Value>), String> {
         // 执行前日志
         let start_time = Instant::now();
-        log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}", context.flow_uuid, node.uuid, node.name);
+        log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}", context.flow_id, node.uuid, node.name);
 
         // 立即传递，不执行任何逻辑（<1ms 执行时间）
         // 查找下一个节点
@@ -71,7 +71,7 @@ impl NodeExecutor for StartNodeExecutor {
         // 验证：开始节点必须有输出连接
         if next_node_id.is_none() {
             let error_msg = "开始节点没有输出连接".to_string();
-            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
             return Err(error_msg);
         }
 
@@ -79,7 +79,7 @@ impl NodeExecutor for StartNodeExecutor {
         let duration_ms = start_time.elapsed().as_millis();
 
         // 执行后日志
-        log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: success", context.flow_uuid, node.uuid, duration_ms);
+        log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: success", context.flow_id, node.uuid, duration_ms);
 
         // 返回下一个节点 ID 和空输出数据（开始节点不产生数据）
         Ok((next_node_id, None))

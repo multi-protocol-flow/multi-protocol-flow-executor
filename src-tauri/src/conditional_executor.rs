@@ -51,7 +51,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 );
                 let result = self.evaluate_simple_condition(
                     &conditional_config,
-                    &context.variables,
+                    &context.variables.global,
                 )?;
                 log::info!("[流程 {}] [条件判断] 条件类型: Simple, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
                 result
@@ -61,7 +61,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 let expression = conditional_config.advanced_expression.as_ref().unwrap_or(&"".to_string()).clone();
                 let result = self.evaluate_advanced_condition(
                     &conditional_config,
-                    &context.variables,
+                    &context.variables.global,
                 )?;
                 log::info!("[流程 {}] [条件判断] 条件类型: Advanced, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
                 result
@@ -392,6 +392,7 @@ mod tests {
             node_type: crate::node::NodeType::Conditional,
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Conditional(config),
+            fault_tolerant: false,
             ports: None,
         }
     }
