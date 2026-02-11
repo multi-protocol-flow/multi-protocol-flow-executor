@@ -2,439 +2,186 @@
 
 **文档位置**：`docs/executor/error_handling.md`
 **语言**：中文
-**版本**：v1.0
+**版本**：v2.0
 
 ---
 
-## 1. 概述
+## 概述
 
-错误处理机制处理节点执行失败情况，支持容错和严格两种模式。
-
-**核心目标：**
-- 提供灵活的失败策略配置
-- 支持关键节点和非关键节点的差异化处理
-- 完整记录错误信息，便于调试和监控
+错误处理机制处理节点执行失败情况，采用**容错模式**。
 
 ---
 
-## 2. 错误处理模式
+## 错误处理模式
 
-### 2.1 容错模式
+### 容错模式（当前设计）
 
 **特点：**
-- 失败后继续执行后续节点
-- 记录错误信息到执行历史
-- 标记节点为 `Failed` 状态
-- 不影响流程整体执行
+- 节点失败时根据错误类型决定处理策略
+- **执行错误/验证错误/解析错误**：记录错误信息，继续执行后续节点
+- **配置错误**：立即终止流程，无法继续执行
+- 流程完成后统计成功和失败的节点数量
 
 **适用场景：**
-- 非关键节点的失败
-- 可恢复的错误
-- 日志记录、通知等辅助操作
-
-**行为：**
-```rust
-// 执行失败，但容错
-context.execution_history.push(ExecutionRecord {
-    node_uuid: node.uuid.clone(),
-    timestamp: current_timestamp(),
-    result: ExecutionResultType::Failed(error.clone()),
-});
-
-context.metadata.failed_nodes += 1;
-
-// 继续执行下一个节点
-continue;
-```
-
-### 2.2 严格模式
-
-**特点：**
-- 失败后立即终止流程
-- 返回错误信息
-- 停止整个流程执行
-
-**适用场景：**
-- 关键节点的失败
-- 无法恢复的错误
-- 数据验证失败、认证失败等
-
-**行为：**
-```rust
-// 执行失败，不容错
-return ExecutionResult {
-    success: false,
-    error: Some(error),
-    // ...
-};
-```
+- 所有节点默认行为（配置错误除外）
+- 批量处理场景
+- 可以容忍部分节点失败的流程
 
 ---
 
-## 3. 节点失败策略
+## 错误类型定义
 
-每个节点通过 `NodeExecutor` trait 配置失败策略：
+### ErrorKind - 错误类型枚举
 
 ```rust
-#[async_trait::async_trait]
-pub trait NodeExecutor {
-    /// 执行节点
-    async fn execute(
-        &self,
-        node: &Node,
-        context: &ExecutionContext,
-        connections: &[Connection],
-        node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String>;
+/// 错误类型枚举（决定错误处理策略，同时标识具体错误类型）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum ErrorKind {
+    // ===== 配置错误（立即终止流程） =====
+    /// 通用配置错误
+    ConfigurationError,
 
-    /// 检查节点是否支持容错
-    ///
-    /// 返回 true 表示失败后继续执行（容错模式）
-    /// 返回 false 表示失败后立即终止（严格模式）
-    fn is_fault_tolerant(&self, _node: &Node) -> bool {
-        false  // 默认严格模式
+    /// 条件表达式语法错误（如表达式语法错误、字段配置缺失）
+    ConditionSyntaxError,
+
+    // ===== 执行错误（容错模式，继续执行） =====
+    /// 通用执行错误
+    ExecutionError,
+
+    /// 网络连接失败
+    ConnectionError,
+
+    /// 操作超时
+    TimeoutError,
+
+    /// 条件评估运行时错误（如字段不存在、类型不匹配）
+    ConditionEvaluationError,
+
+    // ===== 验证错误（容错模式，继续执行） =====
+    /// 参数验证失败
+    ValidationError,
+
+    // ===== 解析错误（容错模式，继续执行） =====
+    /// 数据解析失败（如 JSON 解析失败、数据格式转换失败）
+    ParseError,
+}
+
+impl ErrorKind {
+    /// 判断是否为致命错误（需要立即终止流程）
+    pub fn is_fatal(&self) -> bool {
+        matches!(self,
+            ErrorKind::ConfigurationError |
+            ErrorKind::ConditionSyntaxError
+        )
     }
 }
 ```
 
-**示例配置：**
+**错误类型与处理策略映射：**
 
-```rust
-impl NodeExecutor for HttpNodeExecutor {
-    fn is_fault_tolerant(&self, node: &Node) -> bool {
-        // 读取节点配置
-        if let NodeData::Http(config) = &node.data {
-            config.fault_tolerant
-        } else {
-            false
-        }
-    }
-}
-
-impl NodeExecutor for DataTransformNodeExecutor {
-    fn is_fault_tolerant(&self, _node: &Node) -> bool {
-        // 数据转换节点默认容错
-        true
-    }
-}
-```
+| ErrorKind | 示例场景 | 处理策略 |
+|-----------|---------|----------|
+| `ConfigurationError` | 流程配置错误 | 立即终止流程 |
+| `ConditionSyntaxError` | 条件表达式语法错误、字段配置缺失 | 立即终止流程 |
+| `ConnectionError` | 网络超时、连接失败 | 容错模式，记录失败，继续执行 |
+| `TimeoutError` | 操作超时 | 容错模式，记录失败，继续执行 |
+| `ExecutionError` | HTTP 请求失败 | 容错模式，记录失败，继续执行 |
+| `ConditionEvaluationError` | 条件评估运行时错误（字段不存在、类型不匹配） | 容错模式，记录失败，继续执行 |
+| `ValidationError` | 参数验证失败、数据格式不符合要求 | 容错模式，记录失败，继续执行 |
+| `ParseError` | JSON 解析失败、数据格式转换失败 | 容错模式，记录失败，继续执行 |
 
 ---
 
-## 4. 错误类型定义
+### ErrorDetail
 
-### 4.1 执行结果类型
-
-```rust
-#[derive(Debug, Clone)]
-pub enum ExecutionResultType {
-    /// 执行成功
-    Success,
-    /// 执行失败（包含错误信息）
-    Failed(String),
-    /// 执行跳过（包含跳过原因）
-    Skipped(String),
-}
-```
-
-### 4.2 执行记录
+错误详情结构定义见 `docs/report_structure.md`：
 
 ```rust
-#[derive(Debug, Clone)]
-pub struct ExecutionRecord {
-    /// 节点 UUID
-    pub node_uuid: String,
-    /// 执行时间
-    pub timestamp: u64,
-    /// 执行结果
-    pub result: ExecutionResultType,
-}
-```
+/// 错误详情结构（用于执行调试）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ErrorDetail {
+    /// 错误类型（决定错误处理策略，同时标识具体错误类型）
+    pub error_kind: ErrorKind,
 
-### 4.3 执行元数据
+    /// 错误代码（可选，用于程序化处理）
+    pub error_code: Option<String>,
 
-```rust
-#[derive(Debug, Clone)]
-pub struct ExecutionMetadata {
-    /// 流程开始时间
-    pub flow_start_time: u64,
-    /// 已执行节点数
-    pub executed_nodes: u32,
-    /// 失败节点数
-    pub failed_nodes: u32,
-    /// 跳过节点数
-    pub skipped_nodes: u32,
+    /// 错误消息（人类可读）
+    pub message: String,
+
+    /// 堆栈跟踪（可选）
+    pub stack_trace: Option<String>,
+
+    /// 错误发生时的上下文快照（可选）
+    pub context: Option<serde_json::Value>,
 }
 ```
 
 ---
 
-## 5. 错误处理流程
+## 错误处理流程
 
 ```
 节点执行失败
     ↓
-检查容错配置 (is_fault_tolerant)
+判断错误类型 (ErrorKind)
     ↓
-    ├─ 容错模式 → 记录错误信息 → 更新元数据 → 继续执行下一个节点
-    │
-    └─ 严格模式 → 立即返回错误 → 终止流程执行
+├─ ConfigurationError（配置错误）
+│   ↓
+│   记录失败状态到节点报告
+│   ↓
+│   立即终止流程（无法继续执行）
+│
+└─ ExecutionError / ValidationError / ParseError（执行/验证/解析错误）
+    ↓
+    记录失败状态到节点报告
+    ↓
+    尝试继续执行下一个节点或其他分支（容错模式）
+    ↓
+    流程完成后生成完整报告（包含失败节点统计）
 ```
 
 **详细流程：**
 
-```rust
-match self.execute_node(node, &context, &flow.connections, &node_map).await {
-    Ok((next_node_ids, output_data)) => {
-        // 执行成功
-        // 更新上下文，继续执行
-    }
-    Err(error) => {
-        // 执行失败
-        if node.executor().is_fault_tolerant(node) {
-            // 容错模式
-            context.execution_history.push(ExecutionRecord {
-                node_uuid: node.uuid.clone(),
-                timestamp: current_timestamp(),
-                result: ExecutionResultType::Failed(error.clone()),
-            });
-            context.metadata.failed_nodes += 1;
-            continue;
-        } else {
-            // 严格模式
-            return ExecutionResult {
-                success: false,
-                error: Some(error),
-                // ...
-            };
-        }
-    }
-}
-```
+**执行成功：**
+- 记录成功状态到节点报告
+- 更新上下文，继续执行下一个节点
+
+**配置错误（ConfigurationError）：**
+- 立即终止流程
+- 返回错误，停止执行
+
+**执行/验证/解析错误（ExecutionError/ValidationError/ParseError）：**
+- 记录失败状态到节点报告
+- 当前分支终止（失败节点无输出）
+- 如果有其他分支（如条件节点的另一分支）则继续执行
 
 ---
 
-## 6. 错误报告机制
+## 常见错误类型
 
-### 6.1 节点执行报告
+ | ErrorKind | 处理策略 | 说明 |
+|-----------|---------|------|
+| `ConfigurationError` | 立即终止 | 通用配置错误 |
+| `ConditionSyntaxError` | 立即终止 | 条件表达式语法错误、字段配置缺失 |
+| `ConnectionError` | 容错 | 网络连接失败 |
+| `TimeoutError` | 容错 | 操作超时 |
+| `ValidationError` | 容错 | 参数验证失败 |
+| `ParseError` | 容错 | 数据解析失败、格式转换失败 |
+| `ConditionEvaluationError` | 容错 | 条件评估运行时错误（字段不存在、类型不匹配等） |
 
-```rust
-#[derive(Debug, Clone)]
-pub struct NodeExecutionReport {
-    /// 节点 UUID
-    pub node_uuid: String,
-    /// 节点名称
-    pub node_name: String,
-    /// 执行状态
-    pub status: ExecutionStatus,
-    /// 执行开始时间
-    pub start_time: u64,
-    /// 执行结束时间
-    pub end_time: u64,
-    /// 执行耗时（毫秒）
-    pub duration: u64,
-    /// 错误信息（如果有）
-    pub error: Option<String>,
-    /// 输出数据
-    pub output: Option<serde_json::Value>,
-}
-
-#[derive(Debug, Clone)]
-pub enum ExecutionStatus {
-    Success,
-    Failed(String),
-    Skipped(String),
-}
-```
-
-### 6.2 流程执行报告
-
-```rust
-#[derive(Debug, Clone)]
-pub struct FlowExecutionReport {
-    /// 流程 ID
-    pub flow_id: String,
-    /// 流程名称
-    pub flow_name: String,
-    /// 执行状态
-    pub status: FlowStatus,
-    /// 流程开始时间
-    pub start_time: u64,
-    /// 流程结束时间
-    pub end_time: u64,
-    /// 总耗时（毫秒）
-    pub duration: u64,
-    /// 节点执行报告列表
-    pub node_reports: Vec<NodeExecutionReport>,
-    /// 执行统计
-    pub stats: ExecutionStats,
-}
-
-#[derive(Debug, Clone)]
-pub struct ExecutionStats {
-    /// 总节点数
-    pub total_nodes: u32,
-    /// 成功节点数
-    pub success_nodes: u32,
-    /// 失败节点数
-    pub failed_nodes: u32,
-    /// 跳过节点数
-    pub skipped_nodes: u32,
-}
-
-#[derive(Debug, Clone)]
-pub enum FlowStatus {
-    Success,
-    Failed(String),
-    PartialSuccess,  // 部分成功（容错模式下）
-}
-```
+**错误类型分类原则：**
+- **语法/配置错误** → `ConfigurationError` / `ConditionSyntaxError`（立即终止）
+- **运行时错误** → `ConnectionError` / `TimeoutError` / `ValidationError` / `ParseError` / `ConditionEvaluationError`（容错模式）
+- 使用 `error_kind.is_fatal()` 判断是否需要立即终止流程
 
 ---
 
-## 7. 简单代码示例
+## 相关文档
 
-### 7.1 配置容错节点
-
-```rust
-// 在节点配置中启用容错
-let http_node = Node {
-    uuid: "node-001".to_string(),
-    name: "HTTP请求".to_string(),
-    node_type: NodeType::Http,
-    data: NodeData::Http(HttpConfig {
-        url: "https://api.example.com".to_string(),
-        method: "GET".to_string(),
-        fault_tolerant: true,  // 启用容错
-    }),
-    position: (0, 0),
-};
-```
-
-### 7.2 处理错误
-
-```rust
-// 执行节点并处理错误
-match executor.execute(node, &context, &connections, &node_map).await {
-    Ok((next_node_ids, output)) => {
-        // 执行成功
-        println!("节点 {} 执行成功", node.name);
-    }
-    Err(error) => {
-        // 执行失败
-        if executor.is_fault_tolerant(node) {
-            // 容错模式
-            println!("节点 {} 执行失败（容错模式）：{}", node.name, error);
-            // 继续执行
-        } else {
-            // 严格模式
-            eprintln!("节点 {} 执行失败（严格模式）：{}", node.name, error);
-            // 终止流程
-        }
-    }
-}
-```
-
-### 7.3 生成错误报告
-
-```rust
-// 生成节点执行报告
-let node_report = NodeExecutionReport {
-    node_uuid: node.uuid.clone(),
-    node_name: node.name.clone(),
-    status: ExecutionStatus::Failed("网络超时".to_string()),
-    start_time,
-    end_time,
-    duration: end_time - start_time,
-    error: Some("请求超时：30秒内无响应".to_string()),
-    output: None,
-};
-
-// 生成流程执行报告
-let flow_report = FlowExecutionReport {
-    flow_id: flow.uuid.clone(),
-    flow_name: flow.name.clone(),
-    status: FlowStatus::PartialSuccess,
-    start_time,
-    end_time,
-    duration: end_time - start_time,
-    node_reports: vec![node_report],
-    stats: ExecutionStats {
-        total_nodes: 5,
-        success_nodes: 4,
-        failed_nodes: 1,
-        skipped_nodes: 0,
-    },
-};
-```
-
----
-
-## 8. 扩展性
-
-### 8.1 重试机制（未来）
-
-```rust
-#[async_trait::async_trait]
-pub trait NodeExecutor {
-    /// 获取最大重试次数
-    fn max_retries(&self, _node: &Node) -> u32 {
-        0  // 默认不重试
-    }
-}
-
-// 执行时重试
-for attempt in 0..=max_retries {
-    match executor.execute(node, context, connections, node_map).await {
-        Ok(result) => break,
-        Err(error) if attempt < max_retries => {
-            // 等待后重试
-            tokio::time::sleep(Duration::from_secs(1)).await;
-        }
-        Err(error) => return Err(error),
-    }
-}
-```
-
-### 8.2 自定义错误处理（未来）
-
-```rust
-pub trait ErrorHandler {
-    /// 处理错误
-    fn handle_error(
-        &self,
-        error: &str,
-        context: &ExecutionContext,
-    ) -> ErrorHandlingStrategy;
-}
-
-pub enum ErrorHandlingStrategy {
-    Continue,   // 继续执行
-    Retry,      // 重试
-    Abort,      // 终止流程
-    Custom(String),  // 自定义处理
-}
-```
-
----
-
-## 9. 最佳实践
-
-1. **关键节点使用严格模式**
-   - 数据验证、认证等关键操作失败时立即终止
-   - 避免执行不安全的操作
-
-2. **非关键节点使用容错模式**
-   - 日志记录、通知等辅助操作失败不影响主流程
-   - 提高流程健壮性
-
-3. **记录详细错误信息**
-   - 包含错误类型、上下文、堆栈信息
-   - 便于问题定位和修复
-
-4. **设置合理的超时时间**
-   - 防止节点长时间阻塞
-   - 提高执行效率
+- **执行器架构**：`docs/executor_architecture.md`
+- **报告结构**：`docs/report_structure.md`
 
 ---
 

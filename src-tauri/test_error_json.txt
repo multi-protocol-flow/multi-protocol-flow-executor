@@ -1,0 +1,10 @@
+// Quick test to check what the actual JSON is
+use app::error::{ErrorDetail, ErrorKind};
+
+fn main() {
+    let error = ErrorDetail::new(ErrorKind::ConnectionError, "连接失败".to_string())
+        .with_error_code("CONN001".to_string());
+    
+    let json = serde_json::to_string(&error).unwrap();
+    println!("JSON: {}", json);
+}

@@ -1,5 +1,7 @@
 # 后端节点设计结构
 
+**版本**：v2.0
+
 ## 概述
 
 后端采用 Rust 实现，使用 Tagged Union 模式实现强类型节点配置。整体采用有向无环图（DAG）模型。
@@ -190,15 +192,19 @@ pub enum PortType {
     Input,   // 输入端口
     Output,  // 输出端口
 }
+
+// 注意：PortType 枚举值（Input/Output）与端口 ID 字符串表示是两个不同的概念：
+// - PortType 枚举值：用于类型定义，大写形式（Input, Output）
+// - 端口 ID 字符串：用于连接关联，小写形式（"in", "out"）或特殊名称（"true", "false"）
 ```
 
 **端口类型说明：**
 
 | 节点类型 | 输入端口 | 输出端口 |
 |---------|---------|---------|
-| Entry | 0 个 | 1 个（ID: `out`，类型: Output） |
-| Http | 1 个（ID: `in`，类型: Input） | 1 个（ID: `out`，类型: Output） |
-| Conditional | 1 个（ID: `in`，类型: Input） | 2 个（ID: `true`, `false`，类型: Output） |
+| Entry | 0 个 | 1 个（ID: `"out"`，类型: `PortType::Output`） |
+| Http | 1 个（ID: `"in"`，类型: `PortType::Input`） | 1 个（ID: `"out"`，类型: `PortType::Output`） |
+| Conditional | 1 个（ID: `"in"`，类型: `PortType::Input`） | 2 个（ID: `"true"`, `"false"`，类型: `PortType::Output`） |
 
 **端口功能**：
 - **Entry**：仅输出 `out`，流程起始点

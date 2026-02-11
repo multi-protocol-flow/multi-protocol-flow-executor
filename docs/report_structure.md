@@ -1,5 +1,7 @@
 # 后端执行器报告结构
 
+**版本**：v2.0
+
 ## 设计原则
 
 1. **保持通用**：所有节点类型使用统一的报告结构
@@ -34,8 +36,8 @@ pub enum ExecutionStatus {
 /// 错误详情结构（用于执行调试）
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ErrorDetail {
-    /// 错误类型（如 "ConnectionError", "ValidationError", "TimeoutError"）
-    pub error_type: String,
+    /// 错误类型（决定错误处理策略，同时标识具体错误类型）
+    pub error_kind: ErrorKind,
 
     /// 错误代码（可选，用于程序化处理）
     pub error_code: Option<String>,
@@ -49,14 +51,61 @@ pub struct ErrorDetail {
     /// 错误发生时的上下文快照（可选）
     pub context: Option<serde_json::Value>,
 }
+
+/// 错误类型枚举（决定错误处理策略，同时标识具体错误类型）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum ErrorKind {
+    // ===== 配置错误（立即终止流程） =====
+    /// 通用配置错误
+    ConfigurationError,
+
+    /// 条件表达式语法错误（如表达式语法错误、字段配置缺失）
+    ConditionSyntaxError,
+
+    // ===== 执行错误（容错模式，继续执行） =====
+    /// 通用执行错误
+    ExecutionError,
+
+    /// 网络连接失败
+    ConnectionError,
+
+    /// 操作超时
+    TimeoutError,
+
+    /// 条件评估运行时错误（如字段不存在、类型不匹配）
+    ConditionEvaluationError,
+
+    // ===== 验证错误（容错模式，继续执行） =====
+    /// 参数验证失败
+    ValidationError,
+
+    // ===== 解析错误（容错模式，继续执行） =====
+    /// 数据解析失败（如 JSON 解析失败、数据格式转换失败）
+    ParseError,
+}
+
+impl ErrorKind {
+    /// 判断是否为致命错误（需要立即终止流程）
+    pub fn is_fatal(&self) -> bool {
+        matches!(self,
+            ErrorKind::ConfigurationError |
+            ErrorKind::ConditionSyntaxError
+        )
+    }
+}
 ```
 
 **常见错误类型**：
-- `ConnectionError`：网络连接失败
-- `TimeoutError`：操作超时
-- `ValidationError`：参数验证失败
-- `ParseError`：数据解析失败
-- `ConditionError`：条件评估错误
+| ErrorKind | 处理策略 | 说明 |
+|-----------|---------|------|
+| `ConfigurationError` | 立即终止 | 通用配置错误 |
+| `ConditionSyntaxError` | 立即终止 | 条件表达式语法错误、字段配置缺失 |
+| `ConnectionError` | 容错 | 网络连接失败 |
+| `TimeoutError` | 容错 | 操作超时 |
+| `ValidationError` | 容错 | 参数验证失败 |
+| `ParseError` | 容错 | 数据解析失败、格式转换失败 |
+| `ConditionEvaluationError` | 容错 | 条件评估运行时错误（字段不存在、类型不匹配等） |
 
 ---
 
@@ -93,7 +142,7 @@ pub struct NodeExecutionReport {
     /// 输出数据（完整存储，不截断）
     pub output_data: Option<serde_json::Value>,
 
-    /// 实际使用的输出端口 ID（所有节点都应有此字段）
+    /// 实际使用的输出端口 ID（仅已执行节点有值）
     /// - Entry 节点：固定为 "out"
     /// - Http 节点：固定为 "out"
     /// - Conditional 节点：根据条件评估结果为 "true" 或 "false"
@@ -320,6 +369,15 @@ pub struct ExecutionResult {
 节点类型特定字段可在 `output_data` 中包含，保持结构通用性。大体积数据可通过配置限制大小。
 
 ---
+
+## 流程状态计算规则
+
+在容错错误处理模式下：
+- 节点执行失败时记录失败状态，继续执行后续节点
+- 流程完成后，根据已执行节点状态确定流程状态：
+  - 有任意节点失败：流程状态为 `Failed`，`flow_error` 字段包含第一个失败节点的错误详情
+  - 所有节点成功：流程状态为 `Success`
+- `error_rate = failed_count / executed_count`：失败节点数与已执行节点数的比率
 
 ## 相关文档
 
