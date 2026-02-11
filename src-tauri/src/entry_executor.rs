@@ -12,6 +12,12 @@ use std::collections::HashMap;
 /// Entry 节点立即传递，不执行任何逻辑，仅作为流程入口
 pub struct EntryNodeExecutor;
 
+impl Default for EntryNodeExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EntryNodeExecutor {
     /// 创建新的 Entry 节点执行器
     pub fn new() -> Self {
@@ -63,17 +69,16 @@ impl NodeExecutor for EntryNodeExecutor {
             .map(|conn| conn.target_node_uuid.clone())
             .collect::<Vec<_>>();
 
-        // 验证：Entry 节点必须有输出连接
+        // 如果没有输出连接，这是流程的正常终止，不是错误
         if next_node_ids.is_empty() {
-            let error_msg = "Entry 节点没有输出连接".to_string();
-            log::error!(
-                "[流程 {}] [错误] 节点 UUID: {}, 节点名称: {}, 错误: {}",
+            log::info!(
+                "[流程 {}] Entry 节点 {} ({}) 没有输出连接，流程终止",
                 context.flow_uuid,
-                node.uuid,
                 node.name,
-                error_msg
+                node.uuid
             );
-            return Err(error_msg);
+            // 返回空列表表示流程终止（正常情况）
+            return Ok((vec![], None));
         }
 
         // 计算执行时间
@@ -166,7 +171,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_entry_node_executor_no_connection() {
-        // 创建没有连接的 Entry 节点
+        // 创建没有连接的 Entry 节点 - 正常流程终止
         let entry_node = Node {
             uuid: "entry-1".to_string(),
             node_type: NodeType::Entry,
@@ -189,9 +194,13 @@ mod tests {
         let executor = EntryNodeExecutor::new();
         let result = executor.execute(&entry_node, &context, &[], &node_map).await;
 
-        // 验证执行失败
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "Entry 节点没有输出连接");
+        // 验证执行成功（没有连接是正常终止）
+        assert!(result.is_ok());
+        let (next_node_ids, output_data) = result.unwrap();
+        // 验证下一个节点 UUID 列表为空（流程终止）
+        assert!(next_node_ids.is_empty());
+        // 验证输出数据为空（Entry 节点不产生数据）
+        assert!(output_data.is_none());
     }
 
     #[tokio::test]
@@ -320,7 +329,7 @@ mod tests {
         let start_time = Instant::now();
         for _ in 0..1000 {
             let _ = executor
-                .execute(&entry_node, &context, &[connection.clone()], &node_map)
+                .execute(&entry_node, &context, std::slice::from_ref(&connection), &node_map)
                 .await;
         }
         let elapsed = start_time.elapsed();

@@ -128,10 +128,7 @@ impl VariableStorage {
     /// * `key` - 变量名
     /// * `value` - 变量值
     pub fn set_node_variable(&mut self, node_uuid: String, key: String, value: serde_json::Value) {
-        self.nodes
-            .entry(node_uuid)
-            .or_insert_with(HashMap::new)
-            .insert(key, value);
+        self.nodes.entry(node_uuid).or_default().insert(key, value);
     }
 
     /// 获取节点局部变量

@@ -299,11 +299,6 @@ mod tests {
             flow_id,
             "返回数据应该包含流程 ID"
         );
-        assert!(
-            output.execution_time >= 0,
-            "执行时间应该非负数，实际: {}ms",
-            output.execution_time
-        );
     }
 
     #[test]

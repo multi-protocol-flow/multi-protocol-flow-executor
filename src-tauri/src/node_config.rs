@@ -8,34 +8,23 @@ use std::collections::HashMap;
 // ============================================================================
 
 /// 入口节点配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct EntryConfig {}
-
-impl Default for EntryConfig {
-    fn default() -> Self {
-        Self {}
-    }
-}
 
 // ============================================================================
 // Http 节点配置
 // ============================================================================
 
 /// HTTP 方法枚举
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum HttpMethod {
+    #[default]
     Get,
     Post,
     Put,
     Delete,
     Patch,
-}
-
-impl Default for HttpMethod {
-    fn default() -> Self {
-        Self::Get
-    }
 }
 
 /// Http 节点配置
@@ -70,23 +59,19 @@ impl Default for HttpConfig {
 // ============================================================================
 
 /// 条件类型枚举
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ConditionType {
+    #[default]
     Simple,
     Advanced,
 }
 
-impl Default for ConditionType {
-    fn default() -> Self {
-        Self::Simple
-    }
-}
-
 /// 条件操作符枚举
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ConditionOperator {
+    #[default]
     Equal,
     NotEqual,
     Greater,
@@ -97,12 +82,6 @@ pub enum ConditionOperator {
     StartsWith,
     EndsWith,
     Exists,
-}
-
-impl Default for ConditionOperator {
-    fn default() -> Self {
-        Self::Equal
-    }
 }
 
 /// Conditional 节点配置
@@ -342,7 +321,6 @@ mod tests {
             method: HttpMethod::Post,
             headers: Some(headers),
             body: Some(json!({"key": "value"})),
-            ..Default::default()
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();

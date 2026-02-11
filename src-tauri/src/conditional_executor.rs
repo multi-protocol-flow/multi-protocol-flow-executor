@@ -12,6 +12,12 @@ use std::time::Instant;
 /// 条件节点执行器
 pub struct ConditionalNodeExecutor;
 
+impl Default for ConditionalNodeExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ConditionalNodeExecutor {
     /// 创建新的条件节点执行器
     pub fn new() -> Self {
@@ -116,7 +122,7 @@ impl ConditionalNodeExecutor {
         // 获取 field_path
         let field_path = config.field_path.as_ref().ok_or_else(|| {
             let error = ErrorDetail::new(
-                ErrorKind::ConditionSyntaxError,
+                ErrorKind::ConditionSyntax,
                 "简单条件缺少 field_path".to_string(),
             );
             log::error!("[错误] {}", error.message);
@@ -126,7 +132,7 @@ impl ConditionalNodeExecutor {
         // 获取 operator
         let operator = config.operator.as_ref().ok_or_else(|| {
             let error = ErrorDetail::new(
-                ErrorKind::ConditionSyntaxError,
+                ErrorKind::ConditionSyntax,
                 "简单条件缺少 operator".to_string(),
             );
             log::error!("[错误] {}", error.message);
@@ -670,10 +676,6 @@ mod tests {
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
         assert_eq!(output_data.unwrap(), json!(false));
-        assert!(result.is_ok(), "条件为false应该返回Ok（不再返回错误）");
-        let (next_node_ids, output_data) = result.unwrap();
-        assert!(next_node_ids.is_empty());
-        assert_eq!(output_data.unwrap(), json!(false));
     }
 
     #[tokio::test]
@@ -737,10 +739,6 @@ mod tests {
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
         assert_eq!(output_data.unwrap(), json!(false));
-        assert!(result.is_ok(), "条件为false应该返回Ok（不再返回错误）");
-        let (next_node_ids, output_data) = result.unwrap();
-        assert!(next_node_ids.is_empty());
-        assert_eq!(output_data.unwrap(), json!(false));
     }
 
     #[tokio::test]
@@ -762,7 +760,7 @@ mod tests {
             id: "conn-1".to_string(),
             source_node_uuid: "test-node-id".to_string(),
             target_node_uuid: "next-node-id".to_string(),
-            source_port_id: "out".to_string(),
+            source_port_id: "true".to_string(),
             target_port_id: "in".to_string(),
         }];
 
@@ -865,11 +863,7 @@ mod tests {
         }));
 
         let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
-        assert!(result.is_ok(), "exists操作符对于null值应该返回false（不再返回错误）");
-        let (next_node_ids, output_data) = result.unwrap();
-        assert!(next_node_ids.is_empty());
-        assert_eq!(output_data.unwrap(), json!(false));
-        assert!(result.is_ok(), "exists操作符对于null值应该返回false（不再返回错误）");
+        assert!(result.is_ok(), "条件为false应该返回Ok（不再返回错误）");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
         assert_eq!(output_data.unwrap(), json!(false));
@@ -881,8 +875,8 @@ mod tests {
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
             field_path: Some("user.age".to_string()),
-            operator: Some(ConditionOperator::Equal),
-            expected_value: Some(serde_json::json!(25)),
+            operator: Some(ConditionOperator::Greater), // 使用Greater来触发类型检查
+            expected_value: Some(serde_json::json!(20)),
             advanced_expression: None,
         };
         let node = create_test_node(config);
@@ -894,6 +888,7 @@ mod tests {
 
         let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "类型不匹配应该返回错误");
+        assert!(result.unwrap_err().contains("actual不是数字类型"), "错误信息应该包含'actual不是数字类型'");
     }
 
     #[tokio::test]
@@ -957,7 +952,7 @@ mod tests {
 
         let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "缺少field_path应该返回错误");
-        assert!(result.unwrap_err().contains("缺少field_path"), "错误信息应该包含'缺少field_path'");
+        assert!(result.unwrap_err().contains("简单条件缺少 field_path"), "错误信息应该包含'简单条件缺少 field_path'");
     }
 
     #[tokio::test]
@@ -977,7 +972,7 @@ mod tests {
 
         let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "缺少operator应该返回错误");
-        assert!(result.unwrap_err().contains("缺少operator"), "错误信息应该包含'缺少operator'");
+        assert!(result.unwrap_err().contains("简单条件缺少 operator"), "错误信息应该包含'简单条件缺少 operator'");
     }
 
     #[tokio::test]

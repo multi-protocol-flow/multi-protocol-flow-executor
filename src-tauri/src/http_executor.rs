@@ -8,6 +8,12 @@ use std::time::Instant;
 /// HTTP节点执行器
 pub struct HttpNodeExecutor;
 
+impl Default for HttpNodeExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HttpNodeExecutor {
     /// 创建新的HTTP节点执行器
     pub fn new() -> Self {
@@ -174,27 +180,11 @@ impl NodeExecutor for HttpNodeExecutor {
             "body": body_json
         });
 
-        // 将 HTTP 响应数据保存到节点变量（供后续节点使用）
-        context.variables.set_node_variable(
-            node.uuid.clone(),
-            "http_response".to_string(),
-            output_data.clone()
-        );
-
         // 计算总执行时间
-        let duration_ms = start_time.elapsed().as_millis();
-
-         // 计算总执行时间
-        let duration_ms = start_time.elapsed().as_millis();
+        let _duration_ms = start_time.elapsed().as_millis();
 
         // 执行后日志
-        log::info!("[流程 {}] [完成] 节点UUID: {}, 耗时: {}ms, 状态: success", context.flow_uuid, node.uuid, duration_ms);
-
-        // 返回空列表（HTTP 节点不决定下一个节点）和输出数据
-        Ok((vec![], Some(output_data)));
-
-        // 执行后日志
-        log::info!("[流程 {}] [完成] 节点UUID: {}, 耗时: {}ms, 状态: success", context.flow_uuid, node.uuid, duration_ms);
+        log::info!("[流程 {}] [完成] 节点UUID: {}, 耗时: {}ms, 状态: success", context.flow_uuid, node.uuid, _duration_ms);
 
         // 返回空列表（HTTP 节点不决定下一个节点）和输出数据
         Ok((vec![], Some(output_data)))

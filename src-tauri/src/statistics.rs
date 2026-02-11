@@ -138,13 +138,10 @@ impl FlowStatistics {
                 }
             }
             serde_json::Value::String(s) => s.len() as u64,
-            serde_json::Value::Array(arr) => {
-                arr.iter().map(|v| Self::estimate_json_size(v)).sum::<u64>()
+            serde_json::Value::Array(arr) => arr.iter().map(Self::estimate_json_size).sum::<u64>(),
+            serde_json::Value::Object(obj) => {
+                obj.values().map(Self::estimate_json_size).sum::<u64>()
             }
-            serde_json::Value::Object(obj) => obj
-                .values()
-                .map(|v| Self::estimate_json_size(v))
-                .sum::<u64>(),
         }
     }
 
@@ -368,7 +365,7 @@ mod tests {
             8
         );
         assert_eq!(
-            FlowStatistics::estimate_json_size(&serde_json::json!(3.14)),
+            FlowStatistics::estimate_json_size(&serde_json::json!(std::f64::consts::PI)),
             16
         );
         assert_eq!(
@@ -389,9 +386,11 @@ mod tests {
 
     #[test]
     fn test_total_executed_count() {
-        let mut stats = FlowStatistics::default();
-        stats.success_count = 5;
-        stats.failed_count = 2;
+        let stats = FlowStatistics {
+            success_count: 5,
+            failed_count: 2,
+            ..FlowStatistics::default()
+        };
 
         assert_eq!(stats.total_executed_count(), 7);
     }

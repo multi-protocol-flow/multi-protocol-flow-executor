@@ -10,6 +10,12 @@ use std::time::Instant;
 /// End 节点执行器
 pub struct EndNodeExecutor;
 
+impl Default for EndNodeExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EndNodeExecutor {
     /// 创建新的 End 节点执行器
     pub fn new() -> Self {
@@ -141,7 +147,7 @@ mod tests {
         // 验证执行成功
         assert!(result.is_ok());
         let (next_node_ids, output_data) = result.unwrap();
-        assert!(next_node_id.is_none()); // End 节点没有下一个节点
+        assert!(next_node_ids.is_empty()); // End 节点没有下一个节点
         assert!(output_data.is_none()); // 目前框架阶段不返回数据
     }
 
@@ -173,8 +179,8 @@ mod tests {
 
         // 验证执行成功
         assert!(result.is_ok());
-        let (next_node_id, _output_data) = result.unwrap();
-        assert!(next_node_id.is_none());
+        let (next_node_ids, _output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
     }
 
     #[tokio::test]
@@ -202,8 +208,8 @@ mod tests {
 
         // 验证执行成功
         assert!(result.is_ok());
-        let (next_node_id, _output_data) = result.unwrap();
-        assert!(next_node_id.is_none());
+        let (next_node_ids, _output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
     }
 
     #[tokio::test]
@@ -231,8 +237,8 @@ mod tests {
 
         // 验证执行成功（即使有错误，End 节点也正常执行）
         assert!(result.is_ok());
-        let (next_node_id, _output_data) = result.unwrap();
-        assert!(next_node_id.is_none());
+        let (next_node_ids, _output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
     }
 
     #[tokio::test]
@@ -263,8 +269,8 @@ mod tests {
 
         // 验证执行成功（即使有错误数组，End 节点也正常执行）
         assert!(result.is_ok());
-        let (next_node_id, _output_data) = result.unwrap();
-        assert!(next_node_id.is_none());
+        let (next_node_ids, _output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
     }
 
     #[tokio::test]
@@ -295,8 +301,8 @@ mod tests {
 
         // 验证执行成功
         assert!(result.is_ok());
-        let (next_node_id, _output_data) = result.unwrap();
-        assert!(next_node_id.is_none());
+        let (next_node_ids, _output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
     }
 
     #[tokio::test]
@@ -327,8 +333,8 @@ mod tests {
 
         // 验证执行成功
         assert!(result.is_ok());
-        let (next_node_id, _output_data) = result.unwrap();
-        assert!(next_node_id.is_none());
+        let (next_node_ids, _output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
     }
 
     #[tokio::test]
@@ -372,8 +378,8 @@ mod tests {
 
         // 验证执行成功
         assert!(result.is_ok());
-        let (next_node_id, _output_data) = result.unwrap();
-        assert!(next_node_id.is_none());
+        let (next_node_ids, _output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
     }
 
     #[tokio::test]
@@ -400,8 +406,8 @@ mod tests {
 
         // 验证执行成功
         assert!(result.is_ok());
-        let (next_node_id, _output_data) = result.unwrap();
-        assert!(next_node_id.is_none());
+        let (next_node_ids, _output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
     }
 
     #[tokio::test]
@@ -428,7 +434,7 @@ mod tests {
 
         // 验证执行成功
         assert!(result.is_ok());
-        let (next_node_id, _output_data) = result.unwrap();
-        assert!(next_node_id.is_none());
+        let (next_node_ids, _output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
     }
 }

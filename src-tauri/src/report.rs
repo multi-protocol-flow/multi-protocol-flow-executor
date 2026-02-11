@@ -145,7 +145,7 @@ mod tests {
             output_data: None,
             used_port_id: None,
             error: Some(crate::error::ErrorDetail::new(
-                crate::error::ErrorKind::ConditionEvaluationError,
+                crate::error::ErrorKind::ConditionEvaluation,
                 "Condition evaluation failed".to_string(),
             )),
         };
@@ -263,7 +263,7 @@ mod tests {
     #[test]
     fn test_node_execution_report_with_error() {
         let error_detail = crate::error::ErrorDetail::new(
-            crate::error::ErrorKind::ConnectionError,
+            crate::error::ErrorKind::Connection,
             "Connection timeout".to_string(),
         );
 

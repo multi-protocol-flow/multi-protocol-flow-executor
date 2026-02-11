@@ -107,31 +107,31 @@ impl ErrorDetail {
 pub enum ErrorKind {
     // ===== 配置错误（立即终止流程） =====
     /// 通用配置错误
-    ConfigurationError,
+    Configuration,
 
     /// 条件表达式语法错误（如表达式语法错误、字段配置缺失）
-    ConditionSyntaxError,
+    ConditionSyntax,
 
     // ===== 执行错误（容错模式，继续执行） =====
     /// 通用执行错误
-    ExecutionError,
+    Execution,
 
     /// 网络连接失败
-    ConnectionError,
+    Connection,
 
     /// 操作超时
-    TimeoutError,
+    Timeout,
 
     /// 条件评估运行时错误（如字段不存在、类型不匹配）
-    ConditionEvaluationError,
+    ConditionEvaluation,
 
     // ===== 验证错误（容错模式，继续执行） =====
     /// 参数验证失败
-    ValidationError,
+    Validation,
 
     // ===== 解析错误（容错模式，继续执行） =====
     /// 数据解析失败（如 JSON 解析失败、数据格式转换失败）
-    ParseError,
+    Parse,
 }
 
 impl ErrorKind {
@@ -146,10 +146,7 @@ impl ErrorKind {
     /// - `ConfigurationError` - 配置错误
     /// - `ConditionSyntaxError` - 条件语法错误
     pub fn is_fatal(&self) -> bool {
-        matches!(
-            self,
-            ErrorKind::ConfigurationError | ErrorKind::ConditionSyntaxError
-        )
+        matches!(self, ErrorKind::Configuration | ErrorKind::ConditionSyntax)
     }
 }
 
@@ -163,9 +160,9 @@ mod tests {
 
     #[test]
     fn test_error_detail_creation() {
-        let error = ErrorDetail::new(ErrorKind::ExecutionError, "执行失败".to_string());
+        let error = ErrorDetail::new(ErrorKind::Execution, "执行失败".to_string());
 
-        assert_eq!(error.error_kind, ErrorKind::ExecutionError);
+        assert_eq!(error.error_kind, ErrorKind::Execution);
         assert_eq!(error.message, "执行失败");
         assert!(error.error_code.is_none());
         assert!(error.stack_trace.is_none());
@@ -174,12 +171,12 @@ mod tests {
 
     #[test]
     fn test_error_detail_builder_pattern() {
-        let error = ErrorDetail::new(ErrorKind::ValidationError, "验证失败".to_string())
+        let error = ErrorDetail::new(ErrorKind::Validation, "验证失败".to_string())
             .with_error_code("VAL001".to_string())
             .with_stack_trace("at line 42".to_string())
             .with_context(serde_json::json!({"field": "email"}));
 
-        assert_eq!(error.error_kind, ErrorKind::ValidationError);
+        assert_eq!(error.error_kind, ErrorKind::Validation);
         assert_eq!(error.error_code, Some("VAL001".to_string()));
         assert_eq!(error.stack_trace, Some("at line 42".to_string()));
         assert_eq!(error.context, Some(serde_json::json!({"field": "email"})));
@@ -187,17 +184,17 @@ mod tests {
 
     #[test]
     fn test_error_detail_serialization() {
-        let error = ErrorDetail::new(ErrorKind::ConnectionError, "连接失败".to_string())
+        let error = ErrorDetail::new(ErrorKind::Connection, "连接失败".to_string())
             .with_error_code("CONN001".to_string());
 
         // 序列化
         let json = serde_json::to_string(&error).expect("序列化失败");
-        assert!(json.contains(r#""connection_error""#));
+        assert!(json.contains(r#""connection""#));
         assert!(json.contains("连接失败"));
 
         // 反序列化
         let deserialized: ErrorDetail = serde_json::from_str(&json).expect("反序列化失败");
-        assert_eq!(deserialized.error_kind, ErrorKind::ConnectionError);
+        assert_eq!(deserialized.error_kind, ErrorKind::Connection);
         assert_eq!(deserialized.message, "连接失败");
         assert_eq!(deserialized.error_code, Some("CONN001".to_string()));
     }
@@ -205,30 +202,28 @@ mod tests {
     #[test]
     fn test_error_kind_is_fatal() {
         // 致命错误
-        assert!(ErrorKind::ConfigurationError.is_fatal());
-        assert!(ErrorKind::ConditionSyntaxError.is_fatal());
-
-        // 可恢复错误
-        assert!(!ErrorKind::ExecutionError.is_fatal());
-        assert!(!ErrorKind::ConnectionError.is_fatal());
-        assert!(!ErrorKind::TimeoutError.is_fatal());
-        assert!(!ErrorKind::ConditionEvaluationError.is_fatal());
-        assert!(!ErrorKind::ValidationError.is_fatal());
-        assert!(!ErrorKind::ParseError.is_fatal());
+        assert!(ErrorKind::Configuration.is_fatal());
+        assert!(ErrorKind::ConditionSyntax.is_fatal());
+        assert!(!ErrorKind::Execution.is_fatal());
+        assert!(!ErrorKind::Connection.is_fatal());
+        assert!(!ErrorKind::Timeout.is_fatal());
+        assert!(!ErrorKind::ConditionEvaluation.is_fatal());
+        assert!(!ErrorKind::Validation.is_fatal());
+        assert!(!ErrorKind::Parse.is_fatal());
     }
 
     #[test]
     fn test_error_kind_serialization_lowercase() {
         // 测试序列化使用小写形式
         let kinds = vec![
-            ErrorKind::ConfigurationError,
-            ErrorKind::ConditionSyntaxError,
-            ErrorKind::ExecutionError,
-            ErrorKind::ConnectionError,
-            ErrorKind::TimeoutError,
-            ErrorKind::ConditionEvaluationError,
-            ErrorKind::ValidationError,
-            ErrorKind::ParseError,
+            ErrorKind::Configuration,
+            ErrorKind::ConditionSyntax,
+            ErrorKind::Execution,
+            ErrorKind::Connection,
+            ErrorKind::Timeout,
+            ErrorKind::ConditionEvaluation,
+            ErrorKind::Validation,
+            ErrorKind::Parse,
         ];
 
         for kind in kinds {
@@ -244,10 +239,10 @@ mod tests {
 
     #[test]
     fn test_error_detail_is_fatal() {
-        let fatal_error = ErrorDetail::new(ErrorKind::ConfigurationError, "配置错误".to_string());
+        let fatal_error = ErrorDetail::new(ErrorKind::Configuration, "配置错误".to_string());
         assert!(fatal_error.is_fatal());
 
-        let recoverable_error = ErrorDetail::new(ErrorKind::ExecutionError, "执行错误".to_string());
+        let recoverable_error = ErrorDetail::new(ErrorKind::Execution, "执行错误".to_string());
         assert!(!recoverable_error.is_fatal());
     }
 
@@ -255,14 +250,14 @@ mod tests {
     fn test_all_error_kinds() {
         // 验证所有错误类型都能正常创建和序列化
         let kinds = [
-            ErrorKind::ConfigurationError,
-            ErrorKind::ConditionSyntaxError,
-            ErrorKind::ExecutionError,
-            ErrorKind::ConnectionError,
-            ErrorKind::TimeoutError,
-            ErrorKind::ConditionEvaluationError,
-            ErrorKind::ValidationError,
-            ErrorKind::ParseError,
+            ErrorKind::Configuration,
+            ErrorKind::ConditionSyntax,
+            ErrorKind::Execution,
+            ErrorKind::Connection,
+            ErrorKind::Timeout,
+            ErrorKind::ConditionEvaluation,
+            ErrorKind::Validation,
+            ErrorKind::Parse,
         ];
 
         for kind in kinds {

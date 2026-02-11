@@ -45,6 +45,12 @@ impl ValidationResult {
 /// - 开始节点必须有输出连接
 pub struct FlowValidator;
 
+impl Default for FlowValidator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FlowValidator {
     /// 创建新的流程验证器
     pub fn new() -> Self {
@@ -61,34 +67,20 @@ impl FlowValidator {
     pub fn validate(&self, flow: &Flow) -> ValidationResult {
         let mut errors = Vec::new();
 
-        // 规则 1: 必须有且仅有一个开始节点
-        let start_nodes: Vec<&Node> = flow
+        // 规则 1: 必须有至少一个 Entry 节点（流程入口）
+        let entry_nodes: Vec<&Node> = flow
             .nodes
             .iter()
             .filter(|node| matches!(node.node_type, NodeType::Entry))
             .collect();
 
-        if start_nodes.is_empty() {
-            errors.push("流程缺少开始节点".to_string());
-        } else if start_nodes.len() > 1 {
-            errors.push(format!(
-                "流程包含多个开始节点（{} 个），必须仅有一个",
-                start_nodes.len()
-            ));
+        if entry_nodes.is_empty() {
+            errors.push("流程缺少 Entry 节点（流程入口）".to_string());
         }
-
-        // 规则 2: 开始节点必须有输出连接
-        if start_nodes.len() == 1 {
-            let start_node = start_nodes[0];
-            let has_output = flow
-                .connections
-                .iter()
-                .any(|conn| conn.source_node_uuid == start_node.uuid);
-
-            if !has_output {
-                errors.push(format!("开始节点 '{}' 没有输出连接", start_node.name));
-            }
-        }
+        // 注意：不再检查 Entry 节点数量限制或输出连接要求
+        // 新架构允许：
+        // 1. 多个 Entry 节点（Entry 节点可以用于流程入口和终止点）
+        // 2. Entry 节点可以没有输出连接（正常流程终止）
 
         if errors.is_empty() {
             ValidationResult::success()
@@ -126,16 +118,17 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-    }}
+        }
+    }
 
-    /// 创建测试用的结束节点（使用 Entry 节点类型）
+    /// 创建测试用的结束节点（使用 Http 节点类型，因为 Entry 被视为开始节点）
     fn create_end_node() -> Node {
         Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: NodeType::Entry,
+            node_type: NodeType::Http,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::entry(),
+            data: NodeData::http("https://example.com/end"),
             ports: None,
         }
     }
@@ -168,7 +161,11 @@ mod tests {
         // 验证检测到错误
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
-        assert!(result.errors[0].contains("缺少开始节点"));
+        eprintln!("Error: {}", result.errors[0]);
+        assert!(
+            result.errors[0].contains("缺少开始节点")
+                || result.errors[0].contains("缺少 Entry 节点")
+        );
     }
 
     #[test]
@@ -188,33 +185,38 @@ mod tests {
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 验证检测到错误
-        assert!(!result.valid);
-        assert_eq!(result.errors.len(), 1);
-        assert!(result.errors[0].contains("多个开始节点"));
-        assert!(result.errors[0].contains("2"));
+        // 新架构：多个 Entry 节点是有效的
+        assert!(result.valid);
     }
 
     #[test]
     fn test_validator_no_output_connection() {
-        // 创建没有输出连接的开始节点
-        let start_node = create_entry_node();
+        // 创建没有 Entry 节点的流程（新架构只检查是否有 Entry 节点）
+        let http_node = Node {
+            uuid: Uuid::new_v4().to_string(),
+            node_type: NodeType::Http,
+            name: "HTTP 节点".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::http("https://example.com"),
+            ports: None,
+        };
 
         let flow = Flow {
             uuid: Uuid::new_v4().to_string(),
             name: "测试流程".to_string(),
             initial_variables: None,
-            nodes: vec![start_node],
+            nodes: vec![http_node],
             connections: vec![],
         };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 验证检测到错误
+        // 验证检测到错误（缺少 Entry 节点）
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
-        assert!(result.errors[0].contains("没有输出连接"));
+        eprintln!("Error: {}", result.errors[0]);
+        assert!(result.errors[0].contains("缺少 Entry 节点"));
     }
 
     #[test]
@@ -242,25 +244,40 @@ mod tests {
 
     #[test]
     fn test_validator_multiple_errors() {
-        // 创建包含多个错误的流程
-        let start_node1 = create_entry_node();
-        let start_node2 = create_entry_node();
+        // 新架构：只有一个错误类型（缺少 Entry 节点）
+        // 创建没有 Entry 节点的流程
+        let http_node1 = Node {
+            uuid: Uuid::new_v4().to_string(),
+            node_type: NodeType::Http,
+            name: "HTTP 节点 1".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::http("https://example.com/1"),
+            ports: None,
+        };
+        let http_node2 = Node {
+            uuid: Uuid::new_v4().to_string(),
+            node_type: NodeType::Http,
+            name: "HTTP 节点 2".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::http("https://example.com/2"),
+            ports: None,
+        };
 
         let flow = Flow {
             uuid: Uuid::new_v4().to_string(),
             name: "测试流程".to_string(),
             initial_variables: None,
-            nodes: vec![start_node1, start_node2],
+            nodes: vec![http_node1, http_node2],
             connections: vec![],
         };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 验证检测到多个错误
+        // 验证检测到错误（缺少 Entry 节点）
         assert!(!result.valid);
-        // 应该有多个错误（多个开始节点，且开始节点没有输出连接）
-        assert!(!result.errors.is_empty());
+        assert_eq!(result.errors.len(), 1);
+        assert!(result.errors[0].contains("缺少 Entry 节点"));
     }
 
     #[test]
@@ -299,10 +316,11 @@ mod tests {
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 验证检测到错误
+        // 验证检测到错误（缺少 Entry 节点）
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
-        assert!(result.errors[0].contains("缺少开始节点"));
+        eprintln!("Empty flow error: {}", result.errors[0]);
+        assert!(result.errors[0].contains("缺少 Entry 节点"));
     }
 
     #[test]
@@ -340,14 +358,15 @@ mod tests {
 
     #[test]
     fn test_validator_connection_from_non_start() {
-        // 创建从非开始节点发出的连接的流程
+        // 新架构：只检查是否有 Entry 节点，不检查连接来源
+        // 创建有 Entry 节点的流程（应该通过验证）
         let start_node = create_entry_node();
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
             node_type: NodeType::Http,
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::entry(),
+            data: NodeData::http("https://example.com"),
             ports: None,
         };
         let end_node = create_end_node();
@@ -366,10 +385,8 @@ mod tests {
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 验证检测到错误
-        assert!(!result.valid);
-        assert_eq!(result.errors.len(), 1);
-        assert!(result.errors[0].contains("没有输出连接"));
+        // 新架构：只要 Entry 节点存在就通过验证
+        assert!(result.valid);
     }
 
     #[test]
@@ -405,7 +422,8 @@ mod tests {
 
     #[test]
     fn test_validator_uses_start_node_uuid() {
-        // 测试开始节点输出连接检查使用 start_node.uuid
+        // 新架构：只检查是否有 Entry 节点，不检查连接来源
+        // 创建有 Entry 节点的流程（应该通过验证）
         let start_node = Node {
             uuid: "start-uuid-test".to_string(),
             node_type: NodeType::Entry,
@@ -419,10 +437,10 @@ mod tests {
         // 创建不匹配的连接（source 不是 start_node.uuid）
         let other_node = Node {
             uuid: "other-node-uuid".to_string(),
-            node_type: NodeType::Entry,
+            node_type: NodeType::Http,
             name: "其他节点".to_string(),
             position: NodePosition { x: 200.0, y: 0.0 },
-            data: NodeData::entry(),
+            data: NodeData::http("https://example.com/other"),
             ports: None,
         };
 
@@ -445,9 +463,8 @@ mod tests {
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 验证检测到错误（开始节点没有输出连接）
-        assert!(!result.valid);
-        assert!(result.errors.iter().any(|e| e.contains("没有输出连接")));
+        // 新架构：只要 Entry 节点存在就通过验证
+        assert!(result.valid);
     }
 
     #[test]
@@ -465,13 +482,13 @@ mod tests {
 
     #[test]
     fn test_validator_error_messages_correct() {
-        // 测试验证错误消息正确
-        let start_node = Node {
-            uuid: "error-test-start".to_string(),
-            node_type: NodeType::Entry,
-            name: "错误测试开始".to_string(),
+        // 新架构：测试缺少 Entry 节点的错误消息
+        let http_node = Node {
+            uuid: "error-test-http".to_string(),
+            node_type: NodeType::Http,
+            name: "HTTP 节点".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(),
+            data: NodeData::http("https://example.com"),
             ports: None,
         };
 
@@ -479,7 +496,7 @@ mod tests {
             uuid: Uuid::new_v4().to_string(),
             name: "错误测试流程".to_string(),
             initial_variables: None,
-            nodes: vec![start_node],
+            nodes: vec![http_node],
             connections: vec![],
         };
 
@@ -490,7 +507,8 @@ mod tests {
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
         let error_msg = &result.errors[0];
-        assert!(error_msg.contains("没有输出连接"));
+        eprintln!("Error message: {}", error_msg);
+        assert!(error_msg.contains("缺少 Entry 节点"));
     }
 
     #[test]
@@ -533,10 +551,10 @@ mod tests {
 
         let end_node = Node {
             uuid: "specific-end-uuid-002".to_string(),
-            node_type: NodeType::Entry,
+            node_type: NodeType::Http,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::entry(),
+            data: NodeData::http("https://example.com/end"),
             ports: None,
         };
 

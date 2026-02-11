@@ -25,7 +25,7 @@ pub fn get_data_dir() -> Result<PathBuf, String> {
     } else {
         // Linux 和其他类 Unix 系统
         std::env::var("XDG_DATA_HOME")
-            .map(|p| PathBuf::from(p))
+            .map(PathBuf::from)
             .or_else(|_| {
                 std::env::var("HOME")
                     .map_err(|e| format!("获取 HOME 环境变量失败: {}", e))
@@ -202,7 +202,7 @@ mod tests {
         // 使用绝对路径保存流程
         let file_path = test_dir.join("test-flow.json");
         let save_result = save_flow(&flow, file_path.to_str().unwrap());
-        if !save_result.is_ok() {
+        if save_result.is_err() {
             eprintln!("保存失败: {:?}", save_result);
         }
         assert!(save_result.is_ok());
