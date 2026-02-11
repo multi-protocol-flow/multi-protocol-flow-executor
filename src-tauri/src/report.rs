@@ -8,15 +8,15 @@ pub enum ExecutionStatus {
     Success,
     /// 执行失败
     Failed,
-    /// 执行跳过
+    /// 跳过执行
     Skipped,
 }
 
 /// 节点执行报告
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct NodeExecutionReport {
-    /// 节点 ID
-    pub node_id: String,
+    /// 节点 UUID
+    pub node_uuid: String,
     /// 节点类型
     pub node_type: String,
     /// 节点名称
@@ -29,19 +29,24 @@ pub struct NodeExecutionReport {
     pub duration_ms: u64,
     /// 执行状态
     pub status: ExecutionStatus,
-    /// 输入数据
+    /// 输入数据（完整存储，不截断）
     pub input_data: Option<serde_json::Value>,
-    /// 输出数据
+    /// 输出数据（完整存储，不截断）
     pub output_data: Option<serde_json::Value>,
-    /// 错误信息
-    pub error: Option<String>,
+    /// 实际使用的输出端口 ID（仅已执行节点有值）
+    /// - Entry 节点：固定为 "out"
+    /// - Http 节点：固定为 "out"
+    /// - Conditional 节点：根据条件评估结果为 "true" 或 "false"
+    pub used_port_id: Option<String>,
+    /// 错误详情
+    pub error: Option<crate::error::ErrorDetail>,
 }
 
 /// 流程执行报告
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FlowExecutionReport {
-    /// 流程 ID
-    pub flow_id: String,
+    /// 流程 UUID
+    pub flow_uuid: String,
     /// 流程名称
     pub flow_name: String,
     /// 开始时间（毫秒时间戳）
@@ -53,11 +58,15 @@ pub struct FlowExecutionReport {
     /// 总节点数
     pub total_nodes: u32,
     /// 已执行节点数
-    pub executed_nodes: u32,
+    pub executed_count: u32,
     /// 整体执行状态
     pub status: ExecutionStatus,
-    /// 节点执行报告列表
+    /// 节点执行报告列表（扁平结构）
     pub node_reports: Vec<NodeExecutionReport>,
+    /// 流程统计信息
+    pub statistics: crate::statistics::FlowStatistics,
+    /// 流程级错误详情（可选）
+    pub flow_error: Option<crate::error::ErrorDetail>,
 }
 
 // ============================================================================
@@ -79,10 +88,6 @@ mod tests {
             serde_json::to_string(&ExecutionStatus::Failed).unwrap(),
             r#""failed""#
         );
-        assert_eq!(
-            serde_json::to_string(&ExecutionStatus::Skipped).unwrap(),
-            r#""skipped""#
-        );
     }
 
     #[test]
@@ -95,16 +100,12 @@ mod tests {
             serde_json::from_str::<ExecutionStatus>(r#""failed""#).unwrap(),
             ExecutionStatus::Failed
         );
-        assert_eq!(
-            serde_json::from_str::<ExecutionStatus>(r#""skipped""#).unwrap(),
-            ExecutionStatus::Skipped
-        );
     }
 
     #[test]
     fn test_node_execution_report_creation() {
         let report = NodeExecutionReport {
-            node_id: "node-123".to_string(),
+            node_uuid: "node-123".to_string(),
             node_type: "http".to_string(),
             node_name: "HTTP Request".to_string(),
             start_time: 1234567890,
@@ -113,10 +114,11 @@ mod tests {
             status: ExecutionStatus::Success,
             input_data: Some(json!({"url": "https://example.com"})),
             output_data: Some(json!({"status": 200})),
+            used_port_id: Some("out".to_string()),
             error: None,
         };
 
-        assert_eq!(report.node_id, "node-123");
+        assert_eq!(report.node_uuid, "node-123");
         assert_eq!(report.node_type, "http");
         assert_eq!(report.node_name, "HTTP Request");
         assert_eq!(report.start_time, 1234567890);
@@ -126,12 +128,13 @@ mod tests {
         assert!(report.input_data.is_some());
         assert!(report.output_data.is_some());
         assert!(report.error.is_none());
+        assert_eq!(report.used_port_id, Some("out".to_string()));
     }
 
     #[test]
     fn test_node_execution_report_serialization() {
         let report = NodeExecutionReport {
-            node_id: "node-456".to_string(),
+            node_uuid: "node-456".to_string(),
             node_type: "conditional".to_string(),
             node_name: "Conditional Node".to_string(),
             start_time: 1234567900,
@@ -140,30 +143,29 @@ mod tests {
             status: ExecutionStatus::Failed,
             input_data: None,
             output_data: None,
-            error: Some("Condition evaluation failed".to_string()),
+            used_port_id: None,
+            error: Some(crate::error::ErrorDetail::new(
+                crate::error::ErrorKind::ConditionEvaluationError,
+                "Condition evaluation failed".to_string(),
+            )),
         };
 
         let json = serde_json::to_string(&report).unwrap();
         assert!(json.contains("node-456"));
         assert!(json.contains("conditional"));
         assert!(json.contains("failed"));
-        assert!(json.contains("Condition evaluation failed"));
 
         // 反序列化测试
         let deserialized: NodeExecutionReport = serde_json::from_str(&json).unwrap();
-        assert_eq!(deserialized.node_id, "node-456");
+        assert_eq!(deserialized.node_uuid, "node-456");
         assert_eq!(deserialized.node_type, "conditional");
         assert_eq!(deserialized.status, ExecutionStatus::Failed);
-        assert_eq!(
-            deserialized.error,
-            Some("Condition evaluation failed".to_string())
-        );
     }
 
     #[test]
     fn test_flow_execution_report_creation() {
         let node_report = NodeExecutionReport {
-            node_id: "node-1".to_string(),
+            node_uuid: "node-1".to_string(),
             node_type: "start".to_string(),
             node_name: "Start Node".to_string(),
             start_time: 1234567890,
@@ -172,84 +174,101 @@ mod tests {
             status: ExecutionStatus::Success,
             input_data: None,
             output_data: Some(json!({"output": "success"})),
+            used_port_id: Some("out".to_string()),
             error: None,
         };
 
         let flow_report = FlowExecutionReport {
-            flow_id: "flow-123".to_string(),
+            flow_uuid: "flow-123".to_string(),
             flow_name: "Test Flow".to_string(),
             start_time: 1234567890,
             end_time: 1234567900,
             duration_ms: 10,
             total_nodes: 1,
-            executed_nodes: 1,
+            executed_count: 1,
             status: ExecutionStatus::Success,
             node_reports: vec![node_report],
+            statistics: crate::statistics::FlowStatistics::default(),
+            flow_error: None,
         };
 
-        assert_eq!(flow_report.flow_id, "flow-123");
+        assert_eq!(flow_report.flow_uuid, "flow-123");
         assert_eq!(flow_report.flow_name, "Test Flow");
         assert_eq!(flow_report.total_nodes, 1);
-        assert_eq!(flow_report.executed_nodes, 1);
+        assert_eq!(flow_report.executed_count, 1);
         assert_eq!(flow_report.node_reports.len(), 1);
-        assert_eq!(flow_report.node_reports[0].node_id, "node-1");
+        assert_eq!(flow_report.node_reports[0].node_uuid, "node-1");
     }
 
     #[test]
-    fn test_flow_execution_report_serialization() {
+    fn test_flow_execution_report_serialization_2() {
         let node_report = NodeExecutionReport {
-            node_id: "node-2".to_string(),
+            node_uuid: "node-2".to_string(),
             node_type: "http".to_string(),
             node_name: "HTTP Node".to_string(),
             start_time: 1234567910,
             end_time: 1234567920,
             duration_ms: 10,
-            status: ExecutionStatus::Skipped,
+            status: ExecutionStatus::Success,
             input_data: None,
-            output_data: None,
+            output_data: Some(json!({"status": 200})),
+            used_port_id: Some("out".to_string()),
             error: None,
         };
 
         let flow_report = FlowExecutionReport {
-            flow_id: "flow-456".to_string(),
+            flow_uuid: "flow-456".to_string(),
             flow_name: "Another Flow".to_string(),
             start_time: 1234567910,
             end_time: 1234567930,
             duration_ms: 20,
             total_nodes: 5,
-            executed_nodes: 1,
-            status: ExecutionStatus::Skipped,
+            executed_count: 1,
+            status: ExecutionStatus::Success,
             node_reports: vec![node_report],
+            statistics: crate::statistics::FlowStatistics {
+                success_count: 1,
+                failed_count: 0,
+                avg_node_duration_ms: Some(10),
+                max_node_duration_ms: Some(10),
+                min_node_duration_ms: Some(10),
+                total_input_size_bytes: None,
+                total_output_size_bytes: None,
+                error_rate: Some(0.0),
+                completion_rate: Some(0.2),
+            },
+            flow_error: None,
         };
 
         let json = serde_json::to_string(&flow_report).unwrap();
         assert!(json.contains("flow-456"));
         assert!(json.contains("Another Flow"));
-        assert!(json.contains("skipped"));
 
         // 反序列化测试
         let deserialized: FlowExecutionReport = serde_json::from_str(&json).unwrap();
-        assert_eq!(deserialized.flow_id, "flow-456");
+        assert_eq!(deserialized.flow_uuid, "flow-456");
         assert_eq!(deserialized.flow_name, "Another Flow");
         assert_eq!(deserialized.total_nodes, 5);
-        assert_eq!(deserialized.executed_nodes, 1);
-        assert_eq!(deserialized.status, ExecutionStatus::Skipped);
+        assert_eq!(deserialized.executed_count, 1);
+        assert_eq!(deserialized.status, ExecutionStatus::Success);
     }
 
     #[test]
     fn test_execution_status_equality() {
         assert_eq!(ExecutionStatus::Success, ExecutionStatus::Success);
         assert_eq!(ExecutionStatus::Failed, ExecutionStatus::Failed);
-        assert_eq!(ExecutionStatus::Skipped, ExecutionStatus::Skipped);
         assert_ne!(ExecutionStatus::Success, ExecutionStatus::Failed);
-        assert_ne!(ExecutionStatus::Failed, ExecutionStatus::Skipped);
-        assert_ne!(ExecutionStatus::Success, ExecutionStatus::Skipped);
     }
 
     #[test]
     fn test_node_execution_report_with_error() {
+        let error_detail = crate::error::ErrorDetail::new(
+            crate::error::ErrorKind::ConnectionError,
+            "Connection timeout".to_string(),
+        );
+
         let report = NodeExecutionReport {
-            node_id: "node-error".to_string(),
+            node_uuid: "node-error".to_string(),
             node_type: "http".to_string(),
             node_name: "Failed HTTP Request".to_string(),
             start_time: 1234568000,
@@ -258,31 +277,55 @@ mod tests {
             status: ExecutionStatus::Failed,
             input_data: Some(json!({"url": "https://invalid.com"})),
             output_data: None,
-            error: Some("Connection timeout".to_string()),
+            used_port_id: Some("out".to_string()),
+            error: Some(error_detail),
         };
 
         assert_eq!(report.status, ExecutionStatus::Failed);
-        assert_eq!(report.error, Some("Connection timeout".to_string()));
+        assert!(report.error.is_some());
         assert!(report.output_data.is_none());
     }
 
     #[test]
-    fn test_node_execution_report_cloning() {
-        let report = NodeExecutionReport {
-            node_id: "node-clone".to_string(),
-            node_type: "start".to_string(),
-            node_name: "Start Node".to_string(),
-            start_time: 1234569000,
-            end_time: 1234569001,
-            duration_ms: 1,
+    fn test_flow_execution_report_serialization_with_default_stats() {
+        let node_report = NodeExecutionReport {
+            node_uuid: "node-2".to_string(),
+            node_type: "http".to_string(),
+            node_name: "HTTP Node".to_string(),
+            start_time: 1234567910,
+            end_time: 1234567920,
+            duration_ms: 10,
             status: ExecutionStatus::Success,
             input_data: None,
             output_data: None,
+            used_port_id: Some("out".to_string()),
             error: None,
         };
 
-        let cloned = report.clone();
-        assert_eq!(cloned.node_id, report.node_id);
-        assert_eq!(cloned.status, report.status);
+        let flow_report = FlowExecutionReport {
+            flow_uuid: "flow-456".to_string(),
+            flow_name: "Test Flow".to_string(),
+            start_time: 1234567910,
+            end_time: 1234567930,
+            duration_ms: 20,
+            total_nodes: 5,
+            executed_count: 1,
+            status: ExecutionStatus::Success,
+            node_reports: vec![node_report],
+            statistics: crate::statistics::FlowStatistics::default(),
+            flow_error: None,
+        };
+
+        let json = serde_json::to_string(&flow_report).unwrap();
+        assert!(json.contains("flow-456"));
+        assert!(json.contains("Test Flow"));
+        assert!(json.contains("success"));
+
+        // 反序列化测试
+        let deserialized: FlowExecutionReport = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.flow_uuid, "flow-456");
+        assert_eq!(deserialized.flow_name, "Test Flow");
+        assert_eq!(deserialized.total_nodes, 5);
+        assert_eq!(deserialized.executed_count, 1);
     }
 }

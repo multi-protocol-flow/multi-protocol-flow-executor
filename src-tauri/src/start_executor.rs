@@ -1,7 +1,8 @@
 // 开始节点执行器 - StartNodeExecutor 实现
 
 use crate::connection::Connection;
-use crate::executor::{ExecutionContext, NodeExecutor};
+use crate::context::ExecutionContext;
+use crate::executor::NodeExecutor;
 use crate::node::Node;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -59,10 +60,10 @@ impl NodeExecutor for StartNodeExecutor {
         context: &ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Option<String>, Option<Value>), String> {
+    ) -> Result<(Vec<String>, Option<Value>), String> {
         // 执行前日志
         let start_time = Instant::now();
-        log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}", context.flow_id, node.uuid, node.name);
+        log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}", context.flow_uuid, node.uuid, node.name);
 
         // 立即传递，不执行任何逻辑（<1ms 执行时间）
         // 查找下一个节点
@@ -71,7 +72,7 @@ impl NodeExecutor for StartNodeExecutor {
         // 验证：开始节点必须有输出连接
         if next_node_id.is_none() {
             let error_msg = "开始节点没有输出连接".to_string();
-            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
             return Err(error_msg);
         }
 
@@ -79,10 +80,10 @@ impl NodeExecutor for StartNodeExecutor {
         let duration_ms = start_time.elapsed().as_millis();
 
         // 执行后日志
-        log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: success", context.flow_id, node.uuid, duration_ms);
+        log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: success", context.flow_uuid, node.uuid, duration_ms);
 
         // 返回下一个节点 ID 和空输出数据（开始节点不产生数据）
-        Ok((next_node_id, None))
+        Ok((next_node_id.map(|id| vec![id]).unwrap_or_default(), None))
     }
 }
 
@@ -91,7 +92,7 @@ mod tests {
     use super::*;
     use crate::node::{Node, NodePosition, NodeType};
     use crate::node_config::NodeData;
-    use serde_json::json;
+    use crate::VariableStorage;
     use std::time::Instant;
 
     #[tokio::test]
@@ -99,19 +100,19 @@ mod tests {
         // 创建测试流程
         let start_node = Node {
             uuid: "start-1".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
         let end_node = Node {
             uuid: "end-1".to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -126,7 +127,9 @@ mod tests {
         let context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
             current_node_uuid: Some(start_node.uuid.clone()),
-            variables: json!({}),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let mut node_map = HashMap::new();
@@ -159,17 +162,19 @@ mod tests {
         // 创建没有连接的开始节点
         let start_node = Node {
             uuid: "start-1".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
         let context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
             current_node_uuid: Some(start_node.uuid.clone()),
-            variables: json!({}),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let node_map = HashMap::new();
@@ -187,19 +192,19 @@ mod tests {
         // 测试 find_next_node 方法
         let start_node = Node {
             uuid: "start-1".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
         let end_node = Node {
             uuid: "end-1".to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -233,28 +238,28 @@ mod tests {
         // 测试多个连接的情况（MVP 范围：仅返回第一个）
         let start_node = Node {
             uuid: "start-1".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
         let end_node_1 = Node {
             uuid: "end-1".to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束 1".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
         let end_node_2 = Node {
             uuid: "end-2".to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束 2".to_string(),
             position: NodePosition { x: 100.0, y: 100.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -277,7 +282,9 @@ mod tests {
         let context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
             current_node_uuid: Some(start_node.uuid.clone()),
-            variables: json!({}),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let mut node_map = HashMap::new();
@@ -306,19 +313,19 @@ mod tests {
         // 测试执行时间 < 1ms
         let start_node = Node {
             uuid: "start-1".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
         let end_node = Node {
             uuid: "end-1".to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -333,7 +340,9 @@ mod tests {
         let context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
             current_node_uuid: Some(start_node.uuid.clone()),
-            variables: json!({}),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let mut node_map = HashMap::new();
@@ -406,19 +415,19 @@ mod tests {
         let node_uuid = "test-node-uuid-execute";
         let start_node = Node {
             uuid: node_uuid.to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
         let end_node = Node {
             uuid: "end-node-uuid".to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -434,7 +443,9 @@ mod tests {
         let context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
             current_node_uuid: Some(start_node.uuid.clone()),
-            variables: json!({}),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let mut node_map = HashMap::new();
@@ -455,19 +466,19 @@ mod tests {
         // 测试节点执行逻辑正确
         let start_node = Node {
             uuid: "logic-test-start".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
         let next_node = Node {
             uuid: "logic-test-next".to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "下一个".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -482,7 +493,9 @@ mod tests {
         let context = ExecutionContext {
             flow_uuid: "flow-logic-test".to_string(),
             current_node_uuid: Some(start_node.uuid.clone()),
-            variables: json!({}),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let mut node_map = HashMap::new();

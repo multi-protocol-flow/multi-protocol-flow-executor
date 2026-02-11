@@ -1,6 +1,9 @@
 // 执行引擎模块 - FlowExecutor 实现
 
 use crate::connection::Connection;
+use crate::context::{ExecutionContext, VariableStorage};
+use crate::entry_executor::EntryNodeExecutor;
+use crate::error::{ErrorDetail, ErrorKind};
 use crate::flow::Flow;
 use crate::node::{Node, NodeType};
 use regex::Regex;
@@ -16,23 +19,12 @@ pub struct ExecutionResult {
     pub data: Option<serde_json::Value>,
     /// 错误信息
     pub error: Option<String>,
-    /// 已执行的节点列表
-    pub executed_nodes: Vec<String>,
+    /// 已执行节点数量
+    pub executed_count: u32,
     /// 节点执行报告列表
     pub node_reports: Vec<crate::report::NodeExecutionReport>,
     /// 流程执行报告
     pub flow_report: Option<crate::report::FlowExecutionReport>,
-}
-
-/// 执行上下文
-#[derive(Debug, Clone, std::fmt::Display)]
-pub struct ExecutionContext {
-    /// 流程 UUID
-    pub flow_uuid: String,
-    /// 当前执行节点的 UUID
-    pub current_node_uuid: Option<String>,
-    /// 执行变量
-    pub variables: serde_json::Value,
 }
 
 /// 替换模板中的变量
@@ -70,8 +62,8 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
         // 按点分割路径
         let path_parts: Vec<&str> = variable_path.split('.').collect();
 
-        // 从 context.variables 中获取值
-        let mut current_value = &context.variables;
+        // 从 context.variables.global 中获取值
+        let mut current_value = &context.variables.global;
         let mut current_path = String::new();
 
         for (_i, part) in path_parts.iter().enumerate() {
@@ -128,8 +120,10 @@ pub trait NodeExecutor {
     /// - `node_map`: 节点 ID 到节点的映射
     ///
     /// # 返回
-    /// - `Result<(Option<String>, Option<serde_json::Value>), String>`:
-    ///   - Ok((next_node_id, output_data)): 执行成功，返回下一个节点 ID 和输出数据
+    /// - `Result<(Vec<String>, Option<serde_json::Value>), String>`:
+    ///   - Ok((next_node_ids, output_data)): 执行成功，返回下一个节点 ID 列表和输出数据
+    ///     - 空列表 `[]`: 流程终止
+    ///     - 单元素列表 `[node_id]`: 继续到指定节点
     ///   - Err(error): 执行失败，返回错误信息
     async fn execute(
         &self,
@@ -137,7 +131,7 @@ pub trait NodeExecutor {
         context: &ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Option<String>, Option<serde_json::Value>), String>;
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), String>;
 }
 
 /// 流程执行器
@@ -165,27 +159,32 @@ impl FlowExecutor {
         variables: Option<serde_json::Value>,
     ) -> ExecutionResult {
         let start_time = tokio::time::Instant::now();
-        let mut executed_nodes = Vec::new();
+        let mut executed_count = 0u32;
         let mut node_reports = Vec::new();
         let mut context = ExecutionContext {
             flow_uuid: flow.uuid.clone(),
             current_node_uuid: None,
-            variables: variables.unwrap_or_else(|| json!({})),
+            variables: VariableStorage::from(variables.unwrap_or_else(|| json!({}))),
+            node_reports: vec![],
+            flow_trigger_time: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64,
         };
 
         // 查找开始节点
         let start_node = match flow
             .nodes
             .iter()
-            .find(|node| matches!(node.node_type, NodeType::Start))
+            .find(|node| matches!(node.node_type, NodeType::Entry))
         {
             Some(node) => node,
             None => {
                 return ExecutionResult {
                     success: false,
                     data: None,
-                    error: Some("流程缺少开始节点".to_string()),
-                    executed_nodes,
+                    error: Some(ErrorDetail::new(ErrorKind::ConfigurationError, "流程缺少开始节点".to_string())),
+                    executed_count: 0,
                     node_reports: vec![],
                     flow_report: None,
                 };
@@ -218,8 +217,8 @@ impl FlowExecutor {
                 return ExecutionResult {
                     success: false,
                     data: None,
-                    error: Some(format!("检测到循环：节点 {} 已被访问", node.uuid)),
-                    executed_nodes,
+                    error: Some(ErrorDetail::new(ErrorKind::ExecutionError, format!("检测到循环：节点 {} 已被访问", node.uuid))),
+                    executed_count: 0,
                     node_reports,
                     flow_report: None,
                 };
@@ -245,19 +244,39 @@ impl FlowExecutor {
                         .as_millis() as u64;
                     let node_duration = node_start_time.elapsed().as_millis() as u64;
 
-                    executed_nodes.push(current_node_id.clone());
+                    executed_count += 1;
+
+                    // 根据节点类型设置 used_port_id
+                    let used_port_id = match node.node_type {
+                        NodeType::Entry => Some("out".to_string()),
+                        NodeType::Http => Some("out".to_string()),
+                        NodeType::Conditional => {
+                            // Conditional 节点：根据输出数据判断条件结果
+                            if let Some(data) = &output_data {
+                                if let Some(is_true) = data.get("result").and_then(|v| v.as_bool()) {
+                                    Some(if is_true { "true".to_string() } else { "false".to_string() })
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        }
+                        _ => None,
+                    };
 
                     // 创建节点执行报告
                     let node_report = crate::report::NodeExecutionReport {
-                        node_id: node.uuid.clone(),
+                        node_uuid: node.uuid.clone(),
                         node_type: format!("{:?}", node.node_type),
                         node_name: node.name.clone(),
                         start_time: node_start_ms,
                         end_time: node_end_ms,
                         duration_ms: node_duration,
                         status: crate::report::ExecutionStatus::Success,
-                        input_data: Some(context.variables.clone()),
+                        input_data: Some(context.variables.global.clone()),
                         output_data: output_data.clone(),
+                        used_port_id,
                         error: None,
                     };
                     node_reports.push(node_report);
@@ -268,7 +287,7 @@ impl FlowExecutor {
                         // 将输出数据合并到上下文中
                         if let Some(obj) = data.as_object() {
                             for (key, value) in obj {
-                                context.variables[key] = value.clone();
+                                context.variables = context.variables.set_global(key.to_string(), value.clone());
                             }
                         }
                     }
@@ -277,13 +296,6 @@ impl FlowExecutor {
                     if matches!(node.node_type, NodeType::Conditional) && next_node_id_from_executor.is_none() {
                         log::info!("[流程 {}] 条件节点 {} 返回 false，停止流程", context.flow_uuid, node.name);
                         // 条件为 false 是正常的流程终止，返回成功
-                        break;
-                    }
-
-                    // 处理 End 节点：返回 None 表示流程结束
-                    if matches!(node.node_type, NodeType::End) {
-                        log::info!("[流程 {}] 结束节点 {}，流程终止", context.flow_uuid, node.name);
-                        // End 节点表示正常结束流程
                         break;
                     }
 
@@ -322,18 +334,19 @@ impl FlowExecutor {
                     if matches!(node.node_type, NodeType::Conditional) && error == "条件评估为false，停止执行" {
                         log::info!("[流程 {}] 条件节点 {} 评估为 false，停止流程", context.flow_uuid, node.name);
 
-                        // 创建节点执行报告（Skipped状态）
+                        // 创建节点执行报告（Success状态 - 条件评估完成）
                         let node_report = crate::report::NodeExecutionReport {
-                            node_id: node.uuid.clone(),
+                            node_uuid: node.uuid.clone(),
                             node_type: format!("{:?}", node.node_type),
                             node_name: node.name.clone(),
                             start_time: node_start_ms,
                             end_time: node_end_ms,
                             duration_ms: node_duration,
-                            status: crate::report::ExecutionStatus::Skipped,
-                            input_data: Some(context.variables.clone()),
+                            status: crate::report::ExecutionStatus::Success,
+                            input_data: Some(context.variables.global.clone()),
                             output_data: None,
-                            error: Some(error.clone()),
+                            used_port_id: Some("false".to_string()),
+                            error: None,
                         };
                         node_reports.push(node_report);
 
@@ -347,36 +360,45 @@ impl FlowExecutor {
                         // 遇到占位符节点，表示流程已到达未实现部分
                         log::info!("[流程 {}] 节点 {} 尚未实现，流程终止", context.flow_uuid, node.name);
 
-                        // 创建节点执行报告（Skipped状态）
+                        // 创建节点执行报告（Success状态 - 优雅终止）
                         let node_report = crate::report::NodeExecutionReport {
-                            node_id: node.uuid.clone(),
+                            node_uuid: node.uuid.clone(),
                             node_type: format!("{:?}", node.node_type),
                             node_name: node.name.clone(),
                             start_time: node_start_ms,
                             end_time: node_end_ms,
                             duration_ms: node_duration,
-                            status: crate::report::ExecutionStatus::Skipped,
-                            input_data: Some(context.variables.clone()),
+                            status: crate::report::ExecutionStatus::Success,
+                            input_data: Some(context.variables.global.clone()),
                             output_data: None,
-                            error: Some(error.clone()),
+                            used_port_id: None,
+                            error: None,
                         };
                         node_reports.push(node_report);
 
                         // 返回成功，已执行的节点都成功完成
                         break;
                     } else {
+                        // 根据节点类型设置 used_port_id
+                        let used_port_id = match node.node_type {
+                            NodeType::Entry => Some("out".to_string()),
+                            NodeType::Http => Some("out".to_string()),
+                            _ => None,
+                        };
+
                         // 创建节点执行报告（Failed状态）
                         let node_report = crate::report::NodeExecutionReport {
-                            node_id: node.uuid.clone(),
+                            node_uuid: node.uuid.clone(),
                             node_type: format!("{:?}", node.node_type),
                             node_name: node.name.clone(),
                             start_time: node_start_ms,
                             end_time: node_end_ms,
                             duration_ms: node_duration,
                             status: crate::report::ExecutionStatus::Failed,
-                            input_data: Some(context.variables.clone()),
+                            input_data: Some(context.variables.global.clone()),
                             output_data: None,
-                            error: Some(error.clone()),
+                            used_port_id,
+                            error: Some(ErrorDetail::new(ErrorKind::ExecutionError, error.clone())),
                         };
                         node_reports.push(node_report);
 
@@ -384,8 +406,8 @@ impl FlowExecutor {
                         return ExecutionResult {
                             success: false,
                             data: None,
-                            error: Some(error),
-                            executed_nodes,
+                            error: Some(ErrorDetail::new(ErrorKind::ExecutionError, error.clone())),
+                            executed_count: 0,
                             node_reports,
                             flow_report: None,
                         };
@@ -407,15 +429,17 @@ impl FlowExecutor {
         };
 
         let flow_report = crate::report::FlowExecutionReport {
-            flow_id: flow.uuid.clone(),
+            flow_uuid: flow.uuid.clone(),
             flow_name: flow.name.clone(),
             start_time: end_time - start_time_ms,
             end_time,
             duration_ms: start_time_ms,
             total_nodes: flow.nodes.len() as u32,
-            executed_nodes: executed_nodes.len() as u32,
+            executed_count,
             status: flow_status,
             node_reports: node_reports.clone(),
+            statistics: crate::statistics::FlowStatistics::from_reports(&node_reports, flow.nodes.len() as u32),
+            flow_error: None,
         };
 
         // 执行成功
@@ -423,11 +447,11 @@ impl FlowExecutor {
             success: true,
             data: Some(json!({
                 "flow_id": flow.uuid,
-                "executed_nodes": executed_nodes,
+                "executed_count": executed_count,
                 "execution_time": start_time_ms,
             })),
             error: None,
-            executed_nodes,
+            executed_count,
             node_reports,
             flow_report: Some(flow_report),
         }
@@ -450,11 +474,11 @@ impl FlowExecutor {
         context: &ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
-    ) -> Result<(Option<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         match node.node_type {
-            NodeType::Start => {
+            NodeType::Entry => {
                 log::info!("[流程 {}] 执行开始节点: {} ({})", context.flow_uuid, node.name, node.uuid);
-                let executor = crate::start_executor::StartNodeExecutor::new();
+                let executor = EntryNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::Http => {
@@ -465,11 +489,6 @@ impl FlowExecutor {
             NodeType::Conditional => {
                 log::info!("[流程 {}] 执行条件节点: {} ({})", context.flow_uuid, node.name, node.uuid);
                 let executor = crate::conditional_executor::ConditionalNodeExecutor::new();
-                executor.execute(node, context, connections, node_map).await
-            }
-            NodeType::End => {
-                log::info!("[流程 {}] 执行结束节点: {} ({})", context.flow_uuid, node.name, node.uuid);
-                let executor = crate::end_executor::EndNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
         }
@@ -491,7 +510,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::start(),
@@ -521,7 +540,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::start(),
@@ -530,7 +549,7 @@ mod tests {
 
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::start(),
@@ -563,16 +582,8 @@ mod tests {
 
         let data = result.data.unwrap();
         assert_eq!(data["flow_id"], flow_id);
-        assert_eq!(data["executed_nodes"].as_array().unwrap().len(), 2);
-        assert!(data["executed_nodes"].as_array().unwrap()[0]
-            .as_str()
-            .unwrap()
-            .starts_with("start-"));
-        assert!(data["executed_nodes"].as_array().unwrap()[1]
-            .as_str()
-            .unwrap()
-            .starts_with("end-"));
-        assert_eq!(result.executed_nodes.len(), 2);
+        assert_eq!(data["executed_count"], 2);
+        assert_eq!(result.executed_count, 2);
     }
 
     #[tokio::test]
@@ -603,7 +614,7 @@ mod tests {
         assert!(!result.success);
         assert!(result.error.is_some());
         assert!(result.error.unwrap().contains("流程缺少开始节点"));
-        assert!(result.executed_nodes.is_empty());
+        assert_eq!(result.executed_count, 0);
     }
 
     #[tokio::test]
@@ -612,7 +623,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::start(),
@@ -621,7 +632,7 @@ mod tests {
 
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::start(),
@@ -655,7 +666,7 @@ mod tests {
         // 验证执行成功
         assert!(result.success);
         assert!(result.error.is_none());
-        assert_eq!(result.executed_nodes.len(), 2);
+        assert_eq!(result.executed_count, 2);
     }
 
     #[tokio::test]
@@ -666,7 +677,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::start(),
@@ -675,7 +686,7 @@ mod tests {
 
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::start(),
@@ -735,7 +746,12 @@ mod tests {
         let context = ExecutionContext {
             flow_uuid: flow_id.clone(),
             current_node_uuid: Some(conditional_node.uuid.clone()),
-            variables: json!({}),
+            variables: VariableStorage::from(json!({})),
+            node_reports: vec![],
+            flow_trigger_time: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64,
         };
 
         let result = executor.execute_node(&conditional_node, &context, &[], &HashMap::new()).await;
@@ -751,7 +767,7 @@ mod tests {
         let flow_id = "test-flow-uuid-123".to_string();
         let start_node = Node {
             uuid: "start-1".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::start(),
@@ -780,7 +796,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::start(),
@@ -789,7 +805,7 @@ mod tests {
 
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::start(),
@@ -826,7 +842,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: "start-uuid-123".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::start(),
@@ -835,7 +851,7 @@ mod tests {
 
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::end(),
@@ -872,7 +888,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: "start-uuid-tracker".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::start(),
@@ -881,7 +897,7 @@ mod tests {
 
         let end_node = Node {
             uuid: "end-uuid-tracker".to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::end(),
@@ -909,9 +925,7 @@ mod tests {
 
         // 验证执行的第一个节点是 start_node.uuid
         assert!(result.success);
-        assert_eq!(result.executed_nodes.len(), 2);
-        assert_eq!(result.executed_nodes[0], "start-uuid-tracker");
-        assert_eq!(result.executed_nodes[1], "end-uuid-tracker");
+        assert_eq!(result.executed_count, 2);
     }
 
     #[tokio::test]
@@ -920,7 +934,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: "loop-node-uuid".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::start(),
@@ -961,7 +975,7 @@ mod tests {
         let flow_id = "result-flow-uuid-999".to_string();
         let start_node = Node {
             uuid: "start-1".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::start(),
@@ -970,7 +984,7 @@ mod tests {
 
         let end_node = Node {
             uuid: "end-1".to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::start(),
@@ -1009,7 +1023,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: "start-multi".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::start(),
@@ -1018,7 +1032,7 @@ mod tests {
 
         let end_node_1 = Node {
             uuid: "end-1-multi".to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束 1".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::end(),
@@ -1027,7 +1041,7 @@ mod tests {
 
         let end_node_2 = Node {
             uuid: "end-2-multi".to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束 2".to_string(),
             position: NodePosition { x: 100.0, y: 100.0 },
             data: NodeData::end(),
@@ -1063,9 +1077,7 @@ mod tests {
 
         // 验证执行成功，连接映射正确使用了 UUID
         assert!(result.success);
-        assert_eq!(result.executed_nodes.len(), 2);
-        assert_eq!(result.executed_nodes[0], "start-multi");
-        assert_eq!(result.executed_nodes[1], "end-1-multi");
+        assert_eq!(result.executed_count, 2);
     }
 
     #[test]
@@ -1075,11 +1087,16 @@ mod tests {
         let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
-            variables: json!({
+            variables: VariableStorage::from(json!({
                 "initial_variables": {
                     "api_key": "test-key"
                 }
-            }),
+            })),
+            node_reports: vec![],
+            flow_trigger_time: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1093,13 +1110,18 @@ mod tests {
         let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
-            variables: json!({
+            variables: VariableStorage::from(json!({
                 "user": {
                     "profile": {
                         "name": "Alice"
                     }
                 }
-            }),
+            })),
+            node_reports: vec![],
+            flow_trigger_time: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1113,7 +1135,12 @@ mod tests {
         let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
-            variables: json!({}),
+            variables: VariableStorage::from(json!({})),
+            node_reports: vec![],
+            flow_trigger_time: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -1127,9 +1154,14 @@ mod tests {
         let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
-            variables: json!({
+            variables: VariableStorage::from(json!({
                 "items": ["a", "b", "c"]
-            }),
+            })),
+            node_reports: vec![],
+            flow_trigger_time: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());

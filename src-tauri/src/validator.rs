@@ -65,7 +65,7 @@ impl FlowValidator {
         let start_nodes: Vec<&Node> = flow
             .nodes
             .iter()
-            .filter(|node| matches!(node.node_type, NodeType::Start))
+            .filter(|node| matches!(node.node_type, NodeType::Entry))
             .collect();
 
         if start_nodes.is_empty() {
@@ -117,26 +117,25 @@ mod tests {
     use crate::node_config::NodeData;
     use uuid::Uuid;
 
-    /// 创建测试用的开始节点
-    fn create_start_node() -> Node {
+    /// 创建测试用的入口节点
+    fn create_entry_node() -> Node {
         Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: NodeType::Start,
-            name: "开始".to_string(),
+            node_type: NodeType::Entry,
+            name: "入口".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
-        }
-    }
+    }}
 
-    /// 创建测试用的结束节点
+    /// 创建测试用的结束节点（使用 Entry 节点类型）
     fn create_end_node() -> Node {
         Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         }
     }
@@ -175,8 +174,8 @@ mod tests {
     #[test]
     fn test_validator_multiple_start_nodes() {
         // 创建包含多个开始节点的流程
-        let start_node1 = create_start_node();
-        let start_node2 = create_start_node();
+        let start_node1 = create_entry_node();
+        let start_node2 = create_entry_node();
 
         let flow = Flow {
             uuid: Uuid::new_v4().to_string(),
@@ -199,7 +198,7 @@ mod tests {
     #[test]
     fn test_validator_no_output_connection() {
         // 创建没有输出连接的开始节点
-        let start_node = create_start_node();
+        let start_node = create_entry_node();
 
         let flow = Flow {
             uuid: Uuid::new_v4().to_string(),
@@ -221,7 +220,7 @@ mod tests {
     #[test]
     fn test_validator_valid_flow() {
         // 创建有效的流程
-        let start_node = create_start_node();
+        let start_node = create_entry_node();
         let end_node = create_end_node();
         let connection = create_connection(&start_node.uuid, &end_node.uuid);
 
@@ -244,8 +243,8 @@ mod tests {
     #[test]
     fn test_validator_multiple_errors() {
         // 创建包含多个错误的流程
-        let start_node1 = create_start_node();
-        let start_node2 = create_start_node();
+        let start_node1 = create_entry_node();
+        let start_node2 = create_entry_node();
 
         let flow = Flow {
             uuid: Uuid::new_v4().to_string(),
@@ -267,7 +266,7 @@ mod tests {
     #[test]
     fn test_validator_execute_method() {
         // 测试 execute 方法
-        let start_node = create_start_node();
+        let start_node = create_entry_node();
         let end_node = create_end_node();
         let connection = create_connection(&start_node.uuid, &end_node.uuid);
 
@@ -309,7 +308,7 @@ mod tests {
     #[test]
     fn test_validator_start_node_with_other_nodes() {
         // 创建包含其他节点的有效流程
-        let start_node = create_start_node();
+        let start_node = create_entry_node();
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
             node_type: NodeType::Http,
@@ -342,13 +341,13 @@ mod tests {
     #[test]
     fn test_validator_connection_from_non_start() {
         // 创建从非开始节点发出的连接的流程
-        let start_node = create_start_node();
+        let start_node = create_entry_node();
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
             node_type: NodeType::Http,
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
         let end_node = create_end_node();
@@ -376,7 +375,7 @@ mod tests {
     #[test]
     fn test_validator_uses_source_node_uuid() {
         // 测试开始节点输出连接检查使用 conn.source_node_uuid
-        let start_node = create_start_node();
+        let start_node = create_entry_node();
         let end_node = create_end_node();
 
         // 连接使用 source_node_uuid 字段
@@ -409,10 +408,10 @@ mod tests {
         // 测试开始节点输出连接检查使用 start_node.uuid
         let start_node = Node {
             uuid: "start-uuid-test".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
         let end_node = create_end_node();
@@ -420,10 +419,10 @@ mod tests {
         // 创建不匹配的连接（source 不是 start_node.uuid）
         let other_node = Node {
             uuid: "other-node-uuid".to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "其他节点".to_string(),
             position: NodePosition { x: 200.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -469,10 +468,10 @@ mod tests {
         // 测试验证错误消息正确
         let start_node = Node {
             uuid: "error-test-start".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "错误测试开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -497,7 +496,7 @@ mod tests {
     #[test]
     fn test_validator_multiple_connections_same_source() {
         // 测试多个连接从同一个源节点发出
-        let start_node = create_start_node();
+        let start_node = create_entry_node();
         let end_node_1 = create_end_node();
         let end_node_2 = create_end_node();
 
@@ -525,19 +524,19 @@ mod tests {
         // 测试使用特定 UUID 的连接
         let start_node = Node {
             uuid: "specific-start-uuid-001".to_string(),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
         let end_node = Node {
             uuid: "specific-end-uuid-002".to_string(),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 

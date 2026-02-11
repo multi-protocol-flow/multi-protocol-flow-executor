@@ -1,8 +1,11 @@
 use crate::connection::Connection;
-use crate::executor::{ExecutionContext, NodeExecutor};
+use crate::context::ExecutionContext;
+use crate::error::{ErrorDetail, ErrorKind};
+use crate::executor::NodeExecutor;
 use crate::node::Node;
 use crate::node_config::{ConditionOperator, ConditionType, NodeData};
 use evalexpr::ContextWithMutableVariables;
+use serde_json::json;
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -24,17 +27,17 @@ impl NodeExecutor for ConditionalNodeExecutor {
         context: &ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Option<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         // 执行前日志
         let start_time = Instant::now();
         log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: conditional", context.flow_uuid, node.uuid, node.name);
 
-        // 从Node的data字段提取ConditionalConfig
+        // 从 Node 的 data 字段提取 ConditionalConfig
         let conditional_config = match &node.data {
             NodeData::Conditional(config) => config.clone(),
             _ => {
                 let error_msg = format!("节点数据类型不是ConditionalConfig: {}", node.uuid);
-                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                log::error!("[流程 {}] [错误] 节点UUID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                 return Err(error_msg);
             }
         };
@@ -42,7 +45,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
         // 判断条件类型并评估
         let condition_result = match conditional_config.condition_type {
             ConditionType::Simple => {
-                // 简单条件：评估field_path + operator + expected_value
+                // 简单条件：评估 field_path + operator + expected_value
                 let expression = format!(
                     "{:?} {:?} {:?}",
                     conditional_config.field_path,
@@ -51,17 +54,17 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 );
                 let result = self.evaluate_simple_condition(
                     &conditional_config,
-                    &context.variables.global,
+                    &json!(context.variables.global),
                 )?;
                 log::info!("[流程 {}] [条件判断] 条件类型: Simple, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
                 result
             }
             ConditionType::Advanced => {
-                // 高级条件：评估advanced_expression
+                // 高级条件：评估 advanced_expression
                 let expression = conditional_config.advanced_expression.as_ref().unwrap_or(&"".to_string()).clone();
                 let result = self.evaluate_advanced_condition(
                     &conditional_config,
-                    &context.variables.global,
+                    &json!(context.variables.global),
                 )?;
                 log::info!("[流程 {}] [条件判断] 条件类型: Advanced, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
                 result
@@ -70,56 +73,77 @@ impl NodeExecutor for ConditionalNodeExecutor {
 
         let duration_ms = start_time.elapsed().as_millis();
 
-        if condition_result {
-            // 查找下一个节点（通过连接）
-            let next_node_id = connections
-                .iter()
-                .find(|conn| conn.source_node_uuid == node.uuid)
-                .map(|conn| conn.target_node_uuid.clone());
+        // 确定目标端口（true 或 false）
+        let target_port_id = if condition_result { "true" } else { "false" };
 
-            // 执行后日志
-            log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: success", context.flow_uuid, node.uuid, duration_ms);
+        // 根据条件结果查找连接到目标端口的节点
+        let next_node_ids = connections
+            .iter()
+            .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == target_port_id)
+            .map(|conn| conn.target_node_uuid.clone())
+            .collect::<Vec<_>>();
 
-            // 返回next_node_id和空output_data
-            Ok((next_node_id, None))
-        } else {
-            // 执行后日志（条件评估为false）
-            log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: false", context.flow_uuid, node.uuid, duration_ms);
-            Err("条件评估为false，停止执行".to_string())
-        }
+        // 执行后日志
+        log::info!(
+            "[流程 {}] [完成] 节点UUID: {}, 耗时: {}ms, 状态: success, 使用的端口: {}",
+            context.flow_uuid,
+            node.uuid,
+            duration_ms,
+            target_port_id
+        );
+
+        // 返回下一个节点 UUID 列表和布尔值作为输出数据
+        // 空列表表示该分支无连接，流程终止
+        Ok((next_node_ids, Some(json!(condition_result))))
     }
 }
 
 impl ConditionalNodeExecutor {
     /// 评估简单条件
+    ///
+    /// # 参数
+    /// - `config`: 条件节点配置
+    /// - `variables`: 变量数据
+    ///
+    /// # 返回
+    /// - `Ok(bool)`: 条件评估结果
+    /// - `Err(String)`: 条件评估失败（使用 ConditionSyntaxError 或 ConditionEvaluationError）
     fn evaluate_simple_condition(
         &self,
         config: &crate::node_config::ConditionalConfig,
         variables: &serde_json::Value,
     ) -> Result<bool, String> {
-        // 获取field_path
+        // 获取 field_path
         let field_path = config.field_path.as_ref().ok_or_else(|| {
-            log::error!("[错误] 简单条件缺少field_path");
-            "简单条件缺少field_path".to_string()
+            let error = ErrorDetail::new(
+                ErrorKind::ConditionSyntaxError,
+                "简单条件缺少 field_path".to_string(),
+            );
+            log::error!("[错误] {}", error.message);
+            error.message
         })?;
 
-        // 获取operator
+        // 获取 operator
         let operator = config.operator.as_ref().ok_or_else(|| {
-            log::error!("[错误] 简单条件缺少operator");
-            "简单条件缺少operator".to_string()
+            let error = ErrorDetail::new(
+                ErrorKind::ConditionSyntaxError,
+                "简单条件缺少 operator".to_string(),
+            );
+            log::error!("[错误] {}", error.message);
+            error.message
         })?;
 
         log::info!("[条件评估] 字段路径: {}, 操作符: {:?}", field_path, operator);
 
-        // 从variables中提取field_path指定的值
+        // 从 variables 中提取 field_path 指定的值
         let actual_value = self.extract_field_value(variables, field_path)?;
 
         log::info!("[条件评估] 提取的值: {:?}", actual_value);
 
-        // 获取expected_value（对于exists操作符不需要expected_value）
+        // 获取 expected_value（对于 exists 操作符不需要 expected_value）
         let expected_value = config.expected_value.as_ref();
 
-        // 使用operator比较提取值和expected_value
+        // 使用 operator 比较提取值和 expected_value
         let result = self.compare_values(operator, &actual_value, expected_value)?;
 
         log::info!("[条件评估] 比较结果: {}", result);
@@ -383,6 +407,7 @@ mod tests {
     use super::*;
     use crate::node::NodePosition;
     use crate::node_config::{ConditionalConfig, NodeData};
+    use crate::VariableStorage;
     use std::collections::HashMap;
 
     fn create_test_node(config: ConditionalConfig) -> Node {
@@ -392,16 +417,24 @@ mod tests {
             node_type: crate::node::NodeType::Conditional,
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Conditional(config),
-            fault_tolerant: false,
             ports: None,
         }
     }
 
     fn create_test_context(variables: serde_json::Value) -> ExecutionContext {
+        let mut storage = VariableStorage::new();
+        if let Some(obj) = variables.as_object() {
+            for (key, value) in obj {
+                storage.set_global(key.clone(), value.clone());
+            }
+        }
+
         ExecutionContext {
             flow_uuid: "test-flow-id".to_string(),
-            variables,
             current_node_uuid: None,
+            variables: storage,
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         }
     }
 
@@ -633,8 +666,14 @@ mod tests {
         }));
 
         let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
-        assert!(result.is_err(), "条件为false应该返回错误");
-        assert_eq!(result.unwrap_err(), "条件评估为false，停止执行");
+        assert!(result.is_ok(), "条件为false应该返回Ok（不再返回错误）");
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(false));
+        assert!(result.is_ok(), "条件为false应该返回Ok（不再返回错误）");
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(false));
     }
 
     #[tokio::test]
@@ -694,8 +733,14 @@ mod tests {
         }));
 
         let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
-        assert!(result.is_err(), "条件为false应该返回错误");
-        assert_eq!(result.unwrap_err(), "条件评估为false，停止执行");
+        assert!(result.is_ok(), "条件为false应该返回Ok（不再返回错误）");
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(false));
+        assert!(result.is_ok(), "条件为false应该返回Ok（不再返回错误）");
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(false));
     }
 
     #[tokio::test]
@@ -723,9 +768,9 @@ mod tests {
 
         let result = executor.execute(&node, &context, &connections, &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该成功");
-        let (next_node_id, output_data) = result.unwrap();
-        assert_eq!(next_node_id, Some("next-node-id".to_string()));
-        assert!(output_data.is_none(), "输出数据应该为空");
+        let (next_node_ids, output_data) = result.unwrap();
+        assert_eq!(next_node_ids, vec!["next-node-id".to_string()]);
+        assert_eq!(output_data.unwrap(), json!(true));
     }
 
     #[tokio::test]
@@ -820,8 +865,14 @@ mod tests {
         }));
 
         let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
-        assert!(result.is_err(), "exists操作符对于null值应该返回false");
-        assert_eq!(result.unwrap_err(), "条件评估为false，停止执行");
+        assert!(result.is_ok(), "exists操作符对于null值应该返回false（不再返回错误）");
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(false));
+        assert!(result.is_ok(), "exists操作符对于null值应该返回false（不再返回错误）");
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(false));
     }
 
     #[tokio::test]

@@ -35,10 +35,10 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
     // 创建开始节点
     let start_node = Node {
         uuid: format!("start-{}", flow_id),
-        node_type: NodeType::Start,
+        node_type: NodeType::Entry,
         name: "开始".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
-        data: NodeData::start(),
+        data: NodeData::entry(),
         ports: None,
     };
 
@@ -77,7 +77,7 @@ pub fn execute_flow(_input: ExecuteFlowCommandInput, flow: Flow) -> ExecuteFlowC
     let start_node = flow
         .nodes
         .iter()
-        .find(|node| matches!(node.node_type, NodeType::Start));
+        .find(|node| matches!(node.node_type, NodeType::Entry));
 
     // 验证开始节点存在
     let start_node = match start_node {
@@ -173,7 +173,7 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
     };
 
     // 检查是否是开始节点
-    if matches!(node.node_type, NodeType::Start) {
+    if matches!(node.node_type, NodeType::Entry) {
         return DeleteNodeCommandOutput {
             success: false,
             error: Some("不能删除开始节点".to_string()),
@@ -212,7 +212,7 @@ mod tests {
         assert_eq!(output.flow.nodes.len(), 1);
 
         // 验证开始节点类型
-        assert!(matches!(output.flow.nodes[0].node_type, NodeType::Start));
+        assert!(matches!(output.flow.nodes[0].node_type, NodeType::Entry));
 
         // 验证开始节点名称
         assert_eq!(output.flow.nodes[0].name, "开始");
@@ -250,19 +250,19 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::end(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -312,10 +312,10 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -389,10 +389,10 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -434,10 +434,10 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -474,10 +474,10 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -549,19 +549,19 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::end(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -633,10 +633,10 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Start,
+            node_type: NodeType::Entry,
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::start(),
+            data: NodeData::entry(),
             ports: None,
         };
 

@@ -6,14 +6,12 @@ use crate::node_config::NodeData;
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum NodeType {
-    /// 开始节点
-    Start,
+    /// 入口节点
+    Entry,
     /// HTTP 请求节点
     Http,
     /// 条件分支节点
     Conditional,
-    /// 结束节点
-    End,
 }
 
 /// 节点位置结构体
@@ -78,15 +76,15 @@ mod tests {
     fn test_node_creation() {
         let node = Node {
             uuid: "node-uuid-123".to_string(),
-            node_type: NodeType::Start,
-            name: "Start Node".to_string(),
+            node_type: NodeType::Entry,
+            name: "Entry Node".to_string(),
             position: NodePosition { x: 100.0, y: 200.0 },
-            data: crate::node_config::NodeData::start(),
+            data: crate::node_config::NodeData::entry(),
             ports: None,
         };
 
         assert_eq!(node.uuid, "node-uuid-123");
-        assert_eq!(node.name, "Start Node");
+        assert_eq!(node.name, "Entry Node");
         assert_eq!(node.position.x, 100.0);
         assert_eq!(node.position.y, 200.0);
     }
@@ -194,14 +192,13 @@ mod tests {
     #[test]
     fn test_node_type_enum() {
         assert_eq!(
-            serde_json::to_string(&NodeType::Start).unwrap(),
-            r#""start""#
+            serde_json::to_string(&NodeType::Entry).unwrap(),
+            r#""entry""#
         );
         assert_eq!(serde_json::to_string(&NodeType::Http).unwrap(), r#""http""#);
         assert_eq!(
             serde_json::to_string(&NodeType::Conditional).unwrap(),
             r#""conditional""#
         );
-        assert_eq!(serde_json::to_string(&NodeType::End).unwrap(), r#""end""#);
     }
 }

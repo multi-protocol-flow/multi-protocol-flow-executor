@@ -1,5 +1,6 @@
 use crate::connection::Connection;
-use crate::executor::{ExecutionContext, NodeExecutor};
+use crate::context::ExecutionContext;
+use crate::executor::NodeExecutor;
 use crate::node::Node;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -22,17 +23,17 @@ impl NodeExecutor for HttpNodeExecutor {
         context: &ExecutionContext,
         _connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Option<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         // 执行前日志
         let start_time = Instant::now();
-        log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: http", context.flow_id, node.uuid, node.name);
+        log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: http", context.flow_uuid, node.uuid, node.name);
 
         // 从Node的data字段提取HttpConfig
         let http_config = match &node.data {
             crate::node_config::NodeData::Http(config) => config.clone(),
             _ => {
                 let error_msg = format!("节点数据类型不是HttpConfig: {}", node.uuid);
-                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                 return Err(error_msg);
             }
         };
@@ -41,13 +42,13 @@ impl NodeExecutor for HttpNodeExecutor {
         let url = crate::executor::replace_variables(&http_config.url, context)
             .map_err(|e| {
                 let error_msg = format!("URL变量替换失败: {}", e);
-                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                 error_msg
             })?;
 
         // HTTP请求日志
         let method_str = format!("{:?}", http_config.method).to_uppercase();
-        log::info!("[流程 {}] [HTTP请求] URL: {}, 方法: {}", context.flow_id, url, method_str);
+        log::info!("[流程 {}] [HTTP请求] URL: {}, 方法: {}", context.flow_uuid, url, method_str);
 
         // 创建HTTP客户端（默认超时30秒）
         let client = reqwest::Client::builder()
@@ -55,7 +56,7 @@ impl NodeExecutor for HttpNodeExecutor {
             .build()
             .map_err(|e| {
                 let error_msg = format!("创建HTTP客户端失败: {}", e);
-                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                 error_msg
             })?;
 
@@ -74,7 +75,7 @@ impl NodeExecutor for HttpNodeExecutor {
                 let replaced_value = crate::executor::replace_variables(value, context)
                     .map_err(|e| {
                         let error_msg = format!("请求头变量替换失败 ({}): {}", key, e);
-                        log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                        log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                         error_msg
                     })?;
                 request = request.header(key, replaced_value);
@@ -87,7 +88,7 @@ impl NodeExecutor for HttpNodeExecutor {
             let replaced_body = crate::executor::replace_variables(&body_str, context)
                 .map_err(|e| {
                     let error_msg = format!("请求体变量替换失败: {}", e);
-                    log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                    log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                     error_msg
                 })?;
             request = request.body(replaced_body);
@@ -102,7 +103,7 @@ impl NodeExecutor for HttpNodeExecutor {
             .await
             .map_err(|e| {
                 let error_msg = format!("HTTP请求失败: {}", e);
-                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                 error_msg
             })?;
 
@@ -113,7 +114,7 @@ impl NodeExecutor for HttpNodeExecutor {
         // HTTP响应日志
         log::info!(
             "[流程 {}] [HTTP响应] 状态码: {}, 耗时: {}ms",
-            context.flow_id,
+            context.flow_uuid,
             status_code,
             http_duration_ms
         );
@@ -125,7 +126,7 @@ impl NodeExecutor for HttpNodeExecutor {
                 status_code,
                 status.canonical_reason().unwrap_or("Unknown")
             );
-            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
             return Err(error_msg);
         }
 
@@ -150,7 +151,7 @@ impl NodeExecutor for HttpNodeExecutor {
             .await
             .map_err(|e| {
                 let error_msg = format!("读取响应体失败: {}", e);
-                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                 error_msg
             })?;
 
@@ -159,27 +160,44 @@ impl NodeExecutor for HttpNodeExecutor {
             serde_json::from_str(&body_text)
                 .map_err(|e| {
                     let error_msg = format!("解析JSON响应体失败: {}", e);
-                    log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_id, node.uuid, node.name, error_msg);
+                    log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                     error_msg
                 })?
         } else {
             serde_json::Value::String(body_text)
         };
 
-        // 返回输出数据（status、headers、body）
+         // 返回输出数据（status、headers、body）
         let output_data = serde_json::json!({
             "status": status_code,
             "headers": headers_map,
             "body": body_json
         });
 
+        // 将 HTTP 响应数据保存到节点变量（供后续节点使用）
+        context.variables.set_node_variable(
+            node.uuid.clone(),
+            "http_response".to_string(),
+            output_data.clone()
+        );
+
         // 计算总执行时间
         let duration_ms = start_time.elapsed().as_millis();
 
-        // 执行后日志
-        log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: success", context.flow_id, node.uuid, duration_ms);
+         // 计算总执行时间
+        let duration_ms = start_time.elapsed().as_millis();
 
-        Ok((None, Some(output_data)))
+        // 执行后日志
+        log::info!("[流程 {}] [完成] 节点UUID: {}, 耗时: {}ms, 状态: success", context.flow_uuid, node.uuid, duration_ms);
+
+        // 返回空列表（HTTP 节点不决定下一个节点）和输出数据
+        Ok((vec![], Some(output_data)));
+
+        // 执行后日志
+        log::info!("[流程 {}] [完成] 节点UUID: {}, 耗时: {}ms, 状态: success", context.flow_uuid, node.uuid, duration_ms);
+
+        // 返回空列表（HTTP 节点不决定下一个节点）和输出数据
+        Ok((vec![], Some(output_data)))
     }
 }
 
@@ -188,6 +206,7 @@ mod tests {
     use super::*;
     use crate::node::{Node, NodePosition, NodeType};
     use crate::node_config::{HttpConfig, HttpMethod};
+    use crate::VariableStorage;
     use serde_json::json;
     use std::collections::HashMap;
 
@@ -209,10 +228,12 @@ mod tests {
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
-            variables: json!({}),
+        let context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = HttpNodeExecutor::new();
@@ -220,8 +241,8 @@ mod tests {
 
         // 验证执行成功
         assert!(result.is_ok());
-        let (next_node_id, output_data) = result.unwrap();
-        assert!(next_node_id.is_none()); // 测试节点没有连接
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty()); // 测试节点没有连接
 
         // 验证输出数据包含响应
         assert!(output_data.is_some());
@@ -255,10 +276,12 @@ mod tests {
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
-            variables: json!({}),
+        let context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = HttpNodeExecutor::new();
@@ -290,10 +313,12 @@ mod tests {
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
-            variables: json!({}),
+        let context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = HttpNodeExecutor::new();
@@ -323,10 +348,12 @@ mod tests {
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
-            variables: json!({}),
+        let context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = HttpNodeExecutor::new();
@@ -358,10 +385,12 @@ mod tests {
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
-            variables: json!({}),
+        let context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = HttpNodeExecutor::new();
@@ -397,14 +426,16 @@ mod tests {
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
-            variables: json!({
-                "test_param": "value123",
-                "test_header": "header_value",
-                "test_body": "body_value"
-            }),
+        let mut storage = VariableStorage::new();
+        storage.set_global("test_param".to_string(), json!("value123"));
+        storage.set_global("test_header".to_string(), json!("header_value"));
+        storage.set_global("test_body".to_string(), json!("body_value"));
+        let context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: storage,
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = HttpNodeExecutor::new();
@@ -446,10 +477,12 @@ mod tests {
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
-            variables: json!({}),
+        let context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = HttpNodeExecutor::new();
@@ -484,10 +517,12 @@ mod tests {
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
-            variables: json!({}),
+        let context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = HttpNodeExecutor::new();
@@ -522,10 +557,12 @@ mod tests {
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
-            variables: json!({}),
+        let context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = HttpNodeExecutor::new();
@@ -566,10 +603,12 @@ mod tests {
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
-            variables: json!({}),
+        let context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = HttpNodeExecutor::new();
@@ -601,10 +640,12 @@ mod tests {
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
-            variables: json!({}),
+        let context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = HttpNodeExecutor::new();
@@ -642,10 +683,12 @@ mod tests {
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
-            variables: json!({}),
+        let context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = HttpNodeExecutor::new();
@@ -677,10 +720,12 @@ mod tests {
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_id: flow_id.clone(),
-            current_node_id: Some(http_node.uuid.clone()),
-            variables: json!({}),
+        let context = ExecutionContext {
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = HttpNodeExecutor::new();

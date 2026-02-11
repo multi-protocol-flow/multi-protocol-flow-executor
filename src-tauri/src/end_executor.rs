@@ -1,7 +1,8 @@
 // End 节点执行器
 
 use crate::connection::Connection;
-use crate::executor::{ExecutionContext, NodeExecutor};
+use crate::context::ExecutionContext;
+use crate::executor::NodeExecutor;
 use crate::node::Node;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -24,7 +25,7 @@ impl NodeExecutor for EndNodeExecutor {
         context: &ExecutionContext,
         _connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
-    ) -> Result<(Option<String>, Option<serde_json::Value>), String> {
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         // 执行前日志
         let start_time = Instant::now();
         log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: end", context.flow_uuid, node.uuid, node.name);
@@ -35,15 +36,15 @@ impl NodeExecutor for EndNodeExecutor {
         // 从 context 中收集执行结果
         let executed_nodes = context
             .variables
-            .get("executed_nodes")
+            .get_global("executed_nodes")
             .and_then(|v| v.as_array())
-            .map(|arr| arr.len())
+            .map(|arr: &Vec<serde_json::Value>| arr.len())
             .unwrap_or(0);
 
         // 尝试获取总执行时间（如果存在于上下文中）
         let total_duration_ms = context
             .variables
-            .get("execution_time_ms")
+            .get_global("execution_time_ms")
             .and_then(|v| v.as_u64())
             .unwrap_or(0);
 
@@ -55,15 +56,11 @@ impl NodeExecutor for EndNodeExecutor {
             executed_nodes
         );
 
-        let variables_count = if context.variables.global.global.is_object() {
-            context.variables.global.global.as_object().unwrap().len()
-        } else {
-            0
-        };
+        let variables_count = context.variables.global.len();
 
         // 汇总执行状态（success/error）
-        let status = if context.variables.global.get("error").is_some()
-            || context.variables.global.get("errors").is_some()
+        let status = if context.variables.get_global("error").is_some()
+            || context.variables.get_global("errors").is_some()
         {
             "error"
         } else {
@@ -75,8 +72,8 @@ impl NodeExecutor for EndNodeExecutor {
         log::info!("[流程 {}] [流程最终状态] {}", context.flow_uuid, status);
 
          // 记录变量详情（如果存在）
-         if !context.variables.global.global.is_null() {
-             log::info!("[流程 {}] [最终变量] {}", context.flow_uuid, serde_json::json!(context.variables.global.global));
+         if !context.variables.global.is_empty() {
+             log::info!("[流程 {}] [最终变量] {}", context.flow_uuid, serde_json::json!(context.variables.global));
          }
 
         // 计算End节点执行时间
@@ -85,8 +82,8 @@ impl NodeExecutor for EndNodeExecutor {
         // 执行后日志
         log::info!("[流程 {}] [完成] 节点ID: {}, 耗时: {}ms, 状态: success", context.flow_uuid, node.uuid, duration_ms);
 
-        // 返回 None 表示流程结束，没有下一个节点
-        Ok((None, None))
+        // 返回空列表表示流程结束，没有下一个节点
+        Ok((vec![], None))
     }
 }
 
@@ -94,7 +91,26 @@ impl NodeExecutor for EndNodeExecutor {
 mod tests {
     use super::*;
     use crate::node::{Node, NodePosition, NodeType};
+    use crate::VariableStorage;
     use serde_json::json;
+
+    /// 创建测试上下文的辅助函数
+    fn create_test_context(variables: serde_json::Value) -> ExecutionContext {
+        let mut storage = VariableStorage::new();
+        if let Some(obj) = variables.as_object() {
+            for (key, value) in obj {
+                storage.set_global(key.clone(), value.clone());
+            }
+        }
+
+        ExecutionContext {
+            flow_uuid: "test-flow-id".to_string(),
+            current_node_uuid: None,
+            variables: storage,
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+        }
+    }
 
     #[tokio::test]
     async fn test_end_executor_basic() {
@@ -102,17 +118,19 @@ mod tests {
         let flow_id = "test-flow".to_string();
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::end(),
+            data: crate::node_config::NodeData::entry(),
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
+        let context = ExecutionContext {
             flow_uuid: flow_id.clone(),
             current_node_uuid: Some(end_node.uuid.clone()),
-            variables: json!({}),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = EndNodeExecutor::new();
@@ -122,7 +140,7 @@ mod tests {
 
         // 验证执行成功
         assert!(result.is_ok());
-        let (next_node_id, output_data) = result.unwrap();
+        let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_id.is_none()); // End 节点没有下一个节点
         assert!(output_data.is_none()); // 目前框架阶段不返回数据
     }
@@ -133,24 +151,20 @@ mod tests {
         let flow_id = "test-flow-with-vars".to_string();
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束节点".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: crate::node_config::NodeData::end(),
+            data: crate::node_config::NodeData::entry(),
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_uuid: flow_id.clone(),
-            current_node_uuid: Some(end_node.uuid.clone()),
-            variables: json!({
-                "executed_nodes": ["node-1", "node-2"],
-                "http_response": {
-                    "status": 200,
-                    "body": {"message": "success"}
-                }
-            }),
-        };
+        let context = create_test_context(json!({
+            "executed_nodes": ["node-1", "node-2"],
+            "http_response": {
+                "status":200,
+                "body": {"message": "success"}
+            }
+        }));
 
         let executor = EndNodeExecutor::new();
         let result = executor
@@ -169,21 +183,17 @@ mod tests {
         let flow_id = "test-flow-success".to_string();
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::end(),
+            data: crate::node_config::NodeData::entry(),
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_uuid: flow_id.clone(),
-            current_node_uuid: Some(end_node.uuid.clone()),
-            variables: json!({
-                "executed_nodes": ["node-1", "node-2", "node-3"],
-                "result": "completed"
-            }),
-        };
+        let context = create_test_context(json!({
+            "executed_nodes": ["node-1", "node-2", "node-3"],
+            "result": "completed"
+        }));
 
         let executor = EndNodeExecutor::new();
         let result = executor
@@ -202,21 +212,17 @@ mod tests {
         let flow_id = "test-flow-error".to_string();
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::end(),
+            data: crate::node_config::NodeData::entry(),
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_uuid: flow_id.clone(),
-            current_node_uuid: Some(end_node.uuid.clone()),
-            variables: json!({
-                "executed_nodes": ["node-1", "node-2"],
-                "error": "HTTP request failed"
-            }),
-        };
+        let context = create_test_context(json!({
+            "executed_nodes": ["node-1", "node-2"],
+            "error": "HTTP request failed"
+        }));
 
         let executor = EndNodeExecutor::new();
         let result = executor
@@ -235,24 +241,20 @@ mod tests {
         let flow_id = "test-flow-errors".to_string();
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::end(),
+            data: crate::node_config::NodeData::entry(),
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_uuid: flow_id.clone(),
-            current_node_uuid: Some(end_node.uuid.clone()),
-            variables: json!({
-                "executed_nodes": ["node-1"],
-                "errors": [
-                    {"node": "node-2", "message": "Connection timeout"},
-                    {"node": "node-3", "message": "Invalid response"}
-                ]
-            }),
-        };
+        let context = create_test_context(json!({
+            "executed_nodes": ["node-1"],
+            "errors": [
+                {"node": "node-2", "message": "Connection timeout"},
+                {"node": "node-3", "message": "Invalid response"}
+            ]
+        }));
 
         let executor = EndNodeExecutor::new();
         let result = executor
@@ -271,17 +273,19 @@ mod tests {
         let flow_id = "test-flow-empty".to_string();
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::end(),
+            data: crate::node_config::NodeData::entry(),
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
+        let context = ExecutionContext {
             flow_uuid: flow_id.clone(),
             current_node_uuid: Some(end_node.uuid.clone()),
-            variables: json!({}),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = EndNodeExecutor::new();
@@ -301,17 +305,19 @@ mod tests {
         let flow_id = "test-flow-null".to_string();
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::end(),
+            data: crate::node_config::NodeData::entry(),
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
+        let context = ExecutionContext {
             flow_uuid: flow_id.clone(),
             current_node_uuid: Some(end_node.uuid.clone()),
-            variables: json!(null),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
         };
 
         let executor = EndNodeExecutor::new();
@@ -331,37 +337,33 @@ mod tests {
         let flow_id = "test-flow-complex".to_string();
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::end(),
+            data: crate::node_config::NodeData::entry(),
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_uuid: flow_id.clone(),
-            current_node_uuid: Some(end_node.uuid.clone()),
-            variables: json!({
-                "executed_nodes": ["node-1", "node-2", "node-3", "node-4"],
-                "http_response": {
-                    "status": 200,
-                    "headers": {
-                        "content-type": "application/json",
-                        "server": "nginx"
-                    },
-                    "body": {
-                        "data": {
-                            "items": [{"id": 1}, {"id": 2}]
-                        }
+        let context = create_test_context(json!({
+            "executed_nodes": ["node-1", "node-2", "node-3", "node-4"],
+            "http_response": {
+                "status": 200,
+                "headers": {
+                    "content-type": "application/json",
+                    "server": "nginx"
+                },
+                "body": {
+                    "data": {
+                        "items": [{"id": 1}, {"id": 2}]
                     }
-                },
-                "transformed_data": {
-                    "count": 2,
-                    "items": ["item-1", "item-2"]
-                },
-                "execution_time_ms": 1500
-            }),
-        };
+                }
+            },
+            "transformed_data": {
+                "count": 2,
+                "items": ["item-1", "item-2"]
+            },
+            "execution_time_ms": 1500
+        }));
 
         let executor = EndNodeExecutor::new();
         let result = executor
@@ -380,20 +382,16 @@ mod tests {
         let flow_id = "test-flow-no-nodes".to_string();
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::end(),
+            data: crate::node_config::NodeData::entry(),
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_uuid: flow_id.clone(),
-            current_node_uuid: Some(end_node.uuid.clone()),
-            variables: json!({
-                "message": "No nodes executed"
-            }),
-        };
+        let context = create_test_context(json!({
+            "message": "No nodes executed"
+        }));
 
         let executor = EndNodeExecutor::new();
         let result = executor
@@ -412,20 +410,16 @@ mod tests {
         let flow_id = "test-flow-empty-nodes".to_string();
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::End,
+            node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::end(),
+            data: crate::node_config::NodeData::entry(),
             ports: None,
         };
 
-        let context = crate::executor::ExecutionContext {
-            flow_uuid: flow_id.clone(),
-            current_node_uuid: Some(end_node.uuid.clone()),
-            variables: json!({
-                "executed_nodes": []
-            }),
-        };
+        let context = create_test_context(json!({
+            "executed_nodes": []
+        }));
 
         let executor = EndNodeExecutor::new();
         let result = executor

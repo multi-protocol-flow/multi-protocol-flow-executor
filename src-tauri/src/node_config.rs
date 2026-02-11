@@ -4,14 +4,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 // ============================================================================
-// Start 节点配置
+// Entry 节点配置
 // ============================================================================
 
-/// Start 节点配置（初始变量已移到 Flow 层级）
+/// 入口节点配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StartConfig {}
+pub struct EntryConfig {}
 
-impl Default for StartConfig {
+impl Default for EntryConfig {
     fn default() -> Self {
         Self {}
     }
@@ -126,20 +126,6 @@ pub struct ConditionalConfig {
 }
 
 // ============================================================================
-// End 节点配置
-// ============================================================================
-
-/// End 节点配置（目前无额外数据）
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EndConfig {}
-
-impl Default for EndConfig {
-    fn default() -> Self {
-        Self {}
-    }
-}
-
-// ============================================================================
 // 节点数据配置统一枚举
 // ============================================================================
 
@@ -147,26 +133,24 @@ impl Default for EndConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum NodeData {
-    Start(StartConfig),
+    Entry(EntryConfig),
     Http(HttpConfig),
     Conditional(ConditionalConfig),
-    End(EndConfig),
 }
 
 impl NodeData {
     /// 获取节点类型名称
     pub fn type_name(&self) -> &'static str {
         match self {
-            NodeData::Start(_) => "start",
+            NodeData::Entry(_) => "entry",
             NodeData::Http(_) => "http",
             NodeData::Conditional(_) => "conditional",
-            NodeData::End(_) => "end",
         }
     }
 
-    /// 创建空的 Start 节点配置
-    pub fn start() -> Self {
-        Self::Start(StartConfig::default())
+    /// 创建空的 Entry 节点配置
+    pub fn entry() -> Self {
+        Self::Entry(EntryConfig::default())
     }
 
     /// 创建 Http 节点配置
@@ -201,11 +185,6 @@ impl NodeData {
             expected_value: None,
             advanced_expression: Some(expression.into()),
         })
-    }
-
-    /// 创建空的 End 节点配置
-    pub fn end() -> Self {
-        Self::End(EndConfig::default())
     }
 }
 
@@ -249,32 +228,24 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn test_start_config_serialization() {
-        let config = StartConfig::default();
+    fn test_entry_config_serialization() {
+        let config = EntryConfig::default();
         let json = serde_json::to_string(&config).unwrap();
         assert_eq!(json, "{}");
     }
 
     #[test]
-    fn test_start_config_empty_structure() {
-        // 测试 StartConfig 是空结构
-        let config = StartConfig {};
+    fn test_entry_config_empty_structure() {
+        // 测试 EntryConfig 是空结构
+        let config = EntryConfig {};
         let json = serde_json::to_string(&config).unwrap();
         assert_eq!(json, "{}");
     }
 
     #[test]
-    fn test_start_config_no_initial_variables_field() {
-        // 验证 StartConfig 不包含 initial_variables 字段
-        let config = StartConfig::default();
-        let json = serde_json::to_string(&config).unwrap();
-        assert!(!json.contains("initial_variables"));
-    }
-
-    #[test]
-    fn test_start_config_default_impl() {
+    fn test_entry_config_default_impl() {
         // 测试 Default impl
-        let config = StartConfig::default();
+        let config = EntryConfig::default();
         let json = serde_json::to_string(&config).unwrap();
         assert_eq!(json, "{}");
     }
@@ -333,21 +304,13 @@ mod tests {
     }
 
     #[test]
-    fn test_end_config_serialization() {
-        let config = EndConfig::default();
-        let json = serde_json::to_string(&config).unwrap();
-        assert_eq!(json, "{}");
-    }
-
-    #[test]
     fn test_node_data_type_name() {
-        assert_eq!(NodeData::start().type_name(), "start");
+        assert_eq!(NodeData::entry().type_name(), "entry");
         assert_eq!(NodeData::http("https://example.com").type_name(), "http");
         assert_eq!(
             NodeData::conditional_simple("field", ConditionOperator::Equal, json!(1)).type_name(),
             "conditional"
         );
-        assert_eq!(NodeData::end().type_name(), "end");
     }
 
     #[test]
