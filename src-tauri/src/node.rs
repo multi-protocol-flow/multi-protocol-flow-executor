@@ -63,13 +63,10 @@ pub struct Node {
     pub ports: Option<Vec<Port>>,
 }
 
-// ============================================================================
-// 单元测试
-// ============================================================================
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::node_config::{ConditionOperator, NodeData};
     use serde_json::json;
 
     #[test]
@@ -79,7 +76,7 @@ mod tests {
             node_type: NodeType::Entry,
             name: "Entry Node".to_string(),
             position: NodePosition { x: 100.0, y: 200.0 },
-            data: crate::node_config::NodeData::entry(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -96,7 +93,7 @@ mod tests {
             node_type: NodeType::Http,
             name: "HTTP Request".to_string(),
             position: NodePosition { x: 150.0, y: 250.0 },
-            data: crate::node_config::NodeData::http("https://api.example.com"),
+            data: NodeData::http("https://api.example.com"),
             ports: None,
         };
 
@@ -173,11 +170,7 @@ mod tests {
             node_type: NodeType::Conditional,
             name: "Conditional Node".to_string(),
             position: NodePosition { x: 50.0, y: 75.0 },
-            data: crate::node_config::NodeData::conditional_simple(
-                "field",
-                crate::node_config::ConditionOperator::Equal,
-                json!(1),
-            ),
+            data: NodeData::conditional_simple("field", ConditionOperator::Equal, json!(1)),
             ports: Some(ports),
         };
 

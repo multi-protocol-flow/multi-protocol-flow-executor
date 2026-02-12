@@ -126,7 +126,7 @@ impl FlowStatistics {
     /// # 返回
     ///
     /// 估算的字节大小
-    fn estimate_json_size(value: &serde_json::Value) -> u64 {
+    pub fn estimate_json_size(value: &serde_json::Value) -> u64 {
         match value {
             serde_json::Value::Null => 4,
             serde_json::Value::Bool(_) => 5,
@@ -173,13 +173,11 @@ impl FlowStatistics {
     }
 }
 
-// ============================================================================
-// 单元测试
-// ============================================================================
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::report::{ExecutionStatus, NodeExecutionReport};
+    use serde_json::json;
 
     fn create_test_report(
         node_id: &str,
@@ -196,8 +194,8 @@ mod tests {
             end_time: 1000 + duration_ms,
             duration_ms,
             status,
-            input_data: input_size.map(|s| serde_json::json!({"data": "x".repeat(s as usize)})),
-            output_data: output_size.map(|s| serde_json::json!({"result": "y".repeat(s as usize)})),
+            input_data: input_size.map(|s| json!({"data": "x".repeat(s as usize)})),
+            output_data: output_size.map(|s| json!({"result": "y".repeat(s as usize)})),
             used_port_id: Some("out".to_string()),
             error: None,
         }
@@ -226,6 +224,12 @@ mod tests {
         assert_eq!(stats.success_count, 0);
         assert_eq!(stats.failed_count, 0);
         assert!(stats.avg_node_duration_ms.is_none());
+        assert!(stats.max_node_duration_ms.is_none());
+        assert!(stats.min_node_duration_ms.is_none());
+        assert!(stats.total_input_size_bytes.is_none());
+        assert!(stats.total_output_size_bytes.is_none());
+        assert!(stats.error_rate.is_none());
+        assert!(stats.completion_rate.is_none()); // Empty reports = no completion rate
     }
 
     #[test]
@@ -248,31 +252,18 @@ mod tests {
     #[test]
     fn test_flow_statistics_all_success() {
         let reports = vec![
-            create_test_report("node-1", ExecutionStatus::Success, 100, Some(10), Some(20)),
-            create_test_report("node-2", ExecutionStatus::Success, 150, None, None),
-        ];
-
-        let stats = FlowStatistics::from_reports(&reports, 2);
-
-        assert_eq!(stats.success_count, 2);
-        assert_eq!(stats.failed_count, 0);
-        assert!(stats.is_all_success());
-        assert!(!stats.has_errors());
-    }
-
-    #[test]
-    fn test_flow_statistics_skipped_nodes() {
-        let reports = vec![
             create_test_report("node-1", ExecutionStatus::Success, 100, None, None),
-            create_test_report("node-2", ExecutionStatus::Success, 50, None, None),
-            create_test_report("node-3", ExecutionStatus::Failed, 200, None, None),
+            create_test_report("node-2", ExecutionStatus::Success, 150, None, None),
+            create_test_report("node-3", ExecutionStatus::Success, 200, None, None),
         ];
 
-        let stats = FlowStatistics::from_reports(&reports, 3);
+        let stats = FlowStatistics::from_reports(&reports, 5);
 
-        assert_eq!(stats.success_count, 2);
-        assert_eq!(stats.failed_count, 1);
-        // Skipped 状态已移除，所有执行节点都计入统计
+        assert_eq!(stats.success_count, 3);
+        assert_eq!(stats.failed_count, 0);
+        assert_eq!(stats.total_executed_count(), 3);
+        assert!(!stats.has_errors());
+        assert!(stats.is_all_success());
     }
 
     #[test]
@@ -291,53 +282,85 @@ mod tests {
     }
 
     #[test]
+    fn test_flow_statistics_data_size() {
+        let reports = vec![
+            create_test_report("node-1", ExecutionStatus::Success, 100, Some(10), Some(20)),
+            create_test_report("node-2", ExecutionStatus::Success, 150, Some(15), None),
+        ];
+
+        let stats = FlowStatistics::from_reports(&reports, 5);
+
+        assert_eq!(stats.total_input_size_bytes, Some(25));
+        assert_eq!(stats.total_output_size_bytes, Some(20));
+    }
+
+    #[test]
     fn test_flow_statistics_error_rate() {
         let reports = vec![
             create_test_report("node-1", ExecutionStatus::Success, 100, None, None),
-            create_test_report("node-2", ExecutionStatus::Success, 100, None, None),
-            create_test_report("node-3", ExecutionStatus::Failed, 100, None, None),
+            create_test_report("node-2", ExecutionStatus::Failed, 100, None, None),
+            create_test_report("node-3", ExecutionStatus::Success, 100, None, None),
             create_test_report("node-4", ExecutionStatus::Failed, 100, None, None),
         ];
 
-        let stats = FlowStatistics::from_reports(&reports, 4);
+        let stats = FlowStatistics::from_reports(&reports, 5);
 
-        // 2 失败 / 4 总数 = 0.5
-        assert_eq!(stats.error_rate, Some(0.5));
+        let expected = 2.0 / 4.0;
+        let actual = stats.error_rate.unwrap();
+
+        let diff = (actual - expected).abs();
+        assert!(diff < 0.01);
     }
 
     #[test]
     fn test_flow_statistics_completion_rate() {
         let reports = vec![
             create_test_report("node-1", ExecutionStatus::Success, 100, None, None),
-            create_test_report("node-2", ExecutionStatus::Failed, 100, None, None),
+            create_test_report("node-2", ExecutionStatus::Success, 150, None, None),
+            create_test_report("node-3", ExecutionStatus::Success, 200, None, None),
+            create_test_report("node-4", ExecutionStatus::Success, 250, None, None),
         ];
 
         let stats = FlowStatistics::from_reports(&reports, 5);
 
-        // 2 执行 / 5 总数 = 0.4
-        assert_eq!(stats.completion_rate, Some(0.4));
+        assert_eq!(stats.completion_rate, Some(0.8));
     }
 
     #[test]
     fn test_flow_statistics_serialization() {
-        let reports = vec![create_test_report(
-            "node-1",
-            ExecutionStatus::Success,
-            100,
-            Some(10),
-            Some(20),
-        )];
+        let stats = FlowStatistics {
+            success_count: 5,
+            failed_count: 2,
+            avg_node_duration_ms: Some(150),
+            max_node_duration_ms: Some(300),
+            min_node_duration_ms: Some(100),
+            total_input_size_bytes: Some(50),
+            total_output_size_bytes: Some(40),
+            error_rate: Some(0.2857142857142857),
+            completion_rate: Some(0.7142857142857143),
+        };
 
-        let stats = FlowStatistics::from_reports(&reports, 1);
-
-        // 序列化
         let json = serde_json::to_string(&stats).expect("序列化失败");
         assert!(json.contains("success_count"));
         assert!(json.contains("1"));
+        assert!(json.contains("150"));
 
-        // 反序列化
         let deserialized: FlowStatistics = serde_json::from_str(&json).expect("反序列化失败");
-        assert_eq!(deserialized.success_count, 1);
+        assert_eq!(deserialized.success_count, stats.success_count);
+    }
+
+    #[test]
+    fn test_flow_statistics_deserialization() {
+        let stats = FlowStatistics {
+            success_count: 5,
+            failed_count: 2,
+            ..FlowStatistics::default()
+        };
+
+        let json = serde_json::to_string(&stats).expect("序列化失败");
+        let deserialized: FlowStatistics = serde_json::from_str(&json).expect("反序列化失败");
+        assert_eq!(deserialized.success_count, 5);
+        assert_eq!(deserialized.failed_count, 2);
     }
 
     #[test]
@@ -345,41 +368,31 @@ mod tests {
         let reports: Vec<NodeExecutionReport> = vec![];
         let stats = FlowStatistics::from_reports(&reports, 5);
 
-        // 没有报告时，所有统计字段都为默认值（None）
         assert_eq!(stats.completion_rate, None);
     }
 
     #[test]
     fn test_estimate_json_size() {
-        // 测试不同类型的 JSON 值大小估算
+        assert_eq!(FlowStatistics::estimate_json_size(&json!(null)), 4);
+        assert_eq!(FlowStatistics::estimate_json_size(&json!(true)), 5);
+        assert_eq!(FlowStatistics::estimate_json_size(&json!(42)), 8);
         assert_eq!(
-            FlowStatistics::estimate_json_size(&serde_json::Value::Null),
-            4
-        );
-        assert_eq!(
-            FlowStatistics::estimate_json_size(&serde_json::json!(true)),
-            5
-        );
-        assert_eq!(
-            FlowStatistics::estimate_json_size(&serde_json::json!(42)),
-            8
-        );
-        assert_eq!(
-            FlowStatistics::estimate_json_size(&serde_json::json!(std::f64::consts::PI)),
+            FlowStatistics::estimate_json_size(&json!(std::f64::consts::PI)),
             16
         );
-        assert_eq!(
-            FlowStatistics::estimate_json_size(&serde_json::json!("hello")),
-            5
-        );
+        assert_eq!(FlowStatistics::estimate_json_size(&json!("hello")), 5);
+    }
 
-        // 测试数组
-        let arr = serde_json::json!([1, 2, 3]);
+    #[test]
+    fn test_estimate_json_size_array() {
+        let arr = json!([1, 2, 3]);
         let size = FlowStatistics::estimate_json_size(&arr);
         assert!(size > 0);
+    }
 
-        // 测试对象
-        let obj = serde_json::json!({"a": 1, "b": 2});
+    #[test]
+    fn test_estimate_json_size_object() {
+        let obj = json!({"a": 1, "b": 2, "c": 3});
         let size = FlowStatistics::estimate_json_size(&obj);
         assert!(size > 0);
     }

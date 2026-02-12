@@ -105,6 +105,7 @@ impl FlowValidator {
 mod tests {
     use super::*;
     use crate::connection::Connection;
+    use crate::flow::Flow;
     use crate::node::{Node, NodePosition, NodeType};
     use crate::node_config::NodeData;
     use uuid::Uuid;

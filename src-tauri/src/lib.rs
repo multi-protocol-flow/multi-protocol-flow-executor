@@ -13,7 +13,7 @@ mod node_config;
 mod error;
 pub mod report;
 mod end_executor;
-mod statistics;
+pub mod statistics;
 mod storage;
 mod validator;
 
@@ -24,14 +24,16 @@ pub use conditional_executor::ConditionalNodeExecutor;
 pub use connection::Connection;
 pub use context::{ExecutionContext, VariableStorage};
 pub use entry_executor::EntryNodeExecutor;
-pub use executor::{ExecutionResult, FlowExecutor, NodeExecutor};
+pub use executor::{ExecutionResult, FlowExecutor, NodeExecutor, replace_variables};
 pub use flow::Flow;
 pub use http_executor::HttpNodeExecutor;
 pub use node::{Node, NodePosition, NodeType, Port, PortType};
 pub use node_config::*;
 pub use report::*;
 pub use end_executor::EndNodeExecutor;
+pub use statistics::FlowStatistics;
 pub use validator::{FlowValidator, ValidationResult};
+pub use error::*;
 
 // 导出存储模块
 pub use storage::{ensure_flows_dir, get_data_dir, get_flows_dir, load_flow, save_flow};

@@ -20,10 +20,6 @@ pub struct Flow {
     pub connections: Vec<Connection>,
 }
 
-// ============================================================================
-// 单元测试
-// ============================================================================
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -104,7 +100,7 @@ mod tests {
         // 反序列化测试
         let deserialized: Flow = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.uuid, "test-uuid-999");
-        assert!(deserialized.initial_variables.is_some());
+        assert_eq!(deserialized.initial_variables.is_some(), true);
         let vars_ref = deserialized.initial_variables.as_ref().unwrap();
         assert_eq!(vars_ref.get("api_key"), Some(&json!("secret123")));
     }
