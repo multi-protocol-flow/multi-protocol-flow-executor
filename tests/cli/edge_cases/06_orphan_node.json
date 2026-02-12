@@ -1,0 +1,27 @@
+{
+  "uuid": "orphan-node",
+  "name": "孤立节点",
+  "nodes": [
+    {
+      "uuid": "entry-001",
+      "type": "entry",
+      "name": "入口",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": { "type": "entry" },
+      "ports": null
+    },
+    {
+      "uuid": "http-orphan",
+      "type": "http",
+      "name": "孤立HTTP节点",
+      "position": { "x": 100.0, "y": 0.0 },
+      "data": {
+        "type": "http",
+        "url": "https://httpbin.org/get",
+        "method": "get"
+      },
+      "ports": null
+    }
+  ],
+  "connections": []
+}

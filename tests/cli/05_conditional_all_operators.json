@@ -1,0 +1,106 @@
+{
+  "uuid": "conditional-all-operators",
+  "name": "所有条件操作符示例",
+  "nodes": [
+    {
+      "uuid": "entry-001",
+      "type": "entry",
+      "name": "入口",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": { "type": "entry" },
+      "ports": null
+    },
+    {
+      "uuid": "conditional-equal",
+      "type": "conditional",
+      "name": "equal 操作符",
+      "position": { "x": 100.0, "y": -225.0 },
+      "data": { "type": "conditional", "condition_type": "simple", "field_path": "http_response.status", "operator": "equal", "expected_value": 200 },
+      "ports": null
+    },
+    {
+      "uuid": "conditional-not-equal",
+      "type": "conditional",
+      "name": "not_equal 操作符",
+      "position": { "x": 100.0, "y": -175.0 },
+      "data": { "type": "conditional", "condition_type": "simple", "field_path": "http_response.status", "operator": "not_equal", "expected_value": 404 },
+      "ports": null
+    },
+    {
+      "uuid": "conditional-greater",
+      "type": "conditional",
+      "name": "greater 操作符",
+      "position": { "x": 100.0, "y": -125.0 },
+      "data": { "type": "conditional", "condition_type": "simple", "field_path": "http_response.status", "operator": "greater", "expected_value": 199 },
+      "ports": null
+    },
+    {
+      "uuid": "conditional-greater-or-equal",
+      "type": "conditional",
+      "name": "greater_or_equal 操作符",
+      "position": { "x": 100.0, "y": -75.0 },
+      "data": { "type": "conditional", "condition_type": "simple", "field_path": "http_response.status", "operator": "greater_or_equal", "expected_value": 200 },
+      "ports": null
+    },
+    {
+      "uuid": "conditional-less",
+      "type": "conditional",
+      "name": "less 操作符",
+      "position": { "x": 100.0, "y": -25.0 },
+      "data": { "type": "conditional", "condition_type": "simple", "field_path": "http_response.status", "operator": "less", "expected_value": 300 },
+      "ports": null
+    },
+    {
+      "uuid": "conditional-less-or-equal",
+      "type": "conditional",
+      "name": "less_or_equal 操作符",
+      "position": { "x": 100.0, "y": 25.0 },
+      "data": { "type": "conditional", "condition_type": "simple", "field_path": "http_response.status", "operator": "less_or_equal", "expected_value": 299 },
+      "ports": null
+    },
+    {
+      "uuid": "conditional-contains",
+      "type": "conditional",
+      "name": "contains 操作符",
+      "position": { "x": 100.0, "y": 75.0 },
+      "data": { "type": "conditional", "condition_type": "simple", "field_path": "http_response.data.message", "operator": "contains", "expected_value": "success" },
+      "ports": null
+    },
+    {
+      "uuid": "conditional-starts-with",
+      "type": "conditional",
+      "name": "starts_with 操作符",
+      "position": { "x": 100.0, "y": 125.0 },
+      "data": { "type": "conditional", "condition_type": "simple", "field_path": "http_response.data.status", "operator": "starts_with", "expected_value": "ok" },
+      "ports": null
+    },
+    {
+      "uuid": "conditional-ends-with",
+      "type": "conditional",
+      "name": "ends_with 操作符",
+      "position": { "x": 100.0, "y": 175.0 },
+      "data": { "type": "conditional", "condition_type": "simple", "field_path": "http_response.data.filename", "operator": "ends_with", "expected_value": ".json" },
+      "ports": null
+    },
+    {
+      "uuid": "conditional-exists",
+      "type": "conditional",
+      "name": "exists 操作符",
+      "position": { "x": 100.0, "y": 225.0 },
+      "data": { "type": "conditional", "condition_type": "simple", "field_path": "http_response.data.id", "operator": "exists", "expected_value": null },
+      "ports": null
+    }
+  ],
+  "connections": [
+    { "id": "conn-001", "source_node_uuid": "entry-001", "target_node_uuid": "conditional-equal", "source_port_id": "output", "target_port_id": "input" },
+    { "id": "conn-002", "source_node_uuid": "entry-001", "target_node_uuid": "conditional-not-equal", "source_port_id": "output", "target_port_id": "input" },
+    { "id": "conn-003", "source_node_uuid": "entry-001", "target_node_uuid": "conditional-greater", "source_port_id": "output", "target_port_id": "input" },
+    { "id": "conn-004", "source_node_uuid": "entry-001", "target_node_uuid": "conditional-greater-or-equal", "source_port_id": "output", "target_port_id": "input" },
+    { "id": "conn-005", "source_node_uuid": "entry-001", "target_node_uuid": "conditional-less", "source_port_id": "output", "target_port_id": "input" },
+    { "id": "conn-006", "source_node_uuid": "entry-001", "target_node_uuid": "conditional-less-or-equal", "source_port_id": "output", "target_port_id": "input" },
+    { "id": "conn-007", "source_node_uuid": "entry-001", "target_node_uuid": "conditional-contains", "source_port_id": "output", "target_port_id": "input" },
+    { "id": "conn-008", "source_node_uuid": "entry-001", "target_node_uuid": "conditional-starts-with", "source_port_id": "output", "target_port_id": "input" },
+    { "id": "conn-009", "source_node_uuid": "entry-001", "target_node_uuid": "conditional-ends-with", "source_port_id": "output", "target_port_id": "input" },
+    { "id": "conn-010", "source_node_uuid": "entry-001", "target_node_uuid": "conditional-exists", "source_port_id": "output", "target_port_id": "input" }
+  ]
+}

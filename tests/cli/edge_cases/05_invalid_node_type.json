@@ -1,0 +1,15 @@
+{
+  "uuid": "invalid-node-type",
+  "name": "无效节点类型",
+  "nodes": [
+    {
+      "uuid": "start-001",
+      "type": "start",
+      "name": "旧版Start节点",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": { "type": "start" },
+      "ports": null
+    }
+  ],
+  "connections": []
+}

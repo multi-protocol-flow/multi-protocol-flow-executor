@@ -1,0 +1,36 @@
+{
+  "uuid": "conditional-missing-operator",
+  "name": "条件缺少Operator",
+  "nodes": [
+    {
+      "uuid": "entry-001",
+      "type": "entry",
+      "name": "入口",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": { "type": "entry" },
+      "ports": null
+    },
+    {
+      "uuid": "conditional-001",
+      "type": "conditional",
+      "name": "缺少Operator",
+      "position": { "x": 100.0, "y": 0.0 },
+      "data": {
+        "type": "conditional",
+        "condition_type": "simple",
+        "field_path": "http_response.status",
+        "expected_value": 200
+      },
+      "ports": null
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-001",
+      "source_node_uuid": "entry-001",
+      "target_node_uuid": "conditional-001",
+      "source_port_id": "output",
+      "target_port_id": "input"
+    }
+  ]
+}

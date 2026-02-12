@@ -1,0 +1,35 @@
+{
+  "uuid": "conditional-empty-expression",
+  "name": "空条件表达式",
+  "nodes": [
+    {
+      "uuid": "entry-001",
+      "type": "entry",
+      "name": "入口",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": { "type": "entry" },
+      "ports": null
+    },
+    {
+      "uuid": "conditional-001",
+      "type": "conditional",
+      "name": "空表达式",
+      "position": { "x": 100.0, "y": 0.0 },
+      "data": {
+        "type": "conditional",
+        "condition_type": "advanced",
+        "advanced_expression": ""
+      },
+      "ports": null
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-001",
+      "source_node_uuid": "entry-001",
+      "target_node_uuid": "conditional-001",
+      "source_port_id": "output",
+      "target_port_id": "input"
+    }
+  ]
+}

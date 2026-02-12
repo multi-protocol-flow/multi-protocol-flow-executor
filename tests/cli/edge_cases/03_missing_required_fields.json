@@ -1,0 +1,13 @@
+{
+  "name": "缺少必需字段",
+  "nodes": [
+    {
+      "type": "entry",
+      "name": "入口",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": { "type": "entry" },
+      "ports": null
+    }
+  ],
+  "connections": []
+}
