@@ -96,8 +96,9 @@ impl NodeExecutor for EndNodeExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::context::{ExecutionContext, VariableStorage};
     use crate::node::{Node, NodePosition, NodeType};
-    use crate::VariableStorage;
+    use crate::node_config::NodeData;
     use serde_json::json;
 
     /// 创建测试上下文的辅助函数
@@ -127,7 +128,7 @@ mod tests {
             node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::entry(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -141,7 +142,7 @@ mod tests {
 
         let executor = EndNodeExecutor::new();
         let result = executor
-            .execute(&end_node, &context, &[], &HashMap::new())
+            .execute(&end_node, &context, &[], &std::collections::HashMap::new())
             .await;
 
         // 验证执行成功
@@ -160,7 +161,7 @@ mod tests {
             node_type: NodeType::Entry,
             name: "结束节点".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: crate::node_config::NodeData::entry(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -174,7 +175,7 @@ mod tests {
 
         let executor = EndNodeExecutor::new();
         let result = executor
-            .execute(&end_node, &context, &[], &HashMap::new())
+            .execute(&end_node, &context, &[], &std::collections::HashMap::new())
             .await;
 
         // 验证执行成功
@@ -192,7 +193,7 @@ mod tests {
             node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::entry(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -203,7 +204,7 @@ mod tests {
 
         let executor = EndNodeExecutor::new();
         let result = executor
-            .execute(&end_node, &context, &[], &HashMap::new())
+            .execute(&end_node, &context, &[], &std::collections::HashMap::new())
             .await;
 
         // 验证执行成功
@@ -221,7 +222,7 @@ mod tests {
             node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::entry(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -232,7 +233,7 @@ mod tests {
 
         let executor = EndNodeExecutor::new();
         let result = executor
-            .execute(&end_node, &context, &[], &HashMap::new())
+            .execute(&end_node, &context, &[], &std::collections::HashMap::new())
             .await;
 
         // 验证执行成功（即使有错误，End 节点也正常执行）
@@ -250,7 +251,7 @@ mod tests {
             node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::entry(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -264,7 +265,7 @@ mod tests {
 
         let executor = EndNodeExecutor::new();
         let result = executor
-            .execute(&end_node, &context, &[], &HashMap::new())
+            .execute(&end_node, &context, &[], &std::collections::HashMap::new())
             .await;
 
         // 验证执行成功（即使有错误数组，End 节点也正常执行）
@@ -282,7 +283,7 @@ mod tests {
             node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::entry(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -296,7 +297,7 @@ mod tests {
 
         let executor = EndNodeExecutor::new();
         let result = executor
-            .execute(&end_node, &context, &[], &HashMap::new())
+            .execute(&end_node, &context, &[], &std::collections::HashMap::new())
             .await;
 
         // 验证执行成功
@@ -314,7 +315,7 @@ mod tests {
             node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::entry(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -328,7 +329,7 @@ mod tests {
 
         let executor = EndNodeExecutor::new();
         let result = executor
-            .execute(&end_node, &context, &[], &HashMap::new())
+            .execute(&end_node, &context, &[], &std::collections::HashMap::new())
             .await;
 
         // 验证执行成功
@@ -346,7 +347,7 @@ mod tests {
             node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::entry(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -373,7 +374,7 @@ mod tests {
 
         let executor = EndNodeExecutor::new();
         let result = executor
-            .execute(&end_node, &context, &[], &HashMap::new())
+            .execute(&end_node, &context, &[], &std::collections::HashMap::new())
             .await;
 
         // 验证执行成功
@@ -391,7 +392,7 @@ mod tests {
             node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::entry(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -401,7 +402,7 @@ mod tests {
 
         let executor = EndNodeExecutor::new();
         let result = executor
-            .execute(&end_node, &context, &[], &HashMap::new())
+            .execute(&end_node, &context, &[], &std::collections::HashMap::new())
             .await;
 
         // 验证执行成功
@@ -419,7 +420,7 @@ mod tests {
             node_type: NodeType::Entry,
             name: "结束".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::entry(),
+            data: NodeData::entry(),
             ports: None,
         };
 
@@ -429,7 +430,7 @@ mod tests {
 
         let executor = EndNodeExecutor::new();
         let result = executor
-            .execute(&end_node, &context, &[], &HashMap::new())
+            .execute(&end_node, &context, &[], &std::collections::HashMap::new())
             .await;
 
         // 验证执行成功

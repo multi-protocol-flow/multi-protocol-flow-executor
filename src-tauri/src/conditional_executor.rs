@@ -411,16 +411,19 @@ impl ConditionalNodeExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::node::NodePosition;
-    use crate::node_config::{ConditionalConfig, NodeData};
-    use crate::VariableStorage;
+    use crate::connection::Connection;
+    use crate::context::{ExecutionContext, VariableStorage};
+    use crate::node::{Node, NodeType, NodePosition};
+    use crate::node_config::NodeData;
+    use crate::node_config::{ConditionalConfig, ConditionOperator, ConditionType};
+    use serde_json::json;
     use std::collections::HashMap;
 
     fn create_test_node(config: ConditionalConfig) -> Node {
         Node {
             uuid: "test-node-id".to_string(),
             name: "Test Condition Node".to_string(),
-            node_type: crate::node::NodeType::Conditional,
+            node_type: NodeType::Conditional,
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Conditional(config),
             ports: None,
@@ -772,38 +775,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_extract_field_value() {
-        let executor = ConditionalNodeExecutor::new();
-        let data = serde_json::json!({
-            "user": {
-                "name": "John",
-                "age": 25
-            }
-        });
-
-        let result = executor.extract_field_value(&data, "user.name");
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), serde_json::json!("John"));
-
-        let result = executor.extract_field_value(&data, "user.age");
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), serde_json::json!(25));
-    }
-
-    #[tokio::test]
-    async fn test_extract_field_value_error() {
-        let executor = ConditionalNodeExecutor::new();
-        let data = serde_json::json!({
-            "user": {
-                "name": "John"
-            }
-        });
-
-        let result = executor.extract_field_value(&data, "user.age");
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
     async fn test_simple_condition_empty_string() {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
@@ -889,29 +860,6 @@ mod tests {
         let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "类型不匹配应该返回错误");
         assert!(result.unwrap_err().contains("actual不是数字类型"), "错误信息应该包含'actual不是数字类型'");
-    }
-
-    #[tokio::test]
-    async fn test_extract_nested_field_value() {
-        let executor = ConditionalNodeExecutor::new();
-        let data = serde_json::json!({
-            "user": {
-                "profile": {
-                    "address": {
-                        "city": "Beijing",
-                        "country": "China"
-                    }
-                }
-            }
-        });
-
-        let result = executor.extract_field_value(&data, "user.profile.address.city");
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), serde_json::json!("Beijing"));
-
-        let result = executor.extract_field_value(&data, "user.profile.address.country");
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), serde_json::json!("China"));
     }
 
     #[tokio::test]

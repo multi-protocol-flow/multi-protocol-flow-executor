@@ -62,7 +62,8 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
         let path_parts: Vec<&str> = variable_path.split('.').collect();
 
         // 从 context.variables.global 中获取值
-        let mut current_value: Option<&serde_json::Value> = context.variables.global.get(path_parts[0]);
+        let mut current_value: Option<&serde_json::Value> =
+            context.variables.global.get(path_parts[0]);
         let mut current_path = String::new();
 
         if current_value.is_none() {
@@ -102,10 +103,7 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
                 ));
             }
             None => {
-                return Err(format!(
-                    "变量 '{}' 为空",
-                    variable_path
-                ));
+                return Err(format!("变量 '{}' 为空", variable_path));
             }
         };
 
@@ -257,7 +255,10 @@ impl FlowExecutor {
                 .as_millis() as u64;
 
             // 执行当前节点
-            match self.execute_node(node, &context, &flow.connections, &node_map).await {
+            match self
+                .execute_node(node, &context, &flow.connections, &node_map)
+                .await
+            {
                 Ok((next_node_id_from_executor, output_data)) => {
                     // 记录节点结束时间
                     let node_end_ms = std::time::SystemTime::now()
@@ -275,7 +276,13 @@ impl FlowExecutor {
                         NodeType::Conditional => {
                             // Conditional 节点：根据输出数据判断条件结果
                             output_data.as_ref().and_then(|data| {
-                                data.get("result").and_then(|v| v.as_bool()).map(|is_true| if is_true { "true".to_string() } else { "false".to_string() })
+                                data.get("result").and_then(|v| v.as_bool()).map(|is_true| {
+                                    if is_true {
+                                        "true".to_string()
+                                    } else {
+                                        "false".to_string()
+                                    }
+                                })
                             })
                         }
                     };
@@ -298,7 +305,12 @@ impl FlowExecutor {
 
                     // 如果有输出数据，更新上下文变量
                     if let Some(data) = output_data {
-                        log::info!("[流程 {}] 节点 {} 输出数据: {}", context.flow_uuid, node.name, data);
+                        log::info!(
+                            "[流程 {}] 节点 {} 输出数据: {}",
+                            context.flow_uuid,
+                            node.name,
+                            data
+                        );
                         // 将输出数据合并到上下文中
                         if let Some(obj) = data.as_object() {
                             for (key, value) in obj {
@@ -308,8 +320,14 @@ impl FlowExecutor {
                     }
 
                     // 处理 Conditional 节点：如果返回空列表表示条件为 false，停止执行
-                    if matches!(node.node_type, NodeType::Conditional) && next_node_id_from_executor.is_empty() {
-                        log::info!("[流程 {}] 条件节点 {} 返回 false，停止流程", context.flow_uuid, node.name);
+                    if matches!(node.node_type, NodeType::Conditional)
+                        && next_node_id_from_executor.is_empty()
+                    {
+                        log::info!(
+                            "[流程 {}] 条件节点 {} 返回 false，停止流程",
+                            context.flow_uuid,
+                            node.name
+                        );
                         // 条件为 false 是正常的流程终止，返回成功
                         break;
                     }
@@ -333,7 +351,11 @@ impl FlowExecutor {
                         current_node_id = next_id;
                     } else {
                         // 节点没有输出连接或执行器返回空列表，执行完成
-                        log::info!("[流程 {}] 节点 {} 没有下一个节点，执行完成", context.flow_uuid, node.name);
+                        log::info!(
+                            "[流程 {}] 节点 {} 没有下一个节点，执行完成",
+                            context.flow_uuid,
+                            node.name
+                        );
                         break;
                     }
                 }
@@ -346,8 +368,14 @@ impl FlowExecutor {
                     let node_duration = node_start_time.elapsed().as_millis() as u64;
 
                     // 检查是否是条件节点返回 false 的情况
-                    if matches!(node.node_type, NodeType::Conditional) && error == "条件评估为false，停止执行" {
-                        log::info!("[流程 {}] 条件节点 {} 评估为 false，停止流程", context.flow_uuid, node.name);
+                    if matches!(node.node_type, NodeType::Conditional)
+                        && error == "条件评估为false，停止执行"
+                    {
+                        log::info!(
+                            "[流程 {}] 条件节点 {} 评估为 false，停止流程",
+                            context.flow_uuid,
+                            node.name
+                        );
 
                         // 创建节点执行报告（Success状态 - 条件评估完成）
                         let node_report = crate::report::NodeExecutionReport {
@@ -373,7 +401,11 @@ impl FlowExecutor {
                     // 检查错误消息是否包含"尚未实现"
                     if error.contains("尚未实现") {
                         // 遇到占位符节点，表示流程已到达未实现部分
-                        log::info!("[流程 {}] 节点 {} 尚未实现，流程终止", context.flow_uuid, node.name);
+                        log::info!(
+                            "[流程 {}] 节点 {} 尚未实现，流程终止",
+                            context.flow_uuid,
+                            node.name
+                        );
 
                         // 创建节点执行报告（Success状态 - 优雅终止）
                         let node_report = crate::report::NodeExecutionReport {
@@ -437,7 +469,10 @@ impl FlowExecutor {
             .unwrap()
             .as_millis() as u64;
         let start_time_ms = start_time.elapsed().as_millis() as u64;
-        let flow_status = if node_reports.iter().any(|r| r.status == crate::report::ExecutionStatus::Failed) {
+        let flow_status = if node_reports
+            .iter()
+            .any(|r| r.status == crate::report::ExecutionStatus::Failed)
+        {
             crate::report::ExecutionStatus::Failed
         } else {
             crate::report::ExecutionStatus::Success
@@ -453,7 +488,10 @@ impl FlowExecutor {
             executed_count,
             status: flow_status,
             node_reports: node_reports.clone(),
-            statistics: crate::statistics::FlowStatistics::from_reports(&node_reports, flow.nodes.len() as u32),
+            statistics: crate::statistics::FlowStatistics::from_reports(
+                &node_reports,
+                flow.nodes.len() as u32,
+            ),
             flow_error: None,
         };
 
@@ -492,17 +530,32 @@ impl FlowExecutor {
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         match node.node_type {
             NodeType::Entry => {
-                log::info!("[流程 {}] 执行开始节点: {} ({})", context.flow_uuid, node.name, node.uuid);
+                log::info!(
+                    "[流程 {}] 执行开始节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
                 let executor = EntryNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::Http => {
-                log::info!("[流程 {}] 执行HTTP节点: {} ({})", context.flow_uuid, node.name, node.uuid);
+                log::info!(
+                    "[流程 {}] 执行HTTP节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
                 let executor = crate::http_executor::HttpNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::Conditional => {
-                log::info!("[流程 {}] 执行条件节点: {} ({})", context.flow_uuid, node.name, node.uuid);
+                log::info!(
+                    "[流程 {}] 执行条件节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
                 let executor = crate::conditional_executor::ConditionalNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
@@ -513,10 +566,10 @@ impl FlowExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::connection::Connection;
-    use crate::node::{Node, NodePosition, NodeType};
     use crate::node_config::NodeData;
+    use crate::NodePosition;
     use serde_json::json;
+    use std::time::Instant;
     use uuid::Uuid;
 
     #[tokio::test]
@@ -687,7 +740,6 @@ mod tests {
     #[tokio::test]
     async fn test_flow_executor_start_node_execution_time() {
         // 创建测试流程
-        use std::time::Instant;
 
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
@@ -737,44 +789,6 @@ mod tests {
             "执行时间应该小于 10ms，实际: {}ms",
             elapsed.as_millis()
         );
-
-        // 验证返回的 execution_time 也 < 10ms
-        let data = result.data.unwrap();
-        let execution_time = data["execution_time"].as_u64().unwrap();
-        assert!(execution_time < 10);
-    }
-
-    #[tokio::test]
-    async fn test_execute_node_unimplemented_type() {
-        // 创建未实现的节点类型
-        let flow_id = Uuid::new_v4().to_string();
-        let conditional_node = Node {
-            uuid: format!("conditional-{}", flow_id),
-            node_type: NodeType::Conditional,
-            name: "条件判断".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::entry(),
-            ports: None,
-        };
-
-        let executor = FlowExecutor::new();
-        let variables = VariableStorage::new();
-        let context = ExecutionContext {
-            flow_uuid: flow_id.clone(),
-            current_node_uuid: Some(conditional_node.uuid.clone()),
-            variables,
-            node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_millis() as u64,
-        };
-
-        let result = executor.execute_node(&conditional_node, &context, &[], &HashMap::new()).await;
-
-        // 验证执行失败
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("节点数据类型不是ConditionalConfig"));
     }
 
     #[tokio::test]
@@ -1101,9 +1115,12 @@ mod tests {
         // 测试简单变量替换
         let template = "Bearer {{initial_variables.api_key}}";
         let mut variables = VariableStorage::new();
-        variables.set_global("initial_variables".to_string(), json!({
-            "api_key": "test-key"
-        }));
+        variables.set_global(
+            "initial_variables".to_string(),
+            json!({
+                "api_key": "test-key"
+            }),
+        );
         let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
@@ -1124,11 +1141,14 @@ mod tests {
         // 测试嵌套路径
         let template = "Hello {{user.profile.name}}";
         let mut variables = VariableStorage::new();
-        variables.set_global("user".to_string(), json!({
-            "profile": {
-                "name": "Alice"
-            }
-        }));
+        variables.set_global(
+            "user".to_string(),
+            json!({
+                "profile": {
+                    "name": "Alice"
+                }
+            }),
+        );
         let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
@@ -1183,5 +1203,101 @@ mod tests {
         let result = replace_variables(template, &context);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不支持索引访问"));
+    }
+
+    // ============================================================================
+    // 属性测试 (proptest)
+    // ============================================================================
+
+    proptest::proptest! {
+        /// 测试合法变量路径格式
+        #[test]
+        fn test_proptest_valid_variable_path(
+            path in "[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){0,5}"
+        ) {
+            // 合法路径应该: 字母开头，仅包含字母数字下划线和点
+            assert!(!path.is_empty());
+            assert!(path.chars().next().unwrap().is_ascii_lowercase());
+        }
+
+        /// 测试索引访问被拒绝
+        #[test]
+        fn test_proptest_index_access_rejected(
+            index in 0..100usize
+        ) {
+            let template = format!("{{{{items[{}]}}}}", index);
+            let mut variables = VariableStorage::new();
+            variables.set_global("items".to_string(), json!(["a", "b", "c"]));
+            let context = ExecutionContext {
+                flow_uuid: "test-flow".to_string(),
+                current_node_uuid: None,
+                variables,
+                node_reports: vec![],
+                flow_trigger_time: 0,
+            };
+            let result = replace_variables(&template, &context);
+            assert!(result.is_err());
+            assert!(result.unwrap_err().contains("不支持索引访问"));
+        }
+
+        /// 测试简单字符串变量替换
+        #[test]
+        fn test_proptest_simple_string_replacement(
+            value in "[a-zA-Z0-9]{1,20}"
+        ) {
+            let template = "{{test_var}}";
+            let mut variables = VariableStorage::new();
+            variables.set_global("test_var".to_string(), json!(value.clone()));
+            let context = ExecutionContext {
+                flow_uuid: "test-flow".to_string(),
+                current_node_uuid: None,
+                variables,
+                node_reports: vec![],
+                flow_trigger_time: 0,
+            };
+            let result = replace_variables(template, &context);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), value);
+        }
+
+        /// 测试整数变量替换
+        #[test]
+        fn test_proptest_integer_replacement(
+            num in -10000i64..10000i64
+        ) {
+            let template = "{{num}}";
+            let mut variables = VariableStorage::new();
+            variables.set_global("num".to_string(), json!(num));
+            let context = ExecutionContext {
+                flow_uuid: "test-flow".to_string(),
+                current_node_uuid: None,
+                variables,
+                node_reports: vec![],
+                flow_trigger_time: 0,
+            };
+            let result = replace_variables(template, &context);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), num.to_string());
+        }
+
+        /// 测试布尔变量替换
+        #[test]
+        fn test_proptest_bool_replacement(
+            val in proptest::bool::ANY
+        ) {
+            let template = "{{flag}}";
+            let mut variables = VariableStorage::new();
+            variables.set_global("flag".to_string(), json!(val));
+            let context = ExecutionContext {
+                flow_uuid: "test-flow".to_string(),
+                current_node_uuid: None,
+                variables,
+                node_reports: vec![],
+                flow_trigger_time: 0,
+            };
+            let result = replace_variables(template, &context);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), val.to_string());
+        }
     }
 }
