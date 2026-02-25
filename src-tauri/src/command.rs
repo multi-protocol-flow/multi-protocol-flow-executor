@@ -1,4 +1,5 @@
 // 命令模块 - Tauri 命令输入/输出结构体
+use crate::report::FlowExecutionReport;
 
 use crate::flow::Flow;
 use serde_json::Value;
@@ -63,6 +64,8 @@ pub struct ExecuteFlowCommandOutput {
     pub success: bool,
     /// 返回数据（可选）
     pub data: Option<Value>,
+    /// 执行报告（可选）
+    pub flow_report: Option<FlowExecutionReport>,
     /// 错误信息（可选）
     pub error: Option<String>,
     /// 执行时间（毫秒）

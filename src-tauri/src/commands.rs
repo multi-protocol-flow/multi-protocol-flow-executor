@@ -1,4 +1,5 @@
 // Tauri 命令模块
+use crate::executor::{ExecutionResult, FlowExecutor};
 
 use crate::command::CreateFlowCommandInput;
 use crate::command::CreateFlowCommandOutput;
@@ -11,8 +12,6 @@ use crate::command::UpdateNodeCommandOutput;
 use crate::flow::Flow;
 use crate::node::{Node, NodePosition, NodeType};
 use crate::node_config::NodeData;
-use serde_json::json;
-use std::time::Instant;
 use uuid::Uuid;
 
 #[allow(unused_imports)]
@@ -54,68 +53,32 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
     CreateFlowCommandOutput { flow }
 }
 
-/// 执行流程命令（桩实现）
+/// 执行流程命令
 ///
-/// 执行指定的流程，验证开始节点存在并检查是否有输出连接
+/// 执行指定的流程，调用 FlowExecutor 执行引擎
 ///
 /// # 参数
+/// - `input`: 包含流程 ID 和可选变量的输入参数
 /// - `flow`: 要执行的流程对象
 ///
 /// # 返回
 /// - `ExecuteFlowCommandOutput`: 包含执行结果
-///
-/// # 桩实现说明
-/// - 验证流程包含开始节点
-/// - 检查开始节点是否有输出连接
-/// - 如果无连接，返回错误 "无连接"
-/// - 否则返回执行成功，执行时间 < 1ms
 #[tauri::command]
-pub fn execute_flow(_input: ExecuteFlowCommandInput, flow: Flow) -> ExecuteFlowCommandOutput {
-    let start_time = Instant::now();
+pub async fn execute_flow(input: ExecuteFlowCommandInput, flow: Flow) -> ExecuteFlowCommandOutput {
+    let executor = FlowExecutor::new();
+    let result: ExecutionResult = executor.execute_flow(&flow, input.variables).await;
 
-    // 查找开始节点
-    let start_node = flow
-        .nodes
-        .iter()
-        .find(|node| matches!(node.node_type, NodeType::Entry));
+    // 先计算 execution_time，避免 move 后借用
+    let execution_time = result.flow_report.as_ref().map(|r| r.duration_ms).unwrap_or(0);
 
-    // 验证开始节点存在
-    let start_node = match start_node {
-        Some(node) => node,
-        None => {
-            return ExecuteFlowCommandOutput {
-                success: false,
-                data: None,
-                error: Some("流程缺少开始节点".to_string()),
-                execution_time: start_time.elapsed().as_millis() as u64,
-            };
-        }
-    };
-
-    // 检查开始节点是否有输出连接
-    let has_connection = flow
-        .connections
-        .iter()
-        .any(|conn| conn.source_node_uuid == start_node.uuid);
-
-    if !has_connection {
-        return ExecuteFlowCommandOutput {
-            success: false,
-            data: None,
-            error: Some("无连接".to_string()),
-            execution_time: start_time.elapsed().as_millis() as u64,
-        };
-    }
-
-    // 执行成功（桩实现：开始节点立即传递）
     ExecuteFlowCommandOutput {
-        success: true,
-        data: Some(json!({ "flow_id": flow.uuid })),
-        error: None,
-        execution_time: start_time.elapsed().as_millis() as u64,
+        success: result.success,
+        data: result.data,
+        flow_report: result.flow_report,
+        error: result.error,
+        execution_time,
     }
 }
-
 /// 更新节点命令（桩实现）
 ///
 /// 更新指定流程中的节点数据
@@ -254,8 +217,8 @@ mod tests {
         assert_ne!(output1.flow.nodes[0].uuid, output2.flow.nodes[0].uuid);
     }
 
-    #[test]
-    fn test_execute_flow_success() {
+    #[tokio::test]
+    async fn test_execute_flow_success() {
         // 创建一个测试流程
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
@@ -298,7 +261,7 @@ mod tests {
         };
 
         // 执行流程
-        let output = execute_flow(input, flow);
+        let output = execute_flow(input, flow).await;
 
         // 验证执行成功
         assert!(output.success, "流程应该执行成功");
@@ -311,9 +274,10 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_execute_flow_no_connection() {
+    #[tokio::test]
+    async fn test_execute_flow_no_connection() {
         // 创建一个没有连接的测试流程
+        // 真实执行器认为这是正常流程终止，不是错误
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -338,20 +302,15 @@ mod tests {
         };
 
         // 执行流程
-        let output = execute_flow(input, flow);
+        let output = execute_flow(input, flow).await;
 
-        // 验证执行失败
-        assert!(!output.success, "流程应该执行失败（无连接）");
-        assert!(output.error.is_some(), "失败时应该有错误信息");
-        assert!(
-            output.error.unwrap().contains("无连接"),
-            "错误信息应该包含 '无连接'"
-        );
-        assert!(output.data.is_none(), "失败时不应该有返回数据");
+        // 真实执行器认为没有连接是正常终止，不是错误
+        assert!(output.success, "流程应该执行成功（Entry 节点无连接是正常终止）");
+        assert!(output.error.is_none(), "成功时不应该有错误信息");
     }
 
-    #[test]
-    fn test_execute_flow_no_start_node() {
+    #[tokio::test]
+    async fn test_execute_flow_no_start_node() {
         // 创建一个没有开始节点的测试流程
         let flow_id = Uuid::new_v4().to_string();
         let http_node = Node {
@@ -377,7 +336,7 @@ mod tests {
         };
 
         // 执行流程
-        let output = execute_flow(input, flow);
+        let output = execute_flow(input, flow).await;
 
         // 验证执行失败
         assert!(!output.success, "流程应该执行失败（无开始节点）");
@@ -549,8 +508,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_execute_flow_uses_connection_source_node_uuid() {
+    #[tokio::test]
+    async fn test_execute_flow_uses_connection_source_node_uuid() {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
@@ -592,7 +551,7 @@ mod tests {
             variables: None,
         };
 
-        let output = execute_flow(input, flow);
+        let output = execute_flow(input, flow).await;
 
         // 验证使用 conn.source_node_uuid 检查连接
         assert!(output.success, "流程应该执行成功");
