@@ -231,7 +231,7 @@ Flow
 
 **连接规则：**
 1. 每个流程必须有且仅有一个 Entry 节点
-2. Entry 节点必须至少有一个输出连接
+2. Entry 节点必须至少有一个输出连接（支持多连接，返回所有下游节点）
 3. 连接必须从 Output 端口指向 Input 端口（端口类型验证）
    - `source_port_id` 必须对应目标节点的 Output 类型端口
    - `target_port_id` 必须对应目标节点的 Input 类型端口

@@ -40,39 +40,39 @@
 pub enum ErrorKind {
     // ===== 配置错误（立即终止流程） =====
     /// 通用配置错误
-    ConfigurationError,
+    Configuration,
 
     /// 条件表达式语法错误（如表达式语法错误、字段配置缺失）
-    ConditionSyntaxError,
+    ConditionSyntax,
 
     // ===== 执行错误（容错模式，继续执行） =====
     /// 通用执行错误
-    ExecutionError,
+    Execution,
 
     /// 网络连接失败
-    ConnectionError,
+    Connection,
 
     /// 操作超时
-    TimeoutError,
+    Timeout,
 
     /// 条件评估运行时错误（如字段不存在、类型不匹配）
-    ConditionEvaluationError,
+    ConditionEvaluation,
 
     // ===== 验证错误（容错模式，继续执行） =====
     /// 参数验证失败
-    ValidationError,
+    Validation,
 
     // ===== 解析错误（容错模式，继续执行） =====
     /// 数据解析失败（如 JSON 解析失败、数据格式转换失败）
-    ParseError,
+    Parse,
 }
 
 impl ErrorKind {
     /// 判断是否为致命错误（需要立即终止流程）
     pub fn is_fatal(&self) -> bool {
         matches!(self,
-            ErrorKind::ConfigurationError |
-            ErrorKind::ConditionSyntaxError
+            ErrorKind::Configuration |
+            ErrorKind::ConditionSyntax
         )
     }
 }
@@ -82,14 +82,14 @@ impl ErrorKind {
 
 | ErrorKind | 示例场景 | 处理策略 |
 |-----------|---------|----------|
-| `ConfigurationError` | 流程配置错误 | 立即终止流程 |
-| `ConditionSyntaxError` | 条件表达式语法错误、字段配置缺失 | 立即终止流程 |
-| `ConnectionError` | 网络超时、连接失败 | 容错模式，记录失败，继续执行 |
-| `TimeoutError` | 操作超时 | 容错模式，记录失败，继续执行 |
-| `ExecutionError` | HTTP 请求失败 | 容错模式，记录失败，继续执行 |
-| `ConditionEvaluationError` | 条件评估运行时错误（字段不存在、类型不匹配） | 容错模式，记录失败，继续执行 |
-| `ValidationError` | 参数验证失败、数据格式不符合要求 | 容错模式，记录失败，继续执行 |
-| `ParseError` | JSON 解析失败、数据格式转换失败 | 容错模式，记录失败，继续执行 |
+| `Configuration` | 流程配置错误 | 立即终止流程 |
+| `ConditionSyntax` | 条件表达式语法错误、字段配置缺失 | 立即终止流程 |
+| `Connection` | 网络超时、连接失败 | 容错模式，记录失败，继续执行 |
+| `Timeout` | 操作超时 | 容错模式，记录失败，继续执行 |
+| `Execution` | HTTP 请求失败 | 容错模式，记录失败，继续执行 |
+| `ConditionEvaluation` | 条件评估运行时错误（字段不存在、类型不匹配） | 容错模式，记录失败，继续执行 |
+| `Validation` | 参数验证失败、数据格式不符合要求 | 容错模式，记录失败，继续执行 |
+| `Parse` | JSON 解析失败、数据格式转换失败 | 容错模式，记录失败，继续执行 |
 
 ---
 
@@ -127,13 +127,13 @@ pub struct ErrorDetail {
     ↓
 判断错误类型 (ErrorKind)
     ↓
-├─ ConfigurationError（配置错误）
+├─ Configuration（配置错误）
 │   ↓
 │   记录失败状态到节点报告
 │   ↓
 │   立即终止流程（无法继续执行）
 │
-└─ ExecutionError / ValidationError / ParseError（执行/验证/解析错误）
+└─ Execution / Validation / Parse（执行/验证/解析错误）
     ↓
     记录失败状态到节点报告
     ↓
@@ -148,11 +148,11 @@ pub struct ErrorDetail {
 - 记录成功状态到节点报告
 - 更新上下文，继续执行下一个节点
 
-**配置错误（ConfigurationError）：**
+**配置错误（Configuration）：**
 - 立即终止流程
 - 返回错误，停止执行
 
-**执行/验证/解析错误（ExecutionError/ValidationError/ParseError）：**
+**执行/验证/解析错误（Execution/Validation/Parse）：**
 - 记录失败状态到节点报告
 - 当前分支终止（失败节点无输出）
 - 如果有其他分支（如条件节点的另一分支）则继续执行
@@ -163,17 +163,17 @@ pub struct ErrorDetail {
 
  | ErrorKind | 处理策略 | 说明 |
 |-----------|---------|------|
-| `ConfigurationError` | 立即终止 | 通用配置错误 |
-| `ConditionSyntaxError` | 立即终止 | 条件表达式语法错误、字段配置缺失 |
-| `ConnectionError` | 容错 | 网络连接失败 |
-| `TimeoutError` | 容错 | 操作超时 |
-| `ValidationError` | 容错 | 参数验证失败 |
-| `ParseError` | 容错 | 数据解析失败、格式转换失败 |
-| `ConditionEvaluationError` | 容错 | 条件评估运行时错误（字段不存在、类型不匹配等） |
+| `Configuration` | 立即终止 | 通用配置错误 |
+| `ConditionSyntax` | 立即终止 | 条件表达式语法错误、字段配置缺失 |
+| `Connection` | 容错 | 网络连接失败 |
+| `Timeout` | 容错 | 操作超时 |
+| `Validation` | 容错 | 参数验证失败 |
+| `Parse` | 容错 | 数据解析失败、格式转换失败 |
+| `ConditionEvaluation` | 容错 | 条件评估运行时错误（字段不存在、类型不匹配等） |
 
 **错误类型分类原则：**
-- **语法/配置错误** → `ConfigurationError` / `ConditionSyntaxError`（立即终止）
-- **运行时错误** → `ConnectionError` / `TimeoutError` / `ValidationError` / `ParseError` / `ConditionEvaluationError`（容错模式）
+- **语法/配置错误** → `Configuration` / `ConditionSyntax`（立即终止）
+- **运行时错误** → `Connection` / `Timeout` / `Validation` / `Parse` / `ConditionEvaluation`（容错模式）
 - 使用 `error_kind.is_fatal()` 判断是否需要立即终止流程
 
 ---

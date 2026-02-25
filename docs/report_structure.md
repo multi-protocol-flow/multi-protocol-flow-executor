@@ -25,6 +25,8 @@ pub enum ExecutionStatus {
     Success,
     /// 执行失败
     Failed,
+    /// 跳过执行（如条件分支未命中）
+    Skipped,
 }
 ```
 
@@ -58,39 +60,39 @@ pub struct ErrorDetail {
 pub enum ErrorKind {
     // ===== 配置错误（立即终止流程） =====
     /// 通用配置错误
-    ConfigurationError,
+    Configuration,
 
     /// 条件表达式语法错误（如表达式语法错误、字段配置缺失）
-    ConditionSyntaxError,
+    ConditionSyntax,
 
     // ===== 执行错误（容错模式，继续执行） =====
     /// 通用执行错误
-    ExecutionError,
+    Execution,
 
     /// 网络连接失败
-    ConnectionError,
+    Connection,
 
     /// 操作超时
-    TimeoutError,
+    Timeout,
 
     /// 条件评估运行时错误（如字段不存在、类型不匹配）
-    ConditionEvaluationError,
+    ConditionEvaluation,
 
     // ===== 验证错误（容错模式，继续执行） =====
     /// 参数验证失败
-    ValidationError,
+    Validation,
 
     // ===== 解析错误（容错模式，继续执行） =====
     /// 数据解析失败（如 JSON 解析失败、数据格式转换失败）
-    ParseError,
+    Parse,
 }
 
 impl ErrorKind {
     /// 判断是否为致命错误（需要立即终止流程）
     pub fn is_fatal(&self) -> bool {
         matches!(self,
-            ErrorKind::ConfigurationError |
-            ErrorKind::ConditionSyntaxError
+            ErrorKind::Configuration |
+            ErrorKind::ConditionSyntax
         )
     }
 }
@@ -99,13 +101,13 @@ impl ErrorKind {
 **常见错误类型**：
 | ErrorKind | 处理策略 | 说明 |
 |-----------|---------|------|
-| `ConfigurationError` | 立即终止 | 通用配置错误 |
-| `ConditionSyntaxError` | 立即终止 | 条件表达式语法错误、字段配置缺失 |
-| `ConnectionError` | 容错 | 网络连接失败 |
-| `TimeoutError` | 容错 | 操作超时 |
-| `ValidationError` | 容错 | 参数验证失败 |
-| `ParseError` | 容错 | 数据解析失败、格式转换失败 |
-| `ConditionEvaluationError` | 容错 | 条件评估运行时错误（字段不存在、类型不匹配等） |
+| `Configuration` | 立即终止 | 通用配置错误 |
+| `ConditionSyntax` | 立即终止 | 条件表达式语法错误、字段配置缺失 |
+| `Connection` | 容错 | 网络连接失败 |
+| `Timeout` | 容错 | 操作超时 |
+| `Validation` | 容错 | 参数验证失败 |
+| `Parse` | 容错 | 数据解析失败、格式转换失败 |
+| `ConditionEvaluation` | 容错 | 条件评估运行时错误（字段不存在、类型不匹配等） |
 
 ---
 

@@ -60,8 +60,10 @@ pub struct VariableStorage {
 
 | 变量类型 | 访问路径语法 | 示例 |
 |---------|-------------|------|
-| 全局变量 | `${variable_name}` | `${userId}` |
-| 节点变量 | `${nodes.{node_uuid}.{key}}` | `${nodes.http1.data.user.name}` |
+| 全局变量 | `{{variable_name}}` | `{{userId}}` |
+| 节点变量 | `{{nodes.{node_uuid}.{key}}}` | `{{nodes.http1.data.user.name}}` |
+
+> **注意**: 当前实现中，变量替换仅支持全局变量。节点局部变量 `nodes.{uuid}.{key}` 访问路径尚未实现。
 
 **路径解析规则：**
 1. **全局变量**：直接在 `global` 字典中查找
@@ -78,7 +80,7 @@ pub fn replace_variables(
     expression: &str,
     storage: &VariableStorage,
 ) -> Result<String, String> {
-    // 1. 扫描表达式中的变量引用（${...}）
+    // 1. 扫描表达式中的变量引用（{{...}}）
     // 2. 从 VariableStorage 查找变量值
     // 3. 替换为实际值（JSON 字符串）
     // 4. 返回处理后的表达式

@@ -4,6 +4,7 @@ use crate::connection::Connection;
 use crate::context::{ExecutionContext, VariableStorage};
 use crate::entry_executor::EntryNodeExecutor;
 use crate::flow::Flow;
+use crate::error::{ErrorDetail, ErrorKind};
 use crate::node::{Node, NodeType};
 use regex::Regex;
 use serde_json::json;
@@ -139,6 +140,50 @@ pub trait NodeExecutor {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String>;
+}
+
+
+/// 从字符串错误解析错误详情
+///
+/// 尝试从错误消息中识别错误类型，并创建对应的 ErrorDetail
+fn parse_error_to_detail(error: &str) -> ErrorDetail {
+    // 识别条件语法错误
+    if error.contains("条件") && (error.contains("语法") || error.contains("配置")) {
+        return ErrorDetail::new(ErrorKind::ConditionSyntax, error.to_string());
+    }
+    
+    // 识别配置错误
+    if error.contains("配置") || error.contains("缺少") || error.contains("无效") {
+        return ErrorDetail::new(ErrorKind::Configuration, error.to_string());
+    }
+    
+    // 识别连接错误
+    if error.contains("连接") || error.contains("网络") {
+        return ErrorDetail::new(ErrorKind::Connection, error.to_string());
+    }
+    
+    // 识别超时错误
+    if error.contains("超时") || error.contains("timeout") {
+        return ErrorDetail::new(ErrorKind::Timeout, error.to_string());
+    }
+    
+    // 识别验证错误
+    if error.contains("验证") || error.contains("参数") {
+        return ErrorDetail::new(ErrorKind::Validation, error.to_string());
+    }
+    
+    // 识别解析错误
+    if error.contains("解析") || error.contains("JSON") || error.contains("格式") {
+        return ErrorDetail::new(ErrorKind::Parse, error.to_string());
+    }
+    
+    // 识别条件评估错误
+    if error.contains("条件评估") || error.contains("评估") {
+        return ErrorDetail::new(ErrorKind::ConditionEvaluation, error.to_string());
+    }
+    
+    // 默认为通用执行错误
+    ErrorDetail::new(ErrorKind::Execution, error.to_string())
 }
 
 /// 流程执行器
@@ -426,38 +471,90 @@ impl FlowExecutor {
                         // 返回成功，已执行的节点都成功完成
                         break;
                     } else {
-                        // 根据节点类型设置 used_port_id
-                        let used_port_id = match node.node_type {
-                            NodeType::Entry => Some("out".to_string()),
-                            NodeType::Http => Some("out".to_string()),
-                            _ => None,
+                    // === 容错模式错误处理 ===
+                    // 解析错误类型
+                    let error_detail = parse_error_to_detail(&error);
+                    
+                    // 根据节点类型设置 used_port_id
+                    let used_port_id = match node.node_type {
+                        NodeType::Entry => Some("out".to_string()),
+                        NodeType::Http => Some("out".to_string()),
+                        _ => None,
+                    };
+
+                    // 创建节点执行报告（Failed状态）
+                    let node_report = crate::report::NodeExecutionReport {
+                        node_uuid: node.uuid.clone(),
+                        node_type: format!("{:?}", node.node_type),
+                        node_name: node.name.clone(),
+                        start_time: node_start_ms,
+                        end_time: node_end_ms,
+                        duration_ms: node_duration,
+                        status: crate::report::ExecutionStatus::Failed,
+                        input_data: Some(json!(context.variables.global)),
+                        output_data: None,
+                        used_port_id,
+                        error: Some(error_detail.clone()),
+                    };
+                    node_reports.push(node_report);
+                    executed_count += 1;
+
+                    // 判断是否为致命错误
+                    if error_detail.is_fatal() {
+                        // 致命错误（Configuration, ConditionSyntax）：立即终止流程
+                        log::error!(
+                            "[流程 {}] 节点 {} 发生致命错误 ({:?}): {}",
+                            context.flow_uuid,
+                            node.name,
+                            error_detail.error_kind,
+                            error_detail.message
+                        );
+                        
+                        // 生成部分报告（包含已执行节点）
+                        let end_time_ms = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap()
+                            .as_millis() as u64;
+                        let flow_status = crate::report::ExecutionStatus::Failed;
+                        
+                        let flow_report = crate::report::FlowExecutionReport {
+                            flow_uuid: flow.uuid.clone(),
+                            flow_name: flow.name.clone(),
+                            start_time: end_time_ms - start_time.elapsed().as_millis() as u64,
+                            end_time: end_time_ms,
+                            duration_ms: start_time.elapsed().as_millis() as u64,
+                            total_nodes: flow.nodes.len() as u32,
+                            executed_count,
+                            status: flow_status,
+                            node_reports: node_reports.clone(),
+                            statistics: crate::statistics::FlowStatistics::from_reports(
+                                &node_reports,
+                                flow.nodes.len() as u32,
+                            ),
+                            flow_error: Some(error_detail.clone()),
                         };
 
-                        // 创建节点执行报告（Failed状态）
-                        let node_report = crate::report::NodeExecutionReport {
-                            node_uuid: node.uuid.clone(),
-                            node_type: format!("{:?}", node.node_type),
-                            node_name: node.name.clone(),
-                            start_time: node_start_ms,
-                            end_time: node_end_ms,
-                            duration_ms: node_duration,
-                            status: crate::report::ExecutionStatus::Failed,
-                            input_data: Some(json!(context.variables.global)),
-                            output_data: None,
-                            used_port_id,
-                            error: None,
-                        };
-                        node_reports.push(node_report);
-
-                        // 其他错误，返回失败
                         return ExecutionResult {
                             success: false,
                             data: None,
                             error: Some(error.clone()),
-                            executed_count: 0,
+                            executed_count,
                             node_reports,
-                            flow_report: None,
+                            flow_report: Some(flow_report),
                         };
+                    } else {
+                        // 可恢复错误（Execution, Connection, Timeout 等）：记录失败，终止当前分支
+                        log::warn!(
+                            "[流程 {}] 节点 {} 发生可恢复错误 ({:?}): {}，终止当前分支",
+                            context.flow_uuid,
+                            node.name,
+                            error_detail.error_kind,
+                            error_detail.message
+                        );
+                        
+                        // 终止当前分支
+                        break;
+                    }
                     }
                 }
             }

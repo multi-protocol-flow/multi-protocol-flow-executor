@@ -1,0 +1,22 @@
+// Vitest 测试设置文件
+import '@testing-library/jest-dom'
+
+// ResizeObserver polyfill for React Flow
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+// 确保 global 和 window 存在后再设置
+if (typeof global !== 'undefined') {
+  global.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver
+}
+
+// Mock window.getComputedStyle for React Flow (仅在 window 存在时)
+if (typeof window !== 'undefined') {
+  const originalGetComputedStyle = window.getComputedStyle
+  window.getComputedStyle = (element: Element) => {
+    return originalGetComputedStyle(element)
+  }
+}
