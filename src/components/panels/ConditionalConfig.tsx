@@ -132,17 +132,17 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
     <form onBlur={handleBlur} className="space-y-5">
       {/* 条件类型选择 */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">条件类型</Label>
+        <Label className="text-sm font-medium text-black">条件类型</Label>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => handleConditionTypeChange('simple')}
             className={`flex items-center justify-center gap-2 rounded-lg border-2 p-3 transition-all ${
               conditionType === 'simple'
-                ? 'border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-950/30 dark:text-sky-300'
-                : 'border-muted hover:border-muted-foreground/50'
+                ? 'border-sky-500 bg-sky-50 text-sky-700'
+                : 'border-black hover:bg-slate-50'
             }`}
-          >
+>
             <Split className="h-4 w-4" />
             <span className="text-sm font-medium">简单条件</span>
           </button>
@@ -151,10 +151,10 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
             onClick={() => handleConditionTypeChange('advanced')}
             className={`flex items-center justify-center gap-2 rounded-lg border-2 p-3 transition-all ${
               conditionType === 'advanced'
-                ? 'border-violet-500 bg-violet-50 text-violet-700 dark:bg-violet-950/30 dark:text-violet-300'
-                : 'border-muted hover:border-muted-foreground/50'
+                ? 'border-violet-500 bg-violet-50 text-violet-700'
+                : 'border-black hover:bg-slate-50'
             }`}
-          >
+>
             <Code2 className="h-4 w-4" />
             <span className="text-sm font-medium">高级表达式</span>
           </button>
@@ -166,14 +166,14 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
         <div className="space-y-4">
           {/* 字段路径 */}
           <div className="space-y-2">
-            <Label htmlFor="field_path" className="text-sm font-medium">
+            <Label htmlFor="field_path" className="text-sm font-medium text-black">
               字段路径
             </Label>
             <Input
               id="field_path"
               {...register('field_path')}
               placeholder="http_response.status"
-              className="font-mono text-sm"
+              className="font-mono text-sm border-black"
             />
             <p className="text-xs text-muted-foreground">
               使用点号分隔的路径，如 <code className="rounded bg-muted px-1">http_response.data.id</code>
@@ -182,7 +182,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
 
           {/* 操作符 */}
           <div className="space-y-2">
-            <Label htmlFor="operator" className="text-sm font-medium">
+            <Label htmlFor="operator" className="text-sm font-medium text-black">
               操作符
             </Label>
             <Select
@@ -192,7 +192,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
                 saveData();
               }}
             >
-              <SelectTrigger id="operator">
+              <SelectTrigger id="operator" className="border-black">
                 <SelectValue placeholder="选择操作符" />
               </SelectTrigger>
               <SelectContent>
@@ -207,14 +207,14 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
 
           {/* 期望值 */}
           <div className="space-y-2">
-            <Label htmlFor="expected_value" className="text-sm font-medium">
+            <Label htmlFor="expected_value" className="text-sm font-medium text-black">
               期望值
             </Label>
             <Input
               id="expected_value"
               {...register('expected_value')}
               placeholder="200"
-              className="font-mono text-sm"
+              className="font-mono text-sm border-black"
             />
             <p className="text-xs text-muted-foreground">
               支持数字、字符串或 JSON 值，如 <code className="rounded bg-muted px-1">200</code> 或 <code className="rounded bg-muted px-1">"success"</code>
@@ -226,14 +226,14 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
       {/* 高级表达式配置 */}
       {conditionType === 'advanced' && (
         <div className="space-y-2">
-          <Label htmlFor="advanced_expression" className="text-sm font-medium">
+          <Label htmlFor="advanced_expression" className="text-sm font-medium text-black">
             高级表达式
           </Label>
           <Textarea
             id="advanced_expression"
             {...register('advanced_expression')}
             placeholder="http_response.status >= 200 && http_response.status < 300"
-            className="min-h-[100px] resize-y font-mono text-sm"
+            className="min-h-[100px] resize-y font-mono text-sm border-black"
             rows={4}
           />
           <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">

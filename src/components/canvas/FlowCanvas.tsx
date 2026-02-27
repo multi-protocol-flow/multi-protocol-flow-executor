@@ -285,13 +285,13 @@ function FlowCanvasInner() {
   // 没有流程时显示空状态
   if (!flow) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+      <div className="w-full h-full flex items-center justify-center bg-slate-50">
         <div className="text-center">
           <div className="text-6xl mb-4">📋</div>
-          <h2 className="text-xl font-semibold text-slate-600 dark:text-slate-300">
+          <h2 className="text-xl font-semibold text-slate-600">
             暂无流程
           </h2>
-          <p className="text-sm text-slate-400 dark:text-slate-500 mt-2">
+          <p className="text-sm text-slate-400 mt-2">
             请创建或打开一个流程文件
           </p>
         </div>
@@ -301,7 +301,7 @@ function FlowCanvasInner() {
 
   return (
     <div 
-      className={cn('w-full h-full', 'bg-slate-50 dark:bg-slate-900')}
+      className={cn('w-full h-full', 'bg-slate-50')}
       style={CANVAS_CURSOR_STYLE}
     >
       {/* 全局样式：节点上显示 pointer */}
@@ -351,12 +351,11 @@ function FlowCanvasInner() {
           gap={20}
           size={1}
           color="#cbd5e1"
-          className="dark:!bg-slate-900"
         />
 
         {/* 控制按钮 */}
         <Controls
-          className="!bg-white !dark:bg-slate-800 !border-slate-200 !dark:border-slate-700 !shadow-lg"
+          className="!bg-white !border-slate-200"
           showZoom
           showFitView
           showInteractive
@@ -366,7 +365,7 @@ function FlowCanvasInner() {
         <MiniMap
           nodeColor={minimapNodeColor}
           maskColor="rgba(0, 0, 0, 0.1)"
-          className="!bg-white !dark:bg-slate-800 !border-slate-200 !dark:border-slate-700"
+          className="!bg-white !border-slate-200"
           pannable
           zoomable
         />

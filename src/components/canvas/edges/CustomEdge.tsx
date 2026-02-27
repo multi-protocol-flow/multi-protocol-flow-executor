@@ -4,7 +4,7 @@
 import {
   BaseEdge,
   EdgeLabelRenderer,
-  getBezierPath,
+  getStraightPath,
   MarkerType,
   type EdgeProps,
 } from '@xyflow/react';
@@ -20,30 +20,21 @@ export function CustomEdge({
   sourceY,
   targetX,
   targetY,
-  sourcePosition,
-  targetPosition,
+  sourcePosition: _sourcePosition,
+  targetPosition: _targetPosition,
   style = {},
   selected,
   data,
 }: EdgeProps) {
-  const [edgePath, labelX, labelY] = getBezierPath({
+  const [edgePath, labelX, labelY] = getStraightPath({
     sourceX,
     sourceY,
-    sourcePosition,
     targetX,
     targetY,
-    targetPosition,
   });
 
-  // 根据源端口决定颜色
-  const getEdgeColor = () => {
-    const sourceHandle = data?.sourceHandle;
-    if (sourceHandle === 'true') return '#22c55e';
-    if (sourceHandle === 'false') return '#f43f5e';
-    return '#94a3b8';
-  };
-
-  const edgeColor = getEdgeColor();
+  // 连接线统一使用纯黑色
+  const edgeColor = '#000000';
 
   return (
     <>
@@ -69,7 +60,7 @@ export function CustomEdge({
             className={cn(
               'absolute pointer-events-none',
               'px-2 py-1 rounded-md',
-              'bg-white shadow-md border',
+              'bg-white border',
               'text-xs font-medium'
             )}
             style={{

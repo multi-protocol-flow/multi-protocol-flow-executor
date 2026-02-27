@@ -57,25 +57,21 @@ export function ExecuteButton() {
       onClick={handleExecute}
       disabled={!hasValidFlow || !hasEntryNode || isExecuting}
       className={cn(
-        'relative overflow-hidden gap-2 min-w-[100px]',
-        'bg-gradient-to-r from-green-600 to-emerald-600',
-        'hover:from-green-500 hover:to-emerald-500',
-        'active:from-green-700 active:to-emerald-700',
-        'dark:from-green-600 dark:to-emerald-600',
-        'dark:hover:from-green-500 dark:hover:to-emerald-500',
-        'dark:active:from-green-700 dark:active:to-emerald-700',
-        'text-white font-semibold',
-        'shadow-lg shadow-green-500/25 dark:shadow-green-500/20',
-        'disabled:from-slate-300 disabled:to-slate-400',
-        'disabled:shadow-none',
-        'disabled:text-slate-600 dark:disabled:text-slate-400',
-        'transition-all duration-300'
+        'relative overflow-hidden gap-2 min-w-[100px] h-9',
+        'bg-white border-2 border-black',
+        'hover:bg-slate-50 hover:border-black',
+        'active:bg-slate-100',
+        'text-black font-medium',
+        'rounded-2xl',
+        'disabled:bg-slate-100 disabled:border-slate-300',
+        'disabled:text-slate-400',
+        'transition-all duration-200'
       )}
     >
       {/* 背景动画效果 */}
       <div
         className={cn(
-          'absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent',
+          'absolute inset-0 bg-slate-100',
           'translate-x-[-100%]',
           isExecuting && 'animate-shimmer'
         )}

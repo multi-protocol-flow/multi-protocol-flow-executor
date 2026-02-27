@@ -22,30 +22,19 @@ export function EntryNode({ data, selected }: NodeProps) {
   return (
     <div
       className={cn(
-        // 基础样式
-        'relative px-4 py-3 rounded-xl',
-        'border-2 border-emerald-500/60',
-        'bg-gradient-to-br from-emerald-50 to-emerald-100/80',
-        'shadow-lg shadow-emerald-500/10',
+        'relative px-4 h-16 rounded-xl',
+        'border-2 border-black',
+        'bg-white',
         'transition-all duration-200 ease-out',
         'min-w-[140px]',
-        // 选中状态
-        selected && [
-          'ring-2 ring-emerald-500 ring-offset-2 ring-offset-background',
-          'shadow-xl shadow-emerald-500/20',
-          'scale-[1.02]',
-        ]
+        'flex items-center',
+        selected && 'border-[3px] border-emerald-500'
       )}
     >
-      {/* 左侧装饰条 */}
-      <div className="absolute left-0 top-2 bottom-2 w-1 rounded-full bg-emerald-500" />
-      
-      {/* 图标和标签 */}
       <div className="flex items-center gap-2.5">
         <div className={cn(
           'p-1.5 rounded-lg',
-          'bg-emerald-500 text-white',
-          'shadow-md shadow-emerald-500/30'
+          'bg-emerald-500 text-white'
         )}>
           <Play className="w-3.5 h-3.5 fill-current" />
         </div>
@@ -53,23 +42,21 @@ export function EntryNode({ data, selected }: NodeProps) {
           <span className="text-xs text-emerald-600 font-medium uppercase tracking-wide">
             入口
           </span>
-          <span className="text-sm font-semibold text-emerald-900">
+          <span className="text-sm font-semibold text-black">
             {nodeData.label || '流程入口'}
           </span>
         </div>
       </div>
       
-      {/* 输出端口 - 右侧 */}
       <Handle
         type="source"
         position={Position.Right}
         id="out"
         className={cn(
           '!w-3.5 !h-3.5',
-          '!bg-emerald-500',
-          '!border-2 !border-white',
-          '!shadow-md !shadow-emerald-500/30',
-          'hover:!scale-125 hover:!bg-emerald-400',
+          '!bg-white !border-2 !border-black',
+          '![background:radial-gradient(circle,_theme(colors.emerald.500)_35%,_white_35%)]',
+          'hover:!scale-125',
           'transition-transform duration-150'
         )}
       />

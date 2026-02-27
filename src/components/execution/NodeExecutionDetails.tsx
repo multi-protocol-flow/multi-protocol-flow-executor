@@ -30,10 +30,10 @@ const NODE_TYPE_NAMES: Record<string, string> = {
 
 /** 节点类型颜色映射 */
 const NODE_TYPE_COLORS: Record<string, string> = {
-  entry: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-  http: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-  conditional: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  end: 'bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:text-slate-300',
+  entry: 'bg-emerald-100 text-emerald-700',
+  http: 'bg-blue-100 text-blue-700',
+  conditional: 'bg-amber-100 text-amber-700',
+  end: 'bg-slate-100 text-slate-700',
 };
 
 export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
@@ -48,8 +48,8 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
       className={cn(
         'border rounded-xl overflow-hidden transition-all duration-200',
         isSuccess
-          ? 'border-emerald-200/60 dark:border-emerald-800/40'
-          : 'border-red-200/60 dark:border-red-800/40'
+          ? 'border-emerald-200/60'
+          : 'border-red-200/60'
       )}
     >
       {/* 标题栏 */}
@@ -108,7 +108,7 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
                 <ArrowRightLeft className="w-3.5 h-3.5" />
                 <span className="font-medium">输入数据</span>
               </div>
-              <pre className="p-3 bg-slate-900 dark:bg-slate-950 rounded-lg text-xs overflow-x-auto text-slate-100">
+              <pre className="p-3 bg-slate-100 border border-black rounded-lg text-xs overflow-x-auto text-slate-800">
                 {JSON.stringify(report.input_data, null, 2)}
               </pre>
             </div>
@@ -121,7 +121,7 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
                 <ArrowRightLeft className="w-3.5 h-3.5 rotate-180" />
                 <span className="font-medium">输出数据</span>
               </div>
-              <pre className="p-3 bg-slate-900 dark:bg-slate-950 rounded-lg text-xs overflow-x-auto text-slate-100">
+              <pre className="p-3 bg-slate-100 border border-black rounded-lg text-xs overflow-x-auto text-slate-800">
                 {JSON.stringify(report.output_data, null, 2)}
               </pre>
             </div>
@@ -139,16 +139,16 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
 
           {/* 错误信息 */}
           {report.error && (
-            <div className="rounded-lg bg-red-50 dark:bg-red-950/30 p-3 border border-red-200/50 dark:border-red-800/30">
-              <div className="flex items-center gap-1.5 mb-1 text-red-600 dark:text-red-400">
+            <div className="rounded-lg bg-red-50 p-3 border border-red-200/50">
+              <div className="flex items-center gap-1.5 mb-1 text-red-600">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 <span className="font-medium">错误信息</span>
               </div>
-              <p className="text-red-600 dark:text-red-400 text-sm">
+              <p className="text-red-600 text-sm">
                 {report.error.message}
               </p>
               {report.error.stack_trace && (
-                <pre className="mt-2 p-2 bg-red-100 dark:bg-red-900/30 rounded text-xs overflow-x-auto text-red-700 dark:text-red-300">
+                <pre className="mt-2 p-2 bg-red-100 rounded text-xs overflow-x-auto text-red-700">
                   {report.error.stack_trace}
                 </pre>
               )}

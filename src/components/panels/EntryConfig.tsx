@@ -8,16 +8,16 @@ export function EntryConfig() {
   return (
     <div className="space-y-4">
       {/* 主说明卡片 */}
-      <div className="rounded-lg border border-emerald-200/50 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 p-4 dark:border-emerald-900/30 dark:from-emerald-950/30 dark:to-teal-950/20">
+      <div className="rounded-lg border border-emerald-200/50 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 p-4">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 rounded-full bg-emerald-100 p-1.5 dark:bg-emerald-900/50">
-            <PlayCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+          <div className="mt-0.5 rounded-full bg-emerald-100 p-1.5">
+            <PlayCircle className="h-4 w-4 text-emerald-600" />
           </div>
           <div className="flex-1 space-y-2">
-            <h4 className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">
+            <h4 className="text-sm font-semibold text-emerald-900">
               入口节点
             </h4>
-            <p className="text-sm leading-relaxed text-emerald-700/90 dark:text-emerald-300/80">
+            <p className="text-sm leading-relaxed text-emerald-700/90">
               入口节点是流程的起点。每个流程必须有且仅有一个入口节点，
               流程执行将从这里开始，沿着连接线依次执行各个节点。
             </p>

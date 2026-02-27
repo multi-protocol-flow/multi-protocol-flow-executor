@@ -62,18 +62,18 @@ export function FlowListPanel() {
   const flows = useFlowListStore((state) => state.flows);
 
   return (
-    <div className="flex flex-col h-52 border-b border-border/50">
+    <div className="flex flex-col h-52 border-b" style={{ borderColor: '#e0e0e0' }}>
       {/* 标题栏 */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border/30">
-        <span className="text-sm font-medium text-foreground/90">流程列表</span>
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[#e0e0e0]">
+        <span className="text-sm font-medium text-black">流程列表</span>
         <Button
           variant="ghost"
           size="icon"
           onClick={handleNewFlow}
-          className="h-7 w-7 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:text-emerald-600 dark:hover:text-emerald-400"
+          className="h-7 w-7 rounded-md bg-white border border-black hover:bg-slate-50"
           title="新建流程"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 text-black" />
         </Button>
       </div>
 
@@ -89,21 +89,22 @@ export function FlowListPanel() {
                 key={flowMeta.uuid}
                 onClick={() => handleSelectFlow(flowMeta.uuid)}
                 className={cn(
-                  'group w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm text-left transition-all duration-150',
-                  'hover:bg-muted/60',
-                  isSelected && 'bg-emerald-100/70 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300',
-                  !isSelected && 'text-foreground/80'
+                  'group w-full flex items-center gap-2 px-3 h-12 rounded-lg text-sm text-left transition-all duration-150',
+                  'bg-white border border-black',
+                  'hover:bg-slate-50',
+                  isSelected && 'bg-white border-black',
+                  !isSelected && 'text-slate-600'
                 )}
               >
                 <FileJson
                   className={cn(
                     'w-4 h-4 shrink-0 transition-colors',
-                    isSelected ? 'text-emerald-500' : 'text-muted-foreground'
+                    isSelected ? 'text-emerald-500' : 'text-slate-400'
                   )}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="truncate font-medium">{flowMeta.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-xs text-slate-400 truncate">
                     {formatRelativeTime(flowMeta.updated_at)}
                   </p>
                 </div>
@@ -116,7 +117,7 @@ export function FlowListPanel() {
                   className={cn(
                     'h-6 w-6 shrink-0 transition-opacity duration-150',
                     'opacity-0 group-hover:opacity-100',
-                    'hover:bg-red-100 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400'
+                    'hover:bg-red-50 hover:text-red-500'
                   )}
                   title="删除流程"
                 >
@@ -127,7 +128,7 @@ export function FlowListPanel() {
           })}
 
           {flows.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-6 text-slate-400">
               <FileJson className="w-8 h-8 mb-2 opacity-40" />
               <p className="text-sm">暂无流程</p>
               <p className="text-xs mt-1 opacity-70">点击 + 创建新流程</p>

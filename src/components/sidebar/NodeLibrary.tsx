@@ -78,8 +78,8 @@ export function NodeLibrary() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* 标题栏 */}
-      <div className="px-3 py-2 border-b border-border/30">
-        <span className="text-sm font-medium text-foreground/90">节点库</span>
+      <div className="px-3 py-2 border-b border-[#e0e0e0]">
+        <span className="text-sm font-medium text-black">节点库</span>
       </div>
 
       {/* 节点列表 */}
@@ -92,28 +92,28 @@ export function NodeLibrary() {
             draggable
             onDragStart={(e) => handleDragStart(e, nodeType.type)}
             className={cn(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border/40',
-              'hover:bg-muted/50 hover:border-border/60 transition-all duration-150 cursor-pointer',
+              'w-full flex items-center gap-3 px-3 h-14 rounded-lg',
+              'bg-white border border-black',
+              'hover:bg-slate-50 transition-all duration-150 cursor-pointer',
               'group text-left'
             )}
           >
             {/* 节点图标 */}
             <div
               className={cn(
-                'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors',
-                nodeType.color,
-                nodeType.colorHover
+                'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
+                'bg-white border border-black'
               )}
             >
-              <nodeType.icon className={cn('w-4.5 h-4.5', nodeType.iconColor)} />
+              <nodeType.icon className="w-5 h-5 text-black" />
             </div>
 
             {/* 节点信息 */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground/90 truncate">
+              <p className="text-sm font-medium text-black truncate">
                 {nodeType.name}
               </p>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="text-xs text-slate-500 truncate">
                 {nodeType.description}
               </p>
             </div>
@@ -121,7 +121,7 @@ export function NodeLibrary() {
             {/* 拖拽手柄 */}
             <GripVertical
               className={cn(
-                'w-4 h-4 text-muted-foreground/50 shrink-0',
+                'w-4 h-4 text-slate-400 shrink-0',
                 'opacity-0 group-hover:opacity-100 transition-opacity'
               )}
             />
@@ -130,8 +130,8 @@ export function NodeLibrary() {
       </div>
 
       {/* 底部提示 */}
-      <div className="px-3 py-2.5 border-t border-border/30 bg-muted/20">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="px-3 py-2.5 border-t border-[#e0e0e0] bg-slate-50">
+        <div className="flex items-center gap-2 text-xs text-slate-400">
           <Sparkles className="w-3.5 h-3.5 text-amber-500" />
           <span>点击添加节点或拖拽到画布</span>
         </div>

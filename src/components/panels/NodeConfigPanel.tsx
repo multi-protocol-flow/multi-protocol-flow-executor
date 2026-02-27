@@ -21,17 +21,17 @@ const NODE_TYPE_CONFIG = {
   entry: {
     label: '入口',
     badgeVariant: 'default' as const,
-    badgeClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300',
+    badgeClass: 'bg-emerald-50 text-emerald-700',
   },
   http: {
     label: 'HTTP',
     badgeVariant: 'secondary' as const,
-    badgeClass: 'bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300',
+    badgeClass: 'bg-sky-50 text-sky-700',
   },
   conditional: {
     label: '条件',
     badgeVariant: 'outline' as const,
-    badgeClass: 'border-violet-300 text-violet-700 dark:border-violet-700 dark:text-violet-300',
+    badgeClass: 'border-violet-200 text-violet-700',
   },
 };
 
@@ -43,11 +43,11 @@ export function NodeConfigPanel() {
   if (!selectedNode) {
     return (
       <div className="flex h-full flex-col items-center justify-center p-6 text-center">
-        <div className="rounded-full bg-muted/50 p-4 mb-4">
-          <MousePointerClick className="h-8 w-8 text-muted-foreground" />
+        <div className="rounded-full bg-slate-100 p-4 mb-4">
+          <MousePointerClick className="h-8 w-8 text-slate-400" />
         </div>
-        <h3 className="text-lg font-medium text-foreground">未选中节点</h3>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <h3 className="text-lg font-medium text-black">未选中节点</h3>
+        <p className="mt-2 text-sm text-slate-400">
           请在画布上点击选择一个节点进行配置
         </p>
       </div>
@@ -73,11 +73,11 @@ export function NodeConfigPanel() {
 
   return (
     <Card className="flex h-full flex-col overflow-hidden border-0 shadow-none">
-      <CardHeader className="shrink-0 border-b bg-gradient-to-r from-background to-muted/30 pb-4">
+      <CardHeader className="shrink-0 border-b border-[#e0e0e0] bg-white pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Settings2 className="h-4 w-4 text-muted-foreground" />
-            <CardTitle className="text-base font-semibold">
+            <Settings2 className="h-4 w-4 text-slate-400" />
+            <CardTitle className="text-base font-semibold text-black">
               {selectedNode.name}
             </CardTitle>
           </div>
@@ -88,12 +88,11 @@ export function NodeConfigPanel() {
             >
               {typeConfig.label}
             </Badge>
-            {/* 入口节点不可删除 */}
             {selectedNode.type !== 'entry' && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                className="h-7 w-7 text-slate-400 hover:text-red-500 hover:bg-red-50"
                 onClick={handleDelete}
                 title="删除节点"
               >

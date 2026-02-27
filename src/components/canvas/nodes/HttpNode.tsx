@@ -24,45 +24,32 @@ export function HttpNode({ data, selected }: NodeProps) {
   return (
     <div
       className={cn(
-        // 基础样式
-        'relative px-4 py-3 rounded-xl',
-        'border-2 border-blue-500/60',
-        'bg-gradient-to-br from-blue-50 to-blue-100/80',
-        'shadow-lg shadow-blue-500/10',
+        'relative px-4 h-16 rounded-xl',
+        'border-2 border-black',
+        'bg-white',
         'transition-all duration-200 ease-out',
         'min-w-[160px]',
-        // 选中状态
-        selected && [
-          'ring-2 ring-blue-500 ring-offset-2 ring-offset-background',
-          'shadow-xl shadow-blue-500/20',
-          'scale-[1.02]',
-        ]
+        'flex items-center',
+        selected && 'border-[3px] border-sky-500'
       )}
     >
-      {/* 左侧装饰条 */}
-      <div className="absolute left-0 top-2 bottom-2 w-1 rounded-full bg-blue-500" />
-      
-      {/* 输入端口 - 左侧 */}
       <Handle
         type="target"
         position={Position.Left}
         id="in"
         className={cn(
           '!w-3.5 !h-3.5',
-          '!bg-blue-500',
-          '!border-2 !border-white',
-          '!shadow-md !shadow-blue-500/30',
-          'hover:!scale-125 hover:!bg-blue-400',
-          'transition-transform duration-150'
+          '!bg-white !border-2 !border-black',
+          'hover:!scale-125',
+          'transition-transform duration-150',
+          "before:content-[''] before:absolute before:inset-[3px] before:bg-sky-500 before:rounded-full"
         )}
       />
       
-      {/* 图标和标签 */}
       <div className="flex items-center gap-2.5">
         <div className={cn(
           'p-1.5 rounded-lg',
-          'bg-blue-500 text-white',
-          'shadow-md shadow-blue-500/30'
+          'bg-blue-500 text-white'
         )}>
           <Globe className="w-3.5 h-3.5" />
         </div>
@@ -70,24 +57,22 @@ export function HttpNode({ data, selected }: NodeProps) {
           <span className="text-xs text-blue-600 font-medium uppercase tracking-wide">
             {method}
           </span>
-          <span className="text-sm font-semibold text-blue-900">
+          <span className="text-sm font-semibold text-black">
             {nodeData.label || 'HTTP 请求'}
           </span>
         </div>
       </div>
       
-      {/* 输出端口 - 右侧 */}
       <Handle
         type="source"
         position={Position.Right}
         id="out"
         className={cn(
           '!w-3.5 !h-3.5',
-          '!bg-blue-500',
-          '!border-2 !border-white',
-          '!shadow-md !shadow-blue-500/30',
-          'hover:!scale-125 hover:!bg-blue-400',
-          'transition-transform duration-150'
+          '!bg-white !border-2 !border-black',
+          'hover:!scale-125',
+          'transition-transform duration-150',
+          "before:content-[''] before:absolute before:inset-[3px] before:bg-sky-500 before:rounded-full"
         )}
       />
     </div>

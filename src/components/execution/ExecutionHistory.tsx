@@ -54,7 +54,7 @@ export function ExecutionHistory({ onSelectFlow, onRerun }: ExecutionHistoryProp
 
   if (history.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full py-8 text-muted-foreground">
+      <div className="flex flex-col items-center justify-center h-full py-8 text-slate-400">
         <History className="w-10 h-10 mb-3 opacity-40" />
         <p className="text-sm">暂无执行历史</p>
         <p className="text-xs mt-1 opacity-70">执行流程后记录将显示在这里</p>
@@ -71,15 +71,15 @@ export function ExecutionHistory({ onSelectFlow, onRerun }: ExecutionHistoryProp
   return (
     <div className="flex flex-col h-full">
       {/* 头部 */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
-        <span className="text-xs text-muted-foreground">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-[#e0e0e0]">
+        <span className="text-xs text-slate-500">
           共 {history.length} 条记录
         </span>
         <Button
           variant="ghost"
           size="sm"
           onClick={handleClearHistory}
-          className="h-7 text-xs text-muted-foreground hover:text-destructive"
+          className="h-7 text-xs text-slate-500 hover:text-red-500"
         >
           清空
         </Button>
@@ -98,8 +98,8 @@ export function ExecutionHistory({ onSelectFlow, onRerun }: ExecutionHistoryProp
                 onClick={() => onSelectFlow?.(item.flow_uuid)}
                 className={cn(
                   'group flex items-center justify-between p-2.5 rounded-lg w-full',
-                  'border border-transparent hover:border-border/50',
-                  'hover:bg-muted/50 cursor-pointer transition-all duration-150 text-left'
+                  'border border-transparent hover:border-slate-200',
+                  'hover:bg-slate-50 cursor-pointer transition-all duration-150 text-left'
                 )}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -108,23 +108,23 @@ export function ExecutionHistory({ onSelectFlow, onRerun }: ExecutionHistoryProp
                     className={cn(
                       'shrink-0 w-7 h-7 rounded-full flex items-center justify-center',
                       isSuccess
-                        ? 'bg-emerald-100 dark:bg-emerald-900/40'
-                        : 'bg-red-100 dark:bg-red-900/40'
+                        ? 'bg-emerald-100'
+                        : 'bg-red-100'
                     )}
                   >
                     {isSuccess ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     ) : (
-                      <XCircle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                      <XCircle className="w-3.5 h-3.5 text-red-600" />
                     )}
                   </div>
 
                   {/* 流程信息 */}
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
+                    <p className="text-sm font-medium text-slate-700 truncate">
                       {item.flow_name}
                     </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                    <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
                       <Clock className="w-3 h-3" />
                       <span>{formatTimestamp(item.timestamp)}</span>
                       <span className="opacity-50">·</span>

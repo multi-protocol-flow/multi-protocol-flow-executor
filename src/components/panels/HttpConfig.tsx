@@ -158,7 +158,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     <form onBlur={handleBlur} className="space-y-5">
       {/* URL 输入 */}
       <div className="space-y-2">
-        <Label htmlFor="url" className="text-sm font-medium">
+        <Label htmlFor="url" className="text-sm font-medium text-black">
           URL <span className="text-rose-500">*</span>
         </Label>
         <div className="relative">
@@ -167,7 +167,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
             id="url"
             {...register('url')}
             placeholder="https://api.example.com/endpoint"
-            className="pl-9 font-mono text-sm"
+            className="pl-9 font-mono text-sm h-9 rounded-md border-black"
           />
         </div>
         {errors.url && (
@@ -177,7 +177,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
 
       {/* 请求方法选择 */}
       <div className="space-y-2">
-        <Label htmlFor="method" className="text-sm font-medium">
+        <Label htmlFor="method" className="text-sm font-medium text-black">
           请求方法
         </Label>
         <Select
@@ -187,7 +187,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
             saveData();
           }}
         >
-          <SelectTrigger id="method" className="font-mono">
+          <SelectTrigger id="method" className="font-mono border-black">
             <SelectValue placeholder="选择方法" />
           </SelectTrigger>
           <SelectContent>
@@ -205,13 +205,13 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {/* Headers 编辑器 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">Headers</Label>
+          <Label className="text-sm font-medium text-black">Headers</Label>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={handleAddHeader}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+            className="h-7 gap-1 text-xs text-muted-foreground hover:text-black"
           >
             <Plus className="h-3 w-3" />
             添加
@@ -228,12 +228,12 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 <Input
                   {...register(`headers.${index}.key`)}
                   placeholder="Header Name"
-                  className="h-8 flex-1 font-mono text-xs"
+                  className="h-8 flex-1 font-mono text-xs border-black"
                 />
                 <Input
                   {...register(`headers.${index}.value`)}
                   placeholder="Value"
-                  className="h-8 flex-1 font-mono text-xs"
+                  className="h-8 flex-1 font-mono text-xs border-black"
                 />
                 <Button
                   type="button"
@@ -252,14 +252,14 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
 
       {/* Body 编辑器 */}
       <div className="space-y-2">
-        <Label htmlFor="body" className="text-sm font-medium">
+        <Label htmlFor="body" className="text-sm font-medium text-black">
           Body (JSON)
         </Label>
         <Textarea
           id="body"
           {...register('body')}
           placeholder='{"key": "value"}'
-          className="min-h-[120px] resize-y font-mono text-sm"
+          className="min-h-[120px] resize-y font-mono text-sm border-black"
           rows={5}
         />
         <p className="text-xs text-muted-foreground">

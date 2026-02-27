@@ -38,7 +38,7 @@ function StatCard({
   valueColor?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border/50 bg-gradient-to-br from-background to-muted/30 p-4 transition-all hover:shadow-md">
+    <div className="rounded-xl border border-border/50 bg-gradient-to-br from-background to-muted/30 p-4 transition-all">
       <div className="flex items-center gap-2 mb-2">
         <Icon className={cn('w-4 h-4', iconColor || 'text-muted-foreground')} />
         <span className="text-xs text-muted-foreground">{label}</span>
@@ -72,17 +72,15 @@ export function ExecutionReport() {
               className={cn(
                 'p-2 rounded-full',
                 isSuccess
-                  ? 'bg-emerald-100 dark:bg-emerald-900/40'
-                  : 'bg-red-100 dark:bg-red-900/40'
-              )}
-            >
+                  ? 'bg-emerald-100'
+                  : 'bg-red-100'
+            )}>
               {isSuccess ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
               ) : (
-                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                <XCircle className="w-5 h-5 text-red-600" />
               )}
             </div>
-
             {/* 标题文字 */}
             <span>执行报告</span>
 
@@ -92,10 +90,9 @@ export function ExecutionReport() {
               className={cn(
                 'ml-auto font-medium',
                 isSuccess
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-800'
-                  : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800'
-              )}
-            >
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-red-50 text-red-700 border-red-200'
+            )}>
               {isSuccess ? '成功' : '失败'}
             </Badge>
           </DialogTitle>
@@ -116,28 +113,28 @@ export function ExecutionReport() {
               label="总耗时"
               value={`${report.duration_ms}ms`}
               iconColor="text-violet-500"
-              valueColor="text-violet-600 dark:text-violet-400"
+              valueColor="text-violet-600"
             />
             <StatCard
               icon={BarChart3}
               label="执行节点"
               value={`${report.executed_count}/${report.total_nodes}`}
               iconColor="text-blue-500"
-              valueColor="text-blue-600 dark:text-blue-400"
+              valueColor="text-blue-600"
             />
             <StatCard
               icon={CheckCircle2}
               label="成功"
               value={report.statistics.success_count}
               iconColor="text-emerald-500"
-              valueColor="text-emerald-600 dark:text-emerald-400"
+              valueColor="text-emerald-600"
             />
             <StatCard
               icon={XCircle}
               label="失败"
               value={report.statistics.failed_count}
               iconColor="text-red-500"
-              valueColor="text-red-600 dark:text-red-400"
+              valueColor="text-red-600"
             />
           </div>
 
@@ -160,15 +157,14 @@ export function ExecutionReport() {
 
           {/* 流程级错误 */}
           {report.flow_error && (
-            <div className="rounded-xl bg-red-50 dark:bg-red-950/30 p-4 border border-red-200/50 dark:border-red-800/30">
-              <div className="flex items-center gap-2 mb-2 text-red-600 dark:text-red-400">
+            <div className="rounded-xl bg-red-50 p-4 border border-red-200/50">
+              <div className="flex items-center gap-2 mb-2 text-red-600">
                 <AlertCircle className="w-4 h-4" />
                 <span className="font-medium">流程错误</span>
               </div>
-              <p className="text-red-600 dark:text-red-400">{report.flow_error.message}</p>
+              <p className="text-red-600">{report.flow_error.message}</p>
             </div>
           )}
-
           {/* 节点执行详情 */}
           <div className="flex-1 min-h-0">
             <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
