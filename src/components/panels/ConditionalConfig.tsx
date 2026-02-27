@@ -173,7 +173,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
               id="field_path"
               {...register('field_path')}
               placeholder="http_response.status"
-              className="font-mono text-sm border-black"
+              className="font-mono text-sm"
             />
             <p className="text-xs text-muted-foreground">
               使用点号分隔的路径，如 <code className="rounded bg-muted px-1">http_response.data.id</code>
@@ -192,7 +192,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
                 saveData();
               }}
             >
-              <SelectTrigger id="operator" className="border-black">
+              <SelectTrigger id="operator">
                 <SelectValue placeholder="选择操作符" />
               </SelectTrigger>
               <SelectContent>
@@ -214,7 +214,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
               id="expected_value"
               {...register('expected_value')}
               placeholder="200"
-              className="font-mono text-sm border-black"
+              className="font-mono text-sm"
             />
             <p className="text-xs text-muted-foreground">
               支持数字、字符串或 JSON 值，如 <code className="rounded bg-muted px-1">200</code> 或 <code className="rounded bg-muted px-1">"success"</code>
@@ -233,7 +233,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
             id="advanced_expression"
             {...register('advanced_expression')}
             placeholder="http_response.status >= 200 && http_response.status < 300"
-            className="min-h-[100px] resize-y font-mono text-sm border-black"
+            className="min-h-[120px] resize-y font-mono text-sm"
             rows={4}
           />
           <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">

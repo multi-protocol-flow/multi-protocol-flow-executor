@@ -73,7 +73,7 @@ export function NodeConfigPanel() {
 
   return (
     <Card className="flex h-full flex-col overflow-hidden border-0 shadow-none">
-      <CardHeader className="shrink-0 border-b border-[#e0e0e0] bg-white pb-4">
+      <CardHeader className="shrink-0 border-b border-muted bg-white pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Settings2 className="h-4 w-4 text-slate-400" />

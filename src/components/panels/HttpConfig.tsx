@@ -167,7 +167,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
             id="url"
             {...register('url')}
             placeholder="https://api.example.com/endpoint"
-            className="pl-9 font-mono text-sm h-9 rounded-md border-black"
+            className="pl-9 font-mono text-sm"
           />
         </div>
         {errors.url && (
@@ -187,7 +187,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
             saveData();
           }}
         >
-          <SelectTrigger id="method" className="font-mono border-black">
+          <SelectTrigger id="method" className="font-mono">
             <SelectValue placeholder="选择方法" />
           </SelectTrigger>
           <SelectContent>
@@ -228,12 +228,12 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 <Input
                   {...register(`headers.${index}.key`)}
                   placeholder="Header Name"
-                  className="h-8 flex-1 font-mono text-xs border-black"
+                  className="h-8 flex-1 font-mono text-xs"
                 />
                 <Input
                   {...register(`headers.${index}.value`)}
                   placeholder="Value"
-                  className="h-8 flex-1 font-mono text-xs border-black"
+                  className="h-8 flex-1 font-mono text-xs"
                 />
                 <Button
                   type="button"
@@ -259,7 +259,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           id="body"
           {...register('body')}
           placeholder='{"key": "value"}'
-          className="min-h-[120px] resize-y font-mono text-sm border-black"
+          className="min-h-[120px] resize-y font-mono text-sm"
           rows={5}
         />
         <p className="text-xs text-muted-foreground">
