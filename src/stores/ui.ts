@@ -35,6 +35,8 @@ interface UIState {
   sidebarWidth: number;
   /** 配置面板宽度（像素） */
   configPanelWidth: number;
+  /** 底部面板高度（像素） */
+  bottomPanelHeight: number;
   /** 画布缩放比例 */
   canvasZoom: number;
 
@@ -69,6 +71,8 @@ interface UIState {
   setSidebarWidth: (width: number) => void;
   /** 设置配置面板宽度 */
   setConfigPanelWidth: (width: number) => void;
+  /** 设置底部面板高度 */
+  setBottomPanelHeight: (height: number) => void;
   /** 设置画布缩放 */
   setCanvasZoom: (zoom: number) => void;
 
@@ -81,6 +85,8 @@ const MIN_SIDEBAR_WIDTH = 200;
 const MAX_SIDEBAR_WIDTH = 400;
 const MIN_CONFIG_WIDTH = 250;
 const MAX_CONFIG_WIDTH = 500;
+const MIN_BOTTOM_PANEL_HEIGHT = 100;
+const MAX_BOTTOM_PANEL_HEIGHT = 500;
 
 const initialState = {
   // 面板状态
@@ -99,6 +105,7 @@ const initialState = {
   // 布局状态
   sidebarWidth: 280,
   configPanelWidth: 320,
+  bottomPanelHeight: 208,
   canvasZoom: 1,
 };
 
@@ -160,6 +167,11 @@ export const useUIStore = create<UIState>((set) => ({
       configPanelWidth: Math.max(MIN_CONFIG_WIDTH, Math.min(MAX_CONFIG_WIDTH, width)),
     }),
 
+  setBottomPanelHeight: (height) =>
+    set({
+      bottomPanelHeight: Math.max(MIN_BOTTOM_PANEL_HEIGHT, Math.min(MAX_BOTTOM_PANEL_HEIGHT, height)),
+    }),
+
   setCanvasZoom: (zoom) =>
     set({
       canvasZoom: Math.max(0.25, Math.min(2, zoom)),
@@ -186,7 +198,7 @@ export const selectIsHistoryPanelOpen = (state: UIState) =>
 /** 选择配置面板状态 */
 export const selectIsConfigPanelOpen = (state: UIState) =>
   state.isConfigPanelOpen;
-/** 选择执行面板状态 */
+/** 选择执行结果面板状态 */
 export const selectIsExecutionPanelOpen = (state: UIState) =>
   state.isExecutionPanelOpen;
 /** 选择新建流程对话框状态 */

@@ -9,28 +9,76 @@ import { ExecuteButton, ExecutionReport, ExecutionHistory, ConsolePanel } from '
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { useUIStore, useFlowStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, GripHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useState, useCallback, useRef, useEffect } from 'react';
+
 export function MainLayout() {
   const {
     isFlowListPanelOpen,
     isHistoryPanelOpen,
     isConfigPanelOpen,
     bottomPanelTab,
+    bottomPanelHeight,
     toggleFlowListPanel,
     toggleHistoryPanel,
     toggleConfigPanel,
     setBottomPanelTab,
+    setBottomPanelHeight,
   } = useUIStore();
 
   const { isDirty, flow } = useFlowStore();
 
   // Console store values
   const { filter, clearLogs, setFilter, setSearchKeyword, getUniqueNodes } = useConsoleStore();
+
+  // 拖拽调整高度相关状态
+  const [isDragging, setIsDragging] = useState(false);
+  const startYRef = useRef(0);
+  const startHeightRef = useRef(0);
+
+  // 开始拖拽
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    startYRef.current = e.clientY;
+    startHeightRef.current = bottomPanelHeight;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  }, [bottomPanelHeight]);
+
+  // 拖拽中
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging) return;
+    const deltaY = startYRef.current - e.clientY;
+    const newHeight = Math.max(100, Math.min(500, startHeightRef.current + deltaY));
+    setBottomPanelHeight(newHeight);
+  }, [isDragging, setBottomPanelHeight]);
+
+  // 结束拖拽
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
+
+  // 使用 useEffect 管理事件监听
+  useEffect(() => {
+    if (!isDragging) return;
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
   return (
     <div className="h-screen flex flex-col bg-white text-slate-900 overflow-hidden">
       {/* ===== 顶部工具栏 ===== */}
@@ -119,12 +167,27 @@ export function MainLayout() {
           </div>
 
           {/* ===== 底部面板（历史/控制台） ===== */}
+          {/* 可拖拽调整高度的 handle */}
+          {isHistoryPanelOpen && (
+            <div
+              onMouseDown={handleMouseDown}
+              className={cn(
+                'shrink-0 h-1.5 bg-transparent hover:bg-slate-200 active:bg-slate-300',
+                'cursor-row-resize flex items-center justify-center',
+                'transition-colors duration-150',
+                isDragging && 'bg-slate-300'
+              )}
+              title="拖拽调整面板高度"
+            >
+              <GripHorizontal className="w-6 h-3 text-slate-400" />
+            </div>
+          )}
           <div
             className={cn(
-              'shrink-0 border-t border-border bg-white',
-              'transition-all duration-300 ease-out overflow-hidden',
-              isHistoryPanelOpen ? 'h-52' : 'h-0'
+              'shrink-0 bg-white overflow-hidden',
+              isHistoryPanelOpen ? 'border-t border-border' : 'h-0'
             )}
+            style={{ height: isHistoryPanelOpen ? bottomPanelHeight : 0 }}
           >
             {isHistoryPanelOpen && (
               <div className="h-full flex flex-col">
