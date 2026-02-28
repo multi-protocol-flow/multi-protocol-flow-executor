@@ -33,3 +33,4 @@ node_modules
 # AI agent working directory
 .sisyphus/
 dist/
+AGENTS.md
