@@ -13,6 +13,31 @@ import { z } from 'zod';
 export const httpMethodSchema = z.enum(['get', 'post', 'put', 'delete', 'patch']);
 
 /**
+ * HTTP Body 类型枚举
+ */
+export const httpBodyTypeSchema = z.enum(['none', 'body', 'form-data', 'x-www-form-urlencoded', 'binary']);
+
+/**
+ * Content Type 枚举
+ */
+export const contentTypeSchema = z.enum(['json', 'text', 'html', 'xml', 'javascript']);
+
+/**
+ * Form Field 类型枚举
+ */
+export const formFieldTypeSchema = z.enum(['text', 'file']);
+
+/**
+ * Form Field Schema
+ */
+export const formFieldSchema = z.object({
+  key: z.string().min(1),
+  value: z.string(),
+  type: formFieldTypeSchema.optional(),
+  file_path: z.string().optional(),
+});
+
+/**
  * Header 键值对 Schema
  */
 export const headerEntrySchema = z.object({
@@ -20,18 +45,23 @@ export const headerEntrySchema = z.object({
   value: z.string(),
 });
 
-/**
- * HTTP 配置表单 Schema
- */
 export const httpConfigSchema = z.object({
   url: z.string().url('请输入有效的 URL').min(1, 'URL 不能为空'),
   method: httpMethodSchema,
   headers: z.array(headerEntrySchema).optional(),
+  body_type: httpBodyTypeSchema.optional(),
+  content_type: contentTypeSchema.optional(),
+  form_fields: z.array(formFieldSchema).optional(),
+  file_path: z.string().optional(),
   body: z.string().optional(),
 });
 
 export type HttpConfigFormData = z.infer<typeof httpConfigSchema>;
 export type HeaderEntry = z.infer<typeof headerEntrySchema>;
+export type HttpBodyType = z.infer<typeof httpBodyTypeSchema>;
+export type ContentType = z.infer<typeof contentTypeSchema>;
+export type FormFieldType = z.infer<typeof formFieldTypeSchema>;
+export type FormField = z.infer<typeof formFieldSchema>;
 
 // ============================================================================
 // Conditional 配置 Schema

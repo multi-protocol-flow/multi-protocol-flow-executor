@@ -33,6 +33,35 @@ export interface NodePosition {
  */
 export type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch';
 
+/**
+ * HTTP 请求体类型
+ */
+export type HttpBodyType = 'none' | 'body' | 'form-data' | 'x-www-form-urlencoded' | 'binary';
+
+/**
+ * Content-Type 枚举
+ */
+export type ContentType = 'json' | 'text' | 'html' | 'xml' | 'javascript';
+
+/**
+ * 表单字段类型
+ */
+export type FormFieldType = 'text' | 'file';
+
+/**
+ * 表单字段
+ */
+export interface FormField {
+  /** 字段名 */
+  key: string;
+  /** 字段值 */
+  value: string;
+  /** 字段类型 */
+  type?: FormFieldType;
+  /** 文件路径（仅 file 类型使用） */
+  file_path?: string;
+}
+
 // ============================================================================
 // 条件类型枚举
 // ============================================================================
@@ -68,9 +97,6 @@ export interface EntryConfig {
   type: 'entry';
 }
 
-/**
- * Http 节点配置
- */
 export interface HttpConfig {
   type: 'http';
   /** 请求 URL */
@@ -79,8 +105,16 @@ export interface HttpConfig {
   method?: HttpMethod;
   /** 请求头 */
   headers?: Record<string, string>;
-  /** 请求体 */
-  body?: unknown;
+  /** 请求体类型（默认 none） */
+  body_type?: HttpBodyType;
+  /** Content-Type（默认 json） */
+  content_type?: ContentType;
+  /** 表单字段 */
+  form_fields?: FormField[];
+  /** 二进制文件路径 */
+  file_path?: string;
+  /** 请求体（文本格式） */
+  body?: string;
 }
 
 /**

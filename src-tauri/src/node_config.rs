@@ -19,13 +19,79 @@ pub struct EntryConfig {}
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum HttpMethod {
+    /// GET 请求
     #[default]
     Get,
+    /// POST 请求
     Post,
+    /// PUT 请求
     Put,
+    /// DELETE 请求
     Delete,
+    /// PATCH 请求
     Patch,
 }
+
+/// HTTP 请求体类型
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+pub enum HttpBodyType {
+    /// 无请求体
+    #[default]
+    None,
+    /// 原始请求体
+    Body,
+    /// multipart/form-data 表单
+    FormData,
+    /// application/x-www-form-urlencoded 表单
+    XWwwFormUrlencoded,
+    /// 二进制文件
+    Binary,
+}
+
+/// Content-Type 枚举
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum ContentType {
+    /// application/json
+    #[default]
+    Json,
+    /// text/plain
+    Text,
+    /// text/html
+    Html,
+    /// application/xml
+    Xml,
+    /// application/javascript
+    Javascript,
+}
+
+/// 表单字段类型
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum FormFieldType {
+    /// 文本字段
+    #[default]
+    Text,
+    /// 文件字段
+    File,
+}
+
+/// 表单字段
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FormField {
+    /// 字段键名
+    pub key: String,
+    /// 字段值
+    pub value: String,
+    /// 字段类型
+    #[serde(default)]
+    pub field_type: FormFieldType,
+    /// 文件路径（仅文件类型字段）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_path: Option<String>,
+}
+
 
 /// Http 节点配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,9 +104,20 @@ pub struct HttpConfig {
     /// 请求头
     #[serde(default)]
     pub headers: Option<HashMap<String, String>>,
-    /// 请求体
+    /// 请求体类型
     #[serde(default)]
-    pub body: Option<serde_json::Value>,
+    pub body_type: HttpBodyType,
+    /// Content-Type
+    #[serde(default)]
+    pub content_type: ContentType,
+    /// 表单字段
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub form_fields: Option<Vec<FormField>>,
+    /// 二进制文件路径
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_path: Option<String>,
+    /// 请求体
+    pub body: Option<String>,
 }
 
 impl Default for HttpConfig {
@@ -49,6 +126,10 @@ impl Default for HttpConfig {
             url: String::new(),
             method: HttpMethod::Get,
             headers: None,
+            body_type: HttpBodyType::None,
+            content_type: ContentType::Json,
+            form_fields: None,
+            file_path: None,
             body: None,
         }
     }
@@ -62,8 +143,10 @@ impl Default for HttpConfig {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ConditionType {
+    /// 简单条件（字段比较）
     #[default]
     Simple,
+    /// 高级条件（表达式）
     Advanced,
 }
 
@@ -71,16 +154,26 @@ pub enum ConditionType {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ConditionOperator {
+    /// 等于
     #[default]
     Equal,
+    /// 不等于
     NotEqual,
+    /// 大于
     Greater,
+    /// 大于等于
     GreaterOrEqual,
+    /// 小于
     Less,
+    /// 小于等于
     LessOrEqual,
+    /// 包含
     Contains,
+    /// 以...开头
     StartsWith,
+    /// 以...结尾
     EndsWith,
+    /// 存在
     Exists,
 }
 
@@ -112,8 +205,11 @@ pub struct ConditionalConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum NodeData {
+    /// 入口节点配置
     Entry(EntryConfig),
+    /// HTTP 请求节点配置
     Http(HttpConfig),
+    /// 条件分支节点配置
     Conditional(ConditionalConfig),
 }
 
@@ -230,8 +326,7 @@ mod tests {
         let config = HttpConfig {
             url: "https://api.example.com/users".to_string(),
             method: HttpMethod::Get,
-            headers: None,
-            body: None,
+            ..Default::default()
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();
@@ -316,7 +411,8 @@ mod tests {
             url: "https://api.example.com".to_string(),
             method: HttpMethod::Post,
             headers: Some(headers),
-            body: Some(json!({"key": "value"})),
+            body: Some(r#"{\"key\": \"value\"}"#.to_string()),
+            ..Default::default()
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();
@@ -325,7 +421,7 @@ mod tests {
         assert!(json.contains("Content-Type"));
         assert!(json.contains("application/json"));
         assert!(json.contains("post"));
-        assert!(json.contains(r#""key""#));
-        assert!(json.contains(r#""value""#));
+        assert!(json.contains("key"));
+        assert!(json.contains("value"));
     }
 }
