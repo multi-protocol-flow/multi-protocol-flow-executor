@@ -155,7 +155,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   }, [remove, saveData]);
 
   return (
-    <form onBlur={handleBlur} className="w-full space-y-5">
+    <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
       {/* URL 输入 */}
       <div className="space-y-2">
         <Label htmlFor="url" className="text-sm font-medium text-black">
