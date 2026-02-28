@@ -2,6 +2,7 @@ use crate::connection::Connection;
 use crate::context::ExecutionContext;
 use crate::error::{ErrorDetail, ErrorKind};
 use crate::executor::NodeExecutor;
+use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use crate::node_config::{ConditionOperator, ConditionType, NodeData};
 use evalexpr::ContextWithMutableVariables;
@@ -38,6 +39,19 @@ impl NodeExecutor for ConditionalNodeExecutor {
         let start_time = Instant::now();
         log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: conditional", context.flow_uuid, node.uuid, node.name);
 
+        // 发送日志：条件节点开始评估
+        context.emit_log(LogEvent {
+            level: LogLevel::Info,
+            message: format!("条件节点 {} 开始评估", node.name),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as u64,
+            node_uuid: Some(node.uuid.clone()),
+            node_name: Some(node.name.clone()),
+            flow_uuid: context.flow_uuid.clone(),
+        }).await;
+
         // 从 Node 的 data 字段提取 ConditionalConfig
         let conditional_config = match &node.data {
             NodeData::Conditional(config) => config.clone(),
@@ -51,6 +65,19 @@ impl NodeExecutor for ConditionalNodeExecutor {
         // 判断条件类型并评估
         let condition_result = match conditional_config.condition_type {
             ConditionType::Simple => {
+                // 发送日志：条件类型
+                context.emit_log(LogEvent {
+                    level: LogLevel::Debug,
+                    message: "条件类型: Simple".to_string(),
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as u64,
+                    node_uuid: Some(node.uuid.clone()),
+                    node_name: Some(node.name.clone()),
+                    flow_uuid: context.flow_uuid.clone(),
+                }).await;
+
                 // 简单条件：评估 field_path + operator + expected_value
                 let expression = format!(
                     "{:?} {:?} {:?}",
@@ -63,9 +90,36 @@ impl NodeExecutor for ConditionalNodeExecutor {
                     &json!(context.variables.global),
                 )?;
                 log::info!("[流程 {}] [条件判断] 条件类型: Simple, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
+
+                // 发送日志：表达式详情
+                context.emit_log(LogEvent {
+                    level: LogLevel::Debug,
+                    message: format!("表达式: {} = {}", expression, result),
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as u64,
+                    node_uuid: Some(node.uuid.clone()),
+                    node_name: Some(node.name.clone()),
+                    flow_uuid: context.flow_uuid.clone(),
+                }).await;
+
                 result
             }
             ConditionType::Advanced => {
+                // 发送日志：条件类型
+                context.emit_log(LogEvent {
+                    level: LogLevel::Debug,
+                    message: "条件类型: Advanced".to_string(),
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as u64,
+                    node_uuid: Some(node.uuid.clone()),
+                    node_name: Some(node.name.clone()),
+                    flow_uuid: context.flow_uuid.clone(),
+                }).await;
+
                 // 高级条件：评估 advanced_expression
                 let expression = conditional_config.advanced_expression.as_ref().unwrap_or(&"".to_string()).clone();
                 let result = self.evaluate_advanced_condition(
@@ -73,10 +127,36 @@ impl NodeExecutor for ConditionalNodeExecutor {
                     &json!(context.variables.global),
                 )?;
                 log::info!("[流程 {}] [条件判断] 条件类型: Advanced, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
+
+                // 发送日志：表达式详情
+                context.emit_log(LogEvent {
+                    level: LogLevel::Debug,
+                    message: format!("表达式: {} = {}", expression, result),
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as u64,
+                    node_uuid: Some(node.uuid.clone()),
+                    node_name: Some(node.name.clone()),
+                    flow_uuid: context.flow_uuid.clone(),
+                }).await;
+
                 result
             }
         };
 
+        // 发送日志：条件结果
+        context.emit_log(LogEvent {
+            level: LogLevel::Info,
+            message: format!("条件结果: {}", condition_result),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as u64,
+            node_uuid: Some(node.uuid.clone()),
+            node_name: Some(node.name.clone()),
+            flow_uuid: context.flow_uuid.clone(),
+        }).await;
         let duration_ms = start_time.elapsed().as_millis();
 
         // 确定目标端口（true 或 false）

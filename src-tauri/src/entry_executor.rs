@@ -1,6 +1,7 @@
 // Entry 节点执行器 - EntryNodeExecutor 实现
 
 use crate::connection::Connection;
+use crate::log_event::{LogEvent, LogLevel};
 use crate::context::ExecutionContext;
 use crate::executor::NodeExecutor;
 use crate::node::Node;
@@ -53,6 +54,21 @@ impl NodeExecutor for EntryNodeExecutor {
         // 记录开始时间
         let start_time = tokio::time::Instant::now();
 
+        // 发送开始日志
+        context
+            .emit_log(LogEvent {
+                level: LogLevel::Info,
+                message: format!("Entry 节点 {} 开始", node.name),
+                timestamp: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_millis() as u64)
+                    .unwrap_or(0),
+                node_uuid: Some(node.uuid.clone()),
+                node_name: Some(node.name.clone()),
+                flow_uuid: context.flow_uuid.clone(),
+            })
+            .await;
+
         // 执行前日志
         log::info!(
             "[流程 {}] [Entry] 节点 UUID: {}, 节点名称: {}",
@@ -71,6 +87,21 @@ impl NodeExecutor for EntryNodeExecutor {
 
         // 如果没有输出连接，这是流程的正常终止，不是错误
         if next_node_ids.is_empty() {
+            // 发送无连接终止日志
+            context
+                .emit_log(LogEvent {
+                    level: LogLevel::Info,
+                    message: "Entry 节点无后续连接，流程终止".to_string(),
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map(|d| d.as_millis() as u64)
+                        .unwrap_or(0),
+                    node_uuid: Some(node.uuid.clone()),
+                    node_name: Some(node.name.clone()),
+                    flow_uuid: context.flow_uuid.clone(),
+                })
+                .await;
+
             log::info!(
                 "[流程 {}] Entry 节点 {} ({}) 没有输出连接，流程终止",
                 context.flow_uuid,
@@ -83,6 +114,21 @@ impl NodeExecutor for EntryNodeExecutor {
 
         // 计算执行时间
         let duration_ms = start_time.elapsed().as_millis();
+
+        // 发送完成日志
+        context
+            .emit_log(LogEvent {
+                level: LogLevel::Info,
+                message: format!("Entry 节点 {} 完成", node.name),
+                timestamp: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_millis() as u64)
+                    .unwrap_or(0),
+                node_uuid: Some(node.uuid.clone()),
+                node_name: Some(node.name.clone()),
+                flow_uuid: context.flow_uuid.clone(),
+            })
+            .await;
 
         // 执行后日志
         log::info!(

@@ -1,6 +1,7 @@
 use crate::connection::Connection;
 use crate::context::ExecutionContext;
 use crate::executor::NodeExecutor;
+use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -34,6 +35,18 @@ impl NodeExecutor for HttpNodeExecutor {
         let start_time = Instant::now();
         log::info!("[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: http", context.flow_uuid, node.uuid, node.name);
 
+        // 发送执行开始日志到前端
+        context.emit_log(LogEvent {
+            level: LogLevel::Info,
+            message: format!("HTTP 节点 {} 开始执行", node.name),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("系统时间错误")
+                .as_millis() as u64,
+            node_uuid: Some(node.uuid.clone()),
+            node_name: Some(node.name.clone()),
+            flow_uuid: context.flow_uuid.clone(),
+        }).await;
         // 从Node的data字段提取HttpConfig
         let http_config = match &node.data {
             crate::node_config::NodeData::Http(config) => config.clone(),
@@ -55,6 +68,19 @@ impl NodeExecutor for HttpNodeExecutor {
         // HTTP请求日志
         let method_str = format!("{:?}", http_config.method).to_uppercase();
         log::info!("[流程 {}] [HTTP请求] URL: {}, 方法: {}", context.flow_uuid, url, method_str);
+
+        // 发送HTTP请求日志到前端
+        context.emit_log(LogEvent {
+            level: LogLevel::Info,
+            message: format!("HTTP {} {}", method_str, url),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("系统时间错误")
+                .as_millis() as u64,
+            node_uuid: Some(node.uuid.clone()),
+            node_name: Some(node.name.clone()),
+            flow_uuid: context.flow_uuid.clone(),
+        }).await;
 
         // 创建HTTP客户端（默认超时30秒）
         let client = reqwest::Client::builder()
@@ -104,14 +130,26 @@ impl NodeExecutor for HttpNodeExecutor {
         let http_start_time = Instant::now();
 
         // 发送请求并获取响应
-        let response = request
-            .send()
-            .await
-            .map_err(|e| {
+        let response = match request.send().await {
+            Ok(resp) => resp,
+            Err(e) => {
                 let error_msg = format!("HTTP请求失败: {}", e);
                 log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
-                error_msg
-            })?;
+                // 发送请求失败日志到前端
+                context.emit_log(LogEvent {
+                    level: LogLevel::Error,
+                    message: format!("HTTP 请求失败: {}", e),
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .expect("系统时间错误")
+                        .as_millis() as u64,
+                    node_uuid: Some(node.uuid.clone()),
+                    node_name: Some(node.name.clone()),
+                    flow_uuid: context.flow_uuid.clone(),
+                }).await;
+                return Err(error_msg);
+            }
+        };
 
         let status = response.status();
         let status_code = status.as_u16();
@@ -125,6 +163,19 @@ impl NodeExecutor for HttpNodeExecutor {
             http_duration_ms
         );
 
+        // 发送HTTP响应日志到前端
+        context.emit_log(LogEvent {
+            level: LogLevel::Info,
+            message: format!("HTTP {} ({}ms)", status_code, http_duration_ms),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("系统时间错误")
+                .as_millis() as u64,
+            node_uuid: Some(node.uuid.clone()),
+            node_name: Some(node.name.clone()),
+            flow_uuid: context.flow_uuid.clone(),
+        }).await;
+
         // 验证HTTP状态码（2xx视为成功，其他视为失败）
         if !(200..300).contains(&status_code) {
             let error_msg = format!(
@@ -133,6 +184,18 @@ impl NodeExecutor for HttpNodeExecutor {
                 status.canonical_reason().unwrap_or("Unknown")
             );
             log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+            // 发送HTTP状态码错误日志到前端
+            context.emit_log(LogEvent {
+                level: LogLevel::Error,
+                message: format!("HTTP 请求失败: {}", error_msg),
+                timestamp: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .expect("系统时间错误")
+                    .as_millis() as u64,
+                node_uuid: Some(node.uuid.clone()),
+                node_name: Some(node.name.clone()),
+                flow_uuid: context.flow_uuid.clone(),
+            }).await;
             return Err(error_msg);
         }
 
@@ -185,6 +248,19 @@ impl NodeExecutor for HttpNodeExecutor {
 
         // 执行后日志
         log::info!("[流程 {}] [完成] 节点UUID: {}, 耗时: {}ms, 状态: success", context.flow_uuid, node.uuid, _duration_ms);
+
+        // 发送执行完成日志到前端
+        context.emit_log(LogEvent {
+            level: LogLevel::Info,
+            message: format!("HTTP 节点 {} 完成", node.name),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("系统时间错误")
+                .as_millis() as u64,
+            node_uuid: Some(node.uuid.clone()),
+            node_name: Some(node.name.clone()),
+            flow_uuid: context.flow_uuid.clone(),
+        }).await;
 
         // 返回空列表（HTTP 节点不决定下一个节点）和输出数据
         Ok((vec![], Some(output_data)))
