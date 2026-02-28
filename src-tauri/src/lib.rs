@@ -1,4 +1,6 @@
 // 导入基础模块
+mod log_event;
+
 mod command;
 mod commands;
 mod conditional_executor;
@@ -32,6 +34,8 @@ pub use report::*;
 pub use statistics::FlowStatistics;
 pub use validator::{FlowValidator, ValidationResult};
 pub use error::*;
+pub use log_event::{LogEvent, LogLevel};
+
 
 // 导出存储模块
 pub use storage::{ensure_flows_dir, get_data_dir, get_flows_dir, load_flow, save_flow};

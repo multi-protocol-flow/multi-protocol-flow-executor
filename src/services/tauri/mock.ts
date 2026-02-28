@@ -126,3 +126,61 @@ export async function executeFlow(
     execution_time: executionTime,
   };
 }
+
+
+/**
+ * Mock 事件订阅服务 - 用于非 Tauri 环境测试
+ */
+
+import type { LogEvent, LogLevel } from '@/types/events';
+
+// 模拟日志级别
+const mockLevels: LogLevel[] = ['INFO', 'DEBUG', 'WARN', 'ERROR'];
+
+/**
+ * Mock 日志订阅 Channel
+ * 使用 setInterval 模拟日志推送
+ *
+ * @param onLog - 日志回调函数
+ * @returns mock channel 对象和 cleanup 函数
+ */
+export function subscribeToFlowLogs(
+  onLog: (event: LogEvent) => void
+): { channel: { mock: true }; cleanup: () => void } {
+  // 模拟定时发送日志
+  const intervalId = setInterval(() => {
+    onLog({
+      level: mockLevels[Math.floor(Math.random() * mockLevels.length)],
+      message: `[Mock] 模拟日志消息 ${Date.now()}`,
+      timestamp: Date.now(),
+      nodeUuid: 'mock-node-1',
+      nodeName: 'Mock 节点',
+      flowUuid: 'mock-flow-1',
+    });
+  }, 1000);
+
+  return {
+    channel: { mock: true },
+    cleanup: () => clearInterval(intervalId),
+  };
+}
+
+/**
+ * Mock 执行流程并订阅日志
+ *
+ * @param _input - 执行输入参数（Mock 中未使用）
+ * @param _flow - 流程对象（Mock 中未使用）
+ * @param onLog - 日志回调函数
+ */
+export async function executeFlowWithLogs(
+  _input: { flowId: string; variables?: Record<string, unknown> },
+  _flow: unknown,
+  onLog: (event: LogEvent) => void
+): Promise<void> {
+  const { cleanup } = subscribeToFlowLogs(onLog);
+
+  // 模拟执行 3 秒后停止
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  cleanup();
+}
