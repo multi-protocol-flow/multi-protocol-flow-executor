@@ -2,7 +2,7 @@
  * FlowCanvas - 主画布组件
  * 基于 React Flow 的流程编辑器
  */
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -83,8 +83,21 @@ const minimapNodeColor = (node: Node) => {
  * 画布内部组件（在 ReactFlowProvider 内部）
  */
 function FlowCanvasInner() {
-  const { flow, addConnection, updateNode, selectNode, addNode, removeNode, removeConnection } = useFlowStore();
+  const { 
+    flow, 
+    addConnection, 
+    updateNode, 
+    selectNode, 
+    addNode, 
+    removeNode, 
+    removeConnection,
+    pendingAddNodeType,
+    clearPendingAddNodeType,
+  } = useFlowStore();
   const { screenToFlowPosition, setCenter, getViewport } = useReactFlow();
+  
+  // 画布容器引用（用于计算视口中心）
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   // 转换 Flow 数据为 React Flow 格式
   const initialData = useMemo(() => {
@@ -258,7 +271,7 @@ function FlowCanvasInner() {
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  // 处理拖放
+  // 处理拖放 - 使用鼠标实际位置
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
@@ -268,18 +281,11 @@ function FlowCanvasInner() {
 
       // 获取当前视口信息
       const { zoom } = getViewport();
-      
-      // 计算当前可视画布中心在流程坐标系中的位置
-      // 获取画布容器的尺寸
-      const canvasElement = event.currentTarget as HTMLElement;
-      const rect = canvasElement.getBoundingClientRect();
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      
-      // 将屏幕中心转换为流程坐标
+
+      // 使用鼠标实际位置（而非画布中心）转换为流程坐标
       const position = screenToFlowPosition({
-        x: rect.left + centerX,
-        y: rect.top + centerY,
+        x: event.clientX,
+        y: event.clientY,
       });
 
       // 根据节点类型创建节点配置
@@ -318,6 +324,55 @@ function FlowCanvasInner() {
     [screenToFlowPosition, flow, addNode, getViewport, setCenter]
   );
 
+  // 处理点击添加节点请求 - 在当前视口中心添加节点
+  useEffect(() => {
+    if (!pendingAddNodeType || !flow) return;
+
+    // 使用 canvasRef 获取画布容器
+    const canvasElement = canvasRef.current;
+    if (!canvasElement) {
+      clearPendingAddNodeType();
+      return;
+    }
+
+    const rect = canvasElement.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    // 将视口中心转换为流程坐标
+    const position = screenToFlowPosition({ x: centerX, y: centerY });
+
+    // 根据节点类型创建节点
+    const nodeCount = flow.nodes.length + 1;
+    const newNodeUuid = crypto.randomUUID();
+
+    if (pendingAddNodeType === 'http') {
+      addNode({
+        uuid: newNodeUuid,
+        type: 'http',
+        name: `HTTP 请求 ${nodeCount}`,
+        position,
+        data: { type: 'http', url: '', method: 'get', headers: {}, body: '' },
+      });
+    } else if (pendingAddNodeType === 'conditional') {
+      addNode({
+        uuid: newNodeUuid,
+        type: 'conditional',
+        name: `条件判断 ${nodeCount}`,
+        position,
+        data: {
+          type: 'conditional',
+          condition_type: 'simple',
+          field_path: '',
+          operator: 'equal',
+          expected_value: '',
+        },
+      });
+    }
+
+    // 清除待添加节点状态
+    clearPendingAddNodeType();
+  }, [pendingAddNodeType, flow, addNode, screenToFlowPosition, clearPendingAddNodeType, canvasRef]);
   // 没有流程时显示空状态
   if (!flow) {
     return (
@@ -337,6 +392,7 @@ function FlowCanvasInner() {
 
   return (
     <div 
+      ref={canvasRef}
       className={cn('w-full h-full', 'bg-slate-50')}
       style={CANVAS_CURSOR_STYLE}
     >

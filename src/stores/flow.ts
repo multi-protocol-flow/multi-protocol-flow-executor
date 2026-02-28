@@ -11,6 +11,8 @@ interface FlowState {
   selectedNodeId: string | null;
   /** 流程是否已修改（未保存） */
   isDirty: boolean;
+  /** 待添加的节点类型（由 NodeLibrary 设置，FlowCanvas 处理） */
+  pendingAddNodeType: string | null;
 
   // ===== Actions =====
   /** 设置当前流程 */
@@ -35,6 +37,10 @@ interface FlowState {
   markSaved: () => void;
   /** 重置流程状态 */
   reset: () => void;
+  /** 设置待添加节点类型（用于跨组件通信） */
+  setPendingAddNodeType: (type: string | null) => void;
+  /** 清除待添加节点类型 */
+  clearPendingAddNodeType: () => void;
 
   // ===== Computed (Selectors) =====
   /** 获取当前选中的节点 */
@@ -47,6 +53,7 @@ const initialState = {
   flow: null,
   selectedNodeId: null,
   isDirty: false,
+  pendingAddNodeType: null,
 };
 
 export const useFlowStore = create<FlowState>((set, get) => ({
@@ -137,6 +144,9 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
   reset: () => set(initialState),
 
+  setPendingAddNodeType: (type) => set({ pendingAddNodeType: type }),
+
+  clearPendingAddNodeType: () => set({ pendingAddNodeType: null }),
   // ===== Computed (Selectors) =====
   getSelectedNode: () => {
     const { flow, selectedNodeId } = get();
