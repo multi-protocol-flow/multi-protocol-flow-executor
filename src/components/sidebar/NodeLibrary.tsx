@@ -29,50 +29,17 @@ const NODE_TYPES = [
 ] as const;
 
 export function NodeLibrary() {
-  const { addNode, flow } = useFlowStore();
+  const { setPendingAddNodeType, flow } = useFlowStore();
 
   const handleDragStart = (e: React.DragEvent, type: string) => {
     e.dataTransfer.setData('application/reactflow/nodeType', type);
     e.dataTransfer.effectAllowed = 'move';
   };
 
+  // 点击添加节点 - 设置待添加类型，由 FlowCanvas 在视口中心处理
   const handleAddNode = (type: string) => {
     if (!flow) return;
-
-    // 计算节点位置，避免重叠
-    const existingNodes = flow.nodes.length;
-    const baseX = 250 + existingNodes * 30;
-    const baseY = 150 + existingNodes * 30;
-
-    if (type === 'http') {
-      addNode({
-        uuid: crypto.randomUUID(),
-        type: 'http',
-        name: `HTTP 请求 ${existingNodes + 1}`,
-        position: { x: baseX, y: baseY },
-        data: {
-          type: 'http',
-          url: '',
-          method: 'get',
-          headers: {},
-          body: '',
-        },
-      });
-    } else if (type === 'conditional') {
-      addNode({
-        uuid: crypto.randomUUID(),
-        type: 'conditional',
-        name: `条件判断 ${existingNodes + 1}`,
-        position: { x: baseX, y: baseY },
-        data: {
-          type: 'conditional',
-          condition_type: 'simple',
-          field_path: '',
-          operator: 'equal',
-          expected_value: '',
-        },
-      });
-    }
+    setPendingAddNodeType(type);
   };
 
   return (
