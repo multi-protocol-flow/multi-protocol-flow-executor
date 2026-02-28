@@ -5,7 +5,7 @@ use crate::context::{ExecutionContext, VariableStorage};
 use crate::entry_executor::EntryNodeExecutor;
 use crate::flow::Flow;
 use crate::error::{ErrorDetail, ErrorKind};
-use crate::log_event::LogEvent;
+use crate::log_event::{LogEvent, LogLevel};
 use crate::node::{Node, NodeType};
 use regex::Regex;
 use serde_json::json;
@@ -355,6 +355,16 @@ impl FlowExecutor {
                     };
                     node_reports.push(node_report);
 
+                    // 发送节点完成日志
+                    context.emit_log(LogEvent {
+                        level: LogLevel::Info,
+                        message: format!("节点 {} 执行完成", node.name),
+                        timestamp: node_end_ms,
+                        node_uuid: Some(node.uuid.clone()),
+                        node_name: Some(node.name.clone()),
+                        flow_uuid: context.flow_uuid.clone(),
+                    }).await;
+
                     // 如果有输出数据，更新上下文变量
                     if let Some(data) = output_data {
                         log::info!(
@@ -380,6 +390,17 @@ impl FlowExecutor {
                             context.flow_uuid,
                             node.name
                         );
+
+                        // 发送条件终止日志
+                        context.emit_log(LogEvent {
+                            level: LogLevel::Info,
+                            message: format!("条件节点 {} 返回 false，流程终止", node.name),
+                            timestamp: node_end_ms,
+                            node_uuid: Some(node.uuid.clone()),
+                            node_name: Some(node.name.clone()),
+                            flow_uuid: context.flow_uuid.clone(),
+                        }).await;
+
                         // 条件为 false 是正常的流程终止，返回成功
                         break;
                     }
@@ -516,14 +537,27 @@ impl FlowExecutor {
                             error_detail.error_kind,
                             error_detail.message
                         );
-                        
+
+                        // 发送致命错误日志
+                        context.emit_log(LogEvent {
+                            level: LogLevel::Error,
+                            message: format!("节点 {} 致命错误: {}", node.name, error_detail.message),
+                            timestamp: std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .expect("系统时间错误")
+                                .as_millis() as u64,
+                            node_uuid: Some(node.uuid.clone()),
+                            node_name: Some(node.name.clone()),
+                            flow_uuid: context.flow_uuid.clone(),
+                        }).await;
+
                         // 生成部分报告（包含已执行节点）
                         let end_time_ms = std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap()
                             .as_millis() as u64;
                         let flow_status = crate::report::ExecutionStatus::Failed;
-                        
+
                         let flow_report = crate::report::FlowExecutionReport {
                             flow_uuid: flow.uuid.clone(),
                             flow_name: flow.name.clone(),
@@ -558,7 +592,20 @@ impl FlowExecutor {
                             error_detail.error_kind,
                             error_detail.message
                         );
-                        
+
+                        // 发送可恢复错误日志
+                        context.emit_log(LogEvent {
+                            level: LogLevel::Warn,
+                            message: format!("节点 {} 可恢复错误: {}", node.name, error_detail.message),
+                            timestamp: std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .expect("系统时间错误")
+                                .as_millis() as u64,
+                            node_uuid: Some(node.uuid.clone()),
+                            node_name: Some(node.name.clone()),
+                            flow_uuid: context.flow_uuid.clone(),
+                        }).await;
+
                         // 终止当前分支
                         break;
                     }
@@ -632,6 +679,19 @@ impl FlowExecutor {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+        // 发送节点开始日志
+        context.emit_log(LogEvent {
+            level: LogLevel::Info,
+            message: format!("执行节点 {} ({:?})", node.name, node.node_type),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("系统时间错误")
+                .as_millis() as u64,
+            node_uuid: Some(node.uuid.clone()),
+            node_name: Some(node.name.clone()),
+            flow_uuid: context.flow_uuid.clone(),
+        }).await;
+
         match node.node_type {
             NodeType::Entry => {
                 log::info!(

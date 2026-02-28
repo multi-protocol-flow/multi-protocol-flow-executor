@@ -85,7 +85,6 @@ export function FlowListPanel() {
 
             return (
               <div
-                type="button"
                 key={flowMeta.uuid}
                 onClick={() => handleSelectFlow(flowMeta.uuid)}
                 className={cn(

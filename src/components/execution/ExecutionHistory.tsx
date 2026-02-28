@@ -2,7 +2,7 @@
  * 执行历史列表组件
  * 显示历史执行记录，支持选择和重新执行
  */
-import { useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { CheckCircle2, XCircle, RotateCcw, Clock, History } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -50,7 +50,14 @@ interface ExecutionHistoryProps {
 }
 
 export function ExecutionHistory({ onSelectFlow, onRerun }: ExecutionHistoryProps) {
-  const history = useMemo(() => listExecutionHistory(), []);
+  const [history, setHistory] = useState(() => listExecutionHistory());
+
+  const handleClearHistory = useCallback(() => {
+    if (window.confirm('确定要清空所有执行历史吗？')) {
+      clearExecutionHistory();
+      setHistory([]);
+    }
+  }, []);
 
   if (history.length === 0) {
     return (
@@ -61,12 +68,6 @@ export function ExecutionHistory({ onSelectFlow, onRerun }: ExecutionHistoryProp
       </div>
     );
   }
-
-  const handleClearHistory = () => {
-    if (window.confirm('确定要清空所有执行历史吗？')) {
-      clearExecutionHistory();
-    }
-  };
 
   return (
     <div className="flex flex-col h-full">

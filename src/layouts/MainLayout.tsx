@@ -5,25 +5,32 @@
 import { FlowListPanel, NodeLibrary } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
 import { NodeConfigPanel } from '@/components/panels';
-import { ExecuteButton, ExecutionReport, ExecutionHistory } from '@/components/execution';
+import { ExecuteButton, ExecutionReport, ExecutionHistory, ConsolePanel } from '@/components/execution';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { useUIStore, useFlowStore } from '@/stores';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap } from 'lucide-react';
+import { useConsoleStore } from '@/stores/console';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-
 export function MainLayout() {
   const {
     isFlowListPanelOpen,
     isHistoryPanelOpen,
     isConfigPanelOpen,
+    bottomPanelTab,
     toggleFlowListPanel,
     toggleHistoryPanel,
     toggleConfigPanel,
+    setBottomPanelTab,
   } = useUIStore();
 
   const { isDirty, flow } = useFlowStore();
 
+  // Console store values
+  const { filter, clearLogs, setFilter, setSearchKeyword, getUniqueNodes } = useConsoleStore();
   return (
     <div className="h-screen flex flex-col bg-white text-slate-900 overflow-hidden">
       {/* ===== 顶部工具栏 ===== */}
@@ -111,7 +118,7 @@ export function MainLayout() {
             <FlowCanvas />
           </div>
 
-          {/* ===== 底部历史面板 ===== */}
+          {/* ===== 底部面板（历史/控制台） ===== */}
           <div
             className={cn(
               'shrink-0 border-t border-border bg-white',
@@ -121,9 +128,18 @@ export function MainLayout() {
           >
             {isHistoryPanelOpen && (
               <div className="h-full flex flex-col">
-                {/* 历史面板头部 */}
-                <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
-                  <span className="text-sm font-medium text-slate-700">执行历史</span>
+                {/* 面板头部：Tab 切换 + 关闭按钮 */}
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100">
+                  <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as 'history' | 'console')} className="w-auto">
+                    <TabsList className="h-7 p-0.5">
+                      <TabsTrigger value="history" className="h-6 px-3 text-xs">
+                        执行历史
+                      </TabsTrigger>
+                      <TabsTrigger value="console" className="h-6 px-3 text-xs">
+                        控制台
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -134,10 +150,63 @@ export function MainLayout() {
                     <ChevronDown className="w-4 h-4 text-slate-400" />
                   </Button>
                 </div>
-                {/* 历史列表 */}
-                <div className="flex-1 overflow-hidden">
-                  <ExecutionHistory />
-                </div>
+
+                {/* Tab 内容 */}
+                <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as 'history' | 'console')} className="flex-1 min-h-0">
+                  <TabsContent value="history" className="m-0 h-full overflow-hidden">
+                    <ExecutionHistory />
+                  </TabsContent>
+                  <TabsContent value="console" className="m-0 h-full overflow-hidden flex flex-col">
+                    {/* 过滤控件 */}
+                    <div className="flex items-center gap-2 px-2 py-1.5 border-b border-slate-100 shrink-0">
+                      <Select value={filter.level} onValueChange={(v) => setFilter({ level: v as 'ALL' | 'INFO' | 'DEBUG' | 'WARN' | 'ERROR' })}>
+                        <SelectTrigger className="w-20 h-7 text-xs">
+                          <SelectValue placeholder="级别" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ALL">全部</SelectItem>
+                          <SelectItem value="INFO">INFO</SelectItem>
+                          <SelectItem value="DEBUG">DEBUG</SelectItem>
+                          <SelectItem value="WARN">WARN</SelectItem>
+                          <SelectItem value="ERROR">ERROR</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={filter.nodeUuid} onValueChange={(v) => setFilter({ nodeUuid: v })}>
+                        <SelectTrigger className="w-28 h-7 text-xs">
+                          <SelectValue placeholder="节点" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ALL">全部节点</SelectItem>
+                          {getUniqueNodes().map((node) => (
+                            <SelectItem key={node.uuid} value={node.uuid}>
+                              {node.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder="搜索..."
+                        value={filter.searchKeyword}
+                        onChange={(e) => setSearchKeyword(e.target.value)}
+                        className="h-7 w-32 text-xs"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearLogs}
+                        className="h-7 px-2 text-xs text-slate-500 hover:text-slate-700"
+                        title="清空日志"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1" />
+                        清空
+                      </Button>
+                    </div>
+                    {/* 控制台内容 */}
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                      <ConsolePanel />
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </div>
             )}
           </div>
@@ -154,10 +223,10 @@ export function MainLayout() {
                 'bg-white hover:bg-slate-50 border border-b-0 border-border',
                 'text-xs text-slate-500 hover:text-slate-700'
               )}
-              title="展开历史面板"
+              title="展开底部面板"
             >
               <ChevronUp className="w-3.5 h-3.5 mr-1" />
-              历史记录
+              底部面板
             </Button>
           )}
         </main>

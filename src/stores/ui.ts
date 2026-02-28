@@ -6,6 +6,9 @@ import { create } from 'zustand';
 /** 面板类型 */
 export type PanelType = 'flowList' | 'history' | 'config' | 'execution';
 
+/** 底部面板 Tab 类型 */
+export type BottomPanelTab = 'history' | 'console';
+
 interface UIState {
   // ===== 面板状态 =====
   /** 流程列表面板是否展开 */
@@ -16,6 +19,8 @@ interface UIState {
   isConfigPanelOpen: boolean;
   /** 执行结果面板是否展开 */
   isExecutionPanelOpen: boolean;
+  /** 底部面板当前 Tab */
+  bottomPanelTab: BottomPanelTab;
 
   // ===== 模态框状态 =====
   /** 是否显示新建流程对话框 */
@@ -46,6 +51,8 @@ interface UIState {
   setConfigPanelOpen: (open: boolean) => void;
   /** 设置执行结果面板状态 */
   setExecutionPanelOpen: (open: boolean) => void;
+  /** 设置底部面板 Tab */
+  setBottomPanelTab: (tab: BottomPanelTab) => void;
 
   // ===== 模态框 Actions =====
   /** 显示新建流程对话框 */
@@ -81,6 +88,8 @@ const initialState = {
   isHistoryPanelOpen: false,
   isConfigPanelOpen: true,
   isExecutionPanelOpen: false,
+  // 底部面板 Tab
+  bottomPanelTab: 'history' as BottomPanelTab,
 
   // 模态框状态
   showNewFlowDialog: false,
@@ -120,6 +129,8 @@ export const useUIStore = create<UIState>((set) => ({
   setConfigPanelOpen: (isConfigPanelOpen) => set({ isConfigPanelOpen }),
 
   setExecutionPanelOpen: (isExecutionPanelOpen) => set({ isExecutionPanelOpen }),
+
+  setBottomPanelTab: (bottomPanelTab) => set({ bottomPanelTab }),
 
   // ===== 模态框 Actions =====
   openNewFlowDialog: () => set({ showNewFlowDialog: true }),
@@ -161,6 +172,7 @@ export const useUIStore = create<UIState>((set) => ({
       isHistoryPanelOpen: false,
       isConfigPanelOpen: true,
       isExecutionPanelOpen: false,
+      bottomPanelTab: 'history' as BottomPanelTab,
     }),
 }));
 
@@ -183,3 +195,7 @@ export const selectShowNewFlowDialog = (state: UIState) =>
 /** 选择删除确认对话框状态 */
 export const selectShowDeleteConfirmDialog = (state: UIState) =>
   state.showDeleteConfirmDialog;
+
+/** 选择底部面板 Tab */
+export const selectBottomPanelTab = (state: UIState) =>
+  state.bottomPanelTab;
