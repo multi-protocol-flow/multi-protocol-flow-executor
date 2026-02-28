@@ -359,6 +359,7 @@ function FlowCanvasInner() {
           cursor: grabbing !important;
         }
       `}</style>
+      
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -377,9 +378,8 @@ function FlowCanvasInner() {
         maxZoom={2}
         defaultEdgeOptions={{
           type: 'custom',
+          animated: true,
         }}
-        proOptions={{ hideAttribution: true }}
-        className="touch-none"
       >
         {/* 背景网格 */}
         <Background

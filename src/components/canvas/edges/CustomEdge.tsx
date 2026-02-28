@@ -1,18 +1,18 @@
 /**
  * 自定义连接线组件
+ * 使用内置动画表示方向
  */
 import {
   BaseEdge,
   EdgeLabelRenderer,
-  getStraightPath,
-  MarkerType,
+  getBezierPath,
   type EdgeProps,
 } from '@xyflow/react';
 import { cn } from '@/lib/utils';
 
 /**
  * 自定义连接线组件
- * 提供更美观的连接线样式
+ * 提供贝塞尔曲线 + 流动动画效果
  */
 export function CustomEdge({
   id,
@@ -26,14 +26,16 @@ export function CustomEdge({
   selected,
   data,
 }: EdgeProps) {
-  const [edgePath, labelX, labelY] = getStraightPath({
+  const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
     targetX,
     targetY,
+    sourcePosition: _sourcePosition,
+    targetPosition: _targetPosition,
   });
 
-  // 连接线统一使用纯黑色
+  // 连接线颜色
   const edgeColor = '#000000';
 
   return (
@@ -41,16 +43,11 @@ export function CustomEdge({
       <BaseEdge
         id={id}
         path={edgePath}
-        markerEnd={MarkerType.ArrowClosed}
         style={{
           ...style,
           strokeWidth: selected ? 3 : 2,
           stroke: edgeColor,
         }}
-        className={cn(
-          'transition-all duration-150',
-          selected && 'stroke-[3px]'
-        )}
       />
       
       {/* 选中时显示标签 */}
