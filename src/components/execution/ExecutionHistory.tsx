@@ -92,9 +92,16 @@ export function ExecutionHistory({ onSelectFlow, onRerun }: ExecutionHistoryProp
             const isSuccess = item.status === 'success';
 
             return (
-              <button
-                type="button"
+              <div
                 key={item.uuid}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelectFlow?.(item.flow_uuid);
+                  }
+                }}
                 onClick={() => onSelectFlow?.(item.flow_uuid)}
                 className={cn(
                   'group flex items-center justify-between p-2.5 rounded-lg w-full',
@@ -149,7 +156,7 @@ export function ExecutionHistory({ onSelectFlow, onRerun }: ExecutionHistoryProp
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </Button>
-              </button>
+              </div>
             );
           })}
         </div>
