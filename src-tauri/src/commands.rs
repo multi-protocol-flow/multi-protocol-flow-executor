@@ -1,4 +1,9 @@
 // Tauri 命令模块
+use std::sync::Arc;
+use tauri::ipc::Channel;
+use tokio::sync::Mutex;
+use crate::log_event::{LogEvent, LogLevel};
+
 use crate::executor::{ExecutionResult, FlowExecutor};
 
 use crate::command::CreateFlowCommandInput;
@@ -60,13 +65,64 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
 /// # 参数
 /// - `input`: 包含流程 ID 和可选变量的输入参数
 /// - `flow`: 要执行的流程对象
+/// - `on_event`: Tauri Channel 用于发送日志事件到前端
 ///
 /// # 返回
 /// - `ExecuteFlowCommandOutput`: 包含执行结果
 #[tauri::command]
-pub async fn execute_flow(input: ExecuteFlowCommandInput, flow: Flow) -> ExecuteFlowCommandOutput {
+pub async fn execute_flow(
+    input: ExecuteFlowCommandInput,
+    flow: Flow,
+    on_event: Channel<LogEvent>,
+) -> ExecuteFlowCommandOutput {
+    let flow_uuid = flow.uuid.clone();
+    let flow_name = flow.name.clone();
+
+    // 创建 Channel 的 Arc<Mutex> 包装
+    let log_sender = Arc::new(Mutex::new(on_event.clone()));
+
+    // 发送流程开始事件
+    let start_timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("系统时间错误")
+        .as_millis() as u64;
+
+    let _ = on_event.send(LogEvent {
+        level: LogLevel::Info,
+        message: format!("流程 '{}' 开始执行", flow_name),
+        timestamp: start_timestamp,
+        node_uuid: None,
+        node_name: None,
+        flow_uuid: flow_uuid.clone(),
+    });
+
+    // 调用执行器，传递 log_sender
     let executor = FlowExecutor::new();
-    let result: ExecutionResult = executor.execute_flow(&flow, input.variables).await;
+    let result = executor
+        .execute_flow(&flow, input.variables, Some(log_sender))
+        .await;
+
+    // 发送流程结束事件
+    let end_timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("系统时间错误")
+        .as_millis() as u64;
+
+    let _ = on_event.send(LogEvent {
+        level: if result.success {
+            LogLevel::Info
+        } else {
+            LogLevel::Error
+        },
+        message: format!(
+            "流程执行{}",
+            if result.success { "成功" } else { "失败" }
+        ),
+        timestamp: end_timestamp,
+        node_uuid: None,
+        node_name: None,
+        flow_uuid: flow_uuid.clone(),
+    });
 
     // 先计算 execution_time，避免 move 后借用
     let execution_time = result.flow_report.as_ref().map(|r| r.duration_ms).unwrap_or(0);
@@ -255,20 +311,16 @@ mod tests {
             initial_variables: None,
         };
 
-        let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-        };
-
-        // 执行流程
-        let output = execute_flow(input, flow).await;
+        // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 验证执行成功
-        assert!(output.success, "流程应该执行成功");
-        assert!(output.error.is_none(), "成功时不应该有错误信息");
-        assert!(output.data.is_some(), "成功时应该有返回数据");
+        assert!(result.success, "流程应该执行成功");
+        assert!(result.error.is_none(), "成功时不应该有错误信息");
+        assert!(result.data.is_some(), "成功时应该有返回数据");
         assert_eq!(
-            output.data.unwrap()["flow_id"],
+            result.data.unwrap()["flow_id"],
             flow_id,
             "返回数据应该包含流程 ID"
         );
@@ -296,17 +348,13 @@ mod tests {
             initial_variables: None,
         };
 
-        let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-        };
-
-        // 执行流程
-        let output = execute_flow(input, flow).await;
+        // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 真实执行器认为没有连接是正常终止，不是错误
-        assert!(output.success, "流程应该执行成功（Entry 节点无连接是正常终止）");
-        assert!(output.error.is_none(), "成功时不应该有错误信息");
+        assert!(result.success, "流程应该执行成功（Entry 节点无连接是正常终止）");
+        assert!(result.error.is_none(), "成功时不应该有错误信息");
     }
 
     #[tokio::test]
@@ -330,19 +378,15 @@ mod tests {
             initial_variables: None,
         };
 
-        let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-        };
-
-        // 执行流程
-        let output = execute_flow(input, flow).await;
+        // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 验证执行失败
-        assert!(!output.success, "流程应该执行失败（无开始节点）");
-        assert!(output.error.is_some(), "失败时应该有错误信息");
+        assert!(!result.success, "流程应该执行失败（无开始节点）");
+        assert!(result.error.is_some(), "失败时应该有错误信息");
         assert!(
-            output.error.unwrap().contains("缺少开始节点"),
+            result.error.unwrap().contains("缺少开始节点"),
             "错误信息应该包含 '缺少开始节点'"
         );
     }
@@ -546,15 +590,12 @@ mod tests {
             initial_variables: None,
         };
 
-        let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-        };
-
-        let output = execute_flow(input, flow).await;
+        // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 验证使用 conn.source_node_uuid 检查连接
-        assert!(output.success, "流程应该执行成功");
+        assert!(result.success, "流程应该执行成功");
     }
 
     #[test]

@@ -5,10 +5,14 @@ use crate::context::{ExecutionContext, VariableStorage};
 use crate::entry_executor::EntryNodeExecutor;
 use crate::flow::Flow;
 use crate::error::{ErrorDetail, ErrorKind};
+use crate::log_event::LogEvent;
 use crate::node::{Node, NodeType};
 use regex::Regex;
 use serde_json::json;
 use std::collections::HashMap;
+use std::sync::Arc;
+use tauri::ipc::Channel;
+use tokio::sync::Mutex;
 
 /// 执行结果
 #[derive(Debug, Clone)]
@@ -201,13 +205,14 @@ impl FlowExecutor {
         FlowExecutor
     }
 
-    /// 执行流程
+/// 执行流程
     ///
     /// 从开始节点开始，按连接顺序遍历节点
     ///
     /// # 参数
     /// - `flow`: 要执行的流程
     /// - `variables`: 执行上下文变量（可选）
+    /// - `log_sender`: 日志发送器（可选，CLI 模式为 None）
     ///
     /// # 返回
     /// - `ExecutionResult`: 执行结果
@@ -215,6 +220,7 @@ impl FlowExecutor {
         &self,
         flow: &Flow,
         variables: Option<serde_json::Value>,
+        log_sender: Option<Arc<Mutex<Channel<LogEvent>>>>,
     ) -> ExecutionResult {
         let start_time = tokio::time::Instant::now();
         let mut executed_count = 0u32;
@@ -235,6 +241,7 @@ impl FlowExecutor {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_millis() as u64,
+            log_sender,
         };
 
         // 查找开始节点
@@ -691,7 +698,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None).await;
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 验证执行结果（单个 Entry 节点无连接是正常终止）
         assert!(result.success);
@@ -738,7 +745,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None).await;
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 验证执行结果
         assert!(result.success);
@@ -773,7 +780,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None).await;
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 验证执行失败
         assert!(!result.success);
@@ -826,7 +833,7 @@ mod tests {
         });
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, Some(variables)).await;
+        let result = executor.execute_flow(&flow, Some(variables), None).await;
 
         // 验证执行成功
         assert!(result.success);
@@ -875,7 +882,7 @@ mod tests {
 
         let executor = FlowExecutor::new();
         let start_time = Instant::now();
-        let result = executor.execute_flow(&flow, None).await;
+        let result = executor.execute_flow(&flow, None, None).await;
         let elapsed = start_time.elapsed();
 
         // 验证执行成功
@@ -910,7 +917,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None).await;
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 验证上下文中的 flow_uuid 使用了 flow.uuid（单个 Entry 节点无连接是正常终止）
         assert!(result.success);
@@ -956,7 +963,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None).await;
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 验证执行成功（节点映射通过 node.uuid 查找成功）
         assert!(result.success);
@@ -1002,7 +1009,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None).await;
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 验证连接映射成功使用了 source_node_uuid 和 target_node_uuid
         assert!(result.success);
@@ -1048,7 +1055,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None).await;
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 验证执行的第一个节点是 start_node.uuid
         assert!(result.success);
@@ -1086,7 +1093,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None).await;
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 验证错误消息包含 node.uuid
         assert!(!result.success);
@@ -1135,7 +1142,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None).await;
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 验证执行结果数据包含 flow.uuid
         assert!(result.success);
@@ -1200,7 +1207,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None).await;
+        let result = executor.execute_flow(&flow, None, None).await;
 
         // 验证执行成功，连接映射正确使用了 UUID
         assert!(result.success);
@@ -1227,6 +1234,7 @@ mod tests {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_millis() as u64,
+            log_sender: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1255,6 +1263,7 @@ mod tests {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_millis() as u64,
+            log_sender: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1275,6 +1284,7 @@ mod tests {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_millis() as u64,
+            log_sender: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -1296,6 +1306,7 @@ mod tests {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_millis() as u64,
+            log_sender: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -1331,6 +1342,7 @@ mod tests {
                 variables,
                 node_reports: vec![],
                 flow_trigger_time: 0,
+                log_sender: None,
             };
             let result = replace_variables(&template, &context);
             assert!(result.is_err());
@@ -1351,6 +1363,7 @@ mod tests {
                 variables,
                 node_reports: vec![],
                 flow_trigger_time: 0,
+                log_sender: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -1371,6 +1384,7 @@ mod tests {
                 variables,
                 node_reports: vec![],
                 flow_trigger_time: 0,
+                log_sender: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -1391,6 +1405,7 @@ mod tests {
                 variables,
                 node_reports: vec![],
                 flow_trigger_time: 0,
+                log_sender: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());

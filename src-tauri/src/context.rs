@@ -1,14 +1,18 @@
 // 上下文模块 - 执行上下文和变量存储
 
+use crate::log_event::LogEvent;
 use crate::report::NodeExecutionReport;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
+use tauri::ipc::Channel;
+use tokio::sync::Mutex;
 
 /// 执行上下文
 ///
 /// 在流程执行期间维护所有必要的状态信息，包括流程标识、当前节点位置、
 /// 执行变量和历史记录。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ExecutionContext {
     /// 流程 UUID（前端生成）
     pub flow_uuid: String,
@@ -24,6 +28,11 @@ pub struct ExecutionContext {
 
     /// 流程触发时间（用于记录触发和开始执行的时间差）
     pub flow_trigger_time: u64,
+
+    /// 日志发送器（Tauri 模式有值，CLI 模式为 None）
+    /// 使用 #[serde(skip)] 跳过序列化，因为 Channel 不支持 Serialize/Deserialize
+    #[serde(skip)]
+    pub log_sender: Option<Arc<Mutex<Channel<LogEvent>>>>,
 }
 
 impl ExecutionContext {
@@ -44,6 +53,7 @@ impl ExecutionContext {
             variables: VariableStorage::new(),
             node_reports: Vec::new(),
             flow_trigger_time,
+            log_sender: None,
         }
     }
 
@@ -68,6 +78,34 @@ impl ExecutionContext {
     /// 获取当前节点 UUID
     pub fn current_node(&self) -> Option<&String> {
         self.current_node_uuid.as_ref()
+    }
+
+    /// 设置日志发送器（Tauri 模式调用）
+    ///
+    /// # 参数
+    ///
+    /// * `sender` - Tauri IPC Channel 封装在 Arc<Mutex> 中
+    ///
+    /// # 返回
+    ///
+    /// 更新后的 ExecutionContext
+    pub fn with_log_sender(mut self, sender: Arc<Mutex<Channel<LogEvent>>>) -> Self {
+        self.log_sender = Some(sender);
+        self
+    }
+
+    /// 发送日志事件（Channel 可用时）
+    ///
+    /// 如果 log_sender 为 None（CLI 模式），此方法静默跳过，不会报错。
+    ///
+    /// # 参数
+    ///
+    /// * `event` - 要发送的日志事件
+    pub async fn emit_log(&self, event: LogEvent) {
+        if let Some(sender) = &self.log_sender {
+            let sender = sender.lock().await;
+            let _ = sender.send(event);
+        }
     }
 }
 
