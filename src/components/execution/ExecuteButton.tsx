@@ -5,16 +5,20 @@
 import { useState } from 'react';
 import { Play, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useFlowStore, useExecutionStore, useUIStore } from '@/stores';
-import { executeFlow } from '@/services/tauri';
+import { useFlowStore, useUIStore, useExecutionStore } from '@/stores';
+import { useConsoleStore } from '@/stores/console';
+import { executeFlowWithChannel } from '@/services/tauri';
 import { saveExecutionHistory } from '@/services/storage/historyStorage';
 import { cn } from '@/lib/utils';
+import type { LogEvent } from '@/types/events';
 
 export function ExecuteButton() {
   const [isExecuting, setIsExecuting] = useState(false);
   const flow = useFlowStore((state) => state.flow);
   const setReport = useExecutionStore((state) => state.setReport);
   const setError = useExecutionStore((state) => state.setError);
+  const addLog = useConsoleStore((state) => state.addLog);
+  const clearLogs = useConsoleStore((state) => state.clearLogs);
   const setConfigPanelOpen = useUIStore((state) => state.setConfigPanelOpen);
 
   const handleExecute = async () => {
@@ -23,8 +27,16 @@ export function ExecuteButton() {
     setIsExecuting(true);
     setConfigPanelOpen(false);
 
+    // 每次执行前清空日志
+    clearLogs();
+
+    // 日志回调函数
+    const handleLog = (event: LogEvent) => {
+      addLog(event);
+    };
+
     try {
-      const result = await executeFlow(flow);
+      const result = await executeFlowWithChannel(flow, handleLog);
 
       if (result.success && result.flow_report) {
         setReport(result.flow_report);

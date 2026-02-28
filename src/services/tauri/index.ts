@@ -76,8 +76,27 @@ export async function executeFlow(
   return executeFlowImpl(flow, variables);
 }
 
-// 重新导出 IPC 错误类
-export { IpcError } from './flow';
-
-// 导出类型
-export type { Flow, ExecuteFlowCommandOutput };
+/**
+ * 执行流程并订阅日志（Tauri 环境）
+ * 使用 Channel API 接收后端日志事件
+ *
+ * @param flow - 要执行的流程对象
+ * @param onLog - 日志回调函数
+ * @param variables - 可选的执行变量
+ * @returns 执行结果
+ */
+export async function executeFlowWithChannel(
+  flow: Flow,
+  onLog: (event: import('@/types/events').LogEvent) => void,
+  variables?: Record<string, unknown>
+): Promise<ExecuteFlowCommandOutput> {
+  // 检测是否在 Tauri 环境中
+  if (isTauriEnv()) {
+    const { executeFlowWithChannel: executeFlowWithChannelImpl } = await import('./flow');
+    return executeFlowWithChannelImpl(flow, onLog, variables);
+  } else {
+    // Mock 环境
+    const { executeFlowWithChannel: executeFlowWithChannelImpl } = await import('./mock');
+    return executeFlowWithChannelImpl(flow, onLog, variables);
+  }
+}

@@ -3,7 +3,7 @@
  * 封装 invoke 调用，添加统一错误处理
  */
 
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, Channel } from '@tauri-apps/api/core';
 import type { Flow } from '@/types/flow';
 import type {
   CreateFlowCommandInput,
@@ -11,6 +11,7 @@ import type {
   ExecuteFlowCommandInput,
   ExecuteFlowCommandOutput,
 } from '@/types/ipc';
+import type { LogEvent } from '@/types/events';
 
 /**
  * IPC 错误类
@@ -59,9 +60,10 @@ export async function createFlow(name: string): Promise<Flow> {
 }
 
 /**
- * 执行流程
+ * 执行流程（不带日志回调）
  * 调用后端 execute_flow IPC 命令
  *
+ * @deprecated 请使用 executeFlowWithChannel 代替
  * @param flow - 要执行的流程对象
  * @param variables - 可选的执行变量
  * @returns 执行结果
@@ -78,6 +80,40 @@ export async function executeFlow(
         variables: variables || null,
       } as ExecuteFlowCommandInput,
       flow, // 后端需要完整的 flow 对象
+    });
+  } catch (error) {
+    throw formatError(error, 'execute_flow');
+  }
+}
+
+/**
+ * 执行流程并订阅日志（Tauri 环境）
+ * 使用 Channel API 接收后端日志事件
+ *
+ * @param flow - 要执行的流程对象
+ * @param onLog - 日志回调函数
+ * @param variables - 可选的执行变量
+ * @returns 执行结果
+ * @throws IpcError 如果执行失败
+ */
+export async function executeFlowWithChannel(
+  flow: Flow,
+  onLog: (event: LogEvent) => void,
+  variables?: Record<string, unknown>
+): Promise<ExecuteFlowCommandOutput> {
+  try {
+    // 创建 Channel 订阅日志
+    const channel = new Channel<LogEvent>();
+    channel.onmessage = onLog;
+
+    // 调用后端命令，传递 Channel
+    return await invoke<ExecuteFlowCommandOutput>('execute_flow', {
+      input: {
+        flow_id: flow.uuid,
+        variables: variables || null,
+      } as ExecuteFlowCommandInput,
+      flow,
+      onEvent: channel, // 关键：传递 Channel（camelCase 对应 Rust 的 snake_case）
     });
   } catch (error) {
     throw formatError(error, 'execute_flow');

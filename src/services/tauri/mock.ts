@@ -126,61 +126,236 @@ export async function executeFlow(
     execution_time: executionTime,
   };
 }
-
-
 /**
  * Mock 事件订阅服务 - 用于非 Tauri 环境测试
  */
 
-import type { LogEvent, LogLevel } from '@/types/events';
-
-// 模拟日志级别
-const mockLevels: LogLevel[] = ['INFO', 'DEBUG', 'WARN', 'ERROR'];
-
-/**
- * Mock 日志订阅 Channel
- * 使用 setInterval 模拟日志推送
- *
- * @param onLog - 日志回调函数
- * @returns mock channel 对象和 cleanup 函数
- */
-export function subscribeToFlowLogs(
-  onLog: (event: LogEvent) => void
-): { channel: { mock: true }; cleanup: () => void } {
-  // 模拟定时发送日志
-  const intervalId = setInterval(() => {
-    onLog({
-      level: mockLevels[Math.floor(Math.random() * mockLevels.length)],
-      message: `[Mock] 模拟日志消息 ${Date.now()}`,
-      timestamp: Date.now(),
-      nodeUuid: 'mock-node-1',
-      nodeName: 'Mock 节点',
-      flowUuid: 'mock-flow-1',
-    });
-  }, 1000);
-
-  return {
-    channel: { mock: true },
-    cleanup: () => clearInterval(intervalId),
-  };
-}
+import type { LogEvent } from '@/types/events';
 
 /**
  * Mock 执行流程并订阅日志
+ * 模拟执行过程中发送日志事件
  *
- * @param _input - 执行输入参数（Mock 中未使用）
- * @param _flow - 流程对象（Mock 中未使用）
+ * @param flow - 要执行的流程对象
  * @param onLog - 日志回调函数
+ * @param _variables - 可选的执行变量（Mock 中未使用）
+ * @returns 执行结果
  */
-export async function executeFlowWithLogs(
-  _input: { flowId: string; variables?: Record<string, unknown> },
-  _flow: unknown,
-  onLog: (event: LogEvent) => void
-): Promise<void> {
-  const { cleanup } = subscribeToFlowLogs(onLog);
+export async function executeFlowWithChannel(
+  flow: Flow,
+  onLog: (event: LogEvent) => void,
+  _variables?: Record<string, unknown>
+): Promise<ExecuteFlowCommandOutput> {
+  const startTime = Date.now();
 
-  // 模拟执行 3 秒后停止
-  await new Promise((resolve) => setTimeout(resolve, 3000));
+  // 发送流程开始日志
+  onLog({
+    level: 'INFO',
+    message: `流程 '${flow.name}' 开始执行`,
+    timestamp: startTime,
+    flowUuid: flow.uuid,
+  });
 
-  cleanup();
+  // 查找开始节点
+  const startNode = flow.nodes.find((node) => node.type === 'entry');
+
+  // 验证开始节点存在
+  if (!startNode) {
+    onLog({
+      level: 'ERROR',
+      message: '流程缺少开始节点',
+      timestamp: Date.now(),
+      flowUuid: flow.uuid,
+    });
+    return {
+      success: false,
+      error: '流程缺少开始节点',
+      execution_time: Date.now() - startTime,
+    };
+  }
+
+  // 发送节点开始日志
+  onLog({
+    level: 'INFO',
+    message: `执行节点 ${startNode.name} (entry)`,
+    timestamp: Date.now(),
+    flowUuid: flow.uuid,
+    nodeUuid: startNode.uuid,
+    nodeName: startNode.name,
+  });
+
+  // 模拟节点执行延迟
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  // 发送节点完成日志
+  onLog({
+    level: 'INFO',
+    message: `节点 ${startNode.name} 执行完成`,
+    timestamp: Date.now(),
+    flowUuid: flow.uuid,
+    nodeUuid: startNode.uuid,
+    nodeName: startNode.name,
+  });
+
+  // 检查开始节点是否有输出连接
+  const hasConnection = flow.connections.some(
+    (conn) => conn.source_node_uuid === startNode.uuid
+  );
+
+  if (!hasConnection) {
+    onLog({
+      level: 'INFO',
+      message: `节点 ${startNode.name} 没有下一个节点，执行完成`,
+      timestamp: Date.now(),
+      flowUuid: flow.uuid,
+      nodeUuid: startNode.uuid,
+      nodeName: startNode.name,
+    });
+
+    const endTime = Date.now();
+    onLog({
+      level: 'INFO',
+      message: '流程执行成功',
+      timestamp: endTime,
+      flowUuid: flow.uuid,
+    });
+
+    // 生成模拟的执行报告（单个 Entry 节点无连接是正常终止）
+    const flowReport: FlowExecutionReport = {
+      flow_uuid: flow.uuid,
+      flow_name: flow.name,
+      start_time: startTime,
+      end_time: endTime,
+      duration_ms: endTime - startTime,
+      total_nodes: flow.nodes.length,
+      executed_count: 1,
+      status: 'success',
+      node_reports: [{
+        node_uuid: startNode.uuid,
+        node_type: startNode.type,
+        node_name: startNode.name,
+        start_time: startTime,
+        end_time: endTime,
+        duration_ms: endTime - startTime,
+        status: 'success',
+        input_data: null,
+        output_data: null,
+      }],
+      statistics: {
+        success_count: 1,
+        failed_count: 0,
+        avg_node_duration_ms: endTime - startTime,
+        max_node_duration_ms: endTime - startTime,
+        min_node_duration_ms: endTime - startTime,
+        completion_rate: 1,
+        error_rate: 0,
+      },
+    };
+
+    return {
+      success: true,
+      flow_report: flowReport,
+      execution_time: endTime - startTime,
+    };
+  }
+
+  // 模拟执行后续节点
+  let executedCount = 1; // 已执行开始节点
+  const nodeReports: FlowExecutionReport['node_reports'] = [
+    {
+      node_uuid: startNode.uuid,
+      node_type: startNode.type,
+      node_name: startNode.name,
+      start_time: startTime,
+      end_time: startTime + 100,
+      duration_ms: 100,
+      status: 'success',
+      input_data: null,
+      output_data: { result: 'ok' },
+    },
+  ];
+
+  // 遍历并模拟执行其他节点
+  for (let i = 0; i < flow.nodes.length; i++) {
+    const node = flow.nodes[i];
+    if (node.type === 'entry') continue; // 跳过已执行的开始节点
+
+    const nodeStartTime = Date.now();
+
+    // 发送节点开始日志
+    onLog({
+      level: 'INFO',
+      message: `执行节点 ${node.name} (${node.type})`,
+      timestamp: nodeStartTime,
+      flowUuid: flow.uuid,
+      nodeUuid: node.uuid,
+      nodeName: node.name,
+    });
+
+    // 模拟节点执行延迟
+    await new Promise((resolve) => setTimeout(resolve, 50 + Math.random() * 100));
+
+    const nodeEndTime = Date.now();
+
+    // 发送节点完成日志
+    onLog({
+      level: 'INFO',
+      message: `节点 ${node.name} 执行完成`,
+      timestamp: nodeEndTime,
+      flowUuid: flow.uuid,
+      nodeUuid: node.uuid,
+      nodeName: node.name,
+    });
+
+    executedCount++;
+    nodeReports.push({
+      node_uuid: node.uuid,
+      node_type: node.type,
+      node_name: node.name,
+      start_time: nodeStartTime,
+      end_time: nodeEndTime,
+      duration_ms: nodeEndTime - nodeStartTime,
+      status: 'success',
+      input_data: { from: flow.nodes[i - 1]?.uuid },
+      output_data: { result: 'ok' },
+    });
+  }
+
+  const endTime = Date.now();
+
+  // 发送流程完成日志
+  onLog({
+    level: 'INFO',
+    message: '流程执行成功',
+    timestamp: endTime,
+    flowUuid: flow.uuid,
+  });
+
+  // 生成模拟的执行报告
+  const flowReport: FlowExecutionReport = {
+    flow_uuid: flow.uuid,
+    flow_name: flow.name,
+    start_time: startTime,
+    end_time: endTime,
+    duration_ms: endTime - startTime,
+    total_nodes: flow.nodes.length,
+    executed_count: executedCount,
+    status: 'success',
+    node_reports: nodeReports,
+    statistics: {
+      success_count: executedCount,
+      failed_count: 0,
+      avg_node_duration_ms: Math.round((endTime - startTime) / executedCount),
+      max_node_duration_ms: Math.max(...nodeReports.map((r) => r.duration_ms)),
+      min_node_duration_ms: Math.min(...nodeReports.map((r) => r.duration_ms)),
+      completion_rate: 1,
+      error_rate: 0,
+    },
+  };
+
+  return {
+    success: true,
+    flow_report: flowReport,
+    execution_time: endTime - startTime,
+  };
 }
