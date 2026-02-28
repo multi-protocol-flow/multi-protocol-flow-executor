@@ -172,7 +172,7 @@ describe('HttpConfig', () => {
       url: 'https://api.example.com',
       method: 'post',
       headers: { 'Content-Type': 'application/json' },
-      body: { key: 'value' },
+      body: JSON.stringify({ key: 'value' }),
     };
 
     render(<HttpConfig data={dataWithHeaders} onSave={mockOnSave} />);

@@ -107,7 +107,7 @@ describe('Node 类型序列化测试', () => {
         headers: {
           Authorization: 'Bearer token123',
         },
-        body: { page: 1, limit: 10 },
+        body: JSON.stringify({ page: 1, limit: 10 }),
       },
       ports: [
         { id: 'in', type: 'input', label: '输入' },

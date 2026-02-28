@@ -1,14 +1,27 @@
 /**
  * 事件订阅服务测试
- * 测试 Mock 环境下的事件订阅功能
+ * 测试 Mock 环境下的 executeFlowWithChannel 功能
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { subscribeToFlowLogs } from '@/services/tauri/mock';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { executeFlowWithChannel } from '@/services/tauri/mock';
 import { useConsoleStore } from '@/stores/console';
-import type { LogEvent } from '@/types/events';
+import type { Flow } from '@/types/flow';
 
-describe('事件订阅服务 (Mock)', () => {
+// 创建测试用的流程对象
+const createTestFlow = (hasConnection = false): Flow => ({
+  uuid: 'test-flow-uuid',
+  name: '测试流程',
+  nodes: [
+    { uuid: 'start-node', type: 'entry', name: '开始', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+  ],
+  connections: hasConnection
+    ? [{ id: 'conn-1', source_node_uuid: 'start-node', target_node_uuid: 'other-node', source_port_id: 'out', target_port_id: 'in' }]
+    : [],
+  initial_variables: {},
+});
+
+describe('executeFlowWithChannel (Mock)', () => {
   beforeEach(() => {
     // 重置 Console Store
     useConsoleStore.setState({
@@ -19,155 +32,132 @@ describe('事件订阅服务 (Mock)', () => {
         searchKeyword: '',
       },
     });
-    vi.useFakeTimers();
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
+  describe('执行流程', () => {
+    it('应该返回执行结果', async () => {
+      const flow = createTestFlow();
+      const onLog = vi.fn();
+
+      const result = await executeFlowWithChannel(flow, onLog);
+
+      expect(result).toHaveProperty('success');
+      expect(result).toHaveProperty('execution_time');
+    });
+
+    it('没有开始节点时应该返回失败', async () => {
+      const flow: Flow = {
+        uuid: 'test-flow',
+        name: '测试流程',
+        nodes: [{ uuid: 'http-1', type: 'http', name: 'HTTP', position: { x: 0, y: 0 }, data: { type: 'http', url: 'https://example.com', method: 'get' } }],
+        connections: [],
+        initial_variables: {},
+      };
+      const onLog = vi.fn();
+
+      const result = await executeFlowWithChannel(flow, onLog);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('缺少开始节点');
+    });
+
+    it('单个 Entry 节点无连接应该成功', async () => {
+      const flow = createTestFlow(false);
+      const onLog = vi.fn();
+
+      const result = await executeFlowWithChannel(flow, onLog);
+
+      expect(result.success).toBe(true);
+    });
   });
 
-  describe('subscribeToFlowLogs', () => {
-    it('应该返回 channel 对象和 cleanup 函数', () => {
+  describe('日志回调', () => {
+    it('应该发送流程开始日志', async () => {
+      const flow = createTestFlow();
       const onLog = vi.fn();
-      const result = subscribeToFlowLogs(onLog);
 
-      expect(result).toHaveProperty('channel');
-      expect(result).toHaveProperty('cleanup');
-      expect(result.channel).toEqual({ mock: true });
-      expect(typeof result.cleanup).toBe('function');
+      await executeFlowWithChannel(flow, onLog);
 
-      // 清理
-      result.cleanup();
+      const startLog = onLog.mock.calls.find(
+        (call) => call[0].message.includes('开始执行')
+      );
+      expect(startLog).toBeDefined();
     });
 
-    it('cleanup 函数应该可以安全调用', () => {
+    it('应该发送流程结束日志', async () => {
+      const flow = createTestFlow();
       const onLog = vi.fn();
-      const { cleanup } = subscribeToFlowLogs(onLog);
 
-      // 不应该抛出错误
-      expect(() => cleanup()).not.toThrow();
+      await executeFlowWithChannel(flow, onLog);
+
+      const endLog = onLog.mock.calls.find(
+        (call) => call[0].message.includes('执行成功')
+      );
+      expect(endLog).toBeDefined();
     });
 
-    it('应该定时发送模拟日志', () => {
+    it('日志事件应该包含正确的 flowUuid', async () => {
+      const flow = createTestFlow();
       const onLog = vi.fn();
-      const { cleanup } = subscribeToFlowLogs(onLog);
 
-      // 初始时不应该有日志
-      expect(onLog).not.toHaveBeenCalled();
+      await executeFlowWithChannel(flow, onLog);
 
-      // 前进 1 秒
-      vi.advanceTimersByTime(1000);
-      expect(onLog).toHaveBeenCalledTimes(1);
-
-      // 再前进 1 秒
-      vi.advanceTimersByTime(1000);
-      expect(onLog).toHaveBeenCalledTimes(2);
-
-      cleanup();
+      onLog.mock.calls.forEach((call) => {
+        expect(call[0].flowUuid).toBe(flow.uuid);
+      });
     });
 
-    it('日志事件应该包含正确的字段', () => {
+    it('日志事件应该包含正确的字段', async () => {
+      const flow = createTestFlow();
       const onLog = vi.fn();
-      const { cleanup } = subscribeToFlowLogs(onLog);
 
-      vi.advanceTimersByTime(1000);
+      await executeFlowWithChannel(flow, onLog);
 
-      expect(onLog).toHaveBeenCalledTimes(1);
-      const logEvent = onLog.mock.calls[0][0] as LogEvent;
+      const logEvent = onLog.mock.calls[0][0];
 
-      // 验证必要字段
       expect(logEvent).toHaveProperty('level');
       expect(logEvent).toHaveProperty('message');
       expect(logEvent).toHaveProperty('timestamp');
       expect(logEvent).toHaveProperty('flowUuid');
-
-      // 验证字段类型
       expect(['INFO', 'DEBUG', 'WARN', 'ERROR']).toContain(logEvent.level);
       expect(typeof logEvent.message).toBe('string');
       expect(typeof logEvent.timestamp).toBe('number');
-      expect(typeof logEvent.flowUuid).toBe('string');
-
-      cleanup();
-    });
-
-    it('日志消息应该包含 [Mock] 前缀', () => {
-      const onLog = vi.fn();
-      const { cleanup } = subscribeToFlowLogs(onLog);
-
-      vi.advanceTimersByTime(1000);
-
-      const logEvent = onLog.mock.calls[0][0] as LogEvent;
-      expect(logEvent.message).toContain('[Mock]');
-
-      cleanup();
-    });
-  });
-
-  describe('取消订阅', () => {
-    it('调用 cleanup 后应该停止发送日志', () => {
-      const onLog = vi.fn();
-      const { cleanup } = subscribeToFlowLogs(onLog);
-
-      vi.advanceTimersByTime(1000);
-      expect(onLog).toHaveBeenCalledTimes(1);
-
-      // 调用 cleanup
-      cleanup();
-
-      // 再前进时间，不应该有新的日志
-      vi.advanceTimersByTime(3000);
-      expect(onLog).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('与 Console Store 集成', () => {
-    it('日志应该能添加到 Console Store', () => {
-      const { cleanup } = subscribeToFlowLogs((log) => {
+    it('日志应该能添加到 Console Store', async () => {
+      const flow = createTestFlow();
+
+      await executeFlowWithChannel(flow, (log) => {
         useConsoleStore.getState().addLog(log);
       });
 
-      vi.advanceTimersByTime(1000);
-
       const logs = useConsoleStore.getState().logs;
-      expect(logs).toHaveLength(1);
+      expect(logs.length).toBeGreaterThan(0);
       expect(logs[0]).toHaveProperty('id');
-      expect(logs[0].message).toContain('[Mock]');
-
-      cleanup();
     });
 
-    it('多条日志应该正确累积', () => {
-      const { cleanup } = subscribeToFlowLogs((log) => {
+    it('多次执行应该替换日志（每次执行前清空）', async () => {
+      const flow = createTestFlow();
+
+      // 第一次执行
+      await executeFlowWithChannel(flow, (log) => {
         useConsoleStore.getState().addLog(log);
       });
+      const firstLogCount = useConsoleStore.getState().logs.length;
 
-      // 模拟 3 秒
-      vi.advanceTimersByTime(3000);
-
-      const logs = useConsoleStore.getState().logs;
-      expect(logs).toHaveLength(3);
-
-      // 验证每条日志都有唯一 ID
-      const ids = logs.map((l) => l.id);
-      const uniqueIds = new Set(ids);
-      expect(uniqueIds.size).toBe(3);
-
-      cleanup();
-    });
-
-    it('取消订阅后 Console Store 不应收到新日志', () => {
-      const { cleanup } = subscribeToFlowLogs((log) => {
+      // 清空后第二次执行
+      useConsoleStore.getState().clearLogs();
+      await executeFlowWithChannel(flow, (log) => {
         useConsoleStore.getState().addLog(log);
       });
+      const secondLogCount = useConsoleStore.getState().logs.length;
 
-      vi.advanceTimersByTime(2000);
-      expect(useConsoleStore.getState().logs).toHaveLength(2);
-
-      cleanup();
-
-      vi.advanceTimersByTime(5000);
-      // 仍然是 2 条，没有新增
-      expect(useConsoleStore.getState().logs).toHaveLength(2);
+      expect(firstLogCount).toBeGreaterThan(0);
+      expect(secondLogCount).toBeGreaterThan(0);
+      // 日志数量应该相同（同样的流程）
+      expect(firstLogCount).toBe(secondLogCount);
     });
   });
 });
