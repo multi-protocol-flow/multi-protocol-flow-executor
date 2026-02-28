@@ -4,7 +4,7 @@ use tauri::ipc::Channel;
 use tokio::sync::Mutex;
 use crate::log_event::{LogEvent, LogLevel};
 
-use crate::executor::{ExecutionResult, FlowExecutor};
+use crate::executor::FlowExecutor;
 
 use crate::command::CreateFlowCommandInput;
 use crate::command::CreateFlowCommandOutput;

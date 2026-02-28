@@ -6,9 +6,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum LogLevel {
+    /// 信息级别
     Info,
+    /// 调试级别
     Debug,
+    /// 警告级别
     Warn,
+    /// 错误级别
     Error,
 }
 

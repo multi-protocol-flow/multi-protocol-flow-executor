@@ -1,3 +1,8 @@
+//! 多协议流程执行引擎库
+//!
+//! 提供流程编排、节点执行、变量替换等核心功能。
+
+
 // 导入基础模块
 mod log_event;
 
@@ -13,7 +18,9 @@ mod http_executor;
 mod node;
 mod node_config;
 mod error;
+/// 执行报告模块
 pub mod report;
+/// 流程统计模块
 pub mod statistics;
 mod storage;
 mod validator;
@@ -40,6 +47,7 @@ pub use log_event::{LogEvent, LogLevel};
 // 导出存储模块
 pub use storage::{ensure_flows_dir, get_data_dir, get_flows_dir, load_flow, save_flow};
 
+/// 启动 Tauri 应用
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
