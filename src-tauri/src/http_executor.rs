@@ -22,6 +22,26 @@ impl HttpNodeExecutor {
     }
 }
 
+/// Convert ContentType to Content-Type header value
+fn content_type_to_string(content_type: &crate::node_config::ContentType) -> &'static str {
+    match content_type {
+        crate::node_config::ContentType::Json => "application/json",
+        crate::node_config::ContentType::Text => "text/plain",
+        crate::node_config::ContentType::Html => "text/html",
+        crate::node_config::ContentType::Xml => "application/xml",
+        crate::node_config::ContentType::Javascript => "application/javascript",
+    }
+}
+
+/// Check if Content-Type header is already set in headers
+fn has_content_type_header(headers: &Option<std::collections::HashMap<String, String>>) -> bool {
+    match headers {
+        Some(h) => h.keys().any(|k| k.to_lowercase() == "content-type"),
+        None => false,
+    }
+}
+
+
 #[async_trait::async_trait]
 impl NodeExecutor for HttpNodeExecutor {
     async fn execute(
@@ -114,16 +134,142 @@ impl NodeExecutor for HttpNodeExecutor {
             }
         }
 
-        // 添加请求体（替换变量）
-        if let Some(body) = &http_config.body {
-            let body_str = body.to_string();
-            let replaced_body = crate::executor::replace_variables(&body_str, context)
-                .map_err(|e| {
-                    let error_msg = format!("请求体变量替换失败: {}", e);
-                    log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
-                    error_msg
-                })?;
-            request = request.body(replaced_body);
+        // Handle request body based on body_type
+        // Content-Type priority: only set if user hasn't manually set Content-Type in headers
+        let user_set_content_type = has_content_type_header(&http_config.headers);
+
+        match http_config.body_type {
+            crate::node_config::HttpBodyType::None => {
+                // No request body
+                log::info!("[流程 {}] [HTTP] body_type=none, 不添加请求体", context.flow_uuid);
+            }
+            crate::node_config::HttpBodyType::Body => {
+                // Text body with optional variable replacement
+                if let Some(body) = &http_config.body {
+                    let replaced_body = crate::executor::replace_variables(body, context)
+                        .map_err(|e| {
+                            let error_msg = format!("请求体变量替换失败: {}", e);
+                            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", 
+                                context.flow_uuid, node.uuid, node.name, error_msg);
+                            error_msg
+                        })?;
+                    
+                    // Set Content-Type header only if user hasn't set it manually
+                    if !user_set_content_type {
+                        let content_type_str = content_type_to_string(&http_config.content_type);
+                        request = request.header("Content-Type", content_type_str);
+                        log::info!("[流程 {}] [HTTP] 自动设置 Content-Type: {}", 
+                            context.flow_uuid, content_type_str);
+                    }
+                    
+                    request = request.body(replaced_body);
+                    log::info!("[流程 {}] [HTTP] body_type=body, 请求体已添加", context.flow_uuid);
+                } else {
+                    log::info!("[流程 {}] [HTTP] body_type=body, 但 body 字段为空，跳过", context.flow_uuid);
+                }
+            }
+            crate::node_config::HttpBodyType::FormData => {
+                // Build multipart form from form_fields (text only for now)
+                if let Some(form_fields) = &http_config.form_fields {
+                    let mut form = reqwest::multipart::Form::new();
+                    let mut field_count = 0;
+                    
+                    for field in form_fields {
+                        // Only process text fields for now (file fields will be added later)
+                        if matches!(field.field_type, crate::node_config::FormFieldType::Text) {
+                            // Replace variables in key and value
+                            let replaced_key = crate::executor::replace_variables(&field.key, context)
+                                .map_err(|e| format!("表单字段 key 变量替换失败: {}", e))?;
+                            let replaced_value = crate::executor::replace_variables(&field.value, context)
+                                .map_err(|e| format!("表单字段 value 变量替换失败: {}", e))?;
+                            
+                            form = form.text(replaced_key, replaced_value);
+                            field_count += 1;
+                        }
+                    }
+                    
+                    // Note: reqwest will automatically set Content-Type: multipart/form-data; boundary=...
+                    // But we only log if user hasn't set it manually
+                    if !user_set_content_type {
+                        log::info!("[流程 {}] [HTTP] 将自动设置 Content-Type: multipart/form-data", context.flow_uuid);
+                    }
+                    
+                    request = request.multipart(form);
+                    log::info!("[流程 {}] [HTTP] body_type=form-data, {} 个文本字段", context.flow_uuid, field_count);
+                } else {
+                    log::warn!("[流程 {}] [HTTP] body_type=form-data, 但 form_fields 为空", context.flow_uuid);
+                }
+            }
+            crate::node_config::HttpBodyType::XWwwFormUrlencoded => {
+                // Build form data from form_fields
+                if let Some(form_fields) = &http_config.form_fields {
+                    let mut form_data: Vec<(String, String)> = Vec::new();
+                    
+                    for field in form_fields {
+                        // Only process text fields
+                        if matches!(field.field_type, crate::node_config::FormFieldType::Text) {
+                            // Replace variables in key and value
+                            let replaced_key = crate::executor::replace_variables(&field.key, context)
+                                .map_err(|e| format!("Form field key variable replacement failed: {}", e))?;
+                            let replaced_value = crate::executor::replace_variables(&field.value, context)
+                                .map_err(|e| format!("Form field value variable replacement failed: {}", e))?;
+                            form_data.push((replaced_key, replaced_value));
+                        }
+                    }
+                    
+                    // Set Content-Type header only if user hasn't set it manually
+                    if !user_set_content_type {
+                        request = request.header("Content-Type", "application/x-www-form-urlencoded");
+                        log::info!("[流程 {}] [HTTP] 自动设置 Content-Type: application/x-www-form-urlencoded", context.flow_uuid);
+                    }
+                    
+                    request = request.form(&form_data);
+                    log::info!("[流程 {}] [HTTP] body_type=x-www-form-urlencoded, {} fields", context.flow_uuid, form_data.len());
+                } else {
+                    log::warn!("[流程 {}] [HTTP] body_type=x-www-form-urlencoded, but form_fields is empty", context.flow_uuid);
+                }
+            }
+            crate::node_config::HttpBodyType::Binary => {
+                // Binary file upload
+                if let Some(file_path) = &http_config.file_path {
+                    // Resolve file path (supports relative paths)
+                    let resolved_path = context.resolve_file_path(file_path);
+                    
+                    log::info!("[流程 {}] [HTTP] body_type=binary, 读取文件: {:?}", context.flow_uuid, resolved_path);
+                    
+                    // Read file content
+                    let file_content = match tokio::fs::read(&resolved_path).await {
+                        Ok(content) => content,
+                        Err(e) => {
+                            let error_msg = format!("读取文件失败 ({}): {}", resolved_path.display(), e);
+                            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", 
+                                context.flow_uuid, node.uuid, node.name, error_msg);
+                            return Err(error_msg);
+                        }
+                    };
+                    
+                    // Warn for large files (> 10MB)
+                    if file_content.len() > 10 * 1024 * 1024 {
+                        log::warn!("[流程 {}] [HTTP] 文件较大 ({} bytes), 可能占用较多内存", 
+                            context.flow_uuid, file_content.len());
+                    }
+                    
+                    // Set Content-Type header only if user hasn't set it manually
+                    if !user_set_content_type {
+                        request = request.header("Content-Type", "application/octet-stream");
+                        log::info!("[流程 {}] [HTTP] 自动设置 Content-Type: application/octet-stream", context.flow_uuid);
+                    }
+                    
+                    let file_size = file_content.len();
+                    request = request.body(file_content);
+                    log::info!("[流程 {}] [HTTP] body_type=binary, 文件大小: {} bytes", context.flow_uuid, file_size);
+                } else {
+                    let error_msg = "body_type=binary 但 file_path 为空".to_string();
+                    log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", 
+                        context.flow_uuid, node.uuid, node.name, error_msg);
+                    return Err(error_msg);
+                }
+            }
         }
 
         // 记录HTTP请求开始时间
@@ -280,15 +426,22 @@ mod tests {
     // 测试辅助函数
     // ============================================================================
 
-    /// 创建HTTP节点
+    /// Create HTTP node for testing
     fn create_http_node(
         uuid: &str,
         name: &str,
         url: &str,
         method: HttpMethod,
         headers: Option<HashMap<String, String>>,
-        body: Option<serde_json::Value>,
+        body: Option<String>,
     ) -> Node {
+        // Derive body_type from whether body is present
+        let body_type = if body.is_some() {
+            HttpBodyType::Body
+        } else {
+            HttpBodyType::None
+        };
+        
         Node {
             uuid: uuid.to_string(),
             node_type: NodeType::Http,
@@ -298,6 +451,10 @@ mod tests {
                 url: url.to_string(),
                 method,
                 headers,
+                body_type,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
                 body,
             }),
             ports: None,
@@ -371,12 +528,6 @@ mod tests {
             "https://httpbin.org/post",
             HttpMethod::Post,
             Some(headers),
-            Some(json!({
-                "test_key": "test_value",
-                "nested": {
-                    "field": "value"
-                }
-            })),
         );
 
         let context = create_context("test-flow", json!({}));
@@ -413,9 +564,6 @@ mod tests {
             "https://httpbin.org/put",
             HttpMethod::Put,
             Some(headers),
-            Some(json!({
-                "key": "put_value"
-            })),
         );
 
         let context = create_context("test-flow", json!({}));
@@ -468,9 +616,6 @@ mod tests {
             "https://httpbin.org/patch",
             HttpMethod::Patch,
             Some(headers),
-            Some(json!({
-                "key": "patch_value"
-            })),
         );
 
         let context = create_context("test-flow", json!({}));
@@ -1092,9 +1237,12 @@ mod tests {
                 url: "https://httpbin.org/get".to_string(),
                 method: HttpMethod::Get,
                 headers: None,
+                body_type: HttpBodyType::None,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
                 body: None,
             }),
-            ports: None,
         };
 
         let context = ExecutionContext {
@@ -1139,11 +1287,12 @@ mod tests {
                     headers.insert("Content-Type".to_string(), "application/json".to_string());
                     headers
                 }),
-                body: Some(json!({
-                    "test_key": "test_value"
-                })),
+                body_type: HttpBodyType::Body,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
+                body: Some(r#"{"test_key":"test_value"}"#.to_string()),
             }),
-            ports: None,
         };
 
         let context = ExecutionContext {
@@ -1179,9 +1328,12 @@ mod tests {
                 url: "https://httpbin.org/status/404".to_string(),
                 method: HttpMethod::Get,
                 headers: None,
+                body_type: HttpBodyType::None,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
                 body: None,
             }),
-            ports: None,
         };
 
         let context = ExecutionContext {
@@ -1215,9 +1367,12 @@ mod tests {
                 url: "https://httpbin.org/status/200".to_string(),
                 method: HttpMethod::Get,
                 headers: None,
+                body_type: HttpBodyType::None,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
                 body: None,
             }),
-            ports: None,
         };
 
         let context = ExecutionContext {
@@ -1253,9 +1408,12 @@ mod tests {
                 url: "https://httpbin.org/status/500".to_string(),
                 method: HttpMethod::Get,
                 headers: None,
+                body_type: HttpBodyType::None,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
                 body: None,
             }),
-            ports: None,
         };
 
         let context = ExecutionContext {
@@ -1293,11 +1451,12 @@ mod tests {
                     headers.insert("X-Custom-Header".to_string(), "{{test_header}}".to_string());
                     headers
                 }),
-                body: Some(json!({
-                    "key": "{{test_body}}"
-                })),
+                body_type: HttpBodyType::None,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
+                body: None,
             }),
-            ports: None,
         };
 
         let mut storage = VariableStorage::new();
@@ -1347,9 +1506,12 @@ mod tests {
                 url: "http://this-domain-does-not-exist-12345.invalid".to_string(),
                 method: HttpMethod::Get,
                 headers: None,
+                body_type: HttpBodyType::None,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
                 body: None,
             }),
-            ports: None,
         };
 
         let context = ExecutionContext {
@@ -1388,9 +1550,12 @@ mod tests {
                     headers.insert("Accept".to_string(), "application/json".to_string());
                     headers
                 }),
+                body_type: HttpBodyType::None,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
                 body: None,
             }),
-            ports: None,
         };
 
         let context = ExecutionContext {
@@ -1429,9 +1594,12 @@ mod tests {
                 url: "https://httpbin.org/encoding/utf8".to_string(),
                 method: HttpMethod::Get,
                 headers: None,
+                body_type: HttpBodyType::None,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
                 body: None,
             }),
-            ports: None,
         };
 
         let context = ExecutionContext {
@@ -1474,11 +1642,12 @@ mod tests {
                     headers.insert("Content-Type".to_string(), "application/json".to_string());
                     headers
                 }),
-                body: Some(json!({
-                    "test": "put_data"
-                })),
+                body_type: HttpBodyType::Body,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
+                body: Some(r#"{"test":"put_data"}"#.to_string()),
             }),
-            ports: None,
         };
 
         let context = ExecutionContext {
@@ -1514,9 +1683,12 @@ mod tests {
                 url: "https://httpbin.org/delete".to_string(),
                 method: HttpMethod::Delete,
                 headers: None,
+                body_type: HttpBodyType::None,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
                 body: None,
             }),
-            ports: None,
         };
 
         let context = ExecutionContext {
@@ -1556,11 +1728,12 @@ mod tests {
                     headers.insert("Content-Type".to_string(), "application/json".to_string());
                     headers
                 }),
-                body: Some(json!({
-                    "test": "patch_data"
-                })),
+                body_type: HttpBodyType::Body,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
+                body: Some(r#"{"test":"patch_data"}"#.to_string()),
             }),
-            ports: None,
         };
 
         let context = ExecutionContext {
@@ -1596,9 +1769,12 @@ mod tests {
                 url: "https://httpbin.org/get".to_string(),
                 method: HttpMethod::Get,
                 headers: None,
+                body_type: HttpBodyType::None,
+                content_type: ContentType::Json,
+                form_fields: None,
+                file_path: None,
                 body: None,
             }),
-            ports: None,
         };
 
         let context = ExecutionContext {
