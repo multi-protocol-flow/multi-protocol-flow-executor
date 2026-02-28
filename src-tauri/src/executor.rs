@@ -10,6 +10,7 @@ use crate::node::{Node, NodeType};
 use regex::Regex;
 use serde_json::json;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::ipc::Channel;
 use tokio::sync::Mutex;
@@ -190,8 +191,11 @@ fn parse_error_to_detail(error: &str) -> ErrorDetail {
     ErrorDetail::new(ErrorKind::Execution, error.to_string())
 }
 
-/// 流程执行器
-pub struct FlowExecutor;
+/// Flow executor
+pub struct FlowExecutor {
+    /// Flow file path (used for resolving relative paths in CLI mode)
+    flow_file_path: Option<PathBuf>,
+}
 
 impl Default for FlowExecutor {
     fn default() -> Self {
@@ -200,9 +204,17 @@ impl Default for FlowExecutor {
 }
 
 impl FlowExecutor {
-    /// 创建新的流程执行器
+    /// Create a new flow executor
     pub fn new() -> Self {
-        FlowExecutor
+        FlowExecutor {
+            flow_file_path: None,
+        }
+    }
+
+    /// Set flow file path (used for CLI relative path resolution)
+    pub fn with_flow_file_path(mut self, path: PathBuf) -> Self {
+        self.flow_file_path = Some(path);
+        self
     }
 
 /// 执行流程
@@ -242,6 +254,7 @@ impl FlowExecutor {
                 .unwrap()
                 .as_millis() as u64,
             log_sender,
+            flow_file_path: self.flow_file_path.clone(),
         };
 
         // 查找开始节点

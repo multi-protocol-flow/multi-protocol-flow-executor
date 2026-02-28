@@ -4,6 +4,7 @@ use crate::log_event::LogEvent;
 use crate::report::NodeExecutionReport;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::ipc::Channel;
 use tokio::sync::Mutex;
@@ -33,6 +34,12 @@ pub struct ExecutionContext {
     /// 使用 #[serde(skip)] 跳过序列化，因为 Channel 不支持 Serialize/Deserialize
     #[serde(skip)]
     pub log_sender: Option<Arc<Mutex<Channel<LogEvent>>>>,
+
+    /// Flow file path for resolving relative paths (CLI mode)
+    /// Used to resolve relative file paths based on the flow file directory.
+    /// Skipped during serialization as it's only needed at runtime.
+    #[serde(skip)]
+    pub flow_file_path: Option<PathBuf>,
 }
 
 impl ExecutionContext {
@@ -54,6 +61,7 @@ impl ExecutionContext {
             node_reports: Vec::new(),
             flow_trigger_time,
             log_sender: None,
+            flow_file_path: None,
         }
     }
 
@@ -92,6 +100,47 @@ impl ExecutionContext {
     pub fn with_log_sender(mut self, sender: Arc<Mutex<Channel<LogEvent>>>) -> Self {
         self.log_sender = Some(sender);
         self
+    }
+
+    /// Set flow file path for relative path resolution (CLI mode)
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Absolute path to the flow file
+    ///
+    /// # Returns
+    ///
+    /// Updated ExecutionContext with flow_file_path set
+    pub fn with_flow_file_path(mut self, path: PathBuf) -> Self {
+        self.flow_file_path = Some(path);
+        self
+    }
+
+    /// Resolve file path (supports relative paths)
+    ///
+    /// # Arguments
+    ///
+    /// * `file_path` - Original file path (may be absolute or relative)
+    ///
+    /// # Returns
+    ///
+    /// Resolved absolute path. If the base path cannot be determined, returns the original path.
+    pub fn resolve_file_path(&self, file_path: &str) -> PathBuf {
+        let path = PathBuf::from(file_path);
+
+        // Return absolute paths directly
+        if path.is_absolute() {
+            return path;
+        }
+
+        // Resolve relative paths based on flow file directory
+        if let Some(flow_path) = &self.flow_file_path {
+            if let Some(parent) = flow_path.parent() {
+                return parent.join(path);
+            }
+        }
+
+        path
     }
 
     /// 发送日志事件（Channel 可用时）

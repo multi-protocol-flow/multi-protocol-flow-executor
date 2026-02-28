@@ -1,6 +1,7 @@
-// CLI 入口点 - 流程执行命令行工具
+//! CLI 入口点 - 流程执行命令行工具
 
 use std::env;
+use std::path::PathBuf;
 use std::process;
 use std::time::Instant;
 
@@ -109,7 +110,8 @@ async fn run() -> Result<(), String> {
     let flow = load_flow(&flow_path).map_err(|e| format!("加载流程失败: {}", e))?;
 
     // 执行流程（使用 FlowExecutor，不重新实现）
-    let executor = FlowExecutor::new();
+    let executor = FlowExecutor::new()
+        .with_flow_file_path(PathBuf::from(&flow_path));
     let result: ExecutionResult = executor.execute_flow(&flow, None, None).await;
 
     // 计算总执行时间
