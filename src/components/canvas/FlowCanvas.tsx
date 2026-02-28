@@ -376,6 +376,7 @@ function FlowCanvasInner() {
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.1}
         maxZoom={2}
+        proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{
           type: 'custom',
           animated: true,
