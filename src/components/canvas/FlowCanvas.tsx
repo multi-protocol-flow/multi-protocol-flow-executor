@@ -97,12 +97,48 @@ function FlowCanvasInner() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialData.edges);
 
   // 当 flow 变化时，更新节点和边
+  // 使用 node.uuid 和 conn.id 作为稳定标识，避免属性变化时重置选择状态
   useEffect(() => {
     if (flow) {
       const { nodes: newNodes, edges: newEdges } = convertFlowToReactFlow(flow);
-      setNodes(newNodes);
-      setEdges(newEdges);
+      
+      // 获取当前节点/边的 ID 集合
+      const currentNodeIds = new Set(nodes.map(n => n.id));
+      const newNodeIds = new Set(newNodes.map(n => n.id));
+      const currentEdgeIds = new Set(edges.map(e => e.id));
+      const newEdgeIds = new Set(newEdges.map(e => e.id));
+      
+      // 检查是否有节点/边的增减（结构变化）
+      const hasStructureChange = 
+        currentNodeIds.size !== newNodeIds.size ||
+        currentEdgeIds.size !== newEdgeIds.size ||
+        ![...currentNodeIds].every(id => newNodeIds.has(id)) ||
+        ![...currentEdgeIds].every(id => newEdgeIds.has(id));
+      
+      if (hasStructureChange) {
+        // 结构变化时完全重置
+        setNodes(newNodes);
+        setEdges(newEdges);
+      } else {
+        // 仅属性变化时，只更新节点数据，保留选择状态
+        setNodes(prevNodes => 
+          prevNodes.map(prevNode => {
+            const newNode = newNodes.find(n => n.id === prevNode.id);
+            if (newNode) {
+              return {
+                ...prevNode,
+                position: newNode.position,
+                data: newNode.data,
+              };
+            }
+            return prevNode;
+          })
+        );
+        setEdges(newEdges);
+      }
     }
+  // 注意：这里故意不依赖 nodes/edges，避免循环更新
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flow, setNodes, setEdges]);
 
   // 处理连接创建

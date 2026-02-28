@@ -84,7 +84,7 @@ export function FlowListPanel() {
             const isSelected = currentFlow?.uuid === flowMeta.uuid;
 
             return (
-              <button
+              <div
                 type="button"
                 key={flowMeta.uuid}
                 onClick={() => handleSelectFlow(flowMeta.uuid)}
@@ -123,7 +123,7 @@ export function FlowListPanel() {
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
-              </button>
+              </div>
             );
           })}
 
