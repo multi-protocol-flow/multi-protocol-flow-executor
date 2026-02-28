@@ -2,16 +2,22 @@
 
 > 多协议流程编排与执行引擎
 
-一个强大的工作流编排与执行引擎，支持命令行执行流程文件。基于 Rust + Tauri 2.x 构建。
+一个强大的工作流编排与执行引擎，提供可视化编辑器和命令行执行能力。基于 **Rust + Tauri 2.x + React** 构建的跨平台桌面应用。
 
 ## ✨ 主要特性
 
+### 可视化流程编辑器
+- 🎨 拖拽式流程设计，基于 React Flow
+- 📦 节点库面板，快速添加各类节点
+- ⚙️ 实时节点配置面板
+- 📋 流程列表管理，支持创建、删除、切换
+
 ### 流程执行引擎
 - ⚡ 高性能 Rust 后端执行引擎
-- 🔄 支持三种核心节点类型：Entry（入口）、HTTP（请求）、Conditional（条件分支）
+- 🔄 支持多种核心节点类型：Entry（入口）、HTTP（请求）、Conditional（条件分支）、End（终止）
 - 📝 实时执行日志与详细报告
 - ✅ 流程验证与错误检测
-- 📊 执行统计信息收集
+- 📊 执行统计与历史记录
 
 ### CLI 模式
 - 💻 独立的命令行工具，支持批量执行和自动化集成
@@ -22,27 +28,35 @@
 ## 🏗️ 架构概览
 
 ```
-┌───────────────────────────────────────────────────────────────┐
-│                    后端 (Rust + Tauri 2.x)                     │
-│                                                                │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
-│  │  Executor   │  │  Validator  │  │   Storage   │            │
-│  │  执行引擎   │  │  流程验证器 │  │  存储管理   │            │
-│  └─────────────┘  └─────────────┘  └─────────────┘            │
-│                                                                │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │              NodeExecutor Implementations                │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌────────────┐ ┌──────────┐  │  │
-│  │  │  Entry   │ │   HTTP   │ │Conditional │ │   End    │  │  │
-│  │  │ Executor │ │ Executor │ │  Executor  │ │ Executor │  │  │
-│  │  └──────────┘ └──────────┘ └────────────┘ └──────────┘  │  │
-│  └─────────────────────────────────────────────────────────┘  │
-└───────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        前端 (React + TypeScript)                         │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
+│  │  FlowCanvas │  │ NodeLibrary │  │ ConfigPanel │  │ Execution   │     │
+│  │  流程画布   │  │  节点库面板 │  │  配置面板   │  │  执行报告   │     │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘     │
+└─────────────────────────────────────────────────────────────────────────┘
+                              ↕ Tauri IPC
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    后端 (Rust + Tauri 2.x)                               │
+│                                                                          │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                      │
+│  │  Executor   │  │  Validator  │  │   Storage   │                      │
+│  │  执行引擎   │  │  流程验证器 │  │  存储管理   │                      │
+│  └─────────────┘  └─────────────┘  └─────────────┘                      │
+│                                                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │                    NodeExecutor Implementations                    │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌────────────┐ ┌──────────┐            │  │
+│  │  │  Entry   │ │   HTTP   │ │Conditional │ │   End    │            │  │
+│  │  │ Executor │ │ Executor │ │  Executor  │ │ Executor │            │  │
+│  │  └──────────┘ └──────────┘ └────────────┘ └──────────┘            │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────┘
                               ↕
-┌───────────────────────────────────────────────────────────────┐
-│                     CLI 独立二进制                             │
-│            支持命令行执行 JSON 格式流程文件                      │
-└───────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         CLI 独立二进制                                    │
+│               支持命令行执行 JSON 格式流程文件                              │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## 🚀 快速开始
@@ -50,6 +64,31 @@
 ### 环境要求
 
 - **Rust** >= 1.77.2
+- **Node.js** >= 18 (推荐使用 bun)
+- **pnpm** / **npm** / **bun** 包管理器
+
+### 安装依赖
+
+```bash
+# 安装前端依赖
+npm install
+# 或使用 bun
+bun install
+```
+
+### 开发模式
+
+```bash
+# 启动 Tauri 开发模式（前端 + 后端热重载）
+npx tauri dev
+```
+
+### 构建应用
+
+```bash
+# 构建生产版本
+npx tauri build
+```
 
 ### 编译 CLI 工具
 
@@ -81,6 +120,15 @@ cli --help
 ```
 
 ## 📖 使用指南
+
+### 可视化编辑器
+
+1. **创建流程**: 点击左侧「新建流程」按钮
+2. **添加节点**: 从节点库拖拽节点到画布
+3. **连接节点**: 从节点输出端口拖拽到另一节点的输入端口
+4. **配置节点**: 选中节点后在右侧面板配置参数
+5. **执行流程**: 点击顶部「执行」按钮
+6. **查看报告**: 执行完成后查看详细报告
 
 ### 流程文件示例
 
@@ -130,6 +178,7 @@ cli --help
 | `entry` | 入口节点 | 流程起点，每个流程必须有且仅有一个 |
 | `http` | HTTP 请求节点 | 发送 HTTP 请求，支持 GET/POST/PUT/DELETE/PATCH |
 | `conditional` | 条件分支节点 | 根据条件选择执行路径 |
+| `end` | 终止节点 | 流程终点，标记执行完成 |
 
 ### 变量引用
 
@@ -146,6 +195,8 @@ cli --help
 更多 CLI 使用说明请参考 [CLI_USAGE.md](./CLI_USAGE.md)
 
 ## 🧪 测试
+
+### 后端测试
 
 ```bash
 # 进入后端目录
@@ -164,10 +215,37 @@ cargo test cli_tests
 cargo test proptest
 ```
 
+### 前端测试
+
+```bash
+# 运行前端单元测试
+npm run test
+
+# 类型检查
+npm run typecheck
+```
+
 ## 📁 项目结构
 
 ```
 multi-protocol-flow-executor/
+├── src/                        # 前端源代码 (React + TypeScript)
+│   ├── components/
+│   │   ├── canvas/             # 流程画布组件
+│   │   │   ├── nodes/          # 自定义节点组件
+│   │   │   └── edges/          # 自定义边组件
+│   │   ├── panels/             # 配置面板组件
+│   │   ├── sidebar/            # 侧边栏组件
+│   │   ├── execution/          # 执行相关组件
+│   │   ├── dialogs/            # 对话框组件
+│   │   └── ui/                 # 基础 UI 组件 (shadcn/ui)
+│   ├── stores/                 # Zustand 状态管理
+│   ├── services/               # 服务层 (Tauri IPC, Storage)
+│   ├── types/                  # TypeScript 类型定义
+│   ├── hooks/                  # 自定义 Hooks
+│   ├── layouts/                # 布局组件
+│   └── lib/                    # 工具函数
+│
 ├── src-tauri/                  # 后端源代码 (Rust)
 │   ├── src/
 │   │   ├── lib.rs              # 库入口
@@ -207,7 +285,9 @@ multi-protocol-flow-executor/
 │       └── flows/              # 流程测试用例
 │
 ├── docs/                       # 文档目录
-│   └── executor_architecture.md # 架构设计文档
+│   ├── executor_architecture.md # 架构设计文档
+│   ├── node_structure.md       # 节点结构文档
+│   └── executor/               # 执行器详细文档
 │
 ├── README.md                   # 项目说明（本文件）
 ├── CLI_USAGE.md                # CLI 使用文档
@@ -215,6 +295,25 @@ multi-protocol-flow-executor/
 ```
 
 ## 🔧 开发指南
+
+### 前端开发
+
+- React 19 + TypeScript
+- 状态管理：Zustand
+- UI 组件：shadcn/ui + Tailwind CSS
+- 流程画布：@xyflow/react
+- 表单：react-hook-form + zod
+
+```bash
+# 启动开发服务器
+npm run dev
+
+# 类型检查
+npm run typecheck
+
+# 运行测试
+npm run test
+```
 
 ### 后端开发
 
@@ -224,9 +323,9 @@ multi-protocol-flow-executor/
 
 ### 添加新节点类型
 
-1. 在 `src-tauri/src/node.rs` 中添加新的 `NodeType` 枚举值
-2. 在 `src-tauri/src/node_config.rs` 中添加对应的 `NodeData` 配置
-3. 创建对应的执行器文件 `xxx_executor.rs`，实现 `NodeExecutor` trait：
+1. **后端**：在 `src-tauri/src/node.rs` 中添加新的 `NodeType` 枚举值
+2. **后端**：在 `src-tauri/src/node_config.rs` 中添加对应的 `NodeData` 配置
+3. **后端**：创建对应的执行器文件 `xxx_executor.rs`，实现 `NodeExecutor` trait：
 
 ```rust
 #[async_trait::async_trait]
@@ -241,14 +340,34 @@ impl NodeExecutor for MyNodeExecutor {
 }
 ```
 
-4. 在 `src-tauri/src/executor.rs` 的 `execute_node()` 方法中注册新执行器
-5. 添加对应的单元测试和集成测试
+4. **后端**：在 `src-tauri/src/executor.rs` 的 `execute_node()` 方法中注册新执行器
+5. **前端**：在 `src/components/canvas/nodes/` 中创建对应的节点组件
+6. **前端**：在 `src/components/panels/` 中创建对应的配置面板
+7. 添加对应的单元测试和集成测试
 
 ### 代码规范
 
+**前端：**
+- 格式化：使用 ESLint + Prettier
+- 类型安全：禁止 `as any`、`@ts-ignore`、`@ts-expect-error`
+
+**后端：**
 - 格式化：`cargo fmt`
 - Lint 检查：`cargo clippy`
-- 禁止 `unsafe_code`、`as any`、`@ts-ignore` 等不安全操作
+- 禁止 `unsafe_code`
+
+## 🛠️ 技术栈
+
+| 层级 | 技术 |
+|------|------|
+| 前端框架 | React 19 + TypeScript |
+| 状态管理 | Zustand |
+| UI 组件 | shadcn/ui + Tailwind CSS |
+| 流程画布 | @xyflow/react |
+| 桌面框架 | Tauri 2.x |
+| 后端语言 | Rust |
+| HTTP 客户端 | reqwest |
+| 表达式求值 | evalexpr |
 
 ## 📄 License
 
