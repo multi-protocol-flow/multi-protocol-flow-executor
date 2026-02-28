@@ -78,7 +78,7 @@ export function NodeLibrary() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* 标题栏 */}
-      <div className="px-3 py-2 border-b border-[#e0e0e0]">
+      <div className="px-3 py-2 border-b border-border">
         <span className="text-sm font-medium text-black">节点库</span>
       </div>
 
@@ -130,7 +130,7 @@ export function NodeLibrary() {
       </div>
 
       {/* 底部提示 */}
-      <div className="px-3 py-2.5 border-t border-[#e0e0e0] bg-slate-50">
+      <div className="px-3 py-2.5 border-t border-border bg-slate-50">
         <div className="flex items-center gap-2 text-xs text-slate-400">
           <Sparkles className="w-3.5 h-3.5 text-amber-500" />
           <span>点击添加节点或拖拽到画布</span>

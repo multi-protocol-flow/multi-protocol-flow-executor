@@ -22,27 +22,27 @@ export function EntryNode({ data, selected }: NodeProps) {
   return (
     <div
       className={cn(
-        'relative px-4 h-16 rounded-xl',
+        'relative px-4 py-2 rounded-xl',
         'border-2 border-black',
         'bg-white',
         'transition-all duration-200 ease-out',
-        'min-w-[140px]',
+        'w-[180px]',
         'flex items-center',
         selected && 'border-[3px] border-emerald-500'
       )}
     >
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5 w-full min-w-0">
         <div className={cn(
-          'p-1.5 rounded-lg',
+          'shrink-0 p-1.5 rounded-lg',
           'bg-emerald-500 text-white'
         )}>
           <Play className="w-3.5 h-3.5 fill-current" />
         </div>
-        <div className="flex flex-col">
+        <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-emerald-600 font-medium uppercase tracking-wide">
             入口
           </span>
-          <span className="text-sm font-semibold text-black">
+          <span className="text-sm font-semibold text-black break-words">
             {nodeData.label || '流程入口'}
           </span>
         </div>

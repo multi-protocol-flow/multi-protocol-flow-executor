@@ -129,7 +129,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
   }, [setValue, saveData]);
 
   return (
-    <form onBlur={handleBlur} className="space-y-5">
+    <form onBlur={handleBlur} className="w-full space-y-5">
       {/* 条件类型选择 */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-black">条件类型</Label>
@@ -163,7 +163,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
 
       {/* 简单条件配置 */}
       {conditionType === 'simple' && (
-        <div className="space-y-4">
+        <>
           {/* 字段路径 */}
           <div className="space-y-2">
             <Label htmlFor="field_path" className="text-sm font-medium text-black">
@@ -175,9 +175,10 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
               placeholder="http_response.status"
               className="font-mono text-sm"
             />
-            <p className="text-xs text-muted-foreground">
-              使用点号分隔的路径，如 <code className="rounded bg-muted px-1">http_response.data.id</code>
+            <p className="text-xs text-muted-foreground break-all">
+              使用点号分隔的路径，如 <code className="rounded bg-muted px-1 break-all">http_response.data.id</code>
             </p>
+
           </div>
 
           {/* 操作符 */}
@@ -216,11 +217,12 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
               placeholder="200"
               className="font-mono text-sm"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground break-all">
               支持数字、字符串或 JSON 值，如 <code className="rounded bg-muted px-1">200</code> 或 <code className="rounded bg-muted px-1">"success"</code>
             </p>
+
           </div>
-        </div>
+        </>
       )}
 
       {/* 高级表达式配置 */}
@@ -239,10 +241,10 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
           <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
             <p className="mb-1 font-medium text-foreground">支持的语法：</p>
             <ul className="ml-3 list-disc space-y-0.5">
-              <li>比较运算符: <code className="rounded bg-muted px-1">{'>'} {'>='} {'<'} {'<='} {'=='} {'!='}</code></li>
-              <li>逻辑运算符: <code className="rounded bg-muted px-1">{'&&'} {'||'} {'!'}</code></li>
-              <li>字符串函数: <code className="rounded bg-muted px-1">contains() startsWith() endsWith()</code></li>
-              <li>变量引用: <code className="rounded bg-muted px-1">http_response.status</code></li>
+              <li>比较运算符: <code className="rounded bg-muted px-1 break-all">{'>'} {'>='} {'<'} {'<='} {'=='} {'!='}</code></li>
+              <li>逻辑运算符: <code className="rounded bg-muted px-1 break-all">{'&&'} {'||'} {'!'}</code></li>
+              <li>字符串函数: <code className="rounded bg-muted px-1 break-all">contains() startsWith() endsWith()</code></li>
+              <li>变量引用: <code className="rounded bg-muted px-1 break-all">http_response.status</code></li>
             </ul>
           </div>
         </div>

@@ -23,11 +23,11 @@ export function ConditionalNode({ data, selected }: NodeProps) {
   return (
     <div
       className={cn(
-        'relative px-4 h-16 rounded-xl',
+        'relative px-4 py-2 rounded-xl',
         'border-2 border-black',
         'bg-white',
         'transition-all duration-200 ease-out',
-        'min-w-[160px]',
+        'w-[180px]',
         'flex items-center',
         selected && 'border-[3px] border-amber-500'
       )}
@@ -37,27 +37,26 @@ export function ConditionalNode({ data, selected }: NodeProps) {
         position={Position.Left}
         id="in"
         className={cn(
-          '!w-3.5 !h-3.5',
+          '!w-3.5 !h-3.5 !top-1/2',
           '!bg-white !border-2 !border-black',
           '![background:radial-gradient(circle,_theme(colors.amber.500)_35%,_white_35%)]',
           'hover:!scale-125',
           'transition-transform duration-150'
         )}
-        style={{ top: '50%' }}
       />
       
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5 w-full min-w-0">
         <div className={cn(
-          'p-1.5 rounded-lg',
+          'shrink-0 p-1.5 rounded-lg',
           'bg-orange-500 text-white'
         )}>
           <GitBranch className="w-3.5 h-3.5" />
         </div>
-        <div className="flex flex-col">
+        <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-orange-600 font-medium uppercase tracking-wide">
             条件
           </span>
-          <span className="text-sm font-semibold text-black">
+          <span className="text-sm font-semibold text-black break-words">
             {nodeData.label || '条件判断'}
           </span>
         </div>
@@ -68,13 +67,12 @@ export function ConditionalNode({ data, selected }: NodeProps) {
         position={Position.Right}
         id="true"
         className={cn(
-          '!w-3.5 !h-3.5',
+          '!w-3.5 !h-3.5 !top-[30%]',
           '!bg-white !border-2 !border-black',
           '![background:radial-gradient(circle,_theme(colors.amber.500)_35%,_white_35%)]',
           'hover:!scale-125',
           'transition-transform duration-150'
         )}
-        style={{ top: '30%' }}
       />
       
       <Handle
@@ -82,18 +80,17 @@ export function ConditionalNode({ data, selected }: NodeProps) {
         position={Position.Right}
         id="false"
         className={cn(
-          '!w-3.5 !h-3.5',
+          '!w-3.5 !h-3.5 !top-[70%]',
           '!bg-white !border-2 !border-black',
           '![background:radial-gradient(circle,_theme(colors.amber.500)_35%,_white_35%)]',
           'hover:!scale-125',
           'transition-transform duration-150'
         )}
-        style={{ top: '70%' }}
       />
       
       <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center translate-x-5 pointer-events-none">
-        <span className="text-[10px] font-bold text-emerald-600 leading-none" style={{ marginTop: '-8px' }}>T</span>
-        <span className="text-[10px] font-bold text-rose-600 leading-none" style={{ marginTop: '16px' }}>F</span>
+        <span className="text-[10px] font-bold text-emerald-600 leading-none -mt-2">T</span>
+        <span className="text-[10px] font-bold text-rose-600 leading-none mt-4">F</span>
       </div>
     </div>
   );

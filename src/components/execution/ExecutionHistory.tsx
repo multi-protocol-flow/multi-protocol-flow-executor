@@ -71,7 +71,7 @@ export function ExecutionHistory({ onSelectFlow, onRerun }: ExecutionHistoryProp
   return (
     <div className="flex flex-col h-full">
       {/* 头部 */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#e0e0e0]">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
         <span className="text-xs text-slate-500">
           共 {history.length} 条记录
         </span>

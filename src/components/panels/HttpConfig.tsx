@@ -155,7 +155,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   }, [remove, saveData]);
 
   return (
-    <form onBlur={handleBlur} className="space-y-5">
+    <form onBlur={handleBlur} className="w-full space-y-5">
       {/* URL 输入 */}
       <div className="space-y-2">
         <Label htmlFor="url" className="text-sm font-medium text-black">
@@ -262,8 +262,8 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           className="min-h-[120px] resize-y font-mono text-sm"
           rows={5}
         />
-        <p className="text-xs text-muted-foreground">
-          支持使用 <code className="rounded bg-muted px-1 py-0.5">{'{{变量名}}'}</code> 引用变量
+        <p className="text-xs text-muted-foreground break-all">
+          支持使用 <code className="rounded bg-muted px-1 py-0.5 break-all">{'{{变量名}}'}</code> 引用变量
         </p>
       </div>
     </form>

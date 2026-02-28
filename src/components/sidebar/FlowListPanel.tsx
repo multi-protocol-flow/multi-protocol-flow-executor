@@ -62,9 +62,9 @@ export function FlowListPanel() {
   const flows = useFlowListStore((state) => state.flows);
 
   return (
-    <div className="flex flex-col h-52 border-b" style={{ borderColor: '#e0e0e0' }}>
+    <div className="flex flex-col h-52 border-b border-border">
       {/* 标题栏 */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#e0e0e0]">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
         <span className="text-sm font-medium text-black">流程列表</span>
         <Button
           variant="ghost"

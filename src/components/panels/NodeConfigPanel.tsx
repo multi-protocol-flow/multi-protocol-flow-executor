@@ -72,7 +72,7 @@ export function NodeConfigPanel() {
   };
 
   return (
-    <Card className="flex h-full flex-col overflow-hidden border-0 shadow-none">
+    <Card className="flex h-full flex-col overflow-hidden border-0 shadow-none w-full min-w-0">
       <CardHeader className="shrink-0 border-b border-muted bg-white pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -104,25 +104,27 @@ export function NodeConfigPanel() {
       </CardHeader>
       
       <CardContent className="flex-1 overflow-hidden p-0">
-        <ScrollArea className="h-full px-6 py-4">
-          {/* Entry 节点：仅显示说明 */}
-          {selectedNode.type === 'entry' && <EntryConfig />}
+        <ScrollArea className="h-full">
+          <div className="w-full min-w-0 max-w-full overflow-hidden px-6 py-4">
+            {/* Entry 节点：仅显示说明 */}
+            {selectedNode.type === 'entry' && <EntryConfig />}
 
-          {/* HTTP 节点：URL/方法/Headers/Body 配置 */}
-          {selectedNode.type === 'http' && isHttpConfig(selectedNode.data) && (
-            <HttpConfig
-              data={selectedNode.data}
-              onSave={(data) => handleSave(data as NodeData)}
-            />
-          )}
+            {/* HTTP 节点：URL/方法/Headers/Body 配置 */}
+            {selectedNode.type === 'http' && isHttpConfig(selectedNode.data) && (
+              <HttpConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
 
-          {/* Conditional 节点：条件配置 */}
-          {selectedNode.type === 'conditional' && isConditionalConfig(selectedNode.data) && (
-            <ConditionalConfig
-              data={selectedNode.data}
-              onSave={(data) => handleSave(data as NodeData)}
-            />
-          )}
+            {/* Conditional 节点：条件配置 */}
+            {selectedNode.type === 'conditional' && isConditionalConfig(selectedNode.data) && (
+              <ConditionalConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
+          </div>
         </ScrollArea>
       </CardContent>
     </Card>

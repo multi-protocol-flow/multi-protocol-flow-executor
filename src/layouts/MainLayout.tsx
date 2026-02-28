@@ -27,12 +27,12 @@ export function MainLayout() {
   return (
     <div className="h-screen flex flex-col bg-white text-slate-900 overflow-hidden">
       {/* ===== 顶部工具栏 ===== */}
-      <header className="h-14 shrink-0 border-b border-[#e0e0e0] flex items-center justify-between px-4 bg-white">
+      <header className="h-14 shrink-0 border-b border-border flex items-center justify-between px-4 bg-white">
         {/* 左侧：标题 */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
             {/* Logo/图标 */}
-            <div className="w-8 h-8 rounded-lg bg-white border border-[#e0e0e0] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-white border border-border flex items-center justify-center">
               <Zap className="w-4 h-4 text-slate-900" />
             </div>
             <div>
@@ -47,7 +47,7 @@ export function MainLayout() {
 
           {/* 当前流程名称 */}
           {flow && (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-[#e0e0e0]">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-border">
               <span className="text-sm text-slate-600">{flow.name}</span>
               {isDirty && (
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title="未保存" />
@@ -88,17 +88,14 @@ export function MainLayout() {
         {/* ===== 左侧栏 ===== */}
         <aside
           className={cn(
-            'shrink-0 border-r border-[#e0e0e0] flex flex-col bg-white',
+            'shrink-0 border-r border-border flex flex-col bg-white',
             'transition-all duration-300 ease-out overflow-hidden',
-            isFlowListPanelOpen ? 'w-64' : 'w-0'
+            isFlowListPanelOpen ? 'w-[256px] min-w-0 rounded-r-xl' : 'w-0'
           )}
-          style={isFlowListPanelOpen ? { borderRadius: '0 12px 12px 0' } : {}}
         >
           {isFlowListPanelOpen && (
             <>
-              {/* 流程列表 */}
               <FlowListPanel />
-              {/* 节点库 */}
               <div className="flex-1 min-h-0">
                 <NodeLibrary />
               </div>
@@ -112,12 +109,11 @@ export function MainLayout() {
           size="icon"
           onClick={toggleFlowListPanel}
           className={cn(
-            'absolute z-20 h-8 w-6 rounded-l-none rounded-r-lg',
-            'bg-white hover:bg-slate-50 border border-l-0 border-[#e0e0e0]',
+            'absolute z-20 h-8 w-6 rounded-l-none rounded-r-lg top-[calc(50%-16px)]',
+            'bg-white hover:bg-slate-50 border border-l-0 border-border',
             'transition-all duration-300 ease-out',
             isFlowListPanelOpen ? 'left-[256px]' : 'left-0'
           )}
-          style={{ top: 'calc(50% - 16px)' }}
           title={isFlowListPanelOpen ? '收起侧边栏' : '展开侧边栏'}
         >
           {isFlowListPanelOpen ? (
@@ -137,7 +133,7 @@ export function MainLayout() {
           {/* ===== 底部历史面板 ===== */}
           <div
             className={cn(
-              'shrink-0 border-t border-[#e0e0e0] bg-white',
+              'shrink-0 border-t border-border bg-white',
               'transition-all duration-300 ease-out overflow-hidden',
               isHistoryPanelOpen ? 'h-52' : 'h-0'
             )}
@@ -174,7 +170,7 @@ export function MainLayout() {
               className={cn(
                 'absolute bottom-0 left-1/2 -translate-x-1/2 z-10',
                 'h-6 px-3 rounded-t-lg rounded-b-none',
-                'bg-white hover:bg-slate-50 border border-b-0 border-[#e0e0e0]',
+                'bg-white hover:bg-slate-50 border border-b-0 border-border',
                 'text-xs text-slate-500 hover:text-slate-700'
               )}
               title="展开历史面板"
@@ -188,14 +184,13 @@ export function MainLayout() {
         {/* ===== 右侧配置面板 ===== */}
         <aside
           className={cn(
-            'shrink-0 border-l border-[#e0e0e0] bg-white',
+            'shrink-0 border-l border-border bg-white',
             'transition-all duration-300 ease-out overflow-hidden',
-            isConfigPanelOpen ? 'w-72' : 'w-0'
+            isConfigPanelOpen ? 'w-72 min-w-0 rounded-l-xl' : 'w-0 min-w-0'
           )}
-          style={isConfigPanelOpen ? { borderRadius: '12px 0 0 12px', borderColor: '#e0e0e0' } : {}}
         >
           {isConfigPanelOpen && (
-            <div className="h-full w-72">
+            <div className="h-full w-72 min-w-0 overflow-hidden">
               <NodeConfigPanel />
             </div>
           )}
