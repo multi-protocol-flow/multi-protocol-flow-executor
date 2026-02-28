@@ -48,6 +48,20 @@ const CUSTOM_CURSOR_SVG = `data:image/svg+xml,${encodeURIComponent(`
   </svg>
 `)}`;
 
+/**
+ * 自定义抓手光标 SVG (data URI)
+ * - 深色描边确保在浅色背景可见
+ * - 浅色填充确保在深色背景可见
+ * - hotspot 在左上角 (8, 8)
+ */
+const GRABBING_CURSOR_SVG = `data:image/svg+xml,${encodeURIComponent(`
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 8V16M8 8L5 11M8 8L11 11" stroke="#1e293b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M16 16V8M16 16L19 13M16 16L13 13" stroke="#1e293b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="12" cy="12" r="3" fill="white" stroke="#1e293b" stroke-width="1.5"/>
+  </svg>
+`)}`;
+
 /** 画布自定义光标样式 */
 const CANVAS_CURSOR_STYLE: React.CSSProperties = {
   cursor: `url("${CUSTOM_CURSOR_SVG}") 12 12, crosshair`,
@@ -409,10 +423,10 @@ function FlowCanvasInner() {
         .react-flow__minimap * {
           cursor: pointer !important;
         }
-        /* 拖拽时显示 grabbing */
+        /* 拖拽时显示自定义 grabbing 光标 */
         .react-flow__node.dragging,
         .react-flow__node.dragging * {
-          cursor: grabbing !important;
+          cursor: url("${GRABBING_CURSOR_SVG}") 8 8, grabbing !important;
         }
       `}</style>
       
