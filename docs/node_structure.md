@@ -105,14 +105,129 @@ pub struct HttpConfig {
     pub method: HttpMethod,
     #[serde(default)]
     pub headers: Option<HashMap<String, String>>,
+    /// 请求体类型
     #[serde(default)]
-    pub body: Option<serde_json::Value>,
+    pub body_type: HttpBodyType,
+    /// Content-Type（仅 body_type=body 时使用）
+    #[serde(default)]
+    pub content_type: ContentType,
+    /// 表单字段（仅 form-data/x-www-form-urlencoded 时使用）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub form_fields: Option<Vec<FormField>>,
+    /// 二进制文件路径（仅 body_type=binary 时使用）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_path: Option<String>,
+    /// 原始请求体（仅 body_type=body 时使用）
+    pub body: Option<String>,
 }
 
 pub enum HttpMethod {
     Get, Post, Put, Delete, Patch,
 }
+
+/// HTTP 请求体类型
+pub enum HttpBodyType {
+    None,                           // 无请求体
+    Body,                           // 原始请求体
+    FormData,                       // multipart/form-data
+    XWwwFormUrlencoded,             // application/x-www-form-urlencoded
+    Binary,                         // 二进制文件
+}
+
+/// Content-Type 枚举
+pub enum ContentType {
+    Json, Text, Html, Xml, Javascript,
+}
+
+/// 表单字段
+pub struct FormField {
+    pub key: String,                // 字段键名
+    pub value: String,              // 字段值
+    pub field_type: FormFieldType,  // 字段类型 (text/file)
+    pub file_path: Option<String>,  // 文件路径（仅 file 类型）
+}
+
+pub enum FormFieldType {
+    Text, File,
+}
 ```
+
+#### HTTP 节点字段说明
+
+| 字段 | 类型 | 说明 | 适用条件 |
+|------|------|------|----------|
+| `body_type` | `HttpBodyType` | 请求体类型 | 必需，默认 `none` |
+| `content_type` | `ContentType` | 内容类型 | 仅 `body_type=body` 时使用 |
+| `form_fields` | `Vec<FormField>` | 表单字段列表 | 仅 `form-data` 或 `x-www-form-urlencoded` 时使用 |
+| `file_path` | `String` | 二进制文件路径 | 仅 `body_type=binary` 时使用 |
+| `body` | `String` | 原始请求体 | 仅 `body_type=body` 时使用 |
+
+#### Content-Type 自动设置规则
+
+| body_type | 自动设置的 Content-Type | 备注 |
+|-----------|------------------------|------|
+| `none` | 无 | GET 请求通常使用 |
+| `body` | 根据 `content_type` 字段 | `json`/`text`/`html`/`xml`/`javascript` |
+| `form-data` | `multipart/form-data` | 支持文件上传 |
+| `x-www-form-urlencoded` | `application/x-www-form-urlencoded` | 简单表单 |
+| `binary` | `application/octet-stream` | 二进制文件 |
+
+**优先级说明**: 用户手动设置的 `Content-Type` header 优先于自动设置。
+
+#### HTTP 节点使用示例
+
+**JSON 请求体**:
+```json
+{
+  "type": "http",
+  "url": "https://api.example.com/users",
+  "method": "post",
+  "body_type": "body",
+  "content_type": "json",
+  "body": "{\"name\": \"{{initial_variables.username}}\"}"
+}
+```
+
+**Form 表单（带文件上传）**:
+```json
+{
+  "type": "http",
+  "url": "https://api.example.com/upload",
+  "method": "post",
+  "body_type": "form-data",
+  "form_fields": [
+    { "key": "username", "value": "test", "field_type": "text" },
+    { "key": "avatar", "value": "", "field_type": "file", "file_path": "./avatar.png" }
+  ]
+}
+```
+
+**URL-encoded 表单**:
+```json
+{
+  "type": "http",
+  "url": "https://api.example.com/login",
+  "method": "post",
+  "body_type": "x-www-form-urlencoded",
+  "form_fields": [
+    { "key": "username", "value": "{{initial_variables.user}}", "field_type": "text" },
+    { "key": "password", "value": "{{initial_variables.pass}}", "field_type": "text" }
+  ]
+}
+```
+
+**二进制文件上传**:
+```json
+{
+  "type": "http",
+  "url": "https://api.example.com/files",
+  "method": "put",
+  "body_type": "binary",
+  "file_path": "./data/export.csv"
+}
+```
+
+**变量替换支持**: 所有字段值（`body`、`form_fields[].value`、`file_path`）均支持 `{{path.to.value}}` 语法引用变量。
 
 #### Conditional 节点配置
 
