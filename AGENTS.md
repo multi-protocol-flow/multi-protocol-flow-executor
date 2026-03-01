@@ -38,6 +38,8 @@ multi-protocol-flow-executor/
 | HTTP 请求节点 | `src-tauri/src/http_executor.rs` | reqwest 封装 |
 | HTTP body types | `src-tauri/src/node_config.rs` | body_type/content_type/form_fields/file_path |
 | 条件分支节点 | `src-tauri/src/conditional_executor.rs` | evalexpr 表达式 |
+| 内置流程模板 | `src/templates/builtinFlows.ts` | DEMO_FLOW 示例流程 |
+| 首次启动模板加载 | `src/components/sidebar/FlowListPanel.tsx` | 空列表时自动加载 |
 ## 代码规范
 
 ### TypeScript
@@ -124,6 +126,13 @@ npm run tauri build  # 构建安装包
    - **form-data 文件上传**: 支持 `FormFieldType::File`，自动检测 MIME 类型
    - **超时配置**: `timeout_ms` 字段，默认 30000ms，范围 1000-300000ms
    - 测试覆盖: `http_executor.rs` 包含完整单元测试
+
+8. **内置流程模板**: 首次启动时自动加载示例流程:
+   - 模板文件: `src/templates/builtinFlows.ts`
+   - 加载逻辑: `FlowListPanel.tsx` 的 `useEffect` 中检测 `flowMetas.length === 0`
+   - 包含节点: Entry → HTTP GET → 条件判断 → HTTP POST (成功分支)
+   - 变量引用: HTTP 响应使用顶级键 `status`、`body`、`headers` (非 `http_response.xxx`)
+   - 不会覆盖用户已有数据
 ## 子目录知识库
 
 - [src/components/AGENTS.md](./src/components/AGENTS.md) - 前端组件架构
