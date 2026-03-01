@@ -23,7 +23,7 @@ import '@xyflow/react/dist/style.css';
 
 import { EntryNode, HttpNode, ConditionalNode } from './nodes';
 import { CustomEdge } from './edges/CustomEdge';
-import { useFlowStore } from '@/stores';
+import { useFlowStore, useUIStore } from '@/stores';
 import {
   convertFlowToReactFlow,
   convertEdgeToConnection,
@@ -108,6 +108,7 @@ function FlowCanvasInner() {
     pendingAddNodeType,
     clearPendingAddNodeType,
   } = useFlowStore();
+  const { setConfigPanelOpen } = useUIStore();
   const { screenToFlowPosition, setCenter, getViewport } = useReactFlow();
   
   // 画布容器引用（用于计算视口中心）
@@ -220,17 +221,20 @@ function FlowCanvasInner() {
     [updateNode]
   );
 
-  // 处理节点选择
-  const onSelectionChange = useCallback(
-    ({ nodes: selectedNodes }: { nodes: Node[] }) => {
-      if (selectedNodes.length === 1) {
-        selectNode(selectedNodes[0].id);
-      } else if (selectedNodes.length === 0) {
-        selectNode(null);
-      }
+  // 处理节点点击 - 选中节点并展开面板
+  const onNodeClick = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      selectNode(node.id);
+      setConfigPanelOpen(true);
     },
-    [selectNode]
+    [selectNode, setConfigPanelOpen]
   );
+
+  // 处理画布空白处点击 - 取消选中并收起面板
+  const onPaneClick = useCallback(() => {
+    selectNode(null);
+    setConfigPanelOpen(false);
+  }, [selectNode, setConfigPanelOpen]);
 
   // 处理节点变化（处理位置变化和删除）
   const handleNodesChange = useCallback(
@@ -437,9 +441,10 @@ function FlowCanvasInner() {
         onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
         onNodeDragStop={onNodeDragStop}
-        onSelectionChange={onSelectionChange}
+        onNodeClick={onNodeClick}
         onDragOver={onDragOver}
         onDrop={onDrop}
+        onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
