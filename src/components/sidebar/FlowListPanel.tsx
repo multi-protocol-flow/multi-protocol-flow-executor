@@ -7,7 +7,8 @@ import { Plus, FileJson, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFlowListStore, useFlowStore, useUIStore } from '@/stores';
-import { listFlows, loadFlow, deleteFlow } from '@/services/storage/flowStorage';
+import { listFlows, loadFlow, deleteFlow, saveFlow } from '@/services/storage/flowStorage';
+import { DEMO_FLOW } from '@/templates/builtinFlows';
 import { cn } from '@/lib/utils';
 
 /** 格式化时间为相对时间 */
@@ -30,11 +31,24 @@ export function FlowListPanel() {
   const { setFlow, flow: currentFlow } = useFlowStore();
   const { openNewFlowDialog } = useUIStore();
 
-  // 加载流程列表
+  // 加载流程列表 + 首次启动加载模板
+
   useEffect(() => {
-    const flows = listFlows();
-    setFlows(flows);
-  }, [setFlows]);
+    const flowMetas = listFlows();
+    
+    // 首次启动时加载模板（只在流程列表为空时）
+    if (flowMetas.length === 0) {
+      saveFlow(DEMO_FLOW);  // 持久化到 localStorage
+      setFlow(DEMO_FLOW);   // 设置当前流程
+      setFlows([{
+        uuid: DEMO_FLOW.uuid,
+        name: DEMO_FLOW.name,
+        updated_at: Date.now()
+      }]);  // 更新列表显示
+    } else {
+      setFlows(flowMetas);  // 正常加载已有流程列表
+    }
+  }, [setFlows, setFlow]);
 
   const handleSelectFlow = (uuid: string) => {
     const flow = loadFlow(uuid);
