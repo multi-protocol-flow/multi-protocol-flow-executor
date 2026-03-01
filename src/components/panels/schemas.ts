@@ -54,6 +54,7 @@ export const httpConfigSchema = z.object({
   form_fields: z.array(formFieldSchema).optional(),
   file_path: z.string().optional(),
   body: z.string().optional(),
+  timeout_ms: z.number().optional(),
 });
 
 export type HttpConfigFormData = z.infer<typeof httpConfigSchema>;

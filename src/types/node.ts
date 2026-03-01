@@ -114,7 +114,10 @@ export interface HttpConfig {
   /** 二进制文件路径 */
   file_path?: string;
   /** 请求体（文本格式） */
+
   body?: string;
+  /** 请求超时时间（毫秒） */
+  timeout_ms?: number;
 }
 
 /**

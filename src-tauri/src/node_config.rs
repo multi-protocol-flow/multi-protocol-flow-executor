@@ -85,7 +85,7 @@ pub struct FormField {
     /// 字段值
     pub value: String,
     /// 字段类型
-    #[serde(default)]
+    #[serde(default, alias = "type")]
     pub field_type: FormFieldType,
     /// 文件路径（仅文件类型字段）
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -118,6 +118,9 @@ pub struct HttpConfig {
     pub file_path: Option<String>,
     /// 请求体
     pub body: Option<String>,
+    /// 超时时间（毫秒）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout_ms: Option<u64>,
 }
 
 impl Default for HttpConfig {
@@ -131,6 +134,7 @@ impl Default for HttpConfig {
             form_fields: None,
             file_path: None,
             body: None,
+            timeout_ms: None,
         }
     }
 }

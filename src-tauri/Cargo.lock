@@ -135,6 +135,7 @@ dependencies = [
  "env_logger",
  "evalexpr",
  "log",
+ "mime_guess",
  "predicates",
  "proptest",
  "regex",
