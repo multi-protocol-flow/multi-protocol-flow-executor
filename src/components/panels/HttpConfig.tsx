@@ -240,7 +240,8 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       });
       if (selected) {
         setValue(`form_fields.${index}.file_path`, selected as string);
-        saveData();
+        // 延迟保存，确保表单值已更新
+        setTimeout(saveData, 100);
       }
     } else {
       // 非 Tauri 环境：动态创建 input 元素
@@ -251,7 +252,8 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         const file = target.files?.[0];
         if (file) {
           setValue(`form_fields.${index}.file_path`, file.name);
-          saveData();
+          // 延迟保存，确保表单值已更新
+          setTimeout(saveData, 100);
         }
       };
       newInput.click();
