@@ -181,13 +181,14 @@ mod tests {
         };
 
         let context = ExecutionContext {
-                    flow_uuid: "flow-1".to_string(),
-                    current_node_uuid: Some(entry_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+            flow_uuid: "flow-1".to_string(),
+            current_node_uuid: Some(entry_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+        };
 
         let mut node_map = HashMap::new();
         node_map.insert(entry_node.uuid.clone(), &entry_node);
@@ -229,13 +230,14 @@ mod tests {
         };
 
         let context = ExecutionContext {
-                    flow_uuid: "flow-1".to_string(),
-                    current_node_uuid: Some(entry_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+            flow_uuid: "flow-1".to_string(),
+            current_node_uuid: Some(entry_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+        };
 
         let node_map = HashMap::new();
 
@@ -298,13 +300,14 @@ mod tests {
         };
 
         let context = ExecutionContext {
-                    flow_uuid: "flow-1".to_string(),
-                    current_node_uuid: Some(entry_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+            flow_uuid: "flow-1".to_string(),
+            current_node_uuid: Some(entry_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+        };
 
         let mut node_map = HashMap::new();
         node_map.insert(entry_node.uuid.clone(), &entry_node);
@@ -361,13 +364,14 @@ mod tests {
         };
 
         let context = ExecutionContext {
-                    flow_uuid: "flow-1".to_string(),
-                    current_node_uuid: Some(entry_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+            flow_uuid: "flow-1".to_string(),
+            current_node_uuid: Some(entry_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+        };
 
         let mut node_map = HashMap::new();
         node_map.insert(entry_node.uuid.clone(), &entry_node);
@@ -425,13 +429,14 @@ mod tests {
         };
 
         let context = ExecutionContext {
-                    flow_uuid: "flow-1".to_string(),
-                    current_node_uuid: Some(entry_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+            flow_uuid: "flow-1".to_string(),
+            current_node_uuid: Some(entry_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+        };
 
         let mut node_map = HashMap::new();
         node_map.insert(entry_node.uuid.clone(), &entry_node);
@@ -478,13 +483,14 @@ mod tests {
         };
 
         let context = ExecutionContext {
-                    flow_uuid: "flow-logic-test".to_string(),
-                    current_node_uuid: Some(entry_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+            flow_uuid: "flow-logic-test".to_string(),
+            current_node_uuid: Some(entry_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+        };
 
         let mut node_map = HashMap::new();
         node_map.insert(entry_node.uuid.clone(), &entry_node);
@@ -538,13 +544,14 @@ mod tests {
         };
 
         let context = ExecutionContext {
-                    flow_uuid: "flow-1".to_string(),
-                    current_node_uuid: Some(source_uuid.to_string()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+            flow_uuid: "flow-1".to_string(),
+            current_node_uuid: Some(source_uuid.to_string()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+        };
 
         let mut node_map = HashMap::new();
         node_map.insert(source_uuid.to_string(), &entry_node);

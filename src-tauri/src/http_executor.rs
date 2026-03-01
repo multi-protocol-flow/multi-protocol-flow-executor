@@ -116,6 +116,13 @@ impl NodeExecutor for HttpNodeExecutor {
                 error_msg
             })?;
 
+        // 记录发送的请求头
+        let mut sent_headers: HashMap<String, String> = HashMap::new();
+        
+        // 记录请求体信息（用于输出）
+        let mut request_body_json: Option<serde_json::Value> = None;
+        
+
         // 构建请求
         let mut request = match http_config.method {
             crate::node_config::HttpMethod::Get => client.get(&url),
@@ -134,13 +141,24 @@ impl NodeExecutor for HttpNodeExecutor {
                         log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                         error_msg
                     })?;
-                request = request.header(key, replaced_value);
+                request = request.header(key, &replaced_value);
+                sent_headers.insert(key.clone(), replaced_value);
             }
         }
 
         // Handle request body based on body_type
         // Content-Type priority: only set if user hasn't manually set Content-Type in headers
         let user_set_content_type = has_content_type_header(&http_config.headers);
+
+        // 请求体类型字符串
+        let body_type_str = match http_config.body_type {
+            crate::node_config::HttpBodyType::None => "none",
+            crate::node_config::HttpBodyType::Body => "body",
+            crate::node_config::HttpBodyType::FormData => "form-data",
+            crate::node_config::HttpBodyType::XWwwFormUrlencoded => "x-www-form-urlencoded",
+            crate::node_config::HttpBodyType::Binary => "binary",
+        };
+
 
         match http_config.body_type {
             crate::node_config::HttpBodyType::None => {
@@ -162,11 +180,13 @@ impl NodeExecutor for HttpNodeExecutor {
                     if !user_set_content_type {
                         let content_type_str = content_type_to_string(&http_config.content_type);
                         request = request.header("Content-Type", content_type_str);
+                        sent_headers.insert("Content-Type".to_string(), content_type_str.to_string());
                         log::info!("[流程 {}] [HTTP] 自动设置 Content-Type: {}", 
                             context.flow_uuid, content_type_str);
                     }
                     
-                    request = request.body(replaced_body);
+                    request = request.body(replaced_body.clone());
+                    request_body_json = Some(replaced_body.into());
                     log::info!("[流程 {}] [HTTP] body_type=body, 请求体已添加", context.flow_uuid);
                 } else {
                     log::info!("[流程 {}] [HTTP] body_type=body, 但 body 字段为空，跳过", context.flow_uuid);
@@ -244,8 +264,33 @@ impl NodeExecutor for HttpNodeExecutor {
                     // Note: reqwest will automatically set Content-Type: multipart/form-data; boundary=...
                     // But we only log if user hasn't set it manually
                     if !user_set_content_type {
+                        sent_headers.insert("Content-Type".to_string(), "multipart/form-data (boundary auto-generated)".to_string());
                         log::info!("[流程 {}] [HTTP] 将自动设置 Content-Type: multipart/form-data", context.flow_uuid);
                     }
+                    
+                    // 记录 form-data 字段元数据
+                    let fields_metadata: Vec<serde_json::Value> = form_fields.iter().map(|f| {
+                        match f.field_type {
+                            crate::node_config::FormFieldType::Text => {
+                                serde_json::json!({
+                                    "type": "text",
+                                    "key": f.key,
+                                    "value": f.value
+                                })
+                            }
+                            crate::node_config::FormFieldType::File => {
+                                serde_json::json!({
+                                    "type": "file",
+                                    "key": f.key,
+                                    "path": f.file_path
+                                })
+                            }
+                        }
+                    }).collect();
+                    request_body_json = Some(serde_json::json!({
+                        "type": "form-data",
+                        "fields": fields_metadata
+                    }));
                     
                     request = request.multipart(form);
                     log::info!("[流程 {}] [HTTP] body_type=form-data, {} 个文本字段, {} 个文件字段", 
@@ -274,8 +319,21 @@ impl NodeExecutor for HttpNodeExecutor {
                     // Set Content-Type header only if user hasn't set it manually
                     if !user_set_content_type {
                         request = request.header("Content-Type", "application/x-www-form-urlencoded");
+                        sent_headers.insert("Content-Type".to_string(), "application/x-www-form-urlencoded".to_string());
                         log::info!("[流程 {}] [HTTP] 自动设置 Content-Type: application/x-www-form-urlencoded", context.flow_uuid);
                     }
+                    
+                    // 记录 urlencoded 字段数据
+                    let fields_metadata: Vec<serde_json::Value> = form_data.iter().map(|(k, v)| {
+                        serde_json::json!({
+                            "key": k,
+                            "value": v
+                        })
+                    }).collect();
+                    request_body_json = Some(serde_json::json!({
+                        "type": "urlencoded",
+                        "fields": fields_metadata
+                    }));
                     
                     request = request.form(&form_data);
                     log::info!("[流程 {}] [HTTP] body_type=x-www-form-urlencoded, {} fields", context.flow_uuid, form_data.len());
@@ -311,10 +369,16 @@ impl NodeExecutor for HttpNodeExecutor {
                     // Set Content-Type header only if user hasn't set it manually
                     if !user_set_content_type {
                         request = request.header("Content-Type", "application/octet-stream");
+                        sent_headers.insert("Content-Type".to_string(), "application/octet-stream".to_string());
                         log::info!("[流程 {}] [HTTP] 自动设置 Content-Type: application/octet-stream", context.flow_uuid);
                     }
                     
                     let file_size = file_content.len();
+                    request_body_json = Some(serde_json::json!({
+                        "type": "binary",
+                        "path": file_path,
+                        "size": file_size
+                    }));
                     request = request.body(file_content);
                     log::info!("[流程 {}] [HTTP] body_type=binary, 文件大小: {} bytes", context.flow_uuid, file_size);
                 } else {
@@ -436,11 +500,21 @@ impl NodeExecutor for HttpNodeExecutor {
             serde_json::Value::String(body_text)
         };
 
-         // 返回输出数据（status、headers、body）
+         // 返回输出数据（向后兼容 + 新增请求信息）
         let output_data = serde_json::json!({
+            // ===== 向后兼容：保留顶级字段 =====
             "status": status_code,
             "headers": headers_map,
-            "body": body_json
+            "body": body_json,
+            
+            // ===== 新增：请求信息 =====
+            "request": {
+                "url": url,
+                "method": method_str,
+                "headers": sent_headers,
+                "body": request_body_json,
+                "body_type": body_type_str
+            }
         });
 
         // 计算总执行时间
@@ -510,6 +584,7 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body,
+                timeout_ms: None,
             }),
             ports: None,
         }
@@ -524,16 +599,17 @@ mod tests {
             }
         }
         ExecutionContext {
-                    flow_uuid: flow_id.to_string(),
-                    current_node_uuid: None,
-                    variables: var_storage,
-                    node_reports: vec![],
-                    flow_trigger_time: std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_millis() as u64,
-                    log_sender: None,
-                }
+            flow_uuid: flow_id.to_string(),
+            current_node_uuid: None,
+            variables: var_storage,
+            node_reports: vec![],
+            flow_trigger_time: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("系统时间错误")
+                .as_millis() as u64,
+            log_sender: None,
+            flow_file_path: None,
+        }
     }
 
     // ============================================================================
@@ -582,6 +658,7 @@ mod tests {
             "https://httpbin.org/post",
             HttpMethod::Post,
             Some(headers),
+            None,
         );
 
         let context = create_context("test-flow", json!({}));
@@ -618,6 +695,7 @@ mod tests {
             "https://httpbin.org/put",
             HttpMethod::Put,
             Some(headers),
+            None,
         );
 
         let context = create_context("test-flow", json!({}));
@@ -670,6 +748,7 @@ mod tests {
             "https://httpbin.org/patch",
             HttpMethod::Patch,
             Some(headers),
+            None,
         );
 
         let context = create_context("test-flow", json!({}));
@@ -974,7 +1053,7 @@ mod tests {
                 "metadata": {
                     "id": "{{user_id}}"
                 }
-            })),
+            }).to_string())
         );
 
         let variables = json!({
@@ -1036,7 +1115,7 @@ mod tests {
             Some(json!({
                 "user": "{{username}}",
                 "action": "{{action}}"
-            })),
+            }).to_string())
         );
 
         let variables = json!({
@@ -1296,17 +1375,20 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body: None,
+                timeout_ms: None,
             }),
+            ports: None,
         };
 
         let context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
@@ -1346,17 +1428,20 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body: Some(r#"{"test_key":"test_value"}"#.to_string()),
+                timeout_ms: None,
             }),
+            ports: None,
         };
 
         let context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+                            flow_uuid: flow_id.clone(),
+                            current_node_uuid: Some(http_node.uuid.clone()),
+                            variables: VariableStorage::new(),
+                            node_reports: Vec::new(),
+                            flow_trigger_time: 1000,
+                            log_sender: None,
+                            flow_file_path: None,
+                        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
@@ -1387,17 +1472,20 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body: None,
+                timeout_ms: None,
             }),
+            ports: None,
         };
 
         let context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+                            flow_uuid: flow_id.clone(),
+                            current_node_uuid: Some(http_node.uuid.clone()),
+                            variables: VariableStorage::new(),
+                            node_reports: Vec::new(),
+                            flow_trigger_time: 1000,
+                            log_sender: None,
+                            flow_file_path: None,
+                        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
@@ -1426,17 +1514,20 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body: None,
+                timeout_ms: None,
             }),
+            ports: None,
         };
 
         let context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+                            flow_uuid: flow_id.clone(),
+                            current_node_uuid: Some(http_node.uuid.clone()),
+                            variables: VariableStorage::new(),
+                            node_reports: Vec::new(),
+                            flow_trigger_time: 1000,
+                            log_sender: None,
+                            flow_file_path: None,
+                        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
@@ -1467,17 +1558,20 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body: None,
+                timeout_ms: None,
             }),
+            ports: None,
         };
 
         let context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+                            flow_uuid: flow_id.clone(),
+                            current_node_uuid: Some(http_node.uuid.clone()),
+                            variables: VariableStorage::new(),
+                            node_reports: Vec::new(),
+                            flow_trigger_time: 1000,
+                            log_sender: None,
+                            flow_file_path: None,
+                        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
@@ -1510,7 +1604,9 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body: None,
+                timeout_ms: None,
             }),
+            ports: None,
         };
 
         let mut storage = VariableStorage::new();
@@ -1518,13 +1614,14 @@ mod tests {
         storage.set_global("test_header".to_string(), json!("header_value"));
         storage.set_global("test_body".to_string(), json!("body_value"));
         let context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: storage,
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+                            flow_uuid: flow_id.clone(),
+                            current_node_uuid: Some(http_node.uuid.clone()),
+                            variables: storage,
+                            node_reports: Vec::new(),
+                            flow_trigger_time: 1000,
+                            log_sender: None,
+                            flow_file_path: None,
+                        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
@@ -1565,17 +1662,20 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body: None,
+                timeout_ms: None,
             }),
+            ports: None,
         };
 
         let context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+                            flow_uuid: flow_id.clone(),
+                            current_node_uuid: Some(http_node.uuid.clone()),
+                            variables: VariableStorage::new(),
+                            node_reports: Vec::new(),
+                            flow_trigger_time: 1000,
+                            log_sender: None,
+                            flow_file_path: None,
+                        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
@@ -1609,17 +1709,20 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body: None,
+                timeout_ms: None,
             }),
+            ports: None,
         };
 
         let context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+                            flow_uuid: flow_id.clone(),
+                            current_node_uuid: Some(http_node.uuid.clone()),
+                            variables: VariableStorage::new(),
+                            node_reports: Vec::new(),
+                            flow_trigger_time: 1000,
+                            log_sender: None,
+                            flow_file_path: None,
+                        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
@@ -1653,17 +1756,20 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body: None,
+                timeout_ms: None,
             }),
+            ports: None,
         };
 
         let context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+                            flow_uuid: flow_id.clone(),
+                            current_node_uuid: Some(http_node.uuid.clone()),
+                            variables: VariableStorage::new(),
+                            node_reports: Vec::new(),
+                            flow_trigger_time: 1000,
+                            log_sender: None,
+                            flow_file_path: None,
+                        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
@@ -1701,17 +1807,20 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body: Some(r#"{"test":"put_data"}"#.to_string()),
+                timeout_ms: None,
             }),
+            ports: None,
         };
 
         let context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+                            flow_uuid: flow_id.clone(),
+                            current_node_uuid: Some(http_node.uuid.clone()),
+                            variables: VariableStorage::new(),
+                            node_reports: Vec::new(),
+                            flow_trigger_time: 1000,
+                            log_sender: None,
+                            flow_file_path: None,
+                        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
@@ -1742,17 +1851,20 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body: None,
+                timeout_ms: None,
             }),
+            ports: None,
         };
 
         let context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+                            flow_uuid: flow_id.clone(),
+                            current_node_uuid: Some(http_node.uuid.clone()),
+                            variables: VariableStorage::new(),
+                            node_reports: Vec::new(),
+                            flow_trigger_time: 1000,
+                            log_sender: None,
+                            flow_file_path: None,
+                        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
@@ -1787,17 +1899,20 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body: Some(r#"{"test":"patch_data"}"#.to_string()),
+                timeout_ms: None,
             }),
+            ports: None,
         };
 
         let context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+                            flow_uuid: flow_id.clone(),
+                            current_node_uuid: Some(http_node.uuid.clone()),
+                            variables: VariableStorage::new(),
+                            node_reports: Vec::new(),
+                            flow_trigger_time: 1000,
+                            log_sender: None,
+                            flow_file_path: None,
+                        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
@@ -1828,17 +1943,20 @@ mod tests {
                 form_fields: None,
                 file_path: None,
                 body: None,
+                timeout_ms: None,
             }),
+            ports: None,
         };
 
         let context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                };
+                            flow_uuid: flow_id.clone(),
+                            current_node_uuid: Some(http_node.uuid.clone()),
+                            variables: VariableStorage::new(),
+                            node_reports: Vec::new(),
+                            flow_trigger_time: 1000,
+                            log_sender: None,
+                            flow_file_path: None,
+                        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
@@ -1853,5 +1971,168 @@ mod tests {
         assert!(output["headers"].is_object());
         let headers = output["headers"].as_object().unwrap();
         assert!(headers.contains_key("content-type"));
+    }
+
+    // ============================================================================
+    // 测试：request 字段验证（新增功能）
+    // ============================================================================
+
+    #[tokio::test]
+    /// 测试 output_data 包含 request 字段（向后兼容 + 新增）
+    async fn test_output_contains_request_info() {
+        let node = create_http_node(
+            "test-request-info",
+            "HTTP GET请求",
+            "https://httpbin.org/get",
+            HttpMethod::Get,
+            None,
+            None,
+        );
+
+        let context = create_context("test-flow", json!({}));
+        let executor = HttpNodeExecutor::new();
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+
+        // 验证执行成功
+        assert!(result.is_ok(), "GET请求应该成功");
+        let output_data = result.unwrap().1;
+        assert!(output_data.is_some());
+        let output = output_data.unwrap();
+
+        // ===== 向后兼容性验证 =====
+        assert!(output.get("status").is_some(), "output_data 应包含 status 字段");
+        assert!(output.get("headers").is_some(), "output_data 应包含 headers 字段");
+        assert!(output.get("body").is_some(), "output_data 应包含 body 字段");
+        assert_eq!(output["status"], 200, "状态码应该是 200");
+
+        // ===== 新增 request 字段验证 =====
+        assert!(output.get("request").is_some(), "output_data 应包含 request 字段");
+        let request = output.get("request").unwrap();
+        
+        // 验证 request.url
+        assert!(request.get("url").is_some(), "request 应包含 url 字段");
+        let url = request.get("url").unwrap().as_str().unwrap();
+        assert!(url.contains("httpbin.org/get"), "request.url 应包含请求地址");
+        
+        // 验证 request.method
+        assert!(request.get("method").is_some(), "request 应包含 method 字段");
+        assert_eq!(request.get("method").unwrap().as_str().unwrap(), "GET", "request.method 应该是 GET");
+        
+        // 验证 request.headers
+        assert!(request.get("headers").is_some(), "request 应包含 headers 字段");
+        assert!(request.get("headers").unwrap().is_object(), "request.headers 应该是对象");
+        
+        // 验证 request.body_type
+        assert!(request.get("body_type").is_some(), "request 应包含 body_type 字段");
+        assert_eq!(request.get("body_type").unwrap().as_str().unwrap(), "none", "GET 请求的 body_type 应该是 none");
+        
+        // 验证 request.body (GET 请求应该是 null)
+        assert!(request.get("body").is_some(), "request 应包含 body 字段");
+        assert!(request.get("body").unwrap().is_null(), "GET 请求的 request.body 应该是 null");
+    }
+
+    #[tokio::test]
+    /// 测试 POST 请求的 request.body 记录
+    async fn test_request_info_body_for_post() {
+        let mut headers = HashMap::new();
+        headers.insert("Content-Type".to_string(), "application/json".to_string());
+        headers.insert("X-Custom-Header".to_string(), "custom-value".to_string());
+
+        let node = create_http_node(
+            "test-post-body",
+            "HTTP POST请求",
+            "https://httpbin.org/post",
+            HttpMethod::Post,
+            Some(headers),
+            Some(r#"{"test_key":"test_value"}"#.to_string()),
+        );
+
+        let context = create_context("test-flow", json!({}));
+        let executor = HttpNodeExecutor::new();
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+
+        assert!(result.is_ok(), "POST请求应该成功");
+        let output = result.unwrap().1.unwrap();
+
+        // 验证 request 字段
+        let request = output.get("request").unwrap();
+        
+        // 验证 method
+        assert_eq!(request.get("method").unwrap().as_str().unwrap(), "POST");
+        
+        // 验证 headers 包含自定义头
+        let req_headers = request.get("headers").unwrap().as_object().unwrap();
+        assert_eq!(req_headers.get("X-Custom-Header").unwrap().as_str().unwrap(), "custom-value");
+        assert_eq!(req_headers.get("Content-Type").unwrap().as_str().unwrap(), "application/json");
+        
+        // 验证 body_type
+        assert_eq!(request.get("body_type").unwrap().as_str().unwrap(), "body");
+        
+        // 验证 body 包含发送的数据
+        let req_body = request.get("body").unwrap().as_str().unwrap();
+        assert!(req_body.contains("test_key"));
+        assert!(req_body.contains("test_value"));
+    }
+
+    #[tokio::test]
+    /// 测试变量替换后的 URL 记录在 request.url
+    async fn test_request_info_url_after_variable_replacement() {
+        let node = create_http_node(
+            "test-var-url",
+            "URL变量替换",
+            "https://httpbin.org/get?param={{test_param}}",
+            HttpMethod::Get,
+            None,
+            None,
+        );
+
+        let variables = json!({ "test_param": "replaced_value" });
+        let context = create_context("test-flow", variables);
+        let executor = HttpNodeExecutor::new();
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+
+        assert!(result.is_ok());
+        let output = result.unwrap().1.unwrap();
+        let request = output.get("request").unwrap();
+        
+        // 验证 request.url 是变量替换后的值
+        let url = request.get("url").unwrap().as_str().unwrap();
+        assert!(url.contains("param=replaced_value"), "request.url 应该包含替换后的变量值");
+        assert!(!url.contains("{{test_param}}"), "request.url 不应该包含未替换的变量");
+    }
+
+    #[tokio::test]
+    /// 测试请求头变量替换记录在 request.headers
+    async fn test_request_info_headers_includes_replaced_variables() {
+        let mut headers = HashMap::new();
+        headers.insert("X-Auth-Token".to_string(), "Bearer {{api_token}}".to_string());
+
+        let node = create_http_node(
+            "test-var-headers",
+            "请求头变量替换",
+            "https://httpbin.org/get",
+            HttpMethod::Get,
+            Some(headers),
+            None,
+        );
+
+        let variables = json!({ "api_token": "secret_token_123" });
+        let context = create_context("test-flow", variables);
+        let executor = HttpNodeExecutor::new();
+
+        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+
+        assert!(result.is_ok());
+        let output = result.unwrap().1.unwrap();
+        let request = output.get("request").unwrap();
+        
+        // 验证 request.headers 包含替换后的值
+        let req_headers = request.get("headers").unwrap().as_object().unwrap();
+        let auth_header = req_headers.get("X-Auth-Token").unwrap().as_str().unwrap();
+        assert!(auth_header.contains("secret_token_123"), "request.headers 应该包含替换后的变量值");
+        assert!(!auth_header.contains("{{api_token}}"), "request.headers 不应该包含未替换的变量");
     }
 }

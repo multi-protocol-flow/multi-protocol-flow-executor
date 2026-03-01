@@ -1305,9 +1305,10 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                .expect("系统时间错误")
                 .as_millis() as u64,
             log_sender: None,
+            flow_file_path: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1334,9 +1335,10 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                .expect("系统时间错误")
                 .as_millis() as u64,
             log_sender: None,
+            flow_file_path: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1355,9 +1357,10 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                .expect("系统时间错误")
                 .as_millis() as u64,
             log_sender: None,
+            flow_file_path: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -1377,9 +1380,10 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                .expect("系统时间错误")
                 .as_millis() as u64,
             log_sender: None,
+            flow_file_path: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -1416,6 +1420,7 @@ mod tests {
                 node_reports: vec![],
                 flow_trigger_time: 0,
                 log_sender: None,
+                flow_file_path: None,
             };
             let result = replace_variables(&template, &context);
             assert!(result.is_err());
@@ -1437,6 +1442,7 @@ mod tests {
                 node_reports: vec![],
                 flow_trigger_time: 0,
                 log_sender: None,
+                flow_file_path: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -1458,6 +1464,7 @@ mod tests {
                 node_reports: vec![],
                 flow_trigger_time: 0,
                 log_sender: None,
+                flow_file_path: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -1479,6 +1486,7 @@ mod tests {
                 node_reports: vec![],
                 flow_trigger_time: 0,
                 log_sender: None,
+                flow_file_path: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
