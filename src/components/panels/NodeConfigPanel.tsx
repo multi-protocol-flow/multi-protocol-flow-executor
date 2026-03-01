@@ -2,6 +2,7 @@
  * 节点配置面板主组件
  * 根据节点类型显示不同的配置表单
  */
+import { useState, useRef, useEffect } from 'react';
 import { useFlowStore } from '@/stores';
 import { EntryConfig } from './EntryConfig';
 import { HttpConfig } from './HttpConfig';
@@ -12,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData } from '@/types';
 import { isHttpConfig, isConditionalConfig } from '@/types';
-import { Settings2, MousePointerClick, Trash2 } from 'lucide-react';
+import { Settings2, MousePointerClick, Trash2, Pencil } from 'lucide-react';
 
 /**
  * 节点类型配置映射
@@ -38,6 +39,16 @@ const NODE_TYPE_CONFIG = {
 export function NodeConfigPanel() {
   const { getSelectedNode, updateNode, removeNode, selectNode } = useFlowStore();
   const selectedNode = getSelectedNode();
+  
+  // 节点名称编辑状态
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editingName, setEditingName] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // 当选中节点变化时，重置编辑状态
+  useEffect(() => {
+    setIsEditingName(false);
+  }, [selectedNode?.uuid]);
 
   // 未选中节点时的空状态
   if (!selectedNode) {
@@ -66,22 +77,85 @@ export function NodeConfigPanel() {
   /**
    * 处理删除节点
    */
+  /**
+   * 处理删除节点
+   */
   const handleDelete = () => {
     removeNode(selectedNode.uuid);
     selectNode(null);
+  };
+
+  /**
+   * 开始编辑节点名称
+   */
+  const handleStartEdit = () => {
+    setEditingName(selectedNode.name);
+    setIsEditingName(true);
+  };
+
+  /**
+   * 保存节点名称
+   */
+  const handleSaveName = () => {
+    const trimmedName = editingName.trim();
+    if (trimmedName && trimmedName !== selectedNode.name) {
+      updateNode(selectedNode.uuid, { name: trimmedName });
+    }
+    setIsEditingName(false);
+  };
+
+  /**
+   * 取消编辑节点名称
+   */
+  const handleCancelEdit = () => {
+    setIsEditingName(false);
+    setEditingName(selectedNode.name);
+  };
+
+  /**
+   * 处理键盘事件
+   */
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveName();
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
   };
 
   return (
     <Card className="flex h-full flex-col overflow-hidden border-0 shadow-none w-full min-w-0">
       <CardHeader className="shrink-0 border-b border-muted bg-white pb-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Settings2 className="h-4 w-4 text-slate-400" />
-            <CardTitle className="text-base font-semibold text-black">
-              {selectedNode.name}
-            </CardTitle>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Settings2 className="h-4 w-4 text-slate-400 shrink-0" />
+            {isEditingName ? (
+              <input
+                ref={inputRef}
+                type="text"
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                onBlur={handleSaveName}
+                onKeyDown={handleKeyDown}
+                className="text-base font-semibold text-black bg-white border-b-2 border-black outline-none flex-1 min-w-0 px-0.5"
+                autoFocus
+              />
+            ) : (
+              <>
+                <CardTitle className="text-base font-semibold text-black truncate cursor-default">
+                  {selectedNode.name}
+                </CardTitle>
+                <button
+                  onClick={handleStartEdit}
+                  className="shrink-0 p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                  title="编辑节点名称"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Badge 
               variant={typeConfig.badgeVariant}
               className={typeConfig.badgeClass}
