@@ -1,3 +1,5 @@
+import { useState, useEffect, useRef } from 'react';
+
 /**
  * 执行报告弹窗组件
  * 显示流程执行的完整报告，包括统计信息和节点详情
@@ -10,6 +12,9 @@ import {
   Timer,
   Activity,
   AlertCircle,
+  Maximize2,
+  Minimize2,
+  Inbox,
 } from 'lucide-react';
 import {
   Dialog,
@@ -19,9 +24,13 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ResizablePanel } from '@/components/ui/ResizablePanel';
 import { useExecutionStore } from '@/stores';
 import { NodeExecutionDetails } from './NodeExecutionDetails';
+import { NodeListItem } from './NodeListItem';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { useFullscreen } from '@/hooks/useFullscreen';
 
 /** 统计卡片组件 */
 function StatCard({
@@ -54,6 +63,27 @@ export function ExecutionReport() {
   const report = useExecutionStore((state) => state.report);
   const reset = useExecutionStore((state) => state.reset);
 
+  const [selectedNodeUuid, setSelectedNodeUuid] = useState<string | null>(null);
+
+  // 全屏相关
+  const contentRef = useRef<HTMLDivElement>(null);
+  const { isFullscreen, toggleFullscreen, exitFullscreen } = useFullscreen(contentRef);
+
+  // 默认选中第一个节点
+  useEffect(() => {
+    if (report?.node_reports && report.node_reports.length > 0) {
+      setSelectedNodeUuid(report.node_reports[0].node_uuid);
+    }
+  }, [report]);
+
+  // 关闭弹窗时退出全屏
+  const handleClose = () => {
+    if (isFullscreen) {
+      exitFullscreen();
+    }
+    reset();
+  };
+
   if (!report) return null;
 
   const isSuccess = report.status === 'success';
@@ -63,8 +93,14 @@ export function ExecutionReport() {
       : 0;
 
   return (
-    <Dialog open={!!report} onOpenChange={(open) => !open && reset()}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+    <Dialog open={!!report} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent
+        ref={contentRef}
+        className={cn(
+          "max-w-3xl max-h-[85vh] flex flex-col",
+          isFullscreen && "fixed inset-0 z-[60] w-screen h-screen max-w-none max-h-none bg-background"
+        )}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             {/* 状态图标 */}
@@ -95,6 +131,20 @@ export function ExecutionReport() {
             )}>
               {isSuccess ? '成功' : '失败'}
             </Badge>
+
+            {/* 全屏按钮 */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={toggleFullscreen}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
+              )}
+            </Button>
           </DialogTitle>
         </DialogHeader>
 
@@ -171,16 +221,54 @@ export function ExecutionReport() {
               <BarChart3 className="w-4 h-4" />
               节点执行详情
             </h3>
-            <ScrollArea className="h-[280px] pr-4">
-              <div className="space-y-2">
-                {report.node_reports.map((nodeReport) => (
-                  <NodeExecutionDetails
-                    key={nodeReport.node_uuid}
-                    report={nodeReport}
-                  />
-                ))}
-              </div>
-            </ScrollArea>
+            <div className={cn("h-[320px]", isFullscreen && "h-[calc(100vh-400px)]")}>
+              <ResizablePanel
+                leftPanel={
+                  report.node_reports.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
+                      <Inbox className="w-12 h-12" />
+                      <span>暂无执行节点</span>
+                    </div>
+                  ) : (
+                    <ScrollArea className="h-full">
+                      <div className="space-y-1 p-1">
+                        {report.node_reports.map((nodeReport) => (
+                          <NodeListItem
+                            key={nodeReport.node_uuid}
+                            report={nodeReport}
+                            isSelected={selectedNodeUuid === nodeReport.node_uuid}
+                            onClick={() => setSelectedNodeUuid(nodeReport.node_uuid)}
+                          />
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )
+                }
+                rightPanel={
+                  report.node_reports.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
+                      <Inbox className="w-12 h-12" />
+                      <span>暂无执行节点</span>
+                    </div>
+                  ) : selectedNodeUuid ? (
+                    <ScrollArea className="h-full">
+                      <div className="p-2">
+                        <NodeExecutionDetails
+                          report={report.node_reports.find(r => r.node_uuid === selectedNodeUuid)!}
+                        />
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      请选择节点查看详情
+                    </div>
+                  )
+                }
+                defaultWidth={280}
+                minWidth={180}
+                maxWidth={400}
+              />
+            </div>
           </div>
         </div>
       </DialogContent>

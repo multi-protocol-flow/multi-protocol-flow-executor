@@ -143,12 +143,11 @@ describe('ExecutionReport', () => {
     expect(screen.getByText('1000ms')).toBeDefined();
     expect(screen.getByText('3/3')).toBeDefined();
 
-    // 检查节点详情
-    expect(screen.getByText('入口节点')).toBeDefined();
-    expect(screen.getByText('HTTP请求节点')).toBeDefined();
-    expect(screen.getByText('结束节点')).toBeDefined();
+    // 检查节点详情 - 分栏布局下节点名称在左右两侧都会出现
+    expect(screen.getAllByText('入口节点').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('HTTP请求节点').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('结束节点').length).toBeGreaterThan(0);
   });
-
   it('正确渲染失败的执行报告', () => {
     (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: { report: FlowExecutionReport; reset: ReturnType<typeof vi.fn> }) => unknown) => {
@@ -198,12 +197,11 @@ describe('ExecutionReport', () => {
 
     render(<ExecutionReport />);
 
-    // 检查节点类型标签
-    expect(screen.getByText('入口')).toBeDefined();
+    // 检查节点类型标签 - 分栏布局下类型标签在左右两侧都会出现
+    expect(screen.getAllByText('入口').length).toBeGreaterThan(0);
     // HTTP 请求会出现在节点名称和类型标签中
     expect(screen.getAllByText('HTTP 请求').length).toBeGreaterThan(0);
   });
-
   it('显示正确的统计卡片数值', () => {
     (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: { report: FlowExecutionReport; reset: ReturnType<typeof vi.fn> }) => unknown) => {
