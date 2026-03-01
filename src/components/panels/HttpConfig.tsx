@@ -53,6 +53,7 @@ function toFormData(data: HttpConfigType): HttpConfigFormData {
     content_type: data.content_type ?? 'json',
     body: body || undefined,
     form_fields: data.form_fields || [],
+    file_path: data.file_path || undefined,
     timeout_ms: data.timeout_ms ?? 30000,
   };
 }
@@ -85,6 +86,7 @@ function fromFormData(formData: HttpConfigFormData): HttpConfigType {
     body_type: formData.body_type,
     content_type: formData.content_type,
     form_fields: formFields && formFields.length > 0 ? formFields : undefined,
+    file_path: formData.file_path,
     timeout_ms: formData.timeout_ms,
   };
 }
@@ -202,7 +204,8 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       });
       if (selected) {
         setValue('file_path', selected as string);
-        saveData();
+        // 延迟保存，确保表单值已更新
+        setTimeout(saveData, 100);
       }
     } else {
       // 非 Tauri 环境：触发隐藏的 input[type=file]
@@ -218,7 +221,8 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     if (file) {
       // 在浏览器环境中，只能获取文件名，无法获取完整路径
       setValue('file_path', file.name);
-      saveData();
+      // 延迟保存，确保表单值已更新
+      setTimeout(saveData, 100);
     }
     // 重置 input 以允许重复选择同一文件
     e.target.value = '';
