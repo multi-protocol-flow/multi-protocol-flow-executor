@@ -4,7 +4,7 @@
  */
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { httpConfigSchema, type HttpConfigFormData, type HeaderEntry, type HttpBodyType } from './schemas';
 import { open } from '@tauri-apps/plugin-dialog';
 import { Input } from '@/components/ui/input';
@@ -12,9 +12,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Globe, FolderOpen, X } from 'lucide-react';
+import { Plus, Trash2, Globe, X } from 'lucide-react';
 import type { HttpConfig as HttpConfigType } from '@/types';
 
+/** 检测是否在 Tauri 环境中运行 */
+const isTauriEnv = () => {
+  return typeof window !== 'undefined' && '__TAURI__' in window;
+};
 interface HttpConfigProps {
   /** 当前节点数据 */
   data: HttpConfigType;
@@ -176,36 +180,82 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     setTimeout(saveData, 100);
   }, [remove, saveData]);
 
+  /** 隐藏的文件输入框 ref (用于非 Tauri 环境) */
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   /**
    * 选择 Binary 文件
    */
   const handleSelectFile = useCallback(async () => {
-    const selected = await open({
-      multiple: false,
-      filters: [{ name: '*', extensions: ['*'] }],
-    });
-    if (selected) {
-      setValue('file_path', selected as string);
+    if (isTauriEnv()) {
+      // Tauri 环境：使用原生文件对话框
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: '*', extensions: ['*'] }],
+      });
+      if (selected) {
+        setValue('file_path', selected as string);
+        saveData();
+      }
+    } else {
+      // 非 Tauri 环境：触发隐藏的 input[type=file]
+      fileInputRef.current?.click();
+    }
+  }, [setValue, saveData]);
+
+  /**
+   * 处理非 Tauri 环境的 Binary 文件选择
+   */
+  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // 在浏览器环境中，只能获取文件名，无法获取完整路径
+      setValue('file_path', file.name);
       saveData();
     }
+    // 重置 input 以允许重复选择同一文件
+    e.target.value = '';
   }, [setValue, saveData]);
 
   /**
    * 选择 Form Field 文件
    */
   const handleSelectFormFieldFile = useCallback(async (index: number) => {
-    const selected = await open({
-      multiple: false,
-      filters: [{ name: '*', extensions: ['*'] }],
-    });
-    if (selected) {
-      setValue(`form_fields.${index}.file_path`, selected as string);
-      saveData();
+    if (isTauriEnv()) {
+      // Tauri 环境：使用原生文件对话框
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: '*', extensions: ['*'] }],
+      });
+      if (selected) {
+        setValue(`form_fields.${index}.file_path`, selected as string);
+        saveData();
+      }
+    } else {
+      // 非 Tauri 环境：动态创建 input 元素
+      const newInput = document.createElement('input');
+      newInput.type = 'file';
+      newInput.onchange = (e) => {
+        const target = e.target as HTMLInputElement;
+        const file = target.files?.[0];
+        if (file) {
+          setValue(`form_fields.${index}.file_path`, file.name);
+          saveData();
+        }
+      };
+      newInput.click();
     }
   }, [setValue, saveData]);
 
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
+      {/* 隐藏的文件输入框 (用于非 Tauri 环境) */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFileInputChange}
+      />
       {/* URL 输入 */}
       <div className="space-y-2">
         <Label htmlFor="url" className="text-sm font-medium text-black">
@@ -274,26 +324,28 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
             </div>
           ) : (
             fields.map((field, index) => (
-              <div key={field.id} className="flex items-center gap-2">
-                <Input
-                  {...register(`headers.${index}.key`)}
-                  placeholder="Header Name"
-                  className="h-8 flex-1 font-mono text-xs"
-                />
+              <div key={field.id} className="space-y-2 p-3 rounded-md border bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <Input
+                    {...register(`headers.${index}.key`)}
+                    placeholder="Header Name"
+                    className="h-8 flex-1 font-mono text-xs"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveHeader(index)}
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
                 <Input
                   {...register(`headers.${index}.value`)}
                   placeholder="Value"
                   className="h-8 flex-1 font-mono text-xs"
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveHeader(index)}
-                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
               </div>
             ))
           )}
@@ -365,80 +417,89 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 <p className="text-xs text-muted-foreground">暂无 Form Fields</p>
               </div>
             ) : (
-              formFields.fields.map((field, index) => (
-                <div key={field.id} className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      {...register(`form_fields.${index}.key`)}
-                      placeholder="Key"
-                      className="h-8 flex-1 font-mono text-xs"
-                    />
-                    <Input
-                      {...register(`form_fields.${index}.value`)}
-                      placeholder="Value"
-                      className="h-8 flex-1 font-mono text-xs"
-                    />
-                    <Select
-                      value={watch(`form_fields.${index}.type`) || 'text'}
-                      onValueChange={(value) => {
-                        setValue(`form_fields.${index}.type`, value as 'text' | 'file');
-                        saveData();
-                      }}
-                    >
-                      <SelectTrigger className="h-8 w-20 font-mono text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="text">Text</SelectItem>
-                        <SelectItem value="file">File</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveFormField(index)}
-                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  {/* File path 输入框 (仅 file 类型显示) */}
-                  {watch(`form_fields.${index}.type`) === 'file' && (
-                    <div className="flex gap-2">
-                      <Input
-                        {...register(`form_fields.${index}.file_path`)}
-                        placeholder="Select file..."
-                        className="h-8 flex-1 font-mono text-xs"
-                        readOnly
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSelectFormFieldFile(index)}
-                        className="h-8"
-                      >
-                        <FolderOpen className="h-3 w-3" />
-                      </Button>
-                      {watch(`form_fields.${index}.file_path`) && (
+              formFields.fields.map((field, index) => {
+                  const fieldType = watch(`form_fields.${index}.type`) || 'text';
+                  const isFileField = fieldType === 'file' && watchedBodyType === 'form-data';
+                  const isFormData = watchedBodyType === 'form-data';
+                  
+                  return (
+                    <div key={field.id} className="space-y-2 p-3 rounded-md border bg-muted/30">
+                      {/* 第一行：Key + 类型 + 删除 */}
+                      <div className="flex items-center gap-2">
+                        <Input
+                          {...register(`form_fields.${index}.key`)}
+                          placeholder="Key"
+                          className="h-8 flex-1 font-mono text-xs"
+                        />
+                        {/* 类型选择器：仅 form-data 显示 */}
+                        {isFormData && (
+                          <Select
+                            value={fieldType}
+                            onValueChange={(value) => {
+                              setValue(`form_fields.${index}.type`, value as 'text' | 'file');
+                              if (value === 'file') {
+                                setValue(`form_fields.${index}.value`, '');
+                              } else {
+                                setValue(`form_fields.${index}.file_path`, '');
+                              }
+                              saveData();
+                            }}
+                          >
+                            <SelectTrigger className="h-8 w-20 font-mono text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="text">Text</SelectItem>
+                              <SelectItem value="file">File</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setValue(`form_fields.${index}.file_path`, '');
-                            saveData();
-                          }}
-                          className="h-8"
+                          size="icon"
+                          onClick={() => handleRemoveFormField(index)}
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
                         >
-                          <X className="h-3 w-3" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
+                      </div>
+                      
+                      {/* 第二行：Value 或 文件选择 */}
+                      {isFileField ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            {...register(`form_fields.${index}.file_path`)}
+                            placeholder="点击选择文件..."
+                            className="h-8 flex-1 font-mono text-xs bg-muted/50 cursor-pointer"
+                            readOnly
+                            onClick={() => handleSelectFormFieldFile(index)}
+                          />
+                          {watch(`form_fields.${index}.file_path`) && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setValue(`form_fields.${index}.file_path`, '');
+                                saveData();
+                              }}
+                              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <Input
+                          {...register(`form_fields.${index}.value`)}
+                          placeholder="Value"
+                          className="h-8 flex-1 font-mono text-xs"
+                        />
                       )}
                     </div>
-                  )}
-                </div>
-              ))
+                  );
+                })
             )}
           </div>
           <p className="text-xs text-muted-foreground">
@@ -451,33 +512,26 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {watchedBodyType === 'binary' && (
         <div className="space-y-2">
           <Label className="text-sm font-medium text-black">File Path</Label>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Input
               {...register('file_path')}
-              placeholder="Select file..."
-              className="flex-1"
+              placeholder="点击选择文件..."
+              className="h-8 flex-1 font-mono text-xs bg-muted/50 cursor-pointer"
               readOnly
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
               onClick={handleSelectFile}
-            >
-              <FolderOpen className="h-3 w-3" />
-              选择文件
-            </Button>
+            />
             {watch('file_path') && (
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => {
                   setValue('file_path', '');
                   saveData();
                 }}
+                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>
