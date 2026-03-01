@@ -67,6 +67,7 @@ export function NewFlowDialog() {
             placeholder="请输入流程名称"
             value={flowName}
             onChange={(e) => setFlowName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
             disabled={isLoading}
             autoFocus
           />
