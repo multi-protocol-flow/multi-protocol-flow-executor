@@ -1,5 +1,5 @@
 // HTTP 执行器集成测试 - form-data 文件上传和超时配置
-// 这些测试预期失败 (RED)，因为功能尚未实现
+// 功能已实现，测试验证预期行为
 
 use app_lib::*;
 use std::io::Write;
@@ -75,7 +75,7 @@ fn create_timeout_node(uuid: &str, url: &str, timeout_ms: u64) -> Node {
 
 #[tokio::test]
 /// 测试 form-data 文件上传成功场景
-/// 预期失败 (RED): FormFieldType::File 处理尚未实现
+/// 功能已实现: FormFieldType::File 处理已完成
 async fn test_form_data_file_upload_success() {
     // 创建测试文件
     let mut test_file = NamedTempFile::new().expect("无法创建临时文件");
@@ -227,8 +227,7 @@ async fn test_form_data_mime_type_detection() {
     // 验证 mock 被调用
     mock.assert();
 
-    // 预期: 测试应该成功
-    // 当前状态: 如果 MIME 类型检测未实现，可能无法正确设置 Content-Type
+    // 验证: MIME 类型检测功能已实现
     assert!(result.is_ok(), "多文件上传应该成功: {:?}", result.err());
     
     let output_data = result.unwrap().1;
@@ -306,7 +305,7 @@ async fn test_form_data_mixed_fields() {
 
 #[tokio::test]
 /// 测试自定义超时配置生效
-/// 预期失败 (RED): 超时配置尚未从 HttpConfig.timeout_ms 读取
+/// 功能已实现: 超时配置已从 HttpConfig.timeout_ms 读取
 async fn test_timeout_config_custom() {
     // 创建一个延迟响应的 mock 服务器
     let mut server = mockito::Server::new();
@@ -330,8 +329,7 @@ async fn test_timeout_config_custom() {
     let result = executor.execute(&node, &context, &[], &std::collections::HashMap::new()).await;
     let elapsed = start.elapsed();
 
-    // 预期: 应该在约 200ms 后超时失败，而不是等待 500ms
-    // 当前状态: 超时硬编码为 30 秒，此测试将等待 500ms 并成功（不符合预期）
+    // 验证: 超时配置已生效，200ms 超时后应返回错误
     
     // 验证超时配置生效 - 应该在 1 秒内返回（考虑网络延迟）
     assert!(

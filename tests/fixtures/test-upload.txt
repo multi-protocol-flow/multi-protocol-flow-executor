@@ -1,0 +1,2 @@
+This is a test file for HTTP form-data upload testing.
+Created for CLI integration tests.

@@ -85,7 +85,7 @@ describe('HttpConfig - Content-Type 选择器', () => {
 });
 
 
-describe('HttpConfig - 超时配置 [RED]', () => {
+describe('HttpConfig - 超时配置 [GREEN]', () => {
   const mockOnSave = vi.fn();
   const defaultData: HttpConfigType = {
     type: 'http',
@@ -97,18 +97,17 @@ describe('HttpConfig - 超时配置 [RED]', () => {
     vi.clearAllMocks();
   });
 
-  it('[RED] 应该显示超时输入框，默认值为 30000', () => {
+  it('[GREEN] 应该显示超时输入框，默认值为 30000', () => {
     render(<HttpConfig data={defaultData} onSave={mockOnSave} />);
 
     // 验证超时输入框存在
-    // 注意：此测试预期失败，因为超时配置功能尚未实现
     const timeoutInput = screen.getByLabelText(/超时/i);
     expect(timeoutInput).toBeDefined();
     // 验证默认值为 30000ms (30秒)
     expect(timeoutInput).toHaveValue(30000);
   });
 
-  it('[RED] 超时输入框应该显示单位提示（毫秒）', () => {
+  it('[GREEN] 超时输入框应该显示单位提示（毫秒）', () => {
     render(<HttpConfig data={defaultData} onSave={mockOnSave} />);
 
     // 验证超时输入框存在

@@ -1,0 +1,55 @@
+{
+  "uuid": "http-upload-test",
+  "name": "HTTP Upload Test",
+  "nodes": [
+    {
+      "uuid": "entry-001",
+      "type": "entry",
+      "name": "入口",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": { "type": "entry" },
+      "ports": null
+    },
+    {
+      "uuid": "http-001",
+      "type": "http",
+      "name": "HTTP POST 文件上传",
+      "position": { "x": 100.0, "y": 0.0 },
+      "data": {
+        "type": "http",
+        "url": "https://httpbin.org/post",
+        "method": "post",
+        "body_type": "form-data",
+        "form_fields": [
+          {"key": "file", "value": "", "type": "file", "file_path": "tests/fixtures/test-upload.txt"},
+          {"key": "name", "value": "test-upload", "type": "text"}
+        ]
+      },
+      "ports": null
+    },
+    {
+      "uuid": "end-001",
+      "type": "end",
+      "name": "结束",
+      "position": { "x": 200.0, "y": 0.0 },
+      "data": { "type": "end" },
+      "ports": null
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-001",
+      "source_node_uuid": "entry-001",
+      "target_node_uuid": "http-001",
+      "source_port_id": "output",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-002",
+      "source_node_uuid": "http-001",
+      "target_node_uuid": "end-001",
+      "source_port_id": "output",
+      "target_port_id": "input"
+    }
+  ]
+}

@@ -118,6 +118,12 @@ npm run tauri build  # 构建安装包
    - `x-www-form-urlencoded`: URL 编码表单
    - `binary`: 二进制文件上传
    - Content-Type 自动设置，用户手动设置优先
+
+7. **HTTP 节点增强功能**:
+   - **Content-Type 选择器**: `body_type='body'` 时可选择 json/text/html/xml/javascript
+   - **form-data 文件上传**: 支持 `FormFieldType::File`，自动检测 MIME 类型
+   - **超时配置**: `timeout_ms` 字段，默认 30000ms，范围 1000-300000ms
+   - 测试覆盖: `http_executor.rs` 包含完整单元测试
 ## 子目录知识库
 
 - [src/components/AGENTS.md](./src/components/AGENTS.md) - 前端组件架构
