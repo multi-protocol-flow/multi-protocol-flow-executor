@@ -102,9 +102,13 @@ impl NodeExecutor for HttpNodeExecutor {
             flow_uuid: context.flow_uuid.clone(),
         }).await;
 
-        // 创建HTTP客户端（默认超时30秒）
+        // 创建HTTP客户端（超时可配置，默认30秒，范围1-300秒）
         let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
+            .timeout(std::time::Duration::from_millis(
+                http_config.timeout_ms
+                    .map(|t| t.clamp(1000, 300000))
+                    .unwrap_or(30000)
+            ))
             .build()
             .map_err(|e| {
                 let error_msg = format!("创建HTTP客户端失败: {}", e);
@@ -169,22 +173,71 @@ impl NodeExecutor for HttpNodeExecutor {
                 }
             }
             crate::node_config::HttpBodyType::FormData => {
-                // Build multipart form from form_fields (text only for now)
+                // Build multipart form from form_fields (text and file fields)
                 if let Some(form_fields) = &http_config.form_fields {
                     let mut form = reqwest::multipart::Form::new();
-                    let mut field_count = 0;
+                    let mut text_field_count = 0;
+                    let mut file_field_count = 0;
                     
                     for field in form_fields {
-                        // Only process text fields for now (file fields will be added later)
-                        if matches!(field.field_type, crate::node_config::FormFieldType::Text) {
-                            // Replace variables in key and value
-                            let replaced_key = crate::executor::replace_variables(&field.key, context)
-                                .map_err(|e| format!("表单字段 key 变量替换失败: {}", e))?;
-                            let replaced_value = crate::executor::replace_variables(&field.value, context)
-                                .map_err(|e| format!("表单字段 value 变量替换失败: {}", e))?;
-                            
-                            form = form.text(replaced_key, replaced_value);
-                            field_count += 1;
+                        match field.field_type {
+                            crate::node_config::FormFieldType::Text => {
+                                // Replace variables in key and value
+                                let replaced_key = crate::executor::replace_variables(&field.key, context)
+                                    .map_err(|e| format!("表单字段 key 变量替换失败: {}", e))?;
+                                let replaced_value = crate::executor::replace_variables(&field.value, context)
+                                    .map_err(|e| format!("表单字段 value 变量替换失败: {}", e))?;
+                                
+                                form = form.text(replaced_key, replaced_value);
+                                text_field_count += 1;
+                            }
+                            crate::node_config::FormFieldType::File => {
+                                if let Some(file_path) = &field.file_path {
+                                    // Replace variables in file path
+                                    let replaced_path = crate::executor::replace_variables(file_path, context)
+                                        .map_err(|e| format!("文件路径变量替换失败: {}", e))?;
+                                    
+                                    // Resolve file path (supports relative paths)
+                                    let resolved_path = context.resolve_file_path(&replaced_path);
+                                    
+                                    log::info!("[流程 {}] [HTTP] 读取表单文件: {:?}", context.flow_uuid, resolved_path);
+                                    
+                                    // Read file content
+                                    let file_content = tokio::fs::read(&resolved_path).await
+                                        .map_err(|e| {
+                                            let error_msg = format!("读取文件失败 ({}): {}", resolved_path.display(), e);
+                                            log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", 
+                                                context.flow_uuid, node.uuid, node.name, error_msg);
+                                            error_msg
+                                        })?;
+                                    
+                                    // Detect MIME type
+                                    let mime_type = mime_guess::from_path(&resolved_path)
+                                        .first_or_octet_stream();
+                                    
+                                    // Extract file name (fallback to "upload")
+                                    let file_name = resolved_path
+                                        .file_name()
+                                        .and_then(|n| n.to_str())
+                                        .unwrap_or("upload");
+                                    
+                                    // Replace variables in field key
+                                    let replaced_key = crate::executor::replace_variables(&field.key, context)
+                                        .map_err(|e| format!("表单字段 key 变量替换失败: {}", e))?;
+                                    
+                                    // Create multipart part
+                                    let part = reqwest::multipart::Part::bytes(file_content)
+                                        .file_name(file_name.to_string())
+                                        .mime_str(mime_type.essence_str())
+                                        .map_err(|e| format!("MIME 类型设置失败: {}", e))?;
+                                    
+                                    form = form.part(replaced_key, part);
+                                    file_field_count += 1;
+                                } else {
+                                    log::warn!("[流程 {}] [HTTP] 文件字段 '{}' 缺少 file_path，跳过", 
+                                        context.flow_uuid, field.key);
+                                }
+                            }
                         }
                     }
                     
@@ -195,7 +248,8 @@ impl NodeExecutor for HttpNodeExecutor {
                     }
                     
                     request = request.multipart(form);
-                    log::info!("[流程 {}] [HTTP] body_type=form-data, {} 个文本字段", context.flow_uuid, field_count);
+                    log::info!("[流程 {}] [HTTP] body_type=form-data, {} 个文本字段, {} 个文件字段", 
+                        context.flow_uuid, text_field_count, file_field_count);
                 } else {
                     log::warn!("[流程 {}] [HTTP] body_type=form-data, 但 form_fields 为空", context.flow_uuid);
                 }

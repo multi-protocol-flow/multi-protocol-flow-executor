@@ -50,8 +50,10 @@ function toFormData(data: HttpConfigType): HttpConfigFormData {
     method: data.method || 'get',
     headers: headers.length > 0 ? headers : undefined,
     body_type: (data as HttpConfigType & { body_type?: HttpBodyType }).body_type || 'none',
+    content_type: data.content_type ?? 'json',
     body: body || undefined,
     form_fields: data.form_fields || [],
+    timeout_ms: data.timeout_ms ?? 30000,
   };
 }
 
@@ -81,7 +83,9 @@ function fromFormData(formData: HttpConfigFormData): HttpConfigType {
     headers: headers && Object.keys(headers).length > 0 ? headers : undefined,
     body,
     body_type: formData.body_type,
+    content_type: formData.content_type,
     form_fields: formFields && formFields.length > 0 ? formFields : undefined,
+    timeout_ms: formData.timeout_ms,
   };
 }
 
@@ -305,6 +309,21 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         </Select>
       </div>
 
+      {/* 超时时间 */}
+      <div className="space-y-2">
+        <Label htmlFor="timeout_ms" className="text-sm font-medium text-black">
+          超时时间
+        </Label>
+        <Input
+          id="timeout_ms"
+          type="number"
+          min={1000}
+          max={300000}
+          {...register('timeout_ms', { valueAsNumber: true })}
+        />
+        <p className="text-xs text-muted-foreground">毫秒 (ms)</p>
+      </div>
+
       {/* Headers 编辑器 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -395,6 +414,33 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           <p className="text-xs text-muted-foreground break-all">
             支持使用 <code className="rounded bg-muted px-1 py-0.5 break-all">{'{{变量名}}'}</code> 引用变量
           </p>
+        </div>
+      )}
+
+      {/* Content-Type 选择器 (仅 body 类型时显示) */}
+      {watchedBodyType === 'body' && (
+        <div className="space-y-2">
+          <Label htmlFor="content_type" className="text-sm font-medium text-black">
+            Content-Type
+          </Label>
+          <Select
+            value={watch('content_type') || 'json'}
+            onValueChange={(value) => {
+              setValue('content_type', value as HttpConfigFormData['content_type']);
+              saveData();
+            }}
+          >
+            <SelectTrigger id="content_type" className="font-mono">
+              <SelectValue placeholder="选择 Content-Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="json">JSON</SelectItem>
+              <SelectItem value="text">Text</SelectItem>
+              <SelectItem value="html">HTML</SelectItem>
+              <SelectItem value="xml">XML</SelectItem>
+              <SelectItem value="javascript">JavaScript</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       )}
 
