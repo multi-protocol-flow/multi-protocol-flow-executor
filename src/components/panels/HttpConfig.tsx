@@ -66,6 +66,9 @@ function fromFormData(formData: HttpConfigFormData): HttpConfigType {
     return acc;
   }, {});
 
+  // 过滤掉空的 form_fields
+  const formFields = formData.form_fields?.filter(field => field.key.trim());
+
   let body: string | undefined = undefined;
   if (formData.body?.trim()) {
     body = formData.body.trim();
@@ -78,7 +81,7 @@ function fromFormData(formData: HttpConfigFormData): HttpConfigType {
     headers: headers && Object.keys(headers).length > 0 ? headers : undefined,
     body,
     body_type: formData.body_type,
-    form_fields: formData.form_fields,
+    form_fields: formFields && formFields.length > 0 ? formFields : undefined,
   };
 }
 
