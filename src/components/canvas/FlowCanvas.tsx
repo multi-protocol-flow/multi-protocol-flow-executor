@@ -427,6 +427,15 @@ function FlowCanvasInner() {
         .react-flow__minimap * {
           cursor: pointer !important;
         }
+        /* Controls 按钮图标颜色 - 深色确保在白色背景可见 */
+        .react-flow__controls-button svg {
+          fill: #1e293b !important;
+          stroke: #1e293b !important;
+        }
+        .react-flow__controls-button:hover svg {
+          fill: #0f172a !important;
+          stroke: #0f172a !important;
+        }
         /* 拖拽时显示自定义 grabbing 光标 */
         .react-flow__node.dragging,
         .react-flow__node.dragging * {
