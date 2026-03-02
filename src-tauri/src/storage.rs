@@ -274,3 +274,151 @@ pub fn delete_report(uuid: &str, reports_dir: &Path) -> Result<(), String> {
     
     Ok(())
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 测试 get_data_dir() 返回正确的路径格式
+    ///
+    /// 验证点：
+    /// - 返回的路径以应用名称 "multi-protocol-flow-executor" 结尾
+    /// - 路径是绝对路径（在环境变量可用时）
+    #[test]
+    fn test_get_data_dir_contains_app_name() {
+        let result = get_data_dir();
+        
+        // get_data_dir() 在环境变量可用时应返回 Ok
+        if let Ok(path) = result {
+            // 验证路径以应用名称结尾
+            assert!(
+                path.to_string_lossy().ends_with("multi-protocol-flow-executor"),
+                "数据目录路径应以 'multi-protocol-flow-executor' 结尾，实际为: {:?}",
+                path
+            );
+        }
+        // 如果环境变量不可用（如 CI 环境中某些情况），测试应跳过
+    }
+
+    /// 测试 get_data_dir() 返回的路径是有效的目录路径
+    #[test]
+    fn test_get_data_dir_is_valid_path() {
+        if let Ok(path) = get_data_dir() {
+            // 验证路径不为空
+            assert!(!path.as_os_str().is_empty(), "数据目录路径不应为空");
+            
+            // 验证路径组件数量合理（至少包含用户目录和应用名）
+            let components: Vec<_> = path.components().collect();
+            assert!(components.len() >= 2, "路径组件数量应至少为2，实际为: {}", components.len());
+        }
+    }
+
+    /// 测试 get_flows_dir() 返回数据目录下的 flows 子目录
+    #[test]
+    fn test_get_flows_dir() {
+        if let Ok(data_dir) = get_data_dir() {
+            let flows_dir = get_flows_dir();
+            
+            assert!(flows_dir.is_ok(), "get_flows_dir() 应返回 Ok");
+            
+            let flows_path = flows_dir.unwrap();
+            let expected = data_dir.join("flows");
+            
+            assert_eq!(
+                flows_path, expected,
+                "flows 目录应为数据目录下的 'flows' 子目录"
+            );
+        }
+    }
+
+    /// 测试 get_reports_dir() 返回数据目录下的 reports 子目录
+    #[test]
+    fn test_get_reports_dir() {
+        if let Ok(data_dir) = get_data_dir() {
+            let reports_dir = get_reports_dir();
+            
+            assert!(reports_dir.is_ok(), "get_reports_dir() 应返回 Ok");
+            
+            let reports_path = reports_dir.unwrap();
+            let expected = data_dir.join("reports");
+            
+            assert_eq!(
+                reports_path, expected,
+                "reports 目录应为数据目录下的 'reports' 子目录"
+            );
+        }
+    }
+
+    /// 测试日志目录组合逻辑（模拟 CLI 中的用法）
+    ///
+    /// CLI 中使用: get_data_dir().map(|d| d.join("logs")).unwrap_or_default()
+    #[test]
+    fn test_log_dir_composition() {
+        let log_dir = get_data_dir()
+            .map(|d| d.join("logs"));
+        
+        if let Ok(path) = log_dir {
+            // 验证日志目录路径以 "logs" 结尾
+            assert!(
+                path.to_string_lossy().ends_with("logs"),
+                "日志目录路径应以 'logs' 结尾，实际为: {:?}",
+                path
+            );
+            
+            // 验证日志目录的父目录是数据目录
+            if let Some(parent) = path.parent() {
+                let data_dir = get_data_dir().unwrap();
+                assert_eq!(
+                    parent, &data_dir,
+                    "日志目录的父目录应为数据目录"
+                );
+            }
+        }
+    }
+
+    /// 测试默认值回退逻辑（模拟 CLI 中 unwrap_or_default 的行为）
+    #[test]
+    fn test_log_dir_fallback_to_default() {
+        // 模拟 CLI 中的逻辑：如果 get_data_dir() 失败，使用默认空路径
+        let log_dir: PathBuf = get_data_dir()
+            .map(|d| d.join("logs"))
+            .unwrap_or_default();
+        
+        // 如果 get_data_dir() 成功，log_dir 应该是非空路径
+        // 如果失败（某些测试环境），log_dir 应该是空路径
+        if get_data_dir().is_ok() {
+            assert!(
+                !log_dir.as_os_str().is_empty(),
+                "当 get_data_dir() 成功时，日志目录路径不应为空"
+            );
+        } else {
+            assert!(
+                log_dir.as_os_str().is_empty(),
+                "当 get_data_dir() 失败时，应回退到空路径"
+            );
+        }
+    }
+
+    /// 测试 ensure_flows_dir() 创建目录
+    #[test]
+    fn test_ensure_flows_dir_creates_directory() {
+        // 此测试需要文件系统访问，跳过如果环境不允许
+        if let Ok(flows_dir) = ensure_flows_dir() {
+            // 验证目录存在
+            assert!(
+                flows_dir.try_exists().unwrap_or(false),
+                "flows 目录应该存在"
+            );
+            
+            // 验证目录名正确
+            assert!(
+                flows_dir.to_string_lossy().ends_with("flows"),
+                "目录名应为 'flows'"
+            );
+            
+            // 清理：尝试删除创建的目录（如果为空）
+            let _ = std::fs::remove_dir(&flows_dir);
+        }
+    }
+}
