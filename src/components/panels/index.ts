@@ -4,6 +4,7 @@
 
 // 主组件
 export { NodeConfigPanel } from './NodeConfigPanel';
+export { SettingsPanel } from './SettingsPanel';
 
 // 子组件
 export { EntryConfig } from './EntryConfig';

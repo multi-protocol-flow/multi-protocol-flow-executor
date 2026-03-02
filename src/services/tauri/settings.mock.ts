@@ -52,8 +52,25 @@ export async function selectDirectory(currentPath: string): Promise<string | nul
 /**
  * 在文件管理器中打开目录（Mock: 仅打印日志）
  */
+/**
+ * 在文件管理器中打开目录（Mock: 仅打印日志）
+ */
 export async function openDirectory(path: string): Promise<void> {
   console.log('Mock: openDirectory called with', path);
   // Mock 环境下无法真正打开目录，仅打印日志
   console.log(`[Mock] 将在文件管理器中打开: ${path}`);
+}
+
+/**
+ * 获取配置文件路径（Mock）
+ */
+export async function getConfigPath(): Promise<string> {
+  return '浏览器本地存储 (localStorage)';
+}
+
+/**
+ * 获取应用数据目录（Mock）
+ */
+export async function getAppDataDir(): Promise<string> {
+  return '浏览器环境';
 }

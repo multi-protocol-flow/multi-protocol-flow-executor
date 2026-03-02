@@ -6,6 +6,8 @@ import { create } from 'zustand';
 /** 面板类型 */
 export type PanelType = 'flowList' | 'history' | 'config' | 'execution';
 
+/** 右侧配置面板模式 */
+export type ConfigPanelMode = 'node' | 'settings';
 /** 底部面板 Tab 类型 */
 export type BottomPanelTab = 'history' | 'console';
 
@@ -31,7 +33,8 @@ interface UIState {
   pendingDeleteFlowUuid: string | null;
   /** 是否显示设置对话框 */
   showSettingsDialog: boolean;
-
+  /** 右侧配置面板模式（节点配置/全局设置） */
+  configPanelMode: ConfigPanelMode;
   // ===== 其他 UI 状态 =====
   /** 侧边栏宽度（像素） */
   sidebarWidth: number;
@@ -71,7 +74,8 @@ interface UIState {
   openSettingsDialog: () => void;
   /** 关闭设置对话框 */
   closeSettingsDialog: () => void;
-
+  /** 设置右侧面板模式 */
+  setConfigPanelMode: (mode: ConfigPanelMode) => void;
   // ===== 布局 Actions =====
   /** 设置侧边栏宽度 */
   setSidebarWidth: (width: number) => void;
@@ -108,7 +112,7 @@ const initialState = {
   showDeleteConfirmDialog: false,
   pendingDeleteFlowUuid: null,
   showSettingsDialog: false,
-  // 布局状态
+  configPanelMode: 'node' as ConfigPanelMode,
   sidebarWidth: 280,
   configPanelWidth: 320,
   bottomPanelHeight: 208,
@@ -162,10 +166,11 @@ export const useUIStore = create<UIState>((set) => ({
       pendingDeleteFlowUuid: null,
     }),
 
-  openSettingsDialog: () => set({ showSettingsDialog: true }),
+  openSettingsDialog: () => set({ showSettingsDialog: true, configPanelMode: 'settings', isConfigPanelOpen: true }),
 
-  closeSettingsDialog: () => set({ showSettingsDialog: false }),
+  closeSettingsDialog: () => set({ showSettingsDialog: false, configPanelMode: 'node' }),
 
+  setConfigPanelMode: (configPanelMode) => set({ configPanelMode }),
   // ===== 布局 Actions =====
   setSidebarWidth: (width) =>
     set({

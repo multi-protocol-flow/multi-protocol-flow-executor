@@ -108,7 +108,7 @@ function FlowCanvasInner() {
     pendingAddNodeType,
     clearPendingAddNodeType,
   } = useFlowStore();
-  const { setConfigPanelOpen } = useUIStore();
+  const { setConfigPanelOpen, setConfigPanelMode } = useUIStore();
   const { screenToFlowPosition, setCenter, getViewport } = useReactFlow();
   
   // 画布容器引用（用于计算视口中心）
@@ -226,8 +226,9 @@ function FlowCanvasInner() {
     (_: React.MouseEvent, node: Node) => {
       selectNode(node.id);
       setConfigPanelOpen(true);
+      setConfigPanelMode('node');
     },
-    [selectNode, setConfigPanelOpen]
+    [selectNode, setConfigPanelOpen, setConfigPanelMode]
   );
 
   // 处理画布空白处点击 - 取消选中并收起面板

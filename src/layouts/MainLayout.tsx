@@ -6,10 +6,9 @@ import { Toaster } from '@/components/ui/sonner';
 
 import { FlowListPanel, NodeLibrary } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
-import { NodeConfigPanel } from '@/components/panels';
+import { NodeConfigPanel, SettingsPanel } from '@/components/panels';
 import { ExecuteButton, ExecutionReport, ExecutionHistory, ConsolePanel } from '@/components/execution';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
-import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useUIStore, useFlowStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, GripHorizontal, Settings } from 'lucide-react';
@@ -25,6 +24,7 @@ export function MainLayout() {
     isFlowListPanelOpen,
     isHistoryPanelOpen,
     isConfigPanelOpen,
+    configPanelMode,
     bottomPanelTab,
     bottomPanelHeight,
     toggleFlowListPanel,
@@ -318,7 +318,7 @@ export function MainLayout() {
         >
           {isConfigPanelOpen && (
             <div className="h-full w-72 min-w-0 overflow-hidden">
-              <NodeConfigPanel />
+              {configPanelMode === 'settings' ? <SettingsPanel /> : <NodeConfigPanel />}
             </div>
           )}
         </aside>
@@ -350,9 +350,8 @@ export function MainLayout() {
       {/* ===== 新建流程对话框 ===== */}
       <NewFlowDialog />
 
-      {/* ===== 设置对话框 ===== */}
-      <SettingsDialog />
-
+      {/* ===== Toast 提示 ===== */}
+      <Toaster />
       {/* ===== Toast 提示 ===== */}
       <Toaster />
     </div>

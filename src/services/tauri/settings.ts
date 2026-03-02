@@ -4,7 +4,6 @@
  */
 
 import { LazyStore } from '@tauri-apps/plugin-store';
-import { LazyStore } from '@tauri-apps/plugin-store';
 import { open } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import type { Settings } from '@/types/settings';
@@ -65,6 +64,24 @@ export async function selectDirectory(currentPath: string): Promise<string | nul
 /**
  * 在文件管理器中打开目录
  */
+/**
+ * 在文件管理器中打开目录
+ */
 export async function openDirectory(path: string): Promise<void> {
   await invoke('open_directory', { path });
+}
+
+/**
+ * 获取配置文件路径
+ */
+export async function getConfigPath(): Promise<string> {
+  const appDataDir = await invoke<string>('get_app_data_dir');
+  return `${appDataDir}/store/${SETTINGS_FILE}`;
+}
+
+/**
+ * 获取应用数据目录
+ */
+export async function getAppDataDir(): Promise<string> {
+  return invoke<string>('get_app_data_dir');
 }
