@@ -65,7 +65,7 @@ export function ResizablePanel({
       )}
     >
       {/* 左侧面板 */}
-      <div style={{ width: leftWidth }} className="flex-shrink-0 overflow-hidden">
+      <div style={{ width: leftWidth }} className="h-full flex-shrink-0 overflow-hidden">
         {leftPanel}
       </div>
 
@@ -86,7 +86,7 @@ export function ResizablePanel({
       </div>
 
       {/* 右侧面板 */}
-      <div className="flex-1 overflow-hidden">
+      <div className="h-full flex-1 min-w-0 overflow-hidden">
         {rightPanel}
       </div>
     </div>

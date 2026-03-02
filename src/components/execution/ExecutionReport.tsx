@@ -91,12 +91,12 @@ export function ExecutionReport() {
     <Dialog open={!!report} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
         className={cn(
-          "max-w-3xl max-h-[85vh] flex flex-col",
+          "max-w-3xl h-[85vh] flex flex-col overflow-hidden p-6 gap-4",
           isMaximized && "!fixed !inset-4 !z-[60] !w-[calc(100vw-2rem)] !h-[calc(100vh-2rem)] !max-w-none !max-h-none !translate-x-0 !translate-y-0 bg-background rounded-lg border shadow-2xl"
         )}
         hideCloseButton
       >
-        <DialogHeader>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-3">
             {/* 状态图标 */}
             <div
@@ -235,7 +235,7 @@ export function ExecutionReport() {
                       <span>暂无执行节点</span>
                     </div>
                   ) : (
-                    <ScrollArea className="h-full">
+                    <ScrollArea className="h-full w-full">
                       <div className="space-y-1 p-1">
                         {report.node_reports.map((nodeReport) => (
                           <NodeListItem
@@ -256,8 +256,8 @@ export function ExecutionReport() {
                       <span>暂无执行节点</span>
                     </div>
                   ) : selectedNodeUuid ? (
-                    <ScrollArea className="h-full">
-                      <div className="p-2">
+                    <ScrollArea className="h-full w-full">
+                      <div className="p-2 min-w-0">
                         <NodeExecutionDetails
                           report={report.node_reports.find(r => r.node_uuid === selectedNodeUuid)!}
                         />

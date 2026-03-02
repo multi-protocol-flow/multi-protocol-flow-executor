@@ -88,12 +88,12 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
         <div className="border-t border-border/50 p-4 space-y-3 text-sm bg-muted/20">
           {/* 输入数据 */}
           {report.input_data !== undefined && (
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5 mb-1.5 text-muted-foreground">
                 <ArrowRightLeft className="w-3.5 h-3.5" />
                 <span className="font-medium">输入数据</span>
               </div>
-              <pre className="p-3 bg-slate-100 border border-black rounded-lg text-xs overflow-x-auto text-slate-800">
+              <pre className="p-3 bg-slate-100 border border-black rounded-lg text-xs overflow-x-auto text-slate-800 max-w-full">
                 {JSON.stringify(report.input_data, null, 2)}
               </pre>
             </div>
@@ -101,12 +101,12 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
 
           {/* 输出数据 */}
           {report.output_data !== undefined && (
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5 mb-1.5 text-muted-foreground">
                 <ArrowRightLeft className="w-3.5 h-3.5 rotate-180" />
                 <span className="font-medium">输出数据</span>
               </div>
-              <pre className="p-3 bg-slate-100 border border-black rounded-lg text-xs overflow-x-auto text-slate-800">
+              <pre className="p-3 bg-slate-100 border border-black rounded-lg text-xs overflow-x-auto text-slate-800 max-w-full">
                 {JSON.stringify(report.output_data, null, 2)}
               </pre>
             </div>
@@ -133,7 +133,7 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
                 {report.error.message}
               </p>
               {report.error.stack_trace && (
-                <pre className="mt-2 p-2 bg-red-100 rounded text-xs overflow-x-auto text-red-700">
+                <pre className="mt-2 p-2 bg-red-100 rounded text-xs overflow-x-auto text-red-700 max-w-full">
                   {report.error.stack_trace}
                 </pre>
               )}
