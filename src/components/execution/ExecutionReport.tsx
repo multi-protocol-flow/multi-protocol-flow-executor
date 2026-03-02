@@ -221,12 +221,12 @@ export function ExecutionReport() {
             </div>
           )}
           {/* 节点执行详情 */}
-          <div className="flex-1 min-h-0">
-            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          <div className="flex-1 min-h-0 flex flex-col">
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2 flex-shrink-0">
               <BarChart3 className="w-4 h-4" />
               节点执行详情
             </h3>
-            <div className={cn("h-[280px]", isMaximized && "h-[calc(100vh-450px)]")}>
+            <div className="flex-1 min-h-0">
               <ResizablePanel
                 leftPanel={
                   report.node_reports.length === 0 ? (

@@ -72,10 +72,12 @@ export function ResizablePanel({
       {/* 分隔栏 */}
       <div
         onMouseDown={handleMouseDown}
-        className="w-2 flex items-center justify-center flex-shrink-0 group bg-transparent hover:bg-blue-100 active:bg-blue-200 transition-colors cursor-col-resize"
+        className="w-2 flex items-center justify-center flex-shrink-0 relative group cursor-col-resize"
       >
-        {/* 分隔线指示器 */}
-        <div className="w-0.5 h-8 rounded-full bg-slate-400 group-hover:bg-blue-500 group-active:bg-blue-600 transition-colors" />
+        {/* 背景分隔线 */}
+        <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-border group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
+        {/* 拖拽手柄 */}
+        <div className="relative z-10 w-4 h-8 rounded-sm bg-muted-foreground/20 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors opacity-0 group-hover:opacity-100 group-active:opacity-100" />
       </div>
 
       {/* 右侧面板 */}
