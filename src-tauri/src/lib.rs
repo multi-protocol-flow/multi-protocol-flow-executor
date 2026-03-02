@@ -2,6 +2,10 @@
 //!
 //! 提供流程编排、节点执行、变量替换等核心功能。
 
+use std::path::PathBuf;
+use tauri::Manager;
+use tauri_plugin_store::StoreExt;
+
 
 // 导入基础模块
 mod log_event;
@@ -47,6 +51,14 @@ pub use log_event::{LogEvent, LogLevel};
 // 导出存储模块
 pub use storage::{ensure_flows_dir, get_data_dir, get_flows_dir, get_reports_dir, load_flow, save_flow, save_report, load_report, list_reports, delete_report};
 
+/// 获取默认日志目录
+fn default_logs_dir(app: &tauri::AppHandle) -> PathBuf {
+    app.path().app_data_dir()
+        .map(|p| p.join("logs"))
+        .unwrap_or_else(|_| PathBuf::from("logs"))
+}
+
+
 /// 启动 Tauri 应用
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -55,13 +67,40 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
+            // 从 store 读取日志目录配置
+            let log_dir = match app.store("store/settings.bin") {
+                Ok(store) => {
+                    store.get("logDir")
+                        .and_then(|v| v.as_str().map(PathBuf::from))
+                        .unwrap_or_else(|| default_logs_dir(app.handle()))
+                }
+                Err(_) => default_logs_dir(app.handle()),
+            };
+            
+            // 确保目录存在
+            let _ = std::fs::create_dir_all(&log_dir);
+            
+            // 设置日志级别（调试模式用 Debug，生产模式用 Info）
+            let level = if cfg!(debug_assertions) { 
+                log::LevelFilter::Debug 
+            } else { 
+                log::LevelFilter::Info 
+            };
+            
+            // 注册 log 插件（生产模式也启用）
+            let _ = app.handle().plugin(
+                tauri_plugin_log::Builder::new()
+                    .level(level)
+                    .target(tauri_plugin_log::Target::new(
+                        tauri_plugin_log::TargetKind::Folder { 
+                            path: log_dir, 
+                            file_name: Some("app".into()) 
+                        }
+                    ))
+                    .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
+                    .build()
+            );
+            
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
