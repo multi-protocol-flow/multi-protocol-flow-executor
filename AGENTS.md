@@ -59,6 +59,59 @@ multi-protocol-flow-executor/
 - 禁止删除失败测试来"通过"
 - 注释使用中文
 
+## 回归测试 (强制)
+
+**任何功能变更（新功能/Bug修复/重构）必须执行回归测试，防止引入新问题。**
+
+### 执行要求
+
+1. **前端变更** → 必须运行:
+   ```bash
+   npm run test          # Vitest 单元测试
+   npm run typecheck     # TypeScript 类型检查
+   ```
+
+2. **后端变更** → 必须运行:
+   ```bash
+   cd src-tauri
+   cargo test            # Rust 测试
+   cargo clippy          # Lint 检查
+   ```
+
+3. **CLI 相关变更** → 必须运行:
+   ```bash
+   cd src-tauri
+   cargo test cli_tests  # CLI 集成测试
+   ```
+
+### 测试覆盖原则
+
+- **新功能**: 必须添加对应单元测试/集成测试
+- **Bug修复**: 必须添加回归测试防止问题复现
+- **重构**: 重构前后测试必须全部通过
+- **执行器变更**: 运行 `src-tauri/tests/` 下所有相关测试
+
+### 禁止行为
+
+| 行为 | 说明 |
+|------|------|
+| 跳过测试直接提交 | 必须验证所有测试通过 |
+| 删除失败测试 | 禁止删除测试来"通过" |
+| 只跑部分测试 | 功能相关测试必须全部通过 |
+| 忽略 clippy 警告 | 必须修复或明确标注 |
+
+### 测试命令速查
+
+```bash
+# 前端完整验证
+npm run typecheck && npm run test
+
+# 后端完整验证
+cd src-tauri && cargo fmt --check && cargo clippy && cargo test
+
+# 项目完整回归 (推荐)
+npm run typecheck && npm run test && cd src-tauri && cargo test && cargo clippy
+```
 ## 反模式 (本项目禁止)
 
 | 模式 | 位置 | 说明 |
