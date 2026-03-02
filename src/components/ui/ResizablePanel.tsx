@@ -72,12 +72,17 @@ export function ResizablePanel({
       {/* 分隔栏 */}
       <div
         onMouseDown={handleMouseDown}
-        className="w-2 flex items-center justify-center flex-shrink-0 relative group cursor-col-resize"
+        className="w-3 flex items-center justify-center flex-shrink-0 relative group cursor-col-resize"
       >
         {/* 背景分隔线 */}
         <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-border group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
-        {/* 拖拽手柄 */}
-        <div className="relative z-10 w-4 h-8 rounded-sm bg-muted-foreground/20 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors opacity-0 group-hover:opacity-100 group-active:opacity-100" />
+        {/* 拖拽手柄 - 竖排圆点 */}
+        <div className="relative z-10 flex flex-col items-center gap-0.5 py-2 rounded group-hover:bg-blue-100/50 transition-colors">
+          <div className="w-1 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-blue-500 transition-colors" />
+          <div className="w-1 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-blue-500 transition-colors" />
+          <div className="w-1 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-blue-500 transition-colors" />
+          <div className="w-1 h-1 rounded-full bg-muted-foreground/30 group-hover:bg-blue-500 transition-colors" />
+        </div>
       </div>
 
       {/* 右侧面板 */}
