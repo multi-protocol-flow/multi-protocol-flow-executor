@@ -215,31 +215,55 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
 // ============================================================================
 
 /// 保存流程执行报告
+/// 
+/// # 参数
+/// - `report`: 报告对象
+/// - `reports_dir`: 报告存储目录（由前端传入用户配置的目录）
 #[tauri::command]
-pub fn save_flow_report(report: crate::report::FlowExecutionReport) -> Result<(), String> {
-    let reports_dir = crate::storage::get_reports_dir()?;
-    crate::storage::save_report(&report, &reports_dir)
+pub fn save_flow_report(
+    report: crate::report::FlowExecutionReport,
+    reports_dir: String,
+) -> Result<(), String> {
+    let reports_path = std::path::PathBuf::from(&reports_dir);
+    crate::storage::save_report(&report, &reports_path)
 }
 
 /// 加载流程执行报告
+/// 
+/// # 参数
+/// - `uuid`: 报告 UUID
+/// - `reports_dir`: 报告存储目录（由前端传入用户配置的目录）
 #[tauri::command]
-pub fn load_flow_report(uuid: String) -> Result<crate::report::FlowExecutionReport, String> {
-    let reports_dir = crate::storage::get_reports_dir()?;
-    crate::storage::load_report(&uuid, &reports_dir)
+pub fn load_flow_report(
+    uuid: String,
+    reports_dir: String,
+) -> Result<crate::report::FlowExecutionReport, String> {
+    let reports_path = std::path::PathBuf::from(&reports_dir);
+    crate::storage::load_report(&uuid, &reports_path)
 }
 
 /// 列出所有报告元数据
+/// 
+/// # 参数
+/// - `reports_dir`: 报告存储目录（由前端传入用户配置的目录）
 #[tauri::command]
-pub fn list_flow_reports() -> Result<Vec<crate::report::ReportMetadata>, String> {
-    let reports_dir = crate::storage::get_reports_dir()?;
-    crate::storage::list_reports(&reports_dir)
+pub fn list_flow_reports(reports_dir: String) -> Result<Vec<crate::report::ReportMetadata>, String> {
+    let reports_path = std::path::PathBuf::from(&reports_dir);
+    crate::storage::list_reports(&reports_path)
 }
 
 /// 删除流程执行报告
+/// 
+/// # 参数
+/// - `uuid`: 报告 UUID
+/// - `reports_dir`: 报告存储目录（由前端传入用户配置的目录）
 #[tauri::command]
-pub fn delete_flow_report(uuid: String) -> Result<(), String> {
-    let reports_dir = crate::storage::get_reports_dir()?;
-    crate::storage::delete_report(&uuid, &reports_dir)
+pub fn delete_flow_report(
+    uuid: String,
+    reports_dir: String,
+) -> Result<(), String> {
+    let reports_path = std::path::PathBuf::from(&reports_dir);
+    crate::storage::delete_report(&uuid, &reports_path)
 }
 
 // ============================================================================
