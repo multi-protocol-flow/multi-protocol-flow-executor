@@ -58,6 +58,9 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
 
   // 加载历史列表
   useEffect(() => {
+    // 等待 reportDir 加载完成
+    if (!reportDir) return;
+
     const loadHistory = async () => {
       setLoading(true);
       try {
@@ -73,7 +76,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
       }
     };
     loadHistory();
-  }, []);
+  }, [reportDir]);
 
   // 点击加载完整报告
   const handleSelectReport = useCallback(async (reportUuid: string) => {
@@ -90,7 +93,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
     } finally {
       setLoadingReportUuid(null);
     }
-  }, [setReport, onSelectReport]);
+  }, [setReport, onSelectReport, reportDir]);
 
   // 删除单个报告
   const handleDelete = useCallback(async (uuid: string) => {
@@ -115,7 +118,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
         });
       }
     }
-  }, []);
+  }, [reportDir]);
 
   // 清空所有历史
   const handleClearHistory = useCallback(async () => {
@@ -131,7 +134,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
         });
       }
     }
-  }, [history]);
+  }, [history, reportDir]);
 
   // 加载中状态（初次加载）
   if (loading && history.length === 0) {
