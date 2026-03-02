@@ -158,8 +158,54 @@ async fn run() -> Result<(), String> {
     Ok(())
 }
 
+/// 配置日志：同时输出到控制台和文件
+fn setup_logging() {
+    // 获取日志目录
+    let log_dir = app_lib::get_data_dir()
+        .map(|d| d.join("logs"))
+        .unwrap_or_default();
+    
+    // 确保日志目录存在
+    let _ = std::fs::create_dir_all(&log_dir);
+    
+    // 生成日志文件名：cli_YYYY-MM-DD_HH-MM-SS.log
+    let log_file = log_dir.join(format!(
+        "cli_{}.log",
+        chrono::Local::now().format("%Y-%m-%d_%H-%M-%S")
+    ));
+    
+    // 尝试创建文件输出，失败则仅输出到控制台
+    let file_logger = fern::log_file(&log_file).ok();
+    
+    // 配置 fern 日志分发器
+    let mut dispatch = fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "[{} {} {}] {}",
+                chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
+                record.level(),
+                record.target(),
+                message
+            ))
+        })
+        .level(log::LevelFilter::Info)
+        .chain(std::io::stdout());
+    
+    // 文件输出可选，失败不影响 CLI 执行
+    if let Some(file) = file_logger {
+        dispatch = dispatch.chain(file);
+    }
+    
+    let result = dispatch.apply();
+    
+    // 日志初始化失败不影响 CLI 执行
+    if result.is_ok() {
+        log::info!("日志已初始化: {:?}", log_file);
+    }
+}
+
 fn main() {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    setup_logging();
 
     // 创建 Tokio 运行时
     let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
