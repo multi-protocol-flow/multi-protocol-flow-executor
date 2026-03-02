@@ -7,6 +7,7 @@ import { Play, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFlowStore, useUIStore, useExecutionStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
+import { useSettingsStore } from '@/stores/settings';
 import { executeFlowWithChannel, saveFlowReport } from '@/services/tauri';
 import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
@@ -19,6 +20,7 @@ export function ExecuteButton() {
   const addLog = useConsoleStore((state) => state.addLog);
   const clearLogs = useConsoleStore((state) => state.clearLogs);
   const setConfigPanelOpen = useUIStore((state) => state.setConfigPanelOpen);
+  const reportDir = useSettingsStore((state) => state.reportDir);
 
   const handleExecute = async () => {
     if (!flow || isExecuting) return;
@@ -42,7 +44,7 @@ export function ExecuteButton() {
 
         // 显式保存报告到后端（分离关注点：UI 显示和数据持久化分开）
         try {
-          await saveFlowReport(result.flow_report);
+          await saveFlowReport(result.flow_report, reportDir);
         } catch (saveError) {
           // 保存失败不影响 UI 显示，只记录日志
           console.error('保存报告失败:', saveError);

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { loadReport, listReports, deleteReport } from '@/services/storage/reportStorage';
 import type { ReportMetadata } from '@/types/ipc';
 import { useExecutionStore } from '@/stores/execution';
+import { useSettingsStore } from '@/stores/settings';
 import { cn } from '@/lib/utils';
 
 /** 格式化时间戳为可读字符串 */
@@ -53,13 +54,14 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
   const [loading, setLoading] = useState(false);
   const [loadingReportUuid, setLoadingReportUuid] = useState<string | null>(null);
   const setReport = useExecutionStore((state) => state.setReport);
+  const reportDir = useSettingsStore((state) => state.reportDir);
 
   // 加载历史列表
   useEffect(() => {
     const loadHistory = async () => {
       setLoading(true);
       try {
-        const reports = await listReports();
+        const reports = await listReports(reportDir);
         setHistory(reports);
       } catch (error) {
         console.error('加载历史列表失败:', error);
@@ -77,7 +79,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
   const handleSelectReport = useCallback(async (reportUuid: string) => {
     setLoadingReportUuid(reportUuid);
     try {
-      const report = await loadReport(reportUuid);
+      const report = await loadReport(reportUuid, reportDir);
       setReport(report);
       onSelectReport?.(reportUuid);
     } catch (error) {
@@ -93,7 +95,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
   // 删除单个报告
   const handleDelete = useCallback(async (uuid: string) => {
     try {
-      await deleteReport(uuid);
+      await deleteReport(uuid, reportDir);
       setHistory((prev) => prev.filter((item) => item.uuid !== uuid));
       toast.success('报告已删除');
     } catch (error) {
@@ -119,7 +121,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
   const handleClearHistory = useCallback(async () => {
     if (window.confirm('确定要清空所有执行历史吗？')) {
       try {
-        await Promise.all(history.map((item) => deleteReport(item.uuid)));
+        await Promise.all(history.map((item) => deleteReport(item.uuid, reportDir)));
         setHistory([]);
         toast.success('执行历史已清空');
       } catch (error) {
