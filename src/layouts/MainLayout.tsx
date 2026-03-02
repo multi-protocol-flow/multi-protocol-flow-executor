@@ -9,9 +9,10 @@ import { FlowCanvas } from '@/components/canvas';
 import { NodeConfigPanel } from '@/components/panels';
 import { ExecuteButton, ExecutionReport, ExecutionHistory, ConsolePanel } from '@/components/execution';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
+import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useUIStore, useFlowStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, GripHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, GripHorizontal, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -31,6 +32,7 @@ export function MainLayout() {
     toggleConfigPanel,
     setBottomPanelTab,
     setBottomPanelHeight,
+    openSettingsDialog,
   } = useUIStore();
 
   const { isDirty, flow } = useFlowStore();
@@ -117,6 +119,16 @@ export function MainLayout() {
         <div className="flex items-center gap-2">
           {/* 执行按钮 */}
           <ExecuteButton />
+
+          {/* 设置按钮 */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={openSettingsDialog}
+            title="设置"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
 
         </div>
       </header>
@@ -337,6 +349,9 @@ export function MainLayout() {
 
       {/* ===== 新建流程对话框 ===== */}
       <NewFlowDialog />
+
+      {/* ===== 设置对话框 ===== */}
+      <SettingsDialog />
 
       {/* ===== Toast 提示 ===== */}
       <Toaster />

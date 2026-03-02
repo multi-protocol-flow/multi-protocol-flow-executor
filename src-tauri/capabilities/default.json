@@ -5,8 +5,10 @@
   "windows": [
     "main"
   ],
-  "permissions": [
+"permissions": [
     "core:default",
-    "dialog:default"
+    "dialog:default",
+    "opener:allow-open-path",
+    "store:default"
   ]
 }

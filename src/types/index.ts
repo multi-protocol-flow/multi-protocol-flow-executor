@@ -57,3 +57,11 @@ export type {
   DeleteNodeCommandInput,
   DeleteNodeCommandOutput,
 } from './ipc';
+
+// 设置类型
+export type {
+  Settings,
+  SettingsState,
+  SettingsActions,
+  SettingsStore,
+} from './settings';

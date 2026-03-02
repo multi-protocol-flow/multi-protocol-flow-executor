@@ -51,7 +51,9 @@ pub use storage::{ensure_flows_dir, get_data_dir, get_flows_dir, get_reports_dir
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_dialog::init())
+.plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -70,7 +72,9 @@ pub fn run() {
             crate::commands::save_flow_report,
             crate::commands::load_flow_report,
             crate::commands::list_flow_reports,
-            crate::commands::delete_flow_report
+            crate::commands::delete_flow_report,
+            crate::commands::get_app_data_dir,
+            crate::commands::open_directory
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

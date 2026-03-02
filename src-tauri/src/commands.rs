@@ -1,6 +1,7 @@
 // Tauri 命令模块
 use std::sync::Arc;
 use tauri::ipc::Channel;
+use tauri::Manager;
 use tokio::sync::Mutex;
 use crate::log_event::{LogEvent, LogLevel};
 
@@ -239,6 +240,38 @@ pub fn list_flow_reports() -> Result<Vec<crate::report::ReportMetadata>, String>
 pub fn delete_flow_report(uuid: String) -> Result<(), String> {
     let reports_dir = crate::storage::get_reports_dir()?;
     crate::storage::delete_report(&uuid, &reports_dir)
+}
+
+// ============================================================================
+// 应用设置命令
+// ============================================================================
+
+/// 获取应用数据目录路径
+#[tauri::command]
+pub fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
+    app.path()
+        .app_data_dir()
+        .map(|p| p.to_string_lossy().to_string())
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))
+}
+
+/// 在文件管理器中打开目录
+///
+/// 使用系统默认文件管理器打开指定目录
+///
+/// # 参数
+/// - `path`: 要打开的目录路径
+///
+/// # 返回
+/// - `Ok(())`: 打开成功
+/// - `Err(String)`: 打开失败，包含错误信息
+#[tauri::command]
+pub async fn open_directory(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    
+    app.opener()
+        .open_path(&path, None::<String>)
+        .map_err(|e| format!("打开目录失败: {}", e))
 }
 
 #[cfg(test)]
@@ -699,4 +732,14 @@ mod tests {
             "错误信息应该包含 '不存在'"
         );
     }
+
+    #[test]
+    fn test_get_app_data_dir_signature() {
+        // 验证 get_app_data_dir 函数签名正确
+        // 该命令需要 AppHandle，无法在单元测试中直接调用
+        // 通过函数指针类型检查验证签名
+        fn _assert_command_signature(_: fn(tauri::AppHandle) -> Result<String, String>) {}
+        _assert_command_signature(get_app_data_dir);
+    }
+
 }

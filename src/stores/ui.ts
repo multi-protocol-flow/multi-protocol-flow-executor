@@ -29,6 +29,8 @@ interface UIState {
   showDeleteConfirmDialog: boolean;
   /** 待删除的流程 UUID（用于删除确认） */
   pendingDeleteFlowUuid: string | null;
+  /** 是否显示设置对话框 */
+  showSettingsDialog: boolean;
 
   // ===== 其他 UI 状态 =====
   /** 侧边栏宽度（像素） */
@@ -65,6 +67,10 @@ interface UIState {
   openDeleteConfirmDialog: (flowUuid: string) => void;
   /** 关闭删除确认对话框 */
   closeDeleteConfirmDialog: () => void;
+  /** 显示设置对话框 */
+  openSettingsDialog: () => void;
+  /** 关闭设置对话框 */
+  closeSettingsDialog: () => void;
 
   // ===== 布局 Actions =====
   /** 设置侧边栏宽度 */
@@ -101,7 +107,7 @@ const initialState = {
   showNewFlowDialog: false,
   showDeleteConfirmDialog: false,
   pendingDeleteFlowUuid: null,
-
+  showSettingsDialog: false,
   // 布局状态
   sidebarWidth: 280,
   configPanelWidth: 320,
@@ -156,6 +162,10 @@ export const useUIStore = create<UIState>((set) => ({
       pendingDeleteFlowUuid: null,
     }),
 
+  openSettingsDialog: () => set({ showSettingsDialog: true }),
+
+  closeSettingsDialog: () => set({ showSettingsDialog: false }),
+
   // ===== 布局 Actions =====
   setSidebarWidth: (width) =>
     set({
@@ -207,6 +217,9 @@ export const selectShowNewFlowDialog = (state: UIState) =>
 /** 选择删除确认对话框状态 */
 export const selectShowDeleteConfirmDialog = (state: UIState) =>
   state.showDeleteConfirmDialog;
+/** 选择设置对话框状态 */
+export const selectShowSettingsDialog = (state: UIState) =>
+  state.showSettingsDialog;
 
 /** 选择底部面板 Tab */
 export const selectBottomPanelTab = (state: UIState) =>

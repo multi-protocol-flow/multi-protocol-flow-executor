@@ -43,6 +43,7 @@ export {
   selectIsExecutionPanelOpen,
   selectShowNewFlowDialog,
   selectShowDeleteConfirmDialog,
+  selectShowSettingsDialog,
 } from './ui';
 
 // UI types
