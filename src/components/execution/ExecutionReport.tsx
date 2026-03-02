@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * 执行报告弹窗组件
@@ -15,6 +15,7 @@ import {
   Maximize2,
   Minimize2,
   Inbox,
+  X,
 } from 'lucide-react';
 import {
   Dialog,
@@ -30,7 +31,6 @@ import { NodeExecutionDetails } from './NodeExecutionDetails';
 import { NodeListItem } from './NodeListItem';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useFullscreen } from '@/hooks/useFullscreen';
 
 /** 统计卡片组件 */
 function StatCard({
@@ -64,10 +64,7 @@ export function ExecutionReport() {
   const reset = useExecutionStore((state) => state.reset);
 
   const [selectedNodeUuid, setSelectedNodeUuid] = useState<string | null>(null);
-
-  // 全屏相关
-  const contentRef = useRef<HTMLDivElement>(null);
-  const { isFullscreen, toggleFullscreen, exitFullscreen } = useFullscreen(contentRef);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   // 默认选中第一个节点
   useEffect(() => {
@@ -76,11 +73,9 @@ export function ExecutionReport() {
     }
   }, [report]);
 
-  // 关闭弹窗时退出全屏
+  // 关闭弹窗时重置状态
   const handleClose = () => {
-    if (isFullscreen) {
-      exitFullscreen();
-    }
+    setIsMaximized(false);
     reset();
   };
 
@@ -95,11 +90,11 @@ export function ExecutionReport() {
   return (
     <Dialog open={!!report} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
-        ref={contentRef}
         className={cn(
           "max-w-3xl max-h-[85vh] flex flex-col",
-          isFullscreen && "fixed inset-0 z-[60] w-screen h-screen max-w-none max-h-none bg-background"
+          isMaximized && "!fixed !inset-4 !z-[60] !w-[calc(100vw-2rem)] !h-[calc(100vh-2rem)] !max-w-none !max-h-none !translate-x-0 !translate-y-0 bg-background rounded-lg border shadow-2xl"
         )}
+        hideCloseButton
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
@@ -132,18 +127,28 @@ export function ExecutionReport() {
               {isSuccess ? '成功' : '失败'}
             </Badge>
 
-            {/* 全屏按钮 */}
+            {/* 最大化按钮 */}
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              onClick={toggleFullscreen}
+              onClick={() => setIsMaximized(!isMaximized)}
             >
-              {isFullscreen ? (
+              {isMaximized ? (
                 <Minimize2 className="h-4 w-4" />
               ) : (
                 <Maximize2 className="h-4 w-4" />
               )}
+            </Button>
+
+            {/* 关闭按钮 */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleClose}
+            >
+              <X className="h-4 w-4" />
             </Button>
           </DialogTitle>
         </DialogHeader>
@@ -221,7 +226,7 @@ export function ExecutionReport() {
               <BarChart3 className="w-4 h-4" />
               节点执行详情
             </h3>
-            <div className={cn("h-[320px]", isFullscreen && "h-[calc(100vh-400px)]")}>
+            <div className={cn("h-[280px]", isMaximized && "h-[calc(100vh-450px)]")}>
               <ResizablePanel
                 leftPanel={
                   report.node_reports.length === 0 ? (

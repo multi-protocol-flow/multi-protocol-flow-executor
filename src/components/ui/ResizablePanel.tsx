@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface ResizablePanelProps {
@@ -20,6 +20,7 @@ export function ResizablePanel({
 }: ResizablePanelProps) {
   const [leftWidth, setLeftWidth] = useState(defaultWidth);
   const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -30,8 +31,15 @@ export function ResizablePanel({
     if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = Math.max(minWidth, Math.min(maxWidth, e.clientX));
-      setLeftWidth(newWidth);
+      // 使用容器相对位置计算宽度，而不是页面绝对位置
+      if (containerRef.current) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const newWidth = Math.max(
+          minWidth,
+          Math.min(maxWidth, e.clientX - containerRect.left)
+        );
+        setLeftWidth(newWidth);
+      }
     };
 
     const handleMouseUp = () => {
@@ -49,6 +57,7 @@ export function ResizablePanel({
 
   return (
     <div
+      ref={containerRef}
       className={cn(
         "flex h-full w-full",
         isDragging && "select-none",
@@ -63,10 +72,11 @@ export function ResizablePanel({
       {/* 分隔栏 */}
       <div
         onMouseDown={handleMouseDown}
-        className={cn(
-          "w-1 bg-border hover:bg-primary/50 cursor-col-resize flex-shrink-0 transition-colors"
-        )}
-      />
+        className="w-2 flex items-center justify-center flex-shrink-0 group bg-transparent hover:bg-blue-100 active:bg-blue-200 transition-colors cursor-col-resize"
+      >
+        {/* 分隔线指示器 */}
+        <div className="w-0.5 h-8 rounded-full bg-slate-400 group-hover:bg-blue-500 group-active:bg-blue-600 transition-colors" />
+      </div>
 
       {/* 右侧面板 */}
       <div className="flex-1 overflow-hidden">
