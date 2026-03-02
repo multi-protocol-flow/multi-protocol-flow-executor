@@ -104,12 +104,12 @@ function FlowCanvasInner() {
     updateNode, 
     selectNode, 
     addNode, 
-    removeNode, 
     removeConnection,
     pendingAddNodeType,
     clearPendingAddNodeType,
   } = useFlowStore();
-  const { setConfigPanelOpen, setConfigPanelMode, showConfirm } = useUIStore();
+  const { setConfigPanelOpen, setConfigPanelMode } = useUIStore();
+
   const { screenToFlowPosition, setCenter, getViewport } = useReactFlow();
   
   // 画布容器引用（用于计算视口中心）
@@ -124,8 +124,6 @@ function FlowCanvasInner() {
   // 节点和边状态
   const [nodes, setNodes, onNodesChange] = useNodesState(initialData.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialData.edges);
-
-  // 当 flow 变化时，更新节点和边
   // 使用 node.uuid 和 conn.id 作为稳定标识，避免属性变化时重置选择状态
   useEffect(() => {
     if (flow) {
@@ -238,41 +236,12 @@ function FlowCanvasInner() {
     setConfigPanelOpen(false);
   }, [selectNode, setConfigPanelOpen]);
 
-  // 处理节点变化（处理位置变化和删除）
+  // 处理节点变化（处理位置变化等）
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      // 分离删除变化和其他变化
-      const removeChanges = changes.filter((c) => c.type === 'remove');
-      const otherChanges = changes.filter((c) => c.type !== 'remove');
-
-      // 处理其他变化（如位置变化、选择变化等）
-      if (otherChanges.length > 0) {
-        onNodesChange(otherChanges);
-      }
-
-      // 处理删除变化 - 入口节点不可删除，需要确认
-      if (removeChanges.length > 0 && flow) {
-        // 过滤掉入口节点，获取可删除的节点
-        const deletableNodes = removeChanges
-          .map((change) => flow.nodes.find((n) => n.uuid === change.id))
-          .filter((node): node is NonNullable<typeof node> => node !== undefined && node.type !== 'entry');
-
-        if (deletableNodes.length > 0) {
-          const nodeNames = deletableNodes.map((n) => n.name).join('、');
-          showConfirm({
-            title: '删除节点',
-            description: `确定要删除节点「${nodeNames}」吗？`,
-            confirmText: '删除',
-            onConfirm: () => {
-              deletableNodes.forEach((node) => {
-                removeNode(node.uuid);
-              });
-            },
-          });
-        }
-      }
+      onNodesChange(changes);
     },
-    [onNodesChange, flow, removeNode, showConfirm]
+    [onNodesChange]
   );
 
   // 处理边变化
@@ -473,6 +442,7 @@ function FlowCanvasInner() {
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        deleteKeyCode={null}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.1}

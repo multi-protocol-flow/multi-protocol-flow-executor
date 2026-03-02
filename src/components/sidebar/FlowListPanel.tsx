@@ -30,7 +30,7 @@ function formatRelativeTime(timestamp: number): string {
 export function FlowListPanel() {
   const { setFlows, removeFlow: removeFlowFromList } = useFlowListStore();
   const { setFlow, flow: currentFlow } = useFlowStore();
-  const { openNewFlowDialog } = useUIStore();
+  const { openNewFlowDialog, showConfirm } = useUIStore();
 
   // 加载流程列表 + 自动更新内置模板
   useEffect(() => {
@@ -73,14 +73,19 @@ export function FlowListPanel() {
 
   const handleDeleteFlow = (e: React.MouseEvent, uuid: string) => {
     e.stopPropagation();
-    if (window.confirm('确定要删除此流程吗？')) {
-      deleteFlow(uuid);
-      removeFlowFromList(uuid);
-      // 如果删除的是当前流程，清空画布
-      if (currentFlow?.uuid === uuid) {
-        setFlow(null);
-      }
-    }
+    showConfirm({
+      title: '删除流程',
+      description: '确定要删除此流程吗？删除后无法恢复。',
+      confirmText: '删除',
+      onConfirm: () => {
+        deleteFlow(uuid);
+        removeFlowFromList(uuid);
+        // 如果删除的是当前流程，清空画布
+        if (currentFlow?.uuid === uuid) {
+          setFlow(null);
+        }
+      },
+    });
   };
 
   const handleNewFlow = () => {

@@ -7,6 +7,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ExecutionHistory } from '@/components/execution/ExecutionHistory';
 import { useSettingsStore } from '@/stores/settings';
 import { useExecutionStore } from '@/stores/execution';
+import { useUIStore } from '@/stores';
 import type { ReportMetadata } from '@/types/ipc';
 
 // Mock stores
@@ -16,6 +17,10 @@ vi.mock('@/stores/settings', () => ({
 
 vi.mock('@/stores/execution', () => ({
   useExecutionStore: vi.fn(),
+}));
+
+vi.mock('@/stores', () => ({
+  useUIStore: vi.fn(),
 }));
 
 // Mock reportStorage
@@ -49,13 +54,11 @@ vi.mock('sonner', () => ({
   },
 }));
 
-// Mock window.confirm
-const mockConfirm = vi.fn();
-Object.defineProperty(window, 'confirm', {
-  value: mockConfirm,
-});
-
+// 导入 mock 后的函数
 import { listReports, loadReport, deleteReport } from '@/services/storage/reportStorage';
+
+// 共享 mockShowConfirm
+let mockShowConfirm: ReturnType<typeof vi.fn>;
 
 describe('ExecutionHistory', () => {
   const mockSetReport = vi.fn();
@@ -96,7 +99,13 @@ describe('ExecutionHistory', () => {
     (listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (loadReport as ReturnType<typeof vi.fn>).mockResolvedValue({});
     (deleteReport as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
-    mockConfirm.mockReturnValue(true);
+
+    // Mock useUIStore with showConfirm
+    mockShowConfirm = vi.fn();
+    (useUIStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (selector: (state: { showConfirm: typeof mockShowConfirm }) => unknown) => 
+        selector({ showConfirm: mockShowConfirm })
+    );
   });
 
   describe('加载状态', () => {
@@ -240,7 +249,7 @@ describe('ExecutionHistory', () => {
   });
 
   describe('删除报告', () => {
-    it('点击删除按钮删除报告', async () => {
+    it('点击删除按钮时显示确认对话框', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
 
       render(<ExecutionHistory />);
@@ -250,6 +259,36 @@ describe('ExecutionHistory', () => {
       });
 
       // 找到删除按钮（垃圾桶图标按钮）
+      const deleteButtons = screen.getAllByRole('button').filter(btn => 
+        btn.getAttribute('title') === '删除'
+      );
+
+      fireEvent.click(deleteButtons[0]);
+
+      // 应该调用 showConfirm 显示确认对话框
+      expect(mockShowConfirm).toHaveBeenCalled();
+      expect(mockShowConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: '删除报告',
+          confirmText: '删除',
+        })
+      );
+    });
+
+    it('确认删除后调用 deleteReport', async () => {
+      (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+
+      // 模拟 showConfirm 在调用时执行 onConfirm
+      mockShowConfirm.mockImplementation((config: { onConfirm: () => void }) => {
+        config.onConfirm();
+      });
+
+      render(<ExecutionHistory />);
+
+      await waitFor(() => {
+        expect(screen.getByText('测试流程1')).toBeDefined();
+      });
+
       const deleteButtons = screen.getAllByRole('button').filter(btn => 
         btn.getAttribute('title') === '删除'
       );
@@ -283,9 +322,8 @@ describe('ExecutionHistory', () => {
   });
 
   describe('清空历史', () => {
-    it('点击清空按钮并确认后清空所有历史', async () => {
+    it('点击清空按钮时显示确认对话框', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
-      mockConfirm.mockReturnValue(true);
 
       render(<ExecutionHistory />);
 
@@ -297,15 +335,23 @@ describe('ExecutionHistory', () => {
       const clearButton = screen.getByText('清空');
       fireEvent.click(clearButton);
 
-      await waitFor(() => {
-        expect(mockConfirm).toHaveBeenCalled();
-        expect(deleteReport).toHaveBeenCalledTimes(2);
-      });
+      // 应该调用 showConfirm 显示确认对话框
+      expect(mockShowConfirm).toHaveBeenCalled();
+      expect(mockShowConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: '清空执行历史',
+          confirmText: '清空',
+        })
+      );
     });
 
-    it('取消确认时不执行清空', async () => {
+    it('确认清空后删除所有报告', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
-      mockConfirm.mockReturnValue(false);
+
+      // 模拟 showConfirm 在调用时执行 onConfirm
+      mockShowConfirm.mockImplementation((config: { onConfirm: () => void }) => {
+        config.onConfirm();
+      });
 
       render(<ExecutionHistory />);
 
@@ -316,8 +362,9 @@ describe('ExecutionHistory', () => {
       const clearButton = screen.getByText('清空');
       fireEvent.click(clearButton);
 
-      expect(mockConfirm).toHaveBeenCalled();
-      expect(deleteReport).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(deleteReport).toHaveBeenCalledTimes(2);
+      });
     });
   });
 

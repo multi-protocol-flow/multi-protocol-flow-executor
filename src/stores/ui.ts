@@ -11,6 +11,18 @@ export type ConfigPanelMode = 'node' | 'settings';
 /** 底部面板 Tab 类型 */
 export type BottomPanelTab = 'history' | 'console';
 
+/** 确认对话框配置 */
+export interface ConfirmDialogConfig {
+  /** 对话框标题 */
+  title: string;
+  /** 对话框描述 */
+  description?: string;
+  /** 确认按钮文本 */
+  confirmText?: string;
+  /** 确认回调 */
+  onConfirm: () => void | Promise<void>;
+}
+
 interface UIState {
   // ===== 面板状态 =====
   /** 流程列表面板是否展开 */
@@ -35,6 +47,12 @@ interface UIState {
   showSettingsDialog: boolean;
   /** 右侧配置面板模式（节点配置/全局设置） */
   configPanelMode: ConfigPanelMode;
+
+  // ===== 通用确认对话框状态 =====
+  /** 是否显示通用确认对话框 */
+  showConfirmDialog: boolean;
+  /** 确认对话框配置 */
+  confirmDialogConfig: ConfirmDialogConfig | null;
   // ===== 其他 UI 状态 =====
   /** 侧边栏宽度（像素） */
   sidebarWidth: number;
@@ -76,6 +94,12 @@ interface UIState {
   closeSettingsDialog: () => void;
   /** 设置右侧面板模式 */
   setConfigPanelMode: (mode: ConfigPanelMode) => void;
+
+  // ===== 通用确认对话框 Actions =====
+  /** 显示确认对话框 */
+  showConfirm: (config: ConfirmDialogConfig) => void;
+  /** 关闭确认对话框 */
+  hideConfirm: () => void;
   // ===== 布局 Actions =====
   /** 设置侧边栏宽度 */
   setSidebarWidth: (width: number) => void;
@@ -113,6 +137,9 @@ const initialState = {
   pendingDeleteFlowUuid: null,
   showSettingsDialog: false,
   configPanelMode: 'node' as ConfigPanelMode,
+  // 通用确认对话框状态
+  showConfirmDialog: false,
+  confirmDialogConfig: null,
   sidebarWidth: 280,
   configPanelWidth: 320,
   bottomPanelHeight: 208,
@@ -169,6 +196,19 @@ export const useUIStore = create<UIState>((set) => ({
   openSettingsDialog: () => set({ showSettingsDialog: true, configPanelMode: 'settings', isConfigPanelOpen: true }),
 
   closeSettingsDialog: () => set({ showSettingsDialog: false, configPanelMode: 'node' }),
+
+  // ===== 通用确认对话框 Actions =====
+  showConfirm: (config: ConfirmDialogConfig) =>
+    set({
+      showConfirmDialog: true,
+      confirmDialogConfig: config,
+    }),
+
+  hideConfirm: () =>
+    set({
+      showConfirmDialog: false,
+      confirmDialogConfig: null,
+    }),
 
   setConfigPanelMode: (configPanelMode) => set({ configPanelMode }),
   // ===== 布局 Actions =====

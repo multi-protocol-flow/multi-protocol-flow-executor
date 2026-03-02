@@ -11,6 +11,7 @@ import { loadReport, listReports, deleteReport } from '@/services/storage/report
 import type { ReportMetadata } from '@/types/ipc';
 import { useExecutionStore } from '@/stores/execution';
 import { useSettingsStore } from '@/stores/settings';
+import { useUIStore } from '@/stores';
 import { cn } from '@/lib/utils';
 
 /** 格式化时间戳为可读字符串 */
@@ -55,6 +56,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
   const [loadingReportUuid, setLoadingReportUuid] = useState<string | null>(null);
   const setReport = useExecutionStore((state) => state.setReport);
   const reportDir = useSettingsStore((state) => state.reportDir);
+  const showConfirm = useUIStore((state) => state.showConfirm);
 
   // 加载历史列表
   useEffect(() => {
@@ -95,46 +97,58 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
     }
   }, [setReport, onSelectReport, reportDir]);
 
-  // 删除单个报告
-  const handleDelete = useCallback(async (uuid: string) => {
-    try {
-      await deleteReport(uuid, reportDir);
-      setHistory((prev) => prev.filter((item) => item.uuid !== uuid));
-      toast.success('报告已删除');
-    } catch (error) {
-      console.error('删除报告失败:', error);
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      if (errorMessage.includes('not found') || errorMessage.includes('不存在')) {
-        toast.error('报告文件已删除', {
-          description: '该报告文件可能已被手动删除',
-        });
-      } else if (errorMessage.includes('permission') || errorMessage.includes('权限')) {
-        toast.error('删除报告失败', {
-          description: '没有足够的权限删除该文件',
-        });
-      } else {
-        toast.error('删除报告失败', {
-          description: errorMessage,
-        });
-      }
-    }
-  }, [reportDir]);
+  // 删除单个报告（带确认）
+  const handleDelete = useCallback((uuid: string) => {
+    showConfirm({
+      title: '删除报告',
+      description: '确定要删除此执行报告吗？删除后无法恢复。',
+      confirmText: '删除',
+      onConfirm: async () => {
+        try {
+          await deleteReport(uuid, reportDir);
+          setHistory((prev) => prev.filter((item) => item.uuid !== uuid));
+          toast.success('报告已删除');
+        } catch (error) {
+          console.error('删除报告失败:', error);
+          const errorMessage = error instanceof Error ? error.message : '未知错误';
+          if (errorMessage.includes('not found') || errorMessage.includes('不存在')) {
+            toast.error('报告文件已删除', {
+              description: '该报告文件可能已被手动删除',
+            });
+          } else if (errorMessage.includes('permission') || errorMessage.includes('权限')) {
+            toast.error('删除报告失败', {
+              description: '没有足够的权限删除该文件',
+            });
+          } else {
+            toast.error('删除报告失败', {
+              description: errorMessage,
+            });
+          }
+        }
+      },
+    });
+  }, [reportDir, showConfirm]);
 
-  // 清空所有历史
-  const handleClearHistory = useCallback(async () => {
-    if (window.confirm('确定要清空所有执行历史吗？')) {
-      try {
-        await Promise.all(history.map((item) => deleteReport(item.uuid, reportDir)));
-        setHistory([]);
-        toast.success('执行历史已清空');
-      } catch (error) {
-        console.error('清空执行历史失败:', error);
-        toast.error('清空执行历史失败', {
-          description: error instanceof Error ? error.message : '未知错误',
-        });
-      }
-    }
-  }, [history, reportDir]);
+  // 清空所有历史（带确认）
+  const handleClearHistory = useCallback(() => {
+    showConfirm({
+      title: '清空执行历史',
+      description: `确定要清空所有执行历史吗？共 ${history.length} 条记录，删除后无法恢复。`,
+      confirmText: '清空',
+      onConfirm: async () => {
+        try {
+          await Promise.all(history.map((item) => deleteReport(item.uuid, reportDir)));
+          setHistory([]);
+          toast.success('执行历史已清空');
+        } catch (error) {
+          console.error('清空执行历史失败:', error);
+          toast.error('清空执行历史失败', {
+            description: error instanceof Error ? error.message : '未知错误',
+          });
+        }
+      },
+    });
+  }, [history, reportDir, showConfirm]);
 
   // 加载中状态（初次加载）
   if (loading && history.length === 0) {

@@ -3,7 +3,7 @@
  * 根据节点类型显示不同的配置表单
  */
 import { useState, useRef, useEffect } from 'react';
-import { useFlowStore } from '@/stores';
+import { useFlowStore, useUIStore } from '@/stores';
 import { EntryConfig } from './EntryConfig';
 import { HttpConfig } from './HttpConfig';
 import { ConditionalConfig } from './ConditionalConfig';
@@ -38,6 +38,7 @@ const NODE_TYPE_CONFIG = {
 
 export function NodeConfigPanel() {
   const { getSelectedNode, updateNode, removeNode, selectNode } = useFlowStore();
+  const { showConfirm } = useUIStore();
   const selectedNode = getSelectedNode();
   
   // 节点名称编辑状态
@@ -77,12 +78,16 @@ export function NodeConfigPanel() {
   /**
    * 处理删除节点
    */
-  /**
-   * 处理删除节点
-   */
   const handleDelete = () => {
-    removeNode(selectedNode.uuid);
-    selectNode(null);
+    showConfirm({
+      title: '删除节点',
+      description: `确定要删除节点「${selectedNode.name}」吗？`,
+      confirmText: '删除',
+      onConfirm: () => {
+        removeNode(selectedNode.uuid);
+        selectNode(null);
+      },
+    });
   };
 
   /**
