@@ -2,6 +2,7 @@
  * 画布组件导出
  */
 export { FlowCanvas } from './FlowCanvas';
+export { CanvasToolbar } from './CanvasToolbar';
 export { EntryNode, HttpNode, ConditionalNode } from './nodes';
 export type { EntryNodeData, HttpNodeData, ConditionalNodeData } from './nodes';
 export { CustomEdge } from './edges/CustomEdge';

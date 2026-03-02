@@ -22,6 +22,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { EntryNode, HttpNode, ConditionalNode } from './nodes';
+import { CanvasToolbar } from './CanvasToolbar';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore } from '@/stores';
 import {
@@ -108,7 +109,7 @@ function FlowCanvasInner() {
     pendingAddNodeType,
     clearPendingAddNodeType,
   } = useFlowStore();
-  const { setConfigPanelOpen, setConfigPanelMode } = useUIStore();
+  const { setConfigPanelOpen, setConfigPanelMode, showConfirm } = useUIStore();
   const { screenToFlowPosition, setCenter, getViewport } = useReactFlow();
   
   // 画布容器引用（用于计算视口中心）
@@ -249,17 +250,29 @@ function FlowCanvasInner() {
         onNodesChange(otherChanges);
       }
 
-      // 处理删除变化 - 入口节点不可删除
+      // 处理删除变化 - 入口节点不可删除，需要确认
       if (removeChanges.length > 0 && flow) {
-        for (const change of removeChanges) {
-          const node = flow.nodes.find((n) => n.uuid === change.id);
-          if (node && node.type !== 'entry') {
-            removeNode(change.id);
-          }
+        // 过滤掉入口节点，获取可删除的节点
+        const deletableNodes = removeChanges
+          .map((change) => flow.nodes.find((n) => n.uuid === change.id))
+          .filter((node): node is NonNullable<typeof node> => node !== undefined && node.type !== 'entry');
+
+        if (deletableNodes.length > 0) {
+          const nodeNames = deletableNodes.map((n) => n.name).join('、');
+          showConfirm({
+            title: '删除节点',
+            description: `确定要删除节点「${nodeNames}」吗？`,
+            confirmText: '删除',
+            onConfirm: () => {
+              deletableNodes.forEach((node) => {
+                removeNode(node.uuid);
+              });
+            },
+          });
         }
       }
     },
-    [onNodesChange, flow, removeNode]
+    [onNodesChange, flow, removeNode, showConfirm]
   );
 
   // 处理边变化
@@ -443,6 +456,9 @@ function FlowCanvasInner() {
           cursor: url("${GRABBING_CURSOR_SVG}") 8 8, grabbing !important;
         }
       `}</style>
+
+      {/* 画布悬浮工具栏 */}
+      <CanvasToolbar />
       
       <ReactFlow
         nodes={nodes}

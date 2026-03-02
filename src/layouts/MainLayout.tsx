@@ -7,8 +7,9 @@ import { Toaster } from '@/components/ui/sonner';
 import { FlowListPanel, NodeLibrary } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
 import { NodeConfigPanel, SettingsPanel } from '@/components/panels';
-import { ExecuteButton, ExecutionReport, ExecutionHistory, ConsolePanel } from '@/components/execution';
+import { ExecutionReport, ExecutionHistory, ConsolePanel } from '@/components/execution';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
+import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 import { useUIStore, useFlowStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, GripHorizontal, Settings } from 'lucide-react';
@@ -19,26 +20,65 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useState, useCallback, useRef, useEffect } from 'react';
 
+/**
+ * 确认对话框处理器组件
+ * 从 store 读取状态并渲染 ConfirmDialog
+ */
+function ConfirmDialogHandler() {
+  const showConfirmDialog = useUIStore((state) => state.showConfirmDialog);
+  const confirmDialogConfig = useUIStore((state) => state.confirmDialogConfig);
+  const hideConfirm = useUIStore((state) => state.hideConfirm);
+
+  if (!showConfirmDialog || !confirmDialogConfig) {
+    return null;
+  }
+
+  return (
+    <ConfirmDialog
+      open={showConfirmDialog}
+      title={confirmDialogConfig.title}
+      description={confirmDialogConfig.description}
+      confirmText={confirmDialogConfig.confirmText}
+      onConfirm={() => {
+        confirmDialogConfig.onConfirm();
+        hideConfirm();
+      }}
+      onCancel={hideConfirm}
+    />
+  );
+}
+
 export function MainLayout() {
-  const {
-    isFlowListPanelOpen,
-    isHistoryPanelOpen,
-    isConfigPanelOpen,
-    configPanelMode,
-    bottomPanelTab,
-    bottomPanelHeight,
-    toggleFlowListPanel,
-    toggleHistoryPanel,
-    toggleConfigPanel,
-    setBottomPanelTab,
-    setBottomPanelHeight,
-    openSettingsDialog,
-  } = useUIStore();
+  const isFlowListPanelOpen = useUIStore((state) => state.isFlowListPanelOpen);
+  const isHistoryPanelOpen = useUIStore((state) => state.isHistoryPanelOpen);
+  const isConfigPanelOpen = useUIStore((state) => state.isConfigPanelOpen);
+  const configPanelMode = useUIStore((state) => state.configPanelMode);
+  const bottomPanelTab = useUIStore((state) => state.bottomPanelTab);
+  const bottomPanelHeight = useUIStore((state) => state.bottomPanelHeight);
+  const toggleFlowListPanel = useUIStore((state) => state.toggleFlowListPanel);
+  const toggleHistoryPanel = useUIStore((state) => state.toggleHistoryPanel);
+  const toggleConfigPanel = useUIStore((state) => state.toggleConfigPanel);
+  const setBottomPanelTab = useUIStore((state) => state.setBottomPanelTab);
+  const setBottomPanelHeight = useUIStore((state) => state.setBottomPanelHeight);
+  const openSettingsDialog = useUIStore((state) => state.openSettingsDialog);
+  const showConfirm = useUIStore((state) => state.showConfirm);
 
   const { isDirty, flow } = useFlowStore();
 
   // Console store values
   const { filter, clearLogs, setFilter, setSearchKeyword, getUniqueNodes } = useConsoleStore();
+
+  // 清空控制台（带确认）
+  const handleClearConsole = useCallback(() => {
+    showConfirm({
+      title: '清空控制台',
+      description: '确定要清空所有日志吗？清空后无法恢复。',
+      confirmText: '清空',
+      onConfirm: () => {
+        clearLogs();
+      },
+    });
+  }, [clearLogs, showConfirm]);
 
   // 拖拽调整高度相关状态
   const [isDragging, setIsDragging] = useState(false);
@@ -117,8 +157,6 @@ export function MainLayout() {
 
         {/* 右侧：操作按钮 */}
         <div className="flex items-center gap-2">
-          {/* 执行按钮 */}
-          <ExecuteButton />
 
           {/* 设置按钮 */}
           <Button
@@ -270,7 +308,7 @@ export function MainLayout() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={clearLogs}
+                        onClick={handleClearConsole}
                         className="h-7 px-2 text-xs text-slate-500 hover:text-slate-700"
                         title="清空日志"
                       >
@@ -352,8 +390,9 @@ export function MainLayout() {
 
       {/* ===== Toast 提示 ===== */}
       <Toaster />
-      {/* ===== Toast 提示 ===== */}
-      <Toaster />
+
+      {/* ===== 通用确认对话框 ===== */}
+      <ConfirmDialogHandler />
     </div>
   );
 }
