@@ -110,28 +110,35 @@ export async function executeFlowWithChannel(
 
 /**
  * 保存流程执行报告
+ * @param report 流程执行报告
+ * @param reportsDir 报告存储目录
  */
-export async function saveFlowReport(report: FlowExecutionReport): Promise<void> {
-  return await invoke<void>('save_flow_report', { report });
+export async function saveFlowReport(report: FlowExecutionReport, reportsDir: string): Promise<void> {
+  return await invoke<void>('save_flow_report', { report, reportsDir });
 }
 
 /**
  * 加载流程执行报告
+ * @param uuid 报告 UUID
+ * @param reportsDir 报告存储目录
  */
-export async function loadFlowReport(uuid: string): Promise<FlowExecutionReport> {
-  return await invoke<FlowExecutionReport>('load_flow_report', { uuid });
+export async function loadFlowReport(uuid: string, reportsDir: string): Promise<FlowExecutionReport> {
+  return await invoke<FlowExecutionReport>('load_flow_report', { uuid, reportsDir });
 }
 
 /**
  * 列出所有报告元数据
+ * @param reportsDir 报告存储目录
  */
-export async function listFlowReports(): Promise<ReportMetadata[]> {
-  return await invoke<ReportMetadata[]>('list_flow_reports');
+export async function listFlowReports(reportsDir: string): Promise<ReportMetadata[]> {
+  return await invoke<ReportMetadata[]>('list_flow_reports', { reportsDir });
 }
 
 /**
  * 删除流程执行报告
+ * @param uuid 报告 UUID
+ * @param reportsDir 报告存储目录
  */
-export async function deleteFlowReport(uuid: string): Promise<void> {
-  return await invoke<void>('delete_flow_report', { uuid });
+export async function deleteFlowReport(uuid: string, reportsDir: string): Promise<void> {
+  return await invoke<void>('delete_flow_report', { uuid, reportsDir });
 }
