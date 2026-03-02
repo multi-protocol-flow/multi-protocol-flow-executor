@@ -2,6 +2,8 @@
  * MainLayout - 主布局组件
  * 整合所有面板：左侧流程列表/节点库、中间画布、右侧配置、底部历史
  */
+import { Toaster } from '@/components/ui/sonner';
+
 import { FlowListPanel, NodeLibrary } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
 import { NodeConfigPanel } from '@/components/panels';
@@ -335,6 +337,9 @@ export function MainLayout() {
 
       {/* ===== 新建流程对话框 ===== */}
       <NewFlowDialog />
+
+      {/* ===== Toast 提示 ===== */}
+      <Toaster />
     </div>
   );
 }

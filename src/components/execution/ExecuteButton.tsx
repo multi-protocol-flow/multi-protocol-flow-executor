@@ -7,8 +7,7 @@ import { Play, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFlowStore, useUIStore, useExecutionStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
-import { executeFlowWithChannel } from '@/services/tauri';
-import { saveExecutionHistory } from '@/services/storage/historyStorage';
+import { executeFlowWithChannel, saveFlowReport } from '@/services/tauri';
 import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
 
@@ -41,15 +40,13 @@ export function ExecuteButton() {
       if (result.success && result.flow_report) {
         setReport(result.flow_report);
 
-        // 保存执行历史
-        saveExecutionHistory({
-          uuid: crypto.randomUUID(),
-          flow_uuid: flow.uuid,
-          flow_name: flow.name,
-          status: result.flow_report.status === 'success' ? 'success' : 'failed',
-          duration_ms: result.flow_report.duration_ms,
-          timestamp: Date.now(),
-        });
+        // 显式保存报告到后端（分离关注点：UI 显示和数据持久化分开）
+        try {
+          await saveFlowReport(result.flow_report);
+        } catch (saveError) {
+          // 保存失败不影响 UI 显示，只记录日志
+          console.error('保存报告失败:', saveError);
+        }
       } else {
         setError(result.error || '执行失败');
       }

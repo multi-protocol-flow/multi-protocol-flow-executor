@@ -259,6 +259,7 @@ describe('ErrorDetail 类型序列化测试', () => {
 describe('FlowExecutionReport 类型序列化测试', () => {
   it('应该正确序列化 FlowExecutionReport', () => {
     const report: FlowExecutionReport = {
+      uuid: 'report-001',
       flow_uuid: 'flow-001',
       flow_name: '测试流程',
       start_time: 1000,
@@ -324,6 +325,7 @@ describe('FlowExecutionReport 类型序列化测试', () => {
 
   it('应该正确处理失败的执行报告', () => {
     const report: FlowExecutionReport = {
+      uuid: 'report-002',
       flow_uuid: 'flow-002',
       flow_name: '失败流程',
       start_time: 1000,

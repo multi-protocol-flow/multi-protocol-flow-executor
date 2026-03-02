@@ -22,6 +22,7 @@ vi.mock('@/components/ui/scroll-area', () => ({
 describe('ExecutionReport', () => {
   const mockReset = vi.fn();
   const mockReport: FlowExecutionReport = {
+    uuid: 'report-001',
     flow_uuid: 'flow-001',
     flow_name: '测试流程',
     start_time: Date.now() - 1000,

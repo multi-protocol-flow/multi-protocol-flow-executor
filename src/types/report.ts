@@ -97,9 +97,10 @@ export interface FlowStatistics {
  * 流程执行报告
  */
 export interface FlowExecutionReport {
+  /** 报告唯一 ID（新增） */
+  uuid: string;
   /** 流程 UUID */
   flow_uuid: string;
-  /** 流程名称 */
   flow_name: string;
   /** 开始时间（毫秒时间戳） */
   start_time: number;

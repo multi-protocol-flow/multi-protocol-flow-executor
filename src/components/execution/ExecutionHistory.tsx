@@ -1,16 +1,15 @@
 /**
  * 执行历史列表组件
- * 显示历史执行记录，支持选择和重新执行
+ * 显示历史执行记录，支持选择查看报告
  */
-import { useState, useCallback } from 'react';
-import { CheckCircle2, XCircle, RotateCcw, Clock, History } from 'lucide-react';
+import { toast } from 'sonner';
+import { useState, useEffect, useCallback } from 'react';
+import { CheckCircle2, XCircle, RotateCcw, Clock, History, Loader2, Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import {
-  listExecutionHistory,
-  clearExecutionHistory,
-  type ExecutionHistoryItem,
-} from '@/services/storage/historyStorage';
+import { loadReport, listReports, deleteReport } from '@/services/storage/reportStorage';
+import type { ReportMetadata } from '@/types/ipc';
+import { useExecutionStore } from '@/stores/execution';
 import { cn } from '@/lib/utils';
 
 /** 格式化时间戳为可读字符串 */
@@ -43,22 +42,106 @@ function formatDuration(ms: number): string {
 }
 
 interface ExecutionHistoryProps {
-  /** 选择流程回调 */
-  onSelectFlow?: (flowUuid: string) => void;
+  /** 选择报告回调（点击历史项时触发） */
+  onSelectReport?: (reportUuid: string) => void;
   /** 重新执行回调 */
-  onRerun?: (historyItem: ExecutionHistoryItem) => void;
+  onRerun?: (report: ReportMetadata) => void;
 }
 
-export function ExecutionHistory({ onSelectFlow, onRerun }: ExecutionHistoryProps) {
-  const [history, setHistory] = useState(() => listExecutionHistory());
+export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryProps) {
+  const [history, setHistory] = useState<ReportMetadata[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingReportUuid, setLoadingReportUuid] = useState<string | null>(null);
+  const setReport = useExecutionStore((state) => state.setReport);
 
-  const handleClearHistory = useCallback(() => {
-    if (window.confirm('确定要清空所有执行历史吗？')) {
-      clearExecutionHistory();
-      setHistory([]);
+  // 加载历史列表
+  useEffect(() => {
+    const loadHistory = async () => {
+      setLoading(true);
+      try {
+        const reports = await listReports();
+        setHistory(reports);
+      } catch (error) {
+        console.error('加载历史列表失败:', error);
+        toast.error('加载历史列表失败', {
+          description: error instanceof Error ? error.message : '未知错误',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadHistory();
+  }, []);
+
+  // 点击加载完整报告
+  const handleSelectReport = useCallback(async (reportUuid: string) => {
+    setLoadingReportUuid(reportUuid);
+    try {
+      const report = await loadReport(reportUuid);
+      setReport(report);
+      onSelectReport?.(reportUuid);
+    } catch (error) {
+      console.error('加载报告失败:', error);
+      toast.error('加载报告失败', {
+        description: error instanceof Error ? error.message : '未知错误',
+      });
+    } finally {
+      setLoadingReportUuid(null);
+    }
+  }, [setReport, onSelectReport]);
+
+  // 删除单个报告
+  const handleDelete = useCallback(async (uuid: string) => {
+    try {
+      await deleteReport(uuid);
+      setHistory((prev) => prev.filter((item) => item.uuid !== uuid));
+      toast.success('报告已删除');
+    } catch (error) {
+      console.error('删除报告失败:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      if (errorMessage.includes('not found') || errorMessage.includes('不存在')) {
+        toast.error('报告文件已删除', {
+          description: '该报告文件可能已被手动删除',
+        });
+      } else if (errorMessage.includes('permission') || errorMessage.includes('权限')) {
+        toast.error('删除报告失败', {
+          description: '没有足够的权限删除该文件',
+        });
+      } else {
+        toast.error('删除报告失败', {
+          description: errorMessage,
+        });
+      }
     }
   }, []);
 
+  // 清空所有历史
+  const handleClearHistory = useCallback(async () => {
+    if (window.confirm('确定要清空所有执行历史吗？')) {
+      try {
+        await Promise.all(history.map((item) => deleteReport(item.uuid)));
+        setHistory([]);
+        toast.success('执行历史已清空');
+      } catch (error) {
+        console.error('清空执行历史失败:', error);
+        toast.error('清空执行历史失败', {
+          description: error instanceof Error ? error.message : '未知错误',
+        });
+      }
+    }
+  }, [history]);
+
+  // 加载中状态（初次加载）
+  if (loading && history.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-8 text-slate-400">
+        <Loader2 className="w-10 h-10 mb-3 animate-spin" />
+        <p className="text-sm">加载中...</p>
+      </div>
+    );
+  }
+
+  // 空状态
   if (history.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-8 text-slate-400">
@@ -91,6 +174,7 @@ export function ExecutionHistory({ onSelectFlow, onRerun }: ExecutionHistoryProp
         <div className="space-y-1 p-2">
           {history.map((item) => {
             const isSuccess = item.status === 'success';
+            const isLoading = loadingReportUuid === item.uuid;
 
             return (
               <div
@@ -100,10 +184,10 @@ export function ExecutionHistory({ onSelectFlow, onRerun }: ExecutionHistoryProp
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    onSelectFlow?.(item.flow_uuid);
+                    handleSelectReport(item.uuid);
                   }
                 }}
-                onClick={() => onSelectFlow?.(item.flow_uuid)}
+                onClick={() => handleSelectReport(item.uuid)}
                 className={cn(
                   'group flex items-center justify-between p-2.5 rounded-lg w-full',
                   'border border-transparent hover:border-slate-200',
@@ -141,22 +225,47 @@ export function ExecutionHistory({ onSelectFlow, onRerun }: ExecutionHistoryProp
                   </div>
                 </div>
 
-                {/* 重新执行按钮 */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRerun?.(item);
-                  }}
-                  className={cn(
-                    'shrink-0 w-8 h-8 opacity-0 group-hover:opacity-100',
-                    'transition-opacity duration-150'
-                  )}
-                  title="重新执行"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </Button>
+                {/* 操作按钮 */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {/* 删除按钮 */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(item.uuid);
+                    }}
+                    className={cn(
+                      'w-8 h-8 opacity-0 group-hover:opacity-100',
+                      'transition-opacity duration-150 text-slate-400 hover:text-red-500'
+                    )}
+                    title="删除"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+
+                  {/* 重新执行按钮 */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRerun?.(item);
+                    }}
+                    disabled={isLoading}
+                    className={cn(
+                      'w-8 h-8 opacity-0 group-hover:opacity-100',
+                      'transition-opacity duration-150'
+                    )}
+                    title="重新执行"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    )}
+                  </Button>
+                </div>
               </div>
             );
           })}

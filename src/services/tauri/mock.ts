@@ -89,6 +89,7 @@ export async function executeFlow(
 
   // 生成模拟的执行报告
   const flowReport: FlowExecutionReport = {
+    uuid: `report-${Date.now()}`,
     flow_uuid: flow.uuid,
     flow_name: flow.name,
     start_time: startTime,
@@ -222,6 +223,7 @@ export async function executeFlowWithChannel(
 
     // 生成模拟的执行报告（单个 Entry 节点无连接是正常终止）
     const flowReport: FlowExecutionReport = {
+      uuid: `report-${Date.now()}`,
       flow_uuid: flow.uuid,
       flow_name: flow.name,
       start_time: startTime,
@@ -333,6 +335,7 @@ export async function executeFlowWithChannel(
 
   // 生成模拟的执行报告
   const flowReport: FlowExecutionReport = {
+    uuid: `report-${Date.now()}`,
     flow_uuid: flow.uuid,
     flow_name: flow.name,
     start_time: startTime,

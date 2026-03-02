@@ -145,3 +145,26 @@ export interface DeleteNodeCommandOutput {
   /** 错误信息（可选） */
   error?: string;
 }
+
+// ============================================================================
+// 报告元数据
+// ============================================================================
+
+/**
+ * 报告元数据（用于历史列表）
+ */
+export interface ReportMetadata {
+  /** 报告唯一 ID */
+  uuid: string;
+  /** 关联的流程 ID */
+  flow_uuid: string;
+  /** 流程名称 */
+  flow_name: string;
+  /** 执行状态 */
+  status: 'success' | 'failed';
+  /** 执行开始时间（毫秒时间戳） */
+  timestamp: number;
+  /** 执行时长（毫秒） */
+  duration_ms: number;
+}
+

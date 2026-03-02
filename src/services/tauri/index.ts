@@ -5,6 +5,9 @@
 
 import type { Flow } from '@/types/flow';
 import type { ExecuteFlowCommandOutput } from '@/types/ipc';
+import { invoke } from '@tauri-apps/api/core';
+import type { FlowExecutionReport } from '@/types/report';
+import type { ReportMetadata } from '@/types/ipc';
 
 // 检测是否在 Tauri 环境中运行
 function isTauriEnv(): boolean {
@@ -99,4 +102,36 @@ export async function executeFlowWithChannel(
     const { executeFlowWithChannel: executeFlowWithChannelImpl } = await import('./mock');
     return executeFlowWithChannelImpl(flow, onLog, variables);
   }
+}
+
+// ============================================================================
+// 报告存储命令
+// ============================================================================
+
+/**
+ * 保存流程执行报告
+ */
+export async function saveFlowReport(report: FlowExecutionReport): Promise<void> {
+  return await invoke<void>('save_flow_report', { report });
+}
+
+/**
+ * 加载流程执行报告
+ */
+export async function loadFlowReport(uuid: string): Promise<FlowExecutionReport> {
+  return await invoke<FlowExecutionReport>('load_flow_report', { uuid });
+}
+
+/**
+ * 列出所有报告元数据
+ */
+export async function listFlowReports(): Promise<ReportMetadata[]> {
+  return await invoke<ReportMetadata[]>('list_flow_reports');
+}
+
+/**
+ * 删除流程执行报告
+ */
+export async function deleteFlowReport(uuid: string): Promise<void> {
+  return await invoke<void>('delete_flow_report', { uuid });
 }
