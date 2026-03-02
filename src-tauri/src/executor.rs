@@ -14,6 +14,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::ipc::Channel;
 use tokio::sync::Mutex;
+use uuid::Uuid;
+
 
 /// 执行结果
 #[derive(Debug, Clone)]
@@ -572,6 +574,7 @@ impl FlowExecutor {
                         let flow_status = crate::report::ExecutionStatus::Failed;
 
                         let flow_report = crate::report::FlowExecutionReport {
+                            uuid: Uuid::new_v4().to_string(),
                             flow_uuid: flow.uuid.clone(),
                             flow_name: flow.name.clone(),
                             start_time: end_time_ms - start_time.elapsed().as_millis() as u64,
@@ -643,6 +646,7 @@ impl FlowExecutor {
         };
 
         let flow_report = crate::report::FlowExecutionReport {
+            uuid: Uuid::new_v4().to_string(),
             flow_uuid: flow.uuid.clone(),
             flow_name: flow.name.clone(),
             start_time: end_time - start_time_ms,

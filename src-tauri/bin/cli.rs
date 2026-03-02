@@ -7,6 +7,7 @@ use std::time::Instant;
 
 // 导入类型和函数
 use app_lib::{load_flow, report, ExecutionResult, FlowExecutor};
+use app_lib::save_report;
 use report::{NodeExecutionReport, FlowExecutionReport};
 
 /// CLI 输出结果结构（与期望的 JSON 格式匹配）
@@ -132,6 +133,18 @@ async fn run() -> Result<(), String> {
         serde_json::to_string_pretty(&cli_output).map_err(|e| format!("序列化输出失败: {}", e))?;
 
     println!("{}", json_output);
+
+    // 保存执行报告到 reports 目录
+    if let Some(ref flow_report) = cli_output.flow_report {
+        let reports_dir = std::env::current_dir()
+            .map_err(|e| format!("获取当前目录失败: {}", e))?
+            .join("reports");
+        
+        save_report(flow_report, &reports_dir)
+            .map_err(|e| format!("保存报告失败: {}", e))?;
+        
+        println!("报告已保存到: reports/{}.json", flow_report.uuid);
+    }
 
     // 如果执行失败，返回错误
     if !cli_output.success {

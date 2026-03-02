@@ -11,6 +11,17 @@ pub enum ExecutionStatus {
     /// 跳过执行
     Skipped,
 }
+impl std::fmt::Display for ExecutionStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExecutionStatus::Success => write!(f, "success"),
+            ExecutionStatus::Failed => write!(f, "failed"),
+            ExecutionStatus::Skipped => write!(f, "skipped"),
+        }
+    }
+}
+
+
 
 /// 节点执行报告
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -42,9 +53,29 @@ pub struct NodeExecutionReport {
     pub error: Option<crate::error::ErrorDetail>,
 }
 
+/// 报告元数据（用于历史列表）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ReportMetadata {
+    /// 报告唯一 ID
+    pub uuid: String,
+    /// 关联的流程 ID
+    pub flow_uuid: String,
+    /// 流程名称
+    pub flow_name: String,
+    /// 执行状态 ("success" | "failed")
+    pub status: String,
+    /// 执行开始时间（毫秒）
+    pub timestamp: u64,
+    /// 执行时长（毫秒）
+    pub duration_ms: u64,
+}
+
+
 /// 流程执行报告
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FlowExecutionReport {
+    /// 报告唯一 ID（新增）
+    pub uuid: String,
     /// 流程 UUID
     pub flow_uuid: String,
     /// 流程名称

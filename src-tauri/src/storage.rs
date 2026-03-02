@@ -1,9 +1,11 @@
 // 存储模块 - JSON 文件读写实现
 
 use crate::flow::Flow;
+use crate::report::{FlowExecutionReport, ReportMetadata};
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use tempfile::NamedTempFile;
 
 /// 获取用户数据目录路径
 ///
@@ -136,4 +138,139 @@ pub fn load_flow(path: &str) -> Result<Flow, String> {
         serde_json::from_str(&content).map_err(|e| format!("反序列化 Flow 失败: {}", e))?;
 
     Ok(flow)
+}
+
+// ============================================================================
+// 报告存储函数
+// ============================================================================
+
+/// 获取 reports 子目录路径（仅 Tauri 模式使用）
+pub fn get_reports_dir() -> Result<PathBuf, String> {
+    Ok(get_data_dir()?.join("reports"))
+}
+
+/// 保存报告到指定目录
+/// 
+/// # 参数
+/// - `report`: 报告对象
+/// - `reports_dir`: 存储目录路径（由调用方决定）
+pub fn save_report(report: &FlowExecutionReport, reports_dir: &Path) -> Result<(), String> {
+    // 确保目录存在
+    fs::create_dir_all(reports_dir)
+        .map_err(|e| format!("创建报告目录失败: {}", e))?;
+    
+    // 构建文件路径
+    let file_path = reports_dir.join(format!("{}.json", report.uuid));
+    
+    // 序列化为 JSON
+    let json_string = serde_json::to_string_pretty(report)
+        .map_err(|e| format!("序列化报告失败: {}", e))?;
+    
+    // 使用原子写入：先写临时文件，再重命名
+    let mut temp_file = NamedTempFile::new_in(reports_dir)
+        .map_err(|e| format!("创建临时文件失败: {}", e))?;
+    
+    // 写入内容到临时文件
+    temp_file.write_all(json_string.as_bytes())
+        .map_err(|e| format!("写入临时文件失败: {}", e))?;
+    
+    // 原子重命名到最终路径
+    temp_file.persist(&file_path)
+        .map_err(|e| format!("保存报告文件失败: {}", e))?;
+    
+    Ok(())
+}
+
+/// 加载报告
+/// 
+/// # 参数
+/// - `uuid`: 报告 UUID
+/// - `reports_dir`: 存储目录路径
+pub fn load_report(uuid: &str, reports_dir: &Path) -> Result<FlowExecutionReport, String> {
+    let file_path = reports_dir.join(format!("{}.json", uuid));
+    
+    // 检查文件是否存在
+    if !file_path.try_exists().map_err(|e| format!("检查报告文件失败: {}", e))? {
+        return Err(format!("报告文件不存在: {}", uuid));
+    }
+    
+    // 读取文件内容
+    let mut file = File::open(&file_path)
+        .map_err(|e| format!("打开报告文件 {:?} 失败: {}", file_path, e))?;
+    
+    let mut content = String::new();
+    file.read_to_string(&mut content)
+        .map_err(|e| format!("读取报告文件 {:?} 失败: {}", file_path, e))?;
+    
+    // 反序列化
+    let report: FlowExecutionReport = serde_json::from_str(&content)
+        .map_err(|e| format!("解析报告文件失败: {}", e))?;
+    
+    Ok(report)
+}
+
+/// 列出报告元数据
+/// 
+/// # 参数
+/// - `reports_dir`: 存储目录路径
+pub fn list_reports(reports_dir: &Path) -> Result<Vec<ReportMetadata>, String> {
+    // 确保目录存在
+    if !reports_dir.try_exists().map_err(|e| format!("检查报告目录失败: {}", e))? {
+        return Ok(Vec::new());
+    }
+    
+    let mut reports = Vec::new();
+    
+    // 读取目录中的所有 JSON 文件
+    for entry in fs::read_dir(reports_dir)
+        .map_err(|e| format!("读取报告目录失败: {}", e))?
+    {
+        let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+        let path = entry.path();
+        
+        // 只处理 .json 文件
+        if path.extension().map(|e| e == "json").unwrap_or(false) {
+            // 读取并解析报告
+            if let Ok(mut file) = File::open(&path) {
+                let mut content = String::new();
+                if file.read_to_string(&mut content).is_ok() {
+                    if let Ok(report) = serde_json::from_str::<FlowExecutionReport>(&content) {
+                        reports.push(ReportMetadata {
+                            uuid: report.uuid,
+                            flow_uuid: report.flow_uuid,
+                            flow_name: report.flow_name,
+                            status: report.status.to_string().to_lowercase(),
+                            timestamp: report.start_time,
+                            duration_ms: report.duration_ms,
+                        });
+                    }
+                }
+            }
+        }
+    }
+    
+    // 按时间戳倒序排序
+    reports.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    
+    Ok(reports)
+}
+
+/// 删除报告
+/// 
+/// # 参数
+/// - `uuid`: 报告 UUID
+/// - `reports_dir`: 存储目录路径
+pub fn delete_report(uuid: &str, reports_dir: &Path) -> Result<(), String> {
+    let file_path = reports_dir.join(format!("{}.json", uuid));
+    
+    // 检查文件是否存在
+    if !file_path.try_exists().map_err(|e| format!("检查报告文件失败: {}", e))? {
+        return Err(format!("报告文件不存在: {}", uuid));
+    }
+    
+    // 删除文件
+    fs::remove_file(&file_path)
+        .map_err(|e| format!("删除报告文件 {:?} 失败: {}", file_path, e))?;
+    
+    Ok(())
 }

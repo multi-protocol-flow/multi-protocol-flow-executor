@@ -209,6 +209,38 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
     }
 }
 
+// ============================================================================
+// 报告存储命令
+// ============================================================================
+
+/// 保存流程执行报告
+#[tauri::command]
+pub fn save_flow_report(report: crate::report::FlowExecutionReport) -> Result<(), String> {
+    let reports_dir = crate::storage::get_reports_dir()?;
+    crate::storage::save_report(&report, &reports_dir)
+}
+
+/// 加载流程执行报告
+#[tauri::command]
+pub fn load_flow_report(uuid: String) -> Result<crate::report::FlowExecutionReport, String> {
+    let reports_dir = crate::storage::get_reports_dir()?;
+    crate::storage::load_report(&uuid, &reports_dir)
+}
+
+/// 列出所有报告元数据
+#[tauri::command]
+pub fn list_flow_reports() -> Result<Vec<crate::report::ReportMetadata>, String> {
+    let reports_dir = crate::storage::get_reports_dir()?;
+    crate::storage::list_reports(&reports_dir)
+}
+
+/// 删除流程执行报告
+#[tauri::command]
+pub fn delete_flow_report(uuid: String) -> Result<(), String> {
+    let reports_dir = crate::storage::get_reports_dir()?;
+    crate::storage::delete_report(&uuid, &reports_dir)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

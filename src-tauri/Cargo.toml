@@ -37,12 +37,12 @@ regex = "1.10"
 async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
 mime_guess = "2.0"
+tempfile = "3.0"
 
 [dev-dependencies]
 mockito = "1.0"
 assert_cmd = "2.0"
 cargo-llvm-cov = "0.6"
-tempfile = "3.0"
 predicates = "3"
 proptest = "1.4"
 

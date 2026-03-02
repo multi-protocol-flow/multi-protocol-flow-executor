@@ -45,7 +45,7 @@ pub use log_event::{LogEvent, LogLevel};
 
 
 // 导出存储模块
-pub use storage::{ensure_flows_dir, get_data_dir, get_flows_dir, load_flow, save_flow};
+pub use storage::{ensure_flows_dir, get_data_dir, get_flows_dir, get_reports_dir, load_flow, save_flow, save_report, load_report, list_reports, delete_report};
 
 /// 启动 Tauri 应用
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -66,7 +66,11 @@ pub fn run() {
             create_flow,
             execute_flow,
             update_node,
-            delete_node
+            delete_node,
+            crate::commands::save_flow_report,
+            crate::commands::load_flow_report,
+            crate::commands::list_flow_reports,
+            crate::commands::delete_flow_report
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
