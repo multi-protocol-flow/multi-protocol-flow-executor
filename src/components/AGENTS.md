@@ -20,6 +20,8 @@ components/
 ├── execution/        # ExecuteButton, ExecutionReport, ExecutionHistory, NodeExecutionDetails
 ├── sidebar/          # FlowListPanel, NodeLibrary
 ├── dialogs/          # NewFlowDialog
+├── settings/         # 全局设置对话框
+│   └── SettingsDialog.tsx  # 报告/日志目录配置
 └── ui/               # shadcn/ui 基础组件
 ```
 
@@ -34,6 +36,7 @@ components/
 | 节点类型注册 | `FlowCanvas.tsx` → `nodeTypes` 对象 |
 | 执行报告 | `execution/ExecutionReport.tsx` |
 | 流程列表 | `sidebar/FlowListPanel.tsx` |
+| 全局设置 | `settings/SettingsDialog.tsx` | 报告/日志目录配置 |
 
 ## CONVENTIONS
 

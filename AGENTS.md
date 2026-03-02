@@ -40,6 +40,7 @@ multi-protocol-flow-executor/
 | 条件分支节点 | `src-tauri/src/conditional_executor.rs` | evalexpr 表达式 |
 | 内置流程模板 | `src/templates/builtinFlows.ts` | DEMO_FLOW 示例流程 |
 | 首次启动模板加载 | `src/components/sidebar/FlowListPanel.tsx` | 空列表时自动加载 |
+| 全局设置 | `src/components/settings/SettingsDialog.tsx` | 报告/日志目录配置 |
 ## 代码规范
 
 ### TypeScript
@@ -133,6 +134,13 @@ npm run tauri build  # 构建安装包
    - 包含节点: Entry → HTTP GET → 条件判断 → HTTP POST (成功分支)
    - 变量引用: HTTP 响应使用顶级键 `status`、`body`、`headers` (非 `http_response.xxx`)
    - 不会覆盖用户已有数据
+
+9. **全局设置功能**: 
+   - 设置入口: 顶部工具栏齿轮图标
+   - 设置项: 报告目录 + 日志目录
+   - 持久化: tauri-plugin-store（Tauri）/ localStorage（Mock）
+   - 默认位置: `{appDataDir}/reports/` 和 `{appDataDir}/logs/`
+   - 新增命令: `get_app_data_dir()` - 获取应用数据目录
 ## 子目录知识库
 
 - [src/components/AGENTS.md](./src/components/AGENTS.md) - 前端组件架构
