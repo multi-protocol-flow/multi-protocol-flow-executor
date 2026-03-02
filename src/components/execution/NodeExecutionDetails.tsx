@@ -93,7 +93,7 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
                 <ArrowRightLeft className="w-3.5 h-3.5" />
                 <span className="font-medium">输入数据</span>
               </div>
-              <pre className="p-3 bg-slate-100 border border-black rounded-lg text-xs overflow-x-auto text-slate-800 max-w-full">
+              <pre className="p-3 bg-slate-100 border border-black rounded-lg text-xs overflow-x-auto text-slate-800 max-w-full whitespace-pre-wrap break-all">
                 {JSON.stringify(report.input_data, null, 2)}
               </pre>
             </div>
@@ -106,7 +106,7 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
                 <ArrowRightLeft className="w-3.5 h-3.5 rotate-180" />
                 <span className="font-medium">输出数据</span>
               </div>
-              <pre className="p-3 bg-slate-100 border border-black rounded-lg text-xs overflow-x-auto text-slate-800 max-w-full">
+              <pre className="p-3 bg-slate-100 border border-black rounded-lg text-xs overflow-x-auto text-slate-800 max-w-full whitespace-pre-wrap break-all">
                 {JSON.stringify(report.output_data, null, 2)}
               </pre>
             </div>
