@@ -143,7 +143,7 @@ pub trait NodeExecutor {
     async fn execute(
         &self,
         node: &Node,
-        context: &ExecutionContext,
+        context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String>;
@@ -243,7 +243,7 @@ impl FlowExecutor {
         let mut var_storage = VariableStorage::new();
         if let Some(obj) = initial_variables.as_object() {
             for (key, value) in obj {
-                var_storage.set_global(key.clone(), value.clone());
+                var_storage.set_variable(key.clone(), value.clone(), String::new());
             }
         }
         let mut context = ExecutionContext {
@@ -323,7 +323,7 @@ impl FlowExecutor {
 
             // 执行当前节点
             match self
-                .execute_node(node, &context, &flow.connections, &node_map)
+                .execute_node(node, &mut context, &flow.connections, &node_map)
                 .await
             {
                 Ok((next_node_id_from_executor, output_data)) => {
@@ -391,7 +391,7 @@ impl FlowExecutor {
                         // 将输出数据合并到上下文中
                         if let Some(obj) = data.as_object() {
                             for (key, value) in obj {
-                                context.variables.set_global(key.to_string(), value.clone());
+                                context.variables.set_variable(key.to_string(), value.clone(), node.uuid.clone());
                             }
                         }
                     }
@@ -692,7 +692,7 @@ impl FlowExecutor {
     async fn execute_node(
         &self,
         node: &Node,
-        context: &ExecutionContext,
+        context: &mut ExecutionContext,
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
@@ -1302,7 +1302,7 @@ mod tests {
                 "api_key": "test-key"
             }),
         );
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
             variables,
@@ -1332,7 +1332,7 @@ mod tests {
                 }
             }),
         );
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
             variables,
@@ -1354,7 +1354,7 @@ mod tests {
         // 测试严格模式（变量不存在时报错）
         let template = "{{nonexistent.var}}";
         let variables = VariableStorage::new();
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
             variables,
@@ -1377,7 +1377,7 @@ mod tests {
         let template = "{{items[0]}}";
         let mut variables = VariableStorage::new();
         variables.set_global("items".to_string(), json!(["a", "b", "c"]));
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
             variables,
@@ -1417,7 +1417,7 @@ mod tests {
             let template = format!("{{{{items[{}]}}}}", index);
             let mut variables = VariableStorage::new();
             variables.set_global("items".to_string(), json!(["a", "b", "c"]));
-            let context = ExecutionContext {
+            let mut context = ExecutionContext {
                 flow_uuid: "test-flow".to_string(),
                 current_node_uuid: None,
                 variables,
@@ -1439,7 +1439,7 @@ mod tests {
             let template = "{{test_var}}";
             let mut variables = VariableStorage::new();
             variables.set_global("test_var".to_string(), json!(value.clone()));
-            let context = ExecutionContext {
+            let mut context = ExecutionContext {
                 flow_uuid: "test-flow".to_string(),
                 current_node_uuid: None,
                 variables,
@@ -1461,7 +1461,7 @@ mod tests {
             let template = "{{num}}";
             let mut variables = VariableStorage::new();
             variables.set_global("num".to_string(), json!(num));
-            let context = ExecutionContext {
+            let mut context = ExecutionContext {
                 flow_uuid: "test-flow".to_string(),
                 current_node_uuid: None,
                 variables,
@@ -1483,7 +1483,7 @@ mod tests {
             let template = "{{flag}}";
             let mut variables = VariableStorage::new();
             variables.set_global("flag".to_string(), json!(val));
-            let context = ExecutionContext {
+            let mut context = ExecutionContext {
                 flow_uuid: "test-flow".to_string(),
                 current_node_uuid: None,
                 variables,

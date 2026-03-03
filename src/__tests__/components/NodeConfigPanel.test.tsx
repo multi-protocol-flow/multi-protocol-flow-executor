@@ -242,7 +242,7 @@ describe('ConditionalConfig', () => {
 
 describe('EntryConfig', () => {
   it('渲染入口节点说明', () => {
-    render(<EntryConfig />);
+    render(<EntryConfig data={{ type: 'entry' }} onSave={() => {}} />);
 
     expect(screen.getByText('入口节点')).toBeDefined();
     // 使用部分文本匹配，因为文本包含逗号
@@ -250,10 +250,11 @@ describe('EntryConfig', () => {
   });
 
   it('显示功能说明', () => {
-    render(<EntryConfig />);
+    render(<EntryConfig data={{ type: 'entry' }} onSave={() => {}} />);
 
-    expect(screen.getByText('无需配置')).toBeDefined();
+    expect(screen.getByText('初始变量')).toBeDefined();
     expect(screen.getByText('执行流程')).toBeDefined();
+    expect(screen.getByText('暂无初始变量')).toBeDefined();
   });
 });
 

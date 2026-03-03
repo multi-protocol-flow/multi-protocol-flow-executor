@@ -5,6 +5,7 @@ use crate::log_event::{LogEvent, LogLevel};
 use crate::context::ExecutionContext;
 use crate::executor::NodeExecutor;
 use crate::node::Node;
+use crate::node_config::NodeData;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -47,7 +48,7 @@ impl NodeExecutor for EntryNodeExecutor {
     async fn execute(
         &self,
         node: &Node,
-        context: &ExecutionContext,
+        context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<Value>), String> {
@@ -76,6 +77,17 @@ impl NodeExecutor for EntryNodeExecutor {
             node.uuid,
             node.name
         );
+
+        // 处理初始变量
+        if let NodeData::Entry(entry_config) = &node.data {
+            for initial_var in &entry_config.initial_variables {
+                context.variables.set_variable(
+                    initial_var.name.clone(),
+                    initial_var.value.clone(),
+                    node.uuid.clone(),
+                );
+            }
+        }
 
         // Entry 节点立即传递，不执行任何逻辑（<1ms 执行时间）
         // 查找下一个节点
@@ -180,7 +192,7 @@ mod tests {
             target_port_id: "in".to_string(),
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
             current_node_uuid: Some(entry_node.uuid.clone()),
             variables: VariableStorage::new(),
@@ -197,7 +209,7 @@ mod tests {
         let executor = EntryNodeExecutor::new();
         let start_time = Instant::now();
         let result = executor
-            .execute(&entry_node, &context, &[connection], &node_map)
+            .execute(&entry_node, &mut context, &[connection], &node_map)
             .await;
         let elapsed = start_time.elapsed();
 
@@ -229,7 +241,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
             current_node_uuid: Some(entry_node.uuid.clone()),
             variables: VariableStorage::new(),
@@ -242,7 +254,7 @@ mod tests {
         let node_map = HashMap::new();
 
         let executor = EntryNodeExecutor::new();
-        let result = executor.execute(&entry_node, &context, &[], &node_map).await;
+        let result = executor.execute(&entry_node, &mut context, &[], &node_map).await;
 
         // 验证执行成功（没有连接是正常终止）
         assert!(result.is_ok());
@@ -299,7 +311,7 @@ mod tests {
             target_port_id: "in".to_string(),
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
             current_node_uuid: Some(entry_node.uuid.clone()),
             variables: VariableStorage::new(),
@@ -363,7 +375,7 @@ mod tests {
             target_port_id: "in".to_string(),
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
             current_node_uuid: Some(entry_node.uuid.clone()),
             variables: VariableStorage::new(),
@@ -383,7 +395,7 @@ mod tests {
         let start_time = Instant::now();
         for _ in 0..1000 {
             let _ = executor
-                .execute(&entry_node, &context, std::slice::from_ref(&connection), &node_map)
+                .execute(&entry_node, &mut context, std::slice::from_ref(&connection), &node_map)
                 .await;
         }
         let elapsed = start_time.elapsed();
@@ -428,7 +440,7 @@ mod tests {
             target_port_id: "in".to_string(),
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
             current_node_uuid: Some(entry_node.uuid.clone()),
             variables: VariableStorage::new(),
@@ -444,7 +456,7 @@ mod tests {
 
         let executor = EntryNodeExecutor::new();
         let result = executor
-            .execute(&entry_node, &context, &[connection], &node_map)
+            .execute(&entry_node, &mut context, &[connection], &node_map)
             .await;
 
         // 验证 execute 方法正确使用了 node.uuid
@@ -482,7 +494,7 @@ mod tests {
             target_port_id: "in".to_string(),
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
             flow_uuid: "flow-logic-test".to_string(),
             current_node_uuid: Some(entry_node.uuid.clone()),
             variables: VariableStorage::new(),
@@ -498,7 +510,7 @@ mod tests {
 
         let executor = EntryNodeExecutor::new();
         let result = executor
-            .execute(&entry_node, &context, &[connection], &node_map)
+            .execute(&entry_node, &mut context, &[connection], &node_map)
             .await;
 
         // 验证执行逻辑正确：
@@ -543,7 +555,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
             flow_uuid: "flow-1".to_string(),
             current_node_uuid: Some(source_uuid.to_string()),
             variables: VariableStorage::new(),
@@ -558,7 +570,7 @@ mod tests {
 
         let executor = EntryNodeExecutor::new();
         let result = executor
-            .execute(&entry_node, &context, &[connection1, connection2], &node_map)
+            .execute(&entry_node, &mut context, &[connection1, connection2], &node_map)
             .await;
 
         // 验证执行成功

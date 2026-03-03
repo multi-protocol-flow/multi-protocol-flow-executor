@@ -47,7 +47,7 @@ impl NodeExecutor for HttpNodeExecutor {
     async fn execute(
         &self,
         node: &Node,
-        context: &ExecutionContext,
+        context: &mut ExecutionContext,
         _connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
@@ -628,11 +628,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok(), "GET请求应该成功");
@@ -661,11 +661,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok(), "POST请求应该成功");
@@ -698,11 +698,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_ok(), "PUT请求应该成功");
         let output_data = result.unwrap().1;
@@ -723,11 +723,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_ok(), "DELETE请求应该成功");
         let output_data = result.unwrap().1;
@@ -751,11 +751,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_ok(), "PATCH请求应该成功");
         let output_data = result.unwrap().1;
@@ -780,11 +780,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行失败
         assert!(result.is_err(), "404错误应该返回错误");
@@ -804,11 +804,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行失败
         assert!(result.is_err(), "500错误应该返回错误");
@@ -828,11 +828,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_err(), "403错误应该返回错误");
         let error = result.unwrap_err();
@@ -851,11 +851,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_err(), "401错误应该返回错误");
         let error = result.unwrap_err();
@@ -878,11 +878,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行失败（网络错误）
         assert!(result.is_err(), "DNS解析失败应该返回错误");
@@ -912,11 +912,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行失败（超时或连接错误）
         assert!(result.is_err(), "连接超时应该返回错误");
@@ -952,11 +952,11 @@ mod tests {
             "user_id": "user456"
         });
 
-        let context = create_context("test-flow", variables);
+        let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok(), "变量替换应该成功");
@@ -1003,11 +1003,11 @@ mod tests {
             "token": "secret_token_456"
         });
 
-        let context = create_context("test-flow", variables);
+        let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok(), "请求头变量替换应该成功");
@@ -1062,11 +1062,11 @@ mod tests {
             "user_id": "12345"
         });
 
-        let context = create_context("test-flow", variables);
+        let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok(), "请求体变量替换应该成功");
@@ -1125,11 +1125,11 @@ mod tests {
             "action": "create"
         });
 
-        let context = create_context("test-flow", variables);
+        let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok(), "全部变量替换应该成功");
@@ -1180,11 +1180,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
@@ -1212,11 +1212,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
@@ -1239,11 +1239,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_ok());
         let output_data = result.unwrap().1;
@@ -1276,11 +1276,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_ok(), "空请求头应该成功");
         let output_data = result.unwrap().1;
@@ -1303,11 +1303,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_ok(), "空请求体应该成功");
         let output_data = result.unwrap().1;
@@ -1327,11 +1327,11 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
         let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
-            executor.execute(&node, &context, &[], &HashMap::new()).await;
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_ok(), "URL编码应该被正确处理");
         let output_data = result.unwrap().1;
@@ -1380,7 +1380,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
             flow_uuid: flow_id.clone(),
             current_node_uuid: Some(http_node.uuid.clone()),
             variables: VariableStorage::new(),
@@ -1391,7 +1391,7 @@ mod tests {
         };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok());
@@ -1433,7 +1433,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
                             flow_uuid: flow_id.clone(),
                             current_node_uuid: Some(http_node.uuid.clone()),
                             variables: VariableStorage::new(),
@@ -1444,7 +1444,7 @@ mod tests {
                         };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok());
@@ -1477,7 +1477,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
                             flow_uuid: flow_id.clone(),
                             current_node_uuid: Some(http_node.uuid.clone()),
                             variables: VariableStorage::new(),
@@ -1488,7 +1488,7 @@ mod tests {
                         };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行失败（404错误）
         assert!(result.is_err());
@@ -1519,7 +1519,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
                             flow_uuid: flow_id.clone(),
                             current_node_uuid: Some(http_node.uuid.clone()),
                             variables: VariableStorage::new(),
@@ -1530,7 +1530,7 @@ mod tests {
                         };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok());
@@ -1563,7 +1563,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
                             flow_uuid: flow_id.clone(),
                             current_node_uuid: Some(http_node.uuid.clone()),
                             variables: VariableStorage::new(),
@@ -1574,7 +1574,7 @@ mod tests {
                         };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行失败（500错误）
         assert!(result.is_err());
@@ -1613,7 +1613,7 @@ mod tests {
         storage.set_global("test_param".to_string(), json!("value123"));
         storage.set_global("test_header".to_string(), json!("header_value"));
         storage.set_global("test_body".to_string(), json!("body_value"));
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
                             flow_uuid: flow_id.clone(),
                             current_node_uuid: Some(http_node.uuid.clone()),
                             variables: storage,
@@ -1624,7 +1624,7 @@ mod tests {
                         };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok());
@@ -1667,7 +1667,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
                             flow_uuid: flow_id.clone(),
                             current_node_uuid: Some(http_node.uuid.clone()),
                             variables: VariableStorage::new(),
@@ -1678,7 +1678,7 @@ mod tests {
                         };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行失败（网络错误）
         assert!(result.is_err());
@@ -1714,7 +1714,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
                             flow_uuid: flow_id.clone(),
                             current_node_uuid: Some(http_node.uuid.clone()),
                             variables: VariableStorage::new(),
@@ -1725,7 +1725,7 @@ mod tests {
                         };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok());
@@ -1761,7 +1761,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
                             flow_uuid: flow_id.clone(),
                             current_node_uuid: Some(http_node.uuid.clone()),
                             variables: VariableStorage::new(),
@@ -1772,7 +1772,7 @@ mod tests {
                         };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok());
@@ -1812,7 +1812,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
                             flow_uuid: flow_id.clone(),
                             current_node_uuid: Some(http_node.uuid.clone()),
                             variables: VariableStorage::new(),
@@ -1823,7 +1823,7 @@ mod tests {
                         };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok());
@@ -1856,7 +1856,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
                             flow_uuid: flow_id.clone(),
                             current_node_uuid: Some(http_node.uuid.clone()),
                             variables: VariableStorage::new(),
@@ -1867,7 +1867,7 @@ mod tests {
                         };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok());
@@ -1904,7 +1904,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
                             flow_uuid: flow_id.clone(),
                             current_node_uuid: Some(http_node.uuid.clone()),
                             variables: VariableStorage::new(),
@@ -1915,7 +1915,7 @@ mod tests {
                         };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok());
@@ -1948,7 +1948,7 @@ mod tests {
             ports: None,
         };
 
-        let context = ExecutionContext {
+        let mut context = ExecutionContext {
                             flow_uuid: flow_id.clone(),
                             current_node_uuid: Some(http_node.uuid.clone()),
                             variables: VariableStorage::new(),
@@ -1959,7 +1959,7 @@ mod tests {
                         };
 
         let executor = HttpNodeExecutor::new();
-        let result = executor.execute(&http_node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok());
@@ -1989,10 +1989,10 @@ mod tests {
             None,
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         // 验证执行成功
         assert!(result.is_ok(), "GET请求应该成功");
@@ -2048,10 +2048,10 @@ mod tests {
             Some(r#"{"test_key":"test_value"}"#.to_string()),
         );
 
-        let context = create_context("test-flow", json!({}));
+        let mut context = create_context("test-flow", json!({}));
         let executor = HttpNodeExecutor::new();
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_ok(), "POST请求应该成功");
         let output = result.unwrap().1.unwrap();
@@ -2089,10 +2089,10 @@ mod tests {
         );
 
         let variables = json!({ "test_param": "replaced_value" });
-        let context = create_context("test-flow", variables);
+        let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_ok());
         let output = result.unwrap().1.unwrap();
@@ -2120,10 +2120,10 @@ mod tests {
         );
 
         let variables = json!({ "api_token": "secret_token_123" });
-        let context = create_context("test-flow", variables);
+        let mut context = create_context("test-flow", variables);
         let executor = HttpNodeExecutor::new();
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
 
         assert!(result.is_ok());
         let output = result.unwrap().1.unwrap();

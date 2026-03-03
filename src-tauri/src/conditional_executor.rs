@@ -31,7 +31,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
     async fn execute(
         &self,
         node: &Node,
-        context: &ExecutionContext,
+        context: &mut ExecutionContext,
         connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
@@ -540,13 +540,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "age": 25
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -561,13 +561,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "age": 25
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -582,13 +582,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "age": 25
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -603,13 +603,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "age": 25
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -624,13 +624,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "age": 25
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -645,13 +645,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "age": 25
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -666,13 +666,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "name": "John Doe"
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -687,13 +687,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "name": "John Doe"
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -708,13 +708,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "name": "John Doe"
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -729,13 +729,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "email": "test@example.com"
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -750,13 +750,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "age": 25
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为false应该返回Ok（不再返回错误）");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
@@ -774,12 +774,12 @@ mod tests {
             advanced_expression: Some("age > 20 && name == \"John\"".to_string()),
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "age": 25,
             "name": "John"
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -794,12 +794,12 @@ mod tests {
             advanced_expression: Some("age > 30 || name == \"John\"".to_string()),
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "age": 25,
             "name": "John"
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该返回Ok（继续执行）");
     }
 
@@ -814,12 +814,12 @@ mod tests {
             advanced_expression: Some("age > 30 && name == \"Jane\"".to_string()),
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "age": 25,
             "name": "John"
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为false应该返回Ok（不再返回错误）");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
@@ -837,7 +837,7 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "status": "active"
         }));
 
@@ -849,7 +849,7 @@ mod tests {
             target_port_id: "in".to_string(),
         }];
 
-        let result = executor.execute(&node, &context, &connections, &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &connections, &HashMap::new()).await;
         assert!(result.is_ok(), "条件为true应该成功");
         let (next_node_ids, output_data) = result.unwrap();
         assert_eq!(next_node_ids, vec!["next-node-id".to_string()]);
@@ -867,13 +867,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "name": ""
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "空字符串相等应该返回Ok");
     }
 
@@ -888,13 +888,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "email": null
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "null值相等应该返回Ok");
     }
 
@@ -909,13 +909,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "email": null
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "条件为false应该返回Ok（不再返回错误）");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
@@ -933,13 +933,13 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "user": {
                 "age": "twenty-five"  // 字符串而非数字
             }
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "类型不匹配应该返回错误");
         assert!(result.unwrap_err().contains("actual不是数字类型"), "错误信息应该包含'actual不是数字类型'");
     }
@@ -955,12 +955,12 @@ mod tests {
             advanced_expression: Some("age > 20 && name ==".to_string()), // 语法错误
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "age": 25,
             "name": "John"
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "语法错误应该返回错误");
         assert!(result.unwrap_err().contains("评估表达式"), "错误信息应该包含'评估表达式'");
     }
@@ -976,11 +976,11 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "age": 25
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "缺少field_path应该返回错误");
         assert!(result.unwrap_err().contains("简单条件缺少 field_path"), "错误信息应该包含'简单条件缺少 field_path'");
     }
@@ -996,11 +996,11 @@ mod tests {
             advanced_expression: None,
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "age": 25
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "缺少operator应该返回错误");
         assert!(result.unwrap_err().contains("简单条件缺少 operator"), "错误信息应该包含'简单条件缺少 operator'");
     }
@@ -1016,11 +1016,11 @@ mod tests {
             advanced_expression: None, // 缺少advanced_expression
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "age": 25
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "缺少advanced_expression应该返回错误");
         assert!(result.unwrap_err().contains("缺少advanced_expression"), "错误信息应该包含'缺少advanced_expression'");
     }
@@ -1036,11 +1036,11 @@ mod tests {
             advanced_expression: Some("!(age > 30)".to_string()),
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "age": 25
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "非操作符应该正确工作");
     }
 
@@ -1055,12 +1055,12 @@ mod tests {
             advanced_expression: Some("status == \"active\" && count > 0".to_string()),
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "status": "active",
             "count": 5
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "变量使用应该正确工作");
     }
 
@@ -1075,11 +1075,11 @@ mod tests {
             advanced_expression: Some("(age * 2) > 40 && (age + 5) < 60".to_string()),
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "age": 25
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "数值运算应该正确工作");
     }
 
@@ -1094,11 +1094,11 @@ mod tests {
             advanced_expression: Some("name != \"\" && name == \"John\"".to_string()),
         };
         let node = create_test_node(config);
-        let context = create_test_context(serde_json::json!({
+        let mut context = create_test_context(serde_json::json!({
             "name": "John"
         }));
 
-        let result = executor.execute(&node, &context, &[], &HashMap::new()).await;
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "字符串比较应该正确工作");
     }
 }

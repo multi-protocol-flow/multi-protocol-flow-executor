@@ -65,3 +65,6 @@ export type {
   SettingsActions,
   SettingsStore,
 } from './settings';
+
+// 变量类型
+export type { Variable, VariablePool, OutputMapping, InitialVariable } from './variable';

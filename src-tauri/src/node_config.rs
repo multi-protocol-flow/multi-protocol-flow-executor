@@ -1,15 +1,21 @@
 // 节点配置模块 - 强类型节点配置定义
 
+use crate::variable::InitialVariable;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+// ============================================================================
 // ============================================================================
 // Entry 节点配置
 // ============================================================================
 
 /// 入口节点配置
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct EntryConfig {}
+pub struct EntryConfig {
+    /// 初始变量列表
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub initial_variables: Vec<InitialVariable>,
+}
 
 // ============================================================================
 // Http 节点配置
@@ -311,10 +317,10 @@ mod tests {
 
     #[test]
     fn test_entry_config_empty_structure() {
-        // 测试 EntryConfig 是空结构
-        let config = EntryConfig {};
+        // 测试 EntryConfig 默认值
+        let config = EntryConfig::default();
         let json = serde_json::to_string(&config).unwrap();
-        assert_eq!(json, "{}");
+        assert_eq!(json, "{}"); // initial_variables 为空时跳过序列化
     }
 
     #[test]

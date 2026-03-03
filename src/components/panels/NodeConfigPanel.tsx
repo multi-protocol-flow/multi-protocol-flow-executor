@@ -12,7 +12,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData } from '@/types';
-import { isHttpConfig, isConditionalConfig } from '@/types';
+import { isEntryConfig, isHttpConfig, isConditionalConfig } from '@/types';
 import { Settings2, MousePointerClick, Trash2, Pencil } from 'lucide-react';
 
 /**
@@ -185,8 +185,13 @@ export function NodeConfigPanel() {
       <CardContent className="flex-1 overflow-hidden p-0">
         <ScrollArea className="h-full">
           <div className="w-full min-w-0 max-w-full overflow-hidden px-6 py-4">
-            {/* Entry 节点：仅显示说明 */}
-            {selectedNode.type === 'entry' && <EntryConfig />}
+            {/* Entry 节点：初始变量配置 */}
+            {selectedNode.type === 'entry' && isEntryConfig(selectedNode.data) && (
+              <EntryConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
 
             {/* HTTP 节点：URL/方法/Headers/Body 配置 */}
             {selectedNode.type === 'http' && isHttpConfig(selectedNode.data) && (

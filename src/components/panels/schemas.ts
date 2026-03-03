@@ -118,3 +118,42 @@ export const OPERATOR_OPTIONS = [
   { value: 'ends_with', label: '以...结束' },
   { value: 'exists', label: '存在' },
 ] as const;
+
+// ============================================================================
+// Entry 配置 Schema
+// ============================================================================
+
+/**
+ * 初始变量 Schema
+ */
+export const initialVariableSchema = z.object({
+  name: z.string()
+    .min(1, '变量名不能为空')
+    .max(64, '变量名不能超过64个字符')
+    .regex(/^[a-zA-Z0-9_]+$/, '变量名只能包含字母、数字和下划线'),
+  value: z.unknown(),
+  description: z.string().optional(),
+});
+
+export type InitialVariableFormData = z.infer<typeof initialVariableSchema>;
+
+/**
+ * Entry 配置表单 Schema
+ */
+export const entryConfigSchema = z.object({
+  type: z.literal('entry'),
+  initial_variables: z.array(initialVariableSchema).optional(),
+}).refine(
+  (data) => {
+    if (!data.initial_variables) return true;
+    const names = data.initial_variables.map(v => v.name);
+    const uniqueNames = new Set(names);
+    return names.length === uniqueNames.size;
+  },
+  {
+    message: '变量名必须唯一',
+    path: ['initial_variables'],
+  }
+);
+
+export type EntryConfigFormData = z.infer<typeof entryConfigSchema>;
