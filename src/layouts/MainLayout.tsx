@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/sonner';
 
 import { FlowListPanel, NodeLibrary } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
-import { NodeConfigPanel, SettingsPanel } from '@/components/panels';
+import { NodeConfigPanel, SettingsPanel, VariablePanel } from '@/components/panels';
 import { ExecutionReport, ExecutionHistory, ConsolePanel } from '@/components/execution';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
@@ -64,6 +64,7 @@ export function MainLayout() {
   const showConfirm = useUIStore((state) => state.showConfirm);
 
   const { isDirty, flow } = useFlowStore();
+  const nodes = useFlowStore((state) => state.flow?.nodes ?? []);
 
   // Console store values
   const { filter, clearLogs, setFilter, setSearchKeyword, getUniqueNodes } = useConsoleStore();
@@ -187,6 +188,12 @@ export function MainLayout() {
               <div className="flex-1 min-h-0">
                 <NodeLibrary />
               </div>
+              {/* 变量面板 */}
+              {flow && (
+                <div className="shrink-0 h-64 min-h-0 border-t border-border">
+                  <VariablePanel flow={flow} nodes={nodes} />
+                </div>
+              )}
             </>
           )}
         </aside>

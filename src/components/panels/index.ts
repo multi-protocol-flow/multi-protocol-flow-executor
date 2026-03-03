@@ -6,6 +6,9 @@
 export { NodeConfigPanel } from './NodeConfigPanel';
 export { SettingsPanel } from './SettingsPanel';
 
+// 变量面板
+export { VariablePanel } from './VariablePanel';
+
 // 子组件
 export { EntryConfig } from './EntryConfig';
 export { HttpConfig } from './HttpConfig';

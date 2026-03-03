@@ -42,6 +42,7 @@ fn create_file_upload_node(uuid: &str, url: &str, form_fields: Vec<FormField>) -
             file_path: None,
             body: None,
             timeout_ms: None,
+            output_mappings: vec![],
         }),
         ports: None,
     }
@@ -64,6 +65,7 @@ fn create_timeout_node(uuid: &str, url: &str, timeout_ms: u64) -> Node {
             file_path: None,
             body: None,
             timeout_ms: Some(timeout_ms),
+            output_mappings: vec![],
         }),
         ports: None,
     }
@@ -377,6 +379,7 @@ async fn test_timeout_config_default() {
             file_path: None,
             body: None,
             timeout_ms: None, // 使用默认超时
+            output_mappings: vec![],
         }),
         ports: None,
     };
