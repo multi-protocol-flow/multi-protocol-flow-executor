@@ -330,7 +330,7 @@ mod tests {
         let result = executor
             .execute(
                 &entry_node,
-                &context,
+                &mut context,
                 &[connection_1, connection_2],
                 &node_map,
             )

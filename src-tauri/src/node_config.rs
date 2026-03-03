@@ -1,6 +1,6 @@
 // 节点配置模块 - 强类型节点配置定义
 
-use crate::variable::InitialVariable;
+use crate::variable::{InitialVariable, OutputMapping};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -127,6 +127,9 @@ pub struct HttpConfig {
     /// 超时时间（毫秒）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timeout_ms: Option<u64>,
+    /// 输出变量映射
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub output_mappings: Vec<OutputMapping>,
 }
 
 impl Default for HttpConfig {
@@ -141,6 +144,7 @@ impl Default for HttpConfig {
             file_path: None,
             body: None,
             timeout_ms: None,
+            output_mappings: Vec::new(),
         }
     }
 }

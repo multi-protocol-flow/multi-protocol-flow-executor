@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Globe, X } from 'lucide-react';
+import { Plus, Trash2, Globe, X, ArrowRightFromLine, Info } from 'lucide-react';
 import type { HttpConfig as HttpConfigType } from '@/types';
 
 /** 检测是否在 Tauri 环境中运行 */
@@ -55,6 +55,7 @@ function toFormData(data: HttpConfigType): HttpConfigFormData {
     form_fields: data.form_fields || [],
     file_path: data.file_path || undefined,
     timeout_ms: data.timeout_ms ?? 30000,
+    output_mappings: data.output_mappings || [],
   };
 }
 
@@ -88,6 +89,7 @@ function fromFormData(formData: HttpConfigFormData): HttpConfigType {
     form_fields: formFields && formFields.length > 0 ? formFields : undefined,
     file_path: formData.file_path,
     timeout_ms: formData.timeout_ms,
+    output_mappings: formData.output_mappings && formData.output_mappings.length > 0 ? formData.output_mappings : undefined,
   };
 }
 
@@ -123,6 +125,10 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     name: 'form_fields' as never,
   });
 
+  const outputMappings = useFieldArray({
+    control,
+    name: 'output_mappings' as never,
+  });
   // 监听 body_type 变化
   const watchedBodyType = watch('body_type');
 
@@ -189,6 +195,20 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     setTimeout(saveData, 100);
   }, [remove, saveData]);
 
+  /**
+   * 添加输出映射
+   */
+  const handleAddOutputMapping = useCallback(() => {
+    outputMappings.append({ source: 'status', target: '', description: '', enabled: true });
+  }, [outputMappings]);
+
+  /**
+   * 删除输出映射
+   */
+  const handleRemoveOutputMapping = useCallback((index: number) => {
+    outputMappings.remove(index);
+    setTimeout(saveData, 100);
+  }, [outputMappings, saveData]);
   /** 隐藏的文件输入框 ref (用于非 Tauri 环境) */
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -592,6 +612,133 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           </div>
         </div>
       )}
+
+      {/* 输出变量映射 */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ArrowRightFromLine className="h-4 w-4 text-muted-foreground" />
+            <Label className="text-sm font-medium text-black">输出变量映射</Label>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleAddOutputMapping}
+            className="h-7 gap-1 text-xs text-muted-foreground hover:text-black"
+          >
+            <Plus className="h-3 w-3" />
+            添加映射
+          </Button>
+        </div>
+
+        {/* 映射列表 */}
+        <div className="space-y-2">
+          {outputMappings.fields.length === 0 ? (
+            <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
+              <p className="text-xs text-muted-foreground">暂无输出映射</p>
+              <p className="mt-1 text-xs text-muted-foreground/60">
+                点击「添加映射」配置变量提取规则
+              </p>
+            </div>
+          ) : (
+            outputMappings.fields.map((field, index) => {
+              const targetError = errors.output_mappings?.[index]?.target;
+              const sourceError = errors.output_mappings?.[index]?.source;
+              
+              // 检查变量名是否重复
+              const outputMappingsList = watch('output_mappings') || [];
+              const currentTarget = outputMappingsList[index]?.target || '';
+              const duplicateTargets = outputMappingsList
+                .map((m, i) => (m.target && i !== index && m.target === currentTarget ? i : -1))
+                .filter(i => i !== -1);
+              const hasDuplicate = duplicateTargets.length > 0 && currentTarget.trim() !== '';
+
+              return (
+                <div key={field.id} className="space-y-2 p-3 rounded-md border bg-muted/30">
+                  {/* 第一行：源字段 + 变量名 + 删除 */}
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={watch(`output_mappings.${index}.source`) || 'status'}
+                      onValueChange={(value) => {
+                        setValue(`output_mappings.${index}.source`, value);
+                        saveData();
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-28 font-mono text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="status">status</SelectItem>
+                        <SelectItem value="body">body</SelectItem>
+                        <SelectItem value="headers">headers</SelectItem>
+                        <SelectItem value="request">request</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      {...register(`output_mappings.${index}.target`)}
+                      placeholder="变量名"
+                      className={`h-8 flex-1 font-mono text-xs ${targetError || hasDuplicate ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveOutputMapping(index)}
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+
+                  {/* 错误提示 */}
+                  {sourceError && (
+                    <p className="text-xs text-rose-500">{sourceError.message}</p>
+                  )}
+                  {targetError && (
+                    <p className="text-xs text-rose-500">{targetError.message}</p>
+                  )}
+                  {hasDuplicate && !targetError && (
+                    <p className="text-xs text-rose-500">变量名已存在</p>
+                  )}
+
+                  {/* 第二行：说明 + 启用 */}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      {...register(`output_mappings.${index}.description`)}
+                      placeholder="说明（可选）"
+                      className="h-8 flex-1 text-xs"
+                    />
+                    <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={watch(`output_mappings.${index}.enabled`) !== false}
+                        onChange={(e) => {
+                          setValue(`output_mappings.${index}.enabled`, e.target.checked);
+                          saveData();
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+                      />
+                      <span className="text-xs text-muted-foreground">启用</span>
+                    </label>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* 提示信息 */}
+        {outputMappings.fields.length > 0 && (
+          <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
+            <p className="text-xs text-muted-foreground whitespace-normal break-words">
+              源字段：status (状态码)、body (响应体)、headers (响应头)、request (请求信息)。变量名只能包含字母、数字和下划线，长度 1-64 个字符。
+            </p>
+          </div>
+        )}
+      </div>
+
     </form>
   );
 }

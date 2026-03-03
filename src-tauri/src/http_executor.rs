@@ -517,6 +517,9 @@ impl NodeExecutor for HttpNodeExecutor {
             }
         });
 
+        // 应用输出映射，从响应中提取变量
+        apply_output_mappings(&output_data, &http_config.output_mappings, context, &node.uuid);
+
         // 计算总执行时间
         let _duration_ms = start_time.elapsed().as_millis();
 
@@ -539,6 +542,64 @@ impl NodeExecutor for HttpNodeExecutor {
         // 返回空列表（HTTP 节点不决定下一个节点）和输出数据
         Ok((vec![], Some(output_data)))
     }
+}
+
+/// 应用输出映射，从响应中提取变量
+fn apply_output_mappings(
+    response: &serde_json::Value,
+    mappings: &[crate::variable::OutputMapping],
+    context: &mut ExecutionContext,
+    node_uuid: &str,
+) {
+    for mapping in mappings {
+        if !mapping.enabled {
+            continue;
+        }
+        if let Some(value) = extract_value_by_path(response, &mapping.source) {
+            log::info!(
+                "[流程 {}] [输出映射] 节点: {}, 路径: {} -> 变量: {}",
+                context.flow_uuid,
+                node_uuid,
+                mapping.source,
+                mapping.target
+            );
+            context.variables.set_variable(
+                mapping.target.clone(),
+                value,
+                node_uuid.to_string(),
+            );
+        } else {
+            log::warn!(
+                "[流程 {}] [输出映射] 节点: {}, 路径 '{}' 未找到值",
+                context.flow_uuid,
+                node_uuid,
+                mapping.source
+            );
+        }
+    }
+}
+
+/// 按路径从 JSON 中提取值
+///
+/// 支持点分隔的路径，如 "status", "body.data.id"
+fn extract_value_by_path(value: &serde_json::Value, path: &str) -> Option<serde_json::Value> {
+    if path.is_empty() {
+        return None;
+    }
+
+    let parts: Vec<&str> = path.split('.').collect();
+    let mut current = value;
+
+    for part in parts {
+        match current {
+            serde_json::Value::Object(map) => {
+                current = map.get(part)?;
+            }
+            _ => return None,
+        }
+    }
+
+    Some(current.clone())
 }
 
 #[cfg(test)]

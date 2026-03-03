@@ -38,6 +38,22 @@ export const formFieldSchema = z.object({
 });
 
 /**
+ * 输出映射 Schema
+ */
+export const outputMappingSchema = z.object({
+  source: z.string().min(1, '源字段不能为空'),
+  target: z.string()
+    .min(1, '变量名不能为空')
+    .max(64, '变量名不能超过64个字符')
+    .regex(/^[a-zA-Z0-9_]+$/, '变量名只能包含字母、数字和下划线'),
+  description: z.string().optional(),
+  enabled: z.boolean().optional(),
+});
+
+export type OutputMappingFormData = z.infer<typeof outputMappingSchema>;
+
+
+/**
  * Header 键值对 Schema
  */
 export const headerEntrySchema = z.object({
@@ -55,7 +71,19 @@ export const httpConfigSchema = z.object({
   file_path: z.string().optional(),
   body: z.string().optional(),
   timeout_ms: z.number().optional(),
-});
+  output_mappings: z.array(outputMappingSchema).optional(),
+}).refine(
+  (data) => {
+    if (!data.output_mappings) return true;
+    const targets = data.output_mappings.map(m => m.target);
+    const uniqueTargets = new Set(targets);
+    return targets.length === uniqueTargets.size;
+  },
+  {
+    message: '变量名必须唯一',
+    path: ['output_mappings'],
+  }
+);
 
 export type HttpConfigFormData = z.infer<typeof httpConfigSchema>;
 export type HeaderEntry = z.infer<typeof headerEntrySchema>;
