@@ -29,7 +29,7 @@ function formatRelativeTime(timestamp: number): string {
 
 export function FlowListPanel() {
   const { setFlows, removeFlow: removeFlowFromList } = useFlowListStore();
-  const { setFlow, flow: currentFlow } = useFlowStore();
+  const { setFlow, flow: currentFlow, isDirty, markSaved } = useFlowStore();
   const { openNewFlowDialog, showConfirm } = useUIStore();
 
   // 加载流程列表 + 自动更新内置模板
@@ -65,6 +65,14 @@ export function FlowListPanel() {
   }, [setFlows, setFlow, currentFlow?.uuid]);
 
   const handleSelectFlow = (uuid: string) => {
+    // 切换流程前，自动保存当前流程（如果有未保存的修改）
+    if (currentFlow && isDirty) {
+      saveFlow(currentFlow);
+      markSaved();
+      // 更新流程列表中的时间戳
+      setFlows(listFlows());
+    }
+
     const flow = loadFlow(uuid);
     if (flow) {
       setFlow(flow);
