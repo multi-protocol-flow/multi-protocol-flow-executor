@@ -3,6 +3,8 @@
  * 与后端 src-tauri/src/node.rs 和 src-tauri/src/node_config.rs 中的结构体对齐
  */
 
+import type { OutputMapping, InitialVariable } from './variable';
+
 import type { Port } from './port';
 
 // ============================================================================
@@ -86,6 +88,11 @@ export type ConditionOperator =
   | 'ends_with'
   | 'exists';
 
+/**
+ * 期望值类型选择器
+ */
+export type ExpectedValueType = 'number' | 'string' | 'boolean' | 'null';
+
 // ============================================================================
 // 节点配置（判别联合类型）
 // ============================================================================
@@ -95,6 +102,8 @@ export type ConditionOperator =
  */
 export interface EntryConfig {
   type: 'entry';
+  /** 初始变量列表 */
+  initial_variables?: InitialVariable[];
 }
 
 export interface HttpConfig {
@@ -118,6 +127,8 @@ export interface HttpConfig {
   body?: string;
   /** 请求超时时间（毫秒） */
   timeout_ms?: number;
+  /** 输出变量映射 */
+  output_mappings?: OutputMapping[];
 }
 
 /**
@@ -135,6 +146,8 @@ export interface ConditionalConfig {
   expected_value?: unknown;
   /** 高级表达式（用于复杂条件） */
   advanced_expression?: string;
+  /** 期望值类型选择器 */
+  expected_value_type?: ExpectedValueType;
 }
 
 /**

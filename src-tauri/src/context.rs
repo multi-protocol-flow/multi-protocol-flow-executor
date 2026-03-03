@@ -2,7 +2,9 @@
 
 use crate::log_event::LogEvent;
 use crate::report::NodeExecutionReport;
+use crate::variable::Variable;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -158,81 +160,82 @@ impl ExecutionContext {
     }
 }
 
-/// 变量存储（节点隔离）
+/// 变量池（重构后的变量存储）
 ///
-/// 维护全局变量和各节点的局部变量，实现变量作用域隔离。
-/// 全局变量在所有节点间共享，局部变量仅在其所属节点内有效。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VariableStorage {
-    /// 全局变量（初始变量 + 显式提升的变量）
-    pub global: HashMap<String, serde_json::Value>,
-
-    /// 节点局部变量（node_uuid -> 变量映射）
-    pub nodes: HashMap<String, HashMap<String, serde_json::Value>>,
+/// 使用 Vec<Variable> 存储所有变量，每个变量包含来源节点信息。
+/// 支持按名称查找和按节点级联删除。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct VariablePool {
+    /// 变量列表
+    pub variables: Vec<Variable>,
 }
 
-impl VariableStorage {
-    /// 创建新的变量存储
+/// VariableStorage 是 VariablePool 的类型别名（向后兼容）
+pub type VariableStorage = VariablePool;
+
+impl VariablePool {
+    /// 创建新的变量池
     ///
     /// # 返回
     ///
-    /// 初始化的变量存储，包含空的全局变量映射和空的节点变量映射
+    /// 初始化的变量池，包含空的变量列表
     pub fn new() -> Self {
         Self {
-            global: HashMap::new(),
-            nodes: HashMap::new(),
+            variables: Vec::new(),
         }
     }
 
-    /// 设置全局变量
+    /// 设置变量（添加或更新）
+    ///
+    /// 如果同名变量已存在，则更新其值；否则添加新变量。
     ///
     /// # 参数
     ///
-    /// * `key` - 变量名
+    /// * `name` - 变量名
     /// * `value` - 变量值
-    pub fn set_global(&mut self, key: String, value: serde_json::Value) {
-        self.global.insert(key, value);
+    /// * `source_node_uuid` - 来源节点 UUID
+    pub fn set_variable(&mut self, name: String, value: Value, source_node_uuid: String) {
+        // 查找是否已存在同名变量
+        if let Some(existing) = self.variables.iter_mut().find(|v| v.name == name) {
+            existing.value = value;
+            existing.source_node_uuid = source_node_uuid;
+        } else {
+            self.variables.push(Variable {
+                name,
+                value,
+                source_node_uuid,
+                description: None,
+            });
+        }
     }
 
-    /// 获取全局变量
+    /// 获取变量值
     ///
     /// # 参数
     ///
-    /// * `key` - 变量名
+    /// * `name` - 变量名
     ///
     /// # 返回
     ///
     /// 变量值的引用，如果不存在则返回 None
-    pub fn get_global(&self, key: &str) -> Option<&serde_json::Value> {
-        self.global.get(key)
+    pub fn get_variable(&self, name: &str) -> Option<&Value> {
+        self.variables.iter().find(|v| v.name == name).map(|v| &v.value)
     }
 
-    /// 设置节点局部变量
+    /// 获取变量（完整信息）
     ///
     /// # 参数
     ///
-    /// * `node_uuid` - 节点 UUID
-    /// * `key` - 变量名
-    /// * `value` - 变量值
-    pub fn set_node_variable(&mut self, node_uuid: String, key: String, value: serde_json::Value) {
-        self.nodes.entry(node_uuid).or_default().insert(key, value);
-    }
-
-    /// 获取节点局部变量
-    ///
-    /// # 参数
-    ///
-    /// * `node_uuid` - 节点 UUID
-    /// * `key` - 变量名
+    /// * `name` - 变量名
     ///
     /// # 返回
     ///
-    /// 变量值的引用，如果不存在则返回 None
-    pub fn get_node_variable(&self, node_uuid: &str, key: &str) -> Option<&serde_json::Value> {
-        self.nodes.get(node_uuid)?.get(key)
+    /// 变量的引用，如果不存在则返回 None
+    pub fn get_variable_full(&self, name: &str) -> Option<&Variable> {
+        self.variables.iter().find(|v| v.name == name)
     }
 
-    /// 获取节点的所有局部变量
+    /// 删除节点的所有变量
     ///
     /// # 参数
     ///
@@ -240,66 +243,78 @@ impl VariableStorage {
     ///
     /// # 返回
     ///
-    /// 节点变量映射的引用，如果节点不存在则返回 None
+    /// 被删除的变量数量
+    pub fn remove_node_variables(&mut self, node_uuid: &str) -> usize {
+        let original_len = self.variables.len();
+        self.variables.retain(|v| v.source_node_uuid != node_uuid);
+        original_len - self.variables.len()
+    }
+
+    /// 获取合并后的变量（用于变量替换）
+    ///
+    /// 返回变量名到值的映射，用于模板变量替换。
+    ///
+    /// # 返回
+    ///
+    /// 变量名 → 值的 HashMap
+    pub fn get_merged_variables(&self) -> HashMap<String, Value> {
+        self.variables
+            .iter()
+            .map(|v| (v.name.clone(), v.value.clone()))
+            .collect()
+    }
+
+    // ===== 向后兼容方法 =====
+
+    /// 设置全局变量（向后兼容）
+    ///
+    /// 使用空字符串作为 source_node_uuid
+    #[deprecated(note = "请使用 set_variable 方法")]
+    pub fn set_global(&mut self, key: String, value: Value) {
+        self.set_variable(key, value, String::new());
+    }
+
+    /// 获取全局变量（向后兼容）
+    #[deprecated(note = "请使用 get_variable 方法")]
+    pub fn get_global(&self, key: &str) -> Option<&Value> {
+        self.get_variable(key)
+    }
+
+    /// 设置节点局部变量（向后兼容）
+    #[deprecated(note = "请使用 set_variable 方法")]
+    pub fn set_node_variable(&mut self, node_uuid: String, key: String, value: Value) {
+        self.set_variable(key, value, node_uuid);
+    }
+
+    /// 获取节点局部变量（向后兼容）
+    #[deprecated(note = "请使用 get_variable 方法")]
+    pub fn get_node_variable(&self, _node_uuid: &str, key: &str) -> Option<&Value> {
+        self.get_variable(key)
+    }
+
+    /// 获取节点的所有局部变量（向后兼容）
+    #[deprecated(note = "此方法在新架构中不再适用")]
     pub fn get_node_variables(
         &self,
         node_uuid: &str,
-    ) -> Option<&HashMap<String, serde_json::Value>> {
-        self.nodes.get(node_uuid)
-    }
-
-    /// 删除节点的所有局部变量
-    ///
-    /// # 参数
-    ///
-    /// * `node_uuid` - 节点 UUID
-    ///
-    /// # 返回
-    ///
-    /// 被删除的变量映射，如果节点不存在则返回 None
-    pub fn remove_node_variables(
-        &mut self,
-        node_uuid: &str,
-    ) -> Option<HashMap<String, serde_json::Value>> {
-        self.nodes.remove(node_uuid)
-    }
-
-    /// 合并全局变量到指定节点的局部变量
-    ///
-    /// 用于在节点执行时提供完整的变量上下文
-    ///
-    /// # 参数
-    ///
-    /// * `node_uuid` - 节点 UUID
-    ///
-    /// # 返回
-    ///
-    /// 合并后的变量映射（包含全局变量和节点局部变量）
-    pub fn get_merged_variables(&self, node_uuid: &str) -> HashMap<String, serde_json::Value> {
-        let mut merged = HashMap::new();
-        // 先添加全局变量
-        for (k, v) in &self.global {
-            merged.insert(k.clone(), v.clone());
+    ) -> Option<HashMap<String, Value>> {
+        let node_vars: HashMap<String, Value> = self
+            .variables
+            .iter()
+            .filter(|v| v.source_node_uuid == node_uuid)
+            .map(|v| (v.name.clone(), v.value.clone()))
+            .collect();
+        if node_vars.is_empty() {
+            None
+        } else {
+            Some(node_vars)
         }
-        // 再添加节点局部变量（会覆盖同名全局变量）
-        if let Some(node_vars) = self.nodes.get(node_uuid) {
-            for (k, v) in node_vars {
-                merged.insert(k.clone(), v.clone());
-            }
-        }
-        merged
     }
 }
-
-impl Default for VariableStorage {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn test_execution_context_creation() {
@@ -334,138 +349,160 @@ mod tests {
         assert_eq!(deserialized.flow_trigger_time, ctx.flow_trigger_time);
     }
 
-    #[test]
-    fn test_variable_storage_creation() {
-        let storage = VariableStorage::new();
+    // ===== VariablePool 新方法测试 =====
 
-        assert_eq!(storage.global.len(), 0);
-        assert_eq!(storage.nodes.len(), 0);
+    #[test]
+    fn test_variable_pool_creation() {
+        let pool = VariablePool::new();
+        assert!(pool.variables.is_empty());
     }
 
     #[test]
-    fn test_global_variable_operations() {
-        let mut storage = VariableStorage::new();
+    fn test_set_variable() {
+        let mut pool = VariablePool::new();
 
-        storage.set_global("key1".to_string(), serde_json::json!("value1"));
-
-        assert_eq!(
-            storage.get_global("key1"),
-            Some(&serde_json::json!("value1"))
+        // 添加新变量
+        pool.set_variable(
+            "token".to_string(),
+            json!("abc123"),
+            "auth-node".to_string(),
         );
-        assert!(storage.get_global("key2").is_none());
+
+        assert_eq!(pool.variables.len(), 1);
+        assert_eq!(pool.get_variable("token"), Some(&json!("abc123")));
+
+        // 更新现有变量
+        pool.set_variable(
+            "token".to_string(),
+            json!("xyz789"),
+            "refresh-node".to_string(),
+        );
+
+        assert_eq!(pool.variables.len(), 1); // 仍然是 1 个变量
+        assert_eq!(pool.get_variable("token"), Some(&json!("xyz789")));
+
+        // 验证 source_node_uuid 被更新
+        let var = pool.get_variable_full("token").unwrap();
+        assert_eq!(var.source_node_uuid, "refresh-node");
     }
 
     #[test]
-    fn test_node_variable_operations() {
-        let mut storage = VariableStorage::new();
+    fn test_get_variable() {
+        let mut pool = VariablePool::new();
 
-        storage.set_node_variable(
-            "node-1".to_string(),
-            "key1".to_string(),
-            serde_json::json!("value1"),
-        );
+        pool.set_variable("status".to_string(), json!(200), "http-node".to_string());
 
-        assert_eq!(
-            storage.get_node_variable("node-1", "key1"),
-            Some(&serde_json::json!("value1"))
-        );
-        assert!(storage.get_node_variable("node-1", "key2").is_none());
-        assert!(storage.get_node_variable("node-2", "key1").is_none());
+        assert_eq!(pool.get_variable("status"), Some(&json!(200)));
+        assert!(pool.get_variable("nonexistent").is_none());
     }
 
     #[test]
-    fn test_variable_storage_node_isolation() {
-        let mut storage = VariableStorage::new();
+    fn test_get_variable_full() {
+        let mut pool = VariablePool::new();
 
-        // 设置全局变量
-        storage.set_global("global".to_string(), serde_json::json!("global-value"));
-
-        // 为不同节点设置局部变量
-        storage.set_node_variable(
-            "node-1".to_string(),
-            "local".to_string(),
-            serde_json::json!("node1-value"),
-        );
-        storage.set_node_variable(
-            "node-2".to_string(),
-            "local".to_string(),
-            serde_json::json!("node2-value"),
+        pool.set_variable(
+            "user_id".to_string(),
+            json!(12345),
+            "entry-node".to_string(),
         );
 
-        // 验证节点隔离
-        assert_eq!(
-            storage.get_node_variable("node-1", "local"),
-            Some(&serde_json::json!("node1-value"))
-        );
-        assert_eq!(
-            storage.get_node_variable("node-2", "local"),
-            Some(&serde_json::json!("node2-value"))
-        );
-        assert_eq!(
-            storage.get_global("global"),
-            Some(&serde_json::json!("global-value"))
-        );
-    }
-
-    #[test]
-    fn test_get_merged_variables() {
-        let mut storage = VariableStorage::new();
-
-        // 设置全局变量
-        storage.set_global("global1".to_string(), serde_json::json!("global-value1"));
-        storage.set_global("override".to_string(), serde_json::json!("global-override"));
-
-        // 设置节点局部变量
-        storage.set_node_variable(
-            "node-1".to_string(),
-            "local1".to_string(),
-            serde_json::json!("node-value1"),
-        );
-        storage.set_node_variable(
-            "node-1".to_string(),
-            "override".to_string(),
-            serde_json::json!("node-override"),
-        );
-
-        let merged = storage.get_merged_variables("node-1");
-
-        // 验证全局变量被包含
-        assert_eq!(
-            merged.get("global1"),
-            Some(&serde_json::json!("global-value1"))
-        );
-
-        // 验证节点局部变量被包含
-        assert_eq!(
-            merged.get("local1"),
-            Some(&serde_json::json!("node-value1"))
-        );
-
-        // 验证节点局部变量覆盖全局变量
-        assert_eq!(
-            merged.get("override"),
-            Some(&serde_json::json!("node-override"))
-        );
+        let var = pool.get_variable_full("user_id").unwrap();
+        assert_eq!(var.name, "user_id");
+        assert_eq!(var.value, json!(12345));
+        assert_eq!(var.source_node_uuid, "entry-node");
     }
 
     #[test]
     fn test_remove_node_variables() {
-        let mut storage = VariableStorage::new();
+        let mut pool = VariablePool::new();
 
-        storage.set_node_variable(
-            "node-1".to_string(),
-            "key1".to_string(),
-            serde_json::json!("value1"),
-        );
+        // 添加多个变量
+        pool.set_variable("var1".to_string(), json!(1), "node-1".to_string());
+        pool.set_variable("var2".to_string(), json!(2), "node-1".to_string());
+        pool.set_variable("var3".to_string(), json!(3), "node-2".to_string());
 
-        // 删除节点变量
-        let removed = storage.remove_node_variables("node-1");
+        assert_eq!(pool.variables.len(), 3);
 
-        assert!(removed.is_some());
-        assert_eq!(
-            removed.unwrap().get("key1"),
-            Some(&serde_json::json!("value1"))
-        );
-        assert!(storage.get_node_variable("node-1", "key1").is_none());
+        // 删除 node-1 的变量
+        let removed_count = pool.remove_node_variables("node-1");
+
+        assert_eq!(removed_count, 2);
+        assert_eq!(pool.variables.len(), 1);
+        assert!(pool.get_variable("var1").is_none());
+        assert!(pool.get_variable("var2").is_none());
+        assert_eq!(pool.get_variable("var3"), Some(&json!(3)));
+
+        // 删除不存在的节点
+        let removed_count2 = pool.remove_node_variables("nonexistent");
+        assert_eq!(removed_count2, 0);
+    }
+
+    #[test]
+    fn test_get_merged_variables() {
+        let mut pool = VariablePool::new();
+
+        pool.set_variable("global1".to_string(), json!("value1"), "".to_string());
+        pool.set_variable("local1".to_string(), json!("local-value"), "node-1".to_string());
+
+        let merged = pool.get_merged_variables();
+
+        assert_eq!(merged.len(), 2);
+        assert_eq!(merged.get("global1"), Some(&json!("value1")));
+        assert_eq!(merged.get("local1"), Some(&json!("local-value")));
+    }
+
+    #[test]
+    fn test_variable_pool_serialization() {
+        let mut pool = VariablePool::new();
+        pool.set_variable("key1".to_string(), json!("value1"), "node-1".to_string());
+
+        let json_str = serde_json::to_string(&pool).expect("序列化失败");
+        let deserialized: VariablePool =
+            serde_json::from_str(&json_str).expect("反序列化失败");
+
+        assert_eq!(deserialized.variables.len(), 1);
+        assert_eq!(deserialized.variables[0].name, "key1");
+        assert_eq!(deserialized.variables[0].value, json!("value1"));
+    }
+
+    // ===== 向后兼容性测试 =====
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_backward_compatible_set_global() {
+        let mut pool = VariablePool::new();
+        pool.set_global("key1".to_string(), json!("value1"));
+
+        assert_eq!(pool.get_variable("key1"), Some(&json!("value1")));
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_backward_compatible_get_global() {
+        let mut pool = VariablePool::new();
+        pool.set_variable("key1".to_string(), json!("value1"), "".to_string());
+
+        assert_eq!(pool.get_global("key1"), Some(&json!("value1")));
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_backward_compatible_set_node_variable() {
+        let mut pool = VariablePool::new();
+        pool.set_node_variable("node-1".to_string(), "key1".to_string(), json!("value1"));
+
+        assert_eq!(pool.get_variable("key1"), Some(&json!("value1")));
+        let var = pool.get_variable_full("key1").unwrap();
+        assert_eq!(var.source_node_uuid, "node-1");
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn test_backward_compatible_get_node_variable() {
+        let mut pool = VariablePool::new();
+        pool.set_variable("key1".to_string(), json!("value1"), "node-1".to_string());
+
+        // 新架构中不再区分节点，get_node_variable 简单地查找变量
+        assert_eq!(pool.get_node_variable("node-1", "key1"), Some(&json!("value1")));
     }
 }

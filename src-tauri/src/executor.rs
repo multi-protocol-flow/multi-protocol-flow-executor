@@ -69,9 +69,9 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
         // 按点分割路径
         let path_parts: Vec<&str> = variable_path.split('.').collect();
 
-        // 从 context.variables.global 中获取值
-        let mut current_value: Option<&serde_json::Value> =
-            context.variables.global.get(path_parts[0]);
+        // 从合并后的变量中获取值
+        let merged_vars = context.variables.get_merged_variables();
+        let mut current_value: Option<&serde_json::Value> = merged_vars.get(path_parts[0]);
         let mut current_path = String::new();
 
         if current_value.is_none() {
@@ -363,7 +363,7 @@ impl FlowExecutor {
                         end_time: node_end_ms,
                         duration_ms: node_duration,
                         status: crate::report::ExecutionStatus::Success,
-                        input_data: Some(json!(context.variables.global)),
+                        input_data: Some(json!(context.variables.get_merged_variables())),
                         output_data: output_data.clone(),
                         used_port_id,
                         error: None,
@@ -474,7 +474,7 @@ impl FlowExecutor {
                             end_time: node_end_ms,
                             duration_ms: node_duration,
                             status: crate::report::ExecutionStatus::Success,
-                            input_data: Some(json!(context.variables.global)),
+                            input_data: Some(json!(context.variables.get_merged_variables())),
                             output_data: None,
                             used_port_id: Some("false".to_string()),
                             error: None,
@@ -504,7 +504,7 @@ impl FlowExecutor {
                             end_time: node_end_ms,
                             duration_ms: node_duration,
                             status: crate::report::ExecutionStatus::Success,
-                            input_data: Some(json!(context.variables.global)),
+                            input_data: Some(json!(context.variables.get_merged_variables())),
                             output_data: None,
                             used_port_id: None,
                             error: None,
@@ -534,7 +534,7 @@ impl FlowExecutor {
                         end_time: node_end_ms,
                         duration_ms: node_duration,
                         status: crate::report::ExecutionStatus::Failed,
-                        input_data: Some(json!(context.variables.global)),
+                        input_data: Some(json!(context.variables.get_merged_variables())),
                         output_data: None,
                         used_port_id,
                         error: Some(error_detail.clone()),

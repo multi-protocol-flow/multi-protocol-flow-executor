@@ -28,6 +28,7 @@ pub mod report;
 pub mod statistics;
 mod storage;
 mod validator;
+mod variable;
 
 // 公开类型导出
 pub use command::*;
@@ -46,6 +47,7 @@ pub use statistics::FlowStatistics;
 pub use validator::{FlowValidator, ValidationResult};
 pub use error::*;
 pub use log_event::{LogEvent, LogLevel};
+pub use variable::*;
 
 
 // 导出存储模块
