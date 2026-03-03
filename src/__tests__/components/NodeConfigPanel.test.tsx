@@ -279,7 +279,7 @@ describe('ConditionalConfig', () => {
   it('类型选择器在 greater_than 操作符时隐藏', () => {
     const greaterData: ConditionalConfigType = {
       ...defaultData,
-      operator: 'greater_than',
+      operator: 'greater',
     };
     render(<ConditionalConfig data={greaterData} onSave={mockOnSave} />);
 

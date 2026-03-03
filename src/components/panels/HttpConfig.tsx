@@ -9,6 +9,7 @@ import { httpConfigSchema, type HttpConfigFormData, type HeaderEntry, type HttpB
 import { open } from '@tauri-apps/plugin-dialog';
 import { Input } from '@/components/ui/input';
 import { VariableInput } from '@/components/ui/VariableInput';
+import { VariableValidationWarning } from '@/components/ui/VariableValidationWarning';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -168,6 +169,11 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     });
     return vars;
   }, [flow]);
+
+  // 提取可用变量名列表（用于验证）
+  const availableVariableNames = useMemo(() => {
+    return variables.map(v => v.name);
+  }, [variables]);
 
   // 节点标签映射
   const nodeLabels = useMemo(() => {
@@ -358,6 +364,11 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         {errors.url && (
           <p className="text-xs text-rose-500">{errors.url.message}</p>
         )}
+        <VariableValidationWarning
+          value={watch('url') || ''}
+          availableVariables={availableVariableNames}
+          compact
+        />
       </div>
 
       {/* 请求方法选择 */}
@@ -449,6 +460,11 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   placeholder="Value"
                   className="h-8 flex-1 font-mono text-xs"
                 />
+                <VariableValidationWarning
+                  value={watch(`headers.${index}.value`) || ''}
+                  availableVariables={availableVariableNames}
+                  compact
+                />
               </div>
             ))
           )}
@@ -495,6 +511,10 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           <p className="text-xs text-muted-foreground break-all">
             支持使用 <code className="rounded bg-muted px-1 py-0.5 break-all">{'{{变量名}}'}</code> 引用变量
           </p>
+          <VariableValidationWarning
+            value={watch('body') || ''}
+            availableVariables={availableVariableNames}
+          />
         </div>
       )}
 

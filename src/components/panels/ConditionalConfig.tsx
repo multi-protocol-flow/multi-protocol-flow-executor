@@ -12,6 +12,7 @@ import {
 } from './schemas';
 import { Label } from '@/components/ui/label';
 import { VariableInput } from '@/components/ui/VariableInput';
+import { VariableValidationWarning } from '@/components/ui/VariableValidationWarning';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Code2, Split } from 'lucide-react';
@@ -130,6 +131,11 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
     return vars;
   }, [flow]);
 
+  // 提取可用变量名列表（用于验证）
+  const availableVariableNames = useMemo(() => {
+    return variables.map(v => v.name);
+  }, [variables]);
+
   // 节点标签映射
   const nodeLabels = useMemo(() => {
     if (!flow) return {};
@@ -233,7 +239,11 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
             <p className="text-xs text-muted-foreground break-all">
               使用点号分隔的路径，如 <code className="rounded bg-muted px-1 break-all">http_response.data.id</code>
             </p>
-
+            <VariableValidationWarning
+              value={watch('field_path') || ''}
+              availableVariables={availableVariableNames}
+              compact
+            />
           </div>
 
           {/* 操作符 */}
@@ -307,7 +317,11 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
             <p className="text-xs text-muted-foreground break-all">
               支持数字、字符串或 JSON 值，如 <code className="rounded bg-muted px-1">200</code> 或 <code className="rounded bg-muted px-1">"success"</code>
             </p>
-
+            <VariableValidationWarning
+              value={watch('expected_value') || ''}
+              availableVariables={availableVariableNames}
+              compact
+            />
           </div>
         </>
       )}
@@ -334,6 +348,10 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
               <li>变量引用: <code className="rounded bg-muted px-1 break-all">http_response.status</code></li>
             </ul>
           </div>
+          <VariableValidationWarning
+            value={watch('advanced_expression') || ''}
+            availableVariables={availableVariableNames}
+          />
         </div>
       )}
     </form>
