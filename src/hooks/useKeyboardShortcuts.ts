@@ -9,11 +9,14 @@ import { useFlowStore, useUIStore } from '@/stores';
  * 键盘快捷键 Hook
  * 
  * 支持的快捷键：
- * - Delete / Backspace: 删除选中的节点（不能删除 Entry 节点）
+ * - Delete / Backspace: 删除选中的边（由 React Flow 处理）
  * - Escape: 取消选择节点
+ * - Ctrl/Cmd + B: 切换左侧面板
+ * - Ctrl/Cmd + H: 切换历史面板
+ * - Ctrl/Cmd + J: 切换配置面板
  */
 export function useKeyboardShortcuts() {
-  const { selectedNodeId, removeNode, flow, selectNode } = useFlowStore();
+  const { selectedNodeId, selectNode } = useFlowStore();
   const { toggleFlowListPanel, toggleHistoryPanel, toggleConfigPanel } = useUIStore();
 
   const handleKeyDown = useCallback(
@@ -25,17 +28,9 @@ export function useKeyboardShortcuts() {
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable;
 
-      // Delete / Backspace: 删除选中节点
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeId) {
-        if (isInputting) return;
-
-        const node = flow?.nodes.find((n) => n.uuid === selectedNodeId);
-        // 不能删除 Entry 节点
-        if (node && node.type !== 'entry') {
-          e.preventDefault();
-          removeNode(selectedNodeId);
-        }
-      }
+      // Delete / Backspace: 现在由 React Flow 的 deleteKeyCode 处理
+      // 边删除由 handleEdgesChange 处理，节点删除由 handleNodesChange 过滤
+      // 所以这里不需要额外处理 Delete/Backspace
 
       // Escape: 取消选择
       if (e.key === 'Escape') {
@@ -65,7 +60,7 @@ export function useKeyboardShortcuts() {
         toggleConfigPanel();
       }
     },
-    [selectedNodeId, removeNode, flow, selectNode, toggleFlowListPanel, toggleHistoryPanel, toggleConfigPanel]
+    [selectedNodeId, selectNode, toggleFlowListPanel, toggleHistoryPanel, toggleConfigPanel]
   );
 
   useEffect(() => {

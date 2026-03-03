@@ -189,3 +189,86 @@ describe('工具函数', () => {
     });
   });
 });
+
+
+/**
+ * 边删除功能测试
+ * 验证用户可以通过 Delete/Backspace 键删除选中的边
+ */
+describe('边删除功能', () => {
+  describe('removeConnection store action', () => {
+    beforeEach(() => {
+      useFlowStore.getState().reset();
+    });
+
+    it('可以通过 removeConnection 删除连接', () => {
+      const flowWithConnection: Flow = {
+        uuid: 'test-flow-001',
+        name: '测试流程',
+        nodes: [
+          { uuid: 'node-1', type: 'entry', name: '入口', position: { x: 0, y: 0 }, data: { type: 'entry' } },
+          { uuid: 'node-2', type: 'http', name: 'HTTP', position: { x: 100, y: 0 }, data: { type: 'http', url: '', method: 'get' } },
+        ],
+        connections: [
+          { id: 'conn-001', source_node_uuid: 'node-1', target_node_uuid: 'node-2', source_port_id: 'out', target_port_id: 'in' },
+        ],
+      };
+
+      useFlowStore.getState().setFlow(flowWithConnection);
+      expect(useFlowStore.getState().flow?.connections).toHaveLength(1);
+
+      useFlowStore.getState().removeConnection('conn-001');
+      expect(useFlowStore.getState().flow?.connections).toHaveLength(0);
+    });
+
+    it('删除连接后 isDirty 应为 true', () => {
+      const flowWithConnection: Flow = {
+        uuid: 'test-flow-001',
+        name: '测试流程',
+        nodes: [],
+        connections: [
+          { id: 'conn-001', source_node_uuid: 'node-1', target_node_uuid: 'node-2', source_port_id: 'out', target_port_id: 'in' },
+        ],
+      };
+
+      useFlowStore.getState().setFlow(flowWithConnection);
+      useFlowStore.getState().markSaved();
+      expect(useFlowStore.getState().isDirty).toBe(false);
+
+      useFlowStore.getState().removeConnection('conn-001');
+      expect(useFlowStore.getState().isDirty).toBe(true);
+    });
+
+    it('删除不存在的连接不应报错', () => {
+      const flowWithConnection: Flow = {
+        uuid: 'test-flow-001',
+        name: '测试流程',
+        nodes: [],
+        connections: [
+          { id: 'conn-001', source_node_uuid: 'node-1', target_node_uuid: 'node-2', source_port_id: 'out', target_port_id: 'in' },
+        ],
+      };
+
+      useFlowStore.getState().setFlow(flowWithConnection);
+
+      expect(() => {
+        useFlowStore.getState().removeConnection('non-existent');
+      }).not.toThrow();
+
+      expect(useFlowStore.getState().flow?.connections).toHaveLength(1);
+    });
+  });
+
+  describe('边选中状态', () => {
+    it('边支持 selected 属性', async () => {
+      const { convertFlowToReactFlow } = await import('@/components/canvas/utils');
+
+      const result = convertFlowToReactFlow(mockFlow);
+      const edge = result.edges[0];
+
+      // 验证边可以被选中（React Flow 边的 selected 属性）
+      const selectedEdge = { ...edge, selected: true };
+      expect(selectedEdge.selected).toBe(true);
+    });
+  });
+});

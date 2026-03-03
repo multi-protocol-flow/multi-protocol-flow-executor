@@ -249,10 +249,15 @@ function FlowCanvasInner() {
     setConfigPanelOpen(false);
   }, [selectNode, setConfigPanelOpen]);
 
-  // 处理节点变化（处理位置变化等）
+  // 处理节点变化（过滤掉删除变化，只处理位置变化等）
+  // 注意：节点删除需要通过工具栏按钮确认，防止误操作
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      onNodesChange(changes);
+      // 过滤掉删除变化，只处理其他变化（如位置移动）
+      const nonRemoveChanges = changes.filter((c) => c.type !== 'remove');
+      if (nonRemoveChanges.length > 0) {
+        onNodesChange(nonRemoveChanges);
+      }
     },
     [onNodesChange]
   );
@@ -448,16 +453,12 @@ function FlowCanvasInner() {
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        deleteKeyCode={[]}
-        // 禁用 Backspace/Delete 键删除节点/边
-        onKeyDown={(e) => {
-          if (e.key === 'Backspace' || e.key === 'Delete') {
-            e.preventDefault();
-            e.stopPropagation();
-          }
-        }}
+        // 允许 Backspace 和 Delete 键触发删除操作
+        // 节点删除在 handleNodesChange 中被过滤，只有边可被删除
+        deleteKeyCode={['Backspace', 'Delete']}
 
         fitView
+
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.1}
         maxZoom={2}
