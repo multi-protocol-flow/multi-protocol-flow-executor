@@ -6,9 +6,7 @@ use std::process;
 use std::time::Instant;
 
 // 导入类型和函数
-use app_lib::{load_flow, report, ExecutionResult, FlowExecutor};
-use app_lib::save_report;
-use report::{NodeExecutionReport, FlowExecutionReport};
+use app_lib::{load_flow, ExecutionResult, FlowExecutor, NodeExecutionReport, FlowExecutionReport, save_report};
 
 /// CLI 输出结果结构（与期望的 JSON 格式匹配）
 #[derive(serde::Serialize)]
@@ -143,7 +141,7 @@ async fn run() -> Result<(), String> {
         save_report(flow_report, &reports_dir)
             .map_err(|e| format!("保存报告失败: {}", e))?;
         
-        println!("报告已保存到: reports/{}.json", flow_report.uuid);
+        eprintln!("报告已保存到: reports/{}.json", flow_report.uuid);
     }
 
     // 如果执行失败，返回错误
@@ -162,6 +160,7 @@ async fn run() -> Result<(), String> {
 fn setup_logging() {
     // 获取日志目录
     let log_dir = app_lib::get_data_dir()
+        .ok()
         .map(|d| d.join("logs"))
         .unwrap_or_default();
     
@@ -189,7 +188,7 @@ fn setup_logging() {
             ))
         })
         .level(log::LevelFilter::Info)
-        .chain(std::io::stdout());
+        .chain(std::io::stderr());
     
     // 文件输出可选，失败不影响 CLI 执行
     if let Some(file) = file_logger {
