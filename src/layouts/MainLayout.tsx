@@ -63,11 +63,16 @@ export function MainLayout() {
   const openSettingsDialog = useUIStore((state) => state.openSettingsDialog);
   const showConfirm = useUIStore((state) => state.showConfirm);
 
-  const { isDirty, flow } = useFlowStore();
-  const nodes = useFlowStore((state) => state.flow?.nodes ?? []);
+  const isDirty = useFlowStore((state) => state.isDirty);
+  const flow = useFlowStore((state) => state.flow);
+  const nodes = flow?.nodes ?? [];
 
   // Console store values
-  const { filter, clearLogs, setFilter, setSearchKeyword, getUniqueNodes } = useConsoleStore();
+  const filter = useConsoleStore((state) => state.filter);
+  const clearLogs = useConsoleStore((state) => state.clearLogs);
+  const setFilter = useConsoleStore((state) => state.setFilter);
+  const setSearchKeyword = useConsoleStore((state) => state.setSearchKeyword);
+  const getUniqueNodes = useConsoleStore((state) => state.getUniqueNodes);
 
   // 清空控制台（带确认）
   const handleClearConsole = useCallback(() => {
