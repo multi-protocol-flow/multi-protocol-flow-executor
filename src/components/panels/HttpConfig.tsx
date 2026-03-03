@@ -4,17 +4,20 @@
  */
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useMemo } from 'react';
 import { httpConfigSchema, type HttpConfigFormData, type HeaderEntry, type HttpBodyType } from './schemas';
 import { open } from '@tauri-apps/plugin-dialog';
 import { Input } from '@/components/ui/input';
+import { VariableInput } from '@/components/ui/VariableInput';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2, Globe, X, ArrowRightFromLine, Info } from 'lucide-react';
 import type { HttpConfig as HttpConfigType } from '@/types';
-
+import type { Variable } from '@/types/variable';
+import { useFlowStore } from '@/stores';
+import { isEntryConfig, isHttpConfig } from '@/types/node';
 /** 检测是否在 Tauri 环境中运行 */
 const isTauriEnv = () => {
   return typeof window !== 'undefined' && '__TAURI__' in window;
@@ -129,6 +132,52 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     control,
     name: 'output_mappings' as never,
   });
+
+  // 获取 flow 并提取变量
+  const flow = useFlowStore((state) => state.flow);
+
+  // 提取变量列表 (参考 VariablePanel 的 extractVariableGroups 逻辑)
+  const variables: Variable[] = useMemo(() => {
+    if (!flow) return [];
+    const vars: Variable[] = [];
+    flow.nodes.forEach(node => {
+      // Entry 节点：提取 initial_variables
+      if (isEntryConfig(node.data) && node.data.initial_variables) {
+        node.data.initial_variables.forEach(iv => {
+          vars.push({
+            name: iv.name,
+            value: iv.value,
+            sourceNodeUuid: node.uuid,
+            description: iv.description,
+          });
+        });
+      }
+      // HTTP 节点：提取 output_mappings
+      if (isHttpConfig(node.data) && node.data.output_mappings) {
+        node.data.output_mappings.forEach(om => {
+          if (om.enabled !== false) {
+            vars.push({
+              name: om.target,
+              value: `{{${om.source}}}`,
+              sourceNodeUuid: node.uuid,
+              description: om.description,
+            });
+          }
+        });
+      }
+    });
+    return vars;
+  }, [flow]);
+
+  // 节点标签映射
+  const nodeLabels = useMemo(() => {
+    if (!flow) return {};
+    const labels: Record<string, string> = {};
+    flow.nodes.forEach(node => {
+      labels[node.uuid] = node.name;
+    });
+    return labels;
+  }, [flow]);
   // 监听 body_type 变化
   const watchedBodyType = watch('body_type');
 
@@ -296,9 +345,12 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         </Label>
         <div className="relative">
           <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+          <VariableInput
             id="url"
-            {...register('url')}
+            variables={variables}
+            nodeLabels={nodeLabels}
+            value={watch('url') || ''}
+            onValueChange={(value) => setValue('url', value)}
             placeholder="https://api.example.com/endpoint"
             className="pl-9 font-mono text-sm"
           />
@@ -389,8 +441,11 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <Input
-                  {...register(`headers.${index}.value`)}
+                <VariableInput
+                  variables={variables}
+                  nodeLabels={nodeLabels}
+                  value={watch(`headers.${index}.value`) || ''}
+                  onValueChange={(value) => setValue(`headers.${index}.value`, value)}
                   placeholder="Value"
                   className="h-8 flex-1 font-mono text-xs"
                 />
@@ -566,8 +621,11 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                           )}
                         </div>
                       ) : (
-                        <Input
-                          {...register(`form_fields.${index}.value`)}
+                        <VariableInput
+                          variables={variables}
+                          nodeLabels={nodeLabels}
+                          value={watch(`form_fields.${index}.value`) || ''}
+                          onValueChange={(value) => setValue(`form_fields.${index}.value`, value)}
                           placeholder="Value"
                           className="h-8 flex-1 font-mono text-xs"
                         />

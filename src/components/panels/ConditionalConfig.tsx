@@ -4,18 +4,21 @@
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import {
   conditionalConfigSchema,
   type ConditionalConfigFormData,
   OPERATOR_OPTIONS,
 } from './schemas';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { VariableInput } from '@/components/ui/VariableInput';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Code2, Split } from 'lucide-react';
 import type { ConditionalConfig as ConditionalConfigType, ConditionOperator } from '@/types';
+import type { Variable } from '@/types/variable';
+import { useFlowStore } from '@/stores';
+import { isEntryConfig, isHttpConfig } from '@/types/node';
 
 interface ConditionalConfigProps {
   /** 当前节点数据 */
@@ -88,6 +91,52 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
 
   const conditionType = watch('condition_type');
   const watchedOperator = watch('operator');
+
+  // 获取 flow 并提取变量
+  const flow = useFlowStore((state) => state.flow);
+
+  // 提取变量列表 (参考 VariablePanel 的 extractVariableGroups 逻辑)
+  const variables: Variable[] = useMemo(() => {
+    if (!flow) return [];
+    const vars: Variable[] = [];
+    flow.nodes.forEach(node => {
+      // Entry 节点：提取 initial_variables
+      if (isEntryConfig(node.data) && node.data.initial_variables) {
+        node.data.initial_variables.forEach(iv => {
+          vars.push({
+            name: iv.name,
+            value: iv.value,
+            sourceNodeUuid: node.uuid,
+            description: iv.description,
+          });
+        });
+      }
+      // HTTP 节点：提取 output_mappings
+      if (isHttpConfig(node.data) && node.data.output_mappings) {
+        node.data.output_mappings.forEach(om => {
+          if (om.enabled !== false) {
+            vars.push({
+              name: om.target,
+              value: `{{${om.source}}}`,
+              sourceNodeUuid: node.uuid,
+              description: om.description,
+            });
+          }
+        });
+      }
+    });
+    return vars;
+  }, [flow]);
+
+  // 节点标签映射
+  const nodeLabels = useMemo(() => {
+    if (!flow) return {};
+    const labels: Record<string, string> = {};
+    flow.nodes.forEach(node => {
+      labels[node.uuid] = node.name;
+    });
+    return labels;
+  }, [flow]);
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
@@ -169,9 +218,12 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
             <Label htmlFor="field_path" className="text-sm font-medium text-black">
               字段路径
             </Label>
-            <Input
+            <VariableInput
               id="field_path"
-              {...register('field_path')}
+              variables={variables}
+              nodeLabels={nodeLabels}
+              value={watch('field_path') || ''}
+              onValueChange={(value) => setValue('field_path', value)}
               placeholder="http_response.status"
               className="font-mono text-sm"
             />
@@ -211,9 +263,12 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
             <Label htmlFor="expected_value" className="text-sm font-medium text-black">
               期望值
             </Label>
-            <Input
+            <VariableInput
               id="expected_value"
-              {...register('expected_value')}
+              variables={variables}
+              nodeLabels={nodeLabels}
+              value={watch('expected_value') || ''}
+              onValueChange={(value) => setValue('expected_value', value)}
               placeholder="200"
               className="font-mono text-sm"
             />
