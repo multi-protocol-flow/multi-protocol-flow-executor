@@ -90,11 +90,14 @@ describe('NodeConfigPanel', () => {
 
   describe('HTTP 节点', () => {
     it('显示 HTTP 配置表单', () => {
-      (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-        getSelectedNode: () => mockFlow.nodes[1],
-        updateNode: mockUpdateNode,
+      (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: (state: unknown) => unknown) => {
+        const state = {
+          getSelectedNode: () => mockFlow.nodes[1],
+          updateNode: mockUpdateNode,
+          flow: mockFlow,
+        };
+        return selector ? selector(state) : state;
       });
-
       render(<NodeConfigPanel />);
 
       expect(screen.getByText('HTTP 请求')).toBeDefined();
@@ -104,11 +107,14 @@ describe('NodeConfigPanel', () => {
 
   describe('Conditional 节点', () => {
     it('显示条件配置表单', () => {
-      (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-        getSelectedNode: () => mockFlow.nodes[2],
-        updateNode: mockUpdateNode,
+      (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: (state: unknown) => unknown) => {
+        const state = {
+          getSelectedNode: () => mockFlow.nodes[2],
+          updateNode: mockUpdateNode,
+          flow: mockFlow,
+        };
+        return selector ? selector(state) : state;
       });
-
       render(<NodeConfigPanel />);
 
       expect(screen.getByText('条件判断')).toBeDefined();
@@ -129,6 +135,10 @@ describe('HttpConfig', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: (state: unknown) => unknown) => {
+      const state = { flow: null };
+      return selector ? selector(state) : state;
+    });
   });
 
   afterEach(() => {
@@ -198,6 +208,10 @@ describe('ConditionalConfig', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: (state: unknown) => unknown) => {
+      const state = { flow: null };
+      return selector ? selector(state) : state;
+    });
   });
 
   afterEach(() => {
