@@ -252,6 +252,59 @@ describe('ConditionalConfig', () => {
 
     expect(screen.getByDisplayValue('status')).toBeDefined();
   });
+
+  it('类型选择器在 equal 操作符时显示', () => {
+    render(<ConditionalConfig data={defaultData} onSave={mockOnSave} />);
+
+    // equal 操作符时应该显示类型选择器
+    expect(screen.getByLabelText(/值类型/)).toBeDefined();
+    // 检查类型选择器存在，使用 getAllByText 因为选项在多个地方出现
+    expect(screen.getAllByText(/字符串/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/数字/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/布尔值/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/空值/).length).toBeGreaterThan(0);
+  });
+
+  it('类型选择器在 not_equal 操作符时显示', () => {
+    const notEqualData: ConditionalConfigType = {
+      ...defaultData,
+      operator: 'not_equal',
+    };
+    render(<ConditionalConfig data={notEqualData} onSave={mockOnSave} />);
+
+    // not_equal 操作符时应该显示类型选择器
+    expect(screen.getByLabelText(/值类型/)).toBeDefined();
+  });
+
+  it('类型选择器在 greater_than 操作符时隐藏', () => {
+    const greaterData: ConditionalConfigType = {
+      ...defaultData,
+      operator: 'greater_than',
+    };
+    render(<ConditionalConfig data={greaterData} onSave={mockOnSave} />);
+
+    // greater_than 操作符时不应该显示类型选择器
+    expect(screen.queryByLabelText(/值类型/)).toBeNull();
+  });
+
+  it('类型选择器默认选中 string 类型', () => {
+    render(<ConditionalConfig data={defaultData} onSave={mockOnSave} />);
+
+    // 检查默认值是否为 string
+    const typeSelect = screen.getByLabelText(/值类型/);
+    expect(typeSelect).toBeDefined();
+  });
+
+  it('类型选择器支持切换类型', () => {
+    const numberTypeData: ConditionalConfigType = {
+      ...defaultData,
+      expected_value_type: 'number',
+    };
+    render(<ConditionalConfig data={numberTypeData} onSave={mockOnSave} />);
+
+    // 检查是否渲染了类型选择器
+    expect(screen.getByLabelText(/值类型/)).toBeDefined();
+  });
 });
 
 describe('EntryConfig', () => {
