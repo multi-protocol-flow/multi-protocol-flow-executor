@@ -4,11 +4,11 @@
   "nodes": [
     {
       "uuid": "start-001",
-      "type": "start",
+      "type": "entry",
       "name": "开始",
       "position": { "x": 0.0, "y": 0.0 },
       "data": {
-        "type": "start",
+        "type": "entry",
         "initial_variables": {
           "user_id": "12345",
           "api_key": "sk-xxx"
