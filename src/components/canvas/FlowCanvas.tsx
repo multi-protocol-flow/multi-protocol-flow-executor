@@ -442,8 +442,15 @@ function FlowCanvasInner() {
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        deleteKeyCode={null}
-        fitView
+        deleteKeyCode={[]}
+        // 禁用 Backspace/Delete 键删除节点/边
+        onKeyDown={(e) => {
+          if (e.key === 'Backspace' || e.key === 'Delete') {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }}
+
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.1}
         maxZoom={2}
