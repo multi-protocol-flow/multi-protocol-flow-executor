@@ -15,8 +15,7 @@ vi.mock('@xyflow/react', async () => {
     ...actual,
     useReactFlow: () => ({
       screenToFlowPosition: ({ x, y }: { x: number; y: number }) => ({ x, y }),
-      getViewport: () => ({ x: 0, y: 0, zoom: 1 }),
-      setCenter: vi.fn(),
+      fitView: vi.fn(),
     }),
   };
 });
@@ -84,6 +83,8 @@ describe('FlowCanvas - Drag and Drop', () => {
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
     expect(state.flow?.nodes[1].type).toBe('http');
+    // 验证节点位置使用鼠标释放位置
+    expect(state.flow?.nodes[1].position).toEqual({ x: 200, y: 150 });
   });
 
   it('应该添加 Conditional 节点当拖放 conditional 类型时', () => {
@@ -118,6 +119,8 @@ describe('FlowCanvas - Drag and Drop', () => {
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
     expect(state.flow?.nodes[1].type).toBe('conditional');
+    // 验证节点位置使用鼠标释放位置
+    expect(state.flow?.nodes[1].position).toEqual({ x: 300, y: 200 });
   });
 
   it('当没有流程时不应该添加节点', () => {
@@ -132,3 +135,46 @@ describe('FlowCanvas - Drag and Drop', () => {
     expect(reactFlowElement).toBeNull();
   });
 });
+
+  it('节点应该放置在鼠标释放位置，而不是画布中心', () => {
+    useFlowStore.getState().setFlow(mockFlow);
+
+    const { container } = render(
+      <TestWrapper>
+        <FlowCanvas />
+      </TestWrapper>
+    );
+
+    const reactFlowElement = container.querySelector('.react-flow');
+    if (!reactFlowElement) {
+      throw new Error('ReactFlow element not found');
+    }
+
+    // 在不同位置拖放多个节点，验证位置准确性
+    const positions = [
+      { x: 100, y: 100 },
+      { x: 400, y: 300 },
+      { x: 50, y: 500 },
+    ];
+
+    positions.forEach((pos, index) => {
+      const dropEvent = new Event('drop', { bubbles: true });
+      Object.assign(dropEvent, {
+        preventDefault: vi.fn(),
+        dataTransfer: {
+          getData: (key: string) => {
+            if (key === 'application/reactflow/nodeType') return 'http';
+            return '';
+          },
+        },
+        clientX: pos.x,
+        clientY: pos.y,
+      });
+
+      reactFlowElement.dispatchEvent(dropEvent);
+
+      const state = useFlowStore.getState();
+      const addedNode = state.flow?.nodes[index + 1]; // +1 因为第一个是 entry 节点
+      expect(addedNode?.position).toEqual(pos);
+    });
+  });

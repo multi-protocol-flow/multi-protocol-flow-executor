@@ -4,12 +4,24 @@
 /**
  * FlowCanvas 组件测试
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { FlowCanvas } from '@/components/canvas';
 import { useFlowStore } from '@/stores';
 import type { Flow } from '@/types';
+
+// Mock useReactFlow
+vi.mock('@xyflow/react', async () => {
+  const actual = await vi.importActual('@xyflow/react');
+  return {
+    ...actual,
+    useReactFlow: () => ({
+      screenToFlowPosition: ({ x, y }: { x: number; y: number }) => ({ x, y }),
+      fitView: vi.fn(),
+    }),
+  };
+});
 
 // 包装器组件，提供 ReactFlow 上下文
 function TestWrapper({ children }: { children: React.ReactNode }) {

@@ -110,11 +110,13 @@ function FlowCanvasInner() {
   } = useFlowStore();
   const { setConfigPanelOpen, setConfigPanelMode } = useUIStore();
 
-  const { screenToFlowPosition, setCenter, getViewport } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
   
   // 画布容器引用（用于计算视口中心）
   const canvasRef = useRef<HTMLDivElement>(null);
-
+  
+  // 跟踪已触发 fitView 的流程，避免重复触发
+  const fittedFlowUuidRef = useRef<string | null>(null);
   // 转换 Flow 数据为 React Flow 格式
   const initialData = useMemo(() => {
     if (!flow) return { nodes: [], edges: [] };
@@ -167,6 +169,17 @@ function FlowCanvasInner() {
   // 注意：这里故意不依赖 nodes/edges，避免循环更新
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flow, setNodes, setEdges]);
+
+  // 流程首次加载或切换时触发 fitView
+  useEffect(() => {
+    if (flow && flow.uuid !== fittedFlowUuidRef.current) {
+      fittedFlowUuidRef.current = flow.uuid;
+      // 使用 setTimeout 确保 ReactFlow 已完成节点渲染
+      setTimeout(() => {
+        fitView({ padding: 0.2, duration: 300 });
+      }, 100);
+    }
+  }, [flow?.uuid, fitView]);
 
   // 处理连接创建
   const onConnect = useCallback(
@@ -273,6 +286,7 @@ function FlowCanvasInner() {
   }, []);
 
   // 处理拖放 - 使用鼠标实际位置
+  // 处理拖放 - 使用鼠标实际位置
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
@@ -280,10 +294,7 @@ function FlowCanvasInner() {
       const nodeType = event.dataTransfer.getData('application/reactflow/nodeType');
       if (!nodeType || !flow) return;
 
-      // 获取当前视口信息
-      const { zoom } = getViewport();
-
-      // 使用鼠标实际位置（而非画布中心）转换为流程坐标
+      // 使用鼠标实际位置转换为流程坐标
       const position = screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
@@ -316,13 +327,8 @@ function FlowCanvasInner() {
           },
         });
       }
-
-      // 将视角移动到新节点位置（带动画效果）
-      setTimeout(() => {
-        setCenter(position.x, position.y, { zoom, duration: 300 });
-      }, 50);
     },
-    [screenToFlowPosition, flow, addNode, getViewport, setCenter]
+    [screenToFlowPosition, flow, addNode]
   );
 
   // 处理点击添加节点请求 - 在当前视口中心添加节点
@@ -451,6 +457,7 @@ function FlowCanvasInner() {
           }
         }}
 
+        fitView
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.1}
         maxZoom={2}
