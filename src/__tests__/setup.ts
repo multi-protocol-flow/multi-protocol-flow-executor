@@ -13,6 +13,21 @@ if (typeof global !== 'undefined') {
   global.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver
 }
 
+// Mock window.matchMedia for components that check media queries
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {}, // deprecated
+    removeListener: () => {}, // deprecated
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }),
+})
+
 // Mock window.getComputedStyle for React Flow (仅在 window 存在时)
 if (typeof window !== 'undefined') {
   const originalGetComputedStyle = window.getComputedStyle

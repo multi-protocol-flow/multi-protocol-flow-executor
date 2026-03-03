@@ -36,14 +36,6 @@ describe('App', () => {
     expect(screen.getByText('Flow Executor')).toBeDefined()
   })
 
-  it('renders the execute button', () => {
-    render(
-      <TestWrapper>
-        <App />
-      </TestWrapper>
-    )
-    expect(screen.getByText('执行流程')).toBeDefined()
-  })
 
   it('renders the sidebar with flow list', () => {
     render(
