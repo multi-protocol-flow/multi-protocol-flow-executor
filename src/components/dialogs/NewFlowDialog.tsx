@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUIStore, useFlowStore, useFlowListStore } from '@/stores';
 import { createFlow } from '@/services/tauri';
-
+import { saveFlow } from '@/services/storage/flowStorage';
 export function NewFlowDialog() {
   const showNewFlowDialog = useUIStore((state) => state.showNewFlowDialog);
   const closeNewFlowDialog = useUIStore((state) => state.closeNewFlowDialog);
@@ -37,10 +37,13 @@ export function NewFlowDialog() {
       // 1. 创建流程（createFlow 已包含 entry 节点）
       const newFlow = await createFlow(flowName.trim());
 
-      // 2. 设置当前流程
+      // 2. 持久化流程到存储
+      saveFlow(newFlow);
+
+      // 3. 设置当前流程
       setFlow(newFlow);
 
-      // 3. 添加到流程列表
+      // 4. 添加到流程列表
       addFlow({
         uuid: newFlow.uuid,
         name: newFlow.name,
