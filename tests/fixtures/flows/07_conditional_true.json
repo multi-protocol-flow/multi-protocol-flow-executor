@@ -5,10 +5,10 @@
   "nodes": [
     {
       "uuid": "start-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
-      "type": "start",
+      "type": "entry",
       "name": "开始",
       "position": { "x": 0.0, "y": 0.0 },
-      "data": { "type": "start" },
+      "data": { "type": "entry" },
       "ports": null
     },
     {

@@ -4,10 +4,10 @@
   "nodes": [
     {
       "uuid": "start-001",
-      "type": "start",
+      "type": "entry",
       "name": "旧版Start节点",
       "position": { "x": 0.0, "y": 0.0 },
-      "data": { "type": "start" },
+      "data": { "type": "entry" },
       "ports": null
     }
   ],
