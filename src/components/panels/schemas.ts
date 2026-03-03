@@ -118,6 +118,11 @@ export const conditionOperatorSchema = z.enum([
 ]);
 
 /**
+ * 期望值类型枚举
+ */
+export const expectedValueTypeSchema = z.enum(['number', 'string', 'boolean', 'null']);
+
+/**
  * Conditional 配置表单 Schema
  */
 export const conditionalConfigSchema = z.object({
@@ -126,6 +131,7 @@ export const conditionalConfigSchema = z.object({
   operator: conditionOperatorSchema.optional(),
   expected_value: z.string().optional(),
   advanced_expression: z.string().optional(),
+  expected_value_type: expectedValueTypeSchema.optional(),
 });
 
 export type ConditionalConfigFormData = z.infer<typeof conditionalConfigSchema>;

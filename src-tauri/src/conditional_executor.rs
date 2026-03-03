@@ -4,7 +4,7 @@ use crate::error::{ErrorDetail, ErrorKind};
 use crate::executor::NodeExecutor;
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
-use crate::node_config::{ConditionOperator, ConditionType, NodeData};
+use crate::node_config::{ConditionOperator, ConditionType, ExpectedValueType, NodeData};
 use evalexpr::ContextWithMutableVariables;
 use serde_json::json;
 use std::collections::HashMap;
@@ -23,6 +23,69 @@ impl ConditionalNodeExecutor {
     /// 创建新的条件节点执行器
     pub fn new() -> Self {
         Self
+    }
+
+    /// 根据类型解析期望值
+    ///
+    /// # 参数
+    /// - `value`: 期望值（JSON Value）
+    /// - `value_type`: 期望值类型
+    ///
+    /// # 返回
+    /// - `Ok(Value)`: 解析后的 JSON 值
+    /// - `Err(String)`: 解析失败
+    fn parse_expected_value(
+        value: &serde_json::Value,
+        value_type: Option<&ExpectedValueType>,
+    ) -> Result<serde_json::Value, String> {
+        // 如果没有指定类型，直接返回原值
+        let value_type = match value_type {
+            Some(vt) => vt,
+            None => return Ok(value.clone()),
+        };
+
+        // 将值转换为字符串进行解析
+        let value_str = match value {
+            serde_json::Value::String(s) => s.clone(),
+            serde_json::Value::Number(n) => n.to_string(),
+            serde_json::Value::Bool(b) => b.to_string(),
+            serde_json::Value::Null => "null".to_string(),
+            _ => return Ok(value.clone()), // 复杂类型直接返回
+        };
+
+        match value_type {
+            ExpectedValueType::Number => {
+                value_str
+                    .parse::<f64>()
+                    .map(|n| {
+                        if n.fract() == 0.0 {
+                            serde_json::Value::Number(serde_json::Number::from(n as i64))
+                        } else {
+                            serde_json::Value::Number(
+                                serde_json::Number::from_f64(n)
+                                    .unwrap_or_else(|| serde_json::Number::from(0)),
+                            )
+                        }
+                    })
+                    .map_err(|e| format!("无法解析为数字: {}", e))
+            }
+            ExpectedValueType::Boolean => match value_str.to_lowercase().as_str() {
+                "true" => Ok(serde_json::Value::Bool(true)),
+                "false" => Ok(serde_json::Value::Bool(false)),
+                _ => Err(format!("无法解析为布尔值: {}", value_str)),
+            },
+            ExpectedValueType::Null => {
+                if value_str.is_empty() || value_str.to_lowercase() == "null" {
+                    Ok(serde_json::Value::Null)
+                } else {
+                    Err(format!("期望 null 但得到: {}", value_str))
+                }
+            }
+            ExpectedValueType::String => {
+                // 字符串类型：直接使用字符串值
+                Ok(serde_json::Value::String(value_str))
+            }
+        }
     }
 }
 
@@ -227,10 +290,27 @@ impl ConditionalNodeExecutor {
         log::info!("[条件评估] 提取的值: {:?}", actual_value);
 
         // 获取 expected_value（对于 exists 操作符不需要 expected_value）
-        let expected_value = config.expected_value.as_ref();
+        let expected_value_raw = config.expected_value.as_ref();
+
+        // 解析 expected_value_type 并应用类型解析
+        let expected_value_type = config
+            .expected_value_type
+            .as_ref()
+            .and_then(|v| serde_json::from_value::<ExpectedValueType>(v.clone()).ok());
+
+        let expected_value = match (expected_value_raw, &expected_value_type) {
+            (Some(raw), Some(_)) => {
+                // 有类型指定，使用类型解析
+                Some(Self::parse_expected_value(raw, expected_value_type.as_ref())?)
+            }
+            (Some(raw), None) => Some(raw.clone()),
+            (None, _) => None,
+        };
+
+        log::info!("[条件评估] 期望值类型: {:?}, 解析后期望值: {:?}", expected_value_type, expected_value);
 
         // 使用 operator 比较提取值和 expected_value
-        let result = self.compare_values(operator, &actual_value, expected_value)?;
+        let result = self.compare_values(operator, &actual_value, expected_value.as_ref())?;
 
         log::info!("[条件评估] 比较结果: {}", result);
         Ok(result)
@@ -495,7 +575,7 @@ mod tests {
     use crate::context::{ExecutionContext, VariableStorage};
     use crate::node::{Node, NodeType, NodePosition};
     use crate::node_config::NodeData;
-    use crate::node_config::{ConditionalConfig, ConditionOperator, ConditionType};
+    use crate::node_config::{ConditionalConfig, ConditionOperator, ConditionType, ExpectedValueType};
     use serde_json::json;
     use std::collections::HashMap;
 
@@ -538,6 +618,7 @@ mod tests {
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -559,6 +640,7 @@ mod tests {
             operator: Some(ConditionOperator::NotEqual),
             expected_value: Some(serde_json::json!(30)),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -580,6 +662,7 @@ mod tests {
             operator: Some(ConditionOperator::Greater),
             expected_value: Some(serde_json::json!(20)),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -601,6 +684,7 @@ mod tests {
             operator: Some(ConditionOperator::GreaterOrEqual),
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -622,6 +706,7 @@ mod tests {
             operator: Some(ConditionOperator::Less),
             expected_value: Some(serde_json::json!(30)),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -643,6 +728,7 @@ mod tests {
             operator: Some(ConditionOperator::LessOrEqual),
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -664,6 +750,7 @@ mod tests {
             operator: Some(ConditionOperator::Contains),
             expected_value: Some(serde_json::json!("John")),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -685,6 +772,7 @@ mod tests {
             operator: Some(ConditionOperator::StartsWith),
             expected_value: Some(serde_json::json!("John")),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -706,6 +794,7 @@ mod tests {
             operator: Some(ConditionOperator::EndsWith),
             expected_value: Some(serde_json::json!("Doe")),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -727,6 +816,7 @@ mod tests {
             operator: Some(ConditionOperator::Exists),
             expected_value: None,
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -748,6 +838,7 @@ mod tests {
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::json!(30)),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -772,6 +863,7 @@ mod tests {
             operator: None,
             expected_value: None,
             advanced_expression: Some("age > 20 && name == \"John\"".to_string()),
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -792,6 +884,7 @@ mod tests {
             operator: None,
             expected_value: None,
             advanced_expression: Some("age > 30 || name == \"John\"".to_string()),
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -812,6 +905,7 @@ mod tests {
             operator: None,
             expected_value: None,
             advanced_expression: Some("age > 30 && name == \"Jane\"".to_string()),
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -835,6 +929,7 @@ mod tests {
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::json!("active")),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -865,6 +960,7 @@ mod tests {
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::json!("")),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -886,6 +982,7 @@ mod tests {
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::Value::Null),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -907,6 +1004,7 @@ mod tests {
             operator: Some(ConditionOperator::Exists),
             expected_value: None,
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -931,6 +1029,7 @@ mod tests {
             operator: Some(ConditionOperator::Greater), // 使用Greater来触发类型检查
             expected_value: Some(serde_json::json!(20)),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -941,7 +1040,7 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "类型不匹配应该返回错误");
-        assert!(result.unwrap_err().contains("actual不是数字类型"), "错误信息应该包含'actual不是数字类型'");
+        assert!(result.unwrap_err().contains("actual不是数字类型"), "错误信息应该包含 actual不是数字类型");
     }
 
     #[tokio::test]
@@ -952,7 +1051,8 @@ mod tests {
             field_path: None,
             operator: None,
             expected_value: None,
-            advanced_expression: Some("age > 20 && name ==".to_string()), // 语法错误
+            advanced_expression: Some("age > 20 && name == \"\"".to_string()), // 语法错误
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -962,7 +1062,7 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "语法错误应该返回错误");
-        assert!(result.unwrap_err().contains("评估表达式"), "错误信息应该包含'评估表达式'");
+        assert!(result.unwrap_err().contains("评估表达式"), "错误信息应该包含 评估表达式");
     }
 
     #[tokio::test]
@@ -974,6 +1074,7 @@ mod tests {
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -982,7 +1083,7 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "缺少field_path应该返回错误");
-        assert!(result.unwrap_err().contains("简单条件缺少 field_path"), "错误信息应该包含'简单条件缺少 field_path'");
+        assert!(result.unwrap_err().contains("简单条件缺少 field_path"), "错误信息应该包含 简单条件缺少 field_path");
     }
 
     #[tokio::test]
@@ -994,6 +1095,7 @@ mod tests {
             operator: None, // 缺少operator
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1002,7 +1104,7 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "缺少operator应该返回错误");
-        assert!(result.unwrap_err().contains("简单条件缺少 operator"), "错误信息应该包含'简单条件缺少 operator'");
+        assert!(result.unwrap_err().contains("简单条件缺少 operator"), "错误信息应该包含 简单条件缺少 operator");
     }
 
     #[tokio::test]
@@ -1014,6 +1116,7 @@ mod tests {
             operator: None,
             expected_value: None,
             advanced_expression: None, // 缺少advanced_expression
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1022,7 +1125,7 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "缺少advanced_expression应该返回错误");
-        assert!(result.unwrap_err().contains("缺少advanced_expression"), "错误信息应该包含'缺少advanced_expression'");
+        assert!(result.unwrap_err().contains("缺少advanced_expression"), "错误信息应该包含 缺少advanced_expression");
     }
 
     #[tokio::test]
@@ -1034,6 +1137,7 @@ mod tests {
             operator: None,
             expected_value: None,
             advanced_expression: Some("!(age > 30)".to_string()),
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1053,6 +1157,7 @@ mod tests {
             operator: None,
             expected_value: None,
             advanced_expression: Some("status == \"active\" && count > 0".to_string()),
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1073,6 +1178,7 @@ mod tests {
             operator: None,
             expected_value: None,
             advanced_expression: Some("(age * 2) > 40 && (age + 5) < 60".to_string()),
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1092,6 +1198,7 @@ mod tests {
             operator: None,
             expected_value: None,
             advanced_expression: Some("name != \"\" && name == \"John\"".to_string()),
+            expected_value_type: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1100,5 +1207,206 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok(), "字符串比较应该正确工作");
+    }
+
+    // ============================================================================
+    // parse_expected_value 函数测试
+    // ============================================================================
+
+    #[test]
+    fn test_parse_number() {
+        let result = ConditionalNodeExecutor::parse_expected_value(
+            &serde_json::json!("200"),
+            Some(&ExpectedValueType::Number),
+        )
+        .unwrap();
+        assert_eq!(result, serde_json::Value::Number(200.into()));
+    }
+
+    #[test]
+    fn test_parse_number_float() {
+        let result = ConditionalNodeExecutor::parse_expected_value(
+            &serde_json::json!("3.14"),
+            Some(&ExpectedValueType::Number),
+        )
+        .unwrap();
+        assert_eq!(
+            result,
+            serde_json::Value::Number(serde_json::Number::from_f64(3.14).unwrap())
+        );
+    }
+
+    #[test]
+    fn test_parse_boolean_true() {
+        let result = ConditionalNodeExecutor::parse_expected_value(
+            &serde_json::json!("true"),
+            Some(&ExpectedValueType::Boolean),
+        )
+        .unwrap();
+        assert_eq!(result, serde_json::Value::Bool(true));
+    }
+
+    #[test]
+    fn test_parse_boolean_false() {
+        let result = ConditionalNodeExecutor::parse_expected_value(
+            &serde_json::json!("false"),
+            Some(&ExpectedValueType::Boolean),
+        )
+        .unwrap();
+        assert_eq!(result, serde_json::Value::Bool(false));
+    }
+
+    #[test]
+    fn test_parse_null() {
+        let result = ConditionalNodeExecutor::parse_expected_value(
+            &serde_json::json!("null"),
+            Some(&ExpectedValueType::Null),
+        )
+        .unwrap();
+        assert_eq!(result, serde_json::Value::Null);
+    }
+
+    #[test]
+    fn test_parse_null_empty() {
+        let result = ConditionalNodeExecutor::parse_expected_value(
+            &serde_json::json!(""),
+            Some(&ExpectedValueType::Null),
+        )
+        .unwrap();
+        assert_eq!(result, serde_json::Value::Null);
+    }
+
+    #[test]
+    fn test_parse_string() {
+        let result = ConditionalNodeExecutor::parse_expected_value(
+            &serde_json::json!("hello"),
+            Some(&ExpectedValueType::String),
+        )
+        .unwrap();
+        assert_eq!(result, serde_json::Value::String("hello".to_string()));
+    }
+
+    #[test]
+    fn test_parse_no_type_returns_original() {
+        let result = ConditionalNodeExecutor::parse_expected_value(
+            &serde_json::json!("hello"),
+            None,
+        )
+        .unwrap();
+        assert_eq!(result, serde_json::Value::String("hello".to_string()));
+    }
+
+    #[test]
+    fn test_parse_number_from_json_number() {
+        // 当值已经是 JSON Number 时
+        let result = ConditionalNodeExecutor::parse_expected_value(
+            &serde_json::json!(200),
+            Some(&ExpectedValueType::Number),
+        )
+        .unwrap();
+        assert_eq!(result, serde_json::Value::Number(200.into()));
+    }
+
+    #[test]
+    fn test_parse_boolean_invalid() {
+        let result = ConditionalNodeExecutor::parse_expected_value(
+            &serde_json::json!("yes"),
+            Some(&ExpectedValueType::Boolean),
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("无法解析为布尔值"));
+    }
+
+    #[test]
+    fn test_parse_number_invalid() {
+        let result = ConditionalNodeExecutor::parse_expected_value(
+            &serde_json::json!("not_a_number"),
+            Some(&ExpectedValueType::Number),
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("无法解析为数字"));
+    }
+
+    #[test]
+    fn test_parse_null_invalid() {
+        let result = ConditionalNodeExecutor::parse_expected_value(
+            &serde_json::json!("something"),
+            Some(&ExpectedValueType::Null),
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("期望 null 但得到"));
+    }
+
+    // ============================================================================
+    // 带类型选择器的集成测试
+    // ============================================================================
+
+    #[tokio::test]
+    async fn test_simple_condition_with_type_number() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("status".to_string()),
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!("200")), // 字符串 "200"
+            advanced_expression: None,
+            expected_value_type: Some(serde_json::json!("number")), // 解析为数字
+        };
+        let node = create_test_node(config);
+        let mut context = create_test_context(serde_json::json!({
+            "status": 200 // 实际值是数字
+        }));
+
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        assert!(result.is_ok());
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty()); // true 分支无连接
+        assert_eq!(output_data.unwrap(), json!(true));
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_with_type_boolean() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("enabled".to_string()),
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!("true")), // 字符串 "true"
+            advanced_expression: None,
+            expected_value_type: Some(serde_json::json!("boolean")), // 解析为布尔
+        };
+        let node = create_test_node(config);
+        let mut context = create_test_context(serde_json::json!({
+            "enabled": true
+        }));
+
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        assert!(result.is_ok());
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(true));
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_with_type_string() {
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("name".to_string()),
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!(200)), // 数字 200
+            advanced_expression: None,
+            expected_value_type: Some(serde_json::json!("string")), // 解析为字符串 "200"
+        };
+        let node = create_test_node(config);
+        let mut context = create_test_context(serde_json::json!({
+            "name": "200" // 字符串 "200"
+        }));
+
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        assert!(result.is_ok());
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(true));
     }
 }

@@ -48,6 +48,7 @@ function toFormData(data: ConditionalConfigType): ConditionalConfigFormData {
     operator: (data.operator as ConditionalConfigFormData['operator']) || 'equal',
     expected_value: expectedValue || undefined,
     advanced_expression: data.advanced_expression || '',
+    expected_value_type: data.expected_value_type,
   };
 }
 
@@ -74,6 +75,7 @@ function fromFormData(formData: ConditionalConfigFormData): ConditionalConfigTyp
     operator: isSimple ? (formData.operator as ConditionOperator) : undefined,
     expected_value: isSimple ? expectedValue : undefined,
     advanced_expression: !isSimple ? formData.advanced_expression : undefined,
+    expected_value_type: isSimple ? formData.expected_value_type : undefined,
   };
 }
 
@@ -146,6 +148,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
     setValue('operator', formData.operator);
     setValue('expected_value', formData.expected_value);
     setValue('advanced_expression', formData.advanced_expression || '');
+    setValue('expected_value_type', formData.expected_value_type);
   }, [data, setValue]);
 
   /**
@@ -257,6 +260,35 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {/* 值类型选择器 - 仅当操作符为 equal 或 not_equal 时显示 */}
+          {(watchedOperator === 'equal' || watchedOperator === 'not_equal') && (
+            <div className="space-y-2">
+              <Label htmlFor="expected_value_type" className="text-sm font-medium text-black">
+                值类型
+              </Label>
+              <Select
+                value={watch('expected_value_type') || 'string'}
+                onValueChange={(value) => {
+                  setValue('expected_value_type', value as 'number' | 'string' | 'boolean' | 'null');
+                  saveData();
+                }}
+              >
+                <SelectTrigger id="expected_value_type">
+                  <SelectValue placeholder="选择类型" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="string">字符串 (String)</SelectItem>
+                  <SelectItem value="number">数字 (Number)</SelectItem>
+                  <SelectItem value="boolean">布尔值 (Boolean)</SelectItem>
+                  <SelectItem value="null">空值 (Null)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                选择期望值的类型，用于精确比较
+              </p>
+            </div>
+          )}
 
           {/* 期望值 */}
           <div className="space-y-2">

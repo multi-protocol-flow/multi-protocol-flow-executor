@@ -191,6 +191,21 @@ pub enum ConditionOperator {
     Exists,
 }
 
+/// 期望值类型枚举
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum ExpectedValueType {
+    /// 数字类型
+    #[default]
+    Number,
+    /// 字符串类型
+    String,
+    /// 布尔类型
+    Boolean,
+    /// 空值类型
+    Null,
+}
+
 /// Conditional 节点配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConditionalConfig {
@@ -209,6 +224,9 @@ pub struct ConditionalConfig {
     /// 高级表达式（用于复杂条件）
     #[serde(default)]
     pub advanced_expression: Option<String>,
+    /// 期望值类型选择器
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected_value_type: Option<serde_json::Value>,
 }
 
 // ============================================================================
@@ -262,6 +280,7 @@ impl NodeData {
             operator: Some(operator),
             expected_value: Some(expected_value),
             advanced_expression: None,
+            expected_value_type: None,
         })
     }
 
@@ -273,6 +292,7 @@ impl NodeData {
             operator: None,
             expected_value: None,
             advanced_expression: Some(expression.into()),
+            expected_value_type: None,
         })
     }
 }
@@ -361,6 +381,7 @@ mod tests {
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(json!(200)),
             advanced_expression: None,
+            expected_value_type: None,
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();
@@ -380,6 +401,7 @@ mod tests {
             advanced_expression: Some(
                 "http_response.status >= 200 && http_response.status < 300".to_string(),
             ),
+            expected_value_type: None,
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();

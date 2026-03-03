@@ -646,6 +646,7 @@ mod tests {
                 file_path: None,
                 body,
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         }
@@ -1437,6 +1438,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         };
@@ -1490,6 +1492,7 @@ mod tests {
                 file_path: None,
                 body: Some(r#"{"test_key":"test_value"}"#.to_string()),
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         };
@@ -1534,6 +1537,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         };
@@ -1576,6 +1580,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         };
@@ -1620,6 +1625,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         };
@@ -1666,6 +1672,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         };
@@ -1724,6 +1731,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         };
@@ -1771,6 +1779,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         };
@@ -1818,6 +1827,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         };
@@ -1869,6 +1879,7 @@ mod tests {
                 file_path: None,
                 body: Some(r#"{"test":"put_data"}"#.to_string()),
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         };
@@ -1913,6 +1924,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         };
@@ -1961,6 +1973,7 @@ mod tests {
                 file_path: None,
                 body: Some(r#"{"test":"patch_data"}"#.to_string()),
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         };
@@ -2005,6 +2018,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
+                output_mappings: Vec::new(),
             }),
             ports: None,
         };
