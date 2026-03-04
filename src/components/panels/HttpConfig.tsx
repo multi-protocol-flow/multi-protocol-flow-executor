@@ -746,10 +746,9 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 <div key={field.id} className="space-y-2 p-3 rounded-md border bg-muted/30">
                   {/* 第一行：变量名 + 删除按钮 */}
                   <div className="flex items-center gap-2">
-                    <Label className="text-xs text-muted-foreground shrink-0">变量名</Label>
                     <Input
                       {...register(`output_mappings.${index}.target`)}
-                      placeholder="变量名"
+                      placeholder="变量名（字母、数字、下划线）"
                       className={`h-8 flex-1 font-mono text-xs ${targetError || hasDuplicate ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
                     />
                     <Button
@@ -764,21 +763,18 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   </div>
 
                   {/* 第二行：源字段 */}
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs text-muted-foreground shrink-0">源字段</Label>
-                    <div className="relative flex-1">
-                      <Input
-                        {...register(`output_mappings.${index}.source`)}
-                        placeholder="$.status"
-                        className={`h-8 w-full font-mono text-xs ${sourceError ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
-                        list={`jsonpath-presets-${index}`}
-                      />
-                      <datalist id={`jsonpath-presets-${index}`}>
-                        {jsonPathPresets.map((preset) => (
-                          <option key={preset.value} value={preset.value} />
-                        ))}
-                      </datalist>
-                    </div>
+                  <div className="relative">
+                    <Input
+                      {...register(`output_mappings.${index}.source`)}
+                      placeholder="源字段（如 $.status、$.body.data.token）"
+                      className={`h-8 w-full font-mono text-xs ${sourceError ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
+                      list={`jsonpath-presets-${index}`}
+                    />
+                    <datalist id={`jsonpath-presets-${index}`}>
+                      {jsonPathPresets.map((preset) => (
+                        <option key={preset.value} value={preset.value} />
+                      ))}
+                    </datalist>
                   </div>
 
                   {/* 错误提示 */}
@@ -793,14 +789,11 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   )}
 
                   {/* 第三行：说明 */}
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs text-muted-foreground shrink-0">说明</Label>
-                    <Input
-                      {...register(`output_mappings.${index}.description`)}
-                      placeholder="说明（可选）"
-                      className="h-8 flex-1 text-xs"
-                    />
-                  </div>
+                  <Input
+                    {...register(`output_mappings.${index}.description`)}
+                    placeholder="说明（可选）"
+                    className="h-8 w-full text-xs"
+                  />
                 </div>
               );
             })
