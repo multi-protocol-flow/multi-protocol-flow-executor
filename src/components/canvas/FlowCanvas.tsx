@@ -31,6 +31,7 @@ import {
   isValidConnection,
 } from './utils';
 import { cn } from '@/lib/utils';
+import { saveFlow } from '@/services/storage/flowStorage';
 
 /**
  * 自定义十字准星光标 SVG (data URI)
@@ -107,6 +108,8 @@ function FlowCanvasInner() {
     removeConnection,
     pendingAddNodeType,
     clearPendingAddNodeType,
+    isDirty,
+    markSaved,
   } = useFlowStore();
   const { setConfigPanelOpen, setConfigPanelMode } = useUIStore();
 
@@ -180,6 +183,18 @@ function FlowCanvasInner() {
       }, 100);
     }
   }, [flow?.uuid, fitView]);
+
+  // 自动防抖保存：当 isDirty 变为 true 时，延迟保存到 localStorage
+  useEffect(() => {
+    if (!isDirty || !flow) return;
+
+    const timeoutId = setTimeout(() => {
+      saveFlow(flow);
+      markSaved();
+    }, 500); // 500ms 防抖
+
+    return () => clearTimeout(timeoutId);
+  }, [isDirty, flow, markSaved]);
 
   // 处理连接创建
   const onConnect = useCallback(
