@@ -584,7 +584,7 @@ fn apply_output_mappings(
 /// - `$.body.data.token` - 嵌套对象
 /// - `$.body.items[0]` - 数组索引
 /// - `$.body.items[-1]` - 负索引（从末尾）
-fn extract_value_by_path(value: &serde_json::Value, path: &str) -> Option<serde_json::Value> {
+pub(crate) fn extract_value_by_path(value: &serde_json::Value, path: &str) -> Option<serde_json::Value> {
     if path.is_empty() {
         return None;
     }

@@ -386,39 +386,50 @@ impl ConditionalNodeExecutor {
         Ok(result)
     }
 
-    /// 从JSON中提取字段值（支持点号分隔的路径）
+    /// 从JSON中提取字段值（支持变量引用语法、JSONPath语法）
+    ///
+    /// 支持的格式：
+    /// - `{{variable_name}}` - 变量引用，从 data 中查找
+    /// - `$.json.path` - JSONPath 语法，支持嵌套和数组索引
+    /// - `simple_name` - 简单变量名，等同于 {{simple_name}}
+    ///
+    /// 拒绝的格式：
+    /// - `user.age` - 旧语法（包含 `.` 但不是 JSONPath 或变量引用）
+    /// - 空字符串
     fn extract_field_value(
         &self,
         data: &serde_json::Value,
         field_path: &str,
     ) -> Result<serde_json::Value, String> {
-        let path_parts: Vec<&str> = field_path.split('.').collect();
-        let mut current_value = data;
-        let mut current_path = String::new();
-
-        for part in path_parts.iter() {
-            if !current_path.is_empty() {
-                current_path.push('.');
-            }
-            current_path.push_str(part);
-
-            match current_value {
-                serde_json::Value::Object(map) => {
-                    if let Some(value) = map.get(*part) {
-                        current_value = value;
-                    } else {
-                        log::error!("[错误] 字段 '{}' 不存在", current_path);
-                        return Err(format!("字段 '{}' 不存在", current_path));
-                    }
-                }
-                _ => {
-                    log::error!("[错误] 字段 '{}' 不是对象类型", current_path);
-                    return Err(format!("字段 '{}' 不是对象类型", current_path));
-                }
-            }
+        // 拒绝空的 field_path
+        if field_path.is_empty() {
+            return Err("field_path 不能为空".to_string());
         }
 
-        Ok(current_value.clone())
+        // 格式判断逻辑
+        if field_path.starts_with("{{") && field_path.ends_with("}}") {
+            // 变量引用: {{variable_name}} - 从 data 中查找
+            let var_name = &field_path[2..field_path.len()-2];
+            data.get(var_name)
+                .cloned()
+                .ok_or_else(|| format!("变量 '{}' 不存在", var_name))
+        } else if field_path.starts_with("$.") {
+            // JSONPath: $.path.to.field - 使用 extract_value_by_path
+            use crate::http_executor::extract_value_by_path;
+            extract_value_by_path(data, field_path)
+                .ok_or_else(|| format!("JSONPath '{}' 提取失败", field_path))
+        } else if field_path.contains(".") {
+            // 旧语法：返回错误
+            Err(format!(
+                "不支持的语法 '{}'，请使用 {{变量名}} 或 $.json.path 格式",
+                field_path
+            ))
+        } else {
+            // 单个字段名，尝试作为变量引用
+            data.get(field_path)
+                .cloned()
+                .ok_or_else(|| format!("变量 '{}' 不存在", field_path))
+        }
     }
 
     /// 比较两个值
@@ -614,7 +625,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.age".to_string()),
+            field_path: Some("{{user.age}}".to_string()),
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
@@ -622,9 +633,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "age": 25
-            }
+            "user.age": 25
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -636,7 +645,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.age".to_string()),
+            field_path: Some("{{user.age}}".to_string()),
             operator: Some(ConditionOperator::NotEqual),
             expected_value: Some(serde_json::json!(30)),
             advanced_expression: None,
@@ -644,9 +653,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "age": 25
-            }
+            "user.age": 25
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -658,7 +665,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.age".to_string()),
+            field_path: Some("{{user.age}}".to_string()),
             operator: Some(ConditionOperator::Greater),
             expected_value: Some(serde_json::json!(20)),
             advanced_expression: None,
@@ -666,9 +673,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "age": 25
-            }
+            "user.age": 25
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -680,7 +685,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.age".to_string()),
+            field_path: Some("{{user.age}}".to_string()),
             operator: Some(ConditionOperator::GreaterOrEqual),
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
@@ -688,9 +693,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "age": 25
-            }
+            "user.age": 25
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -702,7 +705,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.age".to_string()),
+            field_path: Some("{{user.age}}".to_string()),
             operator: Some(ConditionOperator::Less),
             expected_value: Some(serde_json::json!(30)),
             advanced_expression: None,
@@ -710,9 +713,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "age": 25
-            }
+            "user.age": 25
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -724,7 +725,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.age".to_string()),
+            field_path: Some("{{user.age}}".to_string()),
             operator: Some(ConditionOperator::LessOrEqual),
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
@@ -732,9 +733,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "age": 25
-            }
+            "user.age": 25
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -746,7 +745,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.name".to_string()),
+            field_path: Some("{{user.name}}".to_string()),
             operator: Some(ConditionOperator::Contains),
             expected_value: Some(serde_json::json!("John")),
             advanced_expression: None,
@@ -754,9 +753,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "name": "John Doe"
-            }
+            "user.name": "John Doe"
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -768,7 +765,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.name".to_string()),
+            field_path: Some("{{user.name}}".to_string()),
             operator: Some(ConditionOperator::StartsWith),
             expected_value: Some(serde_json::json!("John")),
             advanced_expression: None,
@@ -776,9 +773,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "name": "John Doe"
-            }
+            "user.name": "John Doe"
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -790,7 +785,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.name".to_string()),
+            field_path: Some("{{user.name}}".to_string()),
             operator: Some(ConditionOperator::EndsWith),
             expected_value: Some(serde_json::json!("Doe")),
             advanced_expression: None,
@@ -798,9 +793,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "name": "John Doe"
-            }
+            "user.name": "John Doe"
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -812,7 +805,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.email".to_string()),
+            field_path: Some("{{user.email}}".to_string()),
             operator: Some(ConditionOperator::Exists),
             expected_value: None,
             advanced_expression: None,
@@ -820,9 +813,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "email": "test@example.com"
-            }
+            "user.email": "test@example.com"
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -834,7 +825,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.age".to_string()),
+            field_path: Some("{{user.age}}".to_string()),
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::json!(30)),
             advanced_expression: None,
@@ -842,9 +833,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "age": 25
-            }
+            "user.age": 25
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -925,7 +914,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("status".to_string()),
+            field_path: Some("{{status}}".to_string()),
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::json!("active")),
             advanced_expression: None,
@@ -956,7 +945,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.name".to_string()),
+            field_path: Some("{{user.name}}".to_string()),
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::json!("")),
             advanced_expression: None,
@@ -964,9 +953,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "name": ""
-            }
+            "user.name": ""
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -978,7 +965,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.email".to_string()),
+            field_path: Some("{{user.email}}".to_string()),
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::Value::Null),
             advanced_expression: None,
@@ -986,9 +973,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "email": null
-            }
+            "user.email": null
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -1000,7 +985,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.email".to_string()),
+            field_path: Some("{{user.email}}".to_string()),
             operator: Some(ConditionOperator::Exists),
             expected_value: None,
             advanced_expression: None,
@@ -1008,9 +993,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "email": null
-            }
+            "user.email": null
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -1025,7 +1008,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("user.age".to_string()),
+            field_path: Some("{{user.age}}".to_string()),
             operator: Some(ConditionOperator::Greater), // 使用Greater来触发类型检查
             expected_value: Some(serde_json::json!(20)),
             advanced_expression: None,
@@ -1033,9 +1016,7 @@ mod tests {
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
-            "user": {
-                "age": "twenty-five"  // 字符串而非数字
-            }
+            "user.age": "twenty-five"
         }));
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
@@ -1091,7 +1072,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("age".to_string()),
+            field_path: Some("{{age}}".to_string()),
             operator: None, // 缺少operator
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
@@ -1346,7 +1327,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("status".to_string()),
+            field_path: Some("{{status}}".to_string()),
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::json!("200")), // 字符串 "200"
             advanced_expression: None,
@@ -1369,7 +1350,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("enabled".to_string()),
+            field_path: Some("{{enabled}}".to_string()),
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::json!("true")), // 字符串 "true"
             advanced_expression: None,
@@ -1392,7 +1373,7 @@ mod tests {
         let executor = ConditionalNodeExecutor::new();
         let config = ConditionalConfig {
             condition_type: ConditionType::Simple,
-            field_path: Some("name".to_string()),
+            field_path: Some("{{name}}".to_string()),
             operator: Some(ConditionOperator::Equal),
             expected_value: Some(serde_json::json!(200)), // 数字 200
             advanced_expression: None,
@@ -1405,6 +1386,175 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok());
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(true));
+    }
+
+    // ============================================================================
+    // JSONPath 和变量引用测试
+    // ============================================================================
+
+    #[tokio::test]
+    async fn test_simple_condition_variable_reference() {
+        // 测试变量引用语法 {{token}}
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("{{token}}".to_string()),
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!("abc123")),
+            advanced_expression: None,
+            expected_value_type: None,
+        };
+        let node = create_test_node(config);
+        let mut context = create_test_context(serde_json::json!({
+            "token": "abc123"
+        }));
+
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        assert!(result.is_ok(), "变量引用应该成功");
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(true));
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_variable_not_found() {
+        // 测试变量不存在时返回错误
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("{{nonexistent}}".to_string()),
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!("value")),
+            advanced_expression: None,
+            expected_value_type: None,
+        };
+        let node = create_test_node(config);
+        let mut context = create_test_context(serde_json::json!({}));
+
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        assert!(result.is_err(), "变量不存在应该返回错误");
+        assert!(result.unwrap_err().contains("不存在"), "错误信息应该包含 '不存在'");
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_jsonpath_basic() {
+        // 测试 JSONPath 基本语法 $.body.token
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("$.body.token".to_string()),
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!("secret")),
+            advanced_expression: None,
+            expected_value_type: None,
+        };
+        let node = create_test_node(config);
+        let mut context = create_test_context(serde_json::json!({
+            "body": {
+                "token": "secret"
+            }
+        }));
+
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        assert!(result.is_ok(), "JSONPath 提取应该成功");
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(true));
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_jsonpath_array() {
+        // 测试 JSONPath 数组索引语法 $.items[0].id
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("$.items[0].id".to_string()),
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!(1)),
+            advanced_expression: None,
+            expected_value_type: None,
+        };
+        let node = create_test_node(config);
+        let mut context = create_test_context(serde_json::json!({
+            "items": [
+                {"id": 1, "name": "first"},
+                {"id": 2, "name": "second"}
+            ]
+        }));
+
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        assert!(result.is_ok(), "JSONPath 数组索引提取应该成功");
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(true));
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_old_syntax_rejected() {
+        // 测试旧语法 user.age 应该被拒绝
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("user.age".to_string()), // 旧语法
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!(25)),
+            advanced_expression: None,
+            expected_value_type: None,
+        };
+        let node = create_test_node(config);
+        let mut context = create_test_context(serde_json::json!({
+            "user.age": 25  // 扁平键
+        }));
+
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        assert!(result.is_err(), "旧语法应该返回错误");
+        let error = result.unwrap_err();
+        assert!(error.contains("不支持的语法"), "错误信息应该包含 '不支持的语法': {}", error);
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_empty_field_path_rejected() {
+        // 测试空 field_path 应该被拒绝
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("".to_string()), // 空字符串
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!("value")),
+            advanced_expression: None,
+            expected_value_type: None,
+        };
+        let node = create_test_node(config);
+        let mut context = create_test_context(serde_json::json!({}));
+
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        assert!(result.is_err(), "空 field_path 应该返回错误");
+        let error = result.unwrap_err();
+        assert!(error.contains("不能为空"), "错误信息应该包含 '不能为空': {}", error);
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_simple_variable_name() {
+        // 测试简单变量名（不带 {{}}）
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("status".to_string()), // 简单变量名
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!("active")),
+            advanced_expression: None,
+            expected_value_type: None,
+        };
+        let node = create_test_node(config);
+        let mut context = create_test_context(serde_json::json!({
+            "status": "active"
+        }));
+
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        assert!(result.is_ok(), "简单变量名应该成功");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
         assert_eq!(output_data.unwrap(), json!(true));
