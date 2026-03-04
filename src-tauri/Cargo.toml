@@ -49,6 +49,7 @@ assert_cmd = "2.0"
 # cargo-llvm-cov = "0.6"  # 暂时禁用，可能导致 Windows 测试问题
 predicates = "3"
 proptest = "1.4"
+wiremock = "0.6"
 
 # =============================================================================
 # Clippy Lint 配置

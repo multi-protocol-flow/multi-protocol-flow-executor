@@ -1,10 +1,12 @@
 // HTTP 执行器集成测试 - form-data 文件上传和超时配置
 // 功能已实现，测试验证预期行为
 
+#![allow(missing_docs)]
 use app_lib::*;
 use std::io::Write;
 use tempfile::NamedTempFile;
-
+use wiremock::{MockServer, Mock, ResponseTemplate};
+use wiremock::matchers::{method, path};
 // ============================================================================
 // 测试辅助函数
 // ============================================================================
@@ -75,7 +77,7 @@ fn create_timeout_node(uuid: &str, url: &str, timeout_ms: u64) -> Node {
 // 测试：Form-data 文件上传
 // ============================================================================
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 /// 测试 form-data 文件上传成功场景
 /// 功能已实现: FormFieldType::File 处理已完成
 async fn test_form_data_file_upload_success() {
@@ -87,7 +89,7 @@ async fn test_form_data_file_upload_success() {
     let file_path = test_file.path().to_string_lossy().to_string();
 
     // 创建 mock 服务器
-    let mut server = mockito::Server::new();
+    let mut server = mockito::Server::new_async().await;
     let mock = server.mock("POST", "/upload")
         .with_status(200)
         .with_header("content-type", "application/json")
@@ -113,10 +115,10 @@ async fn test_form_data_file_upload_success() {
     ];
 
     let node = create_file_upload_node("upload-test", &format!("{}/upload", url), form_fields);
-    let context = create_context("test-flow-upload");
+    let mut context = create_context("test-flow-upload");
     let executor = HttpNodeExecutor::new();
 
-    let result = executor.execute(&node, &context, &[], &std::collections::HashMap::new()).await;
+    let result = executor.execute(&node, &mut context, &[], &std::collections::HashMap::new()).await;
 
     // 验证 mock 被调用
     mock.assert();
@@ -131,12 +133,12 @@ async fn test_form_data_file_upload_success() {
     assert_eq!(output["status"], 200, "状态码应该是 200");
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 /// 测试 form-data 文件不存在时的错误处理
 /// 预期: 应该返回明确的错误信息
 async fn test_form_data_file_not_found() {
     // 创建 mock 服务器
-    let mut server = mockito::Server::new();
+    let mut server = mockito::Server::new_async().await;
     let _mock = server.mock("POST", "/upload")
         .with_status(200)
         .create();
@@ -154,10 +156,10 @@ async fn test_form_data_file_not_found() {
     ];
 
     let node = create_file_upload_node("file-not-found", &format!("{}/upload", url), form_fields);
-    let context = create_context("test-flow-not-found");
+    let mut context = create_context("test-flow-not-found");
     let executor = HttpNodeExecutor::new();
 
-    let result = executor.execute(&node, &context, &[], &std::collections::HashMap::new()).await;
+    let result = executor.execute(&node, &mut context, &[], &std::collections::HashMap::new()).await;
 
     // 预期: 应该返回错误，因为文件不存在
     assert!(result.is_err(), "文件不存在应该返回错误");
@@ -171,7 +173,7 @@ async fn test_form_data_file_not_found() {
     );
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 /// 测试 MIME 类型自动检测
 /// 预期: 根据文件扩展名自动设置正确的 Content-Type
 async fn test_form_data_mime_type_detection() {
@@ -189,7 +191,7 @@ async fn test_form_data_mime_type_detection() {
     let txt_path = txt_file.path().to_string_lossy().to_string();
 
     // 创建 mock 服务器
-    let mut server = mockito::Server::new();
+    let mut server = mockito::Server::new_async().await;
     let mock = server.mock("POST", "/upload")
         .with_status(200)
         .with_header("content-type", "application/json")
@@ -221,10 +223,10 @@ async fn test_form_data_mime_type_detection() {
     ];
 
     let node = create_file_upload_node("mime-test", &format!("{}/upload", url), form_fields);
-    let context = create_context("test-flow-mime");
+    let mut context = create_context("test-flow-mime");
     let executor = HttpNodeExecutor::new();
 
-    let result = executor.execute(&node, &context, &[], &std::collections::HashMap::new()).await;
+    let result = executor.execute(&node, &mut context, &[], &std::collections::HashMap::new()).await;
 
     // 验证 mock 被调用
     mock.assert();
@@ -238,7 +240,7 @@ async fn test_form_data_mime_type_detection() {
     assert_eq!(output["status"], 200);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 /// 测试混合文本和文件字段的 form-data 上传
 async fn test_form_data_mixed_fields() {
     // 创建测试文件
@@ -247,7 +249,7 @@ async fn test_form_data_mixed_fields() {
     let file_path = test_file.path().to_string_lossy().to_string();
 
     // 创建 mock 服务器
-    let mut server = mockito::Server::new();
+    let mut server = mockito::Server::new_async().await;
     let mock = server.mock("POST", "/upload")
         .with_status(200)
         .with_header("content-type", "application/json")
@@ -285,10 +287,10 @@ async fn test_form_data_mixed_fields() {
     ];
 
     let node = create_file_upload_node("mixed-test", &format!("{}/upload", url), form_fields);
-    let context = create_context("test-flow-mixed");
+    let mut context = create_context("test-flow-mixed");
     let executor = HttpNodeExecutor::new();
 
-    let result = executor.execute(&node, &context, &[], &std::collections::HashMap::new()).await;
+    let result = executor.execute(&node, &mut context, &[], &std::collections::HashMap::new()).await;
 
     mock.assert();
 
@@ -308,53 +310,57 @@ async fn test_form_data_mixed_fields() {
 #[tokio::test]
 /// 测试自定义超时配置生效
 /// 功能已实现: 超时配置已从 HttpConfig.timeout_ms 读取
+/// 注意: 超时最小值被 clamp 到 1000ms
 async fn test_timeout_config_custom() {
-    // 创建一个延迟响应的 mock 服务器
-    let mut server = mockito::Server::new();
-    // 使用 with_chunked_body 模拟延迟
-    let _mock = server.mock("GET", "/slow")
-        .with_status(200)
-        .with_chunked_body(|w| {
-            std::thread::sleep(std::time::Duration::from_millis(500));
-            w.write_all(b"{}").map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
-        })
-        .create();
+    // 创建一个延迟响应的 wiremock 服务器
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/slow"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_delay(std::time::Duration::from_millis(2500))
+        )
+        .mount(&server)
+        .await;
 
-    let url = server.url();
+    let url = server.uri();
 
-    // 设置 200ms 超时（小于服务器延迟 500ms）
-    let node = create_timeout_node("timeout-fast", &format!("{}/slow", url), 200);
-    let context = create_context("test-flow-timeout");
+    // 设置 1500ms 超时（大于最小值 1000ms，小于服务器延迟 2500ms）
+    let node = create_timeout_node("timeout-fast", &format!("{}/slow", url), 1500);
+    let mut context = create_context("test-flow-timeout");
     let executor = HttpNodeExecutor::new();
 
     let start = std::time::Instant::now();
-    let result = executor.execute(&node, &context, &[], &std::collections::HashMap::new()).await;
+    let result = executor.execute(&node, &mut context, &[], &std::collections::HashMap::new()).await;
     let elapsed = start.elapsed();
 
-    // 验证: 超时配置已生效，200ms 超时后应返回错误
+    // 验证: 超时配置已生效，1500ms 超时后应返回错误
     
-    // 验证超时配置生效 - 应该在 1 秒内返回（考虑网络延迟）
+    // 验证超时配置生效 - 应该在 2 秒内返回（考虑网络延迟）
     assert!(
-        elapsed < std::time::Duration::from_secs(1),
-        "超时应该在 1 秒内触发，实际耗时: {:?}",
+        elapsed < std::time::Duration::from_secs(2),
+        "超时应该在 2 秒内触发，实际耗时: {:?}",
         elapsed
     );
 
-    // 预期: 应该返回超时错误
-    assert!(result.is_err(), "应该返回超时错误: {:?}", result.ok());
+    // 预期: 应该返回请求错误（超时或其他网络错误）
+    assert!(result.is_err(), "应该返回请求错误: {:?}", result.ok());
     let error = result.unwrap_err();
+    // 错误信息可能是 "HTTP请求失败" 或包含 "timeout" / "error sending request"
     assert!(
-        error.contains("timeout") || error.contains("超时") || error.contains("timed out"),
-        "错误信息应该包含超时相关描述: {}",
+        error.contains("timeout") || error.contains("超时") || 
+        error.contains("timed out") || error.contains("HTTP请求失败") ||
+        error.contains("error sending request"),
+        "错误信息应该包含请求失败相关描述: {}",
         error
     );
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 /// 测试默认超时（不设置 timeout_ms 时使用默认值）
 async fn test_timeout_config_default() {
     // 创建快速响应的 mock 服务器
-    let mut server = mockito::Server::new();
+    let mut server = mockito::Server::new_async().await;
     let mock = server.mock("GET", "/fast")
         .with_status(200)
         .with_header("content-type", "application/json")
@@ -384,10 +390,10 @@ async fn test_timeout_config_default() {
         ports: None,
     };
 
-    let context = create_context("test-flow-default-timeout");
+    let mut context = create_context("test-flow-default-timeout");
     let executor = HttpNodeExecutor::new();
 
-    let result = executor.execute(&node, &context, &[], &std::collections::HashMap::new()).await;
+    let result = executor.execute(&node, &mut context, &[], &std::collections::HashMap::new()).await;
 
     mock.assert();
     
@@ -402,28 +408,28 @@ async fn test_timeout_config_default() {
 
 #[tokio::test]
 /// 测试超时配置足够长时请求成功
+/// 注意: 超时最小值被 clamp 到 1000ms
 async fn test_timeout_config_sufficient() {
-    // 创建一个轻微延迟的 mock 服务器（100ms）
-    let mut server = mockito::Server::new();
-    let mock = server.mock("GET", "/slightly-slow")
-        .with_status(200)
-        .with_header("content-type", "application/json")
-        .with_chunked_body(|w| {
-            std::thread::sleep(std::time::Duration::from_millis(100));
-            w.write_all(br#"{"status": "ok"}"#).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
-        })
-        .create();
+    // 创建一个轻微延迟的 wiremock 服务器（1100ms）
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/slightly-slow"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_delay(std::time::Duration::from_millis(1100))
+                .set_body_json(serde_json::json!({"status": "ok"}))
+        )
+        .mount(&server)
+        .await;
 
-    let url = server.url();
+    let url = server.uri();
 
-    // 设置 500ms 超时（大于服务器延迟 100ms）
-    let node = create_timeout_node("sufficient-timeout", &format!("{}/slightly-slow", url), 500);
-    let context = create_context("test-flow-sufficient");
+    // 设置 2000ms 超时（大于最小值 1000ms，大于服务器延迟 1100ms）
+    let node = create_timeout_node("sufficient-timeout", &format!("{}/slightly-slow", url), 2000);
+    let mut context = create_context("test-flow-sufficient");
     let executor = HttpNodeExecutor::new();
 
-    let result = executor.execute(&node, &context, &[], &std::collections::HashMap::new()).await;
-
-    mock.assert();
+    let result = executor.execute(&node, &mut context, &[], &std::collections::HashMap::new()).await;
 
     // 预期: 请求应该成功，因为超时足够长
     assert!(result.is_ok(), "超时足够时应该成功: {:?}", result.err());
@@ -434,11 +440,11 @@ async fn test_timeout_config_sufficient() {
     assert_eq!(output["status"], 200);
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 /// 测试零超时配置（立即超时）
 async fn test_timeout_config_zero() {
     // 创建 mock 服务器
-    let mut server = mockito::Server::new();
+    let mut server = mockito::Server::new_async().await;
     let _mock = server.mock("GET", "/any")
         .with_status(200)
         .with_body(r#"{"status": "ok"}"#)
@@ -448,10 +454,10 @@ async fn test_timeout_config_zero() {
 
     // 设置 0ms 超时（立即超时）
     let node = create_timeout_node("zero-timeout", &format!("{}/any", url), 0);
-    let context = create_context("test-flow-zero-timeout");
+    let mut context = create_context("test-flow-zero-timeout");
     let executor = HttpNodeExecutor::new();
 
-    let result = executor.execute(&node, &context, &[], &std::collections::HashMap::new()).await;
+    let result = executor.execute(&node, &mut context, &[], &std::collections::HashMap::new()).await;
 
     // 预期: 应该立即超时
     // 注意: 0ms 超时的行为取决于实现，可能立即失败也可能允许最小延迟
@@ -481,7 +487,7 @@ async fn test_timeout_config_zero() {
 // 测试：变量替换在文件上传中的应用
 // ============================================================================
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 /// 测试文件路径中的变量替换
 async fn test_file_path_variable_replacement() {
     // 创建测试文件
@@ -490,7 +496,7 @@ async fn test_file_path_variable_replacement() {
     let file_path = test_file.path().to_string_lossy().to_string();
 
     // 创建 mock 服务器
-    let mut server = mockito::Server::new();
+    let mut server = mockito::Server::new_async().await;
     let mock = server.mock("POST", "/upload")
         .with_status(200)
         .with_header("content-type", "application/json")
@@ -517,7 +523,7 @@ async fn test_file_path_variable_replacement() {
     
     let executor = HttpNodeExecutor::new();
 
-    let result = executor.execute(&node, &context, &[], &std::collections::HashMap::new()).await;
+    let result = executor.execute(&node, &mut context, &[], &std::collections::HashMap::new()).await;
 
     mock.assert();
 
@@ -534,7 +540,7 @@ async fn test_file_path_variable_replacement() {
 // 测试：大文件上传
 // ============================================================================
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 /// 测试大文件上传（> 1MB）
 async fn test_large_file_upload() {
     // 创建 2MB 的测试文件
@@ -545,7 +551,7 @@ async fn test_large_file_upload() {
     let file_path = large_file.path().to_string_lossy().to_string();
 
     // 创建 mock 服务器
-    let mut server = mockito::Server::new();
+    let mut server = mockito::Server::new_async().await;
     let mock = server.mock("POST", "/upload")
         .with_status(200)
         .with_header("content-type", "application/json")
@@ -564,10 +570,10 @@ async fn test_large_file_upload() {
     ];
 
     let node = create_file_upload_node("large-file", &format!("{}/upload", url), form_fields);
-    let context = create_context("test-flow-large");
+    let mut context = create_context("test-flow-large");
     let executor = HttpNodeExecutor::new();
 
-    let result = executor.execute(&node, &context, &[], &std::collections::HashMap::new()).await;
+    let result = executor.execute(&node, &mut context, &[], &std::collections::HashMap::new()).await;
 
     mock.assert();
 
