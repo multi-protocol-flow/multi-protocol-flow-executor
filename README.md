@@ -14,10 +14,11 @@
 
 ### 流程执行引擎
 - ⚡ 高性能 Rust 后端执行引擎
-- 🔄 支持多种核心节点类型：Entry（入口）、HTTP（请求）、Conditional（条件分支）、End（终止）
+- 🔄 支持多种核心节点类型：Entry（入口）、HTTP（请求）、Conditional（条件分支）
 - 📝 实时执行日志与详细报告
 - ✅ 流程验证与错误检测
 - 📊 执行统计与历史记录
+- 🚀 内置流程模板，首次启动自动加载示例流程
 
 ### CLI 模式
 - 💻 独立的命令行工具，支持批量执行和自动化集成
@@ -160,7 +161,8 @@ cli --help
       "data": {
         "type": "http",
         "url": "{{initial_variables.api_base}}/users",
-        "method": "get"
+        "method": "get",
+        "timeout_ms": 30000
       }
     }
   ],
@@ -181,9 +183,8 @@ cli --help
 | 类型 | 说明 | 用途 |
 |------|------|------|
 | `entry` | 入口节点 | 流程起点，每个流程必须有且仅有一个 |
-| `http` | HTTP 请求节点 | 发送 HTTP 请求，支持 GET/POST/PUT/DELETE/PATCH |
+| `http` | HTTP 请求节点 | 发送 HTTP 请求，支持 GET/POST/PUT/DELETE/PATCH，多种请求体类型（JSON、表单、文件） |
 | `conditional` | 条件分支节点 | 根据条件选择执行路径 |
-| `end` | 终止节点 | 流程终点，标记执行完成 |
 
 ### 变量引用
 
@@ -192,8 +193,9 @@ cli --help
 | 语法 | 说明 |
 |------|------|
 | `{{initial_variables.xxx}}` | 引用流程初始变量 |
-| `{{http_response.data.xxx}}` | 引用 HTTP 响应数据 |
-| `{{http_response.status}}` | 引用 HTTP 状态码 |
+| `{{status}}` | 引用上一个 HTTP 响应的状态码 |
+| `{{body.xxx}}` | 引用上一个 HTTP 响应的 JSON 数据 |
+| `{{headers.xxx}}` | 引用上一个 HTTP 响应的响应头 |
 
 #### 详细文档
 
@@ -367,7 +369,7 @@ impl NodeExecutor for MyNodeExecutor {
 |------|------|
 | 前端框架 | React 19 + TypeScript |
 | 状态管理 | Zustand |
-| UI 组件 | shadcn/ui + Tailwind CSS |
+| UI 组件 | shadcn/ui + TailwindCSS 4 |
 | 流程画布 | @xyflow/react |
 | 桌面框架 | Tauri 2.x |
 | 后端语言 | Rust |

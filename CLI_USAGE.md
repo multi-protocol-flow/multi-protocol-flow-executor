@@ -197,18 +197,57 @@ cli --help
     "url": "https://api.example.com/users",
     "method": "get",
     "headers": {
-      "Authorization": "Bearer token123",
-      "Content-Type": "application/json"
+      "Authorization": "Bearer token123"
     },
-    "body": {
-      "name": "test"
-    }
+    "timeout_ms": 30000
   },
   "ports": null
 }
 ```
 
 **HTTP 方法支持**: `get`, `post`, `put`, `delete`, `patch`
+
+**HTTP 配置字段**:
+
+| 字段 | 类型 | 说明 | 默认值 |
+|------|------|------|--------|
+| `url` | string | 请求 URL（支持变量引用） | - |
+| `method` | string | HTTP 方法 | `get` |
+| `headers` | object | 请求头 | `{}` |
+| `body_type` | string | 请求体类型 | `none` |
+| `content_type` | string | Content-Type | `json` |
+| `body` | string | 请求体内容（body_type=body 时） | - |
+| `form_fields` | array | 表单字段（body_type=form-data/x-www-form-urlencoded 时） | - |
+| `file_path` | string | 文件路径（body_type=binary 时） | - |
+| `timeout_ms` | number | 超时时间（毫秒），范围 1000-300000 | 30000 |
+
+**body_type 类型**:
+
+| 值 | 说明 | Content-Type |
+|------|------|------|
+| `none` | 无请求体 | - |
+| `body` | 原始请求体 | 根据 content_type 字段设置 |
+| `form-data` | multipart/form-data | multipart/form-data |
+| `x-www-form-urlencoded` | application/x-www-form-urlencoded | application/x-www-form-urlencoded |
+| `binary` | 二进制文件 | application/octet-stream |
+
+**form_fields 字段结构**:
+
+```json
+{
+  "key": "field_name",
+  "value": "field_value",
+  "type": "text",
+  "file_path": null
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `key` | string | 字段名 |
+| `value` | string | 字段值 |
+| `type` | string | 字段类型（`text` / `file`） |
+| `file_path` | string | 文件路径（type=file 时必需） |
 
 ### Conditional 节点（简单条件）
 
@@ -240,7 +279,7 @@ cli --help
   "data": {
     "type": "conditional",
     "condition_type": "advanced",
-    "advanced_expression": "http_response.status >= 200 && http_response.status < 300"
+    "advanced_expression": "status >= 200 && status < 300"
   },
   "ports": null
 }
@@ -284,9 +323,9 @@ cli --help
 | 语法 | 说明 |
 |------|------|
 | `{{initial_variables.xxx}}` | 引用流程初始变量 |
-| `{{http_response.data.xxx}}` | 引用 HTTP 响应数据 |
-| `{{http_response.status}}` | 引用 HTTP 状态码 |
-| `{{http_response.headers.xxx}}` | 引用响应头 |
+| `{{status}}` | 引用上一个 HTTP 响应的状态码 |
+| `{{body.xxx}}` | 引用上一个 HTTP 响应的 JSON 数据 |
+| `{{headers.xxx}}` | 引用上一个 HTTP 响应的响应头 |
 
 **示例**：
 ```json
