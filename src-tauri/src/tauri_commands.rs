@@ -1,213 +1,59 @@
-// Tauri 命令模块
+//! Tauri 命令模块
+//!
+//! 提供 #[tauri::command] 包装器，调用 flow-engine 的业务逻辑。
+
 use std::sync::Arc;
 use tauri::ipc::Channel;
 use tauri::Manager;
-use tokio::sync::Mutex;
-use crate::log_event::{LogEvent, LogLevel};
 
-use crate::executor::FlowExecutor;
+use flow_engine::command::{
+    CreateFlowCommandInput, CreateFlowCommandOutput,
+    DeleteNodeCommandInput, DeleteNodeCommandOutput,
+    ExecuteFlowCommandInput, ExecuteFlowCommandOutput,
+    UpdateNodeCommandInput, UpdateNodeCommandOutput,
+};
+use flow_engine::log_event::LogEvent;
+use flow_engine::report::{FlowExecutionReport, ReportMetadata};
+use flow_engine::flow::Flow;
+use crate::tauri_adapters::TauriLogSender;
 
-use crate::command::CreateFlowCommandInput;
-use crate::command::CreateFlowCommandOutput;
-use crate::command::DeleteNodeCommandInput;
-use crate::command::DeleteNodeCommandOutput;
-use crate::command::ExecuteFlowCommandInput;
-use crate::command::ExecuteFlowCommandOutput;
-use crate::command::UpdateNodeCommandInput;
-use crate::command::UpdateNodeCommandOutput;
-use crate::flow::Flow;
-use crate::node::{Node, NodePosition, NodeType};
-use crate::node_config::NodeData;
-use uuid::Uuid;
 
-#[allow(unused_imports)]
-use crate::connection::Connection;
+
+// ============================================================================
+// 流程命令
+// ============================================================================
 
 /// 创建流程命令
 ///
 /// 创建一个新的流程对象，自动生成唯一流程 ID，并创建开始节点
-///
-/// # 参数
-/// - `input`: 包含流程名称的输入参数
-///
-/// # 返回
-/// - `CreateFlowCommandOutput`: 包含创建的流程数据
 #[tauri::command]
 pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
-    // 生成唯一流程 ID
-    let flow_id = Uuid::new_v4().to_string();
-
-    // 创建开始节点
-    let start_node = Node {
-        uuid: format!("start-{}", flow_id),
-        node_type: NodeType::Entry,
-        name: "开始".to_string(),
-        position: NodePosition { x: 0.0, y: 0.0 },
-        data: NodeData::entry(),
-        ports: None,
-    };
-
-    // 创建流程对象
-    let flow = Flow {
-        uuid: flow_id.clone(),
-        name: input.name,
-        nodes: vec![start_node],
-        connections: vec![],
-        initial_variables: None,
-    };
-
-    CreateFlowCommandOutput { flow }
+    flow_engine::commands::create_flow(input)
 }
 
 /// 执行流程命令
 ///
-/// 执行指定的流程，调用 FlowExecutor 执行引擎
-///
-/// # 参数
-/// - `input`: 包含流程 ID 和可选变量的输入参数
-/// - `flow`: 要执行的流程对象
-/// - `on_event`: Tauri Channel 用于发送日志事件到前端
-///
-/// # 返回
-/// - `ExecuteFlowCommandOutput`: 包含执行结果
+/// 执行指定的流程，调用 FlowExecutor 执行引擎，并通过 Channel 发送日志事件
 #[tauri::command]
 pub async fn execute_flow(
     input: ExecuteFlowCommandInput,
     flow: Flow,
     on_event: Channel<LogEvent>,
 ) -> ExecuteFlowCommandOutput {
-    let flow_uuid = flow.uuid.clone();
-    let flow_name = flow.name.clone();
-
-    // 创建 Channel 的 Arc<Mutex> 包装
-    let log_sender = Arc::new(Mutex::new(on_event.clone()));
-
-    // 发送流程开始事件
-    let start_timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("系统时间错误")
-        .as_millis() as u64;
-
-    let _ = on_event.send(LogEvent {
-        level: LogLevel::Info,
-        message: format!("流程 '{}' 开始执行", flow_name),
-        timestamp: start_timestamp,
-        node_uuid: None,
-        node_name: None,
-        flow_uuid: flow_uuid.clone(),
-    });
-
-    // 调用执行器，传递 log_sender
-    let executor = FlowExecutor::new();
-    let result = executor
-        .execute_flow(&flow, input.variables, Some(log_sender))
-        .await;
-
-    // 发送流程结束事件
-    let end_timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("系统时间错误")
-        .as_millis() as u64;
-
-    let _ = on_event.send(LogEvent {
-        level: if result.success {
-            LogLevel::Info
-        } else {
-            LogLevel::Error
-        },
-        message: format!(
-            "流程执行{}",
-            if result.success { "成功" } else { "失败" }
-        ),
-        timestamp: end_timestamp,
-        node_uuid: None,
-        node_name: None,
-        flow_uuid: flow_uuid.clone(),
-    });
-
-    // 先计算 execution_time，避免 move 后借用
-    let execution_time = result.flow_report.as_ref().map(|r| r.duration_ms).unwrap_or(0);
-
-    ExecuteFlowCommandOutput {
-        success: result.success,
-        data: result.data,
-        flow_report: result.flow_report,
-        error: result.error,
-        execution_time,
-    }
+    let log_sender = Arc::new(TauriLogSender::new(on_event));
+    flow_engine::commands::execute_flow(input, flow, Some(log_sender)).await
 }
+
 /// 更新节点命令（桩实现）
-///
-/// 更新指定流程中的节点数据
-///
-/// # 参数
-/// - `flow`: 流程对象
-/// - `input`: 包含流程 ID、节点 ID 和新数据的输入参数
-///
-/// # 返回
-/// - `UpdateNodeCommandOutput`: 包含更新结果
-///
-/// # 桩实现说明
-/// - 返回错误信息 "暂未实现持久化"
-/// - 说明原因：update_node 需要先加载流程、更新节点、再保存流程
-/// - 这将在任务 2.5（保存流程）中完整实现
 #[tauri::command]
-pub fn update_node(_input: UpdateNodeCommandInput, _flow: Flow) -> UpdateNodeCommandOutput {
-    // 桩实现：返回持久化未实现的错误
-    UpdateNodeCommandOutput {
-        success: false,
-        error: Some("暂未实现持久化：update_node 需要先加载流程、更新节点、再保存流程".to_string()),
-    }
+pub fn update_node(input: UpdateNodeCommandInput, flow: Flow) -> UpdateNodeCommandOutput {
+    flow_engine::commands::update_node(input, flow)
 }
 
 /// 删除节点命令（桩实现）
-///
-/// 删除指定流程中的节点和相关连接
-///
-/// # 参数
-/// - `flow`: 流程对象
-/// - `input`: 包含流程 ID 和节点 ID 的输入参数
-///
-/// # 返回
-/// - `DeleteNodeCommandOutput`: 包含删除结果
-///
-/// # 桩实现说明
-/// - 如果节点是开始节点，返回错误 "不能删除开始节点"
-/// - 否则返回错误信息 "暂未实现持久化"
-/// - 说明原因：delete_node 需要先加载流程、删除节点和相关连接、再保存流程
-/// - 这将在任务 2.5（保存流程）中完整实现
 #[tauri::command]
 pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeCommandOutput {
-    // 查找节点
-    let node = flow.nodes.iter().find(|n| n.uuid == input.node_id);
-
-    // 验证节点存在
-    let node = match node {
-        Some(node) => node,
-        None => {
-            return DeleteNodeCommandOutput {
-                success: false,
-                error: Some(format!("节点 {} 不存在", input.node_id)),
-            };
-        }
-    };
-
-    // 检查是否是开始节点
-    if matches!(node.node_type, NodeType::Entry) {
-        return DeleteNodeCommandOutput {
-            success: false,
-            error: Some("不能删除开始节点".to_string()),
-        };
-    }
-
-    // 桩实现：返回持久化未实现的错误
-    DeleteNodeCommandOutput {
-        success: false,
-        error: Some(
-            "暂未实现持久化：delete_node 需要先加载流程、删除节点和相关连接、再保存流程"
-                .to_string(),
-        ),
-    }
+    flow_engine::commands::delete_node(input, flow)
 }
 
 // ============================================================================
@@ -215,55 +61,36 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
 // ============================================================================
 
 /// 保存流程执行报告
-/// 
-/// # 参数
-/// - `report`: 报告对象
-/// - `reports_dir`: 报告存储目录（由前端传入用户配置的目录）
 #[tauri::command]
 pub fn save_flow_report(
-    report: crate::report::FlowExecutionReport,
+    report: FlowExecutionReport,
     reports_dir: String,
 ) -> Result<(), String> {
-    let reports_path = std::path::PathBuf::from(&reports_dir);
-    crate::storage::save_report(&report, &reports_path)
+    flow_engine::commands::save_flow_report(report, &reports_dir)
 }
 
 /// 加载流程执行报告
-/// 
-/// # 参数
-/// - `uuid`: 报告 UUID
-/// - `reports_dir`: 报告存储目录（由前端传入用户配置的目录）
 #[tauri::command]
 pub fn load_flow_report(
     uuid: String,
     reports_dir: String,
-) -> Result<crate::report::FlowExecutionReport, String> {
-    let reports_path = std::path::PathBuf::from(&reports_dir);
-    crate::storage::load_report(&uuid, &reports_path)
+) -> Result<FlowExecutionReport, String> {
+    flow_engine::commands::load_flow_report(&uuid, &reports_dir)
 }
 
 /// 列出所有报告元数据
-/// 
-/// # 参数
-/// - `reports_dir`: 报告存储目录（由前端传入用户配置的目录）
 #[tauri::command]
-pub fn list_flow_reports(reports_dir: String) -> Result<Vec<crate::report::ReportMetadata>, String> {
-    let reports_path = std::path::PathBuf::from(&reports_dir);
-    crate::storage::list_reports(&reports_path)
+pub fn list_flow_reports(reports_dir: String) -> Result<Vec<ReportMetadata>, String> {
+    flow_engine::commands::list_flow_reports(&reports_dir)
 }
 
 /// 删除流程执行报告
-/// 
-/// # 参数
-/// - `uuid`: 报告 UUID
-/// - `reports_dir`: 报告存储目录（由前端传入用户配置的目录）
 #[tauri::command]
 pub fn delete_flow_report(
     uuid: String,
     reports_dir: String,
 ) -> Result<(), String> {
-    let reports_path = std::path::PathBuf::from(&reports_dir);
-    crate::storage::delete_report(&uuid, &reports_path)
+    flow_engine::commands::delete_flow_report(&uuid, &reports_dir)
 }
 
 // ============================================================================
@@ -280,37 +107,29 @@ pub fn get_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
 }
 
 /// 在文件管理器中打开目录
-///
-/// 使用系统默认文件管理器打开指定目录
-///
-/// # 参数
-/// - `path`: 要打开的目录路径
-///
-/// # 返回
-/// - `Ok(())`: 打开成功
-/// - `Err(String)`: 打开失败，包含错误信息
 #[tauri::command]
 pub async fn open_directory(app: tauri::AppHandle, path: String) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
-    
     app.opener()
         .open_path(&path, None::<String>)
         .map_err(|e| format!("打开目录失败: {}", e))
 }
 
-#[cfg(test)]
+// ============================================================================
+// 单元测试
+// ============================================================================
+
+// Windows 上跳过测试：cargo test 会因 Tauri 依赖导致 STATUS_ENTRYPOINT_NOT_FOUND 错误
+#[cfg(all(test, not(windows)))]
 mod tests {
     use super::*;
-    use crate::command::{
-        CreateFlowCommandInput, DeleteNodeCommandInput,
-        UpdateNodeCommandInput,
-    };
-    use crate::connection::Connection;
-    use crate::flow::Flow;
-    use crate::node::{Node, NodePosition, NodeType};
-    use crate::node_config::NodeData;
     use serde_json::json;
     use uuid::Uuid;
+    use flow_engine::node::{Node, NodePosition, NodeType};
+    use flow_engine::node_config::NodeData;
+    use flow_engine::connection::Connection;
+    use flow_engine::executor::FlowExecutor;
+
 
     #[test]
     fn test_create_flow() {
@@ -765,5 +584,4 @@ mod tests {
         fn _assert_command_signature(_: fn(tauri::AppHandle) -> Result<String, String>) {}
         _assert_command_signature(get_app_data_dir);
     }
-
 }
