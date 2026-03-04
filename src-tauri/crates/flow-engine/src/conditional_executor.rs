@@ -151,6 +151,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 let result = self.evaluate_simple_condition(
                     &conditional_config,
                     &json!(context.variables.get_merged_variables()),
+                    context,
                 )?;
                 log::info!("[流程 {}] [条件判断] 条件类型: Simple, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
 
@@ -261,9 +262,10 @@ impl ConditionalNodeExecutor {
         &self,
         config: &crate::node_config::ConditionalConfig,
         variables: &serde_json::Value,
+        context: &ExecutionContext,
     ) -> Result<bool, String> {
         // 获取 field_path
-        let field_path = config.field_path.as_ref().ok_or_else(|| {
+        let field_path_raw = config.field_path.as_ref().ok_or_else(|| {
             let error = ErrorDetail::new(
                 ErrorKind::ConditionSyntax,
                 "简单条件缺少 field_path".to_string(),
@@ -271,6 +273,14 @@ impl ConditionalNodeExecutor {
             log::error!("[错误] {}", error.message);
             error.message
         })?;
+
+        // 替换 field_path 中的变量
+        let field_path = crate::executor::replace_variables(field_path_raw, context)
+            .map_err(|e| {
+                let error_msg = format!("field_path 变量替换失败: {}", e);
+                log::error!("[错误] {}", error_msg);
+                error_msg
+            })?;
 
         // 获取 operator
         let operator = config.operator.as_ref().ok_or_else(|| {
@@ -285,7 +295,7 @@ impl ConditionalNodeExecutor {
         log::info!("[条件评估] 字段路径: {}, 操作符: {:?}", field_path, operator);
 
         // 从 variables 中提取 field_path 指定的值
-        let actual_value = self.extract_field_value(variables, field_path)?;
+        let actual_value = self.extract_field_value(variables, &field_path)?;
 
         log::info!("[条件评估] 提取的值: {:?}", actual_value);
 
@@ -1405,6 +1415,64 @@ mod tests {
 
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_ok());
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(true));
+    }
+
+    // ============================================================================
+    // 变量替换测试
+    // ============================================================================
+
+    #[tokio::test]
+    async fn test_simple_condition_field_path_variable_replacement() {
+        // 测试 field_path 中的变量替换
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("{{field_name}}".to_string()), // 变量引用
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!("active")),
+            advanced_expression: None,
+            expected_value_type: None,
+        };
+        let node = create_test_node(config);
+        let mut context = create_test_context(serde_json::json!({
+            "field_name": "user.status", // 变量值
+            "user": {
+                "status": "active"
+            }
+        }));
+
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        assert!(result.is_ok(), "field_path 变量替换应该成功");
+        let (next_node_ids, output_data) = result.unwrap();
+        assert!(next_node_ids.is_empty());
+        assert_eq!(output_data.unwrap(), json!(true));
+    }
+
+    #[tokio::test]
+    async fn test_simple_condition_field_path_partial_variable_replacement() {
+        // 测试 field_path 中的部分变量替换
+        let executor = ConditionalNodeExecutor::new();
+        let config = ConditionalConfig {
+            condition_type: ConditionType::Simple,
+            field_path: Some("user.{{field_suffix}}".to_string()), // 部分变量引用
+            operator: Some(ConditionOperator::Equal),
+            expected_value: Some(serde_json::json!(25)),
+            advanced_expression: None,
+            expected_value_type: None,
+        };
+        let node = create_test_node(config);
+        let mut context = create_test_context(serde_json::json!({
+            "field_suffix": "age", // 变量值
+            "user": {
+                "age": 25
+            }
+        }));
+
+        let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+        assert!(result.is_ok(), "field_path 部分变量替换应该成功");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
         assert_eq!(output_data.unwrap(), json!(true));
