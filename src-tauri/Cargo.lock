@@ -88,18 +88,14 @@ dependencies = [
  "assert_cmd",
  "async-trait",
  "chrono",
- "evalexpr",
  "fern",
+ "flow-engine",
  "log",
- "mime_guess",
  "mockito",
  "predicates",
  "proptest",
- "regex",
- "reqwest 0.12.28",
  "serde",
  "serde_json",
- "serde_json_path",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
@@ -1192,6 +1188,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b09cf3155332e944990140d967ff5eceb70df778b34f77d8075db46e4704e6d8"
 dependencies = [
  "num-traits",
+]
+
+[[package]]
+name = "flow-engine"
+version = "0.1.0"
+dependencies = [
+ "assert_cmd",
+ "async-trait",
+ "chrono",
+ "evalexpr",
+ "log",
+ "mime_guess",
+ "mockito",
+ "predicates",
+ "proptest",
+ "regex",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "serde_json_path",
+ "tempfile",
+ "tokio",
+ "uuid",
+ "wiremock",
 ]
 
 [[package]]

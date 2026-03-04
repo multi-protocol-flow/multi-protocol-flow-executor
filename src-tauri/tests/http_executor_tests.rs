@@ -2,7 +2,11 @@
 // 功能已实现，测试验证预期行为
 
 #![allow(missing_docs)]
-use app_lib::*;
+use flow_engine::context::{ExecutionContext, VariableStorage};
+use flow_engine::node::{Node, NodePosition, NodeType};
+use flow_engine::node_config::{FormField, FormFieldType, HttpBodyType, HttpConfig, HttpMethod, NodeData};
+use flow_engine::executor::NodeExecutor;
+use flow_engine::http_executor::HttpNodeExecutor;
 use std::io::Write;
 use tempfile::NamedTempFile;
 use wiremock::{MockServer, Mock, ResponseTemplate};
