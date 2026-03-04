@@ -136,14 +136,22 @@ impl NodeExecutor for HttpNodeExecutor {
         // 添加请求头（替换变量）
         if let Some(headers) = &http_config.headers {
             for (key, value) in headers {
-                let replaced_value = crate::executor::replace_variables(value, context)
+                // 替换 header key 中的变量
+                let replaced_key = crate::executor::replace_variables(key, context)
                     .map_err(|e| {
-                        let error_msg = format!("请求头变量替换失败 ({}): {}", key, e);
+                        let error_msg = format!("请求头 key 变量替换失败 ({}): {}", key, e);
                         log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                         error_msg
                     })?;
-                request = request.header(key, &replaced_value);
-                sent_headers.insert(key.clone(), replaced_value);
+                // 替换 header value 中的变量
+                let replaced_value = crate::executor::replace_variables(value, context)
+                    .map_err(|e| {
+                        let error_msg = format!("请求头 value 变量替换失败 ({}): {}", key, e);
+                        log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                        error_msg
+                    })?;
+                request = request.header(&replaced_key, &replaced_value);
+                sent_headers.insert(replaced_key.clone(), replaced_value);
             }
         }
 
@@ -2383,5 +2391,108 @@ mod tests {
             None,
             "无效 JSONPath 应该返回 None"
         );
+    }
+
+    // ============================================================================
+    // Header Key 变量替换测试
+    // ============================================================================
+
+    #[tokio::test]
+    /// 测试请求头 key 变量替换
+    async fn test_http_header_key_variable_replacement() {
+        let mut headers = HashMap::new();
+        // 使用变量作为 header key
+        headers.insert("{{header_name}}".to_string(), "header_value".to_string());
+        headers.insert("X-Static-Header".to_string(), "{{header_value}}".to_string());
+
+        let node = create_http_node(
+            "test-header-key-var",
+            "Header Key 变量替换",
+            "https://httpbin.org/headers",
+            HttpMethod::Get,
+            Some(headers),
+            None,
+        );
+
+        let variables = json!({
+            "header_name": "X-Custom-Header",
+            "header_value": "dynamic_value"
+        });
+
+        let mut context = create_context("test-flow", variables);
+        let executor = HttpNodeExecutor::new();
+
+        let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+
+        // 验证执行成功
+        assert!(result.is_ok(), "Header key 变量替换应该成功");
+        let output_data = result.unwrap().1;
+        assert!(output_data.is_some());
+        let output = output_data.unwrap();
+        assert_eq!(output["status"], 200);
+
+        // 验证响应体包含替换后的 header key
+        if let Some(body) = output["body"].as_object() {
+            if let Some(response_headers) = body.get("headers").and_then(|v| v.as_object()) {
+                assert_eq!(
+                    response_headers.get("X-Custom-Header").and_then(|v| v.as_str()),
+                    Some("header_value"),
+                    "Header key 应该被替换"
+                );
+                assert_eq!(
+                    response_headers.get("X-Static-Header").and_then(|v| v.as_str()),
+                    Some("dynamic_value"),
+                    "Header value 应该被替换"
+                );
+            }
+        }
+    }
+
+    #[tokio::test]
+    /// 测试请求头 key 部分变量替换
+    async fn test_http_header_key_partial_variable_replacement() {
+        let mut headers = HashMap::new();
+        // 使用部分变量作为 header key
+        headers.insert("X-{{suffix}}".to_string(), "test_value".to_string());
+
+        let node = create_http_node(
+            "test-header-key-partial-var",
+            "Header Key 部分变量替换",
+            "https://httpbin.org/headers",
+            HttpMethod::Get,
+            Some(headers),
+            None,
+        );
+
+        let variables = json!({
+            "suffix": "Request-Id"
+        });
+
+        let mut context = create_context("test-flow", variables);
+        let executor = HttpNodeExecutor::new();
+
+        let result: Result<(Vec<String>, Option<serde_json::Value>), String> =
+            executor.execute(&node, &mut context, &[], &HashMap::new()).await;
+
+        // 验证执行成功
+        assert!(result.is_ok(), "Header key 部分变量替换应该成功");
+        let output_data = result.unwrap().1;
+        assert!(output_data.is_some());
+        let output = output_data.unwrap();
+        assert_eq!(output["status"], 200);
+
+        // 验证 request.headers 中包含替换后的 header key
+        // 注意：httpbin.org 的 /headers 端点可能不会返回所有发送的 headers
+        // 所以我们验证 request.headers 而不是 body.headers
+        if let Some(request) = output.get("request") {
+            if let Some(sent_headers) = request.get("headers").and_then(|v| v.as_object()) {
+                assert_eq!(
+                    sent_headers.get("X-Request-Id").and_then(|v| v.as_str()),
+                    Some("test_value"),
+                    "Request header key 部分变量应该被替换"
+                );
+            }
+        }
     }
 }
