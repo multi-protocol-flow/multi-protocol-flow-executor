@@ -71,7 +71,7 @@ fn test_valid_flow_execution() {
         .expect("Node must have uuid field");
     assert_eq!(start_uuid, "start-550e8400-e29b-41d4-a716-446655440000");
     assert!(is_valid_uuid(start_uuid), "Start node UUID should be valid");
-    assert_eq!(start_node["type"].as_str().unwrap(), "start");
+    assert_eq!(start_node["type"].as_str().unwrap(), "entry");
 
     // Verify end node
     let end_node = &nodes[1];
@@ -237,12 +237,12 @@ fn test_no_start_node_error_handling() {
         .expect("Flow must have connections array");
     assert_eq!(connections.len(), 0, "Flow should have 0 connections");
 
-    // Verify no start node
-    let start_nodes: Vec<_> = nodes
+    // Verify no entry node
+    let entry_nodes: Vec<_> = nodes
         .iter()
-        .filter(|n| n["type"].as_str().unwrap() == "start")
+        .filter(|n| n["type"].as_str().unwrap() == "entry")
         .collect();
-    assert_eq!(start_nodes.len(), 0, "Flow should not have a start node");
+    assert_eq!(entry_nodes.len(), 0, "Flow should not have an entry node");
 }
 
 #[test]
@@ -296,7 +296,7 @@ fn test_loop_detection() {
         .expect("Node must have uuid field");
     assert_eq!(start_uuid, "start-6ba7b812-9dad-11d1-80b4-00c04fd430c8");
     assert!(is_valid_uuid(start_uuid), "Start node UUID should be valid");
-    assert_eq!(start_node["type"].as_str().unwrap(), "start");
+    assert_eq!(start_node["type"].as_str().unwrap(), "entry");
 
     // Verify connections
     let connections = flow_json["connections"]
