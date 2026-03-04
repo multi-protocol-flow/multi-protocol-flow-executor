@@ -1,7 +1,7 @@
 # 项目知识库
 
-**生成时间:** 2026-02-28
-**Commit:** 3a15f83
+**生成时间:** 2026-03-04
+**Commit:** 0afc6fa
 **Branch:** master
 
 ## 概述
@@ -20,27 +20,26 @@ multi-protocol-flow-executor/
 │   ├── services/           # Tauri IPC 服务 + Mock
 │   ├── types/              # TypeScript 类型 (与 Rust 对齐)
 │   └── __tests__/          # Vitest 单元测试
-├── src-tauri/              # 后端源码 (Rust)
-│   ├── src/                # 执行引擎核心 (详见 src-tauri/src/AGENTS.md)
-│   └── bin/cli.rs          # 独立 CLI 二进制
+├── src-tauri/              # Rust 后端 (Workspace)
+│   ├── src/                # Tauri 适配层 + IPC 命令 (详见 src-tauri/src/AGENTS.md)
+│   ├── crates/flow-engine/ # 独立执行引擎 crate
+│   └── bin/cli.rs          # CLI 二进制
 ├── tests/                  # CLI 测试数据 + fixtures
 └── docs/                   # 架构文档
 ```
 
 ## 快速定位
 
-| 任务 | 位置 | 备注 |
-|------|------|------|
-| 添加新节点类型 | `src-tauri/src/` + `src/types/node.ts` | 前后端类型需同步 |
-| 修改执行逻辑 | `src-tauri/src/executor.rs` | 核心执行器 |
-| 添加前端组件 | `src/components/` | 参考 shadcn/ui 风格 |
-| 修改状态管理 | `src/stores/` | Zustand 模式 |
-| HTTP 请求节点 | `src-tauri/src/http_executor.rs` | reqwest 封装 |
-| HTTP body types | `src-tauri/src/node_config.rs` | body_type/content_type/form_fields/file_path |
-| 条件分支节点 | `src-tauri/src/conditional_executor.rs` | evalexpr 表达式 |
-| 内置流程模板 | `src/templates/builtinFlows.ts` | DEMO_FLOW 示例流程 |
-| 首次启动模板加载 | `src/components/sidebar/FlowListPanel.tsx` | 空列表时自动加载 |
-| 全局设置 | `src/components/settings/SettingsDialog.tsx` | 报告/日志目录配置 |
+| 任务 | 位置 |
+|------|------|
+| 添加新节点类型 | `src-tauri/crates/flow-engine/src/` + `src/types/node.ts` |
+| 修改执行逻辑 | `src-tauri/crates/flow-engine/src/executor.rs` |
+| 添加前端组件 | `src/components/` |
+| 修改状态管理 | `src/stores/` |
+| HTTP 请求节点 | `src-tauri/crates/flow-engine/src/http_executor.rs` |
+| 条件分支节点 | `src-tauri/crates/flow-engine/src/conditional_executor.rs` |
+| IPC 命令 | `src-tauri/src/` (Tauri 适配层) |
+
 ## 代码规范
 
 ### TypeScript
@@ -61,57 +60,17 @@ multi-protocol-flow-executor/
 
 ## 回归测试 (强制)
 
-**任何功能变更（新功能/Bug修复/重构）必须执行回归测试，防止引入新问题。**
+**任何功能变更必须执行回归测试。**
 
-### 执行要求
+| 变更类型 | 命令 |
+|----------|------|
+| 前端 | `npm run typecheck && npm run test` |
+| 后端 | `cd src-tauri && cargo test && cargo clippy` |
+| CLI | `cd src-tauri && cargo test cli_tests` |
+| 完整回归 | `npm run typecheck && npm run test && cd src-tauri && cargo test && cargo clippy` |
 
-1. **前端变更** → 必须运行:
-   ```bash
-   npm run test          # Vitest 单元测试
-   npm run typecheck     # TypeScript 类型检查
-   ```
+**禁止:** 跳过测试直接提交、删除失败测试、忽略 clippy 警告
 
-2. **后端变更** → 必须运行:
-   ```bash
-   cd src-tauri
-   cargo test            # Rust 测试
-   cargo clippy          # Lint 检查
-   ```
-
-3. **CLI 相关变更** → 必须运行:
-   ```bash
-   cd src-tauri
-   cargo test cli_tests  # CLI 集成测试
-   ```
-
-### 测试覆盖原则
-
-- **新功能**: 必须添加对应单元测试/集成测试
-- **Bug修复**: 必须添加回归测试防止问题复现
-- **重构**: 重构前后测试必须全部通过
-- **执行器变更**: 运行 `src-tauri/tests/` 下所有相关测试
-
-### 禁止行为
-
-| 行为 | 说明 |
-|------|------|
-| 跳过测试直接提交 | 必须验证所有测试通过 |
-| 删除失败测试 | 禁止删除测试来"通过" |
-| 只跑部分测试 | 功能相关测试必须全部通过 |
-| 忽略 clippy 警告 | 必须修复或明确标注 |
-
-### 测试命令速查
-
-```bash
-# 前端完整验证
-npm run typecheck && npm run test
-
-# 后端完整验证
-cd src-tauri && cargo fmt --check && cargo clippy && cargo test
-
-# 项目完整回归 (推荐)
-npm run typecheck && npm run test && cd src-tauri && cargo test && cargo clippy
-```
 ## 反模式 (本项目禁止)
 
 | 模式 | 位置 | 说明 |
@@ -152,9 +111,7 @@ npm run tauri build  # 构建安装包
 
 ## 注意事项
 
-1. **双二进制输出**: `src-tauri/Cargo.toml` 定义了两个 binary:
-   - `app` (Tauri 桌面应用)
-   - `cli` (独立 CLI 工具，支持 `cli -e -f flow.json`)
+1. **双二进制输出**: `src-tauri/Cargo.toml` 定义了 `app` (Tauri 桌面应用) 和 `cli` (独立 CLI 工具，支持 `cli -e -f flow.json`)
 
 2. **TailwindCSS 4**: 使用 CSS-based 配置 (`@import "tailwindcss"` + `@theme`)，无 `tailwind.config.js`
 
@@ -167,34 +124,20 @@ npm run tauri build  # 构建安装包
 
 5. **缺失 CI/CD**: 无 `.github/workflows`，需手动运行测试
 
-6. **HTTP Body Types**: 支持多种请求体类型:
-   - `none`: 无请求体（GET 请求默认）
-   - `body`: 原始请求体（JSON/Text/HTML/XML/JS）
-   - `form-data`: multipart 表单（支持文件上传）
-   - `x-www-form-urlencoded`: URL 编码表单
-   - `binary`: 二进制文件上传
-   - Content-Type 自动设置，用户手动设置优先
+6. **HTTP Body Types**: 支持 `none`、`body`、`form-data`、`x-www-form-urlencoded`、`binary`，Content-Type 自动设置，用户手动设置优先
 
-7. **HTTP 节点增强功能**:
-   - **Content-Type 选择器**: `body_type='body'` 时可选择 json/text/html/xml/javascript
-   - **form-data 文件上传**: 支持 `FormFieldType::File`，自动检测 MIME 类型
-   - **超时配置**: `timeout_ms` 字段，默认 30000ms，范围 1000-300000ms
-   - 测试覆盖: `http_executor.rs` 包含完整单元测试
+7. **HTTP 节点增强**: Content-Type 选择器、form-data 文件上传、超时配置 (`timeout_ms`，默认 30000ms，范围 1000-300000ms)
 
-8. **内置流程模板**: 首次启动时自动加载示例流程:
-   - 模板文件: `src/templates/builtinFlows.ts`
-   - 加载逻辑: `FlowListPanel.tsx` 的 `useEffect` 中检测 `flowMetas.length === 0`
-   - 包含节点: Entry → HTTP GET → 条件判断 → HTTP POST (成功分支)
-   - 变量引用: HTTP 响应使用顶级键 `status`、`body`、`headers` (非 `http_response.xxx`)
-   - 不会覆盖用户已有数据
+8. **内置流程模板**: 首次启动时自动加载示例流程 (`src/templates/builtinFlows.ts`)，变量引用使用顶级键 `status`、`body`、`headers`
 
-9. **全局设置功能**: 
-   - 设置入口: 顶部工具栏齿轮图标
-   - 设置项: 报告目录 + 日志目录
-   - 持久化: tauri-plugin-store（Tauri）/ localStorage（Mock）
-   - 默认位置: `{appDataDir}/reports/` 和 `{appDataDir}/logs/`
-   - 新增命令: `get_app_data_dir()` - 获取应用数据目录
+9. **全局设置**: 报告/日志目录配置，持久化使用 tauri-plugin-store（Tauri）/ localStorage（Mock），默认位置 `{appDataDir}/reports/` 和 `{appDataDir}/logs/`
+
 ## 子目录知识库
 
 - [src/components/AGENTS.md](./src/components/AGENTS.md) - 前端组件架构
-- [src-tauri/src/AGENTS.md](./src-tauri/src/AGENTS.md) - Rust 执行引擎
+- [src-tauri/src/AGENTS.md](./src-tauri/src/AGENTS.md) - Tauri 应用层
+- [src-tauri/crates/flow-engine/src/AGENTS.md](./src-tauri/crates/flow-engine/src/AGENTS.md) - Flow Engine 核心库
+- [src/stores/AGENTS.md](./src/stores/AGENTS.md) - Zustand 状态管理
+- [src/services/AGENTS.md](./src/services/AGENTS.md) - Tauri IPC 服务
+- [src/types/AGENTS.md](./src/types/AGENTS.md) - TypeScript 类型定义
+- [src/__tests__/AGENTS.md](./src/__tests__/AGENTS.md) - 前端测试
