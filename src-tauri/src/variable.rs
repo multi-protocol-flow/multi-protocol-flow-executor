@@ -36,14 +36,6 @@ pub struct OutputMapping {
     /// 映射说明（可选）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    /// 是否启用
-    #[serde(default = "default_enabled")]
-    pub enabled: bool,
-}
-
-/// 默认启用状态
-fn default_enabled() -> bool {
-    true
 }
 
 /// 初始变量配置
@@ -149,24 +141,22 @@ mod tests {
     }
 
     #[test]
-    fn test_output_mapping_default_enabled() {
-        // 测试 OutputMapping 的 enabled 默认值
+    fn test_output_mapping_basic() {
+        // 测试 OutputMapping 基本序列化/反序列化
         let json_str = r#"{"source": "body.id", "target": "user_id"}"#;
         let mapping: OutputMapping = serde_json::from_str(json_str).expect("反序列化失败");
 
         assert_eq!(mapping.source, "body.id");
         assert_eq!(mapping.target, "user_id");
-        assert!(mapping.enabled); // 默认为 true
         assert!(mapping.description.is_none());
     }
 
     #[test]
-    fn test_output_mapping_with_all_fields() {
+    fn test_output_mapping_with_description() {
         let mapping = OutputMapping {
             source: "status".to_string(),
             target: "http_status".to_string(),
             description: Some("HTTP状态码映射".to_string()),
-            enabled: false,
         };
 
         let json_str = serde_json::to_string(&mapping).expect("序列化失败");
@@ -175,7 +165,6 @@ mod tests {
         assert_eq!(deserialized.source, "status");
         assert_eq!(deserialized.target, "http_status");
         assert_eq!(deserialized.description, Some("HTTP状态码映射".to_string()));
-        assert!(!deserialized.enabled);
     }
 
     #[test]

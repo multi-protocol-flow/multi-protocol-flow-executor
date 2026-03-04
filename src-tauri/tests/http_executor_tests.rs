@@ -513,7 +513,7 @@ async fn test_file_path_variable_replacement() {
     
     // 设置变量
     let mut context = create_context("test-flow-var-path");
-    context.variables.set_global("file_path".to_string(), serde_json::json!(file_path));
+    context.variables.set_variable("file_path".to_string(), serde_json::json!(file_path), String::new());
     
     let executor = HttpNodeExecutor::new();
 

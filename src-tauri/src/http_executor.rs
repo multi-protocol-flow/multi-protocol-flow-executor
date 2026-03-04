@@ -5,6 +5,7 @@ use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use std::collections::HashMap;
 use std::time::Instant;
+use serde_json_path::JsonPath;
 
 /// HTTP节点执行器
 pub struct HttpNodeExecutor;
@@ -552,9 +553,6 @@ fn apply_output_mappings(
     node_uuid: &str,
 ) {
     for mapping in mappings {
-        if !mapping.enabled {
-            continue;
-        }
         if let Some(value) = extract_value_by_path(response, &mapping.source) {
             log::info!(
                 "[流程 {}] [输出映射] 节点: {}, 路径: {} -> 变量: {}",
@@ -579,27 +577,35 @@ fn apply_output_mappings(
     }
 }
 
-/// 按路径从 JSON 中提取值
+/// 按 JSONPath 从 JSON 中提取值
 ///
-/// 支持点分隔的路径，如 "status", "body.data.id"
+/// 支持标准 JSONPath 语法，如:
+/// - `$.status` - 根字段
+/// - `$.body.data.token` - 嵌套对象
+/// - `$.body.items[0]` - 数组索引
+/// - `$.body.items[-1]` - 负索引（从末尾）
 fn extract_value_by_path(value: &serde_json::Value, path: &str) -> Option<serde_json::Value> {
     if path.is_empty() {
         return None;
     }
 
-    let parts: Vec<&str> = path.split('.').collect();
-    let mut current = value;
-
-    for part in parts {
-        match current {
-            serde_json::Value::Object(map) => {
-                current = map.get(part)?;
-            }
-            _ => return None,
+    // 解析 JSONPath
+    let json_path = match JsonPath::parse(path) {
+        Ok(p) => p,
+        Err(_) => {
+            log::warn!("无效的 JSONPath 语法: {}", path);
+            return None;
         }
-    }
+    };
 
-    Some(current.clone())
+    // 执行查询
+    let result = json_path.query(value);
+    
+    // 获取单个结果
+    match result.exactly_one() {
+        Ok(v) => Some(v.clone()),
+        Err(_) => None,
+    }
 }
 
 #[cfg(test)]
@@ -657,7 +663,7 @@ mod tests {
         let mut var_storage = VariableStorage::new();
         if let Some(obj) = variables.as_object() {
             for (key, value) in obj {
-                var_storage.set_global(key.clone(), value.clone());
+                var_storage.set_variable(key.clone(), value.clone(), String::new());
             }
         }
         ExecutionContext {
@@ -1678,9 +1684,9 @@ mod tests {
         };
 
         let mut storage = VariableStorage::new();
-        storage.set_global("test_param".to_string(), json!("value123"));
-        storage.set_global("test_header".to_string(), json!("header_value"));
-        storage.set_global("test_body".to_string(), json!("body_value"));
+        storage.set_variable("test_param".to_string(), json!("value123"), String::new());
+        storage.set_variable("test_header".to_string(), json!("header_value"), String::new());
+        storage.set_variable("test_body".to_string(), json!("body_value"), String::new());
         let mut context = ExecutionContext {
                             flow_uuid: flow_id.clone(),
                             current_node_uuid: Some(http_node.uuid.clone()),
@@ -2209,5 +2215,173 @@ mod tests {
         let auth_header = req_headers.get("X-Auth-Token").unwrap().as_str().unwrap();
         assert!(auth_header.contains("secret_token_123"), "request.headers 应该包含替换后的变量值");
         assert!(!auth_header.contains("{{api_token}}"), "request.headers 不应该包含未替换的变量");
+    }
+
+    // ============================================================================
+    // 测试：JSONPath 提取功能（TDD: 先写测试）
+    // ============================================================================
+
+    /// 测试 extract_value_by_path 使用 JSONPath 语法
+    #[test]
+    fn test_extract_value_by_jsonpath_basic() {
+        let data = json!({
+            "status": 200,
+            "headers": {
+                "content-type": "application/json",
+                "x-request-id": "abc123"
+            },
+            "body": {
+                "data": {
+                    "token": "secret_token",
+                    "user": {
+                        "id": 1,
+                        "name": "alice"
+                    }
+                }
+            }
+        });
+
+        // 测试基本路径
+        assert_eq!(
+            extract_value_by_path(&data, "$.status"),
+            Some(json!(200)),
+            "$.status 应该返回 200"
+        );
+
+        // 测试嵌套对象
+        assert_eq!(
+            extract_value_by_path(&data, "$.body.data.token"),
+            Some(json!("secret_token")),
+            "$.body.data.token 应该返回 secret_token"
+        );
+
+        // 测试深层嵌套
+        assert_eq!(
+            extract_value_by_path(&data, "$.body.data.user.name"),
+            Some(json!("alice")),
+            "$.body.data.user.name 应该返回 alice"
+        );
+
+        // 测试不存在的路径
+        assert_eq!(
+            extract_value_by_path(&data, "$.not.exist"),
+            None,
+            "$.not.exist 应该返回 None"
+        );
+    }
+
+    /// 测试 JSONPath 数组索引访问
+    #[test]
+    fn test_extract_value_by_jsonpath_array_index() {
+        let data = json!({
+            "body": {
+                "items": [
+                    {"id": 1, "name": "Item1"},
+                    {"id": 2, "name": "Item2"},
+                    {"id": 3, "name": "Item3"}
+                ],
+                "users": ["alice", "bob", "charlie"]
+            }
+        });
+
+        // 测试数组索引 [0]
+        assert_eq!(
+            extract_value_by_path(&data, "$.body.items[0]"),
+            Some(json!({"id": 1, "name": "Item1"})),
+            "$.body.items[0] 应该返回第一个元素"
+        );
+
+        // 测试数组索引 [1]
+        assert_eq!(
+            extract_value_by_path(&data, "$.body.items[1].name"),
+            Some(json!("Item2")),
+            "$.body.items[1].name 应该返回 Item2"
+        );
+
+        // 测试简单数组索引
+        assert_eq!(
+            extract_value_by_path(&data, "$.body.users[2]"),
+            Some(json!("charlie")),
+            "$.body.users[2] 应该返回 charlie"
+        );
+
+        // 测试负索引 [-1]（最后一个元素）
+        assert_eq!(
+            extract_value_by_path(&data, "$.body.items[-1].name"),
+            Some(json!("Item3")),
+            "$.body.items[-1].name 应该返回最后一个元素的 name"
+        );
+
+        // 测试负索引 [-2]
+        assert_eq!(
+            extract_value_by_path(&data, "$.body.users[-2]"),
+            Some(json!("bob")),
+            "$.body.users[-2] 应该返回倒数第二个元素"
+        );
+    }
+
+    /// 测试 JSONPath 边界情况
+    #[test]
+    fn test_extract_value_by_jsonpath_edge_cases() {
+        let data = json!({
+            "status": 200,
+            "body": null,
+            "items": []
+        });
+
+        // 测试空路径
+        assert_eq!(
+            extract_value_by_path(&data, ""),
+            None,
+            "空路径应该返回 None"
+        );
+
+        // 测试根路径
+        assert_eq!(
+            extract_value_by_path(&data, "$"),
+            Some(data.clone()),
+            "$ 应该返回整个对象"
+        );
+
+        // 测试 null 值
+        assert_eq!(
+            extract_value_by_path(&data, "$.body"),
+            Some(json!(null)),
+            "$.body 应该返回 null"
+        );
+
+        // 测试空数组索引
+        assert_eq!(
+            extract_value_by_path(&data, "$.items[0]"),
+            None,
+            "$.items[0] 空数组应该返回 None"
+        );
+
+        // 测试越界索引
+        let data_with_items = json!({"items": [1, 2]});
+        assert_eq!(
+            extract_value_by_path(&data_with_items, "$.items[10]"),
+            None,
+            "越界索引应该返回 None"
+        );
+    }
+
+    /// 测试 JSONPath 无效语法处理
+    #[test]
+    fn test_extract_value_by_jsonpath_invalid_syntax() {
+        let data = json!({"status": 200});
+
+        // 无效 JSONPath 应该返回 None（不 panic）
+        assert_eq!(
+            extract_value_by_path(&data, "invalid["),
+            None,
+            "无效 JSONPath 应该返回 None"
+        );
+
+        assert_eq!(
+            extract_value_by_path(&data, "$..[["),
+            None,
+            "无效 JSONPath 应该返回 None"
+        );
     }
 }

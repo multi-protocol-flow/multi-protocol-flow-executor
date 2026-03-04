@@ -73,10 +73,8 @@ describe('Variable Types', () => {
         source: 'body.data.id',
         target: 'user_id',
         description: 'Extract user ID from response',
-        enabled: true,
       };
       expect(mapping.description).toBe('Extract user ID from response');
-      expect(mapping.enabled).toBe(true);
     });
 
     it('should have undefined optional fields when not specified', () => {
@@ -85,7 +83,6 @@ describe('Variable Types', () => {
         target: 'response_status',
       };
       expect(mapping.description).toBeUndefined();
-      expect(mapping.enabled).toBeUndefined();
     });
 
     it('should support nested path expressions', () => {

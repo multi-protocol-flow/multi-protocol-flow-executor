@@ -35,8 +35,6 @@ export interface OutputMapping {
   target: string;
   /** 映射说明（可选） */
   description?: string;
-  /** 是否启用（默认 true） */
-  enabled?: boolean;
 }
 
 /**

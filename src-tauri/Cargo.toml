@@ -13,7 +13,7 @@ default-run = "app"
 
 [lib]
 name = "app_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+crate-type = ["lib"]
 
 [[bin]]
 name = "cli"
@@ -41,11 +41,12 @@ async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
 mime_guess = "2.0"
 tempfile = "3.0"
+serde_json_path = "0.7"
 
 [dev-dependencies]
 mockito = "1.0"
 assert_cmd = "2.0"
-cargo-llvm-cov = "0.6"
+# cargo-llvm-cov = "0.6"  # 暂时禁用，可能导致 Windows 测试问题
 predicates = "3"
 proptest = "1.4"
 

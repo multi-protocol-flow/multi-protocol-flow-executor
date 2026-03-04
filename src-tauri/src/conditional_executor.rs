@@ -594,7 +594,7 @@ mod tests {
         let mut storage = VariableStorage::new();
         if let Some(obj) = variables.as_object() {
             for (key, value) in obj {
-                storage.set_global(key.clone(), value.clone());
+                storage.set_variable(key.clone(), value.clone(), String::new());
             }
         }
 

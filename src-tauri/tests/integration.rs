@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 // Integration Tests for Multi-Protocol Flow Executor
 // End-to-end testing with real flow fixtures
 

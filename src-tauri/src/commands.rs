@@ -302,7 +302,7 @@ pub async fn open_directory(app: tauri::AppHandle, path: String) -> Result<(), S
 mod tests {
     use super::*;
     use crate::command::{
-        CreateFlowCommandInput, DeleteNodeCommandInput, ExecuteFlowCommandInput,
+        CreateFlowCommandInput, DeleteNodeCommandInput,
         UpdateNodeCommandInput,
     };
     use crate::connection::Connection;

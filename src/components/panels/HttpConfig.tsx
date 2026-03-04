@@ -156,14 +156,12 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       // HTTP 节点：提取 output_mappings
       if (isHttpConfig(node.data) && node.data.output_mappings) {
         node.data.output_mappings.forEach(om => {
-          if (om.enabled !== false) {
-            vars.push({
-              name: om.target,
-              value: `{{${om.source}}}`,
-              sourceNodeUuid: node.uuid,
-              description: om.description,
-            });
-          }
+          vars.push({
+            name: om.target,
+            value: `{{${om.source}}}`,
+            sourceNodeUuid: node.uuid,
+            description: om.description,
+          });
         });
       }
     });
@@ -254,7 +252,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
    * 添加输出映射
    */
   const handleAddOutputMapping = useCallback(() => {
-    outputMappings.append({ source: 'status', target: '', description: '', enabled: true });
+    outputMappings.append({ source: '$.status', target: '', description: '' });
   }, [outputMappings]);
 
   /**
@@ -732,27 +730,23 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 .filter(i => i !== -1);
               const hasDuplicate = duplicateTargets.length > 0 && currentTarget.trim() !== '';
 
+              // JSONPath 常用预设
+              const jsonPathPresets = [
+                { value: '$.status', label: '状态码' },
+                { value: '$.body', label: '响应体' },
+                { value: '$.headers', label: '响应头' },
+                { value: '$.request', label: '请求信息' },
+                { value: '$.body.data', label: 'body.data' },
+                { value: '$.body.data.token', label: 'body.data.token' },
+                { value: '$.body.items[0]', label: 'body.items[0]' },
+                { value: '$.headers.content-type', label: 'headers.content-type' },
+              ];
+
               return (
                 <div key={field.id} className="space-y-2 p-3 rounded-md border bg-muted/30">
-                  {/* 第一行：源字段 + 变量名 + 删除 */}
+                  {/* 第一行：变量名 + 删除按钮 */}
                   <div className="flex items-center gap-2">
-                    <Select
-                      value={watch(`output_mappings.${index}.source`) || 'status'}
-                      onValueChange={(value) => {
-                        setValue(`output_mappings.${index}.source`, value);
-                        saveData();
-                      }}
-                    >
-                      <SelectTrigger className="h-8 w-28 font-mono text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="status">status</SelectItem>
-                        <SelectItem value="body">body</SelectItem>
-                        <SelectItem value="headers">headers</SelectItem>
-                        <SelectItem value="request">request</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-xs text-muted-foreground shrink-0">变量名</Label>
                     <Input
                       {...register(`output_mappings.${index}.target`)}
                       placeholder="变量名"
@@ -769,6 +763,24 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                     </Button>
                   </div>
 
+                  {/* 第二行：源字段 */}
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground shrink-0">源字段</Label>
+                    <div className="relative flex-1">
+                      <Input
+                        {...register(`output_mappings.${index}.source`)}
+                        placeholder="$.status"
+                        className={`h-8 w-full font-mono text-xs ${sourceError ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
+                        list={`jsonpath-presets-${index}`}
+                      />
+                      <datalist id={`jsonpath-presets-${index}`}>
+                        {jsonPathPresets.map((preset) => (
+                          <option key={preset.value} value={preset.value} />
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+
                   {/* 错误提示 */}
                   {sourceError && (
                     <p className="text-xs text-rose-500">{sourceError.message}</p>
@@ -780,25 +792,14 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                     <p className="text-xs text-rose-500">变量名已存在</p>
                   )}
 
-                  {/* 第二行：说明 + 启用 */}
+                  {/* 第三行：说明 */}
                   <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground shrink-0">说明</Label>
                     <Input
                       {...register(`output_mappings.${index}.description`)}
                       placeholder="说明（可选）"
                       className="h-8 flex-1 text-xs"
                     />
-                    <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
-                      <input
-                        type="checkbox"
-                        checked={watch(`output_mappings.${index}.enabled`) !== false}
-                        onChange={(e) => {
-                          setValue(`output_mappings.${index}.enabled`, e.target.checked);
-                          saveData();
-                        }}
-                        className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
-                      />
-                      <span className="text-xs text-muted-foreground">启用</span>
-                    </label>
                   </div>
                 </div>
               );
@@ -806,13 +807,18 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           )}
         </div>
 
-        {/* 提示信息 */}
+        {/* 提示信息 - JSONPath 语法说明 */}
         {outputMappings.fields.length > 0 && (
           <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
-            <p className="text-xs text-muted-foreground whitespace-normal break-words">
-              源字段：status (状态码)、body (响应体)、headers (响应头)、request (请求信息)。变量名只能包含字母、数字和下划线，长度 1-64 个字符。
-            </p>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p className="font-medium text-black">JSONPath 语法：</p>
+              <p><code className="rounded bg-muted px-1">$.status</code> 状态码</p>
+              <p><code className="rounded bg-muted px-1">$.body.data.token</code> 嵌套字段</p>
+              <p><code className="rounded bg-muted px-1">$.body.items[0]</code> 数组索引</p>
+              <p><code className="rounded bg-muted px-1">$.headers.content-type</code> 响应头</p>
+              <p className="text-muted-foreground/70 mt-1">变量名：字母、数字、下划线，1-64 字符</p>
+            </div>
           </div>
         )}
       </div>

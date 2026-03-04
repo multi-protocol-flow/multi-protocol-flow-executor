@@ -117,14 +117,12 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
       // HTTP 节点：提取 output_mappings
       if (isHttpConfig(node.data) && node.data.output_mappings) {
         node.data.output_mappings.forEach(om => {
-          if (om.enabled !== false) {
-            vars.push({
-              name: om.target,
-              value: `{{${om.source}}}`,
-              sourceNodeUuid: node.uuid,
-              description: om.description,
-            });
-          }
+          vars.push({
+            name: om.target,
+            value: `{{${om.source}}}`,
+            sourceNodeUuid: node.uuid,
+            description: om.description,
+          });
         });
       }
     });

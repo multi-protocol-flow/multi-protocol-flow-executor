@@ -1296,13 +1296,14 @@ mod tests {
         // 测试简单变量替换
         let template = "Bearer {{initial_variables.api_key}}";
         let mut variables = VariableStorage::new();
-        variables.set_global(
+        variables.set_variable(
             "initial_variables".to_string(),
             json!({
                 "api_key": "test-key"
             }),
+            String::new(),
         );
-        let mut context = ExecutionContext {
+        let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
             variables,
@@ -1324,15 +1325,16 @@ mod tests {
         // 测试嵌套路径
         let template = "Hello {{user.profile.name}}";
         let mut variables = VariableStorage::new();
-        variables.set_global(
+        variables.set_variable(
             "user".to_string(),
             json!({
                 "profile": {
                     "name": "Alice"
                 }
             }),
+            String::new(),
         );
-        let mut context = ExecutionContext {
+        let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
             variables,
@@ -1354,7 +1356,7 @@ mod tests {
         // 测试严格模式（变量不存在时报错）
         let template = "{{nonexistent.var}}";
         let variables = VariableStorage::new();
-        let mut context = ExecutionContext {
+        let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
             variables,
@@ -1376,8 +1378,8 @@ mod tests {
         // 测试索引访问不支持
         let template = "{{items[0]}}";
         let mut variables = VariableStorage::new();
-        variables.set_global("items".to_string(), json!(["a", "b", "c"]));
-        let mut context = ExecutionContext {
+        variables.set_variable("items".to_string(), json!(["a", "b", "c"]), String::new());
+        let context = ExecutionContext {
             flow_uuid: "test-flow".to_string(),
             current_node_uuid: None,
             variables,
@@ -1416,8 +1418,8 @@ mod tests {
         ) {
             let template = format!("{{{{items[{}]}}}}", index);
             let mut variables = VariableStorage::new();
-            variables.set_global("items".to_string(), json!(["a", "b", "c"]));
-            let mut context = ExecutionContext {
+            variables.set_variable("items".to_string(), json!(["a", "b", "c"]), String::new());
+            let context = ExecutionContext {
                 flow_uuid: "test-flow".to_string(),
                 current_node_uuid: None,
                 variables,
@@ -1438,8 +1440,8 @@ mod tests {
         ) {
             let template = "{{test_var}}";
             let mut variables = VariableStorage::new();
-            variables.set_global("test_var".to_string(), json!(value.clone()));
-            let mut context = ExecutionContext {
+            variables.set_variable("test_var".to_string(), json!(value.clone()), String::new());
+            let context = ExecutionContext {
                 flow_uuid: "test-flow".to_string(),
                 current_node_uuid: None,
                 variables,
@@ -1460,8 +1462,8 @@ mod tests {
         ) {
             let template = "{{num}}";
             let mut variables = VariableStorage::new();
-            variables.set_global("num".to_string(), json!(num));
-            let mut context = ExecutionContext {
+            variables.set_variable("num".to_string(), json!(num), String::new());
+            let context = ExecutionContext {
                 flow_uuid: "test-flow".to_string(),
                 current_node_uuid: None,
                 variables,
@@ -1482,8 +1484,8 @@ mod tests {
         ) {
             let template = "{{flag}}";
             let mut variables = VariableStorage::new();
-            variables.set_global("flag".to_string(), json!(val));
-            let mut context = ExecutionContext {
+            variables.set_variable("flag".to_string(), json!(val), String::new());
+            let context = ExecutionContext {
                 flow_uuid: "test-flow".to_string(),
                 current_node_uuid: None,
                 variables,

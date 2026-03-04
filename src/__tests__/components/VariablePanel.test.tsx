@@ -30,7 +30,7 @@ describe('VariablePanel', () => {
         url: '{{api_base}}/users',
         method: 'get',
         output_mappings: [
-          { source: 'status', target: 'user_status', description: '状态码', enabled: true },
+          { source: 'status', target: 'user_status', description: '状态码' },
         ],
       },
     },
@@ -206,8 +206,8 @@ describe('VariablePanel', () => {
     expect(screen.getByText('暂无变量')).toBeInTheDocument();
   });
 
-  it('handles HTTP node with disabled output_mappings', () => {
-    const flowWithDisabledMapping: Flow = {
+  it('handles HTTP node output_mappings - all mappings are shown', () => {
+    const flowWithMappings: Flow = {
       ...mockFlow,
       nodes: [
         mockNodes[0],
@@ -221,24 +221,23 @@ describe('VariablePanel', () => {
             url: 'https://example.com',
             method: 'get',
             output_mappings: [
-              { source: 'status', target: 'disabled_var', enabled: false },
-              { source: 'body', target: 'enabled_var', enabled: true },
+              { source: 'status', target: 'status_var' },
+              { source: 'body', target: 'body_var' },
             ],
           },
         },
       ],
     };
     
-    render(<VariablePanel flow={flowWithDisabledMapping} nodes={flowWithDisabledMapping.nodes} />);
+    render(<VariablePanel flow={flowWithMappings} nodes={flowWithMappings.nodes} />);
     
     // 先展开
     const expandAllBtn = screen.getByText('全部展开');
     fireEvent.click(expandAllBtn);
     
-    // disabled_var 不应该显示
-    expect(screen.queryByText('disabled_var')).not.toBeInTheDocument();
-    // enabled_var 应该显示
-    expect(screen.getByText('enabled_var')).toBeInTheDocument();
+    // 所有映射都应该显示
+    expect(screen.getByText('status_var')).toBeInTheDocument();
+    expect(screen.getByText('body_var')).toBeInTheDocument();
   });
 
   it('truncates long variable values', () => {

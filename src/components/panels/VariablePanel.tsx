@@ -55,14 +55,12 @@ function extractVariableGroups(flow: Flow): VariableGroup[] {
     // HTTP 节点：提取 output_mappings（模拟已执行的变量）
     if (isHttpConfig(node.data) && node.data.output_mappings) {
       node.data.output_mappings.forEach(om => {
-        if (om.enabled !== false) {
-          variables.push({
-            name: om.target,
-            value: `{{${om.source}}}`, // 显示引用路径
-            sourceNodeUuid: node.uuid,
-            description: om.description,
-          });
-        }
+        variables.push({
+          name: om.target,
+          value: `{{${om.source}}}`, // 显示引用路径
+          sourceNodeUuid: node.uuid,
+          description: om.description,
+        });
       });
     }
 

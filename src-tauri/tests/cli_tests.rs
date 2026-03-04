@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 // CLI 测试 - 测试命令行接口的所有功能
 
 use assert_cmd::cargo;
@@ -368,7 +370,7 @@ fn test_execution_time_field_exists() {
     // 解析 JSON 并验证 execution_time 是数字
     let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
     assert!(json["execution_time"].is_number());
-    assert!(json["execution_time"].as_u64().unwrap() >= 0);
+    assert!(json["execution_time"].is_number());
 }
 
 #[test]
@@ -820,7 +822,7 @@ fn test_duration_ms_values_are_reasonable() {
     for report in node_reports {
         let duration_ms = report["duration_ms"].as_u64().unwrap();
         assert!(
-            duration_ms >= 0 && duration_ms < 60000,
+            duration_ms < 60000,
             "duration_ms ({}) 应该在合理范围内 (0-60000ms)",
             duration_ms
         );
@@ -831,7 +833,7 @@ fn test_duration_ms_values_are_reasonable() {
     if flow_report.is_object() {
         let flow_duration_ms = flow_report["duration_ms"].as_u64().unwrap();
         assert!(
-            flow_duration_ms >= 0 && flow_duration_ms < 60000,
+            flow_duration_ms < 60000,
             "flow_report.duration_ms ({}) 应该在合理范围内 (0-60000ms)",
             flow_duration_ms
         );
