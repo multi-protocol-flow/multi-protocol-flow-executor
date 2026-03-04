@@ -1,3 +1,8 @@
+# Workspace 配置
+[workspace]
+members = ["crates/flow-engine"]
+resolver = "2"
+
 [package]
 name = "app"
 version = "0.1.0"
@@ -23,33 +28,35 @@ path = "bin/cli.rs"
 tauri-build = { version = "2.5.4", features = [] }
 
 [dependencies]
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-log = "0.4"
+# 业务逻辑引擎
+flow-engine = { path = "crates/flow-engine" }
+
+# Tauri 框架
 tauri = { version = "2.10.0", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-store = "2"
+
+# 通用依赖
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
 uuid = { version = "1.0", features = ["v4", "serde"] }
-reqwest = { version = "0.12", features = ["json", "multipart", "stream"] }
-fern = { version = "0.7", default-features = false }
-chrono = "0.4"
-evalexpr = "11.0.0"
-regex = "1.10"
 async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
-mime_guess = "2.0"
-tempfile = "3.0"
-serde_json_path = "0.7"
+
+# CLI 日志
+fern = { version = "0.7", default-features = false }
+chrono = "0.4"
 
 [dev-dependencies]
 mockito = "1.0"
 assert_cmd = "2.0"
-# cargo-llvm-cov = "0.6"  # 暂时禁用，可能导致 Windows 测试问题
 predicates = "3"
 proptest = "1.4"
 wiremock = "0.6"
+tempfile = "3.0"
 
 # =============================================================================
 # Clippy Lint 配置

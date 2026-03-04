@@ -39,3 +39,6 @@ nul
 
 # Rust cargo config (local)
 src-tauri/.cargo/
+
+# Rust build output
+target/
