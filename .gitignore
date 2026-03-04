@@ -36,3 +36,6 @@ dist/
 qa-screenshots/
 reports/
 nul
+
+# Rust cargo config (local)
+src-tauri/.cargo/
