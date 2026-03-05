@@ -5,15 +5,20 @@
 // Wave 2: 核心连接管理逻辑
 
 use chrono::{DateTime, Utc};
+use evalexpr::{ContextWithMutableVariables, HashMapContext, Value};
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_json_path::JsonPath;
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 use tokio::time::{timeout, Duration};
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use tokio_tungstenite::tungstenite::protocol::Message as WebSocketMessage;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+
+use crate::node_config::{WsMatchType, WsWaitCondition};
 
 /// WebSocket 流类型（支持 TLS）
 type WsStream = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
@@ -697,6 +702,161 @@ impl WebSocketConnectionManager {
             None => 0,
         }
     }
+
+    // ========================================================================
+    // 消息匹配功能（Wave 3）
+    // ========================================================================
+
+    /// 匹配 WebSocket 消息
+    ///
+    /// # 参数
+    ///
+    /// * `message` - 消息内容（文本）
+    /// * `condition` - 匹配条件
+    ///
+    /// # 返回
+    ///
+    /// * `Ok(true)`: 消息匹配成功
+    /// * `Ok(false)`: 消息不匹配
+    /// * `Err(msg)`: 匹配过程出错
+    ///
+    /// # 示例
+    ///
+    /// ```ignore
+    /// let manager = WebSocketConnectionManager::new();
+    /// let condition = WsWaitCondition {
+    ///     match_type: WsMatchType::JsonPath,
+    ///     expression: "$.status".to_string(),
+    /// };
+    /// let result = manager.match_message(r#"{"status":"ok"}"#, &condition)?;
+    /// assert!(result);
+    /// ```
+    pub fn match_message(
+        &self,
+        message: &str,
+        condition: &WsWaitCondition,
+    ) -> Result<bool, String> {
+        match condition.match_type {
+            WsMatchType::JsonPath => self.match_jsonpath(message, &condition.expression),
+            WsMatchType::Regex => self.match_regex(message, &condition.expression),
+            WsMatchType::Expression => self.match_expression(message, &condition.expression),
+        }
+    }
+
+    /// JSONPath 匹配
+    ///
+    /// 使用 JSONPath 表达式查询 JSON 消息，非空结果表示匹配成功。
+    ///
+    /// # 参数
+    ///
+    /// * `message` - JSON 格式的消息文本
+    /// * `expression` - JSONPath 表达式（例如：`$.status`）
+    ///
+    /// # 返回
+    ///
+    /// * `Ok(true)`: JSONPath 查询结果非空
+    /// * `Ok(false)`: JSONPath 查询结果为空
+    /// * `Err(msg)`: JSON 解析失败或 JSONPath 语法错误
+    fn match_jsonpath(&self, message: &str, expression: &str) -> Result<bool, String> {
+        // 1. 解析 JSON
+        let json: serde_json::Value = serde_json::from_str(message)
+            .map_err(|e| format!("JSON 解析失败: {}", e))?;
+
+        // 2. 编译 JSONPath 表达式
+        let path = JsonPath::parse(expression)
+            .map_err(|e| format!("JSONPath 语法错误: {}", e))?;
+
+        // 3. 查询 JSON
+        let result = path.query(&json);
+
+        // 4. 判断是否匹配（非空结果 = 匹配）
+        Ok(!result.is_empty())
+    }
+
+    /// 正则表达式匹配
+    ///
+    /// 使用正则表达式匹配消息文本。
+    ///
+    /// # 参数
+    ///
+    /// * `message` - 消息文本
+    /// * `pattern` - 正则表达式模式
+    ///
+    /// # 返回
+    ///
+    /// * `Ok(true)`: 消息匹配正则表达式
+    /// * `Ok(false)`: 消息不匹配正则表达式
+    /// * `Err(msg)`: 正则表达式语法错误
+    fn match_regex(&self, message: &str, pattern: &str) -> Result<bool, String> {
+        // 1. 编译正则表达式
+        let regex = Regex::new(pattern)
+            .map_err(|e| format!("正则表达式语法错误: {}", e))?;
+
+        // 2. 匹配消息
+        Ok(regex.is_match(message))
+    }
+
+    /// 表达式匹配（使用 evalexpr）
+    ///
+    /// 使用布尔表达式匹配消息，支持 JSON 字段引用。
+    ///
+    /// # 参数
+    ///
+    /// * `message` - 消息文本（可以是 JSON 或纯文本）
+    /// * `expression` - 布尔表达式（例如：`status == 200`）
+    ///
+    /// # 返回
+    ///
+    /// * `Ok(true)`: 表达式求值为 true
+    /// * `Ok(false)`: 表达式求值为 false
+    /// * `Err(msg)`: 表达式语法错误或求值失败
+    ///
+    /// # 说明
+    ///
+    /// 如果消息是 JSON 格式，会自动解析并将顶层字段添加到表达式上下文中。
+    /// 同时提供 `message` 变量引用原始消息文本。
+    fn match_expression(&self, message: &str, expression: &str) -> Result<bool, String> {
+        // 1. 尝试解析 JSON（如果消息是 JSON 格式）
+        let json_value: Option<serde_json::Value> =
+            serde_json::from_str(message).ok();
+
+        // 2. 创建表达式上下文
+        let mut context = HashMapContext::new();
+
+        // 3. 添加变量到上下文
+        // 消息文本
+        context
+            .set_value("message".to_string(), Value::String(message.to_string()))
+            .map_err(|e| format!("设置变量失败: {}", e))?;
+
+        // 如果是 JSON，添加解析后的字段
+        if let Some(serde_json::Value::Object(map)) = json_value {
+            for (key, value) in map {
+                let evalexpr_value = json_to_evalexpr_value(&value);
+                context
+                    .set_value(key.clone(), evalexpr_value)
+                    .map_err(|e| format!("设置变量失败: {}", e))?;
+            }
+        }
+
+        // 4. 求值表达式
+        let eval_result = evalexpr::eval_with_context(expression, &context)
+            .map_err(|e| format!("表达式求值失败: {}", e))?;
+
+        // 5. 转换为布尔值
+        let result = match eval_result {
+            Value::Boolean(b) => b,
+            Value::Int(i) => i != 0,
+            Value::Float(f) => f != 0.0,
+            Value::String(s) => !s.is_empty(),
+            Value::Empty => false,
+            _ => {
+                return Err(format!("表达式返回不支持的类型: {:?}", eval_result));
+            }
+        };
+
+        Ok(result)
+    }
 }
 
 impl Default for WebSocketConnectionManager {
@@ -771,6 +931,38 @@ fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, String> {
         .collect()
 }
 
+/// 将 JSON Value 转换为 evalexpr Value
+///
+/// 用于在表达式匹配中引用 JSON 字段。
+fn json_to_evalexpr_value(json: &serde_json::Value) -> Value {
+    match json {
+        serde_json::Value::Null => Value::Empty,
+        serde_json::Value::Bool(b) => Value::Boolean(*b),
+        serde_json::Value::Number(n) => {
+            // 优先检查是否为整数
+            if let Some(i) = n.as_i64() {
+                // 检查是否真的是整数（没有小数部分）
+                if let Some(f) = n.as_f64() {
+                    if f == i as f64 {
+                        return Value::Int(i);
+                    }
+                }
+            }
+            // 否则作为浮点数
+            if let Some(f) = n.as_f64() {
+                Value::Float(f)
+            } else {
+                Value::Empty
+            }
+        }
+        serde_json::Value::String(s) => Value::String(s.clone()),
+        serde_json::Value::Array(_) | serde_json::Value::Object(_) => {
+            // 复杂类型转为字符串
+            Value::String(json.to_string())
+        }
+    }
+}
+
 // ============================================================================
 // 单元测试
 // ============================================================================
@@ -778,6 +970,7 @@ fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::node_config::{WsMatchType, WsWaitCondition};
 
     fn create_test_connection(uuid: &str, name: &str, url: &str) -> ActiveConnection {
         ActiveConnection::new(uuid.to_string(), name.to_string(), url.to_string())
@@ -1360,5 +1553,328 @@ mod tests {
             manager.get_status("track-1"),
             Some(ConnectionStatus::Closed)
         );
+    }
+
+    // ============================================================================
+    // 消息匹配测试（Wave 3）
+    // ============================================================================
+
+    #[test]
+    fn test_match_jsonpath_success() {
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"status":"ok","data":{"id":123}}"#;
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::JsonPath,
+            expression: "$.status".to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_jsonpath_nested_field() {
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"status":"ok","data":{"id":123}}"#;
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::JsonPath,
+            expression: "$.data.id".to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_jsonpath_not_found() {
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"status":"ok"}"#;
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::JsonPath,
+            expression: "$.error".to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(!result.unwrap()); // 空结果 = 不匹配
+    }
+
+    #[test]
+    fn test_match_jsonpath_invalid_json() {
+        let manager = WebSocketConnectionManager::new();
+        let message = "not a json";
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::JsonPath,
+            expression: "$.status".to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("JSON 解析失败"));
+    }
+
+    #[test]
+    fn test_match_jsonpath_invalid_expression() {
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"status":"ok"}"#;
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::JsonPath,
+            expression: "$.[invalid".to_string(), // 无效的 JSONPath
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("JSONPath 语法错误"));
+    }
+
+    #[test]
+    fn test_match_regex_success() {
+        let manager = WebSocketConnectionManager::new();
+        let message = "Hello World 123";
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Regex,
+            expression: r"\d+".to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_regex_complex_pattern() {
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"status":200,"message":"success"}"#;
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Regex,
+            expression: r#""status":\s*\d{3}"#.to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_regex_no_match() {
+        let manager = WebSocketConnectionManager::new();
+        let message = "Hello World";
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Regex,
+            expression: r"\d+".to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+
+    #[test]
+    fn test_match_regex_invalid_pattern() {
+        let manager = WebSocketConnectionManager::new();
+        let message = "test";
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Regex,
+            expression: r"[".to_string(), // 无效的正则表达式
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("正则表达式语法错误"));
+    }
+
+    #[test]
+    fn test_match_expression_simple() {
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"status":200}"#;
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Expression,
+            expression: "status == 200".to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_expression_with_message_var() {
+        let manager = WebSocketConnectionManager::new();
+        let message = "success";
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Expression,
+            expression: r#"message == "success""#.to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_expression_false() {
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"code":404}"#;
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Expression,
+            expression: "code == 200".to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+
+    #[test]
+    fn test_match_expression_complex() {
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"temperature":25,"humidity":60}"#;
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Expression,
+            expression: "temperature > 20 && humidity < 70".to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_expression_string_comparison() {
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"status":"ok"}"#;
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Expression,
+            expression: r#"status == "ok""#.to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_expression_or_logic() {
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"status":200}"#;
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Expression,
+            expression: "status == 200 || status == 201".to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_expression_numeric_comparison() {
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"count":10}"#;
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Expression,
+            expression: "count >= 5 && count <= 15".to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_expression_invalid_syntax() {
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"status":200}"#;
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Expression,
+            expression: "status ==".to_string(), // 无效的表达式
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("表达式求值失败"));
+    }
+
+    #[test]
+    fn test_match_expression_non_json() {
+        let manager = WebSocketConnectionManager::new();
+        let message = "plain text message";
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Expression,
+            expression: r#"message == "plain text message""#.to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_expression_contains_string() {
+        let manager = WebSocketConnectionManager::new();
+        let message = "Error: Connection timeout";
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Expression,
+            expression: r#"message == "Error: Connection timeout""#.to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_json_to_evalexpr_value_null() {
+        let json = serde_json::Value::Null;
+        let value = json_to_evalexpr_value(&json);
+        assert_eq!(value, Value::Empty);
+    }
+
+    #[test]
+    fn test_json_to_evalexpr_value_boolean() {
+        let json = serde_json::json!(true);
+        let value = json_to_evalexpr_value(&json);
+        assert_eq!(value, Value::Boolean(true));
+
+        let json = serde_json::json!(false);
+        let value = json_to_evalexpr_value(&json);
+        assert_eq!(value, Value::Boolean(false));
+    }
+
+    #[test]
+    fn test_json_to_evalexpr_value_number() {
+        let json = serde_json::json!(42);
+        let value = json_to_evalexpr_value(&json);
+        assert_eq!(value, Value::Int(42));
+
+        let json = serde_json::json!(3.14);
+        let value = json_to_evalexpr_value(&json);
+        if let Value::Float(f) = value {
+            assert!((f - 3.14).abs() < 0.001);
+        } else {
+            panic!("Expected Float value");
+        }
+    }
+
+    #[test]
+    fn test_json_to_evalexpr_value_string() {
+        let json = serde_json::json!("hello");
+        let value = json_to_evalexpr_value(&json);
+        assert_eq!(value, Value::String("hello".to_string()));
+    }
+
+    #[test]
+    fn test_json_to_evalexpr_value_complex() {
+        let json = serde_json::json!({"key": "value"});
+        let value = json_to_evalexpr_value(&json);
+        // 复杂类型转为字符串
+        if let Value::String(s) = value {
+            assert!(s.contains("key"));
+            assert!(s.contains("value"));
+        } else {
+            panic!("Expected String value for complex JSON");
+        }
     }
 }
