@@ -231,11 +231,15 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
               nodeLabels={nodeLabels}
               value={watch('field_path') || ''}
               onValueChange={(value) => setValue('field_path', value)}
-              placeholder="http_response.status"
+              placeholder="{{变量名}} 或 $.body.data.token"
               className="font-mono text-sm"
             />
             <p className="text-xs text-muted-foreground break-all">
-              使用点号分隔的路径，如 <code className="rounded bg-muted px-1 break-all">http_response.data.id</code>
+              支持两种格式：
+              <br />
+              • <code className="rounded bg-muted px-1">{"{{变量名}}"}</code> 从变量池获取
+              <br />
+              • <code className="rounded bg-muted px-1">$.json.path</code> JSONPath 从数据中提取
             </p>
             <VariableValidationWarning
               value={watch('field_path') || ''}
