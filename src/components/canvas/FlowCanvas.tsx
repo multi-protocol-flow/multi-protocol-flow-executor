@@ -21,7 +21,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendWaitNode, WsCloseNode } from './nodes';
 import { CanvasToolbar } from './CanvasToolbar';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore } from '@/stores';
@@ -74,6 +74,9 @@ const nodeTypes = {
   entry: EntryNode,
   http: HttpNode,
   conditional: ConditionalNode,
+  ws_connect: WsConnectNode,
+  ws_send_wait: WsSendWaitNode,
+  ws_close: WsCloseNode,
 };
 
 /** 边类型映射 */
@@ -90,6 +93,12 @@ const minimapNodeColor = (node: Node) => {
       return '#3b82f6';
     case 'conditional':
       return '#f97316';
+    case 'ws_connect':
+      return '#f59e0b'; // amber-500
+    case 'ws_send_wait':
+      return '#14b8a6'; // teal-500
+    case 'ws_close':
+      return '#f43f5e'; // rose-500
     default:
       return '#94a3b8';
   }
@@ -346,6 +355,30 @@ function FlowCanvasInner() {
             expected_value: '',
           },
         });
+      } else if (nodeType === 'ws_connect') {
+        addNode({
+          uuid: newNodeUuid,
+          type: 'ws_connect',
+          name: `WS 连接 ${nodeCount}`,
+          position,
+          data: { type: 'ws_connect', url: '' },
+        });
+      } else if (nodeType === 'ws_send_wait') {
+        addNode({
+          uuid: newNodeUuid,
+          type: 'ws_send_wait',
+          name: `WS 发送等待 ${nodeCount}`,
+          position,
+          data: { type: 'ws_send_wait', connection_id: '', message: '' },
+        });
+      } else if (nodeType === 'ws_close') {
+        addNode({
+          uuid: newNodeUuid,
+          type: 'ws_close',
+          name: `WS 关闭 ${nodeCount}`,
+          position,
+          data: { type: 'ws_close', connection_id: '' },
+        });
       }
     },
     [screenToFlowPosition, flow, addNode]
@@ -394,6 +427,30 @@ function FlowCanvasInner() {
           operator: 'equal',
           expected_value: '',
         },
+      });
+    } else if (pendingAddNodeType === 'ws_connect') {
+      addNode({
+        uuid: newNodeUuid,
+        type: 'ws_connect',
+        name: `WS 连接 ${nodeCount}`,
+        position,
+        data: { type: 'ws_connect', url: '' },
+      });
+    } else if (pendingAddNodeType === 'ws_send_wait') {
+      addNode({
+        uuid: newNodeUuid,
+        type: 'ws_send_wait',
+        name: `WS 发送等待 ${nodeCount}`,
+        position,
+        data: { type: 'ws_send_wait', connection_id: '', message: '' },
+      });
+    } else if (pendingAddNodeType === 'ws_close') {
+      addNode({
+        uuid: newNodeUuid,
+        type: 'ws_close',
+        name: `WS 关闭 ${nodeCount}`,
+        position,
+        data: { type: 'ws_close', connection_id: '' },
       });
     }
 
