@@ -287,7 +287,7 @@ impl PartialEq for WsWaitCondition {
 }
 
 /// WebSocket Connect 节点配置
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WsConnectConfig {
     /// WebSocket URL
     pub url: String,
@@ -317,8 +317,24 @@ pub struct WsConnectConfig {
     pub output_mappings: Vec<OutputMapping>,
 }
 
+impl Default for WsConnectConfig {
+    fn default() -> Self {
+        Self {
+            url: String::new(),
+            headers: Vec::new(),
+            subprotocols: Vec::new(),
+            connect_timeout_ms: default_connect_timeout(),
+            wait_for_message: false,
+            wait_mode: WsWaitMode::default(),
+            wait_condition: None,
+            message_timeout_ms: default_message_timeout(),
+            output_mappings: Vec::new(),
+        }
+    }
+}
+
 /// WebSocket Send+Wait 节点配置
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WsSendWaitConfig {
     /// 连接 ID
     pub connection_id: String,
@@ -347,8 +363,24 @@ pub struct WsSendWaitConfig {
     pub output_mappings: Vec<OutputMapping>,
 }
 
+impl Default for WsSendWaitConfig {
+    fn default() -> Self {
+        Self {
+            connection_id: String::new(),
+            message: String::new(),
+            message_type: WsMessageType::default(),
+            send_timeout_ms: default_send_timeout(),
+            wait_for_response: false,
+            wait_mode: WsWaitMode::default(),
+            wait_condition: None,
+            message_timeout_ms: default_message_timeout(),
+            output_mappings: Vec::new(),
+        }
+    }
+}
+
 /// WebSocket Close 节点配置
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WsCloseConfig {
     /// 连接 ID
     pub connection_id: String,
@@ -361,6 +393,17 @@ pub struct WsCloseConfig {
     /// 等待关闭超时（毫秒）
     #[serde(default = "default_close_timeout")]
     pub wait_close_timeout_ms: u64,
+}
+
+impl Default for WsCloseConfig {
+    fn default() -> Self {
+        Self {
+            connection_id: String::new(),
+            close_code: default_close_code(),
+            close_reason: None,
+            wait_close_timeout_ms: default_close_timeout(),
+        }
+    }
 }
 
 // Default value helpers
@@ -395,10 +438,13 @@ pub enum NodeData {
     /// 条件分支节点配置
     Conditional(ConditionalConfig),
     /// WebSocket 连接节点配置
+    #[serde(rename = "ws_connect")]
     WsConnect(WsConnectConfig),
     /// WebSocket 发送等待节点配置
+    #[serde(rename = "ws_send_wait")]
     WsSendWait(WsSendWaitConfig),
     /// WebSocket 关闭节点配置
+    #[serde(rename = "ws_close")]
     WsClose(WsCloseConfig),
 }
 
@@ -453,6 +499,31 @@ impl NodeData {
             expected_value: None,
             advanced_expression: Some(expression.into()),
             expected_value_type: None,
+        })
+    }
+
+    /// 创建 WsConnect 节点配置
+    pub fn ws_connect(url: impl Into<String>) -> Self {
+        Self::WsConnect(WsConnectConfig {
+            url: url.into(),
+            ..Default::default()
+        })
+    }
+
+    /// 创建 WsSendWait 节点配置
+    pub fn ws_send_wait(connection_id: impl Into<String>, message: impl Into<String>) -> Self {
+        Self::WsSendWait(WsSendWaitConfig {
+            connection_id: connection_id.into(),
+            message: message.into(),
+            ..Default::default()
+        })
+    }
+
+    /// 创建 WsClose 节点配置
+    pub fn ws_close(connection_id: impl Into<String>) -> Self {
+        Self::WsClose(WsCloseConfig {
+            connection_id: connection_id.into(),
+            ..Default::default()
         })
     }
 }
@@ -619,5 +690,234 @@ mod tests {
         assert!(json.contains("post"));
         assert!(json.contains("key"));
         assert!(json.contains("value"));
+    }
+
+    // ========================================================================
+    // WebSocket 类型测试
+    // ========================================================================
+
+    #[test]
+    fn test_ws_wait_mode_default() {
+        let mode = WsWaitMode::default();
+        assert_eq!(mode, WsWaitMode::None);
+    }
+
+    #[test]
+    fn test_ws_wait_mode_serialization() {
+        let mode = WsWaitMode::FirstMessage;
+        let json = serde_json::to_string(&mode).unwrap();
+        assert_eq!(json, r#""first_message""#);
+
+        let deserialized: WsWaitMode = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, WsWaitMode::FirstMessage);
+    }
+
+    #[test]
+    fn test_ws_match_type_default() {
+        let match_type = WsMatchType::default();
+        assert_eq!(match_type, WsMatchType::JsonPath);
+    }
+
+    #[test]
+    fn test_ws_message_type_default() {
+        let msg_type = WsMessageType::default();
+        assert_eq!(msg_type, WsMessageType::Text);
+    }
+
+    #[test]
+    fn test_ws_message_type_serialization() {
+        let msg_type = WsMessageType::Binary;
+        let json = serde_json::to_string(&msg_type).unwrap();
+        assert_eq!(json, r#""binary""#);
+
+        let deserialized: WsMessageType = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, WsMessageType::Binary);
+    }
+
+    #[test]
+    fn test_ws_wait_condition() {
+        let condition = WsWaitCondition {
+            match_type: WsMatchType::Regex,
+            expression: r#"status == 200"#.to_string(),
+        };
+
+        let json = serde_json::to_string(&condition).unwrap();
+        assert!(json.contains("regex"));
+        assert!(json.contains("status == 200"));
+
+        let deserialized: WsWaitCondition = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.match_type, WsMatchType::Regex);
+        assert_eq!(deserialized.expression, "status == 200");
+    }
+
+    #[test]
+    fn test_ws_connect_config_default() {
+        let config = WsConnectConfig::default();
+        assert!(config.url.is_empty());
+        assert!(config.headers.is_empty());
+        assert!(config.subprotocols.is_empty());
+        assert_eq!(config.connect_timeout_ms, 30000);
+        assert!(!config.wait_for_message);
+        assert_eq!(config.wait_mode, WsWaitMode::None);
+        assert!(config.wait_condition.is_none());
+        assert_eq!(config.message_timeout_ms, 10000);
+        assert!(config.output_mappings.is_empty());
+    }
+
+    #[test]
+    fn test_ws_connect_config_serialization() {
+        let config = WsConnectConfig {
+            url: "wss://example.com/ws".to_string(),
+            headers: vec![FormField {
+                key: "Authorization".to_string(),
+                value: "Bearer token".to_string(),
+                field_type: FormFieldType::Text,
+                file_path: None,
+            }],
+            subprotocols: vec!["chat".to_string()],
+            connect_timeout_ms: 5000,
+            wait_for_message: true,
+            wait_mode: WsWaitMode::FirstMessage,
+            wait_condition: None,
+            message_timeout_ms: 15000,
+            output_mappings: vec![],
+        };
+
+        let json = serde_json::to_string_pretty(&config).unwrap();
+        assert!(json.contains("wss://example.com/ws"));
+        assert!(json.contains("Authorization"));
+        assert!(json.contains("chat"));
+        assert!(json.contains("first_message"));
+
+        let deserialized: WsConnectConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.url, "wss://example.com/ws");
+        assert_eq!(deserialized.headers.len(), 1);
+        assert_eq!(deserialized.subprotocols.len(), 1);
+        assert_eq!(deserialized.connect_timeout_ms, 5000);
+    }
+
+    #[test]
+    fn test_ws_send_wait_config_default() {
+        let config = WsSendWaitConfig::default();
+        assert!(config.connection_id.is_empty());
+        assert!(config.message.is_empty());
+        assert_eq!(config.message_type, WsMessageType::Text);
+        assert_eq!(config.send_timeout_ms, 10000);
+        assert!(!config.wait_for_response);
+        assert_eq!(config.wait_mode, WsWaitMode::None);
+        assert_eq!(config.message_timeout_ms, 10000);
+    }
+
+    #[test]
+    fn test_ws_send_wait_config_serialization() {
+        let config = WsSendWaitConfig {
+            connection_id: "conn-123".to_string(),
+            message: r#"{"type":"ping"}"#.to_string(),
+            message_type: WsMessageType::Text,
+            send_timeout_ms: 5000,
+            wait_for_response: true,
+            wait_mode: WsWaitMode::Condition,
+            wait_condition: Some(WsWaitCondition {
+                match_type: WsMatchType::JsonPath,
+                expression: "$.type == 'pong'".to_string(),
+            }),
+            message_timeout_ms: 8000,
+            output_mappings: vec![],
+        };
+
+        let json = serde_json::to_string_pretty(&config).unwrap();
+        assert!(json.contains("conn-123"));
+        assert!(json.contains("ping"));
+        assert!(json.contains("condition"));
+        assert!(json.contains("$.type == 'pong'"));
+
+        let deserialized: WsSendWaitConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.connection_id, "conn-123");
+        assert_eq!(deserialized.wait_mode, WsWaitMode::Condition);
+        assert!(deserialized.wait_condition.is_some());
+    }
+
+    #[test]
+    fn test_ws_close_config_default() {
+        let config = WsCloseConfig::default();
+        assert!(config.connection_id.is_empty());
+        assert_eq!(config.close_code, 1000);
+        assert!(config.close_reason.is_none());
+        assert_eq!(config.wait_close_timeout_ms, 5000);
+    }
+
+    #[test]
+    fn test_ws_close_config_serialization() {
+        let config = WsCloseConfig {
+            connection_id: "conn-456".to_string(),
+            close_code: 1001,
+            close_reason: Some("Going Away".to_string()),
+            wait_close_timeout_ms: 3000,
+        };
+
+        let json = serde_json::to_string_pretty(&config).unwrap();
+        assert!(json.contains("conn-456"));
+        assert!(json.contains("1001"));
+        assert!(json.contains("Going Away"));
+
+        let deserialized: WsCloseConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.close_code, 1001);
+        assert_eq!(deserialized.close_reason, Some("Going Away".to_string()));
+    }
+
+    #[test]
+    fn test_node_data_ws_connect() {
+        let data = NodeData::ws_connect("wss://example.com/ws");
+        assert_eq!(data.type_name(), "ws_connect");
+
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains(r#""type":"ws_connect""#));
+        assert!(json.contains("wss://example.com/ws"));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        match deserialized {
+            NodeData::WsConnect(config) => {
+                assert_eq!(config.url, "wss://example.com/ws");
+            }
+            _ => panic!("Expected WsConnect variant"),
+        }
+    }
+
+    #[test]
+    fn test_node_data_ws_send_wait() {
+        let data = NodeData::ws_send_wait("conn-123", r#"{"type":"ping"}"#);
+        assert_eq!(data.type_name(), "ws_send_wait");
+
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains(r#""type":"ws_send_wait""#));
+        assert!(json.contains("conn-123"));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        match deserialized {
+            NodeData::WsSendWait(config) => {
+                assert_eq!(config.connection_id, "conn-123");
+                assert_eq!(config.message, r#"{"type":"ping"}"#);
+            }
+            _ => panic!("Expected WsSendWait variant"),
+        }
+    }
+
+    #[test]
+    fn test_node_data_ws_close() {
+        let data = NodeData::ws_close("conn-456");
+        assert_eq!(data.type_name(), "ws_close");
+
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains(r#""type":"ws_close""#));
+        assert!(json.contains("conn-456"));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        match deserialized {
+            NodeData::WsClose(config) => {
+                assert_eq!(config.connection_id, "conn-456");
+                assert_eq!(config.close_code, 1000); // default
+            }
+            _ => panic!("Expected WsClose variant"),
+        }
     }
 }

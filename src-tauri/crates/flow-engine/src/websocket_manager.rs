@@ -1,13 +1,28 @@
 // WebSocket 连接管理器模块
 //
-// 管理 WebSocket 连接池，提供连接状态查询功能。
-// Wave 1: 基础数据结构，不含实际连接逻辑
+// 管理 WebSocket 连接池，提供连接建立、关闭、消息收发功能。
+// Wave 1: 基础数据结构
+// Wave 2: 核心连接管理逻辑
 
 use chrono::{DateTime, Utc};
+use futures_util::stream::{SplitSink, SplitStream};
+use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
+use tokio::time::{timeout, Duration};
+use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use tokio_tungstenite::tungstenite::protocol::Message as WebSocketMessage;
+use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+
+/// WebSocket 流类型（支持 TLS）
+type WsStream = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
+
+/// WebSocket 发送端类型
+type WsSender = SplitSink<WsStream, WebSocketMessage>;
+
+/// WebSocket 接收端类型
+type WsReceiver = SplitStream<WsStream>;
 
 /// 连接状态
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -22,12 +37,13 @@ pub enum ConnectionStatus {
     Closing,
     /// 已关闭
     Closed,
+    /// 连接错误
+    Error,
 }
 
 /// 活跃连接
 ///
-/// 存储单个 WebSocket 连接的状态和元数据。
-#[derive(Debug, Clone)]
+/// 存储单个 WebSocket 连接的状态、元数据和实际的 WebSocket 流。
 pub struct ActiveConnection {
     /// 节点 UUID（连接的唯一标识）
     pub uuid: String,
@@ -41,6 +57,28 @@ pub struct ActiveConnection {
     pub url: String,
     /// 消息缓冲区（用于暂存待处理消息）
     pub message_buffer: VecDeque<WebSocketMessage>,
+    /// 最后错误消息（如果有）
+    pub last_error: Option<String>,
+
+    // WebSocket 连接（通过 Arc<Mutex> 实现线程安全共享）
+    sender: Option<Arc<tokio::sync::Mutex<WsSender>>>,
+    receiver: Option<Arc<tokio::sync::Mutex<WsReceiver>>>,
+}
+
+impl std::fmt::Debug for ActiveConnection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ActiveConnection")
+            .field("uuid", &self.uuid)
+            .field("name", &self.name)
+            .field("status", &self.status)
+            .field("created_at", &self.created_at)
+            .field("url", &self.url)
+            .field("buffer_size", &self.message_buffer.len())
+            .field("last_error", &self.last_error)
+            .field("has_sender", &self.sender.is_some())
+            .field("has_receiver", &self.receiver.is_some())
+            .finish()
+    }
 }
 
 impl ActiveConnection {
@@ -63,12 +101,21 @@ impl ActiveConnection {
             created_at: Utc::now(),
             url,
             message_buffer: VecDeque::new(),
+            last_error: None,
+            sender: None,
+            receiver: None,
         }
     }
 
     /// 更新连接状态
     pub fn set_status(&mut self, status: ConnectionStatus) {
         self.status = status;
+    }
+
+    /// 设置错误状态和消息
+    pub fn set_error(&mut self, error: String) {
+        self.status = ConnectionStatus::Error;
+        self.last_error = Some(error);
     }
 
     /// 添加消息到缓冲区
@@ -84,6 +131,36 @@ impl ActiveConnection {
     /// 获取缓冲区消息数量
     pub fn buffer_size(&self) -> usize {
         self.message_buffer.len()
+    }
+
+    /// 设置 WebSocket 流（连接成功后调用）
+    pub fn set_stream(&mut self, sender: WsSender, receiver: WsReceiver) {
+        self.sender = Some(Arc::new(tokio::sync::Mutex::new(sender)));
+        self.receiver = Some(Arc::new(tokio::sync::Mutex::new(receiver)));
+        self.status = ConnectionStatus::Connected;
+    }
+
+    /// 获取发送端的克隆
+    pub fn get_sender(&self) -> Option<Arc<tokio::sync::Mutex<WsSender>>> {
+        self.sender.clone()
+    }
+
+    /// 获取接收端的克隆
+    pub fn get_receiver(&self) -> Option<Arc<tokio::sync::Mutex<WsReceiver>>> {
+        self.receiver.clone()
+    }
+
+    /// 检查是否有活跃的 WebSocket 连接
+    pub fn is_connected(&self) -> bool {
+        self.status == ConnectionStatus::Connected
+            && self.sender.is_some()
+            && self.receiver.is_some()
+    }
+
+    /// 清理 WebSocket 资源
+    pub fn clear_stream(&mut self) {
+        self.sender = None;
+        self.receiver = None;
     }
 }
 
@@ -109,6 +186,382 @@ impl WebSocketConnectionManager {
         }
     }
 
+    /// 建立 WebSocket 连接
+    ///
+    /// # 参数
+    ///
+    /// * `uuid` - 节点 UUID（连接标识）
+    /// * `name` - 节点名称（可读标识）
+    /// * `url` - WebSocket URL (ws:// 或 wss://)
+    /// * `connect_timeout_ms` - 连接超时（毫秒）
+    ///
+    /// # 返回
+    ///
+    /// * `Ok(())` - 连接成功
+    /// * `Err(msg)` - 连接失败，包含错误消息
+    ///
+    /// # 示例
+    ///
+    /// ```ignore
+    /// let manager = WebSocketConnectionManager::new();
+    /// manager.connect("conn-1", "测试连接", "wss://echo.websocket.org", 30000).await?;
+    /// ```
+    pub async fn connect(
+        &self,
+        uuid: String,
+        name: String,
+        url: String,
+        connect_timeout_ms: u64,
+    ) -> Result<(), String> {
+        // 1. 创建 ActiveConnection (status: Connecting)
+        let mut connection = ActiveConnection::new(uuid.clone(), name, url.clone());
+
+        // 2. 验证 URL 格式
+        if !url.starts_with("ws://") && !url.starts_with("wss://") {
+            let error_msg = format!("无效的 WebSocket URL（必须以 ws:// 或 wss:// 开头）: {}", url);
+            connection.set_error(error_msg.clone());
+            self.upsert_connection(connection);
+            return Err(error_msg);
+        }
+
+        // 3. 临时存储连接（状态为 Connecting）
+        self.upsert_connection(connection);
+
+        // 4. 使用 tokio::time::timeout 包装 connect_async
+        let connect_timeout = Duration::from_millis(connect_timeout_ms.clamp(1000, 60000));
+        let connect_result = timeout(connect_timeout, connect_async(&url)).await;
+
+        match connect_result {
+            Ok(Ok((ws_stream, _response))) => {
+                // 5. 连接成功，分割流
+                let (sender, receiver) = ws_stream.split();
+
+                // 6. 更新连接状态
+                let mut connections = self.connections.lock().map_err(|e| {
+                    format!("获取连接锁失败: {}", e)
+                })?;
+
+                if let Some(conn) = connections.get_mut(&uuid) {
+                    conn.set_stream(sender, receiver);
+                    log::info!(
+                        "[WebSocket] 连接成功: uuid={}, url={}",
+                        uuid,
+                        url
+                    );
+                }
+                Ok(())
+            }
+            Ok(Err(e)) => {
+                // 连接失败（网络错误、TLS 错误等）
+                let error_msg = format!("WebSocket 连接失败 ({}): {}", url, e);
+                self.update_connection_error(&uuid, &error_msg);
+                Err(error_msg)
+            }
+            Err(_) => {
+                // 连接超时
+                let error_msg = format!(
+                    "WebSocket 连接超时 ({}ms): {}",
+                    connect_timeout_ms, url
+                );
+                self.update_connection_error(&uuid, &error_msg);
+                Err(error_msg)
+            }
+        }
+    }
+
+    /// 关闭 WebSocket 连接
+    ///
+    /// # 参数
+    ///
+    /// * `uuid` - 连接 UUID
+    /// * `close_code` - 关闭码（默认 1000）
+    /// * `close_reason` - 关闭原因（可选）
+    /// * `wait_close_timeout_ms` - 等待关闭超时
+    ///
+    /// # 返回
+    ///
+    /// * `Ok(())` - 关闭成功
+    /// * `Err(msg)` - 关闭失败或连接不存在
+    pub async fn close(
+        &self,
+        uuid: &str,
+        close_code: u16,
+        close_reason: Option<String>,
+        wait_close_timeout_ms: u64,
+    ) -> Result<(), String> {
+        // 1. 获取连接，检查是否存在
+        let sender = {
+            let connections = self.connections.lock().map_err(|e| {
+                format!("获取连接锁失败: {}", e)
+            })?;
+
+            let conn = connections.get(uuid).ok_or_else(|| {
+                format!("连接不存在: {}", uuid)
+            })?;
+
+            // 2. 检查连接状态
+            if conn.status != ConnectionStatus::Connected {
+                return Err(format!(
+                    "连接状态不是 Connected（当前状态: {:?}）: {}",
+                    conn.status, uuid
+                ));
+            }
+
+            // 3. 获取发送端克隆
+            conn.get_sender().ok_or_else(|| {
+                format!("连接没有活跃的 WebSocket 流: {}", uuid)
+            })?
+        };
+
+        // 4. 更新状态为 Closing
+        self.update_status(uuid, ConnectionStatus::Closing)?;
+
+        // 5. 发送 Close 消息
+        let close_msg = WebSocketMessage::Close(Some(
+            tokio_tungstenite::tungstenite::protocol::frame::CloseFrame {
+                code: CloseCode::from(close_code),
+                reason: close_reason.unwrap_or_default().into(),
+            },
+        ));
+
+        {
+            let mut sender_guard = sender.lock().await;
+            if let Err(e) = sender_guard.send(close_msg).await {
+                let error_msg = format!("发送关闭消息失败: {}", e);
+                self.update_connection_error(uuid, &error_msg);
+                return Err(error_msg);
+            }
+        }
+
+        // 6. 等待服务器确认关闭（超时控制）
+        let receiver = {
+            let connections = self.connections.lock().map_err(|e| {
+                format!("获取连接锁失败: {}", e)
+            })?;
+            connections
+                .get(uuid)
+                .and_then(|c| c.get_receiver())
+        };
+
+        if let Some(receiver) = receiver {
+            let close_timeout = Duration::from_millis(wait_close_timeout_ms.clamp(1000, 30000));
+
+            let mut receiver_guard = receiver.lock().await;
+            match timeout(close_timeout, receiver_guard.next()).await {
+                Ok(Some(Ok(WebSocketMessage::Close(_)))) => {
+                    log::info!("[WebSocket] 收到服务器关闭确认: uuid={}", uuid);
+                }
+                Ok(Some(Ok(_))) => {
+                    // 收到其他消息，忽略
+                }
+                Ok(Some(Err(e))) => {
+                    log::warn!("[WebSocket] 等待关闭确认时出错: {}", e);
+                }
+                Ok(None) => {
+                    // 流已结束
+                }
+                Err(_) => {
+                    log::warn!(
+                        "[WebSocket] 等待关闭确认超时 ({}ms): uuid={}",
+                        wait_close_timeout_ms,
+                        uuid
+                    );
+                }
+            }
+        }
+
+        // 7. 更新状态为 Closed
+        self.update_status(uuid, ConnectionStatus::Closed)?;
+
+        // 8. 清理资源
+        {
+            let mut connections = self.connections.lock().map_err(|e| {
+                format!("获取连接锁失败: {}", e)
+            })?;
+            if let Some(conn) = connections.get_mut(uuid) {
+                conn.clear_stream();
+            }
+        }
+
+        log::info!("[WebSocket] 连接已关闭: uuid={}, code={}", uuid, close_code);
+        Ok(())
+    }
+
+    /// 发送消息
+    ///
+    /// # 参数
+    ///
+    /// * `uuid` - 连接 UUID
+    /// * `message` - 消息内容
+    /// * `is_binary` - 是否为二进制消息
+    /// * `send_timeout_ms` - 发送超时
+    ///
+    /// # 返回
+    ///
+    /// * `Ok(())` - 发送成功
+    /// * `Err(msg)` - 发送失败或连接不存在
+    pub async fn send(
+        &self,
+        uuid: &str,
+        message: String,
+        is_binary: bool,
+        send_timeout_ms: u64,
+    ) -> Result<(), String> {
+        // 1. 获取连接，检查状态是否为 Connected
+        let sender = {
+            let connections = self.connections.lock().map_err(|e| {
+                format!("获取连接锁失败: {}", e)
+            })?;
+
+            let conn = connections.get(uuid).ok_or_else(|| {
+                format!("连接不存在: {}", uuid)
+            })?;
+
+            if conn.status != ConnectionStatus::Connected {
+                return Err(format!(
+                    "连接状态不是 Connected（当前状态: {:?}）: {}",
+                    conn.status, uuid
+                ));
+            }
+
+            conn.get_sender().ok_or_else(|| {
+                format!("连接没有活跃的 WebSocket 流: {}", uuid)
+            })?
+        };
+
+        // 2. 构造 WebSocket Message (Text 或 Binary)
+        let ws_message = if is_binary {
+            // 尝试将字符串解析为十六进制或直接作为字节
+            let bytes = hex_to_bytes(&message).unwrap_or_else(|_| message.as_bytes().to_vec());
+            WebSocketMessage::Binary(bytes.into())
+        } else {
+            WebSocketMessage::Text(message.into())
+        };
+
+        // 3. 使用 SinkExt::send 发送消息（超时控制）
+        let send_timeout = Duration::from_millis(send_timeout_ms.clamp(1000, 30000));
+        let mut sender_guard = sender.lock().await;
+
+        match timeout(send_timeout, sender_guard.send(ws_message)).await {
+            Ok(Ok(())) => {
+                log::debug!("[WebSocket] 消息发送成功: uuid={}", uuid);
+                Ok(())
+            }
+            Ok(Err(e)) => {
+                let error_msg = format!("发送消息失败: {}", e);
+                self.update_connection_error(uuid, &error_msg);
+                Err(error_msg)
+            }
+            Err(_) => {
+                let error_msg = format!("发送消息超时 ({}ms)", send_timeout_ms);
+                self.update_connection_error(uuid, &error_msg);
+                Err(error_msg)
+            }
+        }
+    }
+
+    /// 接收消息
+    ///
+    /// # 参数
+    ///
+    /// * `uuid` - 连接 UUID
+    /// * `receive_timeout_ms` - 接收超时
+    ///
+    /// # 返回
+    ///
+    /// * `Ok(Some(message))` - 接收到消息（返回文本内容）
+    /// * `Ok(None)` - 超时未收到消息
+    /// * `Err(msg)` - 接收失败或连接不存在
+    pub async fn receive(
+        &self,
+        uuid: &str,
+        receive_timeout_ms: u64,
+    ) -> Result<Option<String>, String> {
+        // 1. 获取连接，检查状态是否为 Connected
+        let receiver = {
+            let connections = self.connections.lock().map_err(|e| {
+                format!("获取连接锁失败: {}", e)
+            })?;
+
+            let conn = connections.get(uuid).ok_or_else(|| {
+                format!("连接不存在: {}", uuid)
+            })?;
+
+            if conn.status != ConnectionStatus::Connected {
+                return Err(format!(
+                    "连接状态不是 Connected（当前状态: {:?}）: {}",
+                    conn.status, uuid
+                ));
+            }
+
+            conn.get_receiver().ok_or_else(|| {
+                format!("连接没有活跃的 WebSocket 流: {}", uuid)
+            })?
+        };
+
+        // 2. 使用 StreamExt::next 接收消息（超时控制）
+        let recv_timeout = Duration::from_millis(receive_timeout_ms.clamp(1000, 30000));
+        let mut receiver_guard = receiver.lock().await;
+
+        match timeout(recv_timeout, receiver_guard.next()).await {
+            Ok(Some(Ok(message))) => {
+                // 3. 解析消息类型
+                match message {
+                    WebSocketMessage::Text(text) => {
+                        log::debug!("[WebSocket] 收到文本消息: uuid={}", uuid);
+                        Ok(Some(text.to_string()))
+                    }
+                    WebSocketMessage::Binary(data) => {
+                        log::debug!("[WebSocket] 收到二进制消息: uuid={}, len={}", uuid, data.len());
+                        // 将二进制转换为十六进制字符串
+                        Ok(Some(bytes_to_hex(&data)))
+                    }
+                    WebSocketMessage::Ping(data) => {
+                        // 4. 自动响应 Ping
+                        log::debug!("[WebSocket] 收到 Ping，自动响应 Pong: uuid={}", uuid);
+                        // Pong 响应需要通过 sender 发送，这里暂时忽略
+                        // 实际实现中应该在更高层处理
+                        Ok(Some(format!("[PING:{}]", bytes_to_hex(&data))))
+                    }
+                    WebSocketMessage::Pong(data) => {
+                        log::debug!("[WebSocket] 收到 Pong: uuid={}", uuid);
+                        Ok(Some(format!("[PONG:{}]", bytes_to_hex(&data))))
+                    }
+                    WebSocketMessage::Close(frame) => {
+                        log::info!("[WebSocket] 收到 Close 帧: uuid={}, frame={:?}", uuid, frame);
+                        // 更新连接状态
+                        self.update_status(uuid, ConnectionStatus::Closed)?;
+                        Ok(None)
+                    }
+                    WebSocketMessage::Frame(_) => {
+                        // 原始帧，通常不会直接处理
+                        Ok(None)
+                    }
+                }
+            }
+            Ok(Some(Err(e))) => {
+                let error_msg = format!("接收消息失败: {}", e);
+                self.update_connection_error(uuid, &error_msg);
+                Err(error_msg)
+            }
+            Ok(None) => {
+                // 流已结束
+                log::info!("[WebSocket] 流已结束: uuid={}", uuid);
+                self.update_status(uuid, ConnectionStatus::Closed)?;
+                Ok(None)
+            }
+            Err(_) => {
+                // 5. 超时未收到消息
+                log::debug!(
+                    "[WebSocket] 接收超时 ({}ms): uuid={}",
+                    receive_timeout_ms,
+                    uuid
+                );
+                Ok(None)
+            }
+        }
+    }
+
     /// 根据 UUID 获取连接
     ///
     /// # 参数
@@ -119,18 +572,32 @@ impl WebSocketConnectionManager {
     ///
     /// 连接的克隆，如果不存在则返回 None
     pub fn get_connection(&self, uuid: &str) -> Option<ActiveConnection> {
-        let connections = self.connections.lock().unwrap();
-        connections.get(uuid).cloned()
+        // 注意：由于 ActiveConnection 包含非 Clone 的字段，
+        // 这里只能返回元数据，不能返回完整的连接
+        let connections = self.connections.lock().ok()?;
+        connections.get(uuid).map(|c| ActiveConnectionMeta::from(c).into())
+    }
+
+    /// 获取连接状态
+    pub fn get_status(&self, uuid: &str) -> Option<ConnectionStatus> {
+        let connections = self.connections.lock().ok()?;
+        connections.get(uuid).map(|conn| conn.status.clone())
     }
 
     /// 获取所有连接
     ///
     /// # 返回
     ///
-    /// 所有活跃连接的列表
+    /// 所有活跃连接的列表（仅元数据）
     pub fn get_all_connections(&self) -> Vec<ActiveConnection> {
-        let connections = self.connections.lock().unwrap();
-        connections.values().cloned().collect()
+        let connections = self.connections.lock().ok();
+        match connections {
+            Some(conns) => conns
+                .values()
+                .map(|c| ActiveConnectionMeta::from(c).into())
+                .collect(),
+            None => vec![],
+        }
     }
 
     /// 添加或更新连接
@@ -143,8 +610,10 @@ impl WebSocketConnectionManager {
     ///
     /// 如果已存在同名 UUID 的连接，返回旧连接
     pub fn upsert_connection(&self, connection: ActiveConnection) -> Option<ActiveConnection> {
-        let mut connections = self.connections.lock().unwrap();
-        connections.insert(connection.uuid.clone(), connection)
+        let mut connections = self.connections.lock().ok()?;
+        connections
+            .insert(connection.uuid.clone(), connection)
+            .map(|c| ActiveConnectionMeta::from(&c).into())
     }
 
     /// 移除连接
@@ -157,8 +626,10 @@ impl WebSocketConnectionManager {
     ///
     /// 被移除的连接，如果不存在则返回 None
     pub fn remove_connection(&self, uuid: &str) -> Option<ActiveConnection> {
-        let mut connections = self.connections.lock().unwrap();
-        connections.remove(uuid)
+        let mut connections = self.connections.lock().ok()?;
+        connections
+            .remove(uuid)
+            .map(|c| ActiveConnectionMeta::from(&c).into())
     }
 
     /// 更新连接状态
@@ -171,26 +642,60 @@ impl WebSocketConnectionManager {
     /// # 返回
     ///
     /// 操作是否成功（连接是否存在）
-    pub fn update_status(&self, uuid: &str, status: ConnectionStatus) -> bool {
-        let mut connections = self.connections.lock().unwrap();
+    pub fn update_status(&self, uuid: &str, status: ConnectionStatus) -> Result<(), String> {
+        let mut connections = self.connections.lock().map_err(|e| {
+            format!("获取连接锁失败: {}", e)
+        })?;
         if let Some(conn) = connections.get_mut(uuid) {
             conn.set_status(status);
-            true
+            Ok(())
         } else {
-            false
+            Err(format!("连接不存在: {}", uuid))
+        }
+    }
+
+    /// 更新连接错误状态（内部方法）
+    fn update_connection_error(&self, uuid: &str, error: &str) {
+        if let Ok(mut connections) = self.connections.lock() {
+            if let Some(conn) = connections.get_mut(uuid) {
+                conn.set_error(error.to_string());
+            }
         }
     }
 
     /// 获取连接数量
     pub fn connection_count(&self) -> usize {
-        let connections = self.connections.lock().unwrap();
-        connections.len()
+        let connections = self.connections.lock().ok();
+        match connections {
+            Some(conns) => conns.len(),
+            None => 0,
+        }
+    }
+
+    /// 清理所有已关闭的连接
+    pub fn cleanup_closed(&self) {
+        if let Ok(mut connections) = self.connections.lock() {
+            connections.retain(|_, conn| conn.status != ConnectionStatus::Closed);
+        }
     }
 
     /// 清空所有连接
     pub fn clear(&self) {
-        let mut connections = self.connections.lock().unwrap();
-        connections.clear();
+        if let Ok(mut connections) = self.connections.lock() {
+            connections.clear();
+        }
+    }
+
+    /// 获取活跃连接数量（状态为 Connected）
+    pub fn active_connection_count(&self) -> usize {
+        let connections = self.connections.lock().ok();
+        match connections {
+            Some(conns) => conns
+                .values()
+                .filter(|c| c.status == ConnectionStatus::Connected)
+                .count(),
+            None => 0,
+        }
     }
 }
 
@@ -199,6 +704,76 @@ impl Default for WebSocketConnectionManager {
         Self::new()
     }
 }
+
+// ============================================================================
+// 辅助结构和函数
+// ============================================================================
+
+/// 连接元数据（用于序列化和克隆）
+struct ActiveConnectionMeta {
+    uuid: String,
+    name: String,
+    status: ConnectionStatus,
+    created_at: DateTime<Utc>,
+    url: String,
+    last_error: Option<String>,
+}
+
+impl From<&ActiveConnection> for ActiveConnectionMeta {
+    fn from(conn: &ActiveConnection) -> Self {
+        Self {
+            uuid: conn.uuid.clone(),
+            name: conn.name.clone(),
+            status: conn.status.clone(),
+            created_at: conn.created_at,
+            url: conn.url.clone(),
+            last_error: conn.last_error.clone(),
+        }
+    }
+}
+
+impl From<ActiveConnectionMeta> for ActiveConnection {
+    fn from(meta: ActiveConnectionMeta) -> Self {
+        Self {
+            uuid: meta.uuid,
+            name: meta.name,
+            status: meta.status,
+            created_at: meta.created_at,
+            url: meta.url,
+            message_buffer: VecDeque::new(),
+            last_error: meta.last_error,
+            sender: None,
+            receiver: None,
+        }
+    }
+}
+
+/// 将字节转换为十六进制字符串
+fn bytes_to_hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+/// 将十六进制字符串转换为字节
+fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, String> {
+    // 移除可能的 0x 前缀
+    let hex = hex.strip_prefix("0x").unwrap_or(hex);
+
+    if !hex.len().is_multiple_of(2) {
+        return Err("十六进制字符串长度必须是偶数".to_string());
+    }
+
+    (0..hex.len())
+        .step_by(2)
+        .map(|i| {
+            u8::from_str_radix(&hex[i..i + 2], 16)
+                .map_err(|e| format!("解析十六进制失败: {}", e))
+        })
+        .collect()
+}
+
+// ============================================================================
+// 单元测试
+// ============================================================================
 
 #[cfg(test)]
 mod tests {
@@ -220,7 +795,8 @@ mod tests {
         let json = serde_json::to_string(&status).expect("序列化失败");
         assert_eq!(json, r#""connected""#);
 
-        let deserialized: ConnectionStatus = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: ConnectionStatus =
+            serde_json::from_str(&json).expect("反序列化失败");
         assert_eq!(deserialized, ConnectionStatus::Connected);
     }
 
@@ -233,6 +809,8 @@ mod tests {
         assert_eq!(conn.url, "wss://example.com/ws");
         assert_eq!(conn.status, ConnectionStatus::Connecting);
         assert!(conn.buffer_size() == 0);
+        assert!(conn.last_error.is_none());
+        assert!(!conn.is_connected());
     }
 
     #[test]
@@ -244,6 +822,15 @@ mod tests {
 
         conn.set_status(ConnectionStatus::Closing);
         assert_eq!(conn.status, ConnectionStatus::Closing);
+    }
+
+    #[test]
+    fn test_active_connection_set_error() {
+        let mut conn = create_test_connection("uuid-1", "测试", "wss://example.com/ws");
+
+        conn.set_error("连接失败".to_string());
+        assert_eq!(conn.status, ConnectionStatus::Error);
+        assert_eq!(conn.last_error, Some("连接失败".to_string()));
     }
 
     #[test]
@@ -259,11 +846,15 @@ mod tests {
 
         // 取出消息（FIFO）
         let msg1 = conn.pop_message();
-        assert!(matches!(msg1, Some(WebSocketMessage::Text(ref t)) if t.as_str() == "hello"));
+        assert!(
+            matches!(msg1, Some(WebSocketMessage::Text(ref t)) if t.as_str() == "hello")
+        );
         assert_eq!(conn.buffer_size(), 1);
 
         let msg2 = conn.pop_message();
-        assert!(matches!(msg2, Some(WebSocketMessage::Binary(ref b)) if b.as_ref() == &[1, 2, 3]));
+        assert!(
+            matches!(msg2, Some(WebSocketMessage::Binary(ref b)) if b.as_ref() == &[1, 2, 3])
+        );
         assert_eq!(conn.buffer_size(), 0);
 
         // 空缓冲区
@@ -328,9 +919,21 @@ mod tests {
     fn test_manager_get_all_connections() {
         let manager = WebSocketConnectionManager::new();
 
-        manager.upsert_connection(create_test_connection("uuid-1", "连接1", "wss://a.com"));
-        manager.upsert_connection(create_test_connection("uuid-2", "连接2", "wss://b.com"));
-        manager.upsert_connection(create_test_connection("uuid-3", "连接3", "wss://c.com"));
+        manager.upsert_connection(create_test_connection(
+            "uuid-1",
+            "连接1",
+            "wss://a.com",
+        ));
+        manager.upsert_connection(create_test_connection(
+            "uuid-2",
+            "连接2",
+            "wss://b.com",
+        ));
+        manager.upsert_connection(create_test_connection(
+            "uuid-3",
+            "连接3",
+            "wss://c.com",
+        ));
 
         let all = manager.get_all_connections();
         assert_eq!(all.len(), 3);
@@ -344,7 +947,11 @@ mod tests {
     #[test]
     fn test_manager_remove_connection() {
         let manager = WebSocketConnectionManager::new();
-        manager.upsert_connection(create_test_connection("uuid-1", "连接1", "wss://a.com"));
+        manager.upsert_connection(create_test_connection(
+            "uuid-1",
+            "连接1",
+            "wss://a.com",
+        ));
 
         // 移除存在的连接
         let removed = manager.remove_connection("uuid-1");
@@ -359,25 +966,37 @@ mod tests {
     #[test]
     fn test_manager_update_status() {
         let manager = WebSocketConnectionManager::new();
-        manager.upsert_connection(create_test_connection("uuid-1", "连接1", "wss://a.com"));
+        manager.upsert_connection(create_test_connection(
+            "uuid-1",
+            "连接1",
+            "wss://a.com",
+        ));
 
         // 更新存在的连接状态
         let success = manager.update_status("uuid-1", ConnectionStatus::Connected);
-        assert!(success);
+        assert!(success.is_ok());
 
         let conn = manager.get_connection("uuid-1").unwrap();
         assert_eq!(conn.status, ConnectionStatus::Connected);
 
         // 更新不存在的连接
         let fail = manager.update_status("uuid-999", ConnectionStatus::Connected);
-        assert!(!fail);
+        assert!(fail.is_err());
     }
 
     #[test]
     fn test_manager_clear() {
         let manager = WebSocketConnectionManager::new();
-        manager.upsert_connection(create_test_connection("uuid-1", "连接1", "wss://a.com"));
-        manager.upsert_connection(create_test_connection("uuid-2", "连接2", "wss://b.com"));
+        manager.upsert_connection(create_test_connection(
+            "uuid-1",
+            "连接1",
+            "wss://a.com",
+        ));
+        manager.upsert_connection(create_test_connection(
+            "uuid-2",
+            "连接2",
+            "wss://b.com",
+        ));
 
         assert_eq!(manager.connection_count(), 2);
 
@@ -390,16 +1009,356 @@ mod tests {
     #[test]
     fn test_manager_clone() {
         let manager1 = WebSocketConnectionManager::new();
-        manager1.upsert_connection(create_test_connection("uuid-1", "连接1", "wss://a.com"));
+        manager1.upsert_connection(create_test_connection(
+            "uuid-1",
+            "连接1",
+            "wss://a.com",
+        ));
 
         // 克隆管理器（共享同一内部状态）
         let manager2 = manager1.clone();
 
         // 通过 manager2 修改
-        manager2.upsert_connection(create_test_connection("uuid-2", "连接2", "wss://b.com"));
+        manager2.upsert_connection(create_test_connection(
+            "uuid-2",
+            "连接2",
+            "wss://b.com",
+        ));
 
         // manager1 应该看到变化（Arc 共享）
         assert_eq!(manager1.connection_count(), 2);
         assert_eq!(manager2.connection_count(), 2);
+    }
+
+    #[test]
+    fn test_manager_cleanup_closed() {
+        let manager = WebSocketConnectionManager::new();
+
+        // 添加连接
+        manager.upsert_connection(create_test_connection(
+            "uuid-1",
+            "连接1",
+            "wss://a.com",
+        ));
+        manager.upsert_connection(create_test_connection(
+            "uuid-2",
+            "连接2",
+            "wss://b.com",
+        ));
+
+        // 将 uuid-1 设置为 Closed
+        manager
+            .update_status("uuid-1", ConnectionStatus::Closed)
+            .unwrap();
+
+        assert_eq!(manager.connection_count(), 2);
+
+        // 清理已关闭的连接
+        manager.cleanup_closed();
+
+        assert_eq!(manager.connection_count(), 1);
+        assert!(manager.get_connection("uuid-1").is_none());
+        assert!(manager.get_connection("uuid-2").is_some());
+    }
+
+    #[test]
+    fn test_manager_active_connection_count() {
+        let manager = WebSocketConnectionManager::new();
+
+        manager.upsert_connection(create_test_connection(
+            "uuid-1",
+            "连接1",
+            "wss://a.com",
+        ));
+        manager.upsert_connection(create_test_connection(
+            "uuid-2",
+            "连接2",
+            "wss://b.com",
+        ));
+
+        assert_eq!(manager.active_connection_count(), 0);
+
+        manager
+            .update_status("uuid-1", ConnectionStatus::Connected)
+            .unwrap();
+
+        assert_eq!(manager.active_connection_count(), 1);
+
+        manager
+            .update_status("uuid-2", ConnectionStatus::Connected)
+            .unwrap();
+
+        assert_eq!(manager.active_connection_count(), 2);
+    }
+
+    #[test]
+    fn test_bytes_to_hex() {
+        let bytes = vec![0x01, 0x02, 0xff, 0xab];
+        let hex = bytes_to_hex(&bytes);
+        assert_eq!(hex, "0102ffab");
+    }
+
+    #[test]
+    fn test_hex_to_bytes() {
+        let hex = "0102ffab";
+        let bytes = hex_to_bytes(hex).unwrap();
+        assert_eq!(bytes, vec![0x01, 0x02, 0xff, 0xab]);
+
+        // 带 0x 前缀
+        let hex_with_prefix = "0x0102ffab";
+        let bytes_with_prefix = hex_to_bytes(hex_with_prefix).unwrap();
+        assert_eq!(bytes_with_prefix, vec![0x01, 0x02, 0xff, 0xab]);
+
+        // 奇数长度应该失败
+        let odd_hex = "010";
+        assert!(hex_to_bytes(odd_hex).is_err());
+    }
+
+    // ============================================================================
+    // 异步测试（连接到公共 WebSocket 服务器）
+    // ============================================================================
+
+    #[tokio::test]
+    async fn test_connect_invalid_url() {
+        let manager = WebSocketConnectionManager::new();
+
+        // 测试无效 URL
+        let result = manager
+            .connect(
+                "conn-1".to_string(),
+                "测试连接".to_string(),
+                "http://invalid.com".to_string(), // 无效协议
+                5000,
+            )
+            .await;
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("无效的 WebSocket URL"));
+
+        // 验证连接状态为 Error
+        let conn = manager.get_connection("conn-1").unwrap();
+        assert_eq!(conn.status, ConnectionStatus::Error);
+    }
+
+    #[tokio::test]
+    async fn test_connect_timeout() {
+        let manager = WebSocketConnectionManager::new();
+
+        // 使用不可达的地址测试超时
+        // 注意：这个测试可能会因为网络环境不同而表现不同
+        let result = manager
+            .connect(
+                "conn-timeout".to_string(),
+                "超时测试".to_string(),
+                "ws://192.0.2.1:81/ws".to_string(), // RFC 3330 测试地址，不可路由
+                2000,                               // 2 秒超时
+            )
+            .await;
+
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(
+            error.contains("超时") || error.contains("失败"),
+            "错误消息应该包含超时或失败: {}",
+            error
+        );
+    }
+
+    #[tokio::test]
+    async fn test_close_nonexistent_connection() {
+        let manager = WebSocketConnectionManager::new();
+
+        let result = manager.close("nonexistent", 1000, None, 5000).await;
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("连接不存在"));
+    }
+
+    #[tokio::test]
+    async fn test_send_nonexistent_connection() {
+        let manager = WebSocketConnectionManager::new();
+
+        let result = manager
+            .send("nonexistent", "hello".to_string(), false, 5000)
+            .await;
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("连接不存在"));
+    }
+
+    #[tokio::test]
+    async fn test_receive_nonexistent_connection() {
+        let manager = WebSocketConnectionManager::new();
+
+        let result = manager.receive("nonexistent", 5000).await;
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("连接不存在"));
+    }
+
+    #[tokio::test]
+    async fn test_connect_to_echo_server() {
+        let manager = WebSocketConnectionManager::new();
+
+        // 连接到公共 WebSocket echo 服务器
+        let result = manager
+            .connect(
+                "echo-conn".to_string(),
+                "Echo 测试".to_string(),
+                "wss://echo.websocket.org".to_string(),
+                30000,
+            )
+            .await;
+
+        // 网络测试：如果连接失败，跳过而不是失败
+        match result {
+            Ok(()) => {
+                // 验证连接状态
+                let status = manager.get_status("echo-conn").unwrap();
+                assert_eq!(status, ConnectionStatus::Connected);
+
+                // 接收并丢弃初始问候消息（echo.websocket.org 会发送欢迎消息）
+                let _ = manager.receive("echo-conn", 3000).await;
+
+                // 发送消息
+                let send_result = manager
+                    .send("echo-conn", "Hello, WebSocket!".to_string(), false, 10000)
+                    .await;
+                assert!(send_result.is_ok());
+
+                // 接收回显消息
+                let recv_result = manager.receive("echo-conn", 10000).await;
+                assert!(recv_result.is_ok());
+                let message = recv_result.unwrap();
+                assert!(message.is_some());
+                assert_eq!(message.unwrap(), "Hello, WebSocket!");
+
+                // 关闭连接
+                let close_result = manager.close("echo-conn", 1000, Some("测试完成".to_string()), 5000).await;
+                assert!(close_result.is_ok());
+
+                // 验证连接状态
+                let status = manager.get_status("echo-conn").unwrap();
+                assert_eq!(status, ConnectionStatus::Closed);
+            }
+            Err(e) => {
+                // 网络不可用时跳过测试
+                println!("跳过测试：无法连接到 echo 服务器: {}", e);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_send_binary_message() {
+        let manager = WebSocketConnectionManager::new();
+
+        // 连接到公共 WebSocket echo 服务器
+        let result = manager
+            .connect(
+                "binary-conn".to_string(),
+                "二进制测试".to_string(),
+                "wss://echo.websocket.org".to_string(),
+                30000,
+            )
+            .await;
+
+        // 网络测试：如果连接失败，跳过而不是失败
+        if result.is_ok() {
+            // 接收并丢弃初始问候消息
+            let _ = manager.receive("binary-conn", 3000).await;
+
+            // 发送二进制消息（使用十六进制字符串）
+            let send_result = manager
+                .send("binary-conn", "0102030405".to_string(), true, 10000)
+                .await;
+            assert!(send_result.is_ok());
+
+            // 接收回显消息
+            let recv_result = manager.receive("binary-conn", 10000).await;
+            assert!(recv_result.is_ok());
+            let message = recv_result.unwrap();
+            assert!(message.is_some());
+            // 二进制消息会被转换为十六进制字符串
+            assert_eq!(message.unwrap(), "0102030405");
+
+            // 清理
+            let _ = manager.close("binary-conn", 1000, None, 5000).await;
+        } else {
+            println!("跳过测试：无法连接到 echo 服务器");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_receive_timeout() {
+        let manager = WebSocketConnectionManager::new();
+
+        // 连接到公共 WebSocket echo 服务器
+        let result = manager
+            .connect(
+                "timeout-conn".to_string(),
+                "超时测试".to_string(),
+                "wss://echo.websocket.org".to_string(),
+                30000,
+            )
+            .await;
+
+        // 网络测试：如果连接失败，跳过而不是失败
+        if result.is_ok() {
+            // 接收并丢弃初始问候消息
+            let _ = manager.receive("timeout-conn", 3000).await;
+
+            // 不发送任何消息，直接接收，应该超时
+            let recv_result = manager.receive("timeout-conn", 2000).await;
+            assert!(recv_result.is_ok());
+            // 超时应该返回 None
+            assert!(recv_result.unwrap().is_none());
+
+            // 清理
+            let _ = manager.close("timeout-conn", 1000, None, 5000).await;
+        } else {
+            println!("跳过测试：无法连接到 echo 服务器");
+        }
+    }
+
+    #[test]
+    fn test_status_tracking() {
+        let manager = WebSocketConnectionManager::new();
+
+        manager.upsert_connection(create_test_connection(
+            "track-1",
+            "跟踪测试",
+            "wss://a.com",
+        ));
+
+        // 初始状态
+        assert_eq!(
+            manager.get_status("track-1"),
+            Some(ConnectionStatus::Connecting)
+        );
+
+        // 更新状态
+        manager
+            .update_status("track-1", ConnectionStatus::Connected)
+            .unwrap();
+        assert_eq!(
+            manager.get_status("track-1"),
+            Some(ConnectionStatus::Connected)
+        );
+
+        manager
+            .update_status("track-1", ConnectionStatus::Closing)
+            .unwrap();
+        assert_eq!(
+            manager.get_status("track-1"),
+            Some(ConnectionStatus::Closing)
+        );
+
+        manager
+            .update_status("track-1", ConnectionStatus::Closed)
+            .unwrap();
+        assert_eq!(
+            manager.get_status("track-1"),
+            Some(ConnectionStatus::Closed)
+        );
     }
 }
