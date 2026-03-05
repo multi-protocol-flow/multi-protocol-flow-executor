@@ -27,6 +27,12 @@ vi.mock('@/templates/builtinFlows', () => ({
     nodes: [],
     connections: [],
   },
+  WS_DEMO_FLOW: {
+    uuid: 'demo-ws-testing',
+    name: 'WebSocket节点示例流程',
+    nodes: [],
+    connections: [],
+  },
   BUILTIN_FLOW_VERSION: 1,
 }));
 
@@ -143,7 +149,7 @@ describe('FlowListPanel', () => {
       // 注意：只验证点击行为后的调用，不包括组件初始化
       const saveFlowCalls = vi.mocked(flowStorage.saveFlow).mock.calls;
       const callsAfterClick = saveFlowCalls.filter(
-        call => call[0].uuid !== 'demo-flow'
+        call => call[0].uuid !== 'demo-flow' && call[0].uuid !== 'demo-ws-testing'
       );
       expect(callsAfterClick.length).toBe(0);
       // 验证：应加载目标流程

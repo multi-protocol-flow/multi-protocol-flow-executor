@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFlowListStore, useFlowStore, useUIStore } from '@/stores';
 import { listFlows, loadFlow, deleteFlow, saveFlow } from '@/services/storage/flowStorage';
-import { DEMO_FLOW, BUILTIN_FLOW_VERSION } from '@/templates/builtinFlows';
+import { DEMO_FLOW, WS_DEMO_FLOW, BUILTIN_FLOW_VERSION } from '@/templates/builtinFlows';
 import { cn } from '@/lib/utils';
 import type { Flow } from '@/types/flow';
 
@@ -39,28 +39,40 @@ export function FlowListPanel() {
     if (flowMetas.length === 0) {
       // 首次启动：加载模板
       saveFlow(DEMO_FLOW);
+      saveFlow(WS_DEMO_FLOW);
       setFlow(DEMO_FLOW);
       setFlows([{
-        uuid: DEMO_FLOW.uuid,
-        name: DEMO_FLOW.name,
-        updated_at: Date.now()
-      }]);
+          uuid: DEMO_FLOW.uuid,
+          name: DEMO_FLOW.name,
+          updated_at: Date.now()
+        },
+        {
+          uuid: WS_DEMO_FLOW.uuid,
+          name: WS_DEMO_FLOW.name,
+          updated_at: Date.now()
+        }
+      ]);
     } else {
       setFlows(flowMetas);
       
       // 检查内置模板是否需要更新
-      const existingDemoFlow = loadFlow(DEMO_FLOW.uuid);
-      if (existingDemoFlow) {
-        const existingVersion = (existingDemoFlow as Flow & { _meta?: { version: number } })._meta?.version || 0;
-        if (existingVersion < BUILTIN_FLOW_VERSION) {
-          // 版本过期，更新内置模板
-          saveFlow(DEMO_FLOW);
-          // 如果当前正在查看该流程，刷新显示
-          if (currentFlow?.uuid === DEMO_FLOW.uuid) {
-            setFlow(DEMO_FLOW);
+      const updateBuiltinFlow = (flow: Flow) => {
+        const existingFlow = loadFlow(flow.uuid);
+        if (existingFlow) {
+          const existingVersion = (existingFlow as Flow & { _meta?: { version: number } })._meta?.version || 0;
+          if (existingVersion < BUILTIN_FLOW_VERSION) {
+            // 版本过期，更新内置模板
+            saveFlow(flow);
+            // 如果当前正在查看该流程，刷新显示
+            if (currentFlow?.uuid === flow.uuid) {
+              setFlow(flow);
+            }
           }
         }
-      }
+      };
+      
+      updateBuiltinFlow(DEMO_FLOW);
+      updateBuiltinFlow(WS_DEMO_FLOW);
     }
   }, [setFlows, setFlow, currentFlow?.uuid]);
 
