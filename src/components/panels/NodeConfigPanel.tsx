@@ -7,12 +7,15 @@ import { useFlowStore, useUIStore } from '@/stores';
 import { EntryConfig } from './EntryConfig';
 import { HttpConfig } from './HttpConfig';
 import { ConditionalConfig } from './ConditionalConfig';
+import { WsConnectConfig } from './WsConnectConfig';
+import { WsSendWaitConfig } from './WsSendWaitConfig';
+import { WsCloseConfig } from './WsCloseConfig';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData } from '@/types';
-import { isEntryConfig, isHttpConfig, isConditionalConfig } from '@/types';
+import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendWaitConfig, isWsCloseConfig } from '@/types';
 import { Settings2, MousePointerClick, Trash2, Pencil } from 'lucide-react';
 
 /**
@@ -219,6 +222,30 @@ export function NodeConfigPanel() {
             {/* Conditional 节点：条件配置 */}
             {selectedNode.type === 'conditional' && isConditionalConfig(selectedNode.data) && (
               <ConditionalConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
+
+            {/* WS Connect 节点：WebSocket 连接配置 */}
+            {selectedNode.type === 'ws_connect' && isWsConnectConfig(selectedNode.data) && (
+              <WsConnectConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
+
+            {/* WS Send+Wait 节点：WebSocket 发送等待配置 */}
+            {selectedNode.type === 'ws_send_wait' && isWsSendWaitConfig(selectedNode.data) && (
+              <WsSendWaitConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
+
+            {/* WS Close 节点：WebSocket 关闭配置 */}
+            {selectedNode.type === 'ws_close' && isWsCloseConfig(selectedNode.data) && (
+              <WsCloseConfig
                 data={selectedNode.data}
                 onSave={(data) => handleSave(data as NodeData)}
               />

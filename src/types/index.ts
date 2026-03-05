@@ -10,11 +10,23 @@ export type {
   NodeType,
   NodePosition,
   HttpMethod,
+  HttpBodyType,
+  ContentType,
+  FormFieldType,
+  FormField,
   ConditionType,
   ConditionOperator,
+  ExpectedValueType,
   EntryConfig,
   HttpConfig,
   ConditionalConfig,
+  WsWaitMode,
+  WsMatchType,
+  WsMessageType,
+  WsWaitCondition,
+  WsConnectConfig,
+  WsSendWaitConfig,
+  WsCloseConfig,
   NodeData,
   Node,
 } from './node';
@@ -22,6 +34,9 @@ export {
   isEntryConfig,
   isHttpConfig,
   isConditionalConfig,
+  isWsConnectConfig,
+  isWsSendWaitConfig,
+  isWsCloseConfig,
 } from './node';
 
 // 连接类型

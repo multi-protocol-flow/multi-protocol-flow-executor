@@ -2,7 +2,7 @@
  * NodeLibrary - 节点库面板
  * 显示可用的节点类型，支持点击添加或拖拽到画布
  */
-import { Globe, GitBranch, GripVertical, Sparkles } from 'lucide-react';
+import { Globe, GitBranch, GripVertical, Sparkles, Wifi, Send, Plug } from 'lucide-react';
 import { useFlowStore } from '@/stores';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +24,33 @@ const NODE_TYPES = [
     icon: GitBranch,
     color: 'bg-amber-500',
     colorHover: 'hover:bg-amber-400',
+    iconColor: 'text-white',
+  },
+  {
+    type: 'ws_connect',
+    name: 'WS 连接',
+    description: '建立 WebSocket 连接',
+    icon: Wifi,
+    color: 'bg-amber-500',
+    colorHover: 'hover:bg-amber-400',
+    iconColor: 'text-white',
+  },
+  {
+    type: 'ws_send_wait',
+    name: 'WS 发送等待',
+    description: '发送 WebSocket 消息并等待响应',
+    icon: Send,
+    color: 'bg-teal-500',
+    colorHover: 'hover:bg-teal-400',
+    iconColor: 'text-white',
+  },
+  {
+    type: 'ws_close',
+    name: 'WS 关闭',
+    description: '关闭 WebSocket 连接',
+    icon: Plug,
+    color: 'bg-rose-500',
+    colorHover: 'hover:bg-rose-400',
     iconColor: 'text-white',
   },
 ] as const;
