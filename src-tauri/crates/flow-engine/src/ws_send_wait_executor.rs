@@ -32,7 +32,7 @@ impl NodeExecutor for WsSendWaitExecutor {
         &self,
         node: &Node,
         context: &mut ExecutionContext,
-        _connections: &[Connection],
+        connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         let start_time = Instant::now();
@@ -222,7 +222,16 @@ impl NodeExecutor for WsSendWaitExecutor {
                     .await;
 
                 // 9. 返回下一个节点（默认 out 端口）
-                Ok((vec!["out".to_string()], output_data))
+                // 根据 "out" 端口过滤连接，找到下一个节点的 UUID
+                let next_node_ids: Vec<String> = connections
+                    .iter()
+                    .filter(|conn| {
+                        conn.source_node_uuid == node.uuid && conn.source_port_id == "out"
+                    })
+                    .map(|conn| conn.target_node_uuid.clone())
+                    .collect();
+
+                Ok((next_node_ids, output_data))
             }
             Err(e) => {
                 log::error!(

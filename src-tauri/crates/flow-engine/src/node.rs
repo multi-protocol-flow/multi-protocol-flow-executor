@@ -13,10 +13,13 @@ pub enum NodeType {
     /// 条件分支节点
     Conditional,
     /// WebSocket 连接节点
+    #[serde(rename = "ws_connect")]
     WsConnect,
     /// WebSocket 发送等待节点
+    #[serde(rename = "ws_send_wait")]
     WsSendWait,
     /// WebSocket 关闭节点
+    #[serde(rename = "ws_close")]
     WsClose,
 }
 

@@ -32,7 +32,7 @@ impl NodeExecutor for WsConnectExecutor {
         &self,
         node: &Node,
         context: &mut ExecutionContext,
-        _connections: &[Connection],
+        connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         let start_time = Instant::now();
@@ -128,8 +128,16 @@ impl NodeExecutor for WsConnectExecutor {
                             .close(&node.uuid, 1000, Some("等待消息失败".to_string()), 5000)
                             .await;
 
-                        // 返回 false 端口
-                        return Ok((vec!["false".to_string()], None));
+                        // 查找连接到 false 端口的下一个节点
+                        let next_node_ids: Vec<String> = connections
+                            .iter()
+                            .filter(|conn| {
+                                conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
+                            })
+                            .map(|conn| conn.target_node_uuid.clone())
+                            .collect();
+
+                        return Ok((next_node_ids, None));
                     }
                 }
 
@@ -153,8 +161,16 @@ impl NodeExecutor for WsConnectExecutor {
                     })
                     .await;
 
-                // 8. 返回下一个节点（true 端口）
-                Ok((vec!["true".to_string()], output_data))
+                // 8. 查找连接到 true 端口的下一个节点
+                let next_node_ids: Vec<String> = connections
+                    .iter()
+                    .filter(|conn| {
+                        conn.source_node_uuid == node.uuid && conn.source_port_id == "true"
+                    })
+                    .map(|conn| conn.target_node_uuid.clone())
+                    .collect();
+
+                Ok((next_node_ids, output_data))
             }
             Err(e) => {
                 log::error!(
@@ -178,8 +194,16 @@ impl NodeExecutor for WsConnectExecutor {
                     })
                     .await;
 
-                // 返回 false 端口
-                Ok((vec!["false".to_string()], None))
+                // 查找连接到 false 端口的下一个节点
+                let next_node_ids: Vec<String> = connections
+                    .iter()
+                    .filter(|conn| {
+                        conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
+                    })
+                    .map(|conn| conn.target_node_uuid.clone())
+                    .collect();
+
+                Ok((next_node_ids, None))
             }
         }
     }
