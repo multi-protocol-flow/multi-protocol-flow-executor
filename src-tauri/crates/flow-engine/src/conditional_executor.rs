@@ -610,14 +610,15 @@ mod tests {
         }
 
         ExecutionContext {
-            flow_uuid: "test-flow-id".to_string(),
-            current_node_uuid: None,
-            variables: storage,
-            node_reports: Vec::new(),
-            flow_trigger_time: 1000,
-            log_sender: None,
-            flow_file_path: None,
-        }
+                    flow_uuid: "test-flow-id".to_string(),
+                    current_node_uuid: None,
+                    variables: storage,
+                    node_reports: Vec::new(),
+                    flow_trigger_time: 1000,
+                    log_sender: None,
+                    flow_file_path: None,
+                    ws_manager: None,
+                }
     }
 
     #[tokio::test]

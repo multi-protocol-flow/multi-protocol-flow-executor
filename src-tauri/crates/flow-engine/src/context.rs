@@ -4,6 +4,7 @@ use crate::log_event::LogEvent;
 use crate::report::NodeExecutionReport;
 use crate::variable::Variable;
 use crate::traits::LogSender;
+use crate::websocket_manager::WebSocketConnectionManager;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -41,6 +42,12 @@ pub struct ExecutionContext {
     /// Skipped during serialization as it's only needed at runtime.
     #[serde(skip)]
     pub flow_file_path: Option<PathBuf>,
+
+    /// WebSocket 连接管理器
+    /// 用于管理 WebSocket 连接的生命周期（连接、发送、接收、关闭）
+    /// 使用 #[serde(skip)] 跳过序列化，因为 WebSocketConnectionManager 不支持序列化
+    #[serde(skip)]
+    pub ws_manager: Option<Arc<WebSocketConnectionManager>>,
 }
 
 impl ExecutionContext {
@@ -63,6 +70,7 @@ impl ExecutionContext {
             flow_trigger_time,
             log_sender: None,
             flow_file_path: None,
+            ws_manager: None,
         }
     }
 
@@ -114,6 +122,20 @@ impl ExecutionContext {
     /// Updated ExecutionContext with flow_file_path set
     pub fn with_flow_file_path(mut self, path: PathBuf) -> Self {
         self.flow_file_path = Some(path);
+        self
+    }
+
+    /// 设置 WebSocket 连接管理器
+    ///
+    /// # 参数
+    ///
+    /// * `ws_manager` - WebSocket 连接管理器（封装在 Arc 中）
+    ///
+    /// # 返回
+    ///
+    /// 更新后的 ExecutionContext
+    pub fn with_ws_manager(mut self, ws_manager: Arc<WebSocketConnectionManager>) -> Self {
+        self.ws_manager = Some(ws_manager);
         self
     }
 

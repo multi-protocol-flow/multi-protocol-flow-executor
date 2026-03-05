@@ -2,6 +2,7 @@
 
 use crate::flow::Flow;
 use crate::node::{Node, NodeType};
+use crate::node_config::NodeData;
 
 /// 验证结果
 #[derive(Debug, Clone)]
@@ -82,6 +83,12 @@ impl FlowValidator {
         // 1. 多个 Entry 节点（Entry 节点可以用于流程入口和终止点）
         // 2. Entry 节点可以没有输出连接（正常流程终止）
 
+        // 规则 2: 验证 WebSocket 节点配置
+        let ws_validation = self.validate_ws_nodes(flow);
+        if !ws_validation.valid {
+            errors.extend(ws_validation.errors);
+        }
+
         if errors.is_empty() {
             ValidationResult::success()
         } else {
@@ -98,6 +105,106 @@ impl FlowValidator {
     /// - `ValidationResult`: 验证结果
     pub fn execute(&self, flow: &Flow) -> ValidationResult {
         self.validate(flow)
+    }
+
+    /// 验证 WebSocket 节点配置
+    ///
+    /// # 参数
+    /// - `flow`: 要验证的流程
+    ///
+    /// # 返回
+    /// - `ValidationResult`: 验证结果
+    pub fn validate_ws_nodes(&self, flow: &Flow) -> ValidationResult {
+        let mut errors = Vec::new();
+
+        for node in &flow.nodes {
+            match &node.data {
+                NodeData::WsConnect(config) => {
+                    // 验证 URL 不为空
+                    if config.url.is_empty() {
+                        errors.push(format!("节点 {} URL 不能为空", node.name));
+                    }
+
+                    // 验证 URL 格式
+                    if !config.url.is_empty()
+                        && !config.url.starts_with("ws://")
+                        && !config.url.starts_with("wss://")
+                    {
+                        errors.push(format!(
+                            "节点 {} URL 格式无效（必须以 ws:// 或 wss:// 开头）",
+                            node.name
+                        ));
+                    }
+
+                    // 验证超时配置
+                    if config.connect_timeout_ms < 1000 || config.connect_timeout_ms > 60000 {
+                        errors.push(format!(
+                            "节点 {} 连接超时必须在 1000-60000ms 范围内",
+                            node.name
+                        ));
+                    }
+
+                    if config.message_timeout_ms < 1000 || config.message_timeout_ms > 300000 {
+                        errors.push(format!(
+                            "节点 {} 消息超时必须在 1000-300000ms 范围内",
+                            node.name
+                        ));
+                    }
+                }
+                NodeData::WsSendWait(config) => {
+                    // 验证 connection_id 不为空
+                    if config.connection_id.is_empty() {
+                        errors.push(format!("节点 {} connection_id 不能为空", node.name));
+                    }
+
+                    // 验证消息不为空
+                    if config.message.is_empty() {
+                        errors.push(format!("节点 {} 消息内容不能为空", node.name));
+                    }
+
+                    // 验证超时配置
+                    if config.send_timeout_ms < 1000 || config.send_timeout_ms > 30000 {
+                        errors.push(format!(
+                            "节点 {} 发送超时必须在 1000-30000ms 范围内",
+                            node.name
+                        ));
+                    }
+
+                    if config.message_timeout_ms < 1000 || config.message_timeout_ms > 300000 {
+                        errors.push(format!(
+                            "节点 {} 消息超时必须在 1000-300000ms 范围内",
+                            node.name
+                        ));
+                    }
+                }
+                NodeData::WsClose(config) => {
+                    // 验证 connection_id 不为空
+                    if config.connection_id.is_empty() {
+                        errors.push(format!("节点 {} connection_id 不能为空", node.name));
+                    }
+
+                    // 验证关闭码
+                    if config.close_code < 1000 || config.close_code > 4999 {
+                        errors.push(format!("节点 {} 关闭码必须在 1000-4999 范围内", node.name));
+                    }
+
+                    // 验证关闭超时
+                    if config.wait_close_timeout_ms < 1000 || config.wait_close_timeout_ms > 30000 {
+                        errors.push(format!(
+                            "节点 {} 关闭超时必须在 1000-30000ms 范围内",
+                            node.name
+                        ));
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if errors.is_empty() {
+            ValidationResult::success()
+        } else {
+            ValidationResult::errors(errors)
+        }
     }
 }
 

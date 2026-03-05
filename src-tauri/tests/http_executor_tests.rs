@@ -28,6 +28,7 @@ fn create_context(flow_id: &str) -> ExecutionContext {
             .as_millis() as u64,
         log_sender: None,
         flow_file_path: None,
+        ws_manager: None,
     }
 }
 

@@ -7,6 +7,10 @@ use crate::flow::Flow;
 use crate::error::{ErrorDetail, ErrorKind};
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::{Node, NodeType};
+use crate::websocket_manager::WebSocketConnectionManager;
+use crate::ws_connect_executor::WsConnectExecutor;
+use crate::ws_send_wait_executor::WsSendWaitExecutor;
+use crate::ws_close_executor::WsCloseExecutor;
 use regex::Regex;
 use serde_json::json;
 use std::collections::HashMap;
@@ -246,6 +250,10 @@ impl FlowExecutor {
                 var_storage.set_variable(key.clone(), value.clone(), String::new());
             }
         }
+
+        // 初始化 WebSocket 连接管理器（流程级别的单例）
+        let ws_manager = Arc::new(WebSocketConnectionManager::new());
+
         let mut context = ExecutionContext {
             flow_uuid: flow.uuid.clone(),
             current_node_uuid: None,
@@ -257,6 +265,7 @@ impl FlowExecutor {
                 .as_millis() as u64,
             log_sender,
             flow_file_path: self.flow_file_path.clone(),
+            ws_manager: Some(ws_manager),
         };
 
         // 查找开始节点
@@ -763,9 +772,12 @@ impl FlowExecutor {
                     node.name,
                     node.uuid
                 );
-                // 注意：WsConnectExecutor 需要 WebSocketConnectionManager
-                // 在 Wave 6 会集成到 FlowExecutor，目前返回未实现错误
-                Err("WebSocket 连接节点需要 WebSocketConnectionManager（Wave 6 实现）".to_string())
+                // 获取 ws_manager（如果不存在则创建新的）
+                let ws_manager = context.ws_manager.clone().unwrap_or_else(|| {
+                    Arc::new(WebSocketConnectionManager::new())
+                });
+                let executor = WsConnectExecutor::new(ws_manager);
+                executor.execute(node, context, connections, node_map).await
             }
             NodeType::WsSendWait => {
                 log::info!(
@@ -774,13 +786,27 @@ impl FlowExecutor {
                     node.name,
                     node.uuid
                 );
-                // 注意：WsSendWaitExecutor 需要 WebSocketConnectionManager
-                // 在 Wave 6 会集成到 FlowExecutor，目前返回未实现错误
-                Err("WebSocket Send+Wait 节点需要 WebSocketConnectionManager（Wave 6 实现）".to_string())
+                // 获取 ws_manager（如果不存在则创建新的）
+                let ws_manager = context.ws_manager.clone().unwrap_or_else(|| {
+                    Arc::new(WebSocketConnectionManager::new())
+                });
+                let executor = WsSendWaitExecutor::new(ws_manager);
+                executor.execute(node, context, connections, node_map).await
             }
-            // WebSocket Close 节点（Wave 6 实现）
+            // WebSocket Close 节点
             NodeType::WsClose => {
-                Err(format!("WebSocket 节点类型 {:?} 尚未实现", node.node_type))
+                log::info!(
+                    "[流程 {}] 执行 WebSocket Close 节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                // 获取 ws_manager（如果不存在则创建新的）
+                let ws_manager = context.ws_manager.clone().unwrap_or_else(|| {
+                    Arc::new(WebSocketConnectionManager::new())
+                });
+                let executor = WsCloseExecutor::new(ws_manager);
+                executor.execute(node, context, connections, node_map).await
             }
         }
     }
@@ -1357,6 +1383,7 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
+            ws_manager: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1388,6 +1415,7 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
+            ws_manager: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1410,6 +1438,7 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
+            ws_manager: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -1433,6 +1462,7 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
+            ws_manager: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -1470,6 +1500,7 @@ mod tests {
                 flow_trigger_time: 0,
                 log_sender: None,
                 flow_file_path: None,
+            ws_manager: None,
             };
             let result = replace_variables(&template, &context);
             assert!(result.is_err());
@@ -1492,6 +1523,7 @@ mod tests {
                 flow_trigger_time: 0,
                 log_sender: None,
                 flow_file_path: None,
+            ws_manager: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -1514,6 +1546,7 @@ mod tests {
                 flow_trigger_time: 0,
                 log_sender: None,
                 flow_file_path: None,
+            ws_manager: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -1536,6 +1569,7 @@ mod tests {
                 flow_trigger_time: 0,
                 log_sender: None,
                 flow_file_path: None,
+            ws_manager: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());

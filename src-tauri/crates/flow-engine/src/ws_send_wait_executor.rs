@@ -436,11 +436,12 @@ impl WsSendWaitExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::context::VariableStorage;
+    use crate::context::ExecutionContext;
     use crate::node::{NodePosition, NodeType};
     use crate::node_config::{WsMatchType, WsSendWaitConfig, WsWaitCondition, WsWaitMode};
     use crate::variable::OutputMapping;
     use crate::websocket_manager::WebSocketConnectionManager;
+    use serde_json::json;
     use std::sync::Arc;
 
     /// 创建测试节点
@@ -467,18 +468,10 @@ mod tests {
 
     /// 创建执行上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
-        ExecutionContext {
-            flow_uuid: flow_id.to_string(),
-            current_node_uuid: None,
-            variables: VariableStorage::new(),
-            node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
-                .as_millis() as u64,
-            log_sender: None,
-            flow_file_path: None,
-        }
+        ExecutionContext::new(flow_id.to_string(), std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("系统时间错误")
+            .as_millis() as u64)
     }
 
     #[tokio::test]
