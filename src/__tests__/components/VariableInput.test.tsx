@@ -366,4 +366,64 @@ describe('VariableInput', () => {
     const input = screen.getByRole('textbox');
     expect(input).toHaveAttribute('type', 'text');
   });
+
+  it('变量选择按钮应该使用 Variable 图标', () => {
+    render(
+      <VariableInput
+        variables={mockVariables}
+        value=""
+        onValueChange={mockOnValueChange}
+      />
+    );
+    
+    // 查找变量选择器按钮
+    const trigger = document.querySelector('[aria-haspopup="dialog"]');
+    expect(trigger).toBeInTheDocument();
+    
+    // 验证按钮包含 SVG 元素（Variable 图标会渲染为 SVG）
+    const svgIcon = trigger?.querySelector('svg');
+    expect(svgIcon).toBeInTheDocument();
+  });
+
+  it('变量选择按钮应该使用紫色半透明样式', () => {
+    render(
+      <VariableInput
+        variables={mockVariables}
+        value=""
+        onValueChange={mockOnValueChange}
+      />
+    );
+    
+    // 查找变量选择器按钮
+    const trigger = document.querySelector('[aria-haspopup="dialog"]') as HTMLElement;
+    expect(trigger).toBeInTheDocument();
+    
+    // 验证按钮包含紫色半透明背景样式类
+    if (trigger) {
+      expect(trigger.className).toContain('bg-violet-500/10');
+      // 验证按钮包含紫色文字样式类
+      expect(trigger.className).toContain('text-violet-600');
+    }
+  });
+
+  it('变量选择按钮应该在输入框内部（绝对定位）', () => {
+    render(
+      <VariableInput
+        variables={mockVariables}
+        value=""
+        onValueChange={mockOnValueChange}
+      />
+    );
+    
+    // 查找变量选择器按钮
+    const trigger = document.querySelector('[aria-haspopup="dialog"]') as HTMLElement;
+    expect(trigger).toBeInTheDocument();
+    
+    // 验证按钮使用绝对定位
+    if (trigger) {
+      expect(trigger.className).toContain('absolute');
+      expect(trigger.className).toContain('right-1');
+      expect(trigger.className).toContain('top-1/2');
+    }
+  });
 });

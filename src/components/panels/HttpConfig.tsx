@@ -348,7 +348,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           URL <span className="text-rose-500">*</span>
         </Label>
         <div className="relative">
-          <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
           <VariableInput
             id="url"
             variables={variables}
@@ -356,7 +356,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
             value={watch('url') || ''}
             onValueChange={(value) => setValue('url', value)}
             placeholder="https://api.example.com/endpoint"
-            className="pl-9 font-mono text-sm"
+            className="pl-9 font-mono text-sm text-left"
           />
         </div>
         {errors.url && (

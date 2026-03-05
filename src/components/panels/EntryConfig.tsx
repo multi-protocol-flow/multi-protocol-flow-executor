@@ -143,18 +143,14 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
       {/* 主说明卡片 */}
       <div className="rounded-lg border border-emerald-200/50 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 p-4 overflow-hidden">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 shrink-0 rounded-full bg-emerald-100 p-1.5">
-            <PlayCircle className="h-4 w-4 text-emerald-600" />
-          </div>
-          <div className="min-w-0 flex-1 space-y-2 overflow-hidden">
-            <h4 className="text-sm font-semibold text-emerald-900">
-              入口节点
-            </h4>
-            <p className="text-sm leading-relaxed text-emerald-700/90 whitespace-normal break-words">
-              入口节点是流程的起点。每个流程必须有且仅有一个入口节点，流程执行将从这里开始，沿着连接线依次执行各个节点。
-            </p>
-          </div>
+        <div className="space-y-2">
+          <h4 className="text-sm font-semibold text-emerald-900 flex items-center gap-2">
+            <PlayCircle className="h-4 w-4" />
+            入口节点
+          </h4>
+          <p className="text-sm leading-relaxed text-emerald-700/90 whitespace-normal break-words">
+            入口节点是流程的起点。每个流程必须有且仅有一个入口节点，流程执行将从这里开始，沿着连接线依次执行各个节点。
+          </p>
         </div>
       </div>
 
@@ -214,7 +210,7 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
                       variant="ghost"
                       size="icon"
                       onClick={() => handleRemoveVariable(index)}
-                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-violet-500"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

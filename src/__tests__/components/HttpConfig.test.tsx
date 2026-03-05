@@ -118,3 +118,38 @@ describe('HttpConfig - 超时配置 [GREEN]', () => {
     expect(screen.getByText(/毫秒|ms/i)).toBeDefined();
   });
 });
+
+describe('HttpConfig - 样式测试', () => {
+  const mockOnSave = vi.fn();
+  const defaultData: HttpConfigType = {
+    type: 'http',
+    url: 'https://api.example.com',
+    method: 'get',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('[GREEN] URL 输入框应该包含左对齐样式', () => {
+    render(<HttpConfig data={defaultData} onSave={mockOnSave} />);
+
+    // 验证 URL 输入框存在
+    const urlInput = screen.getByPlaceholderText(/https:\/\//i);
+    expect(urlInput).toBeDefined();
+    
+    // 验证输入框包含 text-left 样式类
+    expect(urlInput.className).toContain('text-left');
+  });
+
+  it('[GREEN] URL 输入框应该有左侧图标预留空间', () => {
+    render(<HttpConfig data={defaultData} onSave={mockOnSave} />);
+
+    // 验证 URL 输入框存在
+    const urlInput = screen.getByPlaceholderText(/https:\/\//i);
+    expect(urlInput).toBeDefined();
+    
+    // 验证输入框包含 pl-9 样式类（左侧padding）
+    expect(urlInput.className).toContain('pl-9');
+  });
+});

@@ -141,7 +141,17 @@ export function VariableSelector({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        {triggerChildren ?? (
+        {triggerChildren ? (
+          <button
+            type="button"
+            className={cn(
+              "inline-flex items-center justify-center",
+              triggerClassName
+            )}
+          >
+            {triggerChildren}
+          </button>
+        ) : (
           <button
             type="button"
             className={cn(
