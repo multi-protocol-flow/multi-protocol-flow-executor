@@ -767,8 +767,19 @@ impl FlowExecutor {
                 // 在 Wave 6 会集成到 FlowExecutor，目前返回未实现错误
                 Err("WebSocket 连接节点需要 WebSocketConnectionManager（Wave 6 实现）".to_string())
             }
-            // WebSocket 其他节点类型（Wave 5 实现）
-            NodeType::WsSendWait | NodeType::WsClose => {
+            NodeType::WsSendWait => {
+                log::info!(
+                    "[流程 {}] 执行 WebSocket Send+Wait 节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                // 注意：WsSendWaitExecutor 需要 WebSocketConnectionManager
+                // 在 Wave 6 会集成到 FlowExecutor，目前返回未实现错误
+                Err("WebSocket Send+Wait 节点需要 WebSocketConnectionManager（Wave 6 实现）".to_string())
+            }
+            // WebSocket Close 节点（Wave 6 实现）
+            NodeType::WsClose => {
                 Err(format!("WebSocket 节点类型 {:?} 尚未实现", node.node_type))
             }
         }
