@@ -744,7 +744,7 @@ mod tests {
             // 验证发送成功
             match result {
                 Ok((next_nodes, output_data)) => {
-                    assert_eq!(next_nodes, vec!["out"]);
+                    assert_eq!(next_nodes, vec![] as Vec<String>);
                     assert!(output_data.is_some());
                     let data = output_data.unwrap();
                     assert_eq!(data["connection_id"], "echo-conn");
@@ -813,7 +813,7 @@ mod tests {
             // 验证发送和接收成功
             match result {
                 Ok((next_nodes, output_data)) => {
-                    assert_eq!(next_nodes, vec!["out"]);
+                    assert_eq!(next_nodes, vec![] as Vec<String>);
                     assert!(output_data.is_some());
                     let data = output_data.unwrap();
                     assert_eq!(data["connection_id"], "echo-conn-2");

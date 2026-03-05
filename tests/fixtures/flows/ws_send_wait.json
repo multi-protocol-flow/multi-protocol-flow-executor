@@ -81,7 +81,7 @@
       "id": "conn-send-wait-to-close",
       "source_node_uuid": "ws-send-wait-test",
       "target_node_uuid": "ws-close-send-wait",
-      "source_port_id": "output",
+      "source_port_id": "true",
       "target_port_id": "input"
     }
   ]

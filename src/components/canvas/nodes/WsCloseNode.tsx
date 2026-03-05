@@ -15,7 +15,7 @@ export interface WsCloseNodeData {
 
 /**
  * WsClose 节点 - WebSocket 关闭
- * 输入端口 "in"，输出端口 "out"
+ * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
 export function WsCloseNode({ data, selected }: NodeProps) {
   const nodeData = data as WsCloseNodeData;
@@ -65,15 +65,33 @@ export function WsCloseNode({ data, selected }: NodeProps) {
       <Handle
         type="source"
         position={Position.Right}
-        id="out"
+        id="true"
         className={cn(
-          '!w-3.5 !h-3.5',
+          '!w-3.5 !h-3.5 !top-[30%]',
           '!bg-white !border-2 !border-black',
           'hover:!scale-125',
           'transition-transform duration-150',
           "before:content-[''] before:absolute before:inset-[3px] before:bg-rose-500 before:rounded-full"
         )}
       />
+      
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="false"
+        className={cn(
+          '!w-3.5 !h-3.5 !top-[70%]',
+          '!bg-white !border-2 !border-black',
+          'hover:!scale-125',
+          'transition-transform duration-150',
+          "before:content-[''] before:absolute before:inset-[3px] before:bg-rose-500 before:rounded-full"
+        )}
+      />
+      
+      <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center translate-x-5 pointer-events-none">
+        <span className="text-[10px] font-bold text-emerald-600 leading-none -mt-2">T</span>
+        <span className="text-[10px] font-bold text-rose-600 leading-none mt-4">F</span>
+      </div>
     </div>
   );
 }

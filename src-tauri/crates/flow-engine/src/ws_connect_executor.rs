@@ -427,7 +427,7 @@ mod tests {
         // 应该返回 false 端口（无效 URL）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        assert_eq!(next_nodes, vec!["false"]);
+        assert_eq!(next_nodes, vec![] as Vec<String>);
         assert!(output_data.is_none());
     }
 
@@ -458,7 +458,7 @@ mod tests {
         // 应该返回 false 端口（超时）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        assert_eq!(next_nodes, vec!["false"]);
+        assert_eq!(next_nodes, vec![] as Vec<String>);
         assert!(output_data.is_none());
     }
 
@@ -487,7 +487,7 @@ mod tests {
         // 应该返回 false 端口（连接失败），但不会因为变量替换错误
         assert!(result.is_ok());
         let (next_nodes, _) = result.unwrap();
-        assert_eq!(next_nodes, vec!["false"]);
+        assert_eq!(next_nodes, vec![] as Vec<String>);
     }
 
     #[tokio::test]
@@ -520,7 +520,7 @@ mod tests {
         // 应该返回 false 端口（连接失败）
         assert!(result.is_ok());
         let (next_nodes, _) = result.unwrap();
-        assert_eq!(next_nodes, vec!["false"]);
+        assert_eq!(next_nodes, vec![] as Vec<String>);
     }
 
     #[tokio::test]
@@ -557,7 +557,7 @@ mod tests {
         // 应该返回 false 端口（连接失败）
         assert!(result.is_ok());
         let (next_nodes, _) = result.unwrap();
-        assert_eq!(next_nodes, vec!["false"]);
+        assert_eq!(next_nodes, vec![] as Vec<String>);
     }
 
     #[tokio::test]
@@ -590,7 +590,7 @@ mod tests {
         // 应该返回 false 端口（连接失败）
         assert!(result.is_ok());
         let (next_nodes, _) = result.unwrap();
-        assert_eq!(next_nodes, vec!["false"]);
+        assert_eq!(next_nodes, vec![] as Vec<String>);
     }
 
     #[tokio::test]
@@ -625,7 +625,7 @@ mod tests {
         // 应该返回 false 端口（连接失败）
         assert!(result.is_ok());
         let (next_nodes, _) = result.unwrap();
-        assert_eq!(next_nodes, vec!["false"]);
+        assert_eq!(next_nodes, vec![] as Vec<String>);
     }
 
     #[tokio::test]

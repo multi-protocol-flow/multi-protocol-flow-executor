@@ -32,7 +32,7 @@ impl NodeExecutor for WsCloseExecutor {
         &self,
         node: &Node,
         context: &mut ExecutionContext,
-        _connections: &[Connection],
+        connections: &[Connection],
         _node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         let start_time = Instant::now();
@@ -128,8 +128,16 @@ impl NodeExecutor for WsCloseExecutor {
                     })
                     .await;
 
-                // 7. 返回下一个节点（默认 out 端口）
-                Ok((vec!["out".to_string()], Some(output_data)))
+                // 7. 成功时走 true 端口
+                let next_node_ids: Vec<String> = connections
+                    .iter()
+                    .filter(|conn| {
+                        conn.source_node_uuid == node.uuid && conn.source_port_id == "true"
+                    })
+                    .map(|conn| conn.target_node_uuid.clone())
+                    .collect();
+
+                Ok((next_node_ids, Some(output_data)))
             }
             Err(e) => {
                 log::error!(
@@ -153,8 +161,16 @@ impl NodeExecutor for WsCloseExecutor {
                     })
                     .await;
 
-                // 返回错误（连接关闭失败是致命错误）
-                Err(e)
+                // 关闭失败走 false 端口
+                let next_node_ids: Vec<String> = connections
+                    .iter()
+                    .filter(|conn| {
+                        conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
+                    })
+                    .map(|conn| conn.target_node_uuid.clone())
+                    .collect();
+
+                Ok((next_node_ids, None))
             }
         }
     }
@@ -214,10 +230,11 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回错误（连接不存在）
-        assert!(result.is_err());
-        let error = result.unwrap_err();
-        assert!(error.contains("连接不存在"));
+        // 应该返回 Ok，走 false 端口（因为没有连接，所以是空数组）
+        assert!(result.is_ok());
+        let (next_nodes, output_data) = result.unwrap();
+        assert_eq!(next_nodes, vec![] as Vec<String>);
+        assert!(output_data.is_none());
     }
 
     #[tokio::test]
@@ -242,10 +259,11 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回错误（连接不存在），但不会因为变量替换错误
-        assert!(result.is_err());
-        let error = result.unwrap_err();
-        assert!(error.contains("连接不存在"));
+        // 应该返回 Ok，走 false 端口（因为没有连接，所以是空数组）
+        assert!(result.is_ok());
+        let (next_nodes, output_data) = result.unwrap();
+        assert_eq!(next_nodes, vec![] as Vec<String>);
+        assert!(output_data.is_none());
     }
 
     #[tokio::test]
@@ -274,8 +292,11 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回错误（连接不存在）
-        assert!(result.is_err());
+        // 应该返回 Ok，走 false 端口（因为没有连接，所以是空数组）
+        assert!(result.is_ok());
+        let (next_nodes, output_data) = result.unwrap();
+        assert_eq!(next_nodes, vec![] as Vec<String>);
+        assert!(output_data.is_none());
     }
 
     #[tokio::test]
@@ -309,7 +330,7 @@ mod tests {
             // 验证关闭成功
             match result {
                 Ok((next_nodes, output_data)) => {
-                    assert_eq!(next_nodes, vec!["out"]);
+                    assert_eq!(next_nodes, vec![] as Vec<String>);
                     assert!(output_data.is_some());
                     let data = output_data.unwrap();
                     assert_eq!(data["connection_id"], "echo-close-conn");
@@ -369,7 +390,7 @@ mod tests {
             // 验证关闭成功
             match result {
                 Ok((next_nodes, output_data)) => {
-                    assert_eq!(next_nodes, vec!["out"]);
+                    assert_eq!(next_nodes, vec![] as Vec<String>);
                     assert!(output_data.is_some());
                     let data = output_data.unwrap();
                     assert_eq!(data["connection_id"], "close-reason-conn");
