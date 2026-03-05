@@ -352,8 +352,20 @@ impl FlowExecutor {
                                 })
                             })
                         }
-                        // WebSocket 节点类型（Wave 2 实现）
-                        NodeType::WsConnect | NodeType::WsSendWait | NodeType::WsClose => {
+                        // WebSocket 节点类型
+                        NodeType::WsConnect => {
+                            // WsConnect 节点：根据连接成功与否返回 true 或 false 端口
+                            output_data.as_ref().and_then(|data| {
+                                data.get("connected").and_then(|v| v.as_bool()).map(|connected| {
+                                    if connected {
+                                        "true".to_string()
+                                    } else {
+                                        "false".to_string()
+                                    }
+                                })
+                            })
+                        }
+                        NodeType::WsSendWait | NodeType::WsClose => {
                             Some("out".to_string())
                         }
                     };
@@ -744,8 +756,19 @@ impl FlowExecutor {
                 let executor = crate::conditional_executor::ConditionalNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
-            // WebSocket 节点类型（Wave 2 实现，目前返回未实现错误）
-            NodeType::WsConnect | NodeType::WsSendWait | NodeType::WsClose => {
+            NodeType::WsConnect => {
+                log::info!(
+                    "[流程 {}] 执行 WebSocket 连接节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                // 注意：WsConnectExecutor 需要 WebSocketConnectionManager
+                // 在 Wave 6 会集成到 FlowExecutor，目前返回未实现错误
+                Err("WebSocket 连接节点需要 WebSocketConnectionManager（Wave 6 实现）".to_string())
+            }
+            // WebSocket 其他节点类型（Wave 5 实现）
+            NodeType::WsSendWait | NodeType::WsClose => {
                 Err(format!("WebSocket 节点类型 {:?} 尚未实现", node.node_type))
             }
         }

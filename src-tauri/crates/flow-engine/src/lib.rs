@@ -25,6 +25,7 @@ pub mod entry_executor;
 pub mod executor;
 pub mod http_executor;
 pub mod conditional_executor;
+pub mod ws_connect_executor;
 pub mod validator;
 
 // Re-exports
