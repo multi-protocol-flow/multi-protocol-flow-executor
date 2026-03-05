@@ -3,7 +3,7 @@
 use crate::node_config::NodeData;
 
 /// 节点类型枚举
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum NodeType {
     /// 入口节点
@@ -12,6 +12,12 @@ pub enum NodeType {
     Http,
     /// 条件分支节点
     Conditional,
+    /// WebSocket 连接节点
+    WsConnect,
+    /// WebSocket 发送等待节点
+    WsSendWait,
+    /// WebSocket 关闭节点
+    WsClose,
 }
 
 /// 节点位置结构体

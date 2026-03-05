@@ -98,7 +98,6 @@ pub struct FormField {
     pub file_path: Option<String>,
 }
 
-
 /// Http 节点配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HttpConfig {
@@ -230,6 +229,158 @@ pub struct ConditionalConfig {
 }
 
 // ============================================================================
+// WebSocket 节点配置
+// ============================================================================
+
+/// WebSocket 等待模式
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum WsWaitMode {
+    /// 不等待
+    #[default]
+    None,
+    /// 等待第一条消息
+    FirstMessage,
+    /// 等待满足条件
+    Condition,
+    /// 等待指定时长
+    Duration,
+}
+
+/// WebSocket 匹配类型
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum WsMatchType {
+    /// JSONPath 匹配
+    #[default]
+    JsonPath,
+    /// 正则表达式匹配
+    Regex,
+    /// 表达式匹配
+    Expression,
+}
+
+/// WebSocket 消息类型
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum WsMessageType {
+    /// 文本消息
+    #[default]
+    Text,
+    /// 二进制消息
+    Binary,
+}
+
+/// WebSocket 等待条件
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct WsWaitCondition {
+    /// 匹配类型
+    pub match_type: WsMatchType,
+    /// 匹配表达式
+    pub expression: String,
+}
+
+impl PartialEq for WsWaitCondition {
+    fn eq(&self, other: &Self) -> bool {
+        self.match_type == other.match_type && self.expression == other.expression
+    }
+}
+
+/// WebSocket Connect 节点配置
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct WsConnectConfig {
+    /// WebSocket URL
+    pub url: String,
+    /// 请求头
+    #[serde(default)]
+    pub headers: Vec<FormField>,
+    /// 子协议
+    #[serde(default)]
+    pub subprotocols: Vec<String>,
+    /// 连接超时（毫秒）
+    #[serde(default = "default_connect_timeout")]
+    pub connect_timeout_ms: u64,
+    /// 是否等待消息
+    #[serde(default)]
+    pub wait_for_message: bool,
+    /// 等待模式
+    #[serde(default)]
+    pub wait_mode: WsWaitMode,
+    /// 等待条件
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wait_condition: Option<WsWaitCondition>,
+    /// 消息超时（毫秒）
+    #[serde(default = "default_message_timeout")]
+    pub message_timeout_ms: u64,
+    /// 输出变量映射
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub output_mappings: Vec<OutputMapping>,
+}
+
+/// WebSocket Send+Wait 节点配置
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct WsSendWaitConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 消息内容
+    pub message: String,
+    /// 消息类型
+    #[serde(default)]
+    pub message_type: WsMessageType,
+    /// 发送超时（毫秒）
+    #[serde(default = "default_send_timeout")]
+    pub send_timeout_ms: u64,
+    /// 是否等待响应
+    #[serde(default)]
+    pub wait_for_response: bool,
+    /// 等待模式
+    #[serde(default)]
+    pub wait_mode: WsWaitMode,
+    /// 等待条件
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wait_condition: Option<WsWaitCondition>,
+    /// 消息超时（毫秒）
+    #[serde(default = "default_message_timeout")]
+    pub message_timeout_ms: u64,
+    /// 输出变量映射
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub output_mappings: Vec<OutputMapping>,
+}
+
+/// WebSocket Close 节点配置
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct WsCloseConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 关闭码
+    #[serde(default = "default_close_code")]
+    pub close_code: u16,
+    /// 关闭原因
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub close_reason: Option<String>,
+    /// 等待关闭超时（毫秒）
+    #[serde(default = "default_close_timeout")]
+    pub wait_close_timeout_ms: u64,
+}
+
+// Default value helpers
+fn default_connect_timeout() -> u64 {
+    30000
+}
+fn default_message_timeout() -> u64 {
+    10000
+}
+fn default_send_timeout() -> u64 {
+    10000
+}
+fn default_close_code() -> u16 {
+    1000
+}
+fn default_close_timeout() -> u64 {
+    5000
+}
+
+// ============================================================================
 // 节点数据配置统一枚举
 // ============================================================================
 
@@ -243,6 +394,12 @@ pub enum NodeData {
     Http(HttpConfig),
     /// 条件分支节点配置
     Conditional(ConditionalConfig),
+    /// WebSocket 连接节点配置
+    WsConnect(WsConnectConfig),
+    /// WebSocket 发送等待节点配置
+    WsSendWait(WsSendWaitConfig),
+    /// WebSocket 关闭节点配置
+    WsClose(WsCloseConfig),
 }
 
 impl NodeData {
@@ -252,6 +409,9 @@ impl NodeData {
             NodeData::Entry(_) => "entry",
             NodeData::Http(_) => "http",
             NodeData::Conditional(_) => "conditional",
+            NodeData::WsConnect(_) => "ws_connect",
+            NodeData::WsSendWait(_) => "ws_send_wait",
+            NodeData::WsClose(_) => "ws_close",
         }
     }
 

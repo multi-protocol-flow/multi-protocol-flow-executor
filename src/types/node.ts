@@ -14,7 +14,7 @@ import type { Port } from './port';
 /**
  * 节点类型枚举
  */
-export type NodeType = 'entry' | 'http' | 'conditional';
+export type NodeType = 'entry' | 'http' | 'conditional' | 'ws_connect' | 'ws_send_wait' | 'ws_close';
 
 /**
  * 节点位置结构体
@@ -150,10 +150,104 @@ export interface ConditionalConfig {
   expected_value_type?: ExpectedValueType;
 }
 
+// ============================================================================
+// WebSocket 类型定义
+// ============================================================================
+
+/**
+ * WebSocket 等待模式
+ */
+export type WsWaitMode = 'none' | 'first_message' | 'condition' | 'duration';
+
+/**
+ * WebSocket 匹配类型
+ */
+export type WsMatchType = 'json_path' | 'regex' | 'expression';
+
+/**
+ * WebSocket 消息类型
+ */
+export type WsMessageType = 'text' | 'binary';
+
+/**
+ * WebSocket 等待条件
+ */
+export interface WsWaitCondition {
+  /** 匹配类型 */
+  match_type: WsMatchType;
+  /** 匹配表达式 */
+  expression: string;
+}
+
+/**
+ * WebSocket Connect 节点配置
+ */
+export interface WsConnectConfig {
+  type: 'ws_connect';
+  /** WebSocket URL */
+  url: string;
+  /** 请求头 */
+  headers?: FormField[];
+  /** 子协议 */
+  subprotocols?: string[];
+  /** 连接超时（毫秒） */
+  connect_timeout_ms?: number;
+  /** 是否等待消息 */
+  wait_for_message?: boolean;
+  /** 等待模式 */
+  wait_mode?: WsWaitMode;
+  /** 等待条件 */
+  wait_condition?: WsWaitCondition;
+  /** 消息超时（毫秒） */
+  message_timeout_ms?: number;
+  /** 输出变量映射 */
+  output_mappings?: OutputMapping[];
+}
+
+/**
+ * WebSocket Send+Wait 节点配置
+ */
+export interface WsSendWaitConfig {
+  type: 'ws_send_wait';
+  /** 连接 ID */
+  connection_id: string;
+  /** 消息内容 */
+  message: string;
+  /** 消息类型 */
+  message_type?: WsMessageType;
+  /** 发送超时（毫秒） */
+  send_timeout_ms?: number;
+  /** 是否等待响应 */
+  wait_for_response?: boolean;
+  /** 等待模式 */
+  wait_mode?: WsWaitMode;
+  /** 等待条件 */
+  wait_condition?: WsWaitCondition;
+  /** 消息超时（毫秒） */
+  message_timeout_ms?: number;
+  /** 输出变量映射 */
+  output_mappings?: OutputMapping[];
+}
+
+/**
+ * WebSocket Close 节点配置
+ */
+export interface WsCloseConfig {
+  type: 'ws_close';
+  /** 连接 ID */
+  connection_id: string;
+  /** 关闭码 */
+  close_code?: number;
+  /** 关闭原因 */
+  close_reason?: string;
+  /** 等待关闭超时（毫秒） */
+  wait_close_timeout_ms?: number;
+}
+
 /**
  * 节点数据配置（判别联合类型）
  */
-export type NodeData = EntryConfig | HttpConfig | ConditionalConfig;
+export type NodeData = EntryConfig | HttpConfig | ConditionalConfig | WsConnectConfig | WsSendWaitConfig | WsCloseConfig;
 
 // ============================================================================
 // 节点结构体
@@ -200,4 +294,25 @@ export function isHttpConfig(data: NodeData): data is HttpConfig {
  */
 export function isConditionalConfig(data: NodeData): data is ConditionalConfig {
   return data.type === 'conditional';
+}
+
+/**
+ * 判断是否为 WsConnectConfig
+ */
+export function isWsConnectConfig(data: NodeData): data is WsConnectConfig {
+  return data.type === 'ws_connect';
+}
+
+/**
+ * 判断是否为 WsSendWaitConfig
+ */
+export function isWsSendWaitConfig(data: NodeData): data is WsSendWaitConfig {
+  return data.type === 'ws_send_wait';
+}
+
+/**
+ * 判断是否为 WsCloseConfig
+ */
+export function isWsCloseConfig(data: NodeData): data is WsCloseConfig {
+  return data.type === 'ws_close';
 }

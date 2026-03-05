@@ -34,6 +34,21 @@ const NODE_TYPE_CONFIG = {
     badgeVariant: 'outline' as const,
     badgeClass: 'border-violet-200 text-violet-700',
   },
+  ws_connect: {
+    label: 'WS 连接',
+    badgeVariant: 'secondary' as const,
+    badgeClass: 'bg-amber-50 text-amber-700',
+  },
+  ws_send_wait: {
+    label: 'WS 发送等待',
+    badgeVariant: 'secondary' as const,
+    badgeClass: 'bg-teal-50 text-teal-700',
+  },
+  ws_close: {
+    label: 'WS 关闭',
+    badgeVariant: 'outline' as const,
+    badgeClass: 'border-rose-200 text-rose-700',
+  },
 };
 
 export function NodeConfigPanel() {

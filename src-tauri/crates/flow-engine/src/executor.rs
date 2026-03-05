@@ -352,6 +352,10 @@ impl FlowExecutor {
                                 })
                             })
                         }
+                        // WebSocket 节点类型（Wave 2 实现）
+                        NodeType::WsConnect | NodeType::WsSendWait | NodeType::WsClose => {
+                            Some("out".to_string())
+                        }
                     };
 
                     // 创建节点执行报告
@@ -739,6 +743,10 @@ impl FlowExecutor {
                 );
                 let executor = crate::conditional_executor::ConditionalNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
+            }
+            // WebSocket 节点类型（Wave 2 实现，目前返回未实现错误）
+            NodeType::WsConnect | NodeType::WsSendWait | NodeType::WsClose => {
+                Err(format!("WebSocket 节点类型 {:?} 尚未实现", node.node_type))
             }
         }
     }

@@ -132,6 +132,18 @@ pub enum ErrorKind {
     // ===== 解析错误（容错模式，继续执行） =====
     /// 数据解析失败（如 JSON 解析失败、数据格式转换失败）
     Parse,
+
+    // ===== WebSocket 错误（容错模式，继续执行） =====
+    /// WebSocket 连接失败
+    WebSocketConnection,
+    /// WebSocket 超时
+    WebSocketTimeout,
+    /// WebSocket 消息错误
+    WebSocketMessage,
+    /// WebSocket 关闭错误
+    WebSocketClose,
+    /// WebSocket 协议错误
+    WebSocketProtocol,
 }
 
 impl ErrorKind {
@@ -206,6 +218,12 @@ mod tests {
         assert!(!ErrorKind::ConditionEvaluation.is_fatal());
         assert!(!ErrorKind::Validation.is_fatal());
         assert!(!ErrorKind::Parse.is_fatal());
+        // WebSocket 错误非致命
+        assert!(!ErrorKind::WebSocketConnection.is_fatal());
+        assert!(!ErrorKind::WebSocketTimeout.is_fatal());
+        assert!(!ErrorKind::WebSocketMessage.is_fatal());
+        assert!(!ErrorKind::WebSocketClose.is_fatal());
+        assert!(!ErrorKind::WebSocketProtocol.is_fatal());
     }
 
     #[test]
@@ -220,6 +238,11 @@ mod tests {
             ErrorKind::ConditionEvaluation,
             ErrorKind::Validation,
             ErrorKind::Parse,
+            ErrorKind::WebSocketConnection,
+            ErrorKind::WebSocketTimeout,
+            ErrorKind::WebSocketMessage,
+            ErrorKind::WebSocketClose,
+            ErrorKind::WebSocketProtocol,
         ];
 
         for kind in kinds {
@@ -254,6 +277,11 @@ mod tests {
             ErrorKind::ConditionEvaluation,
             ErrorKind::Validation,
             ErrorKind::Parse,
+            ErrorKind::WebSocketConnection,
+            ErrorKind::WebSocketTimeout,
+            ErrorKind::WebSocketMessage,
+            ErrorKind::WebSocketClose,
+            ErrorKind::WebSocketProtocol,
         ];
 
         for kind in kinds {
@@ -264,6 +292,38 @@ mod tests {
 
             assert_eq!(error.error_kind, deserialized.error_kind);
             assert_eq!(error.message, deserialized.message);
+        }
+    }
+
+    #[test]
+    fn test_websocket_error_kinds() {
+        // 测试 WebSocket 错误类型的创建和序列化
+        let ws_errors = vec![
+            (ErrorKind::WebSocketConnection, "WebSocket 连接失败"),
+            (ErrorKind::WebSocketTimeout, "WebSocket 操作超时"),
+            (ErrorKind::WebSocketMessage, "WebSocket 消息发送失败"),
+            (ErrorKind::WebSocketClose, "WebSocket 连接异常关闭"),
+            (ErrorKind::WebSocketProtocol, "WebSocket 协议错误"),
+        ];
+
+        for (kind, msg) in ws_errors {
+            let error = ErrorDetail::new(kind.clone(), msg.to_string());
+
+            // 验证非致命
+            assert!(!error.is_fatal(), "{:?} 不应为致命错误", kind);
+
+            // 验证序列化和反序列化
+            let json = serde_json::to_string(&error).expect("序列化失败");
+            let deserialized: ErrorDetail = serde_json::from_str(&json).expect("反序列化失败");
+
+            assert_eq!(error.error_kind, deserialized.error_kind);
+            assert_eq!(error.message, deserialized.message);
+
+            // 验证 JSON 中使用小写形式
+            assert!(
+                json.contains(&format!("{:?}", kind).to_lowercase()),
+                "JSON 应包含小写形式的错误类型"
+            );
         }
     }
 }

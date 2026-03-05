@@ -57,6 +57,9 @@ predicates = "3"
 proptest = "1.4"
 wiremock = "0.6"
 tempfile = "3.0"
+# WebSocket 依赖测试
+tokio-tungstenite = { version = "0.28", features = ["native-tls"] }
+futures-util = "0.3"
 
 # =============================================================================
 # Clippy Lint 配置
