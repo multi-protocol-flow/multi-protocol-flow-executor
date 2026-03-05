@@ -103,4 +103,39 @@ describe('EntryConfig - 样式测试', () => {
     expect(screen.getByText(/执行流程/i)).toBeDefined();
     expect(screen.getByText(/点击工具栏中的「执行」按钮/i)).toBeDefined();
   });
+
+  it('变量名提示不应该包含图标', () => {
+    const dataWithVariables: EntryConfigType = {
+      type: 'entry',
+      initial_variables: [
+        { name: 'api_base', value: 'https://api.example.com', description: 'API基础URL' }
+      ]
+    };
+
+    render(<EntryConfig data={dataWithVariables} onSave={mockOnSave} />);
+
+    // 验证提示文字存在
+    const tipText = screen.getByText(/变量名只能包含字母、数字和下划线/);
+    expect(tipText).toBeDefined();
+
+    // 验证提示容器不包含 Info 图标（通过检查父容器没有 lucide-info 类）
+    const tipContainer = tipText.closest('div');
+    expect(tipContainer).toBeDefined();
+    const infoIcon = tipContainer?.querySelector('.lucide-info');
+    expect(infoIcon).toBeNull();
+  });
+
+  it('执行流程提示应该使用蓝色渐变样式', () => {
+    render(<EntryConfig data={defaultData} onSave={mockOnSave} />);
+
+    // 查找执行流程标题元素
+    const titleElement = screen.getByText('执行流程');
+    expect(titleElement).toBeDefined();
+
+    // 验证标题在蓝色渐变容器内（通过检查祖先容器的类名）
+    const cardContainer = titleElement.closest('div[class*="from-blue-50"]');
+    expect(cardContainer).toBeDefined();
+    expect(cardContainer?.className).toContain('border-blue-200');
+    expect(cardContainer?.className).toContain('to-indigo-50');
+  });
 });

@@ -9,7 +9,7 @@ import { entryConfigSchema, type EntryConfigFormData } from './schemas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { PlayCircle, Info, AlertCircle, Plus, Trash2, Variable } from 'lucide-react';
+import { PlayCircle, Plus, Trash2, Variable } from 'lucide-react';
 import type { EntryConfig as EntryConfigType } from '@/types';
 
 interface EntryConfigProps {
@@ -251,8 +251,7 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
 
         {/* 提示信息 */}
         {fields.length > 0 && (
-          <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
+          <div className="rounded-md bg-muted/30 p-2">
             <p className="text-xs text-muted-foreground whitespace-normal break-words">
               变量名只能包含字母、数字和下划线，长度 1-64 个字符。默认值支持 JSON 格式（字符串需加引号）。
             </p>
@@ -261,11 +260,13 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
       </div>
 
       {/* 执行流程说明 */}
-      <div className="flex items-start gap-3 rounded-md bg-muted/30 p-3 overflow-hidden">
-        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-        <div className="min-w-0 flex-1 overflow-hidden">
-          <p className="text-sm font-medium text-foreground">执行流程</p>
-          <p className="mt-1 text-xs text-muted-foreground whitespace-normal break-words">
+      <div className="rounded-lg border border-blue-200/50 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 p-4 overflow-hidden">
+        <div className="space-y-2">
+          <h4 className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+            <PlayCircle className="h-4 w-4" />
+            执行流程
+          </h4>
+          <p className="text-sm leading-relaxed text-blue-700/90 whitespace-normal break-words">
             点击工具栏中的「执行」按钮即可开始执行整个流程。
           </p>
         </div>

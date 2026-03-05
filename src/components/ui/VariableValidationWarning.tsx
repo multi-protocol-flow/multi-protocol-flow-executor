@@ -93,33 +93,31 @@ export function VariableValidationWarning({
   return (
     <div
       className={cn(
-        "flex items-start gap-2 rounded-md border",
+        "flex items-center gap-2 rounded-md border",
         "bg-amber-50 border-amber-200 text-amber-700",
         compact ? "px-2 py-1" : "px-3 py-2",
         className
       )}
     >
       {showIcon && (
-        <AlertCircle className={cn("shrink-0", compact ? "h-3.5 w-3.5 mt-0.5" : "h-4 w-4 mt-0.5")} />
+        <AlertCircle className={cn("shrink-0", compact ? "h-3.5 w-3.5" : "h-4 w-4")} />
       )}
-      <div className="flex-1 min-w-0">
-        <span className="text-xs font-medium">
+      <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+        <span className="text-xs font-medium shrink-0">
           变量引用失效:
         </span>
-        <div className="mt-1 flex flex-wrap gap-1">
-          {invalidRefs.map((ref, index) => (
-            <code
-              key={`${ref}-${index}`}
-              className={cn(
-                "inline-flex items-center rounded px-1.5 py-0.5",
-                "bg-amber-100 text-amber-800 font-mono text-xs",
-                "break-all"
-              )}
-            >
-              {`{{${ref}}}`}
-            </code>
-          ))}
-        </div>
+        {invalidRefs.map((ref, index) => (
+          <code
+            key={`${ref}-${index}`}
+            className={cn(
+              "inline-flex items-center rounded px-1.5 py-0.5",
+              "bg-amber-100 text-amber-800 font-mono text-xs",
+              "break-all"
+            )}
+          >
+            {`{{${ref}}}`}
+          </code>
+        ))}
       </div>
     </div>
   );
