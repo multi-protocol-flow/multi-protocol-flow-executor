@@ -307,7 +307,12 @@ impl NodeExecutor for WsSendWaitExecutor {
             }
         };
 
-        // 9. 返回下一个节点（根据端口过滤）
+        // 9. 应用输出变量映射
+        if let Some(ref data) = output_data {
+            self.apply_output_mappings(&config, data, context);
+        }
+
+        // 10. 返回下一个节点（根据端口过滤）
         let filtered: Vec<String> = connections
             .iter()
             .filter(|conn| {
@@ -508,54 +513,37 @@ impl WsSendWaitExecutor {
     }
 
     /// 应用输出变量映射
-    #[allow(dead_code)]
     fn apply_output_mappings(
         &self,
         config: &WsSendWaitConfig,
-        connection_id: &str,
-        sent_message: &str,
-        response_message: Option<&str>,
+        output_data: &serde_json::Value,
         context: &mut ExecutionContext,
-        duration_ms: u64,
-    ) -> Result<Option<serde_json::Value>, String> {
-        // 构建基础输出数据
-        let output_data = json!({
-            "connection_id": connection_id,
-            "sent_message": sent_message,
-            "response_message": response_message,
-            "duration_ms": duration_ms,
-        });
-
-        // 应用变量映射
+    ) {
         if !config.output_mappings.is_empty() {
             for mapping in &config.output_mappings {
                 if let Some(value) =
-                    crate::http_executor::extract_value_by_path(&output_data, &mapping.source)
+                    crate::http_executor::extract_value_by_path(output_data, &mapping.source)
                 {
                     log::info!(
-                        "[流程 {}] [输出映射] 节点: {}, 路径: {} -> 变量: {}",
+                        "[流程 {}] [输出映射] 路径: {} -> 变量: {}",
                         context.flow_uuid,
-                        connection_id,
                         mapping.source,
                         mapping.target
                     );
                     context.variables.set_variable(
                         mapping.target.clone(),
                         value.clone(),
-                        connection_id.to_string(),
+                        String::new(),
                     );
                 } else {
                     log::warn!(
-                        "[流程 {}] [输出映射] 节点: {}, 路径 '{}' 未找到值",
+                        "[流程 {}] [输出映射] 路径 '{}' 未找到值",
                         context.flow_uuid,
-                        connection_id,
                         mapping.source
                     );
                 }
             }
         }
-
-        Ok(Some(output_data))
     }
 }
 

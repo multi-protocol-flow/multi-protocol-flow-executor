@@ -7,7 +7,7 @@ import { Search, ChevronDown, ChevronRight, Variable as VariableIcon } from 'luc
 import { Input } from '@/components/ui/input';
 import type { Flow, Node } from '@/types';
 import type { Variable } from '@/types/variable';
-import { isEntryConfig, isHttpConfig } from '@/types/node';
+import { isEntryConfig, isHttpConfig, isWsConnectConfig, isWsSendWaitConfig } from '@/types/node';
 
 interface VariablePanelProps {
   /** 当前流程 */
@@ -55,6 +55,30 @@ function extractVariableGroups(flow: Flow): VariableGroup[] {
 
     // HTTP 节点：提取 output_mappings（模拟已执行的变量）
     if (isHttpConfig(node.data) && node.data.output_mappings) {
+      node.data.output_mappings.forEach(om => {
+        variables.push({
+          name: om.target,
+          value: `{{${om.source}}}`, // 显示引用路径
+          sourceNodeUuid: node.uuid,
+          description: om.description,
+        });
+      });
+    }
+
+    // WebSocket Connect 节点：提取 output_mappings
+    if (isWsConnectConfig(node.data) && node.data.output_mappings) {
+      node.data.output_mappings.forEach(om => {
+        variables.push({
+          name: om.target,
+          value: `{{${om.source}}}`, // 显示引用路径
+          sourceNodeUuid: node.uuid,
+          description: om.description,
+        });
+      });
+    }
+
+    // WebSocket Send+Wait 节点：提取 output_mappings
+    if (isWsSendWaitConfig(node.data) && node.data.output_mappings) {
       node.data.output_mappings.forEach(om => {
         variables.push({
           name: om.target,
