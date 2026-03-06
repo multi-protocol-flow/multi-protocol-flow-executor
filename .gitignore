@@ -42,3 +42,6 @@ src-tauri/.cargo/
 
 # Rust build output
 target/
+
+# QA verification screenshots
+qa-*.png
