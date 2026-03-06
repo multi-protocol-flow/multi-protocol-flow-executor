@@ -80,6 +80,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
     control,
     watch,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<WsConnectConfigFormData>({
     resolver: zodResolver(wsConnectConfigSchema),
@@ -161,14 +162,10 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
   const waitForMessage = watch('wait_for_message');
   const waitMode = watch('wait_mode');
 
-  // 当外部数据变化时，重置表单
+  // 当外部数据变化时，重置表单（确保所有字段同步）
   useEffect(() => {
-    const formData = toFormData(data);
-    setValue('url', formData.url);
-    setValue('subprotocols', formData.subprotocols || []);
-    setValue('wait_for_message', formData.wait_for_message);
-    setValue('wait_mode', formData.wait_mode);
-  }, [data, setValue]);
+    reset(toFormData(data));
+  }, [data, reset]);
 
   /**
    * 保存表单数据
@@ -359,10 +356,13 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
         <Switch
           id="wait_for_message"
           checked={waitForMessage || false}
-onCheckedChange={(checked) => {
+          onCheckedChange={(checked) => {
             setValue('wait_for_message', checked);
             if (!checked) {
+              // 关闭等待消息时，清除所有关联字段，避免 schema 验证失败
               setValue('wait_mode', undefined as unknown as WsWaitMode);
+              setValue('wait_condition', undefined as unknown as { match_type: WsMatchType; expression: string });
+              setValue('message_timeout_ms', undefined as unknown as number);
             }
             saveData();
           }}
@@ -384,6 +384,13 @@ onCheckedChange={(checked) => {
               value={waitMode || 'first_message'}
               onValueChange={(value) => {
                 setValue('wait_mode', value as WsWaitMode);
+                if (value === 'condition') {
+                  // 切换到 condition 模式时，初始化 wait_condition 为默认值
+                  setValue('wait_condition', { match_type: 'json_path', expression: '' });
+                } else {
+                  // 切换到非 condition 模式时，清除 wait_condition，避免 schema 验证失败
+                  setValue('wait_condition', undefined as unknown as { match_type: WsMatchType; expression: string });
+                }
                 saveData();
               }}
             >

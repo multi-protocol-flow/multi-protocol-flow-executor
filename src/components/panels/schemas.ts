@@ -238,19 +238,9 @@ export const wsConnectConfigSchema = z.object({
   wait_condition: wsWaitConditionSchema.optional(),
   message_timeout_ms: z.number().min(1000).max(300000).optional(),
   output_mappings: z.array(outputMappingSchema).optional(),
-}).refine(
-  (data) => {
-    // wait_mode 和 wait_condition 仅在 wait_for_message 为 true 时有效
-    if (!data.wait_for_message) {
-      return !data.wait_mode && !data.wait_condition;
-    }
-    return true;
-  },
-  {
-    message: 'wait_mode 和 wait_condition 仅在 wait_for_message 为 true 时有效',
-    path: ['wait_mode'],
-  }
-);
+  // 注意：wait_mode 和 wait_condition 在 wait_for_message=false 时的处理
+  // 由 WsConnectConfig 的 fromFormData 函数负责，这里不做额外验证
+});
 
 export type WsConnectConfigFormData = z.infer<typeof wsConnectConfigSchema>;
 
@@ -268,19 +258,9 @@ export const wsSendWaitConfigSchema = z.object({
   wait_condition: wsWaitConditionSchema.optional(),
   message_timeout_ms: z.number().min(1000).max(300000).optional(),
   output_mappings: z.array(outputMappingSchema).optional(),
-}).refine(
-  (data) => {
-    // wait_mode 和 wait_condition 仅在 wait_for_response 为 true 时有效
-    if (!data.wait_for_response) {
-      return !data.wait_mode && !data.wait_condition;
-    }
-    return true;
-  },
-  {
-    message: 'wait_mode 和 wait_condition 仅在 wait_for_response 为 true 时有效',
-    path: ['wait_mode'],
-  }
-);
+  // 注意：wait_mode 和 wait_condition 在 wait_for_response=false 时的处理
+  // 由 fromFormData 函数负责，这里不做额外验证
+});
 
 export type WsSendWaitConfigFormData = z.infer<typeof wsSendWaitConfigSchema>;
 
