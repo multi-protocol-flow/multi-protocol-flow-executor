@@ -157,7 +157,7 @@ export interface ConditionalConfig {
 /**
  * WebSocket 等待模式
  */
-export type WsWaitMode = 'none' | 'first_message' | 'condition' | 'duration';
+export type WsWaitMode = 'first_message' | 'condition' | 'duration';
 
 /**
  * WebSocket 匹配类型
@@ -218,7 +218,7 @@ export interface WsSendWaitConfig {
   /** 发送超时（毫秒） */
   send_timeout_ms?: number;
   /** 是否等待响应 */
-  wait_for_response?: boolean;
+  wait_for_response: boolean;
   /** 等待模式 */
   wait_mode?: WsWaitMode;
   /** 等待条件 */

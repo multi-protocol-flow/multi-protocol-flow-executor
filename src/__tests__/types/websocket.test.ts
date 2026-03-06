@@ -21,8 +21,8 @@ import {
 describe('WebSocket Types', () => {
   describe('WsWaitMode', () => {
     it('should have valid wait modes', () => {
-      const modes: WsWaitMode[] = ['none', 'first_message', 'condition', 'duration'];
-      expect(modes).toHaveLength(4);
+      const modes: WsWaitMode[] = ['first_message', 'condition', 'duration'];
+      expect(modes).toHaveLength(3);
     });
   });
 
@@ -117,6 +117,7 @@ describe('WebSocket Types', () => {
         type: 'ws_send_wait',
         connection_id: 'conn-123',
         message: '{"action": "ping"}',
+        wait_for_response: false,
       };
       expect(config.type).toBe('ws_send_wait');
       expect(config.connection_id).toBe('conn-123');
@@ -194,6 +195,7 @@ describe('WebSocket Types', () => {
         type: 'ws_send_wait',
         connection_id: 'conn-1',
         message: 'test',
+        wait_for_response: false,
       };
       expect(isWsSendWaitConfig(config)).toBe(true);
       expect(isWsConnectConfig(config)).toBe(false);

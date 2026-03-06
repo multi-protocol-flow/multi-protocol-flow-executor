@@ -45,7 +45,7 @@ function toFormData(data: WsConnectConfigType): WsConnectConfigFormData {
     subprotocols: data.subprotocols || [],
     connect_timeout_ms: data.connect_timeout_ms ?? 30000,
     wait_for_message: data.wait_for_message || false,
-    wait_mode: data.wait_mode || 'none',
+    wait_mode: data.wait_mode || 'first_message',
     wait_condition: data.wait_condition,
     message_timeout_ms: data.message_timeout_ms ?? 30000,
     output_mappings: data.output_mappings || [],
@@ -359,10 +359,10 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
         <Switch
           id="wait_for_message"
           checked={waitForMessage || false}
-          onCheckedChange={(checked) => {
+onCheckedChange={(checked) => {
             setValue('wait_for_message', checked);
             if (!checked) {
-              setValue('wait_mode', 'none');
+              setValue('wait_mode', undefined as unknown as WsWaitMode);
             }
             saveData();
           }}
@@ -381,7 +381,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
               等待模式
             </Label>
             <Select
-              value={waitMode || 'none'}
+              value={waitMode || 'first_message'}
               onValueChange={(value) => {
                 setValue('wait_mode', value as WsWaitMode);
                 saveData();
@@ -391,7 +391,6 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">不等待</SelectItem>
                 <SelectItem value="first_message">等待第一条消息</SelectItem>
                 <SelectItem value="condition">等待条件匹配</SelectItem>
                 <SelectItem value="duration">等待指定时长</SelectItem>
@@ -507,13 +506,17 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                 .filter(i => i !== -1);
               const hasDuplicate = duplicateTargets.length > 0 && currentTarget.trim() !== '';
 
-              // JSONPath 常用预设
-              const jsonPathPresets = [
-                { value: '$.message', label: '消息内容' },
-                { value: '$.connection_id', label: '连接 ID' },
-                { value: '$.data', label: 'data 字段' },
-                { value: '$.type', label: '消息类型' },
-              ];
+              // JSONPath 常用预设（根据 wait_for_message 状态动态变化）
+              const jsonPathPresets = waitForMessage
+                ? [
+                    { value: '$.message', label: '消息内容' },
+                    { value: '$.connection_id', label: '连接 ID' },
+                    { value: '$.data', label: 'data 字段' },
+                    { value: '$.type', label: '消息类型' },
+                  ]
+                : [
+                    { value: '$.connection_id', label: '连接 ID' },
+                  ];
 
               return (
                 <div key={field.id} className="space-y-2 p-3 rounded-md border bg-muted/30">

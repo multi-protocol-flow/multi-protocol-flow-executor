@@ -199,7 +199,7 @@ export type EntryConfigFormData = z.infer<typeof entryConfigSchema>;
 /**
  * WebSocket 等待模式枚举
  */
-export const wsWaitModeSchema = z.enum(['none', 'first_message', 'condition', 'duration']);
+export const wsWaitModeSchema = z.enum(['first_message', 'condition', 'duration']);
 export type WsWaitMode = z.infer<typeof wsWaitModeSchema>;
 
 /**
@@ -238,7 +238,19 @@ export const wsConnectConfigSchema = z.object({
   wait_condition: wsWaitConditionSchema.optional(),
   message_timeout_ms: z.number().min(1000).max(300000).optional(),
   output_mappings: z.array(outputMappingSchema).optional(),
-});
+}).refine(
+  (data) => {
+    // wait_mode 和 wait_condition 仅在 wait_for_message 为 true 时有效
+    if (!data.wait_for_message) {
+      return !data.wait_mode && !data.wait_condition;
+    }
+    return true;
+  },
+  {
+    message: 'wait_mode 和 wait_condition 仅在 wait_for_message 为 true 时有效',
+    path: ['wait_mode'],
+  }
+);
 
 export type WsConnectConfigFormData = z.infer<typeof wsConnectConfigSchema>;
 
@@ -251,12 +263,24 @@ export const wsSendWaitConfigSchema = z.object({
   message: z.string().min(1, '消息内容不能为空'),
   message_type: wsMessageTypeSchema.optional(),
   send_timeout_ms: z.number().min(1000).max(300000).optional(),
-  wait_for_response: z.boolean().optional(),
+  wait_for_response: z.boolean(),
   wait_mode: wsWaitModeSchema.optional(),
   wait_condition: wsWaitConditionSchema.optional(),
   message_timeout_ms: z.number().min(1000).max(300000).optional(),
   output_mappings: z.array(outputMappingSchema).optional(),
-});
+}).refine(
+  (data) => {
+    // wait_mode 和 wait_condition 仅在 wait_for_response 为 true 时有效
+    if (!data.wait_for_response) {
+      return !data.wait_mode && !data.wait_condition;
+    }
+    return true;
+  },
+  {
+    message: 'wait_mode 和 wait_condition 仅在 wait_for_response 为 true 时有效',
+    path: ['wait_mode'],
+  }
+);
 
 export type WsSendWaitConfigFormData = z.infer<typeof wsSendWaitConfigSchema>;
 

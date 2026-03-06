@@ -43,8 +43,8 @@ function toFormData(data: WsSendWaitConfigType): WsSendWaitConfigFormData {
     message: data.message || '',
     message_type: data.message_type || 'text',
     send_timeout_ms: data.send_timeout_ms ?? 30000,
-    wait_for_response: data.wait_for_response || false,
-    wait_mode: data.wait_mode || 'none',
+    wait_for_response: data.wait_for_response ?? true,
+    wait_mode: data.wait_mode || 'first_message',
     wait_condition: data.wait_condition,
     message_timeout_ms: data.message_timeout_ms ?? 30000,
     output_mappings: data.output_mappings || [],
@@ -359,9 +359,6 @@ export function WsSendWaitConfig({ data, onSave }: WsSendWaitConfigProps) {
           checked={waitForResponse || false}
           onCheckedChange={(checked) => {
             setValue('wait_for_response', checked);
-            if (!checked) {
-              setValue('wait_mode', 'none');
-            }
             saveData();
           }}
         />
@@ -379,7 +376,7 @@ export function WsSendWaitConfig({ data, onSave }: WsSendWaitConfigProps) {
               等待模式
             </Label>
             <Select
-              value={waitMode || 'none'}
+              value={waitMode || 'first_message'}
               onValueChange={(value) => {
                 setValue('wait_mode', value as WsWaitMode);
                 saveData();
@@ -389,7 +386,6 @@ export function WsSendWaitConfig({ data, onSave }: WsSendWaitConfigProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">不等待</SelectItem>
                 <SelectItem value="first_message">等待第一条消息</SelectItem>
                 <SelectItem value="condition">等待条件匹配</SelectItem>
                 <SelectItem value="duration">等待指定时长</SelectItem>
@@ -505,13 +501,18 @@ export function WsSendWaitConfig({ data, onSave }: WsSendWaitConfigProps) {
                 .filter(i => i !== -1);
               const hasDuplicate = duplicateTargets.length > 0 && currentTarget.trim() !== '';
 
-              // JSONPath 常用预设
-              const jsonPathPresets = [
-                { value: '$.response', label: '响应消息' },
-                { value: '$.data', label: 'data 字段' },
-                { value: '$.type', label: '消息类型' },
-                { value: '$.status', label: '状态字段' },
-              ];
+              // JSONPath 常用预设（根据 wait_for_response 状态动态变化）
+              const jsonPathPresets = waitForResponse
+                ? [
+                    { value: '$.response', label: '响应消息' },
+                    { value: '$.data', label: 'data 字段' },
+                    { value: '$.type', label: '消息类型' },
+                    { value: '$.status', label: '状态字段' },
+                  ]
+                : [
+                    { value: '$.sent', label: '发送状态' },
+                    { value: '$.timestamp', label: '发送时间' },
+                  ];
 
               return (
                 <div key={field.id} className="space-y-2 p-3 rounded-md border bg-muted/30">
