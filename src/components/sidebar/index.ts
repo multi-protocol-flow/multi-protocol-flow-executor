@@ -3,3 +3,4 @@
  */
 export { FlowListPanel } from './FlowListPanel';
 export { NodeLibrary } from './NodeLibrary';
+export { LeftSidebarPanel } from './LeftSidebarPanel';

@@ -5,7 +5,6 @@
 import { useEffect } from 'react';
 import { Plus, FileJson, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useFlowListStore, useFlowStore, useUIStore } from '@/stores';
 import { listFlows, loadFlow, deleteFlow, saveFlow } from '@/services/storage/flowStorage';
 import { DEMO_FLOW, WS_DEMO_FLOW, BUILTIN_FLOW_VERSION } from '@/templates/builtinFlows';
@@ -27,7 +26,7 @@ function formatRelativeTime(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString('zh-CN');
 }
 
-export function FlowListPanel() {
+export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
   const { setFlows, removeFlow: removeFlowFromList } = useFlowListStore();
   const { setFlow, flow: currentFlow, isDirty, markSaved } = useFlowStore();
   const { openNewFlowDialog, showConfirm } = useUIStore();
@@ -115,24 +114,26 @@ export function FlowListPanel() {
   const flows = useFlowListStore((state) => state.flows);
 
   return (
-    <div className="flex flex-col h-52 border-b border-border">
+    <div className={cn("flex flex-col h-full", showHeader && "h-52 border-b border-border")}>
       {/* 标题栏 */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <span className="text-sm font-medium text-black">流程列表</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleNewFlow}
-          className="h-7 w-7 rounded-md bg-white border border-black hover:bg-slate-50"
-          title="新建流程"
-        >
-          <Plus className="w-4 h-4 text-black" />
-        </Button>
-      </div>
+      {showHeader && (
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+          <span className="text-sm font-medium text-black">流程列表</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNewFlow}
+            className="h-7 w-7 rounded-md bg-white border border-black hover:bg-slate-50"
+            title="新建流程"
+          >
+            <Plus className="w-4 h-4 text-black" />
+          </Button>
+        </div>
+      )}
 
       {/* 流程列表 */}
-      <ScrollArea className="flex-1">
-        <div className="p-1.5 space-y-0.5">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin">
+        <div className="p-2 space-y-1">
           {flows.map((flowMeta) => {
             const isSelected = currentFlow?.uuid === flowMeta.uuid;
 
@@ -187,7 +188,7 @@ export function FlowListPanel() {
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

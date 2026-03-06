@@ -55,7 +55,7 @@ const NODE_TYPES = [
   },
 ] as const;
 
-export function NodeLibrary() {
+export function NodeLibrary({ showHeader = true }: { showHeader?: boolean }) {
   const { setPendingAddNodeType, flow } = useFlowStore();
 
   const handleDragStart = (e: React.DragEvent, type: string) => {
@@ -70,14 +70,16 @@ export function NodeLibrary() {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col h-full">
       {/* 标题栏 */}
-      <div className="px-3 py-2 border-b border-border">
-        <span className="text-sm font-medium text-black">节点库</span>
-      </div>
+      {showHeader && (
+        <div className="px-3 py-2 border-b border-border">
+          <span className="text-sm font-medium text-black">节点库</span>
+        </div>
+      )}
 
       {/* 节点列表 */}
-      <div className="p-2 space-y-1.5 flex-1 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin p-2 space-y-1.5">
         {NODE_TYPES.map((nodeType) => (
           <button
             type="button"

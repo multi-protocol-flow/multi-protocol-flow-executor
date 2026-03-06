@@ -5,7 +5,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Search, ChevronDown, ChevronRight, Variable as VariableIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Flow, Node } from '@/types';
 import type { Variable } from '@/types/variable';
 import { isEntryConfig, isHttpConfig } from '@/types/node';
@@ -15,6 +14,8 @@ interface VariablePanelProps {
   flow: Flow;
   /** 所有节点 */
   nodes: Node[];
+  /** 是否显示标题栏 */
+  showHeader?: boolean;
 }
 
 interface VariableGroup {
@@ -117,7 +118,7 @@ function getValueType(value: unknown): string {
   return typeof value;
 }
 
-export function VariablePanel({ flow, nodes: _nodes }: VariablePanelProps) {
+export function VariablePanel({ flow, nodes: _nodes, showHeader = true }: VariablePanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -182,39 +183,42 @@ export function VariablePanel({ flow, nodes: _nodes }: VariablePanelProps) {
   return (
     <div className="flex h-full flex-col bg-gradient-to-br from-slate-50 to-slate-100/50">
       {/* 标题栏 */}
-      <div className="shrink-0 border-b border-slate-200/80 bg-white/80 backdrop-blur-sm px-4 py-3">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <VariableIcon className="h-4 w-4 text-violet-600" />
-            <h3 className="text-sm font-semibold text-slate-800">变量面板</h3>
+      {showHeader && (
+        <div className="shrink-0 border-b border-slate-200/80 bg-white/80 backdrop-blur-sm px-4 py-3">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <VariableIcon className="h-4 w-4 text-violet-600" />
+              <h3 className="text-sm font-semibold text-slate-800">变量面板</h3>
+            </div>
+            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+              {totalVariables} 个变量
+            </span>
           </div>
-          <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-            {totalVariables} 个变量
-          </span>
-        </div>
 
-        {/* 搜索框 */}
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-          <Input
-            type="text"
-            placeholder="搜索变量..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-8 pl-8 text-xs bg-white border-slate-200 focus:border-violet-400 focus:ring-violet-400/20"
-          />
-        </div>
+          {/* 搜索框 */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <Input
+              type="text"
+              placeholder="搜索变量..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 pl-8 text-xs bg-white border-slate-200 focus:border-violet-400 focus:ring-violet-400/20"
+            />
+          </div>
 
-        {/* 展开/折叠按钮 */}
-        <div className="flex items-center gap-2 mt-2">
-          <button
-            onClick={expandAll}
-            className="text-xs text-slate-500 hover:text-violet-600 transition-colors"
+          {/* 展开/折叠按钮 */}
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              type="button"
+              onClick={expandAll}
+              className="text-xs text-slate-500 hover:text-violet-600 transition-colors"
           >
             全部展开
           </button>
           <span className="text-slate-300">|</span>
           <button
+            type="button"
             onClick={collapseAll}
             className="text-xs text-slate-500 hover:text-violet-600 transition-colors"
           >
@@ -222,9 +226,10 @@ export function VariablePanel({ flow, nodes: _nodes }: VariablePanelProps) {
           </button>
         </div>
       </div>
+      )}
 
       {/* 变量列表 */}
-      <ScrollArea className="flex-1 px-3 py-2">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin p-2">
         {filteredGroups.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
             <VariableIcon className="h-10 w-10 text-slate-300 mb-3" />
@@ -247,6 +252,7 @@ export function VariablePanel({ flow, nodes: _nodes }: VariablePanelProps) {
                 >
                   {/* 分组标题 */}
                   <button
+                    type="button"
                     onClick={() => toggleGroup(group.nodeUuid)}
                     className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-slate-50/50 transition-colors"
                   >
@@ -307,7 +313,7 @@ export function VariablePanel({ flow, nodes: _nodes }: VariablePanelProps) {
             })}
           </div>
         )}
-      </ScrollArea>
+      </div>
     </div>
   );
 }

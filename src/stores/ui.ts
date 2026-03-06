@@ -36,6 +36,18 @@ interface UIState {
   /** 底部面板当前 Tab */
   bottomPanelTab: BottomPanelTab;
 
+  // ===== 左侧栏面板折叠状态 =====
+  /** 流程列表是否折叠 */
+  isFlowListCollapsed: boolean;
+  /** 节点库是否折叠 */
+  isNodeLibraryCollapsed: boolean;
+  /** 变量面板是否折叠 */
+  isVariablePanelCollapsed: boolean;
+  /** 节点库高度（像素） */
+  nodeLibraryHeight: number;
+  /** 变量面板高度（像素） */
+  variablePanelHeight: number;
+
   // ===== 模态框状态 =====
   /** 是否显示新建流程对话框 */
   showNewFlowDialog: boolean;
@@ -100,6 +112,18 @@ interface UIState {
   showConfirm: (config: ConfirmDialogConfig) => void;
   /** 关闭确认对话框 */
   hideConfirm: () => void;
+  // ===== 左侧栏面板 Actions =====
+  /** 切换流程列表折叠状态 */
+  toggleFlowListCollapsed: () => void;
+  /** 切换节点库折叠状态 */
+  toggleNodeLibraryCollapsed: () => void;
+  /** 切换变量面板折叠状态 */
+  toggleVariablePanelCollapsed: () => void;
+  /** 设置节点库高度 */
+  setNodeLibraryHeight: (height: number) => void;
+  /** 设置变量面板高度 */
+  setVariablePanelHeight: (height: number) => void;
+
   // ===== 布局 Actions =====
   /** 设置侧边栏宽度 */
   setSidebarWidth: (width: number) => void;
@@ -121,6 +145,8 @@ const MIN_CONFIG_WIDTH = 250;
 const MAX_CONFIG_WIDTH = 500;
 const MIN_BOTTOM_PANEL_HEIGHT = 100;
 const MAX_BOTTOM_PANEL_HEIGHT = 500;
+const MIN_LEFT_PANEL_HEIGHT = 100;
+const MAX_LEFT_PANEL_HEIGHT = 400;
 
 const initialState = {
   // 面板状态
@@ -130,6 +156,13 @@ const initialState = {
   isExecutionPanelOpen: false,
   // 底部面板 Tab
   bottomPanelTab: 'history' as BottomPanelTab,
+
+  // 左侧栏面板折叠状态
+  isFlowListCollapsed: false,
+  isNodeLibraryCollapsed: false,
+  isVariablePanelCollapsed: false,
+  nodeLibraryHeight: 200,
+  variablePanelHeight: 200,
 
   // 模态框状态
   showNewFlowDialog: false,
@@ -211,6 +244,33 @@ export const useUIStore = create<UIState>((set) => ({
     }),
 
   setConfigPanelMode: (configPanelMode) => set({ configPanelMode }),
+
+  // ===== 左侧栏面板 Actions =====
+  toggleFlowListCollapsed: () =>
+    set((state) => ({
+      isFlowListCollapsed: !state.isFlowListCollapsed,
+    })),
+
+  toggleNodeLibraryCollapsed: () =>
+    set((state) => ({
+      isNodeLibraryCollapsed: !state.isNodeLibraryCollapsed,
+    })),
+
+  toggleVariablePanelCollapsed: () =>
+    set((state) => ({
+      isVariablePanelCollapsed: !state.isVariablePanelCollapsed,
+    })),
+
+  setNodeLibraryHeight: (height) =>
+    set({
+      nodeLibraryHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
+    }),
+
+  setVariablePanelHeight: (height) =>
+    set({
+      variablePanelHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
+    }),
+
   // ===== 布局 Actions =====
   setSidebarWidth: (width) =>
     set({
@@ -240,6 +300,11 @@ export const useUIStore = create<UIState>((set) => ({
       isConfigPanelOpen: true,
       isExecutionPanelOpen: false,
       bottomPanelTab: 'history' as BottomPanelTab,
+      isFlowListCollapsed: false,
+      isNodeLibraryCollapsed: false,
+      isVariablePanelCollapsed: false,
+      nodeLibraryHeight: 200,
+      variablePanelHeight: 200,
     }),
 }));
 

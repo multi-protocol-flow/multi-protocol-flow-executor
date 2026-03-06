@@ -4,9 +4,9 @@
  */
 import { Toaster } from '@/components/ui/sonner';
 
-import { FlowListPanel, NodeLibrary } from '@/components/sidebar';
+import { LeftSidebarPanel } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
-import { NodeConfigPanel, SettingsPanel, VariablePanel } from '@/components/panels';
+import { NodeConfigPanel, SettingsPanel } from '@/components/panels';
 import { ExecutionReport, ExecutionHistory, ConsolePanel } from '@/components/execution';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
@@ -65,7 +65,6 @@ export function MainLayout() {
 
   const isDirty = useFlowStore((state) => state.isDirty);
   const flow = useFlowStore((state) => state.flow);
-  const nodes = flow?.nodes ?? [];
 
   // Console store values
   const filter = useConsoleStore((state) => state.filter);
@@ -187,20 +186,7 @@ export function MainLayout() {
             isFlowListPanelOpen ? 'w-[256px] min-w-0 rounded-r-xl' : 'w-0'
           )}
         >
-          {isFlowListPanelOpen && (
-            <>
-              <FlowListPanel />
-              <div className="flex-1 min-h-0">
-                <NodeLibrary />
-              </div>
-              {/* 变量面板 */}
-              {flow && (
-                <div className="shrink-0 h-64 min-h-0 border-t border-border">
-                  <VariablePanel flow={flow} nodes={nodes} />
-                </div>
-              )}
-            </>
-          )}
+          {isFlowListPanelOpen && <LeftSidebarPanel />}
         </aside>
 
         {/* 左侧折叠按钮 */}
