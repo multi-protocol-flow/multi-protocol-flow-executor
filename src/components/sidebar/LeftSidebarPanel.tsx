@@ -71,7 +71,6 @@ export function LeftSidebarPanel() {
           onToggle={toggleNodeLibraryCollapsed}
           height={nodeLibraryHeight}
           onHeightChange={setNodeLibraryHeight}
-          showDragHandle={true}
           resizable={!isNodeLibraryCollapsed}
           className="border-t border-border"
         >
@@ -87,7 +86,6 @@ export function LeftSidebarPanel() {
             onToggle={toggleVariablePanelCollapsed}
             height={variablePanelHeight}
             onHeightChange={setVariablePanelHeight}
-            showDragHandle={true}
             resizable={!isVariablePanelCollapsed}
             className="border-t border-border"
           >
