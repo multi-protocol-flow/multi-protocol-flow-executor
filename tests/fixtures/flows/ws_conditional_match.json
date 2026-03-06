@@ -71,22 +71,22 @@
       "id": "conn-entry-to-ws-connect",
       "source_node_uuid": "entry-ws-conditional",
       "target_node_uuid": "ws-connect-conditional",
-      "source_port_id": "output",
-      "target_port_id": "input"
+      "source_port_id": "out",
+      "target_port_id": "in"
     },
     {
       "id": "conn-ws-connect-to-send-wait",
       "source_node_uuid": "ws-connect-conditional",
       "target_node_uuid": "ws-send-wait-conditional",
       "source_port_id": "true",
-      "target_port_id": "input"
+      "target_port_id": "in"
     },
     {
       "id": "conn-send-wait-to-close",
       "source_node_uuid": "ws-send-wait-conditional",
       "target_node_uuid": "ws-close-conditional",
-      "source_port_id": "out",
-      "target_port_id": "input"
+      "source_port_id": "true",
+      "target_port_id": "in"
     }
   ]
 }

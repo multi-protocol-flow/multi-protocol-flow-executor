@@ -49,8 +49,8 @@
       "id": "conn-entry-to-ws-connect",
       "source_node_uuid": "entry-ws-basic",
       "target_node_uuid": "ws-connect-basic",
-      "source_port_id": "output",
-      "target_port_id": "input"
+      "source_port_id": "out",
+      "target_port_id": "in"
     },
     {
       "id": "conn-ws-connect-to-close",

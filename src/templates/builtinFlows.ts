@@ -7,7 +7,7 @@ import type { Flow } from '@/types/flow';
  * HTTP 节点示例流程
  */
 /** 内置模板版本号 - 修改模板后递增此数字 */
-export const BUILTIN_FLOW_VERSION = 3;
+export const BUILTIN_FLOW_VERSION = 4;
 
 
 export const DEMO_FLOW: Flow = {
@@ -175,7 +175,7 @@ export const WS_DEMO_FLOW: Flow = {
       id: 'conn-ws-2',
       source_node_uuid: 'ws-connect-001',
       target_node_uuid: 'ws-send-wait-001',
-      source_port_id: 'out',
+      source_port_id: 'true',
       target_port_id: 'in'
     },
     // WS Send+Wait → WS Close
@@ -183,7 +183,7 @@ export const WS_DEMO_FLOW: Flow = {
       id: 'conn-ws-3',
       source_node_uuid: 'ws-send-wait-001',
       target_node_uuid: 'ws-close-001',
-      source_port_id: 'out',
+      source_port_id: 'true',
       target_port_id: 'in'
     }
   ],
