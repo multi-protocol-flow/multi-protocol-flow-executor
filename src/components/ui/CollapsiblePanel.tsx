@@ -138,9 +138,10 @@ export function CollapsiblePanel({
         </div>
       )}
 
-      {/* 标题栏 */}
-      <button
-        type="button"
+      {/* 标题栏 - 使用 div 避免嵌套 button 问题 */}
+      <div
+        role="button"
+        tabIndex={0}
         className={cn(
           'shrink-0 flex items-center justify-between px-3 h-8 w-full',
           'border-b border-border bg-white',
@@ -162,17 +163,15 @@ export function CollapsiblePanel({
           <span className="text-sm font-medium text-slate-700">{title}</span>
         </div>
         {headerRight && (
-          <button
-            type="button"
-            tabIndex={-1}
-            className="flex items-center gap-1 bg-transparent border-none p-0 cursor-default"
+          <div
+            role="presentation"
+            className="flex items-center gap-1"
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
           >
             {headerRight}
-          </button>
+          </div>
         )}
-      </button>
+      </div>
 
       {/* 内容区域 */}
       {!isCollapsed && (
