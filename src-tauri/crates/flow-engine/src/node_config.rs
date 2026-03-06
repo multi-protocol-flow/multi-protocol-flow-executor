@@ -236,10 +236,8 @@ pub struct ConditionalConfig {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum WsWaitMode {
-    /// 不等待
-    #[default]
-    None,
     /// 等待第一条消息
+    #[default]
     FirstMessage,
     /// 等待满足条件
     Condition,
@@ -370,7 +368,7 @@ impl Default for WsSendWaitConfig {
             message: String::new(),
             message_type: WsMessageType::default(),
             send_timeout_ms: default_send_timeout(),
-            wait_for_response: false,
+            wait_for_response: true,
             wait_mode: WsWaitMode::default(),
             wait_condition: None,
             message_timeout_ms: default_message_timeout(),
@@ -699,7 +697,7 @@ mod tests {
     #[test]
     fn test_ws_wait_mode_default() {
         let mode = WsWaitMode::default();
-        assert_eq!(mode, WsWaitMode::None);
+        assert_eq!(mode, WsWaitMode::FirstMessage);
     }
 
     #[test]
@@ -758,7 +756,7 @@ mod tests {
         assert!(config.subprotocols.is_empty());
         assert_eq!(config.connect_timeout_ms, 30000);
         assert!(!config.wait_for_message);
-        assert_eq!(config.wait_mode, WsWaitMode::None);
+        assert_eq!(config.wait_mode, WsWaitMode::FirstMessage);
         assert!(config.wait_condition.is_none());
         assert_eq!(config.message_timeout_ms, 10000);
         assert!(config.output_mappings.is_empty());
@@ -803,8 +801,8 @@ mod tests {
         assert!(config.message.is_empty());
         assert_eq!(config.message_type, WsMessageType::Text);
         assert_eq!(config.send_timeout_ms, 10000);
-        assert!(!config.wait_for_response);
-        assert_eq!(config.wait_mode, WsWaitMode::None);
+        assert!(config.wait_for_response);
+        assert_eq!(config.wait_mode, WsWaitMode::FirstMessage);
         assert_eq!(config.message_timeout_ms, 10000);
     }
 

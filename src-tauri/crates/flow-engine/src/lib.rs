@@ -69,7 +69,7 @@ pub mod test_utils {
                 subprotocols: vec![],
                 connect_timeout_ms: 30000,
                 wait_for_message: false,
-                wait_mode: WsWaitMode::None,
+                wait_mode: WsWaitMode::FirstMessage,
                 wait_condition: None,
                 message_timeout_ms: 10000,
                 output_mappings: vec![],
