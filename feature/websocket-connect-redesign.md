@@ -2,7 +2,7 @@
 
 **版本**: 2.0  
 **创建日期**: 2026-03-05  
-**状态**: 设计确认中
+**状态**: 已确认
 
 ---
 
@@ -72,7 +72,7 @@
 | 关闭开关 | 连接成功后立即返回 | 不阻塞 |
 | 等待第一条消息 | 等待收到任意消息（或超时） | 阻塞直到收到消息或超时 |
 | 等待条件匹配 | 等待收到满足条件的消息（或超时） | 阻塞直到匹配或超时 |
-| 等待指定时长 | 在指定时长内接收消息 | 阻塞直到时长结束 |
+| 等待指定时长 | 在指定时长内接收消息，返回最后一条 | 阻塞直到时长结束 |
 
 ---
 
@@ -106,7 +106,8 @@
 ```json
 {
   "connected": true,
-  "connection_id": "550e8400-e29b-41d4-a716-446655440000"
+  "connection_id": "550e8400-e29b-41d4-a716-446655440000",
+  "wait_timed_out": false
 }
 ```
 
@@ -115,6 +116,7 @@
 {
   "connected": true,
   "connection_id": "550e8400-e29b-41d4-a716-446655440000",
+  "wait_timed_out": false,
   "message": {
     "data": "{\"type\":\"connected\",\"token\":\"xxx\"}",
     "type": "text",
@@ -132,6 +134,7 @@
 {
   "connected": true,
   "connection_id": "550e8400-e29b-41d4-a716-446655440000",
+  "wait_timed_out": true,
   "message": null
 }
 ```
@@ -141,6 +144,7 @@
 {
   "connected": true,
   "connection_id": "550e8400-e29b-41d4-a716-446655440000",
+  "wait_timed_out": false,
   "message": {
     "data": "{\"type\":\"connected\",\"token\":\"xxx\"}",
     "type": "text",
@@ -158,15 +162,17 @@
 {
   "connected": true,
   "connection_id": "550e8400-e29b-41d4-a716-446655440000",
+  "wait_timed_out": true,
   "message": null
 }
 ```
 
-**等待指定时长（可能收到多条，返回最后一条）**：
+**等待指定时长（收到消息，返回最后一条）**：
 ```json
 {
   "connected": true,
   "connection_id": "550e8400-e29b-41d4-a716-446655440000",
+  "wait_timed_out": false,
   "message": {
     "data": "最后一条消息内容",
     "type": "text",
@@ -176,12 +182,23 @@
 }
 ```
 
-### 5.2 false 端口输出
+**等待指定时长（超时无消息）**：
+```json
+{
+  "connected": true,
+  "connection_id": "550e8400-e29b-41d4-a716-446655440000",
+  "wait_timed_out": true,
+  "message": null
+}
+```
+
+### 5.2 false 端口输出（连接失败）
 
 ```json
 {
   "connected": false,
   "connection_id": null,
+  "wait_timed_out": false,
   "error": "连接超时: wss://example.com/stream"
 }
 ```
@@ -194,25 +211,27 @@
 
 | 模式 | 可用路径 | 说明 |
 |------|----------|------|
-| 关闭等待 | `$.connected`, `$.connection_id` | 仅连接元信息 |
-| 开启等待 | `$.connected`, `$.connection_id`, `$.message.data`, `$.message.parsed.*`, `$.message.timestamp` | 包含消息内容 |
+| 关闭等待 | `$.connected`, `$.connection_id`, `$.wait_timed_out` | 仅连接元信息 |
+| 开启等待 | `$.connected`, `$.connection_id`, `$.wait_timed_out`, `$.message.data`, `$.message.parsed.*`, `$.message.timestamp` | 包含消息内容 |
 
 ### 6.2 UI 动态预设
 
 **关闭等待时**：
 ```
-$.connection_id  → 连接 ID
-$.connected      → 连接状态
+$.connection_id   → 连接 ID
+$.connected       → 连接状态
+$.wait_timed_out  → 是否等待超时（关闭等待时始终为 false）
 ```
 
 **开启等待时**：
 ```
-$.connection_id      → 连接 ID
-$.connected          → 连接状态
-$.message            → 消息对象
-$.message.data       → 原始消息
-$.message.parsed     → 解析后的 JSON
-$.message.timestamp  → 消息时间戳
+$.connection_id       → 连接 ID
+$.connected           → 连接状态
+$.wait_timed_out      → 是否等待超时
+$.message             → 消息对象（超时为 null）
+$.message.data        → 原始消息
+$.message.parsed      → 解析后的 JSON
+$.message.timestamp   → 消息时间戳
 ```
 
 ---
@@ -300,18 +319,20 @@ async fn execute(&self, node: &Node, context: &mut ExecutionContext) -> Result<(
             // 连接成功
             
             // 2. 如果启用了等待消息
-            let message_data = if config.wait_for_message {
+            let (wait_timed_out, message_data) = if config.wait_for_message {
                 if let Some(wait_mode) = &config.wait_mode {
-                    wait_for_message(&node.uuid, wait_mode, &config, ws_manager).await?
+                    let result = wait_for_message(&node.uuid, wait_mode, &config, ws_manager).await?;
+                    let timed_out = result.is_none();
+                    (timed_out, result)
                 } else {
-                    None
+                    (false, None)
                 }
             } else {
-                None
+                (false, None)
             };
             
             // 3. 构建输出数据
-            let output_data = build_output_data(&node.uuid, message_data);
+            let output_data = build_output_data(&node.uuid, wait_timed_out, message_data);
             
             // 4. 应用变量映射
             apply_output_mappings(&output_data, &config.output_mappings, context);
@@ -325,6 +346,7 @@ async fn execute(&self, node: &Node, context: &mut ExecutionContext) -> Result<(
             let error_output = json!({
                 "connected": false,
                 "connection_id": null,
+                "wait_timed_out": false,
                 "error": e
             });
             
@@ -335,7 +357,36 @@ async fn execute(&self, node: &Node, context: &mut ExecutionContext) -> Result<(
 }
 ```
 
-### 8.2 等待消息逻辑
+### 8.2 构建输出数据
+
+```rust
+fn build_output_data(
+    uuid: &str,
+    wait_timed_out: bool,
+    message_data: Option<MessageData>,
+) -> serde_json::Value {
+    let mut output = json!({
+        "connected": true,
+        "connection_id": uuid,
+        "wait_timed_out": wait_timed_out,
+    });
+    
+    if let Some(msg) = message_data {
+        output["message"] = json!({
+            "data": msg.data,
+            "type": msg.msg_type,
+            "timestamp": msg.timestamp,
+            "parsed": msg.parsed,
+        });
+    } else {
+        output["message"] = serde_json::Value::Null;
+    }
+    
+    output
+}
+```
+
+### 8.3 等待消息逻辑
 
 ```rust
 async fn wait_for_message(
@@ -413,23 +464,28 @@ async fn wait_for_message(
 
 ### 9.2 输出映射提示
 
+**开启等待时显示**：
 ```
-开启等待时显示：
 ┌─────────────────────────────────────────────────────────────┐
 │ ℹ️ JSONPath 语法：                                           │
-│   $.connection_id   → 连接 ID                                │
-│   $.message         → 消息对象                               │
-│   $.message.data    → 原始消息                               │
-│   $.message.parsed  → 解析后的 JSON                          │
+│   $.connection_id       → 连接 ID                            │
+│   $.wait_timed_out      → 是否等待超时                        │
+│   $.message             → 消息对象（超时为 null）             │
+│   $.message.data        → 原始消息                           │
+│   $.message.parsed      → 解析后的 JSON                      │
 │                                                              │
-│ 注意：如果等待超时未收到消息，$.message 将为 null             │
+│ 提示：使用 Conditional 节点判断 $.wait_timed_out 或           │
+│       $.message == null 来处理超时情况                        │
 └─────────────────────────────────────────────────────────────┘
+```
 
-关闭等待时显示：
+**关闭等待时显示**：
+```
 ┌─────────────────────────────────────────────────────────────┐
 │ ℹ️ JSONPath 语法：                                           │
 │   $.connection_id   → 连接 ID                                │
 │   $.connected       → 连接状态                               │
+│   $.wait_timed_out  → 是否等待超时（始终为 false）            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -483,7 +539,11 @@ function migrateWsConnectConfig(config: WsConnectConfig): WsConnectConfig {
   ],
   "expected": {
     "port": "true",
-    "output": { "connected": true, "connection_id": "conn-1" }
+    "output": {
+      "connected": true,
+      "connection_id": "conn-1",
+      "wait_timed_out": false
+    }
   }
 }
 ```
@@ -508,7 +568,12 @@ function migrateWsConnectConfig(config: WsConnectConfig): WsConnectConfig {
   ],
   "expected": {
     "port": "true",
-    "output": { "connected": true, "connection_id": "conn-1", "message": { ... } }
+    "output": {
+      "connected": true,
+      "connection_id": "conn-1",
+      "wait_timed_out": false,
+      "message": { ... }
+    }
   }
 }
 ```
@@ -533,12 +598,85 @@ function migrateWsConnectConfig(config: WsConnectConfig): WsConnectConfig {
   ],
   "expected": {
     "port": "true",
-    "output": { "connected": true, "connection_id": "conn-1", "message": null }
+    "output": {
+      "connected": true,
+      "connection_id": "conn-1",
+      "wait_timed_out": true,
+      "message": null
+    }
   }
 }
 ```
 
-### 11.4 连接失败
+### 11.4 连接成功 + 等待条件匹配 + 匹配成功
+
+```json
+{
+  "name": "WS Connect - 条件匹配成功",
+  "nodes": [
+    { "type": "entry", "uuid": "entry-1" },
+    {
+      "type": "ws_connect",
+      "uuid": "conn-1",
+      "data": {
+        "url": "wss://echo.websocket.org",
+        "wait_for_message": true,
+        "wait_mode": "condition",
+        "wait_condition": {
+          "match_type": "json_path",
+          "expression": "$.type == 'connected'"
+        },
+        "message_timeout_ms": 10000
+      }
+    }
+  ],
+  "expected": {
+    "port": "true",
+    "output": {
+      "connected": true,
+      "connection_id": "conn-1",
+      "wait_timed_out": false,
+      "message": { "parsed": { "type": "connected", ... } }
+    }
+  }
+}
+```
+
+### 11.5 连接成功 + 等待条件匹配 + 超时无匹配
+
+```json
+{
+  "name": "WS Connect - 条件匹配超时",
+  "nodes": [
+    { "type": "entry", "uuid": "entry-1" },
+    {
+      "type": "ws_connect",
+      "uuid": "conn-1",
+      "data": {
+        "url": "wss://echo.websocket.org",
+        "wait_for_message": true,
+        "wait_mode": "condition",
+        "wait_condition": {
+          "match_type": "json_path",
+          "expression": "$.type == 'connected'"
+        },
+        "message_timeout_ms": 2000
+      }
+    }
+  ],
+  "expected": {
+    "port": "true",
+    "output": {
+      "connected": true,
+      "connection_id": "conn-1",
+      "wait_timed_out": true,
+      "message": null
+    }
+  }
+}
+```
+
+### 11.6 连接失败
 
 ```json
 {
@@ -556,20 +694,25 @@ function migrateWsConnectConfig(config: WsConnectConfig): WsConnectConfig {
   ],
   "expected": {
     "port": "false",
-    "output": { "connected": false, "connection_id": null, "error": "..." }
+    "output": {
+      "connected": false,
+      "connection_id": null,
+      "wait_timed_out": false,
+      "error": "..."
+    }
   }
 }
 ```
 
 ---
 
-## 十二、待确认事项
+## 十二、已确认事项
 
-1. **等待超时后的 message 为 null**，用户需要用 Conditional 节点判断 `$.message == null`，这个交互是否可接受？
+1. **等待超时后的 message 为 null**：用户需要用 Conditional 节点判断 `$.message == null` 或 `$.wait_timed_out == true`，这个交互可接受。✅
 
-2. **Duration 模式返回最后一条消息**，还是返回所有消息的数组？当前设计是返回最后一条。
+2. **Duration 模式返回最后一条消息**：在指定时长内可能收到多条消息，返回最后一条。✅
 
-3. **是否需要在输出中增加 `wait_timed_out` 字段**，方便用户判断？
+3. **输出中增加 `wait_timed_out` 字段**：方便用户判断等待是否超时。✅
    ```json
    {
      "connected": true,

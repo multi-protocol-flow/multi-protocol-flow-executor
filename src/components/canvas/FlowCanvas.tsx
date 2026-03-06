@@ -369,7 +369,7 @@ function FlowCanvasInner() {
           type: 'ws_send_wait',
           name: `WS 发送等待 ${nodeCount}`,
           position,
-          data: { type: 'ws_send_wait', connection_id: '', message: '' },
+          data: { type: 'ws_send_wait', connection_id: '', message: '', wait_for_response: false },
         });
       } else if (nodeType === 'ws_close') {
         addNode({
@@ -442,7 +442,7 @@ function FlowCanvasInner() {
         type: 'ws_send_wait',
         name: `WS 发送等待 ${nodeCount}`,
         position,
-        data: { type: 'ws_send_wait', connection_id: '', message: '' },
+        data: { type: 'ws_send_wait', connection_id: '', message: '', wait_for_response: false },
       });
     } else if (pendingAddNodeType === 'ws_close') {
       addNode({
