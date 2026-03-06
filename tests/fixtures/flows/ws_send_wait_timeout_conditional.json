@@ -1,0 +1,120 @@
+{
+  "uuid": "ws-send-wait-timeout-conditional-001",
+  "name": "WebSocket 发送等待超时条件测试",
+  "initial_variables": null,
+  "nodes": [
+    {
+      "uuid": "entry-send-wait-timeout",
+      "type": "entry",
+      "name": "入口",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": { "type": "entry" },
+      "ports": null
+    },
+    {
+      "uuid": "ws-connect-send-wait-timeout",
+      "type": "ws_connect",
+      "name": "WS 连接",
+      "position": { "x": 200.0, "y": 0.0 },
+      "data": {
+        "type": "ws_connect",
+        "url": "wss://echo.websocket.org",
+        "headers": [],
+        "subprotocols": [],
+        "connect_timeout_ms": 30000,
+        "wait_for_message": false,
+        "wait_mode": "none",
+        "message_timeout_ms": 10000,
+        "output_mappings": []
+      },
+      "ports": null
+    },
+    {
+      "uuid": "ws-send-wait-timeout-test",
+      "type": "ws_send_wait",
+      "name": "WS 发送等待（短超时）",
+      "position": { "x": 400.0, "y": 0.0 },
+      "data": {
+        "type": "ws_send_wait",
+        "connection_id": "ws-connect-send-wait-timeout",
+        "message": "Test timeout message",
+        "message_type": "text",
+        "send_timeout_ms": 30000,
+        "wait_for_response": true,
+        "wait_mode": "first_message",
+        "message_timeout_ms": 3000,
+        "output_mappings": []
+      },
+      "ports": null
+    },
+    {
+      "uuid": "conditional-send-wait-timeout",
+      "type": "conditional",
+      "name": "发送等待超时判断",
+      "position": { "x": 600.0, "y": 0.0 },
+      "data": {
+        "type": "conditional",
+        "condition_type": "simple",
+        "field_path": "{{wait_timed_out}}",
+        "operator": "equal",
+        "expected_value": true,
+        "expected_value_type": "boolean",
+        "advanced_expression": null
+      },
+      "ports": null
+    },
+    {
+      "uuid": "end-timeout-true-path",
+      "type": "end",
+      "name": "超时路径结束",
+      "position": { "x": 800.0, "y": -100.0 },
+      "data": { "type": "end" },
+      "ports": null
+    },
+    {
+      "uuid": "end-timeout-false-path",
+      "type": "end",
+      "name": "正常路径结束",
+      "position": { "x": 800.0, "y": 100.0 },
+      "data": { "type": "end" },
+      "ports": null
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-entry-to-ws-connect",
+      "source_node_uuid": "entry-send-wait-timeout",
+      "target_node_uuid": "ws-connect-send-wait-timeout",
+      "source_port_id": "output",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-ws-connect-to-send-wait",
+      "source_node_uuid": "ws-connect-send-wait-timeout",
+      "target_node_uuid": "ws-send-wait-timeout-test",
+      "source_port_id": "true",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-send-wait-to-conditional",
+      "source_node_uuid": "ws-send-wait-timeout-test",
+      "target_node_uuid": "conditional-send-wait-timeout",
+      "source_port_id": "true",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-conditional-true-to-end",
+      "source_node_uuid": "conditional-send-wait-timeout",
+      "target_node_uuid": "end-timeout-true-path",
+      "source_port_id": "true",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-conditional-false-to-end",
+      "source_node_uuid": "conditional-send-wait-timeout",
+      "target_node_uuid": "end-timeout-false-path",
+      "source_port_id": "false",
+      "target_port_id": "input"
+    }
+  ]
+}

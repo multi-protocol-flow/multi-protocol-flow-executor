@@ -1,0 +1,88 @@
+{
+  "uuid": "ws-full-flow-wait-response-001",
+  "name": "WebSocket 完整流程 - 等待响应",
+  "initial_variables": null,
+  "nodes": [
+    {
+      "uuid": "entry-full-wait",
+      "type": "entry",
+      "name": "入口",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": { "type": "entry" },
+      "ports": null
+    },
+    {
+      "uuid": "ws-connect-full-wait",
+      "type": "ws_connect",
+      "name": "WS 连接（等待首条消息）",
+      "position": { "x": 200.0, "y": 0.0 },
+      "data": {
+        "type": "ws_connect",
+        "url": "wss://echo.websocket.org",
+        "headers": [],
+        "subprotocols": [],
+        "connect_timeout_ms": 30000,
+        "wait_for_message": true,
+        "wait_mode": "first_message",
+        "message_timeout_ms": 10000,
+        "output_mappings": []
+      },
+      "ports": null
+    },
+    {
+      "uuid": "ws-send-wait-full-wait",
+      "type": "ws_send_wait",
+      "name": "WS 发送等待（等待响应）",
+      "position": { "x": 400.0, "y": 0.0 },
+      "data": {
+        "type": "ws_send_wait",
+        "connection_id": "ws-connect-full-wait",
+        "message": "Hello from full flow test!",
+        "message_type": "text",
+        "send_timeout_ms": 30000,
+        "wait_for_response": true,
+        "wait_mode": "first_message",
+        "message_timeout_ms": 30000,
+        "output_mappings": []
+      },
+      "ports": null
+    },
+    {
+      "uuid": "ws-close-full-wait",
+      "type": "ws_close",
+      "name": "WS 关闭",
+      "position": { "x": 600.0, "y": 0.0 },
+      "data": {
+        "type": "ws_close",
+        "connection_id": "ws-connect-full-wait",
+        "close_code": 1000,
+        "close_reason": "完整流程测试完成",
+        "wait_close_timeout_ms": 5000
+      },
+      "ports": null
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-entry-to-ws-connect",
+      "source_node_uuid": "entry-full-wait",
+      "target_node_uuid": "ws-connect-full-wait",
+      "source_port_id": "output",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-ws-connect-to-send-wait",
+      "source_node_uuid": "ws-connect-full-wait",
+      "target_node_uuid": "ws-send-wait-full-wait",
+      "source_port_id": "true",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-send-wait-to-close",
+      "source_node_uuid": "ws-send-wait-full-wait",
+      "target_node_uuid": "ws-close-full-wait",
+      "source_port_id": "true",
+      "target_port_id": "input"
+    }
+  ]
+}
