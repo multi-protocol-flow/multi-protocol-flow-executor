@@ -173,6 +173,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let next_node = Node {
@@ -182,6 +183,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let connection = Connection {
@@ -240,6 +242,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {
@@ -277,6 +280,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let next_node_1 = Node {
@@ -286,6 +290,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let next_node_2 = Node {
@@ -295,6 +300,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 100.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let connection_1 = Connection {
@@ -359,6 +365,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let next_node = Node {
@@ -368,6 +375,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let connection = Connection {
@@ -424,6 +432,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let next_node = Node {
@@ -433,6 +442,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         // 连接使用 node.uuid 作为 source_node_uuid
@@ -480,6 +490,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let next_node = Node {
@@ -489,6 +500,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let connection = Connection {
@@ -559,6 +571,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {

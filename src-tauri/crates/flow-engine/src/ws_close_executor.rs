@@ -199,6 +199,7 @@ mod tests {
                 wait_close_timeout_ms: 5000,
             }),
             ports: None,
+        has_breakpoint: None,
         }
     }
 
@@ -284,6 +285,7 @@ mod tests {
                 wait_close_timeout_ms: 5000,
             }),
             ports: None,
+        has_breakpoint: None,
         };
         let mut context = create_context("test-flow");
 
@@ -380,6 +382,7 @@ mod tests {
                     wait_close_timeout_ms: 5000,
                 }),
                 ports: None,
+            has_breakpoint: None,
             };
             let mut context = create_context("test-flow");
 

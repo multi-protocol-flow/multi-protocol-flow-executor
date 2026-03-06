@@ -833,6 +833,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let flow = Flow {
@@ -863,6 +864,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let end_node = Node {
@@ -872,6 +874,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let connection = Connection {
@@ -915,6 +918,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let flow = Flow {
@@ -946,6 +950,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let end_node = Node {
@@ -955,6 +960,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let connection = Connection {
@@ -999,6 +1005,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let end_node = Node {
@@ -1008,6 +1015,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let connection = Connection {
@@ -1052,6 +1060,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let flow = Flow {
@@ -1081,6 +1090,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let end_node = Node {
@@ -1090,6 +1100,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let connection = Connection {
@@ -1127,6 +1138,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let end_node = Node {
@@ -1136,6 +1148,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let connection = Connection {
@@ -1173,6 +1186,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let end_node = Node {
@@ -1182,6 +1196,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let connection = Connection {
@@ -1219,6 +1234,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         // 创建自连接以触发循环错误
@@ -1260,6 +1276,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let end_node = Node {
@@ -1269,6 +1286,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let connection = Connection {
@@ -1308,6 +1326,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let end_node_1 = Node {
@@ -1317,6 +1336,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let end_node_2 = Node {
@@ -1326,6 +1346,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 100.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let connection_1 = Connection {

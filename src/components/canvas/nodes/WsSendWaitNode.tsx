@@ -6,6 +6,8 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { WsSendWaitConfig } from '@/types';
+import { useFlowStore } from '@/stores';
+import { BreakpointMarker } from '../BreakpointMarker';
 
 /** WsSendWait 节点数据类型 */
 export interface WsSendWaitNodeData {
@@ -17,8 +19,10 @@ export interface WsSendWaitNodeData {
  * WsSendWait 节点 - WebSocket 发送等待
  * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function WsSendWaitNode({ data, selected }: NodeProps) {
+export function WsSendWaitNode({ id, data, selected }: NodeProps) {
   const nodeData = data as WsSendWaitNodeData;
+  const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
+  const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
   
   return (
     <div
@@ -32,6 +36,10 @@ export function WsSendWaitNode({ data, selected }: NodeProps) {
         selected && 'border-[3px] border-teal-500'
       )}
     >
+      <BreakpointMarker
+        hasBreakpoint={hasBreakpoint}
+        onToggle={() => toggleBreakpoint(id)}
+      />
       <Handle
         type="target"
         position={Position.Left}

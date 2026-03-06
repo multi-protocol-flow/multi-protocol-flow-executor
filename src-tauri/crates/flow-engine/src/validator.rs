@@ -226,6 +226,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         }
     }
 
@@ -238,6 +239,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com/end"),
             ports: None,
+        has_breakpoint: None,
         }
     }
 
@@ -307,6 +309,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
+        has_breakpoint: None,
         };
 
         let flow = Flow {
@@ -361,6 +364,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com/1"),
             ports: None,
+        has_breakpoint: None,
         };
         let http_node2 = Node {
             uuid: Uuid::new_v4().to_string(),
@@ -369,6 +373,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com/2"),
             ports: None,
+        has_breakpoint: None,
         };
 
         let flow = Flow {
@@ -442,6 +447,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
+        has_breakpoint: None,
         };
         let end_node = create_end_node();
 
@@ -476,6 +482,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
+        has_breakpoint: None,
         };
         let end_node = create_end_node();
 
@@ -539,6 +546,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
         let end_node = create_end_node();
 
@@ -550,6 +558,7 @@ mod tests {
             position: NodePosition { x: 200.0, y: 0.0 },
             data: NodeData::http("https://example.com/other"),
             ports: None,
+        has_breakpoint: None,
         };
 
         let connection = Connection {
@@ -598,6 +607,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
+        has_breakpoint: None,
         };
 
         let flow = Flow {
@@ -655,6 +665,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+        has_breakpoint: None,
         };
 
         let end_node = Node {
@@ -664,6 +675,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com/end"),
             ports: None,
+        has_breakpoint: None,
         };
 
         // 使用特定 UUID 创建连接

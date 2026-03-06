@@ -75,6 +75,7 @@ pub mod test_utils {
                 output_mappings: vec![],
             }),
             ports: None,
+        has_breakpoint: None,
         }
     }
 
@@ -105,6 +106,7 @@ pub mod test_utils {
                 output_mappings: vec![],
             }),
             ports: None,
+        has_breakpoint: None,
         }
     }
 
@@ -129,6 +131,7 @@ pub mod test_utils {
                 wait_close_timeout_ms: 5000,
             }),
             ports: None,
+        has_breakpoint: None,
         }
     }
 

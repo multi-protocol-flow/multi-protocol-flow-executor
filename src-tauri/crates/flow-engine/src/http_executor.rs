@@ -663,6 +663,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         }
     }
 
@@ -1456,6 +1457,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {
@@ -1511,6 +1513,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {
@@ -1557,6 +1560,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {
@@ -1601,6 +1605,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {
@@ -1647,6 +1652,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {
@@ -1695,6 +1701,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut storage = VariableStorage::new();
@@ -1755,6 +1762,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {
@@ -1804,6 +1812,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {
@@ -1853,6 +1862,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {
@@ -1906,6 +1916,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {
@@ -1952,6 +1963,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {
@@ -2002,6 +2014,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {
@@ -2048,6 +2061,7 @@ mod tests {
                 output_mappings: Vec::new(),
             }),
             ports: None,
+        has_breakpoint: None,
         };
 
         let mut context = ExecutionContext {

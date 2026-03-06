@@ -6,6 +6,8 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { GitBranch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ConditionalConfig } from '@/types';
+import { useFlowStore } from '@/stores';
+import { BreakpointMarker } from '../BreakpointMarker';
 
 /** Conditional 节点数据类型 */
 export interface ConditionalNodeData {
@@ -17,8 +19,10 @@ export interface ConditionalNodeData {
  * Conditional 节点 - 条件分支
  * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function ConditionalNode({ data, selected }: NodeProps) {
+export function ConditionalNode({ id, data, selected }: NodeProps) {
   const nodeData = data as ConditionalNodeData;
+  const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
+  const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
   
   return (
     <div
@@ -32,6 +36,10 @@ export function ConditionalNode({ data, selected }: NodeProps) {
         selected && 'border-[3px] border-amber-500'
       )}
     >
+      <BreakpointMarker
+        hasBreakpoint={hasBreakpoint}
+        onToggle={() => toggleBreakpoint(id)}
+      />
       <Handle
         type="target"
         position={Position.Left}

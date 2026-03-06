@@ -6,6 +6,8 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Plug } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { WsCloseConfig } from '@/types';
+import { useFlowStore } from '@/stores';
+import { BreakpointMarker } from '../BreakpointMarker';
 
 /** WsClose 节点数据类型 */
 export interface WsCloseNodeData {
@@ -17,8 +19,10 @@ export interface WsCloseNodeData {
  * WsClose 节点 - WebSocket 关闭
  * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function WsCloseNode({ data, selected }: NodeProps) {
+export function WsCloseNode({ id, data, selected }: NodeProps) {
   const nodeData = data as WsCloseNodeData;
+  const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
+  const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
   
   return (
     <div
@@ -32,6 +36,10 @@ export function WsCloseNode({ data, selected }: NodeProps) {
         selected && 'border-[3px] border-rose-500'
       )}
     >
+      <BreakpointMarker
+        hasBreakpoint={hasBreakpoint}
+        onToggle={() => toggleBreakpoint(id)}
+      />
       <Handle
         type="target"
         position={Position.Left}

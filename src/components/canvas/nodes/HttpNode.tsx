@@ -6,6 +6,8 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { HttpConfig } from '@/types';
+import { useFlowStore } from '@/stores';
+import { BreakpointMarker } from '../BreakpointMarker';
 
 /** HTTP 节点数据类型 */
 export interface HttpNodeData {
@@ -17,9 +19,11 @@ export interface HttpNodeData {
  * HTTP 节点 - 网络请求
  * 输入端口 "in"，输出端口 "out"
  */
-export function HttpNode({ data, selected }: NodeProps) {
+export function HttpNode({ id, data, selected }: NodeProps) {
   const nodeData = data as HttpNodeData;
   const method = nodeData.config?.method?.toUpperCase() || 'GET';
+  const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
+  const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
   
   return (
     <div
@@ -33,6 +37,10 @@ export function HttpNode({ data, selected }: NodeProps) {
         selected && 'border-[3px] border-sky-500'
       )}
     >
+      <BreakpointMarker
+        hasBreakpoint={hasBreakpoint}
+        onToggle={() => toggleBreakpoint(id)}
+      />
       <Handle
         type="target"
         position={Position.Left}

@@ -41,12 +41,18 @@ interface FlowState {
   setPendingAddNodeType: (type: string | null) => void;
   /** 清除待添加节点类型 */
   clearPendingAddNodeType: () => void;
+  /** 切换节点断点状态 */
+  toggleBreakpoint: (uuid: string) => void;
+  /** 设置节点断点状态 */
+  setBreakpoint: (uuid: string, enabled: boolean) => void;
 
   // ===== Computed (Selectors) =====
   /** 获取当前选中的节点 */
   getSelectedNode: () => Node | null;
   /** 根据 UUID 获取节点 */
   getNodeByUuid: (uuid: string) => Node | null;
+  /** 检查节点是否有断点 */
+  hasBreakpoint: (uuid: string) => boolean;
 }
 
 const initialState = {
@@ -147,6 +153,37 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   setPendingAddNodeType: (type) => set({ pendingAddNodeType: type }),
 
   clearPendingAddNodeType: () => set({ pendingAddNodeType: null }),
+
+  toggleBreakpoint: (uuid) =>
+    set((state) => {
+      if (!state.flow) return state;
+      const node = state.flow.nodes.find((n) => n.uuid === uuid);
+      if (!node) return state;
+      const currentBreakpoint = node.hasBreakpoint ?? false;
+      return {
+        flow: {
+          ...state.flow,
+          nodes: state.flow.nodes.map((n) =>
+            n.uuid === uuid ? { ...n, hasBreakpoint: !currentBreakpoint } : n
+          ),
+        },
+        isDirty: true,
+      };
+    }),
+
+  setBreakpoint: (uuid, enabled) =>
+    set((state) => ({
+      flow: state.flow
+        ? {
+            ...state.flow,
+            nodes: state.flow.nodes.map((n) =>
+              n.uuid === uuid ? { ...n, hasBreakpoint: enabled } : n
+            ),
+          }
+        : null,
+      isDirty: true,
+    })),
+
   // ===== Computed (Selectors) =====
   getSelectedNode: () => {
     const { flow, selectedNodeId } = get();
@@ -158,6 +195,13 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     const { flow } = get();
     if (!flow) return null;
     return flow.nodes.find((n) => n.uuid === uuid) || null;
+  },
+
+  hasBreakpoint: (uuid: string) => {
+    const { flow } = get();
+    if (!flow) return false;
+    const node = flow.nodes.find((n) => n.uuid === uuid);
+    return node?.hasBreakpoint ?? false;
   },
 }));
 

@@ -269,6 +269,8 @@ export interface Node {
   data: NodeData;
   /** 端口数组（可选） */
   ports?: Port[];
+  /** 是否设置断点（可选，默认 false） */
+  hasBreakpoint?: boolean;
 }
 
 // ============================================================================

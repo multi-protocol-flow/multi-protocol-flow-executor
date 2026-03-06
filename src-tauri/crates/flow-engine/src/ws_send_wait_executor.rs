@@ -577,6 +577,7 @@ mod tests {
                 output_mappings: vec![],
             }),
             ports: None,
+        has_breakpoint: None,
         }
     }
 
@@ -663,6 +664,7 @@ mod tests {
                 output_mappings: vec![],
             }),
             ports: None,
+        has_breakpoint: None,
         };
         let mut context = create_context("test-flow");
 
@@ -705,6 +707,7 @@ mod tests {
                 output_mappings: vec![],
             }),
             ports: None,
+        has_breakpoint: None,
         };
         let mut context = create_context("test-flow");
 
@@ -744,6 +747,7 @@ mod tests {
                 output_mappings: vec![],
             }),
             ports: None,
+        has_breakpoint: None,
         };
         let mut context = create_context("test-flow");
 
@@ -787,6 +791,7 @@ mod tests {
                 }],
             }),
             ports: None,
+        has_breakpoint: None,
         };
         let mut context = create_context("test-flow");
 
@@ -826,6 +831,7 @@ mod tests {
                 output_mappings: vec![],
             }),
             ports: None,
+        has_breakpoint: None,
         };
         let mut context = create_context("test-flow");
 
@@ -934,6 +940,7 @@ mod tests {
                     output_mappings: vec![],
                 }),
                 ports: None,
+            has_breakpoint: None,
             };
             let mut context = create_context("test-flow");
 
@@ -1009,6 +1016,7 @@ mod tests {
                     output_mappings: vec![],
                 }),
                 ports: None,
+            has_breakpoint: None,
             };
             let mut context = create_context("test-flow");
 
@@ -1073,6 +1081,7 @@ mod tests {
                     output_mappings: vec![],
                 }),
                 ports: None,
+            has_breakpoint: None,
             };
             let mut context = create_context("test-flow");
 
@@ -1148,6 +1157,7 @@ mod tests {
                     output_mappings: vec![],
                 }),
                 ports: None,
+            has_breakpoint: None,
             };
             let mut context = create_context("test-flow");
 
@@ -1234,6 +1244,7 @@ mod tests {
                     output_mappings: vec![],
                 }),
                 ports: None,
+            has_breakpoint: None,
             };
             let mut context = create_context("test-flow");
 
@@ -1307,6 +1318,7 @@ mod tests {
                     output_mappings: vec![],
                 }),
                 ports: None,
+            has_breakpoint: None,
             };
             let mut context = create_context("test-flow");
 
@@ -1381,6 +1393,7 @@ mod tests {
                     output_mappings: vec![],
                 }),
                 ports: None,
+            has_breakpoint: None,
             };
             let mut context = create_context("test-flow");
 
@@ -1450,6 +1463,7 @@ mod tests {
                     output_mappings: vec![],
                 }),
                 ports: None,
+            has_breakpoint: None,
             };
             let mut context = create_context("test-flow");
 
@@ -1531,6 +1545,7 @@ mod tests {
                     output_mappings: vec![],
                 }),
                 ports: None,
+            has_breakpoint: None,
             };
             let mut context = create_context("test-flow");
 
@@ -1588,6 +1603,7 @@ mod tests {
                 output_mappings: vec![],
             }),
             ports: None,
+        has_breakpoint: None,
         };
         let mut context = create_context("test-flow");
 
@@ -1654,6 +1670,7 @@ mod tests {
                     output_mappings: vec![],
                 }),
                 ports: None,
+            has_breakpoint: None,
             };
             let mut context = create_context("test-flow");
 

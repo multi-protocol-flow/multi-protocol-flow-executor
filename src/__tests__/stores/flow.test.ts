@@ -494,4 +494,189 @@ describe('FlowStore', () => {
       expect(state.flow?.nodes ?? []).toEqual([]);
     });
   });
+
+  describe('断点管理', () => {
+    describe('toggleBreakpoint', () => {
+      it('可以切换断点状态（从无到有）', () => {
+        const node: Node = {
+          uuid: 'node-1',
+          type: 'http',
+          name: 'HTTP请求',
+          position: { x: 100, y: 100 },
+          data: { type: 'http', url: 'https://example.com' },
+        };
+        const flow: Flow = {
+          uuid: 'test-flow-1',
+          name: '测试流程',
+          nodes: [node],
+          connections: [],
+        };
+        useFlowStore.getState().setFlow(flow);
+
+        useFlowStore.getState().toggleBreakpoint('node-1');
+
+        expect(useFlowStore.getState().flow?.nodes[0].hasBreakpoint).toBe(true);
+        expect(useFlowStore.getState().isDirty).toBe(true);
+      });
+
+      it('可以切换断点状态（从有到无）', () => {
+        const node: Node = {
+          uuid: 'node-1',
+          type: 'http',
+          name: 'HTTP请求',
+          position: { x: 100, y: 100 },
+          data: { type: 'http', url: 'https://example.com' },
+          hasBreakpoint: true,
+        };
+        const flow: Flow = {
+          uuid: 'test-flow-1',
+          name: '测试流程',
+          nodes: [node],
+          connections: [],
+        };
+        useFlowStore.getState().setFlow(flow);
+
+        useFlowStore.getState().toggleBreakpoint('node-1');
+
+        expect(useFlowStore.getState().flow?.nodes[0].hasBreakpoint).toBe(false);
+      });
+
+      it('切换不存在的节点时不变', () => {
+        const node: Node = {
+          uuid: 'node-1',
+          type: 'http',
+          name: 'HTTP请求',
+          position: { x: 100, y: 100 },
+          data: { type: 'http', url: 'https://example.com' },
+        };
+        const flow: Flow = {
+          uuid: 'test-flow-1',
+          name: '测试流程',
+          nodes: [node],
+          connections: [],
+        };
+        useFlowStore.getState().setFlow(flow);
+
+        useFlowStore.getState().toggleBreakpoint('non-existent');
+
+        expect(useFlowStore.getState().flow?.nodes).toHaveLength(1);
+        expect(useFlowStore.getState().flow?.nodes[0].hasBreakpoint).toBeUndefined();
+      });
+
+      it('flow 为 null 时不报错', () => {
+        expect(() => {
+          useFlowStore.getState().toggleBreakpoint('node-1');
+        }).not.toThrow();
+      });
+    });
+
+    describe('setBreakpoint', () => {
+      it('可以设置断点为 true', () => {
+        const node: Node = {
+          uuid: 'node-1',
+          type: 'http',
+          name: 'HTTP请求',
+          position: { x: 100, y: 100 },
+          data: { type: 'http', url: 'https://example.com' },
+        };
+        const flow: Flow = {
+          uuid: 'test-flow-1',
+          name: '测试流程',
+          nodes: [node],
+          connections: [],
+        };
+        useFlowStore.getState().setFlow(flow);
+
+        useFlowStore.getState().setBreakpoint('node-1', true);
+
+        expect(useFlowStore.getState().flow?.nodes[0].hasBreakpoint).toBe(true);
+        expect(useFlowStore.getState().isDirty).toBe(true);
+      });
+
+      it('可以设置断点为 false', () => {
+        const node: Node = {
+          uuid: 'node-1',
+          type: 'http',
+          name: 'HTTP请求',
+          position: { x: 100, y: 100 },
+          data: { type: 'http', url: 'https://example.com' },
+          hasBreakpoint: true,
+        };
+        const flow: Flow = {
+          uuid: 'test-flow-1',
+          name: '测试流程',
+          nodes: [node],
+          connections: [],
+        };
+        useFlowStore.getState().setFlow(flow);
+
+        useFlowStore.getState().setBreakpoint('node-1', false);
+
+        expect(useFlowStore.getState().flow?.nodes[0].hasBreakpoint).toBe(false);
+      });
+
+      it('flow 为 null 时不报错', () => {
+        expect(() => {
+          useFlowStore.getState().setBreakpoint('node-1', true);
+        }).not.toThrow();
+      });
+    });
+
+    describe('hasBreakpoint', () => {
+      it('返回 true 当节点有断点时', () => {
+        const node: Node = {
+          uuid: 'node-1',
+          type: 'http',
+          name: 'HTTP请求',
+          position: { x: 100, y: 100 },
+          data: { type: 'http', url: 'https://example.com' },
+          hasBreakpoint: true,
+        };
+        const flow: Flow = {
+          uuid: 'test-flow-1',
+          name: '测试流程',
+          nodes: [node],
+          connections: [],
+        };
+        useFlowStore.getState().setFlow(flow);
+
+        expect(useFlowStore.getState().hasBreakpoint('node-1')).toBe(true);
+      });
+
+      it('返回 false 当节点无断点时', () => {
+        const node: Node = {
+          uuid: 'node-1',
+          type: 'http',
+          name: 'HTTP请求',
+          position: { x: 100, y: 100 },
+          data: { type: 'http', url: 'https://example.com' },
+        };
+        const flow: Flow = {
+          uuid: 'test-flow-1',
+          name: '测试流程',
+          nodes: [node],
+          connections: [],
+        };
+        useFlowStore.getState().setFlow(flow);
+
+        expect(useFlowStore.getState().hasBreakpoint('node-1')).toBe(false);
+      });
+
+      it('返回 false 当节点不存在时', () => {
+        const flow: Flow = {
+          uuid: 'test-flow-1',
+          name: '测试流程',
+          nodes: [],
+          connections: [],
+        };
+        useFlowStore.getState().setFlow(flow);
+
+        expect(useFlowStore.getState().hasBreakpoint('non-existent')).toBe(false);
+      });
+
+      it('返回 false 当 flow 为 null 时', () => {
+        expect(useFlowStore.getState().hasBreakpoint('node-1')).toBe(false);
+      });
+    });
+  });
 });

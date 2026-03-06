@@ -598,6 +598,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Conditional(config),
             ports: None,
+        has_breakpoint: None,
         }
     }
 

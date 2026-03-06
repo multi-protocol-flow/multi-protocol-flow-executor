@@ -5,6 +5,8 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFlowStore } from '@/stores';
+import { BreakpointMarker } from '../BreakpointMarker';
 
 /** Entry 节点数据类型 */
 export interface EntryNodeData {
@@ -16,8 +18,10 @@ export interface EntryNodeData {
  * Entry 节点 - 流程入口
  * 无输入端口，单个输出端口 "out"
  */
-export function EntryNode({ data, selected }: NodeProps) {
+export function EntryNode({ id, data, selected }: NodeProps) {
   const nodeData = data as EntryNodeData;
+  const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
+  const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
   
   return (
     <div
@@ -31,6 +35,10 @@ export function EntryNode({ data, selected }: NodeProps) {
         selected && 'border-[3px] border-emerald-500'
       )}
     >
+      <BreakpointMarker
+        hasBreakpoint={hasBreakpoint}
+        onToggle={() => toggleBreakpoint(id)}
+      />
       <div className="flex items-center gap-2.5 w-full min-w-0">
         <div className={cn(
           'shrink-0 p-1.5 rounded-lg',

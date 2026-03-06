@@ -32,6 +32,12 @@ pub struct NodePosition {
     pub y: f64,
 }
 
+impl Default for NodePosition {
+    fn default() -> Self {
+        Self { x: 0.0, y: 0.0 }
+    }
+}
+
 /// 端口类型枚举
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -70,6 +76,23 @@ pub struct Node {
     pub data: NodeData,
     /// 端口数组（可选）
     pub ports: Option<Vec<Port>>,
+    /// 是否设置断点（可选，默认 false）
+    #[serde(default)]
+    pub has_breakpoint: Option<bool>,
+}
+
+impl Default for Node {
+    fn default() -> Self {
+        Self {
+            uuid: String::new(),
+            node_type: NodeType::Entry,
+            name: String::new(),
+            position: NodePosition::default(),
+            data: NodeData::default(),
+            ports: None,
+            has_breakpoint: None,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -87,12 +110,14 @@ mod tests {
             position: NodePosition { x: 100.0, y: 200.0 },
             data: NodeData::entry(),
             ports: None,
+            has_breakpoint: None,
         };
 
         assert_eq!(node.uuid, "node-uuid-123");
         assert_eq!(node.name, "Entry Node");
         assert_eq!(node.position.x, 100.0);
         assert_eq!(node.position.y, 200.0);
+        assert_eq!(node.has_breakpoint, None);
     }
 
     #[test]
@@ -104,16 +129,19 @@ mod tests {
             position: NodePosition { x: 150.0, y: 250.0 },
             data: NodeData::http("https://api.example.com"),
             ports: None,
+            has_breakpoint: Some(true),
         };
 
         let json = serde_json::to_string(&node).unwrap();
         assert!(json.contains("node-uuid-456"));
         assert!(json.contains("https://api.example.com"));
+        assert!(json.contains("has_breakpoint"));
 
         // 反序列化测试
         let deserialized: Node = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.uuid, "node-uuid-456");
         assert_eq!(deserialized.name, "HTTP Request");
+        assert_eq!(deserialized.has_breakpoint, Some(true));
     }
 
     #[test]
@@ -181,6 +209,7 @@ mod tests {
             position: NodePosition { x: 50.0, y: 75.0 },
             data: NodeData::conditional_simple("field", ConditionOperator::Equal, json!(1)),
             ports: Some(ports),
+            has_breakpoint: Some(false),
         };
 
         assert_eq!(node.uuid, "node-uuid-999");
@@ -202,5 +231,43 @@ mod tests {
             serde_json::to_string(&NodeType::Conditional).unwrap(),
             r#""conditional""#
         );
+    }
+
+    /// 测试向后兼容性：缺少 has_breakpoint 字段时应使用 None
+    #[test]
+    fn test_node_backward_compatibility() {
+        // 模拟旧版本的流程文件（没有 has_breakpoint 字段）
+        let old_json = json!({
+            "uuid": "node-old",
+            "type": "http",
+            "name": "Old Node",
+            "position": { "x": 0.0, "y": 0.0 },
+            "data": {
+                "type": "http",
+                "url": "https://example.com"
+            }
+        });
+
+        // 反序列化应该成功，has_breakpoint 应为 None
+        let node: Node = serde_json::from_value(old_json).unwrap();
+        assert_eq!(node.uuid, "node-old");
+        assert_eq!(node.has_breakpoint, None);
+
+        // 有 has_breakpoint 字段时应该正确读取
+        let new_json = json!({
+            "uuid": "node-new",
+            "type": "http",
+            "name": "New Node",
+            "position": { "x": 0.0, "y": 0.0 },
+            "data": {
+                "type": "http",
+                "url": "https://example.com"
+            },
+            "has_breakpoint": true
+        });
+
+        let node: Node = serde_json::from_value(new_json).unwrap();
+        assert_eq!(node.uuid, "node-new");
+        assert_eq!(node.has_breakpoint, Some(true));
     }
 }

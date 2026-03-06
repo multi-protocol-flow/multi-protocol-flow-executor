@@ -27,6 +27,7 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::entry(),
         ports: None,
+        has_breakpoint: None,
     };
 
     // 创建流程对象

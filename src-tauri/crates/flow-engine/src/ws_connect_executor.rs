@@ -447,6 +447,7 @@ mod tests {
                 output_mappings: vec![],
             }),
             ports: None,
+        has_breakpoint: None,
         }
     }
 
@@ -501,6 +502,7 @@ mod tests {
                 ..Default::default()
             }),
             ports: None,
+        has_breakpoint: None,
         };
         let mut context = create_context("test-flow");
 
@@ -568,6 +570,7 @@ mod tests {
                 ..Default::default()
             }),
             ports: None,
+        has_breakpoint: None,
         };
         let mut context = create_context("test-flow");
 
@@ -608,6 +611,7 @@ mod tests {
                 ..Default::default()
             }),
             ports: None,
+        has_breakpoint: None,
         };
         let mut context = create_context("test-flow");
 
@@ -644,6 +648,7 @@ mod tests {
                 ..Default::default()
             }),
             ports: None,
+        has_breakpoint: None,
         };
         let mut context = create_context("test-flow");
 
@@ -682,6 +687,7 @@ mod tests {
                 ..Default::default()
             }),
             ports: None,
+        has_breakpoint: None,
         };
         let mut context = create_context("test-flow");
 
