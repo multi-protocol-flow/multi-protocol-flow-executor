@@ -183,7 +183,7 @@ export function MainLayout() {
           className={cn(
             'shrink-0 border-r border-border flex flex-col bg-white',
             'transition-all duration-300 ease-out overflow-hidden',
-            isFlowListPanelOpen ? 'w-[256px] min-w-0 rounded-r-xl' : 'w-0'
+            isFlowListPanelOpen ? 'w-[256px] min-w-0' : 'w-0'
           )}
         >
           {isFlowListPanelOpen && <LeftSidebarPanel />}
@@ -349,7 +349,7 @@ export function MainLayout() {
           className={cn(
             'shrink-0 border-l border-border bg-white',
             'transition-all duration-300 ease-out overflow-hidden',
-            isConfigPanelOpen ? 'w-72 min-w-0 rounded-l-xl' : 'w-0 min-w-0'
+            isConfigPanelOpen ? 'w-72 min-w-0' : 'w-0 min-w-0'
           )}
         >
           {isConfigPanelOpen && (
