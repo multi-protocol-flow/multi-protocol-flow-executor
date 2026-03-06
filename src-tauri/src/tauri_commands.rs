@@ -1,6 +1,6 @@
 //! Tauri 命令模块
 //!
-//! 提供 #[tauri::command] 包装器，调用 flow-engine 的业务逻辑。
+//! 提供 #[`tauri::command`] 包装器，调用 flow-engine 的业务逻辑。
 
 use std::sync::Arc;
 use tauri::ipc::Channel;
@@ -33,7 +33,7 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
 
 /// 执行流程命令
 ///
-/// 执行指定的流程，调用 FlowExecutor 执行引擎，并通过 Channel 发送日志事件
+/// 执行指定的流程，调用 `FlowExecutor` 执行引擎，并通过 Channel 发送日志事件
 #[tauri::command]
 pub async fn execute_flow(
     input: ExecuteFlowCommandInput,

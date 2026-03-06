@@ -328,16 +328,13 @@ impl WsConnectExecutor {
                 let mut last_message: Option<String> = None;
 
                 while start.elapsed().as_millis() < duration_ms as u128 {
-                    match self.ws_manager.receive(&node.uuid, 1000).await {
-                        Ok(Some(message)) => {
-                            log::debug!(
-                                "[WebSocket] 收到消息（Duration模式）: uuid={}, len={}",
-                                node.uuid,
-                                message.len()
-                            );
-                            last_message = Some(message);
-                        }
-                        Ok(None) | Err(_) => {}
+                    if let Ok(Some(message)) = self.ws_manager.receive(&node.uuid, 1000).await {
+                        log::debug!(
+                            "[WebSocket] 收到消息（Duration模式）: uuid={}, len={}",
+                            node.uuid,
+                            message.len()
+                        );
+                        last_message = Some(message);
                     }
                 }
 

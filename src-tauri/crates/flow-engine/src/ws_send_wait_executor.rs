@@ -253,8 +253,6 @@ impl NodeExecutor for WsSendWaitExecutor {
                     is_binary,
                     response_message.as_deref(),
                     wait_timed_out,
-                    context,
-                    start_time.elapsed().as_millis() as u64,
                 )?;
 
                 // 8. 日志：执行完成
@@ -470,8 +468,6 @@ impl WsSendWaitExecutor {
         is_binary: bool,
         response_message: Option<&str>,
         wait_timed_out: bool,
-        _context: &mut ExecutionContext,
-        _duration_ms: u64,
     ) -> Result<Option<serde_json::Value>, String> {
         // 构建发送的消息数据
         let sent_data = json!({
