@@ -33,6 +33,8 @@ interface CollapsiblePanelProps {
   contentClassName?: string;
   /** 折叠时的固定高度（仅标题栏） */
   collapsedHeight?: number;
+  /** 额外的 style */
+  style?: React.CSSProperties;
 }
 
 /** 折叠状态下的标题栏高度 */
@@ -55,6 +57,7 @@ export function CollapsiblePanel({
   className,
   contentClassName,
   collapsedHeight = COLLAPSED_HEIGHT,
+  style,
 }: CollapsiblePanelProps) {
   const [isDragging, setIsDragging] = useState(false);
   const startYRef = useRef(0);
@@ -141,6 +144,7 @@ export function CollapsiblePanel({
         className
       )}
       style={{
+        ...style,
         height: typeof panelHeight === 'number' ? panelHeight : undefined,
         flex: isCollapsed ? 'none' : undefined,
       }}
