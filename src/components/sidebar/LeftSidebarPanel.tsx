@@ -63,7 +63,7 @@ export function LeftSidebarPanel() {
       </CollapsiblePanel>
 
       {/* ===== 底部面板区：节点库 + 变量面板 ===== */}
-      <div className="shrink-0 flex flex-col">
+      <div className="shrink-0 flex flex-col mt-auto">
         {/* 节点库 */}
         <CollapsiblePanel
           title="节点库"
