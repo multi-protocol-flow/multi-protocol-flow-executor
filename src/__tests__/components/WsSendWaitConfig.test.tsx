@@ -4,7 +4,6 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { WsSendWaitConfig } from '@/components/panels/WsSendWaitConfig';
 import type { WsSendWaitConfig as WsSendWaitConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
