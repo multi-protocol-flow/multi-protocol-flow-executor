@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CanvasToolbar } from '@/components/canvas/CanvasToolbar';
-import { useFlowStore, useExecutionStore, useUIStore } from '@/stores';
+import { useFlowStore, useExecutionStore, useUIStore, useDebugStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
 
@@ -14,6 +14,8 @@ vi.mock('@/stores', () => ({
   useFlowStore: vi.fn(),
   useExecutionStore: vi.fn(),
   useUIStore: vi.fn(),
+  useDebugStore: vi.fn(),
+  selectIsDebugging: vi.fn((state) => state.status !== 'idle' && state.status !== 'ended'),
 }));
 
 // Mock console store
@@ -65,6 +67,17 @@ describe('CanvasToolbar', () => {
       (selector: (state: Record<string, unknown>) => unknown) =>
         selector({ reportDir: '/test/reports' })
     );
+
+    // Mock debug store
+    (useDebugStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (selector: (state: Record<string, unknown>) => unknown) =>
+        selector({
+          status: 'idle',
+          currentNodeUuid: null,
+          startDebugSession: vi.fn(),
+          isDebugging: false,
+        })
+    );
   });
 
   describe('渲染测试', () => {
@@ -82,7 +95,7 @@ describe('CanvasToolbar', () => {
 
     it('正确渲染调试按钮（非 button 元素）', () => {
       render(<CanvasToolbar />);
-      const debugButton = screen.getByTitle('调试');
+      const debugButton = screen.getByTitle('调试（需要至少设置一个断点）');
       expect(debugButton).toBeInTheDocument();
     });
 
@@ -112,7 +125,7 @@ describe('CanvasToolbar', () => {
       // 第一个是执行按钮
       expect(children?.[0]).toHaveAttribute('title', '执行流程');
       // 第二个是调试按钮
-      expect(children?.[1]).toHaveAttribute('title', '调试');
+      expect(children?.[1]).toHaveAttribute('title', '调试（需要至少设置一个断点）');
     });
   });
 
@@ -209,21 +222,21 @@ describe('CanvasToolbar', () => {
   });
 
   describe('调试按钮', () => {
-    it('调试按钮不可点击（不是 button 元素）', () => {
+    it('调试按钮是 button 元素', () => {
       render(<CanvasToolbar />);
-      const debugButton = screen.getByTitle('调试');
-      expect(debugButton.tagName).not.toBe('BUTTON');
+      const debugButton = screen.getByTitle('调试（需要至少设置一个断点）');
+      expect(debugButton.tagName).toBe('BUTTON');
     });
 
-    it('调试按钮有绿色样式', () => {
+    it('调试按钮有灰色样式（无断点时）', () => {
       render(<CanvasToolbar />);
-      const debugButton = screen.getByTitle('调试');
-      expect(debugButton).toHaveClass('text-green-500');
+      const debugButton = screen.getByTitle('调试（需要至少设置一个断点）');
+      expect(debugButton).toHaveClass('text-slate-300');
     });
 
     it('调试按钮有 cursor-not-allowed 样式', () => {
       render(<CanvasToolbar />);
-      const debugButton = screen.getByTitle('调试');
+      const debugButton = screen.getByTitle('调试（需要至少设置一个断点）');
       expect(debugButton).toHaveClass('cursor-not-allowed');
     });
   });

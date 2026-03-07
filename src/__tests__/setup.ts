@@ -1,5 +1,12 @@
 // Vitest 测试设置文件
 import '@testing-library/jest-dom'
+import { configure } from '@testing-library/react'
+
+// 配置 testing-library 行为
+configure({
+  // 在 jsdom 环境中支持 act()
+  reactStrictMode: true,
+})
 
 // ResizeObserver polyfill for React Flow
 class ResizeObserverMock {

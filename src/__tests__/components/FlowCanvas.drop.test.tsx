@@ -2,7 +2,7 @@
  * FlowCanvas 拖放功能测试
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, act } from '@testing-library/react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { FlowCanvas } from '@/components/canvas';
 import { useFlowStore } from '@/stores';
@@ -50,16 +50,20 @@ describe('FlowCanvas - Drag and Drop', () => {
     useFlowStore.getState().reset();
   });
 
-  it('应该添加 HTTP 节点当拖放 http 类型时', () => {
+  it('应该添加 HTTP 节点当拖放 http 类型时', async () => {
     useFlowStore.getState().setFlow(mockFlow);
 
-    const { container } = render(
-      <TestWrapper>
-        <FlowCanvas />
-      </TestWrapper>
-    );
+    let container: HTMLElement;
+    await act(async () => {
+      const result = render(
+        <TestWrapper>
+          <FlowCanvas />
+        </TestWrapper>
+      );
+      container = result.container;
+    });
 
-    const reactFlowElement = container.querySelector('.react-flow');
+    const reactFlowElement = container!.querySelector('.react-flow');
     if (!reactFlowElement) {
       throw new Error('ReactFlow element not found');
     }
@@ -78,7 +82,9 @@ describe('FlowCanvas - Drag and Drop', () => {
       clientY: 150,
     });
 
-    reactFlowElement.dispatchEvent(dropEvent);
+    await act(async () => {
+      reactFlowElement.dispatchEvent(dropEvent);
+    });
 
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
@@ -87,16 +93,20 @@ describe('FlowCanvas - Drag and Drop', () => {
     expect(state.flow?.nodes[1].position).toEqual({ x: 200, y: 150 });
   });
 
-  it('应该添加 Conditional 节点当拖放 conditional 类型时', () => {
+  it('应该添加 Conditional 节点当拖放 conditional 类型时', async () => {
     useFlowStore.getState().setFlow(mockFlow);
 
-    const { container } = render(
-      <TestWrapper>
-        <FlowCanvas />
-      </TestWrapper>
-    );
+    let container: HTMLElement;
+    await act(async () => {
+      const result = render(
+        <TestWrapper>
+          <FlowCanvas />
+        </TestWrapper>
+      );
+      container = result.container;
+    });
 
-    const reactFlowElement = container.querySelector('.react-flow');
+    const reactFlowElement = container!.querySelector('.react-flow');
     if (!reactFlowElement) {
       throw new Error('ReactFlow element not found');
     }
@@ -114,7 +124,9 @@ describe('FlowCanvas - Drag and Drop', () => {
       clientY: 200,
     });
 
-    reactFlowElement.dispatchEvent(dropEvent);
+    await act(async () => {
+      reactFlowElement.dispatchEvent(dropEvent);
+    });
 
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
@@ -123,16 +135,20 @@ describe('FlowCanvas - Drag and Drop', () => {
     expect(state.flow?.nodes[1].position).toEqual({ x: 300, y: 200 });
   });
 
-  it('应该添加 WS Connect 节点当拖放 ws_connect 类型时', () => {
+  it('应该添加 WS Connect 节点当拖放 ws_connect 类型时', async () => {
     useFlowStore.getState().setFlow(mockFlow);
 
-    const { container } = render(
-      <TestWrapper>
-        <FlowCanvas />
-      </TestWrapper>
-    );
+    let container: HTMLElement;
+    await act(async () => {
+      const result = render(
+        <TestWrapper>
+          <FlowCanvas />
+        </TestWrapper>
+      );
+      container = result.container;
+    });
 
-    const reactFlowElement = container.querySelector('.react-flow');
+    const reactFlowElement = container!.querySelector('.react-flow');
     if (!reactFlowElement) {
       throw new Error('ReactFlow element not found');
     }
@@ -150,7 +166,9 @@ describe('FlowCanvas - Drag and Drop', () => {
       clientY: 180,
     });
 
-    reactFlowElement.dispatchEvent(dropEvent);
+    await act(async () => {
+      reactFlowElement.dispatchEvent(dropEvent);
+    });
 
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
@@ -158,16 +176,20 @@ describe('FlowCanvas - Drag and Drop', () => {
     expect(state.flow?.nodes[1].position).toEqual({ x: 250, y: 180 });
   });
 
-  it('应该添加 WS SendWait 节点当拖放 ws_send_wait 类型时', () => {
+  it('应该添加 WS SendWait 节点当拖放 ws_send_wait 类型时', async () => {
     useFlowStore.getState().setFlow(mockFlow);
 
-    const { container } = render(
-      <TestWrapper>
-        <FlowCanvas />
-      </TestWrapper>
-    );
+    let container: HTMLElement;
+    await act(async () => {
+      const result = render(
+        <TestWrapper>
+          <FlowCanvas />
+        </TestWrapper>
+      );
+      container = result.container;
+    });
 
-    const reactFlowElement = container.querySelector('.react-flow');
+    const reactFlowElement = container!.querySelector('.react-flow');
     if (!reactFlowElement) {
       throw new Error('ReactFlow element not found');
     }
@@ -185,7 +207,9 @@ describe('FlowCanvas - Drag and Drop', () => {
       clientY: 220,
     });
 
-    reactFlowElement.dispatchEvent(dropEvent);
+    await act(async () => {
+      reactFlowElement.dispatchEvent(dropEvent);
+    });
 
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
@@ -193,16 +217,20 @@ describe('FlowCanvas - Drag and Drop', () => {
     expect(state.flow?.nodes[1].position).toEqual({ x: 350, y: 220 });
   });
 
-  it('应该添加 WS Close 节点当拖放 ws_close 类型时', () => {
+  it('应该添加 WS Close 节点当拖放 ws_close 类型时', async () => {
     useFlowStore.getState().setFlow(mockFlow);
 
-    const { container } = render(
-      <TestWrapper>
-        <FlowCanvas />
-      </TestWrapper>
-    );
+    let container: HTMLElement;
+    await act(async () => {
+      const result = render(
+        <TestWrapper>
+          <FlowCanvas />
+        </TestWrapper>
+      );
+      container = result.container;
+    });
 
-    const reactFlowElement = container.querySelector('.react-flow');
+    const reactFlowElement = container!.querySelector('.react-flow');
     if (!reactFlowElement) {
       throw new Error('ReactFlow element not found');
     }
@@ -220,36 +248,46 @@ describe('FlowCanvas - Drag and Drop', () => {
       clientY: 280,
     });
 
-    reactFlowElement.dispatchEvent(dropEvent);
+    await act(async () => {
+      reactFlowElement.dispatchEvent(dropEvent);
+    });
 
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
     expect(state.flow?.nodes[1].type).toBe('ws_close');
     expect(state.flow?.nodes[1].position).toEqual({ x: 450, y: 280 });
   });
-  it('当没有流程时不应该添加节点', () => {
-    const { container } = render(
-      <TestWrapper>
-        <FlowCanvas />
-      </TestWrapper>
-    );
+  it('当没有流程时不应该添加节点', async () => {
+    let container: HTMLElement;
+    await act(async () => {
+      const result = render(
+        <TestWrapper>
+          <FlowCanvas />
+        </TestWrapper>
+      );
+      container = result.container;
+    });
 
     // 不应该有 .react-flow 元素
-    const reactFlowElement = container.querySelector('.react-flow');
+    const reactFlowElement = container!.querySelector('.react-flow');
     expect(reactFlowElement).toBeNull();
   });
 });
 
-  it('节点应该放置在鼠标释放位置，而不是画布中心', () => {
+  it('节点应该放置在鼠标释放位置，而不是画布中心', async () => {
     useFlowStore.getState().setFlow(mockFlow);
 
-    const { container } = render(
-      <TestWrapper>
-        <FlowCanvas />
-      </TestWrapper>
-    );
+    let container: HTMLElement;
+    await act(async () => {
+      const result = render(
+        <TestWrapper>
+          <FlowCanvas />
+        </TestWrapper>
+      );
+      container = result.container;
+    });
 
-    const reactFlowElement = container.querySelector('.react-flow');
+    const reactFlowElement = container!.querySelector('.react-flow');
     if (!reactFlowElement) {
       throw new Error('ReactFlow element not found');
     }
@@ -261,7 +299,7 @@ describe('FlowCanvas - Drag and Drop', () => {
       { x: 50, y: 500 },
     ];
 
-    positions.forEach((pos, index) => {
+    for (const [index, pos] of positions.entries()) {
       const dropEvent = new Event('drop', { bubbles: true });
       Object.assign(dropEvent, {
         preventDefault: vi.fn(),
@@ -275,10 +313,12 @@ describe('FlowCanvas - Drag and Drop', () => {
         clientY: pos.y,
       });
 
-      reactFlowElement.dispatchEvent(dropEvent);
+      await act(async () => {
+        reactFlowElement.dispatchEvent(dropEvent);
+      });
 
       const state = useFlowStore.getState();
       const addedNode = state.flow?.nodes[index + 1]; // +1 因为第一个是 entry 节点
       expect(addedNode?.position).toEqual(pos);
-    });
+    }
   });
