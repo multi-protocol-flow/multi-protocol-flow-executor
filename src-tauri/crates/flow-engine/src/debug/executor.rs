@@ -31,6 +31,14 @@ use uuid::Uuid;
 /// 心跳发送间隔（毫秒）
 const HEARTBEAT_INTERVAL_MS: u64 = 5000;
 
+/// 跳过节点的结果
+struct SkipNodeResult {
+    /// 下一个节点 UUID
+    next_node_uuid: Option<String>,
+    /// 模拟输出（用于堆栈记录）
+    simulated_output: Option<serde_json::Value>,
+}
+
 /// 可调试的流程执行器
 pub struct DebuggableFlowExecutor {
     /// 流程文件路径（用于 CLI 相对路径解析）
@@ -278,9 +286,9 @@ impl DebuggableFlowExecutor {
             debug_state.current_node_uuid = Some(current_node_id.clone());
 
             // 检查是否需要暂停（断点或单步模式）
-            let should_pause = debug_state.has_breakpoint(&current_node_id)
-                || debug_state.is_stepping
-                && !debug_state.skip_breakpoints;
+            // 当 skip_breakpoints 为 true 时，不暂停（执行到底模式）
+            let should_pause = !debug_state.skip_breakpoints
+                && (debug_state.has_breakpoint(&current_node_id) || debug_state.is_stepping);
 
             if should_pause {
                 // 确定暂停原因：单步模式优先于断点
@@ -333,13 +341,58 @@ impl DebuggableFlowExecutor {
                     .await;
 
                 match command_result {
-                    Ok(Some(next_node_uuid)) => {
-                        // 跳过节点，直接跳转到指定的下一个节点
-                        debug_state.status = DebugStatus::Running;
-                        update_shared_state(debug_state);
-                        current_node_id = next_node_uuid;
-                        // 不执行当前节点，直接进入下一次循环
-                        continue;
+                    Ok(Some((next_node_uuid_opt, simulated_output))) => {
+                        // 跳过节点，创建堆栈条目并发送事件
+                        let node_end_ms = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap()
+                            .as_millis() as u64;
+
+                        // 创建跳过节点的堆栈条目
+                        let stack_entry = ExecutionStackEntry {
+                            node_uuid: node.uuid.clone(),
+                            node_name: node.name.clone(),
+                            node_type: format!("{:?}", node.node_type),
+                            started_at: node_end_ms,
+                            ended_at: Some(node_end_ms),
+                            input: Some(json!(context.variables.get_merged_variables())),
+                            output: simulated_output.clone(),
+                            success: true,
+                            error: Some("节点已跳过".to_string()),
+                            used_port_id: Some("skipped".to_string()),
+                        };
+                        debug_state.push_stack_entry(stack_entry);
+
+                        // 发送节点执行完成事件
+                        if let Err(e) = event_sender.send(DebugEvent::NodeExecuted {
+                            node_uuid: node.uuid.clone(),
+                            output: simulated_output,
+                        }) {
+                            log::error!("[调试 {}] 发送 NodeExecuted 事件失败 (跳过节点 {}): {}", context.flow_uuid, node.uuid, e);
+                        }
+
+                        // 检查是否有下一个节点
+                        if let Some(next_node_uuid) = next_node_uuid_opt {
+                            // 有下一个节点，跳转并继续
+                            debug_state.status = DebugStatus::Running;
+                            update_shared_state(debug_state);
+                            current_node_id = next_node_uuid;
+                            // 不执行当前节点，直接进入下一次循环
+                            continue;
+                        } else {
+                            // 没有下一个节点，结束流程
+                            debug_state.status = DebugStatus::Ended;
+                            debug_state.current_node_uuid = None;
+                            update_shared_state(debug_state);
+                            let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms);
+                            if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
+                                reason: EndReason::Completed,
+                                report: Some(report),
+                            }) {
+                                log::error!("[调试 {}] 发送 SessionEnded 事件失败: {}", flow.uuid, e);
+                            }
+                            return debug_state.clone();
+                        }
                     }
                     Ok(None) => {
                         // 继续执行当前节点
@@ -396,6 +449,7 @@ impl DebuggableFlowExecutor {
                 output: None,
                 success: false,
                 error: None,
+                used_port_id: None,
             };
             debug_state.push_stack_entry(stack_entry);
 
@@ -442,11 +496,45 @@ impl DebuggableFlowExecutor {
                         .unwrap()
                         .as_millis() as u64;
 
+                    // 根据节点类型和输出数据确定 used_port_id
+                    let used_port_id = match node.node_type {
+                        NodeType::Entry => Some("out".to_string()),
+                        NodeType::Http => Some("out".to_string()),
+                        NodeType::Conditional => {
+                            // Conditional 节点：根据输出数据判断条件结果
+                            output_data.as_ref().and_then(|data| {
+                                data.get("result").and_then(|v| v.as_bool()).map(|is_true| {
+                                    if is_true {
+                                        "true".to_string()
+                                    } else {
+                                        "false".to_string()
+                                    }
+                                })
+                            })
+                        }
+                        NodeType::WsConnect => {
+                            // WsConnect 节点：根据连接成功与否返回 true 或 false 端口
+                            output_data.as_ref().and_then(|data| {
+                                data.get("connected").and_then(|v| v.as_bool()).map(|connected| {
+                                    if connected {
+                                        "true".to_string()
+                                    } else {
+                                        "false".to_string()
+                                    }
+                                })
+                            })
+                        }
+                        NodeType::WsSendWait | NodeType::WsClose => {
+                            Some("out".to_string())
+                        }
+                    };
+
                     debug_state.update_last_stack_entry(
                         node_end_ms,
                         output_data.clone(),
                         true,
                         None,
+                        used_port_id,
                     );
 
                     // 发送节点执行完成事件
@@ -493,8 +581,54 @@ impl DebuggableFlowExecutor {
                         .unwrap()
                         .as_millis() as u64;
 
-                    debug_state.update_last_stack_entry(node_end_ms, None, false, Some(error.clone()));
+                    // 发送节点执行完成事件（失败）
+                    if let Err(e) = event_sender.send(DebugEvent::NodeExecuted {
+                        node_uuid: node.uuid.clone(),
+                        output: None,
+                    }) {
+                        log::error!("[调试 {}] 发送 NodeExecuted 事件失败 (节点 {} 失败): {}", context.flow_uuid, node.uuid, e);
+                    }
 
+                    // 检查节点是否支持 false 端口，以及是否有 false 端口的连接
+                    let supports_false_port = matches!(
+                        node.node_type,
+                        NodeType::WsConnect | NodeType::WsSendWait | NodeType::WsClose
+                    );
+
+                    let false_port_next_node = if supports_false_port {
+                        // 查找 false 端口的连接
+                        flow.connections
+                            .iter()
+                            .find(|conn| {
+                                conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
+                            })
+                            .map(|conn| conn.target_node_uuid.clone())
+                    } else {
+                        None
+                    };
+
+                    // 更新堆栈条目，根据是否有 false 端口连接设置 used_port_id
+                    let used_port_id = if false_port_next_node.is_some() {
+                        Some("false".to_string())
+                    } else {
+                        None
+                    };
+                    debug_state.update_last_stack_entry(node_end_ms, None, false, Some(error.clone()), used_port_id);
+
+                    if let Some(next_node_uuid) = false_port_next_node {
+                        // 有 false 端口连接，继续执行 false 分支
+                        log::info!(
+                            "[调试 {}] 节点 {} 执行失败，但有 false 端口连接，继续执行节点 {}",
+                            context.flow_uuid,
+                            node.name,
+                            next_node_uuid
+                        );
+
+                        current_node_id = next_node_uuid;
+                        continue;
+                    }
+
+                    // 没有 false 端口连接或节点不支持，结束调试
                     // 发送错误事件
                     if let Err(e) = event_sender.send(DebugEvent::Error {
                         message: error.clone(),
@@ -537,6 +671,12 @@ impl DebuggableFlowExecutor {
     }
 
     /// 等待调试命令
+    /// 
+    /// 返回值：
+    /// - `Ok(Some((Some(next_uuid), output)))`：跳过节点，跳转到下一个节点
+    /// - `Ok(Some((None, output)))`：跳过节点，没有下一个节点，结束流程
+    /// - `Ok(None)`：继续执行当前节点
+    /// - `Err(msg)`：错误或用户终止
     #[allow(clippy::too_many_arguments)]
     async fn wait_for_command(
         &self,
@@ -548,7 +688,7 @@ impl DebuggableFlowExecutor {
         event_sender: &mpsc::UnboundedSender<DebugEvent>,
         command_receiver: &mut mpsc::UnboundedReceiver<DebugCommand>,
         flow: &Flow,
-    ) -> Result<Option<String>, String> {
+    ) -> Result<Option<(Option<String>, Option<serde_json::Value>)>, String> {
         while let Some(command) = command_receiver.recv().await {
             match command {
                 DebugCommand::Continue => {
@@ -571,7 +711,7 @@ impl DebuggableFlowExecutor {
                     // 重置单步模式，跳过后继续执行到下一个断点
                     debug_state.is_stepping = false;
                     debug_state.skip_breakpoints = false;
-                    return self
+                    let result = self
                         .handle_skip_node(
                             debug_state,
                             current_node,
@@ -579,9 +719,10 @@ impl DebuggableFlowExecutor {
                             connections,
                             selected_port,
                             simulated_output,
-                            event_sender,
                         )
-                        .await;
+                        .await?;
+                    // 如果有下一个节点，返回 Some；否则返回 None（表示跳过节点并结束流程）
+                    return Ok(Some((result.next_node_uuid, result.simulated_output)));
                 }
                 DebugCommand::RunToEnd => {
                     // 执行到底
@@ -634,7 +775,6 @@ impl DebuggableFlowExecutor {
     }
 
     /// 处理跳过节点
-    #[allow(clippy::too_many_arguments)]
     async fn handle_skip_node(
         &self,
         debug_state: &mut DebugSessionState,
@@ -643,8 +783,15 @@ impl DebuggableFlowExecutor {
         connections: &[Connection],
         selected_port: Option<String>,
         simulated_output: Option<serde_json::Value>,
-        event_sender: &mpsc::UnboundedSender<DebugEvent>,
-    ) -> Result<Option<String>, String> {
+    ) -> Result<SkipNodeResult, String> {
+        log::info!(
+            "[调试 {}] 处理跳过节点: {} ({}), selected_port: {:?}",
+            context.flow_uuid,
+            current_node.name,
+            current_node.uuid,
+            selected_port
+        );
+
         // 如果有模拟输出，注入到变量池
         if let Some(ref output) = simulated_output {
             if let Some(obj) = output.as_object() {
@@ -657,53 +804,52 @@ impl DebuggableFlowExecutor {
             }
         }
 
-        // 记录跳过操作的时间戳
-        let node_end_ms = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
-
-        // 检查是否已经为当前节点创建了堆栈条目，避免重复创建
-        let already_has_entry = debug_state
-            .execution_stack
-            .last()
-            .map(|entry| entry.node_uuid == current_node.uuid)
-            .unwrap_or(false);
-
-        if !already_has_entry {
-            // 创建跳过节点的堆栈条目
-            // 这是必要的，因为跳过的节点没有经过正常的执行流程（不会走到 execute_node 那里创建堆栈条目）
-            let stack_entry = ExecutionStackEntry {
-                node_uuid: current_node.uuid.clone(),
-                node_name: current_node.name.clone(),
-                node_type: format!("{:?}", current_node.node_type),
-                started_at: node_end_ms, // 跳过操作的开始和结束时间相同
-                ended_at: Some(node_end_ms),
-                input: Some(json!(context.variables.get_merged_variables())),
-                output: simulated_output.clone(),
-                success: true,
-                error: Some("节点已跳过".to_string()),
-            };
-            debug_state.push_stack_entry(stack_entry);
-        }
-
-        // 发送节点执行完成事件
-        if let Err(e) = event_sender.send(DebugEvent::NodeExecuted {
-            node_uuid: current_node.uuid.clone(),
-            output: simulated_output,
-        }) {
-            log::error!("[调试] 发送 NodeExecuted 事件失败 (跳过节点 {}): {}", current_node.uuid, e);
-        }
-
         // 根据 selected_port 查找下一个节点
         let next_node_uuid = if let Some(port) = selected_port {
             // 根据指定的输出端口查找连接
-            connections
+            log::info!(
+                "[调试 {}] 查找连接: source_node_uuid={}, source_port_id={}",
+                context.flow_uuid,
+                current_node.uuid,
+                port
+            );
+            
+            // 打印所有连接用于调试
+            for conn in connections {
+                log::info!(
+                    "[调试 {}] 连接: {} -> {} (port: {} -> {})",
+                    context.flow_uuid,
+                    conn.source_node_uuid,
+                    conn.target_node_uuid,
+                    conn.source_port_id,
+                    conn.target_port_id
+                );
+            }
+            
+            let found = connections
                 .iter()
                 .find(|conn| {
                     conn.source_node_uuid == current_node.uuid && conn.source_port_id == port
                 })
-                .map(|conn| conn.target_node_uuid.clone())
+                .map(|conn| {
+                    log::info!(
+                        "[调试 {}] 找到匹配的连接，目标节点: {}",
+                        context.flow_uuid,
+                        conn.target_node_uuid
+                    );
+                    conn.target_node_uuid.clone()
+                });
+            
+            if found.is_none() {
+                log::warn!(
+                    "[调试 {}] 未找到匹配的连接: source_node_uuid={}, source_port_id={}",
+                    context.flow_uuid,
+                    current_node.uuid,
+                    port
+                );
+            }
+            
+            found
         } else {
             // 没有指定端口，使用第一个连接（默认行为）
             connections
@@ -712,7 +858,16 @@ impl DebuggableFlowExecutor {
                 .map(|conn| conn.target_node_uuid.clone())
         };
 
-        Ok(next_node_uuid)
+        log::info!(
+            "[调试 {}] 跳过节点结果: next_node_uuid={:?}",
+            context.flow_uuid,
+            next_node_uuid
+        );
+
+        Ok(SkipNodeResult {
+            next_node_uuid,
+            simulated_output,
+        })
     }
 
     /// 执行单个节点
@@ -846,12 +1001,8 @@ impl DebuggableFlowExecutor {
                     ExecutionStatus::Failed
                 };
 
-                // 根据 used_port_id 判断（对于跳过的节点，设置特殊标记）
-                let used_port_id = if status == ExecutionStatus::Skipped {
-                    Some("skipped".to_string())
-                } else {
-                    Some("out".to_string())
-                };
+                // 使用 entry 中的 used_port_id
+                let used_port_id = entry.used_port_id.clone();
 
                 // 处理错误信息
                 let error_detail = if status == ExecutionStatus::Skipped {
@@ -1144,6 +1295,513 @@ mod tests {
         assert!(
             matches!(pause_reasons[1], PauseReason::StepComplete { .. }),
             "第二次暂停应该是单步完成原因，而不是断点"
+        );
+    }
+
+    /// 测试跳过节点时堆栈条目唯一性
+    ///
+    /// Bug 场景：入口节点设置断点，点击"跳过"后，堆栈中应该只有一个入口节点条目
+    #[tokio::test]
+    async fn test_skip_node_single_stack_entry() {
+        // 创建一个有两个节点的流程：Entry -> Entry
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: Some(true), // 第一个节点有断点
+        };
+
+        let second_node = Node {
+            uuid: format!("second-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "第二个节点".to_string(),
+            position: NodePosition { x: 200.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let connection = Connection {
+            id: format!("conn-{}", flow_id),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: second_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试跳过节点堆栈".to_string(),
+            nodes: vec![start_node.clone(), second_node.clone()],
+            connections: vec![connection],
+        };
+
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        // 启动调试会话
+        let executor = DebuggableFlowExecutor::new();
+        let flow_clone = flow.clone();
+        let start_node_uuid = start_node.uuid.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(
+                    &flow_clone,
+                    None,
+                    vec![start_node_uuid],
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
+                .await
+        });
+
+        // 处理事件循环
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::PausedAtNode { node_uuid, .. } => {
+                            // 如果是第一个节点（断点暂停），发送 SkipNode 命令
+                            if node_uuid == start_node.uuid {
+                                let _ = command_sender.send(DebugCommand::SkipNode {
+                                    selected_port: Some("output".to_string()),
+                                    simulated_output: Some(json!({"test": "value"})),
+                                });
+                            } else if node_uuid == second_node.uuid {
+                                // 如果是第二个节点，发送继续命令
+                                let _ = command_sender.send(DebugCommand::Continue);
+                            }
+                        }
+                        DebugEvent::SessionEnded { .. } => {
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(5)) => {
+                    panic!("测试超时");
+                }
+            }
+        }
+
+        // 等待调试会话完成并获取最终状态
+        let result = handle.await;
+        assert!(result.is_ok());
+        let final_state = result.unwrap();
+
+        // 【关键断言】验证堆栈中只有一个 start_node 条目
+        let start_node_entries: Vec<_> = final_state.execution_stack
+            .iter()
+            .filter(|entry| entry.node_uuid == start_node.uuid)
+            .collect();
+
+        assert_eq!(
+            start_node_entries.len(),
+            1,
+            "堆栈中应该只有一个入口节点条目，但实际有 {} 个: {:?}",
+            start_node_entries.len(),
+            start_node_entries
+        );
+    }
+
+    /// 测试正常执行入口节点时初始变量被注入
+    ///
+    /// 对比测试：正常执行入口节点时，初始变量应该被注入
+    #[tokio::test]
+    async fn test_execute_entry_node_with_initial_variables() {
+        use crate::node_config::EntryConfig;
+        use crate::variable::InitialVariable;
+
+        // 创建一个有初始变量的入口节点
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::Entry(EntryConfig {
+                initial_variables: vec![
+                    InitialVariable {
+                        name: "test_var".to_string(),
+                        value: json!("initial_value"),
+                        description: None,
+                    },
+                ],
+            }),
+            ports: None,
+            has_breakpoint: Some(true), // 设置断点，以便暂停
+        };
+
+        let second_node = Node {
+            uuid: format!("second-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "第二个节点".to_string(),
+            position: NodePosition { x: 200.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: Some(true), // 第二个节点也设置断点
+        };
+
+        let connection = Connection {
+            id: format!("conn-{}", flow_id),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: second_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试执行入口节点".to_string(),
+            nodes: vec![start_node.clone(), second_node.clone()],
+            connections: vec![connection],
+        };
+
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        // 启动调试会话（两个节点都设置断点）
+        let executor = DebuggableFlowExecutor::new();
+        let flow_clone = flow.clone();
+        let start_node_uuid = start_node.uuid.clone();
+        let second_node_uuid = second_node.uuid.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(
+                    &flow_clone,
+                    None,
+                    vec![start_node_uuid, second_node_uuid], // 两个节点都有断点
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
+                .await
+        });
+
+        // 处理事件循环
+        let mut paused_count = 0;
+        let mut second_node_variables: Option<HashMap<String, serde_json::Value>> = None;
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::PausedAtNode { node_uuid, variables, .. } => {
+                            paused_count += 1;
+                            // 第一个节点暂停时，发送继续命令（正常执行）
+                            if node_uuid == start_node.uuid {
+                                let _ = command_sender.send(DebugCommand::Continue);
+                            } else if node_uuid == second_node.uuid {
+                                // 第二个节点暂停时，记录变量并发送继续命令
+                                second_node_variables = Some(variables);
+                                let _ = command_sender.send(DebugCommand::Continue);
+                            }
+                        }
+                        DebugEvent::SessionEnded { .. } => {
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(5)) => {
+                    panic!("测试超时");
+                }
+            }
+        }
+
+        // 等待调试会话完成并获取最终状态
+        let result = handle.await;
+        assert!(result.is_ok());
+        let final_state = result.unwrap();
+
+        // 【关键断言1】验证暂停了两次（入口节点和第二个节点）
+        assert_eq!(paused_count, 2, "应该暂停两次");
+
+        // 【关键断言2】验证在第二个节点暂停时，test_var 变量已存在（因为正常执行了入口节点）
+        if let Some(vars) = second_node_variables {
+            assert!(
+                vars.contains_key("test_var"),
+                "在第二个节点暂停时，初始变量 'test_var' 应该已存在（入口节点已执行），但变量池为: {:?}",
+                vars
+            );
+        }
+
+        // 【关键断言3】验证最终状态中 test_var 变量存在
+        assert!(
+            final_state.variables.contains_key("test_var"),
+            "正常执行入口节点后，初始变量 'test_var' 应该存在，但变量池为: {:?}",
+            final_state.variables
+        );
+
+        // 【关键断言4】验证变量值正确
+        assert_eq!(
+            final_state.variables.get("test_var"),
+            Some(&json!("initial_value")),
+            "变量值应该是 'initial_value'"
+        );
+    }
+
+    /// 测试跳过入口节点时初始变量不被注入
+    ///
+    /// Bug 场景：入口节点有 initial_variables，用户点击"跳过"后，初始变量不应该被注入到上下文中
+    #[tokio::test]
+    async fn test_skip_entry_node_no_initial_variables() {
+        use crate::node_config::EntryConfig;
+        use crate::variable::InitialVariable;
+
+        // 创建一个有初始变量的入口节点
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::Entry(EntryConfig {
+                initial_variables: vec![
+                    InitialVariable {
+                        name: "test_var".to_string(),
+                        value: json!("initial_value"),
+                        description: None,
+                    },
+                ],
+            }),
+            ports: None,
+            has_breakpoint: Some(true), // 设置断点，以便暂停
+        };
+
+        let second_node = Node {
+            uuid: format!("second-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "第二个节点".to_string(),
+            position: NodePosition { x: 200.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let connection = Connection {
+            id: format!("conn-{}", flow_id),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: second_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试跳过入口节点".to_string(),
+            nodes: vec![start_node.clone(), second_node.clone()],
+            connections: vec![connection],
+        };
+
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        // 启动调试会话
+        let executor = DebuggableFlowExecutor::new();
+        let flow_clone = flow.clone();
+        let start_node_uuid = start_node.uuid.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(
+                    &flow_clone,
+                    None,
+                    vec![start_node_uuid],
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
+                .await
+        });
+
+        // 处理事件循环
+        let mut paused_variables: Option<HashMap<String, serde_json::Value>> = None;
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::PausedAtNode { node_uuid, variables, .. } => {
+                            // 如果是第一个节点（断点暂停），记录变量并发送 SkipNode 命令
+                            if node_uuid == start_node.uuid {
+                                paused_variables = Some(variables);
+                                // 【关键】不提供 simulated_output，模拟真实场景
+                                let _ = command_sender.send(DebugCommand::SkipNode {
+                                    selected_port: Some("output".to_string()),
+                                    simulated_output: None, // 不提供模拟输出
+                                });
+                            } else if node_uuid == second_node.uuid {
+                                // 如果是第二个节点，发送继续命令
+                                let _ = command_sender.send(DebugCommand::Continue);
+                            }
+                        }
+                        DebugEvent::SessionEnded { .. } => {
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(5)) => {
+                    panic!("测试超时");
+                }
+            }
+        }
+
+        // 等待调试会话完成并获取最终状态
+        let result = handle.await;
+        assert!(result.is_ok());
+        let final_state = result.unwrap();
+
+        // 【关键断言1】验证入口节点在暂停时变量为空（因为还没执行）
+        if let Some(vars) = paused_variables {
+            assert!(
+                !vars.contains_key("test_var"),
+                "入口节点暂停时，初始变量不应该已经被注入，但发现了: {:?}",
+                vars
+            );
+        }
+
+        // 【关键断言2】验证最终状态中 test_var 变量不存在（因为跳过了节点）
+        assert!(
+            !final_state.variables.contains_key("test_var"),
+            "跳过入口节点后，初始变量 'test_var' 不应该存在，但发现了: {:?}",
+            final_state.variables
+        );
+
+        // 【关键断言3】验证堆栈中入口节点被标记为"已跳过"
+        let start_node_entry = final_state.execution_stack
+            .iter()
+            .find(|entry| entry.node_uuid == start_node.uuid);
+        
+        assert!(
+            start_node_entry.is_some(),
+            "堆栈中应该有入口节点条目"
+        );
+        
+        let entry = start_node_entry.unwrap();
+        assert_eq!(
+            entry.error,
+            Some("节点已跳过".to_string()),
+            "入口节点应该被标记为'已跳过'，但实际错误信息为: {:?}",
+            entry.error
+        );
+    }
+
+    /// 测试跳过没有后续节点的入口节点
+    ///
+    /// Bug 场景：入口节点没有后续连接，用户点击"跳过"后，应该结束流程而不是执行入口节点
+    #[tokio::test]
+    async fn test_skip_entry_node_no_next_node() {
+        use crate::node_config::EntryConfig;
+        use crate::variable::InitialVariable;
+
+        // 创建一个有初始变量但没有后续连接的入口节点
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::Entry(EntryConfig {
+                initial_variables: vec![
+                    InitialVariable {
+                        name: "test_var".to_string(),
+                        value: json!("initial_value"),
+                        description: None,
+                    },
+                ],
+            }),
+            ports: None,
+            has_breakpoint: Some(true), // 设置断点，以便暂停
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试跳过没有后续节点的入口节点".to_string(),
+            nodes: vec![start_node.clone()],
+            connections: vec![], // 没有连接
+        };
+
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        // 启动调试会话
+        let executor = DebuggableFlowExecutor::new();
+        let flow_clone = flow.clone();
+        let start_node_uuid = start_node.uuid.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(
+                    &flow_clone,
+                    None,
+                    vec![start_node_uuid],
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
+                .await
+        });
+
+        // 处理事件循环
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::PausedAtNode { node_uuid, .. } => {
+                            // 入口节点暂停时，发送 SkipNode 命令
+                            if node_uuid == start_node.uuid {
+                                let _ = command_sender.send(DebugCommand::SkipNode {
+                                    selected_port: Some("output".to_string()),
+                                    simulated_output: None,
+                                });
+                            }
+                        }
+                        DebugEvent::SessionEnded { .. } => {
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(5)) => {
+                    panic!("测试超时");
+                }
+            }
+        }
+
+        // 等待调试会话完成并获取最终状态
+        let result = handle.await;
+        assert!(result.is_ok());
+        let final_state = result.unwrap();
+
+        // 【关键断言1】验证最终状态中 test_var 变量不存在（因为跳过了节点，没有执行）
+        assert!(
+            !final_state.variables.contains_key("test_var"),
+            "跳过入口节点后，初始变量 'test_var' 不应该存在，但发现了: {:?}",
+            final_state.variables
+        );
+
+        // 【关键断言2】验证堆栈中只有一个入口节点条目
+        assert_eq!(
+            final_state.execution_stack.len(),
+            1,
+            "堆栈中应该只有一个入口节点条目，但实际有 {} 个",
+            final_state.execution_stack.len()
+        );
+
+        // 【关键断言3】验证入口节点被标记为"已跳过"
+        let entry = &final_state.execution_stack[0];
+        assert_eq!(
+            entry.error,
+            Some("节点已跳过".to_string()),
+            "入口节点应该被标记为'已跳过'，但实际错误信息为: {:?}",
+            entry.error
         );
     }
 }

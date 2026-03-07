@@ -94,10 +94,9 @@ impl NodeExecutor for WsSendWaitExecutor {
 
         // 4. 检查连接是否存在且状态为 Connected
         let connection_status = self.ws_manager.get_status(&connection_id);
-        let (port, output_data) = match connection_status {
+        match connection_status {
             Some(crate::websocket_manager::ConnectionStatus::Connected) => {
                 // 连接正常，继续执行
-                ("true", None)
             }
             Some(status) => {
                 let error_msg = format!(
@@ -124,15 +123,8 @@ impl NodeExecutor for WsSendWaitExecutor {
                     })
                     .await;
 
-                // 返回 false 端口和错误数据
-                let error_data = json!({
-                    "connection_id": connection_id,
-                    "wait_timed_out": false,
-                    "sent": null,
-                    "message": null,
-                    "error": error_msg,
-                });
-                ("false", Some(error_data))
+                // 返回错误
+                return Err(error_msg);
             }
             None => {
                 let error_msg = format!("连接不存在: {}", connection_id);
@@ -152,35 +144,9 @@ impl NodeExecutor for WsSendWaitExecutor {
                     })
                     .await;
 
-                // 返回 false 端口和错误数据
-                let error_data = json!({
-                    "connection_id": connection_id,
-                    "wait_timed_out": false,
-                    "sent": null,
-                    "message": null,
-                    "error": error_msg,
-                });
-                ("false", Some(error_data))
+                // 返回错误
+                return Err(error_msg);
             }
-        };
-
-        // 如果连接检查失败，直接返回
-        if port == "false" {
-            let filtered: Vec<String> = connections
-                .iter()
-                .filter(|conn| {
-                    conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
-                })
-                .map(|conn| conn.target_node_uuid.clone())
-                .collect();
-            
-            // 如果没有连接，返回端口名称（用于测试）
-            let next_node_ids = if filtered.is_empty() {
-                vec![port.to_string()]
-            } else {
-                filtered
-            };
-            return Ok((next_node_ids, output_data));
         }
 
         // 5. 发送消息
@@ -294,16 +260,8 @@ impl NodeExecutor for WsSendWaitExecutor {
                     })
                     .await;
 
-                // 返回 false 端口和错误数据
-                let error_data = json!({
-                    "connection_id": connection_id,
-                    "wait_timed_out": false,
-                    "sent": null,
-                    "message": null,
-                    "error": e,
-                });
-
-                ("false", Some(error_data))
+                // 返回错误
+                return Err(e);
             }
         };
 

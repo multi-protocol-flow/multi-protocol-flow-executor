@@ -193,12 +193,18 @@ pub fn save_report(report: &FlowExecutionReport, reports_dir: &Path) -> Result<(
 /// - `uuid`: 报告 UUID
 /// - `reports_dir`: 存储目录路径
 pub fn load_report(uuid: &str, reports_dir: &Path) -> Result<FlowExecutionReport, String> {
-    let file_path = reports_dir.join(format!("{}.json", uuid));
+    // 尝试两种文件名格式：普通模式和调试模式
+    let normal_path = reports_dir.join(format!("{}.json", uuid));
+    let debug_path = reports_dir.join(format!("debug_{}.json", uuid));
     
-    // 检查文件是否存在
-    if !file_path.try_exists().map_err(|e| format!("检查报告文件失败: {}", e))? {
+    // 确定使用哪个文件路径
+    let file_path = if normal_path.try_exists().map_err(|e| format!("检查报告文件失败: {}", e))? {
+        normal_path
+    } else if debug_path.try_exists().map_err(|e| format!("检查报告文件失败: {}", e))? {
+        debug_path
+    } else {
         return Err(format!("报告文件不存在: {}", uuid));
-    }
+    };
     
     // 读取文件内容
     let mut file = File::open(&file_path)
@@ -268,12 +274,18 @@ pub fn list_reports(reports_dir: &Path) -> Result<Vec<ReportMetadata>, String> {
 /// - `uuid`: 报告 UUID
 /// - `reports_dir`: 存储目录路径
 pub fn delete_report(uuid: &str, reports_dir: &Path) -> Result<(), String> {
-    let file_path = reports_dir.join(format!("{}.json", uuid));
+    // 尝试两种文件名格式：普通模式和调试模式
+    let normal_path = reports_dir.join(format!("{}.json", uuid));
+    let debug_path = reports_dir.join(format!("debug_{}.json", uuid));
     
-    // 检查文件是否存在
-    if !file_path.try_exists().map_err(|e| format!("检查报告文件失败: {}", e))? {
+    // 确定使用哪个文件路径
+    let file_path = if normal_path.try_exists().map_err(|e| format!("检查报告文件失败: {}", e))? {
+        normal_path
+    } else if debug_path.try_exists().map_err(|e| format!("检查报告文件失败: {}", e))? {
+        debug_path
+    } else {
         return Err(format!("报告文件不存在: {}", uuid));
-    }
+    };
     
     // 删除文件
     fs::remove_file(&file_path)

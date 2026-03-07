@@ -182,27 +182,31 @@ pub enum DebugEvent {
 // 执行堆栈条目
 // ============================================================================
 
-/// 执行堆栈条目
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    /// 执行堆栈条目
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
     pub struct ExecutionStackEntry {
-    pub node_uuid: String,
-    /// 节点名称
-    pub node_name: String,
-    /// 节点类型
-    pub node_type: String,
-    /// 执行开始时间（Unix 时间戳，毫秒）
-    pub started_at: u64,
-    /// 执行结束时间（Unix 时间戳，毫秒）
-    pub ended_at: Option<u64>,
-    /// 输入数据
-    pub input: Option<serde_json::Value>,
-    /// 输出数据
-    pub output: Option<serde_json::Value>,
-    /// 是否执行成功
-    pub success: bool,
-    /// 错误信息（如果失败）
-    pub error: Option<String>,
-}
+        /// 节点 UUID
+        pub node_uuid: String,
+        /// 节点名称
+        pub node_name: String,
+        /// 节点类型
+        pub node_type: String,
+        /// 执行开始时间（Unix 时间戳，毫秒）
+        pub started_at: u64,
+        /// 执行结束时间（Unix 时间戳，毫秒）
+        pub ended_at: Option<u64>,
+        /// 输入数据
+        pub input: Option<serde_json::Value>,
+        /// 输出数据
+        pub output: Option<serde_json::Value>,
+        /// 是否执行成功
+        pub success: bool,
+        /// 错误信息（如果失败）
+        pub error: Option<String>,
+        /// 实际使用的输出端口 ID（可选）
+        #[serde(default)]
+        pub used_port_id: Option<String>,
+    }
 
 // ============================================================================
 // 调试会话状态
@@ -291,12 +295,14 @@ impl DebugSessionState {
         output: Option<serde_json::Value>,
         success: bool,
         error: Option<String>,
+        used_port_id: Option<String>,
     ) {
         if let Some(last_entry) = self.execution_stack.last_mut() {
             last_entry.ended_at = Some(ended_at);
             last_entry.output = output;
             last_entry.success = success;
             last_entry.error = error;
+            last_entry.used_port_id = used_port_id;
         }
     }
 
@@ -408,6 +414,7 @@ mod tests {
             output: Some(json!({"status": 200})),
             success: true,
             error: None,
+            used_port_id: Some("out".to_string()),
         };
 
         let json = serde_json::to_string(&entry).unwrap();
@@ -474,12 +481,13 @@ mod tests {
             output: None,
             success: true,
             error: None,
+            used_port_id: Some("out".to_string()),
         };
 
         state.push_stack_entry(entry1);
         assert_eq!(state.execution_stack.len(), 1);
 
-        state.update_last_stack_entry(1010, Some(json!({"result": "ok"})), true, None);
+        state.update_last_stack_entry(1010, Some(json!({"result": "ok"})), true, None, Some("out".to_string()));
         assert_eq!(state.execution_stack[0].ended_at, Some(1010));
         assert_eq!(state.execution_stack[0].output, Some(json!({"result": "ok"})));
     }
