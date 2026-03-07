@@ -52,6 +52,7 @@ fn create_file_upload_node(uuid: &str, url: &str, form_fields: Vec<FormField>) -
             output_mappings: vec![],
         }),
         ports: None,
+        has_breakpoint: None
     }
 }
 
@@ -75,6 +76,7 @@ fn create_timeout_node(uuid: &str, url: &str, timeout_ms: u64) -> Node {
             output_mappings: vec![],
         }),
         ports: None,
+        has_breakpoint: None,
     }
 }
 
@@ -393,6 +395,7 @@ async fn test_timeout_config_default() {
             output_mappings: vec![],
         }),
         ports: None,
+        has_breakpoint: None,
     };
 
     let mut context = create_context("test-flow-default-timeout");

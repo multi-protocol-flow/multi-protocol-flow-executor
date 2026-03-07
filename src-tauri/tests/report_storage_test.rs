@@ -27,6 +27,7 @@ fn create_test_report(uuid: &str, flow_name: &str) -> flow_engine::report::FlowE
             completion_rate: Some(1.0),
         },
         flow_error: None,
+        execution_mode: flow_engine::report::ExecutionMode::Normal,
     }
 }
 

@@ -730,14 +730,21 @@ fn test_ws_full_flow_wait_response_structure() {
     let connections = flow_json["connections"].as_array().expect("Flow must have connections");
     assert_eq!(connections.len(), 3, "Flow should have 3 connections");
 
-    // 验证所有连接都使用 true 端口
-    for conn in connections {
-        let source_port = conn["source_port_id"].as_str().unwrap();
-        assert_eq!(
-            source_port, "true",
-            "Connection should use 'true' port for successful WebSocket operations"
-        );
-    }
+    // 验证连接端口：entry 使用 output，WebSocket 操作成功使用 true
+    // Entry → WS Connect
+    let conn1 = &connections[0];
+    assert_eq!(conn1["source_node_uuid"].as_str().unwrap(), "entry-full-wait");
+    assert_eq!(conn1["source_port_id"].as_str().unwrap(), "output");
+
+    // WS Connect → WS Send+Wait
+    let conn2 = &connections[1];
+    assert_eq!(conn2["source_node_uuid"].as_str().unwrap(), "ws-connect-full-wait");
+    assert_eq!(conn2["source_port_id"].as_str().unwrap(), "true");
+
+    // WS Send+Wait → WS Close
+    let conn3 = &connections[2];
+    assert_eq!(conn3["source_node_uuid"].as_str().unwrap(), "ws-send-wait-full-wait");
+    assert_eq!(conn3["source_port_id"].as_str().unwrap(), "true");
 }
 
 /// 测试 WebSocket 条件匹配流程结构
