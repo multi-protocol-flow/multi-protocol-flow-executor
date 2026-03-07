@@ -6,11 +6,11 @@ import { Toaster } from '@/components/ui/sonner';
 
 import { LeftSidebarPanel } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
-import { NodeConfigPanel, SettingsPanel } from '@/components/panels';
+import { NodeConfigPanel, SettingsPanel, DebugPanel } from '@/components/panels';
 import { ExecutionReport, ExecutionHistory, ConsolePanel } from '@/components/execution';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
-import { useUIStore, useFlowStore } from '@/stores';
+import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, GripHorizontal, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -65,6 +65,9 @@ export function MainLayout() {
 
   const isDirty = useFlowStore((state) => state.isDirty);
   const flow = useFlowStore((state) => state.flow);
+
+  // Debug store values
+  const isDebugging = useDebugStore(selectIsDebugging);
 
   // Console store values
   const filter = useConsoleStore((state) => state.filter);
@@ -127,6 +130,13 @@ export function MainLayout() {
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  // 调试模式下自动打开并锁定右侧面板
+  useEffect(() => {
+    if (isDebugging && !isConfigPanelOpen) {
+      toggleConfigPanel();
+    }
+  }, [isDebugging, isConfigPanelOpen, toggleConfigPanel]);
 
   return (
     <div className="h-screen flex flex-col bg-white text-slate-900 overflow-hidden">
@@ -354,30 +364,38 @@ export function MainLayout() {
         >
           {isConfigPanelOpen && (
             <div className="h-full w-72 min-w-0 overflow-hidden">
-              {configPanelMode === 'settings' ? <SettingsPanel /> : <NodeConfigPanel />}
+              {isDebugging ? (
+                <DebugPanel />
+              ) : configPanelMode === 'settings' ? (
+                <SettingsPanel />
+              ) : (
+                <NodeConfigPanel />
+              )}
             </div>
           )}
         </aside>
 
-        {/* 右侧折叠按钮 */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleConfigPanel}
-          className={cn(
-            'absolute z-20 h-8 w-6 rounded-r-none rounded-l-lg top-[calc(50%-16px)]',
-            'bg-white hover:bg-slate-50 border border-r-0 border-border',
-            'transition-all duration-300 ease-out',
-            isConfigPanelOpen ? 'right-[288px]' : 'right-0'
-          )}
-          title={isConfigPanelOpen ? '收起配置面板' : '展开配置面板'}
-        >
-          {isConfigPanelOpen ? (
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-          ) : (
-            <ChevronLeft className="w-4 h-4 text-slate-400" />
-          )}
-        </Button>
+        {/* 右侧折叠按钮 - 调试模式下禁用 */}
+        {!isDebugging && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleConfigPanel}
+            className={cn(
+              'absolute z-20 h-8 w-6 rounded-r-none rounded-l-lg top-[calc(50%-16px)]',
+              'bg-white hover:bg-slate-50 border border-r-0 border-border',
+              'transition-all duration-300 ease-out',
+              isConfigPanelOpen ? 'right-[288px]' : 'right-0'
+            )}
+            title={isConfigPanelOpen ? '收起配置面板' : '展开配置面板'}
+          >
+            {isConfigPanelOpen ? (
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronLeft className="w-4 h-4 text-slate-400" />
+            )}
+          </Button>
+        )}
       </div>
 
       {/* ===== 执行报告弹窗 ===== */}

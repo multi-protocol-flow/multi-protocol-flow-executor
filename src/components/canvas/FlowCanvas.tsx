@@ -119,10 +119,12 @@ function FlowCanvasInner() {
     clearPendingAddNodeType,
     isDirty,
     markSaved,
+    focusNodeUuid,
+    clearFocusNode,
   } = useFlowStore();
   const { setConfigPanelOpen, setConfigPanelMode } = useUIStore();
 
-  const { screenToFlowPosition, fitView } = useReactFlow();
+  const { screenToFlowPosition, fitView, setCenter, getNode } = useReactFlow();
   
   // 画布容器引用（用于计算视口中心）
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -204,6 +206,24 @@ function FlowCanvasInner() {
 
     return () => clearTimeout(timeoutId);
   }, [isDirty, flow, markSaved]);
+
+  // 处理节点聚焦跳转（从调试面板点击跳转）
+  useEffect(() => {
+    if (!focusNodeUuid) return;
+
+    const node = getNode(focusNodeUuid);
+    if (node) {
+      // 跳转到节点位置，并放大
+      setCenter(node.position.x, node.position.y, {
+        zoom: 1.2,
+        duration: 300,
+      });
+      // 选中该节点
+      selectNode(focusNodeUuid);
+      // 清除聚焦状态
+      clearFocusNode();
+    }
+  }, [focusNodeUuid, getNode, setCenter, selectNode, clearFocusNode]);
 
   // 处理连接创建
   const onConnect = useCallback(

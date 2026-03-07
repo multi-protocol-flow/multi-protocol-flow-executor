@@ -1,6 +1,6 @@
 /**
  * 断点标记组件
- * 显示在节点右上角，用于设置/取消断点
+ * 显示在节点左上角，用于设置/取消断点
  */
 import { cn } from '@/lib/utils';
 
@@ -25,8 +25,8 @@ export function BreakpointMarker({ hasBreakpoint, onToggle }: BreakpointMarkerPr
         onToggle();
       }}
       className={cn(
-        // 位置：节点右上角
-        'absolute -top-1.5 -right-1.5',
+        // 位置：节点左上角
+        'absolute -top-1.5 -left-1.5',
         // 尺寸
         'w-4 h-4',
         // 形状
