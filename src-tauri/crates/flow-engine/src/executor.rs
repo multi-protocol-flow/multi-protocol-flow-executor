@@ -348,7 +348,18 @@ impl FlowExecutor {
                     // 根据节点类型设置 used_port_id
                     let used_port_id = match node.node_type {
                         NodeType::Entry => Some("out".to_string()),
-                        NodeType::Http => Some("out".to_string()),
+                        NodeType::Http => {
+                            // HTTP 节点：根据 success 字段判断使用哪个端口
+                            output_data.as_ref().and_then(|data| {
+                                data.get("success").and_then(|v| v.as_bool()).map(|is_success| {
+                                    if is_success {
+                                        "true".to_string()
+                                    } else {
+                                        "false".to_string()
+                                    }
+                                })
+                            })
+                        }
                         NodeType::Conditional => {
                             // Conditional 节点：根据输出数据判断条件结果
                             output_data.as_ref().and_then(|data| {
@@ -449,8 +460,17 @@ impl FlowExecutor {
                     let next_node_id = if !next_node_id_from_executor.is_empty() {
                         // 如果执行器返回了下一个节点 ID，使用它
                         Some(next_node_id_from_executor[0].clone())
+                    } else if matches!(node.node_type, NodeType::Http) {
+                        // HTTP 节点：如果执行器返回空列表，说明没有匹配的端口连接
+                        // 不使用 connection_map 回退，直接终止
+                        log::info!(
+                            "[流程 {}] HTTP 节点 {} 没有匹配的端口连接，执行完成",
+                            context.flow_uuid,
+                            node.name
+                        );
+                        None
                     } else {
-                        // 否则，使用连接映射查找下一个节点
+                        // 其他节点：使用连接映射查找下一个节点
                         connection_map.get(&current_node_id).and_then(|targets| {
                             if targets.is_empty() {
                                 None
@@ -543,11 +563,33 @@ impl FlowExecutor {
                     // 解析错误类型
                     let error_detail = parse_error_to_detail(&error);
                     
-                    // 根据节点类型设置 used_port_id
-                    let used_port_id = match node.node_type {
-                        NodeType::Entry => Some("out".to_string()),
-                        NodeType::Http => Some("out".to_string()),
-                        _ => None,
+                    // 检查节点是否支持 false 端口，以及是否有 false 端口的连接
+                    let supports_false_port = matches!(
+                        node.node_type,
+                        NodeType::WsConnect | NodeType::WsSendWait | NodeType::WsClose
+                    );
+                    
+                    let false_port_next_node = if supports_false_port {
+                        // 查找 false 端口的连接
+                        flow.connections
+                            .iter()
+                            .find(|conn| {
+                                conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
+                            })
+                            .map(|conn| conn.target_node_uuid.clone())
+                    } else {
+                        None
+                    };
+
+                    // 根据是否有 false 端口连接决定 used_port_id
+                    let used_port_id = if false_port_next_node.is_some() {
+                        Some("false".to_string())
+                    } else {
+                        match node.node_type {
+                            NodeType::Entry => Some("out".to_string()),
+                            NodeType::Http => Some("out".to_string()),
+                            _ => None,
+                        }
                     };
 
                     // 创建节点执行报告（Failed状态）
@@ -566,6 +608,19 @@ impl FlowExecutor {
                     };
                     node_reports.push(node_report);
                     executed_count += 1;
+
+                    // 如果有 false 端口连接，继续执行 false 分支
+                    if let Some(next_node_uuid) = false_port_next_node {
+                        log::info!(
+                            "[流程 {}] 节点 {} 执行失败，但有 false 端口连接，继续执行节点 {}",
+                            context.flow_uuid,
+                            node.name,
+                            next_node_uuid
+                        );
+                        
+                        current_node_id = next_node_uuid;
+                        continue;
+                    }
 
                     // 判断是否为致命错误
                     if error_detail.is_fatal() {
