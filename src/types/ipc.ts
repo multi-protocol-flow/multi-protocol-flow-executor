@@ -151,6 +151,11 @@ export interface DeleteNodeCommandOutput {
 // ============================================================================
 
 /**
+ * 执行模式
+ */
+export type ExecutionMode = 'normal' | 'debug';
+
+/**
  * 报告元数据（用于历史列表）
  */
 export interface ReportMetadata {
@@ -166,5 +171,7 @@ export interface ReportMetadata {
   timestamp: number;
   /** 执行时长（毫秒） */
   duration_ms: number;
+  /** 执行模式（正常/调试） */
+  execution_mode?: ExecutionMode;
 }
 
