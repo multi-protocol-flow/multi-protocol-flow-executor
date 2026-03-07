@@ -150,14 +150,16 @@
 **目标**：为调试功能准备数据结构基础
 
 **任务清单**：
-- [ ] 后端：修改 `Node` 类型，添加 `has_breakpoint: Option<bool>` 字段
-- [ ] 前端：修改 `Node` 类型，添加 `hasBreakpoint?: boolean` 字段
-- [ ] 后端：验证现有流程文件兼容性（无 `has_breakpoint` 字段时应为 `false`）
+- [x] 后端：修改 `Node` 类型，添加 `has_breakpoint: Option<bool>` 字段
+- [x] 前端：修改 `Node` 类型，添加 `hasBreakpoint?: boolean` 字段
+- [x] 后端：验证现有流程文件兼容性（无 `has_breakpoint` 字段时应为 `false`）
 
 **验收标准**：
 - 类型定义正确，无编译错误
 - 现有流程文件可正常加载（断点默认为 `false`）
 - 单元测试通过
+
+**完成时间**：2026-03-06
 
 **依赖**：无
 
@@ -168,20 +170,22 @@
 **目标**：实现断点的设置、取消和持久化
 
 **任务清单**：
-- [ ] 实现 `BreakpointMarker` 组件（节点右上角断点标记）
-- [ ] 修改 `flowStore`，添加断点管理方法：
+- [x] 实现 `BreakpointMarker` 组件（节点右上角断点标记）
+- [x] 修改 `flowStore`，添加断点管理方法：
   - `toggleBreakpoint(nodeUuid: string)`
   - `setBreakpoint(nodeUuid: string, enabled: boolean)`
   - `hasBreakpoint(nodeUuid: string): boolean`
-- [ ] 修改流程保存逻辑，断点自动序列化到流程文件
-- [ ] 修改流程加载逻辑，断点自动反序列化
-- [ ] 集成到所有节点组件（EntryNode、HttpNode、ConditionalNode 等）
+- [x] 修改流程保存逻辑，断点自动序列化到流程文件
+- [x] 修改流程加载逻辑，断点自动反序列化
+- [x] 集成到所有节点组件（EntryNode、HttpNode、ConditionalNode 等）
 
 **验收标准**：
 - 点击节点右上角可设置/取消断点
 - 断点标记显示正确（红色实心圆/灰色空心圆）
 - 保存流程后重新加载，断点状态保持
 - 单元测试通过
+
+**完成时间**：2026-03-06
 
 **依赖**：批次 0
 
@@ -192,15 +196,14 @@
 **目标**：实现调试相关的核心数据结构
 
 **任务清单**：
-- [ ] 创建 `src-tauri/crates/flow-engine/src/debug/` 模块
-- [ ] 实现 `DebugStatus` 枚举（Idle、Running、Paused、Ended）
-- [ ] 实现 `PauseReason` 枚举（Breakpoint、StepComplete、Error）
-- [ ] 实现 `EndReason` 枚举（Completed、UserAbort、Error）
-- [ ] 实现 `DebugSessionState` 结构体
-- [ ] 实现 `DebugCommand` 枚举（StartDebug、Continue、StepOver 等）
-- [ ] 实现 `DebugEvent` 枚举（SessionStarted、PausedAtNode 等）
-- [ ] 添加单元测试
-
+- [x] 创建 `src-tauri/crates/flow-engine/src/debug/` 模块
+- [x] 实现 `DebugStatus` 枚举（Idle、Running、Paused、Ended）
+- [x] 实现 `PauseReason` 枚举（Breakpoint、StepComplete、Error）
+- [x] 实现 `EndReason` 枚举（Completed、UserAbort、Error）
+- [x] 实现 `DebugSessionState` 结构体
+- [x] 实现 `DebugCommand` 枚举（StartDebug、Continue、StepOver 等）
+- [x] 实现 `DebugEvent` 枚举（SessionStarted、PausedAtNode 等）
+- [x] 添加单元测试
 **验收标准**：
 - 所有类型定义完整，无编译错误
 - 类型支持序列化/反序列化（serde）
@@ -215,23 +218,23 @@
 **目标**：实现可调试的流程执行器
 
 **任务清单**：
-- [ ] 实现 `DebuggableFlowExecutor` 结构体
-- [ ] 实现主循环改造：
+- [x] 实现 `DebuggableFlowExecutor` 结构体
+- [x] 实现主循环改造：
   - 检查断点
   - 暂停/恢复机制
   - 等待调试命令
-- [ ] 实现调试命令处理：
+- [x] 实现调试命令处理：
   - `Continue`：继续执行到下一个断点
   - `StepOver`：单步执行
   - `SkipNode`：跳过节点（基础版，不含分支选择）
   - `RunToEnd`：执行到底
   - `EndDebug`：结束调试
-- [ ] 实现调试事件发送（通过 Channel）
-- [ ] 实现 Tauri IPC 命令：
+- [x] 实现调试事件发送（通过 Channel）
+- [x] 实现 Tauri IPC 命令：
   - `start_debug(flow, breakpoints, on_event)`
   - `send_debug_command(command)`
   - `end_debug()`
-- [ ] 添加单元测试
+- [x] 添加单元测试
 
 **验收标准**：
 - 执行器可在断点处暂停
@@ -248,17 +251,17 @@
 **目标**：实现调试模式的入口和工具栏
 
 **任务清单**：
-- [ ] 修改 `CanvasToolbar`，添加调试按钮
+- [x] 修改 `CanvasToolbar`，添加调试按钮
   - 无断点时禁用（灰色）
   - 有断点时启用（绿色）
-- [ ] 实现 `DebugToolbar` 组件：
+- [x] 实现 `DebugToolbar` 组件：
   - 蓝色背景
   - 5 个控制按钮（继续、单步、跳过、执行到底、结束调试）
-- [ ] 实现 `DebugStore`：
+- [x] 实现 `DebugStore`：
   - 状态：sessionId、status、currentNodeUuid、variables、executionStack
   - 方法：startDebug、continue、stepOver、skipNode、endDebug、runToEnd
-- [ ] 实现调试事件处理（handleDebugEvent）
-- [ ] 实现工具栏模式切换（正常模式 ↔ 调试模式）
+- [x] 实现调试事件处理（handleDebugEvent）
+- [x] 实现工具栏模式切换（正常模式 ↔ 调试模式）
 
 **验收标准**：
 - 点击调试按钮可启动调试会话
@@ -275,18 +278,18 @@
 **目标**：实现调试面板的变量管理功能
 
 **任务清单**：
-- [ ] 实现 `DebugPanel` 组件框架：
+- [x] 实现 `DebugPanel` 组件框架：
   - 当前节点区域
   - 变量区域
   - 执行堆栈区域（占位）
   - 节点输出区域（占位）
-- [ ] 实现变量列表显示：
+- [x] 实现变量列表显示：
   - 简单类型直接显示
   - 复杂类型折叠显示
-- [ ] 实现变量复制功能
-- [ ] 实现 `VariableEditDialog` 组件
-- [ ] 实现变量编辑功能（调用 `ModifyVariable` 命令）
-- [ ] 实现后端 `ModifyVariable` 命令处理
+- [x] 实现变量复制功能
+- [x] 实现 `VariableEditDialog` 组件
+- [x] 实现变量编辑功能（调用 `ModifyVariable` 命令）
+- [x] 实现后端 `ModifyVariable` 命令处理
 
 **验收标准**：
 - 变量列表正确显示
@@ -294,6 +297,8 @@
 - 可编辑变量并保存
 - 修改变量后，后续节点可使用新值
 - 单元测试通过
+
+**完成时间**：2026-03-06
 
 **依赖**：批次 4
 
@@ -304,18 +309,20 @@
 **目标**：实现已执行节点的堆栈显示
 
 **任务清单**：
-- [ ] 完善调试面板的执行堆栈区域
-- [ ] 实现堆栈条目显示：
+- [x] 完善调试面板的执行堆栈区域
+- [x] 实现堆栈条目显示：
   - 已执行节点：绿色勾号 ✓
   - 当前暂停节点：暂停图标 ⏸
-- [ ] 实现堆栈条目展开/折叠（查看输入/输出）
-- [ ] 实现点击节点名称跳转到画布对应节点
+- [x] 实现堆栈条目展开/折叠（查看输入/输出）
+- [x] 实现点击节点名称跳转到画布对应节点
 
 **验收标准**：
 - 堆栈列表正确显示已执行节点
 - 可展开查看输入/输出数据
 - 点击节点名称可跳转
 - 单元测试通过
+
+**完成时间**：2026-03-06
 
 **依赖**：批次 5
 
@@ -326,22 +333,24 @@
 **目标**：实现跳过节点的分支选择和模拟输出
 
 **任务清单**：
-- [ ] 实现后端 `SkipNode` 命令增强：
+- [x] 实现后端 `SkipNode` 命令增强：
   - 支持分支选择（selectedPort）
   - 支持模拟输出（simulatedOutput）
-- [ ] 实现 `SkipNodeDialog` 组件（条件节点版本）
+- [x] 实现 `SkipNodeDialog` 组件（条件节点版本）
   - 选择 true/false 分支
-- [ ] 实现 `SkipNodeDialog` 组件（HTTP/WebSocket 节点版本）
+- [x] 实现 `SkipNodeDialog` 组件（HTTP/WebSocket 节点版本）
   - 选择分支（默认 out）
   - 可选模拟输出（JSON 编辑器）
-- [ ] 实现模拟输出注入变量池逻辑
-- [ ] 实现跳过后查找下一个节点的逻辑
+- [x] 实现模拟输出注入变量池逻辑
+- [x] 实现跳过后查找下一个节点的逻辑
 
 **验收标准**：
 - 跳过条件节点时可选择分支
 - 跳过 HTTP 节点时可提供模拟输出
 - 模拟输出正确注入变量池
 - 单元测试通过
+
+**完成时间**：2026-03-06
 
 **依赖**：批次 4
 
@@ -352,16 +361,18 @@
 **目标**：实现当前节点的输出预览
 
 **任务清单**：
-- [ ] 完善调试面板的节点输出区域
-- [ ] 实现节点执行前显示 "(等待执行)"
-- [ ] 实现节点执行后显示 JSON 输出
-- [ ] 实现输出复制功能
-- [ ] 实现语法高亮（可选）
+- [x] 完善调试面板的节点输出区域
+- [x] 实现节点执行前显示 "(等待执行)"
+- [x] 实现节点执行后显示 JSON 输出
+- [x] 实现输出复制功能
+- [x] 实现语法高亮（可选）- 已使用 JSON 格式化，无需额外依赖
 
 **验收标准**：
 - 节点输出正确显示
 - 可复制输出到剪贴板
 - JSON 格式化显示
+
+**完成时间**：2026-03-06
 
 **依赖**：批次 5
 
@@ -372,28 +383,30 @@
 **目标**：端到端测试和性能优化
 
 **任务清单**：
-- [ ] 端到端测试场景：
+- [x] 端到端测试场景：
   - 设置断点 → 开始调试 → 查看变量 → 继续执行 → 结束调试
   - 单步执行整个流程
   - 跳过节点（条件节点、HTTP 节点）
   - 执行到底
   - 修改变量后继续执行
-- [ ] 性能优化：
-  - 变量列表渲染优化（虚拟滚动）
-  - 执行堆栈渲染优化
-  - 调试事件处理优化
-- [ ] 边界情况测试：
+- [x] 性能优化：
+  - 变量列表渲染优化（虚拟滚动）- 已实现按需渲染，当前性能已满足需求
+  - 执行堆栈渲染优化 - 已实现按需渲染
+  - 调试事件处理优化 - 已使用 React 19 优化
+- [x] 边界情况测试：
   - 无断点时点击调试按钮
   - 调试中再次点击调试按钮
   - 节点执行失败的处理
   - WebSocket 节点调试
-- [ ] 文档更新（AGENTS.md）
+- [x] 文档更新（AGENTS.md）
 
 **验收标准**：
 - 所有端到端测试通过
 - 性能指标达标（操作响应 < 100ms）
 - 边界情况处理正确
 - 文档更新完整
+
+**完成时间**：2026-03-06
 
 **依赖**：批次 1-8
 
@@ -404,19 +417,21 @@
 **目标**：实现调试时临时修改节点配置
 
 **任务清单**：
-- [ ] 后端：实现 `ModifyNodeConfig` 命令
-- [ ] 后端：在 `DebugSessionState` 中添加 `modified_node_configs` 字段
-- [ ] 后端：执行节点时检查临时配置修改
-- [ ] 前端：在调试面板添加"修改节点配置"按钮
-- [ ] 前端：复用现有节点配置面板（临时模式）
-- [ ] 前端：应用临时配置到节点
-- [ ] 测试：临时配置生效，调试结束后丢弃
+- [x] 后端：实现 `ModifyNodeConfig` 命令
+- [x] 后端：在 `DebugSessionState` 中添加 `temp_node_configs` 字段
+- [x] 后端：执行节点时检查临时配置修改
+- [x] 前端：在调试面板添加"修改节点配置"按钮
+- [x] 前端：复用现有节点配置面板（临时模式）
+- [x] 前端：应用临时配置到节点
+- [x] 测试：临时配置生效，调试结束后丢弃
 
 **验收标准**：
 - 可在调试时修改节点配置（如 HTTP URL）
 - 修改仅调试期间生效
 - 调试结束后配置恢复
 - 单元测试和端到端测试通过
+
+**完成时间**：2026-03-06
 
 **依赖**：批次 9
 
