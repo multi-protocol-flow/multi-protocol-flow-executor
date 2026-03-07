@@ -4,7 +4,7 @@
  */
 import { toast } from 'sonner';
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircle2, XCircle, RotateCcw, Clock, History, Loader2, Trash2 } from 'lucide-react';
+import { CheckCircle2, XCircle, RotateCcw, Clock, History, Loader2, Trash2, Bug } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { loadReport, listReports, deleteReport } from '@/services/storage/reportStorage';
@@ -232,9 +232,18 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
 
                   {/* 流程信息 */}
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-700 truncate">
-                      {item.flow_name}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium text-slate-700 truncate">
+                        {item.flow_name}
+                      </p>
+                      {/* Debug 模式标识 */}
+                      {item.execution_mode === 'debug' && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
+                          <Bug className="w-3 h-3" />
+                          Debug
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
                       <Clock className="w-3 h-3" />
                       <span>{formatTimestamp(item.timestamp)}</span>

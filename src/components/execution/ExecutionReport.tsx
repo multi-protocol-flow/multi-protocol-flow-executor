@@ -82,6 +82,7 @@ export function ExecutionReport() {
   if (!report) return null;
 
   const isSuccess = report.status === 'success';
+  const isDebugMode = report.execution_mode === 'debug';
   const successRate =
     report.total_nodes > 0
       ? ((report.statistics.success_count / report.total_nodes) * 100).toFixed(0)
@@ -113,7 +114,17 @@ export function ExecutionReport() {
               )}
             </div>
             {/* 标题文字 */}
-            <span>执行报告</span>
+            <span>{isDebugMode ? '调试报告' : '执行报告'}</span>
+
+            {/* 调试模式标签 */}
+            {isDebugMode && (
+              <Badge
+                variant="outline"
+                className="bg-purple-50 text-purple-700 border-purple-200 font-medium"
+              >
+                调试
+              </Badge>
+            )}
 
             {/* 状态标签 */}
             <Badge
@@ -200,11 +211,11 @@ export function ExecutionReport() {
               <span className="text-muted-foreground">成功率:</span>
               <span className="font-semibold text-foreground">{successRate}%</span>
             </div>
-            {report.statistics.avg_node_duration_ms !== undefined && (
+            {report.statistics.avg_node_duration_ms != null && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50">
                 <span className="text-muted-foreground">平均耗时:</span>
                 <span className="font-semibold text-foreground">
-                  {report.statistics.avg_node_duration_ms.toFixed(1)}ms
+                  {report.statistics.avg_node_duration_ms!.toFixed(1)}ms
                 </span>
               </div>
             )}

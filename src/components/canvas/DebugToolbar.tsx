@@ -48,7 +48,7 @@ export function DebugToolbar() {
       case 'http':
         return [{ id: 'out', label: '输出 (out)' }];
       case 'entry':
-        return [{ id: 'output', label: '输出' }];
+        return [{ id: 'out', label: '输出' }];
       default:
         // 如果节点有自定义端口定义，使用它
         if (currentNode.ports) {

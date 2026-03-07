@@ -1,14 +1,16 @@
 /**
  * 调试状态管理
- * 
+ *
  * 包含心跳超时检测、命令超时检测和状态回滚机制
  */
 import { create } from 'zustand';
 import type { DebugStatus, PauseReason, ExecutionStackEntry, DebugEvent } from '@/types/debug';
 import type { FlowExecutionReport } from '@/types/report';
 import { DEBUG_HEALTH_CONFIG } from '@/types/debug';
-import { startDebug, sendDebugCommand, endDebug as endDebugService } from '@/services/tauri';
+import { startDebug, sendDebugCommand, endDebug as endDebugService, saveFlowReport } from '@/services/tauri';
 import type { Flow } from '@/types/flow';
+import { useSettingsStore } from './settings';
+import { useExecutionStore } from './execution';
 
 // ============================================================================
 // 类型定义
@@ -354,9 +356,9 @@ export const useDebugStore = create<DebugState>((set, get) => ({
     } else if ('SessionEnded' in event) {
       // 会话结束，清理定时器
       clearAllTimers();
-      
+
       const { report } = event.SessionEnded;
-      
+
       set({
         status: 'ended',
         currentNodeUuid: null,
@@ -367,11 +369,17 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         // 存储调试报告（如果有）
         lastDebugReport: report || null,
       });
-      
-      // 如果有报告，可以选择自动保存或提示用户
+
+      // 如果有报告，保存并呈现
       if (report) {
-        console.log('[调试] 收到调试报告:', report);
-        // TODO: 可以在这里自动保存报告或触发保存对话框
+        // 1. 保存报告到后端
+        const reportDir = useSettingsStore.getState().reportDir;
+        saveFlowReport(report, reportDir).catch((err) => {
+          console.error('[调试] 保存报告失败:', err);
+        });
+
+        // 2. 设置到 executionStore 触发报告弹窗
+        useExecutionStore.getState().setReport(report);
       }
     } else if ('VariableModified' in event) {
       const { name, value } = event.VariableModified;
