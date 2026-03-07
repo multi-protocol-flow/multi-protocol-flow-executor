@@ -614,6 +614,7 @@ impl FlowExecutor {
                                 flow.nodes.len() as u32,
                             ),
                             flow_error: Some(error_detail.clone()),
+                            execution_mode: crate::report::ExecutionMode::Normal,
                         };
 
                         return ExecutionResult {
@@ -686,6 +687,7 @@ impl FlowExecutor {
                 flow.nodes.len() as u32,
             ),
             flow_error: None,
+            execution_mode: crate::report::ExecutionMode::Normal,
         };
 
         // 执行成功

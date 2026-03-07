@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// 提供流程执行的各项统计指标，包括成功/失败节点数量、执行时间、
 /// 数据大小和执行效率等。
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct FlowStatistics {
     // ===== 基础统计 =====
     /// 成功的节点数量

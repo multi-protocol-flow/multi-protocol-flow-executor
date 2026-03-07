@@ -29,6 +29,8 @@ pub mod ws_connect_executor;
 pub mod ws_send_wait_executor;
 pub mod ws_close_executor;
 pub mod validator;
+// Wave 4: 调试模块
+pub mod debug;
 
 // Re-exports
 pub use traits::{

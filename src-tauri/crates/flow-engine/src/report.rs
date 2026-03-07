@@ -11,6 +11,17 @@ pub enum ExecutionStatus {
     /// 跳过执行
     Skipped,
 }
+
+/// 执行模式枚举
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum ExecutionMode {
+    /// 正常执行模式
+    #[default]
+    Normal,
+    /// 调试执行模式
+    Debug,
+}
 impl std::fmt::Display for ExecutionStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -24,7 +35,7 @@ impl std::fmt::Display for ExecutionStatus {
 
 
 /// 节点执行报告
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct NodeExecutionReport {
     /// 节点 UUID
     pub node_uuid: String,
@@ -68,11 +79,14 @@ pub struct ReportMetadata {
     pub timestamp: u64,
     /// 执行时长（毫秒）
     pub duration_ms: u64,
+    /// 执行模式（正常/调试）
+    #[serde(default)]
+    pub execution_mode: ExecutionMode,
 }
 
 
 /// 流程执行报告
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FlowExecutionReport {
     /// 报告唯一 ID（新增）
     pub uuid: String,
@@ -98,4 +112,7 @@ pub struct FlowExecutionReport {
     pub statistics: crate::statistics::FlowStatistics,
     /// 流程级错误详情（可选）
     pub flow_error: Option<crate::error::ErrorDetail>,
+    /// 执行模式（正常/调试）
+    #[serde(default)]
+    pub execution_mode: ExecutionMode,
 }

@@ -4,8 +4,10 @@
 //! 业务逻辑委托给 flow-engine crate。
 
 use std::path::PathBuf;
+use std::sync::Arc;
 use tauri::Manager;
 use tauri_plugin_store::StoreExt;
+use tokio::sync::Mutex;
 
 // Tauri 特有模块
 mod tauri_adapters;
@@ -34,6 +36,10 @@ pub use tauri_commands::{
     delete_flow_report,
     get_app_data_dir,
     open_directory,
+    start_debug,
+    send_debug_command,
+    end_debug,
+    DebugSessionManager,
 };
 
 // 导出适配器（供测试使用）
@@ -53,6 +59,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
+            // 注册调试会话管理器状态
+            app.manage(Arc::new(Mutex::new(DebugSessionManager::default())));
+            
             // 从 store 读取日志目录配置
             let log_dir = match app.store("store/settings.bin") {
                 Ok(store) => {
@@ -99,7 +108,10 @@ pub fn run() {
             list_flow_reports,
             delete_flow_report,
             get_app_data_dir,
-            open_directory
+            open_directory,
+            start_debug,
+            send_debug_command,
+            end_debug
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

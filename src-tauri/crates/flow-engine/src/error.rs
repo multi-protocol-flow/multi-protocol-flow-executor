@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// 提供结构化的错误信息，包括错误类型、错误代码、消息、堆栈跟踪和上下文快照。
 /// 这些信息用于调试和错误分析。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ErrorDetail {
     /// 错误类型（决定错误处理策略，同时标识具体错误类型）
     pub error_kind: ErrorKind,

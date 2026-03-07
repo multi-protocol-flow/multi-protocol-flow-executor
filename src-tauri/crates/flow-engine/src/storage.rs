@@ -1,7 +1,7 @@
 // 存储模块 - JSON 文件读写实现
 
 use crate::flow::Flow;
-use crate::report::{FlowExecutionReport, ReportMetadata};
+use crate::report::{ExecutionMode, FlowExecutionReport, ReportMetadata};
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -159,8 +159,14 @@ pub fn save_report(report: &FlowExecutionReport, reports_dir: &Path) -> Result<(
     fs::create_dir_all(reports_dir)
         .map_err(|e| format!("创建报告目录失败: {}", e))?;
     
+    // 根据执行模式决定文件名前缀
+    let filename = match report.execution_mode {
+        ExecutionMode::Debug => format!("debug_{}.json", report.uuid),
+        ExecutionMode::Normal => format!("{}.json", report.uuid),
+    };
+    
     // 构建文件路径
-    let file_path = reports_dir.join(format!("{}.json", report.uuid));
+    let file_path = reports_dir.join(filename);
     
     // 序列化为 JSON
     let json_string = serde_json::to_string_pretty(report)
@@ -242,6 +248,7 @@ pub fn list_reports(reports_dir: &Path) -> Result<Vec<ReportMetadata>, String> {
                             status: report.status.to_string().to_lowercase(),
                             timestamp: report.start_time,
                             duration_ms: report.duration_ms,
+                            execution_mode: report.execution_mode,
                         });
                     }
                 }

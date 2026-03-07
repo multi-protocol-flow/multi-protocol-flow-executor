@@ -116,6 +116,124 @@ pub async fn open_directory(app: tauri::AppHandle, path: String) -> Result<(), S
 }
 
 // ============================================================================
+// 调试命令
+// ============================================================================
+
+use flow_engine::debug::{DebugCommand, DebugEvent};
+use tauri::State;
+use tokio::sync::mpsc;
+use tokio::sync::Mutex;
+
+/// 调试会话管理器状态
+#[derive(Default)]
+pub struct DebugSessionManager {
+    /// 当前调试会话的命令发送器
+    pub command_sender: Option<mpsc::UnboundedSender<DebugCommand>>,
+}
+
+/// 启动调试会话
+///
+/// 开始调试指定的流程，设置断点，并通过 Channel 发送调试事件
+#[tauri::command]
+pub async fn start_debug(
+    flow: Flow,
+    breakpoints: Vec<String>,
+    on_event: Channel<DebugEvent>,
+    state: State<'_, Arc<Mutex<DebugSessionManager>>>,
+    _app: tauri::AppHandle,
+) -> Result<(), String> {
+    // 检查是否已有调试会话
+    let mut manager = state.lock().await;
+    if manager.command_sender.is_some() {
+        return Err("已有调试会话正在运行".to_string());
+    }
+
+    // 创建命令通道
+    let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+    // 创建事件发送器（包装 Channel）
+    let (event_sender, mut event_receiver) = mpsc::unbounded_channel::<DebugEvent>();
+    
+    // 克隆 state 的 Arc 用于在 spawn 中清理
+    let state_clone = state.inner().clone();
+    
+    // 启动事件转发任务
+    let on_event_for_spawn = on_event;
+    tokio::spawn(async move {
+        while let Some(event) = event_receiver.recv().await {
+            let _ = on_event_for_spawn.send(event);
+        }
+    });
+
+    // 保存命令发送器
+    manager.command_sender = Some(command_sender);
+
+    // 注意：调试模式下不使用日志发送器
+    // 日志已经通过 execute_flow 的 Channel 发送到控制台面板
+    let log_sender: Option<Arc<dyn flow_engine::traits::LogSender>> = None;
+
+    // 启动调试会话（在后台任务中）
+    tokio::spawn(async move {
+        let executor = flow_engine::debug::DebuggableFlowExecutor::new();
+        let _ = executor
+            .start_debug(
+                &flow,
+                None,
+                breakpoints,
+                log_sender,
+                event_sender,
+                command_receiver,
+            )
+            .await;
+        
+        // 清理 command_sender
+        let mut manager = state_clone.lock().await;
+        manager.command_sender = None;
+    });
+
+    Ok(())
+}
+
+/// 发送调试命令
+///
+/// 向当前调试会话发送控制命令（继续、单步、跳过等）
+#[tauri::command]
+pub async fn send_debug_command(
+    command: DebugCommand,
+    state: State<'_, Arc<Mutex<DebugSessionManager>>>,
+) -> Result<(), String> {
+    let manager = state.lock().await;
+
+    if let Some(sender) = &manager.command_sender {
+        sender
+            .send(command)
+            .map_err(|e| format!("发送调试命令失败: {}", e))?;
+        Ok(())
+    } else {
+        Err("没有正在运行的调试会话".to_string())
+    }
+}
+
+/// 结束调试会话
+///
+/// 终止当前调试会话
+#[tauri::command]
+pub async fn end_debug(
+    state: State<'_, Arc<Mutex<DebugSessionManager>>>,
+) -> Result<(), String> {
+    let mut manager = state.lock().await;
+
+    if let Some(sender) = &manager.command_sender {
+        // 发送结束调试命令
+        let _ = sender.send(DebugCommand::EndDebug);
+        manager.command_sender = None;
+        Ok(())
+    } else {
+        Err("没有正在运行的调试会话".to_string())
+    }
+}
+
+// ============================================================================
 // 单元测试
 // ============================================================================
 
