@@ -142,3 +142,57 @@ export async function listFlowReports(reportsDir: string): Promise<ReportMetadat
 export async function deleteFlowReport(uuid: string, reportsDir: string): Promise<void> {
   return await invoke<void>('delete_flow_report', { uuid, reportsDir });
 }
+
+// ============================================================================
+// 调试命令
+// ============================================================================
+
+/**
+ * 启动调试会话
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @param flow - 要调试的流程对象
+ * @param breakpoints - 断点列表（节点 UUID）
+ * @param onEvent - 调试事件回调函数
+ */
+export async function startDebug(
+  flow: import('@/types/flow').Flow,
+  breakpoints: string[],
+  onEvent: (event: import('@/types/debug').DebugEvent) => void
+): Promise<void> {
+  if (isTauriEnv()) {
+    const { startDebug: startDebugImpl } = await import('./debug');
+    return startDebugImpl(flow, breakpoints, onEvent);
+  } else {
+    // Mock 环境 - 暂不实现
+    console.warn('调试功能在 Mock 环境下不可用');
+  }
+}
+
+/**
+ * 发送调试命令
+ *
+ * @param command - 调试命令
+ */
+export async function sendDebugCommand(command: import('@/types/debug').DebugCommand): Promise<void> {
+  if (isTauriEnv()) {
+    const { sendDebugCommand: sendDebugCommandImpl } = await import('./debug');
+    return sendDebugCommandImpl(command);
+  } else {
+    // Mock 环境 - 暂不实现
+    console.warn('调试功能在 Mock 环境下不可用');
+  }
+}
+
+/**
+ * 结束调试会话
+ */
+export async function endDebug(): Promise<void> {
+  if (isTauriEnv()) {
+    const { endDebug: endDebugImpl } = await import('./debug');
+    return endDebugImpl();
+  } else {
+    // Mock 环境 - 暂不实现
+    console.warn('调试功能在 Mock 环境下不可用');
+  }
+}

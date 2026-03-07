@@ -6,6 +6,7 @@ export { useFlowStore } from './flow';
 export { useFlowListStore } from './flowList';
 export { useExecutionStore } from './execution';
 export { useUIStore } from './ui';
+export { useDebugStore } from './debug';
 
 // Flow store selectors
 export {
@@ -48,3 +49,11 @@ export {
 
 // UI types
 export type { PanelType } from './ui';
+
+// Debug store selectors
+export {
+  selectDebugStatus,
+  selectCurrentNodeUuid,
+  selectIsDebugging,
+  selectIsPaused,
+} from './debug';

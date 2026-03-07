@@ -13,6 +13,8 @@ interface FlowState {
   isDirty: boolean;
   /** 待添加的节点类型（由 NodeLibrary 设置，FlowCanvas 处理） */
   pendingAddNodeType: string | null;
+  /** 需要聚焦的节点 UUID（由 DebugPanel 设置，FlowCanvas 处理） */
+  focusNodeUuid: string | null;
 
   // ===== Actions =====
   /** 设置当前流程 */
@@ -45,6 +47,10 @@ interface FlowState {
   toggleBreakpoint: (uuid: string) => void;
   /** 设置节点断点状态 */
   setBreakpoint: (uuid: string, enabled: boolean) => void;
+  /** 聚焦到指定节点（画布跳转） */
+  focusOnNode: (uuid: string) => void;
+  /** 清除节点聚焦状态 */
+  clearFocusNode: () => void;
 
   // ===== Computed (Selectors) =====
   /** 获取当前选中的节点 */
@@ -60,6 +66,7 @@ const initialState = {
   selectedNodeId: null,
   isDirty: false,
   pendingAddNodeType: null,
+  focusNodeUuid: null,
 };
 
 export const useFlowStore = create<FlowState>((set, get) => ({
@@ -183,6 +190,10 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         : null,
       isDirty: true,
     })),
+
+  focusOnNode: (uuid) => set({ focusNodeUuid: uuid }),
+
+  clearFocusNode: () => set({ focusNodeUuid: null }),
 
   // ===== Computed (Selectors) =====
   getSelectedNode: () => {

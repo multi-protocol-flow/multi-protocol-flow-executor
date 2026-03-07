@@ -83,3 +83,14 @@ export type {
 
 // 变量类型
 export type { Variable, VariablePool, OutputMapping, InitialVariable } from './variable';
+
+// 调试类型
+export type {
+  DebugStatus,
+  PauseReason,
+  EndReason,
+  DebugCommand,
+  ExecutionStackEntry,
+  DebugEvent,
+  DebugSessionState,
+} from './debug';
