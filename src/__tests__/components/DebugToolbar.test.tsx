@@ -164,14 +164,14 @@ describe('DebugToolbar', () => {
   });
 
   describe('跳过节点 - Entry 节点 (entry)', () => {
-    it('应该直接跳过，不显示对话框（只有一个 output 端口）', () => {
+    it('应该直接跳过，不显示对话框（只有一个 out 端口）', () => {
       mockFlowStoreWithNode('entry', 'node-1');
       render(<DebugToolbar />);
 
       const skipButton = screen.getByTitle('跳过当前节点');
       fireEvent.click(skipButton);
 
-      expect(mockSkipNode).toHaveBeenCalledWith('output');
+      expect(mockSkipNode).toHaveBeenCalledWith('out');
       expect(screen.queryByTestId('skip-dialog')).not.toBeInTheDocument();
     });
   });

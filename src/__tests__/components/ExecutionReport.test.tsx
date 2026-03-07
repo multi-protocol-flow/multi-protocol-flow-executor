@@ -220,4 +220,64 @@ describe('ExecutionReport', () => {
     expect(screen.getAllByText('成功').length).toBeGreaterThan(0);
     expect(screen.getByText('失败')).toBeDefined();
   });
+
+  it('当 avg_node_duration_ms 为 null 时不显示平均耗时（修复白屏问题）', () => {
+    const reportWithNullStats: FlowExecutionReport = {
+      ...mockReport,
+      statistics: {
+        success_count: 3,
+        failed_count: 0,
+        // 模拟调试会话立即结束的情况，统计信息为 null
+        avg_node_duration_ms: null as unknown as undefined,
+        max_node_duration_ms: null as unknown as undefined,
+        min_node_duration_ms: null as unknown as undefined,
+        completion_rate: 1,
+        error_rate: 0,
+      },
+    };
+
+    (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (selector: (state: { report: FlowExecutionReport; reset: ReturnType<typeof vi.fn> }) => unknown) => {
+        const state = { report: reportWithNullStats, reset: mockReset };
+        return selector ? selector(state) : state;
+      }
+    );
+
+    // 不应该崩溃
+    const { container } = render(<ExecutionReport />);
+    expect(container.firstChild).not.toBeNull();
+
+    // 不应该显示平均耗时
+    expect(screen.queryByText('平均耗时:')).toBeNull();
+  });
+
+  it('当 statistics 字段全部为 undefined 时正常渲染', () => {
+    const reportWithEmptyStats: FlowExecutionReport = {
+      ...mockReport,
+      statistics: {
+        success_count: 0,
+        failed_count: 0,
+        // 所有可选字段都为 undefined（模拟调试会话立即结束）
+        avg_node_duration_ms: undefined,
+        max_node_duration_ms: undefined,
+        min_node_duration_ms: undefined,
+        total_input_size_bytes: undefined,
+        total_output_size_bytes: undefined,
+        error_rate: undefined,
+        completion_rate: undefined,
+      },
+    };
+
+    (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (selector: (state: { report: FlowExecutionReport; reset: ReturnType<typeof vi.fn> }) => unknown) => {
+        const state = { report: reportWithEmptyStats, reset: mockReset };
+        return selector ? selector(state) : state;
+      }
+    );
+
+    // 不应该崩溃或白屏
+    const { container } = render(<ExecutionReport />);
+    expect(container.firstChild).not.toBeNull();
+    expect(screen.getByText('执行报告')).toBeDefined();
+  });
 });
