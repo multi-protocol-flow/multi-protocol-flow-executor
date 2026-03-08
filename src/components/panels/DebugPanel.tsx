@@ -9,6 +9,7 @@ import { useFlowStore } from '@/stores';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
 import type { ExecutionStackEntry } from '@/types/debug';
 import type { NodeData } from '@/types/node';
 
@@ -397,9 +398,8 @@ export function DebugPanel() {
   // 获取当前节点信息
   const currentNode = flow?.nodes.find((n) => n.uuid === currentNodeUuid);
 
-  // 编辑配置状态
-  const [isEditingConfig, setIsEditingConfig] = useState(false);
-  const [editConfigValue, setEditConfigValue] = useState('');
+  // 弹窗状态
+  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
 
   // 是否允许编辑（暂停时且非只读模式）
   const canEdit = isPaused && !isDebugDataReadOnly;
@@ -415,36 +415,15 @@ export function DebugPanel() {
     }
   };
 
-  // 开始编辑配置
-  const handleStartEditConfig = () => {
-    if (!currentNode) return;
-    // 使用当前节点配置，如果有临时配置则使用临时配置
-    const currentConfig = tempNodeConfigs[currentNode.uuid] || currentNode.data;
-    setEditConfigValue(JSON.stringify(currentConfig, null, 2));
-    setIsEditingConfig(true);
+  // 打开配置弹窗
+  const handleOpenConfigDialog = () => {
+    setIsConfigDialogOpen(true);
   };
 
   // 保存配置修改
-  const handleSaveConfig = async () => {
+  const handleSaveConfig = async (data: NodeData) => {
     if (!currentNode) return;
-    try {
-      const parsedConfig = JSON.parse(editConfigValue) as NodeData;
-      await modifyNodeConfig(currentNode.uuid, parsedConfig);
-      setIsEditingConfig(false);
-      toast.success('节点配置已临时修改');
-    } catch (error) {
-      if (error instanceof SyntaxError) {
-        toast.error('JSON 格式错误');
-      } else {
-        toast.error(`修改配置失败: ${(error as Error).message}`);
-      }
-    }
-  };
-
-  // 取消编辑配置
-  const handleCancelEditConfig = () => {
-    setIsEditingConfig(false);
-    setEditConfigValue('');
+    await modifyNodeConfig(currentNode.uuid, data);
   };
 
   // 检查当前节点是否有临时配置
@@ -486,70 +465,30 @@ export function DebugPanel() {
           当前节点
         </h3>
         {currentNode ? (
-          <div className="space-y-2">
-            <div className="bg-slate-50 rounded px-2 py-1.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-slate-900">{currentNode.name}</div>
-                  <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
-                    <span>{currentNode.type}</span>
-                    {hasTempConfig && (
-                      <span className="text-amber-600 font-medium">(已修改)</span>
-                    )}
-                  </div>
+          <div className="bg-slate-50 rounded px-2 py-1.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-slate-900">{currentNode.name}</div>
+                <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+                  <span>{currentNode.type}</span>
+                  {hasTempConfig && (
+                    <span className="text-amber-600 font-medium">(已修改)</span>
+                  )}
                 </div>
-                {canEdit && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleStartEditConfig}
-                    className="h-7 px-2 text-xs"
-                    title="编辑节点配置（临时）"
-                  >
-                    <Settings2 className="w-3 h-3 mr-1" />
-                    编辑配置
-                  </Button>
-                )}
               </div>
+              {canEdit && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleOpenConfigDialog}
+                  className="h-7 px-2 text-xs"
+                  title="编辑节点配置（临时）"
+                >
+                  <Settings2 className="w-3 h-3 mr-1" />
+                  编辑配置
+                </Button>
+              )}
             </div>
-
-            {/* 配置编辑区域 */}
-            {isEditingConfig && (
-              <div className="bg-slate-50 rounded p-2 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-600">临时配置</span>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleSaveConfig}
-                      className="h-6 px-2 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
-                    >
-                      <Check className="w-3 h-3 mr-1" />
-                      保存
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCancelEditConfig}
-                      className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <X className="w-3 h-3 mr-1" />
-                      取消
-                    </Button>
-                  </div>
-                </div>
-                <textarea
-                  value={editConfigValue}
-                  onChange={(e) => setEditConfigValue(e.target.value)}
-                  className="w-full h-40 px-2 py-1 text-xs font-mono border border-slate-300 rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="输入 JSON 格式的节点配置"
-                />
-                <p className="text-xs text-slate-400">
-                  注意：修改仅调试期间生效，调试结束后自动丢弃
-                </p>
-              </div>
-            )}
           </div>
         ) : (
           <div className="text-sm text-slate-400 italic">无当前节点</div>
@@ -642,6 +581,15 @@ export function DebugPanel() {
           )}
         </div>
       </div>
+
+      {/* 节点配置编辑弹窗 */}
+      <DebugNodeConfigDialog
+        open={isConfigDialogOpen}
+        nodeData={currentNode ? (tempNodeConfigs[currentNode.uuid] as NodeData || currentNode.data) : null}
+        nodeName={currentNode?.name || ''}
+        onSave={handleSaveConfig}
+        onCancel={() => setIsConfigDialogOpen(false)}
+      />
     </div>
   );
 }
