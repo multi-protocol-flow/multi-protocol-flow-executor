@@ -5,7 +5,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useFlowStore } from '@/stores';
+import { useFlowStore, useDebugStore, selectCurrentNodeUuid, selectIsPaused } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 
 /** Entry 节点数据类型 */
@@ -22,6 +22,9 @@ export function EntryNode({ id, data, selected }: NodeProps) {
   const nodeData = data as EntryNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
+  const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
+  const isPaused = useDebugStore(selectIsPaused);
+  const isDebugPausedAtThisNode = isPaused && currentNodeUuid === id;
   
   return (
     <div
@@ -32,7 +35,8 @@ export function EntryNode({ id, data, selected }: NodeProps) {
         'transition-all duration-200 ease-out',
         'w-[180px]',
         'flex items-center',
-        selected && 'border-[3px] border-emerald-500'
+        selected && 'border-[3px] border-emerald-500',
+        isDebugPausedAtThisNode && 'debug-breathing-emerald'
       )}
     >
       <BreakpointMarker

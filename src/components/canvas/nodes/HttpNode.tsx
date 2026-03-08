@@ -6,7 +6,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { HttpConfig } from '@/types';
-import { useFlowStore } from '@/stores';
+import { useFlowStore, useDebugStore, selectCurrentNodeUuid, selectIsPaused } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 
 /** HTTP 节点数据类型 */
@@ -24,6 +24,9 @@ export function HttpNode({ id, data, selected }: NodeProps) {
   const method = nodeData.config?.method?.toUpperCase() || 'GET';
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
+  const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
+  const isPaused = useDebugStore(selectIsPaused);
+  const isDebugPausedAtThisNode = isPaused && currentNodeUuid === id;
   
   return (
     <div
@@ -34,7 +37,8 @@ export function HttpNode({ id, data, selected }: NodeProps) {
         'transition-all duration-200 ease-out',
         'w-[180px]',
         'flex items-center',
-        selected && 'border-[3px] border-sky-500'
+        selected && 'border-[3px] border-sky-500',
+        isDebugPausedAtThisNode && 'debug-breathing-sky'
       )}
     >
       <BreakpointMarker

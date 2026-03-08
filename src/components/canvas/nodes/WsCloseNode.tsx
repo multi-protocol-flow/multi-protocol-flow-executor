@@ -6,7 +6,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Plug } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { WsCloseConfig } from '@/types';
-import { useFlowStore } from '@/stores';
+import { useFlowStore, useDebugStore, selectCurrentNodeUuid, selectIsPaused } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 
 /** WsClose 节点数据类型 */
@@ -23,6 +23,9 @@ export function WsCloseNode({ id, data, selected }: NodeProps) {
   const nodeData = data as WsCloseNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
+  const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
+  const isPaused = useDebugStore(selectIsPaused);
+  const isDebugPausedAtThisNode = isPaused && currentNodeUuid === id;
   
   return (
     <div
@@ -33,7 +36,8 @@ export function WsCloseNode({ id, data, selected }: NodeProps) {
         'transition-all duration-200 ease-out',
         'w-[180px]',
         'flex items-center',
-        selected && 'border-[3px] border-rose-500'
+        selected && 'border-[3px] border-rose-500',
+        isDebugPausedAtThisNode && 'debug-breathing-rose'
       )}
     >
       <BreakpointMarker
