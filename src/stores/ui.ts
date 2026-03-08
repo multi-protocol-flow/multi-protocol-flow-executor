@@ -100,6 +100,8 @@ interface UIState {
   setConfigPanelOpen: (open: boolean) => void;
   /** 设置执行结果面板状态 */
   setExecutionPanelOpen: (open: boolean) => void;
+  /** 设置流程列表面板状态 */
+  setFlowListPanelOpen: (open: boolean) => void;
   /** 设置底部面板 Tab */
   setBottomPanelTab: (tab: BottomPanelTab) => void;
 
@@ -237,6 +239,8 @@ export const useUIStore = create<UIState>((set) => ({
   setConfigPanelOpen: (isConfigPanelOpen) => set({ isConfigPanelOpen }),
 
   setExecutionPanelOpen: (isExecutionPanelOpen) => set({ isExecutionPanelOpen }),
+
+  setFlowListPanelOpen: (isFlowListPanelOpen) => set({ isFlowListPanelOpen }),
 
   setBottomPanelTab: (bottomPanelTab) => set({ bottomPanelTab }),
 

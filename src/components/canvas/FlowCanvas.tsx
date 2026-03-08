@@ -122,7 +122,7 @@ function FlowCanvasInner() {
     focusNodeUuid,
     clearFocusNode,
   } = useFlowStore();
-  const { setConfigPanelOpen, setConfigPanelMode } = useUIStore();
+  const { setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen } = useUIStore();
 
   const { screenToFlowPosition, fitView, setCenter, getNode } = useReactFlow();
   
@@ -287,8 +287,13 @@ function FlowCanvasInner() {
       selectNode(node.id);
       setConfigPanelOpen(true);
       setConfigPanelMode('node');
+      // 调试模式下自动展开左侧面板（显示节点只读配置）
+      const debugStore = useDebugStore.getState();
+      if (debugStore.status !== 'idle' && debugStore.status !== 'ended') {
+        setFlowListPanelOpen(true);
+      }
     },
-    [selectNode, setConfigPanelOpen, setConfigPanelMode]
+    [selectNode, setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen]
   );
 
   // 处理画布空白处点击 - 取消选中并收起面板
