@@ -243,9 +243,9 @@ describe('ExecutionReport', () => {
       }
     );
 
-    // 不应该崩溃
-    const { container } = render(<ExecutionReport />);
-    expect(container.firstChild).not.toBeNull();
+    // 不应该崩溃（Dialog 使用 Portal 渲染到 body，所以用 screen 检查）
+    render(<ExecutionReport />);
+    expect(screen.getByRole('dialog')).toBeDefined();
 
     // 不应该显示平均耗时
     expect(screen.queryByText('平均耗时:')).toBeNull();
@@ -275,9 +275,9 @@ describe('ExecutionReport', () => {
       }
     );
 
-    // 不应该崩溃或白屏
-    const { container } = render(<ExecutionReport />);
-    expect(container.firstChild).not.toBeNull();
+    // 不应该崩溃或白屏（Dialog 使用 Portal 渲染到 body，所以用 screen 检查）
+    render(<ExecutionReport />);
+    expect(screen.getByRole('dialog')).toBeDefined();
     expect(screen.getByText('执行报告')).toBeDefined();
   });
 });
