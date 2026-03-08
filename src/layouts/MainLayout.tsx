@@ -12,7 +12,7 @@ import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, GripHorizontal, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, Settings, GripVertical, GripHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -100,6 +100,10 @@ export function MainLayout() {
   const [isDragging, setIsDragging] = useState(false);
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
+
+  // 底部面板内容延迟渲染：展开动画结束后再渲染内容
+  const [bottomPanelContentReady, setBottomPanelContentReady] = useState(isHistoryPanelOpen);
+  const bottomPanelTransitionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 右侧面板拖拽调整宽度相关状态
   const [isRightPanelDragging, setIsRightPanelDragging] = useState(false);
@@ -232,6 +236,31 @@ export function MainLayout() {
     }
   }, [isDebugging, isConfigPanelOpen, toggleConfigPanel]);
 
+  // 底部面板内容延迟渲染：展开动画结束后渲染，收起时立即移除
+  useEffect(() => {
+    // 清除之前的定时器
+    if (bottomPanelTransitionRef.current) {
+      clearTimeout(bottomPanelTransitionRef.current);
+      bottomPanelTransitionRef.current = null;
+    }
+
+    if (isHistoryPanelOpen) {
+      // 展开：等待动画结束后渲染内容
+      bottomPanelTransitionRef.current = setTimeout(() => {
+        setBottomPanelContentReady(true);
+      }, 300);
+    } else {
+      // 收起：立即移除内容
+      setBottomPanelContentReady(false);
+    }
+
+    return () => {
+      if (bottomPanelTransitionRef.current) {
+        clearTimeout(bottomPanelTransitionRef.current);
+      }
+    };
+  }, [isHistoryPanelOpen]);
+
   return (
     <div className="h-screen flex flex-col bg-white text-slate-900 overflow-hidden">
       {/* ===== 顶部工具栏 ===== */}
@@ -297,24 +326,19 @@ export function MainLayout() {
             <div
               onMouseDown={handleLeftPanelMouseDown}
               className={cn(
-                'absolute right-0 top-0 bottom-0 w-1.5 z-10',
+                'absolute right-0 top-0 bottom-0 w-2 z-10',
                 'bg-transparent hover:bg-slate-200 active:bg-slate-300',
-                'cursor-col-resize flex flex-col items-center justify-center gap-0.5',
+                'cursor-col-resize flex items-center justify-center',
                 'transition-colors duration-150',
                 isLeftPanelDragging && 'bg-slate-300'
               )}
               title="拖拽调整面板宽度"
             >
-              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
-              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
-              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
-              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
-              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
-              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+              <GripVertical className="w-2.5 h-6 text-slate-400" />
             </div>
           )}
           {isFlowListPanelOpen && (
-            <div className="h-full min-w-0 overflow-hidden pr-1.5" style={{ width: sidebarWidth }}>
+            <div className="h-full min-w-0 overflow-hidden pr-2" style={{ width: sidebarWidth }}>
               <LeftSidebarPanel />
             </div>
           )}
@@ -348,110 +372,111 @@ export function MainLayout() {
           </div>
 
           {/* ===== 底部面板（历史/控制台） ===== */}
-          {/* 可拖拽调整高度的 handle */}
-          {isHistoryPanelOpen && (
+          <div
+            className={cn(
+              'shrink-0 border-t border-border bg-white overflow-hidden relative',
+              'transition-all duration-300 ease-out',
+              isDragging && '!transition-none'
+            )}
+            style={{ height: isHistoryPanelOpen ? bottomPanelHeight : 0 }}
+          >
+            {/* 可拖拽调整高度的 handle - 放在面板内部上边缘 */}
             <div
               onMouseDown={handleMouseDown}
               className={cn(
-                'shrink-0 h-1.5 bg-transparent hover:bg-slate-200 active:bg-slate-300',
+                'absolute left-0 right-0 top-0 h-2 z-10',
+                'bg-transparent hover:bg-slate-200 active:bg-slate-300',
                 'cursor-row-resize flex items-center justify-center',
                 'transition-colors duration-150',
                 isDragging && 'bg-slate-300'
               )}
               title="拖拽调整面板高度"
             >
-              <GripHorizontal className="w-6 h-3 text-slate-400" />
+              <GripHorizontal className="w-6 h-2.5 text-slate-400" />
             </div>
-          )}
-          <div
-            className={cn(
-              'shrink-0 bg-white overflow-hidden',
-              isHistoryPanelOpen ? 'border-t border-border' : 'h-0'
-            )}
-            style={{ height: isHistoryPanelOpen ? bottomPanelHeight : 0 }}
-          >
-            {isHistoryPanelOpen && (
-              <div className="h-full flex flex-col">
+            {/* 内容延迟渲染：展开动画结束后再渲染，避免卡顿 */}
+            {bottomPanelContentReady && (
+              <div className="h-full flex flex-col pt-2">
                 {/* 面板头部：Tab 切换 + 关闭按钮 */}
                 <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100">
-                  <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as 'history' | 'console')} className="w-auto">
-                    <TabsList className="h-7 p-0.5">
-                      <TabsTrigger value="history" className="h-6 px-3 text-xs">
-                        执行历史
-                      </TabsTrigger>
-                      <TabsTrigger value="console" className="h-6 px-3 text-xs">
-                        控制台
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={toggleHistoryPanel}
-                    className="h-7 w-7 hover:bg-slate-100"
-                    title="收起面板"
-                  >
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
-                  </Button>
-                </div>
+                    <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as 'history' | 'console')} className="w-auto">
+                      <TabsList className="h-7 p-0.5">
+                        <TabsTrigger value="history" className="h-6 px-3 text-xs">
+                          执行历史
+                        </TabsTrigger>
+                        <TabsTrigger value="console" className="h-6 px-3 text-xs">
+                          控制台
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleHistoryPanel}
+                      className="h-7 w-7 hover:bg-slate-100"
+                      title="收起面板"
+                    >
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    </Button>
+                  </div>
 
-                {/* Tab 内容 */}
-                <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as 'history' | 'console')} className="flex-1 min-h-0">
-                  <TabsContent value="history" className="m-0 h-full overflow-hidden">
-                    <ExecutionHistory />
-                  </TabsContent>
-                  <TabsContent value="console" className="m-0 h-full overflow-hidden flex flex-col">
-                    {/* 过滤控件 */}
-                    <div className="flex items-center gap-2 px-2 py-1.5 border-b border-slate-100 shrink-0">
-                      <Select value={filter.level} onValueChange={(v) => setFilter({ level: v as 'ALL' | 'INFO' | 'DEBUG' | 'WARN' | 'ERROR' })}>
-                        <SelectTrigger className="w-20 h-7 text-xs">
-                          <SelectValue placeholder="级别" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ALL">全部</SelectItem>
-                          <SelectItem value="INFO">INFO</SelectItem>
-                          <SelectItem value="DEBUG">DEBUG</SelectItem>
-                          <SelectItem value="WARN">WARN</SelectItem>
-                          <SelectItem value="ERROR">ERROR</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={filter.nodeUuid} onValueChange={(v) => setFilter({ nodeUuid: v })}>
-                        <SelectTrigger className="w-28 h-7 text-xs">
-                          <SelectValue placeholder="节点" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ALL">全部节点</SelectItem>
-                          {getUniqueNodes().map((node) => (
-                            <SelectItem key={node.uuid} value={node.uuid}>
-                              {node.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        placeholder="搜索..."
-                        value={filter.searchKeyword}
-                        onChange={(e) => setSearchKeyword(e.target.value)}
-                        className="h-7 w-32 text-xs"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleClearConsole}
-                        className="h-7 px-2 text-xs text-slate-500 hover:text-slate-700"
-                        title="清空日志"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" />
-                        清空
-                      </Button>
-                    </div>
-                    {/* 控制台内容 */}
-                    <div className="flex-1 min-h-0 overflow-hidden">
-                      <ConsolePanel />
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
+                  {/* Tab 内容 */}
+                  <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as 'history' | 'console')} className="flex-1 min-h-0">
+                    <TabsContent value="history" className="m-0 h-full overflow-hidden">
+                      <ExecutionHistory />
+                    </TabsContent>
+                    <TabsContent value="console" className="m-0 h-full overflow-hidden flex flex-col">
+                      {/* 过滤控件 */}
+                      <div className="flex items-center gap-2 px-2 py-1.5 border-b border-slate-100 shrink-0">
+                        <Select value={filter.level} onValueChange={(v) => setFilter({ level: v as 'ALL' | 'INFO' | 'DEBUG' | 'WARN' | 'ERROR' })}>
+                          <SelectTrigger className="w-20 h-7 text-xs">
+                            <SelectValue placeholder="级别" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ALL">全部</SelectItem>
+                            <SelectItem value="INFO">INFO</SelectItem>
+                            <SelectItem value="DEBUG">DEBUG</SelectItem>
+                            <SelectItem value="WARN">WARN</SelectItem>
+                            <SelectItem value="ERROR">ERROR</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={filter.nodeUuid} onValueChange={(v) => setFilter({ nodeUuid: v })}>
+                          <SelectTrigger className="w-28 h-7 text-xs">
+                            <SelectValue placeholder="节点" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ALL">全部节点</SelectItem>
+                            {getUniqueNodes().map((node) => (
+                              <SelectItem key={node.uuid} value={node.uuid}>
+                                {node.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          placeholder="搜索..."
+                          value={filter.searchKeyword}
+                          onChange={(e) => setSearchKeyword(e.target.value)}
+                          className="h-7 w-32 text-xs"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleClearConsole}
+                          className="h-7 px-2 text-xs text-slate-500 hover:text-slate-700"
+                          title="清空日志"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          清空
+                        </Button>
+                      </div>
+                      {/* 控制台内容 */}
+                      <div className="flex-1 min-h-0 overflow-hidden">
+                        <ConsolePanel />
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
             )}
           </div>
 
@@ -490,24 +515,19 @@ export function MainLayout() {
             <div
               onMouseDown={handleRightPanelMouseDown}
               className={cn(
-                'absolute left-0 top-0 bottom-0 w-1.5 z-10',
+                'absolute left-0 top-0 bottom-0 w-2 z-10',
                 'bg-transparent hover:bg-slate-200 active:bg-slate-300',
-                'cursor-col-resize flex flex-col items-center justify-center gap-0.5',
+                'cursor-col-resize flex items-center justify-center',
                 'transition-colors duration-150',
                 isRightPanelDragging && 'bg-slate-300'
               )}
               title="拖拽调整面板宽度"
             >
-              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
-              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
-              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
-              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
-              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
-              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+              <GripVertical className="w-2.5 h-6 text-slate-400" />
             </div>
           )}
           {isConfigPanelOpen && (
-            <div className="h-full min-w-0 overflow-hidden pl-1.5" style={{ width: configPanelWidth }}>
+            <div className="h-full min-w-0 overflow-hidden pl-2" style={{ width: configPanelWidth }}>
               {showDebugPanel ? (
                 <DebugPanel />
               ) : configPanelMode === 'settings' ? (
