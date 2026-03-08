@@ -14,9 +14,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { NodeData } from '@/types';
+import type { NodeData, Node } from '@/types';
 import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendWaitConfig, isWsCloseConfig } from '@/types';
-import { Settings2, MousePointerClick, Trash2, Pencil } from 'lucide-react';
+import { Settings2, MousePointerClick, Trash2, Pencil, Lock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 /**
  * 节点类型配置映射
@@ -54,10 +55,19 @@ const NODE_TYPE_CONFIG = {
   },
 };
 
-export function NodeConfigPanel() {
+interface NodeConfigPanelProps {
+  /** 只读模式（调试时查看节点配置） */
+  readOnly?: boolean;
+  /** 指定要显示的节点（用于只读模式，不使用 store 中的选中节点） */
+  node?: Node | null;
+}
+
+export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeConfigPanelProps) {
   const { getSelectedNode, updateNode, removeNode, selectNode } = useFlowStore();
   const { showConfirm } = useUIStore();
-  const selectedNode = getSelectedNode();
+  
+  // 只读模式使用外部传入的节点，否则使用 store 中的选中节点
+  const selectedNode = readOnly ? externalNode : getSelectedNode();
   
   // 节点名称编辑状态
   const [isEditingName, setIsEditingName] = useState(false);
@@ -76,9 +86,13 @@ export function NodeConfigPanel() {
         <div className="rounded-full bg-slate-100 p-4 mb-4">
           <MousePointerClick className="h-8 w-8 text-slate-400" />
         </div>
-        <h3 className="text-lg font-medium text-black">未选中节点</h3>
+        <h3 className="text-lg font-medium text-black">
+          {readOnly ? '调试模式' : '未选中节点'}
+        </h3>
         <p className="mt-2 text-sm text-slate-400">
-          请在画布上点击选择一个节点进行配置
+          {readOnly 
+            ? '点击画布上的节点查看其配置信息' 
+            : '请在画布上点击选择一个节点进行配置'}
         </p>
       </div>
     );
@@ -151,8 +165,12 @@ export function NodeConfigPanel() {
       <CardHeader className="shrink-0 border-b border-muted bg-white pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Settings2 className="h-4 w-4 text-slate-400 shrink-0" />
-            {isEditingName ? (
+            {readOnly ? (
+              <Lock className="h-4 w-4 text-amber-500 shrink-0" />
+            ) : (
+              <Settings2 className="h-4 w-4 text-slate-400 shrink-0" />
+            )}
+            {isEditingName && !readOnly ? (
               <input
                 ref={inputRef}
                 type="text"
@@ -168,24 +186,31 @@ export function NodeConfigPanel() {
                 <CardTitle className="text-base font-semibold text-black truncate cursor-default">
                   {selectedNode.name}
                 </CardTitle>
-                <button
-                  onClick={handleStartEdit}
-                  className="shrink-0 p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
-                  title="编辑节点名称"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
+                {!readOnly && (
+                  <button
+                    onClick={handleStartEdit}
+                    className="shrink-0 p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                    title="编辑节点名称"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {readOnly && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                只读
+              </Badge>
+            )}
             <Badge 
               variant={typeConfig.badgeVariant}
               className={typeConfig.badgeClass}
             >
               {typeConfig.label}
             </Badge>
-            {selectedNode.type !== 'entry' && (
+            {!readOnly && selectedNode.type !== 'entry' && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -200,9 +225,12 @@ export function NodeConfigPanel() {
         </div>
       </CardHeader>
       
-      <CardContent className="flex-1 overflow-hidden p-0">
+      <CardContent className="flex-1 overflow-hidden p-0 relative">
         <ScrollArea className="h-full">
-          <div className="w-full min-w-0 max-w-full overflow-hidden px-6 py-4">
+          <div className={cn(
+            "w-full min-w-0 max-w-full overflow-hidden px-6 py-4",
+            readOnly && "pointer-events-none select-none opacity-80"
+          )}>
             {/* Entry 节点：初始变量配置 */}
             {selectedNode.type === 'entry' && isEntryConfig(selectedNode.data) && (
               <EntryConfig
