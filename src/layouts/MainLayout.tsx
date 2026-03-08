@@ -56,12 +56,14 @@ export function MainLayout() {
   const bottomPanelTab = useUIStore((state) => state.bottomPanelTab);
   const bottomPanelHeight = useUIStore((state) => state.bottomPanelHeight);
   const configPanelWidth = useUIStore((state) => state.configPanelWidth);
+  const sidebarWidth = useUIStore((state) => state.sidebarWidth);
   const toggleFlowListPanel = useUIStore((state) => state.toggleFlowListPanel);
   const toggleHistoryPanel = useUIStore((state) => state.toggleHistoryPanel);
   const toggleConfigPanel = useUIStore((state) => state.toggleConfigPanel);
   const setBottomPanelTab = useUIStore((state) => state.setBottomPanelTab);
   const setBottomPanelHeight = useUIStore((state) => state.setBottomPanelHeight);
   const setConfigPanelWidth = useUIStore((state) => state.setConfigPanelWidth);
+  const setSidebarWidth = useUIStore((state) => state.setSidebarWidth);
   const openSettingsDialog = useUIStore((state) => state.openSettingsDialog);
   const showConfirm = useUIStore((state) => state.showConfirm);
 
@@ -103,6 +105,11 @@ export function MainLayout() {
   const [isRightPanelDragging, setIsRightPanelDragging] = useState(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+
+  // 左侧面板拖拽调整宽度相关状态
+  const [isLeftPanelDragging, setIsLeftPanelDragging] = useState(false);
+  const startLeftXRef = useRef(0);
+  const startLeftWidthRef = useRef(0);
 
   // 底部面板开始拖拽
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -154,6 +161,31 @@ export function MainLayout() {
     document.body.style.userSelect = '';
   }, []);
 
+  // 左侧面板开始拖拽
+  const handleLeftPanelMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsLeftPanelDragging(true);
+    startLeftXRef.current = e.clientX;
+    startLeftWidthRef.current = sidebarWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [sidebarWidth]);
+
+  // 左侧面板拖拽中
+  const handleLeftPanelMouseMove = useCallback((e: MouseEvent) => {
+    if (!isLeftPanelDragging) return;
+    const deltaX = e.clientX - startLeftXRef.current;
+    const newWidth = Math.max(200, Math.min(400, startLeftWidthRef.current + deltaX));
+    setSidebarWidth(newWidth);
+  }, [isLeftPanelDragging, setSidebarWidth]);
+
+  // 左侧面板结束拖拽
+  const handleLeftPanelMouseUp = useCallback(() => {
+    setIsLeftPanelDragging(false);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
+
   // 使用 useEffect 管理底部面板事件监听
   useEffect(() => {
     if (!isDragging) return;
@@ -179,6 +211,19 @@ export function MainLayout() {
       window.removeEventListener('mouseup', handleRightPanelMouseUp);
     };
   }, [isRightPanelDragging, handleRightPanelMouseMove, handleRightPanelMouseUp]);
+
+  // 使用 useEffect 管理左侧面板事件监听
+  useEffect(() => {
+    if (!isLeftPanelDragging) return;
+
+    window.addEventListener('mousemove', handleLeftPanelMouseMove);
+    window.addEventListener('mouseup', handleLeftPanelMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleLeftPanelMouseMove);
+      window.removeEventListener('mouseup', handleLeftPanelMouseUp);
+    };
+  }, [isLeftPanelDragging, handleLeftPanelMouseMove, handleLeftPanelMouseUp]);
 
   // 调试进行中时自动打开右侧面板（只读模式下不自动打开，允许用户折叠）
   useEffect(() => {
@@ -240,12 +285,39 @@ export function MainLayout() {
         {/* ===== 左侧栏 ===== */}
         <aside
           className={cn(
-            'shrink-0 border-r border-border flex flex-col bg-white',
-            'transition-all duration-300 ease-out overflow-hidden',
-            isFlowListPanelOpen ? 'w-[256px] min-w-0' : 'w-0'
+            'shrink-0 border-r border-border flex flex-col bg-white overflow-hidden relative',
+            'transition-all duration-300 ease-out',
+            isFlowListPanelOpen ? 'min-w-0' : 'w-0 min-w-0',
+            isLeftPanelDragging && '!transition-none'
           )}
+          style={{ width: isFlowListPanelOpen ? sidebarWidth : 0 }}
         >
-          {isFlowListPanelOpen && <LeftSidebarPanel />}
+          {/* 可拖拽调整宽度的 handle - 放在面板内部右边缘 */}
+          {isFlowListPanelOpen && (
+            <div
+              onMouseDown={handleLeftPanelMouseDown}
+              className={cn(
+                'absolute right-0 top-0 bottom-0 w-1.5 z-10',
+                'bg-transparent hover:bg-slate-200 active:bg-slate-300',
+                'cursor-col-resize flex flex-col items-center justify-center gap-0.5',
+                'transition-colors duration-150',
+                isLeftPanelDragging && 'bg-slate-300'
+              )}
+              title="拖拽调整面板宽度"
+            >
+              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+            </div>
+          )}
+          {isFlowListPanelOpen && (
+            <div className="h-full min-w-0 overflow-hidden pr-1.5" style={{ width: sidebarWidth }}>
+              <LeftSidebarPanel />
+            </div>
+          )}
         </aside>
 
         {/* 左侧折叠按钮 */}
@@ -256,9 +328,9 @@ export function MainLayout() {
           className={cn(
             'absolute z-20 h-8 w-6 rounded-l-none rounded-r-lg top-[calc(50%-16px)]',
             'bg-white hover:bg-slate-50 border border-l-0 border-border',
-            'transition-all duration-300 ease-out',
-            isFlowListPanelOpen ? 'left-[256px]' : 'left-0'
+            'transition-colors duration-150'
           )}
+          style={{ left: isFlowListPanelOpen ? sidebarWidth : 0 }}
           title={isFlowListPanelOpen ? '收起侧边栏' : '展开侧边栏'}
         >
           {isFlowListPanelOpen ? (
@@ -408,7 +480,8 @@ export function MainLayout() {
           className={cn(
             'shrink-0 border-l border-border bg-white overflow-hidden relative',
             'transition-all duration-300 ease-out',
-            isConfigPanelOpen ? 'min-w-0' : 'w-0 min-w-0'
+            isConfigPanelOpen ? 'min-w-0' : 'w-0 min-w-0',
+            isRightPanelDragging && '!transition-none'
           )}
           style={{ width: isConfigPanelOpen ? configPanelWidth : 0 }}
         >
@@ -455,7 +528,7 @@ export function MainLayout() {
             className={cn(
               'absolute z-20 h-8 w-6 rounded-r-none rounded-l-lg top-[calc(50%-16px)]',
               'bg-white hover:bg-slate-50 border border-r-0 border-border',
-              'transition-all duration-300 ease-out'
+              'transition-colors duration-150'
             )}
             style={{ right: isConfigPanelOpen ? configPanelWidth : 0 }}
             title={isConfigPanelOpen ? '收起配置面板' : '展开配置面板'}

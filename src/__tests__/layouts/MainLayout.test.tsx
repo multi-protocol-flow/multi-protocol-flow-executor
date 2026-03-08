@@ -56,6 +56,7 @@ vi.mock('@/components/ui/sonner', () => ({
 describe('MainLayout - 右侧面板拖拽功能', () => {
   const mockSetConfigPanelWidth = vi.fn();
   const mockSetBottomPanelHeight = vi.fn();
+  const mockSetSidebarWidth = vi.fn();
 
   const defaultUIState = {
     isFlowListPanelOpen: true,
@@ -65,12 +66,14 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
     bottomPanelTab: 'history' as const,
     bottomPanelHeight: 208,
     configPanelWidth: 320,
+    sidebarWidth: 280,
     toggleFlowListPanel: vi.fn(),
     toggleHistoryPanel: vi.fn(),
     toggleConfigPanel: vi.fn(),
     setBottomPanelTab: vi.fn(),
     setBottomPanelHeight: mockSetBottomPanelHeight,
     setConfigPanelWidth: mockSetConfigPanelWidth,
+    setSidebarWidth: mockSetSidebarWidth,
     openSettingsDialog: vi.fn(),
     showConfirm: vi.fn(),
   };
@@ -117,10 +120,11 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
 
   describe('右侧面板渲染', () => {
     it('右侧面板展开时显示拖拽 handle', () => {
-      render(<MainLayout />);
+      const { container } = render(<MainLayout />);
       
-      // 查找拖拽 handle（通过 title 属性）
-      const resizeHandle = document.querySelector('[title="拖拽调整面板宽度"]');
+      // 查找右侧面板（通过 border-l 类）
+      const rightAside = container.querySelector('aside.border-l');
+      const resizeHandle = rightAside?.querySelector('[title="拖拽调整面板宽度"]');
       expect(resizeHandle).toBeDefined();
     });
 
@@ -130,9 +134,11 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
         return selector ? selector(state) : state;
       });
 
-      render(<MainLayout />);
+      const { container } = render(<MainLayout />);
       
-      const resizeHandle = document.querySelector('[title="拖拽调整面板宽度"]');
+      // 查找右侧面板（通过 border-l 类）
+      const rightAside = container.querySelector('aside.border-l');
+      const resizeHandle = rightAside?.querySelector('[title="拖拽调整面板宽度"]');
       expect(resizeHandle).toBeNull();
     });
 
@@ -148,9 +154,10 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
 
   describe('右侧面板拖拽交互', () => {
     it('鼠标按下拖拽 handle 开始拖拽', () => {
-      render(<MainLayout />);
+      const { container } = render(<MainLayout />);
       
-      const resizeHandle = document.querySelector('[title="拖拽调整面板宽度"]') as HTMLElement;
+      const rightAside = container.querySelector('aside.border-l');
+      const resizeHandle = rightAside?.querySelector('[title="拖拽调整面板宽度"]') as HTMLElement;
       expect(resizeHandle).toBeDefined();
       
       fireEvent.mouseDown(resizeHandle);
@@ -162,9 +169,10 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
     });
 
     it('拖拽时鼠标移动更新宽度', () => {
-      render(<MainLayout />);
+      const { container } = render(<MainLayout />);
       
-      const resizeHandle = document.querySelector('[title="拖拽调整面板宽度"]') as HTMLElement;
+      const rightAside = container.querySelector('aside.border-l');
+      const resizeHandle = rightAside?.querySelector('[title="拖拽调整面板宽度"]') as HTMLElement;
       
       // 开始拖拽
       fireEvent.mouseDown(resizeHandle, { clientX: 500 });
@@ -177,9 +185,10 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
     });
 
     it('鼠标释放后停止拖拽', () => {
-      render(<MainLayout />);
+      const { container } = render(<MainLayout />);
       
-      const resizeHandle = document.querySelector('[title="拖拽调整面板宽度"]') as HTMLElement;
+      const rightAside = container.querySelector('aside.border-l');
+      const resizeHandle = rightAside?.querySelector('[title="拖拽调整面板宽度"]') as HTMLElement;
       
       fireEvent.mouseDown(resizeHandle);
       
@@ -197,9 +206,10 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
 
   describe('右侧面板宽度限制', () => {
     it('宽度不能小于最小值 250px', () => {
-      render(<MainLayout />);
+      const { container } = render(<MainLayout />);
       
-      const resizeHandle = document.querySelector('[title="拖拽调整面板宽度"]') as HTMLElement;
+      const rightAside = container.querySelector('aside.border-l');
+      const resizeHandle = rightAside?.querySelector('[title="拖拽调整面板宽度"]') as HTMLElement;
       
       // 开始拖拽，当前宽度 320px
       fireEvent.mouseDown(resizeHandle, { clientX: 500 });
@@ -212,9 +222,10 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
     });
 
     it('宽度不能大于最大值 500px', () => {
-      render(<MainLayout />);
+      const { container } = render(<MainLayout />);
       
-      const resizeHandle = document.querySelector('[title="拖拽调整面板宽度"]') as HTMLElement;
+      const rightAside = container.querySelector('aside.border-l');
+      const resizeHandle = rightAside?.querySelector('[title="拖拽调整面板宽度"]') as HTMLElement;
       
       // 开始拖拽，当前宽度 320px
       fireEvent.mouseDown(resizeHandle, { clientX: 500 });
@@ -227,9 +238,10 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
     });
 
     it('宽度在范围内时正常更新', () => {
-      render(<MainLayout />);
+      const { container } = render(<MainLayout />);
       
-      const resizeHandle = document.querySelector('[title="拖拽调整面板宽度"]') as HTMLElement;
+      const rightAside = container.querySelector('aside.border-l');
+      const resizeHandle = rightAside?.querySelector('[title="拖拽调整面板宽度"]') as HTMLElement;
       
       // 开始拖拽，当前宽度 320px
       fireEvent.mouseDown(resizeHandle, { clientX: 500 });
