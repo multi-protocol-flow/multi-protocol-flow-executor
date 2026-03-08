@@ -94,9 +94,10 @@ impl NodeExecutor for WsSendWaitExecutor {
 
         // 4. 检查连接是否存在且状态为 Connected
         let connection_status = self.ws_manager.get_status(&connection_id);
-        match connection_status {
+        let error_data = match connection_status {
             Some(crate::websocket_manager::ConnectionStatus::Connected) => {
                 // 连接正常，继续执行
+                None
             }
             Some(status) => {
                 let error_msg = format!(
@@ -123,8 +124,8 @@ impl NodeExecutor for WsSendWaitExecutor {
                     })
                     .await;
 
-                // 返回错误
-                return Err(error_msg);
+                // 返回 false 端口 + 错误数据
+                Some(self.build_error_output_data(&connection_id, &error_msg))
             }
             None => {
                 let error_msg = format!("连接不存在: {}", connection_id);
@@ -144,9 +145,34 @@ impl NodeExecutor for WsSendWaitExecutor {
                     })
                     .await;
 
-                // 返回错误
-                return Err(error_msg);
+                // 返回 false 端口 + 错误数据
+                Some(self.build_error_output_data(&connection_id, &error_msg))
             }
+        };
+
+        // 如果有错误数据，直接返回 false 端口
+        if let Some(output_data) = error_data {
+            // 应用输出变量映射
+            if let Some(ref data) = output_data {
+                self.apply_output_mappings(&config, data, context);
+            }
+
+            // 返回 false 端口
+            let filtered: Vec<String> = connections
+                .iter()
+                .filter(|conn| {
+                    conn.source_node_uuid == node.uuid && conn.source_port_id == "false"
+                })
+                .map(|conn| conn.target_node_uuid.clone())
+                .collect();
+
+            let next_node_ids = if filtered.is_empty() {
+                vec!["false".to_string()]
+            } else {
+                filtered
+            };
+
+            return Ok((next_node_ids, output_data));
         }
 
         // 5. 发送消息
@@ -260,8 +286,8 @@ impl NodeExecutor for WsSendWaitExecutor {
                     })
                     .await;
 
-                // 返回错误
-                return Err(e);
+                // 返回 false 端口 + 错误数据
+                ("false", self.build_error_output_data(&connection_id, &e))
             }
         };
 
@@ -468,6 +494,21 @@ impl WsSendWaitExecutor {
         }
 
         Ok(Some(output_data))
+    }
+
+    /// 构建错误输出数据（用于连接不存在或发送失败的情况）
+    fn build_error_output_data(
+        &self,
+        connection_id: &str,
+        error_msg: &str,
+    ) -> Option<serde_json::Value> {
+        Some(json!({
+            "connection_id": connection_id,
+            "wait_timed_out": false,
+            "sent": null,
+            "message": null,
+            "error": error_msg,
+        }))
     }
 
     /// 应用输出变量映射
