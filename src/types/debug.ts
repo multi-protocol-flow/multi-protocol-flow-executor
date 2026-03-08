@@ -49,7 +49,8 @@ export type DebugCommand =
   | 'RunToEnd'
   | 'EndDebug'
   | { ModifyVariable: { name: string; value: unknown } }
-  | { ModifyNodeConfig: { node_uuid: string; config: unknown } };
+  | { ModifyNodeConfig: { node_uuid: string; config: unknown } }
+  | { SetBreakpoint: { node_uuid: string; enabled: boolean } };
 
 // ============================================================================
 // 调试事件枚举
@@ -96,6 +97,7 @@ export type DebugEvent =
   | { SessionEnded: { reason: EndReason; report?: FlowExecutionReport; execution_stack: ExecutionStackEntry[] } }
   | { VariableModified: { name: string; value: unknown } }
   | { NodeConfigModified: { node_uuid: string; config: unknown } }
+  | { BreakpointModified: { node_uuid: string; enabled: boolean } }
   | { Error: { message: string } }
   | {
       Heartbeat: {

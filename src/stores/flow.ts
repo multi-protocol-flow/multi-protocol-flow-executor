@@ -167,11 +167,24 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       const node = state.flow.nodes.find((n) => n.uuid === uuid);
       if (!node) return state;
       const currentBreakpoint = node.hasBreakpoint ?? false;
+      const newBreakpoint = !currentBreakpoint;
+
+      // 如果正在调试中，同步断点到后端
+      // 使用动态导入避免循环依赖
+      import('./debug').then(({ useDebugStore, selectIsDebugging }) => {
+        const debugStore = useDebugStore.getState();
+        if (selectIsDebugging(debugStore)) {
+          debugStore.setBreakpointDynamic(uuid, newBreakpoint).catch((err) => {
+            console.error('[Flow] 同步断点到后端失败:', err);
+          });
+        }
+      });
+
       return {
         flow: {
           ...state.flow,
           nodes: state.flow.nodes.map((n) =>
-            n.uuid === uuid ? { ...n, hasBreakpoint: !currentBreakpoint } : n
+            n.uuid === uuid ? { ...n, hasBreakpoint: newBreakpoint } : n
           ),
         },
         isDirty: true,

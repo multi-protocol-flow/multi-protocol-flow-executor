@@ -109,6 +109,13 @@ pub enum DebugCommand {
         /// 新的节点配置（JSON 格式的 NodeData）
         config: serde_json::Value,
     },
+    /// 动态设置断点（调试期间生效）
+    SetBreakpoint {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 是否启用断点
+        enabled: bool,
+    },
 }
 
 // ============================================================================
@@ -164,6 +171,13 @@ pub enum DebugEvent {
         node_uuid: String,
         /// 新的节点配置
         config: serde_json::Value,
+    },
+    /// 断点已修改（动态设置）
+    BreakpointModified {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 是否启用断点
+        enabled: bool,
     },
     /// 调试错误
     Error {
@@ -284,6 +298,18 @@ impl DebugSessionState {
     /// 检查节点是否有断点
     pub fn has_breakpoint(&self, node_uuid: &str) -> bool {
         self.breakpoints.contains(&node_uuid.to_string())
+    }
+
+    /// 添加断点
+    pub fn add_breakpoint(&mut self, node_uuid: String) {
+        if !self.breakpoints.contains(&node_uuid) {
+            self.breakpoints.push(node_uuid);
+        }
+    }
+
+    /// 移除断点
+    pub fn remove_breakpoint(&mut self, node_uuid: &str) {
+        self.breakpoints.retain(|bp| bp != node_uuid);
     }
 
     /// 添加执行堆栈条目
@@ -582,6 +608,10 @@ mod tests {
                 node_uuid: "node-001".to_string(),
                 config: json!({"type": "http", "url": "https://example.com", "method": "get"}),
             },
+            DebugCommand::SetBreakpoint {
+                node_uuid: "node-002".to_string(),
+                enabled: true,
+            },
         ];
 
         for cmd in commands {
@@ -622,6 +652,10 @@ mod tests {
                 node_uuid: "node-001".to_string(),
                 config: json!({"type": "http", "url": "https://example.com", "method": "get"}),
             },
+            DebugEvent::BreakpointModified {
+                node_uuid: "node-002".to_string(),
+                enabled: true,
+            },
             DebugEvent::Error {
                 message: "Test error".to_string(),
             },
@@ -637,5 +671,41 @@ mod tests {
             let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
             assert_eq!(event, deserialized);
         }
+    }
+
+    #[test]
+    fn test_debug_session_state_dynamic_breakpoints() {
+        let mut state = DebugSessionState::new("session-001".to_string(), "flow-001".to_string());
+
+        // 初始状态没有断点
+        assert!(!state.has_breakpoint("node-001"));
+        assert!(!state.has_breakpoint("node-002"));
+
+        // 添加断点
+        state.add_breakpoint("node-001".to_string());
+        assert!(state.has_breakpoint("node-001"));
+        assert!(!state.has_breakpoint("node-002"));
+
+        // 添加另一个断点
+        state.add_breakpoint("node-002".to_string());
+        assert!(state.has_breakpoint("node-001"));
+        assert!(state.has_breakpoint("node-002"));
+
+        // 重复添加不会重复
+        state.add_breakpoint("node-001".to_string());
+        assert_eq!(state.breakpoints.len(), 2);
+
+        // 移除断点
+        state.remove_breakpoint("node-001");
+        assert!(!state.has_breakpoint("node-001"));
+        assert!(state.has_breakpoint("node-002"));
+
+        // 移除不存在的断点不会出错
+        state.remove_breakpoint("node-003");
+        assert_eq!(state.breakpoints.len(), 1);
+
+        // 再次移除已移除的断点
+        state.remove_breakpoint("node-001");
+        assert_eq!(state.breakpoints.len(), 1);
     }
 }

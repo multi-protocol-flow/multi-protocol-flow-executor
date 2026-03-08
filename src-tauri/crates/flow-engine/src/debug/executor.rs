@@ -771,6 +771,24 @@ impl DebuggableFlowExecutor {
                         log::error!("[调试] 发送 NodeConfigModified 事件失败: {}", e);
                     }
                 }
+                DebugCommand::SetBreakpoint { node_uuid, enabled } => {
+                    // 动态设置断点
+                    if enabled {
+                        debug_state.add_breakpoint(node_uuid.clone());
+                        log::info!("[调试] 添加断点: {}", node_uuid);
+                    } else {
+                        debug_state.remove_breakpoint(&node_uuid);
+                        log::info!("[调试] 移除断点: {}", node_uuid);
+                    }
+
+                    // 发送断点修改事件
+                    if let Err(e) = event_sender.send(DebugEvent::BreakpointModified {
+                        node_uuid,
+                        enabled,
+                    }) {
+                        log::error!("[调试] 发送 BreakpointModified 事件失败: {}", e);
+                    }
+                }
                 DebugCommand::StartDebug { .. } => {
                     // 调试已启动，忽略此命令
                     log::warn!("调试会话已启动，忽略 StartDebug 命令");
@@ -1811,5 +1829,254 @@ mod tests {
             "入口节点应该被标记为'已跳过'，但实际错误信息为: {:?}",
             entry.error
         );
+    }
+
+    /// 测试动态设置断点
+    ///
+    /// 场景：调试启动时第二个节点没有断点，在第一个节点暂停时动态添加第二个节点的断点
+    /// 预期：第二个节点应该因为新添加的断点而暂停
+    #[tokio::test]
+    async fn test_dynamic_breakpoint_add() {
+        // 创建一个有三个节点的流程：Entry -> Entry -> Entry
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: Some(true), // 第一个节点有断点
+        };
+
+        let second_node = Node {
+            uuid: format!("second-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "第二个节点".to_string(),
+            position: NodePosition { x: 200.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None, // 第二个节点初始没有断点
+        };
+
+        let third_node = Node {
+            uuid: format!("third-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "第三个节点".to_string(),
+            position: NodePosition { x: 400.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let connection1 = Connection {
+            id: format!("conn1-{}", flow_id),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: second_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let connection2 = Connection {
+            id: format!("conn2-{}", flow_id),
+            source_node_uuid: second_node.uuid.clone(),
+            target_node_uuid: third_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试动态断点".to_string(),
+            nodes: vec![start_node.clone(), second_node.clone(), third_node.clone()],
+            connections: vec![connection1, connection2],
+        };
+
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        // 启动调试会话（只在第一个节点有断点）
+        let executor = DebuggableFlowExecutor::new();
+        let flow_clone = flow.clone();
+        let start_node_uuid = start_node.uuid.clone();
+        let second_node_uuid = second_node.uuid.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(
+                    &flow_clone,
+                    None,
+                    vec![start_node_uuid], // 只在第一个节点有断点
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
+                .await
+        });
+
+        // 收集事件
+        let mut paused_nodes: Vec<String> = vec![];
+        let mut breakpoint_modified_events: Vec<(String, bool)> = vec![];
+
+        // 处理事件循环
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::PausedAtNode { node_uuid, .. } => {
+                            paused_nodes.push(node_uuid.clone());
+
+                            if node_uuid == start_node.uuid {
+                                // 在第一个节点暂停时，动态添加第二个节点的断点
+                                let _ = command_sender.send(DebugCommand::SetBreakpoint {
+                                    node_uuid: second_node_uuid.clone(),
+                                    enabled: true,
+                                });
+                                // 然后继续执行
+                                let _ = command_sender.send(DebugCommand::Continue);
+                            } else if node_uuid == second_node.uuid {
+                                // 第二个节点暂停（因为动态添加的断点），继续执行
+                                let _ = command_sender.send(DebugCommand::Continue);
+                            }
+                        }
+                        DebugEvent::BreakpointModified { node_uuid, enabled } => {
+                            breakpoint_modified_events.push((node_uuid, enabled));
+                        }
+                        DebugEvent::SessionEnded { .. } => {
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(5)) => {
+                    panic!("测试超时");
+                }
+            }
+        }
+
+        // 等待调试会话完成
+        let result = handle.await;
+        assert!(result.is_ok());
+
+        // 【关键断言1】应该暂停两次：第一个节点（初始断点）和第二个节点（动态断点）
+        assert_eq!(paused_nodes.len(), 2, "应该暂停两次");
+        assert_eq!(paused_nodes[0], start_node.uuid, "第一次暂停应该在第一个节点");
+        assert_eq!(paused_nodes[1], second_node.uuid, "第二次暂停应该在第二个节点（动态断点）");
+
+        // 【关键断言2】应该收到断点修改事件
+        assert_eq!(breakpoint_modified_events.len(), 1, "应该收到一个断点修改事件");
+        assert_eq!(breakpoint_modified_events[0].0, second_node.uuid);
+        assert!(breakpoint_modified_events[0].1, "断点应该是启用状态");
+    }
+
+    /// 测试动态移除断点
+    ///
+    /// 场景：调试启动时两个节点都有断点，在第一个节点暂停时动态移除第二个节点的断点
+    /// 预期：第二个节点应该不会暂停（直接执行完成）
+    #[tokio::test]
+    async fn test_dynamic_breakpoint_remove() {
+        // 创建一个有两个节点的流程：Entry -> Entry
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: Some(true),
+        };
+
+        let second_node = Node {
+            uuid: format!("second-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "第二个节点".to_string(),
+            position: NodePosition { x: 200.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: Some(true), // 初始有断点
+        };
+
+        let connection = Connection {
+            id: format!("conn-{}", flow_id),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: second_node.uuid.clone(),
+            source_port_id: "output".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试动态移除断点".to_string(),
+            nodes: vec![start_node.clone(), second_node.clone()],
+            connections: vec![connection],
+        };
+
+        let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
+        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+
+        // 启动调试会话（两个节点都有断点）
+        let executor = DebuggableFlowExecutor::new();
+        let flow_clone = flow.clone();
+        let start_node_uuid = start_node.uuid.clone();
+        let second_node_uuid_for_spawn = second_node.uuid.clone();
+        let second_node_uuid_for_event = second_node.uuid.clone();
+        let handle = tokio::spawn(async move {
+            executor
+                .start_debug(
+                    &flow_clone,
+                    None,
+                    vec![start_node_uuid.clone(), second_node_uuid_for_spawn.clone()], // 两个节点都有断点
+                    None,
+                    event_sender,
+                    command_receiver,
+                )
+                .await
+        });
+
+        // 收集暂停事件
+        let mut paused_nodes: Vec<String> = vec![];
+
+        // 处理事件循环
+        loop {
+            tokio::select! {
+                Some(event) = event_receiver.recv() => {
+                    match event {
+                        DebugEvent::PausedAtNode { node_uuid, .. } => {
+                            paused_nodes.push(node_uuid.clone());
+
+                            if node_uuid == start_node.uuid {
+                                // 在第一个节点暂停时，动态移除第二个节点的断点
+                                let _ = command_sender.send(DebugCommand::SetBreakpoint {
+                                    node_uuid: second_node_uuid_for_event.clone(),
+                                    enabled: false,
+                                });
+                                // 然后继续执行
+                                let _ = command_sender.send(DebugCommand::Continue);
+                            } else if node_uuid == second_node.uuid {
+                                // 如果第二个节点暂停，继续执行
+                                let _ = command_sender.send(DebugCommand::Continue);
+                            }
+                        }
+                        DebugEvent::SessionEnded { .. } => {
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                _ = tokio::time::sleep(std::time::Duration::from_secs(5)) => {
+                    panic!("测试超时");
+                }
+            }
+        }
+
+        // 等待调试会话完成
+        let result = handle.await;
+        assert!(result.is_ok());
+
+        // 【关键断言】应该只暂停一次（第一个节点），第二个节点因为断点被移除而不暂停
+        assert_eq!(paused_nodes.len(), 1, "应该只暂停一次（第二个节点断点被移除）");
+        assert_eq!(paused_nodes[0], start_node.uuid, "暂停应该在第一个节点");
     }
 }

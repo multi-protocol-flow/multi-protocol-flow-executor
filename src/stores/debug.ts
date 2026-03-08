@@ -66,6 +66,8 @@ interface DebugState {
   endDebugSession: () => Promise<void>;
   /** 修改节点配置（临时） */
   modifyNodeConfig: (nodeUuid: string, config: unknown) => Promise<void>;
+  /** 动态设置断点（调试期间生效） */
+  setBreakpointDynamic: (nodeUuid: string, enabled: boolean) => Promise<void>;
   /** 处理调试事件 */
   handleDebugEvent: (event: DebugEvent) => void;
   /** 检查会话健康状态 */
@@ -335,6 +337,18 @@ export const useDebugStore = create<DebugState>((set, get) => ({
     }
   },
 
+  setBreakpointDynamic: async (nodeUuid: string, enabled: boolean) => {
+    try {
+      await sendDebugCommand({
+        SetBreakpoint: { node_uuid: nodeUuid, enabled },
+      });
+      // 注意：本地断点状态由 flow store 管理，这里只发送命令到后端
+      // 后端会返回 BreakpointModified 事件，但前端断点显示由 flow store 控制
+    } catch (error) {
+      set({ error: `设置断点失败: ${(error as Error).message}` });
+    }
+  },
+
   handleDebugEvent: (event: DebugEvent) => {
     // 收到任何事件都更新心跳时间
     set({ lastHeartbeatTime: Date.now() });
@@ -411,6 +425,13 @@ export const useDebugStore = create<DebugState>((set, get) => ({
           [node_uuid]: config,
         },
       }));
+    } else if ('BreakpointModified' in event) {
+      // 断点修改事件 - 同步到 flow store
+      const { node_uuid, enabled } = event.BreakpointModified;
+      // 使用动态导入避免循环依赖
+      import('./flow').then(({ useFlowStore }) => {
+        useFlowStore.getState().setBreakpoint(node_uuid, enabled);
+      });
     } else if ('Error' in event) {
       // 收到错误事件，清除命令超时
       clearCommandTimeout();
