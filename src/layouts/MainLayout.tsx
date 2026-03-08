@@ -55,11 +55,13 @@ export function MainLayout() {
   const configPanelMode = useUIStore((state) => state.configPanelMode);
   const bottomPanelTab = useUIStore((state) => state.bottomPanelTab);
   const bottomPanelHeight = useUIStore((state) => state.bottomPanelHeight);
+  const configPanelWidth = useUIStore((state) => state.configPanelWidth);
   const toggleFlowListPanel = useUIStore((state) => state.toggleFlowListPanel);
   const toggleHistoryPanel = useUIStore((state) => state.toggleHistoryPanel);
   const toggleConfigPanel = useUIStore((state) => state.toggleConfigPanel);
   const setBottomPanelTab = useUIStore((state) => state.setBottomPanelTab);
   const setBottomPanelHeight = useUIStore((state) => state.setBottomPanelHeight);
+  const setConfigPanelWidth = useUIStore((state) => state.setConfigPanelWidth);
   const openSettingsDialog = useUIStore((state) => state.openSettingsDialog);
   const showConfirm = useUIStore((state) => state.showConfirm);
 
@@ -92,12 +94,17 @@ export function MainLayout() {
     });
   }, [clearLogs, showConfirm]);
 
-  // 拖拽调整高度相关状态
+  // 底部面板拖拽调整高度相关状态
   const [isDragging, setIsDragging] = useState(false);
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
 
-  // 开始拖拽
+  // 右侧面板拖拽调整宽度相关状态
+  const [isRightPanelDragging, setIsRightPanelDragging] = useState(false);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
+
+  // 底部面板开始拖拽
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -107,7 +114,7 @@ export function MainLayout() {
     document.body.style.userSelect = 'none';
   }, [bottomPanelHeight]);
 
-  // 拖拽中
+  // 底部面板拖拽中
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     const deltaY = startYRef.current - e.clientY;
@@ -115,14 +122,39 @@ export function MainLayout() {
     setBottomPanelHeight(newHeight);
   }, [isDragging, setBottomPanelHeight]);
 
-  // 结束拖拽
+  // 底部面板结束拖拽
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
   }, []);
 
-  // 使用 useEffect 管理事件监听
+  // 右侧面板开始拖拽
+  const handleRightPanelMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsRightPanelDragging(true);
+    startXRef.current = e.clientX;
+    startWidthRef.current = configPanelWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [configPanelWidth]);
+
+  // 右侧面板拖拽中
+  const handleRightPanelMouseMove = useCallback((e: MouseEvent) => {
+    if (!isRightPanelDragging) return;
+    const deltaX = startXRef.current - e.clientX;
+    const newWidth = Math.max(250, Math.min(500, startWidthRef.current + deltaX));
+    setConfigPanelWidth(newWidth);
+  }, [isRightPanelDragging, setConfigPanelWidth]);
+
+  // 右侧面板结束拖拽
+  const handleRightPanelMouseUp = useCallback(() => {
+    setIsRightPanelDragging(false);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
+
+  // 使用 useEffect 管理底部面板事件监听
   useEffect(() => {
     if (!isDragging) return;
 
@@ -134,6 +166,19 @@ export function MainLayout() {
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  // 使用 useEffect 管理右侧面板事件监听
+  useEffect(() => {
+    if (!isRightPanelDragging) return;
+
+    window.addEventListener('mousemove', handleRightPanelMouseMove);
+    window.addEventListener('mouseup', handleRightPanelMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleRightPanelMouseMove);
+      window.removeEventListener('mouseup', handleRightPanelMouseUp);
+    };
+  }, [isRightPanelDragging, handleRightPanelMouseMove, handleRightPanelMouseUp]);
 
   // 调试进行中时自动打开右侧面板（只读模式下不自动打开，允许用户折叠）
   useEffect(() => {
@@ -361,13 +406,35 @@ export function MainLayout() {
         {/* ===== 右侧配置面板 ===== */}
         <aside
           className={cn(
-            'shrink-0 border-l border-border bg-white',
-            'transition-all duration-300 ease-out overflow-hidden',
-            isConfigPanelOpen ? 'w-72 min-w-0' : 'w-0 min-w-0'
+            'shrink-0 border-l border-border bg-white overflow-hidden relative',
+            'transition-all duration-300 ease-out',
+            isConfigPanelOpen ? 'min-w-0' : 'w-0 min-w-0'
           )}
+          style={{ width: isConfigPanelOpen ? configPanelWidth : 0 }}
         >
+          {/* 可拖拽调整宽度的 handle - 放在面板内部左边缘 */}
           {isConfigPanelOpen && (
-            <div className="h-full w-72 min-w-0 overflow-hidden">
+            <div
+              onMouseDown={handleRightPanelMouseDown}
+              className={cn(
+                'absolute left-0 top-0 bottom-0 w-1.5 z-10',
+                'bg-transparent hover:bg-slate-200 active:bg-slate-300',
+                'cursor-col-resize flex flex-col items-center justify-center gap-0.5',
+                'transition-colors duration-150',
+                isRightPanelDragging && 'bg-slate-300'
+              )}
+              title="拖拽调整面板宽度"
+            >
+              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+              <div className="w-1 h-1 rounded-full bg-slate-400/50" />
+            </div>
+          )}
+          {isConfigPanelOpen && (
+            <div className="h-full min-w-0 overflow-hidden pl-1.5" style={{ width: configPanelWidth }}>
               {showDebugPanel ? (
                 <DebugPanel />
               ) : configPanelMode === 'settings' ? (
@@ -388,9 +455,9 @@ export function MainLayout() {
             className={cn(
               'absolute z-20 h-8 w-6 rounded-r-none rounded-l-lg top-[calc(50%-16px)]',
               'bg-white hover:bg-slate-50 border border-r-0 border-border',
-              'transition-all duration-300 ease-out',
-              isConfigPanelOpen ? 'right-[288px]' : 'right-0'
+              'transition-all duration-300 ease-out'
             )}
+            style={{ right: isConfigPanelOpen ? configPanelWidth : 0 }}
             title={isConfigPanelOpen ? '收起配置面板' : '展开配置面板'}
           >
             {isConfigPanelOpen ? (
