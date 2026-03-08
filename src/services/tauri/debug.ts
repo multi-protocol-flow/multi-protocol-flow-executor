@@ -78,3 +78,32 @@ export async function endDebug(): Promise<void> {
     throw formatError(error, 'end_debug');
   }
 }
+
+/**
+ * 获取调试会话状态
+ *
+ * 检查后端是否有活跃的调试会话
+ * @returns true 如果有活跃的调试会话，false 否则
+ * @throws IpcError 如果查询失败
+ */
+export async function get_debug_status(): Promise<boolean> {
+  try {
+    return await invoke<boolean>('get_debug_status');
+  } catch (error) {
+    throw formatError(error, 'get_debug_status');
+  }
+}
+
+/**
+ * 强制结束调试会话
+ *
+ * 强制清理残留的调试会话状态（用于页面刷新后恢复）
+ * @throws IpcError 如果清理失败
+ */
+export async function force_end_debug(): Promise<void> {
+  try {
+    await invoke<void>('force_end_debug');
+  } catch (error) {
+    throw formatError(error, 'force_end_debug');
+  }
+}

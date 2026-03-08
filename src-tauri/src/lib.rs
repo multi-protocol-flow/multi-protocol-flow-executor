@@ -39,6 +39,8 @@ pub use tauri_commands::{
     start_debug,
     send_debug_command,
     end_debug,
+    get_debug_status,
+    force_end_debug,
     DebugSessionManager,
 };
 
@@ -111,7 +113,9 @@ pub fn run() {
             open_directory,
             start_debug,
             send_debug_command,
-            end_debug
+            end_debug,
+            get_debug_status,
+            force_end_debug
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

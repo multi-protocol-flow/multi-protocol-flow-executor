@@ -233,6 +233,36 @@ pub async fn end_debug(
     }
 }
 
+/// 获取调试会话状态
+///
+/// 检查是否有活跃的调试会话
+#[tauri::command]
+pub async fn get_debug_status(
+    state: State<'_, Arc<Mutex<DebugSessionManager>>>,
+) -> Result<bool, String> {
+    let manager = state.lock().await;
+    Ok(manager.command_sender.is_some())
+}
+
+/// 强制结束调试会话
+///
+/// 强制清理残留的调试会话状态（用于页面刷新后恢复）
+#[tauri::command]
+pub async fn force_end_debug(
+    state: State<'_, Arc<Mutex<DebugSessionManager>>>,
+) -> Result<(), String> {
+    let mut manager = state.lock().await;
+    
+    if let Some(sender) = &manager.command_sender {
+        // 尝试优雅地结束调试会话
+        let _ = sender.send(DebugCommand::EndDebug);
+    }
+    
+    manager.command_sender = None;
+    log::info!("[调试] 强制结束调试会话");
+    Ok(())
+}
+
 // ============================================================================
 // 单元测试
 // ============================================================================

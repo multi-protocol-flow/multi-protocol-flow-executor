@@ -196,3 +196,34 @@ export async function endDebug(): Promise<void> {
     console.warn('调试功能在 Mock 环境下不可用');
   }
 }
+
+/**
+ * 获取调试会话状态
+ *
+ * 检查后端是否有活跃的调试会话
+ * @returns true 如果有活跃的调试会话，false 否则
+ */
+export async function get_debug_status(): Promise<boolean> {
+  if (isTauriEnv()) {
+    const { get_debug_status: get_debug_statusImpl } = await import('./debug');
+    return get_debug_statusImpl();
+  } else {
+    // Mock 环境 - 返回 false
+    return false;
+  }
+}
+
+/**
+ * 强制结束调试会话
+ *
+ * 强制清理残留的调试会话状态（用于页面刷新后恢复）
+ */
+export async function force_end_debug(): Promise<void> {
+  if (isTauriEnv()) {
+    const { force_end_debug: force_end_debugImpl } = await import('./debug');
+    return force_end_debugImpl();
+  } else {
+    // Mock 环境 - 暂不实现
+    console.warn('调试功能在 Mock 环境下不可用');
+  }
+}
