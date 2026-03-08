@@ -56,4 +56,5 @@ export {
   selectCurrentNodeUuid,
   selectIsDebugging,
   selectIsPaused,
+  selectIsDebugDataReadOnly,
 } from './debug';

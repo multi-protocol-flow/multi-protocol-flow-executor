@@ -168,8 +168,10 @@ describe('DebugStore', () => {
 
         const state = useDebugStore.getState();
         expect(state.status).toBe('ended');
-        expect(state.currentNodeUuid).toBeNull();
-        expect(state.pauseReason).toBeNull();
+        // 调试结束后保留数据用于只读查看
+        expect(state.currentNodeUuid).toBe('node-1'); // 保留最后暂停的节点
+        expect(state.pauseReason).not.toBeNull(); // 保留暂停原因
+        expect(state.isDebugDataReadOnly).toBe(true); // 设置只读标记
       });
 
       it('处理 SessionEnded 事件（用户终止）', () => {
@@ -540,9 +542,10 @@ describe('DebugStore', () => {
       await useDebugStore.getState().endDebugSession();
 
       expect(mockEndDebug).toHaveBeenCalled();
-      // 验证状态已重置
+      // 调试结束后设置为 ended 状态并保留数据（只读模式）
       const state = useDebugStore.getState();
-      expect(state.status).toBe('idle');
+      expect(state.status).toBe('ended');
+      expect(state.isDebugDataReadOnly).toBe(true);
     });
 
     it('continueExecution 处理错误', async () => {

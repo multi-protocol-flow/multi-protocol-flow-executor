@@ -48,6 +48,8 @@ interface DebugState {
   previousStatus: DebugStatus | null;
   /** 最后一次调试报告（调试结束时生成） */
   lastDebugReport: FlowExecutionReport | null;
+  /** 调试数据是否为只读模式（调试结束后保留数据但禁止编辑） */
+  isDebugDataReadOnly: boolean;
 
   // ===== Actions =====
   /** 启动调试会话 */
@@ -68,6 +70,8 @@ interface DebugState {
   handleDebugEvent: (event: DebugEvent) => void;
   /** 检查会话健康状态 */
   checkHealth: () => void;
+  /** 清除调试数据（退出只读模式，恢复正常操作） */
+  clearDebugData: () => void;
   /** 重置状态 */
   reset: () => void;
 }
@@ -91,6 +95,7 @@ const initialState = {
   isCommandPending: false,
   previousStatus: null,
   lastDebugReport: null,
+  isDebugDataReadOnly: false,
 };
 
 // ============================================================================
@@ -172,13 +177,13 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       // 清理之前的定时器
       clearAllTimers();
       
+      // 重置所有调试数据并清除只读标记
       set({ 
-        status: 'running', 
+        ...initialState,
+        status: 'running',
         error: null,
         lastHeartbeatTime: Date.now(),
         healthStatus: 'healthy',
-        isCommandPending: false,
-        previousStatus: null,
       });
 
       // 启动心跳检查
@@ -301,7 +306,13 @@ export const useDebugStore = create<DebugState>((set, get) => ({
     try {
       clearAllTimers();
       await endDebugService();
-      set({ ...initialState });
+      // 设置只读标记而不是完全清空，保留调试数据用于查看
+      set({ 
+        status: 'ended',
+        isCommandPending: false,
+        previousStatus: null,
+        isDebugDataReadOnly: true,
+      });
     } catch (error) {
       set({ error: (error as Error).message });
     }
@@ -361,11 +372,12 @@ export const useDebugStore = create<DebugState>((set, get) => ({
 
       set({
         status: 'ended',
-        currentNodeUuid: null,
-        pauseReason: null,
+        // 保留调试数据用于只读查看，不清空 currentNodeUuid 和 pauseReason
         isCommandPending: false,
         previousStatus: null,
         healthStatus: 'healthy',
+        // 设置只读标记
+        isDebugDataReadOnly: true,
         // 存储调试报告（如果有）
         lastDebugReport: report || null,
       });
@@ -407,6 +419,8 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         isCommandPending: false,
         previousStatus: null,
         healthStatus: 'dead',
+        // 设置只读标记，保留调试数据
+        isDebugDataReadOnly: true,
       });
     } else if ('Heartbeat' in event) {
       // 心跳事件 - 更新心跳时间（已在顶部更新）
@@ -465,6 +479,8 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         error: '调试会话失去响应（心跳超时）',
         isCommandPending: false,
         previousStatus: null,
+        // 设置只读标记，保留调试数据
+        isDebugDataReadOnly: true,
       });
     } else if (timeSinceLastHeartbeat > DEBUG_HEALTH_CONFIG.HEARTBEAT_TIMEOUT_MS / 2) {
       // 心跳延迟，标记为降级状态
@@ -478,6 +494,12 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         set({ healthStatus: 'healthy' });
       }
     }
+  },
+
+  clearDebugData: () => {
+    // 清除所有调试数据，恢复正常操作模式
+    clearAllTimers();
+    set(initialState);
   },
 
   reset: () => {
@@ -499,3 +521,5 @@ export const selectIsPaused = (state: DebugState) => state.status === 'paused';
 export const selectHealthStatus = (state: DebugState) => state.healthStatus;
 /** 选择是否正在等待命令响应 */
 export const selectIsCommandPending = (state: DebugState) => state.isCommandPending;
+/** 选择调试数据是否为只读模式 */
+export const selectIsDebugDataReadOnly = (state: DebugState) => state.isDebugDataReadOnly;

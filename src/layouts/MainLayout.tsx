@@ -10,7 +10,7 @@ import { NodeConfigPanel, SettingsPanel, DebugPanel } from '@/components/panels'
 import { ExecutionReport, ExecutionHistory, ConsolePanel } from '@/components/execution';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
-import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging } from '@/stores';
+import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, GripHorizontal, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -68,6 +68,10 @@ export function MainLayout() {
 
   // Debug store values
   const isDebugging = useDebugStore(selectIsDebugging);
+  const isDebugDataReadOnly = useDebugStore(selectIsDebugDataReadOnly);
+  
+  // 是否显示调试面板（调试中或调试数据只读时）
+  const showDebugPanel = isDebugging || isDebugDataReadOnly;
 
   // Console store values
   const filter = useConsoleStore((state) => state.filter);
@@ -131,7 +135,7 @@ export function MainLayout() {
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  // 调试模式下自动打开并锁定右侧面板
+  // 调试进行中时自动打开右侧面板（只读模式下不自动打开，允许用户折叠）
   useEffect(() => {
     if (isDebugging && !isConfigPanelOpen) {
       toggleConfigPanel();
@@ -364,7 +368,7 @@ export function MainLayout() {
         >
           {isConfigPanelOpen && (
             <div className="h-full w-72 min-w-0 overflow-hidden">
-              {isDebugging ? (
+              {showDebugPanel ? (
                 <DebugPanel />
               ) : configPanelMode === 'settings' ? (
                 <SettingsPanel />
@@ -375,7 +379,7 @@ export function MainLayout() {
           )}
         </aside>
 
-        {/* 右侧折叠按钮 - 调试模式下禁用 */}
+        {/* 右侧折叠按钮 - 调试进行中时禁用（只读模式允许折叠） */}
         {!isDebugging && (
           <Button
             variant="ghost"

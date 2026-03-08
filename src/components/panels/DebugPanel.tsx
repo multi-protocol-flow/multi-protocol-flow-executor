@@ -3,8 +3,8 @@
  * 显示当前节点信息、变量列表、执行堆栈和节点输出
  */
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Copy, Edit2, Check, X, Pause, CheckCircle, Settings2 } from 'lucide-react';
-import { useDebugStore, selectIsPaused, selectCurrentNodeUuid } from '@/stores';
+import { ChevronDown, ChevronRight, Copy, Edit2, Check, X, Pause, CheckCircle, Settings2, Lock } from 'lucide-react';
+import { useDebugStore, selectIsPaused, selectCurrentNodeUuid, selectIsDebugDataReadOnly } from '@/stores';
 import { useFlowStore } from '@/stores';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -188,12 +188,12 @@ function VariableItem({
                 name={key}
                 value={val}
                 depth={depth + 1}
-                onEdit={(_, newVal) => {
+                onEdit={onEdit ? (_, newVal) => {
                   // 更新嵌套对象的值
                   const updated = { ...(value as Record<string, unknown>) };
                   updated[name] = newVal;
-                  onEdit?.(name, updated);
-                }}
+                  onEdit(name, updated);
+                } : undefined}
               />
             ))}
           {isArray &&
@@ -203,12 +203,12 @@ function VariableItem({
                 name={`[${idx}]`}
                 value={item}
                 depth={depth + 1}
-                onEdit={(_, newVal) => {
+                onEdit={onEdit ? (_, newVal) => {
                   // 更新数组项的值
                   const updated = [...(value as unknown[])];
                   updated[idx] = newVal;
-                  onEdit?.(name, updated);
-                }}
+                  onEdit(name, updated);
+                } : undefined}
               />
             ))}
         </div>
@@ -384,6 +384,7 @@ function StackEntryItem({
 export function DebugPanel() {
   const isPaused = useDebugStore(selectIsPaused);
   const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
+  const isDebugDataReadOnly = useDebugStore(selectIsDebugDataReadOnly);
   const variables = useDebugStore((state) => state.variables);
   const executionStack = useDebugStore((state) => state.executionStack);
   const currentNodeOutput = useDebugStore((state) => state.currentNodeOutput);
@@ -399,6 +400,9 @@ export function DebugPanel() {
   // 编辑配置状态
   const [isEditingConfig, setIsEditingConfig] = useState(false);
   const [editConfigValue, setEditConfigValue] = useState('');
+
+  // 是否允许编辑（暂停时且非只读模式）
+  const canEdit = isPaused && !isDebugDataReadOnly;
 
   // 处理变量修改
   const handleModifyVariable = async (name: string, value: unknown) => {
@@ -464,6 +468,17 @@ export function DebugPanel() {
 
   return (
     <div className="h-full flex flex-col bg-white overflow-hidden">
+      {/* 只读模式横幅 */}
+      {isDebugDataReadOnly && (
+        <div className="flex flex-col gap-0.5 px-3 py-2 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs">
+          <div className="flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5" />
+            <span className="font-medium">调试已结束</span>
+          </div>
+          <span className="text-amber-600">只读模式（点击节点恢复正常）</span>
+        </div>
+      )}
+
       {/* ===== 当前节点区域 ===== */}
       <div className="border-b border-slate-200 p-3">
         <h3 className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1.5">
@@ -483,7 +498,7 @@ export function DebugPanel() {
                     )}
                   </div>
                 </div>
-                {isPaused && (
+                {canEdit && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -560,7 +575,7 @@ export function DebugPanel() {
                 key={name}
                 name={name}
                 value={value}
-                onEdit={isPaused ? handleModifyVariable : undefined}
+                onEdit={canEdit ? handleModifyVariable : undefined}
               />
             ))
           ) : (
