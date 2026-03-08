@@ -192,6 +192,7 @@ impl DebuggableFlowExecutor {
                         message: "流程缺少开始节点".to_string(),
                     },
                     report: Some(report),
+                    execution_stack: debug_state.execution_stack.clone(),
                 }) {
                     log::error!("[调试 {}] 发送 SessionEnded 事件失败: {}", flow.uuid, e);
                 }
@@ -275,6 +276,7 @@ impl DebuggableFlowExecutor {
                         message: format!("检测到循环：节点 {} 已被访问", node.uuid),
                     },
                     report: Some(report),
+                    execution_stack: debug_state.execution_stack.clone(),
                 }) {
                     log::error!("[调试 {}] 发送 SessionEnded 事件失败: {}", flow.uuid, e);
                 }
@@ -388,6 +390,7 @@ impl DebuggableFlowExecutor {
                             if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                                 reason: EndReason::Completed,
                                 report: Some(report),
+                                execution_stack: debug_state.execution_stack.clone(),
                             }) {
                                 log::error!("[调试 {}] 发送 SessionEnded 事件失败: {}", flow.uuid, e);
                             }
@@ -411,6 +414,7 @@ impl DebuggableFlowExecutor {
                                     message: error,
                                 },
                                 report: Some(report),
+                                execution_stack: debug_state.execution_stack.clone(),
                             }) {
                                 log::error!("[调试 {}] 发送 SessionEnded 事件失败: {}", flow.uuid, e);
                             }
@@ -424,6 +428,7 @@ impl DebuggableFlowExecutor {
                                 message: error,
                             },
                             report: Some(report),
+                            execution_stack: debug_state.execution_stack.clone(),
                         }) {
                             log::error!("[调试 {}] 发送 SessionEnded 事件失败: {}", flow.uuid, e);
                         }
@@ -645,6 +650,7 @@ impl DebuggableFlowExecutor {
                             message: error,
                         },
                         report: Some(report),
+                        execution_stack: debug_state.execution_stack.clone(),
                     }) {
                         log::error!("[调试 {}] 发送 SessionEnded 事件失败: {}", flow.uuid, e);
                     }
@@ -663,6 +669,7 @@ impl DebuggableFlowExecutor {
         if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
             reason: EndReason::Completed,
             report: Some(report),
+            execution_stack: debug_state.execution_stack.clone(),
         }) {
             log::error!("[调试 {}] 发送 SessionEnded 事件失败: {}", flow.uuid, e);
         }
@@ -737,6 +744,7 @@ impl DebuggableFlowExecutor {
                     if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                         reason: EndReason::UserAbort,
                         report: Some(report),
+                        execution_stack: debug_state.execution_stack.clone(),
                     }) {
                         log::error!("[调试] 发送 SessionEnded 事件失败: {}", e);
                     }

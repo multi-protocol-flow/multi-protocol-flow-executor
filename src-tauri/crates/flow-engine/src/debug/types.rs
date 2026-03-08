@@ -116,6 +116,7 @@ pub enum DebugCommand {
 // ============================================================================
 
 /// 调试事件（从后端发送到前端）
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum DebugEvent {
     /// 调试会话已启动
@@ -147,6 +148,8 @@ pub enum DebugEvent {
         reason: EndReason,
         /// 执行报告（调试结束时生成）
         report: Option<FlowExecutionReport>,
+        /// 执行堆栈（包含所有已执行节点）
+        execution_stack: Vec<ExecutionStackEntry>,
     },
     /// 变量已修改
     VariableModified {
@@ -182,31 +185,31 @@ pub enum DebugEvent {
 // 执行堆栈条目
 // ============================================================================
 
-    /// 执行堆栈条目
-    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-    pub struct ExecutionStackEntry {
-        /// 节点 UUID
-        pub node_uuid: String,
-        /// 节点名称
-        pub node_name: String,
-        /// 节点类型
-        pub node_type: String,
-        /// 执行开始时间（Unix 时间戳，毫秒）
-        pub started_at: u64,
-        /// 执行结束时间（Unix 时间戳，毫秒）
-        pub ended_at: Option<u64>,
-        /// 输入数据
-        pub input: Option<serde_json::Value>,
-        /// 输出数据
-        pub output: Option<serde_json::Value>,
-        /// 是否执行成功
-        pub success: bool,
-        /// 错误信息（如果失败）
-        pub error: Option<String>,
-        /// 实际使用的输出端口 ID（可选）
-        #[serde(default)]
-        pub used_port_id: Option<String>,
-    }
+/// 执行堆栈条目
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ExecutionStackEntry {
+    /// 节点 UUID
+    pub node_uuid: String,
+    /// 节点名称
+    pub node_name: String,
+    /// 节点类型
+    pub node_type: String,
+    /// 执行开始时间（Unix 时间戳，毫秒）
+    pub started_at: u64,
+    /// 执行结束时间（Unix 时间戳，毫秒）
+    pub ended_at: Option<u64>,
+    /// 输入数据
+    pub input: Option<serde_json::Value>,
+    /// 输出数据
+    pub output: Option<serde_json::Value>,
+    /// 是否执行成功
+    pub success: bool,
+    /// 错误信息（如果失败）
+    pub error: Option<String>,
+    /// 实际使用的输出端口 ID（可选）
+    #[serde(default)]
+    pub used_port_id: Option<String>,
+}
 
 // ============================================================================
 // 调试会话状态
@@ -381,7 +384,11 @@ mod tests {
         };
         let json = serde_json::to_string(&cmd).unwrap();
         println!("DebugCommand JSON: {}", json);
-        assert!(json.contains("startDebug") || json.contains("start_debug") || json.contains("StartDebug"));
+        assert!(
+            json.contains("startDebug")
+                || json.contains("start_debug")
+                || json.contains("StartDebug")
+        );
         assert!(json.contains("flow-123"));
 
         let deserialized: DebugCommand = serde_json::from_str(&json).unwrap();
@@ -395,7 +402,11 @@ mod tests {
         };
         let json = serde_json::to_string(&event).unwrap();
         println!("DebugEvent JSON: {}", json);
-        assert!(json.contains("sessionStarted") || json.contains("session_started") || json.contains("SessionStarted"));
+        assert!(
+            json.contains("sessionStarted")
+                || json.contains("session_started")
+                || json.contains("SessionStarted")
+        );
         assert!(json.contains("flow-456"));
 
         let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
@@ -442,10 +453,7 @@ mod tests {
     fn test_debug_session_state_breakpoints() {
         let mut state = DebugSessionState::new("session-001".to_string(), "flow-001".to_string());
 
-        state.set_breakpoints(vec![
-            "node-001".to_string(),
-            "node-003".to_string(),
-        ]);
+        state.set_breakpoints(vec!["node-001".to_string(), "node-003".to_string()]);
 
         assert!(state.has_breakpoint("node-001"));
         assert!(!state.has_breakpoint("node-002"));
@@ -460,10 +468,7 @@ mod tests {
         state.set_variable("body".to_string(), json!({"data": "test"}));
 
         assert_eq!(state.get_variable("status"), Some(&json!(200)));
-        assert_eq!(
-            state.get_variable("body"),
-            Some(&json!({"data": "test"}))
-        );
+        assert_eq!(state.get_variable("body"), Some(&json!({"data": "test"})));
         assert_eq!(state.get_variable("nonexistent"), None);
     }
 
@@ -487,9 +492,18 @@ mod tests {
         state.push_stack_entry(entry1);
         assert_eq!(state.execution_stack.len(), 1);
 
-        state.update_last_stack_entry(1010, Some(json!({"result": "ok"})), true, None, Some("out".to_string()));
+        state.update_last_stack_entry(
+            1010,
+            Some(json!({"result": "ok"})),
+            true,
+            None,
+            Some("out".to_string()),
+        );
         assert_eq!(state.execution_stack[0].ended_at, Some(1010));
-        assert_eq!(state.execution_stack[0].output, Some(json!({"result": "ok"})));
+        assert_eq!(
+            state.execution_stack[0].output,
+            Some(json!({"result": "ok"}))
+        );
     }
 
     #[test]
@@ -598,6 +612,7 @@ mod tests {
             DebugEvent::SessionEnded {
                 reason: EndReason::Completed,
                 report: None,
+                execution_stack: vec![],
             },
             DebugEvent::VariableModified {
                 name: "status".to_string(),

@@ -368,7 +368,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       // 会话结束，清理定时器
       clearAllTimers();
 
-      const { report } = event.SessionEnded;
+      const { report, execution_stack } = event.SessionEnded;
 
       set({
         status: 'ended',
@@ -380,6 +380,8 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         isDebugDataReadOnly: true,
         // 存储调试报告（如果有）
         lastDebugReport: report || null,
+        // 更新执行堆栈（包含所有节点，包括最后一个）
+        executionStack: execution_stack,
       });
 
       // 如果有报告，保存并呈现

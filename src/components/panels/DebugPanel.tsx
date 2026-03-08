@@ -602,7 +602,7 @@ export function DebugPanel() {
               <StackEntryItem
                 key={entry.node_uuid}
                 entry={entry}
-                isCurrentNode={entry.node_uuid === currentNodeUuid}
+                isCurrentNode={!isDebugDataReadOnly && entry.node_uuid === currentNodeUuid}
                 onNavigateToNode={handleNavigateToNode}
               />
             ))

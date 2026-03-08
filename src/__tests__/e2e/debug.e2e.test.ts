@@ -269,7 +269,7 @@ describe('调试功能端到端测试', () => {
       // 模拟流程结束
       act(() => {
         debugEventCallback?.({
-          SessionEnded: { reason: { type: 'completed' } },
+          SessionEnded: { reason: { type: 'completed' }, execution_stack: [] },
         });
       });
 
@@ -415,7 +415,7 @@ describe('调试功能端到端测试', () => {
       // 模拟流程完成（不再在后续断点暂停）
       act(() => {
         debugEventCallback?.({
-          SessionEnded: { reason: { type: 'completed' } },
+          SessionEnded: { reason: { type: 'completed' }, execution_stack: [] },
         });
       });
 
@@ -489,7 +489,7 @@ describe('调试功能端到端测试', () => {
       // 无断点时应直接完成
       act(() => {
         debugEventCallback?.({
-          SessionEnded: { reason: { type: 'completed' } },
+          SessionEnded: { reason: { type: 'completed' }, execution_stack: [] },
         });
       });
 
@@ -565,6 +565,7 @@ describe('调试功能端到端测试', () => {
         debugEventCallback?.({
           SessionEnded: {
             reason: { type: 'error', message: 'HTTP 请求超时' },
+            execution_stack: [],
           },
         });
       });

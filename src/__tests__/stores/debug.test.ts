@@ -161,6 +161,7 @@ describe('DebugStore', () => {
         const event: DebugEvent = {
           SessionEnded: {
             reason: { type: 'completed' },
+            execution_stack: [],
           },
         };
 
@@ -178,6 +179,7 @@ describe('DebugStore', () => {
         const event: DebugEvent = {
           SessionEnded: {
             reason: { type: 'user_abort' },
+            execution_stack: [],
           },
         };
 
@@ -191,6 +193,7 @@ describe('DebugStore', () => {
         const event: DebugEvent = {
           SessionEnded: {
             reason: { type: 'error', message: '执行失败' },
+            execution_stack: [],
           },
         };
 
