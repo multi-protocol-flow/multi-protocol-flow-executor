@@ -191,7 +191,7 @@ export function CollapsiblePanel({
       {!isCollapsed && (
         <div
           className={cn(
-            'flex-1 min-h-0 overflow-hidden',
+            'flex-1 min-h-0 overflow-y-auto scrollbar-thin',
             contentClassName
           )}
         >

@@ -48,6 +48,18 @@ interface UIState {
   /** 变量面板高度（像素） */
   variablePanelHeight: number;
 
+  // ===== 调试面板折叠状态 =====
+  /** 上下文变量是否折叠 */
+  isContextVariablesCollapsed: boolean;
+  /** 执行堆栈是否折叠 */
+  isExecutionStackCollapsed: boolean;
+  /** 最近节点输出是否折叠 */
+  isRecentOutputCollapsed: boolean;
+  /** 执行堆栈高度（像素） */
+  executionStackHeight: number;
+  /** 最近节点输出高度（像素） */
+  recentOutputHeight: number;
+
   // ===== 模态框状态 =====
   /** 是否显示新建流程对话框 */
   showNewFlowDialog: boolean;
@@ -124,6 +136,18 @@ interface UIState {
   /** 设置变量面板高度 */
   setVariablePanelHeight: (height: number) => void;
 
+  // ===== 调试面板 Actions =====
+  /** 切换上下文变量折叠状态 */
+  toggleContextVariablesCollapsed: () => void;
+  /** 切换执行堆栈折叠状态 */
+  toggleExecutionStackCollapsed: () => void;
+  /** 切换最近节点输出折叠状态 */
+  toggleRecentOutputCollapsed: () => void;
+  /** 设置执行堆栈高度 */
+  setExecutionStackHeight: (height: number) => void;
+  /** 设置最近节点输出高度 */
+  setRecentOutputHeight: (height: number) => void;
+
   // ===== 布局 Actions =====
   /** 设置侧边栏宽度 */
   setSidebarWidth: (width: number) => void;
@@ -163,6 +187,13 @@ const initialState = {
   isVariablePanelCollapsed: false,
   nodeLibraryHeight: 200,
   variablePanelHeight: 200,
+
+  // 调试面板折叠状态
+  isContextVariablesCollapsed: false,
+  isExecutionStackCollapsed: false,
+  isRecentOutputCollapsed: false,
+  executionStackHeight: 192,
+  recentOutputHeight: 192,
 
   // 模态框状态
   showNewFlowDialog: false,
@@ -271,6 +302,32 @@ export const useUIStore = create<UIState>((set) => ({
       variablePanelHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
     }),
 
+  // ===== 调试面板 Actions =====
+  toggleContextVariablesCollapsed: () =>
+    set((state) => ({
+      isContextVariablesCollapsed: !state.isContextVariablesCollapsed,
+    })),
+
+  toggleExecutionStackCollapsed: () =>
+    set((state) => ({
+      isExecutionStackCollapsed: !state.isExecutionStackCollapsed,
+    })),
+
+  toggleRecentOutputCollapsed: () =>
+    set((state) => ({
+      isRecentOutputCollapsed: !state.isRecentOutputCollapsed,
+    })),
+
+  setExecutionStackHeight: (height) =>
+    set({
+      executionStackHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
+    }),
+
+  setRecentOutputHeight: (height) =>
+    set({
+      recentOutputHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
+    }),
+
   // ===== 布局 Actions =====
   setSidebarWidth: (width) =>
     set({
@@ -305,6 +362,11 @@ export const useUIStore = create<UIState>((set) => ({
       isVariablePanelCollapsed: false,
       nodeLibraryHeight: 200,
       variablePanelHeight: 200,
+      isContextVariablesCollapsed: false,
+      isExecutionStackCollapsed: false,
+      isRecentOutputCollapsed: false,
+      executionStackHeight: 192,
+      recentOutputHeight: 192,
     }),
 }));
 
