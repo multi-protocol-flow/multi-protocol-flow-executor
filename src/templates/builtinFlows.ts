@@ -7,7 +7,7 @@ import type { Flow } from '@/types/flow';
  * HTTP 节点示例流程
  */
 /** 内置模板版本号 - 修改模板后递增此数字 */
-export const BUILTIN_FLOW_VERSION = 4;
+export const BUILTIN_FLOW_VERSION = 5;
 
 
 export const DEMO_FLOW: Flow = {
@@ -74,12 +74,12 @@ export const DEMO_FLOW: Flow = {
       source_port_id: 'out',
       target_port_id: 'in'
     },
-    // HTTP GET → 条件
+    // HTTP GET → 条件（使用 true 端口，表示成功时继续）
     {
       id: 'conn-2',
       source_node_uuid: 'http-get-001',
       target_node_uuid: 'conditional-001',
-      source_port_id: 'out',
+      source_port_id: 'true',
       target_port_id: 'in'
     },
     // 条件 → HTTP POST（成功分支）
