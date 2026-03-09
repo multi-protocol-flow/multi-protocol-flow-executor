@@ -8,4 +8,4 @@ mod log_sender;
 
 pub use app_dir::{AppDirProvider, DefaultAppDirProvider};
 pub use directory_opener::{DirectoryOpener, NoopDirectoryOpener};
-pub use log_sender::{ConsoleLogSender, LogSender, NoopLogSender};
+pub use log_sender::{ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender};

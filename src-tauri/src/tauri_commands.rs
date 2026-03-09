@@ -15,7 +15,7 @@ use flow_engine::command::{
 use flow_engine::log_event::LogEvent;
 use flow_engine::report::{FlowExecutionReport, ReportMetadata};
 use flow_engine::flow::Flow;
-use crate::tauri_adapters::TauriLogSender;
+use crate::tauri_adapters::create_log_sender;
 
 
 
@@ -34,13 +34,23 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
 /// 执行流程命令
 ///
 /// 执行指定的流程，调用 `FlowExecutor` 执行引擎，并通过 Channel 发送日志事件
+///
+/// # 日志发送策略
+/// - **调试模式**: 同步发送日志，确保日志顺序和完整性，便于调试
+/// - **发布模式**: 队列异步发送日志，不阻塞执行流程，提升性能
 #[tauri::command]
 pub async fn execute_flow(
     input: ExecuteFlowCommandInput,
     flow: Flow,
     on_event: Channel<LogEvent>,
 ) -> ExecuteFlowCommandOutput {
-    let log_sender = Arc::new(TauriLogSender::new(on_event));
+    // 创建队列日志发送器（调试模式同步，发布模式异步）
+    let (log_sender, log_worker) = create_log_sender(on_event);
+    
+    // 在后台启动日志消费任务
+    tokio::spawn(log_worker);
+    
+    // 执行流程
     flow_engine::commands::execute_flow(input, flow, Some(log_sender)).await
 }
 

@@ -35,8 +35,9 @@ pub mod debug;
 
 // Re-exports
 pub use traits::{
-    AppDirProvider, ConsoleLogSender, DefaultAppDirProvider, DirectoryOpener, LogSender,
-    NoopDirectoryOpener, NoopLogSender,
+    AppDirProvider, DefaultAppDirProvider, DirectoryOpener, NoopDirectoryOpener,
+    ConsoleLogSender, LogSender, NoopLogSender,
+    QueuedLogSender, UnderlyingLogSender, LogWorker,
 };
 
 // ============================================================================

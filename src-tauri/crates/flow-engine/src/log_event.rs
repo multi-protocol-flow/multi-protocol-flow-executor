@@ -3,10 +3,11 @@
 use serde::{Deserialize, Serialize};
 
 /// 日志级别枚举
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum LogLevel {
     /// 信息级别
+    #[default]
     Info,
     /// 调试级别
     Debug,
@@ -32,6 +33,19 @@ pub struct LogEvent {
     pub node_name: Option<String>,
     /// 关联流程 UUID
     pub flow_uuid: String,
+}
+
+impl Default for LogEvent {
+    fn default() -> Self {
+        Self {
+            level: LogLevel::Info,
+            message: String::new(),
+            timestamp: 0,
+            node_uuid: None,
+            node_name: None,
+            flow_uuid: String::new(),
+        }
+    }
 }
 
 #[cfg(test)]

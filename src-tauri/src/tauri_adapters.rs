@@ -5,25 +5,45 @@
 use async_trait::async_trait;
 use tauri::ipc::Channel;
 use tauri::Manager;
-use flow_engine::traits::{LogSender, DirectoryOpener};
+use flow_engine::traits::{UnderlyingLogSender, DirectoryOpener, QueuedLogSender, LogWorker as FlowLogWorker};
 use flow_engine::log_event::LogEvent;
 
-/// Tauri 日志发送器
+/// Tauri 底层日志发送器
 ///
-/// 包装 Tauri IPC Channel，将日志事件发送到前端。
-pub struct TauriLogSender(pub Channel<LogEvent>);
-impl TauriLogSender {
-    /// 创建新的 Tauri 日志发送器
+/// 实现 UnderlyingLogSender trait，将日志同步发送到 Tauri IPC Channel。
+pub struct TauriUnderlyingLogSender(Channel<LogEvent>);
+
+impl TauriUnderlyingLogSender {
+    /// 创建新的 Tauri 底层日志发送器
     pub fn new(channel: Channel<LogEvent>) -> Self {
         Self(channel)
     }
 }
 
-#[async_trait]
-impl LogSender for TauriLogSender {
-    async fn send(&self, event: LogEvent) -> Result<(), String> {
+impl UnderlyingLogSender for TauriUnderlyingLogSender {
+    /// 同步发送日志到 Tauri IPC Channel
+    fn send_sync(&self, event: LogEvent) -> Result<(), String> {
         self.0.send(event).map_err(|e| e.to_string())
     }
+}
+
+/// 创建队列日志发送器
+///
+/// 根据编译模式自动选择：
+/// - **调试模式**: 同步发送日志，确保日志顺序和完整性，便于调试
+/// - **发布模式**: 队列异步发送日志，不阻塞执行流程，提升性能
+///
+/// # 参数
+/// - `channel`: Tauri IPC Channel
+///
+/// # 返回
+/// - `(sender, worker)`: sender 实现了 LogSender trait，worker 需要在 tokio 中 spawn
+pub fn create_log_sender(
+    channel: Channel<LogEvent>,
+) -> (std::sync::Arc<dyn flow_engine::traits::LogSender>, FlowLogWorker) {
+    let underlying = std::sync::Arc::new(TauriUnderlyingLogSender::new(channel));
+    let (sender, worker) = QueuedLogSender::new(underlying);
+    ( std::sync::Arc::new(sender), worker)
 }
 
 /// Tauri 目录打开器
