@@ -48,6 +48,11 @@ pub struct ExecutionContext {
     /// 使用 #[serde(skip)] 跳过序列化，因为 WebSocketConnectionManager 不支持序列化
     #[serde(skip)]
     pub ws_manager: Option<Arc<WebSocketConnectionManager>>,
+
+    /// WebSocket 连接 ID → URL 映射（用于反查）
+    /// 存储每个连接 ID 对应的 WebSocket URL，供后续节点（如 WS Send+Wait）反查使用
+    #[serde(skip)]
+    pub ws_connection_urls: HashMap<String, String>,
 }
 
 impl ExecutionContext {
@@ -71,6 +76,7 @@ impl ExecutionContext {
             log_sender: None,
             flow_file_path: None,
             ws_manager: None,
+            ws_connection_urls: HashMap::new(),
         }
     }
 
@@ -177,6 +183,33 @@ impl ExecutionContext {
         if let Some(sender) = &self.log_sender {
             let _ = sender.send(event).await;
         }
+    }
+
+    /// 存储 WebSocket 连接 URL
+    ///
+    /// 将连接 ID 与对应的 WebSocket URL 关联存储，供后续节点反查使用。
+    ///
+    /// # 参数
+    ///
+    /// * `connection_id` - WebSocket 连接的唯一标识符
+    /// * `url` - WebSocket 连接的 URL
+    pub fn set_ws_url(&mut self, connection_id: String, url: String) {
+        self.ws_connection_urls.insert(connection_id, url);
+    }
+
+    /// 获取 WebSocket 连接 URL
+    ///
+    /// 根据连接 ID 查找对应的 WebSocket URL。
+    ///
+    /// # 参数
+    ///
+    /// * `connection_id` - WebSocket 连接的唯一标识符
+    ///
+    /// # 返回
+    ///
+    /// 如果找到则返回 URL 的引用，否则返回 None
+    pub fn get_ws_url(&self, connection_id: &str) -> Option<&String> {
+        self.ws_connection_urls.get(connection_id)
     }
 }
 
