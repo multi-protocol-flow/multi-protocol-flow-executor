@@ -32,7 +32,17 @@ impl std::fmt::Display for ExecutionStatus {
     }
 }
 
-
+/// 变量变更记录
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct VariableChange {
+    /// 变量名
+    pub key: String,
+    /// 旧值（新创建的变量为 None）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub old_value: Option<serde_json::Value>,
+    /// 新值
+    pub new_value: serde_json::Value,
+}
 
 /// 节点执行报告
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -62,6 +72,18 @@ pub struct NodeExecutionReport {
     pub used_port_id: Option<String>,
     /// 错误详情
     pub error: Option<crate::error::ErrorDetail>,
+    /// 解析后的配置（变量解析后的实际值）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_config: Option<serde_json::Value>,
+    /// 当前节点修改变量的记录
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variable_changes: Option<Vec<VariableChange>>,
+    /// 跳过原因
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_reason: Option<String>,
+    /// 等待依赖节点的耗时（毫秒）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wait_duration_ms: Option<u64>,
 }
 
 /// 报告元数据（用于历史列表）
@@ -84,6 +106,16 @@ pub struct ReportMetadata {
     pub execution_mode: ExecutionMode,
 }
 
+/// 跳过的节点信息
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct SkippedNodeInfo {
+    /// 节点 UUID
+    pub node_uuid: String,
+    /// 节点名称
+    pub node_name: String,
+    /// 跳过原因
+    pub reason: String,
+}
 
 /// 流程执行报告
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -115,4 +147,16 @@ pub struct FlowExecutionReport {
     /// 执行模式（正常/调试）
     #[serde(default)]
     pub execution_mode: ExecutionMode,
+    /// 流程初始变量
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub initial_variables: Option<serde_json::Value>,
+    /// 流程最终变量
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub final_variables: Option<serde_json::Value>,
+    /// 执行路径（节点 UUID 列表，按执行顺序）
+    #[serde(default)]
+    pub execution_path: Vec<String>,
+    /// 跳过的节点及原因
+    #[serde(default)]
+    pub skipped_nodes: Vec<SkippedNodeInfo>,
 }
