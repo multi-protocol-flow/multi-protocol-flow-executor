@@ -24,6 +24,38 @@ export type ExecutionStatus = 'success' | 'failed' | 'skipped';
 export type ExecutionMode = 'normal' | 'debug';
 
 // ============================================================================
+// 变量变更记录
+// ============================================================================
+
+/**
+ * 变量变更记录
+ */
+export interface VariableChange {
+  /** 变量名 */
+  key: string;
+  /** 旧值（新创建的变量为 null） */
+  old_value?: unknown;
+  /** 新值 */
+  new_value: unknown;
+}
+
+// ============================================================================
+// 跳过的节点信息
+// ============================================================================
+
+/**
+ * 跳过的节点信息
+ */
+export interface SkippedNodeInfo {
+  /** 节点 UUID */
+  node_uuid: string;
+  /** 节点名称 */
+  node_name: string;
+  /** 跳过原因 */
+  reason: string;
+}
+
+// ============================================================================
 // 节点执行报告
 // ============================================================================
 
@@ -58,6 +90,14 @@ export interface NodeExecutionReport {
   used_port_id?: string;
   /** 错误详情 */
   error?: ErrorDetail;
+  /** 解析后的配置（变量解析后的实际值） */
+  resolved_config?: unknown;
+  /** 当前节点修改变量的记录 */
+  variable_changes?: VariableChange[];
+  /** 跳过原因 */
+  skip_reason?: string;
+  /** 等待依赖节点的耗时（毫秒） */
+  wait_duration_ms?: number;
 }
 
 // ============================================================================
@@ -155,4 +195,12 @@ export interface FlowExecutionReport {
   flow_error?: ErrorDetail;
   /** 执行模式（默认为 normal） */
   execution_mode?: ExecutionMode;
+  /** 流程初始变量 */
+  initial_variables?: unknown;
+  /** 流程最终变量 */
+  final_variables?: unknown;
+  /** 执行路径（节点 UUID 列表，按执行顺序） */
+  execution_path?: string[];
+  /** 跳过的节点及原因 */
+  skipped_nodes?: SkippedNodeInfo[];
 }

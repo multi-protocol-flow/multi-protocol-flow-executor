@@ -3,7 +3,7 @@
  * 与后端 src-tauri/crates/flow-engine/src/debug/types.rs 中的结构体对齐
  */
 
-import type { FlowExecutionReport } from './report';
+import type { FlowExecutionReport, VariableChange } from './report';
 
 // ============================================================================
 // 调试状态枚举
@@ -78,6 +78,12 @@ export interface ExecutionStackEntry {
   success: boolean;
   /** 错误信息（如果失败） */
   error?: string;
+  /** 解析后的配置（与 NodeExecutionReport 对齐） */
+  resolved_config?: unknown;
+  /** 当前节点修改变量的记录（与 NodeExecutionReport 对齐） */
+  variable_changes?: VariableChange[];
+  /** 跳过原因（与 NodeExecutionReport 对齐） */
+  skip_reason?: string;
 }
 
 /**

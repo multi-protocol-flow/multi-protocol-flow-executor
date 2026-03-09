@@ -52,6 +52,7 @@ export { isFatalError } from './error';
 // 报告类型
 export type {
   ExecutionStatus,
+  VariableChange,
   NodeExecutionReport,
   FlowStatistics,
   FlowExecutionReport,
