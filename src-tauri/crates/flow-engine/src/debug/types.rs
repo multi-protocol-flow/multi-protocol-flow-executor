@@ -223,6 +223,15 @@ pub struct ExecutionStackEntry {
     /// 实际使用的输出端口 ID（可选）
     #[serde(default)]
     pub used_port_id: Option<String>,
+    /// 解析后的配置（与 NodeExecutionReport 对齐）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_config: Option<serde_json::Value>,
+    /// 当前节点修改变量的记录（与 NodeExecutionReport 对齐）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variable_changes: Option<Vec<crate::report::VariableChange>>,
+    /// 跳过原因（与 NodeExecutionReport 对齐）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_reason: Option<String>,
 }
 
 // ============================================================================
@@ -318,6 +327,7 @@ impl DebugSessionState {
     }
 
     /// 更新最后一个堆栈条目的结束信息
+    #[allow(clippy::too_many_arguments)]
     pub fn update_last_stack_entry(
         &mut self,
         ended_at: u64,
@@ -325,6 +335,9 @@ impl DebugSessionState {
         success: bool,
         error: Option<String>,
         used_port_id: Option<String>,
+        resolved_config: Option<serde_json::Value>,
+        variable_changes: Option<Vec<crate::report::VariableChange>>,
+        skip_reason: Option<String>,
     ) {
         if let Some(last_entry) = self.execution_stack.last_mut() {
             last_entry.ended_at = Some(ended_at);
@@ -332,6 +345,9 @@ impl DebugSessionState {
             last_entry.success = success;
             last_entry.error = error;
             last_entry.used_port_id = used_port_id;
+            last_entry.resolved_config = resolved_config;
+            last_entry.variable_changes = variable_changes;
+            last_entry.skip_reason = skip_reason;
         }
     }
 
@@ -452,6 +468,9 @@ mod tests {
             success: true,
             error: None,
             used_port_id: Some("out".to_string()),
+            resolved_config: None,
+            variable_changes: None,
+            skip_reason: None,
         };
 
         let json = serde_json::to_string(&entry).unwrap();
@@ -513,6 +532,9 @@ mod tests {
             success: true,
             error: None,
             used_port_id: Some("out".to_string()),
+            resolved_config: None,
+            variable_changes: None,
+            skip_reason: None,
         };
 
         state.push_stack_entry(entry1);
@@ -524,6 +546,9 @@ mod tests {
             true,
             None,
             Some("out".to_string()),
+            None,
+            None,
+            None,
         );
         assert_eq!(state.execution_stack[0].ended_at, Some(1010));
         assert_eq!(

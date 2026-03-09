@@ -169,6 +169,7 @@ impl DebuggableFlowExecutor {
             log_sender,
             flow_file_path: self.flow_file_path.clone(),
             ws_manager: Some(ws_manager),
+            ws_connection_urls: HashMap::new(),
         };
 
         // 记录调试开始时间（用于报告生成）
@@ -350,6 +351,9 @@ impl DebuggableFlowExecutor {
                             .unwrap()
                             .as_millis() as u64;
 
+                        // 解析节点配置为 JSON（用于 resolved_config 字段）
+                        let resolved_config = serde_json::to_value(&node.data).ok();
+
                         // 创建跳过节点的堆栈条目
                         let stack_entry = ExecutionStackEntry {
                             node_uuid: node.uuid.clone(),
@@ -362,6 +366,9 @@ impl DebuggableFlowExecutor {
                             success: true,
                             error: Some("节点已跳过".to_string()),
                             used_port_id: Some("skipped".to_string()),
+                            resolved_config,
+                            variable_changes: None,
+                            skip_reason: Some("用户跳过".to_string()),
                         };
                         debug_state.push_stack_entry(stack_entry);
 
@@ -443,6 +450,9 @@ impl DebuggableFlowExecutor {
                 .unwrap()
                 .as_millis() as u64;
 
+            // 解析节点配置为 JSON（用于 resolved_config 字段）
+            let resolved_config = serde_json::to_value(&node.data).ok();
+
             // 创建执行堆栈条目
             let stack_entry = ExecutionStackEntry {
                 node_uuid: node.uuid.clone(),
@@ -455,6 +465,9 @@ impl DebuggableFlowExecutor {
                 success: false,
                 error: None,
                 used_port_id: None,
+                resolved_config: resolved_config.clone(),
+                variable_changes: None,
+                skip_reason: None,
             };
             debug_state.push_stack_entry(stack_entry);
 
@@ -534,12 +547,18 @@ impl DebuggableFlowExecutor {
                         }
                     };
 
+                    // 从实际使用的节点配置获取 resolved_config
+                    let effective_resolved_config = serde_json::to_value(&effective_node.data).ok();
+
                     debug_state.update_last_stack_entry(
                         node_end_ms,
                         output_data.clone(),
                         true,
                         None,
                         used_port_id,
+                        effective_resolved_config,
+                        None, // variable_changes 在 update 时更新
+                        None, // skip_reason 仅跳过节点时设置
                     );
 
                     // 发送节点执行完成事件
@@ -618,7 +637,20 @@ impl DebuggableFlowExecutor {
                     } else {
                         None
                     };
-                    debug_state.update_last_stack_entry(node_end_ms, None, false, Some(error.clone()), used_port_id);
+
+                    // 从实际使用的节点配置获取 resolved_config
+                    let effective_resolved_config = serde_json::to_value(&effective_node.data).ok();
+
+                    debug_state.update_last_stack_entry(
+                        node_end_ms,
+                        None,
+                        false,
+                        Some(error.clone()),
+                        used_port_id,
+                        effective_resolved_config,
+                        None, // variable_changes
+                        None, // skip_reason
+                    );
 
                     if let Some(next_node_uuid) = false_port_next_node {
                         // 有 false 端口连接，继续执行 false 分支
@@ -1054,6 +1086,11 @@ impl DebuggableFlowExecutor {
                     output_data: entry.output.clone(),
                     used_port_id,
                     error: error_detail,
+                    // 新增字段（Task 3, Task 11 映射）
+                    resolved_config: entry.resolved_config.clone(),
+                    variable_changes: entry.variable_changes.clone(),
+                    skip_reason: entry.skip_reason.clone(),
+                    wait_duration_ms: None,
                 }
             })
             .collect();
@@ -1088,6 +1125,11 @@ impl DebuggableFlowExecutor {
             statistics,
             flow_error: None,
             execution_mode: ExecutionMode::Debug,
+            // 新增字段（Task 4）
+            initial_variables: None,
+            final_variables: None,
+            execution_path: vec![],
+            skipped_nodes: vec![],
         }
     }
 }
