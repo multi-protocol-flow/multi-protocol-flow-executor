@@ -46,3 +46,7 @@ target/
 
 # QA verification screenshots
 qa-*.png
+
+# Project root temporary files (screenshots, test data)
+/json-view.png
+src-tauri/test_*.json
