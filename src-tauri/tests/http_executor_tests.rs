@@ -29,6 +29,7 @@ fn create_context(flow_id: &str) -> ExecutionContext {
         log_sender: None,
         flow_file_path: None,
         ws_manager: None,
+        ws_connection_urls: std::collections::HashMap::new(),
     }
 }
 
@@ -350,16 +351,22 @@ async fn test_timeout_config_custom() {
         elapsed
     );
 
-    // 预期: 应该返回请求错误（超时或其他网络错误）
-    assert!(result.is_err(), "应该返回请求错误: {:?}", result.ok());
-    let error = result.unwrap_err();
-    // 错误信息可能是 "HTTP请求失败" 或包含 "timeout" / "error sending request"
+    // HTTP 执行器捕获错误并返回在响应对象中（success: false），而不是返回 Err
+    assert!(result.is_ok(), "应该返回 Ok，错误信息在响应对象中: {:?}", result.err());
+    let (_next_ids, output_data) = result.unwrap();
+    let output = output_data.expect("应该有输出数据");
+    
+    // 验证 success 为 false
+    assert_eq!(output.get("success").and_then(|v| v.as_bool()), Some(false), "success 应该为 false");
+    
+    // 验证错误信息存在
+    let error_msg = output.get("error").and_then(|v| v.as_str()).expect("应该有错误信息");
     assert!(
-        error.contains("timeout") || error.contains("超时") || 
-        error.contains("timed out") || error.contains("HTTP请求失败") ||
-        error.contains("error sending request"),
+        error_msg.contains("timeout") || error_msg.contains("超时") || 
+        error_msg.contains("timed out") || error_msg.contains("HTTP请求失败") ||
+        error_msg.contains("error sending request"),
         "错误信息应该包含请求失败相关描述: {}",
-        error
+        error_msg
     );
 }
 

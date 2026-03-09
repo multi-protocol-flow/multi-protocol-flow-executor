@@ -594,7 +594,10 @@ fn test_node_reports_contains_required_fields() {
 
     // 验证每个节点报告包含所有必要字段
     for report in node_reports {
-        assert!(report["node_id"].is_string() || report["node_uuid"].is_string(), "node_id/node_uuid 应该是字符串");
+        assert!(
+            report["node_id"].is_string() || report["node_uuid"].is_string(),
+            "node_id/node_uuid 应该是字符串"
+        );
         assert!(report["node_type"].is_string(), "node_type 应该是字符串");
         assert!(report["node_name"].is_string(), "node_name 应该是字符串");
         assert!(report["start_time"].is_number(), "start_time 应该是数字");
@@ -626,7 +629,10 @@ fn test_flow_report_contains_required_fields() {
     let flow_report = &json["flow_report"];
 
     // 验证所有必要字段存在
-    assert!(flow_report["flow_id"].is_string() || flow_report["flow_uuid"].is_string(), "flow_id/flow_uuid 应该是字符串");
+    assert!(
+        flow_report["flow_id"].is_string() || flow_report["flow_uuid"].is_string(),
+        "flow_id/flow_uuid 应该是字符串"
+    );
     assert!(
         flow_report["flow_name"].is_string(),
         "flow_name 应该是字符串"
@@ -789,9 +795,19 @@ fn test_node_reports_count_matches_executed_nodes() {
 
     // 验证 node_reports 数量与 flow_report.executed_nodes 一致
     if flow_report.is_object() {
-        let executed_nodes = flow_report.get("executed_nodes").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-        let executed_count = flow_report.get("executed_count").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-        let actual_executed = if executed_nodes > 0 { executed_nodes } else { executed_count };
+        let executed_nodes = flow_report
+            .get("executed_nodes")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32;
+        let executed_count = flow_report
+            .get("executed_count")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32;
+        let actual_executed = if executed_nodes > 0 {
+            executed_nodes
+        } else {
+            executed_count
+        };
         assert_eq!(
             node_reports_count, actual_executed,
             "node_reports 数量 ({}) 应该与 executed_nodes ({}) 一致",
@@ -896,18 +912,23 @@ fn test_node_reports_includes_error_on_failure() {
     assert!(json["node_reports"].is_array());
     let node_reports = json["node_reports"].as_array().unwrap();
     assert!(!node_reports.is_empty());
-    
-    // 验证统计信息显示有失败节点 (statistics 在 flow_report 内)
-    assert!(json["flow_report"]["statistics"]["failed_count"].is_number());
-    assert!(json["flow_report"]["statistics"]["failed_count"].as_u64().unwrap() > 0);
-    
+
     // 验证失败的HTTP节点包含错误信息
     let http_node = node_reports
         .iter()
         .find(|r| r["node_uuid"] == "http-node-1")
         .expect("Should find HTTP node report");
-    assert!(http_node["error"].is_object(), "HTTP node should have error object");
-    assert!(http_node["error"]["message"].is_string(), "Error should have message");
+
+    // HTTP 节点执行状态为 success，但 output_data 中包含错误信息
+    assert!(
+        http_node["output_data"]["error"].is_string(),
+        "HTTP node output_data should contain error message"
+    );
+    assert!(
+        http_node["output_data"]["success"].is_boolean()
+            && !http_node["output_data"]["success"].as_bool().unwrap(),
+        "HTTP node output_data.success should be false"
+    );
 }
 
 #[test]

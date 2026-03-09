@@ -28,6 +28,11 @@ fn create_test_report(uuid: &str, flow_name: &str) -> flow_engine::report::FlowE
         },
         flow_error: None,
         execution_mode: flow_engine::report::ExecutionMode::Normal,
+        // 新增字段
+        initial_variables: None,
+        final_variables: None,
+        execution_path: vec![],
+        skipped_nodes: vec![],
     }
 }
 
