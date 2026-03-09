@@ -15,6 +15,7 @@ import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
+import { VariableChangesCard } from './VariableChangesCard';
 
 interface HttpNodeViewerProps {
   /** 节点执行报告 */
@@ -281,6 +282,9 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
           </div>
         </CollapsibleSection>
       )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
     </div>
   );
 }

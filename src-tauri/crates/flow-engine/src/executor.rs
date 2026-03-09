@@ -186,6 +186,87 @@ fn compute_variable_changes(
     changes
 }
 
+/// 根据节点类型构建 input_data
+///
+/// input_data 代表节点消费的输入数据（配置信息）
+/// - Entry: None（无输入）
+/// - HTTP: { url, method, headers, body, body_type, timeout_ms }
+/// - Conditional: { condition }
+/// - WS Connect: { url, headers, subprotocols, connect_timeout_ms, wait_for_message, wait_mode, message_timeout_ms }
+/// - WS SendWait: { connection_id, message, message_type, send_timeout_ms, wait_for_response, wait_mode, message_timeout_ms }
+/// - WS Close: { connection_id, close_code, close_reason, wait_close_timeout_ms }
+fn build_input_data_from_node_config(node: &crate::node::Node) -> Option<serde_json::Value> {
+    use crate::node_config::NodeData;
+    
+    match &node.data {
+        // Entry 节点无输入数据
+        NodeData::Entry(_) => None,
+        
+        // HTTP 节点：请求配置
+        NodeData::Http(config) => {
+            Some(serde_json::json!({
+                "url": config.url,
+                "method": config.method,
+                "headers": config.headers,
+                "body": config.body,
+                "body_type": config.body_type,
+                "timeout_ms": config.timeout_ms,
+            }))
+        },
+        
+        // Conditional 节点：条件配置
+        NodeData::Conditional(config) => {
+            Some(serde_json::json!({
+                "condition_type": config.condition_type,
+                "field_path": config.field_path,
+                "operator": config.operator,
+                "expected_value": config.expected_value,
+                "advanced_expression": config.advanced_expression,
+                "expected_value_type": config.expected_value_type,
+            }))
+        },
+        
+        // WebSocket Connect 节点：连接配置
+        NodeData::WsConnect(config) => {
+            Some(serde_json::json!({
+                "url": config.url,
+                "headers": config.headers,
+                "subprotocols": config.subprotocols,
+                "connect_timeout_ms": config.connect_timeout_ms,
+                "wait_for_message": config.wait_for_message,
+                "wait_mode": config.wait_mode,
+                "message_timeout_ms": config.message_timeout_ms,
+            }))
+        },
+        
+        // WebSocket SendWait 节点：发送配置
+        NodeData::WsSendWait(config) => {
+            Some(serde_json::json!({
+                "connection_id": config.connection_id,
+                "message": config.message,
+                "message_type": config.message_type,
+                "send_timeout_ms": config.send_timeout_ms,
+                "wait_for_response": config.wait_for_response,
+                "wait_mode": config.wait_mode,
+                "message_timeout_ms": config.message_timeout_ms,
+            }))
+        },
+        
+        // WebSocket Close 节点：关闭配置
+        NodeData::WsClose(config) => {
+            Some(serde_json::json!({
+                "connection_id": config.connection_id,
+                "close_code": config.close_code,
+                "close_reason": config.close_reason,
+                "wait_close_timeout_ms": config.wait_close_timeout_ms,
+            }))
+        },
+        
+        // 未知节点类型返回 None
+        _ => None,
+    }
+}
+
 /// 从字符串错误解析错误详情
 ///
 /// 尝试从错误消息中识别错误类型，并创建对应的 ErrorDetail
@@ -431,7 +512,9 @@ impl FlowExecutor {
 
                     // 先快照执行前的变量状态（在合并当前节点输出前）
                     let variables_before = context.variables.get_merged_variables();
-                    let input_data_snapshot = variables_before.clone();
+
+                    // 构建 input_data（节点消费的输入配置）
+                    let input_data = build_input_data_from_node_config(node);
 
                     // 如果有输出数据，更新上下文变量
                     if let Some(ref data) = output_data {
@@ -459,7 +542,7 @@ impl FlowExecutor {
                     // 追踪执行路径（Task 14）：记录成功执行的节点 UUID
                     execution_path.push(node.uuid.clone());
 
-                    // 创建节点执行报告，使用快照的 input_data
+                    // 创建节点执行报告，使用构建的 input_data
                     let node_report = crate::report::NodeExecutionReport {
                         node_uuid: node.uuid.clone(),
                         node_type: format!("{:?}", node.node_type),
@@ -468,7 +551,7 @@ impl FlowExecutor {
                         end_time: node_end_ms,
                         duration_ms: node_duration,
                         status: crate::report::ExecutionStatus::Success,
-                        input_data: Some(json!(input_data_snapshot)),
+                        input_data,
                         output_data: output_data.clone(),
                         used_port_id,
                         error: None,

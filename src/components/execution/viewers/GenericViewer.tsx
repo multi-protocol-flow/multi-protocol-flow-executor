@@ -10,11 +10,10 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Layers,
-  Variable,
 } from 'lucide-react';
-import type { NodeExecutionReport, VariableChange } from '@/types';
+import type { NodeExecutionReport } from '@/types';
 import { RawJsonViewer } from './RawJsonViewer';
-import { cn } from '@/lib/utils';
+import { VariableChangesCard } from './VariableChangesCard';
 
 interface GenericViewerProps {
   /** 节点执行报告 */
@@ -73,94 +72,6 @@ function DataSection({ data, emptyText = '无数据' }: DataSectionProps) {
   );
 }
 
-/**
- * 单个变量变更展示
- */
-interface VariableChangeItemProps {
-  change: VariableChange;
-}
-
-function VariableChangeItem({ change }: VariableChangeItemProps) {
-  const { key, old_value, new_value } = change;
-
-  // 格式化值用于展示
-  const formatValue = (value: unknown): string => {
-    if (value === null || value === undefined) {
-      return 'null';
-    }
-    if (typeof value === 'object') {
-      return JSON.stringify(value);
-    }
-    return String(value);
-  };
-
-  // 判断是否为新创建的变量（没有旧值）
-  const isNewVariable = old_value === undefined || old_value === null;
-
-  return (
-    <div className="border-b border-border last:border-b-0 py-2 last:pb-0 first:pt-0">
-      <div className="flex items-start gap-2">
-        {/* 变量名 */}
-        <span className="text-sm font-mono font-semibold text-slate-700 min-w-0 shrink-0">
-          {key}
-        </span>
-        <span className="text-muted-foreground">=</span>
-      </div>
-      
-      <div className="mt-1.5 space-y-1.5 pl-2">
-        {/* 旧值（如果不是新变量） */}
-        {!isNewVariable && (
-          <div className="flex items-start gap-2">
-            <span className="text-xs text-red-600 font-mono shrink-0">-</span>
-            <div className="flex-1 bg-red-50 rounded px-2 py-1 border-l-2 border-red-400">
-              <code className="text-sm font-mono text-red-700 line-through break-all">
-                {formatValue(old_value)}
-              </code>
-            </div>
-          </div>
-        )}
-        
-        {/* 新值 */}
-        <div className="flex items-start gap-2">
-          <span className="text-xs text-green-600 font-mono shrink-0">+</span>
-          <div className={cn(
-            "flex-1 rounded px-2 py-1 border-l-2",
-            isNewVariable ? "bg-blue-50 border-blue-400" : "bg-green-50 border-green-400"
-          )}>
-            <code className={cn(
-              "text-sm font-mono break-all",
-              isNewVariable ? "text-blue-700" : "text-green-700"
-            )}>
-              {formatValue(new_value)}
-            </code>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * 变量变更列表
- */
-interface VariableChangesProps {
-  changes: VariableChange[];
-}
-
-function VariableChanges({ changes }: VariableChangesProps) {
-  if (!changes || changes.length === 0) {
-    return <p className="text-sm text-muted-foreground italic">无变量变更</p>;
-  }
-
-  return (
-    <div className="space-y-0">
-      {changes.map((change, index) => (
-        <VariableChangeItem key={`${change.key}-${index}`} change={change} />
-      ))}
-    </div>
-  );
-}
-
 export function GenericViewer({ report }: GenericViewerProps) {
   const { node_name, node_type, input_data, output_data, variable_changes } = report;
 
@@ -205,15 +116,7 @@ export function GenericViewer({ report }: GenericViewerProps) {
       </CollapsibleSection>
 
       {/* 变量变更 */}
-      {variable_changes && variable_changes.length > 0 && (
-        <CollapsibleSection
-          title={`变量变更 (${variable_changes.length})`}
-          icon={<Variable className="w-4 h-4" />}
-          defaultOpen={true}
-        >
-          <VariableChanges changes={variable_changes} />
-        </CollapsibleSection>
-      )}
+      <VariableChangesCard changes={variable_changes} defaultOpen={true} />
     </div>
   );
 }

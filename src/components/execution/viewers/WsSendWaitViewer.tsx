@@ -20,6 +20,7 @@ import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
+import { VariableChangesCard } from './VariableChangesCard';
 
 /** WS Send+Wait 输出数据结构 */
 interface WsSendWaitOutput {
@@ -230,6 +231,9 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
           </span>
         </div>
       </div>
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
     </div>
   );
 }

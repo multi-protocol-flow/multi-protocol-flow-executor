@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { VariableChangesCard } from './VariableChangesCard';
 
 interface ConditionalViewerProps {
   /** 节点执行报告 */
@@ -183,6 +184,9 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
           <p className="text-sm text-muted-foreground italic">无评估结果</p>
         )}
       </CollapsibleSection>
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
     </div>
   );
 }

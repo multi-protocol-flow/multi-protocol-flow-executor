@@ -1,6 +1,9 @@
 //! input_data 时序测试
 //!
-//! 验证修复后的 input_data 记录时机：必须在节点执行前快照，不包含当前节点的输出
+//! 验证修复后的 input_data 语义：
+//! - Entry 节点：input_data = None（无输入）
+//! - HTTP 节点：input_data = 请求配置（url, method, headers, body, body_type）
+//! - 变量相关数据通过 variable_changes 记录
 
 use serde_json::json;
 use std::collections::HashMap;
@@ -13,10 +16,10 @@ use flow_engine::node::{Node, NodePosition, NodeType, Port, PortType};
 use flow_engine::node_config::{EntryConfig, HttpConfig, HttpMethod, NodeData};
 use flow_engine::traits::NoopLogSender;
 
-/// 测试 1: Entry 节点的 input_data 应该是空的
+/// 测试 1: Entry 节点的 input_data 应该是 None
 ///
 /// 流程: Entry
-/// 验证: Entry 节点的 input_data 应该是 {}
+/// 验证: Entry 节点的 input_data 应该是 None（无输入）
 #[tokio::test]
 async fn test_input_data_timing_basic() {
     // 创建 Entry 节点
@@ -65,20 +68,19 @@ async fn test_input_data_timing_basic() {
     let entry_report = &flow_report.node_reports[0];
     assert_eq!(entry_report.node_uuid, "entry-1", "节点 UUID 应该是 entry-1");
 
-    // 验证 input_data 应该是空的
-    let input_data = entry_report.input_data.as_ref().expect("input_data 应该存在");
-    let input_obj = input_data.as_object().expect("input_data 应该是对象");
+    // 验证 input_data 应该是 None（Entry 节点无输入）
     assert!(
-        input_obj.is_empty(),
-        "Entry 节点的 input_data 应该是空的，实际: {:?}",
-        input_obj
+        entry_report.input_data.is_none(),
+        "Entry 节点的 input_data 应该是 None，实际: {:?}",
+        entry_report.input_data
     );
 }
 
 /// 测试 2: 使用初始变量的 Entry 节点
 ///
 /// 流程: Entry (初始变量 {x: 1})
-/// 验证: Entry 节点的 input_data 应该包含初始变量
+/// 验证: Entry 节点的 input_data 应该是 None（无输入）
+///       variable_changes 应该记录初始变量的设置
 #[tokio::test]
 async fn test_input_data_timing_with_initial_variables() {
     // 创建 Entry 节点（无初始变量）
@@ -127,20 +129,23 @@ async fn test_input_data_timing_with_initial_variables() {
     let flow_report = result.flow_report.expect("应该有流程报告");
     assert_eq!(flow_report.node_reports.len(), 1, "应该有 1 个节点报告");
 
-    // 验证 Entry 节点的 input_data 包含初始变量
+    // 验证 Entry 节点的 input_data 是 None（Entry 节点无输入）
     let entry_report = &flow_report.node_reports[0];
-    let input_data = entry_report.input_data.as_ref().expect("input_data 应该存在");
-    let _input_obj = input_data.as_object().expect("input_data 应该是对象");
+    assert!(
+        entry_report.input_data.is_none(),
+        "Entry 节点的 input_data 应该是 None，实际: {:?}",
+        entry_report.input_data
+    );
 
-    // Entry 节点的 input_data 应该包含初始变量
-    // 注意：初始变量会作为流程级别的变量，Entry 节点执行前应该能看到
-    // 但是 Entry 节点本身不修改变量，所以 input_data 和输出后的变量应该一致
+    // Entry 节点的 variable_changes 应该记录初始变量
+    // 注意：初始变量是在流程执行前设置的，Entry 节点执行时变量已经存在
 }
 
 /// 测试 3: HTTP 节点使用初始变量
 ///
 /// 流程: Entry -> HTTP (使用 {{initial_variables.api_url}})
-/// 验证: HTTP 节点的 input_data 应该包含初始变量，不包含自己的输出
+/// 验证: HTTP 节点的 input_data 应该是请求配置（url, method, headers, body, body_type）
+///       不应该包含响应数据（status, body, headers 等）
 ///
 /// 注意：此测试需要外部 HTTP 服务，可能会失败
 #[tokio::test]
@@ -231,7 +236,7 @@ async fn test_input_data_timing_http_node() {
     let flow_report = result.flow_report.expect("应该有流程报告");
     assert_eq!(flow_report.node_reports.len(), 2, "应该有 2 个节点报告");
 
-    // 验证 HTTP 节点的 input_data 不包含自己的输出
+    // 验证 HTTP 节点的 input_data 是请求配置
     let http_report = flow_report
         .node_reports
         .iter()
@@ -241,17 +246,24 @@ async fn test_input_data_timing_http_node() {
     let input_data = http_report.input_data.as_ref().expect("input_data 应该存在");
     let input_obj = input_data.as_object().expect("input_data 应该是对象");
 
-    // input_data 不应该包含 HTTP 节点的输出（status、body、headers 等）
+    // input_data 应该包含请求配置字段（url, method）
+    assert!(
+        input_obj.contains_key("url"),
+        "input_data 应该包含 url 字段"
+    );
+    assert!(
+        input_obj.contains_key("method"),
+        "input_data 应该包含 method 字段"
+    );
+
+    // input_data 不应该包含 HTTP 节点的输出（status、success 等）
+    // 注意：headers 在请求配置和响应中都存在，但含义不同
     assert!(
         !input_obj.contains_key("status"),
-        "input_data 不应该包含 status（HTTP 节点的输出）"
+        "input_data 不应该包含 status（HTTP 节点的响应输出）"
     );
     assert!(
-        !input_obj.contains_key("body"),
-        "input_data 不应该包含 body（HTTP 节点的输出）"
-    );
-    assert!(
-        !input_obj.contains_key("headers"),
-        "input_data 不应该包含 headers（HTTP 节点的输出）"
+        !input_obj.contains_key("success"),
+        "input_data 不应该包含 success（HTTP 节点的响应输出）"
     );
 }

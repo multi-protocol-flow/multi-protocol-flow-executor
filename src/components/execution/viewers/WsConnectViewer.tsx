@@ -5,6 +5,7 @@
 import { Wifi, Clock, MessageSquare, CheckCircle2, XCircle } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { VariableChangesCard } from './VariableChangesCard';
 
 interface WsConnectViewerProps {
   report: NodeExecutionReport;
@@ -139,6 +140,9 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
           )}
         </div>
       </div>
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
     </div>
   );
 }

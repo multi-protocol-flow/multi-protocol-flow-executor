@@ -13,6 +13,7 @@ import {
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { VariableChangesCard } from './VariableChangesCard';
 
 interface WsCloseViewerProps {
   /** 节点执行报告 */
@@ -180,6 +181,9 @@ export function WsCloseViewer({ report }: WsCloseViewerProps) {
           )}
         </div>
       </CollapsibleSection>
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
     </div>
   );
 }
