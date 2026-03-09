@@ -91,6 +91,9 @@ impl NodeExecutor for WsCloseExecutor {
             )
             .await;
 
+        // 5. 反查 URL
+        let url = context.get_ws_url(&connection_id).cloned();
+
         match close_result {
             Ok(()) => {
                 log::info!(
@@ -99,7 +102,7 @@ impl NodeExecutor for WsCloseExecutor {
                     config.close_code
                 );
 
-                // 5. 构建输出数据
+                // 6. 构建输出数据
                 let duration = start_time.elapsed();
                 let output_data = json!({
                     "connection_id": connection_id,
@@ -107,6 +110,7 @@ impl NodeExecutor for WsCloseExecutor {
                     "close_reason": config.close_reason,
                     "duration_ms": duration.as_millis() as u64,
                     "success": true,
+                    "url": url,
                 });
 
                 // 6. 日志：关闭完成
@@ -161,6 +165,14 @@ impl NodeExecutor for WsCloseExecutor {
                     })
                     .await;
 
+                // 构建错误输出数据
+                let error_output = json!({
+                    "connection_id": connection_id,
+                    "success": false,
+                    "error": e,
+                    "url": url,
+                });
+
                 // 关闭失败走 false 端口
                 let next_node_ids: Vec<String> = connections
                     .iter()
@@ -170,7 +182,7 @@ impl NodeExecutor for WsCloseExecutor {
                     .map(|conn| conn.target_node_uuid.clone())
                     .collect();
 
-                Ok((next_node_ids, None))
+                Ok((next_node_ids, Some(error_output)))
             }
         }
     }
@@ -217,6 +229,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: std::collections::HashMap::new(),
                 }
     }
 
@@ -235,7 +248,12 @@ mod tests {
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec![] as Vec<String>);
-        assert!(output_data.is_none());
+        assert!(output_data.is_some());
+        let data = output_data.unwrap();
+        assert_eq!(data["connection_id"], "nonexistent-conn");
+        assert_eq!(data["success"], false);
+        assert!(data["error"].is_string());
+        assert!(data["url"].is_null()); // URL 不存在
     }
 
     #[tokio::test]
@@ -264,7 +282,12 @@ mod tests {
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec![] as Vec<String>);
-        assert!(output_data.is_none());
+        assert!(output_data.is_some());
+        let data = output_data.unwrap();
+        assert_eq!(data["connection_id"], "ws-connection-123");
+        assert_eq!(data["success"], false);
+        assert!(data["error"].is_string());
+        assert!(data["url"].is_null()); // URL 不存在
     }
 
     #[tokio::test]
@@ -298,7 +321,12 @@ mod tests {
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec![] as Vec<String>);
-        assert!(output_data.is_none());
+        assert!(output_data.is_some());
+        let data = output_data.unwrap();
+        assert_eq!(data["connection_id"], "test-conn");
+        assert_eq!(data["success"], false);
+        assert!(data["error"].is_string());
+        assert!(data["url"].is_null()); // URL 不存在
     }
 
     #[tokio::test]
@@ -324,6 +352,9 @@ mod tests {
             // 创建关闭节点
             let node = create_test_node("close-test", "关闭测试", "echo-close-conn");
             let mut context = create_context("test-flow");
+            
+            // 设置 URL 映射
+            context.set_ws_url("echo-close-conn".to_string(), "wss://echo.websocket.org".to_string());
 
             let result = executor
                 .execute(&node, &mut context, &[], &HashMap::new())
@@ -338,6 +369,7 @@ mod tests {
                     assert_eq!(data["connection_id"], "echo-close-conn");
                     assert_eq!(data["close_code"], 1000);
                     assert_eq!(data["success"], true);
+                    assert_eq!(data["url"], "wss://echo.websocket.org");
                 }
                 Err(e) => {
                     // 不应该发生错误
@@ -385,6 +417,9 @@ mod tests {
             has_breakpoint: None,
             };
             let mut context = create_context("test-flow");
+            
+            // 设置 URL 映射
+            context.set_ws_url("close-reason-conn".to_string(), "wss://echo.websocket.org".to_string());
 
             let result = executor
                 .execute(&node, &mut context, &[], &HashMap::new())
@@ -398,6 +433,7 @@ mod tests {
                     let data = output_data.unwrap();
                     assert_eq!(data["connection_id"], "close-reason-conn");
                     assert_eq!(data["close_reason"], "测试完成");
+                    assert_eq!(data["url"], "wss://echo.websocket.org");
                 }
                 Err(e) => {
                     // 不应该发生错误

@@ -23,6 +23,22 @@ impl HttpNodeExecutor {
     }
 }
 
+/// HTTP 计时数据结构（简化版本）
+/// TODO: 未来使用新的 http 模块提供详细的 DNS/TCP/TLS 计时
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct HttpTiming {
+    /// DNS 解析耗时（毫秒），当前版本为 null
+    pub dns_ms: Option<u64>,
+    /// TCP 连接耗时（毫秒），当前版本为 null
+    pub connect_ms: Option<u64>,
+    /// TLS 握手耗时（毫秒），当前版本为 null
+    pub tls_ms: Option<u64>,
+    /// 首字节时间（TTFB，毫秒）
+    pub ttfb_ms: Option<u64>,
+    /// 响应体下载耗时（毫秒）
+    pub download_ms: Option<u64>,
+}
+
 /// Convert ContentType to Content-Type header value
 fn content_type_to_string(content_type: &crate::node_config::ContentType) -> &'static str {
     match content_type {
@@ -425,6 +441,14 @@ impl NodeExecutor for HttpNodeExecutor {
                 }).await;
                 
                 // 网络错误：构建失败输出，走 false 端口
+                let timing = HttpTiming {
+                    dns_ms: None,
+                    connect_ms: None,
+                    tls_ms: None,
+                    ttfb_ms: None,
+                    download_ms: None,
+                };
+                
                 let output_data = serde_json::json!({
                     "success": false,
                     "status": serde_json::Value::Null,
@@ -437,7 +461,8 @@ impl NodeExecutor for HttpNodeExecutor {
                         "headers": sent_headers,
                         "body": request_body_json,
                         "body_type": body_type_str
-                    }
+                    },
+                    "timing": timing
                 });
                 
                 // 根据端口过滤连接
@@ -539,6 +564,18 @@ impl NodeExecutor for HttpNodeExecutor {
             }).await;
         }
 
+        // 构建计时数据
+        // 注意：当前版本使用 reqwest，无法获取 DNS/TCP/TLS 分段计时
+        // ttfb_ms 和 download_ms 从总时间推算（假设各占一半）
+        let total_time = http_duration_ms as u64;
+        let timing = HttpTiming {
+            dns_ms: None,
+            connect_ms: None,
+            tls_ms: None,
+            ttfb_ms: Some(total_time / 2), // 估算值
+            download_ms: Some(total_time / 2), // 估算值
+        };
+
         // 构建统一输出数据结构
         let output_data = serde_json::json!({
             "success": is_success,
@@ -551,7 +588,8 @@ impl NodeExecutor for HttpNodeExecutor {
                 "headers": sent_headers,
                 "body": request_body_json,
                 "body_type": body_type_str
-            }
+            },
+            "timing": timing
         });
 
         // 应用输出映射，从响应中提取变量
@@ -721,6 +759,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 }
     }
 
@@ -1540,6 +1579,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let executor = HttpNodeExecutor::new();
@@ -1596,6 +1636,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let executor = HttpNodeExecutor::new();
@@ -1643,6 +1684,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let executor = HttpNodeExecutor::new();
@@ -1691,6 +1733,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let executor = HttpNodeExecutor::new();
@@ -1738,6 +1781,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let executor = HttpNodeExecutor::new();
@@ -1794,6 +1838,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let executor = HttpNodeExecutor::new();
@@ -1851,6 +1896,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let executor = HttpNodeExecutor::new();
@@ -1915,6 +1961,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let executor = HttpNodeExecutor::new();
@@ -1965,6 +2012,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let executor = HttpNodeExecutor::new();
@@ -2019,6 +2067,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let executor = HttpNodeExecutor::new();
@@ -2066,6 +2115,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let executor = HttpNodeExecutor::new();
@@ -2117,6 +2167,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let executor = HttpNodeExecutor::new();
@@ -2164,6 +2215,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let executor = HttpNodeExecutor::new();

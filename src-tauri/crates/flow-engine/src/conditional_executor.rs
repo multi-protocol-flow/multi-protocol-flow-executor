@@ -125,8 +125,16 @@ impl NodeExecutor for ConditionalNodeExecutor {
             }
         };
 
+        // 用于存储输出信息的结构
+        struct ConditionOutput {
+            result: bool,
+            expression: String,
+            evaluated_value: String,
+            field_value: serde_json::Value,
+        }
+
         // 判断条件类型并评估
-        let condition_result = match conditional_config.condition_type {
+        let condition_output = match conditional_config.condition_type {
             ConditionType::Simple => {
                 // 发送日志：条件类型
                 context.emit_log(LogEvent {
@@ -142,15 +150,73 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 }).await;
 
                 // 简单条件：评估 field_path + operator + expected_value
+                let variables = json!(context.variables.get_merged_variables());
+
+                // 获取 field_path 和 operator
+                let field_path = conditional_config.field_path.as_ref().ok_or_else(|| {
+                    let error = ErrorDetail::new(
+                        ErrorKind::ConditionSyntax,
+                        "简单条件缺少 field_path".to_string(),
+                    );
+                    error.message
+                })?;
+                let operator = conditional_config.operator.as_ref().ok_or_else(|| {
+                    let error = ErrorDetail::new(
+                        ErrorKind::ConditionSyntax,
+                        "简单条件缺少 operator".to_string(),
+                    );
+                    error.message
+                })?;
+
+                // 提取字段值
+                let actual_value = self.extract_field_value(&variables, field_path)?;
+
+                // 构建 expression 字符串：原始表达式
                 let expression = format!(
-                    "{:?} {:?} {:?}",
-                    conditional_config.field_path,
-                    conditional_config.operator,
-                    conditional_config.expected_value
+                    "{} {} {}",
+                    field_path,
+                    match operator {
+                        ConditionOperator::Equal => "==",
+                        ConditionOperator::NotEqual => "!=",
+                        ConditionOperator::Greater => ">",
+                        ConditionOperator::GreaterOrEqual => ">=",
+                        ConditionOperator::Less => "<",
+                        ConditionOperator::LessOrEqual => "<=",
+                        ConditionOperator::Contains => "contains",
+                        ConditionOperator::StartsWith => "startsWith",
+                        ConditionOperator::EndsWith => "endsWith",
+                        ConditionOperator::Exists => "exists",
+                    },
+                    conditional_config.expected_value.as_ref()
+                        .map(|v| v.to_string())
+                        .unwrap_or_else(|| "null".to_string())
                 );
+
+                // 构建 evaluated_value 字符串：实际评估的表达式
+                let evaluated_value = format!(
+                    "{} {} {}",
+                    actual_value,
+                    match operator {
+                        ConditionOperator::Equal => "==",
+                        ConditionOperator::NotEqual => "!=",
+                        ConditionOperator::Greater => ">",
+                        ConditionOperator::GreaterOrEqual => ">=",
+                        ConditionOperator::Less => "<",
+                        ConditionOperator::LessOrEqual => "<=",
+                        ConditionOperator::Contains => "contains",
+                        ConditionOperator::StartsWith => "startsWith",
+                        ConditionOperator::EndsWith => "endsWith",
+                        ConditionOperator::Exists => "exists",
+                    },
+                    conditional_config.expected_value.as_ref()
+                        .map(|v| v.to_string())
+                        .unwrap_or_else(|| "null".to_string())
+                );
+
+                // 评估条件
                 let result = self.evaluate_simple_condition(
                     &conditional_config,
-                    &json!(context.variables.get_merged_variables()),
+                    &variables,
                 )?;
                 log::info!("[流程 {}] [条件判断] 条件类型: Simple, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
 
@@ -167,7 +233,12 @@ impl NodeExecutor for ConditionalNodeExecutor {
                     flow_uuid: context.flow_uuid.clone(),
                 }).await;
 
-                result
+                ConditionOutput {
+                    result,
+                    expression,
+                    evaluated_value,
+                    field_value: actual_value,
+                }
             }
             ConditionType::Advanced => {
                 // 发送日志：条件类型
@@ -204,9 +275,17 @@ impl NodeExecutor for ConditionalNodeExecutor {
                     flow_uuid: context.flow_uuid.clone(),
                 }).await;
 
-                result
+                // Advanced 条件：expression 和 evaluated_value 相同，field_value 为 null
+                ConditionOutput {
+                    result,
+                    expression: expression.clone(),
+                    evaluated_value: expression,
+                    field_value: serde_json::Value::Null,
+                }
             }
         };
+
+        let condition_result = condition_output.result;
 
         // 发送日志：条件结果
         context.emit_log(LogEvent {
@@ -241,9 +320,17 @@ impl NodeExecutor for ConditionalNodeExecutor {
             target_port_id
         );
 
-        // 返回下一个节点 UUID 列表和布尔值作为输出数据
+        // 构建详细的输出数据对象
+        let output_data = json!({
+            "result": condition_output.result,
+            "expression": condition_output.expression,
+            "evaluated_value": condition_output.evaluated_value,
+            "field_value": condition_output.field_value,
+        });
+
+        // 返回下一个节点 UUID 列表和详细输出数据
         // 空列表表示该分支无连接，流程终止
-        Ok((next_node_ids, Some(json!(condition_result))))
+        Ok((next_node_ids, Some(output_data)))
     }
 }
 
@@ -619,6 +706,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 }
     }
 
@@ -842,7 +930,10 @@ mod tests {
         assert!(result.is_ok(), "条件为false应该返回Ok（不再返回错误）");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
-        assert_eq!(output_data.unwrap(), json!(false));
+        let output = output_data.unwrap();
+        assert_eq!(output["result"], json!(false));
+        assert_eq!(output["expression"], "{{user.age}} == 30");
+        assert_eq!(output["field_value"], 25);
     }
 
     #[tokio::test]
@@ -908,7 +999,10 @@ mod tests {
         assert!(result.is_ok(), "条件为false应该返回Ok（不再返回错误）");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
-        assert_eq!(output_data.unwrap(), json!(false));
+        let output = output_data.unwrap();
+        assert_eq!(output["result"], json!(false));
+        assert_eq!(output["expression"], "age > 30 && name == \"Jane\"");
+        assert_eq!(output["field_value"], serde_json::Value::Null);
     }
 
     #[tokio::test]
@@ -939,7 +1033,10 @@ mod tests {
         assert!(result.is_ok(), "条件为true应该成功");
         let (next_node_ids, output_data) = result.unwrap();
         assert_eq!(next_node_ids, vec!["next-node-id".to_string()]);
-        assert_eq!(output_data.unwrap(), json!(true));
+        let output = output_data.unwrap();
+        assert_eq!(output["result"], json!(true));
+        assert_eq!(output["expression"], "{{status}} == \"active\"");
+        assert_eq!(output["field_value"], "active");
     }
 
     #[tokio::test]
@@ -1002,7 +1099,9 @@ mod tests {
         assert!(result.is_ok(), "条件为false应该返回Ok（不再返回错误）");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
-        assert_eq!(output_data.unwrap(), json!(false));
+        let output = output_data.unwrap();
+        assert_eq!(output["result"], json!(false));
+        assert_eq!(output["expression"], "{{user.email}} exists null");
     }
 
     #[tokio::test]
@@ -1344,7 +1443,10 @@ mod tests {
         assert!(result.is_ok());
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty()); // true 分支无连接
-        assert_eq!(output_data.unwrap(), json!(true));
+        let output = output_data.unwrap();
+        assert_eq!(output["result"], json!(true));
+        assert_eq!(output["expression"], "{{status}} == \"200\"");
+        assert_eq!(output["field_value"], 200);
     }
 
     #[tokio::test]
@@ -1367,7 +1469,10 @@ mod tests {
         assert!(result.is_ok());
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
-        assert_eq!(output_data.unwrap(), json!(true));
+        let output = output_data.unwrap();
+        assert_eq!(output["result"], json!(true));
+        assert_eq!(output["expression"], "{{enabled}} == \"true\"");
+        assert_eq!(output["field_value"], true);
     }
 
     #[tokio::test]
@@ -1390,7 +1495,10 @@ mod tests {
         assert!(result.is_ok());
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
-        assert_eq!(output_data.unwrap(), json!(true));
+        let output = output_data.unwrap();
+        assert_eq!(output["result"], json!(true));
+        assert_eq!(output["expression"], "{{name}} == 200");
+        assert_eq!(output["field_value"], "200");
     }
 
     // ============================================================================
@@ -1418,7 +1526,10 @@ mod tests {
         assert!(result.is_ok(), "变量引用应该成功");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
-        assert_eq!(output_data.unwrap(), json!(true));
+        let output = output_data.unwrap();
+        assert_eq!(output["result"], json!(true));
+        assert_eq!(output["expression"], "{{token}} == \"abc123\"");
+        assert_eq!(output["field_value"], "abc123");
     }
 
     #[tokio::test]
@@ -1464,7 +1575,10 @@ mod tests {
         assert!(result.is_ok(), "JSONPath 提取应该成功");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
-        assert_eq!(output_data.unwrap(), json!(true));
+        let output = output_data.unwrap();
+        assert_eq!(output["result"], json!(true));
+        assert_eq!(output["expression"], "$.body.token == \"secret\"");
+        assert_eq!(output["field_value"], "secret");
     }
 
     #[tokio::test]
@@ -1491,7 +1605,10 @@ mod tests {
         assert!(result.is_ok(), "JSONPath 数组索引提取应该成功");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
-        assert_eq!(output_data.unwrap(), json!(true));
+        let output = output_data.unwrap();
+        assert_eq!(output["result"], json!(true));
+        assert_eq!(output["expression"], "$.items[0].id == 1");
+        assert_eq!(output["field_value"], 1);
     }
 
     #[tokio::test]
@@ -1559,6 +1676,9 @@ mod tests {
         assert!(result.is_ok(), "简单变量名应该成功");
         let (next_node_ids, output_data) = result.unwrap();
         assert!(next_node_ids.is_empty());
-        assert_eq!(output_data.unwrap(), json!(true));
+        let output = output_data.unwrap();
+        assert_eq!(output["result"], json!(true));
+        assert_eq!(output["expression"], "status == \"active\"");
+        assert_eq!(output["field_value"], "active");
     }
 }

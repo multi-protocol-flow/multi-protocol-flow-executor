@@ -203,6 +203,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let mut node_map = HashMap::new();
@@ -254,6 +255,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let node_map = HashMap::new();
@@ -328,6 +330,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let mut node_map = HashMap::new();
@@ -395,6 +398,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let mut node_map = HashMap::new();
@@ -463,6 +467,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let mut node_map = HashMap::new();
@@ -520,6 +525,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let mut node_map = HashMap::new();
@@ -583,6 +589,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: HashMap::new(),
                 };
 
         let mut node_map = HashMap::new();

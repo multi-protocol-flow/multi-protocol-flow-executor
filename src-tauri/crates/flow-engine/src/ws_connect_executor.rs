@@ -79,7 +79,8 @@ impl NodeExecutor for WsConnectExecutor {
             })
             .await;
 
-        // 4. 建立连接
+        // 4. 建立连接（计时）
+        let connect_start = Instant::now();
         let connect_result = self
             .ws_manager
             .connect(
@@ -89,6 +90,7 @@ impl NodeExecutor for WsConnectExecutor {
                 config.connect_timeout_ms,
             )
             .await;
+        let connect_duration_ms = connect_start.elapsed().as_millis() as u64;
 
         match connect_result {
             Ok(()) => {
@@ -98,7 +100,11 @@ impl NodeExecutor for WsConnectExecutor {
                     url
                 );
 
-                // 5. 如果配置了等待消息
+                // 存储连接 URL 到 context（供后续节点反查）
+                context.set_ws_url(node.uuid.clone(), url.clone());
+
+                // 5. 如果配置了等待消息（计时）
+                let wait_start = Instant::now();
                 let (wait_timed_out, message_data) = if config.wait_for_message {
                     match self.wait_for_initial_message_new(node, &config, context).await {
                         Ok(Some(msg)) => (false, Some(msg)),
@@ -115,10 +121,18 @@ impl NodeExecutor for WsConnectExecutor {
                 } else {
                     (false, None)
                 };
+                let wait_message_duration_ms = if config.wait_for_message && !wait_timed_out {
+                    Some(wait_start.elapsed().as_millis() as u64)
+                } else {
+                    None
+                };
 
                 // 6. 构建输出数据
                 let output_data = self.build_output_data(
                     &node.uuid,
+                    &url,
+                    connect_duration_ms,
+                    wait_message_duration_ms,
                     wait_timed_out,
                     message_data,
                     start_time.elapsed().as_millis() as u64,
@@ -189,6 +203,7 @@ impl NodeExecutor for WsConnectExecutor {
                 let error_output = json!({
                     "connected": false,
                     "connection_id": serde_json::Value::Null,
+                    "url": url,
                     "wait_timed_out": false,
                     "error": e
                 });
@@ -356,9 +371,13 @@ impl WsConnectExecutor {
     }
 
     /// 构建输出数据
+    #[allow(clippy::too_many_arguments)]
     fn build_output_data(
         &self,
         uuid: &str,
+        url: &str,
+        connect_duration_ms: u64,
+        wait_message_duration_ms: Option<u64>,
         wait_timed_out: bool,
         message_data: Option<String>,
         duration_ms: u64,
@@ -366,6 +385,9 @@ impl WsConnectExecutor {
         let mut output = json!({
             "connected": true,
             "connection_id": uuid,
+            "url": url,
+            "connect_duration_ms": connect_duration_ms,
+            "wait_message_duration_ms": wait_message_duration_ms,
             "wait_timed_out": wait_timed_out,
             "duration_ms": duration_ms,
         });
@@ -465,6 +487,7 @@ mod tests {
                     log_sender: None,
                     flow_file_path: None,
                     ws_manager: None,
+                    ws_connection_urls: std::collections::HashMap::new(),
                 }
     }
 

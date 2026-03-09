@@ -12,7 +12,7 @@ use crate::websocket_manager::WebSocketConnectionManager;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Instant;
+use tokio::time::Instant;
 
 /// WebSocket Send+Wait 节点执行器
 pub struct WsSendWaitExecutor {
@@ -125,7 +125,8 @@ impl NodeExecutor for WsSendWaitExecutor {
                     .await;
 
                 // 返回 false 端口 + 错误数据
-                Some(self.build_error_output_data(&connection_id, &error_msg))
+                let url = context.get_ws_url(&connection_id).map(|s| s.as_str());
+                Some(self.build_error_output_data(&connection_id, &error_msg, url))
             }
             None => {
                 let error_msg = format!("连接不存在: {}", connection_id);
@@ -146,7 +147,8 @@ impl NodeExecutor for WsSendWaitExecutor {
                     .await;
 
                 // 返回 false 端口 + 错误数据
-                Some(self.build_error_output_data(&connection_id, &error_msg))
+                let url = context.get_ws_url(&connection_id).map(|s| s.as_str());
+                Some(self.build_error_output_data(&connection_id, &error_msg, url))
             }
         };
 
@@ -177,10 +179,12 @@ impl NodeExecutor for WsSendWaitExecutor {
 
         // 5. 发送消息
         let is_binary = config.message_type == WsMessageType::Binary;
+        let send_start = Instant::now();
         let send_result = self
             .ws_manager
             .send(&connection_id, message.clone(), is_binary, config.send_timeout_ms)
             .await;
+        let send_duration_ms = send_start.elapsed().as_millis() as u64;
 
         // 处理发送结果
         let (port, output_data) = match send_result {
@@ -192,6 +196,7 @@ impl NodeExecutor for WsSendWaitExecutor {
                 );
 
                 // 6. 如果配置了等待响应
+                let wait_start = Instant::now();
                 let (wait_timed_out, response_message) = if config.wait_for_response {
                     match self.wait_for_response(&connection_id, &config, context, node).await {
                         Ok(Some(response)) => {
@@ -238,6 +243,16 @@ impl NodeExecutor for WsSendWaitExecutor {
                     (false, None)
                 };
 
+                // 计算等待响应耗时（如果等待了响应）
+                let wait_response_duration_ms = if config.wait_for_response {
+                    Some(wait_start.elapsed().as_millis() as u64)
+                } else {
+                    None
+                };
+
+                // 反查 URL
+                let url = context.get_ws_url(&connection_id).map(|s| s.as_str());
+
                 // 7. 构建输出数据
                 let output_data = self.build_output_data(
                     &connection_id,
@@ -245,6 +260,9 @@ impl NodeExecutor for WsSendWaitExecutor {
                     is_binary,
                     response_message.as_deref(),
                     wait_timed_out,
+                    url,
+                    send_duration_ms,
+                    wait_response_duration_ms,
                 )?;
 
                 // 8. 日志：执行完成
@@ -287,7 +305,8 @@ impl NodeExecutor for WsSendWaitExecutor {
                     .await;
 
                 // 返回 false 端口 + 错误数据
-                ("false", self.build_error_output_data(&connection_id, &e))
+                let url = context.get_ws_url(&connection_id).map(|s| s.as_str());
+                ("false", self.build_error_output_data(&connection_id, &e, url))
             }
         };
 
@@ -450,6 +469,7 @@ impl WsSendWaitExecutor {
     }
 
     /// 构建输出数据（新结构）
+    #[allow(clippy::too_many_arguments)]
     fn build_output_data(
         &self,
         connection_id: &str,
@@ -457,6 +477,9 @@ impl WsSendWaitExecutor {
         is_binary: bool,
         response_message: Option<&str>,
         wait_timed_out: bool,
+        url: Option<&str>,
+        send_duration_ms: u64,
+        wait_response_duration_ms: Option<u64>,
     ) -> Result<Option<serde_json::Value>, String> {
         // 构建发送的消息数据
         let sent_data = json!({
@@ -487,6 +510,9 @@ impl WsSendWaitExecutor {
             "connection_id": connection_id,
             "wait_timed_out": wait_timed_out,
             "sent": sent_data,
+            "url": url,
+            "send_duration_ms": send_duration_ms,
+            "wait_response_duration_ms": wait_response_duration_ms,
         });
 
         if let Some(msg) = message_data {
@@ -501,6 +527,7 @@ impl WsSendWaitExecutor {
         &self,
         connection_id: &str,
         error_msg: &str,
+        url: Option<&str>,
     ) -> Option<serde_json::Value> {
         Some(json!({
             "connection_id": connection_id,
@@ -508,6 +535,9 @@ impl WsSendWaitExecutor {
             "sent": null,
             "message": null,
             "error": error_msg,
+            "url": url,
+            "send_duration_ms": null,
+            "wait_response_duration_ms": null,
         }))
     }
 
