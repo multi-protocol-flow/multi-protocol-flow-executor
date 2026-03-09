@@ -14,6 +14,9 @@ pub struct HttpTiming {
     pub ttfb_ms: Option<u64>,
     /// 响应体下载耗时（毫秒）
     pub download_ms: Option<u64>,
+    /// 网络总耗时（毫秒）= DNS + TCP + TLS + TTFB + Download + 请求发送
+    /// 注意：这个值略大于各分段之和，因为还包括请求发送等未单独计时的阶段
+    pub total_ms: Option<u64>,
 }
 
 /// 计时器上下文，用于记录各阶段时间点
@@ -108,6 +111,10 @@ impl TimingContext {
                 self.first_byte
                     .map(|fb| end.duration_since(fb).as_millis() as u64)
             }),
+            // Total: 从开始到下载完成的总时间
+            total_ms: self
+                .download_complete
+                .map(|end| end.duration_since(self.start).as_millis() as u64),
         }
     }
 }
@@ -229,6 +236,7 @@ mod tests {
             tls_ms: Some(28),
             ttfb_ms: Some(120),
             download_ms: Some(45),
+            total_ms: Some(240),
         };
 
         let json = serde_json::to_string(&timing).expect("序列化失败");
@@ -237,6 +245,7 @@ mod tests {
         assert!(json.contains("\"tls_ms\":28"));
         assert!(json.contains("\"ttfb_ms\":120"));
         assert!(json.contains("\"download_ms\":45"));
+        assert!(json.contains("\"total_ms\":240"));
 
         let deserialized: HttpTiming = serde_json::from_str(&json).expect("反序列化失败");
         assert_eq!(timing.dns_ms, deserialized.dns_ms);
@@ -244,5 +253,6 @@ mod tests {
         assert_eq!(timing.tls_ms, deserialized.tls_ms);
         assert_eq!(timing.ttfb_ms, deserialized.ttfb_ms);
         assert_eq!(timing.download_ms, deserialized.download_ms);
+        assert_eq!(timing.total_ms, deserialized.total_ms);
     }
 }
