@@ -11,6 +11,7 @@ import { startDebug, sendDebugCommand, endDebug as endDebugService, saveFlowRepo
 import type { Flow } from '@/types/flow';
 import { useSettingsStore } from './settings';
 import { useExecutionStore } from './execution';
+import { useConsoleStore } from './console';
 
 // ============================================================================
 // 类型定义
@@ -191,9 +192,20 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       // 启动心跳检查
       startHeartbeatCheck();
 
-      await startDebug(flow, breakpoints, (event) => {
-        get().handleDebugEvent(event);
-      });
+      // 清空控制台日志
+      useConsoleStore.getState().clearLogs();
+
+      await startDebug(
+        flow, 
+        breakpoints, 
+        (event) => {
+          get().handleDebugEvent(event);
+        },
+        (logEvent) => {
+          // 将日志转发到 console store
+          useConsoleStore.getState().addLog(logEvent);
+        }
+      );
     } catch (error) {
       clearAllTimers();
       set({

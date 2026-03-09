@@ -6,6 +6,7 @@
 import { invoke, Channel } from '@tauri-apps/api/core';
 import type { Flow } from '@/types/flow';
 import type { DebugEvent, DebugCommand } from '@/types/debug';
+import type { LogEvent } from '@/types/events';
 import { IpcError } from './flow';
 
 /**
@@ -23,17 +24,19 @@ function formatError(error: unknown, command: string): IpcError {
 
 /**
  * 启动调试会话
- * 使用 Channel API 接收调试事件
+ * 使用 Channel API 接收调试事件和日志
  *
  * @param flow - 要调试的流程对象
  * @param breakpoints - 断点列表（节点 UUID）
  * @param onEvent - 调试事件回调函数
+ * @param onLog - 日志回调函数
  * @throws IpcError 如果启动失败
  */
 export async function startDebug(
   flow: Flow,
   breakpoints: string[],
-  onEvent: (event: DebugEvent) => void
+  onEvent: (event: DebugEvent) => void,
+  onLog: (event: LogEvent) => void
 ): Promise<void> {
   try {
     // 创建 Channel 用于接收调试事件
@@ -42,10 +45,17 @@ export async function startDebug(
       onEvent(event);
     };
 
+    // 创建 Channel 用于接收日志事件
+    const logChannel = new Channel<LogEvent>();
+    logChannel.onmessage = (event) => {
+      onLog(event);
+    };
+
     await invoke<void>('start_debug', {
       flow,
       breakpoints,
       onEvent: eventChannel,
+      onLog: logChannel,
     });
   } catch (error) {
     throw formatError(error, 'start_debug');

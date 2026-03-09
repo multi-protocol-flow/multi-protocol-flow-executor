@@ -143,12 +143,13 @@ pub struct DebugSessionManager {
 
 /// 启动调试会话
 ///
-/// 开始调试指定的流程，设置断点，并通过 Channel 发送调试事件
+/// 开始调试指定的流程，设置断点，并通过 Channel 发送调试事件和日志
 #[tauri::command]
 pub async fn start_debug(
     flow: Flow,
     breakpoints: Vec<String>,
     on_event: Channel<DebugEvent>,
+    on_log: Channel<LogEvent>,
     state: State<'_, Arc<Mutex<DebugSessionManager>>>,
     _app: tauri::AppHandle,
 ) -> Result<(), String> {
@@ -178,9 +179,11 @@ pub async fn start_debug(
     // 保存命令发送器
     manager.command_sender = Some(command_sender);
 
-    // 注意：调试模式下不使用日志发送器
-    // 日志已经通过 execute_flow 的 Channel 发送到控制台面板
-    let log_sender: Option<Arc<dyn flow_engine::traits::LogSender>> = None;
+    // 创建日志发送器（调试模式也需要日志）
+    let (log_sender, log_worker) = create_log_sender(on_log);
+    
+    // 在后台启动日志消费任务
+    tokio::spawn(log_worker);
 
     // 启动调试会话（在后台任务中）
     tokio::spawn(async move {
@@ -190,7 +193,7 @@ pub async fn start_debug(
                 &flow,
                 None,
                 breakpoints,
-                log_sender,
+                Some(log_sender),
                 event_sender,
                 command_receiver,
             )

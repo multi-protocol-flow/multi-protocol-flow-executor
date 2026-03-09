@@ -154,15 +154,17 @@ export async function deleteFlowReport(uuid: string, reportsDir: string): Promis
  * @param flow - 要调试的流程对象
  * @param breakpoints - 断点列表（节点 UUID）
  * @param onEvent - 调试事件回调函数
+ * @param onLog - 日志回调函数
  */
 export async function startDebug(
   flow: import('@/types/flow').Flow,
   breakpoints: string[],
-  onEvent: (event: import('@/types/debug').DebugEvent) => void
+  onEvent: (event: import('@/types/debug').DebugEvent) => void,
+  onLog: (event: import('@/types/events').LogEvent) => void
 ): Promise<void> {
   if (isTauriEnv()) {
     const { startDebug: startDebugImpl } = await import('./debug');
-    return startDebugImpl(flow, breakpoints, onEvent);
+    return startDebugImpl(flow, breakpoints, onEvent, onLog);
   } else {
     // Mock 环境 - 暂不实现
     console.warn('调试功能在 Mock 环境下不可用');
