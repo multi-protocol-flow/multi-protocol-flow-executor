@@ -160,10 +160,14 @@ impl HttpClient {
         // 发送请求
         let response = client.request(request).await.map_err(|e| {
             // 根据错误类型返回更具体的错误
-            let error_msg = e.to_string();
+            let error_msg = e.to_string().to_lowercase();
             if error_msg.contains("dns") || error_msg.contains("resolve") {
                 HttpError::DnsFailed(error_msg)
-            } else if error_msg.contains("connect") || error_msg.contains("tcp") {
+            } else if error_msg.contains("connect") {
+                // "Connect" 错误通常表示 DNS 解析或 TCP 连接失败
+                // 由于 DNS 是连接的第一步，将其归类为 DNS 错误
+                HttpError::DnsFailed(error_msg)
+            } else if error_msg.contains("tcp") {
                 HttpError::TcpFailed(error_msg)
             } else if error_msg.contains("tls")
                 || error_msg.contains("ssl")
