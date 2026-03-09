@@ -154,6 +154,38 @@ pub trait NodeExecutor {
 }
 
 
+/// 计算变量变更列表
+///
+/// 对比变量快照前后的差异，生成 VariableChange 列表
+///
+/// # 参数
+/// - `variables_before`: 变更前的变量快照
+/// - `variables_after`: 变更后的变量快照
+///
+/// # 返回
+/// - `Vec<VariableChange>`: 变量变更列表
+fn compute_variable_changes(
+    variables_before: &HashMap<String, serde_json::Value>,
+    variables_after: &HashMap<String, serde_json::Value>,
+) -> Vec<crate::report::VariableChange> {
+    let mut changes = Vec::new();
+
+    // 检测新增和修改的变量
+    for (key, new_value) in variables_after {
+        let old_value = variables_before.get(key).cloned();
+        // 只有值真正变化时才记录
+        if old_value.as_ref() != Some(new_value) {
+            changes.push(crate::report::VariableChange {
+                key: key.clone(),
+                old_value,
+                new_value: new_value.clone(),
+            });
+        }
+    }
+
+    changes
+}
+
 /// 从字符串错误解析错误详情
 ///
 /// 尝试从错误消息中识别错误类型，并创建对应的 ErrorDetail
@@ -266,6 +298,7 @@ impl FlowExecutor {
             log_sender,
             flow_file_path: self.flow_file_path.clone(),
             ws_manager: Some(ws_manager),
+            ws_connection_urls: std::collections::HashMap::new(),
         };
 
         // 查找开始节点
@@ -306,6 +339,12 @@ impl FlowExecutor {
         // 从开始节点开始遍历
         let mut current_node_id = start_node.uuid.clone();
         let mut visited = std::collections::HashSet::new();
+
+        // 执行路径追踪（Task 14）：记录所有成功执行的节点 UUID
+        let mut execution_path: Vec<String> = Vec::new();
+
+        // 跳过节点记录（Task 15）：记录被跳过的节点及原因
+        let skipped_nodes: Vec<crate::report::SkippedNodeInfo> = Vec::new();
 
         while let Some(node) = node_map.get(&current_node_id) {
             // 检测循环（简单防止无限循环）
@@ -390,34 +429,12 @@ impl FlowExecutor {
                         }
                     };
 
-                    // 创建节点执行报告
-                    let node_report = crate::report::NodeExecutionReport {
-                        node_uuid: node.uuid.clone(),
-                        node_type: format!("{:?}", node.node_type),
-                        node_name: node.name.clone(),
-                        start_time: node_start_ms,
-                        end_time: node_end_ms,
-                        duration_ms: node_duration,
-                        status: crate::report::ExecutionStatus::Success,
-                        input_data: Some(json!(context.variables.get_merged_variables())),
-                        output_data: output_data.clone(),
-                        used_port_id,
-                        error: None,
-                    };
-                    node_reports.push(node_report);
-
-                    // 发送节点完成日志
-                    context.emit_log(LogEvent {
-                        level: LogLevel::Info,
-                        message: format!("节点 {} 执行完成", node.name),
-                        timestamp: node_end_ms,
-                        node_uuid: Some(node.uuid.clone()),
-                        node_name: Some(node.name.clone()),
-                        flow_uuid: context.flow_uuid.clone(),
-                    }).await;
+                    // 先快照执行前的变量状态（在合并当前节点输出前）
+                    let variables_before = context.variables.get_merged_variables();
+                    let input_data_snapshot = variables_before.clone();
 
                     // 如果有输出数据，更新上下文变量
-                    if let Some(data) = output_data {
+                    if let Some(ref data) = output_data {
                         log::info!(
                             "[流程 {}] 节点 {} 输出数据: {}",
                             context.flow_uuid,
@@ -431,6 +448,47 @@ impl FlowExecutor {
                             }
                         }
                     }
+
+                    // 计算变量变更（Task 13）：对比前后的变量差异
+                    let variables_after = context.variables.get_merged_variables();
+                    let variable_changes = compute_variable_changes(&variables_before, &variables_after);
+
+                    // 解析 resolved_config（Task 13）：将节点配置序列化后存储
+                    let resolved_config = Some(serde_json::to_value(&node.data).unwrap_or(json!(null)));
+
+                    // 追踪执行路径（Task 14）：记录成功执行的节点 UUID
+                    execution_path.push(node.uuid.clone());
+
+                    // 创建节点执行报告，使用快照的 input_data
+                    let node_report = crate::report::NodeExecutionReport {
+                        node_uuid: node.uuid.clone(),
+                        node_type: format!("{:?}", node.node_type),
+                        node_name: node.name.clone(),
+                        start_time: node_start_ms,
+                        end_time: node_end_ms,
+                        duration_ms: node_duration,
+                        status: crate::report::ExecutionStatus::Success,
+                        input_data: Some(json!(input_data_snapshot)),
+                        output_data: output_data.clone(),
+                        used_port_id,
+                        error: None,
+                        // 新增字段（Task 13）
+                        resolved_config,
+                        variable_changes: if variable_changes.is_empty() { None } else { Some(variable_changes) },
+                        skip_reason: None,
+                        wait_duration_ms: None,
+                    };
+                    node_reports.push(node_report);
+
+                    // 发送节点完成日志
+                    context.emit_log(LogEvent {
+                        level: LogLevel::Info,
+                        message: format!("节点 {} 执行完成", node.name),
+                        timestamp: node_end_ms,
+                        node_uuid: Some(node.uuid.clone()),
+                        node_name: Some(node.name.clone()),
+                        flow_uuid: context.flow_uuid.clone(),
+                    }).await;
 
                     // 处理 Conditional 节点：如果返回空列表表示条件为 false，停止执行
                     if matches!(node.node_type, NodeType::Conditional)
@@ -511,6 +569,9 @@ impl FlowExecutor {
                         );
 
                         // 创建节点执行报告（Success状态 - 条件评估完成）
+                        // 解析 resolved_config
+                        let resolved_config = Some(serde_json::to_value(&node.data).unwrap_or(json!(null)));
+
                         let node_report = crate::report::NodeExecutionReport {
                             node_uuid: node.uuid.clone(),
                             node_type: format!("{:?}", node.node_type),
@@ -523,6 +584,11 @@ impl FlowExecutor {
                             output_data: None,
                             used_port_id: Some("false".to_string()),
                             error: None,
+                            // 新增字段（Task 13）
+                            resolved_config,
+                            variable_changes: None,
+                            skip_reason: None,
+                            wait_duration_ms: None,
                         };
                         node_reports.push(node_report);
 
@@ -541,6 +607,9 @@ impl FlowExecutor {
                         );
 
                         // 创建节点执行报告（Success状态 - 优雅终止）
+                        // 解析 resolved_config
+                        let resolved_config = Some(serde_json::to_value(&node.data).unwrap_or(json!(null)));
+
                         let node_report = crate::report::NodeExecutionReport {
                             node_uuid: node.uuid.clone(),
                             node_type: format!("{:?}", node.node_type),
@@ -553,6 +622,11 @@ impl FlowExecutor {
                             output_data: None,
                             used_port_id: None,
                             error: None,
+                            // 新增字段（Task 13）
+                            resolved_config,
+                            variable_changes: None,
+                            skip_reason: None,
+                            wait_duration_ms: None,
                         };
                         node_reports.push(node_report);
 
@@ -593,6 +667,9 @@ impl FlowExecutor {
                     };
 
                     // 创建节点执行报告（Failed状态）
+                    // 解析 resolved_config
+                    let resolved_config = Some(serde_json::to_value(&node.data).unwrap_or(json!(null)));
+
                     let node_report = crate::report::NodeExecutionReport {
                         node_uuid: node.uuid.clone(),
                         node_type: format!("{:?}", node.node_type),
@@ -605,6 +682,11 @@ impl FlowExecutor {
                         output_data: None,
                         used_port_id,
                         error: Some(error_detail.clone()),
+                        // 新增字段（Task 13）
+                        resolved_config,
+                        variable_changes: None,
+                        skip_reason: None,
+                        wait_duration_ms: None,
                     };
                     node_reports.push(node_report);
                     executed_count += 1;
@@ -653,6 +735,9 @@ impl FlowExecutor {
                             .as_millis() as u64;
                         let flow_status = crate::report::ExecutionStatus::Failed;
 
+                        // 获取最终变量快照（Task 16）
+                        let final_variables = context.variables.get_merged_variables();
+
                         let flow_report = crate::report::FlowExecutionReport {
                             uuid: Uuid::new_v4().to_string(),
                             flow_uuid: flow.uuid.clone(),
@@ -670,6 +755,11 @@ impl FlowExecutor {
                             ),
                             flow_error: Some(error_detail.clone()),
                             execution_mode: crate::report::ExecutionMode::Normal,
+                            // 新增字段（Task 14, 15, 16）
+                            initial_variables: Some(json!(initial_variables)),
+                            final_variables: Some(json!(final_variables)),
+                            execution_path: execution_path.clone(),
+                            skipped_nodes: skipped_nodes.clone(),
                         };
 
                         return ExecutionResult {
@@ -726,6 +816,9 @@ impl FlowExecutor {
             crate::report::ExecutionStatus::Success
         };
 
+        // 获取最终变量快照（Task 16）
+        let final_variables = context.variables.get_merged_variables();
+
         let flow_report = crate::report::FlowExecutionReport {
             uuid: Uuid::new_v4().to_string(),
             flow_uuid: flow.uuid.clone(),
@@ -743,6 +836,11 @@ impl FlowExecutor {
             ),
             flow_error: None,
             execution_mode: crate::report::ExecutionMode::Normal,
+            // 新增字段（Task 14, 15, 16）
+            initial_variables: Some(json!(initial_variables)),
+            final_variables: Some(json!(final_variables)),
+            execution_path,
+            skipped_nodes,
         };
 
         // 执行成功
@@ -1462,6 +1560,7 @@ mod tests {
             log_sender: None,
             flow_file_path: None,
             ws_manager: None,
+            ws_connection_urls: std::collections::HashMap::new(),
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1494,6 +1593,7 @@ mod tests {
             log_sender: None,
             flow_file_path: None,
             ws_manager: None,
+            ws_connection_urls: std::collections::HashMap::new(),
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1517,6 +1617,7 @@ mod tests {
             log_sender: None,
             flow_file_path: None,
             ws_manager: None,
+            ws_connection_urls: std::collections::HashMap::new(),
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -1541,6 +1642,7 @@ mod tests {
             log_sender: None,
             flow_file_path: None,
             ws_manager: None,
+            ws_connection_urls: std::collections::HashMap::new(),
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -1578,7 +1680,8 @@ mod tests {
                 flow_trigger_time: 0,
                 log_sender: None,
                 flow_file_path: None,
-            ws_manager: None,
+                ws_manager: None,
+                ws_connection_urls: std::collections::HashMap::new(),
             };
             let result = replace_variables(&template, &context);
             assert!(result.is_err());
@@ -1601,7 +1704,8 @@ mod tests {
                 flow_trigger_time: 0,
                 log_sender: None,
                 flow_file_path: None,
-            ws_manager: None,
+                ws_manager: None,
+                ws_connection_urls: std::collections::HashMap::new(),
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -1624,7 +1728,8 @@ mod tests {
                 flow_trigger_time: 0,
                 log_sender: None,
                 flow_file_path: None,
-            ws_manager: None,
+                ws_manager: None,
+                ws_connection_urls: std::collections::HashMap::new(),
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -1647,7 +1752,8 @@ mod tests {
                 flow_trigger_time: 0,
                 log_sender: None,
                 flow_file_path: None,
-            ws_manager: None,
+                ws_manager: None,
+                ws_connection_urls: std::collections::HashMap::new(),
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());

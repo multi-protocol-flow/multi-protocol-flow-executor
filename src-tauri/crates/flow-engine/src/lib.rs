@@ -23,6 +23,7 @@ pub mod websocket_manager;
 pub mod context;
 pub mod entry_executor;
 pub mod executor;
+pub mod http;
 pub mod http_executor;
 pub mod conditional_executor;
 pub mod ws_connect_executor;

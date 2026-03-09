@@ -198,6 +198,11 @@ mod tests {
             output_data: output_size.map(|s| json!({"result": "y".repeat(s as usize)})),
             used_port_id: Some("out".to_string()),
             error: None,
+            // 新增字段（Task 3）
+            resolved_config: None,
+            variable_changes: None,
+            skip_reason: None,
+            wait_duration_ms: None,
         }
     }
 
