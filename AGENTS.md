@@ -1,28 +1,34 @@
 # 项目知识库
 
-**生成时间:** 2026-03-04
-**Commit:** 0afc6fa
+**生成时间:** 2026-03-09
+**Commit:** cc2bf47
 **Branch:** master
 
 ## 概述
 
-多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 工具。
-- **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand + React Flow
-- **后端:** Rust (Tauri 2.x) + async-trait + reqwest + evalexpr
+多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 工具。支持 HTTP 和 WebSocket 协议，具备调试模式。
+- **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + React Flow
+- **后端:** Rust (Tauri 2.x) + async-trait + hyper 1.x + evalexpr + tokio-tungstenite
 
 ## 结构
 
 ```
 multi-protocol-flow-executor/
 ├── src/                    # 前端源码 (React/TypeScript)
-│   ├── components/         # UI 组件 (详见 src/components/AGENTS.md)
-│   ├── stores/             # Zustand 状态管理
-│   ├── services/           # Tauri IPC 服务 + Mock
+│   ├── components/         # UI 组件 (60+ 文件，详见 src/components/AGENTS.md)
+│   ├── stores/             # Zustand 状态管理 (7 stores)
+│   ├── services/           # Tauri IPC 服务 + Mock + Storage
 │   ├── types/              # TypeScript 类型 (与 Rust 对齐)
+│   ├── templates/          # 内置流程模板
 │   └── __tests__/          # Vitest 单元测试
 ├── src-tauri/              # Rust 后端 (Workspace)
 │   ├── src/                # Tauri 适配层 + IPC 命令 (详见 src-tauri/src/AGENTS.md)
-│   ├── crates/flow-engine/ # 独立执行引擎 crate
+│   ├── crates/flow-engine/ # 独立执行引擎 crate (43 源文件)
+│   │   └── src/
+│   │       ├── http/       # HTTP 客户端模块 (hyper 1.x)
+│   │       ├── traits/     # 抽象接口 (解耦 Tauri)
+│   │       ├── commands/   # 业务命令
+│   │       └── debug/      # 调试执行器
 │   └── bin/cli.rs          # CLI 二进制
 ├── tests/                  # CLI 测试数据 + fixtures
 └── docs/                   # 架构文档
@@ -32,13 +38,15 @@ multi-protocol-flow-executor/
 
 | 任务 | 位置 |
 |------|------|
-| 添加新节点类型 | `src-tauri/crates/flow-engine/src/` + `src/types/node.ts` |
+| 添加新节点类型 | `src-tauri/crates/flow-engine/src/` + `src/types/node.ts` + `src/components/canvas/nodes/` |
 | 修改执行逻辑 | `src-tauri/crates/flow-engine/src/executor.rs` |
-| 添加前端组件 | `src/components/` |
-| 修改状态管理 | `src/stores/` |
-| HTTP 请求节点 | `src-tauri/crates/flow-engine/src/http_executor.rs` |
+| 添加前端组件 | `src/components/` (60+ 组件) |
+| 修改状态管理 | `src/stores/` (7 stores) |
+| HTTP 请求节点 | `src-tauri/crates/flow-engine/src/http_executor.rs` + `http/` 模块 |
 | 条件分支节点 | `src-tauri/crates/flow-engine/src/conditional_executor.rs` |
-| IPC 命令 | `src-tauri/src/` (Tauri 适配层) |
+| WebSocket 节点 | `src-tauri/crates/flow-engine/src/ws_*_executor.rs` |
+| 调试模式 | `src-tauri/crates/flow-engine/src/debug/` + `src/stores/debug.ts` |
+| IPC 命令 | `src-tauri/src/tauri_commands.rs` (15 命令) |
 
 ## 代码规范
 
@@ -94,8 +102,8 @@ multi-protocol-flow-executor/
 | 位置 | 内容 | 优先级 |
 |------|------|--------|
 | `src/components/canvas/utils.ts:101` | TODO: 添加更多连接验证逻辑 | 中 |
-| `HttpConfig.tsx:128` | console.error 调试代码 | 低 |
-| `ConditionalConfig.tsx:111` | console.error 调试代码 | 低 |
+| `src/types/error.ts` | 缺少 WebSocket 错误类型定义 (与 Rust 不对齐) | 中 |
+| 无 CI/CD | 无 `.github/workflows`，需手动运行测试 | 中 |
 
 ## 命令
 
@@ -140,6 +148,12 @@ npm run tauri build  # 构建安装包
 8. **内置流程模板**: 首次启动时自动加载示例流程 (`src/templates/builtinFlows.ts`)，变量引用使用顶级键 `status`、`body`、`headers`
 
 9. **全局设置**: 报告/日志目录配置，持久化使用 tauri-plugin-store（Tauri）/ localStorage（Mock），默认位置 `{appDataDir}/reports/` 和 `{appDataDir}/logs/`
+
+10. **WebSocket 支持**: 三种节点类型 - `ws_connect` (连接)、`ws_send_wait` (发送等待)、`ws_close` (关闭)，支持 wait 模式 (connect/wait/both)
+
+11. **调试模式**: 支持断点、单步执行、继续、跳过节点，通过 Channel 实现实时日志流，状态管理使用 `useDebugStore`
+
+12. **错误分类**: `ErrorKind` 区分致命错误 (`configuration`, `condition_syntax`) 和可恢复错误，可恢复错误路由到 false 端口
 
 ## 子目录知识库
 

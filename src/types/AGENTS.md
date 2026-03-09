@@ -1,6 +1,6 @@
 # TypeScript 类型定义
 
-**生成时间:** 2026-03-04
+**生成时间:** 2026-03-09
 
 ## 概述
 
@@ -11,12 +11,13 @@
 ```
 src/types/
 ├── index.ts          # 统一导出入口
-├── node.ts           # 节点类型 + 配置 (判别联合)
+├── node.ts           # 节点类型 + 配置 (判别联合，6种节点)
 ├── flow.ts           # 流程结构
 ├── connection.ts     # 节点连接
 ├── report.ts         # 执行报告 + 统计
 ├── variable.ts       # 变量系统
 ├── error.ts          # 错误类型
+├── debug.ts          # 调试系统类型
 ├── ipc.ts            # Tauri IPC 命令类型
 ├── settings.ts       # 全局设置
 └── port.ts           # 端口定义
@@ -32,6 +33,7 @@ src/types/
 | 修改执行报告 | `report.ts` | `report.rs` + `statistics.rs` |
 | 修改变量系统 | `variable.ts` | `variable.rs` |
 | 添加 IPC 命令 | `ipc.ts` | `command.rs` |
+| 修改调试类型 | `debug.ts` | `debug/types.rs` |
 
 ## 约定
 
@@ -40,12 +42,13 @@ src/types/
 **任何类型修改必须同时更新前后端。**
 
 对应关系：
-- `node.ts` ↔ `src-tauri/src/node.rs` + `src-tauri/src/node_config.rs`
-- `flow.ts` ↔ `src-tauri/src/flow.rs`
-- `connection.ts` ↔ `src-tauri/src/connection.rs`
-- `report.ts` ↔ `src-tauri/src/report.rs` + `src-tauri/src/statistics.rs`
-- `variable.ts` ↔ `src-tauri/src/variable.rs`
-- `error.ts` ↔ `src-tauri/src/error.rs`
+- `node.ts` ↔ `src-tauri/crates/flow-engine/src/node.rs` + `node_config.rs`
+- `flow.ts` ↔ `src-tauri/crates/flow-engine/src/flow.rs`
+- `connection.ts` ↔ `src-tauri/crates/flow-engine/src/connection.rs`
+- `report.ts` ↔ `src-tauri/crates/flow-engine/src/report.rs` + `statistics.rs`
+- `variable.ts` ↔ `src-tauri/crates/flow-engine/src/variable.rs`
+- `error.ts` ↔ `src-tauri/crates/flow-engine/src/error.rs`
+- `debug.ts` ↔ `src-tauri/crates/flow-engine/src/debug/types.rs`
 
 ### 类型安全红线
 
@@ -58,7 +61,7 @@ src/types/
 
 `NodeData` 使用判别联合，通过 `type` 字段区分：
 ```typescript
-type NodeData = EntryConfig | HttpConfig | ConditionalConfig
+type NodeData = EntryConfig | HttpConfig | ConditionalConfig | WsConnectConfig | WsSendWaitConfig | WsCloseConfig;
 ```
 
 ### 可选字段
@@ -66,3 +69,16 @@ type NodeData = EntryConfig | HttpConfig | ConditionalConfig
 - 可选字段使用 `?:` 标记
 - 必须与 Rust 端 `Option<T>` 对应
 - 默认值在 Rust 端实现，前端仅声明类型
+
+## 类型漂移风险
+
+| 位置 | 内容 | 优先级 |
+|------|------|--------|
+| `error.ts` | 缺少 WebSocket 错误类型 (与 Rust 不对齐) | 中 |
+
+**Rust 端存在但 TypeScript 缺失的错误类型：**
+- `WebSocketConnection`
+- `WebSocketTimeout`
+- `WebSocketMessage`
+- `WebSocketClose`
+- `WebSocketProtocol`

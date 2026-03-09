@@ -1,8 +1,10 @@
 # 服务层 (Services)
 
+**生成时间:** 2026-03-09
+
 ## 概述
 
-前端与后端通信的抽象层，包含 Tauri IPC 调用和本地存储两类服务。
+前端与后端通信的抽象层，包含 Tauri IPC 调用、调试服务和本地存储三类服务。
 
 ## 结构
 
@@ -11,6 +13,7 @@ services/
 ├── tauri/                    # Tauri IPC 服务
 │   ├── index.ts              # 主入口，自动检测环境切换实现
 │   ├── flow.ts               # 流程创建/执行（真实 IPC）
+│   ├── debug.ts              # 调试会话 IPC (startDebug, sendDebugCommand, endDebug)
 │   ├── mock.ts               # Mock 实现（非 Tauri 环境）
 │   ├── events.ts             # 事件订阅
 │   ├── settings.ts           # 全局设置（Tauri）
@@ -26,9 +29,10 @@ services/
 
 | 任务 | 文件 |
 |------|------|
-| 添加新 IPC 命令 | `tauri/index.ts` + `tauri/flow.ts` |
+| 添加新 IPC 命令 | `tauri/index.ts` + `tauri/flow.ts` 或 `tauri/debug.ts` |
 | 修改 Mock 行为 | `tauri/mock.ts` |
 | 调试 IPC 调用 | `tauri/flow.ts` 的 `formatError()` |
+| 调试会话管理 | `tauri/debug.ts` |
 | 存储流程数据 | `storage/flowStorage.ts` |
 | 执行历史管理 | `storage/historyStorage.ts` |
 
@@ -54,3 +58,7 @@ function isTauriEnv(): boolean {
 - Vitest 单元测试
 - Vite 开发服务器（无 Tauri 后端）
 - 组件独立开发调试
+
+### Channel 事件流
+- `executeFlowWithChannel`: 实时日志流
+- `startDebug`: 调试事件流 (PausedAtNode, NodeExecuted 等)
