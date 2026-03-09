@@ -188,8 +188,8 @@ describe('GenericViewer', () => {
       });
       render(<GenericViewer report={report} />);
 
-      // 新组件显示 "变量变更" + 变更统计（如 "1 更新"）
-      expect(screen.getByRole('button', { name: /变量变更.*更新/ })).toBeDefined();
+      // 简化格式：显示 "变量变更" + 变更数量（如 "1 项"）
+      expect(screen.getByRole('button', { name: /变量变更.*项/ })).toBeDefined();
     });
 
     it('显示变量变更数量', () => {
@@ -302,7 +302,7 @@ describe('GenericViewer', () => {
       expect(jsonViews.length).toBeGreaterThan(0);
     });
 
-    it('展示变量被删除的情况（new_value 为 null）', () => {
+    it('展示变量值为 null 的情况（new_value 为 null）', () => {
       const report = createMockReport({
         variable_changes: [
           { key: 'value', old_value: 'old', new_value: null }
@@ -310,9 +310,10 @@ describe('GenericViewer', () => {
       });
       render(<GenericViewer report={report} />);
 
-      // 当 new_value 为 null 时，应该识别为删除类型
-      // 显示"删除"标记
-      expect(screen.getByText('删除')).toBeDefined();
+      // 简化格式：变量名 → 当前值 → 旧值
+      // 当 new_value 为 null 时，当前值显示为 "null"
+      expect(screen.getByText('value')).toBeDefined();
+      expect(screen.getByText('null')).toBeDefined();
       // 显示旧值
       expect(screen.getByText('old')).toBeDefined();
     });

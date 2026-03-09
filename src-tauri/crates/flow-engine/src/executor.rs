@@ -510,13 +510,15 @@ impl FlowExecutor {
                         }
                     };
 
-                    // 先快照执行前的变量状态（在合并当前节点输出前）
+                    // 先快照执行前的变量状态
+                    // 注意：变量变更只记录通过 output_mappings 显式设置的变量
+                    // 节点输出数据（如 HTTP 响应）不会自动设置为变量
                     let variables_before = context.variables.get_merged_variables();
 
                     // 构建 input_data（节点消费的输入配置）
                     let input_data = build_input_data_from_node_config(node);
 
-                    // 如果有输出数据，更新上下文变量
+                    // 记录输出数据日志（不自动设置为变量）
                     if let Some(ref data) = output_data {
                         log::info!(
                             "[流程 {}] 节点 {} 输出数据: {}",
@@ -524,15 +526,12 @@ impl FlowExecutor {
                             node.name,
                             data
                         );
-                        // 将输出数据合并到上下文中
-                        if let Some(obj) = data.as_object() {
-                            for (key, value) in obj {
-                                context.variables.set_variable(key.to_string(), value.clone(), node.uuid.clone());
-                            }
-                        }
                     }
 
-                    // 计算变量变更（Task 13）：对比前后的变量差异
+                    // 计算变量变更：对比前后的变量差异
+                    // 变量只会通过以下方式设置：
+                    // 1. Entry 节点的 initial_variables
+                    // 2. HTTP/WebSocket 节点的 output_mappings
                     let variables_after = context.variables.get_merged_variables();
                     let variable_changes = compute_variable_changes(&variables_before, &variables_after);
 
