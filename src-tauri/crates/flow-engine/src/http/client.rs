@@ -3,8 +3,9 @@
 //! 本模块提供带详细计时的 HTTP 客户端实现：
 //! - 自动 HTTP/1.1 和 HTTP/2 协商
 //! - DNS/TCP/TLS/TTFB/Download 各阶段计时
-//! - 支持多种请求体类型
+//! - 支持多种请求体类型（None, Raw, Urlencoded, Multipart）
 
+use crate::http::body::{BodyType, MultipartBody, UrlEncoder};
 use crate::http::connector::TimingConnector;
 use crate::http::error::HttpError;
 use crate::http::timing::{HttpTiming, TimingContext};
@@ -32,7 +33,7 @@ fn empty() -> BoxBody {
 }
 
 /// HTTP 请求配置
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct HttpRequestConfig {
     /// 请求 URL
     pub url: String,
@@ -40,8 +41,10 @@ pub struct HttpRequestConfig {
     pub method: String,
     /// 请求头
     pub headers: HashMap<String, String>,
-    /// 请求体
-    pub body: Option<Vec<u8>>,
+    /// 请求体类型
+    pub body: BodyType,
+    /// Multipart boundary（仅当 body 为 Multipart 时需要）
+    pub multipart_boundary: Option<String>,
 }
 
 /// HTTP 客户端执行结果
@@ -132,27 +135,61 @@ impl HttpClient {
             _ => return Err(HttpError::UnsupportedMethod(config.method.clone())),
         };
 
-        let uri: http::Uri = config
-            .url
+        // 解析并规范化 URL（自动编码特殊字符）
+        let parsed_url = url::Url::parse(&config.url)
+            .map_err(|e| HttpError::InvalidUrl(format!("无效的 URL: {}", e)))?;
+        let normalized_url = parsed_url.to_string();
+
+        let uri: http::Uri = normalized_url
             .parse()
             .map_err(|e| HttpError::InvalidUrl(format!("无效的 URI: {}", e)))?;
 
         let mut builder = Request::builder().method(method).uri(uri.clone());
 
-        // 添加请求头
+        // 添加请求头（不包含 Content-Type，由 body 类型决定）
         for (key, value) in &config.headers {
-            builder = builder.header(key, value);
+            // 跳过 Content-Type，由 body 类型自动设置
+            if key.to_lowercase() != "content-type" {
+                builder = builder.header(key, value);
+            }
         }
 
-        // 构建请求体（使用 BoxBody 统一类型）
-        let request = if let Some(body) = &config.body {
-            builder
-                .body(full(Bytes::copy_from_slice(body)))
-                .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
-        } else {
-            builder
-                .body(empty())
-                .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
+        // 根据请求体类型构建请求
+        let request = match &config.body {
+            BodyType::None => {
+                builder
+                    .body(empty())
+                    .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
+            }
+            BodyType::Raw(data) => {
+                // 如果用户没有设置 Content-Type，不自动设置（由调用者控制）
+                builder
+                    .body(full(Bytes::copy_from_slice(data)))
+                    .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
+            }
+            BodyType::Urlencoded(fields) => {
+                // 自动设置 Content-Type
+                builder = builder.header("Content-Type", "application/x-www-form-urlencoded");
+                let encoded = UrlEncoder::encode(fields);
+                builder
+                    .body(full(encoded.into_bytes()))
+                    .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
+            }
+            BodyType::Multipart(multipart) => {
+                // 使用提供的 boundary 或生成新的
+                let boundary = config
+                    .multipart_boundary
+                    .clone()
+                    .unwrap_or_else(|| MultipartBody::generate_boundary());
+                builder = builder.header(
+                    "Content-Type",
+                    format!("multipart/form-data; boundary={}", boundary),
+                );
+                let encoded = multipart.encode(&boundary);
+                builder
+                    .body(full(encoded))
+                    .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
+            }
         };
 
         log::debug!("发送请求: {} {}", config.method, config.url);
@@ -286,8 +323,23 @@ impl LegacyHttpClient {
         }
 
         // 添加请求体
-        if let Some(body) = &config.body {
-            builder = builder.body(body.clone());
+        match &config.body {
+            BodyType::None => {}
+            BodyType::Raw(data) => {
+                builder = builder.body(data.clone());
+            }
+            BodyType::Urlencoded(fields) => {
+                let encoded = UrlEncoder::encode(fields);
+                builder = builder.body(encoded.into_bytes());
+            }
+            BodyType::Multipart(multipart) => {
+                let boundary = config
+                    .multipart_boundary
+                    .clone()
+                    .unwrap_or_else(|| MultipartBody::generate_boundary());
+                let encoded = multipart.encode(&boundary);
+                builder = builder.body(encoded);
+            }
         }
 
         let request_bytes = builder.build();
@@ -364,7 +416,8 @@ mod tests {
             url: "http://httpbin.org/get".to_string(),
             method: "GET".to_string(),
             headers: HashMap::new(),
-            body: None,
+            body: BodyType::None,
+            multipart_boundary: None,
         };
 
         let result = client.execute(&config).await;
@@ -389,7 +442,8 @@ mod tests {
             url: "https://httpbin.org/get".to_string(),
             method: "GET".to_string(),
             headers: HashMap::new(),
-            body: None,
+            body: BodyType::None,
+            multipart_boundary: None,
         };
 
         let result = client.execute(&config).await;
@@ -417,7 +471,8 @@ mod tests {
             url: "https://httpbin.org/post".to_string(),
             method: "POST".to_string(),
             headers,
-            body: Some(br#"{"test":"value"}"#.to_vec()),
+            body: BodyType::raw(br#"{"test":"value"}"#.to_vec()),
+            multipart_boundary: None,
         };
 
         let result = client.execute(&config).await;
@@ -439,7 +494,8 @@ mod tests {
             url: "https://httpbin.org/status/404".to_string(),
             method: "GET".to_string(),
             headers: HashMap::new(),
-            body: None,
+            body: BodyType::None,
+            multipart_boundary: None,
         };
 
         let result = client.execute(&config).await;
@@ -457,7 +513,8 @@ mod tests {
             url: "http://this-domain-does-not-exist-12345.invalid".to_string(),
             method: "GET".to_string(),
             headers: HashMap::new(),
-            body: None,
+            body: BodyType::None,
+            multipart_boundary: None,
         };
 
         let result = client.execute(&config).await;
@@ -477,7 +534,8 @@ mod tests {
             url: "http://192.0.2.1:81".to_string(), // 不可路由的测试地址
             method: "GET".to_string(),
             headers: HashMap::new(),
-            body: None,
+            body: BodyType::None,
+            multipart_boundary: None,
         };
 
         let result = client.execute(&config).await;
@@ -502,7 +560,8 @@ mod tests {
                 url: url.to_string(),
                 method: method.to_string(),
                 headers: HashMap::new(),
-                body: None,
+                body: BodyType::None,
+                multipart_boundary: None,
             };
 
             let result = client.execute(&config).await;

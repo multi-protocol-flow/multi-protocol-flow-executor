@@ -10,7 +10,7 @@
 //!
 //! # 示例
 //! ```rust,no_run
-//! use flow_engine::http::{HttpClient, HttpRequestConfig};
+//! use flow_engine::http::{HttpClient, HttpRequestConfig, BodyType};
 //! use std::collections::HashMap;
 //!
 //! #[tokio::main]
@@ -20,7 +20,8 @@
 //!         url: "https://example.com/api".to_string(),
 //!         method: "GET".to_string(),
 //!         headers: HashMap::new(),
-//!         body: None,
+//!         body: BodyType::None,
+//!         multipart_boundary: None,
 //!     };
 //!
 //!     let result = client.execute(&config).await?;
@@ -36,6 +37,7 @@
 //! }
 //! ```
 
+pub mod body;
 pub mod client;
 pub mod connector;
 pub mod error;
@@ -44,6 +46,7 @@ pub mod response;
 pub mod timing;
 
 // Re-export 公共类型
+pub use body::{BodyType, MultipartBody, MultipartField, UrlEncoder};
 pub use client::{HttpClient, HttpRequestConfig, HttpResponse, HttpResult};
 pub use connector::{Connection, HttpConnector, LegacyConnection, TimedStream, TimingConnector};
 pub use error::HttpError;

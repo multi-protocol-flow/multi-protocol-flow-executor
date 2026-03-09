@@ -1,11 +1,15 @@
 use crate::connection::Connection;
 use crate::context::ExecutionContext;
 use crate::executor::NodeExecutor;
+use crate::http::{BodyType, HttpClient, HttpRequestConfig, MultipartBody};
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use std::collections::HashMap;
 use std::time::Instant;
 use serde_json_path::JsonPath;
+
+// Re-export HttpTiming for external use
+pub use crate::http::HttpTiming;
 
 /// HTTP节点执行器
 pub struct HttpNodeExecutor;
@@ -21,22 +25,6 @@ impl HttpNodeExecutor {
     pub fn new() -> Self {
         Self
     }
-}
-
-/// HTTP 计时数据结构（简化版本）
-/// TODO: 未来使用新的 http 模块提供详细的 DNS/TCP/TLS 计时
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct HttpTiming {
-    /// DNS 解析耗时（毫秒），当前版本为 null
-    pub dns_ms: Option<u64>,
-    /// TCP 连接耗时（毫秒），当前版本为 null
-    pub connect_ms: Option<u64>,
-    /// TLS 握手耗时（毫秒），当前版本为 null
-    pub tls_ms: Option<u64>,
-    /// 首字节时间（TTFB，毫秒）
-    pub ttfb_ms: Option<u64>,
-    /// 响应体下载耗时（毫秒）
-    pub download_ms: Option<u64>,
 }
 
 /// Convert ContentType to Content-Type header value
@@ -120,18 +108,10 @@ impl NodeExecutor for HttpNodeExecutor {
         }).await;
 
         // 创建HTTP客户端（超时可配置，默认30秒，范围1-300秒）
-        let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_millis(
-                http_config.timeout_ms
-                    .map(|t| t.clamp(1000, 300000))
-                    .unwrap_or(30000)
-            ))
-            .build()
-            .map_err(|e| {
-                let error_msg = format!("创建HTTP客户端失败: {}", e);
-                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
-                error_msg
-            })?;
+        let timeout_ms = http_config.timeout_ms
+            .map(|t| t.clamp(1000, 300000))
+            .unwrap_or(30000);
+        let client = HttpClient::new(timeout_ms);
 
         // 记录发送的请求头
         let mut sent_headers: HashMap<String, String> = HashMap::new();
@@ -139,19 +119,10 @@ impl NodeExecutor for HttpNodeExecutor {
         // 记录请求体信息（用于输出）
         let mut request_body_json: Option<serde_json::Value> = None;
         
-
-        // 构建请求
-        let mut request = match http_config.method {
-            crate::node_config::HttpMethod::Get => client.get(&url),
-            crate::node_config::HttpMethod::Post => client.post(&url),
-            crate::node_config::HttpMethod::Put => client.put(&url),
-            crate::node_config::HttpMethod::Delete => client.delete(&url),
-            crate::node_config::HttpMethod::Patch => client.patch(&url),
-        };
-
-        // 添加请求头（替换变量）
-        if let Some(headers) = &http_config.headers {
-            for (key, value) in headers {
+        // 处理请求头（替换变量）
+        let mut headers: HashMap<String, String> = HashMap::new();
+        if let Some(config_headers) = &http_config.headers {
+            for (key, value) in config_headers {
                 // 替换 header key 中的变量
                 let replaced_key = crate::executor::replace_variables(key, context)
                     .map_err(|e| {
@@ -166,8 +137,8 @@ impl NodeExecutor for HttpNodeExecutor {
                         log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                         error_msg
                     })?;
-                request = request.header(&replaced_key, &replaced_value);
-                sent_headers.insert(replaced_key.clone(), replaced_value);
+                headers.insert(replaced_key.clone(), replaced_value.clone());
+                sent_headers.insert(replaced_key, replaced_value);
             }
         }
 
@@ -184,16 +155,15 @@ impl NodeExecutor for HttpNodeExecutor {
             crate::node_config::HttpBodyType::Binary => "binary",
         };
 
-
-        match http_config.body_type {
+        // 构建请求体
+        let body: BodyType = match http_config.body_type {
             crate::node_config::HttpBodyType::None => {
-                // No request body
                 log::info!("[流程 {}] [HTTP] body_type=none, 不添加请求体", context.flow_uuid);
+                BodyType::None
             }
             crate::node_config::HttpBodyType::Body => {
-                // Text body with optional variable replacement
-                if let Some(body) = &http_config.body {
-                    let replaced_body = crate::executor::replace_variables(body, context)
+                if let Some(body_content) = &http_config.body {
+                    let replaced_body = crate::executor::replace_variables(body_content, context)
                         .map_err(|e| {
                             let error_msg = format!("请求体变量替换失败: {}", e);
                             log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", 
@@ -204,50 +174,46 @@ impl NodeExecutor for HttpNodeExecutor {
                     // Set Content-Type header only if user hasn't set it manually
                     if !user_set_content_type {
                         let content_type_str = content_type_to_string(&http_config.content_type);
-                        request = request.header("Content-Type", content_type_str);
+                        headers.insert("Content-Type".to_string(), content_type_str.to_string());
                         sent_headers.insert("Content-Type".to_string(), content_type_str.to_string());
                         log::info!("[流程 {}] [HTTP] 自动设置 Content-Type: {}", 
                             context.flow_uuid, content_type_str);
                     }
                     
-                    request = request.body(replaced_body.clone());
-                    request_body_json = Some(replaced_body.into());
+                    request_body_json = Some(replaced_body.clone().into());
                     log::info!("[流程 {}] [HTTP] body_type=body, 请求体已添加", context.flow_uuid);
+                    BodyType::raw(replaced_body.into_bytes())
                 } else {
                     log::info!("[流程 {}] [HTTP] body_type=body, 但 body 字段为空，跳过", context.flow_uuid);
+                    BodyType::None
                 }
             }
             crate::node_config::HttpBodyType::FormData => {
-                // Build multipart form from form_fields (text and file fields)
                 if let Some(form_fields) = &http_config.form_fields {
-                    let mut form = reqwest::multipart::Form::new();
+                    let mut multipart = MultipartBody::new();
                     let mut text_field_count = 0;
                     let mut file_field_count = 0;
                     
                     for field in form_fields {
                         match field.field_type {
                             crate::node_config::FormFieldType::Text => {
-                                // Replace variables in key and value
                                 let replaced_key = crate::executor::replace_variables(&field.key, context)
                                     .map_err(|e| format!("表单字段 key 变量替换失败: {}", e))?;
                                 let replaced_value = crate::executor::replace_variables(&field.value, context)
                                     .map_err(|e| format!("表单字段 value 变量替换失败: {}", e))?;
                                 
-                                form = form.text(replaced_key, replaced_value);
+                                multipart = multipart.text(replaced_key, replaced_value);
                                 text_field_count += 1;
                             }
                             crate::node_config::FormFieldType::File => {
                                 if let Some(file_path) = &field.file_path {
-                                    // Replace variables in file path
                                     let replaced_path = crate::executor::replace_variables(file_path, context)
                                         .map_err(|e| format!("文件路径变量替换失败: {}", e))?;
                                     
-                                    // Resolve file path (supports relative paths)
                                     let resolved_path = context.resolve_file_path(&replaced_path);
                                     
                                     log::info!("[流程 {}] [HTTP] 读取表单文件: {:?}", context.flow_uuid, resolved_path);
                                     
-                                    // Read file content
                                     let file_content = tokio::fs::read(&resolved_path).await
                                         .map_err(|e| {
                                             let error_msg = format!("读取文件失败 ({}): {}", resolved_path.display(), e);
@@ -256,27 +222,23 @@ impl NodeExecutor for HttpNodeExecutor {
                                             error_msg
                                         })?;
                                     
-                                    // Detect MIME type
                                     let mime_type = mime_guess::from_path(&resolved_path)
                                         .first_or_octet_stream();
                                     
-                                    // Extract file name (fallback to "upload")
                                     let file_name = resolved_path
                                         .file_name()
                                         .and_then(|n| n.to_str())
                                         .unwrap_or("upload");
                                     
-                                    // Replace variables in field key
                                     let replaced_key = crate::executor::replace_variables(&field.key, context)
                                         .map_err(|e| format!("表单字段 key 变量替换失败: {}", e))?;
                                     
-                                    // Create multipart part
-                                    let part = reqwest::multipart::Part::bytes(file_content)
-                                        .file_name(file_name.to_string())
-                                        .mime_str(mime_type.essence_str())
-                                        .map_err(|e| format!("MIME 类型设置失败: {}", e))?;
-                                    
-                                    form = form.part(replaced_key, part);
+                                    multipart = multipart.file(
+                                        replaced_key,
+                                        file_name.to_string(),
+                                        mime_type.essence_str().to_string(),
+                                        file_content,
+                                    );
                                     file_field_count += 1;
                                 } else {
                                     log::warn!("[流程 {}] [HTTP] 文件字段 '{}' 缺少 file_path，跳过", 
@@ -286,8 +248,6 @@ impl NodeExecutor for HttpNodeExecutor {
                         }
                     }
                     
-                    // Note: reqwest will automatically set Content-Type: multipart/form-data; boundary=...
-                    // But we only log if user hasn't set it manually
                     if !user_set_content_type {
                         sent_headers.insert("Content-Type".to_string(), "multipart/form-data (boundary auto-generated)".to_string());
                         log::info!("[流程 {}] [HTTP] 将自动设置 Content-Type: multipart/form-data", context.flow_uuid);
@@ -317,22 +277,20 @@ impl NodeExecutor for HttpNodeExecutor {
                         "fields": fields_metadata
                     }));
                     
-                    request = request.multipart(form);
                     log::info!("[流程 {}] [HTTP] body_type=form-data, {} 个文本字段, {} 个文件字段", 
                         context.flow_uuid, text_field_count, file_field_count);
+                    BodyType::multipart(multipart)
                 } else {
                     log::warn!("[流程 {}] [HTTP] body_type=form-data, 但 form_fields 为空", context.flow_uuid);
+                    BodyType::None
                 }
             }
             crate::node_config::HttpBodyType::XWwwFormUrlencoded => {
-                // Build form data from form_fields
                 if let Some(form_fields) = &http_config.form_fields {
                     let mut form_data: Vec<(String, String)> = Vec::new();
                     
                     for field in form_fields {
-                        // Only process text fields
                         if matches!(field.field_type, crate::node_config::FormFieldType::Text) {
-                            // Replace variables in key and value
                             let replaced_key = crate::executor::replace_variables(&field.key, context)
                                 .map_err(|e| format!("Form field key variable replacement failed: {}", e))?;
                             let replaced_value = crate::executor::replace_variables(&field.value, context)
@@ -341,14 +299,12 @@ impl NodeExecutor for HttpNodeExecutor {
                         }
                     }
                     
-                    // Set Content-Type header only if user hasn't set it manually
                     if !user_set_content_type {
-                        request = request.header("Content-Type", "application/x-www-form-urlencoded");
+                        headers.insert("Content-Type".to_string(), "application/x-www-form-urlencoded".to_string());
                         sent_headers.insert("Content-Type".to_string(), "application/x-www-form-urlencoded".to_string());
                         log::info!("[流程 {}] [HTTP] 自动设置 Content-Type: application/x-www-form-urlencoded", context.flow_uuid);
                     }
                     
-                    // 记录 urlencoded 字段数据
                     let fields_metadata: Vec<serde_json::Value> = form_data.iter().map(|(k, v)| {
                         serde_json::json!({
                             "key": k,
@@ -360,21 +316,19 @@ impl NodeExecutor for HttpNodeExecutor {
                         "fields": fields_metadata
                     }));
                     
-                    request = request.form(&form_data);
                     log::info!("[流程 {}] [HTTP] body_type=x-www-form-urlencoded, {} fields", context.flow_uuid, form_data.len());
+                    BodyType::urlencoded(form_data)
                 } else {
                     log::warn!("[流程 {}] [HTTP] body_type=x-www-form-urlencoded, but form_fields is empty", context.flow_uuid);
+                    BodyType::None
                 }
             }
             crate::node_config::HttpBodyType::Binary => {
-                // Binary file upload
                 if let Some(file_path) = &http_config.file_path {
-                    // Resolve file path (supports relative paths)
                     let resolved_path = context.resolve_file_path(file_path);
                     
                     log::info!("[流程 {}] [HTTP] body_type=binary, 读取文件: {:?}", context.flow_uuid, resolved_path);
                     
-                    // Read file content
                     let file_content = match tokio::fs::read(&resolved_path).await {
                         Ok(content) => content,
                         Err(e) => {
@@ -385,15 +339,13 @@ impl NodeExecutor for HttpNodeExecutor {
                         }
                     };
                     
-                    // Warn for large files (> 10MB)
                     if file_content.len() > 10 * 1024 * 1024 {
                         log::warn!("[流程 {}] [HTTP] 文件较大 ({} bytes), 可能占用较多内存", 
                             context.flow_uuid, file_content.len());
                     }
                     
-                    // Set Content-Type header only if user hasn't set it manually
                     if !user_set_content_type {
-                        request = request.header("Content-Type", "application/octet-stream");
+                        headers.insert("Content-Type".to_string(), "application/octet-stream".to_string());
                         sent_headers.insert("Content-Type".to_string(), "application/octet-stream".to_string());
                         log::info!("[流程 {}] [HTTP] 自动设置 Content-Type: application/octet-stream", context.flow_uuid);
                     }
@@ -404,8 +356,8 @@ impl NodeExecutor for HttpNodeExecutor {
                         "path": file_path,
                         "size": file_size
                     }));
-                    request = request.body(file_content);
                     log::info!("[流程 {}] [HTTP] body_type=binary, 文件大小: {} bytes", context.flow_uuid, file_size);
+                    BodyType::raw(file_content)
                 } else {
                     let error_msg = "body_type=binary 但 file_path 为空".to_string();
                     log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", 
@@ -413,17 +365,26 @@ impl NodeExecutor for HttpNodeExecutor {
                     return Err(error_msg);
                 }
             }
-        }
+        };
+
+        // 构建请求配置
+        let config = HttpRequestConfig {
+            url: url.clone(),
+            method: method_str.clone(),
+            headers,
+            body,
+            multipart_boundary: None,
+        };
 
         // 记录HTTP请求开始时间
         let http_start_time = Instant::now();
 
         // 发送请求并获取响应
-        let response_result = request.send().await;
+        let result = client.execute(&config).await;
         
         // 处理网络错误 - 走 false 端口
-        let response = match response_result {
-            Ok(resp) => resp,
+        let http_result = match result {
+            Ok(res) => res,
             Err(e) => {
                 let error_msg = format!("HTTP请求失败: {}", e);
                 log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
@@ -441,14 +402,6 @@ impl NodeExecutor for HttpNodeExecutor {
                 }).await;
                 
                 // 网络错误：构建失败输出，走 false 端口
-                let timing = HttpTiming {
-                    dns_ms: None,
-                    connect_ms: None,
-                    tls_ms: None,
-                    ttfb_ms: None,
-                    download_ms: None,
-                };
-                
                 let output_data = serde_json::json!({
                     "success": false,
                     "status": serde_json::Value::Null,
@@ -462,7 +415,7 @@ impl NodeExecutor for HttpNodeExecutor {
                         "body": request_body_json,
                         "body_type": body_type_str
                     },
-                    "timing": timing
+                    "timing": HttpTiming::default()
                 });
                 
                 // 根据端口过滤连接
@@ -476,8 +429,7 @@ impl NodeExecutor for HttpNodeExecutor {
             }
         };
 
-        let status = response.status();
-        let status_code = status.as_u16();
+        let status_code = http_result.response.status;
         let http_duration_ms = http_start_time.elapsed().as_millis();
 
         // HTTP响应日志
@@ -501,39 +453,26 @@ impl NodeExecutor for HttpNodeExecutor {
             flow_uuid: context.flow_uuid.clone(),
         }).await;
 
-        // 获取响应头（在移动response之前）
-        let headers_map: std::collections::HashMap<String, String> = response
-            .headers()
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
-            .collect();
+        // 获取响应头
+        let headers_map = http_result.response.headers.clone();
 
-        // 检查Content-Type（在移动response之前）
-        let is_json = response
-            .headers()
+        // 检查Content-Type
+        let is_json = headers_map
             .get("content-type")
-            .and_then(|ct| ct.to_str().ok())
             .map(|ct| ct.contains("application/json"))
             .unwrap_or(false);
 
         // 获取响应体
-        let body_text = response
-            .text()
-            .await
-            .map_err(|e| {
-                let error_msg = format!("读取响应体失败: {}", e);
-                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
-                error_msg
-            })?;
+        let body_text = String::from_utf8(http_result.response.body.clone())
+            .unwrap_or_else(|e| format!("无效的 UTF-8: {}", e));
 
         // 解析响应体为JSON（如果Content-Type是application/json）
         let body_json = if is_json {
             serde_json::from_str(&body_text)
-                .map_err(|e| {
-                    let error_msg = format!("解析JSON响应体失败: {}", e);
-                    log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
-                    error_msg
-                })?
+                .unwrap_or_else(|e| {
+                    log::warn!("[流程 {}] [警告] 节点ID: {}, 节点名称: {}, JSON解析失败: {}", context.flow_uuid, node.uuid, node.name, e);
+                    serde_json::Value::String(body_text)
+                })
         } else {
             serde_json::Value::String(body_text)
         };
@@ -545,9 +484,8 @@ impl NodeExecutor for HttpNodeExecutor {
         // 非2xx 状态码日志
         if !is_success {
             let error_msg = format!(
-                "HTTP请求失败，状态码: {} {}",
-                status_code,
-                status.canonical_reason().unwrap_or("Unknown")
+                "HTTP请求失败，状态码: {}",
+                status_code
             );
             log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
             // 发送HTTP状态码错误日志到前端
@@ -564,17 +502,8 @@ impl NodeExecutor for HttpNodeExecutor {
             }).await;
         }
 
-        // 构建计时数据
-        // 注意：当前版本使用 reqwest，无法获取 DNS/TCP/TLS 分段计时
-        // ttfb_ms 和 download_ms 从总时间推算（假设各占一半）
-        let total_time = http_duration_ms as u64;
-        let timing = HttpTiming {
-            dns_ms: None,
-            connect_ms: None,
-            tls_ms: None,
-            ttfb_ms: Some(total_time / 2), // 估算值
-            download_ms: Some(total_time / 2), // 估算值
-        };
+        // 使用来自 HttpClient 的真实计时数据
+        let timing = http_result.timing;
 
         // 构建统一输出数据结构
         let output_data = serde_json::json!({
