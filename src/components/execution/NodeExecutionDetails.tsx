@@ -9,20 +9,47 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  ArrowRightLeft,
-  AlertTriangle,
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { NODE_TYPE_NAMES, NODE_TYPE_COLORS } from './constants';
+import { RawJsonViewer } from './viewers/RawJsonViewer';
+import { HttpNodeViewer } from './viewers/HttpNodeViewer';
+import { WsConnectViewer } from './viewers/WsConnectViewer';
+import { WsSendWaitViewer } from './viewers/WsSendWaitViewer';
+import { WsCloseViewer } from './viewers/WsCloseViewer';
+import { ConditionalViewer } from './viewers/ConditionalViewer';
+import { GenericViewer } from './viewers/GenericViewer';
+
 interface NodeExecutionDetailsProps {
   report: NodeExecutionReport;
+}
+
+/**
+ * 根据 node_type 选择对应的 Viewer 组件
+ */
+function NodeViewerSelector({ report }: NodeExecutionDetailsProps) {
+  switch (report.node_type) {
+    case 'http':
+      return <HttpNodeViewer report={report} />;
+    case 'ws_connect':
+      return <WsConnectViewer report={report} />;
+    case 'ws_send_wait':
+      return <WsSendWaitViewer report={report} />;
+    case 'ws_close':
+      return <WsCloseViewer report={report} />;
+    case 'conditional':
+      return <ConditionalViewer report={report} />;
+    default:
+      return <GenericViewer report={report} />;
+  }
 }
 
 
 export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState<'structured' | 'raw'>('structured');
 
   const isSuccess = report.status === 'success';
   const nodeTypeLabel = NODE_TYPE_NAMES[report.node_type] || report.node_type;
@@ -85,60 +112,48 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
 
       {/* 展开内容 */}
       {isExpanded && (
-        <div className="border-t border-border/50 p-4 space-y-3 text-sm bg-muted/20">
-          {/* 输入数据 */}
-          {report.input_data !== undefined && (
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 mb-1.5 text-muted-foreground">
-                <ArrowRightLeft className="w-3.5 h-3.5" />
-                <span className="font-medium">输入数据</span>
-              </div>
-              <pre className="p-3 bg-slate-100 border border-black rounded-lg text-xs overflow-x-auto text-slate-800 max-w-full whitespace-pre-wrap break-all">
-                {JSON.stringify(report.input_data, null, 2)}
-              </pre>
-            </div>
-          )}
-
-          {/* 输出数据 */}
-          {report.output_data !== undefined && (
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 mb-1.5 text-muted-foreground">
-                <ArrowRightLeft className="w-3.5 h-3.5 rotate-180" />
-                <span className="font-medium">输出数据</span>
-              </div>
-              <pre className="p-3 bg-slate-100 border border-black rounded-lg text-xs overflow-x-auto text-slate-800 max-w-full whitespace-pre-wrap break-all">
-                {JSON.stringify(report.output_data, null, 2)}
-              </pre>
-            </div>
-          )}
-
-          {/* 使用的端口 */}
-          {report.used_port_id && (
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground font-medium">输出端口:</span>
-              <Badge variant="secondary" className="font-mono text-xs">
-                {report.used_port_id}
-              </Badge>
-            </div>
-          )}
-
-          {/* 错误信息 */}
-          {report.error && (
-            <div className="rounded-lg bg-red-50 p-3 border border-red-200/50">
-              <div className="flex items-center gap-1.5 mb-1 text-red-600">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                <span className="font-medium">错误信息</span>
-              </div>
-              <p className="text-red-600 text-sm">
-                {report.error.message}
-              </p>
-              {report.error.stack_trace && (
-                <pre className="mt-2 p-2 bg-red-100 rounded text-xs overflow-x-auto text-red-700 max-w-full">
-                  {report.error.stack_trace}
-                </pre>
+        <div className="border-t border-border/50 bg-muted/20">
+          {/* Tab 切换栏 */}
+          <div className="flex border-b border-border/50">
+            <button
+              type="button"
+              onClick={() => setActiveTab('structured')}
+              className={cn(
+                'px-4 py-2 text-sm font-medium transition-colors',
+                'border-b-2 -mb-px',
+                activeTab === 'structured'
+                  ? 'border-foreground text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
               )}
-            </div>
-          )}
+            >
+              结构化
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('raw')}
+              className={cn(
+                'px-4 py-2 text-sm font-medium transition-colors',
+                'border-b-2 -mb-px',
+                activeTab === 'raw'
+                  ? 'border-foreground text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              原始 JSON
+            </button>
+          </div>
+
+          {/* Tab 内容区域 */}
+          <div className="p-4 text-sm">
+            {activeTab === 'structured' ? (
+              <NodeViewerSelector report={report} />
+            ) : (
+              /* 原始 JSON 视图 */
+              <div className="min-w-0">
+                <RawJsonViewer data={report} />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
