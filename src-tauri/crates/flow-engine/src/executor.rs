@@ -450,6 +450,10 @@ impl FlowExecutor {
                 .unwrap()
                 .as_millis() as u64;
 
+            // 快照执行前的变量状态（必须在 execute_node 之前）
+            // 用于计算节点执行期间的变量变更
+            let variables_before = context.variables.get_merged_variables();
+
             // 执行当前节点
             match self
                 .execute_node(node, &mut context, &flow.connections, &node_map)
@@ -509,11 +513,6 @@ impl FlowExecutor {
                             Some("out".to_string())
                         }
                     };
-
-                    // 先快照执行前的变量状态
-                    // 注意：变量变更只记录通过 output_mappings 显式设置的变量
-                    // 节点输出数据（如 HTTP 响应）不会自动设置为变量
-                    let variables_before = context.variables.get_merged_variables();
 
                     // 构建 input_data（节点消费的输入配置）
                     let input_data = build_input_data_from_node_config(node);
