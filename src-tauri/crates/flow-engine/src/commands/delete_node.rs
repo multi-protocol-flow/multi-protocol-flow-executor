@@ -52,3 +52,94 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
         ),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::command::DeleteNodeCommandInput;
+    use crate::flow::Flow;
+    use crate::node::{Node, NodePosition, NodeType};
+    use crate::node_config::NodeData;
+
+    /// 创建测试用流程
+    fn create_test_flow() -> Flow {
+        let entry_node = Node {
+            uuid: "entry-001".to_string(),
+            node_type: NodeType::Entry,
+            name: "入口节点".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let http_node = Node {
+            uuid: "http-001".to_string(),
+            node_type: NodeType::Http,
+            name: "HTTP 请求节点".to_string(),
+            position: NodePosition { x: 200.0, y: 0.0 },
+            data: NodeData::http("https://api.example.com"),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        Flow {
+            uuid: "flow-001".to_string(),
+            name: "测试流程".to_string(),
+            initial_variables: None,
+            nodes: vec![entry_node, http_node],
+            connections: vec![],
+        }
+    }
+
+    #[test]
+    fn test_delete_non_existing_node() {
+        // 测试删除不存在的节点
+        let flow = create_test_flow();
+        let input = DeleteNodeCommandInput {
+            flow_id: "flow-001".to_string(),
+            node_id: "non-existing-node".to_string(),
+        };
+
+        let result = delete_node(input, flow);
+
+        assert!(!result.success);
+        assert!(result.error.is_some());
+        assert!(result.error.unwrap().contains("不存在"));
+    }
+
+    #[test]
+    fn test_delete_entry_node_should_fail() {
+        // 测试删除开始节点应该失败
+        let flow = create_test_flow();
+        let input = DeleteNodeCommandInput {
+            flow_id: "flow-001".to_string(),
+            node_id: "entry-001".to_string(),
+        };
+
+        let result = delete_node(input, flow);
+
+        assert!(!result.success);
+        assert!(result.error.is_some());
+        let error_msg = result.error.unwrap();
+        assert!(error_msg.contains("开始节点"));
+    }
+
+    #[test]
+    fn test_delete_existing_node_returns_stub_error() {
+        // 测试删除存在的非 Entry 节点（桩实现）
+        let flow = create_test_flow();
+        let input = DeleteNodeCommandInput {
+            flow_id: "flow-001".to_string(),
+            node_id: "http-001".to_string(),
+        };
+
+        let result = delete_node(input, flow);
+
+        // 桩实现：返回持久化未实现的错误
+        assert!(!result.success);
+        assert!(result.error.is_some());
+        let error_msg = result.error.unwrap();
+        assert!(error_msg.contains("暂未实现持久化"));
+    }
+}

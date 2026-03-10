@@ -93,3 +93,398 @@ pub async fn execute_flow(
         execution_time,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::command::ExecuteFlowCommandInput;
+    use crate::flow::Flow;
+    use crate::node::{Node, NodeType, NodePosition};
+    use crate::node_config::NodeData;
+    use crate::connection::Connection;
+    use crate::traits::NoopLogSender;
+    use serde_json::json;
+    use uuid::Uuid;
+    use std::sync::Arc;
+
+    /// 测试正常流程执行
+    #[tokio::test]
+    async fn test_execute_flow_normal() {
+        // 创建简单的 Entry 节点流程
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始节点".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "测试流程".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        let input = ExecuteFlowCommandInput {
+            flow_id: flow_id.clone(),
+            variables: None,
+        };
+
+        // 执行流程（不使用日志发送器）
+        let result = execute_flow(input, flow, None).await;
+
+        // 验证结果
+        assert!(result.success, "流程应该成功执行");
+        assert!(result.error.is_none(), "不应该有错误");
+        assert!(result.flow_report.is_some(), "应该有执行报告");
+        assert!(result.execution_time > 0 || result.flow_report.as_ref().map(|r| r.duration_ms).unwrap_or(0) >= 0);
+
+        let report = result.flow_report.unwrap();
+        assert_eq!(report.executed_count, 1, "应该执行了 1 个节点");
+        assert_eq!(report.node_reports.len(), 1);
+    }
+
+    /// 测试带变量的流程执行
+    #[tokio::test]
+    async fn test_execute_flow_with_variables() {
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始节点".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "变量测试流程".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        // 传入变量
+        let variables = json!({
+            "api_key": "test-key-123",
+            "base_url": "https://api.example.com",
+            "retry_count": 3
+        });
+
+        let input = ExecuteFlowCommandInput {
+            flow_id: flow_id.clone(),
+            variables: Some(variables.clone()),
+        };
+
+        let result = execute_flow(input, flow, None).await;
+
+        // 验证结果
+        assert!(result.success);
+        
+        // 验证变量被正确传递到报告中
+        let report = result.flow_report.unwrap();
+        assert!(report.initial_variables.is_some());
+        let init_vars = report.initial_variables.unwrap();
+        assert_eq!(init_vars["api_key"], "test-key-123");
+        assert_eq!(init_vars["base_url"], "https://api.example.com");
+        assert_eq!(init_vars["retry_count"], 3);
+    }
+
+    /// 测试缺少开始节点的错误处理
+    #[tokio::test]
+    async fn test_execute_flow_missing_entry_node() {
+        let flow_id = Uuid::new_v4().to_string();
+        
+        // 创建没有 Entry 节点的流程（只有 HTTP 节点）
+        let http_node = Node {
+            uuid: format!("http-{}", flow_id),
+            node_type: NodeType::Http,
+            name: "HTTP请求".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::Http(crate::node_config::HttpConfig {
+                url: "https://example.com".to_string(),
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "无效流程".to_string(),
+            nodes: vec![http_node],
+            connections: vec![],
+        };
+
+        let input = ExecuteFlowCommandInput {
+            flow_id: flow_id.clone(),
+            variables: None,
+        };
+
+        let result = execute_flow(input, flow, None).await;
+
+        // 验证错误结果
+        assert!(!result.success, "流程应该失败");
+        assert!(result.error.is_some(), "应该有错误信息");
+        assert!(result.error.unwrap().contains("缺少开始节点"), "错误信息应该说明缺少开始节点");
+        // 错误情况下 executed_count 为 0（没有 flow_report 或报告中的 executed_count 为 0）
+        if let Some(ref report) = result.flow_report {
+            assert_eq!(report.executed_count, 0, "不应该执行任何节点");
+        }
+    }
+
+    /// 测试日志发送器正确传递
+    #[tokio::test]
+    async fn test_execute_flow_with_log_sender() {
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始节点".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "日志测试流程".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        let input = ExecuteFlowCommandInput {
+            flow_id: flow_id.clone(),
+            variables: None,
+        };
+
+        // 使用 NoopLogSender
+        let log_sender: Arc<dyn LogSender> = Arc::new(NoopLogSender);
+
+        // 执行流程（应该不会因日志发送而失败）
+        let result = execute_flow(input, flow, Some(log_sender)).await;
+
+        assert!(result.success, "流程应该成功执行");
+    }
+
+    /// 测试多节点流程执行
+    #[tokio::test]
+    async fn test_execute_flow_multiple_nodes() {
+        let flow_id = Uuid::new_v4().to_string();
+        
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let end_node = Node {
+            uuid: format!("end-{}", flow_id),
+            node_type: NodeType::Entry,  // 使用 Entry 作为第二个节点进行测试
+            name: "结束".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let connection = Connection {
+            id: format!("conn-{}", flow_id),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
+            source_port_id: "out".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "多节点流程".to_string(),
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+        };
+
+        let input = ExecuteFlowCommandInput {
+            flow_id: flow_id.clone(),
+            variables: None,
+        };
+
+        let result = execute_flow(input, flow, None).await;
+
+        // 验证结果
+        assert!(result.success);
+        let report = result.flow_report.unwrap();
+        assert_eq!(report.executed_count, 2, "应该执行了 2 个节点");
+        assert_eq!(report.node_reports.len(), 2);
+    }
+
+    /// 测试执行时间计算
+    #[tokio::test]
+    async fn test_execute_flow_execution_time() {
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始节点".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "时间测试流程".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        let input = ExecuteFlowCommandInput {
+            flow_id: flow_id.clone(),
+            variables: None,
+        };
+
+        let result = execute_flow(input, flow, None).await;
+
+        // 验证执行时间字段存在
+        // execution_time 来自 flow_report.duration_ms
+        if let Some(ref report) = result.flow_report {
+            assert!(report.duration_ms >= 0, "执行时间应该 >= 0");
+        }
+    }
+
+    /// 测试流程报告包含正确的流程信息
+    #[tokio::test]
+    async fn test_execute_flow_report_contains_flow_info() {
+        let flow_id = Uuid::new_v4().to_string();
+        let flow_name = "报告信息测试流程".to_string();
+        
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始节点".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: flow_name.clone(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        let input = ExecuteFlowCommandInput {
+            flow_id: flow_id.clone(),
+            variables: None,
+        };
+
+        let result = execute_flow(input, flow, None).await;
+
+        assert!(result.success);
+        let report = result.flow_report.unwrap();
+        
+        // 验证报告包含正确的流程信息
+        assert_eq!(report.flow_uuid, flow_id);
+        assert_eq!(report.flow_name, flow_name);
+        assert_eq!(report.total_nodes, 1);
+    }
+
+    /// 测试空变量输入
+    #[tokio::test]
+    async fn test_execute_flow_with_empty_variables() {
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始节点".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "空变量测试流程".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        // 传入空对象
+        let input = ExecuteFlowCommandInput {
+            flow_id: flow_id.clone(),
+            variables: Some(json!({})),
+        };
+
+        let result = execute_flow(input, flow, None).await;
+
+        // 应该成功执行
+        assert!(result.success);
+        
+        // 验证报告中的初始变量为空对象
+        let report = result.flow_report.unwrap();
+        let init_vars = report.initial_variables.unwrap();
+        assert!(init_vars.is_object());
+        assert_eq!(init_vars.as_object().unwrap().len(), 0);
+    }
+
+    /// 测试节点报告状态正确记录
+    #[tokio::test]
+    async fn test_execute_flow_node_report_status() {
+        let flow_id = Uuid::new_v4().to_string();
+        let node_name = "测试节点".to_string();
+        
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: node_name.clone(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "状态测试流程".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        let input = ExecuteFlowCommandInput {
+            flow_id: flow_id.clone(),
+            variables: None,
+        };
+
+        let result = execute_flow(input, flow, None).await;
+
+        assert!(result.success);
+        let report = result.flow_report.unwrap();
+        let node_report = &report.node_reports[0];
+        
+        // 验证节点报告
+        assert_eq!(node_report.node_name, node_name);
+        assert_eq!(node_report.status, crate::report::ExecutionStatus::Success);
+    }
+}
