@@ -44,7 +44,9 @@ function toFormData(data: ConditionalConfigType): ConditionalConfigFormData {
   }
 
   return {
-    condition_type: data.advanced_expression ? 'advanced' : (data.condition_type || 'simple'),
+    // 优先使用 condition_type 字段，不再根据 advanced_expression 推断
+    // 这样可以支持两种模式的数据同时存在
+    condition_type: data.condition_type || 'simple',
     field_path: data.field_path || '',
     operator: (data.operator as ConditionalConfigFormData['operator']) || 'equal',
     expected_value: expectedValue || undefined,
@@ -55,12 +57,11 @@ function toFormData(data: ConditionalConfigType): ConditionalConfigFormData {
 
 /**
  * 将表单数据转换为 ConditionalConfigType
+ * 注意：保留两种模式的数据，切换模式时不会丢失已输入的内容
  */
 function fromFormData(formData: ConditionalConfigFormData): ConditionalConfigType {
-  const isSimple = formData.condition_type === 'simple';
-
   let expectedValue: unknown = undefined;
-  if (isSimple && formData.expected_value?.trim()) {
+  if (formData.expected_value?.trim()) {
     try {
       expectedValue = JSON.parse(formData.expected_value);
     } catch {
@@ -72,11 +73,13 @@ function fromFormData(formData: ConditionalConfigFormData): ConditionalConfigTyp
   return {
     type: 'conditional',
     condition_type: formData.condition_type,
-    field_path: isSimple ? formData.field_path : undefined,
-    operator: isSimple ? (formData.operator as ConditionOperator) : undefined,
-    expected_value: isSimple ? expectedValue : undefined,
-    advanced_expression: !isSimple ? formData.advanced_expression : undefined,
-    expected_value_type: isSimple ? formData.expected_value_type : undefined,
+    // 保留简单条件数据，即使当前是高级模式
+    field_path: formData.field_path || undefined,
+    operator: (formData.operator as ConditionOperator) || undefined,
+    expected_value: expectedValue,
+    // 保留高级表达式数据，即使当前是简单模式
+    advanced_expression: formData.advanced_expression || undefined,
+    expected_value_type: formData.expected_value_type || undefined,
   };
 }
 
