@@ -167,39 +167,6 @@ impl LogSender for QueuedLogSender {
     }
 }
 
-// ============================================================================
-// 同步日志发送器 - 用于 CLI 模式
-// ============================================================================
-
-/// 同步日志发送器包装
-///
-/// 将 async LogSender 包装为同步 UnderlyingLogSender
-/// 
-/// 注意：此类型主要用于 CLI 模式
-pub struct SyncLogSenderWrapper {
-    /// 内部 async sender
-    inner: Arc<dyn LogSender>,
-}
-
-impl SyncLogSenderWrapper {
-    /// 创建同步包装器
-    pub fn new(inner: Arc<dyn LogSender>) -> Self {
-        Self { inner }
-    }
-}
-
-impl UnderlyingLogSender for SyncLogSenderWrapper {
-    fn send_sync(&self, event: LogEvent) -> Result<(), String> {
-        // 使用 block_in_place 在同步上下文中执行 async
-        // 注意：这会阻塞当前线程，仅用于 CLI 模式
-        tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current().block_on(async {
-                self.inner.send(event).await
-            })
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

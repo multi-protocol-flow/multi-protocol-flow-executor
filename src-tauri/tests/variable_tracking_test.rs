@@ -5,6 +5,7 @@
 // - Task 14: 执行路径追踪（execution_path）
 // - Task 15: 跳过节点记录（skipped_nodes）
 // - Task 16: 流程级变量快照（initial_variables, final_variables）
+#![allow(missing_docs)]
 
 use flow_engine::connection::Connection;
 use flow_engine::executor::FlowExecutor;

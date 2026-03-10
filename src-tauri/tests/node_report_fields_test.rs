@@ -1,4 +1,5 @@
 // NodeExecutionReport 新字段测试
+#![allow(missing_docs)]
 
 use flow_engine::report::{ExecutionStatus, NodeExecutionReport, VariableChange};
 use serde_json::json;

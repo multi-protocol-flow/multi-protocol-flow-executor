@@ -1,4 +1,5 @@
 // FlowExecutionReport 新字段测试
+#![allow(missing_docs)]
 
 use flow_engine::report::{ExecutionMode, ExecutionStatus, FlowExecutionReport, SkippedNodeInfo};
 use flow_engine::statistics::FlowStatistics;

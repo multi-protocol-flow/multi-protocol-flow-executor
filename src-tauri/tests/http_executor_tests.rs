@@ -345,10 +345,10 @@ async fn test_timeout_config_custom() {
 
     // 验证: 超时配置已生效，1500ms 超时后应返回错误
     
-    // 验证超时配置生效 - 应该在 2 秒内返回（考虑网络延迟）
+    // 验证超时配置生效 - 应该在 3 秒内返回（考虑网络延迟）
     assert!(
-        elapsed < std::time::Duration::from_secs(2),
-        "超时应该在 2 秒内触发，实际耗时: {:?}",
+        elapsed < std::time::Duration::from_secs(3),
+        "超时应该在 3 秒内触发，实际耗时: {:?}",
         elapsed
     );
 

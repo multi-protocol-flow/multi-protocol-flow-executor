@@ -1,4 +1,5 @@
 // VariableChange 结构体测试
+#![allow(missing_docs)]
 
 use serde_json::json;
 

@@ -261,9 +261,6 @@ fn build_input_data_from_node_config(node: &crate::node::Node) -> Option<serde_j
                 "wait_close_timeout_ms": config.wait_close_timeout_ms,
             }))
         },
-        
-        // 未知节点类型返回 None
-        _ => None,
     }
 }
 

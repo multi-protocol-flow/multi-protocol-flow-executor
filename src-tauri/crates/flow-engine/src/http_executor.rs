@@ -379,13 +379,61 @@ impl NodeExecutor for HttpNodeExecutor {
         // 记录HTTP请求开始时间
         let http_start_time = Instant::now();
 
-        // 发送请求并获取响应
-        let result = client.execute(&config).await;
+        // 发送请求并获取响应（使用整体超时包装）
+        let result = tokio::time::timeout(
+            std::time::Duration::from_millis(timeout_ms),
+            client.execute(&config)
+        ).await;
         
-        // 处理网络错误 - 走 false 端口
+        // 处理超时和网络错误 - 走 false 端口
         let http_result = match result {
-            Ok(res) => res,
-            Err(e) => {
+            // 整体请求未超时，检查 HTTP 客户端结果
+            Ok(Ok(res)) => res,
+            // 整体请求超时
+            Err(_elapsed) => {
+                let error_msg = format!("HTTP请求超时 ({}ms)", timeout_ms);
+                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
+                // 发送超时日志到前端
+                context.emit_log(LogEvent {
+                    level: LogLevel::Error,
+                    message: format!("HTTP 请求超时 ({}ms)", timeout_ms),
+                    timestamp: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .expect("系统时间错误")
+                        .as_millis() as u64,
+                    node_uuid: Some(node.uuid.clone()),
+                    node_name: Some(node.name.clone()),
+                    flow_uuid: context.flow_uuid.clone(),
+                }).await;
+                
+                // 超时错误：构建失败输出，走 false 端口
+                let output_data = serde_json::json!({
+                    "success": false,
+                    "status": serde_json::Value::Null,
+                    "body": serde_json::Value::Null,
+                    "headers": serde_json::Value::Null,
+                    "error": error_msg,
+                    "request": {
+                        "url": url,
+                        "method": method_str,
+                        "headers": sent_headers,
+                        "body": request_body_json,
+                        "body_type": body_type_str
+                    },
+                    "timing": HttpTiming::default()
+                });
+                
+                // 根据端口过滤连接
+                let next_node_ids: Vec<String> = connections
+                    .iter()
+                    .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "false")
+                    .map(|conn| conn.target_node_uuid.clone())
+                    .collect();
+                
+                return Ok((next_node_ids, Some(output_data)));
+            }
+            // HTTP 客户端错误（DNS、连接等）
+            Ok(Err(e)) => {
                 let error_msg = format!("HTTP请求失败: {}", e);
                 log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                 // 发送请求失败日志到前端

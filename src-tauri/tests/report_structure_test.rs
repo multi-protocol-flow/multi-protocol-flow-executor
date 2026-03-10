@@ -1,4 +1,5 @@
 // 报告结构综合测试 - 测试所有报告结构的序列化/反序列化和向后兼容性
+#![allow(missing_docs)]
 
 use flow_engine::error::{ErrorDetail, ErrorKind};
 use flow_engine::report::{

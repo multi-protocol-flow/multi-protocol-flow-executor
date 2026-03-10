@@ -1,4 +1,5 @@
 // WebSocket URL 存储功能测试
+#![allow(missing_docs)]
 
 use flow_engine::context::ExecutionContext;
 
