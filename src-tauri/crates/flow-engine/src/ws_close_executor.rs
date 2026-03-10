@@ -102,15 +102,27 @@ impl NodeExecutor for WsCloseExecutor {
                     config.close_code
                 );
 
-                // 6. 构建输出数据
+                // 6. 构建输出数据（结构化格式，与 HTTP 报告保持一致）
                 let duration = start_time.elapsed();
                 let output_data = json!({
+                    // 统一成功标识（与 HTTP 保持一致）
+                    "success": true,
                     "connection_id": connection_id,
+                    "url": url,
+                    // 请求配置（与 HTTP 的 request 结构对应）
+                    "request": {
+                        "connection_id": connection_id,
+                        "close_code": config.close_code,
+                        "close_reason": config.close_reason,
+                        "wait_close_timeout_ms": config.wait_close_timeout_ms,
+                    },
+                    // 耗时分解（与 HTTP 的 timing 结构对应）
+                    "timing": {
+                        "close_ms": duration.as_millis() as u64,
+                        "total_ms": duration.as_millis() as u64,
+                    },
                     "close_code": config.close_code,
                     "close_reason": config.close_reason,
-                    "duration_ms": duration.as_millis() as u64,
-                    "success": true,
-                    "url": url,
                 });
 
                 // 6. 日志：关闭完成
@@ -165,12 +177,26 @@ impl NodeExecutor for WsCloseExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建错误输出数据（结构化格式，与 HTTP 报告保持一致）
+                let duration = start_time.elapsed();
                 let error_output = json!({
-                    "connection_id": connection_id,
+                    // 统一成功标识（与 HTTP 保持一致）
                     "success": false,
-                    "error": e,
+                    "connection_id": connection_id,
                     "url": url,
+                    // 请求配置
+                    "request": {
+                        "connection_id": connection_id,
+                        "close_code": config.close_code,
+                        "close_reason": config.close_reason,
+                        "wait_close_timeout_ms": config.wait_close_timeout_ms,
+                    },
+                    // 耗时分解
+                    "timing": {
+                        "close_ms": duration.as_millis() as u64,
+                        "total_ms": duration.as_millis() as u64,
+                    },
+                    "error": e,
                 });
 
                 // 关闭失败走 false 端口

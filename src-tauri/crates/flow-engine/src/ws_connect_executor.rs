@@ -136,6 +136,7 @@ impl NodeExecutor for WsConnectExecutor {
                     wait_timed_out,
                     message_data,
                     start_time.elapsed().as_millis() as u64,
+                    &config,
                 );
 
                 // 7. 应用变量映射
@@ -199,11 +200,26 @@ impl NodeExecutor for WsConnectExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据
+                // 构建错误输出数据（结构化格式，与 HTTP 保持一致）
                 let error_output = json!({
+                    "success": false,
                     "connected": false,
                     "connection_id": serde_json::Value::Null,
                     "url": url,
+                    "request": {
+                        "url": url,
+                        "headers": config.headers,
+                        "subprotocols": config.subprotocols,
+                        "connect_timeout_ms": config.connect_timeout_ms,
+                        "wait_for_message": config.wait_for_message,
+                        "wait_mode": format!("{:?}", config.wait_mode),
+                        "message_timeout_ms": config.message_timeout_ms,
+                    },
+                    "timing": {
+                        "connect_ms": null,
+                        "wait_message_ms": null,
+                        "total_ms": start_time.elapsed().as_millis() as u64,
+                    },
                     "wait_timed_out": false,
                     "error": e
                 });
@@ -370,7 +386,7 @@ impl WsConnectExecutor {
         }
     }
 
-    /// 构建输出数据
+    /// 构建输出数据（结构化格式，与 HTTP 报告保持一致）
     #[allow(clippy::too_many_arguments)]
     fn build_output_data(
         &self,
@@ -381,15 +397,31 @@ impl WsConnectExecutor {
         wait_timed_out: bool,
         message_data: Option<String>,
         duration_ms: u64,
+        config: &WsConnectConfig,
     ) -> serde_json::Value {
         let mut output = json!({
+            // 统一成功标识（与 HTTP 保持一致）
+            "success": true,
             "connected": true,
             "connection_id": uuid,
             "url": url,
-            "connect_duration_ms": connect_duration_ms,
-            "wait_message_duration_ms": wait_message_duration_ms,
+            // 请求配置（与 HTTP 的 request 结构对应）
+            "request": {
+                "url": url,
+                "headers": config.headers,
+                "subprotocols": config.subprotocols,
+                "connect_timeout_ms": config.connect_timeout_ms,
+                "wait_for_message": config.wait_for_message,
+                "wait_mode": format!("{:?}", config.wait_mode),
+                "message_timeout_ms": config.message_timeout_ms,
+            },
+            // 耗时分解（与 HTTP 的 timing 结构对应）
+            "timing": {
+                "connect_ms": connect_duration_ms,
+                "wait_message_ms": wait_message_duration_ms,
+                "total_ms": duration_ms,
+            },
             "wait_timed_out": wait_timed_out,
-            "duration_ms": duration_ms,
         });
 
         if let Some(msg) = message_data {

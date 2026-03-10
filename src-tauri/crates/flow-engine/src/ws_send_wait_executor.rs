@@ -468,7 +468,7 @@ impl WsSendWaitExecutor {
         }
     }
 
-    /// 构建输出数据（新结构）
+    /// 构建输出数据（结构化格式，与 HTTP 报告保持一致）
     #[allow(clippy::too_many_arguments)]
     fn build_output_data(
         &self,
@@ -505,24 +505,37 @@ impl WsSendWaitExecutor {
             None
         };
 
-        // 构建完整的输出数据
+        // 构建完整的输出数据（结构化格式）
         let mut output_data = json!({
+            // 统一成功标识（与 HTTP 保持一致）
+            "success": true,
             "connection_id": connection_id,
+            "url": url,
+            // 请求配置（与 HTTP 的 request 结构对应）
+            "request": {
+                "connection_id": connection_id,
+                "message_type": if is_binary { "binary" } else { "text" },
+            },
+            // 耗时分解（与 HTTP 的 timing 结构对应）
+            "timing": {
+                "send_ms": send_duration_ms,
+                "wait_response_ms": wait_response_duration_ms,
+                "total_ms": send_duration_ms + wait_response_duration_ms.unwrap_or(0),
+            },
             "wait_timed_out": wait_timed_out,
             "sent": sent_data,
-            "url": url,
-            "send_duration_ms": send_duration_ms,
-            "wait_response_duration_ms": wait_response_duration_ms,
         });
 
         if let Some(msg) = message_data {
             output_data["message"] = msg;
+        } else {
+            output_data["message"] = serde_json::Value::Null;
         }
 
         Ok(Some(output_data))
     }
 
-    /// 构建错误输出数据（用于连接不存在或发送失败的情况）
+    /// 构建错误输出数据（结构化格式，与 HTTP 报告保持一致）
     fn build_error_output_data(
         &self,
         connection_id: &str,
@@ -530,14 +543,24 @@ impl WsSendWaitExecutor {
         url: Option<&str>,
     ) -> Option<serde_json::Value> {
         Some(json!({
+            // 统一成功标识（与 HTTP 保持一致）
+            "success": false,
             "connection_id": connection_id,
+            "url": url,
+            // 请求配置
+            "request": {
+                "connection_id": connection_id,
+            },
+            // 耗时分解
+            "timing": {
+                "send_ms": null,
+                "wait_response_ms": null,
+                "total_ms": null,
+            },
             "wait_timed_out": false,
             "sent": null,
             "message": null,
             "error": error_msg,
-            "url": url,
-            "send_duration_ms": null,
-            "wait_response_duration_ms": null,
         }))
     }
 
