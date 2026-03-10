@@ -195,6 +195,27 @@ impl NodeExecutor for WsSendWaitExecutor {
                     message.len()
                 );
 
+                // 5.5 清空发送前的待处理消息（如欢迎消息）
+                // 确保 first_message 模式只读取发送后的响应
+                match self.ws_manager.drain_pending_messages(&connection_id).await {
+                    Ok(drained_count) => {
+                        if drained_count > 0 {
+                            log::info!(
+                                "[WebSocket] 清空了 {} 条发送前的待处理消息: connection_id={}",
+                                drained_count,
+                                connection_id
+                            );
+                        }
+                    }
+                    Err(e) => {
+                        log::warn!(
+                            "[WebSocket] 清空待处理消息失败（继续执行）: connection_id={}, error={}",
+                            connection_id,
+                            e
+                        );
+                    }
+                }
+
                 // 6. 如果配置了等待响应
                 let wait_start = Instant::now();
                 let (wait_timed_out, response_message) = if config.wait_for_response {

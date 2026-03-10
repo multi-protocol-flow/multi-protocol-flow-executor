@@ -567,6 +567,125 @@ impl WebSocketConnectionManager {
         }
     }
 
+    /// 清空连接中待处理的消息
+    ///
+    /// 在发送消息后调用此方法，清空发送前到达的所有消息（如欢迎消息），
+    /// 确保后续的 receive() 只读取发送后的响应消息。
+    ///
+    /// # 参数
+    ///
+    /// * `uuid` - 连接 UUID
+    ///
+    /// # 返回
+    ///
+    /// * `Ok(count)` - 清空的消息数量
+    /// * `Err(msg)` - 连接不存在或状态错误
+    pub async fn drain_pending_messages(&self, uuid: &str) -> Result<usize, String> {
+        // 1. 获取连接，检查状态是否为 Connected
+        let receiver = {
+            let connections = self.connections.lock().map_err(|e| {
+                format!("获取连接锁失败: {}", e)
+            })?;
+
+            let conn = connections.get(uuid).ok_or_else(|| {
+                format!("连接不存在: {}", uuid)
+            })?;
+
+            if conn.status != ConnectionStatus::Connected {
+                return Err(format!(
+                    "连接状态不是 Connected（当前状态: {:?}）: {}",
+                    conn.status, uuid
+                ));
+            }
+
+            conn.get_receiver().ok_or_else(|| {
+                format!("连接没有活跃的 WebSocket 流: {}", uuid)
+            })?
+        };
+
+        // 2. 使用非常短的超时（1ms）非阻塞地读取所有待处理消息
+        let mut drained_count = 0;
+        let drain_timeout = Duration::from_millis(1);
+        let mut receiver_guard = receiver.lock().await;
+
+        loop {
+            match timeout(drain_timeout, receiver_guard.next()).await {
+                Ok(Some(Ok(message))) => {
+                    // 记录被清空的消息（用于调试）
+                    match &message {
+                        WebSocketMessage::Text(text) => {
+                            log::debug!(
+                                "[WebSocket] drain_pending_messages: 清空文本消息 uuid={}, len={}, preview={}",
+                                uuid,
+                                text.len(),
+                                &text.chars().take(50).collect::<String>()
+                            );
+                        }
+                        WebSocketMessage::Binary(data) => {
+                            log::debug!(
+                                "[WebSocket] drain_pending_messages: 清空二进制消息 uuid={}, len={}",
+                                uuid,
+                                data.len()
+                            );
+                        }
+                        WebSocketMessage::Ping(_) | WebSocketMessage::Pong(_) => {
+                            // Ping/Pong 消息也要清空
+                            log::debug!(
+                                "[WebSocket] drain_pending_messages: 清空 Ping/Pong 消息 uuid={}",
+                                uuid
+                            );
+                        }
+                        WebSocketMessage::Close(_) => {
+                            // 收到 Close 帧，更新状态并退出
+                            log::info!(
+                                "[WebSocket] drain_pending_messages: 收到 Close 帧 uuid={}",
+                                uuid
+                            );
+                            self.update_status(uuid, ConnectionStatus::Closed)?;
+                            break;
+                        }
+                        WebSocketMessage::Frame(_) => {
+                            // 原始帧，忽略
+                        }
+                    }
+                    drained_count += 1;
+                    // 继续尝试读取更多消息
+                }
+                Ok(Some(Err(e))) => {
+                    log::warn!(
+                        "[WebSocket] drain_pending_messages: 读取消息出错 uuid={}, error={}",
+                        uuid,
+                        e
+                    );
+                    // 出错时停止清空
+                    break;
+                }
+                Ok(None) => {
+                    // 流已结束
+                    log::debug!(
+                        "[WebSocket] drain_pending_messages: 流已结束 uuid={}",
+                        uuid
+                    );
+                    break;
+                }
+                Err(_) => {
+                    // 超时，没有更多待处理消息
+                    break;
+                }
+            }
+        }
+
+        if drained_count > 0 {
+            log::info!(
+                "[WebSocket] drain_pending_messages: 清空了 {} 条待处理消息 uuid={}",
+                drained_count,
+                uuid
+            );
+        }
+
+        Ok(drained_count)
+    }
+
     /// 根据 UUID 获取连接
     ///
     /// # 参数
