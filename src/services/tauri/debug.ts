@@ -7,20 +7,7 @@ import { invoke, Channel } from '@tauri-apps/api/core';
 import type { Flow } from '@/types/flow';
 import type { DebugEvent, DebugCommand } from '@/types/debug';
 import type { LogEvent } from '@/types/events';
-import { IpcError } from './flow';
-
-/**
- * 格式化错误信息
- */
-function formatError(error: unknown, command: string): IpcError {
-  if (typeof error === 'string') {
-    return new IpcError(error, command);
-  }
-  if (error instanceof Error) {
-    return new IpcError(error.message, command, error);
-  }
-  return new IpcError(`未知错误: ${String(error)}`, command, error);
-}
+import { formatError } from './flow';
 
 /**
  * 启动调试会话

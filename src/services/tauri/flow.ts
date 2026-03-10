@@ -29,8 +29,9 @@ export class IpcError extends Error {
 
 /**
  * 格式化错误信息
+ * @internal 导出供其他 IPC 模块使用
  */
-function formatError(error: unknown, command: string): IpcError {
+export function formatError(error: unknown, command: string): IpcError {
   if (typeof error === 'string') {
     return new IpcError(error, command);
   }
@@ -56,33 +57,6 @@ export async function createFlow(name: string): Promise<Flow> {
     return result.flow;
   } catch (error) {
     throw formatError(error, 'create_flow');
-  }
-}
-
-/**
- * 执行流程（不带日志回调）
- * 调用后端 execute_flow IPC 命令
- *
- * @deprecated 请使用 executeFlowWithChannel 代替
- * @param flow - 要执行的流程对象
- * @param variables - 可选的执行变量
- * @returns 执行结果
- * @throws IpcError 如果执行失败
- */
-export async function executeFlow(
-  flow: Flow,
-  variables?: Record<string, unknown>
-): Promise<ExecuteFlowCommandOutput> {
-  try {
-    return await invoke<ExecuteFlowCommandOutput>('execute_flow', {
-      input: {
-        flow_id: flow.uuid,
-        variables: variables || null,
-      } as ExecuteFlowCommandInput,
-      flow, // 后端需要完整的 flow 对象
-    });
-  } catch (error) {
-    throw formatError(error, 'execute_flow');
   }
 }
 

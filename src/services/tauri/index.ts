@@ -18,11 +18,11 @@ function isTauriEnv(): boolean {
 async function getService() {
   if (isTauriEnv()) {
     // 在 Tauri 环境中使用真实 IPC
-    const { createFlow, executeFlow, IpcError } = await import('./flow');
-    return { createFlow, executeFlow, IpcError };
+    const { createFlow, IpcError } = await import('./flow');
+    return { createFlow, IpcError };
   } else {
     // 在非 Tauri 环境中使用 Mock
-    const { createFlow, executeFlow } = await import('./mock');
+    const { createFlow } = await import('./mock');
     // Mock 环境中返回一个简单的错误类
     class IpcError extends Error {
       constructor(
@@ -34,7 +34,7 @@ async function getService() {
         this.name = 'IpcError';
       }
     }
-    return { createFlow, executeFlow, IpcError };
+    return { createFlow, IpcError };
   }
 }
 
@@ -64,23 +64,7 @@ export async function createFlow(name: string): Promise<Flow> {
 }
 
 /**
- * 执行流程
- * 根据运行环境自动选择真实 IPC 或 Mock 服务
- *
- * @param flow - 要执行的流程对象
- * @param variables - 可选的执行变量
- * @returns 执行结果
- */
-export async function executeFlow(
-  flow: Flow,
-  variables?: Record<string, unknown>
-): Promise<ExecuteFlowCommandOutput> {
-  const { executeFlow: executeFlowImpl } = await getCachedService();
-  return executeFlowImpl(flow, variables);
-}
-
-/**
- * 执行流程并订阅日志（Tauri 环境）
+ * 执行流程并订阅日志
  * 使用 Channel API 接收后端日志事件
  *
  * @param flow - 要执行的流程对象
