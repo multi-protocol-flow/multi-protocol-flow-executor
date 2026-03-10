@@ -173,8 +173,10 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
 
           {/* URL */}
           {connectionUrl && (
-            <div className="flex items-start gap-2">
-              <span className="text-muted-foreground text-sm whitespace-nowrap">URL:</span>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="font-mono text-xs text-cyan-600 bg-cyan-50 border-0 shrink-0">
+                URL
+              </Badge>
               <code className="flex-1 text-sm font-mono text-slate-700 break-all bg-slate-50 px-2 py-1 rounded">
                 {connectionUrl}
               </code>
@@ -218,8 +220,20 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
             </div>
           )}
 
-          {/* 配置的消息 */}
-          {configMessage && (
+          {/* 实际发送的内容 */}
+          {sentData && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">发送内容</div>
+              <div className="bg-slate-50 rounded p-2">
+                <pre className="text-xs text-slate-700 whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
+                  {truncateText(sentData.data, 500)}
+                </pre>
+              </div>
+            </div>
+          )}
+
+          {/* 配置的消息（当没有实际发送数据时显示） */}
+          {!sentData && configMessage && (
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">配置消息</div>
               <pre className="text-xs bg-slate-50 border border-slate-200 rounded p-2 overflow-x-auto text-slate-700 max-h-32 overflow-y-auto whitespace-pre-wrap break-all">
@@ -229,31 +243,6 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
           )}
         </div>
       </CollapsibleSection>
-
-      {/* 发送内容 */}
-      {sentData && (
-        <CollapsibleSection
-          title="发送内容"
-          icon={<Send className="w-4 h-4" />}
-          defaultOpen={false}
-          extra={(
-            <Badge variant="outline" className={cn(
-              'font-mono text-xs',
-              sentData.type === 'binary'
-                ? 'text-orange-600 bg-orange-50'
-                : 'text-slate-600 bg-slate-50'
-            )}>
-              {sentData.type === 'binary' ? '二进制' : '文本'}
-            </Badge>
-          )}
-        >
-          <div className="bg-slate-50 rounded p-2">
-            <pre className="text-xs text-slate-700 whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
-              {truncateText(sentData.data, 500)}
-            </pre>
-          </div>
-        </CollapsibleSection>
-      )}
 
       {/* 响应内容 */}
       {messageData ? (

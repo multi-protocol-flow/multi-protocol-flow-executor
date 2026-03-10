@@ -120,12 +120,12 @@ describe('WsSendWaitViewer', () => {
       });
       render(<WsSendWaitViewer report={report} />);
 
-      // 发送内容面板存在（默认折叠）
-      expect(screen.getByText('发送内容')).toBeDefined();
+      // 发送配置面板存在（发送内容已合并到发送配置中）
+      expect(screen.getByText('发送配置')).toBeDefined();
       
       // 点击展开面板
       const buttons = screen.getAllByRole('button');
-      const sendButton = buttons.find(btn => btn.textContent?.includes('发送内容'));
+      const sendButton = buttons.find(btn => btn.textContent?.includes('发送配置'));
       if (sendButton) {
         await user.click(sendButton);
       }
@@ -148,13 +148,22 @@ describe('WsSendWaitViewer', () => {
       expect(binaryBadges.length).toBeGreaterThan(0);
     });
 
-    it('无发送内容时不显示发送区域', () => {
+    it('无发送内容时显示发送配置面板', async () => {
+      const user = userEvent.setup();
       const report = createMockReport({
         sent: null
       });
       render(<WsSendWaitViewer report={report} />);
 
-      expect(screen.queryByText('发送内容')).toBeNull();
+      // 点击展开发送配置面板
+      const buttons = screen.getAllByRole('button');
+      const sendButton = buttons.find(btn => btn.textContent?.includes('发送配置'));
+      if (sendButton) {
+        await user.click(sendButton);
+      }
+
+      // 发送配置面板仍然存在，但可能显示等待响应配置
+      expect(screen.getByText('发送配置')).toBeDefined();
     });
   });
 
@@ -330,8 +339,8 @@ describe('WsSendWaitViewer', () => {
       // 连接信息
       expect(screen.getByText('conn-123')).toBeDefined();
 
-      // 发送内容面板存在
-      expect(screen.getByText('发送内容')).toBeDefined();
+      // 发送配置面板存在（发送内容已合并到发送配置中）
+      expect(screen.getByText('发送配置')).toBeDefined();
 
       // 响应内容面板存在
       expect(screen.getByText('响应内容')).toBeDefined();

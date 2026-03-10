@@ -111,8 +111,8 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
       >
         <div className="space-y-3">
           {/* URL */}
-          <div className="flex items-start gap-2">
-            <Badge variant="outline" className="font-mono text-xs text-amber-600 bg-amber-50 border-0">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="font-mono text-xs text-amber-600 bg-amber-50 border-0 shrink-0">
               WS
             </Badge>
             <code className="flex-1 text-sm font-mono text-slate-700 break-all bg-slate-50 px-2 py-1 rounded">
@@ -124,11 +124,15 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
           <div className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">等待模式:</span>
             <Badge variant="outline" className="font-mono text-xs">
-              {waitMode === 'none' && '不等待'}
-              {waitMode === 'connect' && '等待连接'}
-              {waitMode === 'message' && '等待消息'}
-              {waitMode === 'both' && '连接+消息'}
-              {!waitMode && '不等待'}
+              {(() => {
+                switch (waitMode) {
+                  case 'connect': return '等待连接';
+                  case 'message': return '等待消息';
+                  case 'both': return '连接+消息';
+                  case 'none':
+                  default: return '不等待';
+                }
+              })()}
             </Badge>
           </div>
 
@@ -154,7 +158,7 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
           {/* 状态 */}
           <div className="flex items-center gap-3">
             <Badge className={cn(
-              'font-mono text-base px-3 py-1',
+              'font-mono text-xs px-2 py-0.5',
               isSuccess ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'
             )}>
               {isSuccess ? '已连接' : '连接失败'}

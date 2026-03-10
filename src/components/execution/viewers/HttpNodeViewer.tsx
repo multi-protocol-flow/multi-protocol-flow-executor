@@ -166,8 +166,8 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
       >
         <div className="space-y-3">
           {/* URL 和 Method */}
-          <div className="flex items-start gap-2">
-            <Badge variant="outline" className={cn('font-mono text-xs', getMethodColor(config.method || 'GET'))}>
+          <div className="flex items-center gap-2">
+            <Badge className={cn('font-mono text-xs shrink-0', getMethodColor(config.method || 'GET'))}>
               {config.method}
             </Badge>
             <code className="flex-1 text-sm font-mono text-slate-700 break-all bg-slate-50 px-2 py-1 rounded">
@@ -206,7 +206,7 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
         <div className="flex items-center gap-3">
           {status !== undefined ? (
             <>
-              <Badge className={cn('font-mono text-base px-3 py-1', getStatusColor(status))}>
+              <Badge className={cn('font-mono text-xs px-2 py-0.5', getStatusColor(status))}>
                 {status}
               </Badge>
               <span className="text-sm text-muted-foreground">

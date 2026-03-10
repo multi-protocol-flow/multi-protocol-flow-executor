@@ -8,8 +8,6 @@ import {
   ChevronRight,
   Code2,
   GitBranch,
-  CheckCircle2,
-  XCircle,
   AlertCircle,
   AlertTriangle,
 } from 'lucide-react';
@@ -349,7 +347,7 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
       {/* 评估结果 */}
       <CollapsibleSection
         title="评估结果"
-        icon={result === true ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+        icon={<GitBranch className="w-4 h-4" />}
         defaultOpen={true}
       >
         {hasError ? (
@@ -372,16 +370,14 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
           <div className="flex items-center gap-2">
             {result === true ? (
               <>
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-                <Badge className="font-mono text-base px-3 py-1 text-green-600 bg-green-50">
+                <Badge className="font-mono text-xs px-2 py-0.5 text-green-600 bg-green-50">
                   true
                 </Badge>
                 <span className="text-sm text-muted-foreground">条件成立</span>
               </>
             ) : (
               <>
-                <XCircle className="w-5 h-5 text-red-600" />
-                <Badge className="font-mono text-base px-3 py-1 text-red-600 bg-red-50">
+                <Badge className="font-mono text-xs px-2 py-0.5 text-red-600 bg-red-50">
                   false
                 </Badge>
                 <span className="text-sm text-muted-foreground">条件不成立</span>
