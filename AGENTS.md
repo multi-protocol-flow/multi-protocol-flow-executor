@@ -79,6 +79,50 @@ multi-protocol-flow-executor/
 
 **禁止:** 跳过测试直接提交、删除失败测试、忽略 clippy 警告
 
+## 测试
+
+### 测试命令
+
+| 环境 | 命令 |
+|------|------|
+| 前端单元测试 | `npm run test` |
+| 前端覆盖率 | `npm run test:coverage` |
+| 后端单元测试 | `cd src-tauri && cargo test` |
+| 后端覆盖率 | `cd src-tauri && cargo llvm-cov` |
+| 后端 Lint | `cd src-tauri && cargo clippy` |
+
+### 测试文件位置
+
+| 类型 | 位置 |
+|------|------|
+| 前端单元测试 | `src/__tests__/` (详见 [src/__tests__/AGENTS.md](./src/__tests__/AGENTS.md)) |
+| 后端单元测试 | `src-tauri/src/*/tests.rs` + `src-tauri/tests/` |
+| CLI 集成测试 | `src-tauri/tests/cli_tests.rs` |
+| 测试数据 | `tests/` |
+
+### TDD 工作流
+
+1. **RED**: 先写失败的测试
+2. **GREEN**: 写最少代码使测试通过
+3. **REFACTOR**: 重构代码保持测试通过
+
+### 测试模式
+
+| 场景 | 模式 |
+|------|------|
+| Zustand Store | 使用 `getState().reset()` 隔离测试状态 |
+| Tauri IPC | 使用 `src/services/tauri/mock.ts` 或 `@tauri-apps/api/mocks` 的 `mockIPC` |
+| React Flow | Mock `useReactFlow`/`useNodes`/`useEdges` |
+| 用户交互 | 优先使用 `userEvent` 而非 `fireEvent` |
+| 浏览器 API | 在 `src/__tests__/setup.ts` 添加 polyfill |
+
+### 测试约定
+
+1. 组件测试文件头部标记 `/** @vitest-environment jsdom */`
+2. Store 测试在 `beforeEach` 中调用 `reset()` 重置状态
+3. 测试文件末尾调用 `vi.restoreAllMocks()` 清理 mock
+4. E2E 测试文件命名 `*.e2e.test.ts`
+
 ## 反模式 (本项目禁止)
 
 | 模式 | 位置 | 说明 |
