@@ -45,13 +45,13 @@ function fromFormData(formData: EntryConfigFormData): EntryConfigType {
  * 将 JSON 值转换为字符串（用于显示）
  */
 function valueToString(value: unknown): string {
-  if (value === undefined || value === null) return '';
+  if (value == null) return '';
   if (typeof value === 'string') return value;
   try {
     return JSON.stringify(value);
   } catch {
     return String(value);
-  };
+  }
 }
 
 /**
@@ -63,7 +63,7 @@ function stringToValue(str: string): unknown {
     return JSON.parse(str);
   } catch {
     return str;
-  };
+  }
 }
 
 export function EntryConfig({ data, onSave }: EntryConfigProps) {

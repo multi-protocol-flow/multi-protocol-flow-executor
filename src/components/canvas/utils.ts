@@ -85,7 +85,6 @@ export function createConnection(
 /**
  * 验证连接是否有效
  * - 不能连接到自己
- * - 端口类型必须匹配
  */
 export function isValidConnection(
   sourceId: string,
@@ -97,11 +96,6 @@ export function isValidConnection(
   if (sourceId === targetId) {
     return false;
   }
-  
-  // TODO: 添加更多验证逻辑
-  // - 检查端口是否存在
-  // - 检查端口类型是否匹配
-  // - 检查是否已存在相同连接
   
   return true;
 }
