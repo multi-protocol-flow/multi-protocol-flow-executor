@@ -19,6 +19,13 @@ async function getSettingsService() {
   return import('@/services/tauri/settings.mock');
 }
 
+/**
+ * 格式化错误信息
+ */
+function formatErrorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
   reportDir: '',
   logDir: '',
@@ -37,7 +44,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       });
     } catch (e) {
       set({
-        error: e instanceof Error ? e.message : String(e),
+        error: formatErrorMessage(e),
         isLoading: false,
       });
     }
@@ -49,7 +56,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       await service.saveSettings({ reportDir: dir });
       set({ reportDir: dir });
     } catch (e) {
-      set({ error: e instanceof Error ? e.message : String(e) });
+      set({ error: formatErrorMessage(e) });
     }
   },
 
@@ -59,7 +66,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       await service.saveSettings({ logDir: dir });
       set({ logDir: dir });
     } catch (e) {
-      set({ error: e instanceof Error ? e.message : String(e) });
+      set({ error: formatErrorMessage(e) });
     }
   },
 
@@ -68,7 +75,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       const service = await getSettingsService();
       await service.openDirectory(get().reportDir);
     } catch (e) {
-      set({ error: e instanceof Error ? e.message : String(e) });
+      set({ error: formatErrorMessage(e) });
     }
   },
 
@@ -77,7 +84,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       const service = await getSettingsService();
       await service.openDirectory(get().logDir);
     } catch (e) {
-      set({ error: e instanceof Error ? e.message : String(e) });
+      set({ error: formatErrorMessage(e) });
     }
   },
 }));

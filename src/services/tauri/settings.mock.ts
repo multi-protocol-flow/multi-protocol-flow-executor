@@ -44,21 +44,15 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
 /**
  * 选择目录对话框（Mock: 返回 null 表示用户取消）
  */
-export async function selectDirectory(currentPath: string): Promise<string | null> {
-  console.log('Mock: selectDirectory called with', currentPath);
+export async function selectDirectory(_currentPath: string): Promise<string | null> {
   return null;
 }
 
 /**
- * 在文件管理器中打开目录（Mock: 仅打印日志）
+ * 在文件管理器中打开目录（Mock: 无法真正打开）
  */
-/**
- * 在文件管理器中打开目录（Mock: 仅打印日志）
- */
-export async function openDirectory(path: string): Promise<void> {
-  console.log('Mock: openDirectory called with', path);
-  // Mock 环境下无法真正打开目录，仅打印日志
-  console.log(`[Mock] 将在文件管理器中打开: ${path}`);
+export async function openDirectory(_path: string): Promise<void> {
+  // Mock 环境下无法真正打开目录
 }
 
 /**
