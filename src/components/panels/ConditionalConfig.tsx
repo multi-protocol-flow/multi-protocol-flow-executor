@@ -344,14 +344,29 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
             className="min-h-[120px] resize-y font-mono text-sm"
             rows={4}
           />
-          <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
-            <p className="mb-1 font-medium text-foreground">支持的语法：</p>
-            <ul className="ml-3 list-disc space-y-0.5">
-              <li>比较运算符: <code className="rounded bg-muted px-1 break-all">{'>'} {'>='} {'<'} {'<='} {'=='} {'!='}</code></li>
-              <li>逻辑运算符: <code className="rounded bg-muted px-1 break-all">{'&&'} {'||'} {'!'}</code></li>
-              <li>字符串函数: <code className="rounded bg-muted px-1 break-all">contains() startsWith() endsWith()</code></li>
-              <li>变量引用: <code className="rounded bg-muted px-1 break-all">http_response.status</code></li>
-            </ul>
+          <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground space-y-2">
+            <div>
+              <p className="mb-1 font-medium text-foreground">支持的运算符：</p>
+              <ul className="ml-3 list-disc space-y-0.5">
+                <li>比较运算符: <code className="rounded bg-muted px-1">{'>'} {'>='} {'<'} {'<='} {'=='} {'!='}</code></li>
+                <li>逻辑运算符: <code className="rounded bg-muted px-1">{'&&'} {'||'} {'!'}</code></li>
+              </ul>
+            </div>
+            <div>
+              <p className="mb-1 font-medium text-foreground">变量引用方式：</p>
+              <ul className="ml-3 list-disc space-y-0.5">
+                <li>直接使用变量名，无需 <code className="rounded bg-muted px-1">{"{{}}"}</code> 或 <code className="rounded bg-muted px-1">{"$."}</code></li>
+                <li>示例: <code className="rounded bg-muted px-1">status == 200 && code == 0</code></li>
+              </ul>
+            </div>
+            <div className="border-t border-border pt-2 mt-2">
+              <p className="mb-1 font-medium text-amber-600">⚠️ 注意事项：</p>
+              <ul className="ml-3 list-disc space-y-0.5">
+                <li><span className="font-medium">不支持 JSONPath</span>（如 <code className="rounded bg-muted px-1">$.body.data</code>），仅支持引用变量池中的变量</li>
+                <li>如需使用 HTTP 响应字段，请先在 HTTP 节点配置 <span className="font-medium">输出变量映射</span></li>
+                <li>字符串值需用双引号: <code className="rounded bg-muted px-1">name == "John"</code></li>
+              </ul>
+            </div>
           </div>
           <VariableValidationWarning
             value={watch('advanced_expression') || ''}
