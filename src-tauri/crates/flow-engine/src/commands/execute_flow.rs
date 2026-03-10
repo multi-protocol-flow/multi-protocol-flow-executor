@@ -142,7 +142,7 @@ mod tests {
         assert!(result.success, "流程应该成功执行");
         assert!(result.error.is_none(), "不应该有错误");
         assert!(result.flow_report.is_some(), "应该有执行报告");
-        assert!(result.execution_time > 0 || result.flow_report.as_ref().map(|r| r.duration_ms).unwrap_or(0) >= 0);
+        // duration_ms 是 u64 类型，总是 >= 0，所以移除无用的比较
 
         let report = result.flow_report.unwrap();
         assert_eq!(report.executed_count, 1, "应该执行了 1 个节点");
@@ -363,8 +363,10 @@ mod tests {
 
         // 验证执行时间字段存在
         // execution_time 来自 flow_report.duration_ms
+        // duration_ms 是 u64 类型，总是 >= 0
         if let Some(ref report) = result.flow_report {
-            assert!(report.duration_ms >= 0, "执行时间应该 >= 0");
+            // 访问 duration_ms 字段确保其存在
+            let _ = report.duration_ms;
         }
     }
 
