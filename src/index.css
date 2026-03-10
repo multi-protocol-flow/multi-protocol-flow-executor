@@ -134,3 +134,87 @@
     background-color: oklch(0.7 0 0);
   }
 }
+
+/* ========================================
+   JSON Viewer 自定义样式
+   只修改颜色，不改变布局
+   ======================================== */
+
+/* 主容器 */
+.raw-json-viewer {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.json-viewer-container {
+  padding: 8px 0;
+}
+
+/* 嵌套容器缩进 */
+.json-viewer-nested {
+  margin-left: 16px;
+}
+
+.json-viewer-row {
+  padding: 1px 0;
+}
+
+/* 属性名（key）- 柔和蓝色，正常粗细 */
+.json-viewer-label {
+  color: #0066cc;
+  font-weight: 500;
+}
+
+.json-viewer-label-clickable {
+  cursor: pointer;
+}
+
+.json-viewer-label-clickable:hover {
+  text-decoration: underline;
+}
+
+/* 折叠/展开图标 - 保持原样，只调颜色 */
+.json-viewer-icon {
+  color: #666;
+  cursor: pointer;
+}
+
+.json-viewer-icon:hover {
+  color: #333;
+}
+
+/* 标点符号 */
+.json-viewer-punctuation {
+  color: #555;
+}
+
+/* 字符串值 - 绿色 */
+.json-viewer-string {
+  color: #22863a;
+}
+
+/* 数字值 - 蓝紫色 */
+.json-viewer-number {
+  color: #6f42c1;
+}
+
+/* 布尔值 - 橙色 */
+.json-viewer-boolean {
+  color: #e36209;
+}
+
+/* null 值 - 灰色 */
+.json-viewer-null {
+  color: #6a737d;
+}
+
+/* undefined 值 */
+.json-viewer-undefined {
+  color: #6a737d;
+}
+
+/* 其他值 */
+.json-viewer-other {
+  color: #555;
+}

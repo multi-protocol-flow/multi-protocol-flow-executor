@@ -8,7 +8,7 @@ import { useState } from 'react';
 import {
   ChevronDown,
   ChevronRight,
-  RefreshCw,
+  Variable,
 } from 'lucide-react';
 import type { VariableChange } from '@/types';
 import { cn } from '@/lib/utils';
@@ -68,7 +68,7 @@ export function VariableChangesCard({ changes, defaultOpen = false }: VariableCh
             <ChevronRight className="w-4 h-4" />
           )}
         </div>
-        <RefreshCw className="w-4 h-4 text-violet-500" />
+        <Variable className="w-4 h-4 text-violet-500" />
         <span className="font-medium text-foreground text-sm">变量变更</span>
         <span className="ml-auto text-xs text-muted-foreground">
           {changes.length} 项

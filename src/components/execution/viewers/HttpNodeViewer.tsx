@@ -53,10 +53,11 @@ interface CollapsibleSectionProps {
   title: string;
   icon: React.ReactNode;
   defaultOpen?: boolean;
+  extra?: React.ReactNode;
   children: React.ReactNode;
 }
 
-function CollapsibleSection({ title, icon, defaultOpen = false, children }: CollapsibleSectionProps) {
+function CollapsibleSection({ title, icon, defaultOpen = false, extra, children }: CollapsibleSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -72,6 +73,7 @@ function CollapsibleSection({ title, icon, defaultOpen = false, children }: Coll
         </div>
         <div className="text-muted-foreground">{icon}</div>
         <span className="font-medium text-foreground text-sm">{title}</span>
+        {extra && <div className="ml-auto">{extra}</div>}
       </button>
       {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
     </div>
@@ -130,6 +132,7 @@ interface HttpOutputData {
     tls_ms?: number;
     ttfb_ms?: number;
     download_ms?: number;
+    total_ms?: number;
   };
 }
 
@@ -247,6 +250,11 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
           title="耗时分解"
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
+          extra={timing.total_ms !== undefined && (
+            <span className="text-xs font-mono text-violet-600 font-medium">
+              总计 {timing.total_ms}ms
+            </span>
+          )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
             {timing.dns_ms !== undefined && (
