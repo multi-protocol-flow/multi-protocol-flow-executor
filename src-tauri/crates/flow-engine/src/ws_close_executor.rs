@@ -230,6 +230,7 @@ mod tests {
                     flow_file_path: None,
                     ws_manager: None,
                     ws_connection_urls: std::collections::HashMap::new(),
+                    last_node_output: None,
                 }
     }
 

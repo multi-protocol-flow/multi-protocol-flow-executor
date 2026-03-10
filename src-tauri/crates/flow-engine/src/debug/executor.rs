@@ -170,6 +170,7 @@ impl DebuggableFlowExecutor {
             flow_file_path: self.flow_file_path.clone(),
             ws_manager: Some(ws_manager),
             ws_connection_urls: HashMap::new(),
+            last_node_output: None,
         };
 
         // 记录调试开始时间（用于报告生成）
@@ -569,17 +570,20 @@ impl DebuggableFlowExecutor {
                         log::error!("[调试 {}] 发送 NodeExecuted 事件失败 (节点 {}): {}", context.flow_uuid, node.uuid, e);
                     }
 
-                    // 更新变量
-                    if let Some(data) = output_data {
-                        if let Some(obj) = data.as_object() {
-                            for (key, value) in obj {
-                                context.variables.set_variable(
-                                    key.to_string(),
-                                    value.clone(),
-                                    node.uuid.clone(),
-                                );
-                            }
-                        }
+                    // 更新 last_node_output（仅协议节点更新，工具节点延续上游数据）
+                    // 协议节点：Http, WsConnect, WsSendWait
+                    // 工具节点：Entry, Conditional, WsClose（不更新，延续上游）
+                    let is_protocol_node = matches!(
+                        node.node_type,
+                        NodeType::Http | NodeType::WsConnect | NodeType::WsSendWait
+                    );
+                    if is_protocol_node {
+                        context.last_node_output = output_data.clone();
+                        log::debug!(
+                            "[调试 {}] 更新 last_node_output（协议节点 {}）",
+                            context.flow_uuid,
+                            node.name
+                        );
                     }
 
                     // 查找下一个节点

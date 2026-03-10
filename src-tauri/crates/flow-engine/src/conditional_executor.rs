@@ -168,8 +168,8 @@ impl NodeExecutor for ConditionalNodeExecutor {
                     error.message
                 })?;
 
-                // 提取字段值
-                let actual_value = self.extract_field_value(&variables, field_path)?;
+                // 提取字段值（传入 last_node_output 用于 jsonpath 提取）
+                let actual_value = self.extract_field_value(&variables, context.last_node_output.as_ref(), field_path)?;
 
                 // 构建 expression 字符串：原始表达式
                 let expression = format!(
@@ -213,10 +213,11 @@ impl NodeExecutor for ConditionalNodeExecutor {
                         .unwrap_or_else(|| "null".to_string())
                 );
 
-                // 评估条件
+                // 评估条件（传入 last_node_output 用于 jsonpath 提取）
                 let result = self.evaluate_simple_condition(
                     &conditional_config,
                     &variables,
+                    context.last_node_output.as_ref(),
                 )?;
                 log::info!("[流程 {}] [条件判断] 条件类型: Simple, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
 
@@ -340,6 +341,7 @@ impl ConditionalNodeExecutor {
     /// # 参数
     /// - `config`: 条件节点配置
     /// - `variables`: 变量数据
+    /// - `last_node_output`: 上游协议节点的输出数据（用于 jsonpath 提取）
     ///
     /// # 返回
     /// - `Ok(bool)`: 条件评估结果
@@ -348,6 +350,7 @@ impl ConditionalNodeExecutor {
         &self,
         config: &crate::node_config::ConditionalConfig,
         variables: &serde_json::Value,
+        last_node_output: Option<&serde_json::Value>,
     ) -> Result<bool, String> {
         // 获取 field_path
         let field_path = config.field_path.as_ref().ok_or_else(|| {
@@ -371,8 +374,8 @@ impl ConditionalNodeExecutor {
 
         log::info!("[条件评估] 字段路径: {}, 操作符: {:?}", field_path, operator);
 
-        // 从 variables 中提取 field_path 指定的值
-        let actual_value = self.extract_field_value(variables, field_path)?;
+        // 从 variables 中提取 field_path 指定的值（传入 last_node_output 用于 jsonpath）
+        let actual_value = self.extract_field_value(variables, last_node_output, field_path)?;
 
         log::info!("[条件评估] 提取的值: {:?}", actual_value);
 
@@ -476,8 +479,8 @@ impl ConditionalNodeExecutor {
     /// 从JSON中提取字段值（支持变量引用语法、JSONPath语法）
     ///
     /// 支持的格式：
-    /// - `{{variable_name}}` - 变量引用，从 data 中查找
-    /// - `$.json.path` - JSONPath 语法，支持嵌套和数组索引
+    /// - `{{variable_name}}` - 变量引用，从 variables 中查找
+    /// - `$.json.path` - JSONPath 语法，从 last_node_output 中提取（上游协议节点的输出）
     /// - `simple_name` - 简单变量名，等同于 {{simple_name}}
     ///
     /// 拒绝的格式：
@@ -485,7 +488,8 @@ impl ConditionalNodeExecutor {
     /// - 空字符串
     fn extract_field_value(
         &self,
-        data: &serde_json::Value,
+        variables: &serde_json::Value,
+        last_node_output: Option<&serde_json::Value>,
         field_path: &str,
     ) -> Result<serde_json::Value, String> {
         // 拒绝空的 field_path
@@ -495,15 +499,19 @@ impl ConditionalNodeExecutor {
 
         // 格式判断逻辑
         if field_path.starts_with("{{") && field_path.ends_with("}}") {
-            // 变量引用: {{variable_name}} - 从 data 中查找
+            // 变量引用: {{variable_name}} - 从 variables 中查找
             let var_name = &field_path[2..field_path.len()-2];
-            data.get(var_name)
+            variables.get(var_name)
                 .cloned()
                 .ok_or_else(|| format!("变量 '{}' 不存在", var_name))
         } else if field_path.starts_with("$.") {
-            // JSONPath: $.path.to.field - 使用 extract_value_by_path
+            // JSONPath: $.path.to.field
+            // 优先从 last_node_output 提取（上游协议节点输出）
+            // 如果 last_node_output 为空，则 fallback 到 variables（兼容性）
             use crate::http_executor::extract_value_by_path;
-            extract_value_by_path(data, field_path)
+            
+            let data_source = last_node_output.unwrap_or(variables);
+            extract_value_by_path(data_source, field_path)
                 .ok_or_else(|| format!("JSONPath '{}' 提取失败", field_path))
         } else if field_path.contains(".") {
             // 旧语法：返回错误
@@ -513,7 +521,7 @@ impl ConditionalNodeExecutor {
             ))
         } else {
             // 单个字段名，尝试作为变量引用
-            data.get(field_path)
+            variables.get(field_path)
                 .cloned()
                 .ok_or_else(|| format!("变量 '{}' 不存在", field_path))
         }
@@ -707,6 +715,7 @@ mod tests {
                     flow_file_path: None,
                     ws_manager: None,
                     ws_connection_urls: HashMap::new(),
+                    last_node_output: None,
                 }
     }
 

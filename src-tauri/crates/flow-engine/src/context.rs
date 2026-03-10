@@ -53,6 +53,13 @@ pub struct ExecutionContext {
     /// 存储每个连接 ID 对应的 WebSocket URL，供后续节点（如 WS Send+Wait）反查使用
     #[serde(skip)]
     pub ws_connection_urls: HashMap<String, String>,
+
+    /// 最近一个协议节点的输出数据
+    /// 协议节点（HTTP、WebSocket）执行后更新此字段
+    /// 工具节点（Conditional、Entry、WsClose）不更新，延续上游数据
+    /// 下游节点通过 jsonpath（如 $.body.xxx）访问此数据
+    #[serde(skip)]
+    pub last_node_output: Option<Value>,
 }
 
 impl ExecutionContext {
@@ -77,6 +84,7 @@ impl ExecutionContext {
             flow_file_path: None,
             ws_manager: None,
             ws_connection_urls: HashMap::new(),
+            last_node_output: None,
         }
     }
 

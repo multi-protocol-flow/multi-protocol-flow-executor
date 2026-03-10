@@ -380,6 +380,7 @@ impl FlowExecutor {
             flow_file_path: self.flow_file_path.clone(),
             ws_manager: Some(ws_manager),
             ws_connection_urls: std::collections::HashMap::new(),
+            last_node_output: None,
         };
 
         // 查找开始节点
@@ -524,6 +525,22 @@ impl FlowExecutor {
                             context.flow_uuid,
                             node.name,
                             data
+                        );
+                    }
+
+                    // 更新 last_node_output（仅协议节点更新，工具节点延续上游数据）
+                    // 协议节点：Http, WsConnect, WsSendWait
+                    // 工具节点：Entry, Conditional, WsClose（不更新，延续上游）
+                    let is_protocol_node = matches!(
+                        node.node_type,
+                        NodeType::Http | NodeType::WsConnect | NodeType::WsSendWait
+                    );
+                    if is_protocol_node {
+                        context.last_node_output = output_data.clone();
+                        log::debug!(
+                            "[流程 {}] 更新 last_node_output（协议节点 {}）",
+                            context.flow_uuid,
+                            node.name
                         );
                     }
 
@@ -1642,6 +1659,7 @@ mod tests {
             flow_file_path: None,
             ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
+            last_node_output: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1675,6 +1693,7 @@ mod tests {
             flow_file_path: None,
             ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
+            last_node_output: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1699,6 +1718,7 @@ mod tests {
             flow_file_path: None,
             ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
+            last_node_output: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -1724,6 +1744,7 @@ mod tests {
             flow_file_path: None,
             ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
+            last_node_output: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -1763,6 +1784,7 @@ mod tests {
                 flow_file_path: None,
                 ws_manager: None,
                 ws_connection_urls: std::collections::HashMap::new(),
+                last_node_output: None,
             };
             let result = replace_variables(&template, &context);
             assert!(result.is_err());
@@ -1787,6 +1809,7 @@ mod tests {
                 flow_file_path: None,
                 ws_manager: None,
                 ws_connection_urls: std::collections::HashMap::new(),
+                last_node_output: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -1811,6 +1834,7 @@ mod tests {
                 flow_file_path: None,
                 ws_manager: None,
                 ws_connection_urls: std::collections::HashMap::new(),
+                last_node_output: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -1835,6 +1859,7 @@ mod tests {
                 flow_file_path: None,
                 ws_manager: None,
                 ws_connection_urls: std::collections::HashMap::new(),
+                last_node_output: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
