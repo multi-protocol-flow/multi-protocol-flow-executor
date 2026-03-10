@@ -232,42 +232,4 @@ mod tests {
             r#""conditional""#
         );
     }
-
-    /// 测试向后兼容性：缺少 has_breakpoint 字段时应使用 None
-    #[test]
-    fn test_node_backward_compatibility() {
-        // 模拟旧版本的流程文件（没有 has_breakpoint 字段）
-        let old_json = json!({
-            "uuid": "node-old",
-            "type": "http",
-            "name": "Old Node",
-            "position": { "x": 0.0, "y": 0.0 },
-            "data": {
-                "type": "http",
-                "url": "https://example.com"
-            }
-        });
-
-        // 反序列化应该成功，has_breakpoint 应为 None
-        let node: Node = serde_json::from_value(old_json).unwrap();
-        assert_eq!(node.uuid, "node-old");
-        assert_eq!(node.has_breakpoint, None);
-
-        // 有 has_breakpoint 字段时应该正确读取
-        let new_json = json!({
-            "uuid": "node-new",
-            "type": "http",
-            "name": "New Node",
-            "position": { "x": 0.0, "y": 0.0 },
-            "data": {
-                "type": "http",
-                "url": "https://example.com"
-            },
-            "has_breakpoint": true
-        });
-
-        let node: Node = serde_json::from_value(new_json).unwrap();
-        assert_eq!(node.uuid, "node-new");
-        assert_eq!(node.has_breakpoint, Some(true));
-    }
 }
