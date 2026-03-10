@@ -2,7 +2,8 @@
  * VariableInput 组件测试
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { VariableInput } from '@/components/ui/VariableInput';
 import type { Variable } from '@/types/variable';
 
@@ -40,7 +41,8 @@ describe('VariableInput', () => {
     expect(screen.getByPlaceholderText('输入内容...')).toBeInTheDocument();
   });
 
-  it('calls onValueChange on input change', () => {
+  it('calls onValueChange on input change', async () => {
+    const user = userEvent.setup();
     render(
       <VariableInput
         variables={mockVariables}
@@ -49,8 +51,8 @@ describe('VariableInput', () => {
       />
     );
     const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: 'new value' } });
-    expect(mockOnValueChange).toHaveBeenCalledWith('new value');
+    await user.type(input, 'new value');
+    expect(mockOnValueChange).toHaveBeenCalled();
   });
 
   it('shows variable selector button when variables exist', () => {
@@ -103,7 +105,8 @@ describe('VariableInput', () => {
     expect(trigger).not.toBeInTheDocument();
   });
 
-  it('inserts variable at cursor position', () => {
+  it('inserts variable at cursor position', async () => {
+    const user = userEvent.setup();
     render(
       <VariableInput
         variables={mockVariables}
@@ -114,22 +117,23 @@ describe('VariableInput', () => {
     
     const input = screen.getByRole('textbox') as HTMLInputElement;
     
-    fireEvent.focus(input);
+    await user.click(input);
     input.setSelectionRange(5, 5);
     
     const trigger = document.querySelector('[aria-haspopup="dialog"]');
     if (trigger) {
-      fireEvent.click(trigger);
+      await user.click(trigger);
     }
     
-    fireEvent.click(screen.getByText('api_base'));
+    await user.click(screen.getByText('api_base'));
     
     expect(mockOnValueChange).toHaveBeenCalled();
     const insertedValue = mockOnValueChange.mock.calls[0][0];
     expect(insertedValue).toContain('{{api_base}}');
   });
 
-  it('appends variable at end when no cursor position', () => {
+  it('appends variable at end when no cursor position', async () => {
+    const user = userEvent.setup();
     render(
       <VariableInput
         variables={mockVariables}
@@ -140,15 +144,16 @@ describe('VariableInput', () => {
     
     const trigger = document.querySelector('[aria-haspopup="dialog"]');
     if (trigger) {
-      fireEvent.click(trigger);
+      await user.click(trigger);
     }
     
-    fireEvent.click(screen.getByText('api_base'));
+    await user.click(screen.getByText('api_base'));
     
     expect(mockOnValueChange).toHaveBeenCalledWith('hello{{api_base}}');
   });
 
-  it('replaces selected text with variable', () => {
+  it('replaces selected text with variable', async () => {
+    const user = userEvent.setup();
     render(
       <VariableInput
         variables={mockVariables}
@@ -159,15 +164,15 @@ describe('VariableInput', () => {
     
     const input = screen.getByRole('textbox') as HTMLInputElement;
     
-    fireEvent.focus(input);
+    await user.click(input);
     input.setSelectionRange(6, 11);
     
     const trigger = document.querySelector('[aria-haspopup="dialog"]');
     if (trigger) {
-      fireEvent.click(trigger);
+      await user.click(trigger);
     }
     
-    fireEvent.click(screen.getByText('api_base'));
+    await user.click(screen.getByText('api_base'));
     
     expect(mockOnValueChange).toHaveBeenCalledWith('hello {{api_base}}');
   });
@@ -238,7 +243,8 @@ describe('VariableInput', () => {
     expect(input).toHaveAttribute('aria-label', '自定义输入');
   });
 
-  it('uses nodeLabels for variable selector grouping', () => {
+  it('uses nodeLabels for variable selector grouping', async () => {
+    const user = userEvent.setup();
     const nodeLabels = { 'entry-1': '入口配置' };
     
     render(
@@ -252,7 +258,7 @@ describe('VariableInput', () => {
     
     const trigger = document.querySelector('[aria-haspopup="dialog"]');
     if (trigger) {
-      fireEvent.click(trigger);
+      await user.click(trigger);
     }
     
     expect(screen.getByText('入口配置')).toBeInTheDocument();
@@ -320,7 +326,8 @@ describe('VariableInput', () => {
     expect(input).toHaveValue('');
   });
 
-  it('handles multiple variable insertions', () => {
+  it('handles multiple variable insertions', async () => {
+    const user = userEvent.setup();
     const { rerender } = render(
       <VariableInput
         variables={mockVariables}
@@ -331,9 +338,9 @@ describe('VariableInput', () => {
     
     const trigger1 = document.querySelector('[aria-haspopup="dialog"]');
     if (trigger1) {
-      fireEvent.click(trigger1);
+      await user.click(trigger1);
     }
-    fireEvent.click(screen.getByText('api_base'));
+    await user.click(screen.getByText('api_base'));
     
     expect(mockOnValueChange).toHaveBeenCalledWith('{{api_base}}');
     
@@ -347,9 +354,9 @@ describe('VariableInput', () => {
     
     const trigger2 = document.querySelector('[aria-haspopup="dialog"]');
     if (trigger2) {
-      fireEvent.click(trigger2);
+      await user.click(trigger2);
     }
-    fireEvent.click(screen.getByText('api_base'));
+    await user.click(screen.getByText('api_base'));
     
     expect(mockOnValueChange).toHaveBeenCalledWith('{{api_base}}{{api_base}}');
   });

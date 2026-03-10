@@ -1,0 +1,319 @@
+/**
+ * useKeyboardShortcuts Hook 测试
+ */
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { renderHook } from '@testing-library/react';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import * as stores from '@/stores';
+
+// Mock stores
+const mockSelectNode = vi.fn();
+const mockToggleFlowListPanel = vi.fn();
+const mockToggleHistoryPanel = vi.fn();
+const mockToggleConfigPanel = vi.fn();
+
+vi.mock('@/stores', () => ({
+  useFlowStore: vi.fn(() => ({
+    selectedNodeId: null,
+    selectNode: mockSelectNode,
+  })),
+  useUIStore: vi.fn(() => ({
+    toggleFlowListPanel: mockToggleFlowListPanel,
+    toggleHistoryPanel: mockToggleHistoryPanel,
+    toggleConfigPanel: mockToggleConfigPanel,
+  })),
+}));
+
+describe('useKeyboardShortcuts', () => {
+  let addEventListenerSpy: ReturnType<typeof vi.spyOn>;
+  let removeEventListenerSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    addEventListenerSpy = vi.spyOn(window, 'addEventListener');
+    removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('事件监听器', () => {
+    it('挂载时添加 keydown 事件监听', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      expect(addEventListenerSpy).toHaveBeenCalledWith(
+        'keydown',
+        expect.any(Function)
+      );
+    });
+
+    it('卸载时移除 keydown 事件监听', () => {
+      const { unmount } = renderHook(() => useKeyboardShortcuts());
+      unmount();
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'keydown',
+        expect.any(Function)
+      );
+    });
+  });
+
+  describe('Escape 键', () => {
+    it('有选中节点时按 Escape 调用 selectNode(null)', () => {
+      // 重新 mock 以返回选中的节点
+      vi.mocked(stores.useFlowStore).mockReturnValue({
+        selectedNodeId: 'node-123',
+        selectNode: mockSelectNode,
+      } as ReturnType<typeof stores.useFlowStore>);
+
+      renderHook(() => useKeyboardShortcuts());
+
+      // 获取事件处理函数
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      // 模拟 Escape 键，设置 target 为 document.body
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+      handler(event);
+
+      expect(mockSelectNode).toHaveBeenCalledWith(null);
+    });
+
+    it('无选中节点时按 Escape 不调用 selectNode', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+      handler(event);
+
+      expect(mockSelectNode).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Ctrl+B 切换流程列表面板', () => {
+    it('Ctrl+B 调用 toggleFlowListPanel', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const event = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true });
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+
+      handler(event);
+
+      expect(mockToggleFlowListPanel).toHaveBeenCalledTimes(1);
+    });
+
+    it('Cmd+B (metaKey) 也调用 toggleFlowListPanel', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const event = new KeyboardEvent('keydown', { key: 'b', metaKey: true });
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+
+      handler(event);
+
+      expect(mockToggleFlowListPanel).toHaveBeenCalledTimes(1);
+    });
+
+    it('Ctrl+B 调用 preventDefault', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const event = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true });
+      const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+
+      handler(event);
+
+      expect(preventDefaultSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('Ctrl+H 切换历史面板', () => {
+    it('Ctrl+H 调用 toggleHistoryPanel', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const event = new KeyboardEvent('keydown', { key: 'h', ctrlKey: true });
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+
+      handler(event);
+
+      expect(mockToggleHistoryPanel).toHaveBeenCalledTimes(1);
+    });
+
+    it('Cmd+H (metaKey) 也调用 toggleHistoryPanel', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const event = new KeyboardEvent('keydown', { key: 'h', metaKey: true });
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+
+      handler(event);
+
+      expect(mockToggleHistoryPanel).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Ctrl+J 切换配置面板', () => {
+    it('Ctrl+J 调用 toggleConfigPanel', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const event = new KeyboardEvent('keydown', { key: 'j', ctrlKey: true });
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+
+      handler(event);
+
+      expect(mockToggleConfigPanel).toHaveBeenCalledTimes(1);
+    });
+
+    it('Cmd+J (metaKey) 也调用 toggleConfigPanel', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const event = new KeyboardEvent('keydown', { key: 'j', metaKey: true });
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+
+      handler(event);
+
+      expect(mockToggleConfigPanel).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('忽略输入状态', () => {
+    it('在 INPUT 中不响应快捷键', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const inputElement = document.createElement('input');
+      const event = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true });
+      Object.defineProperty(event, 'target', { value: inputElement, writable: false });
+
+      handler(event);
+
+      expect(mockToggleFlowListPanel).not.toHaveBeenCalled();
+    });
+
+    it('在 TEXTAREA 中不响应快捷键', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const textareaElement = document.createElement('textarea');
+      const event = new KeyboardEvent('keydown', { key: 'h', ctrlKey: true });
+      Object.defineProperty(event, 'target', { value: textareaElement, writable: false });
+
+      handler(event);
+
+      expect(mockToggleHistoryPanel).not.toHaveBeenCalled();
+    });
+
+    it('在 isContentEditable 元素中不响应快捷键', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const editableElement = document.createElement('div');
+      // 在 jsdom 中需要直接设置 isContentEditable 属性
+      Object.defineProperty(editableElement, 'isContentEditable', { value: true });
+      const event = new KeyboardEvent('keydown', { key: 'j', ctrlKey: true });
+      Object.defineProperty(event, 'target', { value: editableElement, writable: false });
+
+      handler(event);
+
+      expect(mockToggleConfigPanel).not.toHaveBeenCalled();
+    });
+
+    it('在输入状态时 Escape 仍然可以取消选择', () => {
+      // 重新 mock 以返回选中的节点
+      vi.mocked(stores.useFlowStore).mockReturnValue({
+        selectedNodeId: 'node-456',
+        selectNode: mockSelectNode,
+      } as ReturnType<typeof stores.useFlowStore>);
+
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const inputElement = document.createElement('input');
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      Object.defineProperty(event, 'target', { value: inputElement, writable: false });
+
+      handler(event);
+
+      expect(mockSelectNode).toHaveBeenCalledWith(null);
+    });
+  });
+
+  describe('其他按键', () => {
+    it('单独按 b 不触发任何操作', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const event = new KeyboardEvent('keydown', { key: 'b' });
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+
+      handler(event);
+
+      expect(mockToggleFlowListPanel).not.toHaveBeenCalled();
+    });
+
+    it('按其他字母键不触发任何操作', () => {
+      renderHook(() => useKeyboardShortcuts());
+
+      const handler = addEventListenerSpy.mock.calls.find(
+        (call) => call[0] === 'keydown'
+      )?.[1] as EventListener;
+
+      const event = new KeyboardEvent('keydown', { key: 'x', ctrlKey: true });
+      Object.defineProperty(event, 'target', { value: document.body, writable: false });
+
+      handler(event);
+
+      expect(mockToggleFlowListPanel).not.toHaveBeenCalled();
+      expect(mockToggleHistoryPanel).not.toHaveBeenCalled();
+      expect(mockToggleConfigPanel).not.toHaveBeenCalled();
+    });
+  });
+});

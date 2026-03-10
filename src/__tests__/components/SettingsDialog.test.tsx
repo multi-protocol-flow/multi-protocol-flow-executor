@@ -3,7 +3,8 @@
  * 验证组件可以正确渲染和交互
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
 import { useUIStore } from '@/stores/ui';
 import { useSettingsStore } from '@/stores/settings';
@@ -101,6 +102,7 @@ describe('SettingsDialog', () => {
 
   describe('与 UI Store 集成', () => {
     it('关闭对话框时调用 closeSettingsDialog', async () => {
+      const user = userEvent.setup();
       useUIStore.setState({ showSettingsDialog: true });
       
       render(<SettingsDialog />);
@@ -111,7 +113,7 @@ describe('SettingsDialog', () => {
       
       // 点击关闭按钮（通过 Dialog 组件的 onOpenChange）
       const closeButton = screen.getByRole('button', { name: /close/i });
-      fireEvent.click(closeButton);
+      await user.click(closeButton);
       
       await waitFor(() => {
         expect(useUIStore.getState().showSettingsDialog).toBe(false);

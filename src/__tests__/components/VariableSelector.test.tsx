@@ -2,7 +2,8 @@
  * VariableSelector 组件测试
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { VariableSelector } from '@/components/ui/VariableSelector';
 import type { Variable } from '@/types/variable';
 
@@ -47,7 +48,8 @@ describe('VariableSelector', () => {
     expect(screen.getByText('自定义触发器')).toBeInTheDocument();
   });
 
-  it('shows empty state when no variables', () => {
+  it('shows empty state when no variables', async () => {
+    const user = userEvent.setup();
     render(
       <VariableSelector
         variables={[]}
@@ -56,12 +58,13 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
     expect(screen.getByText('暂无变量')).toBeInTheDocument();
   });
 
-  it('groups variables by source node', () => {
+  it('groups variables by source node', async () => {
+    const user = userEvent.setup();
     render(
       <VariableSelector
         variables={mockVariables}
@@ -70,13 +73,14 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
     expect(screen.getByText('入口节点')).toBeInTheDocument();
     expect(screen.getByText('HTTP请求')).toBeInTheDocument();
   });
 
-  it('displays node ID when no label provided', () => {
+  it('displays node ID when no label provided', async () => {
+    const user = userEvent.setup();
     const variables: Variable[] = [
       { name: 'test_var', value: 'test', sourceNodeUuid: 'abcdefgh12345678' },
     ];
@@ -89,13 +93,14 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
     // 应该显示截取的 UUID，格式为 "节点 xxx..."
     expect(screen.getByText(/节点 abcdefgh\.\.\./)).toBeInTheDocument();
   });
 
-  it('displays variable names in list', () => {
+  it('displays variable names in list', async () => {
+    const user = userEvent.setup();
     render(
       <VariableSelector
         variables={mockVariables}
@@ -104,13 +109,14 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
     expect(screen.getByText('api_base')).toBeInTheDocument();
     expect(screen.getByText('user_status')).toBeInTheDocument();
   });
 
-  it('displays variable syntax hint {{name}}', () => {
+  it('displays variable syntax hint {{name}}', async () => {
+    const user = userEvent.setup();
     render(
       <VariableSelector
         variables={mockVariables}
@@ -119,13 +125,14 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
     expect(screen.getByText('{{api_base}}')).toBeInTheDocument();
     expect(screen.getByText('{{user_status}}')).toBeInTheDocument();
   });
 
-  it('displays variable description when available', () => {
+  it('displays variable description when available', async () => {
+    const user = userEvent.setup();
     const variablesWithDesc: Variable[] = [
       { name: 'api_key', value: 'secret', sourceNodeUuid: 'entry-1', description: 'API密钥' },
     ];
@@ -138,12 +145,13 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
     expect(screen.getByText('API密钥')).toBeInTheDocument();
   });
 
-  it('calls onSelect when variable is clicked', () => {
+  it('calls onSelect when variable is clicked', async () => {
+    const user = userEvent.setup();
     render(
       <VariableSelector
         variables={mockVariables}
@@ -152,15 +160,16 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
-    fireEvent.click(screen.getByText('api_base'));
+    await user.click(screen.getByText('api_base'));
     
     expect(mockOnSelect).toHaveBeenCalledWith('api_base');
     expect(mockOnSelect).toHaveBeenCalledTimes(1);
   });
 
-  it('filters variables by search query', () => {
+  it('filters variables by search query', async () => {
+    const user = userEvent.setup();
     render(
       <VariableSelector
         variables={mockVariables}
@@ -169,16 +178,18 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
     const searchInput = screen.getByPlaceholderText('搜索变量...');
-    fireEvent.change(searchInput, { target: { value: 'api' } });
+    await user.clear(searchInput);
+    await user.type(searchInput, 'api');
     
     expect(screen.getByText('api_base')).toBeInTheDocument();
     expect(screen.queryByText('user_status')).not.toBeInTheDocument();
   });
 
-  it('filters by description in search', () => {
+  it('filters by description in search', async () => {
+    const user = userEvent.setup();
     const variablesWithDesc: Variable[] = [
       { name: 'var1', value: 'v1', sourceNodeUuid: 'n1', description: '用户名称' },
       { name: 'var2', value: 'v2', sourceNodeUuid: 'n2', description: '用户年龄' },
@@ -192,16 +203,18 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
     const searchInput = screen.getByPlaceholderText('搜索变量...');
-    fireEvent.change(searchInput, { target: { value: '名称' } });
+    await user.clear(searchInput);
+    await user.type(searchInput, '名称');
     
     expect(screen.getByText('var1')).toBeInTheDocument();
     expect(screen.queryByText('var2')).not.toBeInTheDocument();
   });
 
-  it('shows empty state when search has no results', () => {
+  it('shows empty state when search has no results', async () => {
+    const user = userEvent.setup();
     render(
       <VariableSelector
         variables={mockVariables}
@@ -210,15 +223,17 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
     const searchInput = screen.getByPlaceholderText('搜索变量...');
-    fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
+    await user.clear(searchInput);
+    await user.type(searchInput, 'nonexistent');
     
     expect(screen.getByText('暂无变量')).toBeInTheDocument();
   });
 
-  it('clears search input when clear button clicked', () => {
+  it('clears search input when clear button clicked', async () => {
+    const user = userEvent.setup();
     render(
       <VariableSelector
         variables={mockVariables}
@@ -227,17 +242,18 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
     const searchInput = screen.getByPlaceholderText('搜索变量...');
-    fireEvent.change(searchInput, { target: { value: 'api' } });
+    await user.clear(searchInput);
+    await user.type(searchInput, 'api');
     
     // 点击清除按钮 (X)
     const clearButtons = document.querySelectorAll('button');
     for (const btn of clearButtons) {
       const hasXIcon = btn.querySelector('.lucide-x');
       if (hasXIcon) {
-        fireEvent.click(btn);
+        await user.click(btn);
         break;
       }
     }
@@ -245,7 +261,8 @@ describe('VariableSelector', () => {
     expect(searchInput).toHaveValue('');
   });
 
-  it('closes popover after selecting variable', () => {
+  it('closes popover after selecting variable', async () => {
+    const user = userEvent.setup();
     render(
       <VariableSelector
         variables={mockVariables}
@@ -254,10 +271,10 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     expect(screen.getByPlaceholderText('搜索变量...')).toBeInTheDocument();
     
-    fireEvent.click(screen.getByText('api_base'));
+    await user.click(screen.getByText('api_base'));
     
     expect(screen.queryByPlaceholderText('搜索变量...')).not.toBeInTheDocument();
   });
@@ -278,7 +295,8 @@ describe('VariableSelector', () => {
     expect(screen.getByPlaceholderText('搜索变量...')).toBeInTheDocument();
   });
 
-  it('displays custom placeholder text', () => {
+  it('displays custom placeholder text', async () => {
+    const user = userEvent.setup();
     render(
       <VariableSelector
         variables={mockVariables}
@@ -288,12 +306,13 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
     expect(screen.getByPlaceholderText('查找变量...')).toBeInTheDocument();
   });
 
-  it('displays custom empty text', () => {
+  it('displays custom empty text', async () => {
+    const user = userEvent.setup();
     render(
       <VariableSelector
         variables={[]}
@@ -303,7 +322,7 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
     expect(screen.getByText('没有可用变量')).toBeInTheDocument();
   });
@@ -322,7 +341,8 @@ describe('VariableSelector', () => {
     expect(button.className).toContain('custom-trigger-class');
   });
 
-  it('shows bottom hint text', () => {
+  it('shows bottom hint text', async () => {
+    const user = userEvent.setup();
     render(
       <VariableSelector
         variables={mockVariables}
@@ -331,7 +351,7 @@ describe('VariableSelector', () => {
       />
     );
     
-    fireEvent.click(screen.getByRole('button'));
+    await user.click(screen.getByRole('button'));
     
     expect(screen.getByText(/点击变量名插入/)).toBeInTheDocument();
   });

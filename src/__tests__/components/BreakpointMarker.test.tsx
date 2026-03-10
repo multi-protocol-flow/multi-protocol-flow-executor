@@ -1,8 +1,9 @@
 /**
  * BreakpointMarker 组件测试
  */
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { BreakpointMarker } from '@/components/canvas/BreakpointMarker';
 
 describe('BreakpointMarker', () => {
@@ -34,7 +35,8 @@ describe('BreakpointMarker', () => {
     expect(button).toHaveClass('border-gray-400');
   });
 
-  it('点击时调用 onToggle 回调', () => {
+  it('点击时调用 onToggle 回调', async () => {
+    const user = userEvent.setup();
     const onToggle = vi.fn();
     render(
       <BreakpointMarker
@@ -44,12 +46,13 @@ describe('BreakpointMarker', () => {
     );
 
     const button = screen.getByRole('button');
-    fireEvent.click(button);
+    await user.click(button);
 
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
-  it('点击时阻止事件冒泡', () => {
+  it('点击时阻止事件冒泡', async () => {
+    const user = userEvent.setup();
     const onToggle = vi.fn();
     const onParentClick = vi.fn();
 
@@ -63,7 +66,7 @@ describe('BreakpointMarker', () => {
     );
 
     const button = screen.getByRole('button');
-    fireEvent.click(button);
+    await user.click(button);
 
     expect(onToggle).toHaveBeenCalledTimes(1);
     expect(onParentClick).not.toHaveBeenCalled();

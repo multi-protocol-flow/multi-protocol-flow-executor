@@ -2,7 +2,8 @@
  * VariablePanel 组件测试
  */
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { VariablePanel } from '@/components/panels/VariablePanel';
 import type { Flow, Node } from '@/types';
 
@@ -50,17 +51,19 @@ describe('VariablePanel', () => {
     expect(screen.getByText('HTTP请求')).toBeInTheDocument();
   });
 
-  it('displays initial variables from Entry node', () => {
+  it('displays initial variables from Entry node', async () => {
+    const user = userEvent.setup();
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
     // 先展开分组
-    fireEvent.click(screen.getByText('全部展开'));
+    await user.click(screen.getByText('全部展开'));
     expect(screen.getByText('api_base')).toBeInTheDocument();
   });
 
-  it('displays output mappings from HTTP node', () => {
+  it('displays output mappings from HTTP node', async () => {
+    const user = userEvent.setup();
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
     // 先展开分组
-    fireEvent.click(screen.getByText('全部展开'));
+    await user.click(screen.getByText('全部展开'));
     expect(screen.getByText('user_status')).toBeInTheDocument();
   });
 
@@ -76,42 +79,47 @@ describe('VariablePanel', () => {
     expect(screen.getByText('2 个变量')).toBeInTheDocument();
   });
 
-  it('filters variables by search query', () => {
+  it('filters variables by search query', async () => {
+    const user = userEvent.setup();
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
     
     const searchInput = screen.getByPlaceholderText('搜索变量...');
     
     // 搜索 api_base
-    fireEvent.change(searchInput, { target: { value: 'api_base' } });
+    await user.clear(searchInput);
+    await user.type(searchInput, 'api_base');
     // 搜索过滤后分组默认是折叠的，需要展开
-    fireEvent.click(screen.getByText('全部展开'));
+    await user.click(screen.getByText('全部展开'));
     expect(screen.getByText('api_base')).toBeInTheDocument();
     // user_status 应该不在结果中
     expect(screen.queryByText('user_status')).not.toBeInTheDocument();
     
     // 清空搜索
-    fireEvent.change(searchInput, { target: { value: '' } });
-    fireEvent.click(screen.getByText('全部展开'));
+    await user.clear(searchInput);
+    await user.click(screen.getByText('全部展开'));
     expect(screen.getByText('api_base')).toBeInTheDocument();
     expect(screen.getByText('user_status')).toBeInTheDocument();
   });
 
-  it('shows "未找到匹配的变量" when search has no results', () => {
+  it('shows "未找到匹配的变量" when search has no results', async () => {
+    const user = userEvent.setup();
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
     
     const searchInput = screen.getByPlaceholderText('搜索变量...');
-    fireEvent.change(searchInput, { target: { value: 'nonexistent_var' } });
+    await user.clear(searchInput);
+    await user.type(searchInput, 'nonexistent_var');
     
     expect(screen.getByText('未找到匹配的变量')).toBeInTheDocument();
   });
 
-  it('expands and collapses groups', () => {
+  it('expands and collapses groups', async () => {
+    const user = userEvent.setup();
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
     
     // 点击入口节点分组标题切换展开状态
     const entryGroupHeader = screen.getByText('入口节点').closest('button');
     if (entryGroupHeader) {
-      fireEvent.click(entryGroupHeader);
+      await user.click(entryGroupHeader);
     }
     // 分组状态应该切换（内部状态变化）
     expect(entryGroupHeader).toBeDefined();
@@ -124,55 +132,60 @@ describe('VariablePanel', () => {
     expect(screen.getByText('全部折叠')).toBeInTheDocument();
   });
 
-  it('clicking expand all expands all groups', () => {
+  it('clicking expand all expands all groups', async () => {
+    const user = userEvent.setup();
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
     
     const expandAllBtn = screen.getByText('全部展开');
-    fireEvent.click(expandAllBtn);
+    await user.click(expandAllBtn);
     
     // 分组应该展开
     expect(screen.getByText('api_base')).toBeInTheDocument();
   });
 
-  it('clicking collapse all collapses all groups', () => {
+  it('clicking collapse all collapses all groups', async () => {
+    const user = userEvent.setup();
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
     
     // 先全部展开
     const expandAllBtn = screen.getByText('全部展开');
-    fireEvent.click(expandAllBtn);
+    await user.click(expandAllBtn);
     
     // 再全部折叠
     const collapseAllBtn = screen.getByText('全部折叠');
-    fireEvent.click(collapseAllBtn);
+    await user.click(collapseAllBtn);
     
     // 变量内容应该隐藏
     expect(screen.getByText('入口节点')).toBeInTheDocument();
   });
 
-  it('displays variable description when available', () => {
+  it('displays variable description when available', async () => {
+    const user = userEvent.setup();
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
     
     // 先展开分组
     const expandAllBtn = screen.getByText('全部展开');
-    fireEvent.click(expandAllBtn);
+    await user.click(expandAllBtn);
     
     expect(screen.getByText('API地址')).toBeInTheDocument();
     expect(screen.getByText('状态码')).toBeInTheDocument();
   });
 
-  it('displays variable value type badge', () => {
+  it('displays variable value type badge', async () => {
+    const user = userEvent.setup();
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
     
     // 先展开分组
     const expandAllBtn = screen.getByText('全部展开');
-    fireEvent.click(expandAllBtn);
+    await user.click(expandAllBtn);
     
     // string 类型标签 - 使用 getAllByText 因为有多个
     const stringBadges = screen.getAllByText('string');
     expect(stringBadges.length).toBeGreaterThan(0);
   });
 
-  it('handles flow with only Entry node', () => {
+  it('handles flow with only Entry node', async () => {
+    const user = userEvent.setup();
     const entryOnlyFlow: Flow = {
       ...mockFlow,
       nodes: [mockNodes[0]],
@@ -182,7 +195,7 @@ describe('VariablePanel', () => {
     
     expect(screen.getByText('入口节点')).toBeInTheDocument();
     // 先展开分组
-    fireEvent.click(screen.getByText('全部展开'));
+    await user.click(screen.getByText('全部展开'));
     expect(screen.getByText('api_base')).toBeInTheDocument();
     expect(screen.getByText('1 个变量')).toBeInTheDocument();
   });
@@ -206,7 +219,8 @@ describe('VariablePanel', () => {
     expect(screen.getByText('暂无变量')).toBeInTheDocument();
   });
 
-  it('handles HTTP node output_mappings - all mappings are shown', () => {
+  it('handles HTTP node output_mappings - all mappings are shown', async () => {
+    const user = userEvent.setup();
     const flowWithMappings: Flow = {
       ...mockFlow,
       nodes: [
@@ -233,14 +247,15 @@ describe('VariablePanel', () => {
     
     // 先展开
     const expandAllBtn = screen.getByText('全部展开');
-    fireEvent.click(expandAllBtn);
+    await user.click(expandAllBtn);
     
     // 所有映射都应该显示
     expect(screen.getByText('status_var')).toBeInTheDocument();
     expect(screen.getByText('body_var')).toBeInTheDocument();
   });
 
-  it('truncates long variable values', () => {
+  it('truncates long variable values', async () => {
+    const user = userEvent.setup();
     const longValue = 'a'.repeat(100);
     const flowWithLongValue: Flow = {
       ...mockFlow,
@@ -263,38 +278,42 @@ describe('VariablePanel', () => {
     render(<VariablePanel flow={flowWithLongValue} nodes={flowWithLongValue.nodes} />);
     
     const expandAllBtn = screen.getByText('全部展开');
-    fireEvent.click(expandAllBtn);
+    await user.click(expandAllBtn);
     
     // 长值应该被截断显示
     expect(screen.getByText(/a{50}\.\.\./)).toBeInTheDocument();
   });
 
-  it('searches by description', () => {
+  it('searches by description', async () => {
+    const user = userEvent.setup();
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
     
     const searchInput = screen.getByPlaceholderText('搜索变量...');
     
     // 搜索描述内容 "状态码"
-    fireEvent.change(searchInput, { target: { value: '状态码' } });
+    await user.clear(searchInput);
+    await user.type(searchInput, '状态码');
     
     // 先展开分组
     const expandAllBtn = screen.getByText('全部展开');
-    fireEvent.click(expandAllBtn);
+    await user.click(expandAllBtn);
     
     expect(screen.getByText('user_status')).toBeInTheDocument();
   });
 
-  it('searches by variable value', () => {
+  it('searches by variable value', async () => {
+    const user = userEvent.setup();
     render(<VariablePanel flow={mockFlow} nodes={mockNodes} />);
     
     const searchInput = screen.getByPlaceholderText('搜索变量...');
     
     // 搜索值内容 "api.example.com"
-    fireEvent.change(searchInput, { target: { value: 'example.com' } });
+    await user.clear(searchInput);
+    await user.type(searchInput, 'example.com');
     
     // 先展开分组
     const expandAllBtn = screen.getByText('全部展开');
-    fireEvent.click(expandAllBtn);
+    await user.click(expandAllBtn);
     
     expect(screen.getByText('api_base')).toBeInTheDocument();
   });
