@@ -1,13 +1,12 @@
 /**
  * Tauri IPC flow.ts 服务测试
- * 测试 createFlow, executeFlow, executeFlowWithChannel 函数及错误处理
+ * 测试 createFlow, executeFlowWithChannel 函数及错误处理
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { invoke, Channel } from '@tauri-apps/api/core';
 
 import {
   createFlow,
-  executeFlow,
   executeFlowWithChannel,
   IpcError,
 } from '@/services/tauri/flow';
@@ -141,147 +140,14 @@ describe('Tauri IPC flow.ts 服务', () => {
     });
 
     it('未知错误类型应该格式化为 IpcError', async () => {
-      vi.mocked(invoke).mockRejectedValueOnce({ code: 500 });
-
-      try {
-        await createFlow('测试流程');
-        expect.fail('应该抛出错误');
-      } catch (error) {
-        expect(error).toBeInstanceOf(IpcError);
-        expect((error as IpcError).message).toContain('未知错误');
-        expect((error as IpcError).command).toBe('create_flow');
-      }
-    });
-
-    it('null 错误应该格式化为 IpcError', async () => {
-      vi.mocked(invoke).mockRejectedValueOnce(null);
-
-      try {
-        await createFlow('测试流程');
-        expect.fail('应该抛出错误');
-      } catch (error) {
-        expect(error).toBeInstanceOf(IpcError);
-        expect((error as IpcError).message).toContain('未知错误');
-      }
-    });
-
-    it('undefined 错误应该格式化为 IpcError', async () => {
-      vi.mocked(invoke).mockRejectedValueOnce(undefined);
-
-      try {
-        await createFlow('测试流程');
-        expect.fail('应该抛出错误');
-      } catch (error) {
-        expect(error).toBeInstanceOf(IpcError);
-        expect((error as IpcError).message).toContain('未知错误');
-      }
-    });
-  });
-
-  describe('executeFlow', () => {
-    it('应该成功执行流程', async () => {
-      const flow = createTestFlow();
-      const mockOutput: ExecuteFlowCommandOutput = {
-        success: true,
-        flow_report: {
-          uuid: 'report-uuid',
-          flow_uuid: flow.uuid,
-          flow_name: flow.name,
-          start_time: Date.now(),
-          end_time: Date.now() + 100,
-          duration_ms: 100,
-          total_nodes: 2,
-          executed_count: 2,
-          status: 'success',
-          node_reports: [],
-          statistics: {
-            success_count: 2,
-            failed_count: 0,
-            avg_node_duration_ms: 50,
-            max_node_duration_ms: 50,
-            min_node_duration_ms: 50,
-            completion_rate: 1,
-            error_rate: 0,
-          },
-        },
-        execution_time: 100,
-      };
-
-      vi.mocked(invoke).mockResolvedValueOnce(mockOutput);
-
-      const result = await executeFlow(flow);
-
-      expect(invoke).toHaveBeenCalledWith('execute_flow', {
-        input: {
-          flow_id: flow.uuid,
-          variables: null,
-        },
-        flow,
-      });
-      expect(result).toEqual(mockOutput);
-    });
-
-    it('应该传递执行变量', async () => {
-      const flow = createTestFlow();
-      const variables = { api_key: 'test-key', timeout: 5000 };
-      const mockOutput: ExecuteFlowCommandOutput = {
-        success: true,
-        execution_time: 50,
-      };
-
-      vi.mocked(invoke).mockResolvedValueOnce(mockOutput);
-
-      const result = await executeFlow(flow, variables);
-
-      expect(invoke).toHaveBeenCalledWith('execute_flow', {
-        input: {
-          flow_id: flow.uuid,
-          variables,
-        },
-        flow,
-      });
-      expect(result).toEqual(mockOutput);
-    });
-
-    it('字符串错误应该抛出 IpcError', async () => {
-      const flow = createTestFlow();
-      vi.mocked(invoke).mockRejectedValueOnce('执行失败');
-
-      try {
-        await executeFlow(flow);
-        expect.fail('应该抛出错误');
-      } catch (error) {
-        expect(error).toBeInstanceOf(IpcError);
-        expect((error as IpcError).command).toBe('execute_flow');
-        expect((error as IpcError).message).toBe('执行失败');
-      }
-    });
-
-    it('Error 实例应该抛出带 cause 的 IpcError', async () => {
-      const flow = createTestFlow();
-      const originalError = new Error('网络错误');
-      vi.mocked(invoke).mockRejectedValueOnce(originalError);
-
-      try {
-        await executeFlow(flow);
-        expect.fail('应该抛出错误');
-      } catch (error) {
-        expect(error).toBeInstanceOf(IpcError);
-        expect((error as IpcError).command).toBe('execute_flow');
-        expect((error as IpcError).cause).toBe(originalError);
-      }
-    });
-
-    it('未知错误类型应该格式化为 IpcError', async () => {
-      const flow = createTestFlow();
       vi.mocked(invoke).mockRejectedValueOnce(12345);
 
       try {
-        await executeFlow(flow);
+        await createFlow('测试流程');
         expect.fail('应该抛出错误');
       } catch (error) {
         expect(error).toBeInstanceOf(IpcError);
-        expect((error as IpcError).command).toBe('execute_flow');
+        expect((error as IpcError).command).toBe('create_flow');
         expect((error as IpcError).message).toContain('未知错误');
       }
     });

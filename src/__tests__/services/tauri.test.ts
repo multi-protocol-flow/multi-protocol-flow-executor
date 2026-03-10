@@ -1,10 +1,10 @@
 /**
  * Tauri IPC 封装测试
- * 测试 Mock 服务的 createFlow 和 executeFlow 函数
+ * 测试 Mock 服务的 createFlow 和 executeFlowWithChannel 函数
  */
 
-import { describe, it, expect } from 'vitest';
-import { createFlow, executeFlow } from '@/services/tauri/mock';
+import { describe, it, expect, vi } from 'vitest';
+import { createFlow, executeFlowWithChannel } from '@/services/tauri/mock';
 import type { Flow } from '@/types/flow';
 
 describe('Tauri IPC Mock 服务', () => {
@@ -44,7 +44,7 @@ describe('Tauri IPC Mock 服务', () => {
     });
   });
 
-  describe('executeFlow', () => {
+  describe('executeFlowWithChannel', () => {
     // 创建测试用的流程
     function createTestFlow(withConnection: boolean): Flow {
       const flowId = 'test-flow-id';
@@ -87,7 +87,8 @@ describe('Tauri IPC Mock 服务', () => {
 
     it('有连接时应该执行成功', async () => {
       const flow = createTestFlow(true);
-      const result = await executeFlow(flow);
+      const onLog = vi.fn();
+      const result = await executeFlowWithChannel(flow, onLog);
 
       expect(result.success).toBe(true);
       expect(result.error).toBeUndefined();
@@ -96,13 +97,13 @@ describe('Tauri IPC Mock 服务', () => {
       expect(result.execution_time).toBeGreaterThanOrEqual(0);
     });
 
-    it('无连接时应该返回错误', async () => {
+    it('无连接时应该执行成功（Entry 节点无连接是正常终止）', async () => {
       const flow = createTestFlow(false);
-      const result = await executeFlow(flow);
+      const onLog = vi.fn();
+      const result = await executeFlowWithChannel(flow, onLog);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('无连接');
-      expect(result.flow_report).toBeUndefined();
+      expect(result.success).toBe(true);
+      expect(result.flow_report).toBeDefined();
     });
 
     it('缺少开始节点时应该返回错误', async () => {
@@ -122,24 +123,32 @@ describe('Tauri IPC Mock 服务', () => {
         initial_variables: {},
       };
 
-      const result = await executeFlow(flow);
+      const onLog = vi.fn();
+      const result = await executeFlowWithChannel(flow, onLog);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('流程缺少开始节点');
     });
 
-    it('应该正确处理执行变量', async () => {
+    it('应该调用日志回调', async () => {
       const flow = createTestFlow(true);
-      const variables = { api_key: 'test-key', timeout: 5000 };
+      const onLog = vi.fn();
+      await executeFlowWithChannel(flow, onLog);
 
-      const result = await executeFlow(flow, variables);
-
-      expect(result.success).toBe(true);
+      expect(onLog).toHaveBeenCalled();
+      // 检查是否有流程开始日志
+      expect(onLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          level: 'INFO',
+          message: expect.stringContaining('开始执行'),
+        })
+      );
     });
 
     it('应该返回执行时间', async () => {
       const flow = createTestFlow(true);
-      const result = await executeFlow(flow);
+      const onLog = vi.fn();
+      const result = await executeFlowWithChannel(flow, onLog);
 
       expect(result.execution_time).toBeDefined();
       expect(typeof result.execution_time).toBe('number');
