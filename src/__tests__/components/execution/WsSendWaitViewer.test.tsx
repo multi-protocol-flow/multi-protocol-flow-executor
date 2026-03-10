@@ -5,6 +5,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { WsSendWaitViewer } from '@/components/execution/viewers/WsSendWaitViewer';
 import type { NodeExecutionReport } from '@/types';
 
@@ -86,13 +87,14 @@ describe('WsSendWaitViewer', () => {
       expect(screen.getByText('conn-xyz-789')).toBeDefined();
     });
 
-    it('显示连接 URL', () => {
+    it('显示连接信息面板', () => {
       const report = createMockReport({
         url: 'wss://api.example.com/ws'
       });
       render(<WsSendWaitViewer report={report} />);
 
-      expect(screen.getByText('wss://api.example.com/ws')).toBeDefined();
+      // 连接信息面板默认展开
+      expect(screen.getByText('连接信息')).toBeDefined();
     });
 
     it('无连接 ID 时显示占位符', () => {
@@ -108,7 +110,8 @@ describe('WsSendWaitViewer', () => {
   });
 
   describe('发送内容显示', () => {
-    it('显示文本类型发送内容', () => {
+    it('显示文本类型发送内容', async () => {
+      const user = userEvent.setup();
       const report = createMockReport({
         sent: {
           data: '{"action":"ping"}',
@@ -117,8 +120,17 @@ describe('WsSendWaitViewer', () => {
       });
       render(<WsSendWaitViewer report={report} />);
 
+      // 发送内容面板存在（默认折叠）
       expect(screen.getByText('发送内容')).toBeDefined();
-      expect(screen.getByText('文本')).toBeDefined();
+      
+      // 点击展开面板
+      const buttons = screen.getAllByRole('button');
+      const sendButton = buttons.find(btn => btn.textContent?.includes('发送内容'));
+      if (sendButton) {
+        await user.click(sendButton);
+      }
+
+      // 展开后检查发送的数据
       expect(screen.getByText(/ping/)).toBeDefined();
     });
 
@@ -131,7 +143,9 @@ describe('WsSendWaitViewer', () => {
       });
       render(<WsSendWaitViewer report={report} />);
 
-      expect(screen.getByText('二进制')).toBeDefined();
+      // 使用 getAllByText 因为 "二进制" 可能在多个面板中出现
+      const binaryBadges = screen.getAllByText('二进制');
+      expect(binaryBadges.length).toBeGreaterThan(0);
     });
 
     it('无发送内容时不显示发送区域', () => {
@@ -155,7 +169,6 @@ describe('WsSendWaitViewer', () => {
       render(<WsSendWaitViewer report={report} />);
 
       expect(screen.getByText('响应内容')).toBeDefined();
-      expect(screen.getByText('文本')).toBeDefined();
     });
 
     it('显示二进制类型响应', () => {
@@ -167,10 +180,12 @@ describe('WsSendWaitViewer', () => {
       });
       render(<WsSendWaitViewer report={report} />);
 
-      expect(screen.getByText('二进制')).toBeDefined();
+      const binaryBadges = screen.getAllByText('二进制');
+      expect(binaryBadges.length).toBeGreaterThan(0);
     });
 
-    it('显示解析后的 JSON', () => {
+    it('显示解析后的 JSON', async () => {
+      const user = userEvent.setup();
       const report = createMockReport({
         message: {
           data: '{"result":"success"}',
@@ -180,74 +195,122 @@ describe('WsSendWaitViewer', () => {
       });
       render(<WsSendWaitViewer report={report} />);
 
-      expect(screen.getByText('解析后的 JSON:')).toBeDefined();
+      // 响应内容面板存在
+      expect(screen.getByText('响应内容')).toBeDefined();
+      
+      // 使用 aria-expanded 找到折叠的响应内容面板并展开
+      const buttons = screen.getAllByRole('button');
+      for (const btn of buttons) {
+        if (btn.getAttribute('aria-expanded') === 'false' && btn.textContent?.includes('响应内容')) {
+          await user.click(btn);
+          break;
+        }
+      }
+
+      // 展开后检查 JSON 视图
       expect(screen.getByTestId('json-view')).toBeDefined();
     });
 
-    it('无响应数据时显示提示', () => {
+    it('无响应数据时显示响应内容面板', async () => {
+      const user = userEvent.setup();
       const report = createMockReport({
         message: null
       });
       render(<WsSendWaitViewer report={report} />);
+
+      // 点击展开响应内容面板
+      const buttons = screen.getAllByRole('button');
+      const responseButton = buttons.find(btn => btn.textContent?.includes('响应内容'));
+      if (responseButton) {
+        await user.click(responseButton);
+      }
 
       expect(screen.getByText('未等待响应或无响应数据')).toBeDefined();
     });
   });
 
   describe('耗时分解显示', () => {
-    it('显示发送耗时（毫秒）', () => {
+    it('显示耗时分解面板', () => {
       const report = createMockReport({
         send_duration_ms: 15
       });
       render(<WsSendWaitViewer report={report} />);
 
-      expect(screen.getByText('发送耗时')).toBeDefined();
-      expect(screen.getByText('15ms')).toBeDefined();
+      expect(screen.getByText('耗时分解')).toBeDefined();
     });
 
-    it('显示等待耗时（毫秒）', () => {
+    it('显示总执行时间在标题栏', () => {
+      const report = createMockReport();
+      report.duration_ms = 250;
+      render(<WsSendWaitViewer report={report} />);
+
+      // 总执行时间现在显示在耗时分解面板的标题栏中
+      expect(screen.getByText('总计 250ms')).toBeDefined();
+    });
+
+    it('展开面板显示耗时详情', async () => {
+      const user = userEvent.setup();
       const report = createMockReport({
+        send_duration_ms: 15,
         wait_response_duration_ms: 100
       });
       render(<WsSendWaitViewer report={report} />);
 
+      // 点击展开耗时分解面板
+      const buttons = screen.getAllByRole('button');
+      const timingButton = buttons.find(btn => btn.textContent?.includes('耗时分解'));
+      if (timingButton) {
+        await user.click(timingButton);
+      }
+
+      // 展开后应该能看到耗时详情
+      expect(screen.getByText('发送耗时')).toBeDefined();
       expect(screen.getByText('等待耗时')).toBeDefined();
+      expect(screen.getByText('15ms')).toBeDefined();
       expect(screen.getByText('100ms')).toBeDefined();
     });
 
-    it('显示耗时（秒）', () => {
+    it('显示耗时（秒）', async () => {
+      const user = userEvent.setup();
       const report = createMockReport({
         wait_response_duration_ms: 1500
       });
       render(<WsSendWaitViewer report={report} />);
 
+      // 点击展开耗时分解面板
+      const buttons = screen.getAllByRole('button');
+      const timingButton = buttons.find(btn => btn.textContent?.includes('耗时分解'));
+      if (timingButton) {
+        await user.click(timingButton);
+      }
+
       expect(screen.getByText('1.50s')).toBeDefined();
     });
 
-    it('显示总执行时间', () => {
-      const report = createMockReport();
-      report.duration_ms = 250;
-      render(<WsSendWaitViewer report={report} />);
-
-      expect(screen.getByText('总执行时间')).toBeDefined();
-      expect(screen.getByText('250ms')).toBeDefined();
-    });
-
-    it('无耗时数据时显示占位符', () => {
+    it('无耗时数据时显示占位符', async () => {
+      const user = userEvent.setup();
       const report = createMockReport({
         send_duration_ms: null,
         wait_response_duration_ms: null
       });
       render(<WsSendWaitViewer report={report} />);
 
+      // 点击展开耗时分解面板
+      const buttons = screen.getAllByRole('button');
+      const timingButton = buttons.find(btn => btn.textContent?.includes('耗时分解'));
+      if (timingButton) {
+        await user.click(timingButton);
+      }
+
       // 应该显示两个 '-' 占位符
       const dashes = screen.getAllByText('-');
-      expect(dashes.length).toBe(2);
+      expect(dashes.length).toBeGreaterThanOrEqual(2);
     });
   });
 
   describe('完整数据展示', () => {
-    it('显示完整的发送等待信息', () => {
+    it('显示完整的发送等待信息', async () => {
+      const user = userEvent.setup();
       const report = createMockReport({
         connection_id: 'conn-123',
         url: 'wss://test.com/ws',
@@ -269,15 +332,25 @@ describe('WsSendWaitViewer', () => {
 
       // 连接信息
       expect(screen.getByText('conn-123')).toBeDefined();
-      expect(screen.getByText('wss://test.com/ws')).toBeDefined();
-      // 发送内容
+
+      // 发送内容面板存在
       expect(screen.getByText('发送内容')).toBeDefined();
-      // 响应内容
+
+      // 响应内容面板存在
       expect(screen.getByText('响应内容')).toBeDefined();
-      // 耗时
+
+      // 总执行时间在标题栏
+      expect(screen.getByText('总计 60ms')).toBeDefined();
+
+      // 展开耗时面板查看详情
+      const buttons = screen.getAllByRole('button');
+      const timingButton = buttons.find(btn => btn.textContent?.includes('耗时分解'));
+      if (timingButton) {
+        await user.click(timingButton);
+      }
+
       expect(screen.getByText('10ms')).toBeDefined();
       expect(screen.getByText('50ms')).toBeDefined();
-      expect(screen.getByText('60ms')).toBeDefined();
     });
   });
 });

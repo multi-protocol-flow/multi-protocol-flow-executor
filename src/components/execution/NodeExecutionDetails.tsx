@@ -27,11 +27,18 @@ interface NodeExecutionDetailsProps {
 }
 
 /**
+ * 将 PascalCase 转换为 snake_case
+ */
+function toSnakeCase(str: string): string {
+  return str.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
+}
+
+/**
  * 根据 node_type 选择对应的 Viewer 组件
  */
 function NodeViewerSelector({ report }: NodeExecutionDetailsProps) {
-  // 后端返回的 node_type 可能是 PascalCase（如 "Conditional"），转为小写匹配
-  const nodeType = report.node_type.toLowerCase();
+  // 后端返回的 node_type 可能是 PascalCase（如 "WsConnect"），转为 snake_case 匹配
+  const nodeType = toSnakeCase(report.node_type);
   
   switch (nodeType) {
     case 'http':

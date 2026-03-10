@@ -1,14 +1,59 @@
 /**
- * WebSocket Connect 节点执行数据展示组件
- * 结构化展示 WS Connect 节点的连接信息、耗时分解和首条消息
+ * WsConnectViewer - WebSocket Connect 节点执行详情查看器
+ * 结构化展示连接配置、连接状态、首条消息和耗时分解
  */
-import { Wifi, Clock, MessageSquare, CheckCircle2, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Wifi,
+  Clock,
+  MessageSquare,
+  Globe,
+} from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
 
 interface WsConnectViewerProps {
+  /** 节点执行报告 */
   report: NodeExecutionReport;
+}
+
+/**
+ * 折叠面板组件
+ */
+interface CollapsibleSectionProps {
+  title: string;
+  icon: React.ReactNode;
+  defaultOpen?: boolean;
+  extra?: React.ReactNode;
+  children: React.ReactNode;
+}
+
+function CollapsibleSection({ title, icon, defaultOpen = false, extra, children }: CollapsibleSectionProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center gap-2 p-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+        aria-expanded={isOpen}
+      >
+        <div className="text-muted-foreground">
+          {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </div>
+        <div className="text-muted-foreground">{icon}</div>
+        <span className="font-medium text-foreground text-sm">{title}</span>
+        {extra && <div className="ml-auto">{extra}</div>}
+      </button>
+      {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
+    </div>
+  );
 }
 
 /**
@@ -16,130 +61,192 @@ interface WsConnectViewerProps {
  */
 interface WsConnectOutput {
   success?: boolean;
+  connected?: boolean;
   url?: string;
   connection_id?: string;
   message?: {
     data?: unknown;
     type?: string;
+  } | null;
+  timing?: {
+    connect_ms?: number | null;
+    wait_message_ms?: number | null;
+    total_ms?: number | null;
   };
-  connect_duration_ms?: number;
-  wait_message_duration_ms?: number;
+}
+
+/**
+ * WS Connect 配置数据类型
+ */
+interface WsConnectConfig {
+  url?: string;
+  wait_mode?: string;
+  timeout_ms?: number;
 }
 
 export function WsConnectViewer({ report }: WsConnectViewerProps) {
   const output = report.output_data as WsConnectOutput | undefined;
+  const resolvedConfig = report.resolved_config as WsConnectConfig | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
+  // 配置数据
+  const configUrl = resolvedConfig?.url || output?.url || '';
+  const waitMode = resolvedConfig?.wait_mode || 'none';
+  const timeoutMs = resolvedConfig?.timeout_ms;
+
+  // 输出数据
+  const connectionId = output?.connection_id;
+  const message = output?.message;
+  const connectDuration = output?.timing?.connect_ms;
+  const waitDuration = output?.timing?.wait_message_ms;
+  const totalDuration = output?.timing?.total_ms ?? ((connectDuration || 0) + (waitDuration || 0));
+
   return (
-    <div className="space-y-4">
-      {/* 连接信息 */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <Wifi className="w-4 h-4" />
-          <span>连接信息</span>
-        </div>
-        <div className="pl-6 space-y-2">
-          {/* 连接状态 */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">状态:</span>
-            {isSuccess ? (
-              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                <CheckCircle2 className="w-3 h-3 mr-1" />
-                已连接
-              </Badge>
-            ) : (
-              <Badge className="bg-red-100 text-red-700 border-red-200">
-                <XCircle className="w-3 h-3 mr-1" />
-                连接失败
-              </Badge>
-            )}
+    <div className="space-y-3">
+      {/* 连接配置 */}
+      <CollapsibleSection
+        title="连接配置"
+        icon={<Wifi className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-3">
+          {/* URL */}
+          <div className="flex items-start gap-2">
+            <Badge variant="outline" className="font-mono text-xs text-amber-600 bg-amber-50 border-0">
+              WS
+            </Badge>
+            <code className="flex-1 text-sm font-mono text-slate-700 break-all bg-slate-50 px-2 py-1 rounded">
+              {configUrl || <span className="text-muted-foreground italic">未配置 URL</span>}
+            </code>
           </div>
 
-          {/* URL */}
-          {output?.url && (
-            <div className="flex items-start gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">URL:</span>
-              <code className="text-xs bg-slate-100 px-2 py-1 rounded font-mono break-all">
-                {output.url}
-              </code>
+          {/* 等待模式 */}
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">等待模式:</span>
+            <Badge variant="outline" className="font-mono text-xs">
+              {waitMode === 'none' && '不等待'}
+              {waitMode === 'connect' && '等待连接'}
+              {waitMode === 'message' && '等待消息'}
+              {waitMode === 'both' && '连接+消息'}
+              {!waitMode && '不等待'}
+            </Badge>
+          </div>
+
+          {/* 超时设置 */}
+          {timeoutMs !== undefined && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">超时时间:</span>
+              <Badge variant="secondary" className="font-mono text-xs">
+                {timeoutMs}ms
+              </Badge>
             </div>
           )}
+        </div>
+      </CollapsibleSection>
+
+      {/* 连接状态 */}
+      <CollapsibleSection
+        title="连接状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          {/* 状态 */}
+          <div className="flex items-center gap-3">
+            <Badge className={cn(
+              'font-mono text-base px-3 py-1',
+              isSuccess ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'
+            )}>
+              {isSuccess ? '已连接' : '连接失败'}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              {isSuccess ? 'WebSocket 连接建立成功' : '无法建立 WebSocket 连接'}
+            </span>
+          </div>
 
           {/* 连接 ID */}
-          {output?.connection_id && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">连接 ID:</span>
+          {connectionId && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">连接 ID:</span>
               <code className="text-xs bg-slate-100 px-2 py-1 rounded font-mono">
-                {output.connection_id}
+                {connectionId}
               </code>
             </div>
           )}
         </div>
-      </div>
-
-      {/* 耗时分解 */}
-      {(output?.connect_duration_ms !== undefined || output?.wait_message_duration_ms !== undefined) && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <Clock className="w-4 h-4" />
-            <span>耗时分解</span>
-          </div>
-          <div className="pl-6 space-y-1.5">
-            {output?.connect_duration_ms !== undefined && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">连接耗时:</span>
-                <Badge variant="secondary" className="font-mono text-xs">
-                  {output.connect_duration_ms}ms
-                </Badge>
-              </div>
-            )}
-            {output?.wait_message_duration_ms !== undefined && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">等待消息耗时:</span>
-                <Badge variant="secondary" className="font-mono text-xs">
-                  {output.wait_message_duration_ms}ms
-                </Badge>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      </CollapsibleSection>
 
       {/* 首条消息 */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <MessageSquare className="w-4 h-4" />
-          <span>首条消息</span>
-        </div>
-        <div className="pl-6">
-          {output?.message ? (
-            <div className="space-y-2">
-              {/* 消息类型 */}
-              {output.message.type && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">类型:</span>
-                  <Badge variant="outline" className="font-mono text-xs">
-                    {output.message.type}
-                  </Badge>
+      <CollapsibleSection
+        title="首条消息"
+        icon={<MessageSquare className="w-4 h-4" />}
+        defaultOpen={false}
+        extra={message?.type && (
+          <Badge variant="outline" className="font-mono text-xs">
+            {message.type}
+          </Badge>
+        )}
+      >
+        {message ? (
+          <div className="space-y-2">
+            {/* 消息类型 */}
+            {message.type && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">类型:</span>
+                <Badge variant="outline" className="font-mono text-xs">
+                  {message.type}
+                </Badge>
+              </div>
+            )}
+            {/* 消息数据 */}
+            {message.data !== undefined && (
+              <div>
+                <div className="text-xs font-medium text-muted-foreground mb-1.5">数据</div>
+                <div className="bg-slate-50 rounded p-2">
+                  {typeof message.data === 'string' ? (
+                    <pre className="text-xs text-slate-700 whitespace-pre-wrap break-all">
+                      {message.data}
+                    </pre>
+                  ) : (
+                    <RawJsonViewer data={message.data} />
+                  )}
                 </div>
-              )}
-              {/* 消息数据 */}
-              {output.message.data !== undefined && (
-                <div className="space-y-1">
-                  <span className="text-sm text-muted-foreground">数据:</span>
-                  <pre className="p-3 bg-slate-100 border border-black rounded-lg text-xs overflow-x-auto text-slate-800 max-w-full whitespace-pre-wrap break-all">
-                    {typeof output.message.data === 'string'
-                      ? output.message.data
-                      : JSON.stringify(output.message.data, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">无首条消息</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground italic">无首条消息</p>
+        )}
+      </CollapsibleSection>
+
+      {/* 耗时分解 */}
+      {(connectDuration !== undefined || waitDuration !== undefined) && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={totalDuration > 0 && (
+            <span className="text-xs font-mono text-violet-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
           )}
-        </div>
-      </div>
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            {connectDuration !== undefined && (
+              <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+                <span className="text-muted-foreground">连接耗时</span>
+                <span className="font-mono text-slate-700">{connectDuration}ms</span>
+              </div>
+            )}
+            {waitDuration !== undefined && (
+              <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+                <span className="text-muted-foreground">等待消息</span>
+                <span className="font-mono text-slate-700">{waitDuration}ms</span>
+              </div>
+            )}
+          </div>
+        </CollapsibleSection>
+      )}
 
       {/* 变量变更 */}
       <VariableChangesCard changes={report.variable_changes} />
