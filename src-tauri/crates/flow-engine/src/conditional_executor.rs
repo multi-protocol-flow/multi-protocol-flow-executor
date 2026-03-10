@@ -25,6 +25,30 @@ impl ConditionalNodeExecutor {
         Self
     }
 
+    /// 格式化期望值用于表达式显示
+    ///
+    /// 根据 `expected_value_type` 决定值的显示格式：
+    /// - String 类型：显示带引号
+    /// - 其他类型：显示原始值
+    fn format_expected_value_for_display(
+        value: &serde_json::Value,
+        value_type: Option<&ExpectedValueType>,
+    ) -> String {
+        match value_type {
+            Some(ExpectedValueType::String) => {
+                // String 类型：确保显示带引号
+                match value {
+                    serde_json::Value::String(s) => format!("\"{}\"", s),
+                    _ => format!("\"{}\"", value),
+                }
+            }
+            _ => {
+                // 其他类型：使用原始 to_string
+                value.to_string()
+            }
+        }
+    }
+
     /// 根据类型解析期望值
     ///
     /// # 参数
@@ -171,6 +195,17 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 // 提取字段值（传入 last_node_output 用于 jsonpath 提取）
                 let actual_value = self.extract_field_value(&variables, context.last_node_output.as_ref(), field_path)?;
 
+                // 解析 expected_value_type
+                let expected_value_type = conditional_config
+                    .expected_value_type
+                    .as_ref()
+                    .and_then(|v| serde_json::from_value::<ExpectedValueType>(v.clone()).ok());
+
+                // 格式化期望值用于显示（根据类型决定是否带引号）
+                let expected_value_display = conditional_config.expected_value.as_ref()
+                    .map(|v| Self::format_expected_value_for_display(v, expected_value_type.as_ref()))
+                    .unwrap_or_else(|| "null".to_string());
+
                 // 构建 expression 字符串：原始表达式
                 let expression = format!(
                     "{} {} {}",
@@ -187,9 +222,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                         ConditionOperator::EndsWith => "endsWith",
                         ConditionOperator::Exists => "exists",
                     },
-                    conditional_config.expected_value.as_ref()
-                        .map(|v| v.to_string())
-                        .unwrap_or_else(|| "null".to_string())
+                    expected_value_display
                 );
 
                 // 构建 evaluated_value 字符串：实际评估的表达式
@@ -208,9 +241,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                         ConditionOperator::EndsWith => "endsWith",
                         ConditionOperator::Exists => "exists",
                     },
-                    conditional_config.expected_value.as_ref()
-                        .map(|v| v.to_string())
-                        .unwrap_or_else(|| "null".to_string())
+                    expected_value_display
                 );
 
                 // 评估条件（传入 last_node_output 用于 jsonpath 提取）

@@ -30,7 +30,10 @@ interface NodeExecutionDetailsProps {
  * 根据 node_type 选择对应的 Viewer 组件
  */
 function NodeViewerSelector({ report }: NodeExecutionDetailsProps) {
-  switch (report.node_type) {
+  // 后端返回的 node_type 可能是 PascalCase（如 "Conditional"），转为小写匹配
+  const nodeType = report.node_type.toLowerCase();
+  
+  switch (nodeType) {
     case 'http':
       return <HttpNodeViewer report={report} />;
     case 'ws_connect':
