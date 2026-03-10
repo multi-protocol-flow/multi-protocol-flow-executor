@@ -74,8 +74,11 @@ interface WsSendWaitOutput {
     type: 'text' | 'binary';
     parsed?: unknown;
   } | null;
-  send_duration_ms?: number | null;
-  wait_response_duration_ms?: number | null;
+  timing?: {
+    send_ms?: number | null;
+    wait_response_ms?: number | null;
+    total_ms?: number | null;
+  };
   error?: string;
 }
 
@@ -124,8 +127,8 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
   const connectionId = outputData?.connection_id || configConnectionId;
   const sentData = outputData?.sent;
   const messageData = outputData?.message;
-  const sendDuration = outputData?.send_duration_ms;
-  const waitDuration = outputData?.wait_response_duration_ms;
+  const sendDuration = outputData?.timing?.send_ms;
+  const waitDuration = outputData?.timing?.wait_response_ms;
 
   return (
     <div className="space-y-3">

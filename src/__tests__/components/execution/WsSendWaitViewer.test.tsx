@@ -232,7 +232,7 @@ describe('WsSendWaitViewer', () => {
   describe('耗时分解显示', () => {
     it('显示耗时分解面板', () => {
       const report = createMockReport({
-        send_duration_ms: 15
+        timing: { send_ms: 15 }
       });
       render(<WsSendWaitViewer report={report} />);
 
@@ -251,8 +251,7 @@ describe('WsSendWaitViewer', () => {
     it('展开面板显示耗时详情', async () => {
       const user = userEvent.setup();
       const report = createMockReport({
-        send_duration_ms: 15,
-        wait_response_duration_ms: 100
+        timing: { send_ms: 15, wait_response_ms: 100 }
       });
       render(<WsSendWaitViewer report={report} />);
 
@@ -273,7 +272,7 @@ describe('WsSendWaitViewer', () => {
     it('显示耗时（秒）', async () => {
       const user = userEvent.setup();
       const report = createMockReport({
-        wait_response_duration_ms: 1500
+        timing: { wait_response_ms: 1500 }
       });
       render(<WsSendWaitViewer report={report} />);
 
@@ -290,8 +289,7 @@ describe('WsSendWaitViewer', () => {
     it('无耗时数据时显示占位符', async () => {
       const user = userEvent.setup();
       const report = createMockReport({
-        send_duration_ms: null,
-        wait_response_duration_ms: null
+        timing: { send_ms: null, wait_response_ms: null }
       });
       render(<WsSendWaitViewer report={report} />);
 
@@ -324,8 +322,7 @@ describe('WsSendWaitViewer', () => {
           type: 'text',
           parsed: { result: 'subscribed' }
         },
-        send_duration_ms: 10,
-        wait_response_duration_ms: 50
+        timing: { send_ms: 10, wait_response_ms: 50 }
       });
       report.duration_ms = 60;
       render(<WsSendWaitViewer report={report} />);

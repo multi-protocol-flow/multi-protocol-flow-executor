@@ -148,7 +148,7 @@ describe('WsConnectViewer', () => {
     it('显示等待消息耗时', async () => {
       const user = userEvent.setup();
       const report = createMockReport({
-        timing: { wait_message_ms: 200 }
+        timing: { wait_response_ms: 200 }
       });
       render(<WsConnectViewer report={report} />);
 
@@ -166,7 +166,7 @@ describe('WsConnectViewer', () => {
     it('显示所有耗时信息', async () => {
       const user = userEvent.setup();
       const report = createMockReport({
-        timing: { connect_ms: 30, wait_message_ms: 150 }
+        timing: { connect_ms: 30, wait_response_ms: 150 }
       });
       render(<WsConnectViewer report={report} />);
 
@@ -269,7 +269,7 @@ describe('WsConnectViewer', () => {
         success: true,
         url: 'wss://example.com/socket',
         connection_id: 'conn-abc-123',
-        timing: { connect_ms: 45, wait_message_ms: 120 },
+        timing: { connect_ms: 45, wait_response_ms: 120 },
         message: {
           type: 'text',
           data: '{"status":"ok"}'

@@ -121,18 +121,18 @@ impl NodeExecutor for WsConnectExecutor {
                 } else {
                     (false, None)
                 };
-                let wait_message_duration_ms = if config.wait_for_message && !wait_timed_out {
-                    Some(wait_start.elapsed().as_millis() as u64)
-                } else {
-                    None
-                };
+        let wait_response_duration_ms = if config.wait_for_message && !wait_timed_out {
+            Some(wait_start.elapsed().as_millis() as u64)
+        } else {
+            None
+        };
 
                 // 6. 构建输出数据
                 let output_data = self.build_output_data(
                     &node.uuid,
                     &url,
                     connect_duration_ms,
-                    wait_message_duration_ms,
+                    wait_response_duration_ms,
                     wait_timed_out,
                     message_data,
                     start_time.elapsed().as_millis() as u64,
@@ -217,8 +217,7 @@ impl NodeExecutor for WsConnectExecutor {
                     },
                     "timing": {
                         "connect_ms": serde_json::Value::Null,
-                        "handshake_ms": serde_json::Value::Null,
-                        "wait_message_ms": serde_json::Value::Null,
+                        "wait_response_ms": serde_json::Value::Null,
                         "total_ms": start_time.elapsed().as_millis() as u64,
                     },
                     "wait_timed_out": false,
@@ -394,7 +393,7 @@ impl WsConnectExecutor {
         uuid: &str,
         url: &str,
         connect_duration_ms: u64,
-        wait_message_duration_ms: Option<u64>,
+        wait_response_duration_ms: Option<u64>,
         wait_timed_out: bool,
         message_data: Option<String>,
         duration_ms: u64,
@@ -417,12 +416,9 @@ impl WsConnectExecutor {
                 "message_timeout_ms": config.message_timeout_ms,
             },
             // 耗时分解（与 HTTP 的 timing 结构对应）
-            // 注意：由于 tokio-tungstenite 的 connect_async 是原子操作，
-            // 无法分解 DNS/TCP/TLS/握手各阶段耗时，handshake_ms 设为 null
             "timing": {
                 "connect_ms": connect_duration_ms,
-                "handshake_ms": serde_json::Value::Null, // 无法获取，保持 null
-                "wait_message_ms": wait_message_duration_ms,
+                "wait_response_ms": wait_response_duration_ms,
                 "total_ms": duration_ms,
             },
             "wait_timed_out": wait_timed_out,
