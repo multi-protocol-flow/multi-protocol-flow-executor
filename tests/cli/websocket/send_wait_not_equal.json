@@ -1,0 +1,97 @@
+{
+  "uuid": "demo-ws-testing",
+  "name": "WebSocket节点示例流程",
+  "initial_variables": {},
+  "nodes": [
+    {
+      "uuid": "entry-ws-001",
+      "type": "entry",
+      "name": "入口",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "type": "entry"
+      }
+    },
+    {
+      "uuid": "ws-connect-001",
+      "type": "ws_connect",
+      "name": "连接WebSocket",
+      "position": {
+        "x": 250,
+        "y": 0
+      },
+      "data": {
+        "type": "ws_connect",
+        "url": "wss://echo.websocket.org",
+        "connect_timeout_ms": 10000,
+        "wait_for_message": false,
+        "message_timeout_ms": 5000
+      }
+    },
+    {
+      "uuid": "ws-send-wait-001",
+      "type": "ws_send_wait",
+      "name": "发送消息并等待响应",
+      "position": {
+        "x": 500,
+        "y": 0
+      },
+      "data": {
+        "type": "ws_send_wait",
+        "connection_id": "ws-connect-001",
+        "message": "{\"action\":\"ping\",\"data\":\"Hello WebSocket!\"}",
+        "message_type": "text",
+        "send_timeout_ms": 5000,
+        "wait_for_response": true,
+        "wait_mode": "first_message",
+        "message_timeout_ms": 1000
+      }
+    },
+    {
+      "uuid": "ws-close-001",
+      "type": "ws_close",
+      "name": "关闭连接",
+      "position": {
+        "x": 750,
+        "y": 0
+      },
+      "data": {
+        "type": "ws_close",
+        "connection_id": "ws-connect-001",
+        "close_code": 1000,
+        "close_reason": "Normal closure",
+        "wait_close_timeout_ms": 5000
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-ws-1",
+      "source_node_uuid": "entry-ws-001",
+      "target_node_uuid": "ws-connect-001",
+      "source_port_id": "out",
+      "target_port_id": "in"
+    },
+    {
+      "id": "conn-ws-2",
+      "source_node_uuid": "ws-connect-001",
+      "target_node_uuid": "ws-send-wait-001",
+      "source_port_id": "true",
+      "target_port_id": "in"
+    },
+    {
+      "id": "conn-ws-3",
+      "source_node_uuid": "ws-send-wait-001",
+      "target_node_uuid": "ws-close-001",
+      "source_port_id": "true",
+      "target_port_id": "in"
+    }
+  ],
+  "_meta": {
+    "version": 5,
+    "isBuiltin": true
+  }
+}
