@@ -53,14 +53,10 @@ interface UIState {
   isContextVariablesCollapsed: boolean;
   /** 执行堆栈是否折叠 */
   isExecutionStackCollapsed: boolean;
-  /** 最近节点输出是否折叠 */
-  isRecentOutputCollapsed: boolean;
   /** WebSocket 消息流是否折叠 */
   isWsStreamCollapsed: boolean;
   /** 执行堆栈高度（像素） */
   executionStackHeight: number;
-  /** 最近节点输出高度（像素） */
-  recentOutputHeight: number;
   /** WebSocket 消息流高度（像素） */
   wsStreamHeight: number;
 
@@ -147,14 +143,10 @@ interface UIState {
   toggleContextVariablesCollapsed: () => void;
   /** 切换执行堆栈折叠状态 */
   toggleExecutionStackCollapsed: () => void;
-  /** 切换最近节点输出折叠状态 */
-  toggleRecentOutputCollapsed: () => void;
   /** 切换 WebSocket 消息流折叠状态 */
   toggleWsStreamCollapsed: () => void;
   /** 设置执行堆栈高度 */
   setExecutionStackHeight: (height: number) => void;
-  /** 设置最近节点输出高度 */
-  setRecentOutputHeight: (height: number) => void;
   /** 设置 WebSocket 消息流高度 */
   setWsStreamHeight: (height: number) => void;
 
@@ -201,10 +193,8 @@ const initialState = {
   // 调试面板折叠状态
   isContextVariablesCollapsed: false,
   isExecutionStackCollapsed: false,
-  isRecentOutputCollapsed: false,
   isWsStreamCollapsed: false,
   executionStackHeight: 192,
-  recentOutputHeight: 192,
   wsStreamHeight: 200,
 
   // 模态框状态
@@ -327,11 +317,6 @@ export const useUIStore = create<UIState>((set) => ({
       isExecutionStackCollapsed: !state.isExecutionStackCollapsed,
     })),
 
-  toggleRecentOutputCollapsed: () =>
-    set((state) => ({
-      isRecentOutputCollapsed: !state.isRecentOutputCollapsed,
-    })),
-
   toggleWsStreamCollapsed: () =>
     set((state) => ({
       isWsStreamCollapsed: !state.isWsStreamCollapsed,
@@ -340,11 +325,6 @@ export const useUIStore = create<UIState>((set) => ({
   setExecutionStackHeight: (height) =>
     set({
       executionStackHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
-    }),
-
-  setRecentOutputHeight: (height) =>
-    set({
-      recentOutputHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
     }),
 
   setWsStreamHeight: (height) =>
@@ -388,10 +368,8 @@ export const useUIStore = create<UIState>((set) => ({
       variablePanelHeight: 200,
       isContextVariablesCollapsed: false,
       isExecutionStackCollapsed: false,
-      isRecentOutputCollapsed: false,
       isWsStreamCollapsed: false,
       executionStackHeight: 192,
-      recentOutputHeight: 192,
       wsStreamHeight: 200,
     }),
 }));

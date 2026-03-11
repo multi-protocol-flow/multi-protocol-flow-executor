@@ -29,7 +29,6 @@ describe('DebugPanel', () => {
   const mockModifyNodeConfig = vi.fn();
   const mockToggleContextVariablesCollapsed = vi.fn();
   const mockToggleExecutionStackCollapsed = vi.fn();
-  const mockToggleRecentOutputCollapsed = vi.fn();
 
   const defaultDebugState = {
     status: 'idle',
@@ -37,7 +36,6 @@ describe('DebugPanel', () => {
     isDebugDataReadOnly: false,
     variables: {},
     executionStack: [],
-    currentNodeOutput: null,
     tempNodeConfigs: {},
     modifyNodeConfig: mockModifyNodeConfig,
   };
@@ -70,14 +68,10 @@ describe('DebugPanel', () => {
   const defaultUIState = {
     isContextVariablesCollapsed: false,
     isExecutionStackCollapsed: false,
-    isRecentOutputCollapsed: false,
     executionStackHeight: 200,
-    recentOutputHeight: 150,
     toggleContextVariablesCollapsed: mockToggleContextVariablesCollapsed,
     toggleExecutionStackCollapsed: mockToggleExecutionStackCollapsed,
-    toggleRecentOutputCollapsed: mockToggleRecentOutputCollapsed,
     setExecutionStackHeight: vi.fn(),
-    setRecentOutputHeight: vi.fn(),
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -120,13 +114,6 @@ describe('DebugPanel', () => {
 
       // 验证执行堆栈标题存在
       expect(screen.getByText('执行堆栈')).toBeDefined();
-    });
-
-    it('应该渲染最近节点输出区域', () => {
-      render(<DebugPanel />);
-
-      // 验证最近节点输出标题存在
-      expect(screen.getByText('最近节点输出')).toBeDefined();
     });
   });
 
@@ -340,28 +327,6 @@ describe('DebugPanel', () => {
     });
   });
 
-  describe('最近节点输出显示', () => {
-    it('当无输出时应该显示提示信息', () => {
-      mockStores({ currentNodeOutput: null });
-
-      render(<DebugPanel />);
-
-      // 验证无输出提示
-      expect(screen.getByText('暂无输出')).toBeDefined();
-    });
-
-    it('应该显示节点输出', () => {
-      mockStores({
-        currentNodeOutput: { status: 200, body: { id: 1 } },
-      });
-
-      render(<DebugPanel />);
-
-      // 验证输出内容显示（JSON 格式）
-      expect(screen.getByText(/"status": 200/)).toBeDefined();
-    });
-  });
-
   describe('折叠面板交互', () => {
     it('点击上下文变量标题应该触发折叠切换', async () => {
       const user = userEvent.setup();
@@ -385,18 +350,6 @@ describe('DebugPanel', () => {
 
       // 验证折叠函数被调用
       expect(mockToggleExecutionStackCollapsed).toHaveBeenCalled();
-    });
-
-    it('点击最近节点输出标题应该触发折叠切换', async () => {
-      const user = userEvent.setup();
-      render(<DebugPanel />);
-
-      // 点击最近节点输出标题
-      const header = screen.getByRole('button', { name: /折叠 最近节点输出/ });
-      await user.click(header);
-
-      // 验证折叠函数被调用
-      expect(mockToggleRecentOutputCollapsed).toHaveBeenCalled();
     });
   });
 

@@ -519,9 +519,7 @@ describe('UIStore - resetPanels 完整测试', () => {
       variablePanelHeight: 350,
       isContextVariablesCollapsed: true,
       isExecutionStackCollapsed: true,
-      isRecentOutputCollapsed: true,
       executionStackHeight: 250,
-      recentOutputHeight: 280,
     });
   });
 
@@ -546,9 +544,7 @@ describe('UIStore - resetPanels 完整测试', () => {
     // 调试面板状态
     expect(state.isContextVariablesCollapsed).toBe(false);
     expect(state.isExecutionStackCollapsed).toBe(false);
-    expect(state.isRecentOutputCollapsed).toBe(false);
     expect(state.executionStackHeight).toBe(192);
-    expect(state.recentOutputHeight).toBe(192);
   });
 
   it('resetPanels 不影响布局尺寸', () => {

@@ -390,7 +390,6 @@ export function DebugPanel() {
   const isDebugDataReadOnly = useDebugStore(selectIsDebugDataReadOnly);
   const variables = useDebugStore((state) => state.variables);
   const executionStack = useDebugStore((state) => state.executionStack);
-  const currentNodeOutput = useDebugStore((state) => state.currentNodeOutput);
   const tempNodeConfigs = useDebugStore((state) => state.tempNodeConfigs);
   const modifyNodeConfig = useDebugStore((state) => state.modifyNodeConfig);
 
@@ -400,17 +399,13 @@ export function DebugPanel() {
   // 调试面板折叠状态
   const isContextVariablesCollapsed = useUIStore((state) => state.isContextVariablesCollapsed);
   const isExecutionStackCollapsed = useUIStore((state) => state.isExecutionStackCollapsed);
-  const isRecentOutputCollapsed = useUIStore((state) => state.isRecentOutputCollapsed);
   const isWsStreamCollapsed = useUIStore((state) => state.isWsStreamCollapsed);
   const executionStackHeight = useUIStore((state) => state.executionStackHeight);
-  const recentOutputHeight = useUIStore((state) => state.recentOutputHeight);
   const wsStreamHeight = useUIStore((state) => state.wsStreamHeight);
   const toggleContextVariablesCollapsed = useUIStore((state) => state.toggleContextVariablesCollapsed);
   const toggleExecutionStackCollapsed = useUIStore((state) => state.toggleExecutionStackCollapsed);
-  const toggleRecentOutputCollapsed = useUIStore((state) => state.toggleRecentOutputCollapsed);
   const toggleWsStreamCollapsed = useUIStore((state) => state.toggleWsStreamCollapsed);
   const setExecutionStackHeight = useUIStore((state) => state.setExecutionStackHeight);
-  const setRecentOutputHeight = useUIStore((state) => state.setRecentOutputHeight);
   const setWsStreamHeight = useUIStore((state) => state.setWsStreamHeight);
 
   // 获取当前节点信息
@@ -484,17 +479,6 @@ export function DebugPanel() {
   // 检查当前节点是否有临时配置
   const hasTempConfig = currentNode && tempNodeConfigs[currentNode.uuid] !== undefined;
 
-  // 复制输出到剪贴板
-  const handleCopyOutput = async () => {
-    if (!currentNodeOutput) return;
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(currentNodeOutput, null, 2));
-      toast.success('已复制到剪贴板');
-    } catch (error) {
-      toast.error('复制失败');
-    }
-  };
-
   // 跳转到指定节点
   const handleNavigateToNode = (uuid: string) => {
     focusOnNode(uuid);
@@ -534,19 +518,6 @@ export function DebugPanel() {
         <div className="p-4 text-sm text-slate-400 text-center">暂无执行记录</div>
       )}
     </>
-  );
-
-  // 渲染最近节点输出内容
-  const renderRecentOutputContent = () => (
-    <div className="p-3">
-      {currentNodeOutput ? (
-        <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap break-words">
-          {JSON.stringify(currentNodeOutput, null, 2)}
-        </pre>
-      ) : (
-        <div className="text-sm text-slate-400 text-center italic">暂无输出</div>
-      )}
-    </div>
   );
 
   return (
@@ -615,7 +586,7 @@ export function DebugPanel() {
         {renderVariablesContent()}
       </CollapsiblePanel>
 
-      {/* ===== 底部面板区：最近节点输出固定在底部 ===== */}
+      {/* ===== 底部面板区 ===== */}
       <div
         className="flex flex-col mt-auto shrink-0 overflow-hidden"
         style={{ maxHeight: maxBottomPanelHeight }}
@@ -630,7 +601,7 @@ export function DebugPanel() {
             height={executionStackHeight}
             onHeightChange={setExecutionStackHeight}
             resizable={!isExecutionStackCollapsed}
-            maxHeight={maxBottomPanelHeight - recentOutputHeight - 32}
+            maxHeight={maxBottomPanelHeight - 32}
             className="border-t border-border"
             headerRight={
               <span className="text-xs text-slate-400 font-normal">
@@ -649,42 +620,12 @@ export function DebugPanel() {
             height={wsStreamHeight}
             onHeightChange={setWsStreamHeight}
             resizable={!isWsStreamCollapsed}
-            maxHeight={maxBottomPanelHeight - recentOutputHeight - 32}
+            maxHeight={maxBottomPanelHeight - 32}
             className="border-t border-border"
           >
             <WsMessageStreamPanel />
           </CollapsiblePanel>
         </div>
-
-        {/* 最近节点输出 - 固定在底部 */}
-        <CollapsiblePanel
-          title="最近节点输出"
-          isCollapsed={isRecentOutputCollapsed}
-          onToggle={toggleRecentOutputCollapsed}
-          height={recentOutputHeight}
-          onHeightChange={setRecentOutputHeight}
-          resizable={!isRecentOutputCollapsed}
-          maxHeight={maxBottomPanelHeight}
-          className="border-t border-border shrink-0"
-          headerRight={
-            currentNodeOutput !== null && currentNodeOutput !== undefined ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCopyOutput();
-                }}
-                className="h-5 px-1.5 text-xs"
-              >
-                <Copy className="w-3 h-3 mr-1" />
-                复制
-              </Button>
-            ) : undefined
-          }
-        >
-          {renderRecentOutputContent()}
-        </CollapsiblePanel>
       </div>
 
       {/* 节点配置编辑弹窗 */}
