@@ -107,6 +107,7 @@ mod tests {
             final_variables: Some(serde_json::json!({"api_key": "test", "response": "ok"})),
             execution_path: vec!["node-1".to_string(), "node-2".to_string()],
             skipped_nodes: vec![],
+            ws_streams: vec![],
         }
     }
 

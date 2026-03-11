@@ -18,6 +18,7 @@ pub mod statistics;
 pub mod storage;
 pub mod variable;
 pub mod websocket_manager;
+pub mod ws_stream;
 
 // Wave 3: 执行器模块（需要修改 Tauri 依赖）
 pub mod context;
@@ -38,6 +39,11 @@ pub use traits::{
     AppDirProvider, DefaultAppDirProvider, DirectoryOpener, NoopDirectoryOpener,
     ConsoleLogSender, LogSender, NoopLogSender,
     QueuedLogSender, UnderlyingLogSender, LogWorker,
+};
+
+// Re-export ws_stream types
+pub use ws_stream::{
+    MessageDirection, MessageContent, WsMessage, WsStreamSegment, WsConnectionStream,
 };
 
 // ============================================================================

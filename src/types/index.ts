@@ -95,3 +95,14 @@ export type {
   DebugEvent,
   DebugSessionState,
 } from './debug';
+
+// WebSocket 流类型
+export type {
+  MessageDirection,
+  MessageContent,
+  WsMessage,
+  WsStreamSegment,
+  WsSegmentSummary,
+  WsConnectionStream,
+  WsStreamSummary,
+} from './ws_stream';

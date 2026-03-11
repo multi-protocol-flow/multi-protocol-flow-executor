@@ -117,6 +117,86 @@ pub struct SkippedNodeInfo {
     pub reason: String,
 }
 
+/// WebSocket 消息流段摘要
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct WsSegmentSummary {
+    /// 节点 UUID
+    pub node_uuid: String,
+    /// 节点名称
+    pub node_name: String,
+    /// 节点类型 (ws_connect, ws_send_wait, ws_close)
+    pub node_type: String,
+    /// 消息数量
+    pub message_count: usize,
+}
+
+/// WebSocket 连接消息流摘要
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct WsStreamSummary {
+    /// 连接 ID
+    pub connection_id: String,
+    /// WebSocket URL
+    pub url: String,
+    /// 接收消息总数
+    pub total_received: usize,
+    /// 发送消息总数
+    pub total_sent: usize,
+    /// 丢弃消息数
+    pub dropped_messages: usize,
+    /// 消息流段摘要列表
+    pub segments: Vec<WsSegmentSummary>,
+}
+
+impl From<&crate::ws_stream::WsStreamSegment> for WsSegmentSummary {
+    fn from(segment: &crate::ws_stream::WsStreamSegment) -> Self {
+        Self {
+            node_uuid: segment.node_uuid.clone(),
+            node_name: segment.node_name.clone(),
+            node_type: segment.node_type.clone(),
+            message_count: segment.messages.len(),
+        }
+    }
+}
+
+impl From<&crate::ws_stream::WsConnectionStream> for WsStreamSummary {
+    fn from(stream: &crate::ws_stream::WsConnectionStream) -> Self {
+        use crate::ws_stream::MessageDirection;
+
+        // 统计接收和发送的消息数量
+        let mut total_received = 0;
+        let mut total_sent = 0;
+
+        for segment in &stream.segments {
+            for msg in &segment.messages {
+                match msg.direction {
+                    MessageDirection::Received => total_received += 1,
+                    MessageDirection::Sent => total_sent += 1,
+                }
+            }
+        }
+
+        // 统计丢弃的消息数量
+        let dropped_messages: usize = stream
+            .segments
+            .iter()
+            .map(|s| s.dropped_message_count)
+            .sum();
+
+        // 转换段摘要
+        let segments: Vec<WsSegmentSummary> =
+            stream.segments.iter().map(WsSegmentSummary::from).collect();
+
+        Self {
+            connection_id: stream.connection_id.clone(),
+            url: stream.url.clone(),
+            total_received,
+            total_sent,
+            dropped_messages,
+            segments,
+        }
+    }
+}
+
 /// 流程执行报告
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FlowExecutionReport {
@@ -159,4 +239,246 @@ pub struct FlowExecutionReport {
     /// 跳过的节点及原因
     #[serde(default)]
     pub skipped_nodes: Vec<SkippedNodeInfo>,
+    /// WebSocket 消息流摘要列表
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ws_streams: Vec<WsStreamSummary>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ws_stream::{
+        MessageContent, MessageDirection, WsConnectionStream, WsMessage, WsStreamSegment,
+    };
+
+    /// 测试 WsSegmentSummary 序列化
+    #[test]
+    fn test_ws_segment_summary_serialization() {
+        let summary = WsSegmentSummary {
+            node_uuid: "node-1".to_string(),
+            node_name: "Connect Node".to_string(),
+            node_type: "ws_connect".to_string(),
+            message_count: 5,
+        };
+
+        let json = serde_json::to_string(&summary).expect("序列化失败");
+        assert!(json.contains("node-1"));
+        assert!(json.contains("Connect Node"));
+        assert!(json.contains("ws_connect"));
+        assert!(json.contains("5"));
+    }
+
+    /// 测试 WsStreamSummary 序列化
+    #[test]
+    fn test_ws_stream_summary_serialization() {
+        let summary = WsStreamSummary {
+            connection_id: "conn-1".to_string(),
+            url: "wss://example.com/ws".to_string(),
+            total_received: 3,
+            total_sent: 2,
+            dropped_messages: 1,
+            segments: vec![WsSegmentSummary {
+                node_uuid: "node-1".to_string(),
+                node_name: "Connect".to_string(),
+                node_type: "ws_connect".to_string(),
+                message_count: 5,
+            }],
+        };
+
+        let json = serde_json::to_string(&summary).expect("序列化失败");
+        assert!(json.contains("conn-1"));
+        assert!(json.contains("wss://example.com/ws"));
+        assert!(json.contains("total_received"));
+        assert!(json.contains("total_sent"));
+        assert!(json.contains("dropped_messages"));
+        assert!(json.contains("segments"));
+    }
+
+    /// 测试 WsSegmentSummary::from
+    #[test]
+    fn test_ws_segment_summary_from_segment() {
+        let mut segment = WsStreamSegment::new(
+            "node-1".to_string(),
+            "Test Node".to_string(),
+            "ws_connect".to_string(),
+        );
+
+        // 添加 3 条消息
+        for i in 0..3 {
+            let msg = WsMessage::new(
+                MessageDirection::Sent,
+                MessageContent::Text {
+                    content: format!("msg-{}", i),
+                },
+            );
+            segment.push_message(msg).unwrap();
+        }
+
+        let summary = WsSegmentSummary::from(&segment);
+
+        assert_eq!(summary.node_uuid, "node-1");
+        assert_eq!(summary.node_name, "Test Node");
+        assert_eq!(summary.node_type, "ws_connect");
+        assert_eq!(summary.message_count, 3);
+    }
+
+    /// 测试 WsStreamSummary::from
+    #[test]
+    fn test_ws_stream_summary_from_stream() {
+        let mut stream =
+            WsConnectionStream::new("conn-1".to_string(), "wss://example.com/ws".to_string());
+
+        // 创建初始段
+        stream.create_initial_segment(
+            "node-1".to_string(),
+            "Connect".to_string(),
+            "ws_connect".to_string(),
+        );
+
+        // 添加发送消息
+        let sent_msg = WsMessage::new(
+            MessageDirection::Sent,
+            MessageContent::Text {
+                content: "hello".to_string(),
+            },
+        );
+        stream.push_message(sent_msg).unwrap();
+
+        // 添加接收消息
+        let received_msg = WsMessage::new(
+            MessageDirection::Received,
+            MessageContent::Text {
+                content: "world".to_string(),
+            },
+        );
+        stream.push_message(received_msg).unwrap();
+
+        let summary = WsStreamSummary::from(&stream);
+
+        assert_eq!(summary.connection_id, "conn-1");
+        assert_eq!(summary.url, "wss://example.com/ws");
+        assert_eq!(summary.total_sent, 1);
+        assert_eq!(summary.total_received, 1);
+        assert_eq!(summary.dropped_messages, 0);
+        assert_eq!(summary.segments.len(), 1);
+        assert_eq!(summary.segments[0].node_uuid, "node-1");
+    }
+
+    /// 测试 WsStreamSummary::from 多段场景
+    #[test]
+    fn test_ws_stream_summary_from_stream_multiple_segments() {
+        let mut stream =
+            WsConnectionStream::new("conn-1".to_string(), "wss://example.com/ws".to_string());
+
+        // 创建初始段
+        stream.create_initial_segment(
+            "node-1".to_string(),
+            "Connect".to_string(),
+            "ws_connect".to_string(),
+        );
+
+        // 添加 2 条发送消息
+        for i in 0..2 {
+            let msg = WsMessage::new(
+                MessageDirection::Sent,
+                MessageContent::Text {
+                    content: format!("msg-{}", i),
+                },
+            );
+            stream.push_message(msg).unwrap();
+        }
+
+        // 转移所有权
+        stream.transfer_ownership(
+            "node-2".to_string(),
+            "SendWait".to_string(),
+            "ws_send_wait".to_string(),
+        );
+
+        // 添加 1 条接收消息
+        let msg = WsMessage::new(
+            MessageDirection::Received,
+            MessageContent::Text {
+                content: "response".to_string(),
+            },
+        );
+        stream.push_message(msg).unwrap();
+
+        let summary = WsStreamSummary::from(&stream);
+
+        assert_eq!(summary.total_sent, 2);
+        assert_eq!(summary.total_received, 1);
+        assert_eq!(summary.segments.len(), 2);
+        assert_eq!(summary.segments[0].node_uuid, "node-1");
+        assert_eq!(summary.segments[1].node_uuid, "node-2");
+    }
+
+    /// 测试 FlowExecutionReport 的 ws_streams 字段序列化（空时跳过）
+    #[test]
+    fn test_flow_report_ws_streams_skip_when_empty() {
+        let report = FlowExecutionReport {
+            uuid: "test-uuid".to_string(),
+            flow_uuid: "flow-uuid".to_string(),
+            flow_name: "Test".to_string(),
+            start_time: 1000,
+            end_time: 2000,
+            duration_ms: 1000,
+            total_nodes: 1,
+            executed_count: 1,
+            status: ExecutionStatus::Success,
+            node_reports: vec![],
+            statistics: crate::statistics::FlowStatistics::default(),
+            flow_error: None,
+            execution_mode: ExecutionMode::Normal,
+            initial_variables: None,
+            final_variables: None,
+            execution_path: vec![],
+            skipped_nodes: vec![],
+            ws_streams: vec![],
+        };
+
+        let json = serde_json::to_string(&report).expect("序列化失败");
+        // 空的 ws_streams 应该被跳过
+        assert!(!json.contains("ws_streams"));
+    }
+
+    /// 测试 FlowExecutionReport 的 ws_streams 字段序列化（非空时包含）
+    #[test]
+    fn test_flow_report_ws_streams_included_when_not_empty() {
+        let ws_stream_summary = WsStreamSummary {
+            connection_id: "conn-1".to_string(),
+            url: "wss://example.com/ws".to_string(),
+            total_received: 1,
+            total_sent: 1,
+            dropped_messages: 0,
+            segments: vec![],
+        };
+
+        let report = FlowExecutionReport {
+            uuid: "test-uuid".to_string(),
+            flow_uuid: "flow-uuid".to_string(),
+            flow_name: "Test".to_string(),
+            start_time: 1000,
+            end_time: 2000,
+            duration_ms: 1000,
+            total_nodes: 1,
+            executed_count: 1,
+            status: ExecutionStatus::Success,
+            node_reports: vec![],
+            statistics: crate::statistics::FlowStatistics::default(),
+            flow_error: None,
+            execution_mode: ExecutionMode::Normal,
+            initial_variables: None,
+            final_variables: None,
+            execution_path: vec![],
+            skipped_nodes: vec![],
+            ws_streams: vec![ws_stream_summary],
+        };
+
+        let json = serde_json::to_string(&report).expect("序列化失败");
+        // 非空的 ws_streams 应该被包含
+        assert!(json.contains("ws_streams"));
+        assert!(json.contains("conn-1"));
+        assert!(json.contains("wss://example.com/ws"));
+    }
 }

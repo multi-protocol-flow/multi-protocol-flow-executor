@@ -65,6 +65,12 @@ pub struct ActiveConnection {
     /// 最后错误消息（如果有）
     pub last_error: Option<String>,
 
+    /// 当前持有者节点 UUID（用于消息流所有权追踪）
+    pub current_owner_node_uuid: Option<String>,
+
+    /// 流段 ID（用于关联 WsStreamSegment）
+    pub stream_segment_id: Option<String>,
+
     // WebSocket 连接（通过 Arc<Mutex> 实现线程安全共享）
     sender: Option<Arc<tokio::sync::Mutex<WsSender>>>,
     receiver: Option<Arc<tokio::sync::Mutex<WsReceiver>>>,
@@ -80,6 +86,8 @@ impl std::fmt::Debug for ActiveConnection {
             .field("url", &self.url)
             .field("buffer_size", &self.message_buffer.len())
             .field("last_error", &self.last_error)
+            .field("current_owner_node_uuid", &self.current_owner_node_uuid)
+            .field("stream_segment_id", &self.stream_segment_id)
             .field("has_sender", &self.sender.is_some())
             .field("has_receiver", &self.receiver.is_some())
             .finish()
@@ -107,6 +115,8 @@ impl ActiveConnection {
             url,
             message_buffer: VecDeque::new(),
             last_error: None,
+            current_owner_node_uuid: None,
+            stream_segment_id: None,
             sender: None,
             receiver: None,
         }
@@ -166,6 +176,23 @@ impl ActiveConnection {
     pub fn clear_stream(&mut self) {
         self.sender = None;
         self.receiver = None;
+    }
+
+    /// 设置所有权
+    ///
+    /// # 参数
+    ///
+    /// * `node_uuid` - 持有者节点 UUID
+    /// * `segment_id` - 流段 ID
+    pub fn set_owner(&mut self, node_uuid: &str, segment_id: &str) {
+        self.current_owner_node_uuid = Some(node_uuid.to_string());
+        self.stream_segment_id = Some(segment_id.to_string());
+    }
+
+    /// 释放所有权
+    pub fn release_owner(&mut self) {
+        self.current_owner_node_uuid = None;
+        self.stream_segment_id = None;
     }
 }
 
@@ -989,6 +1016,7 @@ impl Default for WebSocketConnectionManager {
 // ============================================================================
 
 /// 连接元数据（用于序列化和克隆）
+#[derive(Clone)]
 struct ActiveConnectionMeta {
     uuid: String,
     name: String,
@@ -996,6 +1024,8 @@ struct ActiveConnectionMeta {
     created_at: DateTime<Utc>,
     url: String,
     last_error: Option<String>,
+    current_owner_node_uuid: Option<String>,
+    stream_segment_id: Option<String>,
 }
 
 impl From<&ActiveConnection> for ActiveConnectionMeta {
@@ -1007,6 +1037,8 @@ impl From<&ActiveConnection> for ActiveConnectionMeta {
             created_at: conn.created_at,
             url: conn.url.clone(),
             last_error: conn.last_error.clone(),
+            current_owner_node_uuid: conn.current_owner_node_uuid.clone(),
+            stream_segment_id: conn.stream_segment_id.clone(),
         }
     }
 }
@@ -1021,6 +1053,8 @@ impl From<ActiveConnectionMeta> for ActiveConnection {
             url: meta.url,
             message_buffer: VecDeque::new(),
             last_error: meta.last_error,
+            current_owner_node_uuid: meta.current_owner_node_uuid,
+            stream_segment_id: meta.stream_segment_id,
             sender: None,
             receiver: None,
         }
@@ -1172,6 +1206,59 @@ mod tests {
         // 空缓冲区
         let msg3 = conn.pop_message();
         assert!(msg3.is_none());
+    }
+
+    #[test]
+    fn test_active_connection_ownership() {
+        let mut conn = create_test_connection("uuid-1", "测试", "wss://example.com/ws");
+
+        // 初始状态：没有所有者
+        assert!(conn.current_owner_node_uuid.is_none());
+        assert!(conn.stream_segment_id.is_none());
+
+        // 设置所有权
+        conn.set_owner("node-123", "segment-456");
+        assert_eq!(conn.current_owner_node_uuid, Some("node-123".to_string()));
+        assert_eq!(conn.stream_segment_id, Some("segment-456".to_string()));
+
+        // 释放所有权
+        conn.release_owner();
+        assert!(conn.current_owner_node_uuid.is_none());
+        assert!(conn.stream_segment_id.is_none());
+    }
+
+    #[test]
+    fn test_active_connection_ownership_overwrite() {
+        let mut conn = create_test_connection("uuid-1", "测试", "wss://example.com/ws");
+
+        // 设置第一次所有权
+        conn.set_owner("node-1", "segment-1");
+        assert_eq!(conn.current_owner_node_uuid, Some("node-1".to_string()));
+        assert_eq!(conn.stream_segment_id, Some("segment-1".to_string()));
+
+        // 覆盖所有权
+        conn.set_owner("node-2", "segment-2");
+        assert_eq!(conn.current_owner_node_uuid, Some("node-2".to_string()));
+        assert_eq!(conn.stream_segment_id, Some("segment-2".to_string()));
+    }
+
+    #[test]
+    fn test_active_connection_meta_ownership() {
+        let mut conn = create_test_connection("uuid-1", "测试", "wss://example.com/ws");
+        conn.set_owner("node-123", "segment-456");
+
+        // 测试 From<ActiveConnection> for ActiveConnectionMeta
+        let meta = ActiveConnectionMeta::from(&conn);
+        assert_eq!(meta.current_owner_node_uuid, Some("node-123".to_string()));
+        assert_eq!(meta.stream_segment_id, Some("segment-456".to_string()));
+
+        // 测试 From<ActiveConnectionMeta> for ActiveConnection
+        let conn_from_meta: ActiveConnection = meta.into();
+        assert_eq!(conn_from_meta.current_owner_node_uuid, Some("node-123".to_string()));
+        assert_eq!(conn_from_meta.stream_segment_id, Some("segment-456".to_string()));
+        // 注意：sender 和 receiver 应该是 None
+        assert!(conn_from_meta.sender.is_none());
+        assert!(conn_from_meta.receiver.is_none());
     }
 
     #[test]

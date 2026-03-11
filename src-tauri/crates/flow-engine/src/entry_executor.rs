@@ -161,6 +161,7 @@ mod tests {
     use crate::context::{ExecutionContext, VariableStorage};
     use crate::node::{Node, NodePosition, NodeType};
     use crate::node_config::NodeData;
+    use std::sync::Arc;
     use std::time::Instant;
 
     #[tokio::test]
@@ -204,7 +205,9 @@ mod tests {
                     flow_file_path: None,
                     ws_manager: None,
                     ws_connection_urls: HashMap::new(),
+                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
                     last_node_output: None,
+                    debug_event_sender: None,
                 };
 
         let mut node_map = HashMap::new();
@@ -257,7 +260,9 @@ mod tests {
                     flow_file_path: None,
                     ws_manager: None,
                     ws_connection_urls: HashMap::new(),
+                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
                     last_node_output: None,
+                    debug_event_sender: None,
                 };
 
         let node_map = HashMap::new();
@@ -333,7 +338,9 @@ mod tests {
                     flow_file_path: None,
                     ws_manager: None,
                     ws_connection_urls: HashMap::new(),
+                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
                     last_node_output: None,
+                    debug_event_sender: None,
                 };
 
         let mut node_map = HashMap::new();
@@ -402,7 +409,9 @@ mod tests {
                     flow_file_path: None,
                     ws_manager: None,
                     ws_connection_urls: HashMap::new(),
+                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
                     last_node_output: None,
+                    debug_event_sender: None,
                 };
 
         let mut node_map = HashMap::new();
@@ -472,7 +481,9 @@ mod tests {
                     flow_file_path: None,
                     ws_manager: None,
                     ws_connection_urls: HashMap::new(),
+                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
                     last_node_output: None,
+                    debug_event_sender: None,
                 };
 
         let mut node_map = HashMap::new();
@@ -531,7 +542,9 @@ mod tests {
                     flow_file_path: None,
                     ws_manager: None,
                     ws_connection_urls: HashMap::new(),
+                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
                     last_node_output: None,
+                    debug_event_sender: None,
                 };
 
         let mut node_map = HashMap::new();
@@ -596,7 +609,9 @@ mod tests {
                     flow_file_path: None,
                     ws_manager: None,
                     ws_connection_urls: HashMap::new(),
+                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
                     last_node_output: None,
+                    debug_event_sender: None,
                 };
 
         let mut node_map = HashMap::new();

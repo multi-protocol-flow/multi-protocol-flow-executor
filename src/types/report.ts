@@ -56,6 +56,42 @@ export interface SkippedNodeInfo {
 }
 
 // ============================================================================
+// WebSocket 消息流摘要
+// ============================================================================
+
+/**
+ * WebSocket 消息流段摘要
+ */
+export interface WsSegmentSummary {
+  /** 节点 UUID */
+  node_uuid: string;
+  /** 节点名称 */
+  node_name: string;
+  /** 节点类型 (ws_connect, ws_send_wait, ws_close) */
+  node_type: string;
+  /** 消息数量 */
+  message_count: number;
+}
+
+/**
+ * WebSocket 连接消息流摘要
+ */
+export interface WsStreamSummary {
+  /** 连接 ID */
+  connection_id: string;
+  /** WebSocket URL */
+  url: string;
+  /** 接收消息总数 */
+  total_received: number;
+  /** 发送消息总数 */
+  total_sent: number;
+  /** 丢弃消息数 */
+  dropped_messages: number;
+  /** 消息流段摘要列表 */
+  segments: WsSegmentSummary[];
+}
+
+// ============================================================================
 // 节点执行报告
 // ============================================================================
 
@@ -203,4 +239,6 @@ export interface FlowExecutionReport {
   execution_path?: string[];
   /** 跳过的节点及原因 */
   skipped_nodes?: SkippedNodeInfo[];
+  /** WebSocket 消息流摘要列表（为空时不序列化） */
+  ws_streams?: WsStreamSummary[];
 }

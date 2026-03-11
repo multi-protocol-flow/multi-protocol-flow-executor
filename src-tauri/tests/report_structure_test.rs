@@ -387,6 +387,7 @@ fn test_report_structure_flow_execution_report() {
         })),
         execution_path: vec!["entry-1".to_string(), "http-1".to_string()],
         skipped_nodes,
+        ws_streams: vec![],
     };
 
     // 序列化
@@ -467,6 +468,7 @@ fn test_report_structure_flow_execution_report_failed() {
         final_variables: None,
         execution_path: vec!["entry-1".to_string()],
         skipped_nodes: vec![],
+        ws_streams: vec![],
     };
 
     let json_str = serde_json::to_string(&report).expect("序列化失败");
@@ -499,6 +501,7 @@ fn test_report_structure_flow_execution_report_debug_mode() {
         final_variables: None,
         execution_path: vec![],
         skipped_nodes: vec![],
+        ws_streams: vec![],
     };
 
     let json_str = serde_json::to_string(&report).expect("序列化失败");
@@ -806,6 +809,7 @@ fn test_report_structure_full_roundtrip() {
                 reason: "上游节点未执行".to_string(),
             },
         ],
+        ws_streams: vec![],
     };
 
     // 序列化

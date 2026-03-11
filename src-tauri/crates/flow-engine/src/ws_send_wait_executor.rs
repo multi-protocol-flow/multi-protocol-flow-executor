@@ -4,11 +4,13 @@
 
 use crate::connection::Connection;
 use crate::context::ExecutionContext;
+use crate::debug::DebugEvent;
 use crate::executor::{replace_variables, NodeExecutor};
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use crate::node_config::{NodeData, WsMessageType, WsSendWaitConfig, WsWaitMode};
 use crate::websocket_manager::WebSocketConnectionManager;
+use crate::ws_stream::{MessageContent, MessageDirection, WsMessage};
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -177,6 +179,30 @@ impl NodeExecutor for WsSendWaitExecutor {
             return Ok((next_node_ids, output_data));
         }
 
+        // 4.5 检查并转移 WebSocket 连接所有权
+        // 如果当前连接的所有者不是本节点，则转移所有权到本节点
+        {
+            let current_owner = context.get_ws_stream(&connection_id).await
+                .and_then(|s| s.current_owner_node_uuid);
+            
+            if current_owner.as_ref() != Some(&node.uuid) {
+                log::info!(
+                    "[WebSocket] 转移连接所有权: connection_id={}, from={:?}, to={}",
+                    connection_id,
+                    current_owner,
+                    node.uuid
+                );
+                
+                // 转移所有权（失败不影响执行，仅记录日志）
+                context.transfer_ws_ownership(
+                    &connection_id,
+                    node.uuid.clone(),
+                    node.name.clone(),
+                    "ws_send_wait".to_string(),
+                ).await;
+            }
+        }
+
         // 5. 发送消息
         let is_binary = config.message_type == WsMessageType::Binary;
         let send_start = Instant::now();
@@ -194,6 +220,36 @@ impl NodeExecutor for WsSendWaitExecutor {
                     connection_id,
                     message.len()
                 );
+
+                // 记录发送的消息到 ws_streams
+                {
+                    let sent_content = if is_binary {
+                        MessageContent::Binary {
+                            content: message.as_bytes().to_vec(),
+                        }
+                    } else {
+                        MessageContent::Text {
+                            content: message.clone(),
+                        }
+                    };
+                    let sent_msg = WsMessage::new(MessageDirection::Sent, sent_content.clone());
+                    if let Err(e) = context.push_ws_message(&connection_id, sent_msg.clone()).await {
+                        log::warn!(
+                            "[WebSocket] 记录发送消息失败（继续执行）: connection_id={}, error={}",
+                            connection_id,
+                            e
+                        );
+                    }
+
+                    // 发送调试事件：WsMessageSent
+                    if let Some(sender) = &context.debug_event_sender {
+                        let _ = sender.send(DebugEvent::WsMessageSent {
+                            connection_id: connection_id.clone(),
+                            owner_node_uuid: node.uuid.clone(),
+                            message: sent_msg,
+                        });
+                    }
+                }
 
                 // 5.5 清空发送前的待处理消息（如欢迎消息）
                 // 确保 first_message 模式只读取发送后的响应
@@ -379,6 +435,32 @@ impl WsSendWaitExecutor {
                         message.len()
                     );
 
+                    // 记录收到的消息到 ws_streams
+                    {
+                        let received_msg = WsMessage::new(
+                            MessageDirection::Received,
+                            MessageContent::Text {
+                                content: message.clone(),
+                            },
+                        );
+                        if let Err(e) = context.push_ws_message(connection_id, received_msg.clone()).await {
+                            log::warn!(
+                                "[WebSocket] 记录接收消息失败（继续执行）: connection_id={}, error={}",
+                                connection_id,
+                                e
+                            );
+                        }
+
+                        // 发送调试事件：WsMessageReceived
+                        if let Some(sender) = &context.debug_event_sender {
+                            let _ = sender.send(DebugEvent::WsMessageReceived {
+                                connection_id: connection_id.to_string(),
+                                owner_node_uuid: node.uuid.clone(),
+                                message: received_msg,
+                            });
+                        }
+                    }
+
                     // 发送日志
                     context
                         .emit_log(LogEvent {
@@ -425,6 +507,32 @@ impl WsSendWaitExecutor {
                                     connection_id
                                 );
 
+                                // 记录收到的消息到 ws_streams
+                                {
+                                    let received_msg = WsMessage::new(
+                                        MessageDirection::Received,
+                                        MessageContent::Text {
+                                            content: message.clone(),
+                                        },
+                                    );
+                                    if let Err(e) = context.push_ws_message(connection_id, received_msg.clone()).await {
+                                        log::warn!(
+                                            "[WebSocket] 记录接收消息失败（继续执行）: connection_id={}, error={}",
+                                            connection_id,
+                                            e
+                                        );
+                                    }
+                                    
+                                    // 发送调试事件：WsMessageReceived
+                                    if let Some(sender) = &context.debug_event_sender {
+                                        let _ = sender.send(DebugEvent::WsMessageReceived {
+                                            connection_id: connection_id.to_string(),
+                                            owner_node_uuid: node.uuid.clone(),
+                                            message: received_msg,
+                                        });
+                                    }
+                                }
+
                                 // 发送日志
                                 context
                                     .emit_log(LogEvent {
@@ -463,6 +571,32 @@ impl WsSendWaitExecutor {
                             connection_id,
                             message.len()
                         );
+
+                        // 记录收到的消息到 ws_streams
+                        {
+                            let received_msg = WsMessage::new(
+                                MessageDirection::Received,
+                                MessageContent::Text {
+                                    content: message.clone(),
+                                },
+                            );
+                            // 发送调试事件：WsMessageReceived（在 push_ws_message 之前克隆）
+                            if let Some(sender) = &context.debug_event_sender {
+                                let _ = sender.send(DebugEvent::WsMessageReceived {
+                                    connection_id: connection_id.to_string(),
+                                    owner_node_uuid: node.uuid.clone(),
+                                    message: received_msg.clone(),
+                                });
+                            }
+                            if let Err(e) = context.push_ws_message(connection_id, received_msg).await {
+                                log::warn!(
+                                    "[WebSocket] 记录接收消息失败（继续执行）: connection_id={}, error={}",
+                                    connection_id,
+                                    e
+                                );
+                            }
+                        }
+
                         last_message = Some(message);
                     }
                 }
@@ -1776,6 +1910,281 @@ mod tests {
 
             let _ = ws_manager
                 .close("test-conn-9", 1000, Some("测试完成".to_string()), 5000)
+                .await;
+        } else {
+            println!("跳过测试：无法连接到 echo 服务器");
+        }
+    }
+
+    // ========================================
+    // 新增测试：所有权转移和消息记录
+    // ========================================
+
+    /// 测试：所有权转移 - 当连接由其他节点创建时，ws_send_wait 应转移所有权
+    #[tokio::test]
+    async fn test_ownership_transfer_from_connect_node() {
+        let ws_manager = Arc::new(WebSocketConnectionManager::new());
+        let executor = WsSendWaitExecutor::new(ws_manager.clone());
+
+        let connect_result = ws_manager
+            .connect(
+                "test-ownership-conn".to_string(),
+                "所有权测试连接".to_string(),
+                "wss://echo.websocket.org".to_string(),
+                30000,
+            )
+            .await;
+
+        if connect_result.is_ok() {
+            let _ = ws_manager.receive("test-ownership-conn", 3000).await;
+
+            let mut context = create_context("test-flow");
+
+            // 模拟 ws_connect 节点创建了连接的消息流
+            context
+                .create_ws_stream(
+                    "test-ownership-conn".to_string(),
+                    "wss://echo.websocket.org".to_string(),
+                    "connect-node-uuid".to_string(),
+                    "WS Connect".to_string(),
+                    "ws_connect".to_string(),
+                )
+                .await;
+
+            // 验证初始所有者是 connect 节点
+            let stream = context.get_ws_stream("test-ownership-conn").await.unwrap();
+            assert_eq!(
+                stream.current_owner_node_uuid,
+                Some("connect-node-uuid".to_string())
+            );
+
+            // 创建 ws_send_wait 节点
+            let node = Node {
+                uuid: "send-wait-node-uuid".to_string(),
+                node_type: NodeType::WsSendWait,
+                name: "WS Send+Wait".to_string(),
+                position: NodePosition { x: 0.0, y: 0.0 },
+                data: NodeData::WsSendWait(WsSendWaitConfig {
+                    connection_id: "test-ownership-conn".to_string(),
+                    message: "test message".to_string(),
+                    message_type: WsMessageType::Text,
+                    send_timeout_ms: 10000,
+                    wait_for_response: false,
+                    wait_mode: WsWaitMode::FirstMessage,
+                    wait_condition: None,
+                    message_timeout_ms: 10000,
+                    output_mappings: vec![],
+                }),
+                ports: None,
+                has_breakpoint: None,
+            };
+
+            let result = executor
+                .execute(&node, &mut context, &[], &HashMap::new())
+                .await;
+
+            assert!(result.is_ok());
+
+            // 验证所有权已转移到 ws_send_wait 节点
+            let stream = context.get_ws_stream("test-ownership-conn").await.unwrap();
+            assert_eq!(
+                stream.current_owner_node_uuid,
+                Some("send-wait-node-uuid".to_string())
+            );
+            // 应该有两个段：ws_connect 段和 ws_send_wait 段
+            assert_eq!(stream.segments.len(), 2);
+            // 第一个段应该已结束
+            assert!(stream.segments[0].ended_at.is_some());
+            // 第二个段应该是当前段
+            assert!(stream.segments[1].ended_at.is_none());
+
+            let _ = ws_manager
+                .close("test-ownership-conn", 1000, Some("测试完成".to_string()), 5000)
+                .await;
+        } else {
+            println!("跳过测试：无法连接到 echo 服务器");
+        }
+    }
+
+    /// 测试：消息记录 - 发送和接收的消息应记录到 ws_streams
+    #[tokio::test]
+    async fn test_message_recording_to_ws_streams() {
+        let ws_manager = Arc::new(WebSocketConnectionManager::new());
+        let executor = WsSendWaitExecutor::new(ws_manager.clone());
+
+        let connect_result = ws_manager
+            .connect(
+                "test-msg-record-conn".to_string(),
+                "消息记录测试连接".to_string(),
+                "wss://echo.websocket.org".to_string(),
+                30000,
+            )
+            .await;
+
+        if connect_result.is_ok() {
+            let _ = ws_manager.receive("test-msg-record-conn", 3000).await;
+
+            let mut context = create_context("test-flow");
+
+            // 模拟 ws_connect 节点创建了连接的消息流
+            context
+                .create_ws_stream(
+                    "test-msg-record-conn".to_string(),
+                    "wss://echo.websocket.org".to_string(),
+                    "connect-node-uuid".to_string(),
+                    "WS Connect".to_string(),
+                    "ws_connect".to_string(),
+                )
+                .await;
+
+            let test_message = "Hello, Message Recording!";
+
+            // 创建 ws_send_wait 节点（带等待响应）
+            let node = Node {
+                uuid: "send-wait-record-uuid".to_string(),
+                node_type: NodeType::WsSendWait,
+                name: "消息记录测试".to_string(),
+                position: NodePosition { x: 0.0, y: 0.0 },
+                data: NodeData::WsSendWait(WsSendWaitConfig {
+                    connection_id: "test-msg-record-conn".to_string(),
+                    message: test_message.to_string(),
+                    message_type: WsMessageType::Text,
+                    send_timeout_ms: 10000,
+                    wait_for_response: true,
+                    wait_mode: WsWaitMode::FirstMessage,
+                    wait_condition: None,
+                    message_timeout_ms: 10000,
+                    output_mappings: vec![],
+                }),
+                ports: None,
+                has_breakpoint: None,
+            };
+
+            let result = executor
+                .execute(&node, &mut context, &[], &HashMap::new())
+                .await;
+
+            assert!(result.is_ok());
+
+            // 验证消息已记录到 ws_streams
+            let stream = context.get_ws_stream("test-msg-record-conn").await.unwrap();
+
+            // 当前段（ws_send_wait 段）应该有消息
+            let current_segment = stream.current_segment().unwrap();
+
+            // 应该有至少 2 条消息：1 条发送 + 1 条接收
+            // （可能更多，因为可能有欢迎消息等）
+            assert!(
+                current_segment.message_count() >= 2,
+                "期望至少 2 条消息，实际有 {} 条",
+                current_segment.message_count()
+            );
+
+            // 验证第一条消息是发送的消息
+            let first_msg = current_segment.messages.front().unwrap();
+            assert_eq!(first_msg.direction, MessageDirection::Sent);
+            if let MessageContent::Text { content } = &first_msg.content {
+                assert_eq!(content, test_message);
+            } else {
+                panic!("期望文本消息");
+            }
+
+            // 验证最后一条消息是接收的消息（echo 响应）
+            let last_msg = current_segment.messages.back().unwrap();
+            assert_eq!(last_msg.direction, MessageDirection::Received);
+            if let MessageContent::Text { content } = &last_msg.content {
+                assert_eq!(content, test_message);
+            } else {
+                panic!("期望文本消息");
+            }
+
+            let _ = ws_manager
+                .close("test-msg-record-conn", 1000, Some("测试完成".to_string()), 5000)
+                .await;
+        } else {
+            println!("跳过测试：无法连接到 echo 服务器");
+        }
+    }
+
+    /// 测试：所有权转移 - 当所有者已经是当前节点时，不应重复转移
+    #[tokio::test]
+    async fn test_no_ownership_transfer_when_same_owner() {
+        let ws_manager = Arc::new(WebSocketConnectionManager::new());
+        let executor = WsSendWaitExecutor::new(ws_manager.clone());
+
+        let connect_result = ws_manager
+            .connect(
+                "test-same-owner-conn".to_string(),
+                "相同所有者测试".to_string(),
+                "wss://echo.websocket.org".to_string(),
+                30000,
+            )
+            .await;
+
+        if connect_result.is_ok() {
+            let _ = ws_manager.receive("test-same-owner-conn", 3000).await;
+
+            let mut context = create_context("test-flow");
+
+            // 模拟 ws_connect 节点创建了连接的消息流
+            context
+                .create_ws_stream(
+                    "test-same-owner-conn".to_string(),
+                    "wss://echo.websocket.org".to_string(),
+                    "connect-node-uuid".to_string(),
+                    "WS Connect".to_string(),
+                    "ws_connect".to_string(),
+                )
+                .await;
+
+            // 第一次执行：应该转移所有权
+            let node1 = Node {
+                uuid: "send-wait-1-uuid".to_string(),
+                node_type: NodeType::WsSendWait,
+                name: "第一次发送".to_string(),
+                position: NodePosition { x: 0.0, y: 0.0 },
+                data: NodeData::WsSendWait(WsSendWaitConfig {
+                    connection_id: "test-same-owner-conn".to_string(),
+                    message: "first message".to_string(),
+                    message_type: WsMessageType::Text,
+                    send_timeout_ms: 10000,
+                    wait_for_response: false,
+                    wait_mode: WsWaitMode::FirstMessage,
+                    wait_condition: None,
+                    message_timeout_ms: 10000,
+                    output_mappings: vec![],
+                }),
+                ports: None,
+                has_breakpoint: None,
+            };
+
+            let _ = executor
+                .execute(&node1, &mut context, &[], &HashMap::new())
+                .await;
+
+            // 验证所有权已转移
+            let stream = context.get_ws_stream("test-same-owner-conn").await.unwrap();
+            assert_eq!(
+                stream.current_owner_node_uuid,
+                Some("send-wait-1-uuid".to_string())
+            );
+            let segments_count_after_first = stream.segments.len();
+
+            // 第二次执行：相同节点不应重复转移
+            let _ = executor
+                .execute(&node1, &mut context, &[], &HashMap::new())
+                .await;
+
+            // 验证段数量没有增加（所有权未重复转移）
+            let stream = context.get_ws_stream("test-same-owner-conn").await.unwrap();
+            assert_eq!(
+                stream.segments.len(),
+                segments_count_after_first,
+                "相同所有者不应创建新段"
+            );
+
+            let _ = ws_manager
+                .close("test-same-owner-conn", 1000, Some("测试完成".to_string()), 5000)
                 .await;
         } else {
             println!("跳过测试：无法连接到 echo 服务器");

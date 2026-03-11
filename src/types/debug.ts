@@ -4,6 +4,7 @@
  */
 
 import type { FlowExecutionReport, VariableChange } from './report';
+import type { WsMessage, WsStreamSegment, WsConnectionStream } from './ws_stream';
 
 // ============================================================================
 // 调试状态枚举
@@ -110,6 +111,41 @@ export type DebugEvent =
         status: DebugStatus;
         current_node_uuid?: string;
         timestamp: number;
+      };
+    }
+  // WebSocket 流事件
+  | {
+      WsMessageReceived: {
+        connection_id: string;
+        message: WsMessage;
+      };
+    }
+  | {
+      WsMessageSent: {
+        connection_id: string;
+        message: WsMessage;
+      };
+    }
+  | {
+      WsSegmentStarted: {
+        connection_id: string;
+        segment: WsStreamSegment;
+      };
+    }
+  | {
+      WsSegmentEnded: {
+        connection_id: string;
+        segment: WsStreamSegment;
+      };
+    }
+  | {
+      WsConnectionOpened: {
+        stream: WsConnectionStream;
+      };
+    }
+  | {
+      WsConnectionClosed: {
+        connection_id: string;
       };
     };
 

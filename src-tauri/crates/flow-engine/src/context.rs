@@ -1,15 +1,18 @@
 // 上下文模块 - 执行上下文和变量存储
 
+use crate::debug::DebugEvent;
 use crate::log_event::LogEvent;
 use crate::report::NodeExecutionReport;
 use crate::variable::Variable;
 use crate::traits::LogSender;
 use crate::websocket_manager::WebSocketConnectionManager;
+use crate::ws_stream::{WsConnectionStream, WsMessage};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::sync::{mpsc, RwLock};
 
 /// 执行上下文
 ///
@@ -54,12 +57,23 @@ pub struct ExecutionContext {
     #[serde(skip)]
     pub ws_connection_urls: HashMap<String, String>,
 
+    /// WebSocket 消息流追踪
+    /// 存储每个连接的消息流，支持按节点追踪消息历史
+    /// 使用 tokio::sync::RwLock 实现异步安全的并发访问
+    #[serde(skip)]
+    pub ws_streams: Arc<RwLock<HashMap<String, WsConnectionStream>>>,
+
     /// 最近一个协议节点的输出数据
     /// 协议节点（HTTP、WebSocket）执行后更新此字段
     /// 工具节点（Conditional、Entry、WsClose）不更新，延续上游数据
     /// 下游节点通过 jsonpath（如 $.body.xxx）访问此数据
     #[serde(skip)]
     pub last_node_output: Option<Value>,
+
+    /// 调试事件发送器（调试模式有值，普通模式为 None）
+    /// 用于 WebSocket 执行器发送调试事件（如 WsStreamCreated、WsMessageSent 等）
+    #[serde(skip)]
+    pub debug_event_sender: Option<mpsc::UnboundedSender<DebugEvent>>,
 }
 
 impl ExecutionContext {
@@ -84,7 +98,9 @@ impl ExecutionContext {
             flow_file_path: None,
             ws_manager: None,
             ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(RwLock::new(HashMap::new())),
             last_node_output: None,
+            debug_event_sender: None,
         }
     }
 
@@ -153,6 +169,20 @@ impl ExecutionContext {
         self
     }
 
+    /// 设置调试事件发送器（调试模式调用）
+    ///
+    /// # 参数
+    ///
+    /// * `sender` - DebugEvent 事件发送器
+    ///
+    /// # 返回
+    ///
+    /// 更新后的 ExecutionContext
+    pub fn with_debug_event_sender(mut self, sender: mpsc::UnboundedSender<DebugEvent>) -> Self {
+        self.debug_event_sender = Some(sender);
+        self
+    }
+
     /// Resolve file path (supports relative paths)
     ///
     /// # Arguments
@@ -218,6 +248,122 @@ impl ExecutionContext {
     /// 如果找到则返回 URL 的引用，否则返回 None
     pub fn get_ws_url(&self, connection_id: &str) -> Option<&String> {
         self.ws_connection_urls.get(connection_id)
+    }
+
+    // ===== WebSocket 消息流辅助方法 =====
+
+    /// 获取 WebSocket 连接消息流
+    ///
+    /// 根据连接 ID 获取消息流的克隆副本。
+    ///
+    /// # 参数
+    ///
+    /// * `connection_id` - WebSocket 连接的唯一标识符
+    ///
+    /// # 返回
+    ///
+    /// 如果找到则返回消息流的克隆，否则返回 None
+    pub async fn get_ws_stream(&self, connection_id: &str) -> Option<WsConnectionStream> {
+        let streams = self.ws_streams.read().await;
+        streams.get(connection_id).cloned()
+    }
+
+    /// 创建 WebSocket 连接消息流
+    ///
+    /// 创建新的消息流并设置初始所有者节点。
+    ///
+    /// # 参数
+    ///
+    /// * `connection_id` - WebSocket 连接的唯一标识符
+    /// * `url` - WebSocket 连接的 URL
+    /// * `node_uuid` - 初始所有者节点 UUID
+    /// * `node_name` - 初始所有者节点名称
+    /// * `node_type` - 初始所有者节点类型
+    pub async fn create_ws_stream(
+        &self,
+        connection_id: String,
+        url: String,
+        node_uuid: String,
+        node_name: String,
+        node_type: String,
+    ) {
+        let mut stream = WsConnectionStream::new(connection_id.clone(), url);
+        stream.create_initial_segment(node_uuid, node_name, node_type);
+
+        let mut streams = self.ws_streams.write().await;
+        streams.insert(connection_id, stream);
+    }
+
+    /// 转移 WebSocket 连接消息流所有权
+    ///
+    /// 将消息流的所有权从当前节点转移到新节点。
+    ///
+    /// # 参数
+    ///
+    /// * `connection_id` - WebSocket 连接的唯一标识符
+    /// * `new_node_uuid` - 新所有者节点 UUID
+    /// * `new_node_name` - 新所有者节点名称
+    /// * `new_node_type` - 新所有者节点类型
+    ///
+    /// # 说明
+    ///
+    /// 此方法在 ws_send_wait 或 ws_close 节点开始执行时调用。
+    /// 如果连接 ID 不存在，则不做任何操作。
+    pub async fn transfer_ws_ownership(
+        &self,
+        connection_id: &str,
+        new_node_uuid: String,
+        new_node_name: String,
+        new_node_type: String,
+    ) {
+        let mut streams = self.ws_streams.write().await;
+        if let Some(stream) = streams.get_mut(connection_id) {
+            stream.transfer_ownership(new_node_uuid, new_node_name, new_node_type);
+        }
+    }
+
+    /// 推送 WebSocket 消息到消息流
+    ///
+    /// 将消息推送到指定连接的当前段。
+    ///
+    /// # 参数
+    ///
+    /// * `connection_id` - WebSocket 连接的唯一标识符
+    /// * `message` - 要推送的消息
+    ///
+    /// # 返回
+    ///
+    /// * `Ok(())` - 推送成功
+    /// * `Err(msg)` - 推送失败（连接不存在、连接已关闭或消息过大）
+    pub async fn push_ws_message(
+        &self,
+        connection_id: &str,
+        message: WsMessage,
+    ) -> Result<(), String> {
+        let mut streams = self.ws_streams.write().await;
+        if let Some(stream) = streams.get_mut(connection_id) {
+            stream.push_message(message)
+        } else {
+            Err(format!("WebSocket 连接 {} 不存在", connection_id))
+        }
+    }
+
+    /// 关闭 WebSocket 连接消息流
+    ///
+    /// 结束当前段并标记连接为已关闭。
+    ///
+    /// # 参数
+    ///
+    /// * `connection_id` - WebSocket 连接的唯一标识符
+    ///
+    /// # 说明
+    ///
+    /// 如果连接 ID 不存在，则不做任何操作。
+    pub async fn close_ws_stream(&self, connection_id: &str) {
+        let mut streams = self.ws_streams.write().await;
+        if let Some(stream) = streams.get_mut(connection_id) {
+            stream.close();
+        }
     }
 }
 
@@ -566,5 +712,194 @@ mod tests {
 
         // 新架构中不再区分节点，get_node_variable 简单地查找变量
         assert_eq!(pool.get_node_variable("node-1", "key1"), Some(&json!("value1")));
+    }
+
+    // ===== WebSocket 消息流测试 =====
+
+    #[tokio::test]
+    async fn test_create_ws_stream() {
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        // 创建消息流
+        ctx.create_ws_stream(
+            "conn-1".to_string(),
+            "wss://example.com/ws".to_string(),
+            "node-1".to_string(),
+            "Connect Node".to_string(),
+            "ws_connect".to_string(),
+        ).await;
+
+        // 验证创建成功
+        let stream = ctx.get_ws_stream("conn-1").await;
+        assert!(stream.is_some());
+
+        let stream = stream.unwrap();
+        assert_eq!(stream.connection_id, "conn-1");
+        assert_eq!(stream.url, "wss://example.com/ws");
+        assert_eq!(stream.current_owner_node_uuid, Some("node-1".to_string()));
+        assert_eq!(stream.segments.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_get_ws_stream_not_found() {
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        // 查询不存在的连接
+        let stream = ctx.get_ws_stream("nonexistent").await;
+        assert!(stream.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_transfer_ws_ownership() {
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        // 创建消息流
+        ctx.create_ws_stream(
+            "conn-1".to_string(),
+            "wss://example.com/ws".to_string(),
+            "node-1".to_string(),
+            "Connect Node".to_string(),
+            "ws_connect".to_string(),
+        ).await;
+
+        // 转移所有权
+        ctx.transfer_ws_ownership(
+            "conn-1",
+            "node-2".to_string(),
+            "Send Node".to_string(),
+            "ws_send_wait".to_string(),
+        ).await;
+
+        // 验证所有权转移
+        let stream = ctx.get_ws_stream("conn-1").await.unwrap();
+        assert_eq!(stream.current_owner_node_uuid, Some("node-2".to_string()));
+        assert_eq!(stream.segments.len(), 2);
+        // 第一个段应该已结束
+        assert!(stream.segments[0].ended_at.is_some());
+        // 第二个段应该是当前段
+        assert!(stream.segments[1].ended_at.is_none());
+        assert_eq!(stream.segments[1].node_uuid, "node-2");
+    }
+
+    #[tokio::test]
+    async fn test_transfer_ws_ownership_nonexistent() {
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        // 对不存在的连接转移所有权应该静默失败（不做任何操作）
+        ctx.transfer_ws_ownership(
+            "nonexistent",
+            "node-2".to_string(),
+            "Send Node".to_string(),
+            "ws_send_wait".to_string(),
+        ).await;
+
+        // 不应该有任何错误
+    }
+
+    #[tokio::test]
+    async fn test_push_ws_message() {
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        // 创建消息流
+        ctx.create_ws_stream(
+            "conn-1".to_string(),
+            "wss://example.com/ws".to_string(),
+            "node-1".to_string(),
+            "Connect Node".to_string(),
+            "ws_connect".to_string(),
+        ).await;
+
+        // 推送消息
+        let msg = WsMessage::new(
+            crate::ws_stream::MessageDirection::Sent,
+            crate::ws_stream::MessageContent::Text {
+                content: "hello".to_string(),
+            },
+        );
+
+        let result = ctx.push_ws_message("conn-1", msg).await;
+        assert!(result.is_ok());
+
+        // 验证消息已推送
+        let stream = ctx.get_ws_stream("conn-1").await.unwrap();
+        assert_eq!(stream.total_message_count(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_push_ws_message_nonexistent() {
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        // 对不存在的连接推送消息
+        let msg = WsMessage::new(
+            crate::ws_stream::MessageDirection::Sent,
+            crate::ws_stream::MessageContent::Text {
+                content: "hello".to_string(),
+            },
+        );
+
+        let result = ctx.push_ws_message("nonexistent", msg).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("不存在"));
+    }
+
+    #[tokio::test]
+    async fn test_close_ws_stream() {
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        // 创建消息流
+        ctx.create_ws_stream(
+            "conn-1".to_string(),
+            "wss://example.com/ws".to_string(),
+            "node-1".to_string(),
+            "Connect Node".to_string(),
+            "ws_connect".to_string(),
+        ).await;
+
+        // 关闭连接
+        ctx.close_ws_stream("conn-1").await;
+
+        // 验证已关闭
+        let stream = ctx.get_ws_stream("conn-1").await.unwrap();
+        assert!(stream.is_closed);
+        assert!(stream.segments[0].ended_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_close_ws_stream_nonexistent() {
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        // 对不存在的连接关闭应该静默失败（不做任何操作）
+        ctx.close_ws_stream("nonexistent").await;
+
+        // 不应该有任何错误
+    }
+
+    #[tokio::test]
+    async fn test_push_ws_message_after_close() {
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        // 创建消息流
+        ctx.create_ws_stream(
+            "conn-1".to_string(),
+            "wss://example.com/ws".to_string(),
+            "node-1".to_string(),
+            "Connect Node".to_string(),
+            "ws_connect".to_string(),
+        ).await;
+
+        // 关闭连接
+        ctx.close_ws_stream("conn-1").await;
+
+        // 尝试推送消息
+        let msg = WsMessage::new(
+            crate::ws_stream::MessageDirection::Sent,
+            crate::ws_stream::MessageContent::Text {
+                content: "hello".to_string(),
+            },
+        );
+
+        let result = ctx.push_ws_message("conn-1", msg).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("已关闭"));
     }
 }

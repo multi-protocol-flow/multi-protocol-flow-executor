@@ -170,7 +170,9 @@ impl DebuggableFlowExecutor {
             flow_file_path: self.flow_file_path.clone(),
             ws_manager: Some(ws_manager),
             ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             last_node_output: None,
+            debug_event_sender: Some(event_sender.clone()),
         };
 
         // 记录调试开始时间（用于报告生成）
@@ -188,7 +190,7 @@ impl DebuggableFlowExecutor {
                 let _ = stop_tx.send(());
                 debug_state.status = DebugStatus::Ended;
                 // 生成报告（即使是错误也要生成）
-                let report = Self::generate_debug_report(&debug_state, flow, debug_start_time_ms);
+                let report = Self::generate_debug_report(&debug_state, flow, debug_start_time_ms, &context).await;
                 if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                     reason: EndReason::Error {
                         message: "流程缺少开始节点".to_string(),
@@ -272,7 +274,7 @@ impl DebuggableFlowExecutor {
             if visited.contains(&current_node_id) {
                 debug_state.status = DebugStatus::Ended;
                 update_shared_state(debug_state);
-                let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms);
+                let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
                 if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                     reason: EndReason::Error {
                         message: format!("检测到循环：节点 {} 已被访问", node.uuid),
@@ -394,7 +396,7 @@ impl DebuggableFlowExecutor {
                             debug_state.status = DebugStatus::Ended;
                             debug_state.current_node_uuid = None;
                             update_shared_state(debug_state);
-                            let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms);
+                            let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
                             if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                                 reason: EndReason::Completed,
                                 report: Some(report),
@@ -416,7 +418,7 @@ impl DebuggableFlowExecutor {
                         // 用户终止或错误
                         if error == "用户终止调试" {
                             debug_state.status = DebugStatus::Ended;
-                            let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms);
+                            let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
                             if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                                 reason: EndReason::Error {
                                     message: error,
@@ -430,7 +432,7 @@ impl DebuggableFlowExecutor {
                         }
                         debug_state.status = DebugStatus::Ended;
                         update_shared_state(debug_state);
-                        let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms);
+                        let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
                         if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                             reason: EndReason::Error {
                                 message: error,
@@ -680,7 +682,7 @@ impl DebuggableFlowExecutor {
                     // 结束调试
                     debug_state.status = DebugStatus::Ended;
                     update_shared_state(debug_state);
-                    let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms);
+                    let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
                     if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                         reason: EndReason::Error {
                             message: error,
@@ -701,7 +703,7 @@ impl DebuggableFlowExecutor {
         debug_state.status = DebugStatus::Ended;
         debug_state.current_node_uuid = None;
         update_shared_state(debug_state);
-        let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms);
+        let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
         if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
             reason: EndReason::Completed,
             report: Some(report),
@@ -776,7 +778,7 @@ impl DebuggableFlowExecutor {
                 DebugCommand::EndDebug => {
                     // 结束调试
                     debug_state.status = DebugStatus::Ended;
-                    let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms);
+                    let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
                     if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                         reason: EndReason::UserAbort,
                         report: Some(report),
@@ -1034,13 +1036,15 @@ impl DebuggableFlowExecutor {
     /// - `debug_state`: 调试会话状态
     /// - `flow`: 流程定义
     /// - `start_time_ms`: 调试开始时间（毫秒）
+    /// - `context`: 执行上下文（用于收集 WebSocket 消息流）
     ///
     /// # 返回
     /// - `FlowExecutionReport`: 流程执行报告
-    fn generate_debug_report(
+    async fn generate_debug_report(
         debug_state: &DebugSessionState,
         flow: &Flow,
         start_time_ms: u64,
+        context: &crate::context::ExecutionContext,
     ) -> crate::report::FlowExecutionReport {
         use crate::report::{ExecutionMode, ExecutionStatus, NodeExecutionReport};
 
@@ -1134,6 +1138,11 @@ impl DebuggableFlowExecutor {
             final_variables: None,
             execution_path: vec![],
             skipped_nodes: vec![],
+            // 收集 WebSocket 消息流摘要
+            ws_streams: {
+                let streams = context.ws_streams.read().await;
+                streams.values().map(crate::report::WsStreamSummary::from).collect()
+            },
         }
     }
 }

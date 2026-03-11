@@ -4,6 +4,7 @@
 
 use crate::connection::Connection;
 use crate::context::ExecutionContext;
+use crate::debug::DebugEvent;
 use crate::executor::{replace_variables, NodeExecutor};
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
@@ -101,6 +102,17 @@ impl NodeExecutor for WsCloseExecutor {
                     connection_id,
                     config.close_code
                 );
+
+                // 关闭 WebSocket 消息流追踪
+                context.close_ws_stream(&connection_id).await;
+
+                // 发送调试事件：WsStreamClosed
+                if let Some(sender) = &context.debug_event_sender {
+                    let _ = sender.send(DebugEvent::WsStreamClosed {
+                        connection_id: connection_id.clone(),
+                        last_owner_node_uuid: node.uuid.clone(),
+                    });
+                }
 
                 // 6. 构建输出数据（结构化格式，与 HTTP 报告保持一致）
                 let duration = start_time.elapsed();
@@ -244,20 +256,22 @@ mod tests {
     /// 创建执行上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext {
-                    flow_uuid: flow_id.to_string(),
-                    current_node_uuid: None,
-                    variables: VariableStorage::new(),
-                    node_reports: vec![],
-                    flow_trigger_time: std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间错误")
-                        .as_millis() as u64,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: std::collections::HashMap::new(),
-                    last_node_output: None,
-                }
+            flow_uuid: flow_id.to_string(),
+            current_node_uuid: None,
+            variables: VariableStorage::new(),
+            node_reports: vec![],
+            flow_trigger_time: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("系统时间错误")
+                .as_millis() as u64,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: std::collections::HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+        }
     }
 
     #[tokio::test]

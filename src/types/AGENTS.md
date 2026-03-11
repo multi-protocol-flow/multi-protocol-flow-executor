@@ -18,6 +18,7 @@ src/types/
 ├── variable.ts       # 变量系统
 ├── error.ts          # 错误类型
 ├── debug.ts          # 调试系统类型
+├── ws_stream.ts      # WebSocket 消息流类型
 ├── ipc.ts            # Tauri IPC 命令类型
 ├── settings.ts       # 全局设置
 └── port.ts           # 端口定义
@@ -34,6 +35,7 @@ src/types/
 | 修改变量系统 | `variable.ts` | `variable.rs` |
 | 添加 IPC 命令 | `ipc.ts` | `command.rs` |
 | 修改调试类型 | `debug.ts` | `debug/types.rs` |
+| 修改 WebSocket 消息流 | `ws_stream.ts` | `ws_stream.rs` |
 
 ## 约定
 
@@ -49,6 +51,7 @@ src/types/
 - `variable.ts` ↔ `src-tauri/crates/flow-engine/src/variable.rs`
 - `error.ts` ↔ `src-tauri/crates/flow-engine/src/error.rs`
 - `debug.ts` ↔ `src-tauri/crates/flow-engine/src/debug/types.rs`
+- `ws_stream.ts` ↔ `src-tauri/crates/flow-engine/src/ws_stream.rs`
 
 ### 类型安全红线
 

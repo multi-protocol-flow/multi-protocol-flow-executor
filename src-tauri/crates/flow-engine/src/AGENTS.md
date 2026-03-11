@@ -51,6 +51,7 @@ flow-engine/src/
 ├── validator.rs           # 流程验证器
 ├── variable.rs            # 变量系统
 ├── websocket_manager.rs   # WebSocket 连接池管理
+├── ws_stream.rs           # WebSocket 消息流数据结构 (调试模式)
 ├── log_event.rs           # 日志事件
 ├── command.rs             # 命令输入/输出类型
 └── *_executor.rs          # 节点执行器实现
@@ -74,6 +75,7 @@ flow-engine/src/
 | CLI 调用入口 | `commands/execute_flow.rs` |
 | HTTP 客户端 | `http/client.rs` |
 | WebSocket 管理 | `websocket_manager.rs` |
+| WebSocket 消息流 | `ws_stream.rs` |
 | 调试执行器 | `debug/executor.rs` |
 
 ## 节点类型 (6种)

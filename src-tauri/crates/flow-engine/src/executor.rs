@@ -377,7 +377,9 @@ impl FlowExecutor {
             flow_file_path: self.flow_file_path.clone(),
             ws_manager: Some(ws_manager),
             ws_connection_urls: std::collections::HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             last_node_output: None,
+            debug_event_sender: None,
         };
 
         // 查找开始节点
@@ -833,6 +835,12 @@ impl FlowExecutor {
                         // 获取最终变量快照（Task 16）
                         let final_variables = context.variables.get_merged_variables();
 
+                        // 收集 WebSocket 消息流摘要
+                        let ws_streams: Vec<crate::report::WsStreamSummary> = {
+                            let streams = context.ws_streams.read().await;
+                            streams.values().map(crate::report::WsStreamSummary::from).collect()
+                        };
+
                         let flow_report = crate::report::FlowExecutionReport {
                             uuid: Uuid::new_v4().to_string(),
                             flow_uuid: flow.uuid.clone(),
@@ -855,6 +863,7 @@ impl FlowExecutor {
                             final_variables: Some(json!(final_variables)),
                             execution_path: execution_path.clone(),
                             skipped_nodes: skipped_nodes.clone(),
+                            ws_streams,
                         };
 
                         return ExecutionResult {
@@ -914,6 +923,12 @@ impl FlowExecutor {
         // 获取最终变量快照（Task 16）
         let final_variables = context.variables.get_merged_variables();
 
+        // 收集 WebSocket 消息流摘要
+        let ws_streams: Vec<crate::report::WsStreamSummary> = {
+            let streams = context.ws_streams.read().await;
+            streams.values().map(crate::report::WsStreamSummary::from).collect()
+        };
+
         let flow_report = crate::report::FlowExecutionReport {
             uuid: Uuid::new_v4().to_string(),
             flow_uuid: flow.uuid.clone(),
@@ -936,6 +951,7 @@ impl FlowExecutor {
             final_variables: Some(json!(final_variables)),
             execution_path,
             skipped_nodes,
+            ws_streams,
         };
 
         // 执行成功
@@ -1656,7 +1672,9 @@ mod tests {
             flow_file_path: None,
             ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             last_node_output: None,
+            debug_event_sender: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1690,7 +1708,9 @@ mod tests {
             flow_file_path: None,
             ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             last_node_output: None,
+            debug_event_sender: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
@@ -1715,7 +1735,9 @@ mod tests {
             flow_file_path: None,
             ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             last_node_output: None,
+            debug_event_sender: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -1741,7 +1763,9 @@ mod tests {
             flow_file_path: None,
             ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             last_node_output: None,
+            debug_event_sender: None,
         };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
@@ -1781,12 +1805,14 @@ mod tests {
                 flow_file_path: None,
                 ws_manager: None,
                 ws_connection_urls: std::collections::HashMap::new(),
-                last_node_output: None,
-            };
-            let result = replace_variables(&template, &context);
-            assert!(result.is_err());
-            assert!(result.unwrap_err().contains("不支持索引访问"));
-        }
+            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
+        let result = replace_variables(&template, &context);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("不支持索引访问"));
+    }
 
         /// 测试简单字符串变量替换
         #[test]
@@ -1806,7 +1832,9 @@ mod tests {
                 flow_file_path: None,
                 ws_manager: None,
                 ws_connection_urls: std::collections::HashMap::new(),
+                ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
                 last_node_output: None,
+                debug_event_sender: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -1831,7 +1859,9 @@ mod tests {
                 flow_file_path: None,
                 ws_manager: None,
                 ws_connection_urls: std::collections::HashMap::new(),
+                ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
                 last_node_output: None,
+                debug_event_sender: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -1856,7 +1886,9 @@ mod tests {
                 flow_file_path: None,
                 ws_manager: None,
                 ws_connection_urls: std::collections::HashMap::new(),
+                ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
                 last_node_output: None,
+                debug_event_sender: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());

@@ -8,6 +8,7 @@ use flow_engine::node_config::{FormField, FormFieldType, HttpBodyType, HttpConfi
 use flow_engine::executor::NodeExecutor;
 use flow_engine::http_executor::HttpNodeExecutor;
 use std::io::Write;
+use std::sync::Arc;
 use tempfile::NamedTempFile;
 use wiremock::{MockServer, Mock, ResponseTemplate};
 use wiremock::matchers::{method, path};
@@ -30,7 +31,9 @@ fn create_context(flow_id: &str) -> ExecutionContext {
         flow_file_path: None,
         ws_manager: None,
         ws_connection_urls: std::collections::HashMap::new(),
+        ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         last_node_output: None,
+        debug_event_sender: None,
     }
 }
 

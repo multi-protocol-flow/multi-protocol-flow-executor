@@ -27,6 +27,7 @@ fn test_flow_report_fields_exist() {
         final_variables: Some(json!({"var1": "value1", "var2": "value2"})),
         execution_path: vec!["node-1".to_string(), "node-2".to_string()],
         skipped_nodes: vec![],
+        ws_streams: vec![],
     };
 
     // 验证新字段可以正常访问
@@ -84,6 +85,7 @@ fn test_flow_report_empty_path() {
         final_variables: None,
         execution_path: vec![],
         skipped_nodes: vec![],
+        ws_streams: vec![],
     };
 
     // 验证空路径

@@ -3,6 +3,7 @@
 //! 包含调试会话、命令、事件等核心数据结构
 
 use crate::report::FlowExecutionReport;
+use crate::ws_stream::WsMessage;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -192,6 +193,53 @@ pub enum DebugEvent {
         current_node_uuid: Option<String>,
         /// 时间戳（Unix 时间戳，毫秒）
         timestamp: u64,
+    },
+    /// WebSocket 流已创建
+    WsStreamCreated {
+        /// 连接 ID
+        connection_id: String,
+        /// WebSocket URL
+        url: String,
+        /// 所有者节点 UUID
+        owner_node_uuid: String,
+        /// 所有者节点名称
+        owner_node_name: String,
+    },
+    /// WebSocket 消息已接收
+    WsMessageReceived {
+        /// 连接 ID
+        connection_id: String,
+        /// 所有者节点 UUID
+        owner_node_uuid: String,
+        /// 消息内容
+        #[serde(flatten)]
+        message: WsMessage,
+    },
+    /// WebSocket 消息已发送
+    WsMessageSent {
+        /// 连接 ID
+        connection_id: String,
+        /// 所有者节点 UUID
+        owner_node_uuid: String,
+        /// 消息内容
+        #[serde(flatten)]
+        message: WsMessage,
+    },
+    /// WebSocket 流所有权已转移
+    WsStreamOwnerChanged {
+        /// 连接 ID
+        connection_id: String,
+        /// 原所有者节点 UUID
+        from_node_uuid: String,
+        /// 新所有者节点 UUID
+        to_node_uuid: String,
+    },
+    /// WebSocket 流已关闭
+    WsStreamClosed {
+        /// 连接 ID
+        connection_id: String,
+        /// 最后所有者节点 UUID
+        last_owner_node_uuid: String,
     },
 }
 
@@ -732,5 +780,183 @@ mod tests {
         // 再次移除已移除的断点
         state.remove_breakpoint("node-001");
         assert_eq!(state.breakpoints.len(), 1);
+    }
+
+    #[test]
+    fn test_ws_stream_created_event() {
+        let event = DebugEvent::WsStreamCreated {
+            connection_id: "conn-001".to_string(),
+            url: "wss://example.com/ws".to_string(),
+            owner_node_uuid: "node-001".to_string(),
+            owner_node_name: "WS Connect".to_string(),
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        println!("WsStreamCreated JSON: {}", json);
+        assert!(
+            json.contains("ws_stream_created")
+                || json.contains("WsStreamCreated")
+                || json.contains("wsStreamCreated")
+        );
+        assert!(json.contains("conn-001"));
+        assert!(json.contains("wss://example.com/ws"));
+
+        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        assert_eq!(event, deserialized);
+    }
+
+    #[test]
+    fn test_ws_message_received_event() {
+        use crate::ws_stream::{MessageContent, MessageDirection};
+
+        let msg = WsMessage::with_timestamp(
+            MessageDirection::Received,
+            MessageContent::Text {
+                content: "hello".to_string(),
+            },
+            1234567890,
+        );
+
+        let event = DebugEvent::WsMessageReceived {
+            connection_id: "conn-001".to_string(),
+            owner_node_uuid: "node-001".to_string(),
+            message: msg.clone(),
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(
+            json.contains("ws_message_received")
+                || json.contains("WsMessageReceived")
+                || json.contains("wsMessageReceived")
+        );
+        assert!(json.contains("conn-001"));
+        assert!(json.contains("hello"));
+
+        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        assert_eq!(event, deserialized);
+    }
+
+    #[test]
+    fn test_ws_message_sent_event() {
+        use crate::ws_stream::{MessageContent, MessageDirection};
+
+        let msg = WsMessage::with_timestamp(
+            MessageDirection::Sent,
+            MessageContent::Text {
+                content: "ping".to_string(),
+            },
+            1234567890,
+        );
+
+        let event = DebugEvent::WsMessageSent {
+            connection_id: "conn-001".to_string(),
+            owner_node_uuid: "node-002".to_string(),
+            message: msg.clone(),
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(
+            json.contains("ws_message_sent")
+                || json.contains("WsMessageSent")
+                || json.contains("wsMessageSent")
+        );
+        assert!(json.contains("conn-001"));
+        assert!(json.contains("ping"));
+
+        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        assert_eq!(event, deserialized);
+    }
+
+    #[test]
+    fn test_ws_stream_owner_changed_event() {
+        let event = DebugEvent::WsStreamOwnerChanged {
+            connection_id: "conn-001".to_string(),
+            from_node_uuid: "node-001".to_string(),
+            to_node_uuid: "node-002".to_string(),
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(
+            json.contains("ws_stream_owner_changed")
+                || json.contains("WsStreamOwnerChanged")
+                || json.contains("wsStreamOwnerChanged")
+        );
+        assert!(json.contains("conn-001"));
+        assert!(json.contains("node-001"));
+        assert!(json.contains("node-002"));
+
+        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        assert_eq!(event, deserialized);
+    }
+
+    #[test]
+    fn test_ws_stream_closed_event() {
+        let event = DebugEvent::WsStreamClosed {
+            connection_id: "conn-001".to_string(),
+            last_owner_node_uuid: "node-003".to_string(),
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(
+            json.contains("ws_stream_closed")
+                || json.contains("WsStreamClosed")
+                || json.contains("wsStreamClosed")
+        );
+        assert!(json.contains("conn-001"));
+        assert!(json.contains("node-003"));
+
+        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        assert_eq!(event, deserialized);
+    }
+
+    #[test]
+    fn test_all_ws_debug_event_variants() {
+        use crate::ws_stream::{MessageContent, MessageDirection};
+
+        let events = vec![
+            DebugEvent::WsStreamCreated {
+                connection_id: "conn-001".to_string(),
+                url: "wss://example.com/ws".to_string(),
+                owner_node_uuid: "node-001".to_string(),
+                owner_node_name: "Connect".to_string(),
+            },
+            DebugEvent::WsMessageReceived {
+                connection_id: "conn-001".to_string(),
+                owner_node_uuid: "node-002".to_string(),
+                message: WsMessage::with_timestamp(
+                    MessageDirection::Received,
+                    MessageContent::Text {
+                        content: "response".to_string(),
+                    },
+                    1234567890,
+                ),
+            },
+            DebugEvent::WsMessageSent {
+                connection_id: "conn-001".to_string(),
+                owner_node_uuid: "node-002".to_string(),
+                message: WsMessage::with_timestamp(
+                    MessageDirection::Sent,
+                    MessageContent::Text {
+                        content: "request".to_string(),
+                    },
+                    1234567880,
+                ),
+            },
+            DebugEvent::WsStreamOwnerChanged {
+                connection_id: "conn-001".to_string(),
+                from_node_uuid: "node-001".to_string(),
+                to_node_uuid: "node-002".to_string(),
+            },
+            DebugEvent::WsStreamClosed {
+                connection_id: "conn-001".to_string(),
+                last_owner_node_uuid: "node-003".to_string(),
+            },
+        ];
+
+        for event in events {
+            let json = serde_json::to_string(&event).unwrap();
+            let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+            assert_eq!(event, deserialized);
+        }
     }
 }

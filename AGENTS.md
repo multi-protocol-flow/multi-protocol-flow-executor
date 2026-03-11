@@ -28,7 +28,8 @@ multi-protocol-flow-executor/
 │   │       ├── http/       # HTTP 客户端模块 (hyper 1.x)
 │   │       ├── traits/     # 抽象接口 (解耦 Tauri)
 │   │       ├── commands/   # 业务命令
-│   │       └── debug/      # 调试执行器
+│   │       ├── debug/      # 调试执行器
+│   │       └── ws_stream.rs # WebSocket 消息流数据结构
 │   └── bin/cli.rs          # CLI 二进制
 ├── tests/                  # CLI 测试数据 + fixtures
 └── docs/                   # 架构文档
@@ -45,6 +46,7 @@ multi-protocol-flow-executor/
 | HTTP 请求节点 | `src-tauri/crates/flow-engine/src/http_executor.rs` + `http/` 模块 |
 | 条件分支节点 | `src-tauri/crates/flow-engine/src/conditional_executor.rs` |
 | WebSocket 节点 | `src-tauri/crates/flow-engine/src/ws_*_executor.rs` |
+| WebSocket 消息流 | `src-tauri/crates/flow-engine/src/ws_stream.rs` + `src/types/ws_stream.ts` |
 | 调试模式 | `src-tauri/crates/flow-engine/src/debug/` + `src/stores/debug.ts` |
 | IPC 命令 | `src-tauri/src/tauri_commands.rs` (15 命令) |
 

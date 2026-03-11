@@ -693,6 +693,7 @@ mod tests {
     use crate::node_config::{ConditionalConfig, ConditionOperator, ConditionType, ExpectedValueType};
     use serde_json::json;
     use std::collections::HashMap;
+    use std::sync::Arc;
 
     fn create_test_node(config: ConditionalConfig) -> Node {
         Node {
@@ -724,7 +725,9 @@ mod tests {
                     flow_file_path: None,
                     ws_manager: None,
                     ws_connection_urls: HashMap::new(),
+                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
                     last_node_output: None,
+                    debug_event_sender: None,
                 }
     }
 

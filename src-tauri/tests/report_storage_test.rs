@@ -33,6 +33,7 @@ fn create_test_report(uuid: &str, flow_name: &str) -> flow_engine::report::FlowE
         final_variables: None,
         execution_path: vec![],
         skipped_nodes: vec![],
+        ws_streams: vec![],
     }
 }
 

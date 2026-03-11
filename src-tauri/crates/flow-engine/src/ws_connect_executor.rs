@@ -4,11 +4,13 @@
 
 use crate::connection::Connection;
 use crate::context::ExecutionContext;
+use crate::debug::DebugEvent;
 use crate::executor::{replace_variables, NodeExecutor};
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use crate::node_config::{NodeData, WsConnectConfig, WsWaitMode};
 use crate::websocket_manager::WebSocketConnectionManager;
+use crate::ws_stream::{MessageContent, MessageDirection, WsMessage};
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -102,6 +104,27 @@ impl NodeExecutor for WsConnectExecutor {
 
                 // 存储连接 URL 到 context（供后续节点反查）
                 context.set_ws_url(node.uuid.clone(), url.clone());
+
+                // 创建 WebSocket 消息流（所有权创建）
+                context
+                    .create_ws_stream(
+                        node.uuid.clone(),
+                        url.clone(),
+                        node.uuid.clone(),
+                        node.name.clone(),
+                        "ws_connect".to_string(),
+                    )
+                    .await;
+
+                // 发送调试事件：WsStreamCreated
+                if let Some(sender) = &context.debug_event_sender {
+                    let _ = sender.send(DebugEvent::WsStreamCreated {
+                        connection_id: node.uuid.clone(),
+                        url: url.clone(),
+                        owner_node_uuid: node.uuid.clone(),
+                        owner_node_name: node.name.clone(),
+                    });
+                }
 
                 // 5. 如果配置了等待消息（计时）
                 let wait_start = Instant::now();
@@ -273,6 +296,21 @@ impl WsConnectExecutor {
                             message.len()
                         );
 
+                        // 记录消息到 WebSocket 消息流
+                        let ws_message = WsMessage::new(
+                            MessageDirection::Received,
+                            MessageContent::Text {
+                                content: message.clone(),
+                            },
+                        );
+                        if let Err(e) = context.push_ws_message(&node.uuid, ws_message).await {
+                            log::warn!(
+                                "[WebSocket] 记录消息失败: uuid={}, error={}",
+                                node.uuid,
+                                e
+                            );
+                        }
+
                         // 发送日志
                         context
                             .emit_log(LogEvent {
@@ -319,6 +357,21 @@ impl WsConnectExecutor {
                         let remaining = timeout_ms - elapsed;
                         match self.ws_manager.receive(&node.uuid, remaining.min(5000)).await {
                             Ok(Some(message)) => {
+                                // 记录消息到 WebSocket 消息流
+                                let ws_message = WsMessage::new(
+                                    MessageDirection::Received,
+                                    MessageContent::Text {
+                                        content: message.clone(),
+                                    },
+                                );
+                                if let Err(e) = context.push_ws_message(&node.uuid, ws_message).await {
+                                    log::warn!(
+                                        "[WebSocket] 记录消息失败: uuid={}, error={}",
+                                        node.uuid,
+                                        e
+                                    );
+                                }
+
                                 if self.ws_manager.match_message(&message, condition)? {
                                     log::info!(
                                         "[WebSocket] 消息匹配成功: uuid={}",
@@ -365,6 +418,22 @@ impl WsConnectExecutor {
                             node.uuid,
                             message.len()
                         );
+
+                        // 记录消息到 WebSocket 消息流
+                        let ws_message = WsMessage::new(
+                            MessageDirection::Received,
+                            MessageContent::Text {
+                                content: message.clone(),
+                            },
+                        );
+                        if let Err(e) = context.push_ws_message(&node.uuid, ws_message).await {
+                            log::warn!(
+                                "[WebSocket] 记录消息失败: uuid={}, error={}",
+                                node.uuid,
+                                e
+                            );
+                        }
+
                         last_message = Some(message);
                     }
                 }
@@ -520,7 +589,9 @@ mod tests {
                     flow_file_path: None,
                     ws_manager: None,
                     ws_connection_urls: std::collections::HashMap::new(),
+                    ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
                     last_node_output: None,
+                    debug_event_sender: None,
                 }
     }
 
@@ -781,6 +852,22 @@ mod tests {
                     assert_eq!(data["connected"], true);
                     assert_eq!(data["connection_id"], "echo-test");
 
+                    // 验证消息流已创建
+                    let stream = context.get_ws_stream("echo-test").await;
+                    assert!(
+                        stream.is_some(),
+                        "连接成功后应该创建 WebSocket 消息流"
+                    );
+                    let stream = stream.unwrap();
+                    assert_eq!(stream.connection_id, "echo-test");
+                    assert_eq!(stream.url, "wss://echo.websocket.org");
+                    assert_eq!(
+                        stream.current_owner_node_uuid,
+                        Some("echo-test".to_string())
+                    );
+                    assert_eq!(stream.segments.len(), 1);
+                    assert_eq!(stream.segments[0].node_type, "ws_connect");
+
                     // 清理：关闭连接
                     let _ = ws_manager
                         .close("echo-test", 1000, Some("测试完成".to_string()), 5000)
@@ -795,5 +882,70 @@ mod tests {
                 panic!("执行器返回错误而不是 false 端口: {}", e);
             }
         }
+    }
+
+    /// 测试：连接成功后创建 WsStreamSegment
+    #[tokio::test]
+    async fn test_create_ws_stream_on_connect_success() {
+        let ws_manager = Arc::new(WebSocketConnectionManager::new());
+        let executor = WsConnectExecutor::new(ws_manager.clone());
+
+        // 连接到公共 WebSocket echo 服务器
+        let node = create_test_node("stream-test", "消息流测试", "wss://echo.websocket.org");
+        let mut context = create_context("test-flow");
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        if let Ok((next_nodes, _)) = result {
+            if next_nodes == vec!["true"] {
+                // 验证消息流已创建
+                let stream = context.get_ws_stream("stream-test").await;
+                assert!(stream.is_some(), "连接成功后应该创建 WebSocket 消息流");
+
+                let stream = stream.unwrap();
+                assert_eq!(stream.connection_id, "stream-test");
+                assert_eq!(stream.url, "wss://echo.websocket.org");
+                assert_eq!(stream.current_owner_node_uuid, Some("stream-test".to_string()));
+                assert_eq!(stream.segments.len(), 1, "应该有一个初始段");
+
+                let segment = &stream.segments[0];
+                assert_eq!(segment.node_uuid, "stream-test");
+                assert_eq!(segment.node_name, "消息流测试");
+                assert_eq!(segment.node_type, "ws_connect");
+                assert!(segment.ended_at.is_none(), "初始段不应结束");
+
+                // 清理
+                let _ = ws_manager
+                    .close("stream-test", 1000, Some("测试完成".to_string()), 5000)
+                    .await;
+            } else {
+                println!("跳过测试：无法连接到 echo 服务器");
+            }
+        }
+    }
+
+    /// 测试：连接失败时不创建 WsStreamSegment
+    #[tokio::test]
+    async fn test_no_ws_stream_on_connect_failure() {
+        let ws_manager = Arc::new(WebSocketConnectionManager::new());
+        let executor = WsConnectExecutor::new(ws_manager);
+
+        // 使用无效 URL
+        let node = create_test_node("fail-test", "失败测试", "ws://invalid.example.com:9999/ws");
+        let mut context = create_context("test-flow");
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        assert!(result.is_ok());
+        let (next_nodes, _) = result.unwrap();
+        assert_eq!(next_nodes, vec!["false"], "应该返回 false 端口");
+
+        // 验证没有创建消息流
+        let stream = context.get_ws_stream("fail-test").await;
+        assert!(stream.is_none(), "连接失败不应创建 WebSocket 消息流");
     }
 }
