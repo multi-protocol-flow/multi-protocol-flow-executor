@@ -89,6 +89,8 @@ impl NodeExecutor for WsConnectExecutor {
                 node.uuid.clone(),
                 node.name.clone(),
                 url.clone(),
+                config.headers.clone(),
+                config.subprotocols.clone(),
                 config.connect_timeout_ms,
             )
             .await;

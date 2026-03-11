@@ -1066,6 +1066,8 @@ mod tests {
                 "echo-conn".to_string(),
                 "Echo 连接".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -1120,6 +1122,8 @@ mod tests {
                 "echo-conn-2".to_string(),
                 "Echo 连接 2".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -1196,6 +1200,8 @@ mod tests {
                 "timeout-conn".to_string(),
                 "超时连接".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -1259,9 +1265,11 @@ mod tests {
         // 先建立连接
         let connect_result = ws_manager
             .connect(
-                "test-conn-1".to_string(),
-                "测试连接 1".to_string(),
+                "test-conn-3".to_string(),
+                "测试连接 3".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -1340,6 +1348,8 @@ mod tests {
                 "test-conn-2".to_string(),
                 "测试连接 2".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -1415,6 +1425,8 @@ mod tests {
                 "test-conn-3".to_string(),
                 "测试连接 3".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -1498,6 +1510,8 @@ mod tests {
                 "test-conn-4".to_string(),
                 "测试连接 4".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -1573,6 +1587,8 @@ mod tests {
                 "test-conn-5".to_string(),
                 "测试连接 5".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -1646,6 +1662,8 @@ mod tests {
                 "test-conn-6".to_string(),
                 "测试连接 6".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -1717,6 +1735,8 @@ mod tests {
                 "test-conn-7".to_string(),
                 "测试连接 7".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -1853,6 +1873,8 @@ mod tests {
                 "test-conn-9".to_string(),
                 "测试连接 9".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -1931,6 +1953,8 @@ mod tests {
                 "test-ownership-conn".to_string(),
                 "所有权测试连接".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -2017,6 +2041,8 @@ mod tests {
                 "test-msg-record-conn".to_string(),
                 "消息记录测试连接".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -2117,6 +2143,8 @@ mod tests {
                 "test-same-owner-conn".to_string(),
                 "相同所有者测试".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;

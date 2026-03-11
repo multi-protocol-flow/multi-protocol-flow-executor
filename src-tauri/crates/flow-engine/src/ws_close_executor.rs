@@ -381,6 +381,8 @@ mod tests {
                 "echo-close-conn".to_string(),
                 "Echo 关闭测试".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;
@@ -433,6 +435,8 @@ mod tests {
                 "close-reason-conn".to_string(),
                 "关闭原因测试".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![],
+                vec![],
                 30000,
             )
             .await;

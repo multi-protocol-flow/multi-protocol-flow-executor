@@ -8,17 +8,19 @@ use chrono::{DateTime, Utc};
 use evalexpr::{ContextWithMutableVariables, HashMapContext, Value};
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};
+use http::Request;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json_path::JsonPath;
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 use tokio::time::{timeout, Duration};
+use tokio_tungstenite::tungstenite::handshake::client::generate_key;
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use tokio_tungstenite::tungstenite::protocol::Message as WebSocketMessage;
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{connect_async_tls_with_config, MaybeTlsStream, WebSocketStream};
 
-use crate::node_config::{WsMatchType, WsWaitCondition};
+use crate::node_config::{FormField, WsMatchType, WsWaitCondition};
 
 /// WebSocket 流类型（支持 TLS）
 type WsStream = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
@@ -225,6 +227,8 @@ impl WebSocketConnectionManager {
     /// * `uuid` - 节点 UUID（连接标识）
     /// * `name` - 节点名称（可读标识）
     /// * `url` - WebSocket URL (ws:// 或 wss://)
+    /// * `headers` - 自定义请求头
+    /// * `subprotocols` - WebSocket 子协议列表
     /// * `connect_timeout_ms` - 连接超时（毫秒）
     ///
     /// # 返回
@@ -236,13 +240,15 @@ impl WebSocketConnectionManager {
     ///
     /// ```ignore
     /// let manager = WebSocketConnectionManager::new();
-    /// manager.connect("conn-1", "测试连接", "wss://echo.websocket.org", 30000).await?;
+    /// manager.connect("conn-1", "测试连接", "wss://echo.websocket.org", vec![], vec![], 30000).await?;
     /// ```
     pub async fn connect(
         &self,
         uuid: String,
         name: String,
         url: String,
+        headers: Vec<FormField>,
+        subprotocols: Vec<String>,
         connect_timeout_ms: u64,
     ) -> Result<(), String> {
         // 1. 创建 ActiveConnection (status: Connecting)
@@ -259,16 +265,23 @@ impl WebSocketConnectionManager {
         // 3. 临时存储连接（状态为 Connecting）
         self.upsert_connection(connection);
 
-        // 4. 使用 tokio::time::timeout 包装 connect_async
+        // 4. 构建带 headers 的 WebSocket 请求
+        let request = self.build_ws_request(&url, &headers, &subprotocols)?;
+
+        // 5. 使用 tokio::time::timeout 包装 connect_async_tls_with_config
         let connect_timeout = Duration::from_millis(connect_timeout_ms.clamp(1000, 60000));
-        let connect_result = timeout(connect_timeout, connect_async(&url)).await;
+        let connect_result = timeout(
+            connect_timeout,
+            connect_async_tls_with_config(request, None, false, None),
+        )
+        .await;
 
         match connect_result {
             Ok(Ok((ws_stream, _response))) => {
-                // 5. 连接成功，分割流
+                // 6. 连接成功，分割流
                 let (sender, receiver) = ws_stream.split();
 
-                // 6. 更新连接状态
+                // 7. 更新连接状态
                 let mut connections = self.connections.lock().map_err(|e| {
                     format!("获取连接锁失败: {}", e)
                 })?;
@@ -299,6 +312,58 @@ impl WebSocketConnectionManager {
                 Err(error_msg)
             }
         }
+    }
+
+    /// 构建 WebSocket 握手请求
+    ///
+    /// # 参数
+    ///
+    /// * `url` - WebSocket URL
+    /// * `headers` - 自定义请求头
+    /// * `subprotocols` - WebSocket 子协议列表
+    ///
+    /// # 返回
+    ///
+    /// 构建好的 HTTP Request 对象
+    fn build_ws_request(
+        &self,
+        url: &str,
+        headers: &[FormField],
+        subprotocols: &[String],
+    ) -> Result<Request<()>, String> {
+        // 1. 解析 URL 获取 host 和 port
+        let uri: http::Uri = url.parse().map_err(|e| format!("解析 URL 失败: {}", e))?;
+
+        let host = uri.host().ok_or("URL 缺少 host")?;
+        let default_port = if uri.scheme_str() == Some("wss") {
+            443
+        } else {
+            80
+        };
+        let port = uri.port_u16().unwrap_or(default_port);
+
+        // 2. 构建基础请求
+        let mut builder = Request::builder()
+            .method("GET")
+            .uri(url)
+            .header("Host", format!("{}:{}", host, port))
+            .header("Connection", "Upgrade")
+            .header("Upgrade", "websocket")
+            .header("Sec-WebSocket-Version", "13")
+            .header("Sec-WebSocket-Key", generate_key());
+
+        // 3. 添加自定义 headers
+        for header in headers {
+            builder = builder.header(&header.key, &header.value);
+        }
+
+        // 4. 添加子协议（Sec-WebSocket-Protocol）
+        if !subprotocols.is_empty() {
+            builder = builder.header("Sec-WebSocket-Protocol", subprotocols.join(", "));
+        }
+
+        // 5. 构建请求体
+        builder.body(()).map_err(|e| format!("构建 WebSocket 请求失败: {}", e))
     }
 
     /// 关闭 WebSocket 连接
@@ -1527,6 +1592,8 @@ mod tests {
                 "conn-1".to_string(),
                 "测试连接".to_string(),
                 "http://invalid.com".to_string(), // 无效协议
+                vec![],                           // headers
+                vec![],                           // subprotocols
                 5000,
             )
             .await;
@@ -1550,7 +1617,9 @@ mod tests {
                 "conn-timeout".to_string(),
                 "超时测试".to_string(),
                 "ws://192.0.2.1:81/ws".to_string(), // RFC 3330 测试地址，不可路由
-                2000,                               // 2 秒超时
+                vec![],                            // headers
+                vec![],                            // subprotocols
+                2000,                              // 2 秒超时
             )
             .await;
 
@@ -1605,6 +1674,8 @@ mod tests {
                 "echo-conn".to_string(),
                 "Echo 测试".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![], // headers
+                vec![], // subprotocols
                 30000,
             )
             .await;
@@ -1657,6 +1728,8 @@ mod tests {
                 "binary-conn".to_string(),
                 "二进制测试".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![], // headers
+                vec![], // subprotocols
                 30000,
             )
             .await;
@@ -1697,6 +1770,8 @@ mod tests {
                 "timeout-conn".to_string(),
                 "超时测试".to_string(),
                 "wss://echo.websocket.org".to_string(),
+                vec![], // headers
+                vec![], // subprotocols
                 30000,
             )
             .await;
