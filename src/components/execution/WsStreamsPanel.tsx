@@ -48,19 +48,31 @@ function calculateStats(stream: WsConnectionStream) {
 
 function WsMessageItem({ message }: { message: WsMessage }) {
   const isSent = message.direction === 'sent';
+  const content = formatContent(message.content);
+  const fullContent = message.content.type === 'text' ? message.content.content : content;
+
   return (
-    <div className={cn('flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50', isSent ? 'bg-emerald-50/50' : 'bg-blue-50/50')}>
-      <div className={cn('w-5 h-5 flex items-center justify-center rounded-full shrink-0', isSent ? 'text-emerald-600' : 'text-blue-600')}>
-        {isSent ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownLeft className="w-3 h-3" />}
+    <div className={cn('p-2.5 rounded-lg', isSent ? 'bg-emerald-50/50' : 'bg-blue-50/50')}>
+      {/* 头部信息行 */}
+      <div className="flex items-center gap-2 mb-1.5">
+        <div className={cn('w-5 h-5 flex items-center justify-center rounded-full shrink-0', isSent ? 'text-emerald-600' : 'text-blue-600')}>
+          {isSent ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownLeft className="w-3 h-3" />}
+        </div>
+        <span className={cn('text-xs font-medium shrink-0', isSent ? 'text-emerald-600' : 'text-blue-600')}>
+          {isSent ? '发送' : '接收'}
+        </span>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+          <Clock className="w-3 h-3" /><span>{formatTimestamp(message.timestamp)}</span>
+        </div>
+        <div className="text-xs text-muted-foreground shrink-0">{formatSize(message.size)}</div>
       </div>
-      <span className={cn('text-xs font-medium shrink-0', isSent ? 'text-emerald-600' : 'text-blue-600')}>
-        {isSent ? '发送' : '接收'}
-      </span>
-      <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-        <Clock className="w-3 h-3" /><span>{formatTimestamp(message.timestamp)}</span>
+      {/* 内容区域 - 换行显示 */}
+      <div
+        className="text-sm text-foreground/90 break-all pl-7 whitespace-pre-wrap"
+        title={fullContent.length > 200 ? fullContent : undefined}
+      >
+        {content}
       </div>
-      <div className="text-xs text-muted-foreground shrink-0">{formatSize(message.size)}</div>
-      <div className="flex-1 min-w-0 text-sm truncate" title={formatContent(message.content)}>{formatContent(message.content)}</div>
     </div>
   );
 }
@@ -84,7 +96,7 @@ function WsSegmentItem({ segment, index, expanded, onToggle }: { segment: WsStre
       </button>
       {expanded && (
         <div className="border-t border-border/30 bg-muted/10 px-4 py-2 max-h-[250px] overflow-y-auto">
-          {segment.messages.length === 0 ? <div className="text-sm text-muted-foreground text-center py-2">无消息记录</div> : segment.messages.map((m, i) => <WsMessageItem key={i} message={m} />)}
+          {segment.messages.length === 0 ? <div className="text-sm text-muted-foreground text-center py-2">无消息记录</div> : segment.messages.map((m, i) => <WsMessageItem key={`${m.timestamp}-${i}`} message={m} />)}
         </div>
       )}
     </div>
