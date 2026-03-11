@@ -55,10 +55,14 @@ interface UIState {
   isExecutionStackCollapsed: boolean;
   /** 最近节点输出是否折叠 */
   isRecentOutputCollapsed: boolean;
+  /** WebSocket 消息流是否折叠 */
+  isWsStreamCollapsed: boolean;
   /** 执行堆栈高度（像素） */
   executionStackHeight: number;
   /** 最近节点输出高度（像素） */
   recentOutputHeight: number;
+  /** WebSocket 消息流高度（像素） */
+  wsStreamHeight: number;
 
   // ===== 模态框状态 =====
   /** 是否显示新建流程对话框 */
@@ -145,10 +149,14 @@ interface UIState {
   toggleExecutionStackCollapsed: () => void;
   /** 切换最近节点输出折叠状态 */
   toggleRecentOutputCollapsed: () => void;
+  /** 切换 WebSocket 消息流折叠状态 */
+  toggleWsStreamCollapsed: () => void;
   /** 设置执行堆栈高度 */
   setExecutionStackHeight: (height: number) => void;
   /** 设置最近节点输出高度 */
   setRecentOutputHeight: (height: number) => void;
+  /** 设置 WebSocket 消息流高度 */
+  setWsStreamHeight: (height: number) => void;
 
   // ===== 布局 Actions =====
   /** 设置侧边栏宽度 */
@@ -194,8 +202,10 @@ const initialState = {
   isContextVariablesCollapsed: false,
   isExecutionStackCollapsed: false,
   isRecentOutputCollapsed: false,
+  isWsStreamCollapsed: false,
   executionStackHeight: 192,
   recentOutputHeight: 192,
+  wsStreamHeight: 200,
 
   // 模态框状态
   showNewFlowDialog: false,
@@ -322,6 +332,11 @@ export const useUIStore = create<UIState>((set) => ({
       isRecentOutputCollapsed: !state.isRecentOutputCollapsed,
     })),
 
+  toggleWsStreamCollapsed: () =>
+    set((state) => ({
+      isWsStreamCollapsed: !state.isWsStreamCollapsed,
+    })),
+
   setExecutionStackHeight: (height) =>
     set({
       executionStackHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
@@ -330,6 +345,11 @@ export const useUIStore = create<UIState>((set) => ({
   setRecentOutputHeight: (height) =>
     set({
       recentOutputHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
+    }),
+
+  setWsStreamHeight: (height) =>
+    set({
+      wsStreamHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
     }),
 
   // ===== 布局 Actions =====
@@ -369,8 +389,10 @@ export const useUIStore = create<UIState>((set) => ({
       isContextVariablesCollapsed: false,
       isExecutionStackCollapsed: false,
       isRecentOutputCollapsed: false,
+      isWsStreamCollapsed: false,
       executionStackHeight: 192,
       recentOutputHeight: 192,
+      wsStreamHeight: 200,
     }),
 }));
 

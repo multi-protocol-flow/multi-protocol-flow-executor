@@ -11,6 +11,7 @@ import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
+import { WsMessageStreamPanel } from '@/components/debug/WsMessageStreamPanel';
 import type { ExecutionStackEntry } from '@/types/debug';
 import type { NodeData } from '@/types/node';
 
@@ -400,13 +401,17 @@ export function DebugPanel() {
   const isContextVariablesCollapsed = useUIStore((state) => state.isContextVariablesCollapsed);
   const isExecutionStackCollapsed = useUIStore((state) => state.isExecutionStackCollapsed);
   const isRecentOutputCollapsed = useUIStore((state) => state.isRecentOutputCollapsed);
+  const isWsStreamCollapsed = useUIStore((state) => state.isWsStreamCollapsed);
   const executionStackHeight = useUIStore((state) => state.executionStackHeight);
   const recentOutputHeight = useUIStore((state) => state.recentOutputHeight);
+  const wsStreamHeight = useUIStore((state) => state.wsStreamHeight);
   const toggleContextVariablesCollapsed = useUIStore((state) => state.toggleContextVariablesCollapsed);
   const toggleExecutionStackCollapsed = useUIStore((state) => state.toggleExecutionStackCollapsed);
   const toggleRecentOutputCollapsed = useUIStore((state) => state.toggleRecentOutputCollapsed);
+  const toggleWsStreamCollapsed = useUIStore((state) => state.toggleWsStreamCollapsed);
   const setExecutionStackHeight = useUIStore((state) => state.setExecutionStackHeight);
   const setRecentOutputHeight = useUIStore((state) => state.setRecentOutputHeight);
+  const setWsStreamHeight = useUIStore((state) => state.setWsStreamHeight);
 
   // 获取当前节点信息
   const currentNode = flow?.nodes.find((n) => n.uuid === currentNodeUuid);
@@ -623,6 +628,20 @@ export function DebugPanel() {
           }
         >
           {renderExecutionStackContent()}
+        </CollapsiblePanel>
+
+        {/* WebSocket 消息流 */}
+        <CollapsiblePanel
+          title="WebSocket 消息流"
+          isCollapsed={isWsStreamCollapsed}
+          onToggle={toggleWsStreamCollapsed}
+          height={wsStreamHeight}
+          onHeightChange={setWsStreamHeight}
+          resizable={!isWsStreamCollapsed}
+          maxHeight={maxBottomPanelHeight}
+          className="border-t border-border"
+        >
+          <WsMessageStreamPanel />
         </CollapsiblePanel>
 
         {/* 最近节点输出 */}
