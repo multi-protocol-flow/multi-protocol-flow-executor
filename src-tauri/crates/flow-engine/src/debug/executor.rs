@@ -1138,10 +1138,10 @@ impl DebuggableFlowExecutor {
             final_variables: None,
             execution_path: vec![],
             skipped_nodes: vec![],
-            // 收集 WebSocket 消息流摘要
+            // 收集 WebSocket 消息流（完整数据）
             ws_streams: {
                 let streams = context.ws_streams.read().await;
-                streams.values().map(crate::report::WsStreamSummary::from).collect()
+                streams.values().cloned().collect()
             },
         }
     }

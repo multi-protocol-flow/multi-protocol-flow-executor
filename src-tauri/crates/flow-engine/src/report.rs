@@ -239,9 +239,9 @@ pub struct FlowExecutionReport {
     /// 跳过的节点及原因
     #[serde(default)]
     pub skipped_nodes: Vec<SkippedNodeInfo>,
-    /// WebSocket 消息流摘要列表
+    /// WebSocket 消息流完整数据列表
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub ws_streams: Vec<WsStreamSummary>,
+    pub ws_streams: Vec<crate::ws_stream::WsConnectionStream>,
 }
 
 #[cfg(test)]

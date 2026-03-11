@@ -4,6 +4,7 @@
  */
 
 import type { ErrorDetail } from './error';
+import type { WsConnectionStream } from './ws_stream';
 
 // ============================================================================
 // 执行状态枚举
@@ -239,6 +240,6 @@ export interface FlowExecutionReport {
   execution_path?: string[];
   /** 跳过的节点及原因 */
   skipped_nodes?: SkippedNodeInfo[];
-  /** WebSocket 消息流摘要列表（为空时不序列化） */
-  ws_streams?: WsStreamSummary[];
+  /** WebSocket 消息流列表（完整数据，为空时不序列化） */
+  ws_streams?: WsConnectionStream[];
 }

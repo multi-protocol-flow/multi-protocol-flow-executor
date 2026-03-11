@@ -241,7 +241,7 @@ describe('WsMessageStreamPanel', () => {
       const user = userEvent.setup();
       const binaryMessage = createMockMessage({
         is_binary: true,
-        content: { type: 'binary', content: 'SGVsbG8=' }, // base64 of "Hello"
+        content: { type: 'binary', content: [72, 101, 108, 108, 111] }, // "Hello" in bytes
       });
       const segment = createMockSegment({
         node_uuid: 'node-123',

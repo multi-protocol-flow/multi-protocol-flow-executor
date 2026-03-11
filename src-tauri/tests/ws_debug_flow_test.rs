@@ -242,7 +242,7 @@ async fn test_ownership_transfer() {
         .duration_since(std::time::UNIX_EPOCH)
         .expect("系统时间错误")
         .as_millis() as u64;
-    let mut context = ExecutionContext::new(flow_uuid.to_string(), trigger_time);
+    let context = ExecutionContext::new(flow_uuid.to_string(), trigger_time);
     
     // 模拟 WsConnect 节点创建消息流
     context.create_ws_stream(
@@ -379,28 +379,29 @@ async fn test_report_includes_ws_streams() {
     // 关闭连接
     context.close_ws_stream(connection_id).await;
     
-    // 从上下文生成 ws_streams 摘要
+    // 从上下文生成 ws_streams（完整数据）
     let ws_streams = {
         let streams = context.ws_streams.read().await;
-        streams.values()
-            .map(flow_engine::report::WsStreamSummary::from)
-            .collect::<Vec<_>>()
+        streams.values().cloned().collect::<Vec<_>>()
     };
     
     // 验证 ws_streams 内容
     assert_eq!(ws_streams.len(), 1, "应该有 1 个 WebSocket 流");
     
-    let summary = &ws_streams[0];
-    assert_eq!(summary.connection_id, connection_id);
-    assert_eq!(summary.url, "wss://example.com/ws");
-    assert_eq!(summary.total_sent, 2, "应该发送了 2 条消息");
-    assert_eq!(summary.total_received, 1, "应该接收了 1 条消息");
-    assert_eq!(summary.dropped_messages, 0, "不应该有丢弃的消息");
-    assert_eq!(summary.segments.len(), 2, "应该有 2 个段");
+    let stream = &ws_streams[0];
+    assert_eq!(stream.connection_id, connection_id);
+    assert_eq!(stream.url, "wss://example.com/ws");
+    assert_eq!(stream.segments.len(), 2, "应该有 2 个段");
+    
+    // 验证消息数量
+    let sent_count: usize = stream.segments.iter().map(|s| s.messages.iter().filter(|m| m.direction == MessageDirection::Sent).count()).sum();
+    let received_count: usize = stream.segments.iter().map(|s| s.messages.iter().filter(|m| m.direction == MessageDirection::Received).count()).sum();
+    assert_eq!(sent_count, 2, "应该发送了 2 条消息");
+    assert_eq!(received_count, 1, "应该接收了 1 条消息");
     
     // 验证段信息
-    assert_eq!(summary.segments[0].node_type, "ws_connect");
-    assert_eq!(summary.segments[1].node_type, "ws_send_wait");
+    assert_eq!(stream.segments[0].node_type, "ws_connect");
+    assert_eq!(stream.segments[1].node_type, "ws_send_wait");
     
     // 创建报告并验证 ws_streams 字段
     let report = FlowExecutionReport {
@@ -429,8 +430,8 @@ async fn test_report_includes_ws_streams() {
     assert!(json.contains("ws_streams"), "报告应该包含 ws_streams 字段");
     assert!(json.contains(connection_id), "报告应该包含连接 ID");
     assert!(json.contains("wss://example.com/ws"), "报告应该包含 URL");
-    assert!(json.contains("total_sent"), "报告应该包含发送计数");
-    assert!(json.contains("total_received"), "报告应该包含接收计数");
+    assert!(json.contains("segments"), "报告应该包含 segments 字段");
+    assert!(json.contains("is_closed"), "报告应该包含 is_closed 字段");
 }
 
 // ============================================================================

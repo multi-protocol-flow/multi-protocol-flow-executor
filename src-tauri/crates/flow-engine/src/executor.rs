@@ -835,10 +835,10 @@ impl FlowExecutor {
                         // 获取最终变量快照（Task 16）
                         let final_variables = context.variables.get_merged_variables();
 
-                        // 收集 WebSocket 消息流摘要
-                        let ws_streams: Vec<crate::report::WsStreamSummary> = {
+                        // 收集 WebSocket 消息流（完整数据）
+                        let ws_streams: Vec<crate::ws_stream::WsConnectionStream> = {
                             let streams = context.ws_streams.read().await;
-                            streams.values().map(crate::report::WsStreamSummary::from).collect()
+                            streams.values().cloned().collect()
                         };
 
                         let flow_report = crate::report::FlowExecutionReport {
@@ -923,10 +923,10 @@ impl FlowExecutor {
         // 获取最终变量快照（Task 16）
         let final_variables = context.variables.get_merged_variables();
 
-        // 收集 WebSocket 消息流摘要
-        let ws_streams: Vec<crate::report::WsStreamSummary> = {
+        // 收集 WebSocket 消息流（完整数据）
+        let ws_streams: Vec<crate::ws_stream::WsConnectionStream> = {
             let streams = context.ws_streams.read().await;
-            streams.values().map(crate::report::WsStreamSummary::from).collect()
+            streams.values().cloned().collect()
         };
 
         let flow_report = crate::report::FlowExecutionReport {

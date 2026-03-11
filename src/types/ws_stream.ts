@@ -17,7 +17,7 @@ export type MessageDirection = 'sent' | 'received';
  */
 export type MessageContent =
   | { type: 'text'; content: string }
-  | { type: 'binary'; content: string }; // binary 用 base64 编码
+  | { type: 'binary'; content: number[] }; // binary 序列化为字节数组
 
 // ============================================================================
 // WebSocket 消息
