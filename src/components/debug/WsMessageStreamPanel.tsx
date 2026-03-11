@@ -7,7 +7,6 @@ import { FixedSizeList as List, type ListChildComponentProps } from 'react-windo
 import { useDebugStore } from '@/stores/debug';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -361,7 +360,9 @@ export function WsMessageStreamPanel() {
   const [expandedSegments, setExpandedSegments] = useState<Set<string>>(new Set());
   const [selectedMessage, setSelectedMessage] = useState<WsMessage | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [listHeight, setListHeight] = useState(200);
   const listRef = useRef<List<RowData>>(null);
+  const listContainerRef = useRef<HTMLDivElement>(null);
 
   // 获取连接列表
   const connectionIds = useMemo(() => Array.from(wsStreams.keys()), [wsStreams]);
@@ -369,6 +370,21 @@ export function WsMessageStreamPanel() {
   // 当前活动连接
   const currentConnectionId = activeConnectionId || connectionIds[0] || null;
   const currentStream = currentConnectionId ? wsStreams.get(currentConnectionId) : null;
+
+  // 监听容器高度变化
+  useEffect(() => {
+    const container = listContainerRef.current;
+    if (!container) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setListHeight(entry.contentRect.height);
+      }
+    });
+
+    resizeObserver.observe(container);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   // 构建虚拟列表项
   const listItems = useMemo((): ListItem[] => {
@@ -428,83 +444,77 @@ export function WsMessageStreamPanel() {
   }
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="py-2 px-3 border-b border-border">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Wifi className="h-4 w-4" />
-            WebSocket 消息流
-          </CardTitle>
-          <Badge variant="secondary" className="text-xs">
-            {connectionIds.length} 个连接
-          </Badge>
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* 连接选择器 */}
+      {connectionIds.length > 1 && (
+        <div className="flex gap-1 p-2 border-b border-border overflow-x-auto shrink-0">
+          {connectionIds.map((id) => {
+            const stream = wsStreams.get(id);
+            if (!stream) return null;
+            const isActive = id === currentConnectionId;
+            return (
+              <Button
+                key={id}
+                variant={isActive ? 'default' : 'outline'}
+                size="sm"
+                className="h-6 px-2 text-xs shrink-0"
+                onClick={() => {
+                  useDebugStore.setState({ activeConnectionId: id });
+                  setExpandedSegments(new Set());
+                }}
+              >
+                {stream.url.replace(/^wss?:\/\//, '').slice(0, 20)}
+              </Button>
+            );
+          })}
         </div>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
-        {/* 连接选择器 */}
-        {connectionIds.length > 1 && (
-          <div className="flex gap-1 p-2 border-b border-border overflow-x-auto">
-            {connectionIds.map((id) => {
-              const stream = wsStreams.get(id);
-              if (!stream) return null;
-              const isActive = id === currentConnectionId;
-              return (
-                <Button
-                  key={id}
-                  variant={isActive ? 'default' : 'outline'}
-                  size="sm"
-                  className="h-6 px-2 text-xs shrink-0"
-                  onClick={() => {
-                    useDebugStore.setState({ activeConnectionId: id });
-                    setExpandedSegments(new Set());
-                  }}
-                >
-                  {stream.url.replace(/^wss?:\/\//, '').slice(0, 20)}
-                </Button>
-              );
-            })}
-          </div>
-        )}
+      )}
 
-        {/* 连接头部 */}
-        {currentStream && (
-          <ConnectionHeader
-            stream={currentStream}
-            autoScroll={autoScroll}
-            onToggleAutoScroll={() => setAutoScroll((prev) => !prev)}
-          />
-        )}
-
-        {/* 消息列表 */}
-        {currentStream && listItems.length > 0 ? (
-          <div className="flex-1">
-            <List
-              ref={listRef}
-              height={400}
-              width="100%"
-              itemCount={listItems.length}
-              itemSize={MESSAGE_ITEM_HEIGHT}
-              itemData={rowData}
-              overscanCount={10}
-              className="font-mono"
-            >
-              {Row}
-            </List>
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-            暂无消息
-          </div>
-        )}
-
-        {/* 消息详情对话框 */}
-        <MessageDetailDialog
-          message={selectedMessage}
-          open={detailOpen}
-          onOpenChange={setDetailOpen}
+      {/* 连接头部 */}
+      {currentStream && (
+        <ConnectionHeader
+          stream={currentStream}
+          autoScroll={autoScroll}
+          onToggleAutoScroll={() => setAutoScroll((prev) => !prev)}
         />
-      </CardContent>
-    </Card>
+      )}
+
+      {/* 连接数量标签 */}
+      <div className="flex items-center justify-end px-3 py-1 border-b border-border shrink-0">
+        <Badge variant="secondary" className="text-xs">
+          {connectionIds.length} 个连接
+        </Badge>
+      </div>
+
+      {/* 消息列表 */}
+      {currentStream && listItems.length > 0 ? (
+        <div ref={listContainerRef} className="flex-1 min-h-0">
+          <List
+            ref={listRef}
+            height={listHeight}
+            width="100%"
+            itemCount={listItems.length}
+            itemSize={MESSAGE_ITEM_HEIGHT}
+            itemData={rowData}
+            overscanCount={10}
+            className="font-mono"
+          >
+            {Row}
+          </List>
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+          暂无消息
+        </div>
+      )}
+
+      {/* 消息详情对话框 */}
+      <MessageDetailDialog
+        message={selectedMessage}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
+    </div>
   );
 }
 

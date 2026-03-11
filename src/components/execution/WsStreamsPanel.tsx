@@ -130,8 +130,8 @@ export function WsStreamsPanel({ wsStreams }: WsStreamsPanelProps) {
   wsStreams.forEach(s => { const st = calculateStats(s); sent += st.sent; received += st.received; dropped += st.dropped; });
   
   return (
-    <div className="space-y-3 max-h-[400px] overflow-y-auto">
-      <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-sm py-1 z-10">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between py-1">
         <h3 className="text-sm font-semibold flex items-center gap-2"><Wifi className="w-4 h-4 text-violet-500" />WebSocket 消息流</h3>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1"><ArrowUpRight className="w-3 h-3 text-emerald-500" />发送 {sent}</span>

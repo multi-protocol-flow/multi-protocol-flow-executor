@@ -396,15 +396,16 @@ describe('WsMessageStreamPanel', () => {
     });
   });
 
-  describe('组件标题', () => {
-    it('应该显示 WebSocket 消息流标题', () => {
+  describe('组件结构', () => {
+    it('应该显示连接数量标签', () => {
       const stream = createMockStream();
       const wsStreams = new Map([['conn-1', stream]]);
       mockStore({ wsStreams, activeConnectionId: 'conn-1' });
 
       render(<WsMessageStreamPanel />);
 
-      expect(screen.getByText('WebSocket 消息流')).toBeDefined();
+      // 连接数量标签在组件内部显示（标题由 CollapsiblePanel 提供）
+      expect(screen.getByText('1 个连接')).toBeDefined();
     });
   });
 });
