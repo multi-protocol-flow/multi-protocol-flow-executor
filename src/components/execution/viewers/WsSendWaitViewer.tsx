@@ -88,8 +88,15 @@ interface WsSendWaitOutput {
 interface WsSendWaitConfig {
   connection_id?: string;
   message?: string;
-  wait_response?: boolean;
-  timeout_ms?: number;
+  message_type?: 'text' | 'binary';
+  send_timeout_ms?: number;
+  wait_for_response?: boolean;
+  wait_mode?: 'first_message' | 'condition' | 'duration';
+  wait_condition?: {
+    match_type?: 'json_path' | 'regex' | 'expression';
+    expression?: string;
+  };
+  message_timeout_ms?: number;
 }
 
 /**
@@ -109,6 +116,30 @@ function truncateText(text: string, maxLength: number = 500): string {
   return text.slice(0, maxLength) + '...';
 }
 
+/**
+ * 获取等待模式的显示文本
+ */
+function getWaitModeLabel(waitMode: string | undefined): string {
+  switch (waitMode) {
+    case 'first_message': return '等待第一条消息';
+    case 'condition': return '等待条件匹配';
+    case 'duration': return '等待指定时长';
+    default: return '等待第一条消息';
+  }
+}
+
+/**
+ * 获取匹配类型的显示文本
+ */
+function getMatchTypeLabel(matchType: string | undefined): string {
+  switch (matchType) {
+    case 'json_path': return 'JSONPath';
+    case 'regex': return '正则表达式';
+    case 'expression': return '表达式';
+    default: return 'JSONPath';
+  }
+}
+
 export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
   const outputData = report.output_data as WsSendWaitOutput | undefined;
   const resolvedConfig = report.resolved_config as WsSendWaitConfig | undefined;
@@ -119,8 +150,12 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
   // 配置数据
   const configConnectionId = resolvedConfig?.connection_id;
   const configMessage = resolvedConfig?.message;
-  const waitResponse = resolvedConfig?.wait_response ?? true;
-  const timeoutMs = resolvedConfig?.timeout_ms;
+  const configMessageType = resolvedConfig?.message_type;
+  const sendTimeoutMs = resolvedConfig?.send_timeout_ms;
+  const waitForResponse = resolvedConfig?.wait_for_response ?? true;
+  const waitMode = resolvedConfig?.wait_mode;
+  const waitCondition = resolvedConfig?.wait_condition;
+  const messageTimeoutMs = resolvedConfig?.message_timeout_ms;
 
   // 输出数据
   const connectionUrl = outputData?.url;
@@ -185,6 +220,68 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
         </div>
       </CollapsibleSection>
 
+      {/* 等待配置（独立面板，更醒目） */}
+      <CollapsibleSection
+        title="等待配置"
+        icon={<Clock className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-3">
+          {/* 等待响应 */}
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">等待响应:</span>
+            <Badge variant="outline" className="font-mono text-xs">
+              {waitForResponse ? '是' : '否'}
+            </Badge>
+          </div>
+
+          {/* 等待模式（仅当等待响应时显示） */}
+          {waitForResponse && (
+            <>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">等待模式:</span>
+                <Badge variant="outline" className="font-mono text-xs">
+                  {getWaitModeLabel(waitMode)}
+                </Badge>
+              </div>
+
+              {/* 等待条件（仅当等待模式为 condition 时显示） */}
+              {waitMode === 'condition' && waitCondition && (
+                <div className="space-y-1">
+                  <div className="text-xs font-medium text-muted-foreground">等待条件</div>
+                  <div className="bg-slate-50 rounded p-2 space-y-1">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground">匹配类型:</span>
+                      <Badge variant="secondary" className="font-mono text-xs">
+                        {getMatchTypeLabel(waitCondition.match_type)}
+                      </Badge>
+                    </div>
+                    {waitCondition.expression && (
+                      <div>
+                        <span className="text-xs text-muted-foreground">表达式: </span>
+                        <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded font-mono">
+                          {waitCondition.expression}
+                        </code>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 消息超时时间 */}
+              {messageTimeoutMs !== undefined && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">消息超时:</span>
+                  <Badge variant="secondary" className="font-mono text-xs">
+                    {formatDuration(messageTimeoutMs)}
+                  </Badge>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </CollapsibleSection>
+
       {/* 发送配置 */}
       <CollapsibleSection
         title="发送配置"
@@ -202,20 +299,22 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
         )}
       >
         <div className="space-y-3">
-          {/* 等待响应 */}
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">等待响应:</span>
-            <Badge variant="outline" className="font-mono text-xs">
-              {waitResponse ? '是' : '否'}
-            </Badge>
-          </div>
-
-          {/* 超时时间 */}
-          {timeoutMs !== undefined && (
+          {/* 消息类型 */}
+          {configMessageType && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">超时时间:</span>
+              <span className="text-muted-foreground">消息类型:</span>
+              <Badge variant="outline" className="font-mono text-xs">
+                {configMessageType === 'binary' ? '二进制' : '文本'}
+              </Badge>
+            </div>
+          )}
+
+          {/* 发送超时时间 */}
+          {sendTimeoutMs !== undefined && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">发送超时:</span>
               <Badge variant="secondary" className="font-mono text-xs">
-                {timeoutMs}ms
+                {formatDuration(sendTimeoutMs)}
               </Badge>
             </div>
           )}

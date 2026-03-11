@@ -126,11 +126,10 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
             <Badge variant="outline" className="font-mono text-xs">
               {(() => {
                 switch (waitMode) {
-                  case 'connect': return '等待连接';
-                  case 'message': return '等待消息';
-                  case 'both': return '连接+消息';
-                  case 'none':
-                  default: return '不等待';
+                  case 'first_message': return '等待第一条消息';
+                  case 'condition': return '等待条件匹配';
+                  case 'duration': return '等待指定时长';
+                  default: return '等待第一条消息';
                 }
               })()}
             </Badge>

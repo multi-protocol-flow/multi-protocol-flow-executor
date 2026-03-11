@@ -453,6 +453,20 @@ export function WsSendWaitConfig({ data, onSave }: WsSendWaitConfigProps) {
                     availableVariables={availableVariableNames}
                     compact
                   />
+                  
+                  {/* 语法提示 */}
+                  <div className="flex items-start gap-2 rounded-md bg-sky-50/50 border border-sky-200/50 p-2.5">
+                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
+                    <div className="text-xs text-sky-700/90 space-y-1.5">
+                      <p className="font-medium text-sky-800">表达式语法说明：</p>
+                      <div className="space-y-0.5 font-mono text-[11px]">
+                        <p><span className="text-sky-600">JSONPath:</span> <code className="bg-sky-100/50 px-1 rounded">$.status</code> 或 <code className="bg-sky-100/50 px-1 rounded">$.data.id</code></p>
+                        <p><span className="text-sky-600">正则:</span> <code className="bg-sky-100/50 px-1 rounded">^success.*</code> 或 <code className="bg-sky-100/50 px-1 rounded">error|failed</code></p>
+                        <p><span className="text-sky-600">表达式:</span> <code className="bg-sky-100/50 px-1 rounded">message == "ok"</code> 或 <code className="bg-sky-100/50 px-1 rounded">status == 200</code></p>
+                      </div>
+                      <p className="text-[11px] text-sky-600/80">⚠️ 表达式模式：使用变量名而非 $ 前缀，JSON 顶层字段自动注入上下文</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
