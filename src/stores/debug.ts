@@ -6,7 +6,7 @@
 import { create } from 'zustand';
 import type { DebugStatus, PauseReason, ExecutionStackEntry, DebugEvent } from '@/types/debug';
 import type { FlowExecutionReport } from '@/types/report';
-import type { WsConnectionStream, WsMessage } from '@/types/ws_stream';
+import type { WsConnectionStream, WsMessage, WsStreamSegment } from '@/types/ws_stream';
 import { DEBUG_HEALTH_CONFIG } from '@/types/debug';
 import { startDebug, sendDebugCommand, endDebug as endDebugService, saveFlowReport } from '@/services/tauri';
 import type { Flow } from '@/types/flow';
@@ -498,16 +498,41 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       if (current_node_uuid !== undefined && get().status === backendStatus) {
         set({ currentNodeUuid: current_node_uuid });
       }
-    } else if ('WsConnectionOpened' in event) {
-      // WebSocket 连接创建事件
-      get().handleWsStreamCreated(event.WsConnectionOpened.stream);
+    } else if ('WsStreamCreated' in event) {
+      // WebSocket 连接创建事件（后端发送，需转换为前端格式）
+      // 后端发送: { connection_id, url, owner_node_uuid, owner_node_name }
+      // 前端期望: WsConnectionStream
+      const { connection_id, url, owner_node_uuid, owner_node_name } = event.WsStreamCreated;
+      const stream: WsConnectionStream = {
+        connection_id,
+        url,
+        current_owner_node_uuid: owner_node_uuid,
+        segments: [{
+          node_uuid: owner_node_uuid,
+          node_name: owner_node_name,
+          node_type: 'ws_connect',
+          started_at: Date.now(),
+          ended_at: null,
+          messages: [],
+          max_messages: 1000,
+          dropped_message_count: 0,
+        }],
+        max_messages_per_segment: 1000,
+        max_total_messages: 10000,
+        is_closed: false,
+      };
+      get().handleWsStreamCreated(stream);
     } else if ('WsMessageReceived' in event) {
       // WebSocket 消息接收事件
-      const { connection_id, message } = event.WsMessageReceived;
+      // 后端使用 #[serde(flatten)] 展平了 message 字段，需要重新构建
+      const { connection_id, owner_node_uuid: _owner, timestamp, direction, content, is_binary, size } = event.WsMessageReceived;
+      const message: WsMessage = { timestamp, direction, content, is_binary, size };
       get().handleWsMessageReceived(connection_id, message);
     } else if ('WsMessageSent' in event) {
       // WebSocket 消息发送事件
-      const { connection_id, message } = event.WsMessageSent;
+      // 后端使用 #[serde(flatten)] 展平了 message 字段，需要重新构建
+      const { connection_id, owner_node_uuid: _owner, timestamp, direction, content, is_binary, size } = event.WsMessageSent;
+      const message: WsMessage = { timestamp, direction, content, is_binary, size };
       get().handleWsMessageSent(connection_id, message);
     } else if ('WsSegmentStarted' in event) {
       // WebSocket 流段开始事件 - 更新 segments 和 owner
@@ -548,9 +573,50 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         newStreams.set(connection_id, { ...stream, segments });
         return { wsStreams: newStreams };
       });
-    } else if ('WsConnectionClosed' in event) {
-      // WebSocket 连接关闭事件
-      get().handleWsStreamClosed(event.WsConnectionClosed.connection_id);
+    } else if ('WsStreamOwnerChanged' in event) {
+      // WebSocket 流所有权变更事件（后端发送）
+      const { connection_id, to_node_uuid } = event.WsStreamOwnerChanged;
+      set((state) => {
+        const stream = state.wsStreams.get(connection_id);
+        if (!stream) {
+          console.warn(`[调试] 未知连接 ${connection_id} 的所有者变更`);
+          return {};
+        }
+
+        const now = Date.now();
+        
+        // 结束上一个 segment
+        const updatedSegments = stream.segments.map((s, idx) => {
+          if (idx === stream.segments.length - 1 && s.ended_at === null) {
+            return { ...s, ended_at: now };
+          }
+          return s;
+        });
+
+        // 添加新 segment
+        const newSegment: WsStreamSegment = {
+          node_uuid: to_node_uuid,
+          node_name: '', // 后端没有发送名称，前端需要从 flow 中获取
+          node_type: 'ws_send_wait', // 假设是 send_wait 节点
+          started_at: now,
+          ended_at: null,
+          messages: [],
+          max_messages: 1000,
+          dropped_message_count: 0,
+        };
+
+        const newStreams = new Map(state.wsStreams);
+        newStreams.set(connection_id, {
+          ...stream,
+          segments: [...updatedSegments, newSegment],
+          current_owner_node_uuid: to_node_uuid,
+        });
+        return { wsStreams: newStreams };
+      });
+    } else if ('WsStreamClosed' in event) {
+      // WebSocket 流关闭事件（后端发送）
+      const { connection_id } = event.WsStreamClosed;
+      get().handleWsStreamClosed(connection_id);
     }
   },
 

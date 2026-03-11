@@ -4,7 +4,7 @@
  */
 
 import type { FlowExecutionReport, VariableChange } from './report';
-import type { WsMessage, WsStreamSegment, WsConnectionStream } from './ws_stream';
+import type { WsStreamSegment } from './ws_stream';
 
 // ============================================================================
 // 调试状态枚举
@@ -114,16 +114,29 @@ export type DebugEvent =
       };
     }
   // WebSocket 流事件
+  // 注意：后端使用 #[serde(flatten)] 展平 message 字段，所以 message 的字段直接在顶层
   | {
       WsMessageReceived: {
         connection_id: string;
-        message: WsMessage;
+        owner_node_uuid: string;
+        // 以下字段来自 WsMessage（被 flatten）
+        timestamp: number;
+        direction: 'sent' | 'received';
+        content: { type: 'text'; content: string } | { type: 'binary'; content: number[] };
+        is_binary: boolean;
+        size: number;
       };
     }
   | {
       WsMessageSent: {
         connection_id: string;
-        message: WsMessage;
+        owner_node_uuid: string;
+        // 以下字段来自 WsMessage（被 flatten）
+        timestamp: number;
+        direction: 'sent' | 'received';
+        content: { type: 'text'; content: string } | { type: 'binary'; content: number[] };
+        is_binary: boolean;
+        size: number;
       };
     }
   | {
@@ -139,13 +152,24 @@ export type DebugEvent =
       };
     }
   | {
-      WsConnectionOpened: {
-        stream: WsConnectionStream;
+      WsStreamCreated: {
+        connection_id: string;
+        url: string;
+        owner_node_uuid: string;
+        owner_node_name: string;
       };
     }
   | {
-      WsConnectionClosed: {
+      WsStreamOwnerChanged: {
         connection_id: string;
+        from_node_uuid: string;
+        to_node_uuid: string;
+      };
+    }
+  | {
+      WsStreamClosed: {
+        connection_id: string;
+        last_owner_node_uuid: string;
       };
     };
 

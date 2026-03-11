@@ -85,6 +85,8 @@ function calculateStats(stream: WsConnectionStream) {
   for (const segment of stream.segments) {
     dropped += segment.dropped_message_count;
     for (const msg of segment.messages) {
+      // 安全检查：防止 undefined 消息导致崩溃
+      if (!msg) continue;
       if (msg.direction === 'sent') sent++;
       else received++;
     }
