@@ -135,6 +135,14 @@ export function CollapsiblePanel({
   // 计算面板高度
   const panelHeight = isCollapsed ? collapsedHeight : (height ?? 'auto' as unknown as number);
 
+  // 计算样式：确保高度固定，不会被内容撑大
+  const panelStyle: React.CSSProperties = {
+    ...style,
+    height: typeof panelHeight === 'number' ? panelHeight : undefined,
+    maxHeight: typeof panelHeight === 'number' ? panelHeight : undefined,
+    flex: isCollapsed ? 'none' : '0 0 auto',
+  };
+
   return (
     <div
       className={cn(
@@ -143,11 +151,7 @@ export function CollapsiblePanel({
         isDragging && 'select-none',
         className
       )}
-      style={{
-        ...style,
-        height: typeof panelHeight === 'number' ? panelHeight : undefined,
-        flex: isCollapsed ? 'none' : undefined,
-      }}
+      style={panelStyle}
     >
       {/* 标题栏 - 点击折叠，上边缘拖拽调整高度 */}
       <div

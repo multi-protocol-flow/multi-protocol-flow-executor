@@ -138,7 +138,7 @@ function ConnectionHeader({ stream, onToggleAutoScroll, autoScroll }: Connection
 
   return (
     <div className="border-b border-border p-3 space-y-2">
-      {/* 第一行：连接信息 */}
+      {/* 第一行：连接信息 + ID */}
       <div className="flex items-center gap-2 flex-wrap">
         <Badge variant={stream.is_closed ? 'secondary' : 'default'} className="text-xs">
           {stream.is_closed ? (
@@ -153,15 +153,17 @@ function ConnectionHeader({ stream, onToggleAutoScroll, autoScroll }: Connection
             </>
           )}
         </Badge>
-        <span className="text-xs text-muted-foreground font-mono truncate max-w-[300px]" title={stream.url}>
-          {stream.url}
-        </span>
-        <span className="text-xs text-muted-foreground ml-auto">
+        <span className="text-xs text-muted-foreground">
           ID: {stream.connection_id.slice(0, 8)}...
         </span>
       </div>
 
-      {/* 第二行：统计和操作 */}
+      {/* 第二行：URL */}
+      <div className="text-xs text-muted-foreground font-mono truncate max-w-full" title={stream.url}>
+        {stream.url}
+      </div>
+
+      {/* 第三行：统计和操作 */}
       <div className="flex items-center gap-3 text-xs">
         <div className="flex items-center gap-1 text-green-600">
           <ArrowUp className="h-3 w-3" />
@@ -195,13 +197,6 @@ function ConnectionHeader({ stream, onToggleAutoScroll, autoScroll }: Connection
           )}
         </Button>
       </div>
-
-      {/* 第三行：当前所有者 */}
-      {stream.current_owner_node_uuid && (
-        <div className="text-xs text-muted-foreground">
-          当前持有者: {stream.current_owner_node_uuid.slice(0, 8)}...
-        </div>
-      )}
     </div>
   );
 }

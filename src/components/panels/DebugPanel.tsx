@@ -430,15 +430,21 @@ export function DebugPanel() {
   const updateMaxHeight = useCallback(() => {
     if (!containerRef.current) return;
     const containerHeight = containerRef.current.clientHeight;
-    // 上下文变量至少保留标题栏高度（折叠时）或最小高度（展开时）
+    // 固定区域高度
     const HEADER_HEIGHT = 32;
     const MIN_CONTENT_HEIGHT = 100;
+    const CURRENT_NODE_HEIGHT = 80; // 当前节点区域大约高度
+    const READONLY_BANNER_HEIGHT = isDebugDataReadOnly ? 50 : 0; // 只读横幅高度
+
+    // 上下文变量至少保留标题栏高度（折叠时）或最小高度（展开时）
     const contextVariablesReserved = isContextVariablesCollapsed
       ? HEADER_HEIGHT
       : MIN_CONTENT_HEIGHT + HEADER_HEIGHT;
-    const available = containerHeight - contextVariablesReserved;
+
+    // 底部面板区可用高度 = 总高度 - 只读横幅 - 当前节点 - 上下文变量
+    const available = containerHeight - READONLY_BANNER_HEIGHT - CURRENT_NODE_HEIGHT - contextVariablesReserved;
     setMaxBottomPanelHeight(Math.max(MIN_CONTENT_HEIGHT, available));
-  }, [isContextVariablesCollapsed]);
+  }, [isContextVariablesCollapsed, isDebugDataReadOnly]);
 
   useEffect(() => {
     updateMaxHeight();
@@ -609,42 +615,48 @@ export function DebugPanel() {
         {renderVariablesContent()}
       </CollapsiblePanel>
 
-      {/* ===== 底部面板区：执行堆栈 + 最近节点输出 ===== */}
-      <div className="shrink-0 flex flex-col mt-auto overflow-hidden">
-        {/* 执行堆栈 */}
-        <CollapsiblePanel
-          title="执行堆栈"
-          isCollapsed={isExecutionStackCollapsed}
-          onToggle={toggleExecutionStackCollapsed}
-          height={executionStackHeight}
-          onHeightChange={setExecutionStackHeight}
-          resizable={!isExecutionStackCollapsed}
-          maxHeight={maxBottomPanelHeight}
-          className="border-t border-border"
-          headerRight={
-            <span className="text-xs text-slate-400 font-normal">
-              {executionStack.length}
-            </span>
-          }
-        >
-          {renderExecutionStackContent()}
-        </CollapsiblePanel>
+      {/* ===== 底部面板区：最近节点输出固定在底部 ===== */}
+      <div
+        className="flex flex-col mt-auto shrink-0 overflow-hidden"
+        style={{ maxHeight: maxBottomPanelHeight }}
+      >
+        {/* 可滚动区域：执行堆栈 + WebSocket 消息流 */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {/* 执行堆栈 */}
+          <CollapsiblePanel
+            title="执行堆栈"
+            isCollapsed={isExecutionStackCollapsed}
+            onToggle={toggleExecutionStackCollapsed}
+            height={executionStackHeight}
+            onHeightChange={setExecutionStackHeight}
+            resizable={!isExecutionStackCollapsed}
+            maxHeight={maxBottomPanelHeight - recentOutputHeight - 32}
+            className="border-t border-border"
+            headerRight={
+              <span className="text-xs text-slate-400 font-normal">
+                {executionStack.length}
+              </span>
+            }
+          >
+            {renderExecutionStackContent()}
+          </CollapsiblePanel>
 
-        {/* WebSocket 消息流 */}
-        <CollapsiblePanel
-          title="WebSocket 消息流"
-          isCollapsed={isWsStreamCollapsed}
-          onToggle={toggleWsStreamCollapsed}
-          height={wsStreamHeight}
-          onHeightChange={setWsStreamHeight}
-          resizable={!isWsStreamCollapsed}
-          maxHeight={maxBottomPanelHeight}
-          className="border-t border-border"
-        >
-          <WsMessageStreamPanel />
-        </CollapsiblePanel>
+          {/* WebSocket 消息流 */}
+          <CollapsiblePanel
+            title="WebSocket 消息流"
+            isCollapsed={isWsStreamCollapsed}
+            onToggle={toggleWsStreamCollapsed}
+            height={wsStreamHeight}
+            onHeightChange={setWsStreamHeight}
+            resizable={!isWsStreamCollapsed}
+            maxHeight={maxBottomPanelHeight - recentOutputHeight - 32}
+            className="border-t border-border"
+          >
+            <WsMessageStreamPanel />
+          </CollapsiblePanel>
+        </div>
 
-        {/* 最近节点输出 */}
+        {/* 最近节点输出 - 固定在底部 */}
         <CollapsiblePanel
           title="最近节点输出"
           isCollapsed={isRecentOutputCollapsed}
@@ -653,7 +665,7 @@ export function DebugPanel() {
           onHeightChange={setRecentOutputHeight}
           resizable={!isRecentOutputCollapsed}
           maxHeight={maxBottomPanelHeight}
-          className="border-t border-border"
+          className="border-t border-border shrink-0"
           headerRight={
             currentNodeOutput !== null && currentNodeOutput !== undefined ? (
               <Button
