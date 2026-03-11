@@ -27,6 +27,13 @@ export type {
   WsConnectConfig,
   WsSendWaitConfig,
   WsCloseConfig,
+  AssertionOperator,
+  AssertionMode,
+  OnFailureMode,
+  Assertion,
+  AssertionNodeConfig,
+  AssertionResult,
+  AssertionOutput,
   NodeData,
   Node,
 } from './node';
@@ -37,6 +44,7 @@ export {
   isWsConnectConfig,
   isWsSendWaitConfig,
   isWsCloseConfig,
+  isAssertionConfig,
 } from './node';
 
 // 连接类型

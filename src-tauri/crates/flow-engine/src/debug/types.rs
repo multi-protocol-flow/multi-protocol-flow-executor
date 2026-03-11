@@ -241,6 +241,34 @@ pub enum DebugEvent {
         /// 最后所有者节点 UUID
         last_owner_node_uuid: String,
     },
+    /// 断言节点开始执行
+    AssertionStarted {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 节点名称
+        node_name: String,
+        /// 断言数量
+        total_assertions: usize,
+        /// 断言模式 (all/any)
+        mode: String,
+    },
+    /// 断言节点执行完成
+    AssertionCompleted {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 节点名称
+        node_name: String,
+        /// 整体是否通过
+        passed: bool,
+        /// 通过数量
+        passed_count: usize,
+        /// 失败数量
+        failed_count: usize,
+        /// 总数量
+        total: usize,
+        /// 失败的断言详情
+        failed_assertions: Vec<crate::node_config::AssertionResult>,
+    },
 }
 
 // ============================================================================
@@ -957,6 +985,168 @@ mod tests {
             let json = serde_json::to_string(&event).unwrap();
             let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
             assert_eq!(event, deserialized);
+        }
+    }
+
+    #[test]
+    fn test_assertion_started_event() {
+        let event = DebugEvent::AssertionStarted {
+            node_uuid: "node-001".to_string(),
+            node_name: "断言节点".to_string(),
+            total_assertions: 3,
+            mode: "all".to_string(),
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(
+            json.contains("assertion_started")
+                || json.contains("AssertionStarted")
+                || json.contains("assertionStarted")
+        );
+        assert!(json.contains("node-001"));
+        assert!(json.contains("断言节点"));
+        assert!(json.contains("3"));
+        assert!(json.contains("all"));
+
+        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        assert_eq!(event, deserialized);
+    }
+
+    #[test]
+    fn test_assertion_completed_event() {
+        use crate::node_config::AssertionResult;
+
+        let failed_assertions = vec![AssertionResult {
+            id: "assert-1".to_string(),
+            description: Some("状态码检查".to_string()),
+            passed: false,
+            target: "$.status".to_string(),
+            operator: "eq".to_string(),
+            expected: json!(200),
+            actual: json!(404),
+            error: None,
+        }];
+
+        let event = DebugEvent::AssertionCompleted {
+            node_uuid: "node-001".to_string(),
+            node_name: "断言节点".to_string(),
+            passed: false,
+            passed_count: 2,
+            failed_count: 1,
+            total: 3,
+            failed_assertions,
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(
+            json.contains("assertion_completed")
+                || json.contains("AssertionCompleted")
+                || json.contains("assertionCompleted")
+        );
+        assert!(json.contains("node-001"));
+        assert!(json.contains("断言节点"));
+        assert!(json.contains("false"));
+        assert!(json.contains("2"));
+        assert!(json.contains("1"));
+        assert!(json.contains("3"));
+
+        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+        assert_eq!(event, deserialized);
+    }
+
+    #[test]
+    fn test_assertion_events_pass_scenario() {
+        use crate::node_config::AssertionResult;
+
+        // 测试通过场景
+        let started = DebugEvent::AssertionStarted {
+            node_uuid: "node-001".to_string(),
+            node_name: "状态检查".to_string(),
+            total_assertions: 2,
+            mode: "all".to_string(),
+        };
+
+        let completed = DebugEvent::AssertionCompleted {
+            node_uuid: "node-001".to_string(),
+            node_name: "状态检查".to_string(),
+            passed: true,
+            passed_count: 2,
+            failed_count: 0,
+            total: 2,
+            failed_assertions: vec![],
+        };
+
+        // 序列化和反序列化
+        let started_json = serde_json::to_string(&started).unwrap();
+        let completed_json = serde_json::to_string(&completed).unwrap();
+
+        let started_de: DebugEvent = serde_json::from_str(&started_json).unwrap();
+        let completed_de: DebugEvent = serde_json::from_str(&completed_json).unwrap();
+
+        assert_eq!(started, started_de);
+        assert_eq!(completed, completed_de);
+
+        // 验证 completed 事件的 passed 字段
+        if let DebugEvent::AssertionCompleted { passed, .. } = completed_de {
+            assert!(passed);
+        } else {
+            panic!("Expected AssertionCompleted event");
+        }
+    }
+
+    #[test]
+    fn test_assertion_events_fail_scenario() {
+        use crate::node_config::AssertionResult;
+
+        // 测试失败场景
+        let failed_assertions = vec![
+            AssertionResult {
+                id: "assert-1".to_string(),
+                description: Some("状态码检查".to_string()),
+                passed: false,
+                target: "$.status".to_string(),
+                operator: "eq".to_string(),
+                expected: json!(200),
+                actual: json!(500),
+                error: None,
+            },
+            AssertionResult {
+                id: "assert-2".to_string(),
+                description: Some("响应体检查".to_string()),
+                passed: false,
+                target: "$.body.success".to_string(),
+                operator: "eq".to_string(),
+                expected: json!(true),
+                actual: json!(false),
+                error: None,
+            },
+        ];
+
+        let completed = DebugEvent::AssertionCompleted {
+            node_uuid: "node-001".to_string(),
+            node_name: "API 断言".to_string(),
+            passed: false,
+            passed_count: 0,
+            failed_count: 2,
+            total: 2,
+            failed_assertions,
+        };
+
+        let json = serde_json::to_string(&completed).unwrap();
+        let deserialized: DebugEvent = serde_json::from_str(&json).unwrap();
+
+        if let DebugEvent::AssertionCompleted {
+            passed,
+            failed_count,
+            failed_assertions,
+            ..
+        } = deserialized
+        {
+            assert!(!passed);
+            assert_eq!(failed_count, 2);
+            assert_eq!(failed_assertions.len(), 2);
+        } else {
+            panic!("Expected AssertionCompleted event");
         }
     }
 }

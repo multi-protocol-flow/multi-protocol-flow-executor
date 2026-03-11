@@ -144,6 +144,10 @@ pub enum ErrorKind {
     WebSocketClose,
     /// WebSocket 协议错误
     WebSocketProtocol,
+
+    // ===== 断言错误（容错模式，继续执行） =====
+    /// 断言失败
+    Assertion,
 }
 
 impl ErrorKind {

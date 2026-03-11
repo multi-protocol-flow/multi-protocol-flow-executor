@@ -20,6 +20,7 @@ import { WsConnectViewer } from './viewers/WsConnectViewer';
 import { WsSendWaitViewer } from './viewers/WsSendWaitViewer';
 import { WsCloseViewer } from './viewers/WsCloseViewer';
 import { ConditionalViewer } from './viewers/ConditionalViewer';
+import { AssertionViewer } from './viewers/AssertionViewer';
 import { GenericViewer } from './viewers/GenericViewer';
 
 interface NodeExecutionDetailsProps {
@@ -51,6 +52,8 @@ function NodeViewerSelector({ report }: NodeExecutionDetailsProps) {
       return <WsCloseViewer report={report} />;
     case 'conditional':
       return <ConditionalViewer report={report} />;
+    case 'assertion':
+      return <AssertionViewer report={report} />;
     default:
       return <GenericViewer report={report} />;
   }

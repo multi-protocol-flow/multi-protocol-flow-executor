@@ -21,6 +21,9 @@ pub enum NodeType {
     /// WebSocket 关闭节点
     #[serde(rename = "ws_close")]
     WsClose,
+    /// 断言节点
+    #[serde(rename = "assertion")]
+    Assertion,
 }
 
 /// 节点位置结构体

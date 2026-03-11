@@ -21,7 +21,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendWaitNode, WsCloseNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendWaitNode, WsCloseNode, AssertionNode } from './nodes';
 import { CanvasToolbar } from './CanvasToolbar';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
@@ -77,6 +77,7 @@ const nodeTypes = {
   ws_connect: WsConnectNode,
   ws_send_wait: WsSendWaitNode,
   ws_close: WsCloseNode,
+  assertion: AssertionNode,
 };
 
 /** 边类型映射 */
@@ -99,6 +100,8 @@ const minimapNodeColor = (node: Node) => {
       return '#14b8a6'; // teal-500
     case 'ws_close':
       return '#f43f5e'; // rose-500
+    case 'assertion':
+      return '#a855f7'; // purple-500
     default:
       return '#94a3b8';
   }
@@ -408,6 +411,20 @@ function FlowCanvasInner() {
           position,
           data: { type: 'ws_close', connection_id: '' },
         });
+      } else if (nodeType === 'assertion') {
+        addNode({
+          uuid: newNodeUuid,
+          type: 'assertion',
+          name: `断言 ${nodeCount}`,
+          position,
+          data: {
+            type: 'assertion',
+            assertions: [],
+            mode: 'all',
+            on_failure: 'route_false',
+            continue_on_failure: false,
+          },
+        });
       }
     },
     [screenToFlowPosition, flow, addNode]
@@ -480,6 +497,20 @@ function FlowCanvasInner() {
         name: `WS 关闭 ${nodeCount}`,
         position,
         data: { type: 'ws_close', connection_id: '' },
+      });
+    } else if (pendingAddNodeType === 'assertion') {
+      addNode({
+        uuid: newNodeUuid,
+        type: 'assertion',
+        name: `断言 ${nodeCount}`,
+        position,
+        data: {
+          type: 'assertion',
+          assertions: [],
+          mode: 'all',
+          on_failure: 'route_false',
+          continue_on_failure: false,
+        },
       });
     }
 

@@ -445,14 +445,8 @@ mod tests {
     /// 测试 FlowExecutionReport 的 ws_streams 字段序列化（非空时包含）
     #[test]
     fn test_flow_report_ws_streams_included_when_not_empty() {
-        let ws_stream_summary = WsStreamSummary {
-            connection_id: "conn-1".to_string(),
-            url: "wss://example.com/ws".to_string(),
-            total_received: 1,
-            total_sent: 1,
-            dropped_messages: 0,
-            segments: vec![],
-        };
+        let ws_stream =
+            WsConnectionStream::new("conn-1".to_string(), "wss://example.com/ws".to_string());
 
         let report = FlowExecutionReport {
             uuid: "test-uuid".to_string(),
@@ -472,7 +466,7 @@ mod tests {
             final_variables: None,
             execution_path: vec![],
             skipped_nodes: vec![],
-            ws_streams: vec![ws_stream_summary],
+            ws_streams: vec![ws_stream],
         };
 
         let json = serde_json::to_string(&report).expect("序列化失败");

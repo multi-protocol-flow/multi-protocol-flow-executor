@@ -14,6 +14,7 @@ use crate::flow::Flow;
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::{Node, NodeType};
 use crate::node_config::NodeData;
+use crate::assertion_executor::AssertionNodeExecutor;
 use crate::websocket_manager::WebSocketConnectionManager;
 use crate::ws_close_executor::WsCloseExecutor;
 use crate::ws_connect_executor::WsConnectExecutor;
@@ -548,6 +549,18 @@ impl DebuggableFlowExecutor {
                         NodeType::WsSendWait | NodeType::WsClose => {
                             Some("out".to_string())
                         }
+                        // Assertion 节点：根据 passed 字段判断
+                        NodeType::Assertion => {
+                            output_data.as_ref().and_then(|data| {
+                                data.get("passed").and_then(|v| v.as_bool()).map(|passed| {
+                                    if passed {
+                                        "true".to_string()
+                                    } else {
+                                        "false".to_string()
+                                    }
+                                })
+                            })
+                        }
                     };
 
                     // 从实际使用的节点配置获取 resolved_config
@@ -1025,6 +1038,16 @@ impl DebuggableFlowExecutor {
                     Arc::new(WebSocketConnectionManager::new())
                 });
                 let executor = WsCloseExecutor::new(ws_manager);
+                executor.execute(node, context, connections, node_map).await
+            }
+            NodeType::Assertion => {
+                log::info!(
+                    "[调试 {}] 执行断言节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                let executor = AssertionNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
         }

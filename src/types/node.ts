@@ -14,7 +14,7 @@ import type { Port } from './port';
 /**
  * 节点类型枚举
  */
-export type NodeType = 'entry' | 'http' | 'conditional' | 'ws_connect' | 'ws_send_wait' | 'ws_close';
+export type NodeType = 'entry' | 'http' | 'conditional' | 'ws_connect' | 'ws_send_wait' | 'ws_close' | 'assertion';
 
 /**
  * 节点位置结构体
@@ -151,6 +151,110 @@ export interface ConditionalConfig {
 }
 
 // ============================================================================
+// 断言节点类型定义
+// ============================================================================
+
+/**
+ * 断言操作符
+ */
+export type AssertionOperator =
+  | 'eq' | 'ne'
+  | 'gt' | 'gte' | 'lt' | 'lte'
+  | 'contains' | 'not_contains'
+  | 'matches'
+  | 'exists' | 'not_exists'
+  | 'in' | 'not_in'
+  | 'type_is'
+  | 'between';
+
+/**
+ * 断言组合模式
+ */
+export type AssertionMode = 'all' | 'any';
+
+/**
+ * 失败行为
+ */
+export type OnFailureMode = 'route_false' | 'throw';
+
+/**
+ * 单条断言配置
+ */
+export interface Assertion {
+  /** 断言唯一标识 */
+  id: string;
+  /** 断言描述 */
+  description?: string;
+  /** 断言目标 (JSONPath) */
+  target: string;
+  /** 操作符 */
+  operator: AssertionOperator;
+  /** 期望值 */
+  expected: unknown;
+  /** 是否启用，默认 true */
+  enabled?: boolean;
+}
+
+/**
+ * 断言节点配置
+ */
+export interface AssertionNodeConfig {
+  type: 'assertion';
+  /** 断言列表 */
+  assertions: Assertion[];
+  /** 组合模式：all=全部通过, any=任一通过 */
+  mode: AssertionMode;
+  /** 失败行为：route_false=路由到false分支, throw=抛出异常 */
+  on_failure: OnFailureMode;
+  /** 失败后是否继续执行后续断言（用于收集所有失败） */
+  continue_on_failure: boolean;
+  /** 预设模板名称（可选） */
+  preset?: string;
+}
+
+/**
+ * 单条断言执行结果
+ */
+export interface AssertionResult {
+  /** 断言ID */
+  id: string;
+  /** 断言描述 */
+  description?: string;
+  /** 是否通过 */
+  passed: boolean;
+  /** 断言目标 */
+  target: string;
+  /** 操作符 */
+  operator: string;
+  /** 期望值 */
+  expected: unknown;
+  /** 实际值 */
+  actual: unknown;
+  /** 错误信息（如解析失败） */
+  error?: string;
+}
+
+/**
+ * 断言节点输出
+ */
+export interface AssertionOutput {
+  /** 整体是否通过 */
+  passed: boolean;
+  /** 断言总数 */
+  total: number;
+  /** 通过数量 */
+  passed_count: number;
+  /** 失败数量 */
+  failed_count: number;
+  /** 每条断言的详情 */
+  results: AssertionResult[];
+  /** 失败的断言列表 */
+  failed_assertions: AssertionResult[];
+  /** 透传上游输入 */
+  input: Record<string, unknown>;
+}
+
+// ============================================================================
 // WebSocket 类型定义
 // ============================================================================
 
@@ -247,7 +351,7 @@ export interface WsCloseConfig {
 /**
  * 节点数据配置（判别联合类型）
  */
-export type NodeData = EntryConfig | HttpConfig | ConditionalConfig | WsConnectConfig | WsSendWaitConfig | WsCloseConfig;
+export type NodeData = EntryConfig | HttpConfig | ConditionalConfig | WsConnectConfig | WsSendWaitConfig | WsCloseConfig | AssertionNodeConfig;
 
 // ============================================================================
 // 节点结构体
@@ -317,4 +421,11 @@ export function isWsSendWaitConfig(data: NodeData): data is WsSendWaitConfig {
  */
 export function isWsCloseConfig(data: NodeData): data is WsCloseConfig {
   return data.type === 'ws_close';
+}
+
+/**
+ * 判断是否为 AssertionNodeConfig
+ */
+export function isAssertionConfig(data: NodeData): data is AssertionNodeConfig {
+  return data.type === 'assertion';
 }

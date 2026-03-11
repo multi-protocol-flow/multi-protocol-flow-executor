@@ -422,6 +422,153 @@ fn default_close_timeout() -> u64 {
 }
 
 // ============================================================================
+// Assertion 节点配置
+// ============================================================================
+
+/// 断言操作符
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum AssertionOperator {
+    /// 等于
+    Eq,
+    /// 不等于
+    Ne,
+    /// 大于
+    Gt,
+    /// 大于等于
+    Gte,
+    /// 小于
+    Lt,
+    /// 小于等于
+    Lte,
+    /// 包含
+    Contains,
+    /// 不包含
+    NotContains,
+    /// 正则匹配
+    Matches,
+    /// 存在
+    Exists,
+    /// 不存在
+    NotExists,
+    /// 在列表中
+    In,
+    /// 不在列表中
+    NotIn,
+    /// 类型是
+    TypeIs,
+    /// 在范围内
+    Between,
+}
+
+/// 单条断言配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Assertion {
+    /// 断言 ID
+    pub id: String,
+    /// 断言描述
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// 目标路径
+    pub target: String,
+    /// 操作符
+    pub operator: AssertionOperator,
+    /// 期望值
+    pub expected: serde_json::Value,
+    /// 是否启用
+    #[serde(default = "default_assertion_enabled")]
+    pub enabled: bool,
+}
+
+fn default_assertion_enabled() -> bool {
+    true
+}
+
+/// 断言组合模式
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum AssertionMode {
+    /// 全部通过才算通过
+    #[default]
+    All,
+    /// 任一通过即算通过
+    Any,
+}
+
+/// 失败行为
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum OnFailureMode {
+    /// 路由到 false 端口
+    #[default]
+    RouteFalse,
+    /// 抛出错误
+    Throw,
+}
+
+/// 断言节点配置
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AssertionConfig {
+    /// 预设名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preset: Option<String>,
+    /// 断言组合模式
+    #[serde(default)]
+    pub mode: AssertionMode,
+    /// 失败行为
+    #[serde(default)]
+    pub on_failure: OnFailureMode,
+    /// 失败后是否继续执行后续断言
+    #[serde(default)]
+    pub continue_on_failure: bool,
+    /// 断言列表
+    #[serde(default)]
+    pub assertions: Vec<Assertion>,
+}
+
+/// 单条断言执行结果
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AssertionResult {
+    /// 断言 ID
+    pub id: String,
+    /// 断言描述
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// 是否通过
+    pub passed: bool,
+    /// 目标路径
+    pub target: String,
+    /// 操作符
+    pub operator: String,
+    /// 期望值
+    pub expected: serde_json::Value,
+    /// 实际值
+    pub actual: serde_json::Value,
+    /// 错误信息
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+/// 断言节点输出
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AssertionOutput {
+    /// 整体是否通过
+    pub passed: bool,
+    /// 总断言数
+    pub total: usize,
+    /// 通过数
+    pub passed_count: usize,
+    /// 失败数
+    pub failed_count: usize,
+    /// 所有断言结果
+    pub results: Vec<AssertionResult>,
+    /// 失败的断言
+    pub failed_assertions: Vec<AssertionResult>,
+    /// 输入数据
+    pub input: serde_json::Value,
+}
+
+// ============================================================================
 // 节点数据配置统一枚举
 // ============================================================================
 
@@ -444,6 +591,8 @@ pub enum NodeData {
     /// WebSocket 关闭节点配置
     #[serde(rename = "ws_close")]
     WsClose(WsCloseConfig),
+    /// 断言节点配置
+    Assertion(AssertionConfig),
 }
 
 impl NodeData {
@@ -456,6 +605,7 @@ impl NodeData {
             NodeData::WsConnect(_) => "ws_connect",
             NodeData::WsSendWait(_) => "ws_send_wait",
             NodeData::WsClose(_) => "ws_close",
+            NodeData::Assertion(_) => "assertion",
         }
     }
 
@@ -523,6 +673,11 @@ impl NodeData {
             connection_id: connection_id.into(),
             ..Default::default()
         })
+    }
+
+    /// 创建 Assertion 节点配置
+    pub fn assertion() -> Self {
+        Self::Assertion(AssertionConfig::default())
     }
 }
 

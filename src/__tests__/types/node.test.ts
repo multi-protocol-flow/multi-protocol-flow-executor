@@ -11,6 +11,7 @@ import {
   isWsConnectConfig,
   isWsSendWaitConfig,
   isWsCloseConfig,
+  isAssertionConfig,
 } from '../../types/node';
 import type { NodeData } from '../../types/node';
 
@@ -36,6 +37,14 @@ function createNodeData(type: NodeData['type']): NodeData {
       };
     case 'ws_close':
       return { type: 'ws_close', connection_id: 'conn-1' };
+    case 'assertion':
+      return {
+        type: 'assertion',
+        assertions: [],
+        mode: 'all',
+        on_failure: 'route_false',
+        continue_on_failure: false,
+      };
   }
 }
 
@@ -157,10 +166,33 @@ describe('isWsCloseConfig', () => {
       'conditional',
       'ws_connect',
       'ws_send_wait',
+      'assertion',
     ];
     otherTypes.forEach((type) => {
       const data = createNodeData(type);
       expect(isWsCloseConfig(data)).toBe(false);
+    });
+  });
+});
+
+describe('isAssertionConfig', () => {
+  it('应该对 assertion 类型返回 true', () => {
+    const data = createNodeData('assertion');
+    expect(isAssertionConfig(data)).toBe(true);
+  });
+
+  it('应该对其他类型返回 false', () => {
+    const otherTypes: NodeData['type'][] = [
+      'entry',
+      'http',
+      'conditional',
+      'ws_connect',
+      'ws_send_wait',
+      'ws_close',
+    ];
+    otherTypes.forEach((type) => {
+      const data = createNodeData(type);
+      expect(isAssertionConfig(data)).toBe(false);
     });
   });
 });

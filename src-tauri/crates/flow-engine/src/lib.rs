@@ -30,9 +30,12 @@ pub mod conditional_executor;
 pub mod ws_connect_executor;
 pub mod ws_send_wait_executor;
 pub mod ws_close_executor;
+pub mod assertion_executor;
 pub mod validator;
 // Wave 4: 调试模块
 pub mod debug;
+// Wave 5: 断言模块
+pub mod assertion;
 
 // Re-exports
 pub use traits::{

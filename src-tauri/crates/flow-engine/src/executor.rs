@@ -261,6 +261,17 @@ fn build_input_data_from_node_config(node: &crate::node::Node) -> Option<serde_j
                 "wait_close_timeout_ms": config.wait_close_timeout_ms,
             }))
         },
+        
+        // Assertion 节点：断言配置
+        NodeData::Assertion(config) => {
+            Some(serde_json::json!({
+                "preset": config.preset,
+                "mode": config.mode,
+                "on_failure": config.on_failure,
+                "continue_on_failure": config.continue_on_failure,
+                "assertions": config.assertions,
+            }))
+        },
     }
 }
 
@@ -511,6 +522,18 @@ impl FlowExecutor {
                         }
                         NodeType::WsSendWait | NodeType::WsClose => {
                             Some("out".to_string())
+                        }
+                        // Assertion 节点：根据 passed 字段判断
+                        NodeType::Assertion => {
+                            output_data.as_ref().and_then(|data| {
+                                data.get("passed").and_then(|v| v.as_bool()).map(|passed| {
+                                    if passed {
+                                        "true".to_string()
+                                    } else {
+                                        "false".to_string()
+                                    }
+                                })
+                            })
                         }
                     };
 
@@ -1072,6 +1095,17 @@ impl FlowExecutor {
                     Arc::new(WebSocketConnectionManager::new())
                 });
                 let executor = WsCloseExecutor::new(ws_manager);
+                executor.execute(node, context, connections, node_map).await
+            }
+            // Assertion 节点
+            NodeType::Assertion => {
+                log::info!(
+                    "[流程 {}] 执行断言节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                let executor = crate::assertion_executor::AssertionNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
         }

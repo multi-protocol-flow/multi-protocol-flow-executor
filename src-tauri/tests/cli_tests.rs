@@ -1176,3 +1176,553 @@ fn test_execution_report_timestamps() {
         );
     }
 }
+
+// ============ 断言节点集成测试 (Task 22) ============
+
+/// 创建断言通过流程（断言验证状态码 200，通过 true 分支）
+fn create_assertion_pass_flow() -> NamedTempFile {
+    let file = NamedTempFile::new().unwrap();
+    // 使用 HTTP 节点作为分支标记（true-branch 和 false-branch）
+    let flow_content = r#"{
+        "uuid": "assertion-pass-flow-001",
+        "name": "断言通过流程",
+        "nodes": [
+            {
+                "uuid": "entry-node",
+                "type": "entry",
+                "name": "开始",
+                "position": { "x": 0.0, "y": 0.0 },
+                "data": { "type": "entry" },
+                "ports": null
+            },
+            {
+                "uuid": "http-node",
+                "type": "http",
+                "name": "HTTP 请求",
+                "position": { "x": 200.0, "y": 0.0 },
+                "data": {
+                    "type": "http",
+                    "url": "https://httpbin.org/status/200",
+                    "method": "get"
+                },
+                "ports": null
+            },
+            {
+                "uuid": "assertion-node",
+                "type": "assertion",
+                "name": "断言状态码",
+                "position": { "x": 400.0, "y": 0.0 },
+                "data": {
+                    "type": "assertion",
+                    "preset": null,
+                    "mode": "all",
+                    "on_failure": "route_false",
+                    "continue_on_failure": false,
+                    "assertions": [
+                        {
+                            "id": "assert-status",
+                            "description": "验证状态码为 200",
+                            "target": "$.status",
+                            "operator": "eq",
+                            "expected": 200,
+                            "enabled": true
+                        }
+                    ]
+                },
+                "ports": null
+            },
+            {
+                "uuid": "true-branch-http",
+                "type": "http",
+                "name": "True 分支标记",
+                "position": { "x": 600.0, "y": -100.0 },
+                "data": {
+                    "type": "http",
+                    "url": "https://httpbin.org/status/201",
+                    "method": "get"
+                },
+                "ports": null
+            },
+            {
+                "uuid": "false-branch-http",
+                "type": "http",
+                "name": "False 分支标记",
+                "position": { "x": 600.0, "y": 100.0 },
+                "data": {
+                    "type": "http",
+                    "url": "https://httpbin.org/status/400",
+                    "method": "get"
+                },
+                "ports": null
+            }
+        ],
+        "connections": [
+            {
+                "id": "conn-entry-http",
+                "source_node_uuid": "entry-node",
+                "target_node_uuid": "http-node",
+                "source_port_id": "output",
+                "target_port_id": "input"
+            },
+            {
+                "id": "conn-http-assertion",
+                "source_node_uuid": "http-node",
+                "target_node_uuid": "assertion-node",
+                "source_port_id": "true",
+                "target_port_id": "input"
+            },
+            {
+                "id": "conn-assertion-true",
+                "source_node_uuid": "assertion-node",
+                "target_node_uuid": "true-branch-http",
+                "source_port_id": "true",
+                "target_port_id": "input"
+            },
+            {
+                "id": "conn-assertion-false",
+                "source_node_uuid": "assertion-node",
+                "target_node_uuid": "false-branch-http",
+                "source_port_id": "false",
+                "target_port_id": "input"
+            }
+        ]
+    }"#;
+    fs::write(file.path(), flow_content).unwrap();
+    file
+}
+
+/// 创建断言失败流程（断言验证状态码 999，实际返回 200，走 false 分支）
+fn create_assertion_fail_route_false_flow() -> NamedTempFile {
+    let file = NamedTempFile::new().unwrap();
+    let flow_content = r#"{
+        "uuid": "assertion-fail-route-false-001",
+        "name": "断言失败路由流程",
+        "nodes": [
+            {
+                "uuid": "entry-node",
+                "type": "entry",
+                "name": "开始",
+                "position": { "x": 0.0, "y": 0.0 },
+                "data": { "type": "entry" },
+                "ports": null
+            },
+            {
+                "uuid": "http-node",
+                "type": "http",
+                "name": "HTTP 请求",
+                "position": { "x": 200.0, "y": 0.0 },
+                "data": {
+                    "type": "http",
+                    "url": "https://httpbin.org/status/200",
+                    "method": "get"
+                },
+                "ports": null
+            },
+            {
+                "uuid": "assertion-node",
+                "type": "assertion",
+                "name": "断言状态码",
+                "position": { "x": 400.0, "y": 0.0 },
+                "data": {
+                    "type": "assertion",
+                    "preset": null,
+                    "mode": "all",
+                    "on_failure": "route_false",
+                    "continue_on_failure": false,
+                    "assertions": [
+                        {
+                            "id": "assert-status-fail",
+                            "description": "验证状态码为 999（故意失败）",
+                            "target": "$.status",
+                            "operator": "eq",
+                            "expected": 999,
+                            "enabled": true
+                        }
+                    ]
+                },
+                "ports": null
+            },
+            {
+                "uuid": "true-branch-http",
+                "type": "http",
+                "name": "True 分支标记",
+                "position": { "x": 600.0, "y": -100.0 },
+                "data": {
+                    "type": "http",
+                    "url": "https://httpbin.org/status/201",
+                    "method": "get"
+                },
+                "ports": null
+            },
+            {
+                "uuid": "false-branch-http",
+                "type": "http",
+                "name": "False 分支标记",
+                "position": { "x": 600.0, "y": 100.0 },
+                "data": {
+                    "type": "http",
+                    "url": "https://httpbin.org/status/400",
+                    "method": "get"
+                },
+                "ports": null
+            }
+        ],
+        "connections": [
+            {
+                "id": "conn-entry-http",
+                "source_node_uuid": "entry-node",
+                "target_node_uuid": "http-node",
+                "source_port_id": "output",
+                "target_port_id": "input"
+            },
+            {
+                "id": "conn-http-assertion",
+                "source_node_uuid": "http-node",
+                "target_node_uuid": "assertion-node",
+                "source_port_id": "true",
+                "target_port_id": "input"
+            },
+            {
+                "id": "conn-assertion-true",
+                "source_node_uuid": "assertion-node",
+                "target_node_uuid": "true-branch-http",
+                "source_port_id": "true",
+                "target_port_id": "input"
+            },
+            {
+                "id": "conn-assertion-false",
+                "source_node_uuid": "assertion-node",
+                "target_node_uuid": "false-branch-http",
+                "source_port_id": "false",
+                "target_port_id": "input"
+            }
+        ]
+    }"#;
+    fs::write(file.path(), flow_content).unwrap();
+    file
+}
+
+/// 创建断言失败抛出错误流程（流程在断言节点终止）
+fn create_assertion_fail_throw_flow() -> NamedTempFile {
+    let file = NamedTempFile::new().unwrap();
+    let flow_content = r#"{
+        "uuid": "assertion-fail-throw-001",
+        "name": "断言失败抛出流程",
+        "nodes": [
+            {
+                "uuid": "entry-node",
+                "type": "entry",
+                "name": "开始",
+                "position": { "x": 0.0, "y": 0.0 },
+                "data": { "type": "entry" },
+                "ports": null
+            },
+            {
+                "uuid": "http-node",
+                "type": "http",
+                "name": "HTTP 请求",
+                "position": { "x": 200.0, "y": 0.0 },
+                "data": {
+                    "type": "http",
+                    "url": "https://httpbin.org/status/200",
+                    "method": "get"
+                },
+                "ports": null
+            },
+            {
+                "uuid": "assertion-node",
+                "type": "assertion",
+                "name": "断言状态码",
+                "position": { "x": 400.0, "y": 0.0 },
+                "data": {
+                    "type": "assertion",
+                    "preset": null,
+                    "mode": "all",
+                    "on_failure": "throw",
+                    "continue_on_failure": false,
+                    "assertions": [
+                        {
+                            "id": "assert-status-throw",
+                            "description": "验证状态码为 999（失败时抛出）",
+                            "target": "$.status",
+                            "operator": "eq",
+                            "expected": 999,
+                            "enabled": true
+                        }
+                    ]
+                },
+                "ports": null
+            },
+            {
+                "uuid": "true-branch-http",
+                "type": "http",
+                "name": "True 分支标记",
+                "position": { "x": 600.0, "y": 0.0 },
+                "data": {
+                    "type": "http",
+                    "url": "https://httpbin.org/status/201",
+                    "method": "get"
+                },
+                "ports": null
+            }
+        ],
+        "connections": [
+            {
+                "id": "conn-entry-http",
+                "source_node_uuid": "entry-node",
+                "target_node_uuid": "http-node",
+                "source_port_id": "output",
+                "target_port_id": "input"
+            },
+            {
+                "id": "conn-http-assertion",
+                "source_node_uuid": "http-node",
+                "target_node_uuid": "assertion-node",
+                "source_port_id": "true",
+                "target_port_id": "input"
+            },
+            {
+                "id": "conn-assertion-true",
+                "source_node_uuid": "assertion-node",
+                "target_node_uuid": "true-branch-http",
+                "source_port_id": "true",
+                "target_port_id": "input"
+            }
+        ]
+    }"#;
+    fs::write(file.path(), flow_content).unwrap();
+    file
+}
+
+#[test]
+fn test_assertion_pass_routes_to_true() {
+    let file = create_assertion_pass_flow();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    // 验证流程执行成功
+    assert!(json["success"].as_bool().unwrap(), "流程应该成功执行");
+
+    // 验证 node_reports 包含断言节点
+    let node_reports = json["node_reports"].as_array().unwrap();
+    let assertion_report = node_reports
+        .iter()
+        .find(|r| r["node_uuid"] == "assertion-node")
+        .expect("应该找到断言节点报告");
+
+    // 验证断言节点执行成功
+    assert_eq!(
+        assertion_report["status"].as_str().unwrap(),
+        "success",
+        "断言节点应该执行成功"
+    );
+
+    // 验证断言结果
+    let output_data = &assertion_report["output_data"];
+    assert!(output_data["passed"].as_bool().unwrap(), "断言应该通过");
+    assert_eq!(output_data["passed_count"].as_u64().unwrap(), 1);
+    assert_eq!(output_data["failed_count"].as_u64().unwrap(), 0);
+
+    // 验证执行了 true 分支的 HTTP 节点（true-branch-http）
+    let true_branch_report = node_reports
+        .iter()
+        .find(|r| r["node_uuid"] == "true-branch-http");
+    assert!(
+        true_branch_report.is_some(),
+        "应该执行了 true-branch-http 节点（true 分支）"
+    );
+
+    // 验证没有执行 false 分支的 HTTP 节点（false-branch-http）
+    let false_branch_report = node_reports
+        .iter()
+        .find(|r| r["node_uuid"] == "false-branch-http");
+    assert!(
+        false_branch_report.is_none(),
+        "不应该执行 false-branch-http 节点（false 分支）"
+    );
+}
+
+#[test]
+fn test_assertion_fail_routes_to_false() {
+    let file = create_assertion_fail_route_false_flow();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    // 验证流程执行成功（断言失败但 route_false 模式不终止流程）
+    assert!(
+        json["success"].as_bool().unwrap(),
+        "流程应该成功执行（route_false 模式）"
+    );
+
+    // 验证 node_reports 包含断言节点
+    let node_reports = json["node_reports"].as_array().unwrap();
+    let assertion_report = node_reports
+        .iter()
+        .find(|r| r["node_uuid"] == "assertion-node")
+        .expect("应该找到断言节点报告");
+
+    // 验证断言节点执行成功（节点本身执行成功，但断言结果为 false）
+    assert_eq!(
+        assertion_report["status"].as_str().unwrap(),
+        "success",
+        "断言节点应该执行成功（即使断言失败）"
+    );
+
+    // 验证断言结果
+    let output_data = &assertion_report["output_data"];
+    assert!(!output_data["passed"].as_bool().unwrap(), "断言应该失败");
+    assert_eq!(output_data["passed_count"].as_u64().unwrap(), 0);
+    assert_eq!(output_data["failed_count"].as_u64().unwrap(), 1);
+
+    // 验证执行了 false 分支的 HTTP 节点（false-branch-http）
+    let false_branch_report = node_reports
+        .iter()
+        .find(|r| r["node_uuid"] == "false-branch-http");
+    assert!(
+        false_branch_report.is_some(),
+        "应该执行了 false-branch-http 节点（false 分支）"
+    );
+
+    // 验证没有执行 true 分支的 HTTP 节点（true-branch-http）
+    let true_branch_report = node_reports
+        .iter()
+        .find(|r| r["node_uuid"] == "true-branch-http");
+    assert!(
+        true_branch_report.is_none(),
+        "不应该执行 true-branch-http 节点（true 分支）"
+    );
+}
+
+#[test]
+fn test_assertion_fail_throw_terminates_flow() {
+    let file = create_assertion_fail_throw_flow();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    // 验证 node_reports 包含断言节点
+    let node_reports = json["node_reports"].as_array().unwrap();
+    let assertion_report = node_reports
+        .iter()
+        .find(|r| r["node_uuid"] == "assertion-node")
+        .expect("应该找到断言节点报告");
+
+    // 验证断言节点状态为 failed（throw 模式）
+    assert_eq!(
+        assertion_report["status"].as_str().unwrap(),
+        "failed",
+        "断言节点应该标记为失败（throw 模式）"
+    );
+
+    // 验证断言节点包含错误信息（error 是一个对象，包含 message 字段）
+    assert!(
+        assertion_report["error"].is_object(),
+        "断言节点应该包含错误对象（throw 模式）"
+    );
+    assert!(
+        assertion_report["error"]["message"].is_string(),
+        "断言节点错误对象应该包含 message 字段（throw 模式）"
+    );
+
+    // 验证没有执行 true-branch-http 节点（流程在断言节点终止）
+    let true_branch_report = node_reports
+        .iter()
+        .find(|r| r["node_uuid"] == "true-branch-http");
+    assert!(
+        true_branch_report.is_none(),
+        "不应该执行 true-branch-http 节点（流程应该在断言节点终止）"
+    );
+}
+
+#[test]
+fn test_assertion_node_report_contains_results() {
+    let file = create_assertion_pass_flow();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    let output = cmd
+        .arg("--execute")
+        .arg("--flow")
+        .arg(file.path())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let output_str = String::from_utf8(output).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+
+    // 验证断言节点报告包含详细结果
+    let node_reports = json["node_reports"].as_array().unwrap();
+    let assertion_report = node_reports
+        .iter()
+        .find(|r| r["node_uuid"] == "assertion-node")
+        .expect("应该找到断言节点报告");
+
+    let output_data = &assertion_report["output_data"];
+
+    // 验证输出包含所有必要字段
+    assert!(output_data["passed"].is_boolean(), "应该有 passed 字段");
+    assert!(output_data["total"].is_number(), "应该有 total 字段");
+    assert!(
+        output_data["passed_count"].is_number(),
+        "应该有 passed_count 字段"
+    );
+    assert!(
+        output_data["failed_count"].is_number(),
+        "应该有 failed_count 字段"
+    );
+    assert!(output_data["results"].is_array(), "应该有 results 数组");
+    assert!(
+        output_data["failed_assertions"].is_array(),
+        "应该有 failed_assertions 数组"
+    );
+    assert!(output_data["input"].is_object(), "应该有 input 对象");
+
+    // 验证 results 包含断言详情
+    let results = output_data["results"].as_array().unwrap();
+    assert_eq!(results.len(), 1, "应该有 1 条断言结果");
+
+    let result = &results[0];
+    assert_eq!(result["id"].as_str().unwrap(), "assert-status");
+    assert!(result["passed"].as_bool().unwrap());
+    assert_eq!(result["target"].as_str().unwrap(), "$.status");
+    // 操作符序列化为 PascalCase（如 "Eq"）
+    assert_eq!(
+        result["operator"].as_str().unwrap().to_lowercase().as_str(),
+        "eq"
+    );
+    assert_eq!(result["expected"].as_u64().unwrap(), 200);
+    assert_eq!(result["actual"].as_u64().unwrap(), 200);
+}

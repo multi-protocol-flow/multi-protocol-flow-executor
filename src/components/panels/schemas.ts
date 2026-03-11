@@ -276,3 +276,69 @@ export const wsCloseConfigSchema = z.object({
 });
 
 export type WsCloseConfigFormData = z.infer<typeof wsCloseConfigSchema>;
+
+// ============================================================================
+// Assertion 配置 Schema
+// ============================================================================
+
+/**
+ * 断言操作符枚举
+ */
+export const assertionOperatorSchema = z.enum([
+  'equal',
+  'not_equal',
+  'greater',
+  'greater_or_equal',
+  'less',
+  'less_or_equal',
+  'contains',
+  'not_contains',
+  'starts_with',
+  'ends_with',
+  'exists',
+  'not_exists',
+  'is_empty',
+  'is_not_empty',
+  'matches_regex',
+]);
+
+export type AssertionOperator = z.infer<typeof assertionOperatorSchema>;
+
+/**
+ * 断言模式枚举
+ */
+export const assertionModeSchema = z.enum(['all', 'any']);
+export type AssertionMode = z.infer<typeof assertionModeSchema>;
+
+/**
+ * 失败处理模式枚举
+ */
+export const onFailureModeSchema = z.enum(['route_false', 'throw']);
+export type OnFailureMode = z.infer<typeof onFailureModeSchema>;
+
+/**
+ * 单条断言 Schema
+ */
+export const assertionSchema = z.object({
+  target: z.string().min(1, '目标字段不能为空'),
+  operator: assertionOperatorSchema,
+  expected: z.string(),
+  enabled: z.boolean().default(true),
+  description: z.string().optional(),
+});
+
+export type AssertionFormData = z.infer<typeof assertionSchema>;
+
+/**
+ * Assertion 配置表单 Schema
+ */
+export const assertionConfigSchema = z.object({
+  type: z.literal('assertion'),
+  preset: z.string().optional(),
+  mode: assertionModeSchema,
+  on_failure: onFailureModeSchema,
+  continue_on_failure: z.boolean().default(false),
+  assertions: z.array(assertionSchema),
+});
+
+export type AssertionConfigFormData = z.infer<typeof assertionConfigSchema>;

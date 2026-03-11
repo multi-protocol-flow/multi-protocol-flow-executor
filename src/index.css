@@ -111,6 +111,11 @@
     --breathing-color-end: rgba(244, 63, 94, 0);
     animation: debug-breathing 1.5s ease-in-out infinite;
   }
+  .debug-breathing-purple {
+    --breathing-color: rgba(168, 85, 247, 0.9);
+    --breathing-color-end: rgba(168, 85, 247, 0);
+    animation: debug-breathing 1.5s ease-in-out infinite;
+  }
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: oklch(0.8 0 0) transparent;

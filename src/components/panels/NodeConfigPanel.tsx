@@ -10,12 +10,13 @@ import { ConditionalConfig } from './ConditionalConfig';
 import { WsConnectConfig } from './WsConnectConfig';
 import { WsSendWaitConfig } from './WsSendWaitConfig';
 import { WsCloseConfig } from './WsCloseConfig';
+import { AssertionConfig } from './AssertionConfig';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData, Node } from '@/types';
-import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendWaitConfig, isWsCloseConfig } from '@/types';
+import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendWaitConfig, isWsCloseConfig, isAssertionConfig } from '@/types';
 import { Settings2, MousePointerClick, Trash2, Pencil, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -52,6 +53,11 @@ const NODE_TYPE_CONFIG = {
     label: 'WS 关闭',
     badgeVariant: 'outline' as const,
     badgeClass: 'border-rose-200 text-rose-700',
+  },
+  assertion: {
+    label: '断言',
+    badgeVariant: 'outline' as const,
+    badgeClass: 'border-indigo-200 text-indigo-700',
   },
 };
 
@@ -274,6 +280,14 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             {/* WS Close 节点：WebSocket 关闭配置 */}
             {selectedNode.type === 'ws_close' && isWsCloseConfig(selectedNode.data) && (
               <WsCloseConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
+
+            {/* Assertion 节点：断言配置 */}
+            {selectedNode.type === 'assertion' && isAssertionConfig(selectedNode.data) && (
+              <AssertionConfig
                 data={selectedNode.data}
                 onSave={(data) => handleSave(data as NodeData)}
               />

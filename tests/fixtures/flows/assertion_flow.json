@@ -1,0 +1,105 @@
+{
+  "uuid": "assertion-flow-test-001",
+  "name": "断言节点测试流程",
+  "initial_variables": null,
+  "nodes": [
+    {
+      "uuid": "entry-node",
+      "type": "entry",
+      "name": "开始",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": { "type": "entry" },
+      "ports": null
+    },
+    {
+      "uuid": "http-node",
+      "type": "http",
+      "name": "HTTP 请求",
+      "position": { "x": 200.0, "y": 0.0 },
+      "data": {
+        "type": "http",
+        "url": "https://httpbin.org/status/200",
+        "method": "get"
+      },
+      "ports": null
+    },
+    {
+      "uuid": "assertion-node",
+      "type": "assertion",
+      "name": "断言状态码",
+      "position": { "x": 400.0, "y": 0.0 },
+      "data": {
+        "type": "assertion",
+        "preset": null,
+        "mode": "all",
+        "on_failure": "route_false",
+        "continue_on_failure": false,
+        "assertions": [
+          {
+            "id": "assert-status",
+            "description": "验证状态码为 200",
+            "target": "$.status",
+            "operator": "eq",
+            "expected": 200,
+            "enabled": true
+          }
+        ]
+      },
+      "ports": null
+    },
+    {
+      "uuid": "true-branch-http",
+      "type": "http",
+      "name": "True 分支标记",
+      "position": { "x": 600.0, "y": -100.0 },
+      "data": {
+        "type": "http",
+        "url": "https://httpbin.org/status/201",
+        "method": "get"
+      },
+      "ports": null
+    },
+    {
+      "uuid": "false-branch-http",
+      "type": "http",
+      "name": "False 分支标记",
+      "position": { "x": 600.0, "y": 100.0 },
+      "data": {
+        "type": "http",
+        "url": "https://httpbin.org/status/400",
+        "method": "get"
+      },
+      "ports": null
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-entry-http",
+      "source_node_uuid": "entry-node",
+      "target_node_uuid": "http-node",
+      "source_port_id": "output",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-http-assertion",
+      "source_node_uuid": "http-node",
+      "target_node_uuid": "assertion-node",
+      "source_port_id": "true",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-assertion-true",
+      "source_node_uuid": "assertion-node",
+      "target_node_uuid": "true-branch-http",
+      "source_port_id": "true",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-assertion-false",
+      "source_node_uuid": "assertion-node",
+      "target_node_uuid": "false-branch-http",
+      "source_port_id": "false",
+      "target_port_id": "input"
+    }
+  ]
+}
