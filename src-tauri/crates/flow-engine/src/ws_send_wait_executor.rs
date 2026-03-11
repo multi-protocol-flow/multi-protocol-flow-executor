@@ -483,78 +483,129 @@ impl WsSendWaitExecutor {
                 }
             }
             WsWaitMode::Condition => {
-                if let Some(ref condition) = config.wait_condition {
-                    let start = Instant::now();
-                    let timeout_ms = config.message_timeout_ms;
+                // 检查是否配置了有效的等待条件
+                match &config.wait_condition {
+                    Some(condition) if !condition.expression.trim().is_empty() => {
+                        let start = Instant::now();
+                        let timeout_ms = config.message_timeout_ms;
 
-                    loop {
-                        let elapsed = start.elapsed().as_millis() as u64;
-                        if elapsed >= timeout_ms {
-                            // 超时返回 None，不返回错误
-                            return Ok(None);
-                        }
+                        loop {
+                            let elapsed = start.elapsed().as_millis() as u64;
+                            if elapsed >= timeout_ms {
+                                // 超时返回 None，不返回错误
+                                return Ok(None);
+                            }
 
-                        let remaining = timeout_ms - elapsed;
-                        let result = self
-                            .ws_manager
-                            .receive(connection_id, remaining.min(5000))
-                            .await?;
+                            let remaining = timeout_ms - elapsed;
+                            let result = self
+                                .ws_manager
+                                .receive(connection_id, remaining.min(5000))
+                                .await?;
 
-                        if let Some(message) = result {
-                            if self.ws_manager.match_message(&message, condition)? {
-                                log::info!(
-                                    "[WebSocket] 响应匹配成功: connection_id={}",
-                                    connection_id
-                                );
-
-                                // 记录收到的消息到 ws_streams
-                                {
-                                    let received_msg = WsMessage::new(
-                                        MessageDirection::Received,
-                                        MessageContent::Text {
-                                            content: message.clone(),
-                                        },
+                            if let Some(message) = result {
+                                if self.ws_manager.match_message(&message, condition)? {
+                                    log::info!(
+                                        "[WebSocket] 响应匹配成功: connection_id={}",
+                                        connection_id
                                     );
-                                    if let Err(e) = context.push_ws_message(connection_id, received_msg.clone()).await {
-                                        log::warn!(
-                                            "[WebSocket] 记录接收消息失败（继续执行）: connection_id={}, error={}",
-                                            connection_id,
-                                            e
+
+                                    // 记录收到的消息到 ws_streams
+                                    {
+                                        let received_msg = WsMessage::new(
+                                            MessageDirection::Received,
+                                            MessageContent::Text {
+                                                content: message.clone(),
+                                            },
                                         );
+                                        if let Err(e) = context.push_ws_message(connection_id, received_msg.clone()).await {
+                                            log::warn!(
+                                                "[WebSocket] 记录接收消息失败（继续执行）: connection_id={}, error={}",
+                                                connection_id,
+                                                e
+                                            );
+                                        }
+                                        
+                                        // 发送调试事件：WsMessageReceived
+                                        if let Some(sender) = &context.debug_event_sender {
+                                            let _ = sender.send(DebugEvent::WsMessageReceived {
+                                                connection_id: connection_id.to_string(),
+                                                owner_node_uuid: node.uuid.clone(),
+                                                message: received_msg,
+                                            });
+                                        }
                                     }
-                                    
-                                    // 发送调试事件：WsMessageReceived
-                                    if let Some(sender) = &context.debug_event_sender {
-                                        let _ = sender.send(DebugEvent::WsMessageReceived {
-                                            connection_id: connection_id.to_string(),
-                                            owner_node_uuid: node.uuid.clone(),
-                                            message: received_msg,
-                                        });
-                                    }
+
+                                    // 发送日志
+                                    context
+                                        .emit_log(LogEvent {
+                                            level: LogLevel::Info,
+                                            message: format!("响应匹配成功: {}", message),
+                                            timestamp: std::time::SystemTime::now()
+                                                .duration_since(std::time::UNIX_EPOCH)
+                                                .expect("系统时间错误")
+                                                .as_millis() as u64,
+                                            node_uuid: Some(node.uuid.clone()),
+                                            node_name: Some(node.name.clone()),
+                                            flow_uuid: context.flow_uuid.clone(),
+                                        })
+                                        .await;
+
+                                    return Ok(Some(message));
                                 }
-
-                                // 发送日志
-                                context
-                                    .emit_log(LogEvent {
-                                        level: LogLevel::Info,
-                                        message: format!("响应匹配成功: {}", message),
-                                        timestamp: std::time::SystemTime::now()
-                                            .duration_since(std::time::UNIX_EPOCH)
-                                            .expect("系统时间错误")
-                                            .as_millis() as u64,
-                                        node_uuid: Some(node.uuid.clone()),
-                                        node_name: Some(node.name.clone()),
-                                        flow_uuid: context.flow_uuid.clone(),
-                                    })
-                                    .await;
-
-                                return Ok(Some(message));
                             }
                         }
                     }
-                } else {
-                    // 没有指定条件也返回 None
-                    Ok(None)
+                    Some(condition) => {
+                        // 条件存在但表达式为空
+                        let error_msg = format!(
+                            "条件等待模式需要填写匹配表达式（当前表达式为空）: match_type={:?}",
+                            condition.match_type
+                        );
+                        log::error!(
+                            "[WebSocket] 条件等待配置错误: connection_id={}, expression 为空",
+                            connection_id
+                        );
+
+                        context
+                            .emit_log(LogEvent {
+                                level: LogLevel::Error,
+                                message: error_msg.clone(),
+                                timestamp: std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .expect("系统时间错误")
+                                    .as_millis() as u64,
+                                node_uuid: Some(node.uuid.clone()),
+                                node_name: Some(node.name.clone()),
+                                flow_uuid: context.flow_uuid.clone(),
+                            })
+                            .await;
+
+                        Err(error_msg)
+                    }
+                    None => {
+                        // 没有配置等待条件
+                        let error_msg = "条件等待模式需要配置匹配条件（wait_condition 未设置）".to_string();
+                        log::error!(
+                            "[WebSocket] 条件等待配置错误: connection_id={}, wait_condition 为 None",
+                            connection_id
+                        );
+
+                        context
+                            .emit_log(LogEvent {
+                                level: LogLevel::Error,
+                                message: error_msg.clone(),
+                                timestamp: std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .expect("系统时间错误")
+                                    .as_millis() as u64,
+                                node_uuid: Some(node.uuid.clone()),
+                                node_name: Some(node.name.clone()),
+                                flow_uuid: context.flow_uuid.clone(),
+                            })
+                            .await;
+
+                        Err(error_msg)
+                    }
                 }
             }
             WsWaitMode::Duration => {

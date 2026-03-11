@@ -434,15 +434,20 @@ export function WsSendWaitConfig({ data, onSave }: WsSendWaitConfigProps) {
                 {/* 匹配表达式 */}
                 <div className="space-y-2">
                   <Label htmlFor="wait_condition.expression" className="text-xs text-muted-foreground">
-                    匹配表达式
+                    匹配表达式 <span className="text-rose-500">*</span>
                   </Label>
                   <Textarea
                     id="wait_condition.expression"
-                    {...register('wait_condition.expression')}
+                    {...register('wait_condition.expression', { required: '匹配表达式不能为空' })}
                     placeholder="$.data.status == 'success'"
-                    className="min-h-[80px] resize-y font-mono text-xs"
+                    className={`min-h-[80px] resize-y font-mono text-xs ${
+                      errors.wait_condition?.expression ? 'border-rose-500 focus-visible:ring-rose-500' : ''
+                    }`}
                     rows={3}
                   />
+                  {errors.wait_condition?.expression && (
+                    <p className="text-xs text-rose-500">{errors.wait_condition.expression.message}</p>
+                  )}
                   <VariableValidationWarning
                     value={watch('wait_condition.expression') || ''}
                     availableVariables={availableVariableNames}
