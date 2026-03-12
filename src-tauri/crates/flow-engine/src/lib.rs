@@ -45,6 +45,9 @@ pub mod debug;
 // Wave 5: 断言模块
 pub mod assertion;
 
+// Wave 6: 脚本节点 API 模块
+pub mod script_api;
+
 // Re-exports
 pub use traits::{
     AppDirProvider, DefaultAppDirProvider, DirectoryOpener, NoopDirectoryOpener,
