@@ -148,6 +148,18 @@ pub enum ErrorKind {
     // ===== 断言错误（容错模式，继续执行） =====
     /// 断言失败
     Assertion,
+
+    // ===== 脚本错误（根据 on_error 配置决定是否致命） =====
+    /// 脚本语法错误
+    ScriptSyntax,
+    /// 脚本运行时错误
+    ScriptRuntime,
+    /// 脚本执行超时
+    ScriptTimeout,
+    /// 断言失败
+    ScriptAssertion,
+    /// 用户调用 fn.flow.abort()
+    ScriptAbort,
 }
 
 impl ErrorKind {
@@ -228,6 +240,12 @@ mod tests {
         assert!(!ErrorKind::WebSocketMessage.is_fatal());
         assert!(!ErrorKind::WebSocketClose.is_fatal());
         assert!(!ErrorKind::WebSocketProtocol.is_fatal());
+        // 脚本错误非致命（根据配置决定）
+        assert!(!ErrorKind::ScriptSyntax.is_fatal());
+        assert!(!ErrorKind::ScriptRuntime.is_fatal());
+        assert!(!ErrorKind::ScriptTimeout.is_fatal());
+        assert!(!ErrorKind::ScriptAssertion.is_fatal());
+        assert!(!ErrorKind::ScriptAbort.is_fatal());
     }
 
     #[test]
@@ -247,6 +265,12 @@ mod tests {
             ErrorKind::WebSocketMessage,
             ErrorKind::WebSocketClose,
             ErrorKind::WebSocketProtocol,
+            // 脚本错误类型
+            ErrorKind::ScriptSyntax,
+            ErrorKind::ScriptRuntime,
+            ErrorKind::ScriptTimeout,
+            ErrorKind::ScriptAssertion,
+            ErrorKind::ScriptAbort,
         ];
 
         for kind in kinds {
@@ -286,6 +310,12 @@ mod tests {
             ErrorKind::WebSocketMessage,
             ErrorKind::WebSocketClose,
             ErrorKind::WebSocketProtocol,
+            // 脚本错误类型
+            ErrorKind::ScriptSyntax,
+            ErrorKind::ScriptRuntime,
+            ErrorKind::ScriptTimeout,
+            ErrorKind::ScriptAssertion,
+            ErrorKind::ScriptAbort,
         ];
 
         for kind in kinds {
@@ -314,6 +344,38 @@ mod tests {
             let error = ErrorDetail::new(kind.clone(), msg.to_string());
 
             // 验证非致命
+            assert!(!error.is_fatal(), "{:?} 不应为致命错误", kind);
+
+            // 验证序列化和反序列化
+            let json = serde_json::to_string(&error).expect("序列化失败");
+            let deserialized: ErrorDetail = serde_json::from_str(&json).expect("反序列化失败");
+
+            assert_eq!(error.error_kind, deserialized.error_kind);
+            assert_eq!(error.message, deserialized.message);
+
+            // 验证 JSON 中使用小写形式
+            assert!(
+                json.contains(&format!("{:?}", kind).to_lowercase()),
+                "JSON 应包含小写形式的错误类型"
+            );
+        }
+    }
+
+    #[test]
+    fn test_script_error_kinds() {
+        // 测试脚本错误类型的创建和序列化
+        let script_errors = vec![
+            (ErrorKind::ScriptSyntax, "脚本语法错误"),
+            (ErrorKind::ScriptRuntime, "脚本运行时错误"),
+            (ErrorKind::ScriptTimeout, "脚本执行超时"),
+            (ErrorKind::ScriptAssertion, "断言失败"),
+            (ErrorKind::ScriptAbort, "用户调用 abort()"),
+        ];
+
+        for (kind, msg) in script_errors {
+            let error = ErrorDetail::new(kind.clone(), msg.to_string());
+
+            // 验证非致命（脚本错误根据配置决定）
             assert!(!error.is_fatal(), "{:?} 不应为致命错误", kind);
 
             // 验证序列化和反序列化

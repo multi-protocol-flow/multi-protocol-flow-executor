@@ -12,6 +12,13 @@ import {
   isWsSendWaitConfig,
   isWsCloseConfig,
   isAssertionConfig,
+  isDbConnectConfig,
+  isDbQueryConfig,
+  isDbBeginConfig,
+  isDbCommitConfig,
+  isDbRollbackConfig,
+  isDbCloseConfig,
+  isScriptConfig,
 } from '../../types/node';
 import type { NodeData } from '../../types/node';
 
@@ -45,6 +52,20 @@ function createNodeData(type: NodeData['type']): NodeData {
         on_failure: 'route_false',
         continue_on_failure: false,
       };
+    case 'db_connect':
+      return { type: 'db_connect', connection_uuid: 'db-conn-1' };
+    case 'db_query':
+      return { type: 'db_query', connection_uuid: 'db-conn-1' };
+    case 'db_begin':
+      return { type: 'db_begin', connection_uuid: 'db-conn-1' };
+    case 'db_commit':
+      return { type: 'db_commit', connection_uuid: 'db-conn-1' };
+    case 'db_rollback':
+      return { type: 'db_rollback', connection_uuid: 'db-conn-1' };
+    case 'db_close':
+      return { type: 'db_close', connection_uuid: 'db-conn-1' };
+    case 'script':
+      return { type: 'script', script: '// test script' };
   }
 }
 
@@ -193,6 +214,111 @@ describe('isAssertionConfig', () => {
     otherTypes.forEach((type) => {
       const data = createNodeData(type);
       expect(isAssertionConfig(data)).toBe(false);
+    });
+  });
+});
+
+describe('isDbConnectConfig', () => {
+  it('应该对 db_connect 类型返回 true', () => {
+    const data = createNodeData('db_connect');
+    expect(isDbConnectConfig(data)).toBe(true);
+  });
+
+  it('应该对其他类型返回 false', () => {
+    const otherTypes: NodeData['type'][] = ['entry', 'http', 'db_query', 'db_close'];
+    otherTypes.forEach((type) => {
+      const data = createNodeData(type);
+      expect(isDbConnectConfig(data)).toBe(false);
+    });
+  });
+});
+
+describe('isDbQueryConfig', () => {
+  it('应该对 db_query 类型返回 true', () => {
+    const data = createNodeData('db_query');
+    expect(isDbQueryConfig(data)).toBe(true);
+  });
+
+  it('应该对其他类型返回 false', () => {
+    const otherTypes: NodeData['type'][] = ['entry', 'http', 'db_connect', 'db_close'];
+    otherTypes.forEach((type) => {
+      const data = createNodeData(type);
+      expect(isDbQueryConfig(data)).toBe(false);
+    });
+  });
+});
+
+describe('isDbBeginConfig', () => {
+  it('应该对 db_begin 类型返回 true', () => {
+    const data = createNodeData('db_begin');
+    expect(isDbBeginConfig(data)).toBe(true);
+  });
+
+  it('应该对其他类型返回 false', () => {
+    const otherTypes: NodeData['type'][] = ['entry', 'http', 'db_connect', 'db_commit'];
+    otherTypes.forEach((type) => {
+      const data = createNodeData(type);
+      expect(isDbBeginConfig(data)).toBe(false);
+    });
+  });
+});
+
+describe('isDbCommitConfig', () => {
+  it('应该对 db_commit 类型返回 true', () => {
+    const data = createNodeData('db_commit');
+    expect(isDbCommitConfig(data)).toBe(true);
+  });
+
+  it('应该对其他类型返回 false', () => {
+    const otherTypes: NodeData['type'][] = ['entry', 'http', 'db_begin', 'db_rollback'];
+    otherTypes.forEach((type) => {
+      const data = createNodeData(type);
+      expect(isDbCommitConfig(data)).toBe(false);
+    });
+  });
+});
+
+describe('isDbRollbackConfig', () => {
+  it('应该对 db_rollback 类型返回 true', () => {
+    const data = createNodeData('db_rollback');
+    expect(isDbRollbackConfig(data)).toBe(true);
+  });
+
+  it('应该对其他类型返回 false', () => {
+    const otherTypes: NodeData['type'][] = ['entry', 'http', 'db_begin', 'db_commit'];
+    otherTypes.forEach((type) => {
+      const data = createNodeData(type);
+      expect(isDbRollbackConfig(data)).toBe(false);
+    });
+  });
+});
+
+describe('isDbCloseConfig', () => {
+  it('应该对 db_close 类型返回 true', () => {
+    const data = createNodeData('db_close');
+    expect(isDbCloseConfig(data)).toBe(true);
+  });
+
+  it('应该对其他类型返回 false', () => {
+    const otherTypes: NodeData['type'][] = ['entry', 'http', 'db_connect', 'db_query'];
+    otherTypes.forEach((type) => {
+      const data = createNodeData(type);
+      expect(isDbCloseConfig(data)).toBe(false);
+    });
+  });
+});
+
+describe('isScriptConfig', () => {
+  it('应该对 script 类型返回 true', () => {
+    const data = createNodeData('script');
+    expect(isScriptConfig(data)).toBe(true);
+  });
+
+  it('应该对其他类型返回 false', () => {
+    const otherTypes: NodeData['type'][] = ['entry', 'http', 'conditional', 'assertion'];
+    otherTypes.forEach((type) => {
+      const data = createNodeData(type);
+      expect(isScriptConfig(data)).toBe(false);
     });
   });
 });

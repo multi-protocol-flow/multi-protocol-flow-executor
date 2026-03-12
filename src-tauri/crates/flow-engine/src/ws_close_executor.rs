@@ -256,22 +256,23 @@ mod tests {
     /// 创建执行上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext {
-            flow_uuid: flow_id.to_string(),
-            current_node_uuid: None,
-            variables: VariableStorage::new(),
-            node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
-                .as_millis() as u64,
-            log_sender: None,
-            flow_file_path: None,
-            ws_manager: None,
-            ws_connection_urls: std::collections::HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            last_node_output: None,
-            debug_event_sender: None,
-        }
+                    flow_uuid: flow_id.to_string(),
+                    current_node_uuid: None,
+                    variables: VariableStorage::new(),
+                    node_reports: vec![],
+                    flow_trigger_time: std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .expect("系统时间错误")
+                        .as_millis() as u64,
+                    log_sender: None,
+                    flow_file_path: None,
+                    ws_manager: None,
+                    ws_connection_urls: std::collections::HashMap::new(),
+                    ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+                    db_manager: None,
+                    last_node_output: None,
+                    debug_event_sender: None,
+                }
     }
 
     #[tokio::test]

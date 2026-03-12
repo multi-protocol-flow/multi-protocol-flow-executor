@@ -172,6 +172,7 @@ impl DebuggableFlowExecutor {
             ws_manager: Some(ws_manager),
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
             last_node_output: None,
             debug_event_sender: Some(event_sender.clone()),
         };
@@ -554,6 +555,25 @@ impl DebuggableFlowExecutor {
                             output_data.as_ref().and_then(|data| {
                                 data.get("passed").and_then(|v| v.as_bool()).map(|passed| {
                                     if passed {
+                                        "true".to_string()
+                                    } else {
+                                        "false".to_string()
+                                    }
+                                })
+                            })
+                        }
+                        // 数据库节点 - 尚未实现
+                        NodeType::DbConnect
+                        | NodeType::DbQuery
+                        | NodeType::DbBegin
+                        | NodeType::DbCommit
+                        | NodeType::DbRollback
+                        | NodeType::DbClose => Some("out".to_string()),
+                        // 脚本节点：根据 success 字段判断
+                        NodeType::Script => {
+                            output_data.as_ref().and_then(|data| {
+                                data.get("success").and_then(|v| v.as_bool()).map(|success| {
+                                    if success {
                                         "true".to_string()
                                     } else {
                                         "false".to_string()
@@ -1049,6 +1069,35 @@ impl DebuggableFlowExecutor {
                 );
                 let executor = AssertionNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
+            }
+            // 数据库节点 - 尚未实现
+            NodeType::DbConnect => {
+                Err("数据库连接节点尚未实现".to_string())
+            }
+            NodeType::DbQuery => {
+                Err("数据库查询节点尚未实现".to_string())
+            }
+            NodeType::DbBegin => {
+                Err("数据库事务开始节点尚未实现".to_string())
+            }
+            NodeType::DbCommit => {
+                Err("数据库事务提交节点尚未实现".to_string())
+            }
+            NodeType::DbRollback => {
+                Err("数据库事务回滚节点尚未实现".to_string())
+            }
+            NodeType::DbClose => {
+                Err("数据库关闭节点尚未实现".to_string())
+            }
+            // 脚本节点（执行器尚未实现）
+            NodeType::Script => {
+                log::info!(
+                    "[调试 {}] 执行脚本节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                Err("Script 节点执行器尚未实现".to_string())
             }
         }
     }

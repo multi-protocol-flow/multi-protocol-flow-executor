@@ -21,7 +21,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendWaitNode, WsCloseNode, AssertionNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendWaitNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode } from './nodes';
 import { CanvasToolbar } from './CanvasToolbar';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
@@ -78,6 +78,12 @@ const nodeTypes = {
   ws_send_wait: WsSendWaitNode,
   ws_close: WsCloseNode,
   assertion: AssertionNode,
+  db_connect: DbConnectNode,
+  db_query: DbQueryNode,
+  db_begin: DbBeginNode,
+  db_commit: DbCommitNode,
+  db_rollback: DbRollbackNode,
+  db_close: DbCloseNode,
 };
 
 /** 边类型映射 */
@@ -102,6 +108,13 @@ const minimapNodeColor = (node: Node) => {
       return '#f43f5e'; // rose-500
     case 'assertion':
       return '#a855f7'; // purple-500
+    case 'db_connect':
+    case 'db_query':
+    case 'db_begin':
+    case 'db_commit':
+    case 'db_rollback':
+    case 'db_close':
+      return '#8b5cf6'; // violet-500
     default:
       return '#94a3b8';
   }

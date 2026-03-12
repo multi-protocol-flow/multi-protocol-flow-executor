@@ -8,6 +8,8 @@ pub mod traits;
 // Wave 2: 无依赖的基础模块
 pub mod command;
 pub mod connection;
+pub mod db;
+pub mod encryption;
 pub mod error;
 pub mod flow;
 pub mod log_event;
@@ -31,6 +33,12 @@ pub mod ws_connect_executor;
 pub mod ws_send_wait_executor;
 pub mod ws_close_executor;
 pub mod assertion_executor;
+pub mod db_connect_executor;
+pub mod db_query_executor;
+pub mod db_begin_executor;
+pub mod db_commit_executor;
+pub mod db_rollback_executor;
+pub mod db_close_executor;
 pub mod validator;
 // Wave 4: 调试模块
 pub mod debug;
@@ -49,9 +57,18 @@ pub use ws_stream::{
     MessageDirection, MessageContent, WsMessage, WsStreamSegment, WsConnectionStream,
 };
 
+// Re-export db types
+pub use db::{
+    DatabaseConnectionManager, DatabasePool, IsolationLevel, MockPool, PoolMetadata,
+    QueryResult, TransactionInfo, TransactionState,
+};
+
 // ============================================================================
 // 测试工具函数
 // ============================================================================
+
+#[cfg(test)]
+mod script_poc;
 
 #[cfg(test)]
 pub mod test_utils {

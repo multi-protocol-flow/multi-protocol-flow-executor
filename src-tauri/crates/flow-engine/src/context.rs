@@ -7,6 +7,7 @@ use crate::variable::Variable;
 use crate::traits::LogSender;
 use crate::websocket_manager::WebSocketConnectionManager;
 use crate::ws_stream::{WsConnectionStream, WsMessage};
+use crate::db::pool::DatabaseConnectionManager;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -63,6 +64,12 @@ pub struct ExecutionContext {
     #[serde(skip)]
     pub ws_streams: Arc<RwLock<HashMap<String, WsConnectionStream>>>,
 
+    /// 数据库连接池管理器
+    /// 用于管理数据库连接的生命周期（连接、查询、关闭）
+    /// 使用 #[serde(skip)] 跳过序列化，因为 DatabaseConnectionManager 不支持序列化
+    #[serde(skip)]
+    pub db_manager: Option<Arc<DatabaseConnectionManager>>,
+
     /// 最近一个协议节点的输出数据
     /// 协议节点（HTTP、WebSocket）执行后更新此字段
     /// 工具节点（Conditional、Entry、WsClose）不更新，延续上游数据
@@ -99,6 +106,7 @@ impl ExecutionContext {
             ws_manager: None,
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(RwLock::new(HashMap::new())),
+            db_manager: None,
             last_node_output: None,
             debug_event_sender: None,
         }

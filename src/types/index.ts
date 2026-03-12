@@ -34,6 +34,12 @@ export type {
   AssertionNodeConfig,
   AssertionResult,
   AssertionOutput,
+  DbConnectConfig,
+  DbQueryConfig,
+  DbBeginConfig,
+  DbCommitConfig,
+  DbRollbackConfig,
+  DbCloseConfig,
   NodeData,
   Node,
 } from './node';
@@ -45,6 +51,12 @@ export {
   isWsSendWaitConfig,
   isWsCloseConfig,
   isAssertionConfig,
+  isDbConnectConfig,
+  isDbQueryConfig,
+  isDbBeginConfig,
+  isDbCommitConfig,
+  isDbRollbackConfig,
+  isDbCloseConfig,
 } from './node';
 
 // 连接类型
@@ -92,6 +104,9 @@ export type {
 
 // 变量类型
 export type { Variable, VariablePool, OutputMapping, InitialVariable } from './variable';
+
+// 数据库类型
+export type { DbDriver, DbConnection, DbFetchMode, DbIsolationLevel } from './database';
 
 // 调试类型
 export type {

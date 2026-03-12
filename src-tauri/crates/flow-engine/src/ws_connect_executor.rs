@@ -643,6 +643,7 @@ mod tests {
                     ws_manager: None,
                     ws_connection_urls: std::collections::HashMap::new(),
                     ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+                    db_manager: None,
                     last_node_output: None,
                     debug_event_sender: None,
                 }

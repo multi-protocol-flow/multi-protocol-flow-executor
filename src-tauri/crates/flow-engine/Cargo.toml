@@ -35,6 +35,18 @@ webpki-roots = "0.26"
 url = "2.5"
 thiserror = "1.0"
 
+# 加密模块依赖
+aes-gcm = { version = "0.10", features = ["std"] }
+keyring = "3"
+zeroize = "1"
+base64 = "0.22"
+rand = "0.8"
+once_cell = "1"
+
+# JS 运行时 (rquickjs POC)
+# 注意: Windows MSVC 有预编译绑定，不需要 bindgen feature
+rquickjs = { version = "0.7", features = ["chrono", "array-buffer"] }
+
 [dev-dependencies]
 mockito = "1.0"
 wiremock = "0.6"

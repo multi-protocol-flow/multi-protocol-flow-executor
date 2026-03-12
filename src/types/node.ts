@@ -7,6 +7,8 @@ import type { OutputMapping, InitialVariable } from './variable';
 
 import type { Port } from './port';
 
+import type { DbFetchMode, DbIsolationLevel } from './database';
+
 // ============================================================================
 // 节点类型枚举
 // ============================================================================
@@ -14,7 +16,21 @@ import type { Port } from './port';
 /**
  * 节点类型枚举
  */
-export type NodeType = 'entry' | 'http' | 'conditional' | 'ws_connect' | 'ws_send_wait' | 'ws_close' | 'assertion';
+export type NodeType =
+  | 'entry'
+  | 'http'
+  | 'conditional'
+  | 'ws_connect'
+  | 'ws_send_wait'
+  | 'ws_close'
+  | 'assertion'
+  | 'db_connect'
+  | 'db_query'
+  | 'db_begin'
+  | 'db_commit'
+  | 'db_rollback'
+  | 'db_close'
+  | 'script';
 
 /**
  * 节点位置结构体
@@ -348,10 +364,146 @@ export interface WsCloseConfig {
   wait_close_timeout_ms?: number;
 }
 
+// ============================================================================
+// 数据库节点类型定义
+// ============================================================================
+
+/**
+ * DB Connect 节点配置
+ */
+export interface DbConnectConfig {
+  type: 'db_connect';
+  /** 连接 UUID */
+  connection_uuid: string;
+  /** 测试查询语句 */
+  test_query?: string;
+  /** 连接超时（毫秒） */
+  connect_timeout_ms?: number;
+}
+
+/**
+ * DB Query 节点配置
+ */
+export interface DbQueryConfig {
+  type: 'db_query';
+  /** 连接 UUID */
+  connection_uuid: string;
+  /** SQL 查询语句 */
+  sql?: string;
+  /** SQL 参数 */
+  params?: string[];
+  /** Redis 命令 */
+  redis_command?: string;
+  /** Redis 键名 */
+  redis_key?: string;
+  /** Redis 值 */
+  redis_value?: string;
+  /** Redis TTL（秒） */
+  redis_ttl?: number;
+  /** 获取模式 */
+  fetch_mode?: DbFetchMode;
+  /** 结果存储变量名 */
+  result_to?: string;
+  /** 输出变量映射 */
+  output_mappings?: OutputMapping[];
+  /** 查询超时（毫秒） */
+  timeout_ms?: number;
+}
+
+/**
+ * DB Begin 节点配置
+ */
+export interface DbBeginConfig {
+  type: 'db_begin';
+  /** 连接 UUID */
+  connection_uuid: string;
+  /** 事务隔离级别 */
+  isolation_level?: DbIsolationLevel;
+}
+
+/**
+ * DB Commit 节点配置
+ */
+export interface DbCommitConfig {
+  type: 'db_commit';
+  /** 连接 UUID */
+  connection_uuid: string;
+}
+
+/**
+ * DB Rollback 节点配置
+ */
+export interface DbRollbackConfig {
+  type: 'db_rollback';
+  /** 连接 UUID */
+  connection_uuid: string;
+}
+
+/**
+ * DB Close 节点配置
+ */
+export interface DbCloseConfig {
+  type: 'db_close';
+  /** 连接 UUID */
+  connection_uuid: string;
+}
+
+// ============================================================================
+// 脚本节点类型定义
+// ============================================================================
+
+/**
+ * 脚本执行时机
+ */
+export type ScriptExecutionPhase = 'post_request' | 'pre_request' | 'standalone';
+
+/**
+ * 脚本错误处理策略
+ */
+export type ScriptErrorStrategy = 'recoverable' | 'fatal';
+
+/**
+ * 断言失败处理策略
+ */
+export type AssertionFailStrategy = 'route_false' | 'ignore' | 'abort';
+
+/**
+ * 脚本节点配置
+ */
+export interface ScriptNodeConfig {
+  type: 'script';
+  /** 脚本内容（JavaScript 代码） */
+  script: string;
+  /** 超时时间（毫秒），默认 5000 */
+  timeout_ms?: number;
+  /** 内存限制（MB），默认 10 */
+  memory_limit_mb?: number;
+  /** 脚本执行时机 */
+  execution_phase?: ScriptExecutionPhase;
+  /** 错误处理策略 */
+  on_error?: ScriptErrorStrategy;
+  /** 断言失败时的行为 */
+  on_assertion_fail?: AssertionFailStrategy;
+}
+
 /**
  * 节点数据配置（判别联合类型）
  */
-export type NodeData = EntryConfig | HttpConfig | ConditionalConfig | WsConnectConfig | WsSendWaitConfig | WsCloseConfig | AssertionNodeConfig;
+export type NodeData =
+  | EntryConfig
+  | HttpConfig
+  | ConditionalConfig
+  | WsConnectConfig
+  | WsSendWaitConfig
+  | WsCloseConfig
+  | AssertionNodeConfig
+  | DbConnectConfig
+  | DbQueryConfig
+  | DbBeginConfig
+  | DbCommitConfig
+  | DbRollbackConfig
+  | DbCloseConfig
+  | ScriptNodeConfig;
 
 // ============================================================================
 // 节点结构体
@@ -428,4 +580,53 @@ export function isWsCloseConfig(data: NodeData): data is WsCloseConfig {
  */
 export function isAssertionConfig(data: NodeData): data is AssertionNodeConfig {
   return data.type === 'assertion';
+}
+
+/**
+ * 判断是否为 DbConnectConfig
+ */
+export function isDbConnectConfig(data: NodeData): data is DbConnectConfig {
+  return data.type === 'db_connect';
+}
+
+/**
+ * 判断是否为 DbQueryConfig
+ */
+export function isDbQueryConfig(data: NodeData): data is DbQueryConfig {
+  return data.type === 'db_query';
+}
+
+/**
+ * 判断是否为 DbBeginConfig
+ */
+export function isDbBeginConfig(data: NodeData): data is DbBeginConfig {
+  return data.type === 'db_begin';
+}
+
+/**
+ * 判断是否为 DbCommitConfig
+ */
+export function isDbCommitConfig(data: NodeData): data is DbCommitConfig {
+  return data.type === 'db_commit';
+}
+
+/**
+ * 判断是否为 DbRollbackConfig
+ */
+export function isDbRollbackConfig(data: NodeData): data is DbRollbackConfig {
+  return data.type === 'db_rollback';
+}
+
+/**
+ * 判断是否为 DbCloseConfig
+ */
+export function isDbCloseConfig(data: NodeData): data is DbCloseConfig {
+  return data.type === 'db_close';
+}
+
+/**
+ * 判断是否为 ScriptNodeConfig
+ */
+export function isScriptConfig(data: NodeData): data is ScriptNodeConfig {
+  return data.type === 'script';
 }

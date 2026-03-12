@@ -11,12 +11,18 @@ import { WsConnectConfig } from './WsConnectConfig';
 import { WsSendWaitConfig } from './WsSendWaitConfig';
 import { WsCloseConfig } from './WsCloseConfig';
 import { AssertionConfig } from './AssertionConfig';
+import { DbConnectConfig } from './DbConnectConfig';
+import { DbQueryConfig } from './DbQueryConfig';
+import { DbBeginConfig } from './DbBeginConfig';
+import { DbCommitConfig } from './DbCommitConfig';
+import { DbRollbackConfig } from './DbRollbackConfig';
+import { DbCloseConfig } from './DbCloseConfig';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData, Node } from '@/types';
-import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendWaitConfig, isWsCloseConfig, isAssertionConfig } from '@/types';
+import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendWaitConfig, isWsCloseConfig, isAssertionConfig, isDbConnectConfig, isDbQueryConfig, isDbBeginConfig, isDbCommitConfig, isDbRollbackConfig, isDbCloseConfig } from '@/types';
 import { Settings2, MousePointerClick, Trash2, Pencil, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -58,6 +64,41 @@ const NODE_TYPE_CONFIG = {
     label: '断言',
     badgeVariant: 'outline' as const,
     badgeClass: 'border-indigo-200 text-indigo-700',
+  },
+  db_connect: {
+    label: 'DB 连接',
+    badgeVariant: 'secondary' as const,
+    badgeClass: 'bg-purple-50 text-purple-700',
+  },
+  db_query: {
+    label: 'DB 查询',
+    badgeVariant: 'secondary' as const,
+    badgeClass: 'bg-cyan-50 text-cyan-700',
+  },
+  db_begin: {
+    label: 'DB 开始事务',
+    badgeVariant: 'outline' as const,
+    badgeClass: 'border-lime-200 text-lime-700',
+  },
+  db_commit: {
+    label: 'DB 提交',
+    badgeVariant: 'outline' as const,
+    badgeClass: 'border-green-200 text-green-700',
+  },
+  db_rollback: {
+    label: 'DB 回滚',
+    badgeVariant: 'outline' as const,
+    badgeClass: 'border-red-200 text-red-700',
+  },
+  db_close: {
+    label: 'DB 关闭',
+    badgeVariant: 'outline' as const,
+    badgeClass: 'border-gray-200 text-gray-700',
+  },
+  script: {
+    label: '脚本',
+    badgeVariant: 'secondary' as const,
+    badgeClass: 'bg-fuchsia-50 text-fuchsia-700',
   },
 };
 
@@ -288,6 +329,54 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             {/* Assertion 节点：断言配置 */}
             {selectedNode.type === 'assertion' && isAssertionConfig(selectedNode.data) && (
               <AssertionConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
+
+            {/* DB Connect 节点：数据库连接配置 */}
+            {selectedNode.type === 'db_connect' && isDbConnectConfig(selectedNode.data) && (
+              <DbConnectConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
+
+            {/* DB Query 节点：数据库查询配置 */}
+            {selectedNode.type === 'db_query' && isDbQueryConfig(selectedNode.data) && (
+              <DbQueryConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
+
+            {/* DB Begin 节点：事务开始配置 */}
+            {selectedNode.type === 'db_begin' && isDbBeginConfig(selectedNode.data) && (
+              <DbBeginConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
+
+            {/* DB Commit 节点：事务提交配置 */}
+            {selectedNode.type === 'db_commit' && isDbCommitConfig(selectedNode.data) && (
+              <DbCommitConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
+
+            {/* DB Rollback 节点：事务回滚配置 */}
+            {selectedNode.type === 'db_rollback' && isDbRollbackConfig(selectedNode.data) && (
+              <DbRollbackConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
+
+            {/* DB Close 节点：数据库关闭配置 */}
+            {selectedNode.type === 'db_close' && isDbCloseConfig(selectedNode.data) && (
+              <DbCloseConfig
                 data={selectedNode.data}
                 onSave={(data) => handleSave(data as NodeData)}
               />

@@ -569,6 +569,180 @@ pub struct AssertionOutput {
 }
 
 // ============================================================================
+// 数据库节点配置
+// ============================================================================
+
+/// 数据库连接节点配置
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DbConnectConfig {
+    /// 连接 UUID
+    #[serde(default)]
+    pub connection_uuid: String,
+    /// 测试查询语句
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub test_query: Option<String>,
+    /// 连接超时（毫秒）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub connect_timeout_ms: Option<u64>,
+}
+
+/// 数据库查询节点配置
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DbQueryConfig {
+    /// 连接 UUID
+    #[serde(default)]
+    pub connection_uuid: String,
+    /// SQL 查询语句
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sql: Option<String>,
+    /// SQL 参数列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub params: Option<Vec<String>>,
+    /// Redis 命令
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub redis_command: Option<String>,
+    /// Redis 键
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub redis_key: Option<String>,
+    /// Redis 值
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub redis_value: Option<String>,
+    /// Redis TTL（秒）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub redis_ttl: Option<u64>,
+    /// 结果获取模式: "all" | "one" | "scalar"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fetch_mode: Option<String>,
+    /// 结果存储变量名
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub result_to: Option<String>,
+    /// 输出变量映射
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub output_mappings: Vec<OutputMapping>,
+    /// 查询超时（毫秒）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout_ms: Option<u64>,
+}
+
+/// 数据库事务开始节点配置
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DbBeginConfig {
+    /// 连接 UUID
+    #[serde(default)]
+    pub connection_uuid: String,
+    /// 隔离级别
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub isolation_level: Option<String>,
+}
+
+/// 数据库事务提交节点配置
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DbCommitConfig {
+    /// 连接 UUID
+    #[serde(default)]
+    pub connection_uuid: String,
+}
+
+/// 数据库事务回滚节点配置
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DbRollbackConfig {
+    /// 连接 UUID
+    #[serde(default)]
+    pub connection_uuid: String,
+}
+
+/// 数据库关闭节点配置
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DbCloseConfig {
+    /// 连接 UUID
+    #[serde(default)]
+    pub connection_uuid: String,
+}
+
+// ============================================================================
+// Script 节点配置
+// ============================================================================
+
+/// 脚本执行时机
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum ScriptExecutionPhase {
+    /// 后置脚本（请求后执行）- 默认
+    #[default]
+    PostRequest,
+    /// 前置脚本（请求前执行）
+    PreRequest,
+    /// 独立脚本（作为单独节点）
+    Standalone,
+}
+
+/// 脚本错误处理策略
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum ScriptErrorStrategy {
+    /// 可恢复错误 → 路由到 false 端口（默认）
+    #[default]
+    Recoverable,
+    /// 致命错误 → 终止整个流程
+    Fatal,
+}
+
+/// 断言失败处理策略
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum AssertionFailStrategy {
+    /// 路由到 false 端口（默认）
+    #[default]
+    RouteFalse,
+    /// 忽略断言，继续 true 端口
+    Ignore,
+    /// 终止整个流程
+    Abort,
+}
+
+/// 脚本节点配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScriptNodeConfig {
+    /// 脚本内容（JavaScript 代码）
+    pub script: String,
+    /// 超时时间（毫秒），默认 5000
+    #[serde(default = "default_script_timeout")]
+    pub timeout_ms: u64,
+    /// 内存限制（MB），默认 10
+    #[serde(default = "default_memory_limit")]
+    pub memory_limit_mb: u64,
+    /// 脚本执行时机
+    #[serde(default)]
+    pub execution_phase: ScriptExecutionPhase,
+    /// 错误处理策略
+    #[serde(default)]
+    pub on_error: ScriptErrorStrategy,
+    /// 断言失败时的行为
+    #[serde(default)]
+    pub on_assertion_fail: AssertionFailStrategy,
+}
+
+fn default_script_timeout() -> u64 {
+    5000
+}
+fn default_memory_limit() -> u64 {
+    10
+}
+
+impl Default for ScriptNodeConfig {
+    fn default() -> Self {
+        Self {
+            script: String::new(),
+            timeout_ms: default_script_timeout(),
+            memory_limit_mb: default_memory_limit(),
+            execution_phase: ScriptExecutionPhase::default(),
+            on_error: ScriptErrorStrategy::default(),
+            on_assertion_fail: AssertionFailStrategy::default(),
+        }
+    }
+}
+
+// ============================================================================
 // 节点数据配置统一枚举
 // ============================================================================
 
@@ -593,6 +767,27 @@ pub enum NodeData {
     WsClose(WsCloseConfig),
     /// 断言节点配置
     Assertion(AssertionConfig),
+    /// 数据库连接节点配置
+    #[serde(rename = "db_connect")]
+    DbConnect(DbConnectConfig),
+    /// 数据库查询节点配置
+    #[serde(rename = "db_query")]
+    DbQuery(DbQueryConfig),
+    /// 数据库事务开始节点配置
+    #[serde(rename = "db_begin")]
+    DbBegin(DbBeginConfig),
+    /// 数据库事务提交节点配置
+    #[serde(rename = "db_commit")]
+    DbCommit(DbCommitConfig),
+    /// 数据库事务回滚节点配置
+    #[serde(rename = "db_rollback")]
+    DbRollback(DbRollbackConfig),
+    /// 数据库关闭节点配置
+    #[serde(rename = "db_close")]
+    DbClose(DbCloseConfig),
+    /// 脚本节点配置
+    #[serde(rename = "script")]
+    Script(ScriptNodeConfig),
 }
 
 impl NodeData {
@@ -606,6 +801,13 @@ impl NodeData {
             NodeData::WsSendWait(_) => "ws_send_wait",
             NodeData::WsClose(_) => "ws_close",
             NodeData::Assertion(_) => "assertion",
+            NodeData::DbConnect(_) => "db_connect",
+            NodeData::DbQuery(_) => "db_query",
+            NodeData::DbBegin(_) => "db_begin",
+            NodeData::DbCommit(_) => "db_commit",
+            NodeData::DbRollback(_) => "db_rollback",
+            NodeData::DbClose(_) => "db_close",
+            NodeData::Script(_) => "script",
         }
     }
 
@@ -678,6 +880,59 @@ impl NodeData {
     /// 创建 Assertion 节点配置
     pub fn assertion() -> Self {
         Self::Assertion(AssertionConfig::default())
+    }
+
+    /// 创建 DbConnect 节点配置
+    pub fn db_connect(connection_uuid: impl Into<String>) -> Self {
+        Self::DbConnect(DbConnectConfig {
+            connection_uuid: connection_uuid.into(),
+            ..Default::default()
+        })
+    }
+
+    /// 创建 DbQuery 节点配置
+    pub fn db_query(connection_uuid: impl Into<String>) -> Self {
+        Self::DbQuery(DbQueryConfig {
+            connection_uuid: connection_uuid.into(),
+            ..Default::default()
+        })
+    }
+
+    /// 创建 DbBegin 节点配置
+    pub fn db_begin(connection_uuid: impl Into<String>) -> Self {
+        Self::DbBegin(DbBeginConfig {
+            connection_uuid: connection_uuid.into(),
+            ..Default::default()
+        })
+    }
+
+    /// 创建 DbCommit 节点配置
+    pub fn db_commit(connection_uuid: impl Into<String>) -> Self {
+        Self::DbCommit(DbCommitConfig {
+            connection_uuid: connection_uuid.into(),
+        })
+    }
+
+    /// 创建 DbRollback 节点配置
+    pub fn db_rollback(connection_uuid: impl Into<String>) -> Self {
+        Self::DbRollback(DbRollbackConfig {
+            connection_uuid: connection_uuid.into(),
+        })
+    }
+
+    /// 创建 DbClose 节点配置
+    pub fn db_close(connection_uuid: impl Into<String>) -> Self {
+        Self::DbClose(DbCloseConfig {
+            connection_uuid: connection_uuid.into(),
+        })
+    }
+
+    /// 创建 Script 节点配置
+    pub fn script(script: impl Into<String>) -> Self {
+        Self::Script(ScriptNodeConfig {
+            script: script.into(),
+            ..Default::default()
+        })
     }
 }
 
@@ -1078,6 +1333,99 @@ mod tests {
                 assert_eq!(config.close_code, 1000); // default
             }
             _ => panic!("Expected WsClose variant"),
+        }
+    }
+
+    // ========================================================================
+    // Script 节点测试
+    // ========================================================================
+
+    #[test]
+    fn test_script_execution_phase_default() {
+        let phase = ScriptExecutionPhase::default();
+        assert_eq!(phase, ScriptExecutionPhase::PostRequest);
+    }
+
+    #[test]
+    fn test_script_execution_phase_serialization() {
+        let phase = ScriptExecutionPhase::PreRequest;
+        let json = serde_json::to_string(&phase).unwrap();
+        assert_eq!(json, r#""pre_request""#);
+
+        let deserialized: ScriptExecutionPhase = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, ScriptExecutionPhase::PreRequest);
+    }
+
+    #[test]
+    fn test_script_error_strategy_default() {
+        let strategy = ScriptErrorStrategy::default();
+        assert_eq!(strategy, ScriptErrorStrategy::Recoverable);
+    }
+
+    #[test]
+    fn test_assertion_fail_strategy_default() {
+        let strategy = AssertionFailStrategy::default();
+        assert_eq!(strategy, AssertionFailStrategy::RouteFalse);
+    }
+
+    #[test]
+    fn test_script_node_config_default() {
+        let config = ScriptNodeConfig::default();
+        assert!(config.script.is_empty());
+        assert_eq!(config.timeout_ms, 5000);
+        assert_eq!(config.memory_limit_mb, 10);
+        assert_eq!(config.execution_phase, ScriptExecutionPhase::PostRequest);
+        assert_eq!(config.on_error, ScriptErrorStrategy::Recoverable);
+        assert_eq!(config.on_assertion_fail, AssertionFailStrategy::RouteFalse);
+    }
+
+    #[test]
+    fn test_script_node_config_serialization() {
+        let config = ScriptNodeConfig {
+            script: "return status === 200;".to_string(),
+            timeout_ms: 10000,
+            memory_limit_mb: 20,
+            execution_phase: ScriptExecutionPhase::Standalone,
+            on_error: ScriptErrorStrategy::Fatal,
+            on_assertion_fail: AssertionFailStrategy::Abort,
+        };
+
+        let json = serde_json::to_string_pretty(&config).unwrap();
+        assert!(json.contains("return status === 200;"));
+        assert!(json.contains("10000"));
+        assert!(json.contains("20"));
+        assert!(json.contains("standalone"));
+        assert!(json.contains("fatal"));
+        assert!(json.contains("abort"));
+
+        let deserialized: ScriptNodeConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.script, "return status === 200;");
+        assert_eq!(deserialized.timeout_ms, 10000);
+        assert_eq!(deserialized.memory_limit_mb, 20);
+        assert_eq!(
+            deserialized.execution_phase,
+            ScriptExecutionPhase::Standalone
+        );
+        assert_eq!(deserialized.on_error, ScriptErrorStrategy::Fatal);
+        assert_eq!(deserialized.on_assertion_fail, AssertionFailStrategy::Abort);
+    }
+
+    #[test]
+    fn test_node_data_script() {
+        let data = NodeData::script("console.log('hello');");
+        assert_eq!(data.type_name(), "script");
+
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains(r#""type":"script""#));
+        assert!(json.contains("console.log('hello');"));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        match deserialized {
+            NodeData::Script(config) => {
+                assert_eq!(config.script, "console.log('hello');");
+                assert_eq!(config.timeout_ms, 5000); // default
+            }
+            _ => panic!("Expected Script variant"),
         }
     }
 }

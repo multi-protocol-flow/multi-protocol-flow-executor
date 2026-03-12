@@ -272,6 +272,73 @@ fn build_input_data_from_node_config(node: &crate::node::Node) -> Option<serde_j
                 "assertions": config.assertions,
             }))
         },
+        
+        // 数据库节点：连接配置
+        NodeData::DbConnect(config) => {
+            Some(serde_json::json!({
+                "connection_uuid": config.connection_uuid,
+                "test_query": config.test_query,
+                "connect_timeout_ms": config.connect_timeout_ms,
+            }))
+        },
+        
+        // 数据库节点：查询配置
+        NodeData::DbQuery(config) => {
+            Some(serde_json::json!({
+                "connection_uuid": config.connection_uuid,
+                "sql": config.sql,
+                "params": config.params,
+                "redis_command": config.redis_command,
+                "redis_key": config.redis_key,
+                "redis_value": config.redis_value,
+                "redis_ttl": config.redis_ttl,
+                "fetch_mode": config.fetch_mode,
+                "result_to": config.result_to,
+                "output_mappings": config.output_mappings,
+                "timeout_ms": config.timeout_ms,
+            }))
+        },
+        
+        // 数据库节点：事务开始配置
+        NodeData::DbBegin(config) => {
+            Some(serde_json::json!({
+                "connection_uuid": config.connection_uuid,
+                "isolation_level": config.isolation_level,
+            }))
+        },
+        
+        // 数据库节点：事务提交配置
+        NodeData::DbCommit(config) => {
+            Some(serde_json::json!({
+                "connection_uuid": config.connection_uuid,
+            }))
+        },
+        
+        // 数据库节点：事务回滚配置
+        NodeData::DbRollback(config) => {
+            Some(serde_json::json!({
+                "connection_uuid": config.connection_uuid,
+            }))
+        },
+        
+        // 数据库节点：关闭配置
+        NodeData::DbClose(config) => {
+            Some(serde_json::json!({
+                "connection_uuid": config.connection_uuid,
+            }))
+        },
+        
+        // 脚本节点：脚本配置
+        NodeData::Script(config) => {
+            Some(serde_json::json!({
+                "script": config.script,
+                "timeout_ms": config.timeout_ms,
+                "memory_limit_mb": config.memory_limit_mb,
+                "execution_phase": config.execution_phase,
+                "on_error": config.on_error,
+                "on_assertion_fail": config.on_assertion_fail,
+            }))
+        },
     }
 }
 
@@ -375,6 +442,9 @@ impl FlowExecutor {
         // 初始化 WebSocket 连接管理器（流程级别的单例）
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
 
+        // 初始化数据库连接池管理器（流程级别的单例）
+        let db_manager = Arc::new(crate::db::pool::DatabaseConnectionManager::new());
+
         let mut context = ExecutionContext {
             flow_uuid: flow.uuid.clone(),
             current_node_uuid: None,
@@ -389,6 +459,7 @@ impl FlowExecutor {
             ws_manager: Some(ws_manager),
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            db_manager: Some(db_manager),
             last_node_output: None,
             debug_event_sender: None,
         };
@@ -528,6 +599,34 @@ impl FlowExecutor {
                             output_data.as_ref().and_then(|data| {
                                 data.get("passed").and_then(|v| v.as_bool()).map(|passed| {
                                     if passed {
+                                        "true".to_string()
+                                    } else {
+                                        "false".to_string()
+                                    }
+                                })
+                            })
+                        }
+                        // 数据库节点：根据 success 字段判断（除 DbClose 外）
+                        NodeType::DbConnect | NodeType::DbQuery | NodeType::DbBegin | NodeType::DbCommit | NodeType::DbRollback => {
+                            output_data.as_ref().and_then(|data| {
+                                data.get("success").and_then(|v| v.as_bool()).map(|success| {
+                                    if success {
+                                        "true".to_string()
+                                    } else {
+                                        "false".to_string()
+                                    }
+                                })
+                            })
+                        }
+                        // 数据库关闭节点：只有 out 端口
+                        NodeType::DbClose => {
+                            Some("out".to_string())
+                        }
+                        // 脚本节点：根据 success 字段判断
+                        NodeType::Script => {
+                            output_data.as_ref().and_then(|data| {
+                                data.get("success").and_then(|v| v.as_bool()).map(|success| {
+                                    if success {
                                         "true".to_string()
                                     } else {
                                         "false".to_string()
@@ -1107,6 +1206,102 @@ impl FlowExecutor {
                 );
                 let executor = crate::assertion_executor::AssertionNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
+            }
+            // 数据库连接节点
+            NodeType::DbConnect => {
+                log::info!(
+                    "[流程 {}] 执行数据库连接节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                // 获取 db_manager（如果不存在则创建新的）
+                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
+                    Arc::new(crate::db::pool::DatabaseConnectionManager::new())
+                });
+                let executor = crate::db_connect_executor::DbConnectExecutor::new(db_manager);
+                executor.execute(node, context, connections, node_map).await
+            }
+            NodeType::DbQuery => {
+                log::info!(
+                    "[流程 {}] 执行数据库查询节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                // 获取 db_manager（如果不存在则创建新的）
+                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
+                    Arc::new(crate::db::pool::DatabaseConnectionManager::new())
+                });
+                let executor = crate::db_query_executor::DbQueryNodeExecutor::with_db_manager(db_manager);
+                executor.execute(node, context, connections, node_map).await
+            }
+            NodeType::DbBegin => {
+                log::info!(
+                    "[流程 {}] 执行数据库事务开始节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                // 获取 db_manager（如果不存在则创建新的）
+                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
+                    Arc::new(crate::db::pool::DatabaseConnectionManager::new())
+                });
+                let executor = crate::db_begin_executor::DbBeginExecutor::new(db_manager);
+                executor.execute(node, context, connections, node_map).await
+            }
+            NodeType::DbCommit => {
+                log::info!(
+                    "[流程 {}] 执行数据库事务提交节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                // 获取 db_manager（如果不存在则创建新的）
+                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
+                    Arc::new(crate::db::pool::DatabaseConnectionManager::new())
+                });
+                let executor = crate::db_commit_executor::DbCommitExecutor::new(db_manager);
+                executor.execute(node, context, connections, node_map).await
+            }
+            NodeType::DbRollback => {
+                log::info!(
+                    "[流程 {}] 执行数据库事务回滚节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                // 获取 db_manager（如果不存在则创建新的）
+                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
+                    Arc::new(crate::db::pool::DatabaseConnectionManager::new())
+                });
+                let executor = crate::db_rollback_executor::DbRollbackExecutor::new(db_manager);
+                executor.execute(node, context, connections, node_map).await
+            }
+            NodeType::DbClose => {
+                log::info!(
+                    "[流程 {}] 执行数据库关闭节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                // 获取 db_manager（如果不存在则创建新的）
+                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
+                    Arc::new(crate::db::pool::DatabaseConnectionManager::new())
+                });
+                let executor = crate::db_close_executor::DbCloseExecutor::new(db_manager);
+                executor.execute(node, context, connections, node_map).await
+            }
+            // 脚本节点（执行器尚未实现）
+            NodeType::Script => {
+                log::info!(
+                    "[流程 {}] 执行脚本节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                // TODO: 实现脚本执行器
+                Err("Script 节点执行器尚未实现".to_string())
             }
         }
     }
@@ -1707,6 +1902,7 @@ mod tests {
             ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            db_manager: None,
             last_node_output: None,
             debug_event_sender: None,
         };
@@ -1743,6 +1939,7 @@ mod tests {
             ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            db_manager: None,
             last_node_output: None,
             debug_event_sender: None,
         };
@@ -1770,6 +1967,7 @@ mod tests {
             ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            db_manager: None,
             last_node_output: None,
             debug_event_sender: None,
         };
@@ -1798,6 +1996,7 @@ mod tests {
             ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            db_manager: None,
             last_node_output: None,
             debug_event_sender: None,
         };
@@ -1840,6 +2039,7 @@ mod tests {
                 ws_manager: None,
                 ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            db_manager: None,
             last_node_output: None,
             debug_event_sender: None,
         };
@@ -1867,6 +2067,7 @@ mod tests {
                 ws_manager: None,
                 ws_connection_urls: std::collections::HashMap::new(),
                 ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+                db_manager: None,
                 last_node_output: None,
                 debug_event_sender: None,
             };
@@ -1894,6 +2095,7 @@ mod tests {
                 ws_manager: None,
                 ws_connection_urls: std::collections::HashMap::new(),
                 ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+                db_manager: None,
                 last_node_output: None,
                 debug_event_sender: None,
             };
@@ -1921,6 +2123,7 @@ mod tests {
                 ws_manager: None,
                 ws_connection_urls: std::collections::HashMap::new(),
                 ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+                db_manager: None,
                 last_node_output: None,
                 debug_event_sender: None,
             };

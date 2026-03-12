@@ -2,7 +2,7 @@
  * NodeLibrary - 节点库面板
  * 显示可用的节点类型，支持点击添加或拖拽到画布
  */
-import { Globe, GitBranch, GripVertical, Sparkles, Wifi, Send, Plug, CheckCircle } from 'lucide-react';
+import { Globe, GitBranch, GripVertical, Sparkles, Wifi, Send, Plug, CheckCircle, Database, CirclePlay, RotateCcw } from 'lucide-react';
 import { useFlowStore } from '@/stores';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +60,60 @@ const NODE_TYPES = [
     icon: CheckCircle,
     color: 'bg-emerald-500',
     colorHover: 'hover:bg-emerald-400',
+    iconColor: 'text-white',
+  },
+  {
+    type: 'db_connect',
+    name: 'DB 连接',
+    description: '建立数据库连接',
+    icon: Database,
+    color: 'bg-violet-500',
+    colorHover: 'hover:bg-violet-400',
+    iconColor: 'text-white',
+  },
+  {
+    type: 'db_query',
+    name: 'DB 查询',
+    description: '执行数据库查询',
+    icon: Database,
+    color: 'bg-violet-500',
+    colorHover: 'hover:bg-violet-400',
+    iconColor: 'text-white',
+  },
+  {
+    type: 'db_begin',
+    name: 'DB 开始事务',
+    description: '开始数据库事务',
+    icon: CirclePlay,
+    color: 'bg-violet-500',
+    colorHover: 'hover:bg-violet-400',
+    iconColor: 'text-white',
+  },
+  {
+    type: 'db_commit',
+    name: 'DB 提交',
+    description: '提交数据库事务',
+    icon: CheckCircle,
+    color: 'bg-violet-500',
+    colorHover: 'hover:bg-violet-400',
+    iconColor: 'text-white',
+  },
+  {
+    type: 'db_rollback',
+    name: 'DB 回滚',
+    description: '回滚数据库事务',
+    icon: RotateCcw,
+    color: 'bg-violet-500',
+    colorHover: 'hover:bg-violet-400',
+    iconColor: 'text-white',
+  },
+  {
+    type: 'db_close',
+    name: 'DB 关闭',
+    description: '关闭数据库连接',
+    icon: Plug,
+    color: 'bg-violet-500',
+    colorHover: 'hover:bg-violet-400',
     iconColor: 'text-white',
   },
 ] as const;
