@@ -17,12 +17,13 @@ import { DbBeginConfig } from './DbBeginConfig';
 import { DbCommitConfig } from './DbCommitConfig';
 import { DbRollbackConfig } from './DbRollbackConfig';
 import { DbCloseConfig } from './DbCloseConfig';
+import { ScriptConfig } from './ScriptConfig';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData, Node } from '@/types';
-import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendWaitConfig, isWsCloseConfig, isAssertionConfig, isDbConnectConfig, isDbQueryConfig, isDbBeginConfig, isDbCommitConfig, isDbRollbackConfig, isDbCloseConfig } from '@/types';
+import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendWaitConfig, isWsCloseConfig, isAssertionConfig, isDbConnectConfig, isDbQueryConfig, isDbBeginConfig, isDbCommitConfig, isDbRollbackConfig, isDbCloseConfig, isScriptConfig } from '@/types';
 import { Settings2, MousePointerClick, Trash2, Pencil, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -377,6 +378,14 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             {/* DB Close 节点：数据库关闭配置 */}
             {selectedNode.type === 'db_close' && isDbCloseConfig(selectedNode.data) && (
               <DbCloseConfig
+                data={selectedNode.data}
+                onSave={(data) => handleSave(data as NodeData)}
+              />
+            )}
+
+            {/* Script 节点：脚本配置 */}
+            {selectedNode.type === 'script' && isScriptConfig(selectedNode.data) && (
+              <ScriptConfig
                 data={selectedNode.data}
                 onSave={(data) => handleSave(data as NodeData)}
               />

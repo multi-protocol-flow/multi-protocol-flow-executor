@@ -486,6 +486,63 @@ export interface ScriptNodeConfig {
   on_assertion_fail?: AssertionFailStrategy;
 }
 
+// ============================================================================
+// 脚本节点输出类型定义
+// ============================================================================
+
+/**
+ * 脚本日志级别
+ */
+export type ScriptLogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
+
+/**
+ * 脚本日志条目
+ */
+export interface ScriptLogEntry {
+  /** 日志级别 */
+  level: ScriptLogLevel;
+  /** 日志消息 */
+  message: string;
+  /** 时间戳（毫秒） */
+  timestamp: number;
+}
+
+/**
+ * 脚本断言结果
+ */
+export interface ScriptAssertionResult {
+  /** 断言名称 */
+  name: string;
+  /** 是否通过 */
+  passed: boolean;
+  /** 错误信息（可选） */
+  error?: string;
+}
+
+/**
+ * 脚本节点输出
+ */
+export interface ScriptNodeOutput {
+  /** 脚本执行是否成功 */
+  success: boolean;
+  /** 修改的变量列表 */
+  variables_modified: Record<string, unknown>;
+  /** 断言结果列表 */
+  assertion_results: ScriptAssertionResult[];
+  /** 日志输出列表 */
+  logs: ScriptLogEntry[];
+  /** 是否调用了 skip() */
+  should_skip: boolean;
+  /** 是否调用了 abort() */
+  should_abort: boolean;
+  /** abort 消息（可选） */
+  abort_message?: string;
+  /** 是否调用了 stop() */
+  should_stop: boolean;
+  /** 错误信息（执行失败时） */
+  error?: string;
+}
+
 /**
  * 节点数据配置（判别联合类型）
  */

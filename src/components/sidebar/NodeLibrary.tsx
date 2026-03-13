@@ -2,7 +2,7 @@
  * NodeLibrary - 节点库面板
  * 显示可用的节点类型，支持点击添加或拖拽到画布
  */
-import { Globe, GitBranch, GripVertical, Sparkles, Wifi, Send, Plug, CheckCircle, Database, CirclePlay, RotateCcw } from 'lucide-react';
+import { Globe, GitBranch, GripVertical, Sparkles, Wifi, Send, Plug, CheckCircle, Database, CirclePlay, RotateCcw, Code } from 'lucide-react';
 import { useFlowStore } from '@/stores';
 import { cn } from '@/lib/utils';
 
@@ -114,6 +114,15 @@ const NODE_TYPES = [
     icon: Plug,
     color: 'bg-violet-500',
     colorHover: 'hover:bg-violet-400',
+    iconColor: 'text-white',
+  },
+  {
+    type: 'script',
+    name: '脚本',
+    description: '执行自定义 JavaScript 代码',
+    icon: Code,
+    color: 'bg-indigo-500',
+    colorHover: 'hover:bg-indigo-400',
     iconColor: 'text-white',
   },
 ] as const;

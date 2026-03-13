@@ -40,6 +40,7 @@ export type {
   DbCommitConfig,
   DbRollbackConfig,
   DbCloseConfig,
+  ScriptNodeConfig,
   NodeData,
   Node,
 } from './node';
@@ -57,6 +58,7 @@ export {
   isDbCommitConfig,
   isDbRollbackConfig,
   isDbCloseConfig,
+  isScriptConfig,
 } from './node';
 
 // 连接类型

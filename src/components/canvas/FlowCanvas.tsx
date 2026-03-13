@@ -21,7 +21,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendWaitNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendWaitNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode } from './nodes';
 import { CanvasToolbar } from './CanvasToolbar';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
@@ -84,6 +84,7 @@ const nodeTypes = {
   db_commit: DbCommitNode,
   db_rollback: DbRollbackNode,
   db_close: DbCloseNode,
+  script: ScriptNode,
 };
 
 /** 边类型映射 */
@@ -115,6 +116,8 @@ const minimapNodeColor = (node: Node) => {
     case 'db_rollback':
     case 'db_close':
       return '#8b5cf6'; // violet-500
+    case 'script':
+      return '#6366f1'; // indigo-500
     default:
       return '#94a3b8';
   }

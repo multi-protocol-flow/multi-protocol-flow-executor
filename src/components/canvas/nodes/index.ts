@@ -14,3 +14,4 @@ export { DbBeginNode, type DbBeginNodeData } from './DbBeginNode';
 export { DbCommitNode, type DbCommitNodeData } from './DbCommitNode';
 export { DbRollbackNode, type DbRollbackNodeData } from './DbRollbackNode';
 export { DbCloseNode, type DbCloseNodeData } from './DbCloseNode';
+export { ScriptNode, type ScriptNodeData } from './ScriptNode';

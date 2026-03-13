@@ -47,6 +47,7 @@ pub mod assertion;
 
 // Wave 6: 脚本节点 API 模块
 pub mod script_api;
+pub mod script_executor;
 
 // Re-exports
 pub use traits::{

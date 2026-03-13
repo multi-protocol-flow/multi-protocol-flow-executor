@@ -26,7 +26,21 @@ export type ErrorKind =
   // ===== 验证错误（容错模式，继续执行） =====
   | 'validation' // 参数验证失败
   // ===== 解析错误（容错模式，继续执行） =====
-  | 'parse'; // 数据解析失败
+  | 'parse' // 数据解析失败
+  // ===== WebSocket 错误（容错模式，继续执行） =====
+  | 'web_socket_connection' // WebSocket 连接失败
+  | 'web_socket_timeout' // WebSocket 超时
+  | 'web_socket_message' // WebSocket 消息错误
+  | 'web_socket_close' // WebSocket 关闭错误
+  | 'web_socket_protocol' // WebSocket 协议错误
+  // ===== 断言错误（容错模式，继续执行） =====
+  | 'assertion' // 断言失败
+  // ===== 脚本错误（根据 on_error 配置决定是否致命） =====
+  | 'script_syntax' // 脚本语法错误
+  | 'script_runtime' // 脚本运行时错误
+  | 'script_timeout' // 脚本执行超时
+  | 'script_assertion' // 脚本断言失败
+  | 'script_abort'; // 用户调用 fn.flow.abort()
 
 // ============================================================================
 // 错误详情结构体

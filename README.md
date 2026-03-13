@@ -185,6 +185,20 @@ cli --help
 | `entry` | 入口节点 | 流程起点，每个流程必须有且仅有一个 |
 | `http` | HTTP 请求节点 | 发送 HTTP 请求，支持 GET/POST/PUT/DELETE/PATCH，多种请求体类型（JSON、表单、文件） |
 | `conditional` | 条件分支节点 | 根据条件选择执行路径 |
+| `script` | 脚本节点 | 执行 JavaScript 代码，支持数据提取、变量操作、断言验证 |
+
+#### 脚本节点
+
+脚本节点允许在流程中运行 JavaScript 代码，提供丰富的 `fn.*` API：
+
+- `fn.variables.*` - 变量操作
+- `fn.response.*` - 响应数据访问
+- `fn.console.*` - 日志输出
+- `fn.flow.*` - 流程控制
+- `fn.util.*` - 工具函数（编码、加密、时间、UUID 等）
+- `fn.expect()` - 链式断言
+
+详细 API 文档请参考 [docs/script-node.md](./docs/script-node.md)
 
 ### 变量引用
 

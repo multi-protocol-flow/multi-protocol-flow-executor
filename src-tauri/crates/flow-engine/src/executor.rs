@@ -1292,7 +1292,7 @@ impl FlowExecutor {
                 let executor = crate::db_close_executor::DbCloseExecutor::new(db_manager);
                 executor.execute(node, context, connections, node_map).await
             }
-            // 脚本节点（执行器尚未实现）
+            // 脚本节点
             NodeType::Script => {
                 log::info!(
                     "[流程 {}] 执行脚本节点: {} ({})",
@@ -1300,8 +1300,8 @@ impl FlowExecutor {
                     node.name,
                     node.uuid
                 );
-                // TODO: 实现脚本执行器
-                Err("Script 节点执行器尚未实现".to_string())
+                let executor = crate::script_executor::ScriptNodeExecutor::new();
+                executor.execute(node, context, connections, node_map).await
             }
         }
     }

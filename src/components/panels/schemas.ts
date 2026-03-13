@@ -437,3 +437,40 @@ export const dbCloseConfigSchema = z.object({
 });
 
 export type DbCloseConfigFormData = z.infer<typeof dbCloseConfigSchema>;
+
+// ============================================================================
+// Script 配置 Schema
+// ============================================================================
+
+/**
+ * 脚本执行时机枚举
+ */
+export const scriptExecutionPhaseSchema = z.enum(['post_request', 'pre_request', 'standalone']);
+export type ScriptExecutionPhaseFormData = z.infer<typeof scriptExecutionPhaseSchema>;
+
+/**
+ * 脚本错误处理策略枚举
+ */
+export const scriptErrorStrategySchema = z.enum(['recoverable', 'fatal']);
+export type ScriptErrorStrategyFormData = z.infer<typeof scriptErrorStrategySchema>;
+
+/**
+ * 断言失败处理策略枚举
+ */
+export const assertionFailStrategySchema = z.enum(['route_false', 'ignore', 'abort']);
+export type AssertionFailStrategyFormData = z.infer<typeof assertionFailStrategySchema>;
+
+/**
+ * Script 配置表单 Schema
+ */
+export const scriptConfigSchema = z.object({
+  type: z.literal('script'),
+  script: z.string(),
+  timeout_ms: z.number().min(100).max(60000).optional(),
+  memory_limit_mb: z.number().min(1).max(100).optional(),
+  execution_phase: scriptExecutionPhaseSchema.optional(),
+  on_error: scriptErrorStrategySchema.optional(),
+  on_assertion_fail: assertionFailStrategySchema.optional(),
+});
+
+export type ScriptConfigFormData = z.infer<typeof scriptConfigSchema>;
