@@ -71,6 +71,8 @@ interface UIState {
   showSettingsDialog: boolean;
   /** 右侧配置面板模式（节点配置/全局设置） */
   configPanelMode: ConfigPanelMode;
+  /** 是否显示压力测试配置对话框 */
+  showStressTestConfigDialog: boolean;
 
   // ===== 通用确认对话框状态 =====
   /** 是否显示通用确认对话框 */
@@ -120,6 +122,10 @@ interface UIState {
   closeSettingsDialog: () => void;
   /** 设置右侧面板模式 */
   setConfigPanelMode: (mode: ConfigPanelMode) => void;
+  /** 打开压力测试配置对话框 */
+  openStressTestConfigDialog: () => void;
+  /** 关闭压力测试配置对话框 */
+  closeStressTestConfigDialog: () => void;
 
   // ===== 通用确认对话框 Actions =====
   /** 显示确认对话框 */
@@ -203,6 +209,7 @@ const initialState = {
   pendingDeleteFlowUuid: null,
   showSettingsDialog: false,
   configPanelMode: 'node' as ConfigPanelMode,
+  showStressTestConfigDialog: false,
   // 通用确认对话框状态
   showConfirmDialog: false,
   confirmDialogConfig: null,
@@ -279,6 +286,10 @@ export const useUIStore = create<UIState>((set) => ({
     }),
 
   setConfigPanelMode: (configPanelMode) => set({ configPanelMode }),
+
+  openStressTestConfigDialog: () => set({ showStressTestConfigDialog: true }),
+
+  closeStressTestConfigDialog: () => set({ showStressTestConfigDialog: false }),
 
   // ===== 左侧栏面板 Actions =====
   toggleFlowListCollapsed: () =>

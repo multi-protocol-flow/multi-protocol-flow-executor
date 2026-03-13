@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CanvasToolbar } from '@/components/canvas/CanvasToolbar';
-import { useFlowStore, useExecutionStore, useUIStore, useDebugStore } from '@/stores';
+import { useFlowStore, useExecutionStore, useUIStore, useDebugStore, useStressTestStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
 
@@ -15,6 +15,7 @@ vi.mock('@/stores', () => ({
   useExecutionStore: vi.fn(),
   useUIStore: vi.fn(),
   useDebugStore: vi.fn(),
+  useStressTestStore: vi.fn(),
   selectIsDebugging: vi.fn((state) => state.status !== 'idle' && state.status !== 'ended'),
 }));
 
@@ -78,6 +79,23 @@ describe('CanvasToolbar', () => {
           isDebugging: false,
         })
     );
+
+    // Mock stress test store
+    (useStressTestStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (selector: (state: Record<string, unknown>) => unknown) =>
+        selector({
+          status: 'idle',
+          config: null,
+          progress: null,
+          report: null,
+          isLoading: false,
+          error: null,
+          startStressTest: vi.fn(),
+          stopStressTest: vi.fn(),
+          reset: vi.fn(),
+          handleStressTestEvent: vi.fn(),
+        })
+    );
   });
 
   describe('渲染测试', () => {
@@ -120,12 +138,14 @@ describe('CanvasToolbar', () => {
       expect(toolbar).toBeInTheDocument();
 
       const children = toolbar?.children;
-      expect(children).toHaveLength(2);
+      expect(children).toHaveLength(3);
 
       // 第一个是执行按钮
       expect(children?.[0]).toHaveAttribute('title', '执行流程');
       // 第二个是调试按钮
       expect(children?.[1]).toHaveAttribute('title', '调试（需要至少设置一个断点）');
+      // 第三个是压测按钮
+      expect(children?.[2]).toHaveAttribute('title', '压力测试');
     });
   });
 

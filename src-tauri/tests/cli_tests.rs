@@ -1726,3 +1726,46 @@ fn test_assertion_node_report_contains_results() {
     assert_eq!(result["expected"].as_u64().unwrap(), 200);
     assert_eq!(result["actual"].as_u64().unwrap(), 200);
 }
+
+// ============ 压力测试命令测试 (Task 25) ============
+
+/// 测试压测命令帮助信息
+#[test]
+fn test_stress_test_help() {
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    cmd.arg("stress-test").arg("--help");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("压力测试"))
+        .stdout(predicate::str::contains("-c"))
+        .stdout(predicate::str::contains("-r"))
+        .stdout(predicate::str::contains("-d"));
+}
+
+/// 测试压测命令缺少必需参数
+#[test]
+fn test_stress_test_missing_flow() {
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    cmd.arg("stress-test");
+
+    cmd.assert()
+        .failure()
+        .stderr(predicate::str::contains("flow"));
+}
+
+/// 测试压测命令无效的并发数
+#[test]
+fn test_stress_test_invalid_concurrent_users() {
+    let flow_file = create_valid_flow_file();
+    let mut cmd = cargo::cargo_bin_cmd!("cli");
+    cmd.arg("stress-test")
+        .arg("-f")
+        .arg(flow_file.path())
+        .arg("-c")
+        .arg("invalid");
+
+    cmd.assert()
+        .failure()
+        .stderr(predicate::str::contains("无效"));
+}

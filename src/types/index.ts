@@ -131,3 +131,15 @@ export type {
   WsConnectionStream,
   WsStreamSummary,
 } from './ws_stream';
+
+// 压力测试类型
+export type {
+  StressTestStatus,
+  StressTestConfig,
+  StressTestProgress,
+  ErrorSample,
+  ResponseTimeDistribution,
+  ErrorStatistics,
+  StressTestStatistics,
+  StressTestReport,
+} from './stressTest';

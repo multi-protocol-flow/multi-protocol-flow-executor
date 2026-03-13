@@ -8,6 +8,7 @@ export { useExecutionStore } from './execution';
 export { useUIStore } from './ui';
 export { useDebugStore } from './debug';
 export { useConnectionsStore } from './connections';
+export { useStressTestStore } from './stressTest';
 
 // Flow store selectors
 export {
@@ -74,3 +75,12 @@ export type {
   ConnectionsActions,
   ConnectionsStore,
 } from './connections';
+
+// StressTest store selectors
+export {
+  selectStressTestStatus,
+  selectStressTestProgress,
+  selectStressTestReport,
+  selectIsStressTestRunning,
+  selectStressTestError,
+} from './stressTest';

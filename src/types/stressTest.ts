@@ -1,0 +1,189 @@
+/**
+ * 压力测试类型定义
+ * 与后端 src-tauri/crates/flow-engine/src/stress_test/types.rs 中的结构体对齐
+ */
+
+// ============================================================================
+// 压力测试状态枚举
+// ============================================================================
+
+/**
+ * 压力测试状态
+ */
+export type StressTestStatus = 'idle' | 'rampUp' | 'running' | 'stopped';
+
+// ============================================================================
+// 压力测试配置
+// ============================================================================
+
+/**
+ * 压力测试配置
+ */
+export interface StressTestConfig {
+  /** 并发用户数 */
+  concurrentUsers: number;
+  /** 爬升时间（秒） */
+  rampUpSeconds: number;
+  /** 持续时间（秒） */
+  durationSeconds: number;
+  /** 流程 UUID */
+  flowUuid: string;
+}
+
+// ============================================================================
+// 压力测试进度
+// ============================================================================
+
+/**
+ * 压力测试进度
+ */
+export interface StressTestProgress {
+  /** 当前状态 */
+  status: StressTestStatus;
+  /** 已运行时间（秒） */
+  elapsedSeconds: number;
+  /** 总迭代次数 */
+  totalIterations: number;
+  /** 成功迭代次数 */
+  successfulIterations: number;
+  /** 失败迭代次数 */
+  failedIterations: number;
+  /** 当前 RPS（每秒请求数） */
+  currentRps: number;
+  /** 平均延迟（毫秒） */
+  avgLatencyMs: number;
+}
+
+// ============================================================================
+// 压力测试统计信息
+// ============================================================================
+
+/**
+ * 压力测试统计信息
+ */
+export interface StressTestStatistics {
+  /** 总迭代次数 */
+  totalIterations: number;
+  /** 成功次数 */
+  successful: number;
+  /** 失败次数 */
+  failed: number;
+  /** 成功率 (0.0 - 1.0) */
+  successRate: number;
+  /** RPS（每秒请求数） */
+  rps: number;
+}
+
+// ============================================================================
+// 响应时间分布
+// ============================================================================
+
+/**
+ * 响应时间分布
+ */
+export interface ResponseTimeDistribution {
+  /** 平均响应时间（毫秒） */
+  avgMs: number;
+  /** 最小响应时间（毫秒） */
+  minMs: number;
+  /** 最大响应时间（毫秒） */
+  maxMs: number;
+  /** P50 响应时间（毫秒） */
+  p50Ms: number;
+  /** P90 响应时间（毫秒） */
+  p90Ms: number;
+  /** P95 响应时间（毫秒） */
+  p95Ms: number;
+  /** P99 响应时间（毫秒） */
+  p99Ms: number;
+}
+
+// ============================================================================
+// 错误样本
+// ============================================================================
+
+/**
+ * 错误样本
+ */
+export interface ErrorSample {
+  /** 迭代序号 */
+  iteration: number;
+  /** 节点 UUID */
+  nodeUuid: string;
+  /** 节点名称 */
+  nodeName: string;
+  /** 错误消息 */
+  errorMessage: string;
+}
+
+// ============================================================================
+// 错误统计
+// ============================================================================
+
+/**
+ * 错误统计
+ */
+export interface ErrorStatistics {
+  /** 错误类型 */
+  errorKind: string;
+  /** 出现次数 */
+  count: number;
+  /** 错误样本（最多保留若干条） */
+  samples: ErrorSample[];
+}
+
+// ============================================================================
+// 压力测试报告
+// ============================================================================
+
+/**
+ * 压力测试报告
+ */
+export interface StressTestReport {
+  /** 报告唯一 ID */
+  uuid: string;
+  /** 关联的流程 UUID */
+  flowUuid: string;
+  /** 流程名称 */
+  flowName: string;
+  /** 测试开始时间（毫秒时间戳） */
+  startTime: number;
+  /** 测试结束时间（毫秒时间戳） */
+  endTime: number;
+  /** 总执行时长（毫秒） */
+  durationMs: number;
+  /** 测试配置 */
+  config: StressTestConfig;
+  /** 统计信息 */
+  statistics: StressTestStatistics;
+  /** 响应时间分布 */
+  responseTimeDistribution: ResponseTimeDistribution;
+  /** 错误统计列表（按错误类型分组） */
+  errorStatistics: ErrorStatistics[];
+}
+
+// ============================================================================
+// 压力测试事件
+// ============================================================================
+
+/**
+ * 压力测试事件（从后端发送到前端）
+ */
+export type StressTestEvent =
+  | { type: 'started'; flowUuid: string; config: StressTestConfig }
+  | { type: 'progress'; progress: StressTestProgress }
+  | { type: 'ended'; report: StressTestReport };
+
+// ============================================================================
+// IPC 命令类型
+// ============================================================================
+
+/**
+ * 获取压力测试状态命令的输出结果
+ */
+export interface GetStressTestStatusOutput {
+  /** 当前状态 */
+  status: StressTestStatus;
+  /** 进度信息（运行中时有值） */
+  progress?: StressTestProgress;
+}

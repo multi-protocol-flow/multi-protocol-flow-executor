@@ -49,6 +49,9 @@ pub mod assertion;
 pub mod script_api;
 pub mod script_executor;
 
+// Wave 7: 压力测试模块
+pub mod stress_test;
+
 // Re-exports
 pub use traits::{
     AppDirProvider, DefaultAppDirProvider, DirectoryOpener, NoopDirectoryOpener,

@@ -134,6 +134,15 @@ use tauri::State;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;
 
+// ============================================================================
+// 压力测试命令
+// ============================================================================
+
+use flow_engine::stress_test::{
+    GetStressTestStatusOutput, StartStressTestInput, StressTestEvent,
+    StressTestSessionManager,
+};
+
 /// 调试会话管理器状态
 #[derive(Default)]
 pub struct DebugSessionManager {
@@ -274,6 +283,54 @@ pub async fn force_end_debug(
     manager.command_sender = None;
     log::info!("[调试] 强制结束调试会话");
     Ok(())
+}
+
+// ============================================================================
+// 压力测试命令
+// ============================================================================
+
+/// 启动压力测试
+///
+/// 开始压力测试指定的流程，并通过 Channel 发送压测事件
+#[tauri::command]
+pub async fn start_stress_test(
+    input: StartStressTestInput,
+    on_event: Channel<StressTestEvent>,
+    state: State<'_, Arc<StressTestSessionManager>>,
+) -> Result<(), String> {
+    // 创建事件发送器（包装 Channel）
+    let (event_sender, mut event_receiver) = mpsc::unbounded_channel::<StressTestEvent>();
+
+    // 启动事件转发任务
+    let on_event_for_spawn = on_event;
+    tokio::spawn(async move {
+        while let Some(event) = event_receiver.recv().await {
+            let _ = on_event_for_spawn.send(event);
+        }
+    });
+
+    // 调用命令处理函数
+    flow_engine::stress_test::handle_start_stress_test(input, event_sender, state.inner().clone()).await
+}
+
+/// 停止压力测试
+///
+/// 停止当前正在运行的压力测试
+#[tauri::command]
+pub async fn stop_stress_test(
+    state: State<'_, Arc<StressTestSessionManager>>,
+) -> Result<(), String> {
+    flow_engine::stress_test::handle_stop_stress_test(state.inner().clone()).await
+}
+
+/// 获取压力测试状态
+///
+/// 获取当前压力测试的状态和进度信息
+#[tauri::command]
+pub async fn get_stress_test_status(
+    state: State<'_, Arc<StressTestSessionManager>>,
+) -> Result<GetStressTestStatusOutput, String> {
+    flow_engine::stress_test::handle_get_stress_test_status(state.inner().clone()).await
 }
 
 // ============================================================================

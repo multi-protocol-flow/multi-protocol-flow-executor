@@ -213,3 +213,60 @@ export async function force_end_debug(): Promise<void> {
     console.warn('调试功能在 Mock 环境下不可用');
   }
 }
+
+// ============================================================================
+// 压力测试命令
+// ============================================================================
+
+/**
+ * 启动压力测试
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @param flow - 要压测的流程对象
+ * @param config - 压测配置
+ * @param onEvent - 压测事件回调函数
+ */
+export async function startStressTest(
+  flow: import('@/types/flow').Flow,
+  config: import('@/types/stressTest').StressTestConfig,
+  onEvent: (event: import('@/types/stressTest').StressTestEvent) => void
+): Promise<void> {
+  if (isTauriEnv()) {
+    const { startStressTest: startStressTestImpl } = await import('./stressTest');
+    return startStressTestImpl(flow, config, onEvent);
+  } else {
+    // Mock 环境 - 暂不实现
+    console.warn('压力测试功能在 Mock 环境下不可用');
+  }
+}
+
+/**
+ * 停止压力测试
+ */
+export async function stopStressTest(): Promise<void> {
+  if (isTauriEnv()) {
+    const { stopStressTest: stopStressTestImpl } = await import('./stressTest');
+    return stopStressTestImpl();
+  } else {
+    // Mock 环境 - 暂不实现
+    console.warn('压力测试功能在 Mock 环境下不可用');
+  }
+}
+
+/**
+ * 获取压力测试状态
+ *
+ * @returns 当前压测状态和进度信息
+ */
+export async function getStressTestStatus(): Promise<import('@/types/stressTest').GetStressTestStatusOutput> {
+  if (isTauriEnv()) {
+    const { getStressTestStatus: getStressTestStatusImpl } = await import('./stressTest');
+    return getStressTestStatusImpl();
+  } else {
+    // Mock 环境 - 返回空闲状态
+    return {
+      status: 'idle',
+      progress: undefined,
+    };
+  }
+}

@@ -15,6 +15,10 @@ interface FlowState {
   pendingAddNodeType: string | null;
   /** 需要聚焦的节点 UUID（由 DebugPanel 设置，FlowCanvas 处理） */
   focusNodeUuid: string | null;
+  /** 流程是否被锁定（禁止编辑） */
+  isLocked: boolean;
+  /** 锁定原因 */
+  lockReason: string | null;
 
   // ===== Actions =====
   /** 设置当前流程 */
@@ -51,6 +55,10 @@ interface FlowState {
   focusOnNode: (uuid: string) => void;
   /** 清除节点聚焦状态 */
   clearFocusNode: () => void;
+  /** 锁定流程 */
+  lockFlow: (reason: string) => void;
+  /** 解锁流程 */
+  unlockFlow: () => void;
 
   // ===== Computed (Selectors) =====
   /** 获取当前选中的节点 */
@@ -67,6 +75,8 @@ const initialState = {
   isDirty: false,
   pendingAddNodeType: null,
   focusNodeUuid: null,
+  isLocked: false,
+  lockReason: null,
 };
 
 export const useFlowStore = create<FlowState>((set, get) => ({
@@ -208,6 +218,9 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
   clearFocusNode: () => set({ focusNodeUuid: null }),
 
+  lockFlow: (reason) => set({ isLocked: true, lockReason: reason }),
+  unlockFlow: () => set({ isLocked: false, lockReason: null }),
+
   // ===== Computed (Selectors) =====
   getSelectedNode: () => {
     const { flow, selectedNodeId } = get();
@@ -241,3 +254,7 @@ export const selectNodes = (state: FlowState) => state.flow?.nodes ?? [];
 /** 选择连接列表 */
 export const selectConnections = (state: FlowState) =>
   state.flow?.connections ?? [];
+/** 选择流程是否被锁定 */
+export const selectIsLocked = (state: FlowState) => state.isLocked;
+/** 选择锁定原因 */
+export const selectLockReason = (state: FlowState) => state.lockReason;
