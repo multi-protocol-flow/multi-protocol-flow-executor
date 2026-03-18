@@ -419,6 +419,7 @@ impl FlowExecutor {
     /// - `flow`: 要执行的流程
     /// - `variables`: 执行上下文变量（可选）
     /// - `log_sender`: 日志发送器（可选，CLI 模式为 None）
+    /// - `db_connections`: 数据库连接配置列表（可选，从前端连接配置中心获取）
     ///
     /// # 返回
     /// - `ExecutionResult`: 执行结果
@@ -427,6 +428,7 @@ impl FlowExecutor {
         flow: &Flow,
         variables: Option<serde_json::Value>,
         log_sender: Option<Arc<dyn LogSender>>,
+        db_connections: Option<Vec<crate::db::types::DbConnection>>,
     ) -> ExecutionResult {
         let start_time = tokio::time::Instant::now();
         let mut executed_count = 0u32;
@@ -445,6 +447,14 @@ impl FlowExecutor {
         // 初始化数据库连接池管理器（流程级别的单例）
         let db_manager = Arc::new(crate::db::pool::DatabaseConnectionManager::new());
 
+        // 构建数据库连接配置映射（connection_uuid -> DbConnection）
+        let db_connections_map: std::collections::HashMap<String, crate::db::types::DbConnection> =
+            db_connections
+                .unwrap_or_default()
+                .into_iter()
+                .map(|conn| (conn.id.clone(), conn))
+                .collect();
+
         let mut context = ExecutionContext {
             flow_uuid: flow.uuid.clone(),
             current_node_uuid: None,
@@ -460,6 +470,7 @@ impl FlowExecutor {
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             db_manager: Some(db_manager),
+            db_connections: db_connections_map,
             last_node_output: None,
             debug_event_sender: None,
         };
@@ -1340,7 +1351,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行结果（单个 Entry 节点无连接是正常终止）
         assert!(result.success);
@@ -1389,7 +1400,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行结果
         assert!(result.success);
@@ -1425,7 +1436,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行失败
         assert!(!result.success);
@@ -1480,7 +1491,7 @@ mod tests {
         });
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, Some(variables), None).await;
+        let result = executor.execute_flow(&flow, Some(variables), None, None).await;
 
         // 验证执行成功
         assert!(result.success);
@@ -1531,7 +1542,7 @@ mod tests {
 
         let executor = FlowExecutor::new();
         let start_time = Instant::now();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
         let elapsed = start_time.elapsed();
 
         // 验证执行成功
@@ -1567,7 +1578,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证上下文中的 flow_uuid 使用了 flow.uuid（单个 Entry 节点无连接是正常终止）
         assert!(result.success);
@@ -1615,7 +1626,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行成功（节点映射通过 node.uuid 查找成功）
         assert!(result.success);
@@ -1663,7 +1674,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证连接映射成功使用了 source_node_uuid 和 target_node_uuid
         assert!(result.success);
@@ -1711,7 +1722,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行的第一个节点是 start_node.uuid
         assert!(result.success);
@@ -1750,7 +1761,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证错误消息包含 node.uuid
         assert!(!result.success);
@@ -1801,7 +1812,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行结果数据包含 flow.uuid
         assert!(result.success);
@@ -1869,7 +1880,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行成功，连接映射正确使用了 UUID
         assert!(result.success);
@@ -1903,6 +1914,7 @@ mod tests {
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             db_manager: None,
+            db_connections: std::collections::HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
         };
@@ -1940,6 +1952,7 @@ mod tests {
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             db_manager: None,
+            db_connections: std::collections::HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
         };
@@ -1968,6 +1981,7 @@ mod tests {
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             db_manager: None,
+            db_connections: std::collections::HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
         };
@@ -1997,6 +2011,7 @@ mod tests {
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             db_manager: None,
+            db_connections: std::collections::HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
         };
@@ -2040,6 +2055,7 @@ mod tests {
                 ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             db_manager: None,
+            db_connections: std::collections::HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
         };
@@ -2048,7 +2064,7 @@ mod tests {
         assert!(result.unwrap_err().contains("不支持索引访问"));
     }
 
-        /// 测试简单字符串变量替换
+    /// 测试简单字符串变量替换
         #[test]
         fn test_proptest_simple_string_replacement(
             value in "[a-zA-Z0-9]{1,20}"
@@ -2068,6 +2084,7 @@ mod tests {
                 ws_connection_urls: std::collections::HashMap::new(),
                 ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
                 db_manager: None,
+                db_connections: std::collections::HashMap::new(),
                 last_node_output: None,
                 debug_event_sender: None,
             };
@@ -2096,6 +2113,7 @@ mod tests {
                 ws_connection_urls: std::collections::HashMap::new(),
                 ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
                 db_manager: None,
+                db_connections: std::collections::HashMap::new(),
                 last_node_output: None,
                 debug_event_sender: None,
             };
@@ -2124,6 +2142,7 @@ mod tests {
                 ws_connection_urls: std::collections::HashMap::new(),
                 ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
                 db_manager: None,
+                db_connections: std::collections::HashMap::new(),
                 last_node_output: None,
                 debug_event_sender: None,
             };

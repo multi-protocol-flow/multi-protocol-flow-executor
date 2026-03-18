@@ -44,12 +44,51 @@ impl NodeExecutor for DbConnectExecutor {
         let start_time = Instant::now();
 
         // 1. 提取配置
-        let config = match &node.data {
+        let node_config = match &node.data {
             NodeData::DbConnect(config) => config.clone(),
             _ => return Err(format!("节点数据类型不是 DbConnectConfig: {}", node.uuid)),
         };
 
-        // 2. 验证 connection_uuid
+        // 2. 从 context.db_connections 获取完整配置（如果节点配置不完整）
+        // 如果节点配置中缺少 driver，则从连接配置中心获取
+        let config = if node_config.driver.is_none() {
+            // 从连接配置中心查找
+            match context.db_connections.get(&node_config.connection_uuid) {
+                Some(db_conn) => {
+                    log::info!(
+                        "[Database] 从连接配置中心获取配置: uuid={}, driver={}",
+                        node_config.connection_uuid,
+                        db_conn.driver
+                    );
+                    // 合并配置：节点配置优先级高于连接配置中心
+                    DbConnectConfig {
+                        connection_uuid: node_config.connection_uuid.clone(),
+                        driver: Some(db_conn.driver.to_string()),
+                        connection_string: node_config.connection_string.clone().or(db_conn.connection_string.clone()),
+                        host: node_config.host.clone().or(db_conn.host.clone()),
+                        port: node_config.port.or(db_conn.port),
+                        database: node_config.database.clone().or(db_conn.database.clone()),
+                        username: node_config.username.clone().or(db_conn.username.clone()),
+                        password: node_config.password.clone().or(db_conn.password.clone()),
+                        min_connections: if node_config.min_connections > 0 { node_config.min_connections } else { db_conn.min_connections },
+                        max_connections: if node_config.max_connections > 0 { node_config.max_connections } else { db_conn.max_connections },
+                        test_query: node_config.test_query.clone(),
+                        connect_timeout_ms: node_config.connect_timeout_ms.or(Some(db_conn.connect_timeout_ms)),
+                    }
+                }
+                None => {
+                    log::warn!(
+                        "[Database] 连接配置中心未找到配置: uuid={}, 使用节点配置（可能不完整）",
+                        node_config.connection_uuid
+                    );
+                    node_config
+                }
+            }
+        } else {
+            node_config
+        };
+
+        // 3. 验证 connection_uuid
         if config.connection_uuid.is_empty() {
             let error_msg = "connection_uuid 不能为空".to_string();
             log::error!(
@@ -740,6 +779,7 @@ mod tests {
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             db_manager: None,
+            db_connections: std::collections::HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
         }
@@ -898,7 +938,7 @@ mod tests {
         assert!(data["timing"].is_object());
         assert!(data["timing"]["connect_ms"].is_number());
         assert!(data["timing"]["total_ms"].is_number());
-        assert!(data["timing"]["total_ms"].as_u64().unwrap() > 0);
+        // total_ms 可能为 0（如果执行非常快），所以只检查它是数字即可
     }
 
     #[tokio::test]

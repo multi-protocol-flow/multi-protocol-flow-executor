@@ -46,10 +46,10 @@ pub async fn execute_flow(
             .await;
     }
 
-    // 调用执行器，传递 log_sender
+    // 调用执行器，传递 log_sender 和 db_connections
     let executor = FlowExecutor::new();
     let result = executor
-        .execute_flow(&flow, input.variables, log_sender.clone())
+        .execute_flow(&flow, input.variables, log_sender.clone(), input.db_connections)
         .await;
 
     // 发送流程结束事件
@@ -133,6 +133,7 @@ mod tests {
         let input = ExecuteFlowCommandInput {
             flow_id: flow_id.clone(),
             variables: None,
+            db_connections: None,
         };
 
         // 执行流程（不使用日志发送器）
@@ -181,6 +182,7 @@ mod tests {
         let input = ExecuteFlowCommandInput {
             flow_id: flow_id.clone(),
             variables: Some(variables.clone()),
+            db_connections: None,
         };
 
         let result = execute_flow(input, flow, None).await;
@@ -227,6 +229,7 @@ mod tests {
         let input = ExecuteFlowCommandInput {
             flow_id: flow_id.clone(),
             variables: None,
+            db_connections: None,
         };
 
         let result = execute_flow(input, flow, None).await;
@@ -266,6 +269,7 @@ mod tests {
         let input = ExecuteFlowCommandInput {
             flow_id: flow_id.clone(),
             variables: None,
+            db_connections: None,
         };
 
         // 使用 NoopLogSender
@@ -321,6 +325,7 @@ mod tests {
         let input = ExecuteFlowCommandInput {
             flow_id: flow_id.clone(),
             variables: None,
+            db_connections: None,
         };
 
         let result = execute_flow(input, flow, None).await;
@@ -357,6 +362,7 @@ mod tests {
         let input = ExecuteFlowCommandInput {
             flow_id: flow_id.clone(),
             variables: None,
+            db_connections: None,
         };
 
         let result = execute_flow(input, flow, None).await;
@@ -397,6 +403,7 @@ mod tests {
         let input = ExecuteFlowCommandInput {
             flow_id: flow_id.clone(),
             variables: None,
+            db_connections: None,
         };
 
         let result = execute_flow(input, flow, None).await;
@@ -436,6 +443,7 @@ mod tests {
         let input = ExecuteFlowCommandInput {
             flow_id: flow_id.clone(),
             variables: Some(json!({})),
+            db_connections: None,
         };
 
         let result = execute_flow(input, flow, None).await;
@@ -477,6 +485,7 @@ mod tests {
         let input = ExecuteFlowCommandInput {
             flow_id: flow_id.clone(),
             variables: None,
+            db_connections: None,
         };
 
         let result = execute_flow(input, flow, None).await;
