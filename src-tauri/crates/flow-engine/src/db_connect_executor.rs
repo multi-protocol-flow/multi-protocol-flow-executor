@@ -2,7 +2,7 @@
 //
 // 实现数据库连接建立、连接池创建和测试查询功能。
 // Wave 2: 与执行器集成
-// Wave 5: SQLite 支持
+// Wave 5: SQLite/Redis/MySQL/PostgreSQL 支持
 
 use crate::connection::Connection;
 use crate::context::ExecutionContext;
@@ -164,6 +164,213 @@ impl NodeExecutor for DbConnectExecutor {
                             Some(self.build_error_output(
                                 &config,
                                 &format!("SQLite 连接失败: {}", e),
+                                start_time.elapsed().as_millis() as u64,
+                            )),
+                        ));
+                    }
+                }
+            }
+            Some("redis") => {
+                // 构建 DbConnection 配置
+                let db_config = DbConnection {
+                    id: config.connection_uuid.clone(),
+                    name: node.name.clone(),
+                    driver: DbDriver::Redis,
+                    host: config.host.clone(),
+                    port: config.port,
+                    database: config.database.clone(),
+                    username: config.username.clone(),
+                    password: config.password.clone(),
+                    password_from_env: None,
+                    connection_string: config.connection_string.clone(),
+                    min_connections: config.min_connections,
+                    max_connections: config.max_connections,
+                    connect_timeout_ms: config.connect_timeout_ms.unwrap_or(10000),
+                    idle_timeout_ms: 300000,
+                    status: DbConnectionStatus::Disconnected,
+                    last_error: None,
+                    last_tested_at: None,
+                };
+
+                log::info!(
+                    "[Database] 创建 Redis 连接池: uuid={}, host={:?}",
+                    config.connection_uuid,
+                    config.host
+                );
+
+                // 创建 Redis 连接池
+                match crate::db::RedisConnection::from_config(&db_config).await {
+                    Ok(conn) => {
+                        log::info!(
+                            "[Database] Redis 连接池创建成功: uuid={}",
+                            config.connection_uuid
+                        );
+                        Arc::new(conn) as Arc<dyn DatabasePool>
+                    }
+                    Err(e) => {
+                        log::error!(
+                            "[Database] Redis 连接池创建失败: uuid={}, error={}",
+                            config.connection_uuid,
+                            e
+                        );
+
+                        context
+                            .emit_log(LogEvent {
+                                level: LogLevel::Error,
+                                message: format!("Redis 连接失败: {}", e),
+                                timestamp: std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .expect("系统时间错误")
+                                    .as_millis() as u64,
+                                node_uuid: Some(node.uuid.clone()),
+                                node_name: Some(node.name.clone()),
+                                flow_uuid: context.flow_uuid.clone(),
+                            })
+                            .await;
+
+                        return Ok((
+                            self.get_false_port_nodes(node, connections),
+                            Some(self.build_error_output(
+                                &config,
+                                &format!("Redis 连接失败: {}", e),
+                                start_time.elapsed().as_millis() as u64,
+                            )),
+                        ));
+                    }
+                }
+            }
+            Some("mysql") => {
+                // 构建 DbConnection 配置
+                let db_config = DbConnection {
+                    id: config.connection_uuid.clone(),
+                    name: node.name.clone(),
+                    driver: DbDriver::Mysql,
+                    host: config.host.clone(),
+                    port: config.port,
+                    database: config.database.clone(),
+                    username: config.username.clone(),
+                    password: config.password.clone(),
+                    password_from_env: None,
+                    connection_string: config.connection_string.clone(),
+                    min_connections: config.min_connections,
+                    max_connections: config.max_connections,
+                    connect_timeout_ms: config.connect_timeout_ms.unwrap_or(10000),
+                    idle_timeout_ms: 300000,
+                    status: DbConnectionStatus::Disconnected,
+                    last_error: None,
+                    last_tested_at: None,
+                };
+
+                log::info!(
+                    "[Database] 创建 MySQL 连接池: uuid={}, host={:?}",
+                    config.connection_uuid,
+                    config.host
+                );
+
+                // 创建 MySQL 连接池
+                match crate::db::MySqlConnection::from_config(&db_config).await {
+                    Ok(conn) => {
+                        log::info!(
+                            "[Database] MySQL 连接池创建成功: uuid={}",
+                            config.connection_uuid
+                        );
+                        Arc::new(conn) as Arc<dyn DatabasePool>
+                    }
+                    Err(e) => {
+                        log::error!(
+                            "[Database] MySQL 连接池创建失败: uuid={}, error={}",
+                            config.connection_uuid,
+                            e
+                        );
+
+                        context
+                            .emit_log(LogEvent {
+                                level: LogLevel::Error,
+                                message: format!("MySQL 连接失败: {}", e),
+                                timestamp: std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .expect("系统时间错误")
+                                    .as_millis() as u64,
+                                node_uuid: Some(node.uuid.clone()),
+                                node_name: Some(node.name.clone()),
+                                flow_uuid: context.flow_uuid.clone(),
+                            })
+                            .await;
+
+                        return Ok((
+                            self.get_false_port_nodes(node, connections),
+                            Some(self.build_error_output(
+                                &config,
+                                &format!("MySQL 连接失败: {}", e),
+                                start_time.elapsed().as_millis() as u64,
+                            )),
+                        ));
+                    }
+                }
+            }
+            Some("postgres") | Some("postgresql") => {
+                // 构建 DbConnection 配置
+                let db_config = DbConnection {
+                    id: config.connection_uuid.clone(),
+                    name: node.name.clone(),
+                    driver: DbDriver::Postgres,
+                    host: config.host.clone(),
+                    port: config.port,
+                    database: config.database.clone(),
+                    username: config.username.clone(),
+                    password: config.password.clone(),
+                    password_from_env: None,
+                    connection_string: config.connection_string.clone(),
+                    min_connections: config.min_connections,
+                    max_connections: config.max_connections,
+                    connect_timeout_ms: config.connect_timeout_ms.unwrap_or(10000),
+                    idle_timeout_ms: 300000,
+                    status: DbConnectionStatus::Disconnected,
+                    last_error: None,
+                    last_tested_at: None,
+                };
+
+                log::info!(
+                    "[Database] 创建 PostgreSQL 连接池: uuid={}, host={:?}",
+                    config.connection_uuid,
+                    config.host
+                );
+
+                // 创建 PostgreSQL 连接池
+                match crate::db::PostgresConnection::from_config(&db_config).await {
+                    Ok(conn) => {
+                        log::info!(
+                            "[Database] PostgreSQL 连接池创建成功: uuid={}",
+                            config.connection_uuid
+                        );
+                        Arc::new(conn) as Arc<dyn DatabasePool>
+                    }
+                    Err(e) => {
+                        log::error!(
+                            "[Database] PostgreSQL 连接池创建失败: uuid={}, error={}",
+                            config.connection_uuid,
+                            e
+                        );
+
+                        context
+                            .emit_log(LogEvent {
+                                level: LogLevel::Error,
+                                message: format!("PostgreSQL 连接失败: {}", e),
+                                timestamp: std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .expect("系统时间错误")
+                                    .as_millis() as u64,
+                                node_uuid: Some(node.uuid.clone()),
+                                node_name: Some(node.name.clone()),
+                                flow_uuid: context.flow_uuid.clone(),
+                            })
+                            .await;
+
+                        return Ok((
+                            self.get_false_port_nodes(node, connections),
+                            Some(self.build_error_output(
+                                &config,
+                                &format!("PostgreSQL 连接失败: {}", e),
                                 start_time.elapsed().as_millis() as u64,
                             )),
                         ));
