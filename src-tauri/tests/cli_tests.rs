@@ -224,7 +224,7 @@ fn test_missing_flow_parameter() {
     cmd.arg("--execute")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("--execute 需要 --flow 参数"));
+        .stderr(predicate::str::contains("--flow 参数是必需的"));
 }
 
 #[test]
@@ -234,7 +234,7 @@ fn test_missing_execute_parameter() {
         .arg("dummy.json")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("--flow 需要 --execute 参数"));
+        .stderr(predicate::str::contains("未知命令或选项: --flow"));
 }
 
 #[test]
@@ -243,7 +243,7 @@ fn test_invalid_short_argument() {
     cmd.arg("-x")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("未知选项: -x"));
+        .stderr(predicate::str::contains("未知命令或选项: -x"));
 }
 
 #[test]
@@ -252,7 +252,7 @@ fn test_invalid_long_argument() {
     cmd.arg("--invalid")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("未知选项: --invalid"));
+        .stderr(predicate::str::contains("未知命令或选项: --invalid"));
 }
 
 #[test]
@@ -284,7 +284,7 @@ fn test_unknown_positional_argument() {
     cmd.arg("unknown")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("未知参数"));
+        .stderr(predicate::str::contains("未知命令或选项: unknown"));
 }
 
 // ============ 文件加载测试 ============
