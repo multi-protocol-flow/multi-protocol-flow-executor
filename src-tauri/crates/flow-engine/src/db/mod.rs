@@ -6,7 +6,9 @@
 
 pub mod pool;
 pub mod traits;
+pub mod types;
 
 // Re-exports
 pub use pool::{DatabaseConnectionManager, MockPool, PoolMetadata, TransactionInfo};
 pub use traits::{DatabasePool, IsolationLevel, QueryResult, TransactionState};
+pub use types::{DbConnection, DbConnectionStatus, DbDriver, TestDbConnectionResult};

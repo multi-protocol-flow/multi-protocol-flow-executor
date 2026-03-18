@@ -41,11 +41,13 @@ pub use tauri_commands::{
     end_debug,
     get_debug_status,
     force_end_debug,
-    DebugSessionManager,
     // 压力测试命令
     start_stress_test,
     stop_stress_test,
     get_stress_test_status,
+    // 数据库连接命令
+    test_db_connection,
+    DebugSessionManager,
 };
 
 // 导出适配器（供测试使用）
@@ -126,7 +128,9 @@ pub fn run() {
             // 压力测试命令
             start_stress_test,
             stop_stress_test,
-            get_stress_test_status
+            get_stress_test_status,
+            // 数据库连接命令
+            test_db_connection
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -104,6 +104,41 @@ pub fn delete_flow_report(
 }
 
 // ============================================================================
+// 数据库连接命令
+// ============================================================================
+
+use flow_engine::db::{DbConnection, DatabasePool, MockPool, TestDbConnectionResult};
+
+/// 测试数据库连接
+///
+/// 接收前端传来的数据库连接配置，执行连接测试。
+/// 当前使用 MockPool 实现（Wave 2），后续会接入真实数据库驱动。
+#[tauri::command]
+pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionResult {
+    log::info!(
+        "[数据库] 测试连接: id={}, name={}, driver={}",
+        connection.id,
+        connection.name,
+        connection.driver
+    );
+
+    // Wave 2: 使用 MockPool 测试连接
+    // 后续 Wave 会根据 driver 类型创建真实的数据库连接
+    let pool = MockPool::new(connection.id.clone());
+
+    match pool.test_connection().await {
+        Ok(()) => {
+            log::info!("[数据库] 连接测试成功: id={}", connection.id);
+            TestDbConnectionResult::success()
+        }
+        Err(e) => {
+            log::error!("[数据库] 连接测试失败: id={}, error={}", connection.id, e);
+            TestDbConnectionResult::failure(e)
+        }
+    }
+}
+
+// ============================================================================
 // 应用设置命令
 // ============================================================================
 

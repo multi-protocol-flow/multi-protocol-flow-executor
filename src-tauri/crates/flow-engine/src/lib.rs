@@ -66,8 +66,9 @@ pub use ws_stream::{
 
 // Re-export db types
 pub use db::{
-    DatabaseConnectionManager, DatabasePool, IsolationLevel, MockPool, PoolMetadata,
-    QueryResult, TransactionInfo, TransactionState,
+    DatabaseConnectionManager, DatabasePool, DbConnection, DbConnectionStatus, DbDriver,
+    IsolationLevel, MockPool, PoolMetadata, QueryResult, TestDbConnectionResult,
+    TransactionInfo, TransactionState,
 };
 
 // ============================================================================
