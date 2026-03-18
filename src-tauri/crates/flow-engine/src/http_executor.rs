@@ -726,23 +726,24 @@ mod tests {
             }
         }
         ExecutionContext {
-                    flow_uuid: flow_id.to_string(),
-                    current_node_uuid: None,
-                    variables: var_storage,
-                    node_reports: vec![],
-                    flow_trigger_time: std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间错误")
-                        .as_millis() as u64,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                }
+            flow_uuid: flow_id.to_string(),
+            current_node_uuid: None,
+            variables: var_storage,
+            node_reports: vec![],
+            flow_trigger_time: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("系统时间错误")
+                .as_millis() as u64,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        }
     }
 
     // ============================================================================
@@ -1553,20 +1554,21 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1614,20 +1616,21 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1666,20 +1669,21 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1719,20 +1723,21 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1771,20 +1776,21 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1832,20 +1838,21 @@ mod tests {
         storage.set_variable("test_header".to_string(), json!("header_value"), String::new());
         storage.set_variable("test_body".to_string(), json!("body_value"), String::new());
         let mut context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: storage,
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: storage,
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1894,20 +1901,21 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1963,20 +1971,21 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -2018,20 +2027,21 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -2077,20 +2087,21 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -2129,20 +2140,21 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -2185,20 +2197,21 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -2237,20 +2250,21 @@ mod tests {
         };
 
         let mut context = ExecutionContext {
-                    flow_uuid: flow_id.clone(),
-                    current_node_uuid: Some(http_node.uuid.clone()),
-                    variables: VariableStorage::new(),
-                    node_reports: Vec::new(),
-                    flow_trigger_time: 1000,
-                    log_sender: None,
-                    flow_file_path: None,
-                    ws_manager: None,
-                    ws_connection_urls: HashMap::new(),
-                    ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-                    db_manager: None,
-                    last_node_output: None,
-                    debug_event_sender: None,
-                };
+            flow_uuid: flow_id.clone(),
+            current_node_uuid: Some(http_node.uuid.clone()),
+            variables: VariableStorage::new(),
+            node_reports: Vec::new(),
+            flow_trigger_time: 1000,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            db_connections: std::collections::HashMap::new(),
+            last_node_output: None,
+            debug_event_sender: None,
+        };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;

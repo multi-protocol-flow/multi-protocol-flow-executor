@@ -183,6 +183,7 @@ impl DebuggableFlowExecutor {
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             db_manager: Some(db_manager),
+            db_connections: HashMap::new(),
             last_node_output: None,
             debug_event_sender: Some(event_sender.clone()),
         };
