@@ -150,7 +150,6 @@ export function ConnectionDialog() {
   if (!showConnectionDialog) return null;
 
   const isSqlite = formData.driver === 'sqlite';
-  const isRedis = formData.driver === 'redis';
 
   return (
     <Dialog open={showConnectionDialog} onOpenChange={(open) => !open && handleClose()}>
@@ -322,69 +321,6 @@ export function ConnectionDialog() {
                 <p className="text-xs text-slate-500">
                   SQLite 数据库文件的绝对路径或相对路径
                 </p>
-              </div>
-            </div>
-          )}
-
-          {/* 连接池配置（非 Redis） */}
-          {!isRedis && (
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium text-slate-700 border-b border-slate-200 pb-1">
-                连接池配置
-              </h4>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="min_connections">最小连接数</Label>
-                  <Input
-                    id="min_connections"
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={formData.min_connections}
-                    onChange={(e) => updateField('min_connections', parseInt(e.target.value) || 1)}
-                    disabled={isSaving}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="max_connections">最大连接数</Label>
-                  <Input
-                    id="max_connections"
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={formData.max_connections}
-                    onChange={(e) => updateField('max_connections', parseInt(e.target.value) || 10)}
-                    disabled={isSaving}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="connect_timeout_ms">连接超时 (ms)</Label>
-                  <Input
-                    id="connect_timeout_ms"
-                    type="number"
-                    min={1000}
-                    max={60000}
-                    value={formData.connect_timeout_ms}
-                    onChange={(e) => updateField('connect_timeout_ms', parseInt(e.target.value) || 10000)}
-                    disabled={isSaving}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="idle_timeout_ms">空闲超时 (ms)</Label>
-                  <Input
-                    id="idle_timeout_ms"
-                    type="number"
-                    min={60000}
-                    max={3600000}
-                    value={formData.idle_timeout_ms}
-                    onChange={(e) => updateField('idle_timeout_ms', parseInt(e.target.value) || 300000)}
-                    disabled={isSaving}
-                  />
-                </div>
               </div>
             </div>
           )}

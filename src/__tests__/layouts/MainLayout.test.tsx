@@ -12,6 +12,7 @@ vi.mock('@/stores', () => ({
   useUIStore: vi.fn(),
   useFlowStore: vi.fn(),
   useDebugStore: vi.fn(),
+  useConnectionsStore: vi.fn(),
   selectIsDebugging: (state: unknown) => (state as { isDebugging: boolean }).isDebugging,
   selectIsDebugDataReadOnly: (state: unknown) => (state as { isDebugDataReadOnly: boolean }).isDebugDataReadOnly,
 }));

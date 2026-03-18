@@ -180,7 +180,7 @@ describe('ConnectionsStore', () => {
       const result =
         await useConnectionsStore.getState().testConnection('conn-001');
 
-      expect(result).toBe(true);
+      expect(result.success).toBe(true);
       expect(useConnectionsStore.getState().connections[0].status).toBe(
         'connected'
       );
@@ -197,19 +197,19 @@ describe('ConnectionsStore', () => {
       const result =
         await useConnectionsStore.getState().testConnection('conn-fail');
 
-      expect(result).toBe(false);
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
       expect(useConnectionsStore.getState().connections[0].status).toBe(
         'error'
       );
-      expect(useConnectionsStore.getState().connections[0].last_error).toBe(
-        '连接测试失败'
-      );
+      expect(useConnectionsStore.getState().connections[0].last_error).toBeDefined();
     });
 
-    it('测试不存在的连接返回 false', async () => {
+    it('测试不存在的连接返回失败', async () => {
       const result =
         await useConnectionsStore.getState().testConnection('non-existent');
-      expect(result).toBe(false);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('不存在');
     });
   });
 
