@@ -441,6 +441,62 @@ function FlowCanvasInner() {
             continue_on_failure: false,
           },
         });
+      } else if (nodeType === 'db_connect') {
+        addNode({
+          uuid: newNodeUuid,
+          type: 'db_connect',
+          name: `DB 连接 ${nodeCount}`,
+          position,
+          data: { type: 'db_connect', connection_uuid: '' },
+        });
+      } else if (nodeType === 'db_query') {
+        addNode({
+          uuid: newNodeUuid,
+          type: 'db_query',
+          name: `DB 查询 ${nodeCount}`,
+          position,
+          data: { type: 'db_query', connection_uuid: '', sql: '', params: [], result_to: '' },
+        });
+      } else if (nodeType === 'db_begin') {
+        addNode({
+          uuid: newNodeUuid,
+          type: 'db_begin',
+          name: `DB 开始事务 ${nodeCount}`,
+          position,
+          data: { type: 'db_begin', connection_uuid: '' },
+        });
+      } else if (nodeType === 'db_commit') {
+        addNode({
+          uuid: newNodeUuid,
+          type: 'db_commit',
+          name: `DB 提交 ${nodeCount}`,
+          position,
+          data: { type: 'db_commit', connection_uuid: '' },
+        });
+      } else if (nodeType === 'db_rollback') {
+        addNode({
+          uuid: newNodeUuid,
+          type: 'db_rollback',
+          name: `DB 回滚 ${nodeCount}`,
+          position,
+          data: { type: 'db_rollback', connection_uuid: '' },
+        });
+      } else if (nodeType === 'db_close') {
+        addNode({
+          uuid: newNodeUuid,
+          type: 'db_close',
+          name: `DB 关闭 ${nodeCount}`,
+          position,
+          data: { type: 'db_close', connection_uuid: '' },
+        });
+      } else if (nodeType === 'script') {
+        addNode({
+          uuid: newNodeUuid,
+          type: 'script',
+          name: `脚本 ${nodeCount}`,
+          position,
+          data: { type: 'script', script: '' },
+        });
       }
     },
     [screenToFlowPosition, flow, addNode]
@@ -527,6 +583,62 @@ function FlowCanvasInner() {
           on_failure: 'route_false',
           continue_on_failure: false,
         },
+      });
+    } else if (pendingAddNodeType === 'db_connect') {
+      addNode({
+        uuid: newNodeUuid,
+        type: 'db_connect',
+        name: `DB 连接 ${nodeCount}`,
+        position,
+        data: { type: 'db_connect', connection_uuid: '' },
+      });
+    } else if (pendingAddNodeType === 'db_query') {
+      addNode({
+        uuid: newNodeUuid,
+        type: 'db_query',
+        name: `DB 查询 ${nodeCount}`,
+        position,
+        data: { type: 'db_query', connection_uuid: '', sql: '', params: [], result_to: '' },
+      });
+    } else if (pendingAddNodeType === 'db_begin') {
+      addNode({
+        uuid: newNodeUuid,
+        type: 'db_begin',
+        name: `DB 开始事务 ${nodeCount}`,
+        position,
+        data: { type: 'db_begin', connection_uuid: '' },
+      });
+    } else if (pendingAddNodeType === 'db_commit') {
+      addNode({
+        uuid: newNodeUuid,
+        type: 'db_commit',
+        name: `DB 提交 ${nodeCount}`,
+        position,
+        data: { type: 'db_commit', connection_uuid: '' },
+      });
+    } else if (pendingAddNodeType === 'db_rollback') {
+      addNode({
+        uuid: newNodeUuid,
+        type: 'db_rollback',
+        name: `DB 回滚 ${nodeCount}`,
+        position,
+        data: { type: 'db_rollback', connection_uuid: '' },
+      });
+    } else if (pendingAddNodeType === 'db_close') {
+      addNode({
+        uuid: newNodeUuid,
+        type: 'db_close',
+        name: `DB 关闭 ${nodeCount}`,
+        position,
+        data: { type: 'db_close', connection_uuid: '' },
+      });
+    } else if (pendingAddNodeType === 'script') {
+      addNode({
+        uuid: newNodeUuid,
+        type: 'script',
+        name: `脚本 ${nodeCount}`,
+        position,
+        data: { type: 'script', script: '' },
       });
     }
 
