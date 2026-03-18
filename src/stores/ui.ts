@@ -23,6 +23,9 @@ export interface ConfirmDialogConfig {
   onConfirm: () => void | Promise<void>;
 }
 
+/** 连接对话框模式 */
+export type ConnectionDialogMode = 'create' | 'edit';
+
 interface UIState {
   // ===== 面板状态 =====
   /** 流程列表面板是否展开 */
@@ -43,10 +46,14 @@ interface UIState {
   isNodeLibraryCollapsed: boolean;
   /** 变量面板是否折叠 */
   isVariablePanelCollapsed: boolean;
+  /** 连接面板是否折叠 */
+  isConnectionsPanelCollapsed: boolean;
   /** 节点库高度（像素） */
   nodeLibraryHeight: number;
   /** 变量面板高度（像素） */
   variablePanelHeight: number;
+  /** 连接面板高度（像素） */
+  connectionsPanelHeight: number;
 
   // ===== 调试面板折叠状态 =====
   /** 上下文变量是否折叠 */
@@ -73,6 +80,14 @@ interface UIState {
   configPanelMode: ConfigPanelMode;
   /** 是否显示压力测试配置对话框 */
   showStressTestConfigDialog: boolean;
+
+  // ===== 连接对话框状态 =====
+  /** 是否显示数据库连接对话框 */
+  showConnectionDialog: boolean;
+  /** 连接对话框模式 */
+  connectionDialogMode: ConnectionDialogMode;
+  /** 正在编辑的连接 ID */
+  editingConnectionId: string | null;
 
   // ===== 通用确认对话框状态 =====
   /** 是否显示通用确认对话框 */
@@ -127,6 +142,14 @@ interface UIState {
   /** 关闭压力测试配置对话框 */
   closeStressTestConfigDialog: () => void;
 
+  // ===== 连接对话框 Actions =====
+  /** 打开连接对话框（新建模式） */
+  openConnectionDialog: () => void;
+  /** 打开连接对话框（编辑模式） */
+  openConnectionDialogForEdit: (connectionId: string) => void;
+  /** 关闭连接对话框 */
+  closeConnectionDialog: () => void;
+
   // ===== 通用确认对话框 Actions =====
   /** 显示确认对话框 */
   showConfirm: (config: ConfirmDialogConfig) => void;
@@ -139,10 +162,14 @@ interface UIState {
   toggleNodeLibraryCollapsed: () => void;
   /** 切换变量面板折叠状态 */
   toggleVariablePanelCollapsed: () => void;
+  /** 切换连接面板折叠状态 */
+  toggleConnectionsPanelCollapsed: () => void;
   /** 设置节点库高度 */
   setNodeLibraryHeight: (height: number) => void;
   /** 设置变量面板高度 */
   setVariablePanelHeight: (height: number) => void;
+  /** 设置连接面板高度 */
+  setConnectionsPanelHeight: (height: number) => void;
 
   // ===== 调试面板 Actions =====
   /** 切换上下文变量折叠状态 */
@@ -193,8 +220,10 @@ const initialState = {
   isFlowListCollapsed: false,
   isNodeLibraryCollapsed: false,
   isVariablePanelCollapsed: false,
+  isConnectionsPanelCollapsed: false,
   nodeLibraryHeight: 200,
   variablePanelHeight: 200,
+  connectionsPanelHeight: 150,
 
   // 调试面板折叠状态
   isContextVariablesCollapsed: false,
@@ -210,6 +239,12 @@ const initialState = {
   showSettingsDialog: false,
   configPanelMode: 'node' as ConfigPanelMode,
   showStressTestConfigDialog: false,
+
+  // 连接对话框状态
+  showConnectionDialog: false,
+  connectionDialogMode: 'create' as ConnectionDialogMode,
+  editingConnectionId: null,
+
   // 通用确认对话框状态
   showConfirmDialog: false,
   confirmDialogConfig: null,
@@ -291,6 +326,28 @@ export const useUIStore = create<UIState>((set) => ({
 
   closeStressTestConfigDialog: () => set({ showStressTestConfigDialog: false }),
 
+  // ===== 连接对话框 Actions =====
+  openConnectionDialog: () =>
+    set({
+      showConnectionDialog: true,
+      connectionDialogMode: 'create',
+      editingConnectionId: null,
+    }),
+
+  openConnectionDialogForEdit: (connectionId: string) =>
+    set({
+      showConnectionDialog: true,
+      connectionDialogMode: 'edit',
+      editingConnectionId: connectionId,
+    }),
+
+  closeConnectionDialog: () =>
+    set({
+      showConnectionDialog: false,
+      connectionDialogMode: 'create',
+      editingConnectionId: null,
+    }),
+
   // ===== 左侧栏面板 Actions =====
   toggleFlowListCollapsed: () =>
     set((state) => ({
@@ -315,6 +372,16 @@ export const useUIStore = create<UIState>((set) => ({
   setVariablePanelHeight: (height) =>
     set({
       variablePanelHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
+    }),
+
+  toggleConnectionsPanelCollapsed: () =>
+    set((state) => ({
+      isConnectionsPanelCollapsed: !state.isConnectionsPanelCollapsed,
+    })),
+
+  setConnectionsPanelHeight: (height) =>
+    set({
+      connectionsPanelHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
     }),
 
   // ===== 调试面板 Actions =====

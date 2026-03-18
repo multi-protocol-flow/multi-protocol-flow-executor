@@ -37,7 +37,7 @@ export interface ConnectionsActions {
   loadConnections: () => Promise<void>;
   saveConnection: (connection: DbConnection) => Promise<void>;
   deleteConnection: (id: string) => Promise<void>;
-  testConnection: (id: string) => Promise<boolean>;
+  testConnection: (id: string) => Promise<{ success: boolean; error?: string }>;
   setActiveConnection: (id: string | null) => void;
   reset: () => void;
 }
@@ -110,16 +110,17 @@ export const useConnectionsStore = create<ConnectionsStore>((set, get) => ({
         if (c.id === id) {
           return {
             ...c,
-            status: result ? 'connected' : 'error',
+            status: result.success ? 'connected' : 'error',
             last_tested_at: Date.now(),
-            last_error: result ? undefined : '连接测试失败',
+            last_error: result.success ? undefined : result.error || '连接测试失败',
           } as DbConnection;
         }
         return c;
       });
       set({ connections });
-      return result;
+      return { success: result.success, error: result.error };
     } catch (e) {
+      const errorMessage = formatErrorMessage(e);
       // 更新连接状态为错误
       const connections = get().connections.map((c) => {
         if (c.id === id) {
@@ -127,13 +128,13 @@ export const useConnectionsStore = create<ConnectionsStore>((set, get) => ({
             ...c,
             status: 'error' as const,
             last_tested_at: Date.now(),
-            last_error: formatErrorMessage(e),
+            last_error: errorMessage,
           } as DbConnection;
         }
         return c;
       });
-      set({ connections, error: formatErrorMessage(e) });
-      return false;
+      set({ connections, error: errorMessage });
+      return { success: false, error: errorMessage };
     }
   },
 

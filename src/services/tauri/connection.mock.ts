@@ -4,6 +4,7 @@
  */
 
 import type { DbConnection } from '@/types/database';
+import type { TestConnectionResult } from './connection';
 
 const STORAGE_KEY = 'app-db-connections';
 
@@ -70,7 +71,7 @@ export async function deleteConnection(id: string): Promise<void> {
  * 测试数据库连接（Mock: 模拟成功/失败）
  * 根据连接配置模拟测试结果
  */
-export async function testConnection(id: string): Promise<boolean> {
+export async function testConnection(id: string): Promise<TestConnectionResult> {
   // 模拟网络延迟
   await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -78,19 +79,19 @@ export async function testConnection(id: string): Promise<boolean> {
   const connection = connections.find((c) => c.id === id);
 
   if (!connection) {
-    throw new Error(`连接 ${id} 不存在`);
+    return { success: false, error: `连接 ${id} 不存在` };
   }
 
-  // Mock: 如果主机名包含 "fail" 或 "error" 则返回 false
+  // Mock: 如果主机名包含 "fail" 或 "error" 则返回失败
   if (
     connection.host?.toLowerCase().includes('fail') ||
     connection.host?.toLowerCase().includes('error')
   ) {
-    return false;
+    return { success: false, error: '模拟连接失败：主机名包含 fail 或 error' };
   }
 
-  // Mock: 默认返回 true
-  return true;
+  // Mock: 默认返回成功
+  return { success: true };
 }
 
 /**

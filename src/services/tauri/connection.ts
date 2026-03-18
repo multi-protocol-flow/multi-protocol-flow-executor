@@ -66,23 +66,31 @@ export async function deleteConnection(id: string): Promise<void> {
 }
 
 /**
+ * 测试数据库连接结果
+ */
+export interface TestConnectionResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
  * 测试数据库连接
  * 调用后端 Tauri 命令测试连接
  */
-export async function testConnection(id: string): Promise<boolean> {
+export async function testConnection(id: string): Promise<TestConnectionResult> {
   const s = await getStore();
   const connections = (await s.get<DbConnection[]>(CONNECTIONS_KEY)) ?? [];
   const connection = connections.find((c) => c.id === id);
 
   if (!connection) {
-    throw new Error(`连接 ${id} 不存在`);
+    return { success: false, error: `连接 ${id} 不存在` };
   }
 
   try {
-    const result = await invoke<boolean>('test_db_connection', { connection });
+    const result = await invoke<{ success: boolean; error?: string }>('test_db_connection', { connection });
     return result;
-  } catch {
-    return false;
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
