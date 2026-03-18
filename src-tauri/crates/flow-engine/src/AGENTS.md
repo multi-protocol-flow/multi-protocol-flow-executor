@@ -1,6 +1,6 @@
 # Flow Engine 核心库
 
-**生成时间:** 2026-03-09
+**生成时间:** 2026-03-18
 **Commit:** cc2bf47
 **类型:** 独立 Rust crate
 
@@ -34,6 +34,28 @@ flow-engine/src/
 │   ├── timing.rs          # 性能计时
 │   ├── connector.rs       # 连接器
 │   └── error.rs           # HTTP 错误
+├── db/                    # 数据库模块 (74 源文件)
+│   ├── mod.rs
+│   ├── traits.rs          # DatabasePool/DbConnection trait
+│   ├── types.rs           # IsolationLevel, TransactionState, QueryResult
+│   ├── pool.rs            # 连接池管理
+│   ├── postgres.rs        # PostgreSQL 实现
+│   ├── mysql.rs           # MySQL 实现
+│   ├── sqlite.rs          # SQLite 实现
+│   └── redis.rs           # Redis 实现
+├── assertion/             # 断言模块
+│   ├── mod.rs
+│   ├── operator.rs        # 15 种断言操作符
+│   ├── evaluator.rs       # 断言求值器
+│   └── preset.rs          # 预设断言
+├── stress_test/           # 压力测试模块
+│   ├── mod.rs
+│   ├── config.rs          # 压测配置
+│   ├── executor.rs        # 压测执行器
+│   ├── metrics.rs         # 指标收集
+│   ├── report.rs          # 压测报告
+│   ├── command.rs         # IPC 命令
+│   └── types.rs           # 类型定义
 ├── debug/                 # 调试执行器
 │   ├── mod.rs
 │   ├── executor.rs        # DebugFlowExecutor
@@ -54,13 +76,23 @@ flow-engine/src/
 ├── ws_stream.rs           # WebSocket 消息流数据结构 (调试模式)
 ├── log_event.rs           # 日志事件
 ├── command.rs             # 命令输入/输出类型
-└── *_executor.rs          # 节点执行器实现
+├── encryption.rs          # AES-256-GCM 加密 (OS Keychain)
+├── script_api.rs          # 脚本节点 API (QuickJS)
+└── *_executor.rs          # 节点执行器实现 (14 种)
     ├── entry_executor.rs
     ├── http_executor.rs
     ├── conditional_executor.rs
+    ├── script_executor.rs
+    ├── assertion_executor.rs
     ├── ws_connect_executor.rs
     ├── ws_send_wait_executor.rs
-    └── ws_close_executor.rs
+    ├── ws_close_executor.rs
+    ├── db_connect_executor.rs
+    ├── db_query_executor.rs
+    ├── db_begin_executor.rs
+    ├── db_commit_executor.rs
+    ├── db_rollback_executor.rs
+    └── db_close_executor.rs
 ```
 
 ## 快速定位
@@ -77,17 +109,36 @@ flow-engine/src/
 | WebSocket 管理 | `websocket_manager.rs` |
 | WebSocket 消息流 | `ws_stream.rs` |
 | 调试执行器 | `debug/executor.rs` |
+| 数据库连接池 | `db/pool.rs` + `db/traits.rs` |
+| PostgreSQL 实现 | `db/postgres.rs` |
+| MySQL 实现 | `db/mysql.rs` |
+| SQLite 实现 | `db/sqlite.rs` |
+| Redis 实现 | `db/redis.rs` |
+| 断言操作符 | `assertion/operator.rs` |
+| 断言求值 | `assertion/evaluator.rs` |
+| 压力测试执行 | `stress_test/executor.rs` |
+| 压力测试指标 | `stress_test/metrics.rs` |
+| 脚本节点 API | `script_api.rs` |
+| 密码加密 | `encryption.rs` |
 
-## 节点类型 (6种)
+## 节点类型 (14 种)
 
 | 类型 | 执行器文件 | 端口 | 用途 |
 |------|-----------|------|------|
 | Entry | `entry_executor.rs` | `out` | 流程入口，处理 initial_variables |
 | Http | `http_executor.rs` | `true`/`false` | HTTP 请求，2xx = true |
 | Conditional | `conditional_executor.rs` | `true`/`false` | 条件判断 (evalexpr) |
+| Script | `script_executor.rs` | `true`/`false` | QuickJS 脚本执行 |
+| Assertion | `assertion_executor.rs` | `true`/`false` | 断言验证 |
 | WsConnect | `ws_connect_executor.rs` | `true`/`false` | WebSocket 连接 |
 | WsSendWait | `ws_send_wait_executor.rs` | `true`/`false` | 发送并等待响应 |
 | WsClose | `ws_close_executor.rs` | `out` | 关闭连接 |
+| DbConnect | `db_connect_executor.rs` | `true`/`false` | 数据库连接 |
+| DbQuery | `db_query_executor.rs` | `true`/`false` | SQL 查询/Redis 命令 |
+| DbBegin | `db_begin_executor.rs` | `true`/`false` | 事务开始 |
+| DbCommit | `db_commit_executor.rs` | `true`/`false` | 事务提交 |
+| DbRollback | `db_rollback_executor.rs` | `true`/`false` | 事务回滚 |
+| DbClose | `db_close_executor.rs` | `out` | 关闭数据库连接 |
 
 ## NodeExecutor Pattern
 
@@ -126,6 +177,7 @@ pub trait NodeExecutor {
 - `WebSocketMessage` - WebSocket 消息错误
 - `WebSocketClose` - WebSocket 关闭错误
 - `WebSocketProtocol` - WebSocket 协议错误
+- `Database` - 数据库操作错误
 
 ## 约定
 
@@ -133,5 +185,7 @@ pub trait NodeExecutor {
 2. **日志发送**: `LogSender` trait 支持多实现，CLI 用 `NoopLogSender`
 3. **变量语法**: `{{path.to.value}}`，不支持索引和函数调用
 4. **错误分类**: `ErrorKind` 区分致命/可恢复错误，决定流程是否终止
-5. **端口路由**: HTTP/WebSocket/Conditional 节点使用 true/false 端口
-6. **连接池**: `WebSocketConnectionManager` 在流程级别共享
+5. **端口路由**: HTTP/WebSocket/Conditional/Assertion/Database 节点使用 true/false 端口
+6. **连接池**: `WebSocketConnectionManager` 和 `DatabasePool` 在流程级别共享
+7. **事务管理**: 数据库事务支持隔离级别配置
+8. **脚本安全**: QuickJS 运行时隔离，支持超时控制

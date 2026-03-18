@@ -1,34 +1,39 @@
 # 项目知识库
 
-**生成时间:** 2026-03-09
+**生成时间:** 2026-03-18
 **Commit:** cc2bf47
 **Branch:** master
 
 ## 概述
 
-多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 工具。支持 HTTP 和 WebSocket 协议，具备调试模式。
+多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 工具。支持 HTTP、WebSocket、数据库（PostgreSQL/MySQL/SQLite/Redis）协议，具备调试模式和压力测试功能。
 - **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + React Flow
-- **后端:** Rust (Tauri 2.x) + async-trait + hyper 1.x + evalexpr + tokio-tungstenite
+- **后端:** Rust (Tauri 2.x) + async-trait + hyper 1.x + evalexpr + tokio-tungstenite + QuickJS
 
 ## 结构
 
 ```
 multi-protocol-flow-executor/
 ├── src/                    # 前端源码 (React/TypeScript)
-│   ├── components/         # UI 组件 (60+ 文件，详见 src/components/AGENTS.md)
-│   ├── stores/             # Zustand 状态管理 (7 stores)
+│   ├── components/         # UI 组件 (97 文件，详见 src/components/AGENTS.md)
+│   ├── stores/             # Zustand 状态管理 (9 stores)
 │   ├── services/           # Tauri IPC 服务 + Mock + Storage
 │   ├── types/              # TypeScript 类型 (与 Rust 对齐)
 │   ├── templates/          # 内置流程模板
 │   └── __tests__/          # Vitest 单元测试
 ├── src-tauri/              # Rust 后端 (Workspace)
 │   ├── src/                # Tauri 适配层 + IPC 命令 (详见 src-tauri/src/AGENTS.md)
-│   ├── crates/flow-engine/ # 独立执行引擎 crate (43 源文件)
+│   ├── crates/flow-engine/ # 独立执行引擎 crate (74 源文件)
 │   │   └── src/
 │   │       ├── http/       # HTTP 客户端模块 (hyper 1.x)
+│   │       ├── db/         # 数据库模块 (PostgreSQL/MySQL/SQLite/Redis)
+│   │       ├── assertion/  # 断言模块
+│   │       ├── stress_test/# 压力测试模块
 │   │       ├── traits/     # 抽象接口 (解耦 Tauri)
 │   │       ├── commands/   # 业务命令
 │   │       ├── debug/      # 调试执行器
+│   │       ├── script_api.rs # 脚本节点 API (QuickJS)
+│   │       ├── encryption.rs # 加密模块 (AES-256-GCM)
 │   │       └── ws_stream.rs # WebSocket 消息流数据结构
 │   └── bin/cli.rs          # CLI 二进制
 ├── tests/                  # CLI 测试数据 + fixtures
@@ -41,14 +46,18 @@ multi-protocol-flow-executor/
 |------|------|
 | 添加新节点类型 | `src-tauri/crates/flow-engine/src/` + `src/types/node.ts` + `src/components/canvas/nodes/` |
 | 修改执行逻辑 | `src-tauri/crates/flow-engine/src/executor.rs` |
-| 添加前端组件 | `src/components/` (60+ 组件) |
-| 修改状态管理 | `src/stores/` (7 stores) |
+| 添加前端组件 | `src/components/` (97 组件) |
+| 修改状态管理 | `src/stores/` (9 stores) |
 | HTTP 请求节点 | `src-tauri/crates/flow-engine/src/http_executor.rs` + `http/` 模块 |
 | 条件分支节点 | `src-tauri/crates/flow-engine/src/conditional_executor.rs` |
+| 脚本节点 | `src-tauri/crates/flow-engine/src/script_executor.rs` + `script_api.rs` |
+| 断言节点 | `src-tauri/crates/flow-engine/src/assertion_executor.rs` + `assertion/` 模块 |
 | WebSocket 节点 | `src-tauri/crates/flow-engine/src/ws_*_executor.rs` |
 | WebSocket 消息流 | `src-tauri/crates/flow-engine/src/ws_stream.rs` + `src/types/ws_stream.ts` |
+| 数据库节点 | `src-tauri/crates/flow-engine/src/db_*_executor.rs` + `db/` 模块 |
 | 调试模式 | `src-tauri/crates/flow-engine/src/debug/` + `src/stores/debug.ts` |
-| IPC 命令 | `src-tauri/src/tauri_commands.rs` (15 命令) |
+| 压力测试 | `src-tauri/crates/flow-engine/src/stress_test/` + `src/stores/stressTest.ts` |
+| IPC 命令 | `src-tauri/src/tauri_commands.rs` (19 命令) |
 
 ## 代码规范
 
@@ -187,7 +196,7 @@ npm run tauri build  # 构建安装包
 
 5. **缺失 CI/CD**: 无 `.github/workflows`，需手动运行测试
 
-6. **HTTP Body Types**: 支持 `none`、`body`、`form-data`、`x-www-form-urlencoded`、`binary`，Content-Type 自动设置，用户手动设置优先
+6. **HTTP Body Types**: 支持 `none`、`body`、`form-data`、x-www-form-urlencoded`、`binary`，Content-Type 自动设置，用户手动设置优先
 
 7. **HTTP 节点增强**: Content-Type 选择器、form-data 文件上传、超时配置 (`timeout_ms`，默认 30000ms，范围 1000-300000ms)
 
@@ -200,6 +209,16 @@ npm run tauri build  # 构建安装包
 11. **调试模式**: 支持断点、单步执行、继续、跳过节点，通过 Channel 实现实时日志流，状态管理使用 `useDebugStore`
 
 12. **错误分类**: `ErrorKind` 区分致命错误 (`configuration`, `condition_syntax`) 和可恢复错误，可恢复错误路由到 false 端口
+
+13. **数据库支持**: PostgreSQL、MySQL、SQLite、Redis 四种数据库，支持连接池、事务管理（隔离级别），6 种数据库节点：`db_connect`、`db_query`、`db_begin`、`db_commit`、`db_rollback`、`db_close`
+
+14. **脚本节点**: QuickJS 运行时，支持 `fn.*` API (variables, response, console, flow, util, expect)，详见 `docs/script-node.md`
+
+15. **断言节点**: 15 种操作符 (eq, ne, gt, gte, lt, lte, contains, matches, exists, in, between 等)，支持预设断言和 All/Any 模式
+
+16. **压力测试**: 并发用户数配置、渐进启动、持续时长、实时进度（RPS、延迟、迭代数）、最终报告（p50/p90/p95/p99 响应时间分布）
+
+17. **加密模块**: AES-256-GCM 加密存储数据库密码，集成 OS Keychain (Windows Credential Manager / macOS Keychain / Linux Secret Service)
 
 ## 子目录知识库
 

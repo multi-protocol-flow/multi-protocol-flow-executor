@@ -1,10 +1,10 @@
 # 服务层 (Services)
 
-**生成时间:** 2026-03-09
+**生成时间:** 2026-03-18
 
 ## 概述
 
-前端与后端通信的抽象层，包含 Tauri IPC 调用、调试服务和本地存储三类服务。
+前端与后端通信的抽象层，包含 Tauri IPC 调用、调试服务、压力测试服务和本地存储四类服务。
 
 ## 结构
 
@@ -14,15 +14,19 @@ services/
 │   ├── index.ts              # 主入口，自动检测环境切换实现
 │   ├── flow.ts               # 流程创建/执行（真实 IPC）
 │   ├── debug.ts              # 调试会话 IPC (startDebug, sendDebugCommand, endDebug)
+│   ├── stressTest.ts         # 压力测试 IPC (startStressTest, stopStressTest)
+│   ├── connection.ts         # 数据库连接 IPC (testConnection, loadConnections)
 │   ├── mock.ts               # Mock 实现（非 Tauri 环境）
 │   ├── events.ts             # 事件订阅
 │   ├── settings.ts           # 全局设置（Tauri）
-│   └── settings.mock.ts      # 设置 Mock
+│   ├── settings.mock.ts      # 设置 Mock
+│   └── connection.mock.ts    # 数据库连接 Mock
 └── storage/                  # 本地存储服务
     ├── index.ts              # 统一导出
     ├── flowStorage.ts        # 流程元数据存储
     ├── historyStorage.ts     # 执行历史存储
-    └── reportStorage.ts      # 报告存储
+    ├── reportStorage.ts      # 报告存储 IPC
+    └── reportStorage.mock.ts # 报告存储 Mock
 ```
 
 ## 快速定位
@@ -33,8 +37,11 @@ services/
 | 修改 Mock 行为 | `tauri/mock.ts` |
 | 调试 IPC 调用 | `tauri/flow.ts` 的 `formatError()` |
 | 调试会话管理 | `tauri/debug.ts` |
+| 压力测试 IPC | `tauri/stressTest.ts` |
+| 数据库连接 IPC | `tauri/connection.ts` |
 | 存储流程数据 | `storage/flowStorage.ts` |
 | 执行历史管理 | `storage/historyStorage.ts` |
+| 报告存储 | `storage/reportStorage.ts` |
 
 ## 约定
 
@@ -62,3 +69,4 @@ function isTauriEnv(): boolean {
 ### Channel 事件流
 - `executeFlowWithChannel`: 实时日志流
 - `startDebug`: 调试事件流 (PausedAtNode, NodeExecuted 等)
+- `startStressTest`: 压测事件流 (Progress, Completed, Error)

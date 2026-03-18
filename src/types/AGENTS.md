@@ -1,6 +1,6 @@
 # TypeScript 类型定义
 
-**生成时间:** 2026-03-09
+**生成时间:** 2026-03-18
 
 ## 概述
 
@@ -11,7 +11,7 @@
 ```
 src/types/
 ├── index.ts          # 统一导出入口
-├── node.ts           # 节点类型 + 配置 (判别联合，6种节点)
+├── node.ts           # 节点类型 + 配置 (判别联合，14 种节点)
 ├── flow.ts           # 流程结构
 ├── connection.ts     # 节点连接
 ├── report.ts         # 执行报告 + 统计
@@ -21,7 +21,9 @@ src/types/
 ├── ws_stream.ts      # WebSocket 消息流类型
 ├── ipc.ts            # Tauri IPC 命令类型
 ├── settings.ts       # 全局设置
-└── port.ts           # 端口定义
+├── port.ts           # 端口定义
+├── database.ts       # 数据库连接类型
+└── stressTest.ts     # 压力测试类型
 ```
 
 ## 快速定位
@@ -36,6 +38,8 @@ src/types/
 | 添加 IPC 命令 | `ipc.ts` | `command.rs` |
 | 修改调试类型 | `debug.ts` | `debug/types.rs` |
 | 修改 WebSocket 消息流 | `ws_stream.ts` | `ws_stream.rs` |
+| 修改数据库类型 | `database.ts` | `db/types.rs` |
+| 修改压力测试类型 | `stressTest.ts` | `stress_test/types.rs` |
 
 ## 约定
 
@@ -52,6 +56,8 @@ src/types/
 - `error.ts` ↔ `src-tauri/crates/flow-engine/src/error.rs`
 - `debug.ts` ↔ `src-tauri/crates/flow-engine/src/debug/types.rs`
 - `ws_stream.ts` ↔ `src-tauri/crates/flow-engine/src/ws_stream.rs`
+- `database.ts` ↔ `src-tauri/crates/flow-engine/src/db/types.rs`
+- `stressTest.ts` ↔ `src-tauri/crates/flow-engine/src/stress_test/types.rs`
 
 ### 类型安全红线
 
@@ -64,7 +70,9 @@ src/types/
 
 `NodeData` 使用判别联合，通过 `type` 字段区分：
 ```typescript
-type NodeData = EntryConfig | HttpConfig | ConditionalConfig | WsConnectConfig | WsSendWaitConfig | WsCloseConfig;
+type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | AssertionConfig
+  | WsConnectConfig | WsSendWaitConfig | WsCloseConfig
+  | DbConnectConfig | DbQueryConfig | DbBeginConfig | DbCommitConfig | DbRollbackConfig | DbCloseConfig;
 ```
 
 ### 可选字段
@@ -73,15 +81,27 @@ type NodeData = EntryConfig | HttpConfig | ConditionalConfig | WsConnectConfig |
 - 必须与 Rust 端 `Option<T>` 对应
 - 默认值在 Rust 端实现，前端仅声明类型
 
+## 节点类型 (14 种)
+
+| 类型 | 配置类型 | 用途 |
+|------|----------|------|
+| `entry` | EntryConfig | 流程入口 |
+| `http` | HttpConfig | HTTP 请求 |
+| `conditional` | ConditionalConfig | 条件分支 |
+| `script` | ScriptConfig | JavaScript 脚本 |
+| `assertion` | AssertionConfig | 断言验证 |
+| `ws_connect` | WsConnectConfig | WebSocket 连接 |
+| `ws_send_wait` | WsSendWaitConfig | WebSocket 发送等待 |
+| `ws_close` | WsCloseConfig | WebSocket 关闭 |
+| `db_connect` | DbConnectConfig | 数据库连接 |
+| `db_query` | DbQueryConfig | 数据库查询 |
+| `db_begin` | DbBeginConfig | 事务开始 |
+| `db_commit` | DbCommitConfig | 事务提交 |
+| `db_rollback` | DbRollbackConfig | 事务回滚 |
+| `db_close` | DbCloseConfig | 数据库关闭 |
+
 ## 类型漂移风险
 
 | 位置 | 内容 | 优先级 |
 |------|------|--------|
-| `error.ts` | 缺少 WebSocket 错误类型 (与 Rust 不对齐) | 中 |
-
-**Rust 端存在但 TypeScript 缺失的错误类型：**
-- `WebSocketConnection`
-- `WebSocketTimeout`
-- `WebSocketMessage`
-- `WebSocketClose`
-- `WebSocketProtocol`
+| 无 | 前后端类型已完全对齐 | — |
