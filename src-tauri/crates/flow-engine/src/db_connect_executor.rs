@@ -2,11 +2,14 @@
 //
 // 实现数据库连接建立、连接池创建和测试查询功能。
 // Wave 2: 与执行器集成
+// Wave 5: SQLite 支持
 
 use crate::connection::Connection;
 use crate::context::ExecutionContext;
 use crate::db::pool::{DatabaseConnectionManager, MockPool};
+use crate::db::sqlite::SqliteConnection;
 use crate::db::traits::DatabasePool;
+use crate::db::types::{DbConnection, DbConnectionStatus, DbDriver};
 use crate::executor::NodeExecutor;
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
@@ -87,10 +90,96 @@ impl NodeExecutor for DbConnectExecutor {
             })
             .await;
 
-        // 4. 创建连接池（使用 Mock 实现）
-        // Wave 2: 使用 Mock 连接池，后续 Wave 会实现真实连接
+        // 4. 创建连接池
+        // Wave 5: 支持 SQLite 真实连接
         let connect_start = Instant::now();
-        let pool = Arc::new(MockPool::new(config.connection_uuid.clone()));
+
+        // 获取数据库类型
+        let db_type = config.driver.as_deref().unwrap_or("mock").to_string();
+
+        // 根据数据库类型创建连接池
+        let pool: Arc<dyn DatabasePool> = match config.driver.as_deref() {
+            Some("sqlite") => {
+                // 构建 DbConnection 配置
+                let db_config = DbConnection {
+                    id: config.connection_uuid.clone(),
+                    name: node.name.clone(),
+                    driver: DbDriver::Sqlite,
+                    host: config.host.clone(),
+                    port: config.port,
+                    database: config.database.clone(),
+                    username: config.username.clone(),
+                    password: config.password.clone(),
+                    password_from_env: None,
+                    connection_string: config.connection_string.clone(),
+                    min_connections: config.min_connections,
+                    max_connections: config.max_connections,
+                    connect_timeout_ms: config.connect_timeout_ms.unwrap_or(10000),
+                    idle_timeout_ms: 300000,
+                    status: DbConnectionStatus::Disconnected,
+                    last_error: None,
+                    last_tested_at: None,
+                };
+
+                log::info!(
+                    "[Database] 创建 SQLite 连接池: uuid={}, connection_string={}",
+                    config.connection_uuid,
+                    config.connection_string.as_deref().unwrap_or(":memory:")
+                );
+
+                // 创建 SQLite 连接池
+                match SqliteConnection::from_config(&db_config).await {
+                    Ok(conn) => {
+                        log::info!(
+                            "[Database] SQLite 连接池创建成功: uuid={}",
+                            config.connection_uuid
+                        );
+                        Arc::new(conn) as Arc<dyn DatabasePool>
+                    }
+                    Err(e) => {
+                        log::error!(
+                            "[Database] SQLite 连接池创建失败: uuid={}, error={}",
+                            config.connection_uuid,
+                            e
+                        );
+
+                        // 日志：连接失败
+                        context
+                            .emit_log(LogEvent {
+                                level: LogLevel::Error,
+                                message: format!("SQLite 连接失败: {}", e),
+                                timestamp: std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .expect("系统时间错误")
+                                    .as_millis() as u64,
+                                node_uuid: Some(node.uuid.clone()),
+                                node_name: Some(node.name.clone()),
+                                flow_uuid: context.flow_uuid.clone(),
+                            })
+                            .await;
+
+                        // 返回 false 端口
+                        return Ok((
+                            self.get_false_port_nodes(node, connections),
+                            Some(self.build_error_output(
+                                &config,
+                                &format!("SQLite 连接失败: {}", e),
+                                start_time.elapsed().as_millis() as u64,
+                            )),
+                        ));
+                    }
+                }
+            }
+            _ => {
+                // 其他数据库类型暂未实现，使用 MockPool
+                log::warn!(
+                    "[Database] 数据库类型 '{}' 暂未实现，使用 MockPool: uuid={}",
+                    db_type,
+                    config.connection_uuid
+                );
+                Arc::new(MockPool::new(config.connection_uuid.clone())) as Arc<dyn DatabasePool>
+            }
+        };
 
         // 创建连接池到管理器
         let create_result = self
@@ -98,7 +187,7 @@ impl NodeExecutor for DbConnectExecutor {
             .create_pool(
                 config.connection_uuid.clone(),
                 node.name.clone(),
-                "mock".to_string(), // 数据库类型，Mock 使用 "mock"
+                db_type,
                 pool.clone(),
             )
             .await;
@@ -379,6 +468,15 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::DbConnect(DbConnectConfig {
                 connection_uuid: connection_uuid.to_string(),
+                driver: None,
+                connection_string: None,
+                host: None,
+                port: None,
+                database: None,
+                username: None,
+                password: None,
+                min_connections: 1,
+                max_connections: 10,
                 test_query: None,
                 connect_timeout_ms: None,
             }),
@@ -401,6 +499,15 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::DbConnect(DbConnectConfig {
                 connection_uuid: connection_uuid.to_string(),
+                driver: None,
+                connection_string: None,
+                host: None,
+                port: None,
+                database: None,
+                username: None,
+                password: None,
+                min_connections: 1,
+                max_connections: 10,
                 test_query: Some(test_query.to_string()),
                 connect_timeout_ms: None,
             }),
@@ -611,5 +718,168 @@ mod tests {
         // 应该返回错误
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不是 DbConnectConfig"));
+    }
+
+    // ========================================================================
+    // SQLite 集成测试
+    // ========================================================================
+
+    /// 创建 SQLite 测试节点
+    fn create_sqlite_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
+        Node {
+            uuid: uuid.to_string(),
+            node_type: NodeType::DbConnect,
+            name: name.to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::DbConnect(DbConnectConfig {
+                connection_uuid: connection_uuid.to_string(),
+                driver: Some("sqlite".to_string()),
+                connection_string: Some(":memory:".to_string()),
+                host: None,
+                port: None,
+                database: None,
+                username: None,
+                password: None,
+                min_connections: 1,
+                max_connections: 5,
+                test_query: None,
+                connect_timeout_ms: None,
+            }),
+            ports: None,
+            has_breakpoint: None,
+        }
+    }
+
+    /// 创建带测试查询的 SQLite 测试节点
+    fn create_sqlite_test_node_with_query(
+        uuid: &str,
+        name: &str,
+        connection_uuid: &str,
+        test_query: &str,
+    ) -> Node {
+        Node {
+            uuid: uuid.to_string(),
+            node_type: NodeType::DbConnect,
+            name: name.to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::DbConnect(DbConnectConfig {
+                connection_uuid: connection_uuid.to_string(),
+                driver: Some("sqlite".to_string()),
+                connection_string: Some(":memory:".to_string()),
+                host: None,
+                port: None,
+                database: None,
+                username: None,
+                password: None,
+                min_connections: 1,
+                max_connections: 5,
+                test_query: Some(test_query.to_string()),
+                connect_timeout_ms: None,
+            }),
+            ports: None,
+            has_breakpoint: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_sqlite_connect_success() {
+        let db_manager = Arc::new(DatabaseConnectionManager::new());
+        let executor = DbConnectExecutor::new(db_manager.clone());
+        let node = create_sqlite_test_node("sqlite-1", "SQLite 测试连接", "sqlite-conn-001");
+        let mut context = create_context("test-flow");
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        // 应该返回 true 端口（连接成功）
+        assert!(result.is_ok());
+        let (next_nodes, output_data) = result.unwrap();
+        assert_eq!(next_nodes, vec!["true"]);
+        assert!(output_data.is_some());
+
+        let data = output_data.unwrap();
+        assert_eq!(data["success"], true);
+        assert_eq!(data["connected"], true);
+        assert_eq!(data["connection_uuid"], "sqlite-conn-001");
+
+        // 验证连接池已创建
+        let pool_metadata = db_manager.get_pool_metadata("sqlite-conn-001").await;
+        assert!(pool_metadata.is_some());
+        let metadata = pool_metadata.unwrap();
+        assert_eq!(metadata.db_type, "sqlite");
+    }
+
+    #[tokio::test]
+    async fn test_sqlite_connect_with_test_query() {
+        let db_manager = Arc::new(DatabaseConnectionManager::new());
+        let executor = DbConnectExecutor::new(db_manager);
+        let node = create_sqlite_test_node_with_query(
+            "sqlite-2",
+            "SQLite 测试查询",
+            "sqlite-conn-002",
+            "SELECT 1",
+        );
+        let mut context = create_context("test-flow");
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        // SQLite 测试查询应该成功
+        assert!(result.is_ok());
+        let (next_nodes, output_data) = result.unwrap();
+        assert_eq!(next_nodes, vec!["true"]);
+        assert!(output_data.is_some());
+
+        let data = output_data.unwrap();
+        assert_eq!(data["success"], true);
+        assert_eq!(data["connected"], true);
+    }
+
+    #[tokio::test]
+    async fn test_sqlite_connect_invalid_path() {
+        let db_manager = Arc::new(DatabaseConnectionManager::new());
+        let executor = DbConnectExecutor::new(db_manager);
+
+        // 创建使用无效路径的节点
+        let node = Node {
+            uuid: "sqlite-3".to_string(),
+            node_type: NodeType::DbConnect,
+            name: "无效路径".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::DbConnect(DbConnectConfig {
+                connection_uuid: "sqlite-conn-003".to_string(),
+                driver: Some("sqlite".to_string()),
+                connection_string: Some("Z:\\nonexistent\\invalid\\path\\db.sqlite".to_string()),
+                host: None,
+                port: None,
+                database: None,
+                username: None,
+                password: None,
+                min_connections: 1,
+                max_connections: 5,
+                test_query: None,
+                connect_timeout_ms: None,
+            }),
+            ports: None,
+            has_breakpoint: None,
+        };
+        let mut context = create_context("test-flow");
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        // 应该返回 false 端口（连接失败）
+        assert!(result.is_ok());
+        let (next_nodes, output_data) = result.unwrap();
+        assert_eq!(next_nodes, vec!["false"]);
+        assert!(output_data.is_some());
+
+        let data = output_data.unwrap();
+        assert_eq!(data["success"], false);
+        assert_eq!(data["connected"], false);
+        assert!(data["error"].as_str().unwrap().contains("SQLite"));
     }
 }

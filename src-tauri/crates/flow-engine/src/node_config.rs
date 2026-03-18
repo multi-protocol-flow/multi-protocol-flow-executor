@@ -578,12 +578,47 @@ pub struct DbConnectConfig {
     /// 连接 UUID
     #[serde(default)]
     pub connection_uuid: String,
+    /// 数据库驱动类型: "postgres" | "mysql" | "sqlite" | "redis"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub driver: Option<String>,
+    /// 连接字符串（SQLite 使用文件路径或 :memory:）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub connection_string: Option<String>,
+    /// 主机地址（PostgreSQL/MySQL）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host: Option<String>,
+    /// 端口号（PostgreSQL/MySQL）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub port: Option<u16>,
+    /// 数据库名
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub database: Option<String>,
+    /// 用户名
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    /// 密码
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+    /// 最小连接数
+    #[serde(default = "default_min_connections")]
+    pub min_connections: u32,
+    /// 最大连接数
+    #[serde(default = "default_max_connections")]
+    pub max_connections: u32,
     /// 测试查询语句
     #[serde(skip_serializing_if = "Option::is_none")]
     pub test_query: Option<String>,
     /// 连接超时（毫秒）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub connect_timeout_ms: Option<u64>,
+}
+
+fn default_min_connections() -> u32 {
+    1
+}
+
+fn default_max_connections() -> u32 {
+    10
 }
 
 /// 数据库查询节点配置
@@ -886,7 +921,17 @@ impl NodeData {
     pub fn db_connect(connection_uuid: impl Into<String>) -> Self {
         Self::DbConnect(DbConnectConfig {
             connection_uuid: connection_uuid.into(),
-            ..Default::default()
+            driver: None,
+            connection_string: None,
+            host: None,
+            port: None,
+            database: None,
+            username: None,
+            password: None,
+            min_connections: default_min_connections(),
+            max_connections: default_max_connections(),
+            test_query: None,
+            connect_timeout_ms: None,
         })
     }
 
