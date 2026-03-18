@@ -20,6 +20,13 @@ use crate::ws_close_executor::WsCloseExecutor;
 use crate::ws_connect_executor::WsConnectExecutor;
 use crate::ws_send_wait_executor::WsSendWaitExecutor;
 use crate::traits::LogSender;
+use crate::db::DatabaseConnectionManager;
+use crate::db_connect_executor::DbConnectExecutor;
+use crate::db_query_executor::DbQueryNodeExecutor;
+use crate::db_begin_executor::DbBeginExecutor;
+use crate::db_commit_executor::DbCommitExecutor;
+use crate::db_rollback_executor::DbRollbackExecutor;
+use crate::db_close_executor::DbCloseExecutor;
 use serde_json::json;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -158,6 +165,9 @@ impl DebuggableFlowExecutor {
         // 初始化 WebSocket 连接管理器
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
 
+        // 初始化数据库连接池管理器
+        let db_manager = Arc::new(DatabaseConnectionManager::new());
+
         let mut context = ExecutionContext {
             flow_uuid: flow.uuid.clone(),
             current_node_uuid: None,
@@ -172,7 +182,7 @@ impl DebuggableFlowExecutor {
             ws_manager: Some(ws_manager),
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: None,
+            db_manager: Some(db_manager),
             last_node_output: None,
             debug_event_sender: Some(event_sender.clone()),
         };
@@ -1070,24 +1080,84 @@ impl DebuggableFlowExecutor {
                 let executor = AssertionNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
-            // 数据库节点 - 尚未实现
+            // 数据库节点
             NodeType::DbConnect => {
-                Err("数据库连接节点尚未实现".to_string())
+                log::info!(
+                    "[调试 {}] 执行数据库连接节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
+                    Arc::new(DatabaseConnectionManager::new())
+                });
+                let executor = DbConnectExecutor::new(db_manager);
+                executor.execute(node, context, connections, node_map).await
             }
             NodeType::DbQuery => {
-                Err("数据库查询节点尚未实现".to_string())
+                log::info!(
+                    "[调试 {}] 执行数据库查询节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
+                    Arc::new(DatabaseConnectionManager::new())
+                });
+                let executor = DbQueryNodeExecutor::with_db_manager(db_manager);
+                executor.execute(node, context, connections, node_map).await
             }
             NodeType::DbBegin => {
-                Err("数据库事务开始节点尚未实现".to_string())
+                log::info!(
+                    "[调试 {}] 执行数据库事务开始节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
+                    Arc::new(DatabaseConnectionManager::new())
+                });
+                let executor = DbBeginExecutor::new(db_manager);
+                executor.execute(node, context, connections, node_map).await
             }
             NodeType::DbCommit => {
-                Err("数据库事务提交节点尚未实现".to_string())
+                log::info!(
+                    "[调试 {}] 执行数据库事务提交节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
+                    Arc::new(DatabaseConnectionManager::new())
+                });
+                let executor = DbCommitExecutor::new(db_manager);
+                executor.execute(node, context, connections, node_map).await
             }
             NodeType::DbRollback => {
-                Err("数据库事务回滚节点尚未实现".to_string())
+                log::info!(
+                    "[调试 {}] 执行数据库事务回滚节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
+                    Arc::new(DatabaseConnectionManager::new())
+                });
+                let executor = DbRollbackExecutor::new(db_manager);
+                executor.execute(node, context, connections, node_map).await
             }
             NodeType::DbClose => {
-                Err("数据库关闭节点尚未实现".to_string())
+                log::info!(
+                    "[调试 {}] 执行数据库关闭节点: {} ({})",
+                    context.flow_uuid,
+                    node.name,
+                    node.uuid
+                );
+                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
+                    Arc::new(DatabaseConnectionManager::new())
+                });
+                let executor = DbCloseExecutor::new(db_manager);
+                executor.execute(node, context, connections, node_map).await
             }
             // 脚本节点（执行器尚未实现）
             NodeType::Script => {
