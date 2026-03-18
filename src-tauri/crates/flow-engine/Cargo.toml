@@ -54,6 +54,12 @@ md-5 = "0.10"
 hmac = "0.12"
 hex = "0.4"
 
+# 数据库连接池（SQLite 支持）
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
+
+# Redis 连接（异步支持）
+redis = { version = "0.29", features = ["tokio-comp", "connection-manager"] }
+
 [dev-dependencies]
 mockito = "1.0"
 wiremock = "0.6"

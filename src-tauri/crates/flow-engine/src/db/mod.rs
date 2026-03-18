@@ -5,10 +5,14 @@
 // Wave 5: SQLite/Redis 实现
 
 pub mod pool;
+pub mod redis;
+pub mod sqlite;
 pub mod traits;
 pub mod types;
 
 // Re-exports
 pub use pool::{DatabaseConnectionManager, MockPool, PoolMetadata, TransactionInfo};
+pub use redis::RedisConnection;
+pub use sqlite::SqliteConnection;
 pub use traits::{DatabasePool, IsolationLevel, QueryResult, TransactionState};
 pub use types::{DbConnection, DbConnectionStatus, DbDriver, TestDbConnectionResult};
