@@ -5,6 +5,24 @@
 
 import type { Flow } from './flow';
 import type { FlowExecutionReport } from './report';
+import type { DbConnection } from './database';
+
+// 重新导出 DbConnection 方便使用
+export type { DbConnection } from './database';
+
+// ============================================================================
+// 数据库连接命令
+// ============================================================================
+
+/**
+ * 测试数据库连接结果
+ */
+export interface TestDbConnectionResult {
+  /** 是否成功 */
+  success: boolean;
+  /** 错误信息（如果失败） */
+  error?: string;
+}
 
 // ============================================================================
 // 加载流程命令
@@ -80,6 +98,11 @@ export interface ExecuteFlowCommandInput {
   flow_id: string;
   /** 执行上下文变量（可选） */
   variables?: unknown;
+  /** 数据库连接配置列表（可选）
+   * 从前端连接配置中心获取，传递给后端执行器
+   * 执行器根据 connection_uuid 从此列表获取完整的连接配置
+   */
+  db_connections?: DbConnection[];
 }
 
 /**
