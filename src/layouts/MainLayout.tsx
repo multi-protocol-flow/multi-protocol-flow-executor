@@ -10,6 +10,7 @@ import { NodeConfigPanel, SettingsPanel, DebugPanel } from '@/components/panels'
 import { ExecutionReport, ExecutionHistory, ConsolePanel } from '@/components/execution';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
+import { ConnectionDialog } from '@/components/dialogs/ConnectionDialog';
 import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, Settings, GripVertical, GripHorizontal } from 'lucide-react';
@@ -567,6 +568,9 @@ export function MainLayout() {
 
       {/* ===== 新建流程对话框 ===== */}
       <NewFlowDialog />
+
+      {/* ===== 数据库连接对话框 ===== */}
+      <ConnectionDialog />
 
       {/* ===== Toast 提示 ===== */}
       <Toaster />

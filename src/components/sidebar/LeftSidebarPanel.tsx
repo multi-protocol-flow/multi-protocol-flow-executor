@@ -5,7 +5,7 @@
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
-import { FlowListPanel, NodeLibrary } from '@/components/sidebar';
+import { FlowListPanel, NodeLibrary, ConnectionsPanel } from '@/components/sidebar';
 import { VariablePanel, NodeConfigPanel } from '@/components/panels';
 import { useUIStore, useFlowStore, useDebugStore } from '@/stores';
 import { selectIsDebugging } from '@/stores/debug';
@@ -34,8 +34,10 @@ export function LeftSidebarPanel() {
   const isFlowListCollapsed = useUIStore((state) => state.isFlowListCollapsed);
   const isNodeLibraryCollapsed = useUIStore((state) => state.isNodeLibraryCollapsed);
   const isVariablePanelCollapsed = useUIStore((state) => state.isVariablePanelCollapsed);
+  const isConnectionsPanelCollapsed = useUIStore((state) => state.isConnectionsPanelCollapsed);
   const nodeLibraryHeight = useUIStore((state) => state.nodeLibraryHeight);
   const variablePanelHeight = useUIStore((state) => state.variablePanelHeight);
+  const connectionsPanelHeight = useUIStore((state) => state.connectionsPanelHeight);
   
   // 调试状态
   const isDebugging = useDebugStore(selectIsDebugging);
@@ -44,9 +46,12 @@ export function LeftSidebarPanel() {
   const toggleFlowListCollapsed = useUIStore((state) => state.toggleFlowListCollapsed);
   const toggleNodeLibraryCollapsed = useUIStore((state) => state.toggleNodeLibraryCollapsed);
   const toggleVariablePanelCollapsed = useUIStore((state) => state.toggleVariablePanelCollapsed);
+  const toggleConnectionsPanelCollapsed = useUIStore((state) => state.toggleConnectionsPanelCollapsed);
   const setNodeLibraryHeight = useUIStore((state) => state.setNodeLibraryHeight);
   const setVariablePanelHeight = useUIStore((state) => state.setVariablePanelHeight);
+  const setConnectionsPanelHeight = useUIStore((state) => state.setConnectionsPanelHeight);
   const openNewFlowDialog = useUIStore((state) => state.openNewFlowDialog);
+  const openConnectionDialog = useUIStore((state) => state.openConnectionDialog);
   
   // 获取当前选中的节点
   const selectedNode = getSelectedNode();
@@ -115,7 +120,7 @@ export function LeftSidebarPanel() {
             <FlowListPanel showHeader={false} />
           </CollapsiblePanel>
 
-          {/* ===== 底部面板区：节点库 + 变量面板 ===== */}
+          {/* ===== 底部面板区：节点库 + 变量面板 + 连接面板 ===== */}
           <div className="shrink-0 flex flex-col mt-auto overflow-hidden">
             {/* 节点库 */}
             <CollapsiblePanel
@@ -148,6 +153,35 @@ export function LeftSidebarPanel() {
                 <VariablePanel flow={flow} nodes={nodes} showHeader={false} />
               </CollapsiblePanel>
             )}
+
+            {/* 数据库连接面板 */}
+            <CollapsiblePanel
+              title="数据库连接"
+              isCollapsed={isConnectionsPanelCollapsed}
+              onToggle={toggleConnectionsPanelCollapsed}
+              height={connectionsPanelHeight}
+              onHeightChange={setConnectionsPanelHeight}
+              resizable={!isConnectionsPanelCollapsed}
+              maxHeight={maxBottomPanelHeight}
+              className="border-t border-border"
+              headerRight={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openConnectionDialog();
+                  }}
+                  className="h-6 w-6 rounded-md hover:bg-slate-100"
+                  title="新建连接"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </Button>
+              }
+            >
+              {/* 连接面板内容（不含标题栏） */}
+              <ConnectionsPanel showHeader={false} />
+            </CollapsiblePanel>
           </div>
         </>
       )}
