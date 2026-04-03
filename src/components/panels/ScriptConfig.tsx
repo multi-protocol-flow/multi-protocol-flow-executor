@@ -1,11 +1,15 @@
 /**
  * Script 节点配置组件
  * 支持脚本编辑、超时配置、内存限制、错误处理策略等
+ * 使用 CodeMirror 6 编辑器，内置 fn.* API 自动补全
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect } from 'react';
-import Editor, { type OnMount } from '@monaco-editor/react';
+import { useCallback, useEffect, useMemo } from 'react';
+import CodeMirror from '@uiw/react-codemirror';
+import { javascript } from '@codemirror/lang-javascript';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { autocompletion, type CompletionContext } from '@codemirror/autocomplete';
 import { scriptConfigSchema, type ScriptConfigFormData } from './schemas';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -70,6 +74,120 @@ const ON_ASSERTION_FAIL_OPTIONS = [
   { value: 'abort', label: '终止流程', description: '断言失败时终止整个流程' },
 ] as const;
 
+/**
+ * fn.* API 自动补全源
+ * 基于 docs/script-node.md 中的 API 参考定义
+ */
+function fnApiCompletions(context: CompletionContext) {
+  // 匹配 fn. 及后续的点分路径（如 fn.variables.get）
+  const word = context.matchBefore(/fn\.[a-zA-Z_.]*/);
+  if (!word) return null;
+
+  return {
+    from: word.from,
+    options: [
+      // fn.variables - 变量操作
+      { label: 'fn.variables.get', type: 'function', detail: '(key: string) => any', info: '获取变量值' },
+      { label: 'fn.variables.set', type: 'function', detail: '(key: string, value: any) => void', info: '设置变量' },
+      { label: 'fn.variables.setAll', type: 'function', detail: '(obj: object) => void', info: '批量设置变量' },
+      { label: 'fn.variables.has', type: 'function', detail: '(key: string) => boolean', info: '检查变量是否存在' },
+      { label: 'fn.variables.unset', type: 'function', detail: '(key: string) => void', info: '删除变量' },
+      { label: 'fn.variables.clear', type: 'function', detail: '() => void', info: '清空所有变量' },
+      { label: 'fn.variables.all', type: 'function', detail: '() => string', info: '获取所有变量（JSON 字符串）' },
+
+      // fn.response - 响应数据（只读）
+      { label: 'fn.response.code', type: 'property', detail: 'number', info: 'HTTP 状态码' },
+      { label: 'fn.response.status', type: 'property', detail: 'string', info: '状态文本' },
+      { label: 'fn.response.headers', type: 'property', detail: 'Record<string, string>', info: '响应头对象' },
+      { label: 'fn.response.body', type: 'property', detail: 'string', info: '响应体（JSON 字符串）' },
+      { label: 'fn.response.size', type: 'property', detail: 'number', info: '响应大小（字节）' },
+      { label: 'fn.response.time', type: 'property', detail: 'number', info: '响应时间（毫秒）' },
+      { label: 'fn.response.text', type: 'function', detail: '() => string', info: '获取原始文本' },
+      { label: 'fn.response.json', type: 'function', detail: '() => string', info: '获取 JSON 对象（JSON 字符串）' },
+
+      // fn.request - 请求数据（只读）
+      { label: 'fn.request.url', type: 'property', detail: 'string', info: '请求 URL' },
+      { label: 'fn.request.method', type: 'property', detail: 'string', info: '请求方法' },
+      { label: 'fn.request.headers', type: 'property', detail: 'Record<string, string>', info: '请求头对象' },
+      { label: 'fn.request.body', type: 'property', detail: 'string', info: '请求体' },
+
+      // fn.console - 日志输出
+      { label: 'fn.console.log', type: 'function', detail: '(message: any) => void', info: '普通日志' },
+      { label: 'fn.console.info', type: 'function', detail: '(message: any) => void', info: '信息日志' },
+      { label: 'fn.console.warn', type: 'function', detail: '(message: any) => void', info: '警告日志' },
+      { label: 'fn.console.error', type: 'function', detail: '(message: any) => void', info: '错误日志' },
+      { label: 'fn.console.debug', type: 'function', detail: '(message: any) => void', info: '调试日志' },
+      { label: 'fn.console.table', type: 'function', detail: '(data: any) => void', info: '表格数据' },
+
+      // fn.flow - 流程控制
+      { label: 'fn.flow.skip', type: 'function', detail: '() => void', info: '跳过后续节点，流程继续' },
+      { label: 'fn.flow.abort', type: 'function', detail: '(message: string) => void', info: '终止流程并报错' },
+      { label: 'fn.flow.stop', type: 'function', detail: '() => void', info: '正常终止流程' },
+
+      // fn.info - 流程信息（只读）
+      { label: 'fn.info.flowName', type: 'property', detail: 'string', info: '流程名称' },
+      { label: 'fn.info.flowId', type: 'property', detail: 'string', info: '流程 ID' },
+      { label: 'fn.info.nodeId', type: 'property', detail: 'string', info: '当前节点 ID' },
+      { label: 'fn.info.nodeName', type: 'property', detail: 'string', info: '当前节点名称' },
+
+      // fn.util - 编码函数
+      { label: 'fn.util.base64Encode', type: 'function', detail: '(str: string) => string', info: 'Base64 编码' },
+      { label: 'fn.util.base64Decode', type: 'function', detail: '(str: string) => string', info: 'Base64 解码' },
+      { label: 'fn.util.urlEncode', type: 'function', detail: '(str: string) => string', info: 'URL 编码' },
+      { label: 'fn.util.urlDecode', type: 'function', detail: '(str: string) => string', info: 'URL 解码' },
+      { label: 'fn.util.htmlEscape', type: 'function', detail: '(str: string) => string', info: 'HTML 转义' },
+      { label: 'fn.util.htmlUnescape', type: 'function', detail: '(str: string) => string', info: 'HTML 反转义' },
+
+      // fn.util - 加密函数
+      { label: 'fn.util.md5', type: 'function', detail: '(str: string) => string', info: 'MD5 哈希' },
+      { label: 'fn.util.sha256', type: 'function', detail: '(str: string) => string', info: 'SHA-256 哈希' },
+      { label: 'fn.util.sha512', type: 'function', detail: '(str: string) => string', info: 'SHA-512 哈希' },
+      { label: 'fn.util.hmacSha256', type: 'function', detail: '(key: string, data: string) => string', info: 'HMAC-SHA256' },
+      { label: 'fn.util.hmacSha512', type: 'function', detail: '(key: string, data: string) => string', info: 'HMAC-SHA512' },
+
+      // fn.util - 时间函数
+      { label: 'fn.util.timestamp', type: 'function', detail: '() => number', info: '当前时间戳（毫秒）' },
+      { label: 'fn.util.now', type: 'function', detail: '() => string', info: '当前 ISO 8601 时间字符串' },
+      { label: 'fn.util.formatTime', type: 'function', detail: '(format: string) => string', info: '格式化当前时间' },
+      { label: 'fn.util.parseTime', type: 'function', detail: '(dateStr: string, format: string) => number', info: '解析时间为时间戳' },
+
+      // fn.util - UUID 函数
+      { label: 'fn.util.uuid', type: 'function', detail: '() => string', info: '生成 UUID v4' },
+      { label: 'fn.util.uuidv4', type: 'function', detail: '() => string', info: '生成 UUID v4（别名）' },
+
+      // fn.util - JSON 函数
+      { label: 'fn.util.jsonParse', type: 'function', detail: '(str: string) => any', info: '解析 JSON 字符串' },
+      { label: 'fn.util.jsonStringify', type: 'function', detail: '(obj: any, indent?: number) => string', info: '对象转 JSON 字符串' },
+      { label: 'fn.util.jsonPath', type: 'function', detail: '(json: string, path: string) => string', info: 'JSONPath 查询' },
+
+      // fn.util - 类型检查函数
+      { label: 'fn.util.isArray', type: 'function', detail: '(v: any) => boolean', info: '是否为数组' },
+      { label: 'fn.util.isObject', type: 'function', detail: '(v: any) => boolean', info: '是否为对象' },
+      { label: 'fn.util.isString', type: 'function', detail: '(v: any) => boolean', info: '是否为字符串' },
+      { label: 'fn.util.isNumber', type: 'function', detail: '(v: any) => boolean', info: '是否为数字' },
+      { label: 'fn.util.isBoolean', type: 'function', detail: '(v: any) => boolean', info: '是否为布尔值' },
+      { label: 'fn.util.isNull', type: 'function', detail: '(v: any) => boolean', info: '是否为 null' },
+      { label: 'fn.util.isUndefined', type: 'function', detail: '(v: any) => boolean', info: '是否为 undefined' },
+      { label: 'fn.util.isFunction', type: 'function', detail: '(v: any) => boolean', info: '是否为函数' },
+      { label: 'fn.util.isEmpty', type: 'function', detail: '(v: any) => boolean', info: '是否为空值' },
+      { label: 'fn.util.typeOf', type: 'function', detail: '(v: any) => string', info: '返回类型字符串' },
+
+      // fn.util - 对象操作函数
+      { label: 'fn.util.keys', type: 'function', detail: '(obj: any) => string', info: '获取对象键数组（JSON 字符串）' },
+      { label: 'fn.util.values', type: 'function', detail: '(obj: any) => string', info: '获取对象值数组（JSON 字符串）' },
+      { label: 'fn.util.entries', type: 'function', detail: '(obj: any) => string', info: '获取键值对数组（JSON 字符串）' },
+      { label: 'fn.util.hasKey', type: 'function', detail: '(obj: any, key: string) => boolean', info: '检查是否包含键' },
+      { label: 'fn.util.pick', type: 'function', detail: '(obj: any, keys: string[]) => string', info: '选择指定键（JSON 字符串）' },
+      { label: 'fn.util.omit', type: 'function', detail: '(obj: any, keys: string[]) => string', info: '排除指定键（JSON 字符串）' },
+      { label: 'fn.util.merge', type: 'function', detail: '(target: any, source: any) => string', info: '合并对象（JSON 字符串）' },
+      { label: 'fn.util.clone', type: 'function', detail: '(obj: any) => string', info: '深拷贝对象（JSON 字符串）' },
+
+      // fn.expect - 链式断言
+      { label: 'fn.expect', type: 'function', detail: '(value: any) => ExpectChain', info: '链式断言 API' },
+    ],
+  };
+}
+
 export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
   const {
     register,
@@ -125,19 +243,16 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
   /**
    * 处理脚本编辑器变更
    */
-  const handleScriptChange = useCallback((value: string | undefined) => {
-    setValue('script', value || '');
+  const handleScriptChange = useCallback((value: string) => {
+    setValue('script', value);
     // 不立即保存，等用户离开编辑器时保存
   }, [setValue]);
 
-  /**
-   * 处理编辑器挂载，添加失焦保存功能
-   */
-  const handleEditorMount: OnMount = useCallback((editor) => {
-    editor.onDidBlurEditorWidget(() => {
-      saveData();
-    });
-  }, [saveData]);
+  // CodeMirror 扩展（memoized，避免不必要的重渲染）
+  const editorExtensions = useMemo(() => [
+    javascript(),
+    autocompletion({ override: [fnApiCompletions] }),
+  ], []);
 
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
@@ -148,23 +263,21 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
           <span className="text-rose-500">*</span>
         </Label>
         <div className="rounded-md border overflow-hidden">
-          <Editor
-            height="200px"
-            language="javascript"
-            theme="vs-dark"
+          <CodeMirror
             value={watchedScript || ''}
+            height="200px"
+            theme={oneDark}
+            extensions={editorExtensions}
             onChange={handleScriptChange}
-            onMount={handleEditorMount}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              lineNumbers: 'on',
-              scrollBeyondLastLine: false,
-              wordWrap: 'on',
-              automaticLayout: true,
+            onBlur={saveData}
+            basicSetup={{
+              lineNumbers: true,
+              foldGutter: false,
+              highlightActiveLine: true,
+              bracketMatching: true,
+              closeBrackets: true,
+              indentOnInput: true,
               tabSize: 2,
-              formatOnPaste: true,
-              formatOnType: true,
             }}
           />
         </div>
