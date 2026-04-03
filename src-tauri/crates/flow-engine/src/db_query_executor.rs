@@ -9,7 +9,7 @@ use crate::executor::{NodeExecutor, replace_variables};
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use crate::node_config::NodeData;
-use serde_json_path::JsonPath;
+use crate::utils::extract_value_by_path;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
@@ -500,28 +500,6 @@ fn apply_output_mappings(
                 mapping.source
             );
         }
-    }
-}
-
-/// 按 JSONPath 从 JSON 中提取值
-fn extract_value_by_path(value: &serde_json::Value, path: &str) -> Option<serde_json::Value> {
-    if path.is_empty() {
-        return None;
-    }
-
-    let json_path = match JsonPath::parse(path) {
-        Ok(p) => p,
-        Err(_) => {
-            log::warn!("无效的 JSONPath 语法: {}", path);
-            return None;
-        }
-    };
-
-    let result = json_path.query(value);
-
-    match result.exactly_one() {
-        Ok(v) => Some(v.clone()),
-        Err(_) => None,
     }
 }
 

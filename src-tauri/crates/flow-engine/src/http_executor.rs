@@ -6,7 +6,6 @@ use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use std::collections::HashMap;
 use std::time::Instant;
-use serde_json_path::JsonPath;
 
 // Re-export HttpTiming for external use
 pub use crate::http::HttpTiming;
@@ -634,36 +633,8 @@ fn apply_output_mappings(
     }
 }
 
-/// 按 JSONPath 从 JSON 中提取值
-///
-/// 支持标准 JSONPath 语法，如:
-/// - `$.status` - 根字段
-/// - `$.body.data.token` - 嵌套对象
-/// - `$.body.items[0]` - 数组索引
-/// - `$.body.items[-1]` - 负索引（从末尾）
-pub(crate) fn extract_value_by_path(value: &serde_json::Value, path: &str) -> Option<serde_json::Value> {
-    if path.is_empty() {
-        return None;
-    }
-
-    // 解析 JSONPath
-    let json_path = match JsonPath::parse(path) {
-        Ok(p) => p,
-        Err(_) => {
-            log::warn!("无效的 JSONPath 语法: {}", path);
-            return None;
-        }
-    };
-
-    // 执行查询
-    let result = json_path.query(value);
-    
-    // 获取单个结果
-    match result.exactly_one() {
-        Ok(v) => Some(v.clone()),
-        Err(_) => None,
-    }
-}
+// Re-export extract_value_by_path from core utils
+pub use crate::utils::extract_value_by_path;
 
 #[cfg(test)]
 mod tests {

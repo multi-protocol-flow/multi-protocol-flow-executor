@@ -780,7 +780,7 @@ impl WsSendWaitExecutor {
         if !config.output_mappings.is_empty() {
             for mapping in &config.output_mappings {
                 if let Some(value) =
-                    crate::http_executor::extract_value_by_path(output_data, &mapping.source)
+                    crate::utils::extract_value_by_path(output_data, &mapping.source)
                 {
                     log::info!(
                         "[流程 {}] [输出映射] 路径: {} -> 变量: {}",

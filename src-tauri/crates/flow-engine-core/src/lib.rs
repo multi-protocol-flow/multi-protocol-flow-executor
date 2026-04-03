@@ -11,6 +11,7 @@ pub mod node_config;
 pub mod report;
 pub mod statistics;
 pub mod traits;
+pub mod utils;
 pub mod variable;
 pub mod ws_stream;
 

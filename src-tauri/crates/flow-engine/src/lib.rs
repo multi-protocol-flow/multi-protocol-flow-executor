@@ -14,6 +14,7 @@ pub use flow_engine_core::node_config;
 pub use flow_engine_core::report;
 pub use flow_engine_core::statistics;
 pub use flow_engine_core::traits;
+pub use flow_engine_core::utils;
 pub use flow_engine_core::variable;
 pub use flow_engine_core::ws_stream;
 
