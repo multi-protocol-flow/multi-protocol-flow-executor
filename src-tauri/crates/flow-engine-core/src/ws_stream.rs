@@ -105,7 +105,6 @@ impl WsMessage {
     }
 
     /// 使用指定时间戳创建消息（用于测试）
-    #[cfg(test)]
     pub fn with_timestamp(
         direction: MessageDirection,
         content: MessageContent,
