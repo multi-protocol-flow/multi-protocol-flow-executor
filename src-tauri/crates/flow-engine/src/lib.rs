@@ -3,24 +3,26 @@
 //! 独立于 Tauri 的业务逻辑层，可在 CLI 和测试环境中直接使用。
 
 pub mod commands;
-pub mod traits;
+
+// Re-exports from flow-engine-core
+pub use flow_engine_core::connection;
+pub use flow_engine_core::error;
+pub use flow_engine_core::flow;
+pub use flow_engine_core::log_event;
+pub use flow_engine_core::node;
+pub use flow_engine_core::node_config;
+pub use flow_engine_core::report;
+pub use flow_engine_core::statistics;
+pub use flow_engine_core::traits;
+pub use flow_engine_core::variable;
+pub use flow_engine_core::ws_stream;
 
 // Wave 2: 无依赖的基础模块
 pub mod command;
-pub mod connection;
 pub mod db;
 pub mod encryption;
-pub mod error;
-pub mod flow;
-pub mod log_event;
-pub mod node;
-pub mod node_config;
-pub mod report;
-pub mod statistics;
 pub mod storage;
-pub mod variable;
 pub mod websocket_manager;
-pub mod ws_stream;
 
 // Wave 3: 执行器模块（需要修改 Tauri 依赖）
 pub mod context;

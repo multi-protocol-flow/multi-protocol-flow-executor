@@ -1390,6 +1390,7 @@ dependencies = [
  "bytes",
  "chrono",
  "evalexpr",
+ "flow-engine-core",
  "futures-util",
  "hex",
  "hmac",
@@ -1438,6 +1439,12 @@ version = "0.1.0"
 [[package]]
 name = "flow-engine-core"
 version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "serde",
+ "serde_json",
+ "tokio",
+]
 
 [[package]]
 name = "flow-engine-crypto"
