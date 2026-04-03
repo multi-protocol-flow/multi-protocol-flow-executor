@@ -1,7 +1,54 @@
 # Workspace 配置
 [workspace]
-members = ["crates/flow-engine"]
+members = [
+    "crates/flow-engine",
+    "crates/flow-engine-core",
+    "crates/flow-engine-http",
+    "crates/flow-engine-db",
+    "crates/flow-engine-ws",
+    "crates/flow-engine-script",
+    "crates/flow-engine-assertion",
+    "crates/flow-engine-crypto",
+    "crates/flow-engine-executor",
+]
 resolver = "2"
+
+# 共享依赖版本管理
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = "0.4"
+log = "0.4"
+regex = "1.10"
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Workspace Lint 配置
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+# 禁止常见错误
+all = { level = "warn", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+
+# 代码风格
+style = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+
+# 文档和可读性
+missing_docs_in_private_items = "allow"
+doc_markdown = "warn"
+
+# 允许的模式（根据项目实际情况调整）
+too_many_arguments = "allow"
+type_complexity = "allow"
 
 [package]
 name = "app"
@@ -61,29 +108,5 @@ tempfile = "3.0"
 tokio-tungstenite = { version = "0.28", features = ["native-tls"] }
 futures-util = "0.3"
 
-# =============================================================================
-# Clippy Lint 配置
-# 运行: cargo clippy -- -W clippy::all
-# =============================================================================
-[lints.rust]
-unsafe_code = "forbid"
-missing_docs = "warn"
-
-[lints.clippy]
-# 禁止常见错误
-all = { level = "warn", priority = -1 }
-correctness = { level = "deny", priority = -1 }
-suspicious = { level = "warn", priority = -1 }
-
-# 代码风格
-style = { level = "warn", priority = -1 }
-complexity = { level = "warn", priority = -1 }
-perf = { level = "warn", priority = -1 }
-
-# 文档和可读性
-missing_docs_in_private_items = "allow"
-doc_markdown = "warn"
-
-# 允许的模式（根据项目实际情况调整）
-too_many_arguments = "allow"
-type_complexity = "allow"
+[lints]
+workspace = true
