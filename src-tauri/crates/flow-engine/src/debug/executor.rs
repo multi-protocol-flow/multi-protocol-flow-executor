@@ -185,7 +185,7 @@ impl DebuggableFlowExecutor {
             db_manager: Some(db_manager),
             db_connections: HashMap::new(),
             last_node_output: None,
-            debug_event_sender: Some(event_sender.clone()),
+            debug_event_sender: Some(Arc::new(crate::debug_event_adapter::MpscDebugEventSender::new(event_sender.clone()))),
         };
 
         // 记录调试开始时间（用于报告生成）

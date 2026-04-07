@@ -1076,6 +1076,61 @@ impl Default for WebSocketConnectionManager {
     }
 }
 
+#[async_trait::async_trait]
+impl flow_engine_core::traits::WsProvider for WebSocketConnectionManager {
+    async fn connect(
+        &self,
+        uuid: String,
+        name: String,
+        url: String,
+        headers: Vec<FormField>,
+        subprotocols: Vec<String>,
+        connect_timeout_ms: u64,
+    ) -> Result<(), String> {
+        WebSocketConnectionManager::connect(self, uuid, name, url, headers, subprotocols, connect_timeout_ms).await
+    }
+
+    async fn send(
+        &self,
+        uuid: &str,
+        message: String,
+        is_binary: bool,
+        send_timeout_ms: u64,
+    ) -> Result<(), String> {
+        WebSocketConnectionManager::send(self, uuid, message, is_binary, send_timeout_ms).await
+    }
+
+    async fn receive(
+        &self,
+        uuid: &str,
+        receive_timeout_ms: u64,
+    ) -> Result<Option<String>, String> {
+        WebSocketConnectionManager::receive(self, uuid, receive_timeout_ms).await
+    }
+
+    async fn close(
+        &self,
+        uuid: &str,
+        close_code: u16,
+        close_reason: Option<String>,
+        wait_close_timeout_ms: u64,
+    ) -> Result<(), String> {
+        WebSocketConnectionManager::close(self, uuid, close_code, close_reason, wait_close_timeout_ms).await
+    }
+
+    async fn drain_pending_messages(&self, uuid: &str) -> Result<usize, String> {
+        WebSocketConnectionManager::drain_pending_messages(self, uuid).await
+    }
+
+    fn match_message(&self, message: &str, condition: &WsWaitCondition) -> Result<bool, String> {
+        WebSocketConnectionManager::match_message(self, message, condition)
+    }
+
+    fn get_status(&self, uuid: &str) -> Option<String> {
+        WebSocketConnectionManager::get_status(self, uuid).map(|s| format!("{:?}", s))
+    }
+}
+
 // ============================================================================
 // 辅助结构和函数
 // ============================================================================

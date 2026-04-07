@@ -144,10 +144,6 @@ pub struct DatabaseConnectionManager {
 
 impl DatabaseConnectionManager {
     /// 创建新的连接池管理器
-    ///
-    /// # 返回
-    ///
-    /// 初始化的连接池管理器，包含空的连接池和事务状态
     pub fn new() -> Self {
         Self {
             pools: Arc::new(RwLock::new(HashMap::new())),
@@ -156,18 +152,6 @@ impl DatabaseConnectionManager {
     }
 
     /// 创建连接池
-    ///
-    /// # 参数
-    ///
-    /// * `connection_uuid` - 连接 UUID（前端配置的唯一标识）
-    /// * `name` - 连接名称
-    /// * `db_type` - 数据库类型（postgres/mysql/sqlite/redis）
-    /// * `pool` - 连接池实例
-    ///
-    /// # 返回
-    ///
-    /// * `Ok(())` - 创建成功
-    /// * `Err(msg)` - 创建失败（连接池已存在）
     pub async fn create_pool(
         &self,
         connection_uuid: String,
@@ -177,16 +161,13 @@ impl DatabaseConnectionManager {
     ) -> Result<(), String> {
         let mut pools = self.pools.write().await;
 
-        // 检查连接池是否已存在
         if pools.contains_key(&connection_uuid) {
             return Err(format!("连接池已存在: {}", connection_uuid));
         }
 
-        // 创建 ActivePool
         let mut active_pool = ActivePool::new(connection_uuid.clone(), name, db_type);
         active_pool.set_pool(pool);
 
-        // 插入连接池
         pools.insert(connection_uuid.clone(), active_pool);
 
         log::info!(
@@ -199,14 +180,6 @@ impl DatabaseConnectionManager {
     }
 
     /// 获取连接池
-    ///
-    /// # 参数
-    ///
-    /// * `connection_uuid` - 连接 UUID
-    ///
-    /// # 返回
-    ///
-    /// 连接池实例，如果不存在则返回 None
     pub async fn get_pool(&self, connection_uuid: &str) -> Option<Arc<dyn DatabasePool>> {
         let mut pools = self.pools.write().await;
 
@@ -219,14 +192,6 @@ impl DatabaseConnectionManager {
     }
 
     /// 获取连接池元数据
-    ///
-    /// # 参数
-    ///
-    /// * `connection_uuid` - 连接 UUID
-    ///
-    /// # 返回
-    ///
-    /// 连接池元数据（不包含实际的连接池）
     pub async fn get_pool_metadata(&self, connection_uuid: &str) -> Option<PoolMetadata> {
         let pools = self.pools.read().await;
 
@@ -242,26 +207,14 @@ impl DatabaseConnectionManager {
     }
 
     /// 关闭连接池
-    ///
-    /// # 参数
-    ///
-    /// * `connection_uuid` - 连接 UUID
-    ///
-    /// # 返回
-    ///
-    /// * `Ok(())` - 关闭成功
-    /// * `Err(msg)` - 关闭失败（连接池不存在）
     pub async fn close_pool(&self, connection_uuid: &str) -> Result<(), String> {
         let mut pools = self.pools.write().await;
 
-        // 移除连接池
         if let Some(active_pool) = pools.remove(connection_uuid) {
-            // 关闭连接池
             if let Some(pool) = active_pool.get_pool() {
                 pool.close().await;
             }
 
-            // 清理相关的事务状态
             let mut transactions = self.transactions.write().await;
             transactions.remove(connection_uuid);
 
@@ -273,16 +226,6 @@ impl DatabaseConnectionManager {
     }
 
     /// 开始事务
-    ///
-    /// # 参数
-    ///
-    /// * `connection_uuid` - 连接 UUID
-    /// * `isolation_level` - 隔离级别（可选）
-    ///
-    /// # 返回
-    ///
-    /// * `Ok(())` - 事务开始成功
-    /// * `Err(msg)` - 事务开始失败
     pub async fn begin_transaction(
         &self,
         connection_uuid: &str,
@@ -290,7 +233,6 @@ impl DatabaseConnectionManager {
     ) -> Result<(), String> {
         let mut transactions = self.transactions.write().await;
 
-        // 检查是否已有活跃事务
         if let Some(info) = transactions.get(connection_uuid) {
             if info.state == TransactionState::Active {
                 return Err(format!(
@@ -300,7 +242,6 @@ impl DatabaseConnectionManager {
             }
         }
 
-        // 创建事务信息
         let info = TransactionInfo::new(connection_uuid.to_string(), isolation_level);
         transactions.insert(connection_uuid.to_string(), info);
 
@@ -309,15 +250,6 @@ impl DatabaseConnectionManager {
     }
 
     /// 提交事务
-    ///
-    /// # 参数
-    ///
-    /// * `connection_uuid` - 连接 UUID
-    ///
-    /// # 返回
-    ///
-    /// * `Ok(())` - 事务提交成功
-    /// * `Err(msg)` - 事务提交失败
     pub async fn commit_transaction(&self, connection_uuid: &str) -> Result<(), String> {
         let mut transactions = self.transactions.write().await;
 
@@ -338,15 +270,6 @@ impl DatabaseConnectionManager {
     }
 
     /// 回滚事务
-    ///
-    /// # 参数
-    ///
-    /// * `connection_uuid` - 连接 UUID
-    ///
-    /// # 返回
-    ///
-    /// * `Ok(())` - 事务回滚成功
-    /// * `Err(msg)` - 事务回滚失败
     pub async fn rollback_transaction(&self, connection_uuid: &str) -> Result<(), String> {
         let mut transactions = self.transactions.write().await;
 
@@ -367,14 +290,6 @@ impl DatabaseConnectionManager {
     }
 
     /// 获取事务状态
-    ///
-    /// # 参数
-    ///
-    /// * `connection_uuid` - 连接 UUID
-    ///
-    /// # 返回
-    ///
-    /// 事务状态，如果不存在则返回 None
     pub async fn get_transaction_state(&self, connection_uuid: &str) -> Option<TransactionState> {
         let transactions = self.transactions.read().await;
         transactions.get(connection_uuid).map(|info| info.state.clone())
@@ -420,14 +335,12 @@ impl DatabaseConnectionManager {
         let mut pools = self.pools.write().await;
         let mut transactions = self.transactions.write().await;
 
-        // 关闭所有连接池
         for (_, active_pool) in pools.drain() {
             if let Some(pool) = active_pool.get_pool() {
                 pool.close().await;
             }
         }
 
-        // 清空事务状态
         transactions.clear();
 
         log::info!("[Database] 所有连接池已清空");
@@ -453,6 +366,48 @@ impl DatabaseConnectionManager {
 impl Default for DatabaseConnectionManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// DbProvider trait 实现
+#[async_trait::async_trait]
+impl flow_engine_core::traits::DbProvider for DatabaseConnectionManager {
+    async fn create_pool(
+        &self,
+        connection_uuid: String,
+        name: String,
+        db_type: String,
+        pool: Arc<dyn DatabasePool>,
+    ) -> Result<(), String> {
+        DatabaseConnectionManager::create_pool(self, connection_uuid, name, db_type, pool).await
+    }
+
+    async fn get_pool(&self, connection_uuid: &str) -> Option<Arc<dyn DatabasePool>> {
+        DatabaseConnectionManager::get_pool(self, connection_uuid).await
+    }
+
+    async fn close_pool(&self, connection_uuid: &str) -> Result<(), String> {
+        DatabaseConnectionManager::close_pool(self, connection_uuid).await
+    }
+
+    async fn begin_transaction(
+        &self,
+        connection_uuid: &str,
+        isolation_level: Option<String>,
+    ) -> Result<(), String> {
+        DatabaseConnectionManager::begin_transaction(self, connection_uuid, isolation_level).await
+    }
+
+    async fn commit_transaction(&self, connection_uuid: &str) -> Result<(), String> {
+        DatabaseConnectionManager::commit_transaction(self, connection_uuid).await
+    }
+
+    async fn rollback_transaction(&self, connection_uuid: &str) -> Result<(), String> {
+        DatabaseConnectionManager::rollback_transaction(self, connection_uuid).await
+    }
+
+    async fn get_transaction_state(&self, connection_uuid: &str) -> Option<TransactionState> {
+        DatabaseConnectionManager::get_transaction_state(self, connection_uuid).await
     }
 }
 
@@ -578,7 +533,6 @@ mod tests {
         let pool1 = Arc::new(MockPool::new("test-pool-1".to_string()));
         let pool2 = Arc::new(MockPool::new("test-pool-2".to_string()));
 
-        // 第一次创建应该成功
         let result1 = manager
             .create_pool(
                 "conn-001".to_string(),
@@ -589,7 +543,6 @@ mod tests {
             .await;
         assert!(result1.is_ok());
 
-        // 第二次创建相同 UUID 应该失败
         let result2 = manager
             .create_pool(
                 "conn-001".to_string(),
@@ -620,7 +573,6 @@ mod tests {
         let retrieved = manager.get_pool("conn-001").await;
         assert!(retrieved.is_some());
 
-        // 测试执行查询
         let result = retrieved
             .unwrap()
             .execute("SELECT 1", vec![])
@@ -683,10 +635,8 @@ mod tests {
     async fn test_begin_transaction_duplicate() {
         let manager = DatabaseConnectionManager::new();
 
-        // 第一次开始事务应该成功
         manager.begin_transaction("conn-001", None).await.unwrap();
 
-        // 第二次开始事务应该失败
         let result = manager.begin_transaction("conn-001", None).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("已有活跃事务"));
@@ -740,19 +690,15 @@ mod tests {
     async fn test_cleanup_transactions() {
         let manager = DatabaseConnectionManager::new();
 
-        // 创建多个事务
         manager.begin_transaction("conn-001", None).await.unwrap();
         manager.begin_transaction("conn-002", None).await.unwrap();
         manager.begin_transaction("conn-003", None).await.unwrap();
 
-        // 提交和回滚部分事务
         manager.commit_transaction("conn-001").await.unwrap();
         manager.rollback_transaction("conn-002").await.unwrap();
 
-        // 清理
         manager.cleanup_transactions().await;
 
-        // 只有活跃事务应该保留
         assert_eq!(
             manager.get_transaction_state("conn-003").await,
             Some(TransactionState::Active)
@@ -920,7 +866,6 @@ mod tests {
         assert_eq!(manager.pool_count().await, 2);
         assert_eq!(manager.active_pool_count().await, 2);
 
-        // 设置错误状态
         manager
             .set_pool_error("conn-001", "Failed")
             .await;
@@ -941,7 +886,7 @@ mod tests {
         assert_eq!(pool.name, "Test Pool");
         assert_eq!(pool.db_type, "postgres");
         assert!(pool.last_error.is_none());
-        assert!(!pool.is_available()); // 没有设置 pool
+        assert!(!pool.is_available());
     }
 
     #[test]

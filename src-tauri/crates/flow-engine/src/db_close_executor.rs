@@ -5,11 +5,11 @@
 
 use crate::connection::Connection;
 use crate::context::ExecutionContext;
-use crate::db::pool::DatabaseConnectionManager;
 use crate::executor::NodeExecutor;
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use crate::node_config::{DbCloseConfig, NodeData};
+use crate::traits::DbProvider;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -18,12 +18,12 @@ use std::time::Instant;
 /// 数据库关闭节点执行器
 pub struct DbCloseExecutor {
     /// 数据库连接池管理器
-    db_manager: Arc<DatabaseConnectionManager>,
+    db_manager: Arc<dyn DbProvider>,
 }
 
 impl DbCloseExecutor {
     /// 创建新的数据库关闭执行器
-    pub fn new(db_manager: Arc<DatabaseConnectionManager>) -> Self {
+    pub fn new(db_manager: Arc<dyn DbProvider>) -> Self {
         Self { db_manager }
     }
 }
@@ -250,8 +250,9 @@ impl DbCloseExecutor {
 mod tests {
     use super::*;
     use crate::context::VariableStorage;
-    use crate::db::pool::MockPool;
     use crate::node::{NodePosition, NodeType};
+    use crate::db::pool::DatabaseConnectionManager;
+    use crate::db::pool::MockPool;
 
     /// 创建测试节点
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {

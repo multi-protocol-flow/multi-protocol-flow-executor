@@ -153,6 +153,15 @@ impl IsolationLevel {
 /// 抽象数据库连接管理功能，使得执行器可以与具体的数据库实现解耦。
 #[async_trait]
 pub trait DbProvider: Send + Sync {
+    /// 创建连接池
+    async fn create_pool(
+        &self,
+        connection_uuid: String,
+        name: String,
+        db_type: String,
+        pool: std::sync::Arc<dyn DatabasePool>,
+    ) -> Result<(), String>;
+
     /// 获取连接池
     async fn get_pool(&self, connection_uuid: &str) -> Option<std::sync::Arc<dyn DatabasePool>>;
 

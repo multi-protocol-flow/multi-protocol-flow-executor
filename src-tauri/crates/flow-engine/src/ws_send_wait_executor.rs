@@ -9,7 +9,7 @@ use crate::executor::{replace_variables, NodeExecutor};
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use crate::node_config::{NodeData, WsMessageType, WsSendWaitConfig, WsWaitMode};
-use crate::websocket_manager::WebSocketConnectionManager;
+use crate::traits::WsProvider;
 use crate::ws_stream::{MessageContent, MessageDirection, WsMessage};
 use serde_json::json;
 use std::collections::HashMap;
@@ -18,12 +18,12 @@ use tokio::time::Instant;
 
 /// WebSocket Send+Wait 节点执行器
 pub struct WsSendWaitExecutor {
-    ws_manager: Arc<WebSocketConnectionManager>,
+    ws_manager: Arc<dyn WsProvider>,
 }
 
 impl WsSendWaitExecutor {
     /// 创建新的 WebSocket Send+Wait 执行器
-    pub fn new(ws_manager: Arc<WebSocketConnectionManager>) -> Self {
+    pub fn new(ws_manager: Arc<dyn WsProvider>) -> Self {
         Self { ws_manager }
     }
 }
@@ -97,17 +97,17 @@ impl NodeExecutor for WsSendWaitExecutor {
         // 4. 检查连接是否存在且状态为 Connected
         let connection_status = self.ws_manager.get_status(&connection_id);
         let error_data = match connection_status {
-            Some(crate::websocket_manager::ConnectionStatus::Connected) => {
+            Some(status) if status == "Connected" => {
                 // 连接正常，继续执行
                 None
             }
             Some(status) => {
                 let error_msg = format!(
-                    "连接状态不是 Connected（当前状态: {:?}）: {}",
+                    "连接状态不是 Connected（当前状态: {}）: {}",
                     status, connection_id
                 );
                 log::error!(
-                    "[WebSocket] 连接状态错误: uuid={}, status={:?}",
+                    "[WebSocket] 连接状态错误: uuid={}, status={}",
                     connection_id,
                     status
                 );
@@ -243,7 +243,7 @@ impl NodeExecutor for WsSendWaitExecutor {
 
                     // 发送调试事件：WsMessageSent
                     if let Some(sender) = &context.debug_event_sender {
-                        let _ = sender.send(DebugEvent::WsMessageSent {
+                        let _ = sender.send_event(DebugEvent::WsMessageSent {
                             connection_id: connection_id.clone(),
                             owner_node_uuid: node.uuid.clone(),
                             message: sent_msg,
@@ -453,7 +453,7 @@ impl WsSendWaitExecutor {
 
                         // 发送调试事件：WsMessageReceived
                         if let Some(sender) = &context.debug_event_sender {
-                            let _ = sender.send(DebugEvent::WsMessageReceived {
+                            let _ = sender.send_event(DebugEvent::WsMessageReceived {
                                 connection_id: connection_id.to_string(),
                                 owner_node_uuid: node.uuid.clone(),
                                 message: received_msg,
@@ -527,7 +527,7 @@ impl WsSendWaitExecutor {
                                         
                                         // 发送调试事件：WsMessageReceived
                                         if let Some(sender) = &context.debug_event_sender {
-                                            let _ = sender.send(DebugEvent::WsMessageReceived {
+                                            let _ = sender.send_event(DebugEvent::WsMessageReceived {
                                                 connection_id: connection_id.to_string(),
                                                 owner_node_uuid: node.uuid.clone(),
                                                 message: received_msg,
@@ -633,7 +633,7 @@ impl WsSendWaitExecutor {
                             );
                             // 发送调试事件：WsMessageReceived（在 push_ws_message 之前克隆）
                             if let Some(sender) = &context.debug_event_sender {
-                                let _ = sender.send(DebugEvent::WsMessageReceived {
+                                let _ = sender.send_event(DebugEvent::WsMessageReceived {
                                     connection_id: connection_id.to_string(),
                                     owner_node_uuid: node.uuid.clone(),
                                     message: received_msg.clone(),

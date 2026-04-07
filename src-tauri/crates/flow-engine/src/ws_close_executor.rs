@@ -9,7 +9,7 @@ use crate::executor::{replace_variables, NodeExecutor};
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use crate::node_config::NodeData;
-use crate::websocket_manager::WebSocketConnectionManager;
+use crate::traits::WsProvider;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -17,12 +17,12 @@ use std::time::Instant;
 
 /// WebSocket Close 节点执行器
 pub struct WsCloseExecutor {
-    ws_manager: Arc<WebSocketConnectionManager>,
+    ws_manager: Arc<dyn WsProvider>,
 }
 
 impl WsCloseExecutor {
     /// 创建新的 WebSocket Close 执行器
-    pub fn new(ws_manager: Arc<WebSocketConnectionManager>) -> Self {
+    pub fn new(ws_manager: Arc<dyn WsProvider>) -> Self {
         Self { ws_manager }
     }
 }
@@ -108,7 +108,7 @@ impl NodeExecutor for WsCloseExecutor {
 
                 // 发送调试事件：WsStreamClosed
                 if let Some(sender) = &context.debug_event_sender {
-                    let _ = sender.send(DebugEvent::WsStreamClosed {
+                    let _ = sender.send_event(DebugEvent::WsStreamClosed {
                         connection_id: connection_id.clone(),
                         last_owner_node_uuid: node.uuid.clone(),
                     });

@@ -5,12 +5,12 @@
 
 use crate::connection::Connection;
 use crate::context::ExecutionContext;
-use crate::db::pool::DatabaseConnectionManager;
 use crate::db::traits::IsolationLevel;
 use crate::executor::NodeExecutor;
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use crate::node_config::{DbBeginConfig, NodeData};
+use crate::traits::DbProvider;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -19,12 +19,12 @@ use std::time::Instant;
 /// 数据库事务开始节点执行器
 pub struct DbBeginExecutor {
     /// 数据库连接池管理器
-    db_manager: Arc<DatabaseConnectionManager>,
+    db_manager: Arc<dyn DbProvider>,
 }
 
 impl DbBeginExecutor {
     /// 创建新的事务开始执行器
-    pub fn new(db_manager: Arc<DatabaseConnectionManager>) -> Self {
+    pub fn new(db_manager: Arc<dyn DbProvider>) -> Self {
         Self { db_manager }
     }
 }
@@ -300,7 +300,7 @@ mod tests {
     use super::*;
     use crate::context::VariableStorage;
     use crate::node::{NodePosition, NodeType};
-
+    use crate::db::pool::DatabaseConnectionManager;
     /// 创建测试节点
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
         Node {

@@ -9,6 +9,7 @@ use crate::executor::{NodeExecutor, replace_variables};
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use crate::node_config::NodeData;
+use crate::traits::DbProvider;
 use crate::utils::extract_value_by_path;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -35,7 +36,7 @@ impl Default for DbQueryTiming {
 /// 数据库查询节点执行器
 pub struct DbQueryNodeExecutor {
     /// 数据库连接池管理器（可选，测试时可使用 mock）
-    db_manager: Option<Arc<crate::db::DatabaseConnectionManager>>,
+    db_manager: Option<Arc<dyn DbProvider>>,
 }
 
 impl Default for DbQueryNodeExecutor {
@@ -51,14 +52,14 @@ impl DbQueryNodeExecutor {
     }
 
     /// 创建带数据库连接池管理器的执行器
-    pub fn with_db_manager(db_manager: Arc<crate::db::DatabaseConnectionManager>) -> Self {
+    pub fn with_db_manager(db_manager: Arc<dyn DbProvider>) -> Self {
         Self {
             db_manager: Some(db_manager),
         }
     }
 
     /// 设置数据库连接池管理器
-    pub fn set_db_manager(&mut self, db_manager: Arc<crate::db::DatabaseConnectionManager>) {
+    pub fn set_db_manager(&mut self, db_manager: Arc<dyn DbProvider>) {
         self.db_manager = Some(db_manager);
     }
 }

@@ -49,4 +49,9 @@ pub trait WsProvider: Send + Sync {
 
     /// 匹配 WebSocket 消息
     fn match_message(&self, message: &str, condition: &WsWaitCondition) -> Result<bool, String>;
+
+    /// 获取连接状态
+    ///
+    /// 返回连接状态的字符串表示（如 "Connected"、"Closed" 等），如果连接不存在则返回 None
+    fn get_status(&self, uuid: &str) -> Option<String>;
 }

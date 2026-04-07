@@ -5,11 +5,11 @@
 
 use crate::connection::Connection;
 use crate::context::ExecutionContext;
-use crate::db::pool::DatabaseConnectionManager;
 use crate::executor::NodeExecutor;
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use crate::node_config::{DbRollbackConfig, NodeData};
+use crate::traits::DbProvider;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -18,12 +18,12 @@ use std::time::Instant;
 /// 数据库回滚节点执行器
 pub struct DbRollbackExecutor {
     /// 数据库连接池管理器
-    db_manager: Arc<DatabaseConnectionManager>,
+    db_manager: Arc<dyn DbProvider>,
 }
 
 impl DbRollbackExecutor {
     /// 创建新的数据库回滚执行器
-    pub fn new(db_manager: Arc<DatabaseConnectionManager>) -> Self {
+    pub fn new(db_manager: Arc<dyn DbProvider>) -> Self {
         Self { db_manager }
     }
 }
@@ -251,7 +251,7 @@ mod tests {
     use super::*;
     use crate::context::VariableStorage;
     use crate::node::{NodePosition, NodeType};
-
+    use crate::db::pool::DatabaseConnectionManager;
     /// 创建测试节点
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
         Node {

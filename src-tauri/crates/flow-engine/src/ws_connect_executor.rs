@@ -9,7 +9,7 @@ use crate::executor::{replace_variables, NodeExecutor};
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use crate::node_config::{NodeData, WsConnectConfig, WsWaitMode};
-use crate::websocket_manager::WebSocketConnectionManager;
+use crate::traits::WsProvider;
 use crate::ws_stream::{MessageContent, MessageDirection, WsMessage};
 use serde_json::json;
 use std::collections::HashMap;
@@ -18,12 +18,12 @@ use std::time::Instant;
 
 /// WebSocket 连接节点执行器
 pub struct WsConnectExecutor {
-    ws_manager: Arc<WebSocketConnectionManager>,
+    ws_manager: Arc<dyn WsProvider>,
 }
 
 impl WsConnectExecutor {
     /// 创建新的 WebSocket 连接执行器
-    pub fn new(ws_manager: Arc<WebSocketConnectionManager>) -> Self {
+    pub fn new(ws_manager: Arc<dyn WsProvider>) -> Self {
         Self { ws_manager }
     }
 }
@@ -120,7 +120,7 @@ impl NodeExecutor for WsConnectExecutor {
 
                 // 发送调试事件：WsStreamCreated
                 if let Some(sender) = &context.debug_event_sender {
-                    let _ = sender.send(DebugEvent::WsStreamCreated {
+                    let _ = sender.send_event(DebugEvent::WsStreamCreated {
                         connection_id: node.uuid.clone(),
                         url: url.clone(),
                         owner_node_uuid: node.uuid.clone(),

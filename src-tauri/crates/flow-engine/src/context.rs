@@ -1,20 +1,19 @@
 // 上下文模块 - 执行上下文和变量存储
 
 use crate::db::types::DbConnection;
-use crate::debug::DebugEvent;
 use crate::log_event::LogEvent;
 use crate::report::NodeExecutionReport;
 use crate::variable::Variable;
 use crate::traits::LogSender;
-use crate::websocket_manager::WebSocketConnectionManager;
+use flow_engine_core::traits::{DebugEventSender, WsProvider, DbProvider};
+use flow_engine_core::DebugEvent;
 use crate::ws_stream::{WsConnectionStream, WsMessage};
-use crate::db::pool::DatabaseConnectionManager;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::RwLock;
 
 /// 执行上下文
 ///
@@ -48,11 +47,11 @@ pub struct ExecutionContext {
     #[serde(skip)]
     pub flow_file_path: Option<PathBuf>,
 
-    /// WebSocket 连接管理器
+    /// WebSocket 连接管理器（通过 WsProvider trait 解耦）
     /// 用于管理 WebSocket 连接的生命周期（连接、发送、接收、关闭）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 WebSocketConnectionManager 不支持序列化
+    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn WsProvider 不支持序列化
     #[serde(skip)]
-    pub ws_manager: Option<Arc<WebSocketConnectionManager>>,
+    pub ws_manager: Option<Arc<dyn WsProvider>>,
 
     /// WebSocket 连接 ID → URL 映射（用于反查）
     /// 存储每个连接 ID 对应的 WebSocket URL，供后续节点（如 WS Send+Wait）反查使用
@@ -65,11 +64,11 @@ pub struct ExecutionContext {
     #[serde(skip)]
     pub ws_streams: Arc<RwLock<HashMap<String, WsConnectionStream>>>,
 
-    /// 数据库连接池管理器
+    /// 数据库连接池管理器（通过 DbProvider trait 解耦）
     /// 用于管理数据库连接的生命周期（连接、查询、关闭）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 DatabaseConnectionManager 不支持序列化
+    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn DbProvider 不支持序列化
     #[serde(skip)]
-    pub db_manager: Option<Arc<DatabaseConnectionManager>>,
+    pub db_manager: Option<Arc<dyn DbProvider>>,
 
     /// 数据库连接配置映射（connection_uuid -> DbConnection）
     /// 前端从连接配置中心获取，传递给后端执行器
@@ -86,8 +85,9 @@ pub struct ExecutionContext {
 
     /// 调试事件发送器（调试模式有值，普通模式为 None）
     /// 用于 WebSocket 执行器发送调试事件（如 WsStreamCreated、WsMessageSent 等）
+    /// 通过 DebugEventSender trait 解耦，支持 mpsc 或其他实现
     #[serde(skip)]
-    pub debug_event_sender: Option<mpsc::UnboundedSender<DebugEvent>>,
+    pub debug_event_sender: Option<Arc<dyn DebugEventSender>>,
 }
 
 impl ExecutionContext {
@@ -180,7 +180,7 @@ impl ExecutionContext {
     /// # 返回
     ///
     /// 更新后的 ExecutionContext
-    pub fn with_ws_manager(mut self, ws_manager: Arc<WebSocketConnectionManager>) -> Self {
+    pub fn with_ws_manager(mut self, ws_manager: Arc<dyn WsProvider>) -> Self {
         self.ws_manager = Some(ws_manager);
         self
     }
@@ -194,7 +194,7 @@ impl ExecutionContext {
     /// # 返回
     ///
     /// 更新后的 ExecutionContext
-    pub fn with_debug_event_sender(mut self, sender: mpsc::UnboundedSender<DebugEvent>) -> Self {
+    pub fn with_debug_event_sender(mut self, sender: Arc<dyn DebugEventSender>) -> Self {
         self.debug_event_sender = Some(sender);
         self
     }

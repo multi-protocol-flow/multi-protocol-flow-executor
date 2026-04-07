@@ -27,6 +27,7 @@ pub mod websocket_manager;
 
 // Wave 3: 执行器模块（需要修改 Tauri 依赖）
 pub mod context;
+pub mod debug_event_adapter;
 pub mod entry_executor;
 pub mod executor;
 pub mod http;

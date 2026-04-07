@@ -38,7 +38,7 @@ impl AssertionNodeExecutor {
     /// 发送调试事件（如果调试模式启用）
     fn emit_debug_event(context: &ExecutionContext, event: DebugEvent) {
         if let Some(sender) = &context.debug_event_sender {
-            if let Err(e) = sender.send(event) {
+            if let Err(e) = sender.send_event(event) {
                 log::warn!(
                     "[流程 {}] 发送调试事件失败: {}",
                     context.flow_uuid,
@@ -873,7 +873,7 @@ mod tests {
             db_manager: None,
             db_connections: std::collections::HashMap::new(),
             last_node_output: None,
-            debug_event_sender: Some(event_sender),
+            debug_event_sender: Some(Arc::new(crate::debug_event_adapter::MpscDebugEventSender::new(event_sender))),
         };
         (context, event_receiver)
     }

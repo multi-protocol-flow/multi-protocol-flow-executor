@@ -6,7 +6,7 @@
 
 use crate::connection::Connection;
 use crate::context::ExecutionContext;
-use crate::db::pool::{DatabaseConnectionManager, MockPool};
+use crate::db::pool::MockPool;
 use crate::db::sqlite::SqliteConnection;
 use crate::db::traits::DatabasePool;
 use crate::db::types::{DbConnection, DbConnectionStatus, DbDriver};
@@ -14,6 +14,7 @@ use crate::executor::NodeExecutor;
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use crate::node_config::{DbConnectConfig, NodeData};
+use crate::traits::DbProvider;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -22,12 +23,12 @@ use std::time::Instant;
 /// 数据库连接节点执行器
 pub struct DbConnectExecutor {
     /// 数据库连接池管理器
-    db_manager: Arc<DatabaseConnectionManager>,
+    db_manager: Arc<dyn DbProvider>,
 }
 
 impl DbConnectExecutor {
     /// 创建新的数据库连接执行器
-    pub fn new(db_manager: Arc<DatabaseConnectionManager>) -> Self {
+    pub fn new(db_manager: Arc<dyn DbProvider>) -> Self {
         Self { db_manager }
     }
 }
@@ -704,6 +705,8 @@ mod tests {
     use super::*;
     use crate::context::VariableStorage;
     use crate::node::{NodePosition, NodeType};
+    use crate::db::pool::{DatabaseConnectionManager, PoolMetadata};
+    use crate::db::pool::MockPool;
 
     /// 创建测试节点
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
@@ -808,7 +811,7 @@ mod tests {
         assert_eq!(data["connection_uuid"], "conn-001");
 
         // 验证连接池已创建
-        let pool_metadata = db_manager.get_pool_metadata("conn-001").await;
+        let pool_metadata: Option<PoolMetadata> = db_manager.get_pool_metadata("conn-001").await;
         assert!(pool_metadata.is_some());
     }
 
@@ -1051,7 +1054,7 @@ mod tests {
         assert_eq!(data["connection_uuid"], "sqlite-conn-001");
 
         // 验证连接池已创建
-        let pool_metadata = db_manager.get_pool_metadata("sqlite-conn-001").await;
+        let pool_metadata: Option<PoolMetadata> = db_manager.get_pool_metadata("sqlite-conn-001").await;
         assert!(pool_metadata.is_some());
         let metadata = pool_metadata.unwrap();
         assert_eq!(metadata.db_type, "sqlite");
