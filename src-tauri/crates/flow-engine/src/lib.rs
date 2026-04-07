@@ -21,7 +21,7 @@ pub use flow_engine_core::ws_stream;
 // Wave 2: 无依赖的基础模块
 pub mod command;
 pub mod db;
-pub mod encryption;
+pub use flow_engine_crypto::encryption;
 pub mod storage;
 pub mod websocket_manager;
 

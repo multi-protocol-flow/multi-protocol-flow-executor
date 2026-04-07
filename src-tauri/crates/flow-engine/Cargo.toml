@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }
+flow-engine-crypto = { path = "../flow-engine-crypto" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 evalexpr = "11.0.0"
