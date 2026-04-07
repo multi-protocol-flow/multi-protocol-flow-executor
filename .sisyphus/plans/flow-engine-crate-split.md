@@ -606,7 +606,7 @@ Max Concurrent: 6 (Wave 3)
   - Message: `refactor(flow-engine): decouple ExecutionContext with trait objects`
   - Files: `flow-engine-core/src/context.rs`, `flow-engine-core/src/traits/*.rs`
 
-- [ ] 7. 提取 flow-engine-crypto
+- [x] 7. 提取 flow-engine-crypto
 
   **What to do**:
   - 移动 `encryption.rs` 到 `flow-engine-crypto/src/encryption.rs`

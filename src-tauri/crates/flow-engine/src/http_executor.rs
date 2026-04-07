@@ -1,7 +1,7 @@
 use crate::connection::Connection;
 use crate::context::ExecutionContext;
 use crate::executor::NodeExecutor;
-use crate::http::{BodyType, HttpClient, HttpRequestConfig, MultipartBody};
+use flow_engine_http::http::{BodyType, HttpClient, HttpRequestConfig, MultipartBody};
 use crate::log_event::{LogEvent, LogLevel};
 use crate::node::Node;
 use std::collections::HashMap;
