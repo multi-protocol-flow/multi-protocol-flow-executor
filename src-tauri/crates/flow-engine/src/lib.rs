@@ -20,10 +20,9 @@ pub use flow_engine_core::ws_stream;
 
 // Wave 2: 无依赖的基础模块
 pub mod command;
-pub mod db;
 pub use flow_engine_crypto::encryption;
 pub mod storage;
-pub mod websocket_manager;
+pub use flow_engine_ws::websocket_manager;
 
 // Wave 3: 执行器模块（需要修改 Tauri 依赖）
 pub use flow_engine_core::context;
@@ -33,25 +32,26 @@ pub mod executor;
 pub use flow_engine_http::http;
 pub use flow_engine_http::http_executor;
 pub mod conditional_executor;
-pub mod ws_connect_executor;
-pub mod ws_send_wait_executor;
-pub mod ws_close_executor;
-pub mod assertion_executor;
-pub mod db_connect_executor;
-pub mod db_query_executor;
-pub mod db_begin_executor;
-pub mod db_commit_executor;
-pub mod db_rollback_executor;
-pub mod db_close_executor;
+pub use flow_engine_ws::ws_connect_executor;
+pub use flow_engine_ws::ws_send_wait_executor;
+pub use flow_engine_ws::ws_close_executor;
+pub use flow_engine_assertion::assertion_executor;
+pub use flow_engine_db::db;
+pub use flow_engine_db::db_connect_executor;
+pub use flow_engine_db::db_query_executor;
+pub use flow_engine_db::db_begin_executor;
+pub use flow_engine_db::db_commit_executor;
+pub use flow_engine_db::db_rollback_executor;
+pub use flow_engine_db::db_close_executor;
 pub mod validator;
 // Wave 4: 调试模块
 pub mod debug;
 // Wave 5: 断言模块
-pub mod assertion;
+pub use flow_engine_assertion::assertion;
 
 // Wave 6: 脚本节点 API 模块
-pub mod script_api;
-pub mod script_executor;
+pub use flow_engine_script::script_api;
+pub use flow_engine_script::script_executor;
 
 // Wave 7: 压力测试模块
 pub mod stress_test;
@@ -78,9 +78,6 @@ pub use db::{
 // ============================================================================
 // 测试工具函数
 // ============================================================================
-
-#[cfg(test)]
-mod script_poc;
 
 #[cfg(test)]
 pub mod test_utils {

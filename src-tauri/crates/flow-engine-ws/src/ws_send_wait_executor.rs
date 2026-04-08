@@ -2,15 +2,15 @@
 //
 // 实现 WebSocket 消息发送、等待响应和变量映射功能。
 
-use crate::connection::Connection;
-use crate::context::ExecutionContext;
-use crate::debug::DebugEvent;
-use crate::executor::{replace_variables, NodeExecutor};
-use crate::log_event::{LogEvent, LogLevel};
-use crate::node::Node;
-use crate::node_config::{NodeData, WsMessageType, WsSendWaitConfig, WsWaitMode};
-use crate::traits::WsProvider;
-use crate::ws_stream::{MessageContent, MessageDirection, WsMessage};
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::debug_types::DebugEvent;
+use flow_engine_core::executor::{replace_variables, NodeExecutor};
+use flow_engine_core::log_event::{LogEvent, LogLevel};
+use flow_engine_core::node::Node;
+use flow_engine_core::node_config::{NodeData, WsMessageType, WsSendWaitConfig, WsWaitMode};
+use flow_engine_core::traits::WsProvider;
+use flow_engine_core::ws_stream::{MessageContent, MessageDirection, WsMessage};
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -780,7 +780,7 @@ impl WsSendWaitExecutor {
         if !config.output_mappings.is_empty() {
             for mapping in &config.output_mappings {
                 if let Some(value) =
-                    crate::utils::extract_value_by_path(output_data, &mapping.source)
+                    flow_engine_core::utils::extract_value_by_path(output_data, &mapping.source)
                 {
                     log::info!(
                         "[流程 {}] [输出映射] 路径: {} -> 变量: {}",
@@ -808,10 +808,10 @@ impl WsSendWaitExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::context::ExecutionContext;
-    use crate::node::{NodePosition, NodeType};
-    use crate::node_config::{WsMatchType, WsSendWaitConfig, WsWaitCondition, WsWaitMode};
-    use crate::variable::OutputMapping;
+    use flow_engine_core::context::ExecutionContext;
+    use flow_engine_core::node::{NodePosition, NodeType};
+    use flow_engine_core::node_config::{WsMatchType, WsSendWaitConfig, WsWaitCondition, WsWaitMode};
+    use flow_engine_core::variable::OutputMapping;
     use crate::websocket_manager::WebSocketConnectionManager;
     use serde_json::json;
     use std::sync::Arc;

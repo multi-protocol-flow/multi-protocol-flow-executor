@@ -2,15 +2,15 @@
 //
 // 执行 SQL 查询并返回结果，支持参数化查询和多种获取模式。
 
-use crate::connection::Connection;
-use crate::context::ExecutionContext;
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
 use crate::db::traits::DatabasePool;
-use crate::executor::{NodeExecutor, replace_variables};
-use crate::log_event::{LogEvent, LogLevel};
-use crate::node::Node;
-use crate::node_config::NodeData;
-use crate::traits::DbProvider;
-use crate::utils::extract_value_by_path;
+use flow_engine_core::executor::{NodeExecutor, replace_variables};
+use flow_engine_core::log_event::{LogEvent, LogLevel};
+use flow_engine_core::node::Node;
+use flow_engine_core::node_config::NodeData;
+use flow_engine_core::traits::DbProvider;
+use flow_engine_core::utils::extract_value_by_path;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
@@ -475,7 +475,7 @@ fn get_false_port_nodes(node: &Node, connections: &[Connection]) -> Vec<String> 
 /// 应用输出映射
 fn apply_output_mappings(
     output: &serde_json::Value,
-    mappings: &[crate::variable::OutputMapping],
+    mappings: &[flow_engine_core::variable::OutputMapping],
     context: &mut ExecutionContext,
     node_uuid: &str,
 ) {
@@ -511,11 +511,11 @@ fn apply_output_mappings(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::context::VariableStorage;
+    use flow_engine_core::context::VariableStorage;
     use crate::db::{DatabaseConnectionManager, MockPool};
-    use crate::node::{Node, NodePosition, NodeType};
-    use crate::node_config::{DbQueryConfig, NodeData};
-    use crate::variable::OutputMapping;
+    use flow_engine_core::node::{Node, NodePosition, NodeType};
+    use flow_engine_core::node_config::{DbQueryConfig, NodeData};
+    use flow_engine_core::variable::OutputMapping;
     use serde_json::json;
     use std::sync::Arc;
 

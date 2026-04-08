@@ -20,7 +20,7 @@ use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use tokio_tungstenite::tungstenite::protocol::Message as WebSocketMessage;
 use tokio_tungstenite::{connect_async_tls_with_config, MaybeTlsStream, WebSocketStream};
 
-use crate::node_config::{FormField, WsMatchType, WsWaitCondition};
+use flow_engine_core::node_config::{FormField, WsMatchType, WsWaitCondition};
 
 /// WebSocket 流类型（支持 TLS）
 type WsStream = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
@@ -1243,7 +1243,7 @@ fn json_to_evalexpr_value(json: &serde_json::Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::node_config::{WsMatchType, WsWaitCondition};
+    use flow_engine_core::node_config::{WsMatchType, WsWaitCondition};
 
     fn create_test_connection(uuid: &str, name: &str, url: &str) -> ActiveConnection {
         ActiveConnection::new(uuid.to_string(), name.to_string(), url.to_string())

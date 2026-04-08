@@ -2,14 +2,14 @@
 //
 // 实现 WebSocket 连接关闭功能。
 
-use crate::connection::Connection;
-use crate::context::ExecutionContext;
-use crate::debug::DebugEvent;
-use crate::executor::{replace_variables, NodeExecutor};
-use crate::log_event::{LogEvent, LogLevel};
-use crate::node::Node;
-use crate::node_config::NodeData;
-use crate::traits::WsProvider;
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::debug_types::DebugEvent;
+use flow_engine_core::executor::{replace_variables, NodeExecutor};
+use flow_engine_core::log_event::{LogEvent, LogLevel};
+use flow_engine_core::node::Node;
+use flow_engine_core::node_config::NodeData;
+use flow_engine_core::traits::WsProvider;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -229,9 +229,9 @@ impl NodeExecutor for WsCloseExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::context::VariableStorage;
-    use crate::node::{NodePosition, NodeType};
-    use crate::node_config::WsCloseConfig;
+    use flow_engine_core::context::VariableStorage;
+    use flow_engine_core::node::{NodePosition, NodeType};
+    use flow_engine_core::node_config::WsCloseConfig;
     use crate::websocket_manager::WebSocketConnectionManager;
     use std::sync::Arc;
 

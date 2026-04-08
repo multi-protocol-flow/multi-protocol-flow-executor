@@ -3,8 +3,8 @@
 //! 执行断言检查并返回结果，支持完整 JSONPath (RFC 9535) 语法和 all/any 模式。
 
 use crate::assertion::operator::evaluate_operator;
-use crate::error::{ErrorDetail, ErrorKind};
-use crate::node_config::{
+use flow_engine_core::error::{ErrorDetail, ErrorKind};
+use flow_engine_core::node_config::{
     Assertion, AssertionConfig, AssertionMode, AssertionOutput, AssertionResult,
 };
 use jsonpath_rust::JsonPath;
@@ -218,7 +218,9 @@ impl Default for AssertionEvaluator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::node_config::{Assertion, AssertionConfig, AssertionMode, AssertionOperator};
+    use flow_engine_core::node_config::{
+        Assertion, AssertionConfig, AssertionMode, AssertionOperator,
+    };
     use serde_json::json;
 
     // ========================================================================

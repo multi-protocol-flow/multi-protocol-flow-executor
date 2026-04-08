@@ -2,7 +2,7 @@
 //!
 //! 实现 15 种断言操作符的求值逻辑，支持严格类型检查和正则 DoS 防护。
 
-use crate::node_config::AssertionOperator;
+use flow_engine_core::node_config::AssertionOperator;
 use serde_json::Value;
 use std::time::{Duration, Instant};
 

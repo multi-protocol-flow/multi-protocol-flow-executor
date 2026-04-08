@@ -7,6 +7,10 @@ edition = "2021"
 flow-engine-core = { path = "../flow-engine-core" }
 flow-engine-crypto = { path = "../flow-engine-crypto" }
 flow-engine-http = { path = "../flow-engine-http" }
+flow-engine-db = { path = "../flow-engine-db" }
+flow-engine-script = { path = "../flow-engine-script" }
+flow-engine-assertion = { path = "../flow-engine-assertion" }
+flow-engine-ws = { path = "../flow-engine-ws" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 evalexpr = "11.0.0"
@@ -20,8 +24,6 @@ tempfile = "3.0"
 serde_json_path = "0.7"
 jsonpath-rust = "1.0.4"
 log = "0.4"
-tokio-tungstenite = { version = "0.28", features = ["native-tls"] }
-futures-util = "0.3"
 http = "1.3"
 tokio-rustls = "0.26"
 rustls = "0.23"
@@ -39,21 +41,11 @@ urlencoding = "2.1"
 rand = "0.8"
 once_cell = "1"
 
-# JS 运行时 (rquickjs POC)
-# 注意: Windows MSVC 有预编译绑定，不需要 bindgen feature
-rquickjs = { version = "0.7", features = ["chrono", "array-buffer"] }
-
 # 加密哈希函数
 sha2 = "0.10"
 md-5 = "0.10"
 hmac = "0.12"
 hex = "0.4"
-
-# 数据库连接池（SQLite/MySQL/PostgreSQL 支持）
-sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "mysql", "postgres", "chrono", "uuid"] }
-
-# Redis 连接（异步支持）
-redis = { version = "0.29", features = ["tokio-comp", "connection-manager"] }
 
 [dev-dependencies]
 mockito = "1.0"
@@ -61,6 +53,7 @@ wiremock = "0.6"
 proptest = "1.4"
 assert_cmd = "2.0"
 predicates = "3"
+futures-util = "0.3"
 
 [lints]
 workspace = true

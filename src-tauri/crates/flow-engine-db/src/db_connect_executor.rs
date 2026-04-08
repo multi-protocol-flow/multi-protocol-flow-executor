@@ -4,17 +4,17 @@
 // Wave 2: 与执行器集成
 // Wave 5: SQLite/Redis/MySQL/PostgreSQL 支持
 
-use crate::connection::Connection;
-use crate::context::ExecutionContext;
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
 use crate::db::pool::MockPool;
 use crate::db::sqlite::SqliteConnection;
 use crate::db::traits::DatabasePool;
 use crate::db::types::{DbConnection, DbConnectionStatus, DbDriver};
-use crate::executor::NodeExecutor;
-use crate::log_event::{LogEvent, LogLevel};
-use crate::node::Node;
-use crate::node_config::{DbConnectConfig, NodeData};
-use crate::traits::DbProvider;
+use flow_engine_core::executor::NodeExecutor;
+use flow_engine_core::log_event::{LogEvent, LogLevel};
+use flow_engine_core::node::Node;
+use flow_engine_core::node_config::{DbConnectConfig, NodeData};
+use flow_engine_core::traits::DbProvider;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -703,8 +703,8 @@ impl DbConnectExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::context::VariableStorage;
-    use crate::node::{NodePosition, NodeType};
+    use flow_engine_core::context::VariableStorage;
+    use flow_engine_core::node::{NodePosition, NodeType};
     use crate::db::pool::{DatabaseConnectionManager, PoolMetadata};
     use crate::db::pool::MockPool;
 

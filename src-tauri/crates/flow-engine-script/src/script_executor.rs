@@ -11,13 +11,13 @@
 //! - 内存限制和超时控制
 //! - 错误处理策略 (致命/可恢复)
 
-use crate::connection::Connection;
-use crate::context::ExecutionContext;
-use crate::error::{ErrorDetail, ErrorKind};
-use crate::executor::NodeExecutor;
-use crate::log_event::{LogEvent, LogLevel};
-use crate::node::Node;
-use crate::node_config::{NodeData, ScriptErrorStrategy, ScriptNodeConfig};
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::{ErrorDetail, ErrorKind};
+use flow_engine_core::executor::NodeExecutor;
+use flow_engine_core::log_event::{LogEvent, LogLevel};
+use flow_engine_core::node::Node;
+use flow_engine_core::node_config::{NodeData, ScriptErrorStrategy, ScriptNodeConfig};
 use crate::script_api::{RequestData, ResponseData};
 use rquickjs::{CatchResultExt, Context as JsContext, Runtime as JsRuntime};
 use std::collections::HashMap;
@@ -466,8 +466,8 @@ impl ScriptNodeExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::node::{NodePosition, NodeType};
-    use crate::node_config::{AssertionFailStrategy, ScriptExecutionPhase};
+    use flow_engine_core::node::{NodePosition, NodeType};
+    use flow_engine_core::node_config::{AssertionFailStrategy, ScriptExecutionPhase};
 
     /// 创建测试用的脚本节点
     fn create_test_node(uuid: &str, script: &str, timeout_ms: u64) -> Node {

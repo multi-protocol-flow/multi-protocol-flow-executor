@@ -2,7 +2,7 @@
 //!
 //! 提供常用的断言预设配置，用于快速设置常见场景的断言。
 
-use crate::node_config::{Assertion, AssertionOperator};
+use flow_engine_core::node_config::{Assertion, AssertionOperator};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -285,7 +285,7 @@ mod tests {
     #[test]
     fn test_http_success_preset_with_evaluator() {
         use crate::assertion::evaluator::AssertionEvaluator;
-        use crate::node_config::AssertionConfig;
+        use flow_engine_core::node_config::AssertionConfig;
 
         let assertions = get_preset("http_success").unwrap();
         let config = AssertionConfig {
@@ -325,7 +325,7 @@ mod tests {
     #[test]
     fn test_json_response_preset_with_evaluator() {
         use crate::assertion::evaluator::AssertionEvaluator;
-        use crate::node_config::AssertionConfig;
+        use flow_engine_core::node_config::AssertionConfig;
 
         let assertions = get_preset("json_response").unwrap();
         let config = AssertionConfig {
@@ -355,7 +355,7 @@ mod tests {
     #[test]
     fn test_response_fast_preset_with_evaluator() {
         use crate::assertion::evaluator::AssertionEvaluator;
-        use crate::node_config::AssertionConfig;
+        use flow_engine_core::node_config::AssertionConfig;
 
         let assertions = get_preset("response_fast").unwrap();
         let config = AssertionConfig {

@@ -3,14 +3,14 @@
 // 实现数据库事务开始功能，支持隔离级别配置。
 // Wave 2: 与执行器集成
 
-use crate::connection::Connection;
-use crate::context::ExecutionContext;
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
 use crate::db::traits::IsolationLevel;
-use crate::executor::NodeExecutor;
-use crate::log_event::{LogEvent, LogLevel};
-use crate::node::Node;
-use crate::node_config::{DbBeginConfig, NodeData};
-use crate::traits::DbProvider;
+use flow_engine_core::executor::NodeExecutor;
+use flow_engine_core::log_event::{LogEvent, LogLevel};
+use flow_engine_core::node::Node;
+use flow_engine_core::node_config::{DbBeginConfig, NodeData};
+use flow_engine_core::traits::DbProvider;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -298,8 +298,8 @@ impl DbBeginExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::context::VariableStorage;
-    use crate::node::{NodePosition, NodeType};
+    use flow_engine_core::context::VariableStorage;
+    use flow_engine_core::node::{NodePosition, NodeType};
     use crate::db::pool::DatabaseConnectionManager;
     /// 创建测试节点
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {

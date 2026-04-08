@@ -9,13 +9,13 @@
 
 use crate::assertion::evaluator::AssertionEvaluator;
 use crate::assertion::preset::get_preset;
-use crate::connection::Connection;
-use crate::context::ExecutionContext;
-use crate::debug::DebugEvent;
-use crate::executor::NodeExecutor;
-use crate::log_event::{LogEvent, LogLevel};
-use crate::node::Node;
-use crate::node_config::{AssertionConfig, AssertionOutput, NodeData, OnFailureMode};
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::debug_types::DebugEvent;
+use flow_engine_core::executor::NodeExecutor;
+use flow_engine_core::log_event::{LogEvent, LogLevel};
+use flow_engine_core::node::Node;
+use flow_engine_core::node_config::{AssertionConfig, AssertionOutput, NodeData, OnFailureMode};
 use serde_json::json;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -400,10 +400,33 @@ impl AssertionNodeExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::context::VariableStorage;
-    use crate::node::{NodePosition, NodeType};
-    use crate::node_config::{Assertion, AssertionMode, AssertionOperator, OnFailureMode};
+    use flow_engine_core::context::VariableStorage;
+    use flow_engine_core::debug_types::DebugEvent;
+    use flow_engine_core::node::{NodePosition, NodeType};
+    use flow_engine_core::node_config::{
+        Assertion, AssertionMode, AssertionOperator, OnFailureMode,
+    };
+    use flow_engine_core::traits::DebugEventSender;
     use std::sync::Arc;
+
+    /// mpsc UnboundedSender adapter for DebugEventSender (测试用)
+    struct MpscDebugEventSender {
+        sender: tokio::sync::mpsc::UnboundedSender<DebugEvent>,
+    }
+
+    impl MpscDebugEventSender {
+        fn new(sender: tokio::sync::mpsc::UnboundedSender<DebugEvent>) -> Self {
+            Self { sender }
+        }
+    }
+
+    impl DebugEventSender for MpscDebugEventSender {
+        fn send_event(&self, event: DebugEvent) -> Result<(), String> {
+            self.sender
+                .send(event)
+                .map_err(|e| format!("Failed to send debug event: {}", e))
+        }
+    }
 
     /// 创建测试上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
@@ -873,7 +896,7 @@ mod tests {
             db_manager: None,
             db_connections: std::collections::HashMap::new(),
             last_node_output: None,
-            debug_event_sender: Some(Arc::new(crate::debug_event_adapter::MpscDebugEventSender::new(event_sender))),
+            debug_event_sender: Some(Arc::new(MpscDebugEventSender::new(event_sender))),
         };
         (context, event_receiver)
     }
