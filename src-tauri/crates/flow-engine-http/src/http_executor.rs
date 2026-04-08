@@ -1,9 +1,9 @@
-use crate::connection::Connection;
-use crate::context::ExecutionContext;
-use crate::executor::NodeExecutor;
-use flow_engine_http::http::{BodyType, HttpClient, HttpRequestConfig, MultipartBody};
-use crate::log_event::{LogEvent, LogLevel};
-use crate::node::Node;
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::executor::NodeExecutor;
+use crate::http::{BodyType, HttpClient, HttpRequestConfig, MultipartBody};
+use flow_engine_core::log_event::{LogEvent, LogLevel};
+use flow_engine_core::node::Node;
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -27,13 +27,13 @@ impl HttpNodeExecutor {
 }
 
 /// Convert ContentType to Content-Type header value
-fn content_type_to_string(content_type: &crate::node_config::ContentType) -> &'static str {
+fn content_type_to_string(content_type: &flow_engine_core::node_config::ContentType) -> &'static str {
     match content_type {
-        crate::node_config::ContentType::Json => "application/json",
-        crate::node_config::ContentType::Text => "text/plain",
-        crate::node_config::ContentType::Html => "text/html",
-        crate::node_config::ContentType::Xml => "application/xml",
-        crate::node_config::ContentType::Javascript => "application/javascript",
+        flow_engine_core::node_config::ContentType::Json => "application/json",
+        flow_engine_core::node_config::ContentType::Text => "text/plain",
+        flow_engine_core::node_config::ContentType::Html => "text/html",
+        flow_engine_core::node_config::ContentType::Xml => "application/xml",
+        flow_engine_core::node_config::ContentType::Javascript => "application/javascript",
     }
 }
 
@@ -73,7 +73,7 @@ impl NodeExecutor for HttpNodeExecutor {
         }).await;
         // 从Node的data字段提取HttpConfig
         let http_config = match &node.data {
-            crate::node_config::NodeData::Http(config) => config.clone(),
+            flow_engine_core::node_config::NodeData::Http(config) => config.clone(),
             _ => {
                 let error_msg = format!("节点数据类型不是HttpConfig: {}", node.uuid);
                 log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
@@ -82,7 +82,7 @@ impl NodeExecutor for HttpNodeExecutor {
         };
 
         // 使用replace_variables替换URL
-        let url = crate::executor::replace_variables(&http_config.url, context)
+        let url = flow_engine_core::executor::replace_variables(&http_config.url, context)
             .map_err(|e| {
                 let error_msg = format!("URL变量替换失败: {}", e);
                 log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
@@ -123,14 +123,14 @@ impl NodeExecutor for HttpNodeExecutor {
         if let Some(config_headers) = &http_config.headers {
             for (key, value) in config_headers {
                 // 替换 header key 中的变量
-                let replaced_key = crate::executor::replace_variables(key, context)
+                let replaced_key = flow_engine_core::executor::replace_variables(key, context)
                     .map_err(|e| {
                         let error_msg = format!("请求头 key 变量替换失败 ({}): {}", key, e);
                         log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
                         error_msg
                     })?;
                 // 替换 header value 中的变量
-                let replaced_value = crate::executor::replace_variables(value, context)
+                let replaced_value = flow_engine_core::executor::replace_variables(value, context)
                     .map_err(|e| {
                         let error_msg = format!("请求头 value 变量替换失败 ({}): {}", key, e);
                         log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
@@ -147,22 +147,22 @@ impl NodeExecutor for HttpNodeExecutor {
 
         // 请求体类型字符串
         let body_type_str = match http_config.body_type {
-            crate::node_config::HttpBodyType::None => "none",
-            crate::node_config::HttpBodyType::Body => "body",
-            crate::node_config::HttpBodyType::FormData => "form-data",
-            crate::node_config::HttpBodyType::XWwwFormUrlencoded => "x-www-form-urlencoded",
-            crate::node_config::HttpBodyType::Binary => "binary",
+            flow_engine_core::node_config::HttpBodyType::None => "none",
+            flow_engine_core::node_config::HttpBodyType::Body => "body",
+            flow_engine_core::node_config::HttpBodyType::FormData => "form-data",
+            flow_engine_core::node_config::HttpBodyType::XWwwFormUrlencoded => "x-www-form-urlencoded",
+            flow_engine_core::node_config::HttpBodyType::Binary => "binary",
         };
 
         // 构建请求体
         let body: BodyType = match http_config.body_type {
-            crate::node_config::HttpBodyType::None => {
+            flow_engine_core::node_config::HttpBodyType::None => {
                 log::info!("[流程 {}] [HTTP] body_type=none, 不添加请求体", context.flow_uuid);
                 BodyType::None
             }
-            crate::node_config::HttpBodyType::Body => {
+            flow_engine_core::node_config::HttpBodyType::Body => {
                 if let Some(body_content) = &http_config.body {
-                    let replaced_body = crate::executor::replace_variables(body_content, context)
+                    let replaced_body = flow_engine_core::executor::replace_variables(body_content, context)
                         .map_err(|e| {
                             let error_msg = format!("请求体变量替换失败: {}", e);
                             log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", 
@@ -187,7 +187,7 @@ impl NodeExecutor for HttpNodeExecutor {
                     BodyType::None
                 }
             }
-            crate::node_config::HttpBodyType::FormData => {
+            flow_engine_core::node_config::HttpBodyType::FormData => {
                 if let Some(form_fields) = &http_config.form_fields {
                     let mut multipart = MultipartBody::new();
                     let mut text_field_count = 0;
@@ -195,18 +195,18 @@ impl NodeExecutor for HttpNodeExecutor {
                     
                     for field in form_fields {
                         match field.field_type {
-                            crate::node_config::FormFieldType::Text => {
-                                let replaced_key = crate::executor::replace_variables(&field.key, context)
+                            flow_engine_core::node_config::FormFieldType::Text => {
+                                let replaced_key = flow_engine_core::executor::replace_variables(&field.key, context)
                                     .map_err(|e| format!("表单字段 key 变量替换失败: {}", e))?;
-                                let replaced_value = crate::executor::replace_variables(&field.value, context)
+                                let replaced_value = flow_engine_core::executor::replace_variables(&field.value, context)
                                     .map_err(|e| format!("表单字段 value 变量替换失败: {}", e))?;
                                 
                                 multipart = multipart.text(replaced_key, replaced_value);
                                 text_field_count += 1;
                             }
-                            crate::node_config::FormFieldType::File => {
+                            flow_engine_core::node_config::FormFieldType::File => {
                                 if let Some(file_path) = &field.file_path {
-                                    let replaced_path = crate::executor::replace_variables(file_path, context)
+                                    let replaced_path = flow_engine_core::executor::replace_variables(file_path, context)
                                         .map_err(|e| format!("文件路径变量替换失败: {}", e))?;
                                     
                                     let resolved_path = context.resolve_file_path(&replaced_path);
@@ -229,7 +229,7 @@ impl NodeExecutor for HttpNodeExecutor {
                                         .and_then(|n| n.to_str())
                                         .unwrap_or("upload");
                                     
-                                    let replaced_key = crate::executor::replace_variables(&field.key, context)
+                                    let replaced_key = flow_engine_core::executor::replace_variables(&field.key, context)
                                         .map_err(|e| format!("表单字段 key 变量替换失败: {}", e))?;
                                     
                                     multipart = multipart.file(
@@ -255,14 +255,14 @@ impl NodeExecutor for HttpNodeExecutor {
                     // 记录 form-data 字段元数据
                     let fields_metadata: Vec<serde_json::Value> = form_fields.iter().map(|f| {
                         match f.field_type {
-                            crate::node_config::FormFieldType::Text => {
+                            flow_engine_core::node_config::FormFieldType::Text => {
                                 serde_json::json!({
                                     "type": "text",
                                     "key": f.key,
                                     "value": f.value
                                 })
                             }
-                            crate::node_config::FormFieldType::File => {
+                            flow_engine_core::node_config::FormFieldType::File => {
                                 serde_json::json!({
                                     "type": "file",
                                     "key": f.key,
@@ -284,15 +284,15 @@ impl NodeExecutor for HttpNodeExecutor {
                     BodyType::None
                 }
             }
-            crate::node_config::HttpBodyType::XWwwFormUrlencoded => {
+            flow_engine_core::node_config::HttpBodyType::XWwwFormUrlencoded => {
                 if let Some(form_fields) = &http_config.form_fields {
                     let mut form_data: Vec<(String, String)> = Vec::new();
                     
                     for field in form_fields {
-                        if matches!(field.field_type, crate::node_config::FormFieldType::Text) {
-                            let replaced_key = crate::executor::replace_variables(&field.key, context)
+                        if matches!(field.field_type, flow_engine_core::node_config::FormFieldType::Text) {
+                            let replaced_key = flow_engine_core::executor::replace_variables(&field.key, context)
                                 .map_err(|e| format!("Form field key variable replacement failed: {}", e))?;
-                            let replaced_value = crate::executor::replace_variables(&field.value, context)
+                            let replaced_value = flow_engine_core::executor::replace_variables(&field.value, context)
                                 .map_err(|e| format!("Form field value variable replacement failed: {}", e))?;
                             form_data.push((replaced_key, replaced_value));
                         }
@@ -322,7 +322,7 @@ impl NodeExecutor for HttpNodeExecutor {
                     BodyType::None
                 }
             }
-            crate::node_config::HttpBodyType::Binary => {
+            flow_engine_core::node_config::HttpBodyType::Binary => {
                 if let Some(file_path) = &http_config.file_path {
                     let resolved_path = context.resolve_file_path(file_path);
                     
@@ -604,7 +604,7 @@ impl NodeExecutor for HttpNodeExecutor {
 /// 应用输出映射，从响应中提取变量
 fn apply_output_mappings(
     response: &serde_json::Value,
-    mappings: &[crate::variable::OutputMapping],
+    mappings: &[flow_engine_core::variable::OutputMapping],
     context: &mut ExecutionContext,
     node_uuid: &str,
 ) {
@@ -634,7 +634,7 @@ fn apply_output_mappings(
 }
 
 // Re-export extract_value_by_path from core utils
-pub use crate::utils::extract_value_by_path;
+pub use flow_engine_core::utils::extract_value_by_path;
 
 #[cfg(test)]
 mod tests {
@@ -642,9 +642,9 @@ mod tests {
     use serde_json::json;
     use std::collections::HashMap;
     use std::sync::Arc;
-    use crate::context::VariableStorage;
-    use crate::node_config::*;
-    use crate::node::*;
+    use flow_engine_core::context::VariableStorage;
+    use flow_engine_core::node_config::*;
+    use flow_engine_core::node::*;
 
     // ============================================================================
     // 测试辅助函数
@@ -2693,7 +2693,7 @@ mod tests {
     #[tokio::test]
     /// 测试成功响应（2xx）路由到 true 端口
     async fn test_http_port_routing_success_to_true() {
-        use crate::connection::Connection;
+        use flow_engine_core::connection::Connection;
 
         let node = create_http_node(
             "test-routing-success",
@@ -2742,7 +2742,7 @@ mod tests {
     #[tokio::test]
     /// 测试失败响应（非2xx）路由到 false 端口
     async fn test_http_port_routing_failure_to_false() {
-        use crate::connection::Connection;
+        use flow_engine_core::connection::Connection;
 
         let node = create_http_node(
             "test-routing-failure",
@@ -2791,7 +2791,7 @@ mod tests {
     #[tokio::test]
     /// 测试网络错误路由到 false 端口
     async fn test_http_port_routing_network_error_to_false() {
-        use crate::connection::Connection;
+        use flow_engine_core::connection::Connection;
 
         let node = create_http_node(
             "test-routing-network-error",

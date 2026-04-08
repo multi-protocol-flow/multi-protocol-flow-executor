@@ -1387,17 +1387,15 @@ dependencies = [
  "assert_cmd",
  "async-trait",
  "base64 0.22.1",
- "bytes",
  "chrono",
  "evalexpr",
  "flow-engine-core",
+ "flow-engine-crypto",
+ "flow-engine-http",
  "futures-util",
  "hex",
  "hmac",
  "http",
- "http-body-util",
- "hyper",
- "hyper-util",
  "jsonpath-rust",
  "keyring",
  "log",
@@ -1423,7 +1421,6 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tokio-tungstenite",
- "tower-service",
  "url",
  "urlencoding",
  "uuid",
@@ -1442,6 +1439,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "log",
+ "regex",
  "serde",
  "serde_json",
  "serde_json_path",
@@ -1451,6 +1449,15 @@ dependencies = [
 [[package]]
 name = "flow-engine-crypto"
 version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "base64 0.22.1",
+ "keyring",
+ "log",
+ "rand 0.8.5",
+ "thiserror 1.0.69",
+ "zeroize",
+]
 
 [[package]]
 name = "flow-engine-db"
@@ -1463,6 +1470,28 @@ version = "0.1.0"
 [[package]]
 name = "flow-engine-http"
 version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "flow-engine-core",
+ "http",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "log",
+ "mime_guess",
+ "rustls",
+ "rustls-pki-types",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-rustls",
+ "tower-service",
+ "url",
+ "webpki-roots 0.26.11",
+]
 
 [[package]]
 name = "flow-engine-script"
