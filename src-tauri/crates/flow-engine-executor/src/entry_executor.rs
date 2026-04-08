@@ -1,11 +1,11 @@
 // Entry 节点执行器 - EntryNodeExecutor 实现
 
-use crate::connection::Connection;
-use crate::log_event::{LogEvent, LogLevel};
-use crate::context::ExecutionContext;
-use crate::executor::NodeExecutor;
-use crate::node::Node;
-use crate::node_config::NodeData;
+use flow_engine_core::connection::Connection;
+use flow_engine_core::log_event::{LogEvent, LogLevel};
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::executor::NodeExecutor;
+use flow_engine_core::node::Node;
+use flow_engine_core::node_config::NodeData;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -158,9 +158,9 @@ impl NodeExecutor for EntryNodeExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::context::{ExecutionContext, VariableStorage};
-    use crate::node::{Node, NodePosition, NodeType};
-    use crate::node_config::NodeData;
+    use flow_engine_core::context::{ExecutionContext, VariableStorage};
+    use flow_engine_core::node::{Node, NodePosition, NodeType};
+    use flow_engine_core::node_config::NodeData;
     use std::sync::Arc;
     use std::time::Instant;
 

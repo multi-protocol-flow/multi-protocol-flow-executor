@@ -1393,6 +1393,7 @@ dependencies = [
  "flow-engine-core",
  "flow-engine-crypto",
  "flow-engine-db",
+ "flow-engine-executor",
  "flow-engine-http",
  "flow-engine-script",
  "flow-engine-ws",
@@ -1491,6 +1492,30 @@ dependencies = [
 [[package]]
 name = "flow-engine-executor"
 version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "evalexpr",
+ "flow-engine-assertion",
+ "flow-engine-core",
+ "flow-engine-crypto",
+ "flow-engine-db",
+ "flow-engine-http",
+ "flow-engine-script",
+ "flow-engine-ws",
+ "jsonpath-rust",
+ "log",
+ "mockito",
+ "proptest",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_json_path",
+ "thiserror 1.0.69",
+ "tokio",
+ "uuid",
+ "wiremock",
+]
 
 [[package]]
 name = "flow-engine-http"

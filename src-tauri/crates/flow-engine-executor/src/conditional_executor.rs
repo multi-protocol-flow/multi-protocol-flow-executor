@@ -1,10 +1,10 @@
-use crate::connection::Connection;
-use crate::context::ExecutionContext;
-use crate::error::{ErrorDetail, ErrorKind};
-use crate::executor::NodeExecutor;
-use crate::log_event::{LogEvent, LogLevel};
-use crate::node::Node;
-use crate::node_config::{ConditionOperator, ConditionType, ExpectedValueType, NodeData};
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::error::{ErrorDetail, ErrorKind};
+use flow_engine_core::executor::NodeExecutor;
+use flow_engine_core::log_event::{LogEvent, LogLevel};
+use flow_engine_core::node::Node;
+use flow_engine_core::node_config::{ConditionOperator, ConditionType, ExpectedValueType, NodeData};
 use evalexpr::ContextWithMutableVariables;
 use serde_json::json;
 use std::collections::HashMap;
@@ -357,7 +357,7 @@ impl ConditionalNodeExecutor {
     /// - `Err(String)`: 条件评估失败（使用 ConditionSyntaxError 或 ConditionEvaluationError）
     fn evaluate_simple_condition(
         &self,
-        config: &crate::node_config::ConditionalConfig,
+        config: &flow_engine_core::node_config::ConditionalConfig,
         variables: &serde_json::Value,
         last_node_output: Option<&serde_json::Value>,
     ) -> Result<bool, String> {
@@ -418,7 +418,7 @@ impl ConditionalNodeExecutor {
     /// 评估高级条件
     fn evaluate_advanced_condition(
         &self,
-        config: &crate::node_config::ConditionalConfig,
+        config: &flow_engine_core::node_config::ConditionalConfig,
         variables: &serde_json::Value,
     ) -> Result<bool, String> {
         // 获取advanced_expression
@@ -517,7 +517,7 @@ impl ConditionalNodeExecutor {
             // JSONPath: $.path.to.field
             // 优先从 last_node_output 提取（上游协议节点输出）
             // 如果 last_node_output 为空，则 fallback 到 variables（兼容性）
-            use crate::http_executor::extract_value_by_path;
+            use flow_engine_http::http_executor::extract_value_by_path;
             
             let data_source = last_node_output.unwrap_or(variables);
             extract_value_by_path(data_source, field_path)
@@ -686,11 +686,11 @@ impl ConditionalNodeExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::connection::Connection;
-    use crate::context::{ExecutionContext, VariableStorage};
-    use crate::node::{Node, NodeType, NodePosition};
-    use crate::node_config::NodeData;
-    use crate::node_config::{ConditionalConfig, ConditionOperator, ConditionType, ExpectedValueType};
+    use flow_engine_core::connection::Connection;
+    use flow_engine_core::context::{ExecutionContext, VariableStorage};
+    use flow_engine_core::node::{Node, NodeType, NodePosition};
+    use flow_engine_core::node_config::NodeData;
+    use flow_engine_core::node_config::{ConditionalConfig, ConditionOperator, ConditionType, ExpectedValueType};
     use serde_json::json;
     use std::collections::HashMap;
     use std::sync::Arc;

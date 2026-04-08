@@ -27,11 +27,11 @@ pub use flow_engine_ws::websocket_manager;
 // Wave 3: 执行器模块（需要修改 Tauri 依赖）
 pub use flow_engine_core::context;
 pub mod debug_event_adapter;
-pub mod entry_executor;
-pub mod executor;
+pub use flow_engine_executor::entry_executor;
+pub use flow_engine_executor::executor;
 pub use flow_engine_http::http;
 pub use flow_engine_http::http_executor;
-pub mod conditional_executor;
+pub use flow_engine_executor::conditional_executor;
 pub use flow_engine_ws::ws_connect_executor;
 pub use flow_engine_ws::ws_send_wait_executor;
 pub use flow_engine_ws::ws_close_executor;

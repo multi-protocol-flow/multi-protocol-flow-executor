@@ -11,6 +11,7 @@ flow-engine-db = { path = "../flow-engine-db" }
 flow-engine-script = { path = "../flow-engine-script" }
 flow-engine-assertion = { path = "../flow-engine-assertion" }
 flow-engine-ws = { path = "../flow-engine-ws" }
+flow-engine-executor = { path = "../flow-engine-executor" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 evalexpr = "11.0.0"

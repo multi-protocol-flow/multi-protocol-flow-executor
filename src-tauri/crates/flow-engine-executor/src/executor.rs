@@ -1,21 +1,21 @@
 // 执行引擎模块 - FlowExecutor 实现
 
-use crate::connection::Connection;
-use crate::context::{ExecutionContext, VariableStorage};
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::{ExecutionContext, VariableStorage};
 use crate::entry_executor::EntryNodeExecutor;
-use crate::flow::Flow;
-use crate::error::{ErrorDetail, ErrorKind};
-use crate::log_event::{LogEvent, LogLevel};
-use crate::node::{Node, NodeType};
-use crate::websocket_manager::WebSocketConnectionManager;
-use crate::ws_connect_executor::WsConnectExecutor;
-use crate::ws_send_wait_executor::WsSendWaitExecutor;
-use crate::ws_close_executor::WsCloseExecutor;
+use flow_engine_core::flow::Flow;
+use flow_engine_core::error::{ErrorDetail, ErrorKind};
+use flow_engine_core::log_event::{LogEvent, LogLevel};
+use flow_engine_core::node::{Node, NodeType};
+use flow_engine_ws::websocket_manager::WebSocketConnectionManager;
+use flow_engine_ws::ws_connect_executor::WsConnectExecutor;
+use flow_engine_ws::ws_send_wait_executor::WsSendWaitExecutor;
+use flow_engine_ws::ws_close_executor::WsCloseExecutor;
 use serde_json::json;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use crate::traits::LogSender;
+use flow_engine_core::traits::LogSender;
 
 use uuid::Uuid;
 
@@ -35,9 +35,9 @@ pub struct ExecutionResult {
     /// 已执行节点数量
     pub executed_count: u32,
     /// 节点执行报告列表
-    pub node_reports: Vec<crate::report::NodeExecutionReport>,
+    pub node_reports: Vec<flow_engine_core::report::NodeExecutionReport>,
     /// 流程执行报告
-    pub flow_report: Option<crate::report::FlowExecutionReport>,
+    pub flow_report: Option<flow_engine_core::report::FlowExecutionReport>,
 }
 
 /// 计算变量变更列表
@@ -53,7 +53,7 @@ pub struct ExecutionResult {
 fn compute_variable_changes(
     variables_before: &HashMap<String, serde_json::Value>,
     variables_after: &HashMap<String, serde_json::Value>,
-) -> Vec<crate::report::VariableChange> {
+) -> Vec<flow_engine_core::report::VariableChange> {
     let mut changes = Vec::new();
 
     // 检测新增和修改的变量
@@ -61,7 +61,7 @@ fn compute_variable_changes(
         let old_value = variables_before.get(key).cloned();
         // 只有值真正变化时才记录
         if old_value.as_ref() != Some(new_value) {
-            changes.push(crate::report::VariableChange {
+            changes.push(flow_engine_core::report::VariableChange {
                 key: key.clone(),
                 old_value,
                 new_value: new_value.clone(),
@@ -81,8 +81,8 @@ fn compute_variable_changes(
 /// - WS Connect: { url, headers, subprotocols, connect_timeout_ms, wait_for_message, wait_mode, message_timeout_ms }
 /// - WS SendWait: { connection_id, message, message_type, send_timeout_ms, wait_for_response, wait_mode, message_timeout_ms }
 /// - WS Close: { connection_id, close_code, close_reason, wait_close_timeout_ms }
-fn build_input_data_from_node_config(node: &crate::node::Node) -> Option<serde_json::Value> {
-    use crate::node_config::NodeData;
+fn build_input_data_from_node_config(node: &flow_engine_core::node::Node) -> Option<serde_json::Value> {
+    use flow_engine_core::node_config::NodeData;
     
     match &node.data {
         // Entry 节点无输入数据
@@ -314,7 +314,7 @@ impl FlowExecutor {
         flow: &Flow,
         variables: Option<serde_json::Value>,
         log_sender: Option<Arc<dyn LogSender>>,
-        db_connections: Option<Vec<crate::db::types::DbConnection>>,
+        db_connections: Option<Vec<flow_engine_db::db::types::DbConnection>>,
     ) -> ExecutionResult {
         let start_time = tokio::time::Instant::now();
         let mut executed_count = 0u32;
@@ -331,10 +331,10 @@ impl FlowExecutor {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
 
         // 初始化数据库连接池管理器（流程级别的单例）
-        let db_manager = Arc::new(crate::db::pool::DatabaseConnectionManager::new());
+        let db_manager = Arc::new(flow_engine_db::db::pool::DatabaseConnectionManager::new());
 
         // 构建数据库连接配置映射（connection_uuid -> DbConnection）
-        let db_connections_map: std::collections::HashMap<String, crate::db::types::DbConnection> =
+        let db_connections_map: std::collections::HashMap<String, flow_engine_db::db::types::DbConnection> =
             db_connections
                 .unwrap_or_default()
                 .into_iter()
@@ -404,7 +404,7 @@ impl FlowExecutor {
         let mut execution_path: Vec<String> = Vec::new();
 
         // 跳过节点记录（Task 15）：记录被跳过的节点及原因
-        let skipped_nodes: Vec<crate::report::SkippedNodeInfo> = Vec::new();
+        let skipped_nodes: Vec<flow_engine_core::report::SkippedNodeInfo> = Vec::new();
 
         while let Some(node) = node_map.get(&current_node_id) {
             // 检测循环（简单防止无限循环）
@@ -576,14 +576,14 @@ impl FlowExecutor {
                     execution_path.push(node.uuid.clone());
 
                     // 创建节点执行报告，使用构建的 input_data
-                    let node_report = crate::report::NodeExecutionReport {
+                    let node_report = flow_engine_core::report::NodeExecutionReport {
                         node_uuid: node.uuid.clone(),
                         node_type: format!("{:?}", node.node_type),
                         node_name: node.name.clone(),
                         start_time: node_start_ms,
                         end_time: node_end_ms,
                         duration_ms: node_duration,
-                        status: crate::report::ExecutionStatus::Success,
+                        status: flow_engine_core::report::ExecutionStatus::Success,
                         input_data,
                         output_data: output_data.clone(),
                         used_port_id,
@@ -688,14 +688,14 @@ impl FlowExecutor {
                         // 解析 resolved_config
                         let resolved_config = Some(serde_json::to_value(&node.data).unwrap_or(json!(null)));
 
-                        let node_report = crate::report::NodeExecutionReport {
+                        let node_report = flow_engine_core::report::NodeExecutionReport {
                             node_uuid: node.uuid.clone(),
                             node_type: format!("{:?}", node.node_type),
                             node_name: node.name.clone(),
                             start_time: node_start_ms,
                             end_time: node_end_ms,
                             duration_ms: node_duration,
-                            status: crate::report::ExecutionStatus::Success,
+                            status: flow_engine_core::report::ExecutionStatus::Success,
                             input_data: Some(json!(context.variables.get_merged_variables())),
                             output_data: None,
                             used_port_id: Some("false".to_string()),
@@ -726,14 +726,14 @@ impl FlowExecutor {
                         // 解析 resolved_config
                         let resolved_config = Some(serde_json::to_value(&node.data).unwrap_or(json!(null)));
 
-                        let node_report = crate::report::NodeExecutionReport {
+                        let node_report = flow_engine_core::report::NodeExecutionReport {
                             node_uuid: node.uuid.clone(),
                             node_type: format!("{:?}", node.node_type),
                             node_name: node.name.clone(),
                             start_time: node_start_ms,
                             end_time: node_end_ms,
                             duration_ms: node_duration,
-                            status: crate::report::ExecutionStatus::Success,
+                            status: flow_engine_core::report::ExecutionStatus::Success,
                             input_data: Some(json!(context.variables.get_merged_variables())),
                             output_data: None,
                             used_port_id: None,
@@ -786,14 +786,14 @@ impl FlowExecutor {
                     // 解析 resolved_config
                     let resolved_config = Some(serde_json::to_value(&node.data).unwrap_or(json!(null)));
 
-                    let node_report = crate::report::NodeExecutionReport {
+                    let node_report = flow_engine_core::report::NodeExecutionReport {
                         node_uuid: node.uuid.clone(),
                         node_type: format!("{:?}", node.node_type),
                         node_name: node.name.clone(),
                         start_time: node_start_ms,
                         end_time: node_end_ms,
                         duration_ms: node_duration,
-                        status: crate::report::ExecutionStatus::Failed,
+                        status: flow_engine_core::report::ExecutionStatus::Failed,
                         input_data: Some(json!(context.variables.get_merged_variables())),
                         output_data: None,
                         used_port_id,
@@ -849,18 +849,18 @@ impl FlowExecutor {
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap()
                             .as_millis() as u64;
-                        let flow_status = crate::report::ExecutionStatus::Failed;
+                        let flow_status = flow_engine_core::report::ExecutionStatus::Failed;
 
                         // 获取最终变量快照（Task 16）
                         let final_variables = context.variables.get_merged_variables();
 
                         // 收集 WebSocket 消息流（完整数据）
-                        let ws_streams: Vec<crate::ws_stream::WsConnectionStream> = {
+                        let ws_streams: Vec<flow_engine_core::ws_stream::WsConnectionStream> = {
                             let streams = context.ws_streams.read().await;
                             streams.values().cloned().collect()
                         };
 
-                        let flow_report = crate::report::FlowExecutionReport {
+                        let flow_report = flow_engine_core::report::FlowExecutionReport {
                             uuid: Uuid::new_v4().to_string(),
                             flow_uuid: flow.uuid.clone(),
                             flow_name: flow.name.clone(),
@@ -871,12 +871,12 @@ impl FlowExecutor {
                             executed_count,
                             status: flow_status,
                             node_reports: node_reports.clone(),
-                            statistics: crate::statistics::FlowStatistics::from_reports(
+                            statistics: flow_engine_core::statistics::FlowStatistics::from_reports(
                                 &node_reports,
                                 flow.nodes.len() as u32,
                             ),
                             flow_error: Some(error_detail.clone()),
-                            execution_mode: crate::report::ExecutionMode::Normal,
+                            execution_mode: flow_engine_core::report::ExecutionMode::Normal,
                             // 新增字段（Task 14, 15, 16）
                             initial_variables: Some(json!(initial_variables)),
                             final_variables: Some(json!(final_variables)),
@@ -932,23 +932,23 @@ impl FlowExecutor {
         let start_time_ms = start_time.elapsed().as_millis() as u64;
         let flow_status = if node_reports
             .iter()
-            .any(|r| r.status == crate::report::ExecutionStatus::Failed)
+            .any(|r| r.status == flow_engine_core::report::ExecutionStatus::Failed)
         {
-            crate::report::ExecutionStatus::Failed
+            flow_engine_core::report::ExecutionStatus::Failed
         } else {
-            crate::report::ExecutionStatus::Success
+            flow_engine_core::report::ExecutionStatus::Success
         };
 
         // 获取最终变量快照（Task 16）
         let final_variables = context.variables.get_merged_variables();
 
         // 收集 WebSocket 消息流（完整数据）
-        let ws_streams: Vec<crate::ws_stream::WsConnectionStream> = {
+        let ws_streams: Vec<flow_engine_core::ws_stream::WsConnectionStream> = {
             let streams = context.ws_streams.read().await;
             streams.values().cloned().collect()
         };
 
-        let flow_report = crate::report::FlowExecutionReport {
+        let flow_report = flow_engine_core::report::FlowExecutionReport {
             uuid: Uuid::new_v4().to_string(),
             flow_uuid: flow.uuid.clone(),
             flow_name: flow.name.clone(),
@@ -959,12 +959,12 @@ impl FlowExecutor {
             executed_count,
             status: flow_status,
             node_reports: node_reports.clone(),
-            statistics: crate::statistics::FlowStatistics::from_reports(
+            statistics: flow_engine_core::statistics::FlowStatistics::from_reports(
                 &node_reports,
                 flow.nodes.len() as u32,
             ),
             flow_error: None,
-            execution_mode: crate::report::ExecutionMode::Normal,
+            execution_mode: flow_engine_core::report::ExecutionMode::Normal,
             // 新增字段（Task 14, 15, 16）
             initial_variables: Some(json!(initial_variables)),
             final_variables: Some(json!(final_variables)),
@@ -1037,7 +1037,7 @@ impl FlowExecutor {
                     node.name,
                     node.uuid
                 );
-                let executor = crate::http_executor::HttpNodeExecutor::new();
+                let executor = flow_engine_http::http_executor::HttpNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::Conditional => {
@@ -1101,7 +1101,7 @@ impl FlowExecutor {
                     node.name,
                     node.uuid
                 );
-                let executor = crate::assertion_executor::AssertionNodeExecutor::new();
+                let executor = flow_engine_assertion::assertion_executor::AssertionNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
             // 数据库连接节点
@@ -1114,9 +1114,9 @@ impl FlowExecutor {
                 );
                 // 获取 db_manager（如果不存在则创建新的）
                 let db_manager = context.db_manager.clone().unwrap_or_else(|| {
-                    Arc::new(crate::db::pool::DatabaseConnectionManager::new())
+                    Arc::new(flow_engine_db::db::pool::DatabaseConnectionManager::new())
                 });
-                let executor = crate::db_connect_executor::DbConnectExecutor::new(db_manager);
+                let executor = flow_engine_db::db_connect_executor::DbConnectExecutor::new(db_manager);
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::DbQuery => {
@@ -1128,9 +1128,9 @@ impl FlowExecutor {
                 );
                 // 获取 db_manager（如果不存在则创建新的）
                 let db_manager = context.db_manager.clone().unwrap_or_else(|| {
-                    Arc::new(crate::db::pool::DatabaseConnectionManager::new())
+                    Arc::new(flow_engine_db::db::pool::DatabaseConnectionManager::new())
                 });
-                let executor = crate::db_query_executor::DbQueryNodeExecutor::with_db_manager(db_manager);
+                let executor = flow_engine_db::db_query_executor::DbQueryNodeExecutor::with_db_manager(db_manager);
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::DbBegin => {
@@ -1142,9 +1142,9 @@ impl FlowExecutor {
                 );
                 // 获取 db_manager（如果不存在则创建新的）
                 let db_manager = context.db_manager.clone().unwrap_or_else(|| {
-                    Arc::new(crate::db::pool::DatabaseConnectionManager::new())
+                    Arc::new(flow_engine_db::db::pool::DatabaseConnectionManager::new())
                 });
-                let executor = crate::db_begin_executor::DbBeginExecutor::new(db_manager);
+                let executor = flow_engine_db::db_begin_executor::DbBeginExecutor::new(db_manager);
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::DbCommit => {
@@ -1156,9 +1156,9 @@ impl FlowExecutor {
                 );
                 // 获取 db_manager（如果不存在则创建新的）
                 let db_manager = context.db_manager.clone().unwrap_or_else(|| {
-                    Arc::new(crate::db::pool::DatabaseConnectionManager::new())
+                    Arc::new(flow_engine_db::db::pool::DatabaseConnectionManager::new())
                 });
-                let executor = crate::db_commit_executor::DbCommitExecutor::new(db_manager);
+                let executor = flow_engine_db::db_commit_executor::DbCommitExecutor::new(db_manager);
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::DbRollback => {
@@ -1170,9 +1170,9 @@ impl FlowExecutor {
                 );
                 // 获取 db_manager（如果不存在则创建新的）
                 let db_manager = context.db_manager.clone().unwrap_or_else(|| {
-                    Arc::new(crate::db::pool::DatabaseConnectionManager::new())
+                    Arc::new(flow_engine_db::db::pool::DatabaseConnectionManager::new())
                 });
-                let executor = crate::db_rollback_executor::DbRollbackExecutor::new(db_manager);
+                let executor = flow_engine_db::db_rollback_executor::DbRollbackExecutor::new(db_manager);
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::DbClose => {
@@ -1184,9 +1184,9 @@ impl FlowExecutor {
                 );
                 // 获取 db_manager（如果不存在则创建新的）
                 let db_manager = context.db_manager.clone().unwrap_or_else(|| {
-                    Arc::new(crate::db::pool::DatabaseConnectionManager::new())
+                    Arc::new(flow_engine_db::db::pool::DatabaseConnectionManager::new())
                 });
-                let executor = crate::db_close_executor::DbCloseExecutor::new(db_manager);
+                let executor = flow_engine_db::db_close_executor::DbCloseExecutor::new(db_manager);
                 executor.execute(node, context, connections, node_map).await
             }
             // 脚本节点
@@ -1197,7 +1197,7 @@ impl FlowExecutor {
                     node.name,
                     node.uuid
                 );
-                let executor = crate::script_executor::ScriptNodeExecutor::new();
+                let executor = flow_engine_script::script_executor::ScriptNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
         }
@@ -1207,8 +1207,8 @@ impl FlowExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::node_config::NodeData;
-    use crate::node::NodePosition;
+    use flow_engine_core::node_config::NodeData;
+    use flow_engine_core::node::NodePosition;
 
     use serde_json::json;
     use std::time::Instant;
