@@ -23,11 +23,13 @@ log = "0.4"
 serde_json_path = "0.7"
 jsonpath-rust = "1.0.4"
 thiserror = "1.0"
+tempfile = "3.0"
 
 [dev-dependencies]
 mockito = "1.0"
 wiremock = "0.6"
 proptest = "1.4"
+futures-util = "0.3"
 
 [lints]
 workspace = true

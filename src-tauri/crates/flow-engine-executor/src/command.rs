@@ -1,8 +1,8 @@
 // 命令模块 - Tauri 命令输入/输出结构体
-use crate::db::types::DbConnection;
-use crate::report::FlowExecutionReport;
+use flow_engine_core::report::FlowExecutionReport;
+use flow_engine_db::db::types::DbConnection;
 
-use crate::flow::Flow;
+use flow_engine_core::flow::Flow;
 use serde_json::Value;
 
 /// 加载流程命令的输入参数

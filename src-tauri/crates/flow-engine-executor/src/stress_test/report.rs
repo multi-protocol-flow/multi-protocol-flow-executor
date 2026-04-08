@@ -7,8 +7,8 @@ use std::time::Instant;
 
 use uuid::Uuid;
 
-use crate::flow::Flow;
 use crate::storage::save_stress_report;
+use flow_engine_core::flow::Flow;
 
 use super::metrics::MetricsCollector;
 use super::types::{
@@ -108,8 +108,8 @@ mod tests {
 
     /// 创建测试用的简单流程
     fn create_test_flow() -> Flow {
-        use crate::node::{Node, NodePosition, NodeType};
-        use crate::node_config::NodeData;
+        use flow_engine_core::node::{Node, NodePosition, NodeType};
+        use flow_engine_core::node_config::NodeData;
 
         Flow {
             uuid: "test-flow-001".to_string(),

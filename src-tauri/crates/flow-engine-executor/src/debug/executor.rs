@@ -2,31 +2,31 @@
 //!
 //! 支持断点、单步执行、变量查看等调试功能
 
-use crate::connection::Connection;
-use crate::context::{ExecutionContext, VariableStorage};
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::{ExecutionContext, VariableStorage};
 use crate::debug::{
     DebugCommand, DebugEvent, DebugSessionState, DebugStatus, EndReason, ExecutionStackEntry,
     PauseReason,
 };
 use crate::entry_executor::EntryNodeExecutor;
-use crate::executor::NodeExecutor;
-use crate::flow::Flow;
-use crate::log_event::{LogEvent, LogLevel};
-use crate::node::{Node, NodeType};
-use crate::node_config::NodeData;
-use crate::assertion_executor::AssertionNodeExecutor;
-use crate::websocket_manager::WebSocketConnectionManager;
-use crate::ws_close_executor::WsCloseExecutor;
-use crate::ws_connect_executor::WsConnectExecutor;
-use crate::ws_send_wait_executor::WsSendWaitExecutor;
-use crate::traits::LogSender;
-use crate::db::DatabaseConnectionManager;
-use crate::db_connect_executor::DbConnectExecutor;
-use crate::db_query_executor::DbQueryNodeExecutor;
-use crate::db_begin_executor::DbBeginExecutor;
-use crate::db_commit_executor::DbCommitExecutor;
-use crate::db_rollback_executor::DbRollbackExecutor;
-use crate::db_close_executor::DbCloseExecutor;
+use flow_engine_core::executor::NodeExecutor;
+use flow_engine_core::flow::Flow;
+use flow_engine_core::log_event::{LogEvent, LogLevel};
+use flow_engine_core::node::{Node, NodeType};
+use flow_engine_core::node_config::NodeData;
+use flow_engine_assertion::assertion_executor::AssertionNodeExecutor;
+use flow_engine_ws::websocket_manager::WebSocketConnectionManager;
+use flow_engine_ws::ws_close_executor::WsCloseExecutor;
+use flow_engine_ws::ws_connect_executor::WsConnectExecutor;
+use flow_engine_ws::ws_send_wait_executor::WsSendWaitExecutor;
+use flow_engine_core::traits::LogSender;
+use flow_engine_db::db::DatabaseConnectionManager;
+use flow_engine_db::db_connect_executor::DbConnectExecutor;
+use flow_engine_db::db_query_executor::DbQueryNodeExecutor;
+use flow_engine_db::db_begin_executor::DbBeginExecutor;
+use flow_engine_db::db_commit_executor::DbCommitExecutor;
+use flow_engine_db::db_rollback_executor::DbRollbackExecutor;
+use flow_engine_db::db_close_executor::DbCloseExecutor;
 use serde_json::json;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -1019,7 +1019,7 @@ impl DebuggableFlowExecutor {
                     node.name,
                     node.uuid
                 );
-                let executor = crate::http_executor::HttpNodeExecutor::new();
+                let executor = flow_engine_http::http_executor::HttpNodeExecutor::new();
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::Conditional => {
@@ -1187,9 +1187,9 @@ impl DebuggableFlowExecutor {
         debug_state: &DebugSessionState,
         flow: &Flow,
         start_time_ms: u64,
-        context: &crate::context::ExecutionContext,
-    ) -> crate::report::FlowExecutionReport {
-        use crate::report::{ExecutionMode, ExecutionStatus, NodeExecutionReport};
+        context: &flow_engine_core::context::ExecutionContext,
+    ) -> flow_engine_core::report::FlowExecutionReport {
+        use flow_engine_core::report::{ExecutionMode, ExecutionStatus, NodeExecutionReport};
 
         let end_time_ms = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -1218,8 +1218,8 @@ impl DebuggableFlowExecutor {
                     None
                 } else {
                     entry.error.as_ref().map(|e| {
-                        crate::error::ErrorDetail::new(
-                            crate::error::ErrorKind::Execution,
+                        flow_engine_core::error::ErrorDetail::new(
+                            flow_engine_core::error::ErrorKind::Execution,
                             e.clone(),
                         )
                     })
@@ -1256,13 +1256,13 @@ impl DebuggableFlowExecutor {
         };
 
         // 计算统计信息（在移动 node_reports 之前）
-        let statistics = crate::statistics::FlowStatistics::from_reports(
+        let statistics = flow_engine_core::statistics::FlowStatistics::from_reports(
             &node_reports,
             flow.nodes.len() as u32,
         );
         let executed_count = node_reports.len() as u32;
 
-        crate::report::FlowExecutionReport {
+        flow_engine_core::report::FlowExecutionReport {
             uuid: Uuid::new_v4().to_string(),
             flow_uuid: flow.uuid.clone(),
             flow_name: flow.name.clone(),
@@ -1293,9 +1293,9 @@ impl DebuggableFlowExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::flow::Flow;
-    use crate::node::{Node, NodePosition};
-    use crate::node_config::NodeData;
+    use flow_engine_core::flow::Flow;
+    use flow_engine_core::node::{Node, NodePosition};
+    use flow_engine_core::node_config::NodeData;
 
     #[tokio::test]
     async fn test_debuggable_executor_creation() {
@@ -1639,8 +1639,8 @@ mod tests {
     /// 对比测试：正常执行入口节点时，初始变量应该被注入
     #[tokio::test]
     async fn test_execute_entry_node_with_initial_variables() {
-        use crate::node_config::EntryConfig;
-        use crate::variable::InitialVariable;
+        use flow_engine_core::node_config::EntryConfig;
+        use flow_engine_core::variable::InitialVariable;
 
         // 创建一个有初始变量的入口节点
         let flow_id = Uuid::new_v4().to_string();
@@ -1776,8 +1776,8 @@ mod tests {
     /// Bug 场景：入口节点有 initial_variables，用户点击"跳过"后，初始变量不应该被注入到上下文中
     #[tokio::test]
     async fn test_skip_entry_node_no_initial_variables() {
-        use crate::node_config::EntryConfig;
-        use crate::variable::InitialVariable;
+        use flow_engine_core::node_config::EntryConfig;
+        use flow_engine_core::variable::InitialVariable;
 
         // 创建一个有初始变量的入口节点
         let flow_id = Uuid::new_v4().to_string();
@@ -1922,8 +1922,8 @@ mod tests {
     /// Bug 场景：入口节点没有后续连接，用户点击"跳过"后，应该结束流程而不是执行入口节点
     #[tokio::test]
     async fn test_skip_entry_node_no_next_node() {
-        use crate::node_config::EntryConfig;
-        use crate::variable::InitialVariable;
+        use flow_engine_core::node_config::EntryConfig;
+        use flow_engine_core::variable::InitialVariable;
 
         // 创建一个有初始变量但没有后续连接的入口节点
         let flow_id = Uuid::new_v4().to_string();

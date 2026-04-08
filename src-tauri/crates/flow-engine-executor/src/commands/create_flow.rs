@@ -1,9 +1,9 @@
 //! 创建流程命令
 
 use crate::command::{CreateFlowCommandInput, CreateFlowCommandOutput};
-use crate::flow::Flow;
-use crate::node::{Node, NodePosition, NodeType};
-use crate::node_config::NodeData;
+use flow_engine_core::flow::Flow;
+use flow_engine_core::node::{Node, NodePosition, NodeType};
+use flow_engine_core::node_config::NodeData;
 use uuid::Uuid;
 
 /// 创建流程命令
@@ -45,7 +45,7 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::node::NodeType;
+    use flow_engine_core::node::NodeType;
 
     /// 测试基本流程创建
     #[test]
@@ -180,7 +180,7 @@ mod tests {
         assert!(json.contains("start-"));
 
         // 反序列化验证
-        let deserialized: crate::flow::Flow = serde_json::from_str(&json).unwrap();
+        let deserialized: flow_engine_core::flow::Flow = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.uuid, output.flow.uuid);
         assert_eq!(deserialized.name, "序列化测试");
         assert_eq!(deserialized.nodes.len(), 1);

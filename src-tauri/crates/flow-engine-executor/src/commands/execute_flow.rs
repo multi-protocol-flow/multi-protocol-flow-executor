@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 use crate::command::{ExecuteFlowCommandInput, ExecuteFlowCommandOutput};
 use crate::executor::FlowExecutor;
-use crate::flow::Flow;
-use crate::log_event::{LogEvent, LogLevel};
-use crate::traits::LogSender;
+use flow_engine_core::flow::Flow;
+use flow_engine_core::log_event::{LogEvent, LogLevel};
+use flow_engine_core::traits::LogSender;
 
 /// 执行流程命令
 ///
@@ -98,11 +98,11 @@ pub async fn execute_flow(
 mod tests {
     use super::*;
     use crate::command::ExecuteFlowCommandInput;
-    use crate::flow::Flow;
-    use crate::node::{Node, NodeType, NodePosition};
-    use crate::node_config::NodeData;
-    use crate::connection::Connection;
-    use crate::traits::NoopLogSender;
+    use flow_engine_core::flow::Flow;
+    use flow_engine_core::node::{Node, NodeType, NodePosition};
+    use flow_engine_core::node_config::NodeData;
+    use flow_engine_core::connection::Connection;
+    use flow_engine_core::traits::NoopLogSender;
     use serde_json::json;
     use uuid::Uuid;
     use std::sync::Arc;
@@ -210,7 +210,7 @@ mod tests {
             node_type: NodeType::Http,
             name: "HTTP请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::Http(crate::node_config::HttpConfig {
+            data: NodeData::Http(flow_engine_core::node_config::HttpConfig {
                 url: "https://example.com".to_string(),
                 ..Default::default()
             }),
@@ -496,6 +496,6 @@ mod tests {
         
         // 验证节点报告
         assert_eq!(node_report.node_name, node_name);
-        assert_eq!(node_report.status, crate::report::ExecutionStatus::Success);
+        assert_eq!(node_report.status, flow_engine_core::report::ExecutionStatus::Success);
     }
 }

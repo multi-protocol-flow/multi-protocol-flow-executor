@@ -2,7 +2,7 @@
 //!
 //! 独立于 Tauri 的业务逻辑层，可在 CLI 和测试环境中直接使用。
 
-pub mod commands;
+pub use flow_engine_executor::commands;
 
 // Re-exports from flow-engine-core
 pub use flow_engine_core::connection;
@@ -19,33 +19,33 @@ pub use flow_engine_core::variable;
 pub use flow_engine_core::ws_stream;
 
 // Wave 2: 无依赖的基础模块
-pub mod command;
 pub use flow_engine_crypto::encryption;
-pub mod storage;
+pub use flow_engine_executor::command;
+pub use flow_engine_executor::storage;
 pub use flow_engine_ws::websocket_manager;
 
 // Wave 3: 执行器模块（需要修改 Tauri 依赖）
-pub use flow_engine_core::context;
-pub mod debug_event_adapter;
-pub use flow_engine_executor::entry_executor;
-pub use flow_engine_executor::executor;
-pub use flow_engine_http::http;
-pub use flow_engine_http::http_executor;
-pub use flow_engine_executor::conditional_executor;
-pub use flow_engine_ws::ws_connect_executor;
-pub use flow_engine_ws::ws_send_wait_executor;
-pub use flow_engine_ws::ws_close_executor;
 pub use flow_engine_assertion::assertion_executor;
+pub use flow_engine_core::context;
 pub use flow_engine_db::db;
+pub use flow_engine_db::db_begin_executor;
+pub use flow_engine_db::db_close_executor;
+pub use flow_engine_db::db_commit_executor;
 pub use flow_engine_db::db_connect_executor;
 pub use flow_engine_db::db_query_executor;
-pub use flow_engine_db::db_begin_executor;
-pub use flow_engine_db::db_commit_executor;
 pub use flow_engine_db::db_rollback_executor;
-pub use flow_engine_db::db_close_executor;
-pub mod validator;
+pub use flow_engine_executor::conditional_executor;
+pub use flow_engine_executor::debug_event_adapter;
+pub use flow_engine_executor::entry_executor;
+pub use flow_engine_executor::executor;
+pub use flow_engine_executor::validator;
+pub use flow_engine_http::http;
+pub use flow_engine_http::http_executor;
+pub use flow_engine_ws::ws_close_executor;
+pub use flow_engine_ws::ws_connect_executor;
+pub use flow_engine_ws::ws_send_wait_executor;
 // Wave 4: 调试模块
-pub mod debug;
+pub use flow_engine_executor::debug;
 // Wave 5: 断言模块
 pub use flow_engine_assertion::assertion;
 
@@ -54,25 +54,24 @@ pub use flow_engine_script::script_api;
 pub use flow_engine_script::script_executor;
 
 // Wave 7: 压力测试模块
-pub mod stress_test;
+pub use flow_engine_executor::stress_test;
 
 // Re-exports
 pub use traits::{
-    AppDirProvider, DefaultAppDirProvider, DirectoryOpener, NoopDirectoryOpener,
-    ConsoleLogSender, LogSender, NoopLogSender,
-    QueuedLogSender, UnderlyingLogSender, LogWorker,
+    AppDirProvider, ConsoleLogSender, DefaultAppDirProvider, DirectoryOpener, LogSender, LogWorker,
+    NoopDirectoryOpener, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
 };
 
 // Re-export ws_stream types
 pub use ws_stream::{
-    MessageDirection, MessageContent, WsMessage, WsStreamSegment, WsConnectionStream,
+    MessageContent, MessageDirection, WsConnectionStream, WsMessage, WsStreamSegment,
 };
 
 // Re-export db types
 pub use db::{
     DatabaseConnectionManager, DatabasePool, DbConnection, DbConnectionStatus, DbDriver,
-    IsolationLevel, MockPool, PoolMetadata, QueryResult, TestDbConnectionResult,
-    TransactionInfo, TransactionState,
+    IsolationLevel, MockPool, PoolMetadata, QueryResult, TestDbConnectionResult, TransactionInfo,
+    TransactionState,
 };
 
 // ============================================================================
@@ -84,7 +83,7 @@ pub mod test_utils {
     use crate::context::ExecutionContext;
     use crate::node::{Node, NodePosition, NodeType};
     use crate::node_config::{
-        WsCloseConfig, WsConnectConfig, WsSendWaitConfig, WsMessageType, WsWaitMode,
+        WsCloseConfig, WsConnectConfig, WsMessageType, WsSendWaitConfig, WsWaitMode,
     };
 
     /// 创建 WebSocket Connect 节点
@@ -114,7 +113,7 @@ pub mod test_utils {
                 output_mappings: vec![],
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         }
     }
 
@@ -145,7 +144,7 @@ pub mod test_utils {
                 output_mappings: vec![],
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         }
     }
 
@@ -170,7 +169,7 @@ pub mod test_utils {
                 wait_close_timeout_ms: 5000,
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         }
     }
 
@@ -193,7 +192,7 @@ mod tests {
     #[test]
     fn test_create_ws_connect_node() {
         let node = create_ws_connect_node("ws-001", "Test WS Connect", "wss://example.com/ws");
-        
+
         assert_eq!(node.uuid, "ws-001");
         assert_eq!(node.name, "Test WS Connect");
         assert_eq!(node.node_type, crate::node::NodeType::WsConnect);
@@ -202,7 +201,7 @@ mod tests {
     #[test]
     fn test_create_ws_send_wait_node() {
         let node = create_ws_send_wait_node("ws-002", "conn-001", "Hello, WebSocket!");
-        
+
         assert_eq!(node.uuid, "ws-002");
         assert_eq!(node.node_type, crate::node::NodeType::WsSendWait);
         assert!(node.name.contains("ws-002"));
@@ -211,7 +210,7 @@ mod tests {
     #[test]
     fn test_create_ws_close_node() {
         let node = create_ws_close_node("ws-003", "conn-001");
-        
+
         assert_eq!(node.uuid, "ws-003");
         assert_eq!(node.node_type, crate::node::NodeType::WsClose);
         assert!(node.name.contains("ws-003"));
@@ -220,7 +219,7 @@ mod tests {
     #[test]
     fn test_create_context_with_ws_manager() {
         let context = create_context_with_ws_manager("test-flow-001");
-        
+
         assert_eq!(context.flow_uuid, "test-flow-001");
         assert!(context.current_node_uuid.is_none());
         assert!(context.node_reports.is_empty());

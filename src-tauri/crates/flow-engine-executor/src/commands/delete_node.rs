@@ -1,8 +1,8 @@
 //! 删除节点命令
 
 use crate::command::{DeleteNodeCommandInput, DeleteNodeCommandOutput};
-use crate::flow::Flow;
-use crate::node::NodeType;
+use flow_engine_core::flow::Flow;
+use flow_engine_core::node::NodeType;
 
 /// 删除节点命令（桩实现）
 ///
@@ -57,9 +57,9 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
 mod tests {
     use super::*;
     use crate::command::DeleteNodeCommandInput;
-    use crate::flow::Flow;
-    use crate::node::{Node, NodePosition, NodeType};
-    use crate::node_config::NodeData;
+    use flow_engine_core::flow::Flow;
+    use flow_engine_core::node::{Node, NodePosition, NodeType};
+    use flow_engine_core::node_config::NodeData;
 
     /// 创建测试用流程
     fn create_test_flow() -> Flow {

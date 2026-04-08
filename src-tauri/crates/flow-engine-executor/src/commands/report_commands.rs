@@ -2,8 +2,8 @@
 
 use std::path::Path;
 
-use crate::report::{FlowExecutionReport, ReportMetadata};
 use crate::storage;
+use flow_engine_core::report::{FlowExecutionReport, ReportMetadata};
 
 /// 保存流程执行报告
 ///
@@ -47,8 +47,10 @@ pub fn delete_flow_report(uuid: &str, reports_dir: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::report::{ExecutionMode, ExecutionStatus, FlowExecutionReport, NodeExecutionReport};
-    use crate::statistics::FlowStatistics;
+    use flow_engine_core::report::{
+        ExecutionMode, ExecutionStatus, FlowExecutionReport, NodeExecutionReport,
+    };
+    use flow_engine_core::statistics::FlowStatistics;
     use std::fs;
     use tempfile::TempDir;
 

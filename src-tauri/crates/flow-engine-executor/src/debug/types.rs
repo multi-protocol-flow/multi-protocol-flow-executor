@@ -16,7 +16,7 @@ pub use flow_engine_core::debug_types::{
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ws_stream::WsMessage;
+    use flow_engine_core::ws_stream::WsMessage;
     use serde_json::json;
     use std::collections::HashMap;
 
@@ -393,7 +393,7 @@ mod tests {
 
     #[test]
     fn test_ws_message_received_event() {
-        use crate::ws_stream::{MessageContent, MessageDirection};
+        use flow_engine_core::ws_stream::{MessageContent, MessageDirection};
 
         let msg = WsMessage::with_timestamp(
             MessageDirection::Received,
@@ -424,7 +424,7 @@ mod tests {
 
     #[test]
     fn test_ws_message_sent_event() {
-        use crate::ws_stream::{MessageContent, MessageDirection};
+        use flow_engine_core::ws_stream::{MessageContent, MessageDirection};
 
         let msg = WsMessage::with_timestamp(
             MessageDirection::Sent,
@@ -497,7 +497,7 @@ mod tests {
 
     #[test]
     fn test_all_ws_debug_event_variants() {
-        use crate::ws_stream::{MessageContent, MessageDirection};
+        use flow_engine_core::ws_stream::{MessageContent, MessageDirection};
 
         let events = vec![
             DebugEvent::WsStreamCreated {
@@ -572,7 +572,7 @@ mod tests {
 
     #[test]
     fn test_assertion_completed_event() {
-        use crate::node_config::AssertionResult;
+        use flow_engine_core::node_config::AssertionResult;
 
         let failed_assertions = vec![AssertionResult {
             id: "assert-1".to_string(),
@@ -652,7 +652,7 @@ mod tests {
 
     #[test]
     fn test_assertion_events_fail_scenario() {
-        use crate::node_config::AssertionResult;
+        use flow_engine_core::node_config::AssertionResult;
 
         // 测试失败场景
         let failed_assertions = vec![

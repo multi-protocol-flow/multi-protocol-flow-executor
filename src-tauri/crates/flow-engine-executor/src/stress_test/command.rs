@@ -5,7 +5,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, RwLock};
 
-use crate::flow::Flow;
+use flow_engine_core::flow::Flow;
 
 use super::executor::StressTestExecutor;
 use super::{StressTestConfig, StressTestProgress, StressTestReport, StressTestStatus};
@@ -238,8 +238,8 @@ pub async fn handle_get_stress_test_status(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::node::{Node, NodePosition, Port, PortType};
-    use crate::node_config::NodeData;
+    use flow_engine_core::node::{Node, NodePosition, Port, PortType};
+    use flow_engine_core::node_config::NodeData;
     use crate::stress_test::{ResponseTimeDistribution, StressTestStatistics};
 
     fn create_test_flow() -> Flow {
@@ -248,7 +248,7 @@ mod tests {
             name: "Test Flow".to_string(),
             nodes: vec![Node {
                 uuid: "node-001".to_string(),
-                node_type: crate::node::NodeType::Entry,
+                node_type: flow_engine_core::node::NodeType::Entry,
                 name: "Entry".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
                 data: NodeData::entry(),
@@ -538,7 +538,7 @@ mod tests {
             name: "Test Flow 2".to_string(),
             nodes: vec![Node {
                 uuid: "node-002".to_string(),
-                node_type: crate::node::NodeType::Entry,
+                node_type: flow_engine_core::node::NodeType::Entry,
                 name: "Entry".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
                 data: NodeData::entry(),
@@ -695,7 +695,7 @@ mod tests {
             name: "Test Flow 2".to_string(),
             nodes: vec![Node {
                 uuid: "node-002".to_string(),
-                node_type: crate::node::NodeType::Entry,
+                node_type: flow_engine_core::node::NodeType::Entry,
                 name: "Entry".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
                 data: NodeData::entry(),

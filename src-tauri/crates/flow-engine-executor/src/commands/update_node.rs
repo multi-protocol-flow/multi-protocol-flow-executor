@@ -1,7 +1,7 @@
 //! 更新节点命令
 
 use crate::command::{UpdateNodeCommandInput, UpdateNodeCommandOutput};
-use crate::flow::Flow;
+use flow_engine_core::flow::Flow;
 
 /// 更新节点命令（桩实现）
 ///
@@ -29,8 +29,8 @@ pub fn update_node(_input: UpdateNodeCommandInput, _flow: Flow) -> UpdateNodeCom
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::node::{Node, NodePosition, NodeType};
-    use crate::node_config::NodeData;
+    use flow_engine_core::node::{Node, NodePosition, NodeType};
+    use flow_engine_core::node_config::NodeData;
     use serde_json::json;
 
     /// 创建测试用的流程

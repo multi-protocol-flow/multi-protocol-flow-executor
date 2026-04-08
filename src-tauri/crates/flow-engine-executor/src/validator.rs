@@ -1,8 +1,8 @@
 // 流程验证器模块 - FlowValidator 实现
 
-use crate::flow::Flow;
-use crate::node::{Node, NodeType};
-use crate::node_config::NodeData;
+use flow_engine_core::flow::Flow;
+use flow_engine_core::node::{Node, NodeType};
+use flow_engine_core::node_config::NodeData;
 
 /// 验证结果
 #[derive(Debug, Clone)]
@@ -211,10 +211,10 @@ impl FlowValidator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::connection::Connection;
-    use crate::flow::Flow;
-    use crate::node::{Node, NodePosition, NodeType};
-    use crate::node_config::NodeData;
+    use flow_engine_core::connection::Connection;
+    use flow_engine_core::flow::Flow;
+    use flow_engine_core::node::{Node, NodePosition, NodeType};
+    use flow_engine_core::node_config::NodeData;
     use uuid::Uuid;
 
     /// 创建测试用的入口节点
@@ -226,7 +226,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         }
     }
 
@@ -239,7 +239,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com/end"),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         }
     }
 
@@ -309,7 +309,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         };
 
         let flow = Flow {
@@ -364,7 +364,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com/1"),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         };
         let http_node2 = Node {
             uuid: Uuid::new_v4().to_string(),
@@ -373,7 +373,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com/2"),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         };
 
         let flow = Flow {
@@ -447,7 +447,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         };
         let end_node = create_end_node();
 
@@ -482,7 +482,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         };
         let end_node = create_end_node();
 
@@ -546,7 +546,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         };
         let end_node = create_end_node();
 
@@ -558,7 +558,7 @@ mod tests {
             position: NodePosition { x: 200.0, y: 0.0 },
             data: NodeData::http("https://example.com/other"),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         };
 
         let connection = Connection {
@@ -607,7 +607,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         };
 
         let flow = Flow {
@@ -665,7 +665,7 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         };
 
         let end_node = Node {
@@ -675,7 +675,7 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com/end"),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         };
 
         // 使用特定 UUID 创建连接

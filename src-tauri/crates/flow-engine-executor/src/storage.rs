@@ -1,8 +1,8 @@
 // 存储模块 - JSON 文件读写实现
 
-use crate::flow::Flow;
-use crate::report::{ExecutionMode, FlowExecutionReport, ReportMetadata};
 use crate::stress_test::StressTestReport;
+use flow_engine_core::flow::Flow;
+use flow_engine_core::report::{ExecutionMode, FlowExecutionReport, ReportMetadata};
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
