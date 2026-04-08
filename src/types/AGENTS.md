@@ -47,17 +47,17 @@ src/types/
 
 **任何类型修改必须同时更新前后端。**
 
-对应关系：
-- `node.ts` ↔ `src-tauri/crates/flow-engine/src/node.rs` + `node_config.rs`
-- `flow.ts` ↔ `src-tauri/crates/flow-engine/src/flow.rs`
-- `connection.ts` ↔ `src-tauri/crates/flow-engine/src/connection.rs`
-- `report.ts` ↔ `src-tauri/crates/flow-engine/src/report.rs` + `statistics.rs`
-- `variable.ts` ↔ `src-tauri/crates/flow-engine/src/variable.rs`
-- `error.ts` ↔ `src-tauri/crates/flow-engine/src/error.rs`
-- `debug.ts` ↔ `src-tauri/crates/flow-engine/src/debug/types.rs`
-- `ws_stream.ts` ↔ `src-tauri/crates/flow-engine/src/ws_stream.rs`
-- `database.ts` ↔ `src-tauri/crates/flow-engine/src/db/types.rs`
-- `stressTest.ts` ↔ `src-tauri/crates/flow-engine/src/stress_test/types.rs`
+对应关系（注意: 后端已拆分为多个 crate）：
+- `node.ts` ↔ `src-tauri/crates/flow-engine-core/src/node.rs` + `node_config.rs`
+- `flow.ts` ↔ `src-tauri/crates/flow-engine-core/src/flow.rs`
+- `connection.ts` ↔ `src-tauri/crates/flow-engine-core/src/connection.rs`
+- `report.ts` ↔ `src-tauri/crates/flow-engine-core/src/report.rs` + `statistics.rs`
+- `variable.ts` ↔ `src-tauri/crates/flow-engine-core/src/variable.rs`
+- `error.ts` ↔ `src-tauri/crates/flow-engine-core/src/error.rs`
+- `debug.ts` ↔ `src-tauri/crates/flow-engine-executor/src/debug/types.rs` + `src-tauri/crates/flow-engine-core/src/debug_types.rs`
+- `ws_stream.ts` ↔ `src-tauri/crates/flow-engine-core/src/ws_stream.rs`
+- `database.ts` ↔ `src-tauri/crates/flow-engine-core/src/db_types.rs`
+- `stressTest.ts` ↔ `src-tauri/crates/flow-engine-executor/src/stress_test/types.rs`
 
 ### 类型安全红线
 

@@ -1,6 +1,6 @@
 # 项目知识库
 
-**生成时间:** 2026-03-18
+**生成时间:** 2026-04-08
 **Commit:** cc2bf47
 **Branch:** master
 
@@ -8,7 +8,7 @@
 
 多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 工具。支持 HTTP、WebSocket、数据库（PostgreSQL/MySQL/SQLite/Redis）协议，具备调试模式和压力测试功能。
 - **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + React Flow
-- **后端:** Rust (Tauri 2.x) + async-trait + hyper 1.x + evalexpr + tokio-tungstenite + QuickJS
+- **后端:** Rust Workspace (9 crates) + Tauri 2.x
 
 ## 结构
 
@@ -21,43 +21,58 @@ multi-protocol-flow-executor/
 │   ├── types/              # TypeScript 类型 (与 Rust 对齐)
 │   ├── templates/          # 内置流程模板
 │   └── __tests__/          # Vitest 单元测试
-├── src-tauri/              # Rust 后端 (Workspace)
+├── src-tauri/              # Rust 后端 (Workspace，详见 src-tauri/crates/AGENTS.md)
 │   ├── src/                # Tauri 适配层 + IPC 命令 (详见 src-tauri/src/AGENTS.md)
-│   ├── crates/flow-engine/ # 独立执行引擎 crate (74 源文件)
-│   │   └── src/
-│   │       ├── http/       # HTTP 客户端模块 (hyper 1.x)
-│   │       ├── db/         # 数据库模块 (PostgreSQL/MySQL/SQLite/Redis)
-│   │       ├── assertion/  # 断言模块
-│   │       ├── stress_test/# 压力测试模块
-│   │       ├── traits/     # 抽象接口 (解耦 Tauri)
-│   │       ├── commands/   # 业务命令
-│   │       ├── debug/      # 调试执行器
-│   │       ├── script_api.rs # 脚本节点 API (QuickJS)
-│   │       ├── encryption.rs # 加密模块 (AES-256-GCM)
-│   │       └── ws_stream.rs # WebSocket 消息流数据结构
+│   ├── crates/             # 9 个子 crate (详见下方依赖图)
+│   │   ├── flow-engine/    # 门面 crate (re-export 全部子 crate)
+│   │   ├── flow-engine-core/       # 基础类型、traits、共享数据结构
+│   │   ├── flow-engine-crypto/     # AES-256-GCM 加密 + OS Keychain
+│   │   ├── flow-engine-http/       # HTTP 客户端 (hyper 1.x) + 执行器
+│   │   ├── flow-engine-ws/         # WebSocket 连接管理 + 3 个执行器
+│   │   ├── flow-engine-db/         # 数据库连接池 + 6 个执行器 (PG/MySQL/SQLite/Redis)
+│   │   ├── flow-engine-script/     # QuickJS 运行时 + 脚本执行器
+│   │   ├── flow-engine-assertion/  # 15 种断言操作符 + 执行器
+│   │   └── flow-engine-executor/   # 主执行器、调试模式、压力测试、业务命令
 │   └── bin/cli.rs          # CLI 二进制
 ├── tests/                  # CLI 测试数据 + fixtures
 └── docs/                   # 架构文档
 ```
 
+### Crate 依赖图
+
+```
+Layer 0 (叶子):  flow-engine-core, flow-engine-crypto
+Layer 1:         flow-engine-http, flow-engine-ws, flow-engine-db,
+                 flow-engine-script, flow-engine-assertion    (→ core)
+Layer 2:         flow-engine-executor                          (→ core + 全部 Layer 1 + crypto)
+Layer 3:         flow-engine                                   (门面，re-export 全部)
+Layer 4:         app (src-tauri/)                              (→ flow-engine)
+```
+
+**增量编译关键**: 修改 Layer N 的 crate 会触发 Layer N+1 及以上重编译。core 是最关键的基础——修改它会级联全部 crate。
+
 ## 快速定位
 
 | 任务 | 位置 |
 |------|------|
-| 添加新节点类型 | `src-tauri/crates/flow-engine/src/` + `src/types/node.ts` + `src/components/canvas/nodes/` |
-| 修改执行逻辑 | `src-tauri/crates/flow-engine/src/executor.rs` |
+| 添加新节点类型 | `src-tauri/crates/flow-engine-core/src/` (类型) + `src-tauri/crates/flow-engine-executor/src/` (执行器) + `src/types/node.ts` + `src/components/canvas/nodes/` |
+| 修改执行逻辑 | `src-tauri/crates/flow-engine-executor/src/executor.rs` |
 | 添加前端组件 | `src/components/` (97 组件) |
 | 修改状态管理 | `src/stores/` (9 stores) |
-| HTTP 请求节点 | `src-tauri/crates/flow-engine/src/http_executor.rs` + `http/` 模块 |
-| 条件分支节点 | `src-tauri/crates/flow-engine/src/conditional_executor.rs` |
-| 脚本节点 | `src-tauri/crates/flow-engine/src/script_executor.rs` + `script_api.rs` |
-| 断言节点 | `src-tauri/crates/flow-engine/src/assertion_executor.rs` + `assertion/` 模块 |
-| WebSocket 节点 | `src-tauri/crates/flow-engine/src/ws_*_executor.rs` |
-| WebSocket 消息流 | `src-tauri/crates/flow-engine/src/ws_stream.rs` + `src/types/ws_stream.ts` |
-| 数据库节点 | `src-tauri/crates/flow-engine/src/db_*_executor.rs` + `db/` 模块 |
-| 调试模式 | `src-tauri/crates/flow-engine/src/debug/` + `src/stores/debug.ts` |
-| 压力测试 | `src-tauri/crates/flow-engine/src/stress_test/` + `src/stores/stressTest.ts` |
+| HTTP 请求节点 | `src-tauri/crates/flow-engine-http/` (详见该 crate 的 AGENTS.md) |
+| 条件分支节点 | `src-tauri/crates/flow-engine-executor/src/conditional_executor.rs` |
+| 脚本节点 | `src-tauri/crates/flow-engine-script/` (详见该 crate 的 AGENTS.md) |
+| 断言节点 | `src-tauri/crates/flow-engine-assertion/` (详见该 crate 的 AGENTS.md) |
+| WebSocket 节点 | `src-tauri/crates/flow-engine-ws/` (详见该 crate 的 AGENTS.md) |
+| WebSocket 消息流 | `src-tauri/crates/flow-engine-core/src/ws_stream.rs` + `src/types/ws_stream.ts` |
+| 数据库节点 | `src-tauri/crates/flow-engine-db/` (详见该 crate 的 AGENTS.md) |
+| 调试模式 | `src-tauri/crates/flow-engine-executor/src/debug/` + `src/stores/debug.ts` |
+| 压力测试 | `src-tauri/crates/flow-engine-executor/src/stress_test/` + `src/stores/stressTest.ts` |
 | IPC 命令 | `src-tauri/src/tauri_commands.rs` (19 命令) |
+| 加密模块 | `src-tauri/crates/flow-engine-crypto/` |
+| 节点类型定义 | `src-tauri/crates/flow-engine-core/src/node.rs` + `node_config.rs` |
+| 执行上下文/变量 | `src-tauri/crates/flow-engine-core/src/context.rs` + `variable.rs` |
+| 错误分类 | `src-tauri/crates/flow-engine-core/src/error.rs` |
 
 ## 代码规范
 
@@ -77,6 +92,59 @@ multi-protocol-flow-executor/
 - 禁止删除失败测试来"通过"
 - 注释使用中文
 
+## 增量编译 (减少编译时间)
+
+**核心原则: 修改哪个模块就编译/测试哪个模块，避免全量重编译。**
+
+### 单 Crate 编译/测试
+
+```bash
+cd src-tauri
+
+# 编译单个 crate (仅触发该 crate 及其依赖重编译)
+cargo build -p flow-engine-http          # Layer 1 - 仅 core + http
+cargo build -p flow-engine-executor      # Layer 2 - core + 全部协议 crate + executor
+cargo build -p flow-engine               # Layer 3 - 全部 (等同全量)
+cargo build -p app                       # Layer 4 - 全部 + Tauri 链接
+
+# 测试单个 crate
+cargo test -p flow-engine-http           # 只测 HTTP crate
+cargo test -p flow-engine-core           # 只测基础类型
+
+# Lint 单个 crate
+cargo clippy -p flow-engine-db           # 只检查 DB crate
+```
+
+### 修改影响分析
+
+| 修改的 crate | 重编译范围 | 编译量 |
+|-------------|-----------|--------|
+| `flow-engine-core` | 全部 crate (级联) | **全量** |
+| `flow-engine-crypto` | executor → flow-engine → app | ~3 crate |
+| `flow-engine-http/ws/db/script/assertion` | executor → flow-engine → app | ~3 crate |
+| `flow-engine-executor` | flow-engine → app | ~2 crate |
+| `flow-engine` (门面) | app | ~1 crate |
+| `src-tauri/src/*` (Tauri 层) | app | ~1 crate |
+
+### 开发循环建议
+
+```bash
+# 场景: 修改 HTTP 执行器
+cd src-tauri
+cargo test -p flow-engine-http           # 快速测试
+cargo clippy -p flow-engine-http         # 快速 lint
+# 满意后再全量验证
+cargo test && cargo clippy               # 完整回归
+
+# 场景: 修改基础类型 (core)
+cargo test -p flow-engine-core           # 先测 core
+cargo test -p flow-engine-executor       # 再测依赖 core 的执行器
+# core 修改影响全量，务必跑完整回归
+
+# 场景: 只改前端
+npm run typecheck && npm run test        # 无需编译 Rust
+```
+
 ## 回归测试 (强制)
 
 **任何功能变更必须执行回归测试。**
@@ -84,7 +152,8 @@ multi-protocol-flow-executor/
 | 变更类型 | 命令 |
 |----------|------|
 | 前端 | `npm run typecheck && npm run test` |
-| 后端 | `cd src-tauri && cargo test && cargo clippy` |
+| 单个 Rust crate | `cd src-tauri && cargo test -p <crate> && cargo clippy -p <crate>` |
+| 后端 (全量) | `cd src-tauri && cargo test && cargo clippy` |
 | CLI | `cd src-tauri && cargo test cli_tests` |
 | 完整回归 | `npm run typecheck && npm run test && cd src-tauri && cargo test && cargo clippy` |
 
@@ -98,7 +167,8 @@ multi-protocol-flow-executor/
 |------|------|
 | 前端单元测试 | `npm run test` |
 | 前端覆盖率 | `npm run test:coverage` |
-| 后端单元测试 | `cd src-tauri && cargo test` |
+| 单个 crate 测试 | `cd src-tauri && cargo test -p <crate-name>` |
+| 后端单元测试 (全量) | `cd src-tauri && cargo test` |
 | 后端覆盖率 | `cd src-tauri && cargo llvm-cov` |
 | 后端 Lint | `cd src-tauri && cargo clippy` |
 
@@ -224,7 +294,13 @@ npm run tauri build  # 构建安装包
 
 - [src/components/AGENTS.md](./src/components/AGENTS.md) - 前端组件架构
 - [src-tauri/src/AGENTS.md](./src-tauri/src/AGENTS.md) - Tauri 应用层
-- [src-tauri/crates/flow-engine/src/AGENTS.md](./src-tauri/crates/flow-engine/src/AGENTS.md) - Flow Engine 核心库
+- [src-tauri/crates/AGENTS.md](./src-tauri/crates/AGENTS.md) - Rust Workspace 总览 + 增量编译
+- [src-tauri/crates/flow-engine/src/AGENTS.md](./src-tauri/crates/flow-engine/src/AGENTS.md) - Flow Engine 门面 crate
+- [src-tauri/crates/flow-engine-core/src/AGENTS.md](./src-tauri/crates/flow-engine-core/src/AGENTS.md) - 基础类型 crate
+- [src-tauri/crates/flow-engine-executor/src/AGENTS.md](./src-tauri/crates/flow-engine-executor/src/AGENTS.md) - 执行器 crate
+- [src-tauri/crates/flow-engine-http/src/AGENTS.md](./src-tauri/crates/flow-engine-http/src/AGENTS.md) - HTTP crate
+- [src-tauri/crates/flow-engine-db/src/AGENTS.md](./src-tauri/crates/flow-engine-db/src/AGENTS.md) - 数据库 crate
+- [src-tauri/crates/flow-engine-ws/src/AGENTS.md](./src-tauri/crates/flow-engine-ws/src/AGENTS.md) - WebSocket crate
 - [src/stores/AGENTS.md](./src/stores/AGENTS.md) - Zustand 状态管理
 - [src/services/AGENTS.md](./src/services/AGENTS.md) - Tauri IPC 服务
 - [src/types/AGENTS.md](./src/types/AGENTS.md) - TypeScript 类型定义
