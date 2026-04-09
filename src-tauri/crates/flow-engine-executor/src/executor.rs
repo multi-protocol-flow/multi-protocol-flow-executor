@@ -15,7 +15,8 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use flow_engine_core::traits::LogSender;
+use flow_engine_core::traits::{ExecutionEventSender, LogSender};
+use flow_engine_core::execution_event::ExecutionEvent;
 
 use uuid::Uuid;
 
@@ -275,6 +276,8 @@ fn parse_error_to_detail(error: &str) -> ErrorDetail {
 pub struct FlowExecutor {
     /// Flow file path (used for resolving relative paths in CLI mode)
     flow_file_path: Option<PathBuf>,
+    /// 执行事件发送器（正常模式有值，CLI 模式为 None）
+    execution_event_sender: Option<Arc<dyn ExecutionEventSender>>,
 }
 
 impl Default for FlowExecutor {
@@ -288,12 +291,27 @@ impl FlowExecutor {
     pub fn new() -> Self {
         FlowExecutor {
             flow_file_path: None,
+            execution_event_sender: None,
         }
     }
 
     /// Set flow file path (used for CLI relative path resolution)
     pub fn with_flow_file_path(mut self, path: PathBuf) -> Self {
         self.flow_file_path = Some(path);
+        self
+    }
+
+    /// 设置执行事件发送器（正常模式调用）
+    ///
+    /// # 参数
+    ///
+    /// * `sender` - ExecutionEvent 事件发送器
+    ///
+    /// # 返回
+    ///
+    /// 更新后的 FlowExecutor
+    pub fn with_execution_event_sender(mut self, sender: Arc<dyn ExecutionEventSender>) -> Self {
+        self.execution_event_sender = Some(sender);
         self
     }
 
@@ -359,6 +377,7 @@ impl FlowExecutor {
             db_connections: db_connections_map,
             last_node_output: None,
             debug_event_sender: None,
+            execution_event_sender: self.execution_event_sender.clone(),
         };
 
         // 查找开始节点
@@ -405,6 +424,13 @@ impl FlowExecutor {
 
         // 跳过节点记录（Task 15）：记录被跳过的节点及原因
         let skipped_nodes: Vec<flow_engine_core::report::SkippedNodeInfo> = Vec::new();
+
+        // 发送流程开始事件
+        context.emit_execution_event(ExecutionEvent::FlowStarted {
+            flow_uuid: flow.uuid.clone(),
+            flow_name: flow.name.clone(),
+            total_nodes: flow.nodes.len() as u32,
+        }).await;
 
         while let Some(node) = node_map.get(&current_node_id) {
             // 检测循环（简单防止无限循环）
@@ -596,6 +622,11 @@ impl FlowExecutor {
                     };
                     node_reports.push(node_report);
 
+                    // 发送节点完成事件
+                    context.emit_execution_event(ExecutionEvent::NodeCompleted {
+                        report: Box::new(node_reports.last().unwrap().clone()),
+                    }).await;
+
                     // 发送节点完成日志
                     context.emit_log(LogEvent {
                         level: LogLevel::Info,
@@ -708,6 +739,11 @@ impl FlowExecutor {
                         };
                         node_reports.push(node_report);
 
+                        // 发送节点完成事件
+                        context.emit_execution_event(ExecutionEvent::NodeCompleted {
+                            report: Box::new(node_reports.last().unwrap().clone()),
+                        }).await;
+
                         // 这是正常的流程终止（条件不满足），继续处理
                         break;
                     }
@@ -745,6 +781,11 @@ impl FlowExecutor {
                             wait_duration_ms: None,
                         };
                         node_reports.push(node_report);
+
+                        // 发送节点完成事件
+                        context.emit_execution_event(ExecutionEvent::NodeCompleted {
+                            report: Box::new(node_reports.last().unwrap().clone()),
+                        }).await;
 
                         // 返回成功，已执行的节点都成功完成
                         break;
@@ -805,6 +846,12 @@ impl FlowExecutor {
                         wait_duration_ms: None,
                     };
                     node_reports.push(node_report);
+
+                    // 发送节点完成事件
+                    context.emit_execution_event(ExecutionEvent::NodeCompleted {
+                        report: Box::new(node_reports.last().unwrap().clone()),
+                    }).await;
+
                     executed_count += 1;
 
                     // 如果有 false 端口连接，继续执行 false 分支
@@ -972,6 +1019,11 @@ impl FlowExecutor {
             skipped_nodes,
             ws_streams,
         };
+
+        // 发送流程完成事件
+        context.emit_execution_event(ExecutionEvent::FlowCompleted {
+            report: Box::new(flow_report.clone()),
+        }).await;
 
         // 执行成功
         ExecutionResult {
@@ -1785,25 +1837,7 @@ mod tests {
             }),
             String::new(),
         );
-        let context = ExecutionContext {
-            flow_uuid: "test-flow".to_string(),
-            current_node_uuid: None,
-            variables,
-            node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
-                .as_millis() as u64,
-            log_sender: None,
-            flow_file_path: None,
-            ws_manager: None,
-            ws_connection_urls: std::collections::HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            db_manager: None,
-            db_connections: std::collections::HashMap::new(),
-            last_node_output: None,
-            debug_event_sender: None,
-        };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, db_connections: std::collections::HashMap::new(), last_node_output: None, debug_event_sender: None, execution_event_sender: None, };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Bearer test-key");
@@ -1823,25 +1857,7 @@ mod tests {
             }),
             String::new(),
         );
-        let context = ExecutionContext {
-            flow_uuid: "test-flow".to_string(),
-            current_node_uuid: None,
-            variables,
-            node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
-                .as_millis() as u64,
-            log_sender: None,
-            flow_file_path: None,
-            ws_manager: None,
-            ws_connection_urls: std::collections::HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            db_manager: None,
-            db_connections: std::collections::HashMap::new(),
-            last_node_output: None,
-            debug_event_sender: None,
-        };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, db_connections: std::collections::HashMap::new(), last_node_output: None, debug_event_sender: None, execution_event_sender: None, };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Hello Alice");
@@ -1852,25 +1868,7 @@ mod tests {
         // 测试严格模式（变量不存在时报错）
         let template = "{{nonexistent.var}}";
         let variables = VariableStorage::new();
-        let context = ExecutionContext {
-            flow_uuid: "test-flow".to_string(),
-            current_node_uuid: None,
-            variables,
-            node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
-                .as_millis() as u64,
-            log_sender: None,
-            flow_file_path: None,
-            ws_manager: None,
-            ws_connection_urls: std::collections::HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            db_manager: None,
-            db_connections: std::collections::HashMap::new(),
-            last_node_output: None,
-            debug_event_sender: None,
-        };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, db_connections: std::collections::HashMap::new(), last_node_output: None, debug_event_sender: None, execution_event_sender: None, };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("未找到"));
@@ -1882,25 +1880,7 @@ mod tests {
         let template = "{{items[0]}}";
         let mut variables = VariableStorage::new();
         variables.set_variable("items".to_string(), json!(["a", "b", "c"]), String::new());
-        let context = ExecutionContext {
-            flow_uuid: "test-flow".to_string(),
-            current_node_uuid: None,
-            variables,
-            node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
-                .as_millis() as u64,
-            log_sender: None,
-            flow_file_path: None,
-            ws_manager: None,
-            ws_connection_urls: std::collections::HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            db_manager: None,
-            db_connections: std::collections::HashMap::new(),
-            last_node_output: None,
-            debug_event_sender: None,
-        };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, db_connections: std::collections::HashMap::new(), last_node_output: None, debug_event_sender: None, execution_event_sender: None, };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不支持索引访问"));
@@ -1944,6 +1924,7 @@ mod tests {
             db_connections: std::collections::HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
+            execution_event_sender: None,
         };
         let result = replace_variables(&template, &context);
         assert!(result.is_err());
@@ -1973,6 +1954,7 @@ mod tests {
                 db_connections: std::collections::HashMap::new(),
                 last_node_output: None,
                 debug_event_sender: None,
+                execution_event_sender: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -2002,6 +1984,7 @@ mod tests {
                 db_connections: std::collections::HashMap::new(),
                 last_node_output: None,
                 debug_event_sender: None,
+                execution_event_sender: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
@@ -2031,6 +2014,7 @@ mod tests {
                 db_connections: std::collections::HashMap::new(),
                 last_node_output: None,
                 debug_event_sender: None,
+                execution_event_sender: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());

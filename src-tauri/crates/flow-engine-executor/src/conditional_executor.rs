@@ -730,6 +730,7 @@ mod tests {
             db_connections: std::collections::HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
+            execution_event_sender: None,
         }
     }
 

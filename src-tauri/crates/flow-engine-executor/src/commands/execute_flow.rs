@@ -6,7 +6,7 @@ use crate::command::{ExecuteFlowCommandInput, ExecuteFlowCommandOutput};
 use crate::executor::FlowExecutor;
 use flow_engine_core::flow::Flow;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
-use flow_engine_core::traits::LogSender;
+use flow_engine_core::traits::{ExecutionEventSender, LogSender};
 
 /// 执行流程命令
 ///
@@ -16,6 +16,7 @@ use flow_engine_core::traits::LogSender;
 /// - `input`: 包含流程 ID 和可选变量的输入参数
 /// - `flow`: 要执行的流程对象
 /// - `log_sender`: 日志发送器（可选），用于发送日志事件
+/// - `execution_event_sender`: 执行事件发送器（可选），Tauri 模式有值，CLI 模式为 None
 ///
 /// # 返回
 /// - `ExecuteFlowCommandOutput`: 包含执行结果
@@ -23,6 +24,7 @@ pub async fn execute_flow(
     input: ExecuteFlowCommandInput,
     flow: Flow,
     log_sender: Option<Arc<dyn LogSender>>,
+    execution_event_sender: Option<Arc<dyn ExecutionEventSender>>,
 ) -> ExecuteFlowCommandOutput {
     let flow_uuid = flow.uuid.clone();
     let flow_name = flow.name.clone();
@@ -47,7 +49,10 @@ pub async fn execute_flow(
     }
 
     // 调用执行器，传递 log_sender 和 db_connections
-    let executor = FlowExecutor::new();
+    let mut executor = FlowExecutor::new();
+    if let Some(sender) = execution_event_sender {
+        executor = executor.with_execution_event_sender(sender);
+    }
     let result = executor
         .execute_flow(&flow, input.variables, log_sender.clone(), input.db_connections)
         .await;
@@ -136,8 +141,8 @@ mod tests {
             db_connections: None,
         };
 
-        // 执行流程（不使用日志发送器）
-        let result = execute_flow(input, flow, None).await;
+        // 执行流程（不使用日志发送器，不使用执行事件发送器）
+        let result = execute_flow(input, flow, None, None).await;
 
         // 验证结果
         assert!(result.success, "流程应该成功执行");
@@ -185,7 +190,7 @@ mod tests {
             db_connections: None,
         };
 
-        let result = execute_flow(input, flow, None).await;
+        let result = execute_flow(input, flow, None, None).await;
 
         // 验证结果
         assert!(result.success);
@@ -232,7 +237,7 @@ mod tests {
             db_connections: None,
         };
 
-        let result = execute_flow(input, flow, None).await;
+        let result = execute_flow(input, flow, None, None).await;
 
         // 验证错误结果
         assert!(!result.success, "流程应该失败");
@@ -276,7 +281,7 @@ mod tests {
         let log_sender: Arc<dyn LogSender> = Arc::new(NoopLogSender);
 
         // 执行流程（应该不会因日志发送而失败）
-        let result = execute_flow(input, flow, Some(log_sender)).await;
+        let result = execute_flow(input, flow, Some(log_sender), None).await;
 
         assert!(result.success, "流程应该成功执行");
     }
@@ -328,7 +333,7 @@ mod tests {
             db_connections: None,
         };
 
-        let result = execute_flow(input, flow, None).await;
+        let result = execute_flow(input, flow, None, None).await;
 
         // 验证结果
         assert!(result.success);
@@ -365,7 +370,7 @@ mod tests {
             db_connections: None,
         };
 
-        let result = execute_flow(input, flow, None).await;
+        let result = execute_flow(input, flow, None, None).await;
 
         // 验证执行时间字段存在
         // execution_time 来自 flow_report.duration_ms
@@ -406,7 +411,7 @@ mod tests {
             db_connections: None,
         };
 
-        let result = execute_flow(input, flow, None).await;
+        let result = execute_flow(input, flow, None, None).await;
 
         assert!(result.success);
         let report = result.flow_report.unwrap();
@@ -446,7 +451,7 @@ mod tests {
             db_connections: None,
         };
 
-        let result = execute_flow(input, flow, None).await;
+        let result = execute_flow(input, flow, None, None).await;
 
         // 应该成功执行
         assert!(result.success);
@@ -488,7 +493,7 @@ mod tests {
             db_connections: None,
         };
 
-        let result = execute_flow(input, flow, None).await;
+        let result = execute_flow(input, flow, None, None).await;
 
         assert!(result.success);
         let report = result.flow_report.unwrap();
