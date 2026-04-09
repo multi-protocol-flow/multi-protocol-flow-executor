@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { LeftSidebarPanel } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
 import { NodeConfigPanel, SettingsPanel, DebugPanel } from '@/components/panels';
-import { ExecutionReport, ExecutionHistory, ConsolePanel } from '@/components/execution';
+import { ExecutionReport, ExecutionHistory, ConsolePanel, ExecutionPanel } from '@/components/execution';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 import { ConnectionDialog } from '@/components/dialogs/ConnectionDialog';
@@ -561,6 +561,9 @@ export function MainLayout() {
             )}
           </Button>
         )}
+
+        {/* ===== 执行进度面板（最右侧） ===== */}
+        <ExecutionPanel />
       </div>
 
       {/* ===== 执行报告弹窗 ===== */}

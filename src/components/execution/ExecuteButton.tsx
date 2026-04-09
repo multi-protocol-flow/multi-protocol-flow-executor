@@ -20,6 +20,8 @@ export function ExecuteButton() {
   const addLog = useConsoleStore((state) => state.addLog);
   const clearLogs = useConsoleStore((state) => state.clearLogs);
   const setConfigPanelOpen = useUIStore((state) => state.setConfigPanelOpen);
+  const setExecutionPanelOpen = useUIStore((state) => state.setExecutionPanelOpen);
+  const clearExecutionState = useExecutionStore((state) => state.clearExecutionState);
   const reportDir = useSettingsStore((state) => state.reportDir);
 
   const handleExecute = async () => {
@@ -27,6 +29,10 @@ export function ExecuteButton() {
 
     setIsExecuting(true);
     setConfigPanelOpen(false);
+
+    // 清空上次增量执行状态并打开进度面板
+    clearExecutionState();
+    setExecutionPanelOpen(true);
 
     // 每次执行前清空日志
     clearLogs();
@@ -36,8 +42,13 @@ export function ExecuteButton() {
       addLog(event);
     };
 
+    // 执行事件回调函数（实时节点报告）
+    const handleExecutionEvent = (event: import('@/types/execution_event').ExecutionEvent) => {
+      useExecutionStore.getState().handleExecutionEvent(event);
+    };
+
     try {
-      const result = await executeFlowWithChannel(flow, handleLog);
+      const result = await executeFlowWithChannel(flow, handleLog, handleExecutionEvent);
 
       if (result.success && result.flow_report) {
         setReport(result.flow_report);

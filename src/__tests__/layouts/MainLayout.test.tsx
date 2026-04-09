@@ -38,6 +38,7 @@ vi.mock('@/components/panels', () => ({
 
 vi.mock('@/components/execution', () => ({
   ExecutionReport: () => <div data-testid="execution-report">Report</div>,
+  ExecutionPanel: () => <div data-testid="execution-panel">ExecutionPanel</div>,
   ExecutionHistory: () => <div data-testid="execution-history">History</div>,
   ConsolePanel: () => <div data-testid="console-panel">Console</div>,
 }));

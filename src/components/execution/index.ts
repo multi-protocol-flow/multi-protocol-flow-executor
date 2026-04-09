@@ -3,6 +3,7 @@
  */
 export { ExecuteButton } from './ExecuteButton';
 export { ExecutionReport } from './ExecutionReport';
+export { ExecutionPanel } from './ExecutionPanel';
 export { NodeExecutionDetails } from './NodeExecutionDetails';
 export { ExecutionHistory } from './ExecutionHistory';
 export { ConsolePanel } from './ConsolePanel';
