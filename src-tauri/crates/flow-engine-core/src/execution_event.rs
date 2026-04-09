@@ -8,25 +8,34 @@ use serde::{Deserialize, Serialize};
 /// 执行事件枚举（正常模式）
 ///
 /// 三个变体覆盖整个流程执行生命周期：
-/// - FlowStarted: 流程开始执行时
-/// - NodeCompleted: 每个节点执行完成时（成功或失败）
-/// - FlowCompleted: 流程执行结束时
+/// - `FlowStarted`: 流程开始执行时
+/// - `NodeCompleted`: 每个节点执行完成时（成功或失败）
+/// - `FlowCompleted`: 流程执行结束时
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ExecutionEvent {
     /// 流程开始执行
     FlowStarted {
         #[serde(rename = "flowUuid")]
+        /// 流程唯一标识
         flow_uuid: String,
         #[serde(rename = "flowName")]
+        /// 流程名称
         flow_name: String,
         #[serde(rename = "totalNodes")]
+        /// 总节点数
         total_nodes: u32,
     },
     /// 节点执行完成
-    NodeCompleted { report: Box<NodeExecutionReport> },
+    NodeCompleted {
+        /// 节点执行报告
+        report: Box<NodeExecutionReport>,
+    },
     /// 流程执行完成
-    FlowCompleted { report: Box<FlowExecutionReport> },
+    FlowCompleted {
+        /// 流程执行报告
+        report: Box<FlowExecutionReport>,
+    },
 }
 
 #[cfg(test)]

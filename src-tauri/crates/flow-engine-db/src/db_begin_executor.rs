@@ -3,6 +3,8 @@
 // 实现数据库事务开始功能，支持隔离级别配置。
 // Wave 2: 与执行器集成
 
+use std::str::FromStr;
+
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use crate::db::traits::IsolationLevel;
@@ -93,7 +95,7 @@ impl NodeExecutor for DbBeginExecutor {
         if let Some(ref level_str) = isolation_level_str {
             if !level_str.is_empty() {
                 // 验证隔离级别是否有效
-                if IsolationLevel::from_str(level_str).is_none() {
+                if IsolationLevel::from_str(level_str).is_err() {
                     let error_msg = format!("无效的隔离级别: {}", level_str);
                     log::error!(
                         "[Database] 无效的隔离级别: uuid={}, level={}",

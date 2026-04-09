@@ -158,7 +158,7 @@ pub enum ErrorKind {
     ScriptTimeout,
     /// 断言失败
     ScriptAssertion,
-    /// 用户调用 fn.flow.abort()
+    /// 用户调用 `fn.flow.abort()`
     ScriptAbort,
 }
 

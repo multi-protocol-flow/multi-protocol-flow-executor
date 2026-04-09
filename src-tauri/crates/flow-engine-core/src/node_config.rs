@@ -249,7 +249,7 @@ pub enum WsWaitMode {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum WsMatchType {
-    /// JSONPath 匹配
+    /// `JSONPath` 匹配
     #[default]
     JsonPath,
     /// 正则表达式匹配
@@ -887,7 +887,7 @@ impl NodeData {
         })
     }
 
-    /// 创建 WsConnect 节点配置
+    /// 创建 `WsConnect` 节点配置
     pub fn ws_connect(url: impl Into<String>) -> Self {
         Self::WsConnect(WsConnectConfig {
             url: url.into(),
@@ -895,7 +895,7 @@ impl NodeData {
         })
     }
 
-    /// 创建 WsSendWait 节点配置
+    /// 创建 `WsSendWait` 节点配置
     pub fn ws_send_wait(connection_id: impl Into<String>, message: impl Into<String>) -> Self {
         Self::WsSendWait(WsSendWaitConfig {
             connection_id: connection_id.into(),
@@ -904,7 +904,7 @@ impl NodeData {
         })
     }
 
-    /// 创建 WsClose 节点配置
+    /// 创建 `WsClose` 节点配置
     pub fn ws_close(connection_id: impl Into<String>) -> Self {
         Self::WsClose(WsCloseConfig {
             connection_id: connection_id.into(),
@@ -917,7 +917,7 @@ impl NodeData {
         Self::Assertion(AssertionConfig::default())
     }
 
-    /// 创建 DbConnect 节点配置
+    /// 创建 `DbConnect` 节点配置
     pub fn db_connect(connection_uuid: impl Into<String>) -> Self {
         Self::DbConnect(DbConnectConfig {
             connection_uuid: connection_uuid.into(),
@@ -935,7 +935,7 @@ impl NodeData {
         })
     }
 
-    /// 创建 DbQuery 节点配置
+    /// 创建 `DbQuery` 节点配置
     pub fn db_query(connection_uuid: impl Into<String>) -> Self {
         Self::DbQuery(DbQueryConfig {
             connection_uuid: connection_uuid.into(),
@@ -943,7 +943,7 @@ impl NodeData {
         })
     }
 
-    /// 创建 DbBegin 节点配置
+    /// 创建 `DbBegin` 节点配置
     pub fn db_begin(connection_uuid: impl Into<String>) -> Self {
         Self::DbBegin(DbBeginConfig {
             connection_uuid: connection_uuid.into(),
@@ -951,21 +951,21 @@ impl NodeData {
         })
     }
 
-    /// 创建 DbCommit 节点配置
+    /// 创建 `DbCommit` 节点配置
     pub fn db_commit(connection_uuid: impl Into<String>) -> Self {
         Self::DbCommit(DbCommitConfig {
             connection_uuid: connection_uuid.into(),
         })
     }
 
-    /// 创建 DbRollback 节点配置
+    /// 创建 `DbRollback` 节点配置
     pub fn db_rollback(connection_uuid: impl Into<String>) -> Self {
         Self::DbRollback(DbRollbackConfig {
             connection_uuid: connection_uuid.into(),
         })
     }
 
-    /// 创建 DbClose 节点配置
+    /// 创建 `DbClose` 节点配置
     pub fn db_close(connection_uuid: impl Into<String>) -> Self {
         Self::DbClose(DbCloseConfig {
             connection_uuid: connection_uuid.into(),
@@ -981,7 +981,7 @@ impl NodeData {
     }
 }
 
-/// 为 NodeData 实现 Default，使用 Entry 作为默认值
+/// 为 `NodeData` 实现 Default，使用 Entry 作为默认值
 impl Default for NodeData {
     fn default() -> Self {
         Self::entry()

@@ -68,23 +68,24 @@ mod tests {
 
     #[test]
     fn test_isolation_level_from_str() {
+        use std::str::FromStr;
         assert_eq!(
-            IsolationLevel::from_str("READ COMMITTED"),
+            IsolationLevel::from_str("READ COMMITTED").ok(),
             Some(IsolationLevel::ReadCommitted)
         );
         assert_eq!(
-            IsolationLevel::from_str("read_committed"),
+            IsolationLevel::from_str("read_committed").ok(),
             Some(IsolationLevel::ReadCommitted)
         );
         assert_eq!(
-            IsolationLevel::from_str("REPEATABLE READ"),
+            IsolationLevel::from_str("REPEATABLE READ").ok(),
             Some(IsolationLevel::RepeatableRead)
         );
         assert_eq!(
-            IsolationLevel::from_str("SERIALIZABLE"),
+            IsolationLevel::from_str("SERIALIZABLE").ok(),
             Some(IsolationLevel::Serializable)
         );
-        assert_eq!(IsolationLevel::from_str("INVALID"), None);
+        assert!(IsolationLevel::from_str("INVALID").is_err());
     }
 
     #[test]

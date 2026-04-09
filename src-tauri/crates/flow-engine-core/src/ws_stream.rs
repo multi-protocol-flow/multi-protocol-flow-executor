@@ -41,9 +41,15 @@ pub enum MessageDirection {
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum MessageContent {
     /// 文本消息
-    Text { content: String },
+    Text {
+        /// 文本消息内容
+        content: String,
+    },
     /// 二进制消息（Base64 编码存储）
-    Binary { content: Vec<u8> },
+    Binary {
+        /// 二进制消息内容
+        content: Vec<u8>,
+    },
 }
 
 // ============================================================================
@@ -75,7 +81,7 @@ impl WsMessage {
     ///
     /// # 返回
     ///
-    /// 新创建的 WsMessage 实例
+    /// 新创建的 `WsMessage` 实例
     ///
     /// # 示例
     ///
@@ -137,7 +143,7 @@ pub struct WsStreamSegment {
     pub node_uuid: String,
     /// 持有者节点名称
     pub node_name: String,
-    /// 持有者节点类型 (ws_connect, ws_send_wait, ws_close)
+    /// 持有者节点类型 (`ws_connect`, `ws_send_wait`, `ws_close`)
     pub node_type: String,
     /// 段开始时间（毫秒）
     pub started_at: u64,
@@ -165,7 +171,7 @@ impl WsStreamSegment {
     ///
     /// # 返回
     ///
-    /// 新创建的 WsStreamSegment 实例
+    /// 新创建的 `WsStreamSegment` 实例
     pub fn new(node_uuid: String, node_name: String, node_type: String) -> Self {
         // 获取当前时间戳（毫秒）
         let started_at = std::time::SystemTime::now()
@@ -218,7 +224,7 @@ impl WsStreamSegment {
     ///
     /// # 说明
     ///
-    /// 当消息数量超过 max_messages 时，会丢弃最早的消息（FIFO）
+    /// 当消息数量超过 `max_messages` 时，会丢弃最早的消息（FIFO）
     pub fn push_message(&mut self, message: WsMessage) -> Result<(), String> {
         // 检查消息大小
         if message.size > MAX_MESSAGE_SIZE {
@@ -297,7 +303,7 @@ impl WsConnectionStream {
     ///
     /// # 返回
     ///
-    /// 新创建的 WsConnectionStream 实例
+    /// 新创建的 `WsConnectionStream` 实例
     pub fn new(connection_id: String, url: String) -> Self {
         Self {
             connection_id,
@@ -320,7 +326,7 @@ impl WsConnectionStream {
     ///
     /// # 说明
     ///
-    /// 此方法用于 ws_connect 节点首次创建连接时调用
+    /// 此方法用于 `ws_connect` 节点首次创建连接时调用
     pub fn create_initial_segment(
         &mut self,
         node_uuid: String,
@@ -343,8 +349,8 @@ impl WsConnectionStream {
     /// # 说明
     ///
     /// 此方法在以下场景调用：
-    /// - ws_send_wait 节点开始执行时
-    /// - ws_close 节点开始执行时
+    /// - `ws_send_wait` 节点开始执行时
+    /// - `ws_close` 节点开始执行时
     ///
     /// 转移时会结束当前段并创建新段
     pub fn transfer_ownership(

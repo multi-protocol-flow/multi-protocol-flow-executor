@@ -36,7 +36,7 @@ pub struct ExecutionContext {
     pub flow_trigger_time: u64,
 
     /// 日志发送器（Tauri 模式有值，CLI 模式为 None）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn LogSender 不支持序列化
+    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `LogSender` 不支持序列化
     #[serde(skip)]
     pub log_sender: Option<Arc<dyn LogSender>>,
 
@@ -46,9 +46,9 @@ pub struct ExecutionContext {
     #[serde(skip)]
     pub flow_file_path: Option<PathBuf>,
 
-    /// WebSocket 连接管理器（通过 WsProvider trait 解耦）
+    /// WebSocket 连接管理器（通过 `WsProvider` trait 解耦）
     /// 用于管理 WebSocket 连接的生命周期（连接、发送、接收、关闭）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn WsProvider 不支持序列化
+    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `WsProvider` 不支持序列化
     #[serde(skip)]
     pub ws_manager: Option<Arc<dyn WsProvider>>,
 
@@ -59,19 +59,19 @@ pub struct ExecutionContext {
 
     /// WebSocket 消息流追踪
     /// 存储每个连接的消息流，支持按节点追踪消息历史
-    /// 使用 tokio::sync::RwLock 实现异步安全的并发访问
+    /// 使用 `tokio::sync::RwLock` 实现异步安全的并发访问
     #[serde(skip)]
     pub ws_streams: Arc<RwLock<HashMap<String, WsConnectionStream>>>,
 
-    /// 数据库连接池管理器（通过 DbProvider trait 解耦）
+    /// 数据库连接池管理器（通过 `DbProvider` trait 解耦）
     /// 用于管理数据库连接的生命周期（连接、查询、关闭）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn DbProvider 不支持序列化
+    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `DbProvider` 不支持序列化
     #[serde(skip)]
     pub db_manager: Option<Arc<dyn DbProvider>>,
 
-    /// 数据库连接配置映射（connection_uuid -> DbConnection）
+    /// `数据库连接配置映射（connection_uuid` -> `DbConnection`）
     /// 前端从连接配置中心获取，传递给后端执行器
-    /// 执行器根据 connection_uuid 从此映射获取完整的连接配置
+    /// 执行器根据 `connection_uuid` 从此映射获取完整的连接配置
     #[serde(skip)]
     pub db_connections: HashMap<String, DbConnection>,
 
@@ -84,7 +84,7 @@ pub struct ExecutionContext {
 
     /// 调试事件发送器（调试模式有值，普通模式为 None）
     /// 用于 WebSocket 执行器发送调试事件（如 WsStreamCreated、WsMessageSent 等）
-    /// 通过 DebugEventSender trait 解耦，支持 mpsc 或其他实现
+    /// 通过 `DebugEventSender` trait 解耦，支持 mpsc 或其他实现
     #[serde(skip)]
     pub debug_event_sender: Option<Arc<dyn DebugEventSender>>,
 
@@ -152,11 +152,11 @@ impl ExecutionContext {
     ///
     /// # 参数
     ///
-    /// * `sender` - LogSender trait 实现封装在 Arc 中
+    /// * `sender` - `LogSender` trait 实现封装在 Arc 中
     ///
     /// # 返回
     ///
-    /// 更新后的 ExecutionContext
+    /// 更新后的 `ExecutionContext`
     pub fn with_log_sender(mut self, sender: Arc<dyn LogSender>) -> Self {
         self.log_sender = Some(sender);
         self
@@ -170,7 +170,7 @@ impl ExecutionContext {
     ///
     /// # Returns
     ///
-    /// Updated ExecutionContext with flow_file_path set
+    /// Updated `ExecutionContext` with `flow_file_path` set
     pub fn with_flow_file_path(mut self, path: PathBuf) -> Self {
         self.flow_file_path = Some(path);
         self
@@ -184,7 +184,7 @@ impl ExecutionContext {
     ///
     /// # 返回
     ///
-    /// 更新后的 ExecutionContext
+    /// 更新后的 `ExecutionContext`
     pub fn with_ws_manager(mut self, ws_manager: Arc<dyn WsProvider>) -> Self {
         self.ws_manager = Some(ws_manager);
         self
@@ -194,11 +194,11 @@ impl ExecutionContext {
     ///
     /// # 参数
     ///
-    /// * `sender` - DebugEvent 事件发送器
+    /// * `sender` - `DebugEvent` 事件发送器
     ///
     /// # 返回
     ///
-    /// 更新后的 ExecutionContext
+    /// 更新后的 `ExecutionContext`
     pub fn with_debug_event_sender(mut self, sender: Arc<dyn DebugEventSender>) -> Self {
         self.debug_event_sender = Some(sender);
         self
@@ -208,11 +208,11 @@ impl ExecutionContext {
     ///
     /// # 参数
     ///
-    /// * `sender` - ExecutionEvent 事件发送器
+    /// * `sender` - `ExecutionEvent` 事件发送器
     ///
     /// # 返回
     ///
-    /// 更新后的 ExecutionContext
+    /// 更新后的 `ExecutionContext`
     pub fn with_execution_event_sender(mut self, sender: Arc<dyn ExecutionEventSender>) -> Self {
         self.execution_event_sender = Some(sender);
         self
@@ -247,7 +247,7 @@ impl ExecutionContext {
 
     /// 发送日志事件（LogSender 可用时）
     ///
-    /// 如果 log_sender 为 None（CLI 模式），此方法静默跳过，不会报错。
+    /// 如果 `log_sender` 为 None（CLI 模式），此方法静默跳过，不会报错。
     ///
     /// # 参数
     ///
@@ -260,7 +260,7 @@ impl ExecutionContext {
 
     /// 发送执行事件（ExecutionEventSender 可用时）
     ///
-    /// 如果 execution_event_sender 为 None（CLI 模式），此方法静默跳过，不会报错。
+    /// 如果 `execution_event_sender` 为 None（CLI 模式），此方法静默跳过，不会报错。
     ///
     /// # 参数
     ///
@@ -355,7 +355,7 @@ impl ExecutionContext {
     ///
     /// # 说明
     ///
-    /// 此方法在 ws_send_wait 或 ws_close 节点开始执行时调用。
+    /// 此方法在 `ws_send_wait` 或 `ws_close` 节点开始执行时调用。
     /// 如果连接 ID 不存在，则不做任何操作。
     pub async fn transfer_ws_ownership(
         &self,
@@ -425,7 +425,7 @@ pub struct VariablePool {
     pub variables: Vec<Variable>,
 }
 
-/// VariableStorage 是 VariablePool 的类型别名（向后兼容）
+/// `VariableStorage` 是 `VariablePool` 的类型别名（向后兼容）
 pub type VariableStorage = VariablePool;
 
 impl VariablePool {
@@ -511,7 +511,7 @@ impl VariablePool {
     ///
     /// # 返回
     ///
-    /// 变量名 → 值的 HashMap
+    /// 变量名 → 值的 `HashMap`
     pub fn get_merged_variables(&self) -> HashMap<String, Value> {
         self.variables
             .iter()
@@ -523,7 +523,7 @@ impl VariablePool {
 
     /// 设置全局变量（向后兼容）
     ///
-    /// 使用空字符串作为 source_node_uuid
+    /// 使用空字符串作为 `source_node_uuid`
     #[deprecated(note = "请使用 set_variable 方法")]
     pub fn set_global(&mut self, key: String, value: Value) {
         self.set_variable(key, value, String::new());

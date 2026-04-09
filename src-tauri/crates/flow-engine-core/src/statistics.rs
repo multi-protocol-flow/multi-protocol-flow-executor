@@ -37,7 +37,7 @@ pub struct FlowStatistics {
     /// 错误率（0.0 - 1.0）
     pub error_rate: Option<f64>,
 
-    /// 完成率（executed_count / total_nodes）
+    /// `完成率（executed_count` / `total_nodes`）
     pub completion_rate: Option<f64>,
 }
 

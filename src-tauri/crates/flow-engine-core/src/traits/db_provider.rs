@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 /// 查询结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct QueryResult {
     /// 查询返回的行数据（JSON 数组）
     pub rows: Vec<serde_json::Value>,
@@ -21,17 +22,6 @@ pub struct QueryResult {
     pub truncated: bool,
 }
 
-impl Default for QueryResult {
-    fn default() -> Self {
-        Self {
-            rows: Vec::new(),
-            row_count: 0,
-            affected_rows: 0,
-            columns: Vec::new(),
-            truncated: false,
-        }
-    }
-}
 
 impl QueryResult {
     /// 创建空的查询结果
@@ -115,19 +105,23 @@ pub enum IsolationLevel {
     Serializable,
 }
 
-impl IsolationLevel {
+impl std::str::FromStr for IsolationLevel {
+    type Err = String;
+
     /// 从字符串解析隔离级别
-    pub fn from_str(s: &str) -> Option<Self> {
+    fn from_str(s: &str) -> Result<Self, String> {
         match s.to_uppercase().replace('_', " ").as_str() {
-            "READ UNCOMMITTED" => Some(Self::ReadUncommitted),
-            "READ COMMITTED" => Some(Self::ReadCommitted),
-            "REPEATABLE READ" => Some(Self::RepeatableRead),
-            "SERIALIZABLE" => Some(Self::Serializable),
-            _ => None,
+            "READ UNCOMMITTED" => Ok(Self::ReadUncommitted),
+            "READ COMMITTED" => Ok(Self::ReadCommitted),
+            "REPEATABLE READ" => Ok(Self::RepeatableRead),
+            "SERIALIZABLE" => Ok(Self::Serializable),
+            _ => Err(format!("未知的隔离级别: {}", s)),
         }
     }
+}
 
-    /// 转换为 PostgreSQL 隔离级别字符串
+impl IsolationLevel {
+    /// 转换为 `PostgreSQL` 隔离级别字符串
     pub fn to_postgres_str(&self) -> &'static str {
         match self {
             Self::ReadUncommitted => "READ UNCOMMITTED",
@@ -137,7 +131,7 @@ impl IsolationLevel {
         }
     }
 
-    /// 转换为 MySQL 隔离级别字符串
+    /// 转换为 `MySQL` 隔离级别字符串
     pub fn to_mysql_str(&self) -> &'static str {
         match self {
             Self::ReadUncommitted => "READ UNCOMMITTED",

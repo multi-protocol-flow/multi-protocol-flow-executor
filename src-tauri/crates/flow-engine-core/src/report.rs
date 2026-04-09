@@ -124,7 +124,7 @@ pub struct WsSegmentSummary {
     pub node_uuid: String,
     /// 节点名称
     pub node_name: String,
-    /// 节点类型 (ws_connect, ws_send_wait, ws_close)
+    /// 节点类型 (`ws_connect`, `ws_send_wait`, `ws_close`)
     pub node_type: String,
     /// 消息数量
     pub message_count: usize,

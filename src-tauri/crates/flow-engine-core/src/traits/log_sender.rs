@@ -111,7 +111,7 @@ impl QueuedLogSender {
     /// - `underlying`: 底层日志发送器（Tauri Channel 包装）
     ///
     /// # 返回
-    /// - `(sender, worker)`: sender 实现了 LogSender trait，worker 需要在 tokio 中 spawn
+    /// - `(sender, worker)`: sender 实现了 `LogSender` trait，worker 需要在 tokio 中 spawn
     ///
     /// # 模式切换
     /// - 调试模式: 直接同步发送日志，worker 为空

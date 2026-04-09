@@ -2,7 +2,7 @@
 
 use serde_json_path::JsonPath;
 
-/// 按 JSONPath 从 JSON 中提取值
+/// 按 `JSONPath` 从 JSON 中提取值
 ///
 /// 支持的路径格式：
 /// - `$.status` - 根字段

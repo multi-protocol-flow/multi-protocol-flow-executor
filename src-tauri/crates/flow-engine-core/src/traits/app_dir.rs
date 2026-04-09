@@ -1,7 +1,7 @@
 //! 应用目录提供者抽象
 //!
 //! **使用场景**: 仅用于 Tauri 应用需要获取 Tauri 特有的应用目录时。
-//! **不使用场景**: CLI/测试应直接使用 storage::get_data_dir() 函数。
+//! **不使用场景**: CLI/测试应直接使用 `storage::get_data_dir()` 函数。
 
 use std::path::PathBuf;
 

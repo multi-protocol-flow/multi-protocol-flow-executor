@@ -7,18 +7,19 @@ use serde::{Deserialize, Serialize};
 /// 数据库驱动类型
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum DbDriver {
+    /// `PostgreSQL` 数据库
+    #[default]
     Postgres,
+    /// `MySQL` 数据库
     Mysql,
+    /// `SQLite` 嵌入式数据库
     Sqlite,
+    /// Redis 键值存储
     Redis,
 }
 
-impl Default for DbDriver {
-    fn default() -> Self {
-        Self::Postgres
-    }
-}
 
 impl std::fmt::Display for DbDriver {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -105,18 +106,19 @@ fn default_status() -> DbConnectionStatus {
 /// 数据库连接状态
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum DbConnectionStatus {
+    /// 已连接，连接池可用
     Connected,
+    /// 已断开，未建立连接
+    #[default]
     Disconnected,
+    /// 连接错误，上次操作失败
     Error,
+    /// 正在测试连接中
     Testing,
 }
 
-impl Default for DbConnectionStatus {
-    fn default() -> Self {
-        Self::Disconnected
-    }
-}
 
 /// 测试数据库连接结果
 #[derive(Debug, Clone, Serialize, Deserialize)]

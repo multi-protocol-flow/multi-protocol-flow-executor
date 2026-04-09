@@ -108,7 +108,7 @@ pub enum DebugCommand {
     ModifyNodeConfig {
         /// 节点 UUID
         node_uuid: String,
-        /// 新的节点配置（JSON 格式的 NodeData）
+        /// 新的节点配置（JSON 格式的 `NodeData`）
         config: serde_json::Value,
     },
     /// 动态设置断点（调试期间生效）
@@ -367,13 +367,13 @@ pub struct ExecutionStackEntry {
     /// 实际使用的输出端口 ID（可选）
     #[serde(default)]
     pub used_port_id: Option<String>,
-    /// 解析后的配置（与 NodeExecutionReport 对齐）
+    /// 解析后的配置（与 `NodeExecutionReport` 对齐）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resolved_config: Option<serde_json::Value>,
-    /// 当前节点修改变量的记录（与 NodeExecutionReport 对齐）
+    /// 当前节点修改变量的记录（与 `NodeExecutionReport` 对齐）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub variable_changes: Option<Vec<crate::report::VariableChange>>,
-    /// 跳过原因（与 NodeExecutionReport 对齐）
+    /// 跳过原因（与 `NodeExecutionReport` 对齐）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skip_reason: Option<String>,
 }
@@ -405,7 +405,7 @@ pub struct DebugSessionState {
     pub is_stepping: bool,
     /// 是否跳过后续断点（执行到底模式）
     pub skip_breakpoints: bool,
-    /// 临时节点配置覆盖（节点 UUID -> NodeData JSON）
+    /// 临时节点配置覆盖（节点 UUID -> `NodeData` JSON）
     /// 仅调试期间生效，调试结束后丢弃
     #[serde(default)]
     pub temp_node_configs: HashMap<String, serde_json::Value>,
