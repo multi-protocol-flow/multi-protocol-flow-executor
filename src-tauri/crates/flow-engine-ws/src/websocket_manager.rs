@@ -1310,7 +1310,7 @@ fn json_to_evalexpr_value(json: &serde_json::Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::node_config::{WsMatchType, WsWaitCondition};
+    use flow_engine_core::node_config::{WsMatchType, WsCollectCondition};
 
     fn create_test_connection(uuid: &str, name: &str, url: &str) -> ActiveConnection {
         ActiveConnection::new(uuid.to_string(), name.to_string(), url.to_string())
@@ -1966,7 +1966,7 @@ mod tests {
     fn test_match_jsonpath_success() {
         let manager = WebSocketConnectionManager::new();
         let message = r#"{"status":"ok","data":{"id":123}}"#;
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::JsonPath,
             expression: "$.status".to_string(),
         };
@@ -1980,7 +1980,7 @@ mod tests {
     fn test_match_jsonpath_nested_field() {
         let manager = WebSocketConnectionManager::new();
         let message = r#"{"status":"ok","data":{"id":123}}"#;
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::JsonPath,
             expression: "$.data.id".to_string(),
         };
@@ -1994,7 +1994,7 @@ mod tests {
     fn test_match_jsonpath_not_found() {
         let manager = WebSocketConnectionManager::new();
         let message = r#"{"status":"ok"}"#;
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::JsonPath,
             expression: "$.error".to_string(),
         };
@@ -2008,7 +2008,7 @@ mod tests {
     fn test_match_jsonpath_invalid_json() {
         let manager = WebSocketConnectionManager::new();
         let message = "not a json";
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::JsonPath,
             expression: "$.status".to_string(),
         };
@@ -2022,7 +2022,7 @@ mod tests {
     fn test_match_jsonpath_invalid_expression() {
         let manager = WebSocketConnectionManager::new();
         let message = r#"{"status":"ok"}"#;
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::JsonPath,
             expression: "$.[invalid".to_string(), // 无效的 JSONPath
         };
@@ -2036,7 +2036,7 @@ mod tests {
     fn test_match_regex_success() {
         let manager = WebSocketConnectionManager::new();
         let message = "Hello World 123";
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Regex,
             expression: r"\d+".to_string(),
         };
@@ -2050,7 +2050,7 @@ mod tests {
     fn test_match_regex_complex_pattern() {
         let manager = WebSocketConnectionManager::new();
         let message = r#"{"status":200,"message":"success"}"#;
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Regex,
             expression: r#""status":\s*\d{3}"#.to_string(),
         };
@@ -2064,7 +2064,7 @@ mod tests {
     fn test_match_regex_no_match() {
         let manager = WebSocketConnectionManager::new();
         let message = "Hello World";
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Regex,
             expression: r"\d+".to_string(),
         };
@@ -2078,7 +2078,7 @@ mod tests {
     fn test_match_regex_invalid_pattern() {
         let manager = WebSocketConnectionManager::new();
         let message = "test";
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Regex,
             expression: r"[".to_string(), // 无效的正则表达式
         };
@@ -2092,7 +2092,7 @@ mod tests {
     fn test_match_expression_simple() {
         let manager = WebSocketConnectionManager::new();
         let message = r#"{"status":200}"#;
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Expression,
             expression: "status == 200".to_string(),
         };
@@ -2106,7 +2106,7 @@ mod tests {
     fn test_match_expression_with_message_var() {
         let manager = WebSocketConnectionManager::new();
         let message = "success";
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Expression,
             expression: r#"message == "success""#.to_string(),
         };
@@ -2120,7 +2120,7 @@ mod tests {
     fn test_match_expression_false() {
         let manager = WebSocketConnectionManager::new();
         let message = r#"{"code":404}"#;
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Expression,
             expression: "code == 200".to_string(),
         };
@@ -2134,7 +2134,7 @@ mod tests {
     fn test_match_expression_complex() {
         let manager = WebSocketConnectionManager::new();
         let message = r#"{"temperature":25,"humidity":60}"#;
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Expression,
             expression: "temperature > 20 && humidity < 70".to_string(),
         };
@@ -2148,7 +2148,7 @@ mod tests {
     fn test_match_expression_string_comparison() {
         let manager = WebSocketConnectionManager::new();
         let message = r#"{"status":"ok"}"#;
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Expression,
             expression: r#"status == "ok""#.to_string(),
         };
@@ -2162,7 +2162,7 @@ mod tests {
     fn test_match_expression_or_logic() {
         let manager = WebSocketConnectionManager::new();
         let message = r#"{"status":200}"#;
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Expression,
             expression: "status == 200 || status == 201".to_string(),
         };
@@ -2176,7 +2176,7 @@ mod tests {
     fn test_match_expression_numeric_comparison() {
         let manager = WebSocketConnectionManager::new();
         let message = r#"{"count":10}"#;
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Expression,
             expression: "count >= 5 && count <= 15".to_string(),
         };
@@ -2190,7 +2190,7 @@ mod tests {
     fn test_match_expression_invalid_syntax() {
         let manager = WebSocketConnectionManager::new();
         let message = r#"{"status":200}"#;
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Expression,
             expression: "status ==".to_string(), // 无效的表达式
         };
@@ -2204,7 +2204,7 @@ mod tests {
     fn test_match_expression_non_json() {
         let manager = WebSocketConnectionManager::new();
         let message = "plain text message";
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Expression,
             expression: r#"message == "plain text message""#.to_string(),
         };
@@ -2218,7 +2218,7 @@ mod tests {
     fn test_match_expression_contains_string() {
         let manager = WebSocketConnectionManager::new();
         let message = "Error: Connection timeout";
-        let condition = WsWaitCondition {
+        let condition = WsCollectCondition {
             match_type: WsMatchType::Expression,
             expression: r#"message == "Error: Connection timeout""#.to_string(),
         };

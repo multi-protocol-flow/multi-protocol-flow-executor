@@ -835,7 +835,7 @@ mod tests {
     use super::*;
     use flow_engine_core::context::ExecutionContext;
     use flow_engine_core::node::{NodePosition, NodeType};
-    use flow_engine_core::node_config::{WsMatchType, WsSendWaitConfig, WsWaitCondition, WsWaitMode};
+    use flow_engine_core::node_config::{WsMatchType, WsSendCollectConfig, WsCollectCondition, WsCollectMode};
     use flow_engine_core::variable::OutputMapping;
     use crate::websocket_manager::WebSocketConnectionManager;
     use serde_json::json;
@@ -845,22 +845,22 @@ mod tests {
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, message: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::WsSendWait,
+            node_type: NodeType::WsSendCollect,
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::WsSendWait(WsSendWaitConfig {
+            data: NodeData::WsSendCollect(WsSendCollectConfig {
                 connection_id: connection_id.to_string(),
                 message: message.to_string(),
                 message_type: WsMessageType::Text,
                 send_timeout_ms: 10000,
-                wait_for_response: false,
-                wait_mode: WsWaitMode::FirstMessage,
-                wait_condition: None,
-                message_timeout_ms: 10000,
+                collect_response: false,
+                collect_mode: WsCollectMode::FirstMatch,
+                collect_condition: None,
+                collect_timeout_ms: 10000,
                 output_mappings: vec![],
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
         }
     }
 
@@ -875,7 +875,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_wait_connection_not_found() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
-        let executor = WsSendWaitExecutor::new(ws_manager);
+        let executor = WsSendCollectExecutor::new(ws_manager);
         let node = create_test_node("test-1", "测试发送", "nonexistent-conn", "Hello");
         let mut context = create_context("test-flow");
 
@@ -894,7 +894,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_wait_with_variable_replacement() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
-        let executor = WsSendWaitExecutor::new(ws_manager);
+        let executor = WsSendCollectExecutor::new(ws_manager);
 
         // 创建带变量的节点
         let node = create_test_node("test-var", "变量替换测试", "{{conn_id}}", "Message: {{msg}}");
@@ -925,25 +925,25 @@ mod tests {
         assert!(data["error"].as_str().unwrap().contains("连接不存在"));
     }
     #[tokio::test]
-    async fn test_send_wait_wait_mode_first_message() {
+    async fn test_send_wait_collect_mode_first_message() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
-        let executor = WsSendWaitExecutor::new(ws_manager);
+        let executor = WsSendCollectExecutor::new(ws_manager);
 
         // 创建配置了等待第一条消息的节点
         let node = Node {
             uuid: "test-wait-first".to_string(),
-            node_type: NodeType::WsSendWait,
+            node_type: NodeType::WsSendCollect,
             name: "等待第一条消息".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::WsSendWait(WsSendWaitConfig {
+            data: NodeData::WsSendCollect(WsSendCollectConfig {
                 connection_id: "test-conn".to_string(),
                 message: "Hello".to_string(),
                 message_type: WsMessageType::Text,
                 send_timeout_ms: 10000,
-                wait_for_response: true,
-                wait_mode: WsWaitMode::FirstMessage,
-                wait_condition: None,
-                message_timeout_ms: 5000,
+                collect_response: true,
+                collect_mode: WsCollectMode::FirstMatch,
+                collect_condition: None,
+                collect_timeout_ms: 5000,
                 output_mappings: vec![],
             }),
             ports: None,
@@ -965,28 +965,28 @@ mod tests {
         assert!(data["error"].as_str().unwrap().contains("连接不存在"));
     }
     #[tokio::test]
-    async fn test_send_wait_wait_mode_condition() {
+    async fn test_send_wait_collect_mode_condition() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
-        let executor = WsSendWaitExecutor::new(ws_manager);
+        let executor = WsSendCollectExecutor::new(ws_manager);
 
         // 创建配置了条件等待的节点
         let node = Node {
             uuid: "test-wait-condition".to_string(),
-            node_type: NodeType::WsSendWait,
+            node_type: NodeType::WsSendCollect,
             name: "条件等待".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::WsSendWait(WsSendWaitConfig {
+            data: NodeData::WsSendCollect(WsSendCollectConfig {
                 connection_id: "test-conn".to_string(),
                 message: r#"{\"type\":\"ping\"}"#.to_string(),
                 message_type: WsMessageType::Text,
                 send_timeout_ms: 10000,
-                wait_for_response: true,
-                wait_mode: WsWaitMode::Condition,
-                wait_condition: Some(WsWaitCondition {
+                collect_response: true,
+                collect_mode: WsCollectMode::ConditionMatch,
+                collect_condition: Some(WsCollectCondition {
                     match_type: WsMatchType::JsonPath,
                     expression: "$.type".to_string(),
                 }),
-                message_timeout_ms: 5000,
+                collect_timeout_ms: 5000,
                 output_mappings: vec![],
             }),
             ports: None,
@@ -1008,25 +1008,25 @@ mod tests {
         assert!(data["error"].as_str().unwrap().contains("连接不存在"));
     }
     #[tokio::test]
-    async fn test_send_wait_wait_mode_duration() {
+    async fn test_send_wait_collect_mode_duration() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
-        let executor = WsSendWaitExecutor::new(ws_manager);
+        let executor = WsSendCollectExecutor::new(ws_manager);
 
         // 创建配置了时长等待的节点
         let node = Node {
             uuid: "test-wait-duration".to_string(),
-            node_type: NodeType::WsSendWait,
+            node_type: NodeType::WsSendCollect,
             name: "时长等待".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::WsSendWait(WsSendWaitConfig {
+            data: NodeData::WsSendCollect(WsSendCollectConfig {
                 connection_id: "test-conn".to_string(),
                 message: "Test".to_string(),
                 message_type: WsMessageType::Text,
                 send_timeout_ms: 10000,
-                wait_for_response: true,
-                wait_mode: WsWaitMode::Duration,
-                wait_condition: None,
-                message_timeout_ms: 2000, // 2 秒
+                collect_response: true,
+                collect_mode: WsCollectMode::DurationCollect,
+                collect_condition: None,
+                collect_timeout_ms: 2000, // 2 秒
                 output_mappings: vec![],
             }),
             ports: None,
@@ -1050,23 +1050,23 @@ mod tests {
     #[tokio::test]
     async fn test_send_wait_output_mappings() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
-        let executor = WsSendWaitExecutor::new(ws_manager);
+        let executor = WsSendCollectExecutor::new(ws_manager);
 
         // 创建带输出映射的节点
         let node = Node {
             uuid: "test-mappings".to_string(),
-            node_type: NodeType::WsSendWait,
+            node_type: NodeType::WsSendCollect,
             name: "输出映射测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::WsSendWait(WsSendWaitConfig {
+            data: NodeData::WsSendCollect(WsSendCollectConfig {
                 connection_id: "test-conn".to_string(),
                 message: "Test".to_string(),
                 message_type: WsMessageType::Text,
                 send_timeout_ms: 10000,
-                wait_for_response: false,
-                wait_mode: WsWaitMode::FirstMessage,
-                wait_condition: None,
-                message_timeout_ms: 10000,
+                collect_response: false,
+                collect_mode: WsCollectMode::FirstMatch,
+                collect_condition: None,
+                collect_timeout_ms: 10000,
                 output_mappings: vec![OutputMapping {
                     source: "$.connection_id".to_string(),
                     target: "ws_conn_id".to_string(),
@@ -1094,23 +1094,23 @@ mod tests {
     #[tokio::test]
     async fn test_send_binary_message() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
-        let executor = WsSendWaitExecutor::new(ws_manager);
+        let executor = WsSendCollectExecutor::new(ws_manager);
 
         // 创建二进制消息节点
         let node = Node {
             uuid: "test-binary".to_string(),
-            node_type: NodeType::WsSendWait,
+            node_type: NodeType::WsSendCollect,
             name: "二进制消息".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::WsSendWait(WsSendWaitConfig {
+            data: NodeData::WsSendCollect(WsSendCollectConfig {
                 connection_id: "test-conn".to_string(),
                 message: "0102030405".to_string(), // 十六进制字符串
                 message_type: WsMessageType::Binary,
                 send_timeout_ms: 10000,
-                wait_for_response: false,
-                wait_mode: WsWaitMode::FirstMessage,
-                wait_condition: None,
-                message_timeout_ms: 10000,
+                collect_response: false,
+                collect_mode: WsCollectMode::FirstMatch,
+                collect_condition: None,
+                collect_timeout_ms: 10000,
                 output_mappings: vec![],
             }),
             ports: None,
@@ -1134,7 +1134,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_wait_to_echo_server() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
-        let executor = WsSendWaitExecutor::new(ws_manager.clone());
+        let executor = WsSendCollectExecutor::new(ws_manager.clone());
 
         // 先建立连接
         let connect_result = ws_manager
@@ -1190,7 +1190,7 @@ mod tests {
     #[tokio::test]
     async fn test_send_wait_with_response_to_echo_server() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
-        let executor = WsSendWaitExecutor::new(ws_manager.clone());
+        let executor = WsSendCollectExecutor::new(ws_manager.clone());
 
         // 先建立连接
         let connect_result = ws_manager
@@ -1212,18 +1212,18 @@ mod tests {
             // 创建带等待响应的节点
             let node = Node {
                 uuid: "echo-test-2".to_string(),
-                node_type: NodeType::WsSendWait,
+                node_type: NodeType::WsSendCollect,
                 name: "Echo 测试 2".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
-                data: NodeData::WsSendWait(WsSendWaitConfig {
+                data: NodeData::WsSendCollect(WsSendCollectConfig {
                     connection_id: "echo-conn-2".to_string(),
                     message: "Test Message".to_string(),
                     message_type: WsMessageType::Text,
                     send_timeout_ms: 10000,
-                    wait_for_response: true,
-                    wait_mode: WsWaitMode::FirstMessage,
-                    wait_condition: None,
-                    message_timeout_ms: 10000,
+                    collect_response: true,
+                    collect_mode: WsCollectMode::FirstMatch,
+                    collect_condition: None,
+                    collect_timeout_ms: 10000,
                     output_mappings: vec![],
                 }),
                 ports: None,
@@ -1258,5 +1258,244 @@ mod tests {
         } else {
             println!("跳过测试：无法连接到 echo 服务器");
         }
+    }
+
+    // ========================================================================
+    // collected_messages 输出数据结构测试
+    // ========================================================================
+
+    /// 测试：FirstMatch 模式返回 1 条消息在 collected_messages 中
+    #[test]
+    fn test_collected_messages_first_match() {
+        let ws_manager = Arc::new(WebSocketConnectionManager::new());
+        let executor = WsSendCollectExecutor::new(ws_manager);
+
+        let collected = vec!["hello world".to_string()];
+        let result = executor.build_output_data(
+            "conn-1",
+            "ping",
+            false,
+            &collected,
+            Some(0), // FirstMatch 匹配索引为 0
+            false,
+            Some("wss://example.com"),
+            10,
+            Some(5),
+        ).expect("构建输出数据失败").expect("应返回 Some");
+
+        // 验证 collected_messages 数组
+        let collected_arr = result["collected_messages"].as_array().expect("应为数组");
+        assert_eq!(collected_arr.len(), 1, "FirstMatch 应返回 1 条消息");
+        assert_eq!(collected_arr[0]["data"], "hello world");
+        assert_eq!(collected_arr[0]["type"], "text");
+
+        // 验证 matched_message
+        assert_eq!(result["matched_message"]["data"], "hello world");
+        assert_eq!(result["message"]["data"], "hello world");
+
+        // 验证 message_count
+        assert_eq!(result["message_count"], 1);
+
+        // 验证 success
+        assert_eq!(result["success"], true);
+    }
+
+    /// 测试：ConditionMatch 模式返回所有消息（包含不匹配的）
+    #[test]
+    fn test_collected_messages_condition_match() {
+        let ws_manager = Arc::new(WebSocketConnectionManager::new());
+        let executor = WsSendCollectExecutor::new(ws_manager);
+
+        // 模拟 ConditionMatch 场景：收到 3 条消息，第 3 条匹配
+        let collected = vec![
+            r#"{"type":"info","msg":"connecting"}"#.to_string(),
+            r#"{"type":"info","msg":"connected"}"#.to_string(),
+            r#"{"type":"ready","status":"ok"}"#.to_string(),
+        ];
+        let result = executor.build_output_data(
+            "conn-2",
+            "ping",
+            false,
+            &collected,
+            Some(2), // 第 3 条消息匹配
+            false,
+            Some("wss://example.com"),
+            10,
+            Some(50),
+        ).expect("构建输出数据失败").expect("应返回 Some");
+
+        // 验证 collected_messages 包含所有消息
+        let collected_arr = result["collected_messages"].as_array().expect("应为数组");
+        assert_eq!(collected_arr.len(), 3, "ConditionMatch 应返回所有消息");
+        assert_eq!(collected_arr[0]["data"], r#"{"type":"info","msg":"connecting"}"#);
+        assert_eq!(collected_arr[1]["data"], r#"{"type":"info","msg":"connected"}"#);
+        assert_eq!(collected_arr[2]["data"], r#"{"type":"ready","status":"ok"}"#);
+
+        // 验证 parsed 字段（JSON 消息应自动解析）
+        assert!(collected_arr[0]["parsed"].is_object());
+        assert!(collected_arr[1]["parsed"].is_object());
+        assert!(collected_arr[2]["parsed"].is_object());
+
+        // 验证 matched_message 是最后一条
+        assert_eq!(result["matched_message"]["data"], r#"{"type":"ready","status":"ok"}"#);
+        assert_eq!(result["message"]["data"], r#"{"type":"ready","status":"ok"}"#);
+
+        // 验证 message_count
+        assert_eq!(result["message_count"], 3);
+    }
+
+    /// 测试：DurationCollect 模式返回所有消息
+    #[test]
+    fn test_collected_messages_duration_collect() {
+        let ws_manager = Arc::new(WebSocketConnectionManager::new());
+        let executor = WsSendCollectExecutor::new(ws_manager);
+
+        // 模拟 DurationCollect 场景：收到 4 条消息，最后一条作为 matched
+        let collected = vec![
+            "msg1".to_string(),
+            "msg2".to_string(),
+            "msg3".to_string(),
+            "msg4".to_string(),
+        ];
+        let result = executor.build_output_data(
+            "conn-3",
+            "start",
+            false,
+            &collected,
+            Some(3), // 最后一条作为 matched
+            false,
+            Some("wss://example.com"),
+            5,
+            Some(2000),
+        ).expect("构建输出数据失败").expect("应返回 Some");
+
+        // 验证 collected_messages 包含所有 4 条消息
+        let collected_arr = result["collected_messages"].as_array().expect("应为数组");
+        assert_eq!(collected_arr.len(), 4, "DurationCollect 应返回所有消息");
+        assert_eq!(collected_arr[0]["data"], "msg1");
+        assert_eq!(collected_arr[1]["data"], "msg2");
+        assert_eq!(collected_arr[2]["data"], "msg3");
+        assert_eq!(collected_arr[3]["data"], "msg4");
+
+        // 验证 matched_message 是最后一条
+        assert_eq!(result["matched_message"]["data"], "msg4");
+        assert_eq!(result["message_count"], 4);
+    }
+
+    /// 测试：超时无消息时 collected_messages 为空数组
+    #[test]
+    fn test_collected_messages_empty() {
+        let ws_manager = Arc::new(WebSocketConnectionManager::new());
+        let executor = WsSendCollectExecutor::new(ws_manager);
+
+        // 模拟超时场景：没有收到任何消息
+        let collected: Vec<String> = vec![];
+        let result = executor.build_output_data(
+            "conn-4",
+            "ping",
+            false,
+            &collected,
+            None, // 无匹配
+            true, // 超时
+            Some("wss://example.com"),
+            10,
+            Some(10000),
+        ).expect("构建输出数据失败").expect("应返回 Some");
+
+        // 验证 collected_messages 为空数组
+        let collected_arr = result["collected_messages"].as_array().expect("应为数组");
+        assert_eq!(collected_arr.len(), 0, "超时时应返回空数组");
+
+        // 验证 matched_message 为 null
+        assert!(result["matched_message"].is_null());
+        assert!(result["message"].is_null());
+
+        // 验证 message_count 为 0
+        assert_eq!(result["message_count"], 0);
+
+        // 验证超时标记
+        assert_eq!(result["collect_timed_out"], true);
+    }
+
+    /// 测试：output_mappings 能通过 $.collected_messages[0].data 提取值
+    #[test]
+    fn test_output_mapping_collected_messages() {
+        let ws_manager = Arc::new(WebSocketConnectionManager::new());
+        let executor = WsSendCollectExecutor::new(ws_manager);
+
+        let collected = vec![
+            r#"{"status":"ok"}"#.to_string(),
+            r#"{"status":"done"}"#.to_string(),
+        ];
+        let output_data = executor.build_output_data(
+            "conn-5",
+            "ping",
+            false,
+            &collected,
+            Some(1),
+            false,
+            Some("wss://example.com"),
+            10,
+            Some(5),
+        ).expect("构建输出数据失败").expect("应返回 Some");
+
+        // 验证 $.collected_messages[0].data 路径可以提取值
+        let value = flow_engine_core::utils::extract_value_by_path(&output_data, "$.collected_messages[0].data");
+        assert!(value.is_some(), "$.collected_messages[0].data 应该能提取到值");
+        assert_eq!(value.expect("值不存在"), r#"{"status":"ok"}"#);
+
+        // 验证 $.collected_messages[1].data 路径
+        let value2 = flow_engine_core::utils::extract_value_by_path(&output_data, "$.collected_messages[1].data");
+        assert!(value2.is_some(), "$.collected_messages[1].data 应该能提取到值");
+        assert_eq!(value2.expect("值不存在"), r#"{"status":"done"}"#);
+
+        // 验证 $.message_count 路径
+        let count = flow_engine_core::utils::extract_value_by_path(&output_data, "$.message_count");
+        assert!(count.is_some());
+        assert_eq!(count.expect("值不存在"), 2);
+
+        // 验证 $.matched_message.data 路径
+        let matched = flow_engine_core::utils::extract_value_by_path(&output_data, "$.matched_message.data");
+        assert!(matched.is_some());
+        assert_eq!(matched.expect("值不存在"), r#"{"status":"done"}"#);
+
+        // 模拟 apply_output_mappings 行为
+        let mut context = create_context("test-flow");
+        let config = WsSendCollectConfig {
+            connection_id: "conn-5".to_string(),
+            message: "ping".to_string(),
+            message_type: WsMessageType::Text,
+            send_timeout_ms: 10000,
+            collect_response: true,
+            collect_mode: WsCollectMode::ConditionMatch,
+            collect_condition: None,
+            collect_timeout_ms: 10000,
+            output_mappings: vec![
+                OutputMapping {
+                    source: "$.collected_messages[0].data".to_string(),
+                    target: "first_msg".to_string(),
+                    description: None,
+                },
+                OutputMapping {
+                    source: "$.message_count".to_string(),
+                    target: "msg_count".to_string(),
+                    description: None,
+                },
+            ],
+        };
+
+        executor.apply_output_mappings(&config, &output_data, &mut context);
+
+        // 验证变量映射成功
+        assert_eq!(
+            context.variables.get_variable("first_msg"),
+            Some(&json!(r#"{"status":"ok"}"#)),
+            "output_mapping 应该能通过 $.collected_messages[0].data 提取并设置变量"
+        );
+        assert_eq!(
+            context.variables.get_variable("msg_count"),
+            Some(&json!(2)),
+            "output_mapping 应该能通过 $.message_count 提取并设置变量"
+        );
     }
 }

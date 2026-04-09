@@ -642,7 +642,7 @@ mod tests {
     use super::*;
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::{NodePosition, NodeType};
-    use flow_engine_core::node_config::{WsConnectConfig, WsWaitCondition, WsMatchType};
+    use flow_engine_core::node_config::{WsConnectConfig, WsCollectCondition, WsMatchType};
     use flow_engine_core::variable::OutputMapping;
     use crate::websocket_manager::WebSocketConnectionManager;
     use std::sync::Arc;
@@ -690,6 +690,7 @@ mod tests {
             db_connections: std::collections::HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
+            execution_event_sender: None,
         }
     }
 

@@ -1,8 +1,8 @@
 //! WebSocket 调试消息流端到端集成测试
 //!
 //! 测试场景:
-//! 1. 完整调试流程: WsConnect → (断点) → WsSendWait → WsClose
-//! 2. 所有权转移: 多个 WsSendWait 节点使用同一连接
+//! 1. 完整调试流程: WsConnect → (断点) → WsSendCollect → WsClose
+//! 2. 所有权转移: 多个 WsSendCollect 节点使用同一连接
 //! 3. 报告集成: 验证报告包含 ws_streams
 //! 4. 普通模式: 非调试模式执行，无调试事件，消息仍被记录
 
@@ -13,7 +13,7 @@ use flow_engine::context::ExecutionContext;
 use flow_engine::debug::{DebugCommand, DebugEvent, DebugStatus, DebuggableFlowExecutor};
 use flow_engine::flow::Flow;
 use flow_engine::node::{Node, NodePosition, NodeType};
-use flow_engine::node_config::{NodeData, WsConnectConfig, WsSendWaitConfig, WsCloseConfig, WsWaitMode, WsMessageType};
+use flow_engine::node_config::{NodeData, WsConnectConfig, WsSendCollectConfig, WsCloseConfig, WsCollectMode, WsMessageType};
 use flow_engine::report::FlowExecutionReport;
 use flow_engine::ws_stream::{MessageContent, MessageDirection, WsMessage};
 
@@ -21,7 +21,7 @@ use flow_engine::ws_stream::{MessageContent, MessageDirection, WsMessage};
 // 辅助函数
 // ============================================================================
 
-/// 创建测试流程: Entry → WsConnect → WsSendWait → WsClose
+/// 创建测试流程: Entry → WsConnect → WsSendCollect → WsClose
 fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
     Flow {
         uuid: flow_uuid.to_string(),
@@ -49,30 +49,30 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
                     headers: vec![],
                     subprotocols: vec![],
                     connect_timeout_ms: 5000,
-                    wait_for_message: false,
-                    wait_mode: WsWaitMode::FirstMessage,
-                    wait_condition: None,
-                    message_timeout_ms: 5000,
+                    collect_message: false,
+                    collect_mode: WsCollectMode::FirstMatch,
+                    collect_condition: None,
+                    collect_timeout_ms: 5000,
                     output_mappings: vec![],
                 }),
                 ports: None,
                 has_breakpoint: None,
             },
-            // WsSendWait 节点
+            // WsSendCollect 节点
             Node {
-                uuid: format!("ws-send-wait-{}", flow_uuid),
-                node_type: NodeType::WsSendWait,
-                name: "WS 发送等待".to_string(),
+                uuid: format!("ws-send-collect-{}", flow_uuid),
+                node_type: NodeType::WsSendCollect,
+                name: "WS 发送采集".to_string(),
                 position: NodePosition { x: 400.0, y: 0.0 },
-                data: NodeData::WsSendWait(WsSendWaitConfig {
+                data: NodeData::WsSendCollect(WsSendCollectConfig {
                     connection_id: format!("ws-connect-{}", flow_uuid),
                     message: "Hello, Debug!".to_string(),
                     message_type: WsMessageType::Text,
                     send_timeout_ms: 5000,
-                    wait_for_response: false,
-                    wait_mode: WsWaitMode::FirstMessage,
-                    wait_condition: None,
-                    message_timeout_ms: 5000,
+                    collect_response: false,
+                    collect_mode: WsCollectMode::FirstMatch,
+                    collect_condition: None,
+                    collect_timeout_ms: 5000,
                     output_mappings: vec![],
                 }),
                 ports: None,
@@ -88,7 +88,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
                     connection_id: format!("ws-connect-{}", flow_uuid),
                 close_code: 1000,
                 close_reason: Some("正常关闭".to_string()),
-                    wait_close_timeout_ms: 5000,
+                    close_timeout_ms: 5000,
                 }),
                 ports: None,
                 has_breakpoint: None,
@@ -103,15 +103,15 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
                 target_port_id: "input".to_string(),
             },
             Connection {
-                id: format!("conn-wsconnect-wssendwait-{}", flow_uuid),
+                id: format!("conn-wsconnect-wssendcollect-{}", flow_uuid),
                 source_node_uuid: format!("ws-connect-{}", flow_uuid),
-                target_node_uuid: format!("ws-send-wait-{}", flow_uuid),
+                target_node_uuid: format!("ws-send-collect-{}", flow_uuid),
                 source_port_id: "true".to_string(),
                 target_port_id: "input".to_string(),
             },
             Connection {
-                id: format!("conn-wssendwait-wsclose-{}", flow_uuid),
-                source_node_uuid: format!("ws-send-wait-{}", flow_uuid),
+                id: format!("conn-wssendcollect-wsclose-{}", flow_uuid),
+                source_node_uuid: format!("ws-send-collect-{}", flow_uuid),
                 target_node_uuid: format!("ws-close-{}", flow_uuid),
                 source_port_id: "true".to_string(),
                 target_port_id: "input".to_string(),
@@ -124,7 +124,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
 // 测试 1: 完整调试流程（带断点）
 // ============================================================================
 
-/// 测试完整的调试流程: WsConnect → (断点) → WsSendWait → WsClose
+/// 测试完整的调试流程: WsConnect → (断点) → WsSendCollect → WsClose
 ///
 /// 验证:
 /// - 调试会话能够正常启动和结束
@@ -225,7 +225,7 @@ async fn test_debug_flow_with_breakpoint() {
 // 测试 2: 所有权转移
 // ============================================================================
 
-/// 测试多个 WsSendWait 节点使用同一连接时的所有权转移
+/// 测试多个 WsSendCollect 节点使用同一连接时的所有权转移
 ///
 /// 验证:
 /// - 初始所有者是 WsConnect 节点
@@ -265,37 +265,37 @@ async fn test_ownership_transfer() {
     // 模拟第一个 WsSendWait 节点转移所有权
     context.transfer_ws_ownership(
         &connection_id,
-        format!("ws-send-wait-1-{}", flow_uuid),
+        format!("ws-send-collect-1-{}", flow_uuid),
         "WS 发送 1".to_string(),
-        "ws_send_wait".to_string(),
+        "ws_send_collect".to_string(),
     ).await;
     
     // 验证所有权转移
     {
         let stream = context.get_ws_stream(&connection_id).await.unwrap();
-        assert_eq!(stream.current_owner_node_uuid, Some(format!("ws-send-wait-1-{}", flow_uuid)));
+        assert_eq!(stream.current_owner_node_uuid, Some(format!("ws-send-collect-1-{}", flow_uuid)));
         assert_eq!(stream.segments.len(), 2, "应该有 2 个段");
         // 第一个段应该已结束
         assert!(stream.segments[0].ended_at.is_some(), "第一个段应该已结束");
         // 第二个段应该是当前段
         assert!(stream.segments[1].ended_at.is_none(), "第二个段应该未结束");
-        assert_eq!(stream.segments[1].node_type, "ws_send_wait");
+        assert_eq!(stream.segments[1].node_type, "ws_send_collect");
     }
     
     // 模拟第二个 WsSendWait 节点转移所有权
     context.transfer_ws_ownership(
         &connection_id,
-        format!("ws-send-wait-2-{}", flow_uuid),
+        format!("ws-send-collect-2-{}", flow_uuid),
         "WS 发送 2".to_string(),
-        "ws_send_wait".to_string(),
+        "ws_send_collect".to_string(),
     ).await;
     
     // 验证所有权再次转移
     {
         let stream = context.get_ws_stream(&connection_id).await.unwrap();
-        assert_eq!(stream.current_owner_node_uuid, Some(format!("ws-send-wait-2-{}", flow_uuid)));
+        assert_eq!(stream.current_owner_node_uuid, Some(format!("ws-send-collect-2-{}", flow_uuid)));
         assert_eq!(stream.segments.len(), 3, "应该有 3 个段");
-        assert_eq!(stream.segments[2].node_type, "ws_send_wait");
+        assert_eq!(stream.segments[2].node_type, "ws_send_collect");
     }
     
     // 模拟 WsClose 节点关闭连接
@@ -364,7 +364,7 @@ async fn test_report_includes_ws_streams() {
         connection_id,
         "node-send-wait".to_string(),
         "发送等待节点".to_string(),
-        "ws_send_wait".to_string(),
+        "ws_send_collect".to_string(),
     ).await;
     
     // 添加更多消息
@@ -401,7 +401,7 @@ async fn test_report_includes_ws_streams() {
     
     // 验证段信息
     assert_eq!(stream.segments[0].node_type, "ws_connect");
-    assert_eq!(stream.segments[1].node_type, "ws_send_wait");
+    assert_eq!(stream.segments[1].node_type, "ws_send_collect");
     
     // 创建报告并验证 ws_streams 字段
     let report = FlowExecutionReport {
@@ -683,7 +683,7 @@ async fn test_ws_stream_message_recording() {
         connection_id,
         "node-2".to_string(),
         "节点 2".to_string(),
-        "ws_send_wait".to_string(),
+        "ws_send_collect".to_string(),
     ).await;
     
     for i in 10..15 {

@@ -246,7 +246,7 @@ mod tests {
                 connection_id: connection_id.to_string(),
                 close_code: 1000,
                 close_reason: None,
-                wait_close_timeout_ms: 5000,
+                close_timeout_ms: 5000,
             }),
             ports: None,
         has_breakpoint: None,
@@ -273,6 +273,7 @@ mod tests {
             db_connections: std::collections::HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
+            execution_event_sender: None,
         }
     }
 
@@ -348,7 +349,7 @@ mod tests {
                 connection_id: "test-conn".to_string(),
                 close_code: 1001, // Going Away
                 close_reason: Some("用户离开".to_string()),
-                wait_close_timeout_ms: 5000,
+                close_timeout_ms: 5000,
             }),
             ports: None,
         has_breakpoint: None,
@@ -458,7 +459,7 @@ mod tests {
                     connection_id: "close-reason-conn".to_string(),
                     close_code: 1000,
                     close_reason: Some("测试完成".to_string()),
-                    wait_close_timeout_ms: 5000,
+                    close_timeout_ms: 5000,
                 }),
                 ports: None,
             has_breakpoint: None,

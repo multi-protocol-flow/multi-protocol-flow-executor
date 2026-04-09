@@ -44,7 +44,7 @@ pub use flow_engine_http::http;
 pub use flow_engine_http::http_executor;
 pub use flow_engine_ws::ws_close_executor;
 pub use flow_engine_ws::ws_connect_executor;
-pub use flow_engine_ws::ws_send_wait_executor;
+pub use flow_engine_ws::ws_send_collect_executor;
 // Wave 4: 调试模块
 pub use flow_engine_executor::debug;
 // Wave 5: 断言模块
@@ -87,7 +87,7 @@ pub mod test_utils {
     use crate::context::ExecutionContext;
     use crate::node::{Node, NodePosition, NodeType};
     use crate::node_config::{
-        WsCloseConfig, WsConnectConfig, WsMessageType, WsSendWaitConfig, WsWaitMode,
+        WsCloseConfig, WsCollectMode, WsConnectConfig, WsMessageType, WsSendCollectConfig,
     };
 
     /// 创建 WebSocket Connect 节点
@@ -110,10 +110,10 @@ pub mod test_utils {
                 headers: vec![],
                 subprotocols: vec![],
                 connect_timeout_ms: 30000,
-                wait_for_message: false,
-                wait_mode: WsWaitMode::FirstMessage,
-                wait_condition: None,
-                message_timeout_ms: 10000,
+                collect_message: false,
+                collect_mode: WsCollectMode::FirstMatch,
+                collect_condition: None,
+                collect_timeout_ms: 10000,
                 output_mappings: vec![],
             }),
             ports: None,
@@ -121,7 +121,7 @@ pub mod test_utils {
         }
     }
 
-    /// 创建 WebSocket Send+Wait 节点
+    /// 创建 WebSocket Send+Collect 节点
     ///
     /// # 参数
     /// - `uuid`: 节点唯一标识符
@@ -129,22 +129,22 @@ pub mod test_utils {
     /// - `message`: 要发送的消息内容
     ///
     /// # 返回
-    /// 配置好的 WebSocket Send+Wait 节点
-    pub fn create_ws_send_wait_node(uuid: &str, connection_id: &str, message: &str) -> Node {
+    /// 配置好的 WebSocket Send+Collect 节点
+    pub fn create_ws_send_collect_node(uuid: &str, connection_id: &str, message: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::WsSendWait,
-            name: format!("WS Send+Wait {}", uuid),
+            node_type: NodeType::WsSendCollect,
+            name: format!("WS Send+Collect {}", uuid),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: crate::node_config::NodeData::WsSendWait(WsSendWaitConfig {
+            data: crate::node_config::NodeData::WsSendCollect(WsSendCollectConfig {
                 connection_id: connection_id.to_string(),
                 message: message.to_string(),
                 message_type: WsMessageType::Text,
                 send_timeout_ms: 10000,
-                wait_for_response: true,
-                wait_mode: WsWaitMode::FirstMessage,
-                wait_condition: None,
-                message_timeout_ms: 10000,
+                collect_response: true,
+                collect_mode: WsCollectMode::FirstMatch,
+                collect_condition: None,
+                collect_timeout_ms: 10000,
                 output_mappings: vec![],
             }),
             ports: None,
@@ -170,7 +170,7 @@ pub mod test_utils {
                 connection_id: connection_id.to_string(),
                 close_code: 1000,
                 close_reason: None,
-                wait_close_timeout_ms: 5000,
+                close_timeout_ms: 5000,
             }),
             ports: None,
             has_breakpoint: None,
@@ -203,11 +203,11 @@ mod tests {
     }
 
     #[test]
-    fn test_create_ws_send_wait_node() {
-        let node = create_ws_send_wait_node("ws-002", "conn-001", "Hello, WebSocket!");
+    fn test_create_ws_send_collect_node() {
+        let node = create_ws_send_collect_node("ws-002", "conn-001", "Hello, WebSocket!");
 
         assert_eq!(node.uuid, "ws-002");
-        assert_eq!(node.node_type, crate::node::NodeType::WsSendWait);
+        assert_eq!(node.node_type, crate::node::NodeType::WsSendCollect);
         assert!(node.name.contains("ws-002"));
     }
 
