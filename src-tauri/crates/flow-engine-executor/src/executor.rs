@@ -9,7 +9,7 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::{Node, NodeType};
 use flow_engine_ws::websocket_manager::WebSocketConnectionManager;
 use flow_engine_ws::ws_connect_executor::WsConnectExecutor;
-use flow_engine_ws::ws_send_wait_executor::WsSendWaitExecutor;
+use flow_engine_ws::ws_send_collect_executor::WsSendCollectExecutor;
 use flow_engine_ws::ws_close_executor::WsCloseExecutor;
 use serde_json::json;
 use std::collections::HashMap;
@@ -120,22 +120,22 @@ fn build_input_data_from_node_config(node: &flow_engine_core::node::Node) -> Opt
                 "headers": config.headers,
                 "subprotocols": config.subprotocols,
                 "connect_timeout_ms": config.connect_timeout_ms,
-                "wait_for_message": config.wait_for_message,
-                "wait_mode": config.wait_mode,
-                "message_timeout_ms": config.message_timeout_ms,
+                "collect_message": config.collect_message,
+                "collect_mode": config.collect_mode,
+                "collect_timeout_ms": config.collect_timeout_ms,
             }))
         },
         
         // WebSocket SendWait 节点：发送配置
-        NodeData::WsSendWait(config) => {
+        NodeData::WsSendCollect(config) => {
             Some(serde_json::json!({
                 "connection_id": config.connection_id,
                 "message": config.message,
                 "message_type": config.message_type,
                 "send_timeout_ms": config.send_timeout_ms,
-                "wait_for_response": config.wait_for_response,
-                "wait_mode": config.wait_mode,
-                "message_timeout_ms": config.message_timeout_ms,
+                "collect_response": config.collect_response,
+                "collect_mode": config.collect_mode,
+                "collect_timeout_ms": config.collect_timeout_ms,
             }))
         },
         
@@ -145,7 +145,7 @@ fn build_input_data_from_node_config(node: &flow_engine_core::node::Node) -> Opt
                 "connection_id": config.connection_id,
                 "close_code": config.close_code,
                 "close_reason": config.close_reason,
-                "wait_close_timeout_ms": config.wait_close_timeout_ms,
+                "close_timeout_ms": config.close_timeout_ms,
             }))
         },
         
@@ -514,7 +514,7 @@ impl FlowExecutor {
                                 })
                             })
                         }
-                        NodeType::WsSendWait | NodeType::WsClose => {
+                        NodeType::WsSendCollect | NodeType::WsClose => {
                             Some("out".to_string())
                         }
                         // Assertion 节点：根据 passed 字段判断
@@ -573,11 +573,11 @@ impl FlowExecutor {
                     }
 
                     // 更新 last_node_output（仅协议节点更新，工具节点延续上游数据）
-                    // 协议节点：Http, WsConnect, WsSendWait
+                    // 协议节点：Http, WsConnect, WsSendCollect
                     // 工具节点：Entry, Conditional, WsClose（不更新，延续上游）
                     let is_protocol_node = matches!(
                         node.node_type,
-                        NodeType::Http | NodeType::WsConnect | NodeType::WsSendWait
+                        NodeType::Http | NodeType::WsConnect | NodeType::WsSendCollect
                     );
                     if is_protocol_node {
                         context.last_node_output = output_data.clone();
@@ -797,7 +797,7 @@ impl FlowExecutor {
                     // 检查节点是否支持 false 端口，以及是否有 false 端口的连接
                     let supports_false_port = matches!(
                         node.node_type,
-                        NodeType::WsConnect | NodeType::WsSendWait | NodeType::WsClose
+                        NodeType::WsConnect | NodeType::WsSendCollect | NodeType::WsClose
                     );
                     
                     let false_port_next_node = if supports_false_port {
@@ -1116,7 +1116,7 @@ impl FlowExecutor {
                 let executor = WsConnectExecutor::new(ws_manager);
                 executor.execute(node, context, connections, node_map).await
             }
-            NodeType::WsSendWait => {
+            NodeType::WsSendCollect => {
                 log::info!(
                     "[流程 {}] 执行 WebSocket Send+Wait 节点: {} ({})",
                     context.flow_uuid,
@@ -1127,7 +1127,7 @@ impl FlowExecutor {
                 let ws_manager = context.ws_manager.clone().unwrap_or_else(|| {
                     Arc::new(WebSocketConnectionManager::new())
                 });
-                let executor = WsSendWaitExecutor::new(ws_manager);
+                let executor = WsSendCollectExecutor::new(ws_manager);
                 executor.execute(node, context, connections, node_map).await
             }
             // WebSocket Close 节点

@@ -18,7 +18,7 @@ use flow_engine_assertion::assertion_executor::AssertionNodeExecutor;
 use flow_engine_ws::websocket_manager::WebSocketConnectionManager;
 use flow_engine_ws::ws_close_executor::WsCloseExecutor;
 use flow_engine_ws::ws_connect_executor::WsConnectExecutor;
-use flow_engine_ws::ws_send_wait_executor::WsSendWaitExecutor;
+use flow_engine_ws::ws_send_collect_executor::WsSendCollectExecutor;
 use flow_engine_core::traits::LogSender;
 use flow_engine_db::db::DatabaseConnectionManager;
 use flow_engine_db::db_connect_executor::DbConnectExecutor;
@@ -559,7 +559,7 @@ impl DebuggableFlowExecutor {
                                 })
                             })
                         }
-                        NodeType::WsSendWait | NodeType::WsClose => {
+                        NodeType::WsSendCollect | NodeType::WsClose => {
                             Some("out".to_string())
                         }
                         // Assertion 节点：根据 passed 字段判断
@@ -618,11 +618,11 @@ impl DebuggableFlowExecutor {
                     }
 
                     // 更新 last_node_output（仅协议节点更新，工具节点延续上游数据）
-                    // 协议节点：Http, WsConnect, WsSendWait
+                    // 协议节点：Http, WsConnect, WsSendCollect
                     // 工具节点：Entry, Conditional, WsClose（不更新，延续上游）
                     let is_protocol_node = matches!(
                         node.node_type,
-                        NodeType::Http | NodeType::WsConnect | NodeType::WsSendWait
+                        NodeType::Http | NodeType::WsConnect | NodeType::WsSendCollect
                     );
                     if is_protocol_node {
                         context.last_node_output = output_data.clone();
@@ -667,7 +667,7 @@ impl DebuggableFlowExecutor {
                     // 检查节点是否支持 false 端口，以及是否有 false 端口的连接
                     let supports_false_port = matches!(
                         node.node_type,
-                        NodeType::WsConnect | NodeType::WsSendWait | NodeType::WsClose
+                        NodeType::WsConnect | NodeType::WsSendCollect | NodeType::WsClose
                     );
 
                     let false_port_next_node = if supports_false_port {
@@ -1046,7 +1046,7 @@ impl DebuggableFlowExecutor {
                 let executor = WsConnectExecutor::new(ws_manager);
                 executor.execute(node, context, connections, node_map).await
             }
-            NodeType::WsSendWait => {
+            NodeType::WsSendCollect => {
                 log::info!(
                     "[调试 {}] 执行 WebSocket Send+Wait 节点: {} ({})",
                     context.flow_uuid,
@@ -1056,7 +1056,7 @@ impl DebuggableFlowExecutor {
                 let ws_manager = context.ws_manager.clone().unwrap_or_else(|| {
                     Arc::new(WebSocketConnectionManager::new())
                 });
-                let executor = WsSendWaitExecutor::new(ws_manager);
+                let executor = WsSendCollectExecutor::new(ws_manager);
                 executor.execute(node, context, connections, node_map).await
             }
             NodeType::WsClose => {

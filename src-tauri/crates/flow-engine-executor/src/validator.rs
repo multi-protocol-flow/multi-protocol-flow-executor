@@ -144,14 +144,14 @@ impl FlowValidator {
                         ));
                     }
 
-                    if config.message_timeout_ms < 1000 || config.message_timeout_ms > 300000 {
+                    if config.collect_timeout_ms < 1000 || config.collect_timeout_ms > 300000 {
                         errors.push(format!(
-                            "节点 {} 消息超时必须在 1000-300000ms 范围内",
+                            "节点 {} 采集超时必须在 1000-300000ms 范围内",
                             node.name
                         ));
                     }
                 }
-                NodeData::WsSendWait(config) => {
+                NodeData::WsSendCollect(config) => {
                     // 验证 connection_id 不为空
                     if config.connection_id.is_empty() {
                         errors.push(format!("节点 {} connection_id 不能为空", node.name));
@@ -170,9 +170,9 @@ impl FlowValidator {
                         ));
                     }
 
-                    if config.message_timeout_ms < 1000 || config.message_timeout_ms > 300000 {
+                    if config.collect_timeout_ms < 1000 || config.collect_timeout_ms > 300000 {
                         errors.push(format!(
-                            "节点 {} 消息超时必须在 1000-300000ms 范围内",
+                            "节点 {} 采集超时必须在 1000-300000ms 范围内",
                             node.name
                         ));
                     }
@@ -189,7 +189,7 @@ impl FlowValidator {
                     }
 
                     // 验证关闭超时
-                    if config.wait_close_timeout_ms < 1000 || config.wait_close_timeout_ms > 30000 {
+                    if config.close_timeout_ms < 1000 || config.close_timeout_ms > 30000 {
                         errors.push(format!(
                             "节点 {} 关闭超时必须在 1000-30000ms 范围内",
                             node.name
