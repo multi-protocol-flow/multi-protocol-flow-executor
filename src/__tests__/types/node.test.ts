@@ -9,7 +9,7 @@ import {
   isHttpConfig,
   isConditionalConfig,
   isWsConnectConfig,
-  isWsSendWaitConfig,
+  isWsSendCollectConfig,
   isWsCloseConfig,
   isAssertionConfig,
   isDbConnectConfig,
@@ -35,11 +35,11 @@ function createNodeData(type: NodeData['type']): NodeData {
       return { type: 'conditional' };
     case 'ws_connect':
       return { type: 'ws_connect', url: 'wss://example.com' };
-    case 'ws_send_wait':
+    case 'ws_send_collect':
       return {
-        type: 'ws_send_wait',
+        type: 'ws_send_collect',
         connection_id: 'conn-1',
-        wait_for_response: true,
+        collect_response: true,
         message: 'test message',
       };
     case 'ws_close':
@@ -80,7 +80,7 @@ describe('isEntryConfig', () => {
       'http',
       'conditional',
       'ws_connect',
-      'ws_send_wait',
+      'ws_send_collect',
       'ws_close',
     ];
     otherTypes.forEach((type) => {
@@ -101,7 +101,7 @@ describe('isHttpConfig', () => {
       'entry',
       'conditional',
       'ws_connect',
-      'ws_send_wait',
+      'ws_send_collect',
       'ws_close',
     ];
     otherTypes.forEach((type) => {
@@ -122,7 +122,7 @@ describe('isConditionalConfig', () => {
       'entry',
       'http',
       'ws_connect',
-      'ws_send_wait',
+      'ws_send_collect',
       'ws_close',
     ];
     otherTypes.forEach((type) => {
@@ -143,7 +143,7 @@ describe('isWsConnectConfig', () => {
       'entry',
       'http',
       'conditional',
-      'ws_send_wait',
+      'ws_send_collect',
       'ws_close',
     ];
     otherTypes.forEach((type) => {
@@ -153,10 +153,10 @@ describe('isWsConnectConfig', () => {
   });
 });
 
-describe('isWsSendWaitConfig', () => {
+describe('isWsSendCollectConfig', () => {
   it('应该对 ws_send_wait 类型返回 true', () => {
-    const data = createNodeData('ws_send_wait');
-    expect(isWsSendWaitConfig(data)).toBe(true);
+    const data = createNodeData('ws_send_collect');
+    expect(isWsSendCollectConfig(data)).toBe(true);
   });
 
   it('应该对其他类型返回 false', () => {
@@ -169,7 +169,7 @@ describe('isWsSendWaitConfig', () => {
     ];
     otherTypes.forEach((type) => {
       const data = createNodeData(type);
-      expect(isWsSendWaitConfig(data)).toBe(false);
+      expect(isWsSendCollectConfig(data)).toBe(false);
     });
   });
 });
@@ -186,7 +186,7 @@ describe('isWsCloseConfig', () => {
       'http',
       'conditional',
       'ws_connect',
-      'ws_send_wait',
+      'ws_send_collect',
       'assertion',
     ];
     otherTypes.forEach((type) => {
@@ -208,7 +208,7 @@ describe('isAssertionConfig', () => {
       'http',
       'conditional',
       'ws_connect',
-      'ws_send_wait',
+      'ws_send_collect',
       'ws_close',
     ];
     otherTypes.forEach((type) => {
@@ -346,13 +346,13 @@ describe('类型守卫类型缩窄', () => {
     }
   });
 
-  it('isWsSendWaitConfig 应该正确缩窄类型', () => {
-    const data: NodeData = createNodeData('ws_send_wait');
-    if (isWsSendWaitConfig(data)) {
-      // TypeScript 应该识别 data 为 WsSendWaitConfig
-      expect(data.type).toBe('ws_send_wait');
+  it('isWsSendCollectConfig 应该正确缩窄类型', () => {
+    const data: NodeData = createNodeData('ws_send_collect');
+    if (isWsSendCollectConfig(data)) {
+      // TypeScript 应该识别 data 为 WsSendCollectConfig
+      expect(data.type).toBe('ws_send_collect');
       expect(data.connection_id).toBe('conn-1');
-      expect(data.wait_for_response).toBe(true);
+      expect(data.collect_response).toBe(true);
       expect(data.message).toBe('test message');
     }
   });

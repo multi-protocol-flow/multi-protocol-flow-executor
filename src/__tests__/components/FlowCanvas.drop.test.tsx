@@ -176,7 +176,7 @@ describe('FlowCanvas - Drag and Drop', () => {
     expect(state.flow?.nodes[1].position).toEqual({ x: 250, y: 180 });
   });
 
-  it('应该添加 WS SendWait 节点当拖放 ws_send_wait 类型时', async () => {
+  it('应该添加 WS SendCollect 节点当拖放 ws_send_collect 类型时', async () => {
     useFlowStore.getState().setFlow(mockFlow);
 
     let container: HTMLElement;
@@ -199,7 +199,7 @@ describe('FlowCanvas - Drag and Drop', () => {
       preventDefault: vi.fn(),
       dataTransfer: {
         getData: (key: string) => {
-          if (key === 'application/reactflow/nodeType') return 'ws_send_wait';
+          if (key === 'application/reactflow/nodeType') return 'ws_send_collect';
           return '';
         },
       },
@@ -213,7 +213,7 @@ describe('FlowCanvas - Drag and Drop', () => {
 
     const state = useFlowStore.getState();
     expect(state.flow?.nodes.length).toBe(2);
-    expect(state.flow?.nodes[1].type).toBe('ws_send_wait');
+    expect(state.flow?.nodes[1].type).toBe('ws_send_collect');
     expect(state.flow?.nodes[1].position).toEqual({ x: 350, y: 220 });
   });
 

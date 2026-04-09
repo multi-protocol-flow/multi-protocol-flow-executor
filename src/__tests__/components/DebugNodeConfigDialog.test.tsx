@@ -45,10 +45,10 @@ vi.mock('@/components/panels/WsConnectConfig', () => ({
   ),
 }));
 
-vi.mock('@/components/panels/WsSendWaitConfig', () => ({
-  WsSendWaitConfig: ({ data, onSave }: { data: unknown; onSave: (data: unknown) => void }) => (
-    <div data-testid="ws-send-wait-config">
-      <span>WS SendWait Config</span>
+vi.mock('@/components/panels/WsSendCollectConfig', () => ({
+  WsSendCollectConfig: ({ data, onSave }: { data: unknown; onSave: (data: unknown) => void }) => (
+    <div data-testid="ws-send-collect-config">
+      <span>WS SendCollect Config</span>
       <button onClick={() => onSave(data)}>Mock Save</button>
     </div>
   ),
@@ -179,22 +179,22 @@ describe('DebugNodeConfigDialog', () => {
       expect(screen.getByTestId('ws-connect-config')).toBeDefined();
     });
 
-    it('WS SendWait 节点渲染 WsSendWaitConfig 组件', () => {
-      const wsSendWaitData: NodeData = {
-        type: 'ws_send_wait',
+    it('WS SendCollect 节点渲染 WsSendCollectConfig 组件', () => {
+      const wsSendCollectData: NodeData = {
+        type: 'ws_send_collect',
         connection_id: 'conn-1',
         message: 'test',
-        wait_for_response: true,
+        collect_response: true,
       };
 
       render(
         <DebugNodeConfigDialog
           {...defaultProps}
-          nodeData={wsSendWaitData}
+          nodeData={wsSendCollectData}
         />
       );
 
-      expect(screen.getByTestId('ws-send-wait-config')).toBeDefined();
+      expect(screen.getByTestId('ws-send-collect-config')).toBeDefined();
     });
 
     it('WS Close 节点渲染 WsCloseConfig 组件', () => {

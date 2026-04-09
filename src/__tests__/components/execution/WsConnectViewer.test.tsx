@@ -145,7 +145,7 @@ describe('WsConnectViewer', () => {
       expect(screen.getByText('50ms')).toBeDefined();
     });
 
-    it('显示等待消息耗时', async () => {
+    it('显示采集消息耗时', async () => {
       const user = userEvent.setup();
       const report = createMockReport({
         timing: { wait_response_ms: 200 }
@@ -159,7 +159,7 @@ describe('WsConnectViewer', () => {
         await user.click(timingButton);
       }
 
-      expect(screen.getByText('等待消息')).toBeDefined();
+      expect(screen.getByText('采集消息')).toBeDefined();
       expect(screen.getByText('200ms')).toBeDefined();
     });
 

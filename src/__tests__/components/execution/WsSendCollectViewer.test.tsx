@@ -1,12 +1,12 @@
 /**
- * WsSendWaitViewer 组件测试
+ * WsSendCollectViewer 组件测试
  * - WS 发送等待展示测试
  * - 超时状态测试
  */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { WsSendWaitViewer } from '@/components/execution/viewers/WsSendWaitViewer';
+import { WsSendCollectViewer } from '@/components/execution/viewers/WsSendCollectViewer';
 import type { NodeExecutionReport } from '@/types';
 
 // Mock react-json-view-lite
@@ -18,20 +18,20 @@ vi.mock('react-json-view-lite', () => ({
   defaultStyles: {},
 }));
 
-describe('WsSendWaitViewer', () => {
+describe('WsSendCollectViewer', () => {
   const createMockReport = (
     outputData?: Record<string, unknown>
   ): NodeExecutionReport => ({
     node_uuid: 'node-ws-send-001',
-    node_type: 'ws_send_wait',
-    node_name: 'WebSocket 发送等待',
+    node_type: 'ws_send_collect',
+    node_name: 'WebSocket 发送收集',
     start_time: Date.now() - 200,
     end_time: Date.now(),
     duration_ms: 200,
     status: 'success',
     output_data: {
       connection_id: 'conn-001',
-      wait_timed_out: false,
+      collect_timed_out: false,
       ...outputData,
     },
   });
@@ -42,7 +42,7 @@ describe('WsSendWaitViewer', () => {
         error: '连接已关闭'
       });
       report.status = 'failed';
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       expect(screen.getByText('执行错误')).toBeDefined();
       expect(screen.getByText('连接已关闭')).toBeDefined();
@@ -50,7 +50,7 @@ describe('WsSendWaitViewer', () => {
 
     it('无错误时不显示错误区域', () => {
       const report = createMockReport();
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       expect(screen.queryByText('执行错误')).toBeNull();
     });
@@ -59,21 +59,21 @@ describe('WsSendWaitViewer', () => {
   describe('超时警告显示', () => {
     it('显示超时警告', () => {
       const report = createMockReport({
-        wait_timed_out: true
+        collect_timed_out: true
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
-      expect(screen.getByText('等待响应超时')).toBeDefined();
+      expect(screen.getByText('采集响应超时')).toBeDefined();
       expect(screen.getByText('在指定时间内未收到匹配的响应消息')).toBeDefined();
     });
 
     it('未超时不显示警告', () => {
       const report = createMockReport({
-        wait_timed_out: false
+        collect_timed_out: false
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
-      expect(screen.queryByText('等待响应超时')).toBeNull();
+      expect(screen.queryByText('采集响应超时')).toBeNull();
     });
   });
 
@@ -82,7 +82,7 @@ describe('WsSendWaitViewer', () => {
       const report = createMockReport({
         connection_id: 'conn-xyz-789'
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       expect(screen.getByText('conn-xyz-789')).toBeDefined();
     });
@@ -91,7 +91,7 @@ describe('WsSendWaitViewer', () => {
       const report = createMockReport({
         url: 'wss://api.example.com/ws'
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       // 连接信息面板默认展开
       expect(screen.getByText('连接信息')).toBeDefined();
@@ -101,7 +101,7 @@ describe('WsSendWaitViewer', () => {
       const report = createMockReport({
         connection_id: ''
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       // 使用 getAllByText 因为有多个 '-' 占位符
       const dashes = screen.getAllByText('-');
@@ -118,7 +118,7 @@ describe('WsSendWaitViewer', () => {
           type: 'text'
         }
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       // 发送配置面板存在（发送内容已合并到发送配置中）
       expect(screen.getByText('发送配置')).toBeDefined();
@@ -141,7 +141,7 @@ describe('WsSendWaitViewer', () => {
           type: 'binary'
         }
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       // 使用 getAllByText 因为 "二进制" 可能在多个面板中出现
       const binaryBadges = screen.getAllByText('二进制');
@@ -153,7 +153,7 @@ describe('WsSendWaitViewer', () => {
       const report = createMockReport({
         sent: null
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       // 点击展开发送配置面板
       const buttons = screen.getAllByRole('button');
@@ -167,7 +167,7 @@ describe('WsSendWaitViewer', () => {
     });
   });
 
-  describe('响应内容显示', () => {
+  describe('匹配消息显示', () => {
     it('显示文本类型响应', () => {
       const report = createMockReport({
         message: {
@@ -175,9 +175,9 @@ describe('WsSendWaitViewer', () => {
           type: 'text'
         }
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
-      expect(screen.getByText('响应内容')).toBeDefined();
+      expect(screen.getByText('匹配消息')).toBeDefined();
     });
 
     it('显示二进制类型响应', () => {
@@ -187,7 +187,7 @@ describe('WsSendWaitViewer', () => {
           type: 'binary'
         }
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       const binaryBadges = screen.getAllByText('二进制');
       expect(binaryBadges.length).toBeGreaterThan(0);
@@ -202,15 +202,15 @@ describe('WsSendWaitViewer', () => {
           parsed: { result: 'success' }
         }
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
-      // 响应内容面板存在
-      expect(screen.getByText('响应内容')).toBeDefined();
+      // 匹配消息面板存在
+      expect(screen.getByText('匹配消息')).toBeDefined();
       
-      // 使用 aria-expanded 找到折叠的响应内容面板并展开
+      // 使用 aria-expanded 找到折叠的匹配消息面板并展开
       const buttons = screen.getAllByRole('button');
       for (const btn of buttons) {
-        if (btn.getAttribute('aria-expanded') === 'false' && btn.textContent?.includes('响应内容')) {
+        if (btn.getAttribute('aria-expanded') === 'false' && btn.textContent?.includes('匹配消息')) {
           await user.click(btn);
           break;
         }
@@ -220,21 +220,21 @@ describe('WsSendWaitViewer', () => {
       expect(screen.getByTestId('json-view')).toBeDefined();
     });
 
-    it('无响应数据时显示响应内容面板', async () => {
+    it('无响应数据时显示匹配消息面板', async () => {
       const user = userEvent.setup();
       const report = createMockReport({
         message: null
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
-      // 点击展开响应内容面板
+      // 点击展开匹配消息面板
       const buttons = screen.getAllByRole('button');
-      const responseButton = buttons.find(btn => btn.textContent?.includes('响应内容'));
+      const responseButton = buttons.find(btn => btn.textContent?.includes('匹配消息'));
       if (responseButton) {
         await user.click(responseButton);
       }
 
-      expect(screen.getByText('未等待响应或无响应数据')).toBeDefined();
+      expect(screen.getByText('未采集响应或无匹配消息')).toBeDefined();
     });
   });
 
@@ -243,7 +243,7 @@ describe('WsSendWaitViewer', () => {
       const report = createMockReport({
         timing: { send_ms: 15 }
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       expect(screen.getByText('耗时分解')).toBeDefined();
     });
@@ -251,7 +251,7 @@ describe('WsSendWaitViewer', () => {
     it('显示总执行时间在标题栏', () => {
       const report = createMockReport();
       report.duration_ms = 250;
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       // 总执行时间现在显示在耗时分解面板的标题栏中
       expect(screen.getByText('总计 250ms')).toBeDefined();
@@ -260,9 +260,9 @@ describe('WsSendWaitViewer', () => {
     it('展开面板显示耗时详情', async () => {
       const user = userEvent.setup();
       const report = createMockReport({
-        timing: { send_ms: 15, wait_response_ms: 100 }
+        timing: { send_ms: 15, collect_response_ms: 100 }
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       // 点击展开耗时分解面板
       const buttons = screen.getAllByRole('button');
@@ -273,7 +273,7 @@ describe('WsSendWaitViewer', () => {
 
       // 展开后应该能看到耗时详情
       expect(screen.getByText('发送耗时')).toBeDefined();
-      expect(screen.getByText('等待耗时')).toBeDefined();
+      expect(screen.getByText('收集耗时')).toBeDefined();
       expect(screen.getByText('15ms')).toBeDefined();
       expect(screen.getByText('100ms')).toBeDefined();
     });
@@ -281,9 +281,9 @@ describe('WsSendWaitViewer', () => {
     it('显示耗时（秒）', async () => {
       const user = userEvent.setup();
       const report = createMockReport({
-        timing: { wait_response_ms: 1500 }
+        timing: { collect_response_ms: 1500 }
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       // 点击展开耗时分解面板
       const buttons = screen.getAllByRole('button');
@@ -298,9 +298,9 @@ describe('WsSendWaitViewer', () => {
     it('无耗时数据时显示占位符', async () => {
       const user = userEvent.setup();
       const report = createMockReport({
-        timing: { send_ms: null, wait_response_ms: null }
+        timing: { send_ms: null, collect_response_ms: null }
       });
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       // 点击展开耗时分解面板
       const buttons = screen.getAllByRole('button');
@@ -321,7 +321,7 @@ describe('WsSendWaitViewer', () => {
       const report = createMockReport({
         connection_id: 'conn-123',
         url: 'wss://test.com/ws',
-        wait_timed_out: false,
+        collect_timed_out: false,
         sent: {
           data: '{"cmd":"subscribe"}',
           type: 'text'
@@ -331,10 +331,10 @@ describe('WsSendWaitViewer', () => {
           type: 'text',
           parsed: { result: 'subscribed' }
         },
-        timing: { send_ms: 10, wait_response_ms: 50 }
+        timing: { send_ms: 10, collect_response_ms: 50 }
       });
       report.duration_ms = 60;
-      render(<WsSendWaitViewer report={report} />);
+      render(<WsSendCollectViewer report={report} />);
 
       // 连接信息
       expect(screen.getByText('conn-123')).toBeDefined();
@@ -342,8 +342,8 @@ describe('WsSendWaitViewer', () => {
       // 发送配置面板存在（发送内容已合并到发送配置中）
       expect(screen.getByText('发送配置')).toBeDefined();
 
-      // 响应内容面板存在
-      expect(screen.getByText('响应内容')).toBeDefined();
+      // 匹配消息面板存在
+      expect(screen.getByText('匹配消息')).toBeDefined();
 
       // 总执行时间在标题栏
       expect(screen.getByText('总计 60ms')).toBeDefined();

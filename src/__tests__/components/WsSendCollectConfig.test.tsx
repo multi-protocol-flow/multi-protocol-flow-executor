@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { WsSendCollectConfig } from '@/components/panels/WsSendCollectConfig';
+import { WsSendCollectConfig as WsSendCollectConfigPanel } from '@/components/panels/WsSendCollectConfig';
 import type { WsSendCollectConfig as WsSendCollectConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 
@@ -50,7 +50,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         collect_response: true,
       };
 
-      render(<WsSendWaitConfig data={config} onSave={mockOnSave} />);
+      render(<WsSendCollectConfigPanel data={config} onSave={mockOnSave} />);
 
       expect(screen.getByText(/连接 ID/)).toBeDefined();
     });
@@ -63,7 +63,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         collect_response: true,
       };
 
-      render(<WsSendWaitConfig data={config} onSave={mockOnSave} />);
+      render(<WsSendCollectConfigPanel data={config} onSave={mockOnSave} />);
 
       expect(screen.getByLabelText(/消息内容/)).toBeDefined();
     });
@@ -76,7 +76,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         collect_response: true,
       };
 
-      render(<WsSendWaitConfig data={config} onSave={mockOnSave} />);
+      render(<WsSendCollectConfigPanel data={config} onSave={mockOnSave} />);
 
       expect(screen.getByLabelText(/消息类型/)).toBeDefined();
     });
@@ -89,7 +89,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         collect_response: true,
       };
 
-      render(<WsSendWaitConfig data={config} onSave={mockOnSave} />);
+      render(<WsSendCollectConfigPanel data={config} onSave={mockOnSave} />);
 
       expect(screen.getByLabelText(/发送超时/)).toBeDefined();
     });
@@ -102,9 +102,9 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         collect_response: true,
       };
 
-      render(<WsSendWaitConfig data={config} onSave={mockOnSave} />);
+      render(<WsSendCollectConfigPanel data={config} onSave={mockOnSave} />);
 
-      expect(screen.getByText(/发送后等待响应/)).toBeDefined();
+      expect(screen.getByText(/发送后采集响应/)).toBeDefined();
     });
   });
 
@@ -117,7 +117,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         collect_response: true,
       };
 
-      render(<WsSendWaitConfig data={config} onSave={mockOnSave} />);
+      render(<WsSendCollectConfigPanel data={config} onSave={mockOnSave} />);
 
       const timeoutInput = screen.getByLabelText(/发送超时/) as HTMLInputElement;
       expect(timeoutInput.value).toBe('30000');
@@ -131,7 +131,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         collect_response: true,
       };
 
-      render(<WsSendWaitConfig data={config} onSave={mockOnSave} />);
+      render(<WsSendCollectConfigPanel data={config} onSave={mockOnSave} />);
 
       const messageTypeSelect = screen.getByLabelText(/消息类型/);
       expect(messageTypeSelect).toHaveTextContent(/文本|Text/i);
@@ -147,12 +147,12 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         message_type: 'text',
         send_timeout_ms: 30000,
         collect_response: true,
-        wait_mode: 'first_message',
-        message_timeout_ms: 30000,
+        collect_mode: 'first_match',
+        collect_timeout_ms: 30000,
       };
 
       const { rerender } = render(
-        <WsSendWaitConfig data={initialConfig} onSave={mockOnSave} />
+        <WsSendCollectConfigPanel data={initialConfig} onSave={mockOnSave} />
       );
 
       // 验证初始值
@@ -170,15 +170,15 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         message_type: 'binary', // 消息类型变化
         send_timeout_ms: 60000, // 超时变化
         collect_response: true,
-        wait_mode: 'condition', // 等待模式变化
-        wait_condition: {
+        collect_mode: 'condition_match', // 采集模式变化
+        collect_condition: {
           match_type: 'json_path',
           expression: '$.status == "ok"',
         },
-        message_timeout_ms: 45000, // 消息超时变化
+        collect_timeout_ms: 45000, // 消息超时变化
       };
 
-      rerender(<WsSendWaitConfig data={updatedConfig} onSave={mockOnSave} />);
+      rerender(<WsSendCollectConfigPanel data={updatedConfig} onSave={mockOnSave} />);
 
       // 验证所有字段都被更新
       await waitFor(() => {
@@ -204,7 +204,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
       };
 
       const { rerender } = render(
-        <WsSendWaitConfig data={initialConfig} onSave={mockOnSave} />
+        <WsSendCollectConfigPanel data={initialConfig} onSave={mockOnSave} />
       );
 
       // 初始消息类型为 text
@@ -217,7 +217,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         message_type: 'binary',
       };
 
-      rerender(<WsSendWaitConfig data={updatedConfig} onSave={mockOnSave} />);
+      rerender(<WsSendCollectConfigPanel data={updatedConfig} onSave={mockOnSave} />);
 
       // 验证消息类型已更新
       await waitFor(() => {
@@ -236,7 +236,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
       };
 
       const { rerender } = render(
-        <WsSendWaitConfig data={initialConfig} onSave={mockOnSave} />
+        <WsSendCollectConfigPanel data={initialConfig} onSave={mockOnSave} />
       );
 
       const initialTimeoutInput = screen.getByLabelText(/发送超时/) as HTMLInputElement;
@@ -248,7 +248,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         send_timeout_ms: 20000,
       };
 
-      rerender(<WsSendWaitConfig data={updatedConfig} onSave={mockOnSave} />);
+      rerender(<WsSendCollectConfigPanel data={updatedConfig} onSave={mockOnSave} />);
 
       await waitFor(() => {
         const updatedTimeoutInput = screen.getByLabelText(/发送超时/) as HTMLInputElement;
@@ -256,17 +256,17 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
       });
     });
 
-    it('当 wait_condition 变化时，应该正确同步', async () => {
+    it('当 collect_condition 变化时，应该正确同步', async () => {
       const initialConfig: WsSendCollectConfigType = {
         type: 'ws_send_collect',
         connection_id: 'ws-connect-1',
         message: 'test',
         collect_response: true,
-        wait_mode: 'first_message',
+        collect_mode: 'first_match',
       };
 
       const { rerender } = render(
-        <WsSendWaitConfig data={initialConfig} onSave={mockOnSave} />
+        <WsSendCollectConfigPanel data={initialConfig} onSave={mockOnSave} />
       );
 
       // 初始不应显示条件配置
@@ -275,14 +275,14 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
       // 更新为 condition 模式
       const updatedConfig: WsSendCollectConfigType = {
         ...initialConfig,
-        wait_mode: 'condition',
-        wait_condition: {
+        collect_mode: 'condition_match',
+        collect_condition: {
           match_type: 'json_path',
           expression: '$.data.ready == true',
         },
       };
 
-      rerender(<WsSendWaitConfig data={updatedConfig} onSave={mockOnSave} />);
+      rerender(<WsSendCollectConfigPanel data={updatedConfig} onSave={mockOnSave} />);
 
       // 验证条件配置已显示
       await waitFor(() => {
@@ -299,13 +299,13 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         connection_id: 'ws-connect-1',
         message: 'test',
         collect_response: true,
-        wait_mode: 'first_message',
+        collect_mode: 'first_match',
       };
 
-      render(<WsSendWaitConfig data={config} onSave={mockOnSave} />);
+      render(<WsSendCollectConfigPanel data={config} onSave={mockOnSave} />);
 
-      expect(screen.getByLabelText(/等待模式/)).toBeDefined();
-      expect(screen.getByLabelText(/响应超时/)).toBeDefined();
+      expect(screen.getByLabelText(/采集模式/)).toBeDefined();
+      expect(screen.getByLabelText(/采集超时/)).toBeDefined();
     });
 
     it('当 collect_response 为 false 时，应隐藏等待配置', () => {
@@ -316,10 +316,10 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         collect_response: false,
       };
 
-      render(<WsSendWaitConfig data={config} onSave={mockOnSave} />);
+      render(<WsSendCollectConfigPanel data={config} onSave={mockOnSave} />);
 
-      expect(screen.queryByLabelText(/等待模式/)).toBeNull();
-      expect(screen.queryByLabelText(/响应超时/)).toBeNull();
+      expect(screen.queryByLabelText(/采集模式/)).toBeNull();
+      expect(screen.queryByLabelText(/采集超时/)).toBeNull();
     });
 
     it('[核心修复] 从 collect_response=true 切换到 false 时，关联字段应该被清除', async () => {
@@ -332,20 +332,20 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         connection_id: 'ws-connect-1',
         message: 'test message',
         collect_response: true,
-        wait_mode: 'condition',
-        wait_condition: {
+        collect_mode: 'condition_match',
+        collect_condition: {
           match_type: 'json_path',
           expression: '$.status == "ok"',
         },
-        message_timeout_ms: 30000,
+        collect_timeout_ms: 30000,
       };
 
       const { rerender } = render(
-        <WsSendWaitConfig data={initialConfig} onSave={mockOnSave} />
+        <WsSendCollectConfigPanel data={initialConfig} onSave={mockOnSave} />
       );
 
       // 初始应该显示等待配置
-      expect(screen.getByLabelText(/等待模式/)).toBeDefined();
+      expect(screen.getByLabelText(/采集模式/)).toBeDefined();
 
       // 更新外部数据：关闭等待响应
       const updatedConfig: WsSendCollectConfigType = {
@@ -353,21 +353,21 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         connection_id: 'ws-connect-1',
         message: 'test message',
         collect_response: false,
-        // fromFormData 函数会清除 wait_mode、wait_condition、message_timeout_ms
+        // fromFormData 函数会清除 collect_mode、collect_condition、collect_timeout_ms
       };
 
-      rerender(<WsSendWaitConfig data={updatedConfig} onSave={mockOnSave} />);
+      rerender(<WsSendCollectConfigPanel data={updatedConfig} onSave={mockOnSave} />);
 
       // 验证等待配置已隐藏（说明关联字段被正确处理）
       await waitFor(() => {
-        expect(screen.queryByLabelText(/等待模式/)).toBeNull();
-        expect(screen.queryByLabelText(/响应超时/)).toBeNull();
+        expect(screen.queryByLabelText(/采集模式/)).toBeNull();
+        expect(screen.queryByLabelText(/采集超时/)).toBeNull();
       });
     });
 
-    it('[核心修复] 从 wait_mode=condition 切换到 first_message 时，wait_condition 应被正确处理', async () => {
-      // 这个测试验证：当外部数据从 wait_mode=condition 变为 first_message 时，
-      // 组件应该正确处理并渲染（核心逻辑在 fromFormData 函数中清除 wait_condition）
+    it('[核心修复] 从 collect_mode=condition 切换到 first_message 时，collect_condition 应被正确处理', async () => {
+      // 这个测试验证：当外部数据从 collect_mode=condition 变为 first_message 时，
+      // 组件应该正确处理并渲染（核心逻辑在 fromFormData 函数中清除 collect_condition）
 
       // 初始配置：condition 模式
       const initialConfig: WsSendCollectConfigType = {
@@ -375,15 +375,15 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         connection_id: 'ws-connect-1',
         message: 'test message',
         collect_response: true,
-        wait_mode: 'condition',
-        wait_condition: {
+        collect_mode: 'condition_match',
+        collect_condition: {
           match_type: 'json_path',
           expression: '$.status == "ready"',
         },
-        message_timeout_ms: 30000,
+        collect_timeout_ms: 30000,
       };
 
-      const { rerender } = render(<WsSendWaitConfig data={initialConfig} onSave={mockOnSave} />);
+      const { rerender } = render(<WsSendCollectConfigPanel data={initialConfig} onSave={mockOnSave} />);
 
       // 初始应该显示匹配条件配置
       expect(screen.getByLabelText(/匹配类型/)).toBeDefined();
@@ -395,13 +395,13 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         connection_id: 'ws-connect-1',
         message: 'test message',
         collect_response: true,
-        wait_mode: 'first_message',
-        // fromFormData 函数会清除 wait_condition
+        collect_mode: 'first_match',
+        // fromFormData 函数会清除 collect_condition
       };
 
-      rerender(<WsSendWaitConfig data={updatedConfig} onSave={mockOnSave} />);
+      rerender(<WsSendCollectConfigPanel data={updatedConfig} onSave={mockOnSave} />);
 
-      // 验证匹配条件配置已隐藏（说明 wait_condition 被正确处理）
+      // 验证匹配条件配置已隐藏（说明 collect_condition 被正确处理）
       await waitFor(() => {
         expect(screen.queryByLabelText(/匹配类型/)).toBeNull();
         expect(screen.queryByLabelText(/匹配表达式/)).toBeNull();
@@ -426,7 +426,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
       };
 
       const { rerender } = render(
-        <WsSendWaitConfig data={config} onSave={mockOnSave} />
+        <WsSendCollectConfigPanel data={config} onSave={mockOnSave} />
       );
 
       // 验证说明字段显示
@@ -445,7 +445,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
         ],
       };
 
-      rerender(<WsSendWaitConfig data={updatedConfig} onSave={mockOnSave} />);
+      rerender(<WsSendCollectConfigPanel data={updatedConfig} onSave={mockOnSave} />);
 
       // 验证说明字段已更新
       await waitFor(() => {

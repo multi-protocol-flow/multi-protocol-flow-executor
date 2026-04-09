@@ -117,16 +117,16 @@ describe('DebugToolbar', () => {
     });
   });
 
-  describe('跳过节点 - WebSocket 发送等待节点 (ws_send_wait)', () => {
+  describe('跳过节点 - WebSocket 发送等待节点 (ws_send_collect)', () => {
     it('应该显示对话框，并有 true/false 两个端口选项', () => {
-      mockFlowStoreWithNode('ws_send_wait', 'node-1');
+      mockFlowStoreWithNode('ws_send_collect', 'node-1');
       render(<DebugToolbar />);
 
       const skipButton = screen.getByTitle('跳过当前节点');
       fireEvent.click(skipButton);
 
       expect(screen.getByTestId('skip-dialog')).toBeInTheDocument();
-      expect(screen.getByTestId('skip-dialog')).toHaveAttribute('data-node-type', 'ws_send_wait');
+      expect(screen.getByTestId('skip-dialog')).toHaveAttribute('data-node-type', 'ws_send_collect');
       expect(screen.getByTestId('port-count')).toHaveTextContent('2');
       expect(screen.getByTestId('port-true')).toBeInTheDocument();
       expect(screen.getByTestId('port-false')).toBeInTheDocument();

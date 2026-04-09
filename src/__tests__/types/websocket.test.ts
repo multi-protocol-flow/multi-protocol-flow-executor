@@ -1,17 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import type {
-  WsWaitMode,
+  WsCollectMode,
   WsMatchType,
   WsMessageType,
-  WsWaitCondition,
+  WsCollectCondition,
   WsConnectConfig,
-  WsSendWaitConfig,
+  WsSendCollectConfig,
   WsCloseConfig,
   NodeData,
 } from '@/types/node';
 import {
   isWsConnectConfig,
-  isWsSendWaitConfig,
+  isWsSendCollectConfig,
   isWsCloseConfig,
   isHttpConfig,
   isConditionalConfig,
@@ -19,9 +19,9 @@ import {
 } from '@/types/node';
 
 describe('WebSocket Types', () => {
-  describe('WsWaitMode', () => {
-    it('should have valid wait modes', () => {
-      const modes: WsWaitMode[] = ['first_message', 'condition', 'duration'];
+  describe('WsCollectMode', () => {
+    it('should have valid collect modes', () => {
+      const modes: WsCollectMode[] = ['first_match', 'condition_match', 'duration_collect'];
       expect(modes).toHaveLength(3);
     });
   });
@@ -40,9 +40,9 @@ describe('WebSocket Types', () => {
     });
   });
 
-  describe('WsWaitCondition', () => {
-    it('should create a valid wait condition', () => {
-      const condition: WsWaitCondition = {
+  describe('WsCollectCondition', () => {
+    it('should create a valid collect condition', () => {
+      const condition: WsCollectCondition = {
         match_type: 'json_path',
         expression: '$.data.status',
       };
@@ -51,7 +51,7 @@ describe('WebSocket Types', () => {
     });
 
     it('should support regex match type', () => {
-      const condition: WsWaitCondition = {
+      const condition: WsCollectCondition = {
         match_type: 'regex',
         expression: '^[0-9]+$',
       };
@@ -60,7 +60,7 @@ describe('WebSocket Types', () => {
     });
 
     it('should support expression match type', () => {
-      const condition: WsWaitCondition = {
+      const condition: WsCollectCondition = {
         match_type: 'expression',
         expression: 'value > 100',
       };
@@ -88,13 +88,13 @@ describe('WebSocket Types', () => {
         ],
         subprotocols: ['json', 'binary'],
         connect_timeout_ms: 30000,
-        wait_for_message: true,
-        wait_mode: 'condition',
-        wait_condition: {
+        collect_message: true,
+        collect_mode: 'condition_match',
+        collect_condition: {
           match_type: 'json_path',
           expression: '$.ready',
         },
-        message_timeout_ms: 10000,
+        collect_timeout_ms: 10000,
         output_mappings: [
           { source: 'message', target: 'ws_response' },
         ],
@@ -103,41 +103,41 @@ describe('WebSocket Types', () => {
       expect(config.headers).toHaveLength(1);
       expect(config.subprotocols).toEqual(['json', 'binary']);
       expect(config.connect_timeout_ms).toBe(30000);
-      expect(config.wait_for_message).toBe(true);
-      expect(config.wait_mode).toBe('condition');
-      expect(config.wait_condition?.match_type).toBe('json_path');
-      expect(config.message_timeout_ms).toBe(10000);
+      expect(config.collect_message).toBe(true);
+      expect(config.collect_mode).toBe('condition_match');
+      expect(config.collect_condition?.match_type).toBe('json_path');
+      expect(config.collect_timeout_ms).toBe(10000);
       expect(config.output_mappings).toHaveLength(1);
     });
   });
 
-  describe('WsSendWaitConfig', () => {
-    it('should create a minimal WsSendWaitConfig with required fields', () => {
-      const config: WsSendWaitConfig = {
-        type: 'ws_send_wait',
+  describe('WsSendCollectConfig', () => {
+    it('should create a minimal WsSendCollectConfig with required fields', () => {
+      const config: WsSendCollectConfig = {
+        type: 'ws_send_collect',
         connection_id: 'conn-123',
         message: '{"action": "ping"}',
-        wait_for_response: false,
+        collect_response: false,
       };
-      expect(config.type).toBe('ws_send_wait');
+      expect(config.type).toBe('ws_send_collect');
       expect(config.connection_id).toBe('conn-123');
       expect(config.message).toBe('{"action": "ping"}');
     });
 
-    it('should create a full WsSendWaitConfig with all fields', () => {
-      const config: WsSendWaitConfig = {
-        type: 'ws_send_wait',
+    it('should create a full WsSendCollectConfig with all fields', () => {
+      const config: WsSendCollectConfig = {
+        type: 'ws_send_collect',
         connection_id: 'conn-456',
         message: '{"request": "data"}',
         message_type: 'binary',
         send_timeout_ms: 5000,
-        wait_for_response: true,
-        wait_mode: 'first_message',
-        wait_condition: {
+        collect_response: true,
+        collect_mode: 'first_match',
+        collect_condition: {
           match_type: 'regex',
           expression: 'success',
         },
-        message_timeout_ms: 8000,
+        collect_timeout_ms: 8000,
         output_mappings: [
           { source: 'response', target: 'ws_result' },
         ],
@@ -145,10 +145,10 @@ describe('WebSocket Types', () => {
       expect(config.connection_id).toBe('conn-456');
       expect(config.message_type).toBe('binary');
       expect(config.send_timeout_ms).toBe(5000);
-      expect(config.wait_for_response).toBe(true);
-      expect(config.wait_mode).toBe('first_message');
-      expect(config.wait_condition?.expression).toBe('success');
-      expect(config.message_timeout_ms).toBe(8000);
+      expect(config.collect_response).toBe(true);
+      expect(config.collect_mode).toBe('first_match');
+      expect(config.collect_condition?.expression).toBe('success');
+      expect(config.collect_timeout_ms).toBe(8000);
       expect(config.output_mappings).toHaveLength(1);
     });
   });
@@ -169,12 +169,12 @@ describe('WebSocket Types', () => {
         connection_id: 'conn-abc',
         close_code: 1000,
         close_reason: 'Normal closure',
-        wait_close_timeout_ms: 5000,
+        close_timeout_ms: 5000,
       };
       expect(config.connection_id).toBe('conn-abc');
       expect(config.close_code).toBe(1000);
       expect(config.close_reason).toBe('Normal closure');
-      expect(config.wait_close_timeout_ms).toBe(5000);
+      expect(config.close_timeout_ms).toBe(5000);
     });
   });
 
@@ -185,19 +185,19 @@ describe('WebSocket Types', () => {
         url: 'wss://example.com',
       };
       expect(isWsConnectConfig(config)).toBe(true);
-      expect(isWsSendWaitConfig(config)).toBe(false);
+      expect(isWsSendCollectConfig(config)).toBe(false);
       expect(isWsCloseConfig(config)).toBe(false);
       expect(isHttpConfig(config)).toBe(false);
     });
 
-    it('should correctly identify WsSendWaitConfig', () => {
+    it('should correctly identify WsSendCollectConfig', () => {
       const config: NodeData = {
-        type: 'ws_send_wait',
+        type: 'ws_send_collect',
         connection_id: 'conn-1',
         message: 'test',
-        wait_for_response: false,
+        collect_response: false,
       };
-      expect(isWsSendWaitConfig(config)).toBe(true);
+      expect(isWsSendCollectConfig(config)).toBe(true);
       expect(isWsConnectConfig(config)).toBe(false);
       expect(isWsCloseConfig(config)).toBe(false);
       expect(isConditionalConfig(config)).toBe(false);
@@ -210,7 +210,7 @@ describe('WebSocket Types', () => {
       };
       expect(isWsCloseConfig(config)).toBe(true);
       expect(isWsConnectConfig(config)).toBe(false);
-      expect(isWsSendWaitConfig(config)).toBe(false);
+      expect(isWsSendCollectConfig(config)).toBe(false);
       expect(isEntryConfig(config)).toBe(false);
     });
 
@@ -224,7 +224,7 @@ describe('WebSocket Types', () => {
       const entryConfig: NodeData = {
         type: 'entry',
       };
-      expect(isWsSendWaitConfig(entryConfig)).toBe(false);
+      expect(isWsSendCollectConfig(entryConfig)).toBe(false);
 
       const conditionalConfig: NodeData = {
         type: 'conditional',

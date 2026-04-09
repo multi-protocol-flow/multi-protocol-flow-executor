@@ -57,12 +57,12 @@ describe('WsConnectConfig - 字段同步测试', () => {
       const config: WsConnectConfigType = {
         type: 'ws_connect',
         url: 'wss://example.com/socket',
-        wait_for_message: false,
+        collect_message: false,
       };
 
       render(<WsConnectConfig data={config} onSave={mockOnSave} />);
 
-      expect(screen.getByText(/连接后等待消息/)).toBeDefined();
+      expect(screen.getByText(/连接后采集消息/)).toBeDefined();
     });
 
     it('应该显示连接超时输入框', () => {
@@ -100,7 +100,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
       render(<WsConnectConfig data={config} onSave={mockOnSave} />);
 
       // 等待配置区域不应显示
-      expect(screen.queryByLabelText(/等待模式/)).toBeNull();
+      expect(screen.queryByLabelText(/采集模式/)).toBeNull();
     });
   });
 
@@ -110,7 +110,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
         type: 'ws_connect',
         url: 'wss://example.com/socket',
         connect_timeout_ms: 30000,
-        wait_for_message: false,
+        collect_message: false,
       };
 
       const { rerender } = render(
@@ -126,13 +126,13 @@ describe('WsConnectConfig - 字段同步测试', () => {
         type: 'ws_connect',
         url: 'wss://example.com/new-socket',
         connect_timeout_ms: 60000, // 超时变化
-        wait_for_message: true, // 开启等待消息
-        wait_mode: 'condition',
-        wait_condition: {
+        collect_message: true, // 开启等待消息
+        collect_mode: 'condition_match',
+        collect_condition: {
           match_type: 'json_path',
           expression: '$.status == "ready"',
         },
-        message_timeout_ms: 45000,
+        collect_timeout_ms: 45000,
       };
 
       rerender(<WsConnectConfig data={updatedConfig} onSave={mockOnSave} />);
@@ -144,7 +144,7 @@ describe('WsConnectConfig - 字段同步测试', () => {
       });
 
       // 验证等待配置已显示
-      expect(screen.getByLabelText(/等待模式/)).toBeDefined();
+      expect(screen.getByLabelText(/采集模式/)).toBeDefined();
     });
 
     it('当 connect_timeout_ms 变化时，应该正确同步', async () => {
@@ -175,11 +175,11 @@ describe('WsConnectConfig - 字段同步测试', () => {
       });
     });
 
-    it('当 wait_for_message 从 false 变为 true 时，应该显示等待配置', async () => {
+    it('当 collect_message 从 false 变为 true 时，应该显示等待配置', async () => {
       const initialConfig: WsConnectConfigType = {
         type: 'ws_connect',
         url: 'wss://example.com/socket',
-        wait_for_message: false,
+        collect_message: false,
       };
 
       const { rerender } = render(
@@ -187,70 +187,70 @@ describe('WsConnectConfig - 字段同步测试', () => {
       );
 
       // 初始不应显示等待配置
-      expect(screen.queryByLabelText(/等待模式/)).toBeNull();
+      expect(screen.queryByLabelText(/采集模式/)).toBeNull();
 
       // 更新为开启等待消息
       const updatedConfig: WsConnectConfigType = {
         ...initialConfig,
-        wait_for_message: true,
-        wait_mode: 'first_message',
-        message_timeout_ms: 30000,
+        collect_message: true,
+        collect_mode: 'first_match',
+        collect_timeout_ms: 30000,
       };
 
       rerender(<WsConnectConfig data={updatedConfig} onSave={mockOnSave} />);
 
       // 验证等待配置已显示
       await waitFor(() => {
-        expect(screen.getByLabelText(/等待模式/)).toBeDefined();
-        expect(screen.getByLabelText(/消息超时/)).toBeDefined();
+        expect(screen.getByLabelText(/采集模式/)).toBeDefined();
+        expect(screen.getByLabelText(/采集超时/)).toBeDefined();
       });
     });
   });
 
   describe('等待消息配置测试', () => {
-    it('当 wait_for_message 为 true 时，应显示等待配置', () => {
+    it('当 collect_message 为 true 时，应显示等待配置', () => {
       const config: WsConnectConfigType = {
         type: 'ws_connect',
         url: 'wss://example.com/socket',
-        wait_for_message: true,
-        wait_mode: 'first_message',
-        message_timeout_ms: 30000,
+        collect_message: true,
+        collect_mode: 'first_match',
+        collect_timeout_ms: 30000,
       };
 
       render(<WsConnectConfig data={config} onSave={mockOnSave} />);
 
-      expect(screen.getByLabelText(/等待模式/)).toBeDefined();
-      expect(screen.getByLabelText(/消息超时/)).toBeDefined();
+      expect(screen.getByLabelText(/采集模式/)).toBeDefined();
+      expect(screen.getByLabelText(/采集超时/)).toBeDefined();
     });
 
-    it('当 wait_for_message 为 false 时，应隐藏等待配置', () => {
+    it('当 collect_message 为 false 时，应隐藏等待配置', () => {
       const config: WsConnectConfigType = {
         type: 'ws_connect',
         url: 'wss://example.com/socket',
-        wait_for_message: false,
+        collect_message: false,
       };
 
       render(<WsConnectConfig data={config} onSave={mockOnSave} />);
 
-      expect(screen.queryByLabelText(/等待模式/)).toBeNull();
-      expect(screen.queryByLabelText(/消息超时/)).toBeNull();
+      expect(screen.queryByLabelText(/采集模式/)).toBeNull();
+      expect(screen.queryByLabelText(/采集超时/)).toBeNull();
     });
 
-    it('[核心修复] 从 wait_for_message=true 切换到 false 时，关联字段应该被清除', async () => {
-      // 这个测试验证：当外部数据从 wait_for_message=true 变为 false 时，
+    it('[核心修复] 从 collect_message=true 切换到 false 时，关联字段应该被清除', async () => {
+      // 这个测试验证：当外部数据从 collect_message=true 变为 false 时，
       // 组件应该正确处理并渲染（核心逻辑在 fromFormData 函数中清除关联字段）
 
       // 初始配置：开启等待消息
       const initialConfig: WsConnectConfigType = {
         type: 'ws_connect',
         url: 'wss://example.com/socket',
-        wait_for_message: true,
-        wait_mode: 'condition',
-        wait_condition: {
+        collect_message: true,
+        collect_mode: 'condition_match',
+        collect_condition: {
           match_type: 'json_path',
           expression: '$.status == "ok"',
         },
-        message_timeout_ms: 30000,
+        collect_timeout_ms: 30000,
       };
 
       const { rerender } = render(
@@ -258,13 +258,13 @@ describe('WsConnectConfig - 字段同步测试', () => {
       );
 
       // 初始应该显示等待配置
-      expect(screen.getByLabelText(/等待模式/)).toBeDefined();
+      expect(screen.getByLabelText(/采集模式/)).toBeDefined();
 
       // 更新外部数据：关闭等待消息
       const updatedConfig: WsConnectConfigType = {
         type: 'ws_connect',
         url: 'wss://example.com/socket',
-        wait_for_message: false,
+        collect_message: false,
         // 关键：fromFormData 会清除这些字段
       };
 
@@ -272,26 +272,26 @@ describe('WsConnectConfig - 字段同步测试', () => {
 
       // 验证等待配置已隐藏（说明关联字段被正确处理）
       await waitFor(() => {
-        expect(screen.queryByLabelText(/等待模式/)).toBeNull();
-        expect(screen.queryByLabelText(/消息超时/)).toBeNull();
+        expect(screen.queryByLabelText(/采集模式/)).toBeNull();
+        expect(screen.queryByLabelText(/采集超时/)).toBeNull();
       });
     });
 
-    it('[核心修复] 从 wait_mode=condition 切换到 first_message 时，wait_condition 应被正确处理', async () => {
-      // 这个测试验证：当外部数据从 wait_mode=condition 变为 first_message 时，
-      // 组件应该正确处理并渲染（核心逻辑在 fromFormData 函数中清除 wait_condition）
+    it('[核心修复] 从 collect_mode=condition 切换到 first_message 时，collect_condition 应被正确处理', async () => {
+      // 这个测试验证：当外部数据从 collect_mode=condition 变为 first_message 时，
+      // 组件应该正确处理并渲染（核心逻辑在 fromFormData 函数中清除 collect_condition）
 
       // 初始配置：condition 模式
       const initialConfig: WsConnectConfigType = {
         type: 'ws_connect',
         url: 'wss://example.com/socket',
-        wait_for_message: true,
-        wait_mode: 'condition',
-        wait_condition: {
+        collect_message: true,
+        collect_mode: 'condition_match',
+        collect_condition: {
           match_type: 'json_path',
           expression: '$.status == "ready"',
         },
-        message_timeout_ms: 30000,
+        collect_timeout_ms: 30000,
       };
 
       const { rerender } = render(<WsConnectConfig data={initialConfig} onSave={mockOnSave} />);
@@ -304,15 +304,15 @@ describe('WsConnectConfig - 字段同步测试', () => {
       const updatedConfig: WsConnectConfigType = {
         type: 'ws_connect',
         url: 'wss://example.com/socket',
-        wait_for_message: true,
-        wait_mode: 'first_message',
-        message_timeout_ms: 30000,
-        // 关键：fromFormData 会清除 wait_condition
+        collect_message: true,
+        collect_mode: 'first_match',
+        collect_timeout_ms: 30000,
+        // 关键：fromFormData 会清除 collect_condition
       };
 
       rerender(<WsConnectConfig data={updatedConfig} onSave={mockOnSave} />);
 
-      // 验证匹配条件配置已隐藏（说明 wait_condition 被正确处理）
+      // 验证匹配条件配置已隐藏（说明 collect_condition 被正确处理）
       await waitFor(() => {
         expect(screen.queryByLabelText(/匹配类型/)).toBeNull();
         expect(screen.queryByLabelText(/匹配表达式/)).toBeNull();
