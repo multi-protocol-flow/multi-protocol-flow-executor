@@ -23,7 +23,7 @@
         "subprotocols": [],
         "connect_timeout_ms": 30000,
         "wait_for_message": false,
-        "wait_mode": "none",
+        "wait_mode": "first_message",
         "message_timeout_ms": 10000,
         "output_mappings": []
       },
