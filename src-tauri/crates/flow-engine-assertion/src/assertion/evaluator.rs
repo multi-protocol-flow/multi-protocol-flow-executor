@@ -1,6 +1,6 @@
 //! 断言求值器
 //!
-//! 执行断言检查并返回结果，支持完整 JSONPath (RFC 9535) 语法和 all/any 模式。
+//! 执行断言检查并返回结果，支持完整 `JSONPath` (RFC 9535) 语法和 all/any 模式。
 
 use crate::assertion::operator::evaluate_operator;
 use flow_engine_core::error::{ErrorDetail, ErrorKind};
@@ -13,9 +13,9 @@ use serde_json::Value;
 /// 断言求值器
 ///
 /// 负责执行断言检查，支持：
-/// - 完整 JSONPath 语法 (RFC 9535)
+/// - 完整 `JSONPath` 语法 (RFC 9535)
 /// - all/any 组合模式
-/// - continue_on_failure 行为
+/// - `continue_on_failure` 行为
 pub struct AssertionEvaluator;
 
 impl AssertionEvaluator {
@@ -28,13 +28,13 @@ impl AssertionEvaluator {
     ///
     /// # 参数
     /// - `input`: 输入 JSON 数据
-    /// - `path`: JSONPath 路径表达式
+    /// - `path`: `JSONPath` 路径表达式
     ///
     /// # 返回
-    /// - `Ok(Value)`: 提取的值（字段不存在时返回 Value::Null）
-    /// - `Err(ErrorDetail)`: JSONPath 语法错误
+    /// - `Ok(Value)`: 提取的值（字段不存在时返回 `Value::Null`）
+    /// - `Err(ErrorDetail)`: `JSONPath` 语法错误
     ///
-    /// # 支持的 JSONPath 语法
+    /// # 支持的 `JSONPath` 语法
     /// - `$.status` - 顶级字段
     /// - `$.body.data.items[0].id` - 嵌套 + 数组索引
     /// - `$.body.items[*].name` - 通配符
@@ -124,7 +124,7 @@ impl AssertionEvaluator {
     /// 评估所有断言
     ///
     /// # 参数
-    /// - `config`: 断言配置（包含 mode, continue_on_failure, assertions）
+    /// - `config`: 断言配置（包含 mode, `continue_on_failure`, assertions）
     /// - `input`: 输入 JSON 数据
     ///
     /// # 返回

@@ -9,7 +9,7 @@ use serde_json::json;
 /// 预设信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PresetInfo {
-    /// 预设名称 (snake_case)
+    /// 预设名称 (`snake_case`)
     pub name: String,
     /// 预设描述
     pub description: String,
@@ -22,7 +22,7 @@ impl AssertionPreset {
     /// 获取预设的断言列表
     ///
     /// # 参数
-    /// - `name`: 预设名称 (snake_case)
+    /// - `name`: 预设名称 (`snake_case`)
     ///
     /// # 返回
     /// - `Some(Vec<Assertion>)`: 预设存在，返回断言列表
@@ -64,7 +64,7 @@ impl AssertionPreset {
         ]
     }
 
-    /// http_success 预设: 状态码在 [200, 299] 范围内
+    /// `http_success` 预设: 状态码在 [200, 299] 范围内
     fn http_success() -> Vec<Assertion> {
         vec![Assertion {
             id: "preset_http_success_status".to_string(),
@@ -76,7 +76,7 @@ impl AssertionPreset {
         }]
     }
 
-    /// http_client_error 预设: 状态码在 [400, 499] 范围内
+    /// `http_client_error` 预设: 状态码在 [400, 499] 范围内
     fn http_client_error() -> Vec<Assertion> {
         vec![Assertion {
             id: "preset_http_client_error_status".to_string(),
@@ -88,7 +88,7 @@ impl AssertionPreset {
         }]
     }
 
-    /// http_server_error 预设: 状态码在 [500, 599] 范围内
+    /// `http_server_error` 预设: 状态码在 [500, 599] 范围内
     fn http_server_error() -> Vec<Assertion> {
         vec![Assertion {
             id: "preset_http_server_error_status".to_string(),
@@ -100,7 +100,7 @@ impl AssertionPreset {
         }]
     }
 
-    /// json_response 预设: Content-Type 包含 application/json
+    /// `json_response` 预设: Content-Type 包含 application/json
     fn json_response() -> Vec<Assertion> {
         vec![Assertion {
             id: "preset_json_response_content_type".to_string(),
@@ -112,7 +112,7 @@ impl AssertionPreset {
         }]
     }
 
-    /// response_fast 预设: 响应时间 < 500ms
+    /// `response_fast` 预设: 响应时间 < 500ms
     fn response_fast() -> Vec<Assertion> {
         vec![Assertion {
             id: "preset_response_fast_time".to_string(),

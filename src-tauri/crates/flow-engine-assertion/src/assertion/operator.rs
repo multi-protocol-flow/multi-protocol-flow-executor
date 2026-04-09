@@ -1,6 +1,6 @@
 //! 断言操作符求值逻辑
 //!
-//! 实现 15 种断言操作符的求值逻辑，支持严格类型检查和正则 DoS 防护。
+//! 实现 15 种断言操作符的求值逻辑，支持严格类型检查和正则 `DoS` 防护。
 
 use flow_engine_core::node_config::AssertionOperator;
 use serde_json::Value;
@@ -177,7 +177,7 @@ fn evaluate_not_contains(actual: &Value, expected: &Value) -> Result<bool, Strin
 // 正则匹配操作符
 // ============================================================================
 
-/// 正则匹配（带 100ms 超时防护，防止 DoS 攻击）
+/// 正则匹配（带 100ms 超时防护，防止 `DoS` 攻击）
 fn evaluate_matches(actual: &Value, expected: &Value) -> Result<bool, String> {
     let actual_str = match actual {
         Value::String(s) => s.clone(),

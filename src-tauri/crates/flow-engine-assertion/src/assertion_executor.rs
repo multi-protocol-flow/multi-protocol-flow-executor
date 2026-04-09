@@ -279,7 +279,7 @@ impl NodeExecutor for AssertionNodeExecutor {
         }
 
         // 8. 构建输出数据
-        let output_data = serde_json::to_value(&assertion_output).unwrap_or_else(|_| json!(null));
+        let output_data = serde_json::to_value(&assertion_output).unwrap_or(serde_json::Value::Null);
 
         // 9. 根据结果路由到对应端口
         let next_node_ids = self.find_next_nodes(connections, &node.uuid, passed);
