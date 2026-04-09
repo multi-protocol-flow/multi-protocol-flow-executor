@@ -303,7 +303,7 @@ async fn execute_flow_command(flow_path: PathBuf) -> Result<(), String> {
     // 执行流程（使用 FlowExecutor，不重新实现）
     let executor = FlowExecutor::new()
         .with_flow_file_path(flow_path.clone());
-    let result: ExecutionResult = executor.execute_flow(&flow, None, None).await;
+    let result: ExecutionResult = executor.execute_flow(&flow, None, None, None).await;
 
     // 计算总执行时间
     let execution_time = start_time.elapsed().as_millis() as u64;
