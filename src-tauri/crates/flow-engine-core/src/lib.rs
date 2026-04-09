@@ -7,6 +7,7 @@ pub mod context;
 pub mod db_types;
 pub mod debug_types;
 pub mod error;
+pub mod execution_event;
 pub mod executor;
 pub mod flow;
 pub mod log_event;
@@ -23,6 +24,7 @@ pub mod ws_stream;
 pub use traits::{
     AppDirProvider, ConsoleLogSender, DatabasePool, DbProvider, DebugEventSender,
     DefaultAppDirProvider, DirectoryOpener, NoopDirectoryOpener,
+    ExecutionEventSender, NoopExecutionEventSender,
     LogSender, NoopLogSender,
     QueuedLogSender, UnderlyingLogSender, LogWorker,
 };
@@ -32,6 +34,9 @@ pub use debug_types::{
     DebugCommand, DebugEvent, DebugSessionState, DebugStatus, EndReason, ExecutionStackEntry,
     PauseReason,
 };
+
+// Re-export execution event types
+pub use execution_event::ExecutionEvent;
 
 // Re-export ws_stream types
 pub use ws_stream::{

@@ -5,6 +5,7 @@
 mod app_dir;
 mod db_provider;
 mod debug_event_sender;
+mod execution_event_sender;
 mod directory_opener;
 mod log_sender;
 mod ws_provider;
@@ -14,6 +15,7 @@ pub use db_provider::{
     DatabasePool, DbProvider, IsolationLevel, QueryResult, TransactionState,
 };
 pub use debug_event_sender::DebugEventSender;
+pub use execution_event_sender::{ExecutionEventSender, NoopExecutionEventSender};
 pub use directory_opener::{DirectoryOpener, NoopDirectoryOpener};
 pub use log_sender::{
     ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender,

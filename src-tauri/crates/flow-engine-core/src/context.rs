@@ -4,7 +4,8 @@ use crate::db_types::DbConnection;
 use crate::log_event::LogEvent;
 use crate::report::NodeExecutionReport;
 use crate::variable::Variable;
-use crate::traits::{LogSender, DebugEventSender, WsProvider, DbProvider};
+use crate::traits::{LogSender, DebugEventSender, ExecutionEventSender, WsProvider, DbProvider};
+use crate::execution_event::ExecutionEvent;
 use crate::ws_stream::{WsConnectionStream, WsMessage};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -86,6 +87,11 @@ pub struct ExecutionContext {
     /// 通过 DebugEventSender trait 解耦，支持 mpsc 或其他实现
     #[serde(skip)]
     pub debug_event_sender: Option<Arc<dyn DebugEventSender>>,
+
+    /// 执行事件发送器（正常模式有值，CLI 模式为 None）
+    /// 用于实时推送节点执行进度事件
+    #[serde(skip)]
+    pub execution_event_sender: Option<Arc<dyn ExecutionEventSender>>,
 }
 
 impl ExecutionContext {
@@ -115,6 +121,7 @@ impl ExecutionContext {
             db_connections: HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
+            execution_event_sender: None,
         }
     }
 
@@ -197,6 +204,20 @@ impl ExecutionContext {
         self
     }
 
+    /// 设置执行事件发送器（正常模式调用）
+    ///
+    /// # 参数
+    ///
+    /// * `sender` - ExecutionEvent 事件发送器
+    ///
+    /// # 返回
+    ///
+    /// 更新后的 ExecutionContext
+    pub fn with_execution_event_sender(mut self, sender: Arc<dyn ExecutionEventSender>) -> Self {
+        self.execution_event_sender = Some(sender);
+        self
+    }
+
     /// Resolve file path (supports relative paths)
     ///
     /// # Arguments
@@ -234,6 +255,19 @@ impl ExecutionContext {
     pub async fn emit_log(&self, event: LogEvent) {
         if let Some(sender) = &self.log_sender {
             let _ = sender.send(event).await;
+        }
+    }
+
+    /// 发送执行事件（ExecutionEventSender 可用时）
+    ///
+    /// 如果 execution_event_sender 为 None（CLI 模式），此方法静默跳过，不会报错。
+    ///
+    /// # 参数
+    ///
+    /// * `event` - 要发送的执行事件
+    pub async fn emit_execution_event(&self, event: ExecutionEvent) {
+        if let Some(sender) = &self.execution_event_sender {
+            let _ = sender.send_event(event);
         }
     }
 

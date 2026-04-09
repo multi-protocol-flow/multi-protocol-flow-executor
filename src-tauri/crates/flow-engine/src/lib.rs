@@ -7,6 +7,7 @@ pub use flow_engine_executor::commands;
 // Re-exports from flow-engine-core
 pub use flow_engine_core::connection;
 pub use flow_engine_core::error;
+pub use flow_engine_core::execution_event;
 pub use flow_engine_core::flow;
 pub use flow_engine_core::log_event;
 pub use flow_engine_core::node;
@@ -58,9 +59,12 @@ pub use flow_engine_executor::stress_test;
 
 // Re-exports
 pub use traits::{
-    AppDirProvider, ConsoleLogSender, DefaultAppDirProvider, DirectoryOpener, LogSender, LogWorker,
-    NoopDirectoryOpener, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
+    AppDirProvider, ConsoleLogSender, DefaultAppDirProvider, DirectoryOpener, ExecutionEventSender,
+    LogSender, LogWorker, NoopDirectoryOpener, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
 };
+
+// Re-export execution event types
+pub use execution_event::ExecutionEvent;
 
 // Re-export ws_stream types
 pub use ws_stream::{
