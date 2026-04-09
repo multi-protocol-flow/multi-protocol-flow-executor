@@ -116,6 +116,26 @@
     --breathing-color-end: rgba(168, 85, 247, 0);
     animation: debug-breathing 1.5s ease-in-out infinite;
   }
+
+  /* ===== 执行状态指示器（正常模式） ===== */
+  .execution-running {
+    border-color: #3b82f6 !important;
+    animation: execution-pulse 2s ease-in-out infinite;
+  }
+
+  .execution-success {
+    border-color: #22c55e !important;
+  }
+
+  .execution-failed {
+    border-color: #ef4444 !important;
+  }
+
+  @keyframes execution-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: oklch(0.8 0 0) transparent;

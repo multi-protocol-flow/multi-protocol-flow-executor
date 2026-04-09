@@ -6,7 +6,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Wifi } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { WsConnectConfig } from '@/types';
-import { useFlowStore, useDebugStore, selectCurrentNodeUuid, selectIsPaused } from '@/stores';
+import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 
 /** WsConnect 节点数据类型 */
@@ -26,6 +26,9 @@ export function WsConnectNode({ id, data, selected }: NodeProps) {
   const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
   const isPaused = useDebugStore(selectIsPaused);
   const isDebugPausedAtThisNode = isPaused && currentNodeUuid === id;
+  const getNodeExecutionStatus = useExecutionStore((state) => state.getNodeExecutionStatus);
+  const executionStatus = getNodeExecutionStatus(id);
+  const executionClassName = executionStatus !== 'pending' ? `execution-${executionStatus}` : '';
   
   return (
     <div
@@ -37,7 +40,8 @@ export function WsConnectNode({ id, data, selected }: NodeProps) {
         'w-[180px]',
         'flex items-center',
         selected && 'border-[3px] border-amber-500',
-        isDebugPausedAtThisNode && 'debug-breathing-amber'
+        isDebugPausedAtThisNode && 'debug-breathing-amber',
+        executionClassName
       )}
     >
       <BreakpointMarker
