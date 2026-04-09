@@ -120,7 +120,7 @@ use flow_engine::db::{DbConnection, DatabasePool, MockPool, TestDbConnectionResu
 /// 测试数据库连接
 ///
 /// 接收前端传来的数据库连接配置，执行连接测试。
-/// 当前使用 MockPool 实现（Wave 2），后续会接入真实数据库驱动。
+/// 当前使用 `MockPool` 实现（Wave 2），后续会接入真实数据库驱动。
 #[tauri::command]
 pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionResult {
     log::info!(

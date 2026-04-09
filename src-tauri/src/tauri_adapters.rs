@@ -11,7 +11,7 @@ use flow_engine::execution_event::ExecutionEvent;
 
 /// Tauri 底层日志发送器
 ///
-/// 实现 UnderlyingLogSender trait，将日志同步发送到 Tauri IPC Channel。
+/// 实现 `UnderlyingLogSender` trait，将日志同步发送到 Tauri IPC Channel。
 pub struct TauriUnderlyingLogSender(Channel<LogEvent>);
 
 impl TauriUnderlyingLogSender {
@@ -38,7 +38,7 @@ impl UnderlyingLogSender for TauriUnderlyingLogSender {
 /// - `channel`: Tauri IPC Channel
 ///
 /// # 返回
-/// - `(sender, worker)`: sender 实现了 LogSender trait，worker 需要在 tokio 中 spawn
+/// - `(sender, worker)`: sender 实现了 `LogSender` trait，worker 需要在 tokio 中 spawn
 pub fn create_log_sender(
     channel: Channel<LogEvent>,
 ) -> (std::sync::Arc<dyn flow_engine::traits::LogSender>, FlowLogWorker) {
@@ -49,7 +49,7 @@ pub fn create_log_sender(
 
 /// Tauri 执行事件发送器
 ///
-/// 实现 ExecutionEventSender trait，将执行事件同步发送到 Tauri IPC Channel。
+/// 实现 `ExecutionEventSender` trait，将执行事件同步发送到 Tauri IPC Channel。
 pub struct TauriExecutionEventSender(Channel<ExecutionEvent>);
 
 impl TauriExecutionEventSender {
