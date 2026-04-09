@@ -1,6 +1,6 @@
 // WebSocket 连接节点执行器
 //
-// 实现 WebSocket 连接建立、超时控制、消息等待和变量映射功能。
+// 实现 WebSocket 连接建立、超时控制、消息采集和变量映射功能。
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -8,13 +8,21 @@ use flow_engine_core::debug_types::DebugEvent;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::node_config::{NodeData, WsConnectConfig, WsWaitMode};
+use flow_engine_core::node_config::{NodeData, WsCollectMode, WsConnectConfig};
 use flow_engine_core::traits::WsProvider;
 use flow_engine_core::ws_stream::{MessageContent, MessageDirection, WsMessage};
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
+
+/// 采集结果
+struct CollectResult {
+    /// 采集过程中收到的所有消息
+    collected: Vec<String>,
+    /// 匹配消息在 collected 中的索引
+    matched_index: Option<usize>,
+}
 
 /// WebSocket 连接节点执行器
 pub struct WsConnectExecutor {
@@ -128,38 +136,45 @@ impl NodeExecutor for WsConnectExecutor {
                     });
                 }
 
-                // 5. 如果配置了等待消息（计时）
-                let wait_start = Instant::now();
-                let (wait_timed_out, message_data) = if config.wait_for_message {
-                    match self.wait_for_initial_message_new(node, &config, context).await {
-                        Ok(Some(msg)) => (false, Some(msg)),
-                        Ok(None) => (true, None), // 超时
+                // 5. 如果配置了采集消息（计时）
+                let collect_start = Instant::now();
+                let (collect_timed_out, collect_result) = if config.collect_message {
+                    match self.collect_initial_message(node, &config, context).await {
+                        Ok(result) => {
+                            if result.matched_index.is_some() {
+                                (false, result)
+                            } else {
+                                (true, result) // 超时
+                            }
+                        }
                         Err(e) => {
                             log::error!(
-                                "[WebSocket] 等待消息出错: uuid={}, error={}",
+                                "[WebSocket] 采集消息出错: uuid={}, error={}",
                                 node.uuid,
                                 e
                             );
-                            (true, None) // 出错也视为超时
+                            (true, CollectResult { collected: vec![], matched_index: None }) // 出错也视为超时
                         }
                     }
                 } else {
-                    (false, None)
+                    (false, CollectResult { collected: vec![], matched_index: None })
                 };
-        let wait_response_duration_ms = if config.wait_for_message && !wait_timed_out {
-            Some(wait_start.elapsed().as_millis() as u64)
-        } else {
-            None
-        };
+
+                let collect_response_duration_ms = if config.collect_message {
+                    Some(collect_start.elapsed().as_millis() as u64)
+                } else {
+                    None
+                };
 
                 // 6. 构建输出数据
                 let output_data = self.build_output_data(
                     &node.uuid,
                     &url,
                     connect_duration_ms,
-                    wait_response_duration_ms,
-                    wait_timed_out,
-                    message_data,
+                    collect_response_duration_ms,
+                    collect_timed_out,
+                    &collect_result.collected,
+                    collect_result.matched_index,
                     start_time.elapsed().as_millis() as u64,
                     &config,
                 );
@@ -183,7 +198,7 @@ impl NodeExecutor for WsConnectExecutor {
                     })
                     .await;
 
-                // 9. 返回 true 端口（连接成功，无论等待是否超时）
+                // 9. 返回 true 端口（连接成功，无论采集是否超时）
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()
@@ -225,7 +240,7 @@ impl NodeExecutor for WsConnectExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据（结构化格式，与 HTTP 保持一致）
+                // 构建错误输出数据
                 let error_output = json!({
                     "success": false,
                     "connected": false,
@@ -236,16 +251,16 @@ impl NodeExecutor for WsConnectExecutor {
                         "headers": config.headers,
                         "subprotocols": config.subprotocols,
                         "connect_timeout_ms": config.connect_timeout_ms,
-                        "wait_for_message": config.wait_for_message,
-                        "wait_mode": format!("{:?}", config.wait_mode),
-                        "message_timeout_ms": config.message_timeout_ms,
+                        "collect_message": config.collect_message,
+                        "collect_mode": format!("{:?}", config.collect_mode),
+                        "collect_timeout_ms": config.collect_timeout_ms,
                     },
                     "timing": {
                         "connect_ms": serde_json::Value::Null,
-                        "wait_response_ms": serde_json::Value::Null,
+                        "collect_response_ms": serde_json::Value::Null,
                         "total_ms": start_time.elapsed().as_millis() as u64,
                     },
-                    "wait_timed_out": false,
+                    "collect_timed_out": false,
                     "error": e
                 });
 
@@ -259,7 +274,6 @@ impl NodeExecutor for WsConnectExecutor {
                         .map(|conn| conn.target_node_uuid.clone())
                         .collect();
                     
-                    // 如果没有连接，返回端口名称（用于测试）
                     if filtered.is_empty() {
                         vec!["false".to_string()]
                     } else {
@@ -274,22 +288,16 @@ impl NodeExecutor for WsConnectExecutor {
 }
 
 impl WsConnectExecutor {
-    /// 等待初始消息（新版本）
-    /// 
-    /// 返回值：
-    /// - Ok(Some(message)) - 成功收到消息
-    /// - Ok(None) - 超时未收到消息
-    /// - Err(e) - 发生错误
-    async fn wait_for_initial_message_new(
+    /// 采集初始消息
+    async fn collect_initial_message(
         &self,
         node: &Node,
         config: &WsConnectConfig,
         context: &mut ExecutionContext,
-    ) -> Result<Option<String>, String> {
-        match config.wait_mode {
-            WsWaitMode::FirstMessage => {
-                // 等待第一条消息（或超时）
-                let timeout_ms = config.message_timeout_ms;
+    ) -> Result<CollectResult, String> {
+        match config.collect_mode {
+            WsCollectMode::FirstMatch => {
+                let timeout_ms = config.collect_timeout_ms;
                 match self.ws_manager.receive(&node.uuid, timeout_ms).await {
                     Ok(Some(message)) => {
                         log::info!(
@@ -328,33 +336,39 @@ impl WsConnectExecutor {
                             })
                             .await;
 
-                        Ok(Some(message))
+                        Ok(CollectResult {
+                            collected: vec![message],
+                            matched_index: Some(0),
+                        })
                     }
                     Ok(None) => {
                         log::info!(
-                            "[WebSocket] 等待消息超时: uuid={}",
+                            "[WebSocket] 采集消息超时: uuid={}",
                             node.uuid
                         );
-                        Ok(None)
+                        Ok(CollectResult {
+                            collected: vec![],
+                            matched_index: None,
+                        })
                     }
                     Err(e) => Err(e),
                 }
             }
-            WsWaitMode::Condition => {
-                // 检查是否配置了有效的等待条件
-                match &config.wait_condition {
+            WsCollectMode::ConditionMatch => {
+                match &config.collect_condition {
                     Some(condition) if !condition.expression.trim().is_empty() => {
                         let start = Instant::now();
-                        let timeout_ms = config.message_timeout_ms;
+                        let timeout_ms = config.collect_timeout_ms;
+                        let mut collected: Vec<String> = Vec::new();
 
                         loop {
                             let elapsed = start.elapsed().as_millis() as u64;
                             if elapsed >= timeout_ms {
                                 log::info!(
-                                    "[WebSocket] 等待条件超时: uuid={}",
+                                    "[WebSocket] 采集条件超时: uuid={}",
                                     node.uuid
                                 );
-                                return Ok(None);
+                                return Ok(CollectResult { collected, matched_index: None });
                             }
 
                             let remaining = timeout_ms - elapsed;
@@ -375,13 +389,15 @@ impl WsConnectExecutor {
                                         );
                                     }
 
+                                    let msg_index = collected.len();
+                                    collected.push(message.clone());
+
                                     if self.ws_manager.match_message(&message, condition)? {
                                         log::info!(
                                             "[WebSocket] 消息匹配成功: uuid={}",
                                             node.uuid
                                         );
 
-                                        // 发送日志
                                         context
                                             .emit_log(LogEvent {
                                                 level: LogLevel::Info,
@@ -396,7 +412,7 @@ impl WsConnectExecutor {
                                             })
                                             .await;
 
-                                        return Ok(Some(message));
+                                        return Ok(CollectResult { collected, matched_index: Some(msg_index) });
                                     }
                                     // 不匹配，继续等待
                                 }
@@ -406,13 +422,12 @@ impl WsConnectExecutor {
                         }
                     }
                     Some(condition) => {
-                        // 条件存在但表达式为空
                         let error_msg = format!(
-                            "条件等待模式需要填写匹配表达式（当前表达式为空）: match_type={:?}",
+                            "条件匹配模式需要填写匹配表达式（当前表达式为空）: match_type={:?}",
                             condition.match_type
                         );
                         log::error!(
-                            "[WebSocket] 条件等待配置错误: uuid={}, expression 为空",
+                            "[WebSocket] 条件匹配配置错误: uuid={}, expression 为空",
                             node.uuid
                         );
 
@@ -433,10 +448,9 @@ impl WsConnectExecutor {
                         Err(error_msg)
                     }
                     None => {
-                        // 没有配置等待条件
-                        let error_msg = "条件等待模式需要配置匹配条件（wait_condition 未设置）".to_string();
+                        let error_msg = "条件匹配模式需要配置匹配条件（collect_condition 未设置）".to_string();
                         log::error!(
-                            "[WebSocket] 条件等待配置错误: uuid={}, wait_condition 为 None",
+                            "[WebSocket] 条件匹配配置错误: uuid={}, collect_condition 为 None",
                             node.uuid
                         );
 
@@ -458,16 +472,16 @@ impl WsConnectExecutor {
                     }
                 }
             }
-            WsWaitMode::Duration => {
-                // 在指定时长内接收消息，返回最后一条
+            WsCollectMode::DurationCollect => {
+                // 在指定时长内采集所有消息
                 let start = Instant::now();
-                let duration_ms = config.message_timeout_ms;
-                let mut last_message: Option<String> = None;
+                let duration_ms = config.collect_timeout_ms;
+                let mut collected: Vec<String> = Vec::new();
 
                 while start.elapsed().as_millis() < duration_ms as u128 {
                     if let Ok(Some(message)) = self.ws_manager.receive(&node.uuid, 1000).await {
                         log::debug!(
-                            "[WebSocket] 收到消息（Duration模式）: uuid={}, len={}",
+                            "[WebSocket] 收到消息（DurationCollect模式）: uuid={}, len={}",
                             node.uuid,
                             message.len()
                         );
@@ -487,23 +501,24 @@ impl WsConnectExecutor {
                             );
                         }
 
-                        last_message = Some(message);
+                        collected.push(message);
                     }
                 }
 
-                if let Some(ref _msg) = last_message {
+                if collected.is_empty() {
                     log::info!(
-                        "[WebSocket] Duration 模式完成，返回最后一条消息: uuid={}",
+                        "[WebSocket] DurationCollect 模式完成，未收到消息: uuid={}",
                         node.uuid
                     );
                 } else {
                     log::info!(
-                        "[WebSocket] Duration 模式完成，未收到消息: uuid={}",
+                        "[WebSocket] DurationCollect 模式完成，返回最后一条消息: uuid={}",
                         node.uuid
                     );
                 }
 
-                Ok(last_message)
+                let matched_index = if collected.is_empty() { None } else { Some(collected.len() - 1) };
+                Ok(CollectResult { collected, matched_index })
             }
         }
     }
@@ -515,50 +530,78 @@ impl WsConnectExecutor {
         uuid: &str,
         url: &str,
         connect_duration_ms: u64,
-        wait_response_duration_ms: Option<u64>,
-        wait_timed_out: bool,
-        message_data: Option<String>,
+        collect_response_duration_ms: Option<u64>,
+        collect_timed_out: bool,
+        collected_messages: &[String],
+        matched_index: Option<usize>,
         duration_ms: u64,
         config: &WsConnectConfig,
     ) -> serde_json::Value {
+        // 构建 matched_message
+        let matched_message: Option<serde_json::Value> = matched_index
+            .and_then(|idx| collected_messages.get(idx))
+            .map(|msg| {
+                let mut msg_obj = json!({
+                    "data": msg,
+                    "type": "text",
+                });
+                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(msg) {
+                    msg_obj["parsed"] = parsed;
+                }
+                msg_obj
+            });
+
+        // 构建 collected_messages 数组
+        let collected_arr: Vec<serde_json::Value> = collected_messages
+            .iter()
+            .map(|msg| {
+                let mut msg_obj = json!({
+                    "data": msg,
+                    "type": "text",
+                });
+                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(msg) {
+                    msg_obj["parsed"] = parsed;
+                }
+                msg_obj
+            })
+            .collect();
+
         let mut output = json!({
-            // 统一成功标识（与 HTTP 保持一致）
             "success": true,
             "connected": true,
             "connection_id": uuid,
             "url": url,
-            // 请求配置（与 HTTP 的 request 结构对应）
             "request": {
                 "url": url,
                 "headers": config.headers,
                 "subprotocols": config.subprotocols,
                 "connect_timeout_ms": config.connect_timeout_ms,
-                "wait_for_message": config.wait_for_message,
-                "wait_mode": format!("{:?}", config.wait_mode),
-                "message_timeout_ms": config.message_timeout_ms,
+                "collect_message": config.collect_message,
+                "collect_mode": format!("{:?}", config.collect_mode),
+                "collect_timeout_ms": config.collect_timeout_ms,
             },
-            // 耗时分解（与 HTTP 的 timing 结构对应）
             "timing": {
                 "connect_ms": connect_duration_ms,
-                "wait_response_ms": wait_response_duration_ms,
+                "collect_response_ms": collect_response_duration_ms,
                 "total_ms": duration_ms,
             },
-            "wait_timed_out": wait_timed_out,
+            "collect_timed_out": collect_timed_out,
+            "collected_messages": collected_arr,
+            "message_count": collected_messages.len(),
         });
 
-        if let Some(msg) = message_data {
-            output["message"] = json!({
-                "data": msg,
-                "type": "text", // 简化处理，假设都是文本消息
-            });
+        if let Some(msg) = matched_message {
+            output["matched_message"] = msg.clone();
+            output["message"] = msg;
         } else {
+            output["matched_message"] = serde_json::Value::Null;
             output["message"] = serde_json::Value::Null;
         }
 
         output
     }
 
-    /// 应用输出变量映射（新版本）
+    /// 应用输出变量映射
     fn apply_output_mappings_new(
         &self,
         config: &WsConnectConfig,
@@ -579,7 +622,7 @@ impl WsConnectExecutor {
                     context.variables.set_variable(
                         mapping.target.clone(),
                         value.clone(),
-                        String::new(), // connection_id
+                        String::new(),
                     );
                 } else {
                     log::warn!(
@@ -616,10 +659,10 @@ mod tests {
                 headers: vec![],
                 subprotocols: vec![],
                 connect_timeout_ms: 30000,
-                wait_for_message: false,
-                wait_mode: WsWaitMode::FirstMessage,
-                wait_condition: None,
-                message_timeout_ms: 10000,
+                collect_message: false,
+                collect_mode: WsCollectMode::FirstMatch,
+                collect_condition: None,
+                collect_timeout_ms: 10000,
                 output_mappings: vec![],
             }),
             ports: None,
@@ -718,13 +761,10 @@ mod tests {
             String::new(),
         );
 
-        // 注意：这个测试会失败，因为我们没有真实的 WebSocket 服务器
-        // 但我们可以验证变量替换逻辑不会崩溃
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 false 端口（连接失败），但不会因为变量替换错误
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["false"]);
@@ -738,7 +778,6 @@ mod tests {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager);
 
-        // 创建配置了等待第一条消息的节点
         let node = Node {
             uuid: "test-wait-first".to_string(),
             node_type: NodeType::WsConnect,
@@ -746,9 +785,9 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
                 url: "wss://example.com/ws".to_string(),
-                wait_for_message: true,
-                wait_mode: WsWaitMode::FirstMessage,
-                message_timeout_ms: 5000,
+                collect_message: true,
+                collect_mode: WsCollectMode::FirstMatch,
+                collect_timeout_ms: 5000,
                 ..Default::default()
             }),
             ports: None,
@@ -756,12 +795,10 @@ mod tests {
         };
         let mut context = create_context("test-flow");
 
-        // 注意：这个测试会失败，因为没有真实的 WebSocket 服务器
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 false 端口（连接失败）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["false"]);
@@ -775,7 +812,6 @@ mod tests {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager);
 
-        // 创建配置了条件等待的节点
         let node = Node {
             uuid: "test-wait-condition".to_string(),
             node_type: NodeType::WsConnect,
@@ -783,13 +819,13 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
                 url: "wss://example.com/ws".to_string(),
-                wait_for_message: true,
-                wait_mode: WsWaitMode::Condition,
-                wait_condition: Some(WsWaitCondition {
+                collect_message: true,
+                collect_mode: WsCollectMode::ConditionMatch,
+                collect_condition: Some(WsCollectCondition {
                     match_type: WsMatchType::JsonPath,
                     expression: "$.status".to_string(),
                 }),
-                message_timeout_ms: 5000,
+                collect_timeout_ms: 5000,
                 ..Default::default()
             }),
             ports: None,
@@ -797,12 +833,10 @@ mod tests {
         };
         let mut context = create_context("test-flow");
 
-        // 注意：这个测试会失败，因为没有真实的 WebSocket 服务器
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 false 端口（连接失败）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["false"]);
@@ -816,7 +850,6 @@ mod tests {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager);
 
-        // 创建配置了时长等待的节点
         let node = Node {
             uuid: "test-wait-duration".to_string(),
             node_type: NodeType::WsConnect,
@@ -824,9 +857,9 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
                 url: "wss://example.com/ws".to_string(),
-                wait_for_message: true,
-                wait_mode: WsWaitMode::Duration,
-                message_timeout_ms: 2000, // 2 秒
+                collect_message: true,
+                collect_mode: WsCollectMode::DurationCollect,
+                collect_timeout_ms: 2000, // 2 秒
                 ..Default::default()
             }),
             ports: None,
@@ -834,12 +867,10 @@ mod tests {
         };
         let mut context = create_context("test-flow");
 
-        // 注意：这个测试会失败，因为没有真实的 WebSocket 服务器
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 false 端口（连接失败）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["false"]);
@@ -853,7 +884,6 @@ mod tests {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager);
 
-        // 创建带输出映射的节点
         let node = Node {
             uuid: "test-mappings".to_string(),
             node_type: NodeType::WsConnect,
@@ -873,12 +903,10 @@ mod tests {
         };
         let mut context = create_context("test-flow");
 
-        // 注意：这个测试会失败，因为没有真实的 WebSocket 服务器
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 false 端口（连接失败）
         assert!(result.is_ok());
         let (next_nodes, _) = result.unwrap();
         assert_eq!(next_nodes, vec!["false"]);
@@ -945,7 +973,6 @@ mod tests {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager.clone());
 
-        // 连接到公共 WebSocket echo 服务器
         let node = create_test_node("stream-test", "消息流测试", "wss://echo.websocket.org");
         let mut context = create_context("test-flow");
 
@@ -955,7 +982,6 @@ mod tests {
 
         if let Ok((next_nodes, _)) = result {
             if next_nodes == vec!["true"] {
-                // 验证消息流已创建
                 let stream = context.get_ws_stream("stream-test").await;
                 assert!(stream.is_some(), "连接成功后应该创建 WebSocket 消息流");
 
@@ -987,7 +1013,6 @@ mod tests {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager);
 
-        // 使用无效 URL
         let node = create_test_node("fail-test", "失败测试", "ws://invalid.example.com:9999/ws");
         let mut context = create_context("test-flow");
 

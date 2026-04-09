@@ -20,7 +20,7 @@ use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use tokio_tungstenite::tungstenite::protocol::Message as WebSocketMessage;
 use tokio_tungstenite::{connect_async_tls_with_config, MaybeTlsStream, WebSocketStream};
 
-use flow_engine_core::node_config::{FormField, WsMatchType, WsWaitCondition};
+use flow_engine_core::node_config::{FormField, WsMatchType, WsCollectCondition};
 
 /// WebSocket 流类型（支持 TLS）
 type WsStream = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
@@ -1002,7 +1002,7 @@ impl WebSocketConnectionManager {
     ///
     /// ```ignore
     /// let manager = WebSocketConnectionManager::new();
-    /// let condition = WsWaitCondition {
+    /// let condition = WsCollectCondition {
     ///     match_type: WsMatchType::JsonPath,
     ///     expression: "$.status".to_string(),
     /// };
@@ -1012,7 +1012,7 @@ impl WebSocketConnectionManager {
     pub fn match_message(
         &self,
         message: &str,
-        condition: &WsWaitCondition,
+        condition: &WsCollectCondition,
     ) -> Result<bool, String> {
         match condition.match_type {
             WsMatchType::JsonPath => self.match_jsonpath(message, &condition.expression),
@@ -1189,7 +1189,7 @@ impl flow_engine_core::traits::WsProvider for WebSocketConnectionManager {
         WebSocketConnectionManager::drain_pending_messages(self, uuid).await
     }
 
-    fn match_message(&self, message: &str, condition: &WsWaitCondition) -> Result<bool, String> {
+    fn match_message(&self, message: &str, condition: &WsCollectCondition) -> Result<bool, String> {
         WebSocketConnectionManager::match_message(self, message, condition)
     }
 

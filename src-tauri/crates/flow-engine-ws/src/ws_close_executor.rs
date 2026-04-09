@@ -88,7 +88,7 @@ impl NodeExecutor for WsCloseExecutor {
                 &connection_id,
                 config.close_code,
                 config.close_reason.clone(),
-                config.wait_close_timeout_ms,
+                config.close_timeout_ms,
             )
             .await;
 
@@ -126,7 +126,7 @@ impl NodeExecutor for WsCloseExecutor {
                         "connection_id": connection_id,
                         "close_code": config.close_code,
                         "close_reason": config.close_reason,
-                        "wait_close_timeout_ms": config.wait_close_timeout_ms,
+                        "close_timeout_ms": config.close_timeout_ms,
                     },
                     // 耗时分解（与 HTTP 的 timing 结构对应）
                     "timing": {
@@ -201,7 +201,7 @@ impl NodeExecutor for WsCloseExecutor {
                         "connection_id": connection_id,
                         "close_code": config.close_code,
                         "close_reason": config.close_reason,
-                        "wait_close_timeout_ms": config.wait_close_timeout_ms,
+                        "close_timeout_ms": config.close_timeout_ms,
                     },
                     // 耗时分解
                     "timing": {

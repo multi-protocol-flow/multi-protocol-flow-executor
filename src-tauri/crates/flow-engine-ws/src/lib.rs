@@ -6,7 +6,7 @@
 pub mod websocket_manager;
 /// WebSocket 连接节点执行器，负责建立新连接
 pub mod ws_connect_executor;
-/// WebSocket 发送等待节点执行器，发送消息并等待响应
-pub mod ws_send_wait_executor;
+/// WebSocket 发送采集节点执行器，发送消息并采集响应
+pub mod ws_send_collect_executor;
 /// WebSocket 关闭节点执行器，关闭指定连接
 pub mod ws_close_executor;
