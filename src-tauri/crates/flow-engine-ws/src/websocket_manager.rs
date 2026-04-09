@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use serde_json_path::JsonPath;
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
-use tokio::time::{timeout, Duration};
+use tokio::time::{timeout, Duration, Instant};
 use tokio_tungstenite::tungstenite::handshake::client::generate_key;
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use tokio_tungstenite::tungstenite::protocol::Message as WebSocketMessage;
@@ -559,6 +559,9 @@ impl WebSocketConnectionManager {
 
     /// 接收消息
     ///
+    /// 自动处理 Ping/Pong 心跳帧：收到 Ping 时自动回复 Pong 并继续读取下一条消息，
+    /// 收到 Pong 时静默丢弃并继续读取。只返回 Text/Binary 等业务消息给调用者。
+    ///
     /// # 参数
     ///
     /// * `uuid` - 连接 UUID
@@ -575,7 +578,7 @@ impl WebSocketConnectionManager {
         receive_timeout_ms: u64,
     ) -> Result<Option<String>, String> {
         // 1. 获取连接，检查状态是否为 Connected
-        let receiver = {
+        let (receiver, sender) = {
             let connections = self.connections.lock().map_err(|e| {
                 format!("获取连接锁失败: {}", e)
             })?;
@@ -591,70 +594,112 @@ impl WebSocketConnectionManager {
                 ));
             }
 
-            conn.get_receiver().ok_or_else(|| {
+            let receiver = conn.get_receiver().ok_or_else(|| {
                 format!("连接没有活跃的 WebSocket 流: {}", uuid)
-            })?
+            })?;
+
+            // 获取 sender 用于回复 Ping
+            let sender = conn.get_sender();
+
+            (receiver, sender)
         };
 
-        // 2. 使用 StreamExt::next 接收消息（超时控制）
-        let recv_timeout = Duration::from_millis(receive_timeout_ms.clamp(1000, 30000));
-        let mut receiver_guard = receiver.lock().await;
+        // 2. 循环读取消息，自动处理 Ping/Pong 心跳帧
+        let total_timeout = Duration::from_millis(receive_timeout_ms.clamp(1000, 30000));
+        let start = Instant::now();
 
-        match timeout(recv_timeout, receiver_guard.next()).await {
-            Ok(Some(Ok(message))) => {
-                // 3. 解析消息类型
-                match message {
-                    WebSocketMessage::Text(text) => {
-                        log::debug!("[WebSocket] 收到文本消息: uuid={}", uuid);
-                        Ok(Some(text.to_string()))
-                    }
-                    WebSocketMessage::Binary(data) => {
-                        log::debug!("[WebSocket] 收到二进制消息: uuid={}, len={}", uuid, data.len());
-                        // 将二进制转换为十六进制字符串
-                        Ok(Some(bytes_to_hex(&data)))
-                    }
-                    WebSocketMessage::Ping(data) => {
-                        // 4. 自动响应 Ping
-                        log::debug!("[WebSocket] 收到 Ping，自动响应 Pong: uuid={}", uuid);
-                        // Pong 响应需要通过 sender 发送，这里暂时忽略
-                        // 实际实现中应该在更高层处理
-                        Ok(Some(format!("[PING:{}]", bytes_to_hex(&data))))
-                    }
-                    WebSocketMessage::Pong(data) => {
-                        log::debug!("[WebSocket] 收到 Pong: uuid={}", uuid);
-                        Ok(Some(format!("[PONG:{}]", bytes_to_hex(&data))))
-                    }
-                    WebSocketMessage::Close(frame) => {
-                        log::info!("[WebSocket] 收到 Close 帧: uuid={}, frame={:?}", uuid, frame);
-                        // 更新连接状态
-                        self.update_status(uuid, ConnectionStatus::Closed)?;
-                        Ok(None)
-                    }
-                    WebSocketMessage::Frame(_) => {
-                        // 原始帧，通常不会直接处理
-                        Ok(None)
-                    }
-                }
-            }
-            Ok(Some(Err(e))) => {
-                let error_msg = format!("接收消息失败: {}", e);
-                self.update_connection_error(uuid, &error_msg);
-                Err(error_msg)
-            }
-            Ok(None) => {
-                // 流已结束
-                log::info!("[WebSocket] 流已结束: uuid={}", uuid);
-                self.update_status(uuid, ConnectionStatus::Closed)?;
-                Ok(None)
-            }
-            Err(_) => {
-                // 5. 超时未收到消息
+        loop {
+            let elapsed = start.elapsed();
+            if elapsed >= total_timeout {
                 log::debug!(
                     "[WebSocket] 接收超时 ({}ms): uuid={}",
                     receive_timeout_ms,
                     uuid
                 );
-                Ok(None)
+                return Ok(None);
+            }
+
+            let remaining = total_timeout - elapsed;
+            let mut receiver_guard = receiver.lock().await;
+
+            match timeout(remaining, receiver_guard.next()).await {
+                Ok(Some(Ok(message))) => {
+                    match message {
+                        WebSocketMessage::Text(text) => {
+                            log::debug!("[WebSocket] 收到文本消息: uuid={}", uuid);
+                            return Ok(Some(text.to_string()));
+                        }
+                        WebSocketMessage::Binary(data) => {
+                            log::debug!(
+                                "[WebSocket] 收到二进制消息: uuid={}, len={}",
+                                uuid,
+                                data.len()
+                            );
+                            return Ok(Some(bytes_to_hex(&data)));
+                        }
+                        WebSocketMessage::Ping(data) => {
+                            // 自动响应 Ping：发送 Pong 并继续读取下一条消息
+                            log::debug!(
+                                "[WebSocket] 收到 Ping，自动响应 Pong: uuid={}",
+                                uuid
+                            );
+                            if let Some(sender) = &sender {
+                                let mut sender_guard = sender.lock().await;
+                                let pong = WebSocketMessage::Pong(data);
+                                if let Err(e) = sender_guard.send(pong).await {
+                                    log::warn!(
+                                        "[WebSocket] 发送 Pong 失败: uuid={}, error={}",
+                                        uuid,
+                                        e
+                                    );
+                                }
+                            }
+                            // 释放 receiver 锁，继续读取下一条消息
+                            drop(receiver_guard);
+                            continue;
+                        }
+                        WebSocketMessage::Pong(_) => {
+                            // 静默丢弃 Pong（心跳回复），继续读取下一条消息
+                            log::debug!("[WebSocket] 收到 Pong，忽略: uuid={}", uuid);
+                            drop(receiver_guard);
+                            continue;
+                        }
+                        WebSocketMessage::Close(frame) => {
+                            log::info!(
+                                "[WebSocket] 收到 Close 帧: uuid={}, frame={:?}",
+                                uuid,
+                                frame
+                            );
+                            // 更新连接状态
+                            self.update_status(uuid, ConnectionStatus::Closed)?;
+                            return Ok(None);
+                        }
+                        WebSocketMessage::Frame(_) => {
+                            // 原始帧，通常不会直接处理
+                            return Ok(None);
+                        }
+                    }
+                }
+                Ok(Some(Err(e))) => {
+                    let error_msg = format!("接收消息失败: {}", e);
+                    self.update_connection_error(uuid, &error_msg);
+                    return Err(error_msg);
+                }
+                Ok(None) => {
+                    // 流已结束
+                    log::info!("[WebSocket] 流已结束: uuid={}", uuid);
+                    self.update_status(uuid, ConnectionStatus::Closed)?;
+                    return Ok(None);
+                }
+                Err(_) => {
+                    // 超时未收到消息
+                    log::debug!(
+                        "[WebSocket] 接收超时 ({}ms): uuid={}",
+                        receive_timeout_ms,
+                        uuid
+                    );
+                    return Ok(None);
+                }
             }
         }
     }
@@ -674,7 +719,7 @@ impl WebSocketConnectionManager {
     /// * `Err(msg)` - 连接不存在或状态错误
     pub async fn drain_pending_messages(&self, uuid: &str) -> Result<usize, String> {
         // 1. 获取连接，检查状态是否为 Connected
-        let receiver = {
+        let (receiver, sender) = {
             let connections = self.connections.lock().map_err(|e| {
                 format!("获取连接锁失败: {}", e)
             })?;
@@ -690,9 +735,13 @@ impl WebSocketConnectionManager {
                 ));
             }
 
-            conn.get_receiver().ok_or_else(|| {
+            let receiver = conn.get_receiver().ok_or_else(|| {
                 format!("连接没有活跃的 WebSocket 流: {}", uuid)
-            })?
+            })?;
+
+            let sender = conn.get_sender();
+
+            (receiver, sender)
         };
 
         // 2. 使用非常短的超时（1ms）非阻塞地读取所有待处理消息
@@ -720,10 +769,28 @@ impl WebSocketConnectionManager {
                                 data.len()
                             );
                         }
-                        WebSocketMessage::Ping(_) | WebSocketMessage::Pong(_) => {
-                            // Ping/Pong 消息也要清空
+                        WebSocketMessage::Ping(data) => {
+                            // 收到 Ping 时自动回复 Pong
                             log::debug!(
-                                "[WebSocket] drain_pending_messages: 清空 Ping/Pong 消息 uuid={}",
+                                "[WebSocket] drain_pending_messages: 收到 Ping，自动回复 Pong uuid={}",
+                                uuid
+                            );
+                            if let Some(sender) = &sender {
+                                let mut sender_guard = sender.lock().await;
+                                let pong = WebSocketMessage::Pong(data.clone());
+                                if let Err(e) = sender_guard.send(pong).await {
+                                    log::warn!(
+                                        "[WebSocket] drain_pending_messages: 发送 Pong 失败 uuid={}, error={}",
+                                        uuid,
+                                        e
+                                    );
+                                }
+                            }
+                        }
+                        WebSocketMessage::Pong(_) => {
+                            // 静默丢弃 Pong
+                            log::debug!(
+                                "[WebSocket] drain_pending_messages: 忽略 Pong uuid={}",
                                 uuid
                             );
                         }
