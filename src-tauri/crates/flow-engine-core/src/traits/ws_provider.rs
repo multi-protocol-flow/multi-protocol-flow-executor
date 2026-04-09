@@ -1,7 +1,7 @@
 //! WebSocket 提供者抽象 trait
 
 use async_trait::async_trait;
-use crate::node_config::{FormField, WsWaitCondition};
+use crate::node_config::{FormField, WsCollectCondition};
 
 /// WebSocket 提供者 trait
 ///
@@ -41,14 +41,14 @@ pub trait WsProvider: Send + Sync {
         uuid: &str,
         close_code: u16,
         close_reason: Option<String>,
-        wait_close_timeout_ms: u64,
+        close_timeout_ms: u64,
     ) -> Result<(), String>;
 
     /// 清空连接中待处理的消息
     async fn drain_pending_messages(&self, uuid: &str) -> Result<usize, String>;
 
     /// 匹配 WebSocket 消息
-    fn match_message(&self, message: &str, condition: &WsWaitCondition) -> Result<bool, String>;
+    fn match_message(&self, message: &str, condition: &WsCollectCondition) -> Result<bool, String>;
 
     /// 获取连接状态
     ///

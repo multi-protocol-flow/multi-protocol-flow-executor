@@ -15,9 +15,9 @@ pub enum NodeType {
     /// WebSocket 连接节点
     #[serde(rename = "ws_connect")]
     WsConnect,
-    /// WebSocket 发送等待节点
-    #[serde(rename = "ws_send_wait")]
-    WsSendWait,
+    /// WebSocket 发送采集节点
+    #[serde(rename = "ws_send_collect")]
+    WsSendCollect,
     /// WebSocket 关闭节点
     #[serde(rename = "ws_close")]
     WsClose,
