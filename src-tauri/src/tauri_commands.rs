@@ -13,9 +13,11 @@ use flow_engine::command::{
     UpdateNodeCommandInput, UpdateNodeCommandOutput,
 };
 use flow_engine::log_event::LogEvent;
+use flow_engine::execution_event::ExecutionEvent;
+use flow_engine::traits::ExecutionEventSender;
 use flow_engine::report::{FlowExecutionReport, ReportMetadata};
 use flow_engine::flow::Flow;
-use crate::tauri_adapters::create_log_sender;
+use crate::tauri_adapters::{create_log_sender, TauriExecutionEventSender};
 
 
 
@@ -43,6 +45,7 @@ pub async fn execute_flow(
     input: ExecuteFlowCommandInput,
     flow: Flow,
     on_event: Channel<LogEvent>,
+    on_execution_event: Channel<ExecutionEvent>,
 ) -> ExecuteFlowCommandOutput {
     // 创建队列日志发送器（调试模式同步，发布模式异步）
     let (log_sender, log_worker) = create_log_sender(on_event);
@@ -50,8 +53,13 @@ pub async fn execute_flow(
     // 在后台启动日志消费任务
     tokio::spawn(log_worker);
     
+    // 创建执行事件发送器（包装 Tauri Channel）
+    let execution_event_sender: Option<Arc<dyn ExecutionEventSender>> = Some(
+        Arc::new(TauriExecutionEventSender::new(on_execution_event))
+    );
+    
     // 执行流程
-    flow_engine::commands::execute_flow(input, flow, Some(log_sender)).await
+    flow_engine::commands::execute_flow(input, flow, Some(log_sender), execution_event_sender).await
 }
 
 /// 更新节点命令（桩实现）

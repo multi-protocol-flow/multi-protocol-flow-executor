@@ -5,8 +5,9 @@
 use async_trait::async_trait;
 use tauri::ipc::Channel;
 use tauri::Manager;
-use flow_engine::traits::{UnderlyingLogSender, DirectoryOpener, QueuedLogSender, LogWorker as FlowLogWorker};
+use flow_engine::traits::{UnderlyingLogSender, DirectoryOpener, QueuedLogSender, LogWorker as FlowLogWorker, ExecutionEventSender};
 use flow_engine::log_event::LogEvent;
+use flow_engine::execution_event::ExecutionEvent;
 
 /// Tauri 底层日志发送器
 ///
@@ -44,6 +45,25 @@ pub fn create_log_sender(
     let underlying = std::sync::Arc::new(TauriUnderlyingLogSender::new(channel));
     let (sender, worker) = QueuedLogSender::new(underlying);
     ( std::sync::Arc::new(sender), worker)
+}
+
+/// Tauri 执行事件发送器
+///
+/// 实现 ExecutionEventSender trait，将执行事件同步发送到 Tauri IPC Channel。
+pub struct TauriExecutionEventSender(Channel<ExecutionEvent>);
+
+impl TauriExecutionEventSender {
+    /// 创建新的 Tauri 执行事件发送器
+    pub fn new(channel: Channel<ExecutionEvent>) -> Self {
+        Self(channel)
+    }
+}
+
+impl ExecutionEventSender for TauriExecutionEventSender {
+    /// 同步发送执行事件到 Tauri IPC Channel
+    fn send_event(&self, event: ExecutionEvent) -> Result<(), String> {
+        self.0.send(event).map_err(|e| format!("{:?}", e))
+    }
 }
 
 /// Tauri 目录打开器
