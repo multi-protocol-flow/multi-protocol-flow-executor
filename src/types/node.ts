@@ -21,7 +21,7 @@ export type NodeType =
   | 'http'
   | 'conditional'
   | 'ws_connect'
-  | 'ws_send_wait'
+  | 'ws_send_collect'
   | 'ws_close'
   | 'assertion'
   | 'db_connect'
@@ -275,9 +275,9 @@ export interface AssertionOutput {
 // ============================================================================
 
 /**
- * WebSocket 等待模式
+ * WebSocket 收集模式
  */
-export type WsWaitMode = 'first_message' | 'condition' | 'duration';
+export type WsCollectMode = 'first_match' | 'condition_match' | 'duration_collect';
 
 /**
  * WebSocket 匹配类型
@@ -290,9 +290,9 @@ export type WsMatchType = 'json_path' | 'regex' | 'expression';
 export type WsMessageType = 'text' | 'binary';
 
 /**
- * WebSocket 等待条件
+ * WebSocket 收集条件
  */
-export interface WsWaitCondition {
+export interface WsCollectCondition {
   /** 匹配类型 */
   match_type: WsMatchType;
   /** 匹配表达式 */
@@ -312,23 +312,23 @@ export interface WsConnectConfig {
   subprotocols?: string[];
   /** 连接超时（毫秒） */
   connect_timeout_ms?: number;
-  /** 是否等待消息 */
-  wait_for_message?: boolean;
-  /** 等待模式 */
-  wait_mode?: WsWaitMode;
-  /** 等待条件 */
-  wait_condition?: WsWaitCondition;
-  /** 消息超时（毫秒） */
-  message_timeout_ms?: number;
+  /** 是否收集消息 */
+  collect_message?: boolean;
+  /** 收集模式 */
+  collect_mode?: WsCollectMode;
+  /** 收集条件 */
+  collect_condition?: WsCollectCondition;
+  /** 收集超时（毫秒） */
+  collect_timeout_ms?: number;
   /** 输出变量映射 */
   output_mappings?: OutputMapping[];
 }
 
 /**
- * WebSocket Send+Wait 节点配置
+ * WebSocket Send+Collect 节点配置
  */
-export interface WsSendWaitConfig {
-  type: 'ws_send_wait';
+export interface WsSendCollectConfig {
+  type: 'ws_send_collect';
   /** 连接 ID */
   connection_id: string;
   /** 消息内容 */
@@ -337,14 +337,14 @@ export interface WsSendWaitConfig {
   message_type?: WsMessageType;
   /** 发送超时（毫秒） */
   send_timeout_ms?: number;
-  /** 是否等待响应 */
-  wait_for_response: boolean;
-  /** 等待模式 */
-  wait_mode?: WsWaitMode;
-  /** 等待条件 */
-  wait_condition?: WsWaitCondition;
-  /** 消息超时（毫秒） */
-  message_timeout_ms?: number;
+  /** 是否收集响应 */
+  collect_response: boolean;
+  /** 收集模式 */
+  collect_mode?: WsCollectMode;
+  /** 收集条件 */
+  collect_condition?: WsCollectCondition;
+  /** 收集超时（毫秒） */
+  collect_timeout_ms?: number;
   /** 输出变量映射 */
   output_mappings?: OutputMapping[];
 }
@@ -360,8 +360,8 @@ export interface WsCloseConfig {
   close_code?: number;
   /** 关闭原因 */
   close_reason?: string;
-  /** 等待关闭超时（毫秒） */
-  wait_close_timeout_ms?: number;
+  /** 关闭超时（毫秒） */
+  close_timeout_ms?: number;
 }
 
 // ============================================================================
@@ -551,7 +551,7 @@ export type NodeData =
   | HttpConfig
   | ConditionalConfig
   | WsConnectConfig
-  | WsSendWaitConfig
+  | WsSendCollectConfig
   | WsCloseConfig
   | AssertionNodeConfig
   | DbConnectConfig
@@ -619,10 +619,10 @@ export function isWsConnectConfig(data: NodeData): data is WsConnectConfig {
 }
 
 /**
- * 判断是否为 WsSendWaitConfig
+ * 判断是否为 WsSendCollectConfig
  */
-export function isWsSendWaitConfig(data: NodeData): data is WsSendWaitConfig {
-  return data.type === 'ws_send_wait';
+export function isWsSendCollectConfig(data: NodeData): data is WsSendCollectConfig {
+  return data.type === 'ws_send_collect';
 }
 
 /**

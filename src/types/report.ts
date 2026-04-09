@@ -68,7 +68,7 @@ export interface WsSegmentSummary {
   node_uuid: string;
   /** 节点名称 */
   node_name: string;
-  /** 节点类型 (ws_connect, ws_send_wait, ws_close) */
+  /** 节点类型 (ws_connect, ws_send_collect, ws_close) */
   node_type: string;
   /** 消息数量 */
   message_count: number;

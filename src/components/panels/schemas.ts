@@ -197,10 +197,10 @@ export type EntryConfigFormData = z.infer<typeof entryConfigSchema>;
 // ============================================================================
 
 /**
- * WebSocket 等待模式枚举
+ * WebSocket 收集模式枚举
  */
-export const wsWaitModeSchema = z.enum(['first_message', 'condition', 'duration']);
-export type WsWaitMode = z.infer<typeof wsWaitModeSchema>;
+export const wsCollectModeSchema = z.enum(['first_match', 'condition_match', 'duration_collect']);
+export type WsCollectMode = z.infer<typeof wsCollectModeSchema>;
 
 /**
  * WebSocket 匹配类型枚举
@@ -215,14 +215,14 @@ export const wsMessageTypeSchema = z.enum(['text', 'binary']);
 export type WsMessageType = z.infer<typeof wsMessageTypeSchema>;
 
 /**
- * WebSocket 等待条件 Schema
+ * WebSocket 收集条件 Schema
  */
-export const wsWaitConditionSchema = z.object({
+export const wsCollectConditionSchema = z.object({
   match_type: wsMatchTypeSchema,
   expression: z.string().min(1, '匹配表达式不能为空'),
 });
 
-export type WsWaitConditionFormData = z.infer<typeof wsWaitConditionSchema>;
+export type WsCollectConditionFormData = z.infer<typeof wsCollectConditionSchema>;
 
 /**
  * WebSocket Connect 配置表单 Schema
@@ -233,36 +233,36 @@ export const wsConnectConfigSchema = z.object({
   headers: z.array(formFieldSchema).optional(),
   subprotocols: z.array(z.string()).optional(),
   connect_timeout_ms: z.number().min(1000).max(300000).optional(),
-  wait_for_message: z.boolean().optional(),
-  wait_mode: wsWaitModeSchema.optional(),
-  wait_condition: wsWaitConditionSchema.optional(),
-  message_timeout_ms: z.number().min(1000).max(300000).optional(),
+  collect_message: z.boolean().optional(),
+  collect_mode: wsCollectModeSchema.optional(),
+  collect_condition: wsCollectConditionSchema.optional(),
+  collect_timeout_ms: z.number().min(1000).max(300000).optional(),
   output_mappings: z.array(outputMappingSchema).optional(),
-  // 注意：wait_mode 和 wait_condition 在 wait_for_message=false 时的处理
+  // 注意：collect_mode 和 collect_condition 在 collect_message=false 时的处理
   // 由 WsConnectConfig 的 fromFormData 函数负责，这里不做额外验证
 });
 
 export type WsConnectConfigFormData = z.infer<typeof wsConnectConfigSchema>;
 
 /**
- * WebSocket Send+Wait 配置表单 Schema
+ * WebSocket Send+Collect 配置表单 Schema
  */
-export const wsSendWaitConfigSchema = z.object({
-  type: z.literal('ws_send_wait'),
+export const wsSendCollectConfigSchema = z.object({
+  type: z.literal('ws_send_collect'),
   connection_id: z.string().min(1, '连接 ID 不能为空'),
   message: z.string().min(1, '消息内容不能为空'),
   message_type: wsMessageTypeSchema.optional(),
   send_timeout_ms: z.number().min(1000).max(300000).optional(),
-  wait_for_response: z.boolean(),
-  wait_mode: wsWaitModeSchema.optional(),
-  wait_condition: wsWaitConditionSchema.optional(),
-  message_timeout_ms: z.number().min(1000).max(300000).optional(),
+  collect_response: z.boolean(),
+  collect_mode: wsCollectModeSchema.optional(),
+  collect_condition: wsCollectConditionSchema.optional(),
+  collect_timeout_ms: z.number().min(1000).max(300000).optional(),
   output_mappings: z.array(outputMappingSchema).optional(),
-  // 注意：wait_mode 和 wait_condition 在 wait_for_response=false 时的处理
+  // 注意：collect_mode 和 collect_condition 在 collect_response=false 时的处理
   // 由 fromFormData 函数负责，这里不做额外验证
 });
 
-export type WsSendWaitConfigFormData = z.infer<typeof wsSendWaitConfigSchema>;
+export type WsSendCollectConfigFormData = z.infer<typeof wsSendCollectConfigSchema>;
 
 /**
  * WebSocket Close 配置表单 Schema
@@ -272,7 +272,7 @@ export const wsCloseConfigSchema = z.object({
   connection_id: z.string().min(1, '连接 ID 不能为空'),
   close_code: z.number().optional(),
   close_reason: z.string().optional(),
-  wait_close_timeout_ms: z.number().min(1000).max(300000).optional(),
+  close_timeout_ms: z.number().min(1000).max(300000).optional(),
 });
 
 export type WsCloseConfigFormData = z.infer<typeof wsCloseConfigSchema>;
