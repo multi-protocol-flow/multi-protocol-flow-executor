@@ -11,10 +11,10 @@ use tokio::sync::RwLock;
 
 use super::traits::{DatabasePool, QueryResult};
 
-/// PostgreSQL 连接池
+/// `PostgreSQL` 连接池
 ///
-/// 封装 sqlx::postgres::PgPool，实现 DatabasePool trait。
-/// 支持 PostgreSQL 标准连接字符串格式。
+/// 封装 `sqlx::postgres::PgPool，实现` `DatabasePool` trait。
+/// 支持 `PostgreSQL` 标准连接字符串格式。
 ///
 /// # 连接字符串格式
 ///
@@ -22,7 +22,7 @@ use super::traits::{DatabasePool, QueryResult};
 ///
 /// # 参数占位符
 ///
-/// PostgreSQL 使用 `$1, $2, $3...` 格式的参数占位符
+/// `PostgreSQL` 使用 `$1, $2, $3...` 格式的参数占位符
 pub struct PostgresConnection {
     /// 连接池
     pool: PgPool,
@@ -35,7 +35,7 @@ pub struct PostgresConnection {
 }
 
 impl PostgresConnection {
-    /// 创建新的 PostgreSQL 连接池
+    /// 创建新的 `PostgreSQL` 连接池
     ///
     /// # 参数
     ///
@@ -98,7 +98,7 @@ impl PostgresConnection {
         })
     }
 
-    /// 从 DbConnection 配置创建连接池
+    /// 从 `DbConnection` 配置创建连接池
     ///
     /// # 参数
     ///
@@ -121,7 +121,7 @@ impl PostgresConnection {
         .await
     }
 
-    /// 构建 PostgreSQL 连接字符串
+    /// 构建 `PostgreSQL` 连接字符串
     ///
     /// 优先使用 `connection_string` 字段，否则根据其他字段构建
     fn build_connection_string(config: &super::types::DbConnection) -> Result<String, String> {
@@ -204,7 +204,7 @@ impl DatabasePool for PostgresConnection {
     ///
     /// # 占位符格式
     ///
-    /// PostgreSQL 使用 `$1, $2, $3...` 作为参数占位符：
+    /// `PostgreSQL` 使用 `$1, $2, $3...` 作为参数占位符：
     /// - `SELECT * FROM users WHERE id = $1`
     /// - `INSERT INTO users (name, age) VALUES ($1, $2)`
     async fn execute(
@@ -368,7 +368,7 @@ impl PostgresConnection {
 
     /// 绑定参数到查询
     ///
-    /// PostgreSQL 使用 `$1, $2, $3...` 格式的占位符
+    /// `PostgreSQL` 使用 `$1, $2, $3...` 格式的占位符
     fn bind_params<'q>(
         &self,
         mut query: sqlx::query::Query<'q, sqlx::postgres::Postgres, sqlx::postgres::PgArguments>,

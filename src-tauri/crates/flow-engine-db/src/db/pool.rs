@@ -135,10 +135,10 @@ impl TransactionInfo {
 /// 使用 `Arc<RwLock<>>` 实现跨线程共享。
 #[derive(Debug, Clone)]
 pub struct DatabaseConnectionManager {
-    /// 连接池：connection_uuid -> ActivePool
+    /// `连接池：connection_uuid` -> `ActivePool`
     pools: Arc<RwLock<HashMap<String, ActivePool>>>,
 
-    /// 事务状态：connection_uuid -> TransactionInfo
+    /// `事务状态：connection_uuid` -> `TransactionInfo`
     transactions: Arc<RwLock<HashMap<String, TransactionInfo>>>,
 }
 

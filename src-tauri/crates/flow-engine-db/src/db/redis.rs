@@ -14,7 +14,7 @@ use super::traits::{DatabasePool, QueryResult};
 
 /// Redis 连接池
 ///
-/// 封装 redis::aio::ConnectionManager，实现 DatabasePool trait。
+/// 封装 `redis::aio::ConnectionManager，实现` `DatabasePool` trait。
 /// 使用 redis:// URL 格式连接，支持 PING 命令测试连接。
 pub struct RedisConnection {
     /// 连接管理器
@@ -96,7 +96,7 @@ impl RedisConnection {
         })
     }
 
-    /// 从 DbConnection 配置创建连接池
+    /// 从 `DbConnection` 配置创建连接池
     ///
     /// # 参数
     ///
@@ -676,7 +676,7 @@ impl DatabasePool for RedisConnection {
 
     /// 关闭连接池
     ///
-    /// 注意: ConnectionManager 没有显式的 close 方法，会在 drop 时自动清理
+    /// 注意: `ConnectionManager` 没有显式的 close 方法，会在 drop 时自动清理
     async fn close(&self) {
         log::info!("[Redis] 关闭连接池: name={}", self.name);
         // ConnectionManager 在 drop 时会自动清理连接

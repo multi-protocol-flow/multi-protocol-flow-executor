@@ -17,6 +17,7 @@ use std::time::Instant;
 
 /// 查询计时信息
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Default)]
 pub struct DbQueryTiming {
     /// 查询执行时间（毫秒）
     pub execute_ms: u64,
@@ -24,14 +25,6 @@ pub struct DbQueryTiming {
     pub total_ms: u64,
 }
 
-impl Default for DbQueryTiming {
-    fn default() -> Self {
-        Self {
-            execute_ms: 0,
-            total_ms: 0,
-        }
-    }
-}
 
 /// 数据库查询节点执行器
 pub struct DbQueryNodeExecutor {
@@ -202,7 +195,7 @@ impl NodeExecutor for DbQueryNodeExecutor {
                         Ok(replaced) => {
                             // 尝试解析为 JSON 值，如果失败则作为字符串
                             let value = serde_json::from_str(&replaced)
-                                .unwrap_or_else(|_| serde_json::Value::String(replaced));
+                                .unwrap_or(serde_json::Value::String(replaced));
                             resolved_params.push(value);
                         }
                         Err(e) => {

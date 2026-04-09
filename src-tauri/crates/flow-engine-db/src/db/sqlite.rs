@@ -11,9 +11,9 @@ use tokio::sync::RwLock;
 
 use super::traits::{DatabasePool, QueryResult};
 
-/// SQLite 连接池
+/// `SQLite` 连接池
 ///
-/// 封装 sqlx::sqlite::SqlitePool，实现 DatabasePool trait。
+/// 封装 `sqlx::sqlite::SqlitePool，实现` `DatabasePool` trait。
 /// 支持文件路径连接字符串和内存数据库 (`:memory:`)。
 pub struct SqliteConnection {
     /// 连接池
@@ -27,7 +27,7 @@ pub struct SqliteConnection {
 }
 
 impl SqliteConnection {
-    /// 创建新的 SQLite 连接池
+    /// 创建新的 `SQLite` 连接池
     ///
     /// # 参数
     ///
@@ -85,7 +85,7 @@ impl SqliteConnection {
         })
     }
 
-    /// 从 DbConnection 配置创建连接池
+    /// 从 `DbConnection` 配置创建连接池
     ///
     /// # 参数
     ///

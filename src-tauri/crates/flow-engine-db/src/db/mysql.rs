@@ -11,10 +11,10 @@ use tokio::sync::RwLock;
 
 use super::traits::{DatabasePool, QueryResult};
 
-/// MySQL 连接池
+/// `MySQL` 连接池
 ///
-/// 封装 sqlx::mysql::MySqlPool，实现 DatabasePool trait。
-/// 支持标准 MySQL 连接字符串格式。
+/// 封装 `sqlx::mysql::MySqlPool，实现` `DatabasePool` trait。
+/// 支持标准 `MySQL` 连接字符串格式。
 ///
 /// # 连接字符串格式
 ///
@@ -43,7 +43,7 @@ pub struct MySqlConnection {
 }
 
 impl MySqlConnection {
-    /// 创建新的 MySQL 连接池
+    /// 创建新的 `MySQL` 连接池
     ///
     /// # 参数
     ///
@@ -105,7 +105,7 @@ impl MySqlConnection {
         })
     }
 
-    /// 从 DbConnection 配置创建连接池
+    /// 从 `DbConnection` 配置创建连接池
     ///
     /// # 参数
     ///
@@ -128,10 +128,10 @@ impl MySqlConnection {
         .await
     }
 
-    /// 构建 MySQL 连接字符串
+    /// 构建 `MySQL` 连接字符串
     ///
     /// 支持两种方式：
-    /// 1. 直接使用 connection_string 字段
+    /// 1. 直接使用 `connection_string` 字段
     /// 2. 从 host、port、username、password、database 字段构建
     fn build_connection_string(config: &super::types::DbConnection) -> Result<String, String> {
         // 如果提供了完整的连接字符串，直接使用
@@ -210,7 +210,7 @@ impl DatabasePool for MySqlConnection {
     ///
     /// # 参数占位符
     ///
-    /// MySQL 使用 `?` 作为参数占位符（与 SQLite 相同）。
+    /// `MySQL` 使用 `?` 作为参数占位符（与 `SQLite` 相同）。
     ///
     /// # 示例
     ///
@@ -384,7 +384,7 @@ impl MySqlConnection {
 
     /// 绑定参数到查询
     ///
-    /// MySQL 使用 `?` 作为占位符（与 SQLite 相同）
+    /// `MySQL` 使用 `?` 作为占位符（与 `SQLite` 相同）
     fn bind_params<'q>(
         &self,
         mut query: sqlx::query::Query<'q, sqlx::mysql::MySql, sqlx::mysql::MySqlArguments>,

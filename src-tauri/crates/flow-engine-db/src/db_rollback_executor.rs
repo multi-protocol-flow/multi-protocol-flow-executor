@@ -219,7 +219,7 @@ impl DbRollbackExecutor {
         })
     }
 
-    /// 构建跳过输出数据（空 connection_uuid 时）
+    /// 构建跳过输出数据（空 `connection_uuid` 时）
     fn build_skipped_output(
         &self,
         config: &DbRollbackConfig,
