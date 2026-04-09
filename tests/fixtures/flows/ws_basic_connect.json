@@ -22,9 +22,9 @@
         "headers": [],
         "subprotocols": [],
         "connect_timeout_ms": 30000,
-        "wait_for_message": false,
-        "wait_mode": "first_message",
-        "message_timeout_ms": 10000,
+        "collect_message": false,
+        "collect_mode": "first_match",
+        "collect_timeout_ms": 10000,
         "output_mappings": []
       },
       "ports": null
@@ -39,7 +39,7 @@
         "connection_id": "ws-connect-basic",
         "close_code": 1000,
         "close_reason": "正常关闭",
-        "wait_close_timeout_ms": 5000
+        "close_timeout_ms": 5000
       },
       "ports": null
     }

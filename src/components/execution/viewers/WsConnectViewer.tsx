@@ -80,7 +80,7 @@ interface WsConnectOutput {
  */
 interface WsConnectConfig {
   url?: string;
-  wait_mode?: string;
+  collect_mode?: string;
   timeout_ms?: number;
 }
 
@@ -91,15 +91,15 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
 
   // 配置数据
   const configUrl = resolvedConfig?.url || output?.url || '';
-  const waitMode = resolvedConfig?.wait_mode || 'none';
+  const collectMode = resolvedConfig?.collect_mode || 'none';
   const timeoutMs = resolvedConfig?.timeout_ms;
 
   // 输出数据
   const connectionId = output?.connection_id;
   const message = output?.message;
   const connectDuration = output?.timing?.connect_ms;
-  const waitDuration = output?.timing?.wait_response_ms;
-  const totalDuration = output?.timing?.total_ms ?? ((connectDuration || 0) + (waitDuration || 0));
+  const collectDuration = output?.timing?.wait_response_ms;
+  const totalDuration = output?.timing?.total_ms ?? ((connectDuration || 0) + (collectDuration || 0));
 
   return (
     <div className="space-y-3">
@@ -120,16 +120,16 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
             </code>
           </div>
 
-          {/* 等待模式 */}
+          {/* 采集模式 */}
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">等待模式:</span>
+            <span className="text-muted-foreground">采集模式:</span>
             <Badge variant="outline" className="font-mono text-xs">
               {(() => {
-                switch (waitMode) {
-                  case 'first_message': return '等待第一条消息';
-                  case 'condition': return '等待条件匹配';
-                  case 'duration': return '等待指定时长';
-                  default: return '等待第一条消息';
+                switch (collectMode) {
+                  case 'first_match': return '采集首条即停';
+                  case 'condition_match': return '匹配条件即停';
+                  case 'duration_collect': return '持续采集';
+                  default: return '采集首条即停';
                 }
               })()}
             </Badge>
@@ -223,7 +223,7 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
       </CollapsibleSection>
 
       {/* 耗时分解 */}
-      {(connectDuration !== undefined || waitDuration !== undefined) && (
+      {(connectDuration !== undefined || collectDuration !== undefined) && (
         <CollapsibleSection
           title="耗时分解"
           icon={<Clock className="w-4 h-4" />}
@@ -241,10 +241,10 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
                 <span className="font-mono text-slate-700">{connectDuration}ms</span>
               </div>
             )}
-            {waitDuration !== undefined && (
+            {collectDuration !== undefined && (
               <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
-                <span className="text-muted-foreground">等待消息</span>
-                <span className="font-mono text-slate-700">{waitDuration}ms</span>
+                <span className="text-muted-foreground">采集消息</span>
+                <span className="font-mono text-slate-700">{collectDuration}ms</span>
               </div>
             )}
           </div>

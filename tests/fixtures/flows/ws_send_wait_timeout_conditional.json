@@ -1,6 +1,6 @@
 {
   "uuid": "ws-send-wait-timeout-conditional-001",
-  "name": "WebSocket 发送等待超时条件测试",
+  "name": "WebSocket 发送收集超时条件测试",
   "initial_variables": null,
   "nodes": [
     {
@@ -22,27 +22,27 @@
         "headers": [],
         "subprotocols": [],
         "connect_timeout_ms": 30000,
-        "wait_for_message": false,
-        "wait_mode": "none",
-        "message_timeout_ms": 10000,
+        "collect_message": false,
+        "collect_mode": "none",
+        "collect_timeout_ms": 10000,
         "output_mappings": []
       },
       "ports": null
     },
     {
       "uuid": "ws-send-wait-timeout-test",
-      "type": "ws_send_wait",
-      "name": "WS 发送等待（短超时）",
+      "type": "ws_send_collect",
+      "name": "WS 发送收集（短超时）",
       "position": { "x": 400.0, "y": 0.0 },
       "data": {
-        "type": "ws_send_wait",
+        "type": "ws_send_collect",
         "connection_id": "ws-connect-send-wait-timeout",
         "message": "Test timeout message",
         "message_type": "text",
         "send_timeout_ms": 30000,
-        "wait_for_response": true,
-        "wait_mode": "first_message",
-        "message_timeout_ms": 3000,
+        "collect_response": true,
+        "collect_mode": "first_match",
+        "collect_timeout_ms": 3000,
         "output_mappings": []
       },
       "ports": null
@@ -50,12 +50,12 @@
     {
       "uuid": "conditional-send-wait-timeout",
       "type": "conditional",
-      "name": "发送等待超时判断",
+      "name": "发送收集超时判断",
       "position": { "x": 600.0, "y": 0.0 },
       "data": {
         "type": "conditional",
         "condition_type": "simple",
-        "field_path": "{{wait_timed_out}}",
+        "field_path": "{{collect_timed_out}}",
         "operator": "equal",
         "expected_value": true,
         "expected_value_type": "boolean",

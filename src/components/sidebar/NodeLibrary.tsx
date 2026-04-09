@@ -36,9 +36,9 @@ const NODE_TYPES = [
     iconColor: 'text-white',
   },
   {
-    type: 'ws_send_wait',
-    name: 'WS 发送等待',
-    description: '发送 WebSocket 消息并等待响应',
+    type: 'ws_send_collect',
+    name: 'WS 发送采集',
+    description: '发送 WebSocket 消息并采集响应',
     icon: Send,
     color: 'bg-teal-500',
     colorHover: 'hover:bg-teal-400',

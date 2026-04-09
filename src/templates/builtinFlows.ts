@@ -125,25 +125,25 @@ export const WS_DEMO_FLOW: Flow = {
         type: 'ws_connect',
         url: 'wss://echo.websocket.org',
         connect_timeout_ms: 10000,
-        wait_for_message: false,
-        message_timeout_ms: 5000
+        collect_message: false,
+        collect_timeout_ms: 5000
       }
     },
-    // 节点 3: WS Send+Wait 节点
+    // 节点 3: WS Send+Collect 节点
     {
-      uuid: 'ws-send-wait-001',
-      type: 'ws_send_wait',
-      name: '发送消息并等待响应',
+      uuid: 'ws-send-collect-001',
+      type: 'ws_send_collect',
+      name: '发送消息并收集响应',
       position: { x: 500, y: 0 },
       data: {
-        type: 'ws_send_wait',
+        type: 'ws_send_collect',
         connection_id: 'ws-connect-001',
         message: '{"action":"ping","data":"Hello WebSocket!"}',
         message_type: 'text',
         send_timeout_ms: 5000,
-        wait_for_response: true,
-        wait_mode: 'first_message',
-        message_timeout_ms: 5000
+        collect_response: true,
+        collect_mode: 'first_match',
+        collect_timeout_ms: 5000
       }
     },
     // 节点 4: WS Close 节点
@@ -157,7 +157,7 @@ export const WS_DEMO_FLOW: Flow = {
         connection_id: 'ws-connect-001',
         close_code: 1000,
         close_reason: 'Normal closure',
-        wait_close_timeout_ms: 5000
+        close_timeout_ms: 5000
       }
     }
   ],
@@ -170,18 +170,18 @@ export const WS_DEMO_FLOW: Flow = {
       source_port_id: 'out',
       target_port_id: 'in'
     },
-    // WS Connect → WS Send+Wait
+    // WS Connect → WS Send+Collect
     {
       id: 'conn-ws-2',
       source_node_uuid: 'ws-connect-001',
-      target_node_uuid: 'ws-send-wait-001',
+      target_node_uuid: 'ws-send-collect-001',
       source_port_id: 'true',
       target_port_id: 'in'
     },
-    // WS Send+Wait → WS Close
+    // WS Send+Collect → WS Close
     {
       id: 'conn-ws-3',
-      source_node_uuid: 'ws-send-wait-001',
+      source_node_uuid: 'ws-send-collect-001',
       target_node_uuid: 'ws-close-001',
       source_port_id: 'true',
       target_port_id: 'in'

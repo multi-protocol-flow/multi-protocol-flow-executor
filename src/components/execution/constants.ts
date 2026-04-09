@@ -10,7 +10,7 @@ export const NODE_TYPE_NAMES: Record<string, string> = {
   assertion: '断言',
   end: '终止',
   ws_connect: 'WebSocket 连接',
-  ws_send_wait: 'WebSocket 发送等待',
+  ws_send_collect: 'WebSocket 发送采集',
   ws_close: 'WebSocket 关闭',
 };
 
@@ -22,7 +22,7 @@ export const NODE_TYPE_COLORS: Record<string, string> = {
   assertion: 'bg-rose-100 text-rose-700',
   end: 'bg-slate-100 text-slate-700',
   ws_connect: 'bg-violet-100 text-violet-700',
-  ws_send_wait: 'bg-violet-100 text-violet-700',
+  ws_send_collect: 'bg-violet-100 text-violet-700',
   ws_close: 'bg-violet-100 text-violet-700',
 };
 

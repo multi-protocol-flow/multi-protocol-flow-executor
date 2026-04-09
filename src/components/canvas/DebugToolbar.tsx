@@ -38,7 +38,7 @@ export function DebugToolbar() {
     switch (currentNode.type) {
       case 'conditional':
       case 'ws_connect':
-      case 'ws_send_wait':
+      case 'ws_send_collect':
       case 'ws_close':
         // 这些节点都有 true/false 两个分支
         return [

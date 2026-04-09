@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import {
   wsConnectConfigSchema,
   type WsConnectConfigFormData,
-  type WsWaitMode,
+  type WsCollectMode,
   type WsMatchType,
 } from './schemas';
 import { Input } from '@/components/ui/input';
@@ -44,10 +44,10 @@ function toFormData(data: WsConnectConfigType): WsConnectConfigFormData {
     headers: headers.length > 0 ? headers : undefined,
     subprotocols: data.subprotocols || [],
     connect_timeout_ms: data.connect_timeout_ms ?? 30000,
-    wait_for_message: data.wait_for_message || false,
-    wait_mode: data.wait_mode || 'first_message',
-    wait_condition: data.wait_condition,
-    message_timeout_ms: data.message_timeout_ms ?? 30000,
+    collect_message: data.collect_message || false,
+    collect_mode: data.collect_mode || 'first_match',
+    collect_condition: data.collect_condition,
+    collect_timeout_ms: data.collect_timeout_ms ?? 30000,
     output_mappings: data.output_mappings || [],
   };
 }
@@ -65,10 +65,10 @@ function fromFormData(formData: WsConnectConfigFormData): WsConnectConfigType {
     headers: headers && headers.length > 0 ? headers : undefined,
     subprotocols: formData.subprotocols && formData.subprotocols.length > 0 ? formData.subprotocols : undefined,
     connect_timeout_ms: formData.connect_timeout_ms,
-    wait_for_message: formData.wait_for_message,
-    wait_mode: formData.wait_for_message ? formData.wait_mode : undefined,
-    wait_condition: formData.wait_for_message && formData.wait_mode === 'condition' ? formData.wait_condition : undefined,
-    message_timeout_ms: formData.wait_for_message ? formData.message_timeout_ms : undefined,
+    collect_message: formData.collect_message,
+    collect_mode: formData.collect_message ? formData.collect_mode : undefined,
+    collect_condition: formData.collect_message && formData.collect_mode === 'condition_match' ? formData.collect_condition : undefined,
+    collect_timeout_ms: formData.collect_message ? formData.collect_timeout_ms : undefined,
     output_mappings: formData.output_mappings && formData.output_mappings.length > 0 ? formData.output_mappings : undefined,
   };
 }
@@ -159,8 +159,8 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
   }, [flow]);
 
   // 监听表单值变化
-  const waitForMessage = watch('wait_for_message');
-  const waitMode = watch('wait_mode');
+  const collectMessage = watch('collect_message');
+  const collectMode = watch('collect_mode');
 
   // 当外部数据变化时，重置表单（确保所有字段同步）
   useEffect(() => {
@@ -351,78 +351,78 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
         <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
       </div>
 
-      {/* 等待消息开关 */}
+      {/* 采集消息开关 */}
       <div className="flex items-center space-x-2">
         <Switch
-          id="wait_for_message"
-          checked={waitForMessage || false}
+          id="collect_message"
+          checked={collectMessage || false}
           onCheckedChange={(checked) => {
-            setValue('wait_for_message', checked);
+            setValue('collect_message', checked);
             if (!checked) {
-              // 关闭等待消息时，清除所有关联字段，避免 schema 验证失败
-              setValue('wait_mode', undefined as unknown as WsWaitMode);
-              setValue('wait_condition', undefined as unknown as { match_type: WsMatchType; expression: string });
-              setValue('message_timeout_ms', undefined as unknown as number);
+              // 关闭采集消息时，清除所有关联字段，避免 schema 验证失败
+              setValue('collect_mode', undefined as unknown as WsCollectMode);
+              setValue('collect_condition', undefined as unknown as { match_type: WsMatchType; expression: string });
+              setValue('collect_timeout_ms', undefined as unknown as number);
             }
             saveData();
           }}
         />
-        <Label htmlFor="wait_for_message" className="text-sm font-medium text-black cursor-pointer">
-          连接后等待消息
+        <Label htmlFor="collect_message" className="text-sm font-medium text-black cursor-pointer">
+          连接后采集消息
         </Label>
       </div>
 
-      {/* 等待配置（仅当 wait_for_message 为 true 时显示） */}
-      {waitForMessage && (
+      {/* 采集配置（仅当 collect_message 为 true 时显示） */}
+      {collectMessage && (
         <>
-          {/* 等待模式 */}
+          {/* 采集模式 */}
           <div className="space-y-2">
-            <Label htmlFor="wait_mode" className="text-sm font-medium text-black">
-              等待模式
+            <Label htmlFor="collect_mode" className="text-sm font-medium text-black">
+              采集模式
             </Label>
             <Select
-              value={waitMode || 'first_message'}
+              value={collectMode || 'first_match'}
               onValueChange={(value) => {
-                setValue('wait_mode', value as WsWaitMode);
-                if (value === 'condition') {
-                  // 切换到 condition 模式时，初始化 wait_condition 为默认值
-                  setValue('wait_condition', { match_type: 'json_path', expression: '' });
+                setValue('collect_mode', value as WsCollectMode);
+                if (value === 'condition_match') {
+                  // 切换到 condition_match 模式时，初始化 collect_condition 为默认值
+                  setValue('collect_condition', { match_type: 'json_path', expression: '' });
                 } else {
-                  // 切换到非 condition 模式时，清除 wait_condition，避免 schema 验证失败
-                  setValue('wait_condition', undefined as unknown as { match_type: WsMatchType; expression: string });
+                  // 切换到非 condition_match 模式时，清除 collect_condition，避免 schema 验证失败
+                  setValue('collect_condition', undefined as unknown as { match_type: WsMatchType; expression: string });
                 }
                 saveData();
               }}
             >
-              <SelectTrigger id="wait_mode" className="font-mono">
+              <SelectTrigger id="collect_mode" className="font-mono">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="first_message">等待第一条消息</SelectItem>
-                <SelectItem value="condition">等待条件匹配</SelectItem>
-                <SelectItem value="duration">等待指定时长</SelectItem>
+                <SelectItem value="first_match">采集首条即停</SelectItem>
+                <SelectItem value="condition_match">匹配条件即停</SelectItem>
+                <SelectItem value="duration_collect">持续采集</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* 等待条件（仅当 wait_mode 为 'condition' 时显示） */}
-          {waitMode === 'condition' && (
+          {/* 采集条件（仅当 collect_mode 为 'condition_match' 时显示） */}
+          {collectMode === 'condition_match' && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-black">匹配条件</Label>
+              <Label className="text-sm font-medium text-black">采集条件</Label>
               <div className="space-y-2 p-3 rounded-md border bg-muted/30">
                 {/* 匹配类型 */}
                 <div className="space-y-2">
-                  <Label htmlFor="wait_condition.match_type" className="text-xs text-muted-foreground">
+                  <Label htmlFor="collect_condition.match_type" className="text-xs text-muted-foreground">
                     匹配类型
                   </Label>
                   <Select
-                    value={watch('wait_condition.match_type') || 'json_path'}
+                    value={watch('collect_condition.match_type') || 'json_path'}
                     onValueChange={(value) => {
-                      setValue('wait_condition.match_type', value as WsMatchType);
+                      setValue('collect_condition.match_type', value as WsMatchType);
                       saveData();
                     }}
                   >
-                    <SelectTrigger id="wait_condition.match_type" className="font-mono text-xs h-8">
+                    <SelectTrigger id="collect_condition.match_type" className="font-mono text-xs h-8">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -435,23 +435,23 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
 
                 {/* 匹配表达式 */}
                 <div className="space-y-2">
-                  <Label htmlFor="wait_condition.expression" className="text-xs text-muted-foreground">
+                  <Label htmlFor="collect_condition.expression" className="text-xs text-muted-foreground">
                     匹配表达式 <span className="text-rose-500">*</span>
                   </Label>
                   <Textarea
-                    id="wait_condition.expression"
-                    {...register('wait_condition.expression', { required: '匹配表达式不能为空' })}
-                    placeholder={watch('wait_condition.match_type') === 'expression' ? 'msg == "authenticated"' : watch('wait_condition.match_type') === 'regex' ? 'authenticated|success' : '$.msg'}
+                    id="collect_condition.expression"
+                    {...register('collect_condition.expression', { required: '匹配表达式不能为空' })}
+                    placeholder={watch('collect_condition.match_type') === 'expression' ? 'msg == "authenticated"' : watch('collect_condition.match_type') === 'regex' ? 'authenticated|success' : '$.msg'}
                     className={`min-h-[80px] resize-y font-mono text-xs ${
-                      errors.wait_condition?.expression ? 'border-rose-500 focus-visible:ring-rose-500' : ''
+                      errors.collect_condition?.expression ? 'border-rose-500 focus-visible:ring-rose-500' : ''
                     }`}
                     rows={3}
                   />
-                  {errors.wait_condition?.expression && (
-                    <p className="text-xs text-rose-500">{errors.wait_condition.expression.message}</p>
+                  {errors.collect_condition?.expression && (
+                    <p className="text-xs text-rose-500">{errors.collect_condition.expression.message}</p>
                   )}
                   <VariableValidationWarning
-                    value={watch('wait_condition.expression') || ''}
+                    value={watch('collect_condition.expression') || ''}
                     availableVariables={availableVariableNames}
                     compact
                   />
@@ -503,17 +503,17 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
             </div>
           )}
 
-          {/* 消息超时 */}
+          {/* 采集超时 */}
           <div className="space-y-2">
-            <Label htmlFor="message_timeout_ms" className="text-sm font-medium text-black">
-              消息超时
+            <Label htmlFor="collect_timeout_ms" className="text-sm font-medium text-black">
+              采集超时
             </Label>
             <Input
-              id="message_timeout_ms"
+              id="collect_timeout_ms"
               type="number"
               min={1000}
               max={300000}
-              {...register('message_timeout_ms', { valueAsNumber: true })}
+              {...register('collect_timeout_ms', { valueAsNumber: true })}
             />
             <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
           </div>
@@ -561,8 +561,8 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                 .filter(i => i !== -1);
               const hasDuplicate = duplicateTargets.length > 0 && currentTarget.trim() !== '';
 
-              // JSONPath 常用预设（根据 wait_for_message 状态动态变化）
-              const jsonPathPresets = waitForMessage
+              // JSONPath 常用预设（根据 collect_message 状态动态变化）
+              const jsonPathPresets = collectMessage
                 ? [
                     { value: '$.message', label: '消息内容' },
                     { value: '$.connection_id', label: '连接 ID' },

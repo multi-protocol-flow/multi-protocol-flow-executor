@@ -1,6 +1,6 @@
 {
   "uuid": "ws-full-flow-wait-response-001",
-  "name": "WebSocket 完整流程 - 等待响应",
+  "name": "WebSocket 完整流程 - 收集响应",
   "initial_variables": null,
   "nodes": [
     {
@@ -14,7 +14,7 @@
     {
       "uuid": "ws-connect-full-wait",
       "type": "ws_connect",
-      "name": "WS 连接（等待首条消息）",
+      "name": "WS 连接（收集首条消息）",
       "position": { "x": 200.0, "y": 0.0 },
       "data": {
         "type": "ws_connect",
@@ -22,27 +22,27 @@
         "headers": [],
         "subprotocols": [],
         "connect_timeout_ms": 30000,
-        "wait_for_message": true,
-        "wait_mode": "first_message",
-        "message_timeout_ms": 10000,
+        "collect_message": true,
+        "collect_mode": "first_match",
+        "collect_timeout_ms": 10000,
         "output_mappings": []
       },
       "ports": null
     },
     {
       "uuid": "ws-send-wait-full-wait",
-      "type": "ws_send_wait",
-      "name": "WS 发送等待（等待响应）",
+      "type": "ws_send_collect",
+      "name": "WS 发送收集（收集响应）",
       "position": { "x": 400.0, "y": 0.0 },
       "data": {
-        "type": "ws_send_wait",
+        "type": "ws_send_collect",
         "connection_id": "ws-connect-full-wait",
         "message": "Hello from full flow test!",
         "message_type": "text",
         "send_timeout_ms": 30000,
-        "wait_for_response": true,
-        "wait_mode": "first_message",
-        "message_timeout_ms": 30000,
+        "collect_response": true,
+        "collect_mode": "first_match",
+        "collect_timeout_ms": 30000,
         "output_mappings": []
       },
       "ports": null
@@ -57,7 +57,7 @@
         "connection_id": "ws-connect-full-wait",
         "close_code": 1000,
         "close_reason": "完整流程测试完成",
-        "wait_close_timeout_ms": 5000
+        "close_timeout_ms": 5000
       },
       "ports": null
     }

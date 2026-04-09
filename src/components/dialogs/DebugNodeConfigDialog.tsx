@@ -17,7 +17,7 @@ import { EntryConfig } from '@/components/panels/EntryConfig';
 import { HttpConfig } from '@/components/panels/HttpConfig';
 import { ConditionalConfig } from '@/components/panels/ConditionalConfig';
 import { WsConnectConfig } from '@/components/panels/WsConnectConfig';
-import { WsSendWaitConfig } from '@/components/panels/WsSendWaitConfig';
+import { WsSendCollectConfig } from '@/components/panels/WsSendCollectConfig';
 import { WsCloseConfig } from '@/components/panels/WsCloseConfig';
 
 // 类型和类型守卫
@@ -27,7 +27,7 @@ import {
   isHttpConfig,
   isConditionalConfig,
   isWsConnectConfig,
-  isWsSendWaitConfig,
+  isWsSendCollectConfig,
   isWsCloseConfig,
 } from '@/types';
 
@@ -52,7 +52,7 @@ const NODE_TYPE_LABELS: Record<string, string> = {
   http: 'HTTP 请求',
   conditional: '条件分支',
   ws_connect: 'WebSocket 连接',
-  ws_send_wait: 'WebSocket 发送等待',
+  ws_send_collect: 'WebSocket 发送采集',
   ws_close: 'WebSocket 关闭',
 };
 
@@ -147,9 +147,9 @@ export function DebugNodeConfigDialog({
       );
     }
 
-    if (isWsSendWaitConfig(editedData)) {
+    if (isWsSendCollectConfig(editedData)) {
       return (
-        <WsSendWaitConfig
+        <WsSendCollectConfig
           data={editedData}
           onSave={(data) => handleConfigSave(data as NodeData)}
         />

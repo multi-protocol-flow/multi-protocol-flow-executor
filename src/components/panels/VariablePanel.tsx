@@ -7,7 +7,7 @@ import { Search, ChevronDown, ChevronRight, Variable as VariableIcon } from 'luc
 import { Input } from '@/components/ui/input';
 import type { Flow, Node } from '@/types';
 import type { Variable } from '@/types/variable';
-import { isEntryConfig, isHttpConfig, isWsConnectConfig, isWsSendWaitConfig } from '@/types/node';
+import { isEntryConfig, isHttpConfig, isWsConnectConfig, isWsSendCollectConfig } from '@/types/node';
 
 interface VariablePanelProps {
   /** 当前流程 */
@@ -77,8 +77,8 @@ function extractVariableGroups(flow: Flow): VariableGroup[] {
       });
     }
 
-    // WebSocket Send+Wait 节点：提取 output_mappings
-    if (isWsSendWaitConfig(node.data) && node.data.output_mappings) {
+    // WebSocket Send+Collect 节点：提取 output_mappings
+    if (isWsSendCollectConfig(node.data) && node.data.output_mappings) {
       node.data.output_mappings.forEach(om => {
         variables.push({
           name: om.target,

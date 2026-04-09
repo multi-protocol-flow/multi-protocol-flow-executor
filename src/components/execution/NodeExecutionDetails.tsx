@@ -17,7 +17,7 @@ import { NODE_TYPE_NAMES, NODE_TYPE_COLORS } from './constants';
 import { RawJsonViewer } from './viewers/RawJsonViewer';
 import { HttpNodeViewer } from './viewers/HttpNodeViewer';
 import { WsConnectViewer } from './viewers/WsConnectViewer';
-import { WsSendWaitViewer } from './viewers/WsSendWaitViewer';
+import { WsSendCollectViewer } from './viewers/WsSendCollectViewer';
 import { WsCloseViewer } from './viewers/WsCloseViewer';
 import { ConditionalViewer } from './viewers/ConditionalViewer';
 import { AssertionViewer } from './viewers/AssertionViewer';
@@ -46,8 +46,8 @@ function NodeViewerSelector({ report }: NodeExecutionDetailsProps) {
       return <HttpNodeViewer report={report} />;
     case 'ws_connect':
       return <WsConnectViewer report={report} />;
-    case 'ws_send_wait':
-      return <WsSendWaitViewer report={report} />;
+    case 'ws_send_collect':
+      return <WsSendCollectViewer report={report} />;
     case 'ws_close':
       return <WsCloseViewer report={report} />;
     case 'conditional':

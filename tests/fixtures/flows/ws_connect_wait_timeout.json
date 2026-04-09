@@ -1,6 +1,6 @@
 {
   "uuid": "ws-connect-wait-timeout-001",
-  "name": "WebSocket 连接等待超时测试 - Conditional 判断",
+  "name": "WebSocket 连接收集超时测试 - Conditional 判断",
   "initial_variables": null,
   "nodes": [
     {
@@ -14,7 +14,7 @@
     {
       "uuid": "ws-connect-timeout",
       "type": "ws_connect",
-      "name": "WS 连接（等待超时）",
+      "name": "WS 连接（收集超时）",
       "position": { "x": 200.0, "y": 0.0 },
       "data": {
         "type": "ws_connect",
@@ -22,9 +22,9 @@
         "headers": [],
         "subprotocols": [],
         "connect_timeout_ms": 30000,
-        "wait_for_message": true,
-        "wait_mode": "first_message",
-        "message_timeout_ms": 5000,
+        "collect_message": true,
+        "collect_mode": "first_match",
+        "collect_timeout_ms": 5000,
         "output_mappings": []
       },
       "ports": null
@@ -37,7 +37,7 @@
       "data": {
         "type": "conditional",
         "condition_type": "simple",
-        "field_path": "{{wait_timed_out}}",
+        "field_path": "{{collect_timed_out}}",
         "operator": "equal",
         "expected_value": true,
         "expected_value_type": "boolean",

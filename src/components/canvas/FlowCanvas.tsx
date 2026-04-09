@@ -21,7 +21,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendWaitNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode } from './nodes';
 import { CanvasToolbar } from './CanvasToolbar';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
@@ -75,7 +75,7 @@ const nodeTypes = {
   http: HttpNode,
   conditional: ConditionalNode,
   ws_connect: WsConnectNode,
-  ws_send_wait: WsSendWaitNode,
+  ws_send_collect: WsSendCollectNode,
   ws_close: WsCloseNode,
   assertion: AssertionNode,
   db_connect: DbConnectNode,
@@ -103,7 +103,7 @@ const minimapNodeColor = (node: Node) => {
       return '#f97316';
     case 'ws_connect':
       return '#f59e0b'; // amber-500
-    case 'ws_send_wait':
+    case 'ws_send_collect':
       return '#14b8a6'; // teal-500
     case 'ws_close':
       return '#f43f5e'; // rose-500
@@ -411,13 +411,13 @@ function FlowCanvasInner() {
           position,
           data: { type: 'ws_connect', url: '' },
         });
-      } else if (nodeType === 'ws_send_wait') {
+      } else if (nodeType === 'ws_send_collect') {
         addNode({
           uuid: newNodeUuid,
-          type: 'ws_send_wait',
-          name: `WS 发送等待 ${nodeCount}`,
+          type: 'ws_send_collect',
+          name: `WS 发送采集 ${nodeCount}`,
           position,
-          data: { type: 'ws_send_wait', connection_id: '', message: '', wait_for_response: false },
+          data: { type: 'ws_send_collect', connection_id: '', message: '', collect_response: false },
         });
       } else if (nodeType === 'ws_close') {
         addNode({
@@ -554,13 +554,13 @@ function FlowCanvasInner() {
         position,
         data: { type: 'ws_connect', url: '' },
       });
-    } else if (pendingAddNodeType === 'ws_send_wait') {
+    } else if (pendingAddNodeType === 'ws_send_collect') {
       addNode({
         uuid: newNodeUuid,
-        type: 'ws_send_wait',
-        name: `WS 发送等待 ${nodeCount}`,
+        type: 'ws_send_collect',
+        name: `WS 发送采集 ${nodeCount}`,
         position,
-        data: { type: 'ws_send_wait', connection_id: '', message: '', wait_for_response: false },
+        data: { type: 'ws_send_collect', connection_id: '', message: '', collect_response: false },
       });
     } else if (pendingAddNodeType === 'ws_close') {
       addNode({

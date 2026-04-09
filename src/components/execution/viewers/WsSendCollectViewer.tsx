@@ -1,6 +1,6 @@
 /**
- * WsSendWaitViewer - WebSocket Send+Wait 节点执行详情查看器
- * 结构化展示发送配置、发送内容、响应内容、连接信息和耗时分解
+ * WsSendCollectViewer - WebSocket Send+Collect 节点执行详情查看器
+ * 结构化展示发送配置、发送内容、收集消息列表、匹配消息、连接信息和耗时分解
  */
 import { useState } from 'react';
 import {
@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Link,
   Timer,
+  List,
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
 
-interface WsSendWaitViewerProps {
+interface WsSendCollectViewerProps {
   /** 节点执行报告 */
   report: NodeExecutionReport;
 }
@@ -59,12 +60,12 @@ function CollapsibleSection({ title, icon, defaultOpen = false, extra, children 
 }
 
 /**
- * WS Send+Wait 输出数据结构
+ * WS Send+Collect 输出数据结构
  */
-interface WsSendWaitOutput {
+interface WsSendCollectOutput {
   connection_id: string;
   url?: string;
-  wait_timed_out: boolean;
+  collect_timed_out: boolean;
   sent?: {
     data: string;
     type: 'text' | 'binary';
@@ -74,29 +75,40 @@ interface WsSendWaitOutput {
     type: 'text' | 'binary';
     parsed?: unknown;
   } | null;
+  collected_messages?: Array<{
+    data: string;
+    type: 'text' | 'binary';
+    parsed?: unknown;
+  }>;
+  matched_message?: {
+    data: string;
+    type: 'text' | 'binary';
+    parsed?: unknown;
+  } | null;
+  message_count?: number;
   timing?: {
     send_ms?: number | null;
-    wait_response_ms?: number | null;
+    collect_response_ms?: number | null;
     total_ms?: number | null;
   };
   error?: string;
 }
 
 /**
- * WS Send+Wait 配置数据结构
+ * WS Send+Collect 配置数据结构
  */
-interface WsSendWaitConfig {
+interface WsSendCollectConfig {
   connection_id?: string;
   message?: string;
   message_type?: 'text' | 'binary';
   send_timeout_ms?: number;
-  wait_for_response?: boolean;
-  wait_mode?: 'first_message' | 'condition' | 'duration';
-  wait_condition?: {
+  collect_response?: boolean;
+  collect_mode?: 'first_match' | 'condition_match' | 'duration_collect';
+  collect_condition?: {
     match_type?: 'json_path' | 'regex' | 'expression';
     expression?: string;
   };
-  message_timeout_ms?: number;
+  collect_timeout_ms?: number;
 }
 
 /**
@@ -117,14 +129,14 @@ function truncateText(text: string, maxLength: number = 500): string {
 }
 
 /**
- * 获取等待模式的显示文本
+ * 获取收集模式的显示文本
  */
-function getWaitModeLabel(waitMode: string | undefined): string {
-  switch (waitMode) {
-    case 'first_message': return '等待第一条消息';
-    case 'condition': return '等待条件匹配';
-    case 'duration': return '等待指定时长';
-    default: return '等待第一条消息';
+function getCollectModeLabel(collectMode: string | undefined): string {
+  switch (collectMode) {
+    case 'first_match': return '采集首条即停';
+    case 'condition_match': return '匹配条件即停';
+    case 'duration_collect': return '持续采集';
+    default: return '采集首条即停';
   }
 }
 
@@ -140,30 +152,33 @@ function getMatchTypeLabel(matchType: string | undefined): string {
   }
 }
 
-export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
-  const outputData = report.output_data as WsSendWaitOutput | undefined;
-  const resolvedConfig = report.resolved_config as WsSendWaitConfig | undefined;
+export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
+  const outputData = report.output_data as WsSendCollectOutput | undefined;
+  const resolvedConfig = report.resolved_config as WsSendCollectConfig | undefined;
   
   const hasError = outputData?.error || report.status === 'failed';
-  const isTimedOut = outputData?.wait_timed_out === true;
+  const isTimedOut = outputData?.collect_timed_out === true;
 
   // 配置数据
   const configConnectionId = resolvedConfig?.connection_id;
   const configMessage = resolvedConfig?.message;
   const configMessageType = resolvedConfig?.message_type;
   const sendTimeoutMs = resolvedConfig?.send_timeout_ms;
-  const waitForResponse = resolvedConfig?.wait_for_response ?? true;
-  const waitMode = resolvedConfig?.wait_mode;
-  const waitCondition = resolvedConfig?.wait_condition;
-  const messageTimeoutMs = resolvedConfig?.message_timeout_ms;
+  const collectResponse = resolvedConfig?.collect_response ?? true;
+  const collectMode = resolvedConfig?.collect_mode;
+  const collectCondition = resolvedConfig?.collect_condition;
+  const collectTimeoutMs = resolvedConfig?.collect_timeout_ms;
 
   // 输出数据
   const connectionUrl = outputData?.url;
   const connectionId = outputData?.connection_id || configConnectionId;
   const sentData = outputData?.sent;
-  const messageData = outputData?.message;
+  const messageData = outputData?.message || outputData?.matched_message;
+  const collectedMessages = outputData?.collected_messages || [];
+  const messageCount = outputData?.message_count;
+  const matchedMessage = outputData?.matched_message;
   const sendDuration = outputData?.timing?.send_ms;
-  const waitDuration = outputData?.timing?.wait_response_ms;
+  const collectDuration = outputData?.timing?.collect_response_ms;
 
   return (
     <div className="space-y-3">
@@ -183,7 +198,7 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
         <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
           <div className="flex items-center gap-1.5 text-amber-600">
             <Timer className="w-4 h-4" />
-            <span className="font-medium text-sm">等待响应超时</span>
+            <span className="font-medium text-sm">采集响应超时</span>
           </div>
           <p className="text-amber-600/80 text-xs mt-1">
             在指定时间内未收到匹配的响应消息
@@ -220,47 +235,47 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
         </div>
       </CollapsibleSection>
 
-      {/* 等待配置（独立面板，更醒目） */}
+      {/* 采集配置（独立面板，更醒目） */}
       <CollapsibleSection
-        title="等待配置"
+        title="采集配置"
         icon={<Clock className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-3">
-          {/* 等待响应 */}
+          {/* 收集响应 */}
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">等待响应:</span>
+            <span className="text-muted-foreground">采集响应:</span>
             <Badge variant="outline" className="font-mono text-xs">
-              {waitForResponse ? '是' : '否'}
+              {collectResponse ? '是' : '否'}
             </Badge>
           </div>
 
-          {/* 等待模式（仅当等待响应时显示） */}
-          {waitForResponse && (
+          {/* 收集模式（仅当收集响应时显示） */}
+          {collectResponse && (
             <>
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">等待模式:</span>
+                 <span className="text-muted-foreground">采集模式:</span>
                 <Badge variant="outline" className="font-mono text-xs">
-                  {getWaitModeLabel(waitMode)}
+                  {getCollectModeLabel(collectMode)}
                 </Badge>
               </div>
 
-              {/* 等待条件（仅当等待模式为 condition 时显示） */}
-              {waitMode === 'condition' && waitCondition && (
-                <div className="space-y-1">
-                  <div className="text-xs font-medium text-muted-foreground">等待条件</div>
+               {/* 采集条件（仅当采集模式为 condition_match 时显示） */}
+               {collectMode === 'condition_match' && collectCondition && (
+                 <div className="space-y-1">
+                   <div className="text-xs font-medium text-muted-foreground">采集条件</div>
                   <div className="bg-slate-50 rounded p-2 space-y-1">
                     <div className="flex items-center gap-2 text-xs">
                       <span className="text-muted-foreground">匹配类型:</span>
                       <Badge variant="secondary" className="font-mono text-xs">
-                        {getMatchTypeLabel(waitCondition.match_type)}
+                        {getMatchTypeLabel(collectCondition.match_type)}
                       </Badge>
                     </div>
-                    {waitCondition.expression && (
+                    {collectCondition.expression && (
                       <div>
                         <span className="text-xs text-muted-foreground">表达式: </span>
                         <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded font-mono">
-                          {waitCondition.expression}
+                          {collectCondition.expression}
                         </code>
                       </div>
                     )}
@@ -268,12 +283,12 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
                 </div>
               )}
 
-              {/* 消息超时时间 */}
-              {messageTimeoutMs !== undefined && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">消息超时:</span>
+               {/* 采集超时时间 */}
+               {collectTimeoutMs !== undefined && (
+                 <div className="flex items-center gap-2 text-sm">
+                   <span className="text-muted-foreground">采集超时:</span>
                   <Badge variant="secondary" className="font-mono text-xs">
-                    {formatDuration(messageTimeoutMs)}
+                    {formatDuration(collectTimeoutMs)}
                   </Badge>
                 </div>
               )}
@@ -343,10 +358,69 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
         </div>
       </CollapsibleSection>
 
-      {/* 响应内容 */}
+      {/* 收集消息列表 */}
+      {collectedMessages.length > 0 && (
+        <CollapsibleSection
+          title="收集消息"
+          icon={<List className="w-4 h-4" />}
+          defaultOpen={true}
+          extra={(
+            <Badge variant="secondary" className="font-mono text-xs">
+              {messageCount ?? collectedMessages.length} 条
+            </Badge>
+          )}
+        >
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {collectedMessages.map((msg, idx) => {
+              const isMatched = matchedMessage && matchedMessage.data === msg.data && matchedMessage.type === msg.type;
+              return (
+                <div
+                  key={idx}
+                  className={cn(
+                    'rounded-lg border p-2',
+                    isMatched
+                      ? 'bg-emerald-50 border-emerald-300'
+                      : 'bg-slate-50 border-slate-200'
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="outline" className={cn(
+                      'font-mono text-xs',
+                      msg.type === 'binary'
+                        ? 'text-orange-600 bg-orange-50'
+                        : 'text-slate-600 bg-slate-50'
+                    )}>
+                      {msg.type === 'binary' ? '二进制' : '文本'}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">#{idx + 1}</span>
+                    {isMatched && (
+                      <Badge className="font-mono text-xs bg-emerald-100 text-emerald-700 border-0">
+                        匹配
+                      </Badge>
+                    )}
+                  </div>
+                  <pre className="text-xs text-slate-700 whitespace-pre-wrap break-all">
+                    {truncateText(msg.data, 300)}
+                  </pre>
+                  {msg.parsed !== null && msg.parsed !== undefined && (
+                    <details className="mt-1">
+                      <summary className="text-xs text-muted-foreground cursor-pointer">解析 JSON</summary>
+                      <div className="mt-1">
+                        <RawJsonViewer data={msg.parsed} />
+                      </div>
+                    </details>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 匹配消息 */}
       {messageData ? (
         <CollapsibleSection
-          title="响应内容"
+          title="匹配消息"
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={true}
           extra={(
@@ -384,11 +458,11 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
         </CollapsibleSection>
       ) : !isTimedOut && !hasError && (
         <CollapsibleSection
-          title="响应内容"
+          title="匹配消息"
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
         >
-          <p className="text-sm text-muted-foreground italic">未等待响应或无响应数据</p>
+          <p className="text-sm text-muted-foreground italic">未采集响应或无匹配消息</p>
         </CollapsibleSection>
       )}
 
@@ -409,8 +483,8 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
             <span className="font-mono text-slate-700">{formatDuration(sendDuration)}</span>
           </div>
           <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
-            <span className="text-muted-foreground">等待耗时</span>
-            <span className="font-mono text-slate-700">{formatDuration(waitDuration)}</span>
+            <span className="text-muted-foreground">收集耗时</span>
+            <span className="font-mono text-slate-700">{formatDuration(collectDuration)}</span>
           </div>
         </div>
       </CollapsibleSection>
@@ -420,3 +494,6 @@ export function WsSendWaitViewer({ report }: WsSendWaitViewerProps) {
     </div>
   );
 }
+
+/** @deprecated 使用 WsSendCollectViewer 替代 */
+export const WsSendWaitViewer = WsSendCollectViewer;

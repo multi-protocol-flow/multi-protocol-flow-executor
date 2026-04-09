@@ -22,31 +22,31 @@
         "headers": [],
         "subprotocols": [],
         "connect_timeout_ms": 30000,
-        "wait_for_message": false,
-        "wait_mode": "first_message",
-        "message_timeout_ms": 10000,
+        "collect_message": false,
+        "collect_mode": "first_match",
+        "collect_timeout_ms": 10000,
         "output_mappings": []
       },
       "ports": null
     },
     {
       "uuid": "ws-send-wait-conditional",
-      "type": "ws_send_wait",
-      "name": "WS 发送等待（正则匹配）",
+      "type": "ws_send_collect",
+      "name": "WS 发送收集（正则匹配）",
       "position": { "x": 400.0, "y": 0.0 },
       "data": {
-        "type": "ws_send_wait",
+        "type": "ws_send_collect",
         "connection_id": "ws-connect-conditional",
         "message": "{\"action\":\"ping\",\"timestamp\":1234567890,\"data\":{\"status\":\"ok\"}}",
         "message_type": "text",
         "send_timeout_ms": 30000,
-        "wait_for_response": true,
-        "wait_mode": "condition",
-        "wait_condition": {
+        "collect_response": true,
+        "collect_mode": "condition_match",
+        "collect_condition": {
           "match_type": "regex",
           "expression": "Request"
         },
-        "message_timeout_ms": 30000,
+        "collect_timeout_ms": 30000,
         "output_mappings": []
       },
       "ports": null
@@ -61,7 +61,7 @@
         "connection_id": "ws-connect-conditional",
         "close_code": 1000,
         "close_reason": "测试完成",
-        "wait_close_timeout_ms": 5000
+        "close_timeout_ms": 5000
       },
       "ports": null
     }

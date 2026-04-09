@@ -15,7 +15,7 @@ import { PlugZap, Info } from 'lucide-react';
 import type { WsCloseConfig as WsCloseConfigType } from '@/types';
 import type { Variable } from '@/types/variable';
 import { useFlowStore } from '@/stores';
-import { isEntryConfig, isHttpConfig, isWsConnectConfig, isWsSendWaitConfig } from '@/types/node';
+import { isEntryConfig, isHttpConfig, isWsConnectConfig, isWsSendCollectConfig } from '@/types/node';
 
 interface WsCloseConfigProps {
   /** 当前节点数据 */
@@ -33,7 +33,7 @@ function toFormData(data: WsCloseConfigType): WsCloseConfigFormData {
     connection_id: data.connection_id || '',
     close_code: data.close_code ?? 1000,
     close_reason: data.close_reason || '',
-    wait_close_timeout_ms: data.wait_close_timeout_ms ?? 5000,
+    close_timeout_ms: data.close_timeout_ms ?? 5000,
   };
 }
 
@@ -46,7 +46,7 @@ function fromFormData(formData: WsCloseConfigFormData): WsCloseConfigType {
     connection_id: formData.connection_id,
     close_code: formData.close_code,
     close_reason: formData.close_reason || undefined,
-    wait_close_timeout_ms: formData.wait_close_timeout_ms,
+    close_timeout_ms: formData.close_timeout_ms,
   };
 }
 
@@ -124,8 +124,8 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
           });
         });
       }
-      // WS Send+Wait 节点：提取 output_mappings
-      if (isWsSendWaitConfig(node.data) && node.data.output_mappings) {
+      // WS Send+Collect 节点：提取 output_mappings
+      if (isWsSendCollectConfig(node.data) && node.data.output_mappings) {
         node.data.output_mappings.forEach(om => {
           vars.push({
             name: om.target,
@@ -175,7 +175,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
     setValue('connection_id', formData.connection_id);
     setValue('close_code', formData.close_code);
     setValue('close_reason', formData.close_reason);
-    setValue('wait_close_timeout_ms', formData.wait_close_timeout_ms);
+    setValue('close_timeout_ms', formData.close_timeout_ms);
   }, [data, setValue]);
 
   /**
@@ -311,17 +311,17 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
         </p>
       </div>
 
-      {/* 等待关闭超时 */}
+      {/* 关闭超时 */}
       <div className="space-y-2">
-        <Label htmlFor="wait_close_timeout_ms" className="text-sm font-medium text-black">
-          等待关闭超时
+        <Label htmlFor="close_timeout_ms" className="text-sm font-medium text-black">
+          关闭超时
         </Label>
         <Input
-          id="wait_close_timeout_ms"
+          id="close_timeout_ms"
           type="number"
           min={1000}
           max={300000}
-          {...register('wait_close_timeout_ms', { valueAsNumber: true })}
+          {...register('close_timeout_ms', { valueAsNumber: true })}
         />
         <p className="text-xs text-muted-foreground">
           毫秒 (ms)，范围 1000-300000，等待服务器确认关闭

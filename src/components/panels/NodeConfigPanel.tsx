@@ -8,7 +8,7 @@ import { EntryConfig } from './EntryConfig';
 import { HttpConfig } from './HttpConfig';
 import { ConditionalConfig } from './ConditionalConfig';
 import { WsConnectConfig } from './WsConnectConfig';
-import { WsSendWaitConfig } from './WsSendWaitConfig';
+import { WsSendCollectConfig } from './WsSendCollectConfig';
 import { WsCloseConfig } from './WsCloseConfig';
 import { AssertionConfig } from './AssertionConfig';
 import { DbConnectConfig } from './DbConnectConfig';
@@ -23,7 +23,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData, Node } from '@/types';
-import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendWaitConfig, isWsCloseConfig, isAssertionConfig, isDbConnectConfig, isDbQueryConfig, isDbBeginConfig, isDbCommitConfig, isDbRollbackConfig, isDbCloseConfig, isScriptConfig } from '@/types';
+import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendCollectConfig, isWsCloseConfig, isAssertionConfig, isDbConnectConfig, isDbQueryConfig, isDbBeginConfig, isDbCommitConfig, isDbRollbackConfig, isDbCloseConfig, isScriptConfig } from '@/types';
 import { Settings2, MousePointerClick, Trash2, Pencil, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -51,8 +51,8 @@ const NODE_TYPE_CONFIG = {
     badgeVariant: 'secondary' as const,
     badgeClass: 'bg-amber-50 text-amber-700',
   },
-  ws_send_wait: {
-    label: 'WS 发送等待',
+  ws_send_collect: {
+    label: 'WS 发送采集',
     badgeVariant: 'secondary' as const,
     badgeClass: 'bg-teal-50 text-teal-700',
   },
@@ -311,9 +311,9 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
               />
             )}
 
-            {/* WS Send+Wait 节点：WebSocket 发送等待配置 */}
-            {selectedNode.type === 'ws_send_wait' && isWsSendWaitConfig(selectedNode.data) && (
-              <WsSendWaitConfig
+            {/* WS Send+Collect 节点：WebSocket 发送采集配置 */}
+            {selectedNode.type === 'ws_send_collect' && isWsSendCollectConfig(selectedNode.data) && (
+              <WsSendCollectConfig
                 data={selectedNode.data}
                 onSave={(data) => handleSave(data as NodeData)}
               />

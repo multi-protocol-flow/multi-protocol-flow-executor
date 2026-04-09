@@ -1,26 +1,26 @@
 /**
- * WsSendWait 节点组件 - WebSocket 发送等待节点
- * 青色主题，表示发送消息并等待响应
+ * WsSendCollect 节点组件 - WebSocket 发送采集节点
+ * 青色主题，表示发送消息并采集响应
  */
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { WsSendWaitConfig } from '@/types';
+import type { WsSendCollectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 
-/** WsSendWait 节点数据类型 */
-export interface WsSendWaitNodeData {
+/** WsSendCollect 节点数据类型 */
+export interface WsSendCollectNodeData {
   label?: string;
-  config?: WsSendWaitConfig;
+  config?: WsSendCollectConfig;
 }
 
 /**
- * WsSendWait 节点 - WebSocket 发送等待
+ * WsSendCollect 节点 - WebSocket 发送采集
  * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function WsSendWaitNode({ id, data, selected }: NodeProps) {
-  const nodeData = data as WsSendWaitNodeData;
+export function WsSendCollectNode({ id, data, selected }: NodeProps) {
+  const nodeData = data as WsSendCollectNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
   const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
@@ -73,7 +73,7 @@ export function WsSendWaitNode({ id, data, selected }: NodeProps) {
             WS
           </span>
           <span className="text-sm font-semibold text-black break-words">
-            {nodeData.label || 'WS 发送等待'}
+            {nodeData.label || 'WS 发送采集'}
           </span>
         </div>
       </div>

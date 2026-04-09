@@ -605,7 +605,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         const newSegment: WsStreamSegment = {
           node_uuid: to_node_uuid,
           node_name: '', // 后端没有发送名称，前端需要从 flow 中获取
-          node_type: 'ws_send_wait', // 假设是 send_wait 节点
+          node_type: 'ws_send_collect', // 假设是 send_collect 节点
           started_at: now,
           ended_at: null,
           messages: [],

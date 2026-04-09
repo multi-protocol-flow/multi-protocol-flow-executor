@@ -57,7 +57,7 @@ export function SkipNodeDialog({
   const [jsonError, setJsonError] = useState<string | null>(null);
 
   // 是否需要模拟输出（仅 HTTP/WebSocket 节点）
-  const needsSimulatedOutput = nodeType === 'http' || nodeType === 'ws_connect' || nodeType === 'ws_send_wait';
+  const needsSimulatedOutput = nodeType === 'http' || nodeType === 'ws_connect' || nodeType === 'ws_send_collect';
 
   // 初始化选中的端口（默认选择第一个端口）
   useEffect(() => {
@@ -133,8 +133,8 @@ export function SkipNodeDialog({
         return 'HTTP 请求';
       case 'ws_connect':
         return 'WebSocket 连接';
-      case 'ws_send_wait':
-        return 'WebSocket 发送等待';
+      case 'ws_send_collect':
+        return 'WebSocket 发送采集';
       case 'ws_close':
         return 'WebSocket 关闭';
       default:
