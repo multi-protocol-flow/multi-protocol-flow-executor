@@ -11,6 +11,7 @@ import { useStressTestStore, selectIsStressTestRunning } from '@/stores/stressTe
 import { executeFlowWithChannel, saveFlowReport } from '@/services/tauri';
 import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
+import type { ExecutionEvent } from '@/types/execution_event';
 import { DebugToolbar } from './DebugToolbar';
 import { StressTestConfigDialog } from '@/components/stress-test/StressTestConfigDialog';
 import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
@@ -43,6 +44,10 @@ export function CanvasToolbar() {
     setIsExecuting(true);
     setConfigPanelOpen(false);
 
+    // 清空上次增量执行状态并打开进度面板
+    useExecutionStore.getState().clearExecutionState();
+    useUIStore.getState().setExecutionPanelOpen(true);
+
     // 每次执行前清空日志
     clearLogs();
 
@@ -51,8 +56,13 @@ export function CanvasToolbar() {
       addLog(event);
     };
 
+    // 执行事件回调函数（实时节点报告）
+    const handleExecutionEvent = (event: ExecutionEvent) => {
+      useExecutionStore.getState().handleExecutionEvent(event);
+    };
+
     try {
-      const result = await executeFlowWithChannel(flow, handleLog);
+      const result = await executeFlowWithChannel(flow, handleLog, handleExecutionEvent);
 
       if (result.success && result.flow_report) {
         setReport(result.flow_report);
