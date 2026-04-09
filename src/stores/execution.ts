@@ -3,6 +3,7 @@
  */
 import { create } from 'zustand';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types';
+import type { ExecutionEvent } from '@/types/execution_event';
 
 interface ExecutionState {
   /** 是否正在执行 */
@@ -13,6 +14,16 @@ interface ExecutionState {
   error: string | null;
   /** 执行历史（最近 10 条） */
   history: FlowExecutionReport[];
+
+  // ===== Real-time execution tracking =====
+  /** 增量累积的节点报告 (nodeUuid → NodeExecutionReport) */
+  nodeReportsMap: Record<string, NodeExecutionReport>;
+  /** 当前正在执行的节点 UUID */
+  currentNodeUuid: string | null;
+  /** 已完成节点数 */
+  completedNodeCount: number;
+  /** 总节点数 */
+  totalNodes: number;
 
   // ===== Actions =====
   /** 开始执行 */
@@ -27,12 +38,20 @@ interface ExecutionState {
   clearError: () => void;
   /** 清除历史记录 */
   clearHistory: () => void;
+  /** 处理执行事件（增量更新状态） */
+  handleExecutionEvent: (event: ExecutionEvent) => void;
+  /** 清空增量执行状态 */
+  clearExecutionState: () => void;
 
   // ===== Computed (Selectors) =====
   /** 获取特定节点的执行报告 */
   getNodeReport: (nodeUuid: string) => NodeExecutionReport | null;
   /** 检查是否有执行结果 */
   hasResult: () => boolean;
+  /** 获取节点执行状态 */
+  getNodeExecutionStatus: (nodeUuid: string) => 'running' | 'success' | 'failed' | 'pending';
+  /** 获取节点增量执行报告 */
+  getNodeExecutionReport: (nodeUuid: string) => NodeExecutionReport | null;
 }
 
 const MAX_HISTORY_SIZE = 10;
@@ -42,6 +61,10 @@ const initialState = {
   report: null,
   error: null,
   history: [],
+  nodeReportsMap: {} as Record<string, NodeExecutionReport>,
+  currentNodeUuid: null as string | null,
+  completedNodeCount: 0,
+  totalNodes: 0,
 };
 
 export const useExecutionStore = create<ExecutionState>((set, get) => ({
@@ -81,6 +104,48 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
 
   clearHistory: () => set({ history: [] }),
 
+  handleExecutionEvent: (event: ExecutionEvent) => {
+    if ('flowStarted' in event) {
+      const { totalNodes } = event.flowStarted;
+      set({
+        isExecuting: true,
+        nodeReportsMap: {},
+        currentNodeUuid: null,
+        completedNodeCount: 0,
+        totalNodes,
+        report: null,
+        error: null,
+      });
+    } else if ('nodeCompleted' in event) {
+      const { report } = event.nodeCompleted;
+      set((state) => ({
+        nodeReportsMap: {
+          ...state.nodeReportsMap,
+          [report.node_uuid]: report,
+        },
+        completedNodeCount: state.completedNodeCount + 1,
+        currentNodeUuid: null, // Node finished, no longer running
+      }));
+    } else if ('flowCompleted' in event) {
+      const { report } = event.flowCompleted;
+      set((state) => {
+        const newHistory = [report, ...state.history].slice(0, MAX_HISTORY_SIZE);
+        return {
+          isExecuting: false,
+          report,
+          history: newHistory,
+        };
+      });
+    }
+  },
+
+  clearExecutionState: () => set({
+    nodeReportsMap: {},
+    currentNodeUuid: null,
+    completedNodeCount: 0,
+    totalNodes: 0,
+  }),
+
   // ===== Computed (Selectors) =====
   getNodeReport: (nodeUuid: string) => {
     const { report } = get();
@@ -93,6 +158,32 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
   hasResult: () => {
     const { report, error } = get();
     return report !== null || error !== null;
+  },
+
+  getNodeExecutionStatus: (nodeUuid: string) => {
+    const { nodeReportsMap, currentNodeUuid, isExecuting } = get();
+    if (nodeReportsMap[nodeUuid]) {
+      const status = nodeReportsMap[nodeUuid].status;
+      // 'skipped' 也是终止状态，映射为 'pending'（未执行）
+      if (status === 'skipped') return 'pending';
+      return status;
+    }
+    if (isExecuting && currentNodeUuid === nodeUuid) {
+      return 'running';
+    }
+    return 'pending';
+  },
+
+  getNodeExecutionReport: (nodeUuid: string) => {
+    const { nodeReportsMap, report } = get();
+    // First check incremental map, then fall back to final report
+    if (nodeReportsMap[nodeUuid]) {
+      return nodeReportsMap[nodeUuid];
+    }
+    if (report) {
+      return report.node_reports.find((r) => r.node_uuid === nodeUuid) || null;
+    }
+    return null;
   },
 }));
 
@@ -112,3 +203,9 @@ export const selectExecutionStatus = (state: ExecutionState) => {
   if (state.report) return state.report.status;
   return 'idle';
 };
+/** 选择增量节点报告 */
+export const selectNodeReportsMap = (state: ExecutionState) => state.nodeReportsMap;
+/** 选择已完成节点数 */
+export const selectCompletedNodeCount = (state: ExecutionState) => state.completedNodeCount;
+/** 选择总节点数 */
+export const selectTotalNodes = (state: ExecutionState) => state.totalNodes;

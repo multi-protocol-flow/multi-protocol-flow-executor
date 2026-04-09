@@ -7,6 +7,7 @@ import type { Flow } from '@/types/flow';
 import type { ExecuteFlowCommandOutput } from '@/types/ipc';
 import type { FlowExecutionReport } from '@/types/report';
 import type { LogEvent } from '@/types/events';
+import type { ExecutionEvent } from '@/types/execution_event';
 
 /**
  * 生成 UUID v4
@@ -48,16 +49,18 @@ export async function createFlow(name: string): Promise<Flow> {
 
 /**
  * Mock 执行流程并订阅日志
- * 模拟执行过程中发送日志事件
+ * 模拟执行过程中发送日志事件和执行事件
  *
  * @param flow - 要执行的流程对象
  * @param onLog - 日志回调函数
+ * @param onExecutionEvent - 执行事件回调函数（实时节点报告）
  * @param _variables - 可选的执行变量（Mock 中未使用）
  * @returns 执行结果
  */
 export async function executeFlowWithChannel(
   flow: Flow,
   onLog: (event: LogEvent) => void,
+  onExecutionEvent: (event: ExecutionEvent) => void = () => {},
   _variables?: Record<string, unknown>
 ): Promise<ExecuteFlowCommandOutput> {
   const startTime = Date.now();
@@ -68,6 +71,11 @@ export async function executeFlowWithChannel(
     message: `流程 '${flow.name}' 开始执行`,
     timestamp: startTime,
     flowUuid: flow.uuid,
+  });
+
+  // 发送 FlowStarted 执行事件
+  onExecutionEvent({
+    flowStarted: { flowUuid: flow.uuid, flowName: flow.name, totalNodes: flow.nodes.length },
   });
 
   // 查找开始节点
@@ -109,6 +117,24 @@ export async function executeFlowWithChannel(
     flowUuid: flow.uuid,
     nodeUuid: startNode.uuid,
     nodeName: startNode.name,
+  });
+
+  // 发送 NodeCompleted 执行事件
+  const nodeEndTime = Date.now();
+  onExecutionEvent({
+    nodeCompleted: {
+      report: {
+        node_uuid: startNode.uuid,
+        node_type: startNode.type,
+        node_name: startNode.name,
+        start_time: startTime,
+        end_time: nodeEndTime,
+        duration_ms: nodeEndTime - startTime,
+        status: 'success',
+        input_data: null,
+        output_data: null,
+      },
+    },
   });
 
   // 检查开始节点是否有输出连接
@@ -167,6 +193,11 @@ export async function executeFlowWithChannel(
       },
     };
 
+    // 发送 FlowCompleted 执行事件
+    onExecutionEvent({
+      flowCompleted: { report: flowReport },
+    });
+
     return {
       success: true,
       flow_report: flowReport,
@@ -223,7 +254,7 @@ export async function executeFlowWithChannel(
     });
 
     executedCount++;
-    nodeReports.push({
+    const nodeReport: FlowExecutionReport['node_reports'][number] = {
       node_uuid: node.uuid,
       node_type: node.type,
       node_name: node.name,
@@ -233,6 +264,12 @@ export async function executeFlowWithChannel(
       status: 'success',
       input_data: { from: flow.nodes[i - 1]?.uuid },
       output_data: { result: 'ok' },
+    };
+    nodeReports.push(nodeReport);
+
+    // 发送 NodeCompleted 执行事件
+    onExecutionEvent({
+      nodeCompleted: { report: nodeReport },
     });
   }
 
@@ -268,6 +305,11 @@ export async function executeFlowWithChannel(
       error_rate: 0,
     },
   };
+
+  // 发送 FlowCompleted 执行事件
+  onExecutionEvent({
+    flowCompleted: { report: flowReport },
+  });
 
   return {
     success: true,

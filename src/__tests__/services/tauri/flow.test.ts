@@ -174,9 +174,11 @@ describe('Tauri IPC flow.ts 服务', () => {
         input: {
           flow_id: flow.uuid,
           variables: null,
+          db_connections: expect.any(Array),
         },
         flow,
         onEvent: expect.any(Object),
+        onExecutionEvent: expect.any(Object),
       });
 
       expect(result).toEqual(mockOutput);
@@ -193,15 +195,17 @@ describe('Tauri IPC flow.ts 服务', () => {
       vi.mocked(invoke).mockResolvedValueOnce(mockOutput);
 
       const onLog = vi.fn();
-      const result = await executeFlowWithChannel(flow, onLog, variables);
+      const result = await executeFlowWithChannel(flow, onLog, vi.fn(), variables);
 
       expect(invoke).toHaveBeenCalledWith('execute_flow', {
         input: {
           flow_id: flow.uuid,
           variables,
+          db_connections: expect.any(Array),
         },
         flow,
         onEvent: expect.any(Object),
+        onExecutionEvent: expect.any(Object),
       });
 
       expect(result).toEqual(mockOutput);
@@ -263,17 +267,19 @@ describe('Tauri IPC flow.ts 服务', () => {
         execution_time: 50,
       };
 
-      // 捕获 Channel 实例的 onmessage
+      // 捕获所有 Channel 实例的 onmessage
       type ChannelWithOnmessage = { onmessage: ((event: unknown) => void) | null };
-      let capturedOnmessage: ((event: unknown) => void) | null = null;
+      const capturedOnmessages: ((event: unknown) => void)[] = [];
 
       vi.mocked(Channel).mockImplementation(() => {
+        let _cb: ((event: unknown) => void) | null = null;
         const channel = {
           set onmessage(cb: ((event: unknown) => void) | null) {
-            capturedOnmessage = cb;
+            _cb = cb;
+            capturedOnmessages.push(cb!);
           },
           get onmessage() {
-            return capturedOnmessage;
+            return _cb;
           },
         } as ChannelWithOnmessage;
         return channel as unknown as InstanceType<typeof Channel>;
@@ -283,8 +289,8 @@ describe('Tauri IPC flow.ts 服务', () => {
       const onLog = vi.fn();
       await executeFlowWithChannel(flow, onLog);
 
-      // 验证 onmessage 被设置为传入的回调函数
-      expect(capturedOnmessage).toBe(onLog);
+      // 验证 onmessage 被设置（logChannel 应包含 onLog 回调）
+      expect(capturedOnmessages).toContain(onLog);
     });
   });
 });

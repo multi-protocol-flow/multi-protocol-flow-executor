@@ -12,6 +12,7 @@ import type {
   ExecuteFlowCommandOutput,
 } from '@/types/ipc';
 import type { LogEvent } from '@/types/events';
+import type { ExecutionEvent } from '@/types/execution_event';
 import { useConnectionsStore } from '@/stores/connections';
 
 /**
@@ -62,11 +63,12 @@ export async function createFlow(name: string): Promise<Flow> {
 }
 
 /**
- * 执行流程并订阅日志（Tauri 环境）
- * 使用 Channel API 接收后端日志事件
+ * 执行流程并订阅日志和执行事件（Tauri 环境）
+ * 使用双 Channel API 接收后端日志事件和实时执行事件
  *
  * @param flow - 要执行的流程对象
  * @param onLog - 日志回调函数
+ * @param onExecutionEvent - 执行事件回调函数（实时节点报告）
  * @param variables - 可选的执行变量
  * @returns 执行结果
  * @throws IpcError 如果执行失败
@@ -74,18 +76,23 @@ export async function createFlow(name: string): Promise<Flow> {
 export async function executeFlowWithChannel(
   flow: Flow,
   onLog: (event: LogEvent) => void,
+  onExecutionEvent: (event: ExecutionEvent) => void = () => {},
   variables?: Record<string, unknown>
 ): Promise<ExecuteFlowCommandOutput> {
   try {
-    // 创建 Channel 订阅日志
-    const channel = new Channel<LogEvent>();
-    channel.onmessage = onLog;
+    // Channel 1: Log events
+    const logChannel = new Channel<LogEvent>();
+    logChannel.onmessage = onLog;
+
+    // Channel 2: Execution events (real-time node reports)
+    const executionEventChannel = new Channel<ExecutionEvent>();
+    executionEventChannel.onmessage = onExecutionEvent;
 
     // 从连接配置中心获取所有数据库连接配置
     // 执行器根据 connection_uuid 从此列表获取完整的连接配置
     const dbConnections = useConnectionsStore.getState().connections;
 
-    // 调用后端命令，传递 Channel
+    // 调用后端命令，传递双 Channel
     return await invoke<ExecuteFlowCommandOutput>('execute_flow', {
       input: {
         flow_id: flow.uuid,
@@ -93,7 +100,8 @@ export async function executeFlowWithChannel(
         db_connections: dbConnections,
       } as ExecuteFlowCommandInput,
       flow,
-      onEvent: channel, // 关键：传递 Channel（camelCase 对应 Rust 的 snake_case）
+      onEvent: logChannel,
+      onExecutionEvent: executionEventChannel,
     });
   } catch (error) {
     throw formatError(error, 'execute_flow');

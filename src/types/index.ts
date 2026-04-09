@@ -80,6 +80,9 @@ export type {
   FlowExecutionReport,
 } from './report';
 
+// 执行事件类型
+export type { ExecutionEvent } from './execution_event';
+
 // IPC 类型
 export type {
   LoadFlowCommandInput,

@@ -9,8 +9,12 @@ import {
   selectError,
   selectHistory,
   selectExecutionStatus,
+  selectNodeReportsMap,
+  selectCompletedNodeCount,
+  selectTotalNodes,
 } from '@/stores/execution';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types';
+import type { ExecutionEvent } from '@/types/execution_event';
 
 /**
  * 创建模拟的流程执行报告
@@ -67,6 +71,10 @@ describe('ExecutionStore', () => {
       expect(state.report).toBeNull();
       expect(state.error).toBeNull();
       expect(state.history).toEqual([]);
+      expect(state.nodeReportsMap).toEqual({});
+      expect(state.currentNodeUuid).toBeNull();
+      expect(state.completedNodeCount).toBe(0);
+      expect(state.totalNodes).toBe(0);
     });
   });
 
@@ -195,6 +203,9 @@ describe('ExecutionStore', () => {
       const report = createMockReport();
       useExecutionStore.getState().setReport(report);
       useExecutionStore.getState().setError('测试错误');
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 3 },
+      });
 
       // 重置
       useExecutionStore.getState().reset();
@@ -204,6 +215,10 @@ describe('ExecutionStore', () => {
       expect(state.report).toBeNull();
       expect(state.error).toBeNull();
       expect(state.history).toEqual([]);
+      expect(state.nodeReportsMap).toEqual({});
+      expect(state.currentNodeUuid).toBeNull();
+      expect(state.completedNodeCount).toBe(0);
+      expect(state.totalNodes).toBe(0);
     });
   });
 
@@ -394,6 +409,312 @@ describe('ExecutionStore', () => {
       expect(history).toHaveLength(10);
       expect(history[0].uuid).toBe('report-11');
       expect(history[9].uuid).toBe('report-2'); // report-1 被丢弃
+    });
+  });
+
+  // ===== Incremental state tests =====
+
+  describe('handleExecutionEvent', () => {
+    it('should handle FlowStarted event', () => {
+      const event: ExecutionEvent = {
+        flowStarted: { flowUuid: 'f1', flowName: 'Test Flow', totalNodes: 3 },
+      };
+      useExecutionStore.getState().handleExecutionEvent(event);
+
+      const state = useExecutionStore.getState();
+      expect(state.isExecuting).toBe(true);
+      expect(state.totalNodes).toBe(3);
+      expect(state.completedNodeCount).toBe(0);
+      expect(Object.keys(state.nodeReportsMap)).toHaveLength(0);
+    });
+
+    it('should handle NodeCompleted event', () => {
+      // Setup
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 2 },
+      });
+
+      const nodeReport: NodeExecutionReport = {
+        node_uuid: 'n1',
+        node_type: 'http',
+        node_name: 'HTTP Request',
+        start_time: 1000,
+        end_time: 2000,
+        duration_ms: 1000,
+        status: 'success',
+        input_data: null,
+        output_data: null,
+      };
+
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeCompleted: { report: nodeReport },
+      });
+
+      const state = useExecutionStore.getState();
+      expect(state.nodeReportsMap['n1']).toBeDefined();
+      expect(state.nodeReportsMap['n1'].status).toBe('success');
+      expect(state.completedNodeCount).toBe(1);
+    });
+
+    it('should handle FlowCompleted event', () => {
+      // Setup
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 1 },
+      });
+
+      const flowReport: FlowExecutionReport = {
+        uuid: 'r1',
+        flow_uuid: 'f1',
+        flow_name: 'Test',
+        start_time: 1000,
+        end_time: 2000,
+        duration_ms: 1000,
+        total_nodes: 1,
+        executed_count: 1,
+        status: 'success',
+        node_reports: [],
+        statistics: { success_count: 0, failed_count: 0 },
+      };
+
+      useExecutionStore.getState().handleExecutionEvent({
+        flowCompleted: { report: flowReport },
+      });
+
+      const state = useExecutionStore.getState();
+      expect(state.isExecuting).toBe(false);
+      expect(state.report).toBeDefined();
+      expect(state.report!.uuid).toBe('r1');
+    });
+
+    it('should handle full event sequence', () => {
+      const { handleExecutionEvent } = useExecutionStore.getState();
+
+      // FlowStarted
+      handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 2 },
+      });
+      expect(useExecutionStore.getState().isExecuting).toBe(true);
+
+      // Node 1 completed
+      handleExecutionEvent({
+        nodeCompleted: {
+          report: {
+            node_uuid: 'n1', node_type: 'entry', node_name: 'Entry',
+            start_time: 1000, end_time: 1100, duration_ms: 100,
+            status: 'success', input_data: null, output_data: null,
+          },
+        },
+      });
+      expect(useExecutionStore.getState().completedNodeCount).toBe(1);
+
+      // Node 2 completed (failed)
+      handleExecutionEvent({
+        nodeCompleted: {
+          report: {
+            node_uuid: 'n2', node_type: 'http', node_name: 'HTTP',
+            start_time: 1100, end_time: 1500, duration_ms: 400,
+            status: 'failed', input_data: null, output_data: null,
+            error: { error_kind: 'connection', message: 'Connection refused' },
+          },
+        },
+      });
+      expect(useExecutionStore.getState().completedNodeCount).toBe(2);
+      expect(useExecutionStore.getState().nodeReportsMap['n2'].status).toBe('failed');
+
+      // FlowCompleted
+      handleExecutionEvent({
+        flowCompleted: {
+          report: {
+            uuid: 'r1', flow_uuid: 'f1', flow_name: 'Test',
+            start_time: 1000, end_time: 1500, duration_ms: 500,
+            total_nodes: 2, executed_count: 2, status: 'failed',
+            node_reports: [], statistics: { success_count: 0, failed_count: 0 },
+          },
+        },
+      });
+      expect(useExecutionStore.getState().isExecuting).toBe(false);
+    });
+
+    it('FlowStarted should clear previous incremental state', () => {
+      // First execution
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 2 },
+      });
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeCompleted: {
+          report: {
+            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            start_time: 1000, end_time: 2000, duration_ms: 1000,
+            status: 'success', input_data: null, output_data: null,
+          },
+        },
+      });
+      expect(useExecutionStore.getState().completedNodeCount).toBe(1);
+
+      // Second execution - should reset
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f2', flowName: 'Test 2', totalNodes: 5 },
+      });
+      const state = useExecutionStore.getState();
+      expect(state.nodeReportsMap).toEqual({});
+      expect(state.completedNodeCount).toBe(0);
+      expect(state.totalNodes).toBe(5);
+    });
+  });
+
+  describe('getNodeExecutionStatus', () => {
+    it('should return pending for unknown nodes', () => {
+      expect(useExecutionStore.getState().getNodeExecutionStatus('n1')).toBe('pending');
+    });
+
+    it('should return success for completed nodes', () => {
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 1 },
+      });
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeCompleted: {
+          report: {
+            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            start_time: 1000, end_time: 2000, duration_ms: 1000,
+            status: 'success', input_data: null, output_data: null,
+          },
+        },
+      });
+      expect(useExecutionStore.getState().getNodeExecutionStatus('n1')).toBe('success');
+    });
+
+    it('should return failed for failed nodes', () => {
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 1 },
+      });
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeCompleted: {
+          report: {
+            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            start_time: 1000, end_time: 2000, duration_ms: 1000,
+            status: 'failed', input_data: null, output_data: null,
+          },
+        },
+      });
+      expect(useExecutionStore.getState().getNodeExecutionStatus('n1')).toBe('failed');
+    });
+
+    it('should return pending for non-executing state', () => {
+      // No execution started, node is pending
+      expect(useExecutionStore.getState().getNodeExecutionStatus('n1')).toBe('pending');
+    });
+  });
+
+  describe('getNodeExecutionReport', () => {
+    it('should return report from incremental map', () => {
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 1 },
+      });
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeCompleted: {
+          report: {
+            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            start_time: 1000, end_time: 2000, duration_ms: 1000,
+            status: 'success', input_data: null, output_data: null,
+          },
+        },
+      });
+
+      const result = useExecutionStore.getState().getNodeExecutionReport('n1');
+      expect(result).not.toBeNull();
+      expect(result!.node_uuid).toBe('n1');
+    });
+
+    it('should fall back to final report', () => {
+      // Set a final report (e.g. from setReport, not incremental)
+      const report = createMockReport({
+        node_reports: [createMockNodeReport('n1')],
+      });
+      useExecutionStore.getState().setReport(report);
+
+      const result = useExecutionStore.getState().getNodeExecutionReport('n1');
+      expect(result).not.toBeNull();
+      expect(result!.node_uuid).toBe('n1');
+    });
+
+    it('should return null for unknown nodes', () => {
+      expect(useExecutionStore.getState().getNodeExecutionReport('unknown')).toBeNull();
+    });
+  });
+
+  describe('clearExecutionState', () => {
+    it('should reset incremental state', () => {
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 3 },
+      });
+      useExecutionStore.getState().clearExecutionState();
+
+      const state = useExecutionStore.getState();
+      expect(state.nodeReportsMap).toEqual({});
+      expect(state.currentNodeUuid).toBeNull();
+      expect(state.completedNodeCount).toBe(0);
+      expect(state.totalNodes).toBe(0);
+    });
+
+    it('should not affect report and history', () => {
+      const report = createMockReport();
+      useExecutionStore.getState().setReport(report);
+      useExecutionStore.getState().clearExecutionState();
+
+      const state = useExecutionStore.getState();
+      expect(state.report).toEqual(report);
+      expect(state.history).toHaveLength(1);
+    });
+  });
+
+  describe('Incremental Selectors', () => {
+    it('selectNodeReportsMap returns node reports map', () => {
+      expect(selectNodeReportsMap(useExecutionStore.getState())).toEqual({});
+
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 1 },
+      });
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeCompleted: {
+          report: {
+            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            start_time: 1000, end_time: 2000, duration_ms: 1000,
+            status: 'success', input_data: null, output_data: null,
+          },
+        },
+      });
+
+      const map = selectNodeReportsMap(useExecutionStore.getState());
+      expect(map['n1']).toBeDefined();
+    });
+
+    it('selectCompletedNodeCount returns completed count', () => {
+      expect(selectCompletedNodeCount(useExecutionStore.getState())).toBe(0);
+
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 2 },
+      });
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeCompleted: {
+          report: {
+            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            start_time: 1000, end_time: 2000, duration_ms: 1000,
+            status: 'success', input_data: null, output_data: null,
+          },
+        },
+      });
+
+      expect(selectCompletedNodeCount(useExecutionStore.getState())).toBe(1);
+    });
+
+    it('selectTotalNodes returns total nodes', () => {
+      expect(selectTotalNodes(useExecutionStore.getState())).toBe(0);
+
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 5 },
+      });
+
+      expect(selectTotalNodes(useExecutionStore.getState())).toBe(5);
     });
   });
 });
