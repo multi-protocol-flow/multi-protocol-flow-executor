@@ -13,6 +13,7 @@ import type { Flow } from '@/types/flow';
 import { useSettingsStore } from './settings';
 import { useExecutionStore } from './execution';
 import { useConsoleStore } from './console';
+import { toast } from 'sonner';
 
 // ============================================================================
 // 类型定义
@@ -438,6 +439,13 @@ export const useDebugStore = create<DebugState>((set, get) => ({
 
         // 2. 设置到 executionStore 触发报告弹窗
         useExecutionStore.getState().setReport(report);
+
+        // 3. 显示 toast 通知
+        toast.success('调试完成', {
+          description: `耗时 ${report.duration_ms}ms · ${report.statistics.success_count} 成功 · ${report.statistics.failed_count} 失败`,
+          action: { label: '查看报告', onClick: () => useExecutionStore.getState().openReportDialog() },
+          duration: 10000,
+        });
       }
     } else if ('VariableModified' in event) {
       const { name, value } = event.VariableModified;

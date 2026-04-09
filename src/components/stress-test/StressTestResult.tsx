@@ -24,7 +24,6 @@ import { Button } from '@/components/ui/button';
 import {
   useStressTestStore,
   selectStressTestReport,
-  selectStressTestStatus,
 } from '@/stores/stressTest';
 import { useFlowStore } from '@/stores';
 import { cn } from '@/lib/utils';
@@ -78,12 +77,12 @@ function MetricItem({
 
 export function StressTestResult() {
   const report = useStressTestStore(selectStressTestReport);
-  const status = useStressTestStore(selectStressTestStatus);
-  const resetStressTest = useStressTestStore((state) => state.reset);
+  const isReportDialogOpen = useStressTestStore((state) => state.isReportDialogOpen);
+  const closeReportDialog = useStressTestStore((state) => state.closeReportDialog);
   const unlockFlow = useFlowStore((state) => state.unlockFlow);
 
-  // 仅在已停止且有报告时显示
-  if (status !== 'stopped' || !report) {
+  // 仅在弹窗打开且有报告时显示
+  if (!isReportDialogOpen || !report) {
     return null;
   }
 
@@ -91,12 +90,12 @@ export function StressTestResult() {
 
   // 关闭弹窗
   const handleClose = () => {
-    resetStressTest();
+    closeReportDialog();
     unlockFlow();
   };
 
   return (
-    <Dialog open={true} onOpenChange={(open) => !open && handleClose()}>
+    <Dialog open={isReportDialogOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
         className="max-w-3xl h-[85vh] flex flex-col overflow-hidden p-6 gap-4"
         hideCloseButton

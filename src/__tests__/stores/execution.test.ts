@@ -75,6 +75,8 @@ describe('ExecutionStore', () => {
       expect(state.currentNodeUuid).toBeNull();
       expect(state.completedNodeCount).toBe(0);
       expect(state.totalNodes).toBe(0);
+      expect(state.isReportDialogOpen).toBe(false);
+      expect(state.selectedHistoryReport).toBeNull();
     });
   });
 
@@ -715,6 +717,85 @@ describe('ExecutionStore', () => {
       });
 
       expect(selectTotalNodes(useExecutionStore.getState())).toBe(5);
+    });
+  });
+
+  describe('reportDialog', () => {
+    it('初始状态 isReportDialogOpen 为 false 且 selectedHistoryReport 为 null', () => {
+      const state = useExecutionStore.getState();
+      expect(state.isReportDialogOpen).toBe(false);
+      expect(state.selectedHistoryReport).toBeNull();
+    });
+
+    it('openReportDialog() 设置 isReportDialogOpen = true，selectedHistoryReport 不变', () => {
+      useExecutionStore.getState().openReportDialog();
+
+      const state = useExecutionStore.getState();
+      expect(state.isReportDialogOpen).toBe(true);
+      expect(state.selectedHistoryReport).toBeNull();
+    });
+
+    it('openReportDialog(report) 设置 isReportDialogOpen = true 且 selectedHistoryReport = report', () => {
+      const report = createMockReport({ uuid: 'history-report-1' });
+      useExecutionStore.getState().openReportDialog(report);
+
+      const state = useExecutionStore.getState();
+      expect(state.isReportDialogOpen).toBe(true);
+      expect(state.selectedHistoryReport).toEqual(report);
+    });
+
+    it('closeReportDialog() 设置 isReportDialogOpen = false 且 selectedHistoryReport = null', () => {
+      const report = createMockReport({ uuid: 'history-report-2' });
+      useExecutionStore.getState().openReportDialog(report);
+      expect(useExecutionStore.getState().isReportDialogOpen).toBe(true);
+
+      useExecutionStore.getState().closeReportDialog();
+
+      const state = useExecutionStore.getState();
+      expect(state.isReportDialogOpen).toBe(false);
+      expect(state.selectedHistoryReport).toBeNull();
+    });
+
+    it('closeReportDialog() 不清空 history 和 nodeReportsMap', () => {
+      // 添加 nodeReportsMap
+      useExecutionStore.getState().handleExecutionEvent({
+        flowStarted: { flowUuid: 'f1', flowName: 'Test', totalNodes: 1 },
+      });
+      useExecutionStore.getState().handleExecutionEvent({
+        nodeCompleted: {
+          report: {
+            node_uuid: 'n1', node_type: 'http', node_name: 'HTTP',
+            start_time: 1000, end_time: 2000, duration_ms: 1000,
+            status: 'success', input_data: null, output_data: null,
+          },
+        },
+      });
+      expect(Object.keys(useExecutionStore.getState().nodeReportsMap).length).toBeGreaterThan(0);
+
+      // 通过 flowCompleted 产生 history 和 report
+      useExecutionStore.getState().handleExecutionEvent({
+        flowCompleted: {
+          report: {
+            uuid: 'r1', flow_uuid: 'f1', flow_name: 'Test',
+            start_time: 1000, end_time: 2000, duration_ms: 1000,
+            total_nodes: 1, executed_count: 1, status: 'success',
+            node_reports: [], statistics: { success_count: 1, failed_count: 0 },
+          },
+        },
+      });
+      expect(useExecutionStore.getState().history.length).toBeGreaterThan(0);
+
+      // 打开再关闭对话框
+      const report = useExecutionStore.getState().report!;
+      useExecutionStore.getState().openReportDialog(report);
+      useExecutionStore.getState().closeReportDialog();
+
+      // history 和 nodeReportsMap 仍保留
+      const state = useExecutionStore.getState();
+      expect(state.history.length).toBeGreaterThan(0);
+      expect(Object.keys(state.nodeReportsMap).length).toBeGreaterThan(0);
+      // report 也保留
+      expect(state.report).not.toBeNull();
     });
   });
 });

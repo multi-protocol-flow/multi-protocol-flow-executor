@@ -13,6 +13,7 @@ import type {
 } from '@/types/stressTest';
 import type { Flow } from '@/types/flow';
 import { startStressTest as startStressTestService, stopStressTest as stopStressTestService } from '@/services/tauri';
+import { toast } from 'sonner';
 
 // ============================================================================
 // 类型定义
@@ -32,6 +33,8 @@ interface StressTestState {
   isLoading: boolean;
   /** 错误信息 */
   error: string | null;
+  /** 报告 Dialog 是否打开 */
+  isReportDialogOpen: boolean;
 
   // ===== Actions =====
   /** 启动压力测试 */
@@ -40,6 +43,10 @@ interface StressTestState {
   stopStressTest: () => Promise<void>;
   /** 重置状态 */
   reset: () => void;
+  /** 打开报告 Dialog */
+  openReportDialog: () => void;
+  /** 关闭报告 Dialog（不清除报告数据） */
+  closeReportDialog: () => void;
 
   // ===== Event handlers (internal) =====
   /** 处理压力测试事件 */
@@ -57,6 +64,7 @@ const initialState = {
   report: null as StressTestReport | null,
   isLoading: false,
   error: null as string | null,
+  isReportDialogOpen: false,
 };
 
 // ============================================================================
@@ -107,6 +115,9 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
     set(initialState);
   },
 
+  openReportDialog: () => set({ isReportDialogOpen: true }),
+  closeReportDialog: () => set({ isReportDialogOpen: false }),
+
   // ===== Event handlers =====
   handleStressTestEvent: (event: StressTestEvent) => {
     if (event.type === 'started') {
@@ -128,6 +139,15 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
         status: 'stopped',
         report: event.report,
         progress: null,
+      });
+
+      // 显示 toast 通知
+      const successRate = event.report.statistics.successRate;
+      const toastFn = successRate < 0.99 ? toast.error : toast.success;
+      toastFn('压力测试完成', {
+        description: `${event.report.statistics.totalIterations} 次迭代 · 成功率 ${(successRate * 100).toFixed(1)}%`,
+        action: { label: '查看报告', onClick: () => get().openReportDialog() },
+        duration: 10000,
       });
     }
   },

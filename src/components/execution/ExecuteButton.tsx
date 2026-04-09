@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { Play, Loader2, Zap } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useFlowStore, useUIStore, useExecutionStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
@@ -60,11 +61,25 @@ export function ExecuteButton() {
           // 保存失败不影响 UI 显示，只记录日志
           console.error('保存报告失败:', saveError);
         }
+
+        toast.success('执行完成', {
+          description: `${result.flow_report.flow_name} · 耗时 ${result.flow_report.duration_ms}ms · ${result.flow_report.statistics.success_count} 成功 · ${result.flow_report.statistics.failed_count} 失败`,
+          action: { label: '查看报告', onClick: () => useExecutionStore.getState().openReportDialog() },
+          duration: 10000,
+        });
       } else {
         setError(result.error || '执行失败');
+        toast.error('执行失败', {
+          description: result.error || '未知错误',
+          duration: 10000,
+        });
       }
     } catch (error) {
       setError((error as Error).message);
+      toast.error('执行失败', {
+        description: (error as Error).message,
+        duration: 10000,
+      });
     } finally {
       setIsExecuting(false);
     }

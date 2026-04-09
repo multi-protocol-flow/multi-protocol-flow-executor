@@ -62,35 +62,39 @@ function StatCard({
 
 export function ExecutionReport() {
   const report = useExecutionStore((state) => state.report);
-  const reset = useExecutionStore((state) => state.reset);
+  const isReportDialogOpen = useExecutionStore((state) => state.isReportDialogOpen);
+  const selectedHistoryReport = useExecutionStore((state) => state.selectedHistoryReport);
+  const closeReportDialog = useExecutionStore((state) => state.closeReportDialog);
+
+  const displayReport = selectedHistoryReport ?? report;
 
   const [selectedNodeUuid, setSelectedNodeUuid] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
 
   // 默认选中第一个节点
   useEffect(() => {
-    if (report?.node_reports && report.node_reports.length > 0) {
-      setSelectedNodeUuid(report.node_reports[0].node_uuid);
+    if (displayReport?.node_reports && displayReport.node_reports.length > 0) {
+      setSelectedNodeUuid(displayReport.node_reports[0].node_uuid);
     }
-  }, [report]);
+  }, [displayReport]);
 
   // 关闭弹窗时重置状态
   const handleClose = () => {
     setIsMaximized(false);
-    reset();
+    closeReportDialog();
   };
 
-  if (!report) return null;
+  if (!isReportDialogOpen || !displayReport) return null;
 
-  const isSuccess = report.status === 'success';
-  const isDebugMode = report.execution_mode === 'debug';
+  const isSuccess = displayReport.status === 'success';
+  const isDebugMode = displayReport.execution_mode === 'debug';
   const successRate =
-    report.total_nodes > 0
-      ? ((report.statistics.success_count / report.total_nodes) * 100).toFixed(0)
+    displayReport.total_nodes > 0
+      ? ((displayReport.statistics.success_count / displayReport.total_nodes) * 100).toFixed(0)
       : 0;
 
   return (
-    <Dialog open={!!report} onOpenChange={(open) => !open && handleClose()}>
+    <Dialog open={isReportDialogOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
         className={cn(
           "max-w-3xl h-[85vh] flex flex-col overflow-hidden p-6 gap-4",
@@ -172,7 +176,7 @@ export function ExecutionReport() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Activity className="w-4 h-4" />
               <span>流程: </span>
-              <span className="font-medium text-foreground">{report.flow_name}</span>
+               <span className="font-medium text-foreground">{displayReport.flow_name}</span>
             </div>
 
             {/* 统计卡片网格 */}
@@ -180,28 +184,28 @@ export function ExecutionReport() {
               <StatCard
                 icon={Timer}
                 label="总耗时"
-                value={`${report.duration_ms}ms`}
+                 value={`${displayReport.duration_ms}ms`}
                 iconColor="text-violet-500"
                 valueColor="text-violet-600"
               />
               <StatCard
                 icon={BarChart3}
                 label="执行节点"
-                value={`${report.executed_count}/${report.total_nodes}`}
+                 value={`${displayReport.executed_count}/${displayReport.total_nodes}`}
                 iconColor="text-blue-500"
                 valueColor="text-blue-600"
               />
               <StatCard
                 icon={CheckCircle2}
                 label="成功"
-                value={report.statistics.success_count}
+                 value={displayReport.statistics.success_count}
                 iconColor="text-emerald-500"
                 valueColor="text-emerald-600"
               />
               <StatCard
                 icon={XCircle}
                 label="失败"
-                value={report.statistics.failed_count}
+                 value={displayReport.statistics.failed_count}
                 iconColor="text-red-500"
                 valueColor="text-red-600"
               />
@@ -214,30 +218,30 @@ export function ExecutionReport() {
                 <span className="text-muted-foreground">成功率:</span>
                 <span className="font-semibold text-foreground">{successRate}%</span>
               </div>
-              {report.statistics.avg_node_duration_ms != null && (
+              {displayReport.statistics.avg_node_duration_ms != null && (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50">
                   <span className="text-muted-foreground">平均耗时:</span>
                   <span className="font-semibold text-foreground">
-                    {report.statistics.avg_node_duration_ms!.toFixed(1)}ms
+                    {displayReport.statistics.avg_node_duration_ms!.toFixed(1)}ms
                   </span>
                 </div>
               )}
             </div>
 
             {/* 流程级错误 */}
-            {report.flow_error && (
+            {displayReport.flow_error && (
               <div className="rounded-xl bg-red-50 p-4 border border-red-200/50">
                 <div className="flex items-center gap-2 mb-2 text-red-600">
                   <AlertCircle className="w-4 h-4" />
                   <span className="font-medium">流程错误</span>
                 </div>
-                <p className="text-red-600">{report.flow_error.message}</p>
+                <p className="text-red-600">{displayReport.flow_error.message}</p>
               </div>
             )}
 
             {/* WebSocket 消息流 */}
-            {report.ws_streams && report.ws_streams.length > 0 && (
-              <WsStreamsPanel wsStreams={report.ws_streams} />
+            {displayReport.ws_streams && displayReport.ws_streams.length > 0 && (
+              <WsStreamsPanel wsStreams={displayReport.ws_streams} />
             )}
 
             {/* 节点执行详情 */}
@@ -249,7 +253,7 @@ export function ExecutionReport() {
               <div className="flex-1 min-h-0">
                 <ResizablePanel
                   leftPanel={
-                    report.node_reports.length === 0 ? (
+                    displayReport.node_reports.length === 0 ? (
                       <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
                         <Inbox className="w-12 h-12" />
                         <span>暂无执行节点</span>
@@ -257,7 +261,7 @@ export function ExecutionReport() {
                     ) : (
                       <ScrollArea className="h-full w-full">
                         <div className="space-y-1 p-1">
-                          {report.node_reports.map((nodeReport) => (
+                          {displayReport.node_reports.map((nodeReport) => (
                             <NodeListItem
                               key={nodeReport.node_uuid}
                               report={nodeReport}
@@ -270,7 +274,7 @@ export function ExecutionReport() {
                     )
                   }
                   rightPanel={
-                    report.node_reports.length === 0 ? (
+                    displayReport.node_reports.length === 0 ? (
                       <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
                         <Inbox className="w-12 h-12" />
                         <span>暂无执行节点</span>
@@ -279,7 +283,7 @@ export function ExecutionReport() {
                       <ScrollArea className="h-full w-full">
                         <div className="p-2 min-w-0">
                           <NodeExecutionDetails
-                            report={report.node_reports.find(r => r.node_uuid === selectedNodeUuid)!}
+                            report={displayReport.node_reports.find(r => r.node_uuid === selectedNodeUuid)!}
                           />
                         </div>
                       </ScrollArea>

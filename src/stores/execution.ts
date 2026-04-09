@@ -24,6 +24,10 @@ interface ExecutionState {
   completedNodeCount: number;
   /** 总节点数 */
   totalNodes: number;
+  /** 报告对话框是否打开 */
+  isReportDialogOpen: boolean;
+  /** 选中的历史报告（用于对话框展示） */
+  selectedHistoryReport: FlowExecutionReport | null;
 
   // ===== Actions =====
   /** 开始执行 */
@@ -42,6 +46,10 @@ interface ExecutionState {
   handleExecutionEvent: (event: ExecutionEvent) => void;
   /** 清空增量执行状态 */
   clearExecutionState: () => void;
+  /** 打开报告对话框 */
+  openReportDialog: (report?: FlowExecutionReport) => void;
+  /** 关闭报告对话框 */
+  closeReportDialog: () => void;
 
   // ===== Computed (Selectors) =====
   /** 获取特定节点的执行报告 */
@@ -65,6 +73,8 @@ const initialState = {
   currentNodeUuid: null as string | null,
   completedNodeCount: 0,
   totalNodes: 0,
+  isReportDialogOpen: false,
+  selectedHistoryReport: null as FlowExecutionReport | null,
 };
 
 export const useExecutionStore = create<ExecutionState>((set, get) => ({
@@ -145,6 +155,18 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
     completedNodeCount: 0,
     totalNodes: 0,
   }),
+
+  openReportDialog: (report) =>
+    set(report !== undefined
+      ? { isReportDialogOpen: true, selectedHistoryReport: report }
+      : { isReportDialogOpen: true }
+    ),
+
+  closeReportDialog: () =>
+    set({
+      isReportDialogOpen: false,
+      selectedHistoryReport: null,
+    }),
 
   // ===== Computed (Selectors) =====
   getNodeReport: (nodeUuid: string) => {

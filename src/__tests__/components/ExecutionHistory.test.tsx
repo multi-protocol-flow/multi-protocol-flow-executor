@@ -61,7 +61,7 @@ import { listReports, loadReport, deleteReport } from '@/services/storage/report
 let mockShowConfirm: ReturnType<typeof vi.fn>;
 
 describe('ExecutionHistory', () => {
-  const mockSetReport = vi.fn();
+  const mockOpenReportDialog = vi.fn();
   const mockReportDir = '/test/reports';
 
   const mockReports: ReportMetadata[] = [
@@ -91,8 +91,8 @@ describe('ExecutionHistory', () => {
       (selector: (state: { reportDir: string }) => unknown) => selector({ reportDir: mockReportDir })
     );
     (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { setReport: typeof mockSetReport }) => unknown) => 
-        selector({ setReport: mockSetReport })
+      (selector: (state: { openReportDialog: typeof mockOpenReportDialog }) => unknown) => 
+        selector({ openReportDialog: mockOpenReportDialog })
     );
 
     // Default API mocks
@@ -218,7 +218,7 @@ describe('ExecutionHistory', () => {
   });
 
   describe('选择报告', () => {
-    it('点击报告项时加载并设置报告', async () => {
+    it('点击报告项时加载并打开报告对话框', async () => {
       const mockFullReport = {
         uuid: 'report-1',
         flow_uuid: 'flow-1',
@@ -242,8 +242,66 @@ describe('ExecutionHistory', () => {
 
       await waitFor(() => {
         expect(loadReport).toHaveBeenCalledWith('report-1', mockReportDir);
-        expect(mockSetReport).toHaveBeenCalledWith(mockFullReport);
+        expect(mockOpenReportDialog).toHaveBeenCalledWith(mockFullReport);
         expect(onSelectReport).toHaveBeenCalledWith('report-1');
+      });
+    });
+
+    it('点击历史项不触发 toast 通知', async () => {
+      const mockFullReport = {
+        uuid: 'report-1',
+        flow_uuid: 'flow-1',
+        flow_name: '测试流程1',
+      };
+      (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (loadReport as ReturnType<typeof vi.fn>).mockResolvedValue(mockFullReport);
+
+      const { toast } = await import('sonner');
+
+      render(<ExecutionHistory />);
+
+      await waitFor(() => {
+        expect(screen.getByText('测试流程1')).toBeDefined();
+      });
+
+      const items = screen.getAllByRole('button').filter(btn => 
+        btn.className.includes('cursor-pointer')
+      );
+      fireEvent.click(items[0]);
+
+      await waitFor(() => {
+        expect(mockOpenReportDialog).toHaveBeenCalled();
+      });
+
+      // 点击历史项不应触发任何 toast
+      expect(toast.success).not.toHaveBeenCalled();
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    it('openReportDialog 被调用时传入正确的报告对象', async () => {
+      const mockFullReport = {
+        uuid: 'report-2',
+        flow_uuid: 'flow-2',
+        flow_name: '测试流程2',
+        status: 'failed',
+      };
+      (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (loadReport as ReturnType<typeof vi.fn>).mockResolvedValue(mockFullReport);
+
+      render(<ExecutionHistory />);
+
+      await waitFor(() => {
+        expect(screen.getByText('测试流程2')).toBeDefined();
+      });
+
+      const items = screen.getAllByRole('button').filter(btn => 
+        btn.className.includes('cursor-pointer')
+      );
+      // 点击第二个报告（测试流程2）
+      fireEvent.click(items[1]);
+
+      await waitFor(() => {
+        expect(mockOpenReportDialog).toHaveBeenCalledWith(mockFullReport);
       });
     });
   });

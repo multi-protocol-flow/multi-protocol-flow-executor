@@ -54,7 +54,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
   const [history, setHistory] = useState<ReportMetadata[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingReportUuid, setLoadingReportUuid] = useState<string | null>(null);
-  const setReport = useExecutionStore((state) => state.setReport);
+  const openReportDialog = useExecutionStore((state) => state.openReportDialog);
   const reportDir = useSettingsStore((state) => state.reportDir);
   const showConfirm = useUIStore((state) => state.showConfirm);
 
@@ -85,7 +85,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
     setLoadingReportUuid(reportUuid);
     try {
       const report = await loadReport(reportUuid, reportDir);
-      setReport(report);
+      openReportDialog(report);
       onSelectReport?.(reportUuid);
     } catch (error) {
       console.error('加载报告失败:', error);
@@ -95,7 +95,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
     } finally {
       setLoadingReportUuid(null);
     }
-  }, [setReport, onSelectReport, reportDir]);
+  }, [openReportDialog, onSelectReport, reportDir]);
 
   // 删除单个报告（带确认）
   const handleDelete = useCallback((uuid: string) => {

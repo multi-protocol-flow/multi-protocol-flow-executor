@@ -20,7 +20,7 @@ vi.mock('@/components/ui/scroll-area', () => ({
 }));
 
 describe('ExecutionReport', () => {
-  const mockReset = vi.fn();
+  const mockCloseReportDialog = vi.fn();
   const mockReport: FlowExecutionReport = {
     uuid: 'report-001',
     flow_uuid: 'flow-001',
@@ -106,29 +106,49 @@ describe('ExecutionReport', () => {
     },
   };
 
+  /** 创建 store mock state 的辅助函数 */
+  const createStoreState = (overrides: Partial<{
+    report: FlowExecutionReport | null;
+    isReportDialogOpen: boolean;
+    selectedHistoryReport: FlowExecutionReport | null;
+    closeReportDialog: ReturnType<typeof vi.fn>;
+  }> = {}) => ({
+    report: null as FlowExecutionReport | null,
+    isReportDialogOpen: false,
+    selectedHistoryReport: null as FlowExecutionReport | null,
+    closeReportDialog: mockCloseReportDialog,
+    ...overrides,
+  });
+
+  /** 创建 selector mock */
+  const mockStoreState = (state: Record<string, unknown>) => {
+    (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (selector: (state: Record<string, unknown>) => unknown) => {
+        return selector ? selector(state) : state;
+      }
+    );
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('当 report 为 null 时不渲染任何内容', () => {
-    (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { report: null; reset: ReturnType<typeof vi.fn> }) => unknown) => {
-        const state = { report: null, reset: mockReset };
-        return selector ? selector(state) : state;
-      }
-    );
+  it('当 isReportDialogOpen 为 false 时不渲染任何内容', () => {
+    mockStoreState(createStoreState({ report: mockReport, isReportDialogOpen: false }));
 
     const { container } = render(<ExecutionReport />);
     expect(container.firstChild).toBeNull();
   });
 
-  it('正确渲染成功的执行报告', () => {
-    (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { report: FlowExecutionReport; reset: ReturnType<typeof vi.fn> }) => unknown) => {
-        const state = { report: mockReport, reset: mockReset };
-        return selector ? selector(state) : state;
-      }
-    );
+  it('setReport 单独不打开弹窗（isReportDialogOpen 为 false）', () => {
+    mockStoreState(createStoreState({ report: mockReport, isReportDialogOpen: false }));
+
+    const { container } = render(<ExecutionReport />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it('openReportDialog 打开弹窗后正确渲染成功的执行报告', () => {
+    mockStoreState(createStoreState({ report: mockReport, isReportDialogOpen: true }));
 
     render(<ExecutionReport />);
 
@@ -149,13 +169,9 @@ describe('ExecutionReport', () => {
     expect(screen.getAllByText('HTTP请求节点').length).toBeGreaterThan(0);
     expect(screen.getAllByText('结束节点').length).toBeGreaterThan(0);
   });
+
   it('正确渲染失败的执行报告', () => {
-    (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { report: FlowExecutionReport; reset: ReturnType<typeof vi.fn> }) => unknown) => {
-        const state = { report: failedReport, reset: mockReset };
-        return selector ? selector(state) : state;
-      }
-    );
+    mockStoreState(createStoreState({ report: failedReport, isReportDialogOpen: true }));
 
     render(<ExecutionReport />);
 
@@ -168,13 +184,8 @@ describe('ExecutionReport', () => {
     expect(screen.getByText('流程执行失败：节点执行出错')).toBeDefined();
   });
 
-  it('点击关闭按钮时调用 reset', () => {
-    (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { report: FlowExecutionReport; reset: ReturnType<typeof vi.fn> }) => unknown) => {
-        const state = { report: mockReport, reset: mockReset };
-        return selector ? selector(state) : state;
-      }
-    );
+  it('点击关闭按钮时调用 closeReportDialog', () => {
+    mockStoreState(createStoreState({ report: mockReport, isReportDialogOpen: true }));
 
     render(<ExecutionReport />);
 
@@ -185,16 +196,11 @@ describe('ExecutionReport', () => {
 
     // 按 Escape 键关闭
     fireEvent.keyDown(dialog, { key: 'Escape' });
-    expect(mockReset).toHaveBeenCalled();
+    expect(mockCloseReportDialog).toHaveBeenCalled();
   });
 
   it('正确显示节点类型标签', () => {
-    (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { report: FlowExecutionReport; reset: ReturnType<typeof vi.fn> }) => unknown) => {
-        const state = { report: mockReport, reset: mockReset };
-        return selector ? selector(state) : state;
-      }
-    );
+    mockStoreState(createStoreState({ report: mockReport, isReportDialogOpen: true }));
 
     render(<ExecutionReport />);
 
@@ -203,13 +209,9 @@ describe('ExecutionReport', () => {
     // HTTP 请求会出现在节点名称和类型标签中
     expect(screen.getAllByText('HTTP 请求').length).toBeGreaterThan(0);
   });
+
   it('显示正确的统计卡片数值', () => {
-    (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { report: FlowExecutionReport; reset: ReturnType<typeof vi.fn> }) => unknown) => {
-        const state = { report: mockReport, reset: mockReset };
-        return selector ? selector(state) : state;
-      }
-    );
+    mockStoreState(createStoreState({ report: mockReport, isReportDialogOpen: true }));
 
     render(<ExecutionReport />);
 
@@ -236,12 +238,7 @@ describe('ExecutionReport', () => {
       },
     };
 
-    (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { report: FlowExecutionReport; reset: ReturnType<typeof vi.fn> }) => unknown) => {
-        const state = { report: reportWithNullStats, reset: mockReset };
-        return selector ? selector(state) : state;
-      }
-    );
+    mockStoreState(createStoreState({ report: reportWithNullStats, isReportDialogOpen: true }));
 
     // 不应该崩溃（Dialog 使用 Portal 渲染到 body，所以用 screen 检查）
     render(<ExecutionReport />);
@@ -268,16 +265,43 @@ describe('ExecutionReport', () => {
       },
     };
 
-    (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { report: FlowExecutionReport; reset: ReturnType<typeof vi.fn> }) => unknown) => {
-        const state = { report: reportWithEmptyStats, reset: mockReset };
-        return selector ? selector(state) : state;
-      }
-    );
+    mockStoreState(createStoreState({ report: reportWithEmptyStats, isReportDialogOpen: true }));
 
     // 不应该崩溃或白屏（Dialog 使用 Portal 渲染到 body，所以用 screen 检查）
     render(<ExecutionReport />);
     expect(screen.getByRole('dialog')).toBeDefined();
     expect(screen.getByText('执行报告')).toBeDefined();
+  });
+
+  it('selectedHistoryReport 优先于 report 显示', () => {
+    const historyReport: FlowExecutionReport = {
+      ...mockReport,
+      flow_name: '历史报告流程',
+      uuid: 'history-report-001',
+    };
+
+    mockStoreState(createStoreState({
+      report: mockReport,
+      selectedHistoryReport: historyReport,
+      isReportDialogOpen: true,
+    }));
+
+    render(<ExecutionReport />);
+
+    // 应显示 selectedHistoryReport 的流程名称
+    expect(screen.getByText('历史报告流程')).toBeDefined();
+    // 不应显示 report 的流程名称
+    expect(screen.queryByText('测试流程')).toBeNull();
+  });
+
+  it('仅 isReportDialogOpen 为 true 但 displayReport 为 null 时不渲染', () => {
+    mockStoreState(createStoreState({
+      report: null,
+      selectedHistoryReport: null,
+      isReportDialogOpen: true,
+    }));
+
+    const { container } = render(<ExecutionReport />);
+    expect(container.firstChild).toBeNull();
   });
 });
