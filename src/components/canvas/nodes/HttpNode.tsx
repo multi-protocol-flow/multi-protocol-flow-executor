@@ -79,7 +79,7 @@ export function HttpNode({ id, data, selected }: NodeProps) {
         </div>
       </div>
       
-      {/* 成功输出端口 (2xx) */}
+      {/* 成功输出端口 */}
       <Handle
         type="source"
         position={Position.Right}
@@ -93,7 +93,7 @@ export function HttpNode({ id, data, selected }: NodeProps) {
         )}
       />
       
-      {/* 失败输出端口 (非2xx/网络错误) */}
+      {/* 失败输出端口 */}
       <Handle
         type="source"
         position={Position.Right}
@@ -109,8 +109,8 @@ export function HttpNode({ id, data, selected }: NodeProps) {
       
       {/* 端口标签 */}
       <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center translate-x-5 pointer-events-none">
-        <span className="text-[10px] font-bold text-emerald-600 leading-none -mt-2">T</span>
-        <span className="text-[10px] font-bold text-rose-600 leading-none mt-4">F</span>
+        <span className="text-[10px] font-bold text-emerald-600 leading-none -mt-2">✓</span>
+        <span className="text-[10px] font-bold text-rose-600 leading-none mt-4">✗</span>
       </div>
     </div>
   );

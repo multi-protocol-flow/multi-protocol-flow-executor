@@ -105,8 +105,8 @@ export function DbConnectNode({ id, data, selected }: NodeProps) {
       />
       
       <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center translate-x-5 pointer-events-none">
-        <span className="text-[10px] font-bold text-emerald-600 leading-none -mt-2">T</span>
-        <span className="text-[10px] font-bold text-rose-600 leading-none mt-4">F</span>
+        <span className="text-[10px] font-bold text-emerald-600 leading-none -mt-2">✓</span>
+        <span className="text-[10px] font-bold text-rose-600 leading-none mt-4">✗</span>
       </div>
     </div>
   );
