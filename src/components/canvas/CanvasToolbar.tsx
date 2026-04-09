@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { Play, Loader2, Bug, Activity } from 'lucide-react';
+import { toast } from 'sonner';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
@@ -74,11 +75,27 @@ export function CanvasToolbar() {
           // 保存失败不影响 UI 显示，只记录日志
           console.error('保存报告失败:', saveError);
         }
+
+        toast.success('流程执行完成', {
+          description: `总耗时: ${result.flow_report.duration_ms}ms | 成功节点: ${result.flow_report.statistics.success_count}/${result.flow_report.total_nodes}`,
+          duration: 10000,
+          action: {
+            label: '查看报告',
+            onClick: () => useExecutionStore.getState().openReportDialog(),
+          },
+        });
       } else {
         setError(result.error || '执行失败');
+        toast.error('流程执行失败', {
+          description: result.error || '未知错误',
+          duration: 10000,
+        });
       }
     } catch (error) {
       setError((error as Error).message);
+      toast.error('执行异常', {
+        description: (error as Error).message,
+      });
     } finally {
       setIsExecuting(false);
     }
