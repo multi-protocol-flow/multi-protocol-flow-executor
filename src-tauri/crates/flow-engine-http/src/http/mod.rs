@@ -40,9 +40,13 @@
 pub mod body;
 pub mod client;
 pub mod connector;
+/// HTTP 错误类型定义，涵盖 DNS/TCP/TLS/HTTP 协议各阶段的错误
 pub mod error;
+/// HTTP 请求构建器，负责将请求配置序列化为原始 HTTP 字节流
 pub mod request;
+/// HTTP 响应解析器，从原始字节流中解析状态码、响应头和响应体
 pub mod response;
+/// HTTP 请求各阶段计时，记录 DNS/TCP/TLS/TTFB/下载耗时
 pub mod timing;
 
 // Re-export 公共类型

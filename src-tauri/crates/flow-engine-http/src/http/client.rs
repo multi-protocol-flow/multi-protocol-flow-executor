@@ -180,7 +180,7 @@ impl HttpClient {
                 let boundary = config
                     .multipart_boundary
                     .clone()
-                    .unwrap_or_else(|| MultipartBody::generate_boundary());
+                    .unwrap_or_else(MultipartBody::generate_boundary);
                 builder = builder.header(
                     "Content-Type",
                     format!("multipart/form-data; boundary={}", boundary),
@@ -336,7 +336,7 @@ impl LegacyHttpClient {
                 let boundary = config
                     .multipart_boundary
                     .clone()
-                    .unwrap_or_else(|| MultipartBody::generate_boundary());
+                    .unwrap_or_else(MultipartBody::generate_boundary);
                 let encoded = multipart.encode(&boundary);
                 builder = builder.body(encoded);
             }
@@ -401,7 +401,9 @@ impl LegacyHttpClient {
 /// 旧版 HTTP 结果
 #[derive(Debug)]
 pub struct LegacyHttpResult {
+    /// HTTP 响应，包含状态码、响应头和响应体
     pub response: LegacyHttpResponse,
+    /// 请求各阶段计时信息（DNS/TCP/TLS/TTFB/下载）
     pub timing: HttpTiming,
 }
 

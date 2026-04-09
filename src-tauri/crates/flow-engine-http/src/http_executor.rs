@@ -26,7 +26,7 @@ impl HttpNodeExecutor {
     }
 }
 
-/// Convert ContentType to Content-Type header value
+/// Convert `ContentType` to Content-Type header value
 fn content_type_to_string(content_type: &flow_engine_core::node_config::ContentType) -> &'static str {
     match content_type {
         flow_engine_core::node_config::ContentType::Json => "application/json",

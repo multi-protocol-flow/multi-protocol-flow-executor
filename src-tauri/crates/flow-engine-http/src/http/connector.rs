@@ -30,7 +30,7 @@ pub enum TimedStream {
     /// HTTP 连接（明文）
     Http(TokioIo<TcpStream>),
     /// HTTPS 连接（TLS 加密），包含是否协商为 HTTP/2 的标志
-    Https(TokioIo<tokio_rustls::client::TlsStream<TcpStream>>, bool),
+    Https(Box<TokioIo<tokio_rustls::client::TlsStream<TcpStream>>>, bool),
 }
 
 impl HyperConnection for TimedStream {
@@ -56,7 +56,7 @@ impl Read for TimedStream {
     ) -> Poll<io::Result<()>> {
         match self.get_mut() {
             TimedStream::Http(stream) => Pin::new(stream).poll_read(cx, buf),
-            TimedStream::Https(stream, _) => Pin::new(stream).poll_read(cx, buf),
+            TimedStream::Https(stream, _) => Pin::new(&mut **stream).poll_read(cx, buf),
         }
     }
 }
@@ -69,21 +69,21 @@ impl Write for TimedStream {
     ) -> Poll<io::Result<usize>> {
         match self.get_mut() {
             TimedStream::Http(stream) => Pin::new(stream).poll_write(cx, buf),
-            TimedStream::Https(stream, _) => Pin::new(stream).poll_write(cx, buf),
+            TimedStream::Https(stream, _) => Pin::new(&mut **stream).poll_write(cx, buf),
         }
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         match self.get_mut() {
             TimedStream::Http(stream) => Pin::new(stream).poll_flush(cx),
-            TimedStream::Https(stream, _) => Pin::new(stream).poll_flush(cx),
+            TimedStream::Https(stream, _) => Pin::new(&mut **stream).poll_flush(cx),
         }
     }
 
     fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         match self.get_mut() {
             TimedStream::Http(stream) => Pin::new(stream).poll_shutdown(cx),
-            TimedStream::Https(stream, _) => Pin::new(stream).poll_shutdown(cx),
+            TimedStream::Https(stream, _) => Pin::new(&mut **stream).poll_shutdown(cx),
         }
     }
 }
@@ -223,7 +223,7 @@ impl Service<Uri> for TimingConnector {
                     alpn.map(|b| String::from_utf8_lossy(b).to_string())
                 );
 
-                Ok(TimedStream::Https(TokioIo::new(tls_stream), is_h2))
+                Ok(TimedStream::Https(Box::new(TokioIo::new(tls_stream)), is_h2))
             } else {
                 Ok(TimedStream::Http(TokioIo::new(tcp_stream)))
             }
@@ -241,7 +241,7 @@ pub enum LegacyConnection {
     /// HTTP 连接（明文）
     Http(TcpStream),
     /// HTTPS 连接（TLS 加密）
-    Https(tokio_rustls::client::TlsStream<TcpStream>),
+    Https(Box<tokio_rustls::client::TlsStream<TcpStream>>),
 }
 
 /// 旧版连接器，用于向后兼容
@@ -275,9 +275,9 @@ impl HttpConnector {
     ///
     /// # 计时点
     /// - DNS 解析开始: 函数入口
-    /// - DNS 解析完成: mark_dns_resolved()
-    /// - TCP 连接完成: mark_tcp_connected()
-    /// - TLS 握手完成（HTTPS）: mark_tls_handshaked()
+    /// - DNS 解析完成: `mark_dns_resolved()`
+    /// - TCP 连接完成: `mark_tcp_connected()`
+    /// - TLS 握手完成（HTTPS）: `mark_tls_handshaked()`
     ///
     /// # 参数
     /// - `url`: 请求 URL
@@ -353,7 +353,7 @@ impl HttpConnector {
             timing.mark_tls_handshaked();
             log::debug!("TLS 握手完成");
 
-            Ok(LegacyConnection::Https(tls_stream))
+            Ok(LegacyConnection::Https(Box::new(tls_stream)))
         } else {
             Ok(LegacyConnection::Http(tcp_stream))
         }

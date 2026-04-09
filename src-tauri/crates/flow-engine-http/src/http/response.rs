@@ -20,8 +20,8 @@ impl HttpResponse {
     /// 从字节流解析响应
     ///
     /// # 计时点
-    /// - 首字节到达: mark_first_byte()
-    /// - 下载完成: mark_download_complete()
+    /// - 首字节到达: `mark_first_byte()`
+    /// - 下载完成: `mark_download_complete()`
     ///
     /// # 参数
     /// - `stream`: 异步读取流

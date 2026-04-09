@@ -4,52 +4,67 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum HttpError {
     // URL 错误
+    /// URL 格式无效或无法解析
     #[error("无效的 URL: {0}")]
     InvalidUrl(String),
 
+    /// 服务器主机名无效（通常为空或包含非法字符）
     #[error("无效的服务器名称: {0}")]
     InvalidServerName(String),
 
     // DNS 错误
+    /// DNS 解析超过指定超时时间
     #[error("DNS 解析超时")]
     DnsTimeout,
 
+    /// DNS 解析过程中发生错误（如网络不可达）
     #[error("DNS 解析失败: {0}")]
     DnsFailed(String),
 
+    /// DNS 解析成功但未返回任何可用地址
     #[error("未找到主机地址")]
     DnsNoAddress,
 
     // TCP 错误
+    /// TCP 连接超过指定超时时间
     #[error("TCP 连接超时")]
     TcpTimeout,
 
+    /// TCP 连接建立失败（如目标拒绝连接）
     #[error("TCP 连接失败: {0}")]
     TcpFailed(String),
 
     // TLS 错误
+    /// TLS 握手超过指定超时时间
     #[error("TLS 握手超时")]
     TlsTimeout,
 
+    /// TLS 握手失败（如证书验证不通过）
     #[error("TLS 握手失败: {0}")]
     TlsFailed(String),
 
     // HTTP 错误
+    /// 写入 HTTP 请求数据到连接时失败
     #[error("写入失败: {0}")]
     WriteFailed(String),
 
+    /// 从连接读取 HTTP 响应数据时失败
     #[error("读取失败: {0}")]
     ReadFailed(String),
 
+    /// 远端服务器在交互过程中意外关闭连接
     #[error("连接意外关闭")]
     ConnectionClosed,
 
+    /// HTTP 响应头格式无效或无法解析
     #[error("无效的响应头: {0}")]
     InvalidHeader(String),
 
+    /// 使用了不支持的 HTTP 方法
     #[error("不支持的方法: {0}")]
     UnsupportedMethod(String),
 
+    /// 构建请求体时失败（如序列化 JSON 或编码 multipart 数据出错）
     #[error("请求体构建失败: {0}")]
     BodyBuildFailed(String),
 }

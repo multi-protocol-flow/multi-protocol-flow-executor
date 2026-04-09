@@ -77,7 +77,7 @@ impl BodyType {
     }
 
     /// 获取 Content-Type 头
-    /// 返回 (header_name, header_value) 或 None
+    /// 返回 (`header_name`, `header_value`) 或 None
     pub fn content_type(&self, boundary: Option<&str>) -> Option<(&'static str, String)> {
         match self {
             Self::None => None,
