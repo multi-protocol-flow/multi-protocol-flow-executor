@@ -288,7 +288,7 @@ impl DebuggableFlowExecutor {
             if visited.contains(&current_node_id) {
                 debug_state.status = DebugStatus::Ended;
                 update_shared_state(debug_state);
-                let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
+                let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
                 if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                     reason: EndReason::Error {
                         message: format!("检测到循环：节点 {} 已被访问", node.uuid),
@@ -410,7 +410,7 @@ impl DebuggableFlowExecutor {
                             debug_state.status = DebugStatus::Ended;
                             debug_state.current_node_uuid = None;
                             update_shared_state(debug_state);
-                            let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
+                            let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
                             if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                                 reason: EndReason::Completed,
                                 report: Some(report),
@@ -432,7 +432,7 @@ impl DebuggableFlowExecutor {
                         // 用户终止或错误
                         if error == "用户终止调试" {
                             debug_state.status = DebugStatus::Ended;
-                            let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
+                            let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
                             if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                                 reason: EndReason::Error {
                                     message: error,
@@ -446,7 +446,7 @@ impl DebuggableFlowExecutor {
                         }
                         debug_state.status = DebugStatus::Ended;
                         update_shared_state(debug_state);
-                        let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
+                        let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
                         if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                             reason: EndReason::Error {
                                 message: error,
@@ -727,7 +727,7 @@ impl DebuggableFlowExecutor {
                     // 结束调试
                     debug_state.status = DebugStatus::Ended;
                     update_shared_state(debug_state);
-                    let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
+                    let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
                     if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                         reason: EndReason::Error {
                             message: error,
@@ -748,7 +748,7 @@ impl DebuggableFlowExecutor {
         debug_state.status = DebugStatus::Ended;
         debug_state.current_node_uuid = None;
         update_shared_state(debug_state);
-        let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
+        let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
         if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
             reason: EndReason::Completed,
             report: Some(report),
@@ -823,7 +823,7 @@ impl DebuggableFlowExecutor {
                 DebugCommand::EndDebug => {
                     // 结束调试
                     debug_state.status = DebugStatus::Ended;
-                    let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, &context).await;
+                    let report = Self::generate_debug_report(debug_state, flow, debug_state.start_time_ms, context).await;
                     if let Err(e) = event_sender.send(DebugEvent::SessionEnded {
                         reason: EndReason::UserAbort,
                         report: Some(report),

@@ -70,7 +70,7 @@ pub struct ActiveConnection {
     /// 当前持有者节点 UUID（用于消息流所有权追踪）
     pub current_owner_node_uuid: Option<String>,
 
-    /// 流段 ID（用于关联 WsStreamSegment）
+    /// 流段 ID（用于关联 `WsStreamSegment`）
     pub stream_segment_id: Option<String>,
 
     // WebSocket 连接（通过 Arc<Mutex> 实现线程安全共享）
@@ -204,7 +204,7 @@ impl ActiveConnection {
 /// 使用 Arc<Mutex<>> 实现跨线程共享。
 #[derive(Debug, Clone)]
 pub struct WebSocketConnectionManager {
-    /// 连接池：UUID -> ActiveConnection
+    /// 连接池：UUID -> `ActiveConnection`
     connections: Arc<Mutex<HashMap<String, ActiveConnection>>>,
 }
 
@@ -662,7 +662,7 @@ impl WebSocketConnectionManager {
     /// 清空连接中待处理的消息
     ///
     /// 在发送消息后调用此方法，清空发送前到达的所有消息（如欢迎消息），
-    /// 确保后续的 receive() 只读取发送后的响应消息。
+    /// 确保后续的 `receive()` 只读取发送后的响应消息。
     ///
     /// # 参数
     ///
@@ -954,20 +954,20 @@ impl WebSocketConnectionManager {
         }
     }
 
-    /// JSONPath 匹配
+    /// `JSONPath` 匹配
     ///
-    /// 使用 JSONPath 表达式查询 JSON 消息，非空结果表示匹配成功。
+    /// 使用 `JSONPath` 表达式查询 JSON 消息，非空结果表示匹配成功。
     ///
     /// # 参数
     ///
     /// * `message` - JSON 格式的消息文本
-    /// * `expression` - JSONPath 表达式（例如：`$.status`）
+    /// * `expression` - `JSONPath` 表达式（例如：`$.status`）
     ///
     /// # 返回
     ///
-    /// * `Ok(true)`: JSONPath 查询结果非空
-    /// * `Ok(false)`: JSONPath 查询结果为空
-    /// * `Err(msg)`: JSON 解析失败或 JSONPath 语法错误
+    /// * `Ok(true)`: `JSONPath` 查询结果非空
+    /// * `Ok(false)`: `JSONPath` 查询结果为空
+    /// * `Err(msg)`: JSON 解析失败或 `JSONPath` 语法错误
     fn match_jsonpath(&self, message: &str, expression: &str) -> Result<bool, String> {
         // 1. 解析 JSON
         let json: serde_json::Value = serde_json::from_str(message)

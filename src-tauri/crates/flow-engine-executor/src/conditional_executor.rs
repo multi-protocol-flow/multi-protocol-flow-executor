@@ -181,7 +181,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
 
                 // 格式化期望值用于显示（直接使用原始值）
                 let expected_value_display = conditional_config.expected_value.as_ref()
-                    .map(|v| Self::format_expected_value_for_display(v))
+                    .map(Self::format_expected_value_for_display)
                     .unwrap_or_else(|| "null".to_string());
 
                 // 构建 expression 字符串：原始表达式
@@ -354,7 +354,7 @@ impl ConditionalNodeExecutor {
     ///
     /// # 返回
     /// - `Ok(bool)`: 条件评估结果
-    /// - `Err(String)`: 条件评估失败（使用 ConditionSyntaxError 或 ConditionEvaluationError）
+    /// - `Err(String)`: 条件评估失败（使用 `ConditionSyntaxError` 或 `ConditionEvaluationError`）
     fn evaluate_simple_condition(
         &self,
         config: &flow_engine_core::node_config::ConditionalConfig,
@@ -489,11 +489,11 @@ impl ConditionalNodeExecutor {
     ///
     /// 支持的格式：
     /// - `{{variable_name}}` - 变量引用，从 variables 中查找
-    /// - `$.json.path` - JSONPath 语法，从 last_node_output 中提取（上游协议节点的输出）
-    /// - `simple_name` - 简单变量名，等同于 {{simple_name}}
+    /// - `$.json.path` - `JSONPath` 语法，从 `last_node_output` 中提取（上游协议节点的输出）
+    /// - `simple_name` - 简单变量名，等同于 {{`simple_name`}}
     ///
     /// 拒绝的格式：
-    /// - `user.age` - 旧语法（包含 `.` 但不是 JSONPath 或变量引用）
+    /// - `user.age` - 旧语法（包含 `.` 但不是 `JSONPath` 或变量引用）
     /// - 空字符串
     fn extract_field_value(
         &self,

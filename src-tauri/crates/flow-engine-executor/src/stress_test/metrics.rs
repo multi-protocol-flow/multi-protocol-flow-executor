@@ -40,7 +40,7 @@ pub struct MetricsCollector {
     /// 延迟总和（毫秒），用于计算平均值
     total_latency_ms: AtomicU64,
     /// 错误分类统计
-    /// key: error_kind, value: (count, samples)
+    /// key: `error_kind`, value: (count, samples)
     error_stats: Mutex<HashMap<String, (u64, Vec<ErrorSample>)>>,
 }
 

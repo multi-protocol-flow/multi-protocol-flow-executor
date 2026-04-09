@@ -4,7 +4,7 @@
 //!
 //! # 功能
 //!
-//! - 使用 QuickJS 执行 JavaScript 脚本
+//! - 使用 `QuickJS` 执行 JavaScript 脚本
 //! - 支持变量读写 (`fn.variables.*`)
 //! - 支持响应数据访问 (`fn.response.*`)
 //! - 支持请求数据访问 (`fn.request.*`)
@@ -348,7 +348,7 @@ impl ScriptNodeExecutor {
         (initial_vars, response_data, request_data)
     }
 
-    /// 从 last_node_output 提取响应数据
+    /// 从 `last_node_output` 提取响应数据
     fn extract_response_data(&self, output: &serde_json::Value) -> Option<ResponseData> {
         // 检查是否是 HTTP 响应格式
         let status = output.get("status")?.as_u64()? as u16;
@@ -382,7 +382,7 @@ impl ScriptNodeExecutor {
         })
     }
 
-    /// 从 last_node_output 提取请求数据
+    /// 从 `last_node_output` 提取请求数据
     fn extract_request_data(&self, output: &serde_json::Value) -> Option<RequestData> {
         let request = output.get("request")?;
 

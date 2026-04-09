@@ -466,7 +466,7 @@ pub fn list_stress_reports(reports_dir: &Path) -> Result<Vec<StressTestReportSum
     Ok(reports)
 }
 
-/// 将毫秒时间戳格式化为 YYYYMMDD_HHMMSS 格式
+/// 将毫秒时间戳格式化为 `YYYYMMDD_HHMMSS` 格式
 fn format_timestamp(timestamp_ms: u64) -> String {
     use chrono::{TimeZone, Utc};
 

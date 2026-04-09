@@ -18,7 +18,7 @@ use flow_engine_core::node::NodeType;
 /// # 桩实现说明
 /// - 如果节点是开始节点，返回错误 "不能删除开始节点"
 /// - 否则返回错误信息 "暂未实现持久化"
-/// - 说明原因：delete_node 需要先加载流程、删除节点和相关连接、再保存流程
+/// - `说明原因：delete_node` 需要先加载流程、删除节点和相关连接、再保存流程
 /// - 这将在任务 2.5（保存流程）中完整实现
 pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeCommandOutput {
     // 查找节点

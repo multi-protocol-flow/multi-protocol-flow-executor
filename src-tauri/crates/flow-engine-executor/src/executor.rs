@@ -43,7 +43,7 @@ pub struct ExecutionResult {
 
 /// 计算变量变更列表
 ///
-/// 对比变量快照前后的差异，生成 VariableChange 列表
+/// 对比变量快照前后的差异，生成 `VariableChange` 列表
 ///
 /// # 参数
 /// - `variables_before`: 变更前的变量快照
@@ -73,15 +73,15 @@ fn compute_variable_changes(
     changes
 }
 
-/// 根据节点类型构建 input_data
+/// 根据节点类型构建 `input_data`
 ///
-/// input_data 代表节点消费的输入数据（配置信息）
+/// `input_data` 代表节点消费的输入数据（配置信息）
 /// - Entry: None（无输入）
-/// - HTTP: { url, method, headers, body, body_type, timeout_ms }
+/// - HTTP: { url, method, headers, body, `body_type`, `timeout_ms` }
 /// - Conditional: { condition }
-/// - WS Connect: { url, headers, subprotocols, connect_timeout_ms, wait_for_message, wait_mode, message_timeout_ms }
-/// - WS SendWait: { connection_id, message, message_type, send_timeout_ms, wait_for_response, wait_mode, message_timeout_ms }
-/// - WS Close: { connection_id, close_code, close_reason, wait_close_timeout_ms }
+/// - WS Connect: { url, headers, subprotocols, `connect_timeout_ms`, `wait_for_message`, `wait_mode`, `message_timeout_ms` }
+/// - WS `SendWait`: { `connection_id`, message, `message_type`, `send_timeout_ms`, `wait_for_response`, `wait_mode`, `message_timeout_ms` }
+/// - WS Close: { `connection_id`, `close_code`, `close_reason`, `wait_close_timeout_ms` }
 fn build_input_data_from_node_config(node: &flow_engine_core::node::Node) -> Option<serde_json::Value> {
     use flow_engine_core::node_config::NodeData;
     
@@ -231,7 +231,7 @@ fn build_input_data_from_node_config(node: &flow_engine_core::node::Node) -> Opt
 
 /// 从字符串错误解析错误详情
 ///
-/// 尝试从错误消息中识别错误类型，并创建对应的 ErrorDetail
+/// 尝试从错误消息中识别错误类型，并创建对应的 `ErrorDetail`
 fn parse_error_to_detail(error: &str) -> ErrorDetail {
     // 识别条件语法错误
     if error.contains("条件") && (error.contains("语法") || error.contains("配置")) {
@@ -305,11 +305,11 @@ impl FlowExecutor {
     ///
     /// # 参数
     ///
-    /// * `sender` - ExecutionEvent 事件发送器
+    /// * `sender` - `ExecutionEvent` 事件发送器
     ///
     /// # 返回
     ///
-    /// 更新后的 FlowExecutor
+    /// 更新后的 `FlowExecutor`
     pub fn with_execution_event_sender(mut self, sender: Arc<dyn ExecutionEventSender>) -> Self {
         self.execution_event_sender = Some(sender);
         self
@@ -1049,7 +1049,7 @@ impl FlowExecutor {
     ///
     /// # 返回
     /// - `Result<(Option<String>, Option<serde_json::Value>), String>`:
-    ///   - Ok((next_node_id, output_data)): 执行成功，返回下一个节点 ID 和输出数据
+    ///   - `Ok((next_node_id`, `output_data))`: 执行成功，返回下一个节点 ID 和输出数据
     ///   - Err(error): 执行失败，返回错误信息
     async fn execute_node(
         &self,

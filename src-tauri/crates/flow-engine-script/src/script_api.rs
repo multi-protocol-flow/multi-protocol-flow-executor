@@ -1,6 +1,6 @@
 //! 脚本节点 API 模块
 //!
-//! 提供 Rust ↔ QuickJS 桥接层，实现 `fn.variables.*`、`fn.response.*`、`fn.request.*` API
+//! 提供 Rust ↔ `QuickJS` 桥接层，实现 `fn.variables.*`、`fn.response.*`、`fn.request.*` API
 
 use rquickjs::{function::Func, Ctx, Object, Value};
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,9 @@ use std::rc::Rc;
 /// 日志条目
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogEntry {
+    /// 日志级别（log、info、warn、error、debug、table）
     pub level: String,
+    /// 日志消息内容
     pub message: String,
 }
 
@@ -62,7 +64,7 @@ pub struct TestResult {
 
 /// 脚本执行上下文（Rust ↔ JS 桥接）
 ///
-/// 提供变量存储和日志输出功能，支持在 QuickJS 中访问和修改。
+/// 提供变量存储和日志输出功能，支持在 `QuickJS` 中访问和修改。
 pub struct ScriptExecutionContext {
     /// 变量存储
     pub variables: Rc<RefCell<HashMap<String, serde_json::Value>>>,
@@ -138,7 +140,7 @@ impl ScriptExecutionContext {
         self
     }
 
-    /// 注册 `fn.variables.*` API 到 QuickJS 上下文
+    /// 注册 `fn.variables.*` API 到 `QuickJS` 上下文
     ///
     /// # 注册的方法
     /// - `fn.variables.get(key)` - 获取变量值（返回字符串或 null）
@@ -237,7 +239,7 @@ impl ScriptExecutionContext {
         Ok(())
     }
 
-    /// 注册 `fn.response.*` API 到 QuickJS 上下文
+    /// 注册 `fn.response.*` API 到 `QuickJS` 上下文
     ///
     /// # 注册的属性
     /// - `fn.response.code` - HTTP 状态码
@@ -285,7 +287,7 @@ impl ScriptExecutionContext {
         Ok(())
     }
 
-    /// 注册 `fn.request.*` API 到 QuickJS 上下文
+    /// 注册 `fn.request.*` API 到 `QuickJS` 上下文
     ///
     /// # 注册的属性
     /// - `fn.request.url` - 请求 URL
@@ -315,7 +317,7 @@ impl ScriptExecutionContext {
         Ok(())
     }
 
-    /// 注册 `fn.console.*` API 到 QuickJS 上下文
+    /// 注册 `fn.console.*` API 到 `QuickJS` 上下文
     ///
     /// # 注册的方法
     /// - `fn.console.log(message)` - 普通日志
@@ -404,7 +406,7 @@ impl ScriptExecutionContext {
         Ok(())
     }
 
-    /// 注册 `fn.flow.*` API 到 QuickJS 上下文
+    /// 注册 `fn.flow.*` API 到 `QuickJS` 上下文
     ///
     /// # 注册的方法
     /// - `fn.flow.skip()` - 跳过后续节点
@@ -451,7 +453,7 @@ impl ScriptExecutionContext {
         Ok(())
     }
 
-    /// 注册 `fn.info.*` API 到 QuickJS 上下文
+    /// 注册 `fn.info.*` API 到 `QuickJS` 上下文
     ///
     /// # 注册的属性（只读）
     /// - `fn.info.flowName` - 流程名称
@@ -479,7 +481,7 @@ impl ScriptExecutionContext {
         Ok(())
     }
 
-    /// 注册 `fn.util.*` API 到 QuickJS 上下文
+    /// 注册 `fn.util.*` API 到 `QuickJS` 上下文
     ///
     /// # 注册的方法
     /// - `fn.util.base64Encode(str)` - Base64 编码
@@ -757,7 +759,7 @@ impl ScriptExecutionContext {
         util_obj.set(
             "hasKey",
             Func::from(move |obj: Object, key: String| -> bool {
-                Object::keys::<String>(&obj).any(|k| k.as_ref().map_or(false, |k| k == &key))
+                Object::keys::<String>(&obj).any(|k| k.as_ref().is_ok_and(|k| k == &key))
             }),
         )?;
 
@@ -981,7 +983,7 @@ impl ScriptExecutionContext {
         Ok(())
     }
 
-    /// 注册 `fn.expect(value)` API 到 QuickJS 上下文
+    /// 注册 `fn.expect(value)` API 到 `QuickJS` 上下文
     ///
     /// # 注册的方法
     /// - `fn.expect(value)` - 返回断言链对象
@@ -1312,7 +1314,7 @@ impl ScriptExecutionContext {
 
     /// 获取测试断言结果
     ///
-    /// 从 QuickJS 上下文中获取所有测试结果
+    /// 从 `QuickJS` 上下文中获取所有测试结果
     pub fn get_test_results(&self, ctx: &Ctx) -> Result<Vec<TestResult>, rquickjs::Error> {
         // 调用 JS 端的 _getTestResults 方法获取结果
         let results_json: String = ctx.eval("fn.expect._getTestResults()")?;
@@ -1324,7 +1326,7 @@ impl ScriptExecutionContext {
         }
     }
 
-    /// 注册所有 API 到 QuickJS 上下文
+    /// 注册所有 API 到 `QuickJS` 上下文
     ///
     /// 包括 fn.variables.*、fn.response.*、fn.request.*、fn.console.*、fn.flow.*、fn.info.*、fn.util.* 和 fn.expect
     pub fn register_all_apis(&self, ctx: &Ctx) -> Result<(), rquickjs::Error> {

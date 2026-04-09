@@ -29,14 +29,14 @@ use super::types::{
 /// - `Err(String)`: 生成失败
 ///
 /// # 功能
-/// - 从 MetricsCollector 获取统计数据
+/// - 从 `MetricsCollector` 获取统计数据
 /// - 从 config 获取配置快照
 /// - 计算汇总统计（总次数、成功/失败数、成功率）
 /// - 计算响应时间分布（平均值、最小值、最大值、P50/P90/P95/P99）
 /// - 计算实际 RPS
 /// - 提取错误分类统计
-/// - 提取前 10 条错误样例（由 MetricsCollector 限制）
-/// - 如果提供了 reports_dir，调用 save_stress_report() 持久化报告
+/// - 提取前 10 条错误样例（由 `MetricsCollector` 限制）
+/// - 如果提供了 `reports_dir，调用` `save_stress_report()` 持久化报告
 pub fn generate_report(
     flow: &Flow,
     config: &StressTestConfig,
