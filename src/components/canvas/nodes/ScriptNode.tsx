@@ -6,7 +6,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Code } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ScriptNodeConfig } from '@/types';
-import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused } from '@/stores';
+import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 
 /** Script 节点数据类型 */
@@ -29,6 +29,7 @@ export function ScriptNode({ id, data, selected }: NodeProps) {
   const getNodeExecutionStatus = useExecutionStore((state) => state.getNodeExecutionStatus);
   const executionStatus = getNodeExecutionStatus(id);
   const executionClassName = executionStatus !== 'pending' ? `execution-${executionStatus}` : '';
+  const isDebugging = useDebugStore(selectIsDebugging);
   
   return (
     <div
@@ -44,10 +45,12 @@ export function ScriptNode({ id, data, selected }: NodeProps) {
         executionClassName
       )}
     >
-      <BreakpointMarker
-        hasBreakpoint={hasBreakpoint}
-        onToggle={() => toggleBreakpoint(id)}
-      />
+      {isDebugging && (
+        <BreakpointMarker
+          hasBreakpoint={hasBreakpoint}
+          onToggle={() => toggleBreakpoint(id)}
+        />
+      )}
       <Handle
         type="target"
         position={Position.Left}
