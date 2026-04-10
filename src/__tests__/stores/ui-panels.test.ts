@@ -269,8 +269,6 @@ describe('UIStore - 左侧栏面板', () => {
   beforeEach(() => {
     useUIStore.setState({
       isFlowListCollapsed: false,
-      isVariablePanelCollapsed: false,
-      variablePanelHeight: 200,
     });
   });
 
@@ -286,40 +284,15 @@ describe('UIStore - 左侧栏面板', () => {
     });
   });
 
-  describe('toggleVariablePanelCollapsed', () => {
-    it('切换变量面板折叠状态', () => {
-      expect(useUIStore.getState().isVariablePanelCollapsed).toBe(false);
+  describe('toggleVariableDrawer', () => {
+    it('切换变量抽屉状态', () => {
+      expect(useUIStore.getState().isVariableDrawerOpen).toBe(false);
 
-      useUIStore.getState().toggleVariablePanelCollapsed();
-      expect(useUIStore.getState().isVariablePanelCollapsed).toBe(true);
+      useUIStore.getState().toggleVariableDrawer();
+      expect(useUIStore.getState().isVariableDrawerOpen).toBe(true);
 
-      useUIStore.getState().toggleVariablePanelCollapsed();
-      expect(useUIStore.getState().isVariablePanelCollapsed).toBe(false);
-    });
-  });
-
-  describe('setVariablePanelHeight', () => {
-    it('设置变量面板高度', () => {
-      useUIStore.getState().setVariablePanelHeight(280);
-      expect(useUIStore.getState().variablePanelHeight).toBe(280);
-    });
-
-    it('高度有最小值限制（100）', () => {
-      useUIStore.getState().setVariablePanelHeight(30);
-      expect(useUIStore.getState().variablePanelHeight).toBe(100);
-    });
-
-    it('高度有最大值限制（400）', () => {
-      useUIStore.getState().setVariablePanelHeight(600);
-      expect(useUIStore.getState().variablePanelHeight).toBe(400);
-    });
-
-    it('高度在有效范围内正常设置', () => {
-      useUIStore.getState().setVariablePanelHeight(120);
-      expect(useUIStore.getState().variablePanelHeight).toBe(120);
-
-      useUIStore.getState().setVariablePanelHeight(380);
-      expect(useUIStore.getState().variablePanelHeight).toBe(380);
+      useUIStore.getState().toggleVariableDrawer();
+      expect(useUIStore.getState().isVariableDrawerOpen).toBe(false);
     });
   });
 });
@@ -474,8 +447,6 @@ describe('UIStore - resetPanels 完整测试', () => {
       isExecutionPanelOpen: true,
       bottomPanelTab: 'console',
       isFlowListCollapsed: true,
-      isVariablePanelCollapsed: true,
-      variablePanelHeight: 350,
       isContextVariablesCollapsed: true,
       isExecutionStackCollapsed: true,
       executionStackHeight: 250,
@@ -495,8 +466,7 @@ describe('UIStore - resetPanels 完整测试', () => {
 
     // 左侧栏面板状态
     expect(state.isFlowListCollapsed).toBe(false);
-    expect(state.isVariablePanelCollapsed).toBe(false);
-    expect(state.variablePanelHeight).toBe(200);
+    expect(state.isVariableDrawerOpen).toBe(false);
 
     // 调试面板状态
     expect(state.isContextVariablesCollapsed).toBe(false);

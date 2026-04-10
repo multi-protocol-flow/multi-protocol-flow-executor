@@ -99,7 +99,6 @@ describe('UIStore - 调试面板折叠状态', () => {
       // 设置左侧栏和调试面板为非默认状态
       useUIStore.setState({
         isFlowListCollapsed: true,
-        isVariablePanelCollapsed: true,
         isContextVariablesCollapsed: true,
         isExecutionStackCollapsed: true,
       });
@@ -109,7 +108,6 @@ describe('UIStore - 调试面板折叠状态', () => {
       // 验证所有面板状态都被重置
       const state = useUIStore.getState();
       expect(state.isFlowListCollapsed).toBe(false);
-      expect(state.isVariablePanelCollapsed).toBe(false);
       expect(state.isContextVariablesCollapsed).toBe(false);
       expect(state.isExecutionStackCollapsed).toBe(false);
     });
