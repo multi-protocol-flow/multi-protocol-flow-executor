@@ -18,7 +18,7 @@ interface VariablePanelProps {
   showHeader?: boolean;
 }
 
-interface VariableGroup {
+export interface VariableGroup {
   nodeUuid: string;
   nodeName: string;
   nodeType: string;
@@ -28,7 +28,7 @@ interface VariableGroup {
 /**
  * 从流程中提取所有变量并按节点分组
  */
-function extractVariableGroups(flow: Flow): VariableGroup[] {
+export function extractVariableGroups(flow: Flow): VariableGroup[] {
   const groups: VariableGroup[] = [];
   const nodeMap = new Map<string, Node>();
   

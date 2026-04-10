@@ -42,14 +42,12 @@ interface UIState {
   // ===== 左侧栏面板折叠状态 =====
   /** 流程列表是否折叠 */
   isFlowListCollapsed: boolean;
-  /** 变量面板是否折叠 */
-  isVariablePanelCollapsed: boolean;
   /** 连接面板是否折叠 */
   isConnectionsPanelCollapsed: boolean;
-  /** 变量面板高度（像素） */
-  variablePanelHeight: number;
   /** 连接面板高度（像素） */
   connectionsPanelHeight: number;
+  /** 变量抽屉是否打开 */
+  isVariableDrawerOpen: boolean;
 
   // ===== 调试面板折叠状态 =====
   /** 上下文变量是否折叠 */
@@ -154,14 +152,12 @@ interface UIState {
   // ===== 左侧栏面板 Actions =====
   /** 切换流程列表折叠状态 */
   toggleFlowListCollapsed: () => void;
-  /** 切换变量面板折叠状态 */
-  toggleVariablePanelCollapsed: () => void;
   /** 切换连接面板折叠状态 */
   toggleConnectionsPanelCollapsed: () => void;
-  /** 设置变量面板高度 */
-  setVariablePanelHeight: (height: number) => void;
   /** 设置连接面板高度 */
   setConnectionsPanelHeight: (height: number) => void;
+  /** 切换变量抽屉状态 */
+  toggleVariableDrawer: () => void;
 
   // ===== 调试面板 Actions =====
   /** 切换上下文变量折叠状态 */
@@ -210,10 +206,9 @@ const initialState = {
 
   // 左侧栏面板折叠状态
   isFlowListCollapsed: false,
-  isVariablePanelCollapsed: false,
   isConnectionsPanelCollapsed: false,
-  variablePanelHeight: 200,
   connectionsPanelHeight: 150,
+  isVariableDrawerOpen: false,
 
   // 调试面板折叠状态
   isContextVariablesCollapsed: false,
@@ -344,16 +339,6 @@ export const useUIStore = create<UIState>((set) => ({
       isFlowListCollapsed: !state.isFlowListCollapsed,
     })),
 
-  toggleVariablePanelCollapsed: () =>
-    set((state) => ({
-      isVariablePanelCollapsed: !state.isVariablePanelCollapsed,
-    })),
-
-  setVariablePanelHeight: (height) =>
-    set({
-      variablePanelHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
-    }),
-
   toggleConnectionsPanelCollapsed: () =>
     set((state) => ({
       isConnectionsPanelCollapsed: !state.isConnectionsPanelCollapsed,
@@ -363,6 +348,11 @@ export const useUIStore = create<UIState>((set) => ({
     set({
       connectionsPanelHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
     }),
+
+  toggleVariableDrawer: () =>
+    set((state) => ({
+      isVariableDrawerOpen: !state.isVariableDrawerOpen,
+    })),
 
   // ===== 调试面板 Actions =====
   toggleContextVariablesCollapsed: () =>
@@ -420,8 +410,7 @@ export const useUIStore = create<UIState>((set) => ({
       isExecutionPanelOpen: false,
       bottomPanelTab: 'history' as BottomPanelTab,
       isFlowListCollapsed: false,
-      isVariablePanelCollapsed: false,
-      variablePanelHeight: 200,
+      isVariableDrawerOpen: false,
       isContextVariablesCollapsed: false,
       isExecutionStackCollapsed: false,
       isWsStreamCollapsed: false,
