@@ -7,22 +7,45 @@ import { cn } from '@/lib/utils';
 export interface BreakpointMarkerProps {
   /** 是否设置断点 */
   hasBreakpoint: boolean;
-  /** 点击切换断点状态的回调 */
-  onToggle: () => void;
+  /** 点击切换断点状态的回调（locked 模式下不需要） */
+  onToggle?: () => void;
+  /** 是否为锁定状态（入口节点固定断点，不可取消） */
+  locked?: boolean;
 }
 
 /**
  * 断点标记
  * - 有断点：红色实心圆点
  * - 无断点：灰色空心圆点（悬停显示红色）
+ * - 锁定：红色实心圆点，不可点击（入口节点专用）
  */
-export function BreakpointMarker({ hasBreakpoint, onToggle }: BreakpointMarkerProps) {
+export function BreakpointMarker({ hasBreakpoint, onToggle, locked }: BreakpointMarkerProps) {
+  // 锁定状态：始终显示红色实心，不可点击
+  if (locked) {
+    return (
+      <div
+        className={cn(
+          'absolute -top-1.5 -left-1.5',
+          'w-4 h-4',
+          'rounded-full',
+          'border-2',
+          'bg-red-500',
+          'border-red-600',
+          'shadow-sm',
+          'z-10',
+          'pointer-events-none',
+        )}
+        title="入口节点断点（固定）"
+      />
+    );
+  }
+
   return (
     <button
       type="button"
       onClick={(e) => {
         e.stopPropagation(); // 防止触发节点选中
-        onToggle();
+        onToggle?.();
       }}
       className={cn(
         // 位置：节点左上角

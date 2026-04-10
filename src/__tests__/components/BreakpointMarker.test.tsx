@@ -119,4 +119,51 @@ describe('BreakpointMarker', () => {
     button = screen.getByRole('button');
     expect(button).toHaveAttribute('title', '点击设置断点');
   });
+
+  describe('locked 模式', () => {
+    it('locked 模式显示红色实心圆（不可点击）', () => {
+      render(
+        <BreakpointMarker
+          hasBreakpoint={true}
+          locked
+        />
+      );
+
+      // locked 模式渲染 div，不是 button
+      const marker = screen.getByTitle('入口节点断点（固定）');
+      expect(marker).toBeInTheDocument();
+      expect(marker).toHaveClass('bg-red-500');
+      expect(marker).toHaveClass('border-red-600');
+      expect(marker).toHaveClass('pointer-events-none');
+      // 不应该是按钮（不可点击）
+      expect(marker.tagName).toBe('DIV');
+    });
+
+    it('locked 模式没有按钮角色', () => {
+      render(
+        <BreakpointMarker
+          hasBreakpoint={true}
+          locked
+        />
+      );
+
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+
+    it('locked 模式忽略 onToggle 回调', async () => {
+      const onToggle = vi.fn();
+      render(
+        <BreakpointMarker
+          hasBreakpoint={true}
+          locked
+          onToggle={onToggle}
+        />
+      );
+
+      // locked 模式下 pointer-events-none，且是 div 不是 button
+      const marker = screen.getByTitle('入口节点断点（固定）');
+      expect(marker).toHaveClass('pointer-events-none');
+      expect(onToggle).not.toHaveBeenCalled();
+    });
+  });
 });
