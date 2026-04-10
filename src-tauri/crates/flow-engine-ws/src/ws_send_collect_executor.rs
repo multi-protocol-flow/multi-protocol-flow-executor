@@ -209,7 +209,27 @@ impl NodeExecutor for WsSendCollectExecutor {
             }
         }
 
-        // 5. 发送消息
+        // 5. 清空发送前的待处理消息（必须在 send 之前，避免吞掉服务器的快速响应）
+        match self.ws_manager.drain_pending_messages(&connection_id).await {
+            Ok(drained_count) => {
+                if drained_count > 0 {
+                    log::info!(
+                        "[WebSocket] 清空了 {} 条发送前的待处理消息: connection_id={}",
+                        drained_count,
+                        connection_id
+                    );
+                }
+            }
+            Err(e) => {
+                log::warn!(
+                    "[WebSocket] 清空待处理消息失败（继续执行）: connection_id={}, error={}",
+                    connection_id,
+                    e
+                );
+            }
+        }
+
+        // 6. 发送消息
         let is_binary = config.message_type == WsMessageType::Binary;
         let send_start = Instant::now();
         let send_result = self
@@ -257,27 +277,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                     }
                 }
 
-                // 5.5 清空发送前的待处理消息
-                match self.ws_manager.drain_pending_messages(&connection_id).await {
-                    Ok(drained_count) => {
-                        if drained_count > 0 {
-                            log::info!(
-                                "[WebSocket] 清空了 {} 条发送前的待处理消息: connection_id={}",
-                                drained_count,
-                                connection_id
-                            );
-                        }
-                    }
-                    Err(e) => {
-                        log::warn!(
-                            "[WebSocket] 清空待处理消息失败（继续执行）: connection_id={}, error={}",
-                            connection_id,
-                            e
-                        );
-                    }
-                }
-
-                // 6. 如果配置了采集响应
+                // 7. 如果配置了采集响应
                 let collect_start = Instant::now();
                 let (collect_timed_out, collect_result) = if config.collect_response {
                     match self.collect_response(&connection_id, &config, context, node).await {
