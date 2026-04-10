@@ -120,13 +120,7 @@ function formatDuration(ms: number | null | undefined): string {
   return `${(ms / 1000).toFixed(2)}s`;
 }
 
-/**
- * 截断长文本
- */
-function truncateText(text: string, maxLength: number = 500): string {
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
-}
+
 
 /**
  * 获取收集模式的显示文本
@@ -339,8 +333,8 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">发送内容</div>
               <div className="bg-slate-50 rounded p-2">
-                <pre className="text-xs text-slate-700 whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
-                  {truncateText(sentData.data, 500)}
+                <pre className="text-xs text-slate-700 whitespace-pre-wrap break-all">
+                  {sentData.data}
                 </pre>
               </div>
             </div>
@@ -350,8 +344,8 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
           {!sentData && configMessage && (
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">配置消息</div>
-              <pre className="text-xs bg-slate-50 border border-slate-200 rounded p-2 overflow-x-auto text-slate-700 max-h-32 overflow-y-auto whitespace-pre-wrap break-all">
-                {truncateText(configMessage, 500)}
+              <pre className="text-xs bg-slate-50 border border-slate-200 rounded p-2 overflow-x-auto text-slate-700 whitespace-pre-wrap break-all">
+                {configMessage}
               </pre>
             </div>
           )}
@@ -375,7 +369,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
               const isMatched = matchedMessage && matchedMessage.data === msg.data && matchedMessage.type === msg.type;
               return (
                 <div
-                  key={idx}
+                  key={`${idx}-${msg.type}-${msg.data.length}`}
                   className={cn(
                     'rounded-lg border p-2',
                     isMatched
@@ -400,7 +394,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
                     )}
                   </div>
                   <pre className="text-xs text-slate-700 whitespace-pre-wrap break-all">
-                    {truncateText(msg.data, 300)}
+                    {msg.data}
                   </pre>
                   {msg.parsed !== null && msg.parsed !== undefined && (
                     <details className="mt-1">
@@ -439,8 +433,8 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">原始数据</div>
               <div className="bg-slate-50 rounded p-2">
-                <pre className="text-xs text-slate-700 whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
-                  {truncateText(messageData.data, 500)}
+                <pre className="text-xs text-slate-700 whitespace-pre-wrap break-all">
+                  {messageData.data}
                 </pre>
               </div>
             </div>

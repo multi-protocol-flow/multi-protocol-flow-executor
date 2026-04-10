@@ -29,12 +29,12 @@ function formatSize(bytes: number): string {
 
 function formatContent(content: WsMessage['content']): string {
   if (content.type === 'text') {
-    return content.content.length > 100 ? content.content.substring(0, 97) + '...' : content.content;
+    return content.content;
   }
   // content.type === 'binary'
   const bytes: number[] = content.content;
-  const hex = bytes.slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
-  return `[${bytes.length}字节] ${hex}...`;
+  const hex = bytes.map(b => b.toString(16).padStart(2, '0')).join('');
+  return `[${bytes.length}字节] ${hex}`;
 }
 
 function calculateStats(stream: WsConnectionStream) {
@@ -49,7 +49,6 @@ function calculateStats(stream: WsConnectionStream) {
 function WsMessageItem({ message }: { message: WsMessage }) {
   const isSent = message.direction === 'sent';
   const content = formatContent(message.content);
-  const fullContent = message.content.type === 'text' ? message.content.content : content;
 
   return (
     <div className={cn('p-2.5 rounded-lg', isSent ? 'bg-emerald-50/50' : 'bg-blue-50/50')}>
@@ -66,10 +65,9 @@ function WsMessageItem({ message }: { message: WsMessage }) {
         </div>
         <div className="text-xs text-muted-foreground shrink-0">{formatSize(message.size)}</div>
       </div>
-      {/* 内容区域 - 换行显示 */}
+      {/* 内容区域 - 完整展示，超长内容可滚动 */}
       <div
         className="text-sm text-foreground/90 break-all pl-7 whitespace-pre-wrap"
-        title={fullContent.length > 200 ? fullContent : undefined}
       >
         {content}
       </div>
