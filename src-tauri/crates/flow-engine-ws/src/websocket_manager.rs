@@ -1109,19 +1109,30 @@ impl WebSocketConnectionManager {
 
         // 如果是 JSON，添加解析后的字段
         if let Some(serde_json::Value::Object(map)) = json_value {
-            for (key, value) in map {
-                let evalexpr_value = json_to_evalexpr_value(&value);
+            // 添加顶层字段（兼容旧行为：直接比较顶层值）
+            for (key, value) in &map {
+                let evalexpr_value = json_to_evalexpr_value(value);
                 context
                     .set_value(key.clone(), evalexpr_value)
                     .map_err(|e| format!("设置变量失败: {}", e))?;
             }
+
+            // 递归展开嵌套字段为扁平路径（支持 data.stepKey 访问方式）
+            for (key, value) in &map {
+                if matches!(value, serde_json::Value::Object(_)) {
+                    flatten_json_to_context(value, key, &mut context)?;
+                }
+            }
         }
 
-        // 4. 求值表达式
-        let eval_result = evalexpr::eval_with_context(expression, &context)
+        // 4. 预处理表达式：将 x.y.z 转换为 x__y__z（保留字符串字面量不变）
+        let processed_expression = preprocess_expression(expression);
+
+        // 5. 求值表达式
+        let eval_result = evalexpr::eval_with_context(&processed_expression, &context)
             .map_err(|e| format!("表达式求值失败: {}", e))?;
 
-        // 5. 转换为布尔值
+        // 6. 转换为布尔值
         let result = match eval_result {
             Value::Boolean(b) => b,
             Value::Int(i) => i != 0,
@@ -1301,6 +1312,133 @@ fn json_to_evalexpr_value(json: &serde_json::Value) -> Value {
             Value::String(json.to_string())
         }
     }
+}
+
+/// 递归展开 JSON 嵌套对象为扁平的变量路径（使用 `__` 分隔符）
+///
+/// 将嵌套的 JSON 对象展开为扁平的变量名，以便在 evalexpr 表达式中通过
+/// 预处理后的 `x__y__z` 方式访问嵌套字段。
+///
+/// # 示例
+///
+/// ```ignore
+/// // 输入 JSON: {"stepKey": "test", "result": {"title": "hello"}}
+/// // prefix = "data"
+/// // 展开结果:
+/// //   data__stepKey = "test"
+/// //   data__result__title = "hello"
+/// ```
+fn flatten_json_to_context(
+    json: &serde_json::Value,
+    prefix: &str,
+    context: &mut HashMapContext,
+) -> Result<(), String> {
+    if let serde_json::Value::Object(map) = json {
+        for (key, value) in map {
+            let flat_key = format!("{}__{}", prefix, key);
+            match value {
+                serde_json::Value::Object(_) => {
+                    // 递归展开嵌套对象
+                    flatten_json_to_context(value, &flat_key, context)?;
+                    // 同时保留对象的字符串表示（兼容直接比较整个对象）
+                    let eval_value = json_to_evalexpr_value(value);
+                    context
+                        .set_value(flat_key, eval_value)
+                        .map_err(|e| format!("设置变量失败: {}", e))?;
+                }
+                serde_json::Value::Array(arr) => {
+                    // 展开数组元素（支持索引访问，如 items.0.name）
+                    for (i, item) in arr.iter().enumerate() {
+                        let item_key = format!("{}__{}", flat_key, i);
+                        match item {
+                            serde_json::Value::Object(_) => {
+                                flatten_json_to_context(item, &item_key, context)?;
+                            }
+                            _ => {
+                                let eval_value = json_to_evalexpr_value(item);
+                                context
+                                    .set_value(item_key, eval_value)
+                                    .map_err(|e| format!("设置变量失败: {}", e))?;
+                            }
+                        }
+                    }
+                    // 保留整个数组的字符串表示
+                    let eval_value = json_to_evalexpr_value(value);
+                    context
+                        .set_value(flat_key, eval_value)
+                        .map_err(|e| format!("设置变量失败: {}", e))?;
+                }
+                _ => {
+                    let eval_value = json_to_evalexpr_value(value);
+                    context
+                        .set_value(flat_key, eval_value)
+                        .map_err(|e| format!("设置变量失败: {}", e))?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// 预处理表达式：将标识符链中的点号转换为双下划线
+///
+/// 自动将表达式中的 `x.y.z` 格式转换为 `x__y__z`，
+/// 以便与 `flatten_json_to_context` 展开的扁平变量名对应。
+/// 字符串字面量内的内容不会被修改。
+///
+/// # 示例
+///
+/// ```ignore
+/// preprocess_expression(r#"data.stepKey == "intent_unsupported""#)
+/// // → r#"data__stepKey == "intent_unsupported""#
+/// ```
+fn preprocess_expression(expr: &str) -> String {
+    // 匹配双引号字符串字面量（处理转义字符）
+    let string_re = Regex::new(r#""(?:[^"\\]|\\.)*""#).unwrap();
+
+    let mut result = String::with_capacity(expr.len() * 2);
+    let mut last_end = 0;
+
+    for cap in string_re.find_iter(expr) {
+        // 处理字符串字面量之前的非字符串部分
+        if cap.start() > last_end {
+            result.push_str(&flatten_identifier_chains(&expr[last_end..cap.start()]));
+        }
+
+        // 保留字符串字面量不变
+        result.push_str(cap.as_str());
+
+        last_end = cap.end();
+    }
+
+    // 处理最后一段非字符串部分
+    if last_end < expr.len() {
+        result.push_str(&flatten_identifier_chains(&expr[last_end..]));
+    }
+
+    result
+}
+
+/// 将标识符链中的点号替换为双下划线
+///
+/// 匹配 `[a-zA-Z_]\w*(?:\.\w+)+` 模式（至少包含一个点号的标识符链），
+/// 将其中的 `.` 替换为 `__`。不含点号的标识符不会被修改。
+///
+/// # 示例
+///
+/// ```ignore
+/// flatten_identifier_chains("data.stepKey == 200")  // → "data__stepKey == 200"
+/// flatten_identifier_chains("code == 200")           // → "code == 200"（无变化）
+/// ```
+fn flatten_identifier_chains(s: &str) -> String {
+    // 匹配: 字母/下划线开头，后跟一个或多个 `.word` 模式
+    // 例如: data.stepKey, data.result.title, items.0.name
+    // 不匹配: 3.14（不以字母/下划线开头）
+    let re = Regex::new(r"[a-zA-Z_]\w*(?:\.\w+)+").unwrap();
+    re.replace_all(s, |caps: &regex::Captures| {
+        caps[0].replace('.', "__")
+    })
+    .into_owned()
 }
 
 // ============================================================================
@@ -2279,5 +2417,170 @@ mod tests {
         } else {
             panic!("Expected String value for complex JSON");
         }
+    }
+
+    // ============================================================================
+    // 嵌套 JSON 字段访问测试
+    // ============================================================================
+
+    #[test]
+    fn test_match_expression_nested_field() {
+        // 模拟用户场景: data.stepKey == "intent_unsupported"
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"code": 0, "data": {"stepKey": "intent_unsupported", "taskID": 102555}}"#;
+        let condition = WsCollectCondition {
+            match_type: WsMatchType::Expression,
+            expression: r#"data.stepKey == "intent_unsupported""#.to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_expression_nested_field_no_match() {
+        // data.stepKey 不等于目标值
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"code": 0, "data": {"stepKey": "intent_message", "taskID": 102555}}"#;
+        let condition = WsCollectCondition {
+            match_type: WsMatchType::Expression,
+            expression: r#"data.stepKey == "intent_unsupported""#.to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+
+    #[test]
+    fn test_match_expression_deeply_nested_field() {
+        // 三层嵌套: data.result.title
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"code": 0, "data": {"result": {"title": "意图消息", "content": "你好"}}}"#;
+        let condition = WsCollectCondition {
+            match_type: WsMatchType::Expression,
+            expression: r#"data.result.title == "意图消息""#.to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_expression_nested_numeric_field() {
+        // 嵌套数值字段比较
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"data": {"taskID": 102555}}"#;
+        let condition = WsCollectCondition {
+            match_type: WsMatchType::Expression,
+            expression: "data.taskID > 100000".to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_expression_top_level_and_nested_mixed() {
+        // 同时使用顶层字段和嵌套字段
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"code": 0, "success": true, "data": {"stepKey": "intent_unsupported"}}"#;
+        let condition = WsCollectCondition {
+            match_type: WsMatchType::Expression,
+            expression: r#"code == 0 && data.stepKey == "intent_unsupported""#.to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_match_expression_nested_with_string_literal_containing_dots() {
+        // 字符串字面量内的点号不应被转换
+        let manager = WebSocketConnectionManager::new();
+        let message = r#"{"data": {"url": "http://example.com/api"}}"#;
+        let condition = WsCollectCondition {
+            match_type: WsMatchType::Expression,
+            expression: r#"data.url == "http://example.com/api""#.to_string(),
+        };
+
+        let result = manager.match_message(message, &condition);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_preprocess_expression_basic() {
+        // 基本点号转换
+        assert_eq!(
+            preprocess_expression(r#"data.stepKey == "test""#),
+            r#"data__stepKey == "test""#
+        );
+    }
+
+    #[test]
+    fn test_preprocess_expression_deeply_nested() {
+        // 多层嵌套
+        assert_eq!(
+            preprocess_expression(r#"data.result.title == "hello""#),
+            r#"data__result__title == "hello""#
+        );
+    }
+
+    #[test]
+    fn test_preprocess_expression_preserves_strings() {
+        // 字符串字面量内的点号不被转换
+        assert_eq!(
+            preprocess_expression(r#"data.url == "http://example.com""#),
+            r#"data__url == "http://example.com""#
+        );
+    }
+
+    #[test]
+    fn test_preprocess_expression_no_dots() {
+        // 没有点号的表达式不变
+        assert_eq!(
+            preprocess_expression("code == 200"),
+            "code == 200"
+        );
+    }
+
+    #[test]
+    fn test_preprocess_expression_multiple_chains() {
+        // 多个标识符链
+        assert_eq!(
+            preprocess_expression(r#"data.stepKey == "test" && data.result.code == 0"#),
+            r#"data__stepKey == "test" && data__result__code == 0"#
+        );
+    }
+
+    #[test]
+    fn test_flatten_identifier_chains_basic() {
+        assert_eq!(
+            flatten_identifier_chains("data.stepKey == 200"),
+            "data__stepKey == 200"
+        );
+    }
+
+    #[test]
+    fn test_flatten_identifier_chains_no_match() {
+        // 不含点号的标识符不修改
+        assert_eq!(
+            flatten_identifier_chains("code == 200"),
+            "code == 200"
+        );
+    }
+
+    #[test]
+    fn test_flatten_identifier_chains_float_not_matched() {
+        // 浮点数字面量不以字母开头，不会被匹配
+        assert_eq!(
+            flatten_identifier_chains("3.14"),
+            "3.14"
+        );
     }
 }

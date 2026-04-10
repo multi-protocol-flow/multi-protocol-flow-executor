@@ -542,27 +542,60 @@ impl WsSendCollectExecutor {
                                 let msg_index = collected.len();
                                 collected.push(message.clone());
 
-                                if self.ws_manager.match_message(&message, condition)? {
-                                    log::info!(
-                                        "[WebSocket] 响应匹配成功: connection_id={}",
-                                        connection_id
-                                    );
+                                // 条件匹配：对 match_message 错误做容错处理
+                                // 表达式语法错误等不匹配问题不应中断整个采集过程
+                                match self.ws_manager.match_message(&message, condition) {
+                                    Ok(true) => {
+                                        log::info!(
+                                            "[WebSocket] 响应匹配成功: connection_id={}",
+                                            connection_id
+                                        );
 
-                                    context
-                                        .emit_log(LogEvent {
-                                            level: LogLevel::Info,
-                                            message: format!("响应匹配成功: {}", message),
-                                            timestamp: std::time::SystemTime::now()
-                                                .duration_since(std::time::UNIX_EPOCH)
-                                                .expect("系统时间错误")
-                                                .as_millis() as u64,
-                                            node_uuid: Some(node.uuid.clone()),
-                                            node_name: Some(node.name.clone()),
-                                            flow_uuid: context.flow_uuid.clone(),
-                                        })
-                                        .await;
+                                        context
+                                            .emit_log(LogEvent {
+                                                level: LogLevel::Info,
+                                                message: format!("响应匹配成功: {}", message),
+                                                timestamp: std::time::SystemTime::now()
+                                                    .duration_since(std::time::UNIX_EPOCH)
+                                                    .expect("系统时间错误")
+                                                    .as_millis() as u64,
+                                                node_uuid: Some(node.uuid.clone()),
+                                                node_name: Some(node.name.clone()),
+                                                flow_uuid: context.flow_uuid.clone(),
+                                            })
+                                            .await;
 
-                                    return Ok(CollectResult { collected, matched_index: Some(msg_index) });
+                                        return Ok(CollectResult { collected, matched_index: Some(msg_index) });
+                                    }
+                                    Ok(false) => {
+                                        // 消息不匹配条件，继续等待下一条
+                                        log::debug!(
+                                            "[WebSocket] 消息不匹配条件，继续等待: connection_id={}, 消息={}",
+                                            connection_id,
+                                            &message[..message.len().min(200)]
+                                        );
+                                    }
+                                    Err(e) => {
+                                        // 匹配过程出错（如表达式语法错误），记录日志但继续等待
+                                        log::warn!(
+                                            "[WebSocket] 条件匹配出错（继续等待）: connection_id={}, error={}",
+                                            connection_id,
+                                            e
+                                        );
+                                        context
+                                            .emit_log(LogEvent {
+                                                level: LogLevel::Warn,
+                                                message: format!("条件匹配出错（继续等待）: {}", e),
+                                                timestamp: std::time::SystemTime::now()
+                                                    .duration_since(std::time::UNIX_EPOCH)
+                                                    .expect("系统时间错误")
+                                                    .as_millis() as u64,
+                                                node_uuid: Some(node.uuid.clone()),
+                                                node_name: Some(node.name.clone()),
+                                                flow_uuid: context.flow_uuid.clone(),
+                                            })
+                                            .await;
+                                    }
                                 }
                             }
                         }
