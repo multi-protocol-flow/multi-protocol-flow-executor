@@ -5,7 +5,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused } from '@/stores';
+import { useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 
 /** Entry 节点数据类型 */
@@ -20,14 +20,13 @@ export interface EntryNodeData {
  */
 export function EntryNode({ id, data, selected }: NodeProps) {
   const nodeData = data as EntryNodeData;
-  const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
-  const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
   const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
   const isPaused = useDebugStore(selectIsPaused);
   const isDebugPausedAtThisNode = isPaused && currentNodeUuid === id;
   const getNodeExecutionStatus = useExecutionStore((state) => state.getNodeExecutionStatus);
   const executionStatus = getNodeExecutionStatus(id);
   const executionClassName = executionStatus !== 'pending' ? `execution-${executionStatus}` : '';
+  const isDebugging = useDebugStore(selectIsDebugging);
   
   return (
     <div
@@ -43,10 +42,8 @@ export function EntryNode({ id, data, selected }: NodeProps) {
         executionClassName
       )}
     >
-      <BreakpointMarker
-        hasBreakpoint={hasBreakpoint}
-        onToggle={() => toggleBreakpoint(id)}
-      />
+      {/* 入口节点：调试模式下显示锁定断点（不可取消） */}
+      {isDebugging && <BreakpointMarker hasBreakpoint={true} locked />}
       <div className="flex items-center gap-2.5 w-full min-w-0">
         <div className={cn(
           'shrink-0 p-1.5 rounded-lg',
