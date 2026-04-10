@@ -775,7 +775,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_wait_mode_first_message() {
+    async fn test_collect_mode_first_message() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager);
 
@@ -809,7 +809,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_wait_mode_condition() {
+    async fn test_collect_mode_condition() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager);
 
@@ -847,7 +847,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_wait_mode_duration() {
+    async fn test_collect_mode_duration() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager);
 
