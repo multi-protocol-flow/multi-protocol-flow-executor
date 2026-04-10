@@ -2,7 +2,7 @@
  * Flow 数据与 React Flow 数据转换工具
  */
 import type { Node, Edge } from '@xyflow/react';
-import type { Flow, Connection, NodeData } from '@/types';
+import type { Flow, Connection, NodeData, NodeType } from '@/types';
 
 /** React Flow 节点数据类型 */
 export type FlowNodeData = Record<string, unknown> & {
@@ -98,4 +98,79 @@ export function isValidConnection(
   }
   
   return true;
+}
+
+/**
+ * 创建节点类型的默认配置数据
+ */
+export function createDefaultNodeData(type: NodeType): NodeData {
+  switch (type) {
+    case 'http':
+      return { type: 'http', url: '', method: 'get', headers: {}, body: '' };
+    case 'conditional':
+      return {
+        type: 'conditional',
+        condition_type: 'simple',
+        field_path: '',
+        operator: 'equal',
+        expected_value: '',
+      };
+    case 'ws_connect':
+      return { type: 'ws_connect', url: '' };
+    case 'ws_send_collect':
+      return { type: 'ws_send_collect', connection_id: '', message: '', collect_response: false };
+    case 'ws_close':
+      return { type: 'ws_close', connection_id: '' };
+    case 'assertion':
+      return {
+        type: 'assertion',
+        assertions: [],
+        mode: 'all',
+        on_failure: 'route_false',
+        continue_on_failure: false,
+      };
+    case 'db_connect':
+      return { type: 'db_connect', connection_uuid: '' };
+    case 'db_query':
+      return { type: 'db_query', connection_uuid: '', sql: '', params: [], result_to: '' };
+    case 'db_begin':
+      return { type: 'db_begin', connection_uuid: '' };
+    case 'db_commit':
+      return { type: 'db_commit', connection_uuid: '' };
+    case 'db_rollback':
+      return { type: 'db_rollback', connection_uuid: '' };
+    case 'db_close':
+      return { type: 'db_close', connection_uuid: '' };
+    case 'script':
+      return { type: 'script', script: '' };
+    case 'entry':
+      return { type: 'entry' };
+  }
+}
+
+/**
+ * 节点类型对应的显示名称
+ */
+const NODE_TYPE_LABELS: Record<NodeType, string> = {
+  http: 'HTTP 请求',
+  conditional: '条件判断',
+  ws_connect: 'WS 连接',
+  ws_send_collect: 'WS 发送采集',
+  ws_close: 'WS 关闭',
+  assertion: '断言',
+  db_connect: 'DB 连接',
+  db_query: 'DB 查询',
+  db_begin: 'DB 开始事务',
+  db_commit: 'DB 提交',
+  db_rollback: 'DB 回滚',
+  db_close: 'DB 关闭',
+  script: '脚本',
+  entry: '入口',
+};
+
+/**
+ * 创建默认节点显示名称
+ */
+export function createDefaultNodeName(type: NodeType, count: number): string {
+  return `${NODE_TYPE_LABELS[type]} ${count}`;
 }

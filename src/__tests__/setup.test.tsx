@@ -46,12 +46,13 @@ describe('App', () => {
     expect(screen.getByText('流程列表')).toBeDefined()
   })
 
-  it('renders the node library', () => {
+  it('does not render node library in sidebar', () => {
     render(
       <TestWrapper>
         <App />
       </TestWrapper>
     )
-    expect(screen.getByText('节点库')).toBeDefined()
+    // 节点库已移至画布底部 NodePalette，侧边栏不再显示
+    expect(screen.queryByText('节点库')).toBeNull()
   })
 })

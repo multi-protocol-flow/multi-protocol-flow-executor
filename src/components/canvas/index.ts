@@ -3,6 +3,7 @@
  */
 export { FlowCanvas } from './FlowCanvas';
 export { CanvasToolbar } from './CanvasToolbar';
+export { NodePalette } from './NodePalette';
 export { EntryNode, HttpNode, ConditionalNode } from './nodes';
 export type { EntryNodeData, HttpNodeData, ConditionalNodeData } from './nodes';
 export { CustomEdge } from './edges/CustomEdge';
@@ -12,5 +13,7 @@ export {
   generateId,
   createConnection,
   isValidConnection,
+  createDefaultNodeData,
+  createDefaultNodeName,
 } from './utils';
 export type { FlowNodeData } from './utils';

@@ -4,6 +4,7 @@
  */
 import { Globe, GitBranch, GripVertical, Sparkles, Wifi, Send, Plug, CheckCircle, Database, CirclePlay, RotateCcw, Code } from 'lucide-react';
 import { useFlowStore } from '@/stores';
+import type { NodeType } from '@/types';
 import { cn } from '@/lib/utils';
 
 /** 节点类型定义 */
@@ -130,13 +131,13 @@ const NODE_TYPES = [
 export function NodeLibrary({ showHeader = true }: { showHeader?: boolean }) {
   const { setPendingAddNodeType, flow } = useFlowStore();
 
-  const handleDragStart = (e: React.DragEvent, type: string) => {
+  const handleDragStart = (e: React.DragEvent, type: NodeType) => {
     e.dataTransfer.setData('application/reactflow/nodeType', type);
     e.dataTransfer.effectAllowed = 'move';
   };
 
   // 点击添加节点 - 设置待添加类型，由 FlowCanvas 在视口中心处理
-  const handleAddNode = (type: string) => {
+  const handleAddNode = (type: NodeType) => {
     if (!flow) return;
     setPendingAddNodeType(type);
   };

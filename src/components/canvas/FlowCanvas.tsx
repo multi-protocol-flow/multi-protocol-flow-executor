@@ -23,12 +23,16 @@ import '@xyflow/react/dist/style.css';
 
 import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode } from './nodes';
 import { CanvasToolbar } from './CanvasToolbar';
+import { NodePalette } from './NodePalette';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
+import type { NodeType } from '@/types';
 import {
   convertFlowToReactFlow,
   convertEdgeToConnection,
   isValidConnection,
+  createDefaultNodeData,
+  createDefaultNodeName,
 } from './utils';
 import { cn } from '@/lib/utils';
 import { saveFlow } from '@/services/storage/flowStorage';
@@ -380,124 +384,15 @@ function FlowCanvasInner() {
       // 根据节点类型创建节点配置
       const nodeCount = flow.nodes.length + 1;
       const newNodeUuid = crypto.randomUUID();
-
-      if (nodeType === 'http') {
-        addNode({
-          uuid: newNodeUuid,
-          type: 'http',
-          name: `HTTP 请求 ${nodeCount}`,
-          position,
-          data: { type: 'http', url: '', method: 'get', headers: {}, body: '' },
-        });
-      } else if (nodeType === 'conditional') {
-        addNode({
-          uuid: newNodeUuid,
-          type: 'conditional',
-          name: `条件判断 ${nodeCount}`,
-          position,
-          data: {
-            type: 'conditional',
-            condition_type: 'simple',
-            field_path: '',
-            operator: 'equal',
-            expected_value: '',
-          },
-        });
-      } else if (nodeType === 'ws_connect') {
-        addNode({
-          uuid: newNodeUuid,
-          type: 'ws_connect',
-          name: `WS 连接 ${nodeCount}`,
-          position,
-          data: { type: 'ws_connect', url: '' },
-        });
-      } else if (nodeType === 'ws_send_collect') {
-        addNode({
-          uuid: newNodeUuid,
-          type: 'ws_send_collect',
-          name: `WS 发送采集 ${nodeCount}`,
-          position,
-          data: { type: 'ws_send_collect', connection_id: '', message: '', collect_response: false },
-        });
-      } else if (nodeType === 'ws_close') {
-        addNode({
-          uuid: newNodeUuid,
-          type: 'ws_close',
-          name: `WS 关闭 ${nodeCount}`,
-          position,
-          data: { type: 'ws_close', connection_id: '' },
-        });
-      } else if (nodeType === 'assertion') {
-        addNode({
-          uuid: newNodeUuid,
-          type: 'assertion',
-          name: `断言 ${nodeCount}`,
-          position,
-          data: {
-            type: 'assertion',
-            assertions: [],
-            mode: 'all',
-            on_failure: 'route_false',
-            continue_on_failure: false,
-          },
-        });
-      } else if (nodeType === 'db_connect') {
-        addNode({
-          uuid: newNodeUuid,
-          type: 'db_connect',
-          name: `DB 连接 ${nodeCount}`,
-          position,
-          data: { type: 'db_connect', connection_uuid: '' },
-        });
-      } else if (nodeType === 'db_query') {
-        addNode({
-          uuid: newNodeUuid,
-          type: 'db_query',
-          name: `DB 查询 ${nodeCount}`,
-          position,
-          data: { type: 'db_query', connection_uuid: '', sql: '', params: [], result_to: '' },
-        });
-      } else if (nodeType === 'db_begin') {
-        addNode({
-          uuid: newNodeUuid,
-          type: 'db_begin',
-          name: `DB 开始事务 ${nodeCount}`,
-          position,
-          data: { type: 'db_begin', connection_uuid: '' },
-        });
-      } else if (nodeType === 'db_commit') {
-        addNode({
-          uuid: newNodeUuid,
-          type: 'db_commit',
-          name: `DB 提交 ${nodeCount}`,
-          position,
-          data: { type: 'db_commit', connection_uuid: '' },
-        });
-      } else if (nodeType === 'db_rollback') {
-        addNode({
-          uuid: newNodeUuid,
-          type: 'db_rollback',
-          name: `DB 回滚 ${nodeCount}`,
-          position,
-          data: { type: 'db_rollback', connection_uuid: '' },
-        });
-      } else if (nodeType === 'db_close') {
-        addNode({
-          uuid: newNodeUuid,
-          type: 'db_close',
-          name: `DB 关闭 ${nodeCount}`,
-          position,
-          data: { type: 'db_close', connection_uuid: '' },
-        });
-      } else if (nodeType === 'script') {
-        addNode({
-          uuid: newNodeUuid,
-          type: 'script',
-          name: `脚本 ${nodeCount}`,
-          position,
-          data: { type: 'script', script: '' },
-        });
-      }
+      const data = createDefaultNodeData(nodeType as NodeType);
+      const name = createDefaultNodeName(nodeType as NodeType, nodeCount);
+      addNode({
+        uuid: newNodeUuid,
+        type: nodeType as NodeType,
+        name,
+        position,
+        data,
+      });
     },
     [screenToFlowPosition, flow, addNode]
   );
@@ -523,124 +418,15 @@ function FlowCanvasInner() {
     // 根据节点类型创建节点
     const nodeCount = flow.nodes.length + 1;
     const newNodeUuid = crypto.randomUUID();
-
-    if (pendingAddNodeType === 'http') {
-      addNode({
-        uuid: newNodeUuid,
-        type: 'http',
-        name: `HTTP 请求 ${nodeCount}`,
-        position,
-        data: { type: 'http', url: '', method: 'get', headers: {}, body: '' },
-      });
-    } else if (pendingAddNodeType === 'conditional') {
-      addNode({
-        uuid: newNodeUuid,
-        type: 'conditional',
-        name: `条件判断 ${nodeCount}`,
-        position,
-        data: {
-          type: 'conditional',
-          condition_type: 'simple',
-          field_path: '',
-          operator: 'equal',
-          expected_value: '',
-        },
-      });
-    } else if (pendingAddNodeType === 'ws_connect') {
-      addNode({
-        uuid: newNodeUuid,
-        type: 'ws_connect',
-        name: `WS 连接 ${nodeCount}`,
-        position,
-        data: { type: 'ws_connect', url: '' },
-      });
-    } else if (pendingAddNodeType === 'ws_send_collect') {
-      addNode({
-        uuid: newNodeUuid,
-        type: 'ws_send_collect',
-        name: `WS 发送采集 ${nodeCount}`,
-        position,
-        data: { type: 'ws_send_collect', connection_id: '', message: '', collect_response: false },
-      });
-    } else if (pendingAddNodeType === 'ws_close') {
-      addNode({
-        uuid: newNodeUuid,
-        type: 'ws_close',
-        name: `WS 关闭 ${nodeCount}`,
-        position,
-        data: { type: 'ws_close', connection_id: '' },
-      });
-    } else if (pendingAddNodeType === 'assertion') {
-      addNode({
-        uuid: newNodeUuid,
-        type: 'assertion',
-        name: `断言 ${nodeCount}`,
-        position,
-        data: {
-          type: 'assertion',
-          assertions: [],
-          mode: 'all',
-          on_failure: 'route_false',
-          continue_on_failure: false,
-        },
-      });
-    } else if (pendingAddNodeType === 'db_connect') {
-      addNode({
-        uuid: newNodeUuid,
-        type: 'db_connect',
-        name: `DB 连接 ${nodeCount}`,
-        position,
-        data: { type: 'db_connect', connection_uuid: '' },
-      });
-    } else if (pendingAddNodeType === 'db_query') {
-      addNode({
-        uuid: newNodeUuid,
-        type: 'db_query',
-        name: `DB 查询 ${nodeCount}`,
-        position,
-        data: { type: 'db_query', connection_uuid: '', sql: '', params: [], result_to: '' },
-      });
-    } else if (pendingAddNodeType === 'db_begin') {
-      addNode({
-        uuid: newNodeUuid,
-        type: 'db_begin',
-        name: `DB 开始事务 ${nodeCount}`,
-        position,
-        data: { type: 'db_begin', connection_uuid: '' },
-      });
-    } else if (pendingAddNodeType === 'db_commit') {
-      addNode({
-        uuid: newNodeUuid,
-        type: 'db_commit',
-        name: `DB 提交 ${nodeCount}`,
-        position,
-        data: { type: 'db_commit', connection_uuid: '' },
-      });
-    } else if (pendingAddNodeType === 'db_rollback') {
-      addNode({
-        uuid: newNodeUuid,
-        type: 'db_rollback',
-        name: `DB 回滚 ${nodeCount}`,
-        position,
-        data: { type: 'db_rollback', connection_uuid: '' },
-      });
-    } else if (pendingAddNodeType === 'db_close') {
-      addNode({
-        uuid: newNodeUuid,
-        type: 'db_close',
-        name: `DB 关闭 ${nodeCount}`,
-        position,
-        data: { type: 'db_close', connection_uuid: '' },
-      });
-    } else if (pendingAddNodeType === 'script') {
-      addNode({
-        uuid: newNodeUuid,
-        type: 'script',
-        name: `脚本 ${nodeCount}`,
-        position,
-        data: { type: 'script', script: '' },
-      });
-    }
+    const data = createDefaultNodeData(pendingAddNodeType);
+    const name = createDefaultNodeName(pendingAddNodeType, nodeCount);
+    addNode({
+      uuid: newNodeUuid,
+      type: pendingAddNodeType,
+      name,
+      position,
+      data,
+    });
 
     // 清除待添加节点状态
     clearPendingAddNodeType();
@@ -699,6 +485,9 @@ function FlowCanvasInner() {
 
       {/* 画布悬浮工具栏 */}
       <CanvasToolbar />
+
+      {/* 底部节点工具条 */}
+      <NodePalette />
       
       <ReactFlow
         nodes={nodes}

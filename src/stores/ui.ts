@@ -42,14 +42,10 @@ interface UIState {
   // ===== 左侧栏面板折叠状态 =====
   /** 流程列表是否折叠 */
   isFlowListCollapsed: boolean;
-  /** 节点库是否折叠 */
-  isNodeLibraryCollapsed: boolean;
   /** 变量面板是否折叠 */
   isVariablePanelCollapsed: boolean;
   /** 连接面板是否折叠 */
   isConnectionsPanelCollapsed: boolean;
-  /** 节点库高度（像素） */
-  nodeLibraryHeight: number;
   /** 变量面板高度（像素） */
   variablePanelHeight: number;
   /** 连接面板高度（像素） */
@@ -158,14 +154,10 @@ interface UIState {
   // ===== 左侧栏面板 Actions =====
   /** 切换流程列表折叠状态 */
   toggleFlowListCollapsed: () => void;
-  /** 切换节点库折叠状态 */
-  toggleNodeLibraryCollapsed: () => void;
   /** 切换变量面板折叠状态 */
   toggleVariablePanelCollapsed: () => void;
   /** 切换连接面板折叠状态 */
   toggleConnectionsPanelCollapsed: () => void;
-  /** 设置节点库高度 */
-  setNodeLibraryHeight: (height: number) => void;
   /** 设置变量面板高度 */
   setVariablePanelHeight: (height: number) => void;
   /** 设置连接面板高度 */
@@ -218,10 +210,8 @@ const initialState = {
 
   // 左侧栏面板折叠状态
   isFlowListCollapsed: false,
-  isNodeLibraryCollapsed: false,
   isVariablePanelCollapsed: false,
   isConnectionsPanelCollapsed: false,
-  nodeLibraryHeight: 200,
   variablePanelHeight: 200,
   connectionsPanelHeight: 150,
 
@@ -354,20 +344,10 @@ export const useUIStore = create<UIState>((set) => ({
       isFlowListCollapsed: !state.isFlowListCollapsed,
     })),
 
-  toggleNodeLibraryCollapsed: () =>
-    set((state) => ({
-      isNodeLibraryCollapsed: !state.isNodeLibraryCollapsed,
-    })),
-
   toggleVariablePanelCollapsed: () =>
     set((state) => ({
       isVariablePanelCollapsed: !state.isVariablePanelCollapsed,
     })),
-
-  setNodeLibraryHeight: (height) =>
-    set({
-      nodeLibraryHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
-    }),
 
   setVariablePanelHeight: (height) =>
     set({
@@ -440,9 +420,7 @@ export const useUIStore = create<UIState>((set) => ({
       isExecutionPanelOpen: false,
       bottomPanelTab: 'history' as BottomPanelTab,
       isFlowListCollapsed: false,
-      isNodeLibraryCollapsed: false,
       isVariablePanelCollapsed: false,
-      nodeLibraryHeight: 200,
       variablePanelHeight: 200,
       isContextVariablesCollapsed: false,
       isExecutionStackCollapsed: false,

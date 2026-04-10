@@ -2,7 +2,7 @@
  * 当前编辑流程状态管理
  */
 import { create } from 'zustand';
-import type { Flow, Node, Connection } from '@/types';
+import type { Flow, Node, Connection, NodeType } from '@/types';
 
 interface FlowState {
   /** 当前编辑的流程 */
@@ -11,8 +11,8 @@ interface FlowState {
   selectedNodeId: string | null;
   /** 流程是否已修改（未保存） */
   isDirty: boolean;
-  /** 待添加的节点类型（由 NodeLibrary 设置，FlowCanvas 处理） */
-  pendingAddNodeType: string | null;
+  /** 待添加的节点类型（由 NodePalette 设置，FlowCanvas 处理） */
+  pendingAddNodeType: NodeType | null;
   /** 需要聚焦的节点 UUID（由 DebugPanel 设置，FlowCanvas 处理） */
   focusNodeUuid: string | null;
   /** 流程是否被锁定（禁止编辑） */
@@ -44,7 +44,7 @@ interface FlowState {
   /** 重置流程状态 */
   reset: () => void;
   /** 设置待添加节点类型（用于跨组件通信） */
-  setPendingAddNodeType: (type: string | null) => void;
+  setPendingAddNodeType: (type: NodeType | null) => void;
   /** 清除待添加节点类型 */
   clearPendingAddNodeType: () => void;
   /** 切换节点断点状态 */
