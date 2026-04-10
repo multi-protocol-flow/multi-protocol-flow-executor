@@ -104,14 +104,18 @@ export function CanvasToolbar() {
   const handleStartDebug = async () => {
     if (!flow) return;
 
-    // 收集所有有断点的节点
-    const breakpoints = flow.nodes
+    // 找到入口节点
+    const entryNode = flow.nodes.find((n) => n.type === 'entry');
+    if (!entryNode) return;
+
+    // 收集所有有断点的节点，并确保入口节点始终在断点列表中
+    const breakpointUuids = flow.nodes
       .filter((n) => n.hasBreakpoint === true)
       .map((n) => n.uuid);
 
-    if (breakpoints.length === 0) {
-      return;
-    }
+    const breakpoints = breakpointUuids.includes(entryNode.uuid)
+      ? breakpointUuids
+      : [entryNode.uuid, ...breakpointUuids];
 
     // 启动调试时自动打开右侧面板以显示调试面板
     setConfigPanelOpen(true);
@@ -123,11 +127,9 @@ export function CanvasToolbar() {
   // 压测运行时禁用执行和调试
   const isDisabled = !hasValidFlow || !hasEntryNode || isExecuting || isStressTestRunning;
 
-  // 收集断点
-  const breakpoints = flow?.nodes.filter((n) => n.hasBreakpoint === true) || [];
-  const hasBreakpoints = breakpoints.length > 0;
-  // 压测运行时禁用调试
-  const canStartDebug = hasValidFlow && hasEntryNode && hasBreakpoints && !isExecuting && !isDebugging && !isStressTestRunning;
+  // 调试按钮不再依赖用户手动设置断点（入口节点默认作为断点）
+  // 压测运行时禁用调试按钮
+  const canStartDebug = hasValidFlow && hasEntryNode && !isExecuting && !isDebugging && !isStressTestRunning;
   // 执行或调试时禁用压测按钮
   const canStartStressTest = hasValidFlow && hasEntryNode && !isExecuting && !isDebugging && !isStressTestRunning;
 
@@ -171,9 +173,7 @@ export function CanvasToolbar() {
         onClick={handleStartDebug}
         disabled={!canStartDebug}
         title={
-          !hasBreakpoints
-            ? '调试（需要至少设置一个断点）'
-            : isExecuting
+          isExecuting
             ? '调试（执行中不可用）'
             : isStressTestRunning
             ? '调试（压测进行中不可用）'
