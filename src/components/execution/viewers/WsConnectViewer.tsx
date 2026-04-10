@@ -70,7 +70,7 @@ interface WsConnectOutput {
   } | null;
   timing?: {
     connect_ms?: number | null;
-    wait_response_ms?: number | null;
+    collect_response_ms?: number | null;
     total_ms?: number | null;
   };
 }
@@ -98,7 +98,7 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
   const connectionId = output?.connection_id;
   const message = output?.message;
   const connectDuration = output?.timing?.connect_ms;
-  const collectDuration = output?.timing?.wait_response_ms;
+  const collectDuration = output?.timing?.collect_response_ms;
   const totalDuration = output?.timing?.total_ms ?? ((connectDuration || 0) + (collectDuration || 0));
 
   return (

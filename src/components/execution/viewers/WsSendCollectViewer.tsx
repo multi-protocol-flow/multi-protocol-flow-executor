@@ -494,6 +494,3 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
     </div>
   );
 }
-
-/** @deprecated 使用 WsSendCollectViewer 替代 */
-export const WsSendWaitViewer = WsSendCollectViewer;
