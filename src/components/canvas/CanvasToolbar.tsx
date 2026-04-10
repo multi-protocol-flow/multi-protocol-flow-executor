@@ -2,8 +2,8 @@
  * CanvasToolbar - 画布悬浮工具栏
  * 位于画布顶部居中，包含执行按钮等操作
  */
-import { useState } from 'react';
-import { Play, Loader2, Bug, Activity } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Play, Loader2, Bug, Activity, Variable as VariableIcon, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
@@ -17,6 +17,7 @@ import { DebugToolbar } from './DebugToolbar';
 import { StressTestConfigDialog } from '@/components/stress-test/StressTestConfigDialog';
 import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
 import { StressTestResult } from '@/components/stress-test/StressTestResult';
+import { VariablePanel, extractVariableGroups } from '@/components/panels/VariablePanel';
 
 /**
  * 画布悬浮工具栏组件
@@ -133,6 +134,16 @@ export function CanvasToolbar() {
   // 执行或调试时禁用压测按钮
   const canStartStressTest = hasValidFlow && hasEntryNode && !isExecuting && !isDebugging && !isStressTestRunning;
 
+  // 变量抽屉状态
+  const isVariableDrawerOpen = useUIStore((s) => s.isVariableDrawerOpen);
+  const toggleVariableDrawer = useUIStore((s) => s.toggleVariableDrawer);
+  const variableGroups = useMemo(() => flow ? extractVariableGroups(flow) : [], [flow]);
+  const hasVariables = variableGroups.length > 0;
+  const totalVariables = useMemo(
+    () => variableGroups.reduce((sum, g) => sum + g.variables.length, 0),
+    [variableGroups]
+  );
+
   // 调试模式下显示 DebugToolbar
   if (isDebugging) {
     return <DebugToolbar />;
@@ -140,93 +151,156 @@ export function CanvasToolbar() {
 
   // 工具栏内容
   const toolbarContent = (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-slate-200/50">
-      {/* 执行按钮 */}
-      <button
-        onClick={handleExecute}
-        disabled={isDisabled}
-        title={isExecuting ? '执行中...' : '执行流程'}
-        className={cn(
-          'flex items-center justify-center',
-          'transition-all duration-150',
-          // 正常状态：实心红色播放图标
-          !isDisabled && [
-            'text-red-500 hover:text-red-600',
-            'hover:scale-110',
-            'cursor-pointer',
-          ],
-          // 禁用状态
-          isDisabled && [
-            'text-slate-300 cursor-not-allowed',
-          ]
-        )}
-      >
-        {isExecuting ? (
-          <Loader2 className="w-6 h-6 animate-spin" />
-        ) : (
-          <Play className="w-6 h-6" fill="currentColor" stroke="none" />
-        )}
-      </button>
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-start gap-2">
+      {/* 主工具栏 */}
+      <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-slate-200/50">
+        {/* 执行按钮 */}
+        <button
+          type="button"
+          onClick={handleExecute}
+          disabled={isDisabled}
+          title={isExecuting ? '执行中...' : '执行流程'}
+          className={cn(
+            'flex items-center justify-center',
+            'transition-all duration-150',
+            !isDisabled && [
+              'text-red-500 hover:text-red-600',
+              'hover:scale-110',
+              'cursor-pointer',
+            ],
+            isDisabled && [
+              'text-slate-300 cursor-not-allowed',
+            ]
+          )}
+        >
+          {isExecuting ? (
+            <Loader2 className="w-6 h-6 animate-spin" />
+          ) : (
+            <Play className="w-6 h-6" fill="currentColor" stroke="none" />
+          )}
+        </button>
 
-      {/* 调试按钮 */}
-      <button
-        onClick={handleStartDebug}
-        disabled={!canStartDebug}
-        title={
-          isExecuting
-            ? '调试（执行中不可用）'
-            : isStressTestRunning
-            ? '调试（压测进行中不可用）'
-            : '开始调试'
-        }
-        className={cn(
-          'flex items-center justify-center',
-          'transition-all duration-150',
-          // 正常状态：绿色虫子图标
-          canStartDebug && [
-            'text-green-500 hover:text-green-600',
-            'hover:scale-110',
-            'cursor-pointer',
-          ],
-          // 禁用状态
-          !canStartDebug && [
-            'text-slate-300 cursor-not-allowed',
-          ]
-        )}
-      >
-        <Bug className="w-6 h-6" />
-      </button>
+        {/* 调试按钮 */}
+        <button
+          type="button"
+          onClick={handleStartDebug}
+          disabled={!canStartDebug}
+          title={
+            isExecuting
+              ? '调试（执行中不可用）'
+              : isStressTestRunning
+              ? '调试（压测进行中不可用）'
+              : '开始调试'
+          }
+          className={cn(
+            'flex items-center justify-center',
+            'transition-all duration-150',
+            canStartDebug && [
+              'text-green-500 hover:text-green-600',
+              'hover:scale-110',
+              'cursor-pointer',
+            ],
+            !canStartDebug && [
+              'text-slate-300 cursor-not-allowed',
+            ]
+          )}
+        >
+          <Bug className="w-6 h-6" />
+        </button>
 
-      {/* 压测按钮 */}
-      <button
-        onClick={openStressTestConfigDialog}
-        disabled={!canStartStressTest}
-        title={
-          isExecuting
-            ? '压测（执行中不可用）'
-            : isDebugging
-            ? '压测（调试中不可用）'
-            : isStressTestRunning
-            ? '压测（已运行）'
-            : '压力测试'
-        }
-        className={cn(
-          'flex items-center justify-center',
-          'transition-all duration-150',
-          // 正常状态：蓝色活动图标
-          canStartStressTest && [
-            'text-blue-500 hover:text-blue-600',
-            'hover:scale-110',
-            'cursor-pointer',
-          ],
-          // 禁用状态
-          !canStartStressTest && [
-            'text-slate-300 cursor-not-allowed',
-          ]
-        )}
-      >
-        <Activity className="w-6 h-6" />
-      </button>
+        {/* 压测按钮 */}
+        <button
+          type="button"
+          onClick={openStressTestConfigDialog}
+          disabled={!canStartStressTest}
+          title={
+            isExecuting
+              ? '压测（执行中不可用）'
+              : isDebugging
+              ? '压测（调试中不可用）'
+              : isStressTestRunning
+              ? '压测（已运行）'
+              : '压力测试'
+          }
+          className={cn(
+            'flex items-center justify-center',
+            'transition-all duration-150',
+            canStartStressTest && [
+              'text-blue-500 hover:text-blue-600',
+              'hover:scale-110',
+              'cursor-pointer',
+            ],
+            !canStartStressTest && [
+              'text-slate-300 cursor-not-allowed',
+            ]
+          )}
+        >
+          <Activity className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* 变量按钮 - 独立元素，紧贴工具栏右侧 */}
+      {hasVariables && (
+        <div className="relative">
+          <button
+            type="button"
+            onClick={toggleVariableDrawer}
+            className={cn(
+              'flex items-center justify-center',
+              'w-10 h-10 rounded-full',
+              'bg-white/90 backdrop-blur-sm shadow-lg border border-slate-200/50',
+              'transition-all duration-150 hover:shadow-lg',
+              'cursor-pointer',
+              isVariableDrawerOpen
+                ? 'text-violet-600 border-violet-200'
+                : 'text-slate-400 hover:text-slate-600'
+            )}
+            title={isVariableDrawerOpen ? '收起变量面板' : `变量 (${totalVariables})`}
+          >
+            <div className="relative">
+              <VariableIcon className="w-6 h-6" />
+              <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-violet-100 text-violet-600 text-[9px] font-bold leading-none px-0.5">
+                {totalVariables}
+              </span>
+            </div>
+          </button>
+
+          {/* 变量抽屉面板 */}
+          {isVariableDrawerOpen && (
+            <div className={cn(
+              'absolute top-full mt-2 left-1/2 -translate-x-1/2',
+              'w-72 max-h-[calc(100vh-200px)]',
+              'bg-white/95 backdrop-blur-xl rounded-xl',
+              'shadow-xl border border-slate-200/50',
+              'overflow-hidden',
+              'animate-in fade-in-0 zoom-in-95 duration-200'
+            )}>
+              {/* 标题栏 + 关闭按钮 */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <VariableIcon className="w-4 h-4 text-violet-600" />
+                  <span className="text-sm font-semibold text-slate-800">变量</span>
+                  <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                    {totalVariables}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleVariableDrawer}
+                  className="p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  title="收起"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              {/* 变量面板内容 */}
+              <div className="h-[calc(100%-40px)] overflow-hidden">
+                <VariablePanel flow={flow!} nodes={flow!.nodes} showHeader={false} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 

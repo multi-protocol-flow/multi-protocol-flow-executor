@@ -6,7 +6,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
 import { FlowListPanel, ConnectionsPanel } from '@/components/sidebar';
-import { VariablePanel, NodeConfigPanel } from '@/components/panels';
+import { NodeConfigPanel } from '@/components/panels';
 import { useUIStore, useFlowStore, useDebugStore } from '@/stores';
 import { selectIsDebugging } from '@/stores/debug';
 import { useRef, useState, useEffect, useCallback } from 'react';
@@ -24,17 +24,12 @@ const FLOW_LIST_MIN_HEIGHT = 100;
 const BOTTOM_PANEL_MIN_HEIGHT = 100;
 
 export function LeftSidebarPanel() {
-  const flow = useFlowStore((state) => state.flow);
-  const nodes = flow?.nodes ?? [];
-  
   // 获取选中节点（用于调试模式下的只读配置显示）
   const getSelectedNode = useFlowStore((state) => state.getSelectedNode);
 
   // UI 状态
   const isFlowListCollapsed = useUIStore((state) => state.isFlowListCollapsed);
-  const isVariablePanelCollapsed = useUIStore((state) => state.isVariablePanelCollapsed);
   const isConnectionsPanelCollapsed = useUIStore((state) => state.isConnectionsPanelCollapsed);
-  const variablePanelHeight = useUIStore((state) => state.variablePanelHeight);
   const connectionsPanelHeight = useUIStore((state) => state.connectionsPanelHeight);
   
   // 调试状态
@@ -42,9 +37,7 @@ export function LeftSidebarPanel() {
 
   // Actions
   const toggleFlowListCollapsed = useUIStore((state) => state.toggleFlowListCollapsed);
-  const toggleVariablePanelCollapsed = useUIStore((state) => state.toggleVariablePanelCollapsed);
   const toggleConnectionsPanelCollapsed = useUIStore((state) => state.toggleConnectionsPanelCollapsed);
-  const setVariablePanelHeight = useUIStore((state) => state.setVariablePanelHeight);
   const setConnectionsPanelHeight = useUIStore((state) => state.setConnectionsPanelHeight);
   const openNewFlowDialog = useUIStore((state) => state.openNewFlowDialog);
   const openConnectionDialog = useUIStore((state) => state.openConnectionDialog);
@@ -116,25 +109,8 @@ export function LeftSidebarPanel() {
             <FlowListPanel showHeader={false} />
           </CollapsiblePanel>
 
-          {/* ===== 底部面板区：变量面板 + 连接面板 ===== */}
+          {/* ===== 底部面板区：连接面板 ===== */}
           <div className="shrink-0 flex flex-col mt-auto overflow-hidden">
-            {/* 变量面板（仅在有流程时显示） */}
-            {flow && (
-              <CollapsiblePanel
-                title="变量面板"
-                isCollapsed={isVariablePanelCollapsed}
-                onToggle={toggleVariablePanelCollapsed}
-                height={variablePanelHeight}
-                onHeightChange={setVariablePanelHeight}
-                resizable={!isVariablePanelCollapsed}
-                maxHeight={maxBottomPanelHeight}
-                className="border-t border-border"
-              >
-                {/* 变量面板内容（不含标题栏） */}
-                <VariablePanel flow={flow} nodes={nodes} showHeader={false} />
-              </CollapsiblePanel>
-            )}
-
             {/* 数据库连接面板 */}
             <CollapsiblePanel
               title="数据库连接"
