@@ -713,8 +713,9 @@ function FlowCanvasInner() {
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        // 允许 Backspace 和 Delete 键触发删除操作
-        // 节点删除在 handleNodesChange 中被过滤，只有边可被删除
+        // Backspace 和 Delete 键触发删除操作
+        // 节点删除：由 useKeyboardShortcuts 在 capture 阶段拦截并弹出确认弹窗
+        // 边删除：由 handleEdgesChange 处理（仅未选中节点时生效）
         deleteKeyCode={['Backspace', 'Delete']}
 
         fitView
