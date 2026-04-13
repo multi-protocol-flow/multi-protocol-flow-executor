@@ -3,11 +3,12 @@
  * 使用 localStorage 模拟持久化存储
  */
 
-import type { Settings } from '@/types/settings';
+import type { Settings, ThemeMode } from '@/types/settings';
 
 const STORAGE_KEY = 'app-settings';
 const DEFAULT_REPORT_DIR = '~/.app/reports/';
 const DEFAULT_LOG_DIR = '~/.app/logs/';
+const DEFAULT_THEME: ThemeMode = 'system';
 
 /**
  * 从 localStorage 获取存储的设置
@@ -29,6 +30,7 @@ export async function loadSettings(): Promise<Settings> {
   return {
     reportDir: stored.reportDir ?? DEFAULT_REPORT_DIR,
     logDir: stored.logDir ?? DEFAULT_LOG_DIR,
+    theme: stored.theme ?? DEFAULT_THEME,
   };
 }
 

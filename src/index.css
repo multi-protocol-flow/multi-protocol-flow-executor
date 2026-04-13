@@ -56,15 +56,68 @@
   --border: oklch(0.88 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0 0 0);
+  --json-key: #0066cc;
+  --json-string: #22863a;
+  --json-number: #6f42c1;
+  --json-boolean: #e36209;
+  --json-null: #6a737d;
+  --json-icon: #666;
+  --json-icon-hover: #333;
+  --json-punctuation: #555;
+  --execution-running: #3b82f6;
+  --execution-success: #22c55e;
+  --execution-failed: #ef4444;
+  --scrollbar-thumb: oklch(0.8 0 0);
+  --scrollbar-thumb-hover: oklch(0.7 0 0);
+  /* 画布专用颜色 */
+  --canvas-edge: oklch(0.2 0 0);
+  --canvas-dot: #cbd5e1;
+  --controls-icon: #1e293b;
 }
 
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --json-key: #79b8ff;
+  --json-string: #85e89d;
+  --json-number: #d2a8ff;
+  --json-boolean: #ffab70;
+  --json-null: #8b949e;
+  --json-icon: #8b949e;
+  --json-icon-hover: #c9d1d9;
+  --json-punctuation: #8b949e;
+  --execution-running: #60a5fa;
+  --execution-success: #4ade80;
+  --execution-failed: #f87171;
+  --scrollbar-thumb: oklch(0.4 0 0);
+  --scrollbar-thumb-hover: oklch(0.5 0 0);
+  /* 画布专用颜色 */
+  --canvas-edge: oklch(0.55 0 0);
+  --canvas-dot: #475569;
+  --controls-icon: #e2e8f0;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-  }
-  html {
-    color-scheme: light;
   }
   body {
     @apply bg-background text-foreground;
@@ -119,16 +172,16 @@
 
   /* ===== 执行状态指示器（正常模式） ===== */
   .execution-running {
-    border-color: #3b82f6 !important;
+    border-color: var(--execution-running) !important;
     animation: execution-pulse 2s ease-in-out infinite;
   }
 
   .execution-success {
-    border-color: #22c55e !important;
+    border-color: var(--execution-success) !important;
   }
 
   .execution-failed {
-    border-color: #ef4444 !important;
+    border-color: var(--execution-failed) !important;
   }
 
   @keyframes execution-pulse {
@@ -138,7 +191,7 @@
 
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: oklch(0.8 0 0) transparent;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
   }
   
   .scrollbar-thin::-webkit-scrollbar {
@@ -151,12 +204,12 @@
   }
   
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: oklch(0.8 0 0);
+    background-color: var(--scrollbar-thumb);
     border-radius: 3px;
   }
   
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: oklch(0.7 0 0);
+    background-color: var(--scrollbar-thumb-hover);
   }
 }
 
@@ -187,7 +240,7 @@
 
 /* 属性名（key）- 柔和蓝色，正常粗细 */
 .json-viewer-label {
-  color: #0066cc;
+  color: var(--json-key);
   font-weight: 500;
 }
 
@@ -201,45 +254,45 @@
 
 /* 折叠/展开图标 - 保持原样，只调颜色 */
 .json-viewer-icon {
-  color: #666;
+  color: var(--json-icon);
   cursor: pointer;
 }
 
 .json-viewer-icon:hover {
-  color: #333;
+  color: var(--json-icon-hover);
 }
 
 /* 标点符号 */
 .json-viewer-punctuation {
-  color: #555;
+  color: var(--json-punctuation);
 }
 
 /* 字符串值 - 绿色 */
 .json-viewer-string {
-  color: #22863a;
+  color: var(--json-string);
 }
 
 /* 数字值 - 蓝紫色 */
 .json-viewer-number {
-  color: #6f42c1;
+  color: var(--json-number);
 }
 
 /* 布尔值 - 橙色 */
 .json-viewer-boolean {
-  color: #e36209;
+  color: var(--json-boolean);
 }
 
 /* null 值 - 灰色 */
 .json-viewer-null {
-  color: #6a737d;
+  color: var(--json-null);
 }
 
 /* undefined 值 */
 .json-viewer-undefined {
-  color: #6a737d;
+  color: var(--json-null);
 }
 
 /* 其他值 */
 .json-viewer-other {
-  color: #555;
+  color: var(--json-punctuation);
 }

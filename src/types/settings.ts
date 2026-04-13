@@ -6,6 +6,9 @@
 // 设置数据结构
 // ============================================================================
 
+/** 主题模式 */
+export type ThemeMode = 'light' | 'dark' | 'system';
+
 /**
  * 应用设置
  */
@@ -14,6 +17,8 @@ export interface Settings {
   reportDir: string;
   /** 日志目录路径 */
   logDir: string;
+  /** 主题模式 */
+  theme: ThemeMode;
 }
 
 // ============================================================================
@@ -28,6 +33,8 @@ export interface SettingsState {
   reportDir: string;
   /** 日志目录路径 */
   logDir: string;
+  /** 主题模式 */
+  theme: ThemeMode;
   /** 是否正在加载 */
   isLoading: boolean;
   /** 错误信息 */
@@ -48,6 +55,8 @@ export interface SettingsActions {
   setReportDir: (dir: string) => Promise<void>;
   /** 设置日志目录 */
   setLogDir: (dir: string) => Promise<void>;
+  /** 设置主题模式 */
+  setTheme: (theme: ThemeMode) => Promise<void>;
   /** 打开报告目录 */
   openReportDir: () => Promise<void>;
   /** 打开日志目录 */

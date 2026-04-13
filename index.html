@@ -5,8 +5,25 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Multi-Protocol Flow Executor</title>
+    <script>
+      (function() {
+        try {
+          var stored = localStorage.getItem('app-settings');
+          var settings = stored ? JSON.parse(stored) : {};
+          var theme = settings.theme || 'system';
+          var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+            document.documentElement.style.backgroundColor = 'oklch(0.145 0 0)';
+          } else {
+            document.documentElement.style.colorScheme = 'light';
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
-  <body>
+  <body class="bg-background text-foreground">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

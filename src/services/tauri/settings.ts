@@ -6,7 +6,7 @@
 import { LazyStore } from '@tauri-apps/plugin-store';
 import { open } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
-import type { Settings } from '@/types/settings';
+import type { Settings, ThemeMode } from '@/types/settings';
 const SETTINGS_FILE = 'settings.bin';
 
 let store: LazyStore | null = null;
@@ -29,10 +29,12 @@ export async function loadSettings(): Promise<Settings> {
   const s = await getStore();
   const reportDir = await s.get<string>('reportDir');
   const logDir = await s.get<string>('logDir');
+  const theme = await s.get<string>('theme');
   const appDataDir = await invoke<string>('get_app_data_dir');
   return {
     reportDir: reportDir ?? `${appDataDir}/reports/`,
     logDir: logDir ?? `${appDataDir}/logs/`,
+    theme: (theme as ThemeMode) ?? 'system',
   };
 }
 
@@ -46,6 +48,9 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
   }
   if (settings.logDir !== undefined) {
     await s.set('logDir', settings.logDir);
+  }
+  if (settings.theme !== undefined) {
+    await s.set('theme', settings.theme);
   }
   await s.save();
 }

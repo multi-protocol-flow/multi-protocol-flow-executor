@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import type { SettingsStore } from '@/types/settings';
+import type { SettingsStore, ThemeMode } from '@/types/settings';
 
 // 检测是否在 Tauri 环境中
 function isTauriEnv(): boolean {
@@ -29,6 +29,7 @@ function formatErrorMessage(e: unknown): string {
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
   reportDir: '',
   logDir: '',
+  theme: 'system' as ThemeMode,
   isLoading: true,
   error: null,
 
@@ -40,6 +41,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       set({
         reportDir: settings.reportDir,
         logDir: settings.logDir,
+        theme: settings.theme,
         isLoading: false,
       });
     } catch (e) {
@@ -65,6 +67,16 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       const service = await getSettingsService();
       await service.saveSettings({ logDir: dir });
       set({ logDir: dir });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setTheme: async (theme: ThemeMode) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ theme });
+      set({ theme });
     } catch (e) {
       set({ error: formatErrorMessage(e) });
     }
