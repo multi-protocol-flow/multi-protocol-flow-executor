@@ -26,6 +26,7 @@ import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
+import { useTheme } from '@/hooks/useTheme';
 import type { NodeType } from '@/types';
 import {
   convertFlowToReactFlow,
@@ -146,6 +147,7 @@ function FlowCanvasInner() {
     clearFocusNode,
   } = useFlowStore();
   const { setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen } = useUIStore();
+  const { resolvedTheme } = useTheme();
 
   const { screenToFlowPosition, fitView, setCenter, getNode } = useReactFlow();
   
@@ -476,6 +478,29 @@ function FlowCanvasInner() {
           fill: var(--foreground) !important;
           stroke: var(--foreground) !important;
         }
+        /* Controls 按钮背景 - 跟随主题 */
+        .react-flow__controls-button {
+          background-color: var(--background) !important;
+          border-color: var(--border) !important;
+        }
+        .react-flow__controls-button:hover {
+          background-color: var(--accent) !important;
+        }
+        /* Controls / MiniMap 边框 - 强制显示 */
+        .react-flow__controls,
+        .react-flow__minimap {
+          border-width: 1px !important;
+          border-style: solid !important;
+          border-color: var(--border) !important;
+        }
+        /* 暗黑模式边框增强 - 浅色默认的 10% 白太淡 */
+        .dark .react-flow__controls,
+        .dark .react-flow__minimap {
+          border-color: rgba(255, 255, 255, 0.15) !important;
+        }
+        .dark .react-flow__controls-button {
+          border-color: rgba(255, 255, 255, 0.1) !important;
+        }
         /* 拖拽时显示自定义 grabbing 光标 */
         .react-flow__node.dragging,
         .react-flow__node.dragging * {
@@ -537,7 +562,7 @@ function FlowCanvasInner() {
         {/* 小地图 */}
         <MiniMap
           nodeColor={minimapNodeColor}
-          maskColor="rgba(0, 0, 0, 0.1)"
+          maskColor={resolvedTheme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)'}
           className="!bg-background !border-border"
           pannable
           zoomable

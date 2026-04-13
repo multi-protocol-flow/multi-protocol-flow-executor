@@ -153,7 +153,7 @@ export function CanvasToolbar() {
   const toolbarContent = (
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-start gap-2">
       {/* 主工具栏 */}
-      <div className="flex items-center gap-3 bg-background/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-border/50">
+      <div className="flex items-center gap-3 bg-background/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-border/50 dark:border-white/20">
         {/* 执行按钮 */}
         <button
           type="button"
@@ -248,18 +248,18 @@ export function CanvasToolbar() {
             className={cn(
               'flex items-center justify-center',
               'w-10 h-10 rounded-full',
-              'bg-background/90 backdrop-blur-sm shadow-lg border border-border/50',
+              'bg-background/90 backdrop-blur-sm shadow-lg border border-border/50 dark:border-white/20',
               'transition-all duration-150 hover:shadow-lg',
               'cursor-pointer',
               isVariableDrawerOpen
-                ? 'text-violet-600 border-violet-200'
+                ? 'text-violet-600 border-violet-200 dark:border-violet-500/50'
                 : 'text-muted-foreground hover:text-foreground'
             )}
             title={isVariableDrawerOpen ? '收起变量面板' : `变量 (${totalVariables})`}
           >
             <div className="relative">
               <VariableIcon className="w-6 h-6" />
-              <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-violet-100 text-violet-600 text-[9px] font-bold leading-none px-0.5">
+              <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400 text-[9px] font-bold leading-none px-0.5">
                 {totalVariables}
               </span>
             </div>
@@ -271,7 +271,7 @@ export function CanvasToolbar() {
               'absolute top-full mt-2 left-1/2 -translate-x-1/2',
               'w-72 max-h-[calc(100vh-200px)]',
               'bg-background/95 backdrop-blur-xl rounded-xl',
-              'shadow-xl border border-border/50',
+              'shadow-xl border border-border/50 dark:border-white/20',
               'overflow-hidden',
               'animate-in fade-in-0 zoom-in-95 duration-200'
             )}>
