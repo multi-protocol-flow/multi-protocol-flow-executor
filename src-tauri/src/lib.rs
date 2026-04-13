@@ -51,7 +51,7 @@ pub use tauri_commands::{
 };
 
 // 导出适配器（供测试使用）
-pub use tauri_adapters::{TauriUnderlyingLogSender, TauriDirectoryOpener, TauriAppDirProvider, create_log_sender};
+pub use tauri_adapters::{TauriUnderlyingLogSender, TauriDirectoryOpener, TauriAppDirProvider, TauriDebugEventSender, create_log_sender};
 /// 获取默认日志目录
 fn default_logs_dir(app: &tauri::AppHandle) -> PathBuf {
     app.path().app_data_dir()

@@ -5,9 +5,10 @@
 use async_trait::async_trait;
 use tauri::ipc::Channel;
 use tauri::Manager;
-use flow_engine::traits::{UnderlyingLogSender, DirectoryOpener, QueuedLogSender, LogWorker as FlowLogWorker, ExecutionEventSender};
+use flow_engine::traits::{UnderlyingLogSender, DirectoryOpener, QueuedLogSender, LogWorker as FlowLogWorker, ExecutionEventSender, DebugEventSender};
 use flow_engine::log_event::LogEvent;
 use flow_engine::execution_event::ExecutionEvent;
+use flow_engine::debug::DebugEvent;
 
 /// Tauri 底层日志发送器
 ///
@@ -62,6 +63,25 @@ impl TauriExecutionEventSender {
 impl ExecutionEventSender for TauriExecutionEventSender {
     /// 同步发送执行事件到 Tauri IPC Channel
     fn send_event(&self, event: ExecutionEvent) -> Result<(), String> {
+        self.0.send(event).map_err(|e| format!("{:?}", e))
+    }
+}
+
+/// Tauri 调试事件发送器（用于普通执行模式的 WS 流事件）
+///
+/// 实现 `DebugEventSender` trait，将调试事件同步发送到 Tauri IPC Channel。
+pub struct TauriDebugEventSender(Channel<DebugEvent>);
+
+impl TauriDebugEventSender {
+    /// 创建新的 Tauri 调试事件发送器
+    pub fn new(channel: Channel<DebugEvent>) -> Self {
+        Self(channel)
+    }
+}
+
+impl DebugEventSender for TauriDebugEventSender {
+    /// 同步发送调试事件到 Tauri IPC Channel
+    fn send_event(&self, event: DebugEvent) -> Result<(), String> {
         self.0.send(event).map_err(|e| format!("{:?}", e))
     }
 }

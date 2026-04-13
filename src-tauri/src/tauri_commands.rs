@@ -15,9 +15,11 @@ use flow_engine::command::{
 use flow_engine::log_event::LogEvent;
 use flow_engine::execution_event::ExecutionEvent;
 use flow_engine::traits::ExecutionEventSender;
+use flow_engine::traits::DebugEventSender;
 use flow_engine::report::{FlowExecutionReport, ReportMetadata};
 use flow_engine::flow::Flow;
-use crate::tauri_adapters::{create_log_sender, TauriExecutionEventSender};
+use flow_engine::debug::DebugEvent;
+use crate::tauri_adapters::{create_log_sender, TauriExecutionEventSender, TauriDebugEventSender};
 
 
 
@@ -46,6 +48,7 @@ pub async fn execute_flow(
     flow: Flow,
     on_event: Channel<LogEvent>,
     on_execution_event: Channel<ExecutionEvent>,
+    on_ws_event: Channel<DebugEvent>,
 ) -> ExecuteFlowCommandOutput {
     // 创建队列日志发送器（调试模式同步，发布模式异步）
     let (log_sender, log_worker) = create_log_sender(on_event);
@@ -58,8 +61,13 @@ pub async fn execute_flow(
         Arc::new(TauriExecutionEventSender::new(on_execution_event))
     );
     
+    // 创建 WS 流事件发送器（复用 DebugEvent 类型，用于普通执行中的 WS 消息流）
+    let debug_event_sender: Option<Arc<dyn DebugEventSender>> = Some(
+        Arc::new(TauriDebugEventSender::new(on_ws_event))
+    );
+    
     // 执行流程
-    flow_engine::commands::execute_flow(input, flow, Some(log_sender), execution_event_sender).await
+    flow_engine::commands::execute_flow(input, flow, Some(log_sender), execution_event_sender, debug_event_sender).await
 }
 
 /// 更新节点命令（桩实现）
@@ -172,7 +180,7 @@ pub async fn open_directory(app: tauri::AppHandle, path: String) -> Result<(), S
 // 调试命令
 // ============================================================================
 
-use flow_engine::debug::{DebugCommand, DebugEvent};
+use flow_engine::debug::DebugCommand;
 use tauri::State;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex;

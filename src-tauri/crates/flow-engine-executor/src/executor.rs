@@ -15,7 +15,7 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use flow_engine_core::traits::{ExecutionEventSender, LogSender};
+use flow_engine_core::traits::{ExecutionEventSender, LogSender, DebugEventSender};
 use flow_engine_core::execution_event::ExecutionEvent;
 
 use uuid::Uuid;
@@ -278,6 +278,8 @@ pub struct FlowExecutor {
     flow_file_path: Option<PathBuf>,
     /// 执行事件发送器（正常模式有值，CLI 模式为 None）
     execution_event_sender: Option<Arc<dyn ExecutionEventSender>>,
+    /// 调试事件发送器（普通模式下用于 WS 流事件广播）
+    debug_event_sender: Option<Arc<dyn DebugEventSender>>,
 }
 
 impl Default for FlowExecutor {
@@ -292,6 +294,7 @@ impl FlowExecutor {
         FlowExecutor {
             flow_file_path: None,
             execution_event_sender: None,
+            debug_event_sender: None,
         }
     }
 
@@ -312,6 +315,20 @@ impl FlowExecutor {
     /// 更新后的 `FlowExecutor`
     pub fn with_execution_event_sender(mut self, sender: Arc<dyn ExecutionEventSender>) -> Self {
         self.execution_event_sender = Some(sender);
+        self
+    }
+
+    /// 设置调试事件发送器（普通模式下用于 WS 流事件）
+    ///
+    /// # 参数
+    ///
+    /// * `sender` - `DebugEvent` 事件发送器
+    ///
+    /// # 返回
+    ///
+    /// 更新后的 `FlowExecutor`
+    pub fn with_debug_event_sender(mut self, sender: Arc<dyn DebugEventSender>) -> Self {
+        self.debug_event_sender = Some(sender);
         self
     }
 
@@ -376,7 +393,7 @@ impl FlowExecutor {
             db_manager: Some(db_manager),
             db_connections: db_connections_map,
             last_node_output: None,
-            debug_event_sender: None,
+            debug_event_sender: self.debug_event_sender.clone(),
             execution_event_sender: self.execution_event_sender.clone(),
         };
 
