@@ -35,7 +35,7 @@ export function RawJsonViewer({ data }: RawJsonViewerProps) {
   const jsonData = (data !== null && typeof data === 'object') ? data : { value: data };
   
   return (
-    <div className="raw-json-viewer">
+    <div className="raw-json-viewer overflow-hidden">
       <JsonView 
         data={jsonData as Record<string, unknown> | unknown[]} 
         shouldExpandNode={allExpanded}

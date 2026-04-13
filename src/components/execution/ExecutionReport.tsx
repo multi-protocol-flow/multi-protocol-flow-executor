@@ -101,7 +101,7 @@ export function ExecutionReport() {
     <Dialog open={isReportDialogOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
         className={cn(
-          "max-w-3xl h-[85vh] flex flex-col overflow-hidden p-6 gap-4",
+          "w-[90vw] max-w-[1400px] h-[85vh] flex flex-col overflow-hidden p-6 gap-4",
           isMaximized && "!fixed !inset-4 !z-[60] !w-[calc(100vw-2rem)] !h-[calc(100vh-2rem)] !max-w-none !max-h-none !translate-x-0 !translate-y-0 bg-background rounded-lg border shadow-2xl"
         )}
         hideCloseButton
@@ -175,7 +175,7 @@ export function ExecutionReport() {
 
         {/* 主滚动容器：包裹所有内容 */}
         <ScrollArea className="flex-1">
-          <div className="flex flex-col gap-5 pr-4">
+          <div className="flex flex-col gap-5 pr-4 min-w-0 overflow-hidden">
             {/* 流程名称 */}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Activity className="w-4 h-4" />
@@ -184,7 +184,7 @@ export function ExecutionReport() {
             </div>
 
             {/* 统计卡片网格 */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <StatCard
                 icon={Timer}
                 label="总耗时"
@@ -271,7 +271,7 @@ export function ExecutionReport() {
             )}
 
             {/* 节点执行详情 */}
-            <div className="min-h-[280px] flex flex-col">
+            <div className="min-h-[280px] flex flex-col overflow-hidden">
               <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
                 节点执行详情
@@ -319,9 +319,9 @@ export function ExecutionReport() {
                       </div>
                     )
                   }
-                  defaultWidth={280}
-                  minWidth={180}
-                  maxWidth={400}
+                  defaultWidth={300}
+                  minWidth={200}
+                  maxWidth={500}
                 />
               </div>
             </div>

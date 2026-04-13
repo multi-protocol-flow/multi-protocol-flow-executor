@@ -71,7 +71,7 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
   return (
     <div
       className={cn(
-        'border rounded-xl overflow-hidden transition-all duration-200',
+        'border rounded-xl overflow-hidden transition-all duration-200 min-w-0',
         isSuccess
           ? 'border-emerald-200/60'
           : 'border-red-200/60'
@@ -125,7 +125,7 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
 
       {/* 展开内容 */}
       {isExpanded && (
-        <div className="border-t border-border/50 bg-muted/20">
+        <div className="border-t border-border/50 bg-muted/20 overflow-hidden">
           {/* Tab 切换栏 */}
           <div className="flex border-b border-border/50">
             <button
@@ -157,12 +157,12 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
           </div>
 
           {/* Tab 内容区域 */}
-          <div className="p-4 text-sm">
+          <div className="p-4 text-sm overflow-hidden">
             {activeTab === 'structured' ? (
               <NodeViewerSelector report={report} />
             ) : (
               /* 原始 JSON 视图 */
-              <div className="min-w-0">
+              <div className="min-w-0 overflow-x-auto">
                 <RawJsonViewer data={report} />
               </div>
             )}
