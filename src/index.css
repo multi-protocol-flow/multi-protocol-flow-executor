@@ -122,6 +122,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* 修复 Radix ScrollArea Viewport 内部 display:table 导致内容溢出的问题 */
+  [data-radix-scroll-area-viewport] > div {
+    display: block !important;
+  }
 }
 
 /* 调试节点呼吸动画 */
@@ -223,15 +227,19 @@
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 13px;
   line-height: 1.5;
+  overflow-x: auto;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .json-viewer-container {
   padding: 8px 0;
 }
 
-/* 嵌套容器缩进 */
+/* 嵌套容器缩进 — 用 padding 替代 margin，让宽度约束生效 */
 .json-viewer-nested {
-  margin-left: 16px;
+  padding-left: 16px;
+  margin-left: 0;
 }
 
 .json-viewer-row {
