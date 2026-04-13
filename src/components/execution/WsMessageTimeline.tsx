@@ -773,6 +773,11 @@ export function WsMessageTimeline({
     const detail = detailRef.current;
     if (!outer) return;
 
+    // 关闭详情面板时，detailRef.current 已卸载为 null，需要重置 detailHeight
+    if (!selectedMessage) {
+      setDetailHeight(0);
+    }
+
     const updateHeights = () => {
       if (outer) setOuterHeight(outer.clientHeight);
       if (detail) setDetailHeight(detail.clientHeight);
@@ -784,7 +789,6 @@ export function WsMessageTimeline({
     // 初始值
     updateHeights();
     return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMessage]);
 
   // 自动滚动
