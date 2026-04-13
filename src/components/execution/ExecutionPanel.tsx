@@ -15,6 +15,7 @@ import {
 import { selectIsExecutionPanelOpen } from '@/stores/ui';
 import { NodeListItem } from './NodeListItem';
 import { NodeExecutionDetails } from './NodeExecutionDetails';
+import { WsMessageTimeline } from './WsMessageTimeline';
 import { cn } from '@/lib/utils';
 import type { NodeExecutionReport } from '@/types';
 
@@ -27,6 +28,7 @@ export function ExecutionPanel() {
   const isExecuting = useExecutionStore(selectIsExecuting);
   const report = useExecutionStore(selectReport);
   const getNodeExecutionReport = useExecutionStore((s) => s.getNodeExecutionReport);
+  const wsStreams = useExecutionStore((state) => state.wsStreams);
 
   // 当前选中的节点 UUID
   const [selectedNodeUuid, setSelectedNodeUuid] = useState<string | null>(null);
@@ -136,6 +138,17 @@ export function ExecutionPanel() {
           </div>
         )}
       </div>
+
+      {/* WebSocket 消息流 */}
+      {wsStreams.size > 0 && (
+        <div className="shrink-0 border-t border-border">
+          <WsMessageTimeline 
+            streams={Array.from(wsStreams.values())} 
+            live={isExecuting}
+            maxHeight="300px"
+          />
+        </div>
+      )}
 
       {/* ===== 节点详情区域 ===== */}
       {selectedReport && (

@@ -11,7 +11,7 @@ import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
-import { WsMessageStreamPanel } from '@/components/debug/WsMessageStreamPanel';
+import { WsMessageTimeline } from '@/components/execution/WsMessageTimeline';
 import type { ExecutionStackEntry } from '@/types/debug';
 import type { NodeData } from '@/types/node';
 
@@ -392,6 +392,8 @@ export function DebugPanel() {
   const executionStack = useDebugStore((state) => state.executionStack);
   const tempNodeConfigs = useDebugStore((state) => state.tempNodeConfigs);
   const modifyNodeConfig = useDebugStore((state) => state.modifyNodeConfig);
+  const wsStreams = useDebugStore((state) => state.wsStreams);
+  const status = useDebugStore((state) => state.status);
 
   const flow = useFlowStore((state) => state.flow);
   const focusOnNode = useFlowStore((state) => state.focusOnNode);
@@ -623,7 +625,11 @@ export function DebugPanel() {
             maxHeight={maxBottomPanelHeight - 32}
             className="border-t border-border"
           >
-            <WsMessageStreamPanel />
+            <WsMessageTimeline 
+              streams={Array.from(wsStreams.values())} 
+              live={status === 'running' || status === 'paused'}
+              maxHeight="100%"
+            />
           </CollapsiblePanel>
         </div>
       </div>

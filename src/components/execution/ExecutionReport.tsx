@@ -29,7 +29,7 @@ import { ResizablePanel } from '@/components/ui/ResizablePanel';
 import { useExecutionStore } from '@/stores';
 import { NodeExecutionDetails } from './NodeExecutionDetails';
 import { NodeListItem } from './NodeListItem';
-import { WsStreamsPanel } from './WsStreamsPanel';
+import { WsMessageTimeline } from './WsMessageTimeline';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -241,7 +241,9 @@ export function ExecutionReport() {
 
             {/* WebSocket 消息流 */}
             {displayReport.ws_streams && displayReport.ws_streams.length > 0 && (
-              <WsStreamsPanel wsStreams={displayReport.ws_streams} />
+              <div className="rounded-xl border border-border/50 overflow-hidden">
+                <WsMessageTimeline streams={displayReport.ws_streams} maxHeight="320px" />
+              </div>
             )}
 
             {/* 节点执行详情 */}
