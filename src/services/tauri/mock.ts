@@ -54,6 +54,7 @@ export async function createFlow(name: string): Promise<Flow> {
  * @param flow - 要执行的流程对象
  * @param onLog - 日志回调函数
  * @param onExecutionEvent - 执行事件回调函数（实时节点报告）
+ * @param _onWsEvent - WS 流事件回调函数（Mock 中未使用）
  * @param _variables - 可选的执行变量（Mock 中未使用）
  * @returns 执行结果
  */
@@ -61,6 +62,7 @@ export async function executeFlowWithChannel(
   flow: Flow,
   onLog: (event: LogEvent) => void,
   onExecutionEvent: (event: ExecutionEvent) => void = () => {},
+  _onWsEvent: (event: import('@/types/debug').DebugEvent) => void = () => {},
   _variables?: Record<string, unknown>
 ): Promise<ExecuteFlowCommandOutput> {
   const startTime = Date.now();

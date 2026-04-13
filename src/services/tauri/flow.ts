@@ -64,11 +64,12 @@ export async function createFlow(name: string): Promise<Flow> {
 
 /**
  * 执行流程并订阅日志和执行事件（Tauri 环境）
- * 使用双 Channel API 接收后端日志事件和实时执行事件
+ * 使用三 Channel API 接收后端日志事件、实时执行事件和 WS 流事件
  *
  * @param flow - 要执行的流程对象
  * @param onLog - 日志回调函数
  * @param onExecutionEvent - 执行事件回调函数（实时节点报告）
+ * @param onWsEvent - WS 流事件回调函数（DebugEvent 中的 WS 变体）
  * @param variables - 可选的执行变量
  * @returns 执行结果
  * @throws IpcError 如果执行失败
@@ -77,6 +78,7 @@ export async function executeFlowWithChannel(
   flow: Flow,
   onLog: (event: LogEvent) => void,
   onExecutionEvent: (event: ExecutionEvent) => void = () => {},
+  onWsEvent: (event: import('@/types/debug').DebugEvent) => void = () => {},
   variables?: Record<string, unknown>
 ): Promise<ExecuteFlowCommandOutput> {
   try {
@@ -88,11 +90,15 @@ export async function executeFlowWithChannel(
     const executionEventChannel = new Channel<ExecutionEvent>();
     executionEventChannel.onmessage = onExecutionEvent;
 
+    // Channel 3: WS stream events (DebugEvent variants for WS streams)
+    const wsEventChannel = new Channel<import('@/types/debug').DebugEvent>();
+    wsEventChannel.onmessage = onWsEvent;
+
     // 从连接配置中心获取所有数据库连接配置
     // 执行器根据 connection_uuid 从此列表获取完整的连接配置
     const dbConnections = useConnectionsStore.getState().connections;
 
-    // 调用后端命令，传递双 Channel
+    // 调用后端命令，传递三 Channel
     return await invoke<ExecuteFlowCommandOutput>('execute_flow', {
       input: {
         flow_id: flow.uuid,
@@ -102,6 +108,7 @@ export async function executeFlowWithChannel(
       flow,
       onEvent: logChannel,
       onExecutionEvent: executionEventChannel,
+      onWsEvent: wsEventChannel,
     });
   } catch (error) {
     throw formatError(error, 'execute_flow');

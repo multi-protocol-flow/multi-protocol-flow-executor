@@ -65,11 +65,12 @@ export async function createFlow(name: string): Promise<Flow> {
 
 /**
  * 执行流程并订阅日志
- * 使用 Channel API 接收后端日志事件
+ * 使用 Channel API 接收后端日志事件、执行事件和 WS 流事件
  *
  * @param flow - 要执行的流程对象
  * @param onLog - 日志回调函数
  * @param onExecutionEvent - 执行事件回调函数（实时节点报告）
+ * @param onWsEvent - WS 流事件回调函数（DebugEvent 中的 WS 变体）
  * @param variables - 可选的执行变量
  * @returns 执行结果
  */
@@ -77,16 +78,17 @@ export async function executeFlowWithChannel(
   flow: Flow,
   onLog: (event: import('@/types/events').LogEvent) => void,
   onExecutionEvent: (event: import('@/types/execution_event').ExecutionEvent) => void = () => {},
+  onWsEvent: (event: import('@/types/debug').DebugEvent) => void = () => {},
   variables?: Record<string, unknown>
 ): Promise<ExecuteFlowCommandOutput> {
   // 检测是否在 Tauri 环境中
   if (isTauriEnv()) {
     const { executeFlowWithChannel: executeFlowWithChannelImpl } = await import('./flow');
-    return executeFlowWithChannelImpl(flow, onLog, onExecutionEvent, variables);
+    return executeFlowWithChannelImpl(flow, onLog, onExecutionEvent, onWsEvent, variables);
   } else {
     // Mock 环境
     const { executeFlowWithChannel: executeFlowWithChannelImpl } = await import('./mock');
-    return executeFlowWithChannelImpl(flow, onLog, onExecutionEvent, variables);
+    return executeFlowWithChannelImpl(flow, onLog, onExecutionEvent, onWsEvent, variables);
   }
 }
 
