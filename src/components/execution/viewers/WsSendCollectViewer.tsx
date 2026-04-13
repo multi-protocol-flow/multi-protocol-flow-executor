@@ -178,23 +178,23 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
     <div className="space-y-3">
       {/* 错误信息 */}
       {hasError && outputData?.error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-          <div className="flex items-center gap-1.5 text-red-600">
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 p-3">
+          <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
             <AlertTriangle className="w-4 h-4" />
             <span className="font-medium text-sm">执行错误</span>
           </div>
-          <p className="text-red-600 text-sm mt-1">{outputData.error}</p>
+          <p className="text-red-600 dark:text-red-400 text-sm mt-1">{outputData.error}</p>
         </div>
       )}
 
       {/* 超时警告 */}
       {isTimedOut && !hasError && (
-        <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
-          <div className="flex items-center gap-1.5 text-amber-600">
+        <div className="rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 p-3">
+          <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
             <Timer className="w-4 h-4" />
             <span className="font-medium text-sm">采集响应超时</span>
           </div>
-          <p className="text-amber-600/80 text-xs mt-1">
+          <p className="text-amber-600/80 dark:text-amber-400/80 text-xs mt-1">
             在指定时间内未收到匹配的响应消息
           </p>
         </div>
@@ -218,7 +218,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
           {/* URL */}
           {connectionUrl && (
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="font-mono text-xs text-cyan-600 bg-cyan-50 border-0 shrink-0">
+               <Badge variant="outline" className="font-mono text-xs text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/50 border-0 shrink-0">
                 URL
               </Badge>
               <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
@@ -297,12 +297,12 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
         icon={<Send className="w-4 h-4" />}
         defaultOpen={false}
         extra={sentData?.type && (
-          <Badge variant="outline" className={cn(
-            'font-mono text-xs',
-            sentData.type === 'binary'
-              ? 'text-orange-600 bg-orange-50'
-              : 'text-muted-foreground bg-muted'
-          )}>
+           <Badge variant="outline" className={cn(
+             'font-mono text-xs',
+             sentData.type === 'binary'
+              ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50'
+               : 'text-muted-foreground bg-muted'
+           )}>
             {sentData.type === 'binary' ? '二进制' : '文本'}
           </Badge>
         )}
@@ -373,22 +373,22 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
                   className={cn(
                     'rounded-lg border p-2',
                     isMatched
-                      ? 'bg-emerald-50 border-emerald-300'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700'
                       : 'bg-muted border-border'
                   )}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <Badge variant="outline" className={cn(
-                      'font-mono text-xs',
-                      msg.type === 'binary'
-                        ? 'text-orange-600 bg-orange-50'
-                        : 'text-muted-foreground bg-muted'
-                    )}>
+                       'font-mono text-xs',
+                       msg.type === 'binary'
+                        ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50'
+                         : 'text-muted-foreground bg-muted'
+                     )}>
                       {msg.type === 'binary' ? '二进制' : '文本'}
                     </Badge>
                     <span className="text-xs text-muted-foreground">#{idx + 1}</span>
                     {isMatched && (
-                      <Badge className="font-mono text-xs bg-emerald-100 text-emerald-700 border-0">
+                      <Badge className="font-mono text-xs bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-0">
                         匹配
                       </Badge>
                     )}
@@ -418,12 +418,12 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={true}
           extra={(
-            <Badge variant="outline" className={cn(
-              'font-mono text-xs',
-              messageData.type === 'binary'
-                ? 'text-orange-600 bg-orange-50'
-                : 'text-emerald-600 bg-emerald-50'
-            )}>
+             <Badge variant="outline" className={cn(
+               'font-mono text-xs',
+               messageData.type === 'binary'
+                ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50'
+                : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
+             )}>
               {messageData.type === 'binary' ? '二进制' : '文本'}
             </Badge>
           )}

@@ -16,6 +16,9 @@ import {
   Minimize2,
   Inbox,
   X,
+  Wifi,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import {
   Dialog,
@@ -70,6 +73,7 @@ export function ExecutionReport() {
 
   const [selectedNodeUuid, setSelectedNodeUuid] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [isWsStreamCollapsed, setIsWsStreamCollapsed] = useState(false);
 
   // 默认选中第一个节点
   useEffect(() => {
@@ -109,13 +113,13 @@ export function ExecutionReport() {
               className={cn(
                 'p-2 rounded-full',
                 isSuccess
-                  ? 'bg-emerald-100'
-                  : 'bg-red-100'
-            )}>
+                  ? 'bg-emerald-100 dark:bg-emerald-900/50'
+                  : 'bg-red-100 dark:bg-red-900/50'
+              )}>
               {isSuccess ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               ) : (
-                <XCircle className="w-5 h-5 text-red-600" />
+                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
               )}
             </div>
             {/* 标题文字 */}
@@ -125,7 +129,7 @@ export function ExecutionReport() {
             {isDebugMode && (
               <Badge
                 variant="outline"
-                className="bg-purple-50 text-purple-700 border-purple-200 font-medium"
+                className="bg-purple-50 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700 font-medium"
               >
                 调试
               </Badge>
@@ -137,8 +141,8 @@ export function ExecutionReport() {
               className={cn(
                 'ml-auto font-medium',
                 isSuccess
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-red-50 text-red-700 border-red-200'
+                  ? 'bg-emerald-50 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700'
+                  : 'bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700'
             )}>
               {isSuccess ? '成功' : '失败'}
             </Badge>
@@ -230,19 +234,39 @@ export function ExecutionReport() {
 
             {/* 流程级错误 */}
             {displayReport.flow_error && (
-              <div className="rounded-xl bg-red-50 p-4 border border-red-200/50">
-                <div className="flex items-center gap-2 mb-2 text-red-600">
+              <div className="rounded-xl bg-red-50 dark:bg-red-950/50 p-4 border border-red-200/50 dark:border-red-800/50">
+                <div className="flex items-center gap-2 mb-2 text-red-600 dark:text-red-400">
                   <AlertCircle className="w-4 h-4" />
                   <span className="font-medium">流程错误</span>
                 </div>
-                <p className="text-red-600">{displayReport.flow_error.message}</p>
+                <p className="text-red-600 dark:text-red-400">{displayReport.flow_error.message}</p>
               </div>
             )}
 
             {/* WebSocket 消息流 */}
             {displayReport.ws_streams && displayReport.ws_streams.length > 0 && (
               <div className="rounded-xl border border-border/50 overflow-hidden">
-                <WsMessageTimeline streams={displayReport.ws_streams} maxHeight="320px" />
+                <button
+                  type="button"
+                  onClick={() => setIsWsStreamCollapsed(!isWsStreamCollapsed)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2.5">
+                    {isWsStreamCollapsed ? (
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    )}
+                    <Wifi className="w-4 h-4 text-violet-500" />
+                    <span className="text-sm font-semibold">WebSocket 消息流</span>
+                    <Badge variant="outline" className="text-xs font-normal">{displayReport.ws_streams.length} 个连接</Badge>
+                  </div>
+                </button>
+                {!isWsStreamCollapsed && (
+                  <div className="border-t border-border/50">
+                    <WsMessageTimeline streams={displayReport.ws_streams} maxHeight="320px" />
+                  </div>
+                )}
               </div>
             )}
 

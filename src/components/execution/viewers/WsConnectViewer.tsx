@@ -112,7 +112,7 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
         <div className="space-y-3">
           {/* URL */}
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="font-mono text-xs text-amber-600 bg-amber-50 border-0 shrink-0">
+             <Badge variant="outline" className="font-mono text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 border-0 shrink-0">
               WS
             </Badge>
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
@@ -156,10 +156,10 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
         <div className="space-y-2">
           {/* 状态 */}
           <div className="flex items-center gap-3">
-            <Badge className={cn(
-              'font-mono text-xs px-2 py-0.5',
-              isSuccess ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'
-            )}>
+             <Badge className={cn(
+               'font-mono text-xs px-2 py-0.5',
+              isSuccess ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50' : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
+             )}>
               {isSuccess ? '已连接' : '连接失败'}
             </Badge>
             <span className="text-sm text-muted-foreground">

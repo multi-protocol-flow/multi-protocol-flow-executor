@@ -47,8 +47,8 @@ const getCloseCodeDescription = (code: number): string => {
  * 获取 WebSocket 关闭码对应的颜色类名
  */
 const getCloseCodeColor = (code: number): string => {
-  if (code === 1000) return 'text-emerald-600 bg-emerald-50';
-  if (code >= 1001 && code <= 1015) return 'text-amber-600 bg-amber-50';
+  if (code === 1000) return 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50';
+  if (code >= 1001 && code <= 1015) return 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50';
   return 'text-muted-foreground bg-muted';
 };
 
@@ -136,17 +136,17 @@ export function WsCloseViewer({ report }: WsCloseViewerProps) {
           <div className="flex items-center gap-3">
             {success !== undefined ? (
               <>
-                <Badge className={cn(
-                  'font-mono text-base px-3 py-1',
-                  success ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'
-                )}>
+                 <Badge className={cn(
+                   'font-mono text-base px-3 py-1',
+                  success ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50' : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
+                 )}>
                   {success ? '成功' : '失败'}
                 </Badge>
                 <div className="text-muted-foreground">
                   {success ? (
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   ) : (
-                    <XCircle className="w-4 h-4 text-red-600" />
+                     <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
                   )}
                 </div>
               </>
