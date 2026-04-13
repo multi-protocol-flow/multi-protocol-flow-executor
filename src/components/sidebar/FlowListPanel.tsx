@@ -2,8 +2,8 @@
  * FlowListPanel - 流程列表面板
  * 显示已保存的流程列表，支持加载流程
  */
-import { useEffect } from 'react';
-import { Plus, FileJson, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Plus, FileJson, MoreVertical, Copy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFlowListStore, useFlowStore, useUIStore } from '@/stores';
 import { listFlows, loadFlow, deleteFlow, saveFlow } from '@/services/storage/flowStorage';
@@ -27,7 +27,7 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
-  const { setFlows, removeFlow: removeFlowFromList } = useFlowListStore();
+  const { setFlows, addFlow: addFlowToList, removeFlow: removeFlowFromList } = useFlowListStore();
   const { setFlow, flow: currentFlow, isDirty, markSaved } = useFlowStore();
   const { openNewFlowDialog, showConfirm } = useUIStore();
 
@@ -90,8 +90,23 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
     }
   };
 
-  const handleDeleteFlow = (e: React.MouseEvent, uuid: string) => {
-    e.stopPropagation();
+  const [openMenuUuid, setOpenMenuUuid] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // 点击外部关闭菜单
+  useEffect(() => {
+    if (openMenuUuid === null) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuUuid(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuUuid]);
+
+  const handleDeleteFlow = (uuid: string) => {
+    setOpenMenuUuid(null);
     showConfirm({
       title: '删除流程',
       description: '确定要删除此流程吗？删除后无法恢复。',
@@ -105,6 +120,27 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
         }
       },
     });
+  };
+
+  const handleDuplicateFlow = (uuid: string) => {
+    setOpenMenuUuid(null);
+    const sourceFlow = loadFlow(uuid);
+    if (!sourceFlow) return;
+
+    const newUuid = crypto.randomUUID();
+    const duplicatedFlow: Flow = {
+      ...structuredClone(sourceFlow),
+      uuid: newUuid,
+      name: `${sourceFlow.name} (副本)`,
+    };
+    saveFlow(duplicatedFlow);
+    addFlowToList({
+      uuid: newUuid,
+      name: duplicatedFlow.name,
+      updated_at: Date.now(),
+    });
+    // 切换到复制后的流程
+    setFlow(duplicatedFlow);
   };
 
   const handleNewFlow = () => {
@@ -162,20 +198,52 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
                   </p>
                 </div>
 
-                {/* 删除按钮 */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => handleDeleteFlow(e, flowMeta.uuid)}
-                  className={cn(
-                    'h-6 w-6 shrink-0 transition-opacity duration-150',
-                    'opacity-0 group-hover:opacity-100',
-                    'hover:bg-red-50 hover:text-red-500'
+                {/* 更多操作菜单 */}
+                <div className="relative" ref={openMenuUuid === flowMeta.uuid ? menuRef : undefined}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuUuid(openMenuUuid === flowMeta.uuid ? null : flowMeta.uuid);
+                    }}
+                    className={cn(
+                      'h-6 w-6 shrink-0 transition-opacity duration-150',
+                      'opacity-0 group-hover:opacity-100',
+                      'hover:bg-accent'
+                    )}
+                    title="更多操作"
+                  >
+                    <MoreVertical className="w-3.5 h-3.5" />
+                  </Button>
+
+                  {openMenuUuid === flowMeta.uuid && (
+                    <div className="absolute right-0 top-7 z-50 min-w-[120px] rounded-md border border-border bg-background shadow-md animate-in fade-in-0 zoom-in-95">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDuplicateFlow(flowMeta.uuid);
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        复制流程
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteFlow(flowMeta.uuid);
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        删除流程
+                      </button>
+                    </div>
                   )}
-                  title="删除流程"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
+                </div>
               </div>
             );
           })}
