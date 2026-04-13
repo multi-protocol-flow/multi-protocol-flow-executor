@@ -164,10 +164,10 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
       
       fireEvent.mouseDown(resizeHandle);
       
-      // 拖拽开始后，className 应该包含单独的 'bg-slate-300'（不是 'active:bg-slate-300'）
+      // 拖拽开始后，className 应该包含单独的 'bg-input'（不是 'active:bg-input'）
       // 通过检查类名列表来验证
       const classList = resizeHandle.className.split(' ');
-      expect(classList).toContain('bg-slate-300');
+      expect(classList).toContain('bg-input');
     });
 
     it('拖拽时鼠标移动更新宽度', () => {
@@ -194,15 +194,15 @@ describe('MainLayout - 右侧面板拖拽功能', () => {
       
       fireEvent.mouseDown(resizeHandle);
       
-      // 拖拽开始时应该有 bg-slate-300 类
+      // 拖拽开始时应该有 bg-input 类
       let classList = resizeHandle.className.split(' ');
-      expect(classList).toContain('bg-slate-300');
+      expect(classList).toContain('bg-input');
       
       fireEvent.mouseUp(document);
       
-      // 拖拽结束后，className 中不应该包含单独的 'bg-slate-300'（但 'active:bg-slate-300' 仍然存在）
+      // 拖拽结束后，className 中不应该包含单独的 'bg-input'（但 'active:bg-input' 仍然存在）
       classList = resizeHandle.className.split(' ');
-      expect(classList).not.toContain('bg-slate-300');
+      expect(classList).not.toContain('bg-input');
     });
   });
 

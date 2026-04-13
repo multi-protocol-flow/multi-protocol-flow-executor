@@ -124,7 +124,7 @@ describe('WsCloseViewer', () => {
 
       // 关闭状态面板默认展开
       const badge = screen.getByText('9999');
-      expect(badge.className).toContain('text-slate-600');
+      expect(badge.className).toContain('text-muted-foreground');
     });
   });
 

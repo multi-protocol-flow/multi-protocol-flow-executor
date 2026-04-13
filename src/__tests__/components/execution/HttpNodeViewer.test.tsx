@@ -71,7 +71,7 @@ describe('HttpNodeViewer', () => {
 
       // 响应状态面板默认展开
       const badge = screen.getByText('301');
-      expect(badge.className).toContain('text-slate-600');
+      expect(badge.className).toContain('text-muted-foreground');
     });
 
     it('显示状态码描述文字', () => {
@@ -128,7 +128,7 @@ describe('HttpNodeViewer', () => {
       render(<HttpNodeViewer report={report} />);
 
       const methodBadge = screen.getByText('CUSTOM');
-      expect(methodBadge.className).toContain('text-slate-600');
+      expect(methodBadge.className).toContain('text-muted-foreground');
     });
 
     it('方法名大小写不敏感（颜色正确）', () => {

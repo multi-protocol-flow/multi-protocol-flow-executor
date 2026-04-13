@@ -107,11 +107,11 @@ describe('ExecuteButton', () => {
     const button = screen.getByRole('button', { name: /执行流程/ });
 
     // 验证禁用状态的背景样式
-    expect(button.className).toContain('disabled:bg-slate-100');
-    expect(button.className).toContain('disabled:border-slate-300');
+    expect(button.className).toContain('disabled:bg-muted');
+    expect(button.className).toContain('disabled:border-border');
 
     // 验证禁用状态有可见的文字颜色
-    expect(button.className).toContain('disabled:text-slate-400');
+    expect(button.className).toContain('disabled:text-muted-foreground');
   });
 
   it('当有有效流程和入口节点时按钮可用', () => {

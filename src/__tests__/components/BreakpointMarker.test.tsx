@@ -31,8 +31,8 @@ describe('BreakpointMarker', () => {
 
     const button = screen.getByRole('button', { name: '设置断点' });
     expect(button).toBeInTheDocument();
-    expect(button).toHaveClass('bg-white');
-    expect(button).toHaveClass('border-gray-400');
+    expect(button).toHaveClass('bg-background');
+    expect(button).toHaveClass('border-border');
   });
 
   it('点击时调用 onToggle 回调', async () => {

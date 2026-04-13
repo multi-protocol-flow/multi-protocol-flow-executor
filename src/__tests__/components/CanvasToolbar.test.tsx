@@ -111,9 +111,9 @@ describe('CanvasToolbar', () => {
       expect(executeButton).toBeInTheDocument();
     });
 
-    it('正确渲染调试按钮（非 button 元素）', () => {
+    it('正确渲染调试按钮', () => {
       render(<CanvasToolbar />);
-      const debugButton = screen.getByTitle('调试（需要至少设置一个断点）');
+      const debugButton = screen.getByTitle('开始调试');
       expect(debugButton).toBeInTheDocument();
     });
 
@@ -121,7 +121,7 @@ describe('CanvasToolbar', () => {
       render(<CanvasToolbar />);
       const toolbar = document.querySelector('.rounded-full');
       expect(toolbar).toBeInTheDocument();
-      expect(toolbar).toHaveClass('bg-white/90');
+      expect(toolbar).toHaveClass('bg-background/90');
       expect(toolbar).toHaveClass('backdrop-blur-sm');
     });
 
@@ -143,7 +143,7 @@ describe('CanvasToolbar', () => {
       // 第一个是执行按钮
       expect(children?.[0]).toHaveAttribute('title', '执行流程');
       // 第二个是调试按钮
-      expect(children?.[1]).toHaveAttribute('title', '调试（需要至少设置一个断点）');
+      expect(children?.[1]).toHaveAttribute('title', '开始调试');
       // 第三个是压测按钮
       expect(children?.[2]).toHaveAttribute('title', '压力测试');
     });
@@ -237,26 +237,26 @@ describe('CanvasToolbar', () => {
     it('禁用状态下有灰色样式', () => {
       render(<CanvasToolbar />);
       const button = screen.getByRole('button', { name: /执行流程/ });
-      expect(button).toHaveClass('text-slate-300');
+      expect(button).toHaveClass('text-muted-foreground');
     });
   });
 
   describe('调试按钮', () => {
     it('调试按钮是 button 元素', () => {
       render(<CanvasToolbar />);
-      const debugButton = screen.getByTitle('调试（需要至少设置一个断点）');
+      const debugButton = screen.getByTitle('开始调试');
       expect(debugButton.tagName).toBe('BUTTON');
     });
 
-    it('调试按钮有灰色样式（无断点时）', () => {
+    it('调试按钮有灰色样式（无流程时）', () => {
       render(<CanvasToolbar />);
-      const debugButton = screen.getByTitle('调试（需要至少设置一个断点）');
-      expect(debugButton).toHaveClass('text-slate-300');
+      const debugButton = screen.getByTitle('开始调试');
+      expect(debugButton).toHaveClass('text-muted-foreground');
     });
 
     it('调试按钮有 cursor-not-allowed 样式', () => {
       render(<CanvasToolbar />);
-      const debugButton = screen.getByTitle('调试（需要至少设置一个断点）');
+      const debugButton = screen.getByTitle('开始调试');
       expect(debugButton).toHaveClass('cursor-not-allowed');
     });
   });
