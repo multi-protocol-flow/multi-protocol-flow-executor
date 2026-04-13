@@ -13,8 +13,8 @@ import {
 import { cn } from '@/lib/utils';
 import { useDebugStore } from '@/stores/debug';
 
-/** 默认边颜色（黑色） */
-const DEFAULT_EDGE_COLOR = '#000000';
+/** 默认边颜色（跟随主题） */
+const DEFAULT_EDGE_COLOR = 'var(--canvas-edge)';
 /** 调试模式下执行路径的边颜色（绿色） */
 const EXECUTED_EDGE_COLOR = '#22c55e';
 
@@ -93,7 +93,7 @@ export function CustomEdge({
             className={cn(
               'absolute pointer-events-none',
               'px-2 py-1 rounded-md',
-              'bg-white border',
+              'bg-background border',
               'text-xs font-medium'
             )}
             style={{

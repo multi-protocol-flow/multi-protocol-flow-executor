@@ -153,7 +153,7 @@ export function CanvasToolbar() {
   const toolbarContent = (
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-start gap-2">
       {/* 主工具栏 */}
-      <div className="flex items-center gap-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-slate-200/50">
+      <div className="flex items-center gap-3 bg-background/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-border/50">
         {/* 执行按钮 */}
         <button
           type="button"
@@ -169,7 +169,7 @@ export function CanvasToolbar() {
               'cursor-pointer',
             ],
             isDisabled && [
-              'text-slate-300 cursor-not-allowed',
+              'text-muted-foreground cursor-not-allowed',
             ]
           )}
         >
@@ -201,7 +201,7 @@ export function CanvasToolbar() {
               'cursor-pointer',
             ],
             !canStartDebug && [
-              'text-slate-300 cursor-not-allowed',
+              'text-muted-foreground cursor-not-allowed',
             ]
           )}
         >
@@ -231,7 +231,7 @@ export function CanvasToolbar() {
               'cursor-pointer',
             ],
             !canStartStressTest && [
-              'text-slate-300 cursor-not-allowed',
+              'text-muted-foreground cursor-not-allowed',
             ]
           )}
         >
@@ -248,12 +248,12 @@ export function CanvasToolbar() {
             className={cn(
               'flex items-center justify-center',
               'w-10 h-10 rounded-full',
-              'bg-white/90 backdrop-blur-sm shadow-lg border border-slate-200/50',
+              'bg-background/90 backdrop-blur-sm shadow-lg border border-border/50',
               'transition-all duration-150 hover:shadow-lg',
               'cursor-pointer',
               isVariableDrawerOpen
                 ? 'text-violet-600 border-violet-200'
-                : 'text-slate-400 hover:text-slate-600'
+                : 'text-muted-foreground hover:text-foreground'
             )}
             title={isVariableDrawerOpen ? '收起变量面板' : `变量 (${totalVariables})`}
           >
@@ -270,24 +270,24 @@ export function CanvasToolbar() {
             <div className={cn(
               'absolute top-full mt-2 left-1/2 -translate-x-1/2',
               'w-72 max-h-[calc(100vh-200px)]',
-              'bg-white/95 backdrop-blur-xl rounded-xl',
-              'shadow-xl border border-slate-200/50',
+              'bg-background/95 backdrop-blur-xl rounded-xl',
+              'shadow-xl border border-border/50',
               'overflow-hidden',
               'animate-in fade-in-0 zoom-in-95 duration-200'
             )}>
               {/* 标题栏 + 关闭按钮 */}
-              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border">
                 <div className="flex items-center gap-2">
                   <VariableIcon className="w-4 h-4 text-violet-600" />
-                  <span className="text-sm font-semibold text-slate-800">变量</span>
-                  <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                  <span className="text-sm font-semibold text-foreground">变量</span>
+                  <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
                     {totalVariables}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={toggleVariableDrawer}
-                  className="p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   title="收起"
                 >
                   <X className="w-3.5 h-3.5" />

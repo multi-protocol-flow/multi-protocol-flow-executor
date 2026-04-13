@@ -434,13 +434,13 @@ function FlowCanvasInner() {
   // 没有流程时显示空状态
   if (!flow) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-slate-50">
+      <div className="w-full h-full flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="text-6xl mb-4">📋</div>
-          <h2 className="text-xl font-semibold text-slate-600">
+          <h2 className="text-xl font-semibold text-muted-foreground">
             暂无流程
           </h2>
-          <p className="text-sm text-slate-400 mt-2">
+          <p className="text-sm text-muted-foreground mt-2">
             请创建或打开一个流程文件
           </p>
         </div>
@@ -451,7 +451,7 @@ function FlowCanvasInner() {
   return (
     <div 
       ref={canvasRef}
-      className={cn('w-full h-full', 'bg-slate-50')}
+      className={cn('w-full h-full', 'bg-background')}
       style={CANVAS_CURSOR_STYLE}
     >
       {/* 全局样式：节点上显示 pointer */}
@@ -467,14 +467,14 @@ function FlowCanvasInner() {
         .react-flow__minimap * {
           cursor: pointer !important;
         }
-        /* Controls 按钮图标颜色 - 深色确保在白色背景可见 */
+        {/* Controls 按钮图标颜色 - 使用 CSS 变量跟随主题 */}
         .react-flow__controls-button svg {
-          fill: #1e293b !important;
-          stroke: #1e293b !important;
+          fill: var(--controls-icon) !important;
+          stroke: var(--controls-icon) !important;
         }
         .react-flow__controls-button:hover svg {
-          fill: #0f172a !important;
-          stroke: #0f172a !important;
+          fill: var(--foreground) !important;
+          stroke: var(--foreground) !important;
         }
         /* 拖拽时显示自定义 grabbing 光标 */
         .react-flow__node.dragging,
@@ -523,12 +523,12 @@ function FlowCanvasInner() {
           variant={BackgroundVariant.Dots}
           gap={20}
           size={1}
-          color="#cbd5e1"
+          color="var(--canvas-dot)"
         />
 
         {/* 控制按钮 */}
         <Controls
-          className="!bg-white !border-slate-200"
+          className="!bg-background !border-border"
           showZoom
           showFitView
           showInteractive
@@ -538,7 +538,7 @@ function FlowCanvasInner() {
         <MiniMap
           nodeColor={minimapNodeColor}
           maskColor="rgba(0, 0, 0, 0.1)"
-          className="!bg-white !border-slate-200"
+          className="!bg-background !border-border"
           pannable
           zoomable
         />

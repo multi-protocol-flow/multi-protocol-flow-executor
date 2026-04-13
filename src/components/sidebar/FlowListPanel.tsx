@@ -118,15 +118,15 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
       {/* 标题栏 */}
       {showHeader && (
         <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-          <span className="text-sm font-medium text-black">流程列表</span>
+          <span className="text-sm font-medium text-foreground">流程列表</span>
           <Button
             variant="ghost"
             size="icon"
             onClick={handleNewFlow}
-            className="h-7 w-7 rounded-md bg-white border border-black hover:bg-slate-50"
+            className="h-7 w-7 rounded-md bg-background border border-border hover:bg-accent"
             title="新建流程"
           >
-            <Plus className="w-4 h-4 text-black" />
+            <Plus className="w-4 h-4 text-foreground" />
           </Button>
         </div>
       )}
@@ -143,21 +143,21 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
                 onClick={() => handleSelectFlow(flowMeta.uuid)}
                 className={cn(
                   'group w-full flex items-center gap-2 px-3 h-12 rounded-lg text-sm text-left transition-all duration-150',
-                  'bg-white border border-black',
-                  'hover:bg-slate-50',
-                  isSelected && 'bg-white border-black',
-                  !isSelected && 'text-slate-600'
+                  'bg-background border border-border',
+                  'hover:bg-accent',
+                  isSelected && 'bg-background border-border',
+                  !isSelected && 'text-muted-foreground'
                 )}
               >
                 <FileJson
                   className={cn(
                     'w-4 h-4 shrink-0 transition-colors',
-                    isSelected ? 'text-emerald-500' : 'text-slate-400'
+                    isSelected ? 'text-emerald-500' : 'text-muted-foreground'
                   )}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="truncate font-medium">{flowMeta.name}</p>
-                  <p className="text-xs text-slate-400 truncate">
+                  <p className="text-xs text-muted-foreground truncate">
                     {formatRelativeTime(flowMeta.updated_at)}
                   </p>
                 </div>
@@ -181,7 +181,7 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
           })}
 
           {flows.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-6 text-slate-400">
+            <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
               <FileJson className="w-8 h-8 mb-2 opacity-40" />
               <p className="text-sm">暂无流程</p>
               <p className="text-xs mt-1 opacity-70">点击 + 创建新流程</p>

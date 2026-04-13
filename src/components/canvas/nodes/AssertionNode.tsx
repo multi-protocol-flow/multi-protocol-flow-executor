@@ -40,8 +40,8 @@ export function AssertionNode({ id, data, selected }: NodeProps) {
     <div
       className={cn(
         'relative px-4 py-2 rounded-xl',
-        'border-2 border-black',
-        'bg-white',
+        'border-2 border-border',
+        'bg-background',
         'transition-all duration-200 ease-out',
         'w-[180px]',
         'flex items-center',
@@ -62,7 +62,7 @@ export function AssertionNode({ id, data, selected }: NodeProps) {
         id="in"
         className={cn(
           '!w-3.5 !h-3.5 !top-1/2',
-          '!bg-white !border-2 !border-black',
+          '!bg-background !border-2 !border-border',
           '![background:radial-gradient(circle,_theme(colors.purple.500)_35%,_white_35%)]',
           'hover:!scale-125',
           'transition-transform duration-150'
@@ -85,7 +85,7 @@ export function AssertionNode({ id, data, selected }: NodeProps) {
           <span className="text-xs text-purple-600 font-medium uppercase tracking-wide">
             断言
           </span>
-          <span className="text-sm font-semibold text-black break-words">
+          <span className="text-sm font-semibold text-foreground break-words">
             {nodeData.label || '断言验证'}
           </span>
           {/* 显示模式信息 */}
@@ -112,7 +112,7 @@ export function AssertionNode({ id, data, selected }: NodeProps) {
         id="true"
         className={cn(
           '!w-3.5 !h-3.5 !top-[30%]',
-          '!bg-white !border-2 !border-black',
+          '!bg-background !border-2 !border-border',
           '![background:radial-gradient(circle,_theme(colors.purple.500)_35%,_white_35%)]',
           'hover:!scale-125',
           'transition-transform duration-150'
@@ -125,7 +125,7 @@ export function AssertionNode({ id, data, selected }: NodeProps) {
         id="false"
         className={cn(
           '!w-3.5 !h-3.5 !top-[70%]',
-          '!bg-white !border-2 !border-black',
+          '!bg-background !border-2 !border-border',
           '![background:radial-gradient(circle,_theme(colors.purple.500)_35%,_white_35%)]',
           'hover:!scale-125',
           'transition-transform duration-150'

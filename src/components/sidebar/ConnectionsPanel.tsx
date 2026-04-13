@@ -36,7 +36,7 @@ function getStatusIcon(status: DbConnection['status']) {
     case 'testing':
       return <Loader2 className="w-3.5 h-3.5 text-amber-500 animate-spin" />;
     default:
-      return <Circle className="w-3.5 h-3.5 text-slate-300" />;
+      return <Circle className="w-3.5 h-3.5 text-muted-foreground" />;
   }
 }
 
@@ -95,15 +95,15 @@ export function ConnectionsPanel({ showHeader = true }: ConnectionsPanelProps) {
       {/* 标题栏 */}
       {showHeader && (
         <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-          <span className="text-sm font-medium text-black">数据库连接</span>
+          <span className="text-sm font-medium text-foreground">数据库连接</span>
           <Button
             variant="ghost"
             size="icon"
             onClick={handleAdd}
-            className="h-7 w-7 rounded-md bg-white border border-black hover:bg-slate-50"
+            className="h-7 w-7 rounded-md bg-background border border-border hover:bg-accent"
             title="新建连接"
           >
-            <Plus className="w-4 h-4 text-black" />
+            <Plus className="w-4 h-4 text-foreground" />
           </Button>
         </div>
       )}
@@ -112,12 +112,12 @@ export function ConnectionsPanel({ showHeader = true }: ConnectionsPanelProps) {
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin">
         <div className="p-2 space-y-1">
           {isLoading ? (
-            <div className="flex items-center justify-center py-6 text-slate-400">
+            <div className="flex items-center justify-center py-6 text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
               <span className="text-sm">加载中...</span>
             </div>
           ) : connections.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-6 text-slate-400">
+            <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
               <Database className="w-8 h-8 mb-2 opacity-40" />
               <p className="text-sm">暂无数据库连接</p>
               <p className="text-xs mt-1 opacity-70">点击 + 创建新连接</p>
@@ -128,14 +128,14 @@ export function ConnectionsPanel({ showHeader = true }: ConnectionsPanelProps) {
                 key={connection.id}
                 className={cn(
                   'group w-full flex flex-col px-3 py-2.5 rounded-lg',
-                  'bg-white border border-black',
-                  'hover:bg-slate-50 transition-all duration-150'
+                  'bg-background border border-border',
+                  'hover:bg-accent transition-all duration-150'
                 )}
               >
                 {/* 第一行：状态 + 名称 + 驱动 */}
                 <div className="flex items-center gap-2">
                   {getStatusIcon(connection.status)}
-                  <span className="text-sm font-medium text-slate-800 truncate flex-1">
+                  <span className="text-sm font-medium text-foreground truncate flex-1">
                     {connection.name}
                   </span>
                   <span className={cn('text-xs font-medium', DRIVER_COLORS[connection.driver])}>
@@ -145,7 +145,7 @@ export function ConnectionsPanel({ showHeader = true }: ConnectionsPanelProps) {
 
                 {/* 第二行：连接地址 */}
                 <div className="flex items-center gap-2 mt-1 pl-5">
-                  <span className="text-xs text-slate-400 truncate flex-1 font-mono">
+                  <span className="text-xs text-muted-foreground truncate flex-1 font-mono">
                     {connection.driver === 'sqlite'
                       ? connection.connection_string || '(未设置路径)'
                       : connection.host
@@ -160,7 +160,7 @@ export function ConnectionsPanel({ showHeader = true }: ConnectionsPanelProps) {
                     variant="ghost"
                     size="sm"
                     onClick={(e) => handleTest(e, connection.id)}
-                    className="h-6 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                    className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent"
                     title="测试连接"
                     disabled={connection.status === 'testing'}
                   >
@@ -173,7 +173,7 @@ export function ConnectionsPanel({ showHeader = true }: ConnectionsPanelProps) {
                     variant="ghost"
                     size="sm"
                     onClick={(e) => handleEdit(e, connection.id)}
-                    className="h-6 px-2 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                    className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent"
                     title="编辑连接"
                   >
                     <Pencil className="w-3 h-3 mr-1" />
@@ -183,7 +183,7 @@ export function ConnectionsPanel({ showHeader = true }: ConnectionsPanelProps) {
                     variant="ghost"
                     size="sm"
                     onClick={(e) => handleDelete(e, connection)}
-                    className="h-6 px-2 text-xs text-slate-500 hover:text-red-600 hover:bg-red-50"
+                    className="h-6 px-2 text-xs text-muted-foreground hover:text-red-600 hover:bg-red-50"
                     title="删除连接"
                   >
                     <Trash2 className="w-3 h-3 mr-1" />
@@ -207,8 +207,8 @@ export function ConnectionsPanel({ showHeader = true }: ConnectionsPanelProps) {
 
       {/* 底部提示 */}
       {connections.length > 0 && (
-        <div className="px-3 py-2 border-t border-border bg-slate-50">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
+        <div className="px-3 py-2 border-t border-border bg-muted">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Database className="w-3.5 h-3.5 text-violet-500" />
             <span>共 {connections.length} 个连接配置</span>
           </div>

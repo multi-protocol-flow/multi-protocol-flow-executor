@@ -74,8 +74,8 @@ export function BreakpointMarker({ hasBreakpoint, onToggle, locked }: Breakpoint
         ],
         // 无断点：灰色空心，悬停显示红色
         !hasBreakpoint && [
-          'bg-white',
-          'border-gray-400',
+          'bg-background',
+          'border-border',
           'hover:bg-red-50',
           'hover:border-red-500',
         ]

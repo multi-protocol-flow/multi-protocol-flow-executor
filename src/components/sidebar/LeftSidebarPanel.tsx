@@ -76,7 +76,7 @@ export function LeftSidebarPanel() {
   }, [updateMaxHeight]);
 
   return (
-    <div ref={containerRef} className="h-full flex flex-col bg-white overflow-hidden">
+    <div ref={containerRef} className="h-full flex flex-col bg-background overflow-hidden">
       {/* 调试模式：整个左侧面板变成节点只读配置面板 */}
       {isDebugging ? (
         <NodeConfigPanel readOnly node={selectedNode} />
@@ -98,7 +98,7 @@ export function LeftSidebarPanel() {
                   e.stopPropagation();
                   openNewFlowDialog();
                 }}
-                className="h-6 w-6 rounded-md hover:bg-slate-100"
+                className="h-6 w-6 rounded-md hover:bg-accent"
                 title="新建流程"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -129,7 +129,7 @@ export function LeftSidebarPanel() {
                     e.stopPropagation();
                     openConnectionDialog();
                   }}
-                  className="h-6 w-6 rounded-md hover:bg-slate-100"
+                  className="h-6 w-6 rounded-md hover:bg-accent"
                   title="新建连接"
                 >
                   <Plus className="w-3.5 h-3.5" />

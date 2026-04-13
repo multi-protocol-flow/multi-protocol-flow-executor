@@ -147,7 +147,7 @@ export function NodeLibrary({ showHeader = true }: { showHeader?: boolean }) {
       {/* 标题栏 */}
       {showHeader && (
         <div className="px-3 py-2 border-b border-border">
-          <span className="text-sm font-medium text-black">节点库</span>
+          <span className="text-sm font-medium text-foreground">节点库</span>
         </div>
       )}
 
@@ -162,8 +162,8 @@ export function NodeLibrary({ showHeader = true }: { showHeader?: boolean }) {
             onDragStart={(e) => handleDragStart(e, nodeType.type)}
             className={cn(
               'w-full flex items-center gap-3 px-3 h-14 rounded-lg',
-              'bg-white border border-black',
-              'hover:bg-slate-50 transition-all duration-150 cursor-pointer',
+              'bg-background border border-border',
+              'hover:bg-accent transition-all duration-150 cursor-pointer',
               'group text-left'
             )}
           >
@@ -171,18 +171,18 @@ export function NodeLibrary({ showHeader = true }: { showHeader?: boolean }) {
             <div
               className={cn(
                 'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
-                'bg-white border border-black'
+                'bg-background border border-border'
               )}
             >
-              <nodeType.icon className="w-5 h-5 text-black" />
+              <nodeType.icon className="w-5 h-5 text-foreground" />
             </div>
 
             {/* 节点信息 */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-black truncate">
+              <p className="text-sm font-medium text-foreground truncate">
                 {nodeType.name}
               </p>
-              <p className="text-xs text-slate-500 truncate">
+              <p className="text-xs text-muted-foreground truncate">
                 {nodeType.description}
               </p>
             </div>
@@ -190,7 +190,7 @@ export function NodeLibrary({ showHeader = true }: { showHeader?: boolean }) {
             {/* 拖拽手柄 */}
             <GripVertical
               className={cn(
-                'w-4 h-4 text-slate-400 shrink-0',
+                'w-4 h-4 text-muted-foreground shrink-0',
                 'opacity-0 group-hover:opacity-100 transition-opacity'
               )}
             />
@@ -199,8 +199,8 @@ export function NodeLibrary({ showHeader = true }: { showHeader?: boolean }) {
       </div>
 
       {/* 底部提示 */}
-      <div className="px-3 py-2.5 border-t border-border bg-slate-50">
-        <div className="flex items-center gap-2 text-xs text-slate-400">
+      <div className="px-3 py-2.5 border-t border-border bg-muted">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Sparkles className="w-3.5 h-3.5 text-amber-500" />
           <span>点击添加节点或拖拽到画布</span>
         </div>

@@ -35,8 +35,8 @@ export function WsConnectNode({ id, data, selected }: NodeProps) {
     <div
       className={cn(
         'relative px-4 py-2 rounded-xl',
-        'border-2 border-black',
-        'bg-white',
+        'border-2 border-border',
+        'bg-background',
         'transition-all duration-200 ease-out',
         'w-[180px]',
         'flex items-center',
@@ -57,7 +57,7 @@ export function WsConnectNode({ id, data, selected }: NodeProps) {
         id="in"
         className={cn(
           '!w-3.5 !h-3.5',
-          '!bg-white !border-2 !border-black',
+          '!bg-background !border-2 !border-border',
           'hover:!scale-125',
           'transition-transform duration-150',
           "before:content-[''] before:absolute before:inset-[3px] before:bg-amber-500 before:rounded-full"
@@ -75,7 +75,7 @@ export function WsConnectNode({ id, data, selected }: NodeProps) {
           <span className="text-xs text-amber-600 font-medium uppercase tracking-wide">
             WS
           </span>
-          <span className="text-sm font-semibold text-black break-words">
+          <span className="text-sm font-semibold text-foreground break-words">
             {nodeData.label || 'WS 连接'}
           </span>
         </div>
@@ -87,7 +87,7 @@ export function WsConnectNode({ id, data, selected }: NodeProps) {
         id="true"
         className={cn(
           '!w-3.5 !h-3.5 !top-[30%]',
-          '!bg-white !border-2 !border-black',
+          '!bg-background !border-2 !border-border',
           'hover:!scale-125',
           'transition-transform duration-150',
           "before:content-[''] before:absolute before:inset-[3px] before:bg-amber-500 before:rounded-full"
@@ -100,7 +100,7 @@ export function WsConnectNode({ id, data, selected }: NodeProps) {
         id="false"
         className={cn(
           '!w-3.5 !h-3.5 !top-[70%]',
-          '!bg-white !border-2 !border-black',
+          '!bg-background !border-2 !border-border',
           'hover:!scale-125',
           'transition-transform duration-150',
           "before:content-[''] before:absolute before:inset-[3px] before:bg-amber-500 before:rounded-full"

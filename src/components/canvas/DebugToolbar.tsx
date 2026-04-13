@@ -85,7 +85,7 @@ export function DebugToolbar() {
   return (
     <>
       {/* 方案1: 浅色背景 + 颜色图标 */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 shadow-lg">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-background border border-border rounded-xl px-3 py-2 shadow-lg">
         {/* 继续按钮 - 绿色 */}
         <button
           onClick={continueExecution}
@@ -147,7 +147,7 @@ export function DebugToolbar() {
         </button>
 
         {/* 分隔线 */}
-        <div className="w-px h-6 bg-slate-200 mx-1" />
+        <div className="w-px h-6 bg-border mx-1" />
 
         {/* 结束调试按钮 - 红色 */}
         <button

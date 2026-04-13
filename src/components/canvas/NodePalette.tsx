@@ -113,8 +113,8 @@ export function NodePalette() {
       className={cn(
         'absolute bottom-6 left-1/2 -translate-x-1/2 z-10',
         'flex items-center gap-0',
-        'bg-white/90 backdrop-blur-sm rounded-2xl px-1.5 py-1',
-        'shadow-lg border border-slate-200/50',
+        'bg-background/90 backdrop-blur-sm rounded-2xl px-1.5 py-1',
+        'shadow-lg border border-border/50',
       )}
     >
       {NODE_GROUPS.map((group, groupIndex) => {
@@ -122,7 +122,7 @@ export function NodePalette() {
         const item = group.items[0];
         const GroupIcon = group.icon;
         const Separator = groupIndex > 0 && (
-          <div className="w-px h-8 bg-slate-200 mx-0.5" />
+          <div className="w-px h-8 bg-border mx-0.5" />
         );
 
         return (
@@ -140,15 +140,15 @@ export function NodePalette() {
                 className={cn(
                   'flex flex-col items-center justify-center',
                   'w-12 h-12 rounded-lg',
-                  'text-slate-600',
-                  'hover:bg-slate-100 hover:scale-105',
+                  'text-foreground',
+                  'hover:bg-accent hover:scale-105',
                   'active:scale-95',
                   'transition-all duration-150 cursor-pointer',
                   'select-none',
                 )}
               >
                 <GroupIcon className="w-5 h-5" />
-                <span className="text-[10px] text-slate-500 mt-0.5 leading-none">
+                <span className="text-[10px] text-muted-foreground mt-0.5 leading-none">
                   {group.label}
                 </span>
               </button>
@@ -162,16 +162,16 @@ export function NodePalette() {
                     className={cn(
                       'flex flex-col items-center justify-center',
                       'w-12 h-12 rounded-lg',
-                      'text-slate-600',
-                      'hover:bg-slate-100 hover:scale-105',
+                      'text-foreground',
+                      'hover:bg-accent hover:scale-105',
                       'active:scale-95',
                       'transition-all duration-150 cursor-pointer',
                       'select-none',
-                      'data-[state=open]:bg-slate-100',
+                      'data-[state=open]:bg-accent',
                     )}
                   >
                     <GroupIcon className="w-5 h-5" />
-                    <span className="text-[10px] text-slate-500 mt-0.5 leading-none">
+                    <span className="text-[10px] text-muted-foreground mt-0.5 leading-none">
                       {group.label}
                     </span>
                   </button>
@@ -183,7 +183,7 @@ export function NodePalette() {
                     sideOffset={8}
                     align="center"
                     className={cn(
-                      'bg-white rounded-lg shadow-xl border border-slate-200',
+                      'bg-background rounded-lg shadow-xl border border-border',
                       'p-1 min-w-[160px]',
                       'animate-in fade-in-0 zoom-in-95',
                       'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
@@ -202,19 +202,19 @@ export function NodePalette() {
                             title={nodeItem.name}
                             className={cn(
                               'w-full flex items-center gap-2.5 px-3 py-2 rounded-md',
-                              'text-sm text-slate-700',
-                              'hover:bg-slate-50',
+                              'text-sm text-foreground',
+                              'hover:bg-accent',
                               'transition-colors duration-100 cursor-pointer',
                               'select-none',
                             )}
                           >
-                            <ItemIcon className="w-4 h-4 text-slate-500 shrink-0" />
+                            <ItemIcon className="w-4 h-4 text-muted-foreground shrink-0" />
                             <span>{nodeItem.name}</span>
                           </button>
                         </Popover.Close>
                       );
                     })}
-                    <Popover.Arrow className="fill-white drop-shadow-sm" />
+                    <Popover.Arrow className="fill-background drop-shadow-sm" />
                   </Popover.Content>
                 </Popover.Portal>
               </Popover.Root>
