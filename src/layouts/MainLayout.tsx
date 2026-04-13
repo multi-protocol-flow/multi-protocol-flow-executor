@@ -263,21 +263,21 @@ export function MainLayout() {
   }, [isHistoryPanelOpen]);
 
   return (
-    <div className="h-screen flex flex-col bg-white text-slate-900 overflow-hidden">
+    <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
       {/* ===== 顶部工具栏 ===== */}
-      <header className="h-14 shrink-0 border-b border-border flex items-center justify-between px-4 bg-white">
+      <header className="h-14 shrink-0 border-b border-border flex items-center justify-between px-4 bg-background">
         {/* 左侧：标题 */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
             {/* Logo/图标 */}
-            <div className="w-8 h-8 rounded-lg bg-white border border-border flex items-center justify-center">
-              <Zap className="w-4 h-4 text-slate-900" />
+            <div className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center">
+              <Zap className="w-4 h-4 text-foreground" />
             </div>
             <div>
-              <h1 className="text-base font-semibold tracking-tight text-slate-900">
+              <h1 className="text-base font-semibold tracking-tight text-foreground">
                 多协议流程执行器
               </h1>
-              <p className="text-[10px] text-slate-500 leading-none">
+              <p className="text-[10px] text-muted-foreground leading-none">
                 Flow Executor
               </p>
             </div>
@@ -285,8 +285,8 @@ export function MainLayout() {
 
           {/* 当前流程名称 */}
           {flow && (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-border">
-              <span className="text-sm text-slate-600">{flow.name}</span>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent border border-border">
+              <span className="text-sm text-muted-foreground">{flow.name}</span>
               {isDirty && (
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title="未保存" />
               )}
@@ -315,7 +315,7 @@ export function MainLayout() {
         {/* ===== 左侧栏 ===== */}
         <aside
           className={cn(
-            'shrink-0 border-r border-border flex flex-col bg-white overflow-hidden relative',
+            'shrink-0 border-r border-border flex flex-col bg-background overflow-hidden relative',
             'transition-all duration-300 ease-out',
             isFlowListPanelOpen ? 'min-w-0' : 'w-0 min-w-0',
             isLeftPanelDragging && '!transition-none'
@@ -328,14 +328,14 @@ export function MainLayout() {
               onMouseDown={handleLeftPanelMouseDown}
               className={cn(
                 'absolute right-0 top-0 bottom-0 w-2 z-10',
-                'bg-transparent hover:bg-slate-200 active:bg-slate-300',
+                'bg-transparent hover:bg-border active:bg-input',
                 'cursor-col-resize flex items-center justify-center',
                 'transition-colors duration-150',
-                isLeftPanelDragging && 'bg-slate-300'
+                isLeftPanelDragging && 'bg-input'
               )}
               title="拖拽调整面板宽度"
             >
-              <GripVertical className="w-2.5 h-6 text-slate-400" />
+              <GripVertical className="w-2.5 h-6 text-muted-foreground" />
             </div>
           )}
           {isFlowListPanelOpen && (
@@ -352,16 +352,16 @@ export function MainLayout() {
           onClick={toggleFlowListPanel}
           className={cn(
             'absolute z-20 h-8 w-6 rounded-l-none rounded-r-lg top-[calc(50%-16px)]',
-            'bg-white hover:bg-slate-50 border border-l-0 border-border',
+            'bg-background hover:bg-accent border border-l-0 border-border',
             'transition-colors duration-150'
           )}
           style={{ left: isFlowListPanelOpen ? sidebarWidth : 0 }}
           title={isFlowListPanelOpen ? '收起侧边栏' : '展开侧边栏'}
         >
           {isFlowListPanelOpen ? (
-            <ChevronLeft className="w-4 h-4 text-slate-400" />
+            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-slate-400" />
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
           )}
         </Button>
 
@@ -375,7 +375,7 @@ export function MainLayout() {
           {/* ===== 底部面板（历史/控制台） ===== */}
           <div
             className={cn(
-              'shrink-0 border-t border-border bg-white overflow-hidden relative',
+              'shrink-0 border-t border-border bg-background overflow-hidden relative',
               'transition-all duration-300 ease-out',
               isDragging && '!transition-none'
             )}
@@ -386,20 +386,20 @@ export function MainLayout() {
               onMouseDown={handleMouseDown}
               className={cn(
                 'absolute left-0 right-0 top-0 h-2 z-10',
-                'bg-transparent hover:bg-slate-200 active:bg-slate-300',
+                'bg-transparent hover:bg-border active:bg-input',
                 'cursor-row-resize flex items-center justify-center',
                 'transition-colors duration-150',
-                isDragging && 'bg-slate-300'
+                isDragging && 'bg-input'
               )}
               title="拖拽调整面板高度"
             >
-              <GripHorizontal className="w-6 h-2.5 text-slate-400" />
+              <GripHorizontal className="w-6 h-2.5 text-muted-foreground" />
             </div>
             {/* 内容延迟渲染：展开动画结束后再渲染，避免卡顿 */}
             {bottomPanelContentReady && (
               <div className="h-full flex flex-col pt-2">
                 {/* 面板头部：Tab 切换 + 关闭按钮 */}
-                <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100">
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
                     <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as 'history' | 'console')} className="w-auto">
                       <TabsList className="h-7 p-0.5">
                         <TabsTrigger value="history" className="h-6 px-3 text-xs">
@@ -414,10 +414,10 @@ export function MainLayout() {
                       variant="ghost"
                       size="icon"
                       onClick={toggleHistoryPanel}
-                      className="h-7 w-7 hover:bg-slate-100"
+                      className="h-7 w-7 hover:bg-accent"
                       title="收起面板"
                     >
-                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
                     </Button>
                   </div>
 
@@ -428,7 +428,7 @@ export function MainLayout() {
                     </TabsContent>
                     <TabsContent value="console" className="m-0 h-full overflow-hidden flex flex-col">
                       {/* 过滤控件 */}
-                      <div className="flex items-center gap-2 px-2 py-1.5 border-b border-slate-100 shrink-0">
+                      <div className="flex items-center gap-2 px-2 py-1.5 border-b border-border shrink-0">
                         <Select value={filter.level} onValueChange={(v) => setFilter({ level: v as 'ALL' | 'INFO' | 'DEBUG' | 'WARN' | 'ERROR' })}>
                           <SelectTrigger className="w-20 h-7 text-xs">
                             <SelectValue placeholder="级别" />
@@ -464,7 +464,7 @@ export function MainLayout() {
                           variant="ghost"
                           size="sm"
                           onClick={handleClearConsole}
-                          className="h-7 px-2 text-xs text-slate-500 hover:text-slate-700"
+                          className="h-7 px-2 text-xs text-muted-foreground hover:text-accent-foreground"
                           title="清空日志"
                         >
                           <Trash2 className="w-3.5 h-3.5 mr-1" />
@@ -490,8 +490,8 @@ export function MainLayout() {
               className={cn(
                 'absolute bottom-0 left-1/2 -translate-x-1/2 z-10',
                 'h-6 px-3 rounded-t-lg rounded-b-none',
-                'bg-white hover:bg-slate-50 border border-b-0 border-border',
-                'text-xs text-slate-500 hover:text-slate-700'
+                'bg-background hover:bg-accent border border-b-0 border-border',
+                'text-xs text-muted-foreground hover:text-accent-foreground'
               )}
               title="展开底部面板"
             >
@@ -504,7 +504,7 @@ export function MainLayout() {
         {/* ===== 右侧配置面板 ===== */}
         <aside
           className={cn(
-            'shrink-0 border-l border-border bg-white overflow-hidden relative',
+            'shrink-0 border-l border-border bg-background overflow-hidden relative',
             'transition-all duration-300 ease-out',
             isConfigPanelOpen ? 'min-w-0' : 'w-0 min-w-0',
             isRightPanelDragging && '!transition-none'
@@ -517,14 +517,14 @@ export function MainLayout() {
               onMouseDown={handleRightPanelMouseDown}
               className={cn(
                 'absolute left-0 top-0 bottom-0 w-2 z-10',
-                'bg-transparent hover:bg-slate-200 active:bg-slate-300',
+                'bg-transparent hover:bg-border active:bg-input',
                 'cursor-col-resize flex items-center justify-center',
                 'transition-colors duration-150',
-                isRightPanelDragging && 'bg-slate-300'
+                isRightPanelDragging && 'bg-input'
               )}
               title="拖拽调整面板宽度"
             >
-              <GripVertical className="w-2.5 h-6 text-slate-400" />
+              <GripVertical className="w-2.5 h-6 text-muted-foreground" />
             </div>
           )}
           {isConfigPanelOpen && (
@@ -548,16 +548,16 @@ export function MainLayout() {
             onClick={toggleConfigPanel}
             className={cn(
               'absolute z-20 h-8 w-6 rounded-r-none rounded-l-lg top-[calc(50%-16px)]',
-              'bg-white hover:bg-slate-50 border border-r-0 border-border',
+              'bg-background hover:bg-accent border border-r-0 border-border',
               'transition-colors duration-150'
             )}
             style={{ right: isConfigPanelOpen ? configPanelWidth : 0 }}
             title={isConfigPanelOpen ? '收起配置面板' : '展开配置面板'}
           >
             {isConfigPanelOpen ? (
-              <ChevronRight className="w-4 h-4 text-slate-400" />
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
             ) : (
-              <ChevronLeft className="w-4 h-4 text-slate-400" />
+              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
             )}
           </Button>
         )}
