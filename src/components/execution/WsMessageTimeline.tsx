@@ -3,6 +3,7 @@
  * Postman 风格的平面化消息流视图，替代旧的嵌套手风琴和虚拟化列表
  */
 import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
@@ -11,7 +12,6 @@ import {
 } from 'react';
 import { VariableSizeList as List, type ListChildComponentProps } from 'react-window';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './viewers/RawJsonViewer';
@@ -25,7 +25,6 @@ import {
   Search,
   X,
   ArrowDownToLine,
-  Trash2,
   Copy,
   Check,
 } from 'lucide-react';
@@ -237,7 +236,6 @@ interface TimelineHeaderProps {
   onSearchQueryChange: (query: string) => void;
   searchMatchCount: number;
   live?: boolean;
-  onClear?: () => void;
 }
 
 function TimelineHeader({
@@ -249,7 +247,6 @@ function TimelineHeader({
   onSearchQueryChange,
   searchMatchCount,
   live,
-  onClear,
 }: TimelineHeaderProps) {
   const stats = calculateStats(stream);
   const [searchVisible, setSearchVisible] = useState(false);
@@ -380,17 +377,7 @@ function TimelineHeader({
           </button>
         )}
 
-        {/* 清空按钮（非实时模式） */}
-        {!live && onClear && messageCount > 0 && (
-          <button
-            type="button"
-            onClick={onClear}
-            className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
-            title="清空消息"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        )}
+
       </div>
     </div>
   );
@@ -521,22 +508,22 @@ function MessageDetailPanel({ message, onClose }: MessageDetailPanelProps) {
   }, [messageText]);
 
   return (
-    <div className="border-t border-border bg-background flex flex-col shrink-0">
+    <div className="border-t border-border bg-background flex flex-col shrink-0 w-full overflow-hidden">
       {/* 详情头部 */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50">
-        <div className="flex items-center gap-3 text-xs">
-          <span className={cn('font-medium', isSent ? 'text-emerald-600' : 'text-blue-600')}>
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 shrink-0">
+        <div className="flex items-center gap-3 text-xs min-w-0">
+          <span className={cn('font-medium shrink-0', isSent ? 'text-emerald-600' : 'text-blue-600')}>
             {isSent ? '发送' : '接收'}
           </span>
-          <span className="font-mono text-muted-foreground tabular-nums">
+          <span className="font-mono text-muted-foreground tabular-nums shrink-0">
             {formatTimestampMs(message.timestamp)}
           </span>
-          <span className="text-muted-foreground">{formatSize(message.size)}</span>
-          <span className="text-muted-foreground">
+          <span className="text-muted-foreground shrink-0">{formatSize(message.size)}</span>
+          <span className="text-muted-foreground shrink-0">
             {message.is_binary ? '二进制' : '文本'}
           </span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={handleCopy}
@@ -558,7 +545,7 @@ function MessageDetailPanel({ message, onClose }: MessageDetailPanelProps) {
 
       {/* 格式标签页 */}
       <Tabs value={formatTab} onValueChange={(v) => setFormatTab(v as FormatTab)}>
-        <div className="px-3 pt-1">
+        <div className="px-3 pt-1 shrink-0">
           <TabsList className="h-7 p-0.5">
             <TabsTrigger value="text" className="text-[11px] h-6 px-2.5">
               文本
@@ -576,28 +563,22 @@ function MessageDetailPanel({ message, onClose }: MessageDetailPanelProps) {
           </TabsList>
         </div>
 
-        <TabsContent value="text" className="mt-0">
-          <ScrollArea className="max-h-48">
+        <TabsContent value="text" className="mt-0 overflow-x-auto">
             <pre className="px-3 py-2 text-xs font-mono whitespace-pre-wrap break-all text-foreground/90 leading-relaxed">
               {messageText}
             </pre>
-          </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="json" className="mt-0">
-          <ScrollArea className="max-h-48">
+        <TabsContent value="json" className="mt-0 overflow-x-auto">
             <div className="px-3 py-2">
               <RawJsonViewer data={tryParseJson(messageText)} />
             </div>
-          </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="hex" className="mt-0">
-          <ScrollArea className="max-h-48">
+        <TabsContent value="hex" className="mt-0 overflow-x-auto">
             <pre className="px-3 py-2 text-[11px] font-mono whitespace-pre leading-relaxed text-foreground/80">
               {formatHexDump(message)}
             </pre>
-          </ScrollArea>
         </TabsContent>
       </Tabs>
     </div>
@@ -681,9 +662,7 @@ export function WsMessageTimeline({
   // 列表引用
   const listRef = useRef<List<RowData>>(null);
   const outerRef = useRef<HTMLDivElement>(null);
-  const detailRef = useRef<HTMLDivElement>(null);
   const [outerHeight, setOuterHeight] = useState(300);
-  const [detailHeight, setDetailHeight] = useState(0);
 
   // 切换连接时重置状态
   const handleStreamSelect = useCallback((idx: number) => {
@@ -739,20 +718,19 @@ export function WsMessageTimeline({
     return count;
   }, [activeStream, searchQuery]);
 
-  // 点击消息
+  // 点击消息（二次点击同一条消息则收起详情）
   const handleMessageClick = useCallback((message: WsMessage, globalIndex: number) => {
-    setSelectedGlobalIndex(globalIndex);
-    setSelectedMessage(message);
-  }, []);
+    if (selectedGlobalIndex === globalIndex) {
+      setSelectedGlobalIndex(null);
+      setSelectedMessage(null);
+    } else {
+      setSelectedGlobalIndex(globalIndex);
+      setSelectedMessage(message);
+    }
+  }, [selectedGlobalIndex]);
 
   // 关闭详情
   const handleCloseDetail = useCallback(() => {
-    setSelectedGlobalIndex(null);
-    setSelectedMessage(null);
-  }, []);
-
-  // 清空消息回调（仅非实时模式）
-  const handleClear = useCallback(() => {
     setSelectedGlobalIndex(null);
     setSelectedMessage(null);
   }, []);
@@ -767,29 +745,20 @@ export function WsMessageTimeline({
     [timelineItems, selectedGlobalIndex, handleMessageClick],
   );
 
-  // 监听外层容器高度和详情面板高度
+  // 监听外层容器高度
   useEffect(() => {
     const outer = outerRef.current;
-    const detail = detailRef.current;
     if (!outer) return;
 
-    // 关闭详情面板时，detailRef.current 已卸载为 null，需要重置 detailHeight
-    if (!selectedMessage) {
-      setDetailHeight(0);
-    }
-
-    const updateHeights = () => {
+    const updateHeight = () => {
       if (outer) setOuterHeight(outer.clientHeight);
-      if (detail) setDetailHeight(detail.clientHeight);
     };
 
-    const observer = new ResizeObserver(updateHeights);
+    const observer = new ResizeObserver(updateHeight);
     observer.observe(outer);
-    if (detail) observer.observe(detail);
-    // 初始值
-    updateHeights();
+    updateHeight();
     return () => observer.disconnect();
-  }, [selectedMessage]);
+  }, []);
 
   // 自动滚动
   useEffect(() => {
@@ -823,21 +792,21 @@ export function WsMessageTimeline({
   // 渲染
   // ========================================================================
 
+  // 是否展开详情模式
+  const isDetailOpen = selectedMessage !== null;
+
   // 空流列表
   if (streams.length === 0) {
     return (
-      <div style={maxHeight ? { maxHeight } : undefined} className="h-full">
+      <div style={maxHeight ? { height: maxHeight } : undefined} className="h-full">
         <EmptyState hasConnections={false} />
       </div>
     );
   }
 
-  return (
-    <div
-      style={maxHeight ? { maxHeight } : undefined}
-      className="h-full flex flex-col overflow-hidden bg-background"
-    >
-      {/* 连接选择器（多个连接时显示） */}
+  // 公共头部（连接选择器 + 时间线头部）
+  const headerSection = (
+    <>
       {streams.length > 1 && (
         <ConnectionSelector
           streams={streams}
@@ -845,8 +814,6 @@ export function WsMessageTimeline({
           onSelect={handleStreamSelect}
         />
       )}
-
-      {/* 时间线头部 */}
       {activeStream && (
         <TimelineHeader
           stream={activeStream}
@@ -857,17 +824,77 @@ export function WsMessageTimeline({
           onSearchQueryChange={setSearchQuery}
           searchMatchCount={searchMatchCount}
           live={live}
-          onClear={!live ? handleClear : undefined}
         />
       )}
+    </>
+  );
 
-      {/* 时间线列表 + 详情面板 */}
-      <div ref={outerRef} className="flex-1 min-h-0 flex flex-col overflow-hidden">
+  // ------------------------------------------------------------------
+  // 报告模式（非实时）：直接渲染，详情内联展开，撑高容器由父级滚动
+  // ------------------------------------------------------------------
+  if (!live) {
+    return (
+      <div
+        style={!isDetailOpen && maxHeight ? { height: maxHeight } : undefined}
+        className={cn('flex flex-col bg-background w-full', !isDetailOpen && 'overflow-hidden')}
+      >
+        {headerSection}
+
+        {/* 消息列表 */}
+        <div className={!isDetailOpen ? 'flex-1 min-h-0 overflow-y-auto' : ''}>
+          {timelineItems.length > 0 ? (
+            timelineItems.map((item, idx) => {
+              const isMessage = item.type === 'message';
+              const isSelected = isMessage && selectedGlobalIndex === item.globalIndex;
+              return (
+                <Fragment key={`${item.type}-${idx}`}>
+                  {item.type === 'segment-divider' ? (
+                    <div style={{ height: SEGMENT_DIVIDER_HEIGHT }} className="flex items-center">
+                      <SegmentDivider segment={item.segment} />
+                    </div>
+                  ) : (
+                    <div style={{ height: MESSAGE_ROW_HEIGHT }}>
+                      <MessageRow
+                        message={item.message}
+                        isSelected={isSelected}
+                        onClick={() => handleMessageClick(item.message, item.globalIndex)}
+                      />
+                    </div>
+                  )}
+                  {/* 选中消息的详情面板，内联展示在消息下方 */}
+                  {isSelected && selectedMessage && (
+                    <MessageDetailPanel
+                      message={selectedMessage}
+                      onClose={handleCloseDetail}
+                    />
+                  )}
+                </Fragment>
+              );
+            })
+          ) : (
+            <EmptyState hasConnections />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // 实时模式：虚拟化列表
+  // ------------------------------------------------------------------
+  return (
+    <div
+      style={maxHeight ? { height: maxHeight } : undefined}
+      className="flex flex-col overflow-hidden bg-background"
+    >
+      {headerSection}
+
+      <div ref={outerRef} className="flex-1 min-h-0 relative overflow-hidden">
         {timelineItems.length > 0 ? (
-          <div className="flex-1 min-h-0 relative">
+          <>
             <List
               ref={listRef}
-              height={Math.max(0, outerHeight - detailHeight)}
+              height={outerHeight}
               width="100%"
               itemCount={timelineItems.length}
               itemSize={(index: number): number =>
@@ -883,7 +910,6 @@ export function WsMessageTimeline({
               {TimelineRow}
             </List>
 
-            {/* 自动滚动浮动按钮 */}
             {live && !autoScroll && userScrolled && (
               <button
                 type="button"
@@ -897,24 +923,9 @@ export function WsMessageTimeline({
                 自动滚动
               </button>
             )}
-          </div>
+          </>
         ) : (
           <EmptyState hasConnections />
-        )}
-
-        {/* 消息详情面板 — stopPropagation 阻止关闭按钮点击穿透到消息行 */}
-        {selectedMessage && (
-          <div
-            ref={detailRef}
-            role="presentation"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
-            <MessageDetailPanel
-              message={selectedMessage}
-              onClose={handleCloseDetail}
-            />
-          </div>
         )}
       </div>
     </div>
