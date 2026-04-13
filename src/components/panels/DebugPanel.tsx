@@ -82,12 +82,12 @@ function VariableItem({
   };
 
   return (
-    <div className="border-b border-slate-100 last:border-b-0">
+    <div className="border-b border-border last:border-b-0">
       {/* 变量头部 */}
       <div
         className={cn(
           'flex items-center gap-2 px-2 py-1.5 group',
-          'hover:bg-slate-50 transition-colors'
+          'hover:bg-accent transition-colors'
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
@@ -95,7 +95,7 @@ function VariableItem({
         {isComplex ? (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-slate-600"
+            className="w-4 h-4 flex items-center justify-center text-muted-foreground hover:text-accent-foreground"
           >
             {isExpanded ? (
               <ChevronDown className="w-3 h-3" />
@@ -108,20 +108,20 @@ function VariableItem({
         )}
 
         {/* 变量名 */}
-        <span className="text-sm font-medium text-slate-700 min-w-0 flex-shrink-0">
+        <span className="text-sm font-medium text-foreground min-w-0 flex-shrink-0">
           {name}
         </span>
 
         {/* 简单类型值 */}
         {!isComplex && !isEditing && (
-          <span className="text-sm text-slate-500 font-mono flex-1 truncate">
+          <span className="text-sm text-muted-foreground font-mono flex-1 truncate">
             {getSimpleDisplay()}
           </span>
         )}
 
         {/* 复杂类型预览 */}
         {isComplex && !isExpanded && (
-          <span className="text-sm text-slate-400 flex-1 truncate">
+          <span className="text-sm text-muted-foreground flex-1 truncate">
             {isObject ? '{...}' : `[${(value as unknown[]).length}]`}
           </span>
         )}
@@ -131,7 +131,7 @@ function VariableItem({
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={handleCopy}
-              className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded"
+              className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-accent-foreground hover:bg-accent rounded"
               title="复制"
             >
               <Copy className="w-3 h-3" />
@@ -139,7 +139,7 @@ function VariableItem({
             {onEdit && !isComplex && (
               <button
                 onClick={handleStartEdit}
-                className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded"
+                className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-accent-foreground hover:bg-accent rounded"
                 title="编辑"
               >
                 <Edit2 className="w-3 h-3" />
@@ -175,7 +175,7 @@ function VariableItem({
           <textarea
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
-            className="w-full h-24 px-2 py-1 text-xs font-mono border border-slate-300 rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full h-24 px-2 py-1 text-xs font-mono border border-border rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="输入 JSON 格式的值"
           />
         </div>
@@ -183,7 +183,7 @@ function VariableItem({
 
       {/* 复杂类型展开内容 */}
       {isComplex && isExpanded && !isEditing && (
-        <div className="bg-slate-50/50">
+        <div className="bg-muted/50">
           {isObject &&
             Object.entries(value as Record<string, unknown>).map(([key, val]) => (
               <VariableItem
@@ -257,12 +257,12 @@ function StackEntryItem({
   const hasOutput = entry.output !== undefined && entry.output !== null;
 
   return (
-    <div className="border-b border-slate-100 last:border-b-0">
+    <div className="border-b border-border last:border-b-0">
       {/* 条目头部 */}
       <div
         className={cn(
           'flex items-center gap-2 px-3 py-2 group',
-          'hover:bg-slate-50 transition-colors',
+          'hover:bg-accent transition-colors',
           isCurrentNode && 'bg-blue-50 hover:bg-blue-50'
         )}
       >
@@ -291,7 +291,7 @@ function StackEntryItem({
         {(hasInput || hasOutput) ? (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-4 h-4 flex items-center justify-center text-slate-400 hover:text-slate-600"
+            className="w-4 h-4 flex items-center justify-center text-muted-foreground hover:text-accent-foreground"
           >
             {isExpanded ? (
               <ChevronDown className="w-3 h-3" />
@@ -312,12 +312,12 @@ function StackEntryItem({
           <div
             className={cn(
               'text-sm font-medium truncate',
-              isCurrentNode ? 'text-blue-700' : 'text-slate-900 hover:text-blue-600'
+              isCurrentNode ? 'text-blue-700' : 'text-foreground hover:text-blue-600'
             )}
           >
             {entry.node_name}
           </div>
-          <div className="text-xs text-slate-500 flex items-center gap-2">
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
             <span>{entry.node_type}</span>
             {formatDuration() && (
               <>
@@ -337,21 +337,21 @@ function StackEntryItem({
 
       {/* 展开内容：输入/输出数据 */}
       {isExpanded && (hasInput || hasOutput) && (
-        <div className="bg-slate-50 px-3 pb-2 space-y-2">
+        <div className="bg-muted px-3 pb-2 space-y-2">
           {/* 输入数据 */}
           {hasInput && (
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-slate-600">输入</span>
+                <span className="text-xs font-medium text-muted-foreground">输入</span>
                 <button
                   onClick={(e) => handleCopyData(entry.input, e)}
-                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded"
+                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded"
                   title="复制输入"
                 >
-                  <Copy className="w-3 h-3 text-slate-400" />
+                  <Copy className="w-3 h-3 text-muted-foreground" />
                 </button>
               </div>
-              <pre className="text-xs font-mono text-slate-700 bg-white p-2 rounded border border-slate-200 overflow-x-auto max-h-32 overflow-y-auto">
+              <pre className="text-xs font-mono text-foreground bg-background p-2 rounded border border-border overflow-x-auto max-h-32 overflow-y-auto">
                 {JSON.stringify(entry.input, null, 2)}
               </pre>
             </div>
@@ -361,16 +361,16 @@ function StackEntryItem({
           {hasOutput && (
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-slate-600">输出</span>
+                <span className="text-xs font-medium text-muted-foreground">输出</span>
                 <button
                   onClick={(e) => handleCopyData(entry.output, e)}
-                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 rounded"
+                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded"
                   title="复制输出"
                 >
-                  <Copy className="w-3 h-3 text-slate-400" />
+                  <Copy className="w-3 h-3 text-muted-foreground" />
                 </button>
               </div>
-              <pre className="text-xs font-mono text-slate-700 bg-white p-2 rounded border border-slate-200 overflow-x-auto max-h-32 overflow-y-auto">
+              <pre className="text-xs font-mono text-foreground bg-background p-2 rounded border border-border overflow-x-auto max-h-32 overflow-y-auto">
                 {JSON.stringify(entry.output, null, 2)}
               </pre>
             </div>
@@ -497,7 +497,7 @@ export function DebugPanel() {
           />
         ))
       ) : (
-        <div className="p-4 text-sm text-slate-400 text-center">暂无变量</div>
+        <div className="p-4 text-sm text-muted-foreground text-center">暂无变量</div>
       )}
     </>
   );
@@ -515,13 +515,13 @@ export function DebugPanel() {
           />
         ))
       ) : (
-        <div className="p-4 text-sm text-slate-400 text-center">暂无执行记录</div>
+        <div className="p-4 text-sm text-muted-foreground text-center">暂无执行记录</div>
       )}
     </>
   );
 
   return (
-    <div ref={containerRef} className="h-full flex flex-col bg-white overflow-hidden">
+    <div ref={containerRef} className="h-full flex flex-col bg-background overflow-hidden">
       {/* 只读模式横幅 */}
       {isDebugDataReadOnly && (
         <div className="flex flex-col gap-0.5 px-3 py-2 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs shrink-0">
@@ -534,17 +534,17 @@ export function DebugPanel() {
       )}
 
       {/* ===== 当前节点区域 ===== */}
-      <div className="border-b border-slate-200 p-3 shrink-0">
-        <h3 className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-1.5">
+      <div className="border-b border-border p-3 shrink-0">
+        <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
           当前节点
         </h3>
         {currentNode ? (
-          <div className="bg-slate-50 rounded px-2 py-1.5">
+          <div className="bg-muted rounded px-2 py-1.5">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-medium text-slate-900">{currentNode.name}</div>
-                <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+                <div className="text-sm font-medium text-foreground">{currentNode.name}</div>
+                <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
                   <span>{currentNode.type}</span>
                   {hasTempConfig && (
                     <span className="text-amber-600 font-medium">(已修改)</span>
@@ -566,7 +566,7 @@ export function DebugPanel() {
             </div>
           </div>
         ) : (
-          <div className="text-sm text-slate-400 italic">无当前节点</div>
+          <div className="text-sm text-muted-foreground italic">无当前节点</div>
         )}
       </div>
 
@@ -575,10 +575,10 @@ export function DebugPanel() {
         title="上下文变量"
         isCollapsed={isContextVariablesCollapsed}
         onToggle={toggleContextVariablesCollapsed}
-        className={isContextVariablesCollapsed ? "shrink-0" : "flex-1 min-h-0 border-b border-slate-200"}
+        className={isContextVariablesCollapsed ? "shrink-0" : "flex-1 min-h-0 border-b border-border"}
         style={!isContextVariablesCollapsed ? { minHeight: 132 } : undefined}
         headerRight={
-          <span className="text-xs text-slate-400 font-normal">
+          <span className="text-xs text-muted-foreground font-normal">
             {Object.keys(variables).length}
           </span>
         }
@@ -604,7 +604,7 @@ export function DebugPanel() {
             maxHeight={maxBottomPanelHeight - 32}
             className="border-t border-border"
             headerRight={
-              <span className="text-xs text-slate-400 font-normal">
+              <span className="text-xs text-muted-foreground font-normal">
                 {executionStack.length}
               </span>
             }

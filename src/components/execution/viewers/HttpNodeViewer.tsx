@@ -29,7 +29,7 @@ const getStatusColor = (status: number): string => {
   if (status >= 200 && status < 300) return 'text-emerald-600 bg-emerald-50';
   if (status >= 400 && status < 500) return 'text-amber-600 bg-amber-50';
   if (status >= 500) return 'text-red-600 bg-red-50';
-  return 'text-slate-600 bg-slate-50';
+  return 'text-muted-foreground bg-muted';
 };
 
 /**
@@ -43,7 +43,7 @@ const getMethodColor = (method: string): string => {
     PATCH: 'text-purple-600 bg-purple-50',
     DELETE: 'text-red-600 bg-red-50',
   };
-  return methodColors[method.toUpperCase()] || 'text-slate-600 bg-slate-50';
+  return methodColors[method.toUpperCase()] || 'text-muted-foreground bg-muted';
 };
 
 /**
@@ -96,8 +96,8 @@ function KeyValueList({ data }: KeyValueListProps) {
     <div className="space-y-1.5">
       {Object.entries(data).map(([key, value]) => (
         <div key={key} className="flex items-start gap-2 text-sm">
-          <span className="font-mono text-slate-600 min-w-0 shrink-0">{key}:</span>
-          <span className="text-slate-800 break-all">
+          <span className="font-mono text-muted-foreground min-w-0 shrink-0">{key}:</span>
+          <span className="text-foreground break-all">
             {typeof value === 'object' ? JSON.stringify(value) : String(value)}
           </span>
         </div>
@@ -170,7 +170,7 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
             <Badge className={cn('font-mono text-xs shrink-0', getMethodColor(config.method || 'GET'))}>
               {config.method}
             </Badge>
-            <code className="flex-1 text-sm font-mono text-slate-700 break-all bg-slate-50 px-2 py-1 rounded">
+            <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
               {config.url || <span className="text-muted-foreground italic">未配置 URL</span>}
             </code>
           </div>
@@ -189,7 +189,7 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
               <div className="text-xs font-medium text-muted-foreground mb-1.5">
                 请求体 <span className="font-normal">({config.body_type})</span>
               </div>
-              <div className="bg-slate-50 rounded p-2">
+              <div className="bg-muted rounded p-2">
                 <RawJsonViewer data={config.body} />
               </div>
             </div>
@@ -238,7 +238,7 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
           icon={<ArrowDownToLine className="w-4 h-4" />}
           defaultOpen={false}
         >
-          <div className="bg-slate-50 rounded p-2">
+          <div className="bg-muted rounded p-2">
             <RawJsonViewer data={body} />
           </div>
         </CollapsibleSection>
@@ -258,33 +258,33 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
             {timing.dns_ms !== undefined && (
-              <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <span className="text-muted-foreground">DNS 解析</span>
-                <span className="font-mono text-slate-700">{timing.dns_ms}ms</span>
+                <span className="font-mono text-foreground">{timing.dns_ms}ms</span>
               </div>
             )}
             {timing.connect_ms !== undefined && (
-              <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <span className="text-muted-foreground">TCP 连接</span>
-                <span className="font-mono text-slate-700">{timing.connect_ms}ms</span>
+                <span className="font-mono text-foreground">{timing.connect_ms}ms</span>
               </div>
             )}
             {timing.tls_ms !== undefined && (
-              <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <span className="text-muted-foreground">TLS 握手</span>
-                <span className="font-mono text-slate-700">{timing.tls_ms}ms</span>
+                <span className="font-mono text-foreground">{timing.tls_ms}ms</span>
               </div>
             )}
             {timing.ttfb_ms !== undefined && (
-              <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <span className="text-muted-foreground">首字节时间</span>
-                <span className="font-mono text-slate-700">{timing.ttfb_ms}ms</span>
+                <span className="font-mono text-foreground">{timing.ttfb_ms}ms</span>
               </div>
             )}
             {timing.download_ms !== undefined && (
-              <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <span className="text-muted-foreground">下载耗时</span>
-                <span className="font-mono text-slate-700">{timing.download_ms}ms</span>
+                <span className="font-mono text-foreground">{timing.download_ms}ms</span>
               </div>
             )}
           </div>

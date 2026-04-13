@@ -150,7 +150,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
 
       {/* 连接选择下拉框 */}
       <div className="space-y-2">
-        <Label htmlFor="connection_uuid" className="text-sm font-medium text-black">
+        <Label htmlFor="connection_uuid" className="text-sm font-medium text-foreground">
           数据库连接 <span className="text-rose-500">*</span>
         </Label>
         <Select
@@ -266,7 +266,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
 
       {/* 连接超时 */}
       <div className="space-y-2">
-        <Label htmlFor="connect_timeout_ms" className="text-sm font-medium text-black">
+        <Label htmlFor="connect_timeout_ms" className="text-sm font-medium text-foreground">
           连接超时
         </Label>
         <Input
@@ -284,7 +284,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
 
       {/* 测试查询 */}
       <div className="space-y-2">
-        <Label htmlFor="test_query" className="text-sm font-medium text-black">
+        <Label htmlFor="test_query" className="text-sm font-medium text-foreground">
           测试查询（可选）
         </Label>
         <Textarea

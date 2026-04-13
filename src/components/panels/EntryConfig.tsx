@@ -159,14 +159,14 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Variable className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm font-medium text-black">初始变量</Label>
+            <Label className="text-sm font-medium text-foreground">初始变量</Label>
           </div>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={handleAddVariable}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-black"
+            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
             添加变量

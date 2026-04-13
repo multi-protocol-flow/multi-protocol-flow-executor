@@ -235,7 +235,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
 
       {/* URL 输入 */}
       <div className="space-y-2">
-        <Label htmlFor="url" className="text-sm font-medium text-black">
+        <Label htmlFor="url" className="text-sm font-medium text-foreground">
           WebSocket URL <span className="text-rose-500">*</span>
         </Label>
         <div className="relative">
@@ -263,13 +263,13 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
       {/* Headers 编辑器 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-black">请求头（可选）</Label>
+          <Label className="text-sm font-medium text-foreground">请求头（可选）</Label>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={handleAddHeader}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-black"
+            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
             添加
@@ -320,7 +320,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
 
       {/* Subprotocols */}
       <div className="space-y-2">
-        <Label htmlFor="subprotocols" className="text-sm font-medium text-black">
+        <Label htmlFor="subprotocols" className="text-sm font-medium text-foreground">
           子协议（可选）
         </Label>
         <Input
@@ -338,7 +338,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
 
       {/* 连接超时 */}
       <div className="space-y-2">
-        <Label htmlFor="connect_timeout_ms" className="text-sm font-medium text-black">
+        <Label htmlFor="connect_timeout_ms" className="text-sm font-medium text-foreground">
           连接超时
         </Label>
         <Input
@@ -367,7 +367,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
             saveData();
           }}
         />
-        <Label htmlFor="collect_message" className="text-sm font-medium text-black cursor-pointer">
+        <Label htmlFor="collect_message" className="text-sm font-medium text-foreground cursor-pointer">
           连接后采集消息
         </Label>
       </div>
@@ -377,7 +377,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
         <>
           {/* 采集模式 */}
           <div className="space-y-2">
-            <Label htmlFor="collect_mode" className="text-sm font-medium text-black">
+            <Label htmlFor="collect_mode" className="text-sm font-medium text-foreground">
               采集模式
             </Label>
             <Select
@@ -408,7 +408,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
           {/* 采集条件（仅当 collect_mode 为 'condition_match' 时显示） */}
           {collectMode === 'condition_match' && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-black">采集条件</Label>
+              <Label className="text-sm font-medium text-foreground">采集条件</Label>
               <div className="space-y-2 p-3 rounded-md border bg-muted/30">
                 {/* 匹配类型 */}
                 <div className="space-y-2">
@@ -463,7 +463,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                       <p className="font-medium text-sky-800">匹配类型说明：</p>
                       <div className="space-y-1.5">
                         {/* JSONPath */}
-                        <div className="p-2 rounded bg-white/50 border border-sky-100">
+                        <div className="p-2 rounded bg-background/50 border border-sky-100">
                           <p className="font-medium text-sky-800">📌 JSONPath — 检查字段是否存在</p>
                           <p className="font-mono text-[11px] text-sky-600 mt-1">
                             <code className="bg-sky-100/50 px-1 rounded">$.msg</code> 检查 msg 字段是否存在
@@ -474,7 +474,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                           <p className="text-[10px] text-sky-500 mt-1">⚠️ 仅检查字段存在，不支持值比较</p>
                         </div>
                         {/* Regex */}
-                        <div className="p-2 rounded bg-white/50 border border-sky-100">
+                        <div className="p-2 rounded bg-background/50 border border-sky-100">
                           <p className="font-medium text-sky-800">🔍 正则表达式 — 匹配消息文本</p>
                           <p className="font-mono text-[11px] text-sky-600 mt-1">
                             <code className="bg-sky-100/50 px-1 rounded">authenticated</code> 包含该文本
@@ -485,7 +485,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                           <p className="text-[10px] text-sky-500 mt-1">⚠️ 对整个消息文本进行正则匹配</p>
                         </div>
                         {/* Expression */}
-                        <div className="p-2 rounded bg-white/50 border border-sky-100">
+                        <div className="p-2 rounded bg-background/50 border border-sky-100">
                           <p className="font-medium text-sky-800">🧮 表达式 — 值比较（推荐）</p>
                           <p className="font-mono text-[11px] text-sky-600 mt-1">
                             <code className="bg-sky-100/50 px-1 rounded">msg == "authenticated"</code> 字符串比较
@@ -505,7 +505,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
 
           {/* 采集超时 */}
           <div className="space-y-2">
-            <Label htmlFor="collect_timeout_ms" className="text-sm font-medium text-black">
+            <Label htmlFor="collect_timeout_ms" className="text-sm font-medium text-foreground">
               采集超时
             </Label>
             <Input
@@ -525,14 +525,14 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ArrowRightFromLine className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm font-medium text-black">输出变量映射</Label>
+            <Label className="text-sm font-medium text-foreground">输出变量映射</Label>
           </div>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={handleAddOutputMapping}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-black"
+            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
             添加映射
@@ -636,7 +636,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
           <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
             <div className="text-xs text-muted-foreground space-y-1">
-              <p className="font-medium text-black">JSONPath 语法：</p>
+              <p className="font-medium text-foreground">JSONPath 语法：</p>
               <p><code className="rounded bg-muted px-1">$.message</code> 消息内容</p>
               <p><code className="rounded bg-muted px-1">$.connection_id</code> 连接 ID</p>
               <p><code className="rounded bg-muted px-1">$.data.status</code> 嵌套字段</p>

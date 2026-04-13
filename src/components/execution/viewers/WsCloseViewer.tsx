@@ -49,7 +49,7 @@ const getCloseCodeDescription = (code: number): string => {
 const getCloseCodeColor = (code: number): string => {
   if (code === 1000) return 'text-emerald-600 bg-emerald-50';
   if (code >= 1001 && code <= 1015) return 'text-amber-600 bg-amber-50';
-  return 'text-slate-600 bg-slate-50';
+  return 'text-muted-foreground bg-muted';
 };
 
 /**
@@ -115,7 +115,7 @@ export function WsCloseViewer({ report }: WsCloseViewerProps) {
           {url ? (
             <div className="flex items-start gap-2">
               <span className="text-xs font-medium text-muted-foreground shrink-0">URL</span>
-              <code className="flex-1 text-sm font-mono text-slate-700 break-all bg-slate-50 px-2 py-1 rounded">
+              <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
                 {url}
               </code>
             </div>
@@ -174,8 +174,8 @@ export function WsCloseViewer({ report }: WsCloseViewerProps) {
           {closeReason && (
             <div className="flex items-start gap-3">
               <span className="text-xs font-medium text-muted-foreground shrink-0 mt-1">关闭原因</span>
-              <div className="flex-1 bg-slate-50 rounded px-3 py-2">
-                <p className="text-sm text-slate-700">{closeReason}</p>
+              <div className="flex-1 bg-muted rounded px-3 py-2">
+                <p className="text-sm text-foreground">{closeReason}</p>
               </div>
             </div>
           )}

@@ -53,11 +53,11 @@ export function ConfirmDialog({
           <div className="flex items-center gap-3">
             <div className={cn(
               'w-10 h-10 rounded-full flex items-center justify-center',
-              confirmVariant === 'destructive' ? 'bg-red-100' : 'bg-slate-100'
+              confirmVariant === 'destructive' ? 'bg-red-100' : 'bg-muted'
             )}>
               <AlertTriangle className={cn(
                 'w-5 h-5',
-                confirmVariant === 'destructive' ? 'text-red-500' : 'text-slate-500'
+                confirmVariant === 'destructive' ? 'text-red-500' : 'text-muted-foreground'
               )} />
             </div>
             <DialogTitle className="text-lg">{title}</DialogTitle>
@@ -65,7 +65,7 @@ export function ConfirmDialog({
         </DialogHeader>
         
         {description && (
-          <DialogDescription className="text-sm text-slate-500 pt-2">
+          <DialogDescription className="text-sm text-muted-foreground pt-2">
             {description}
           </DialogDescription>
         )}

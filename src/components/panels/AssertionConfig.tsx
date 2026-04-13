@@ -335,7 +335,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
       {/* 预设选择 */}
       <div className="space-y-2">
-        <Label htmlFor="preset" className="text-sm font-medium text-black flex items-center gap-2">
+        <Label htmlFor="preset" className="text-sm font-medium text-foreground flex items-center gap-2">
           <Zap className="h-4 w-4 text-amber-500" />
           预设模板
         </Label>
@@ -361,7 +361,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
 
       {/* 全局配置区域 */}
       <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
-        <h3 className="text-sm font-medium text-black">全局配置</h3>
+        <h3 className="text-sm font-medium text-foreground">全局配置</h3>
         
         {/* 组合模式 */}
         <div className="space-y-2">
@@ -452,13 +452,13 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
       {/* 断言列表区域 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-black">断言列表</Label>
+          <Label className="text-sm font-medium text-foreground">断言列表</Label>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={handleAddAssertion}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-black"
+            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
             添加断言
@@ -564,7 +564,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
         {/* 提示信息 */}
         {fields.length > 0 && (
           <div className="rounded-md bg-muted/30 p-3 text-xs text-muted-foreground space-y-2">
-            <p className="font-medium text-black">JSONPath 语法：</p>
+            <p className="font-medium text-foreground">JSONPath 语法：</p>
             <ul className="ml-3 list-disc space-y-0.5">
               <li><code className="rounded bg-muted px-1">$.status</code> HTTP 状态码</li>
               <li><code className="rounded bg-muted px-1">$.body.data.token</code> 嵌套字段</li>

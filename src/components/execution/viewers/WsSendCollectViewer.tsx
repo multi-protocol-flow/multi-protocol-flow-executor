@@ -221,7 +221,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
               <Badge variant="outline" className="font-mono text-xs text-cyan-600 bg-cyan-50 border-0 shrink-0">
                 URL
               </Badge>
-              <code className="flex-1 text-sm font-mono text-slate-700 break-all bg-slate-50 px-2 py-1 rounded">
+              <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
                 {connectionUrl}
               </code>
             </div>
@@ -258,7 +258,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
                {collectMode === 'condition_match' && collectCondition && (
                  <div className="space-y-1">
                    <div className="text-xs font-medium text-muted-foreground">采集条件</div>
-                  <div className="bg-slate-50 rounded p-2 space-y-1">
+                  <div className="bg-muted rounded p-2 space-y-1">
                     <div className="flex items-center gap-2 text-xs">
                       <span className="text-muted-foreground">匹配类型:</span>
                       <Badge variant="secondary" className="font-mono text-xs">
@@ -268,7 +268,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
                     {collectCondition.expression && (
                       <div>
                         <span className="text-xs text-muted-foreground">表达式: </span>
-                        <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded font-mono">
+                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
                           {collectCondition.expression}
                         </code>
                       </div>
@@ -301,7 +301,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
             'font-mono text-xs',
             sentData.type === 'binary'
               ? 'text-orange-600 bg-orange-50'
-              : 'text-slate-600 bg-slate-50'
+              : 'text-muted-foreground bg-muted'
           )}>
             {sentData.type === 'binary' ? '二进制' : '文本'}
           </Badge>
@@ -332,8 +332,8 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
           {sentData && (
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">发送内容</div>
-              <div className="bg-slate-50 rounded p-2">
-                <pre className="text-xs text-slate-700 whitespace-pre-wrap break-all">
+              <div className="bg-muted rounded p-2">
+                <pre className="text-xs text-foreground whitespace-pre-wrap break-all">
                   {sentData.data}
                 </pre>
               </div>
@@ -344,7 +344,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
           {!sentData && configMessage && (
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">配置消息</div>
-              <pre className="text-xs bg-slate-50 border border-slate-200 rounded p-2 overflow-x-auto text-slate-700 whitespace-pre-wrap break-all">
+              <pre className="text-xs bg-muted border border-border rounded p-2 overflow-x-auto text-foreground whitespace-pre-wrap break-all">
                 {configMessage}
               </pre>
             </div>
@@ -374,7 +374,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
                     'rounded-lg border p-2',
                     isMatched
                       ? 'bg-emerald-50 border-emerald-300'
-                      : 'bg-slate-50 border-slate-200'
+                      : 'bg-muted border-border'
                   )}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -382,7 +382,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
                       'font-mono text-xs',
                       msg.type === 'binary'
                         ? 'text-orange-600 bg-orange-50'
-                        : 'text-slate-600 bg-slate-50'
+                        : 'text-muted-foreground bg-muted'
                     )}>
                       {msg.type === 'binary' ? '二进制' : '文本'}
                     </Badge>
@@ -393,7 +393,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
                       </Badge>
                     )}
                   </div>
-                  <pre className="text-xs text-slate-700 whitespace-pre-wrap break-all">
+                  <pre className="text-xs text-foreground whitespace-pre-wrap break-all">
                     {msg.data}
                   </pre>
                   {msg.parsed !== null && msg.parsed !== undefined && (
@@ -432,8 +432,8 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
             {/* 原始数据 */}
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">原始数据</div>
-              <div className="bg-slate-50 rounded p-2">
-                <pre className="text-xs text-slate-700 whitespace-pre-wrap break-all">
+              <div className="bg-muted rounded p-2">
+                <pre className="text-xs text-foreground whitespace-pre-wrap break-all">
                   {messageData.data}
                 </pre>
               </div>
@@ -443,7 +443,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
             {messageData.parsed !== null && messageData.parsed !== undefined && (
               <div>
                 <div className="text-xs font-medium text-muted-foreground mb-1.5">解析后的 JSON</div>
-                <div className="bg-slate-50 rounded p-2">
+                <div className="bg-muted rounded p-2">
                   <RawJsonViewer data={messageData.parsed} />
                 </div>
               </div>
@@ -472,13 +472,13 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
         )}
       >
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+          <div className="flex justify-between items-center p-2 bg-muted rounded">
             <span className="text-muted-foreground">发送耗时</span>
-            <span className="font-mono text-slate-700">{formatDuration(sendDuration)}</span>
+            <span className="font-mono text-foreground">{formatDuration(sendDuration)}</span>
           </div>
-          <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+          <div className="flex justify-between items-center p-2 bg-muted rounded">
             <span className="text-muted-foreground">收集耗时</span>
-            <span className="font-mono text-slate-700">{formatDuration(collectDuration)}</span>
+            <span className="font-mono text-foreground">{formatDuration(collectDuration)}</span>
           </div>
         </div>
       </CollapsibleSection>

@@ -166,7 +166,7 @@ export function DebugNodeConfigDialog({
     }
 
     return (
-      <div className="text-sm text-slate-500 text-center py-8">
+      <div className="text-sm text-muted-foreground text-center py-8">
         不支持的节点类型: {nodeType}
       </div>
     );
@@ -186,7 +186,7 @@ export function DebugNodeConfigDialog({
             </div>
             <div>
               <DialogTitle className="text-lg">编辑节点配置</DialogTitle>
-              <p className="text-sm text-slate-500 mt-0.5">
+              <p className="text-sm text-muted-foreground mt-0.5">
                 {nodeName} · {nodeTypeLabel}
               </p>
             </div>
@@ -196,7 +196,7 @@ export function DebugNodeConfigDialog({
         {/* 可滚动内容区域（包含 sticky 提示卡片） */}
         <div className="flex-1 min-h-0 overflow-y-auto">
           {/* Sticky 提示卡片 - 滚动时吸顶 */}
-          <div className="sticky top-0 z-10 bg-white px-6 py-3 border-b border-slate-100">
+          <div className="sticky top-0 z-10 bg-background px-6 py-3 border-b border-border">
             <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg">
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div className="text-sm text-amber-800">
@@ -212,7 +212,7 @@ export function DebugNodeConfigDialog({
         </div>
 
         {/* 固定底部区域 */}
-        <div className="shrink-0 px-6 py-4 border-t border-slate-200 flex justify-end gap-2">
+        <div className="shrink-0 px-6 py-4 border-t border-border flex justify-end gap-2">
           <Button variant="outline" onClick={onCancel} disabled={isSaving}>
             取消
           </Button>

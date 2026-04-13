@@ -60,7 +60,7 @@ export function ExecutionPanel() {
   return (
     <div
       className={cn(
-        'h-full flex flex-col bg-white overflow-hidden',
+        'h-full flex flex-col bg-background overflow-hidden',
         'border-l border-border'
       )}
       style={{ width: 320 }}
@@ -68,20 +68,20 @@ export function ExecutionPanel() {
       {/* ===== 头部 ===== */}
       <div className="shrink-0 border-b border-border px-3 py-2.5">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             {isExecuting ? (
               <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
             ) : isComplete ? (
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
             ) : (
-              <div className="w-4 h-4 rounded-full border-2 border-slate-300" />
+              <div className="w-4 h-4 rounded-full border-2 border-border" />
             )}
             执行进度
           </h3>
           <button
             type="button"
             onClick={() => setExecutionPanelOpen(false)}
-            className="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+            className="w-6 h-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
             title="关闭面板"
           >
             <X className="w-4 h-4" />
@@ -90,11 +90,11 @@ export function ExecutionPanel() {
 
         {/* 进度条 */}
         <div className="space-y-1">
-          <div className="flex items-center justify-between text-xs text-slate-500">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{completedNodeCount} / {totalNodes} 节点</span>
             <span>{progressPercent}%</span>
           </div>
-          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
             <div
               className={cn(
                 'h-full rounded-full transition-all duration-500 ease-out',
@@ -124,7 +124,7 @@ export function ExecutionPanel() {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm gap-2">
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm gap-2">
             {isExecuting ? (
               <>
                 <Loader2 className="w-6 h-6 animate-spin" />

@@ -143,7 +143,7 @@ export function DbCommitConfig({ data, onSave }: DbCommitConfigProps) {
 
       {/* 连接选择下拉框 */}
       <div className="space-y-2">
-        <Label htmlFor="connection_uuid" className="text-sm font-medium text-black">
+        <Label htmlFor="connection_uuid" className="text-sm font-medium text-foreground">
           数据库连接 <span className="text-rose-500">*</span>
         </Label>
         <Select

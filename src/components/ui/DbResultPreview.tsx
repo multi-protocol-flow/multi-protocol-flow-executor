@@ -281,7 +281,7 @@ export function DbResultPreview({
 
           {/* JSON 视图 */}
           <TabsContent value="json" className="mt-2">
-            <div className="border border-border rounded-md p-3 bg-slate-50 overflow-auto max-h-96 scrollbar-thin">
+            <div className="border border-border rounded-md p-3 bg-muted overflow-auto max-h-96 scrollbar-thin">
               <RawJsonViewer data={rows} />
             </div>
           </TabsContent>

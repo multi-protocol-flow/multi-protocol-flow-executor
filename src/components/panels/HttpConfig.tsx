@@ -344,7 +344,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       />
       {/* URL 输入 */}
       <div className="space-y-2">
-        <Label htmlFor="url" className="text-sm font-medium text-black">
+        <Label htmlFor="url" className="text-sm font-medium text-foreground">
           URL <span className="text-rose-500">*</span>
         </Label>
         <div className="relative">
@@ -371,7 +371,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
 
       {/* 请求方法选择 */}
       <div className="space-y-2">
-        <Label htmlFor="method" className="text-sm font-medium text-black">
+        <Label htmlFor="method" className="text-sm font-medium text-foreground">
           请求方法
         </Label>
         <Select
@@ -398,7 +398,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
 
       {/* 超时时间 */}
       <div className="space-y-2">
-        <Label htmlFor="timeout_ms" className="text-sm font-medium text-black">
+        <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">
           超时时间
         </Label>
         <Input
@@ -414,13 +414,13 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {/* Headers 编辑器 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-black">Headers</Label>
+          <Label className="text-sm font-medium text-foreground">Headers</Label>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={handleAddHeader}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-black"
+            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
             添加
@@ -470,7 +470,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       </div>
       {/* Body 类型选择器 */}
       <div className="space-y-2">
-        <Label htmlFor="body_type" className="text-sm font-medium text-black">
+        <Label htmlFor="body_type" className="text-sm font-medium text-foreground">
           Body 类型
         </Label>
         <Select
@@ -496,7 +496,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {/* Raw Body 编辑器 (仅 body 类型时显示) */}
       {watchedBodyType === 'body' && (
         <div className="space-y-2">
-          <Label htmlFor="body" className="text-sm font-medium text-black">
+          <Label htmlFor="body" className="text-sm font-medium text-foreground">
             Body (JSON)
           </Label>
           <Textarea
@@ -519,7 +519,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {/* Content-Type 选择器 (仅 body 类型时显示) */}
       {watchedBodyType === 'body' && (
         <div className="space-y-2">
-          <Label htmlFor="content_type" className="text-sm font-medium text-black">
+          <Label htmlFor="content_type" className="text-sm font-medium text-foreground">
             Content-Type
           </Label>
           <Select
@@ -547,13 +547,13 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {['form-data', 'x-www-form-urlencoded'].includes(watchedBodyType || '') && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium text-black">Form Fields</Label>
+            <Label className="text-sm font-medium text-foreground">Form Fields</Label>
             <Button
               type="button"
               variant="ghost"
               size="sm"
               onClick={handleAddFormField}
-              className="h-7 gap-1 text-xs text-muted-foreground hover:text-black"
+              className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
               <Plus className="h-3 w-3" />
               添加字段
@@ -662,7 +662,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {/* Binary File 选择器 */}
       {watchedBodyType === 'binary' && (
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-black">File Path</Label>
+          <Label className="text-sm font-medium text-foreground">File Path</Label>
           <div className="flex items-center gap-2">
             <Input
               {...register('file_path')}
@@ -694,14 +694,14 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ArrowRightFromLine className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm font-medium text-black">输出变量映射</Label>
+            <Label className="text-sm font-medium text-foreground">输出变量映射</Label>
           </div>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={handleAddOutputMapping}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-black"
+            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
             添加映射
@@ -805,7 +805,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
             <div className="text-xs text-muted-foreground space-y-1">
-              <p className="font-medium text-black">JSONPath 语法：</p>
+              <p className="font-medium text-foreground">JSONPath 语法：</p>
               <p><code className="rounded bg-muted px-1">$.status</code> 状态码</p>
               <p><code className="rounded bg-muted px-1">$.body.data.token</code> 嵌套字段</p>
               <p><code className="rounded bg-muted px-1">$.body.items[0]</code> 数组索引</p>

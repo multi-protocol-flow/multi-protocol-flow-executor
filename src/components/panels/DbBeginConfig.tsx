@@ -165,7 +165,7 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
 
       {/* 连接选择下拉框 */}
       <div className="space-y-2">
-        <Label htmlFor="connection_uuid" className="text-sm font-medium text-black">
+        <Label htmlFor="connection_uuid" className="text-sm font-medium text-foreground">
           数据库连接 <span className="text-rose-500">*</span>
         </Label>
         <Select
@@ -206,7 +206,7 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
 
       {/* 隔离级别选择 */}
       <div className="space-y-2">
-        <Label htmlFor="isolation_level" className="text-sm font-medium text-black">
+        <Label htmlFor="isolation_level" className="text-sm font-medium text-foreground">
           隔离级别
         </Label>
         <Select

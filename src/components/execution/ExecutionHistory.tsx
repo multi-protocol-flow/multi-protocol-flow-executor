@@ -153,7 +153,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
   // 加载中状态（初次加载）
   if (loading && history.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full py-8 text-slate-400">
+      <div className="flex flex-col items-center justify-center h-full py-8 text-muted-foreground">
         <Loader2 className="w-10 h-10 mb-3 animate-spin" />
         <p className="text-sm">加载中...</p>
       </div>
@@ -163,7 +163,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
   // 空状态
   if (history.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full py-8 text-slate-400">
+      <div className="flex flex-col items-center justify-center h-full py-8 text-muted-foreground">
         <History className="w-10 h-10 mb-3 opacity-40" />
         <p className="text-sm">暂无执行历史</p>
         <p className="text-xs mt-1 opacity-70">执行流程后记录将显示在这里</p>
@@ -175,14 +175,14 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
     <div className="flex flex-col h-full">
       {/* 头部 */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-muted-foreground">
           共 {history.length} 条记录
         </span>
         <Button
           variant="ghost"
           size="sm"
           onClick={handleClearHistory}
-          className="h-7 text-xs text-slate-500 hover:text-red-500"
+          className="h-7 text-xs text-muted-foreground hover:text-red-500"
         >
           清空
         </Button>
@@ -209,8 +209,8 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
                 onClick={() => handleSelectReport(item.uuid)}
                 className={cn(
                   'group flex items-center justify-between p-2.5 rounded-lg w-full',
-                  'border border-transparent hover:border-slate-200',
-                  'hover:bg-slate-50 cursor-pointer transition-all duration-150 text-left'
+                  'border border-transparent hover:border-border',
+                  'hover:bg-accent cursor-pointer transition-all duration-150 text-left'
                 )}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -233,7 +233,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
                   {/* 流程信息 */}
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-medium text-slate-700 truncate">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {item.flow_name}
                       </p>
                       {/* Debug 模式标识 */}
@@ -244,7 +244,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                       <Clock className="w-3 h-3" />
                       <span>{formatTimestamp(item.timestamp)}</span>
                       <span className="opacity-50">·</span>
@@ -265,7 +265,7 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
                     }}
                     className={cn(
                       'w-8 h-8 opacity-0 group-hover:opacity-100',
-                      'transition-opacity duration-150 text-slate-400 hover:text-red-500'
+                      'transition-opacity duration-150 text-muted-foreground hover:text-red-500'
                     )}
                     title="删除"
                   >

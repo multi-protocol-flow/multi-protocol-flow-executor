@@ -154,7 +154,7 @@ export function SkipNodeDialog({
           </div>
         </DialogHeader>
 
-        <DialogDescription className="text-sm text-slate-500 pt-2">
+        <DialogDescription className="text-sm text-muted-foreground pt-2">
           跳过节点「{nodeName}」({getNodeTypeName()})，不执行该节点
         </DialogDescription>
 
@@ -180,9 +180,9 @@ export function SkipNodeDialog({
           {needsSimulatedOutput && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">
-                模拟输出 <span className="text-slate-400 font-normal">(可选)</span>
+                模拟输出 <span className="text-muted-foreground font-normal">(可选)</span>
               </Label>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 提供模拟输出数据，将注入到变量池供后续节点使用
               </p>
               <Textarea

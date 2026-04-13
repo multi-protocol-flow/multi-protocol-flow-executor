@@ -216,7 +216,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
 
       {/* 连接 ID */}
       <div className="space-y-2">
-        <Label htmlFor="connection_id" className="text-sm font-medium text-black">
+        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
           连接 ID <span className="text-rose-500">*</span>
         </Label>
         {availableConnectionIds.length > 0 ? (
@@ -269,7 +269,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
 
       {/* 关闭码 */}
       <div className="space-y-2">
-        <Label htmlFor="close_code" className="text-sm font-medium text-black">
+        <Label htmlFor="close_code" className="text-sm font-medium text-foreground">
           关闭码
         </Label>
         <Select
@@ -297,7 +297,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
 
       {/* 关闭原因 */}
       <div className="space-y-2">
-        <Label htmlFor="close_reason" className="text-sm font-medium text-black">
+        <Label htmlFor="close_reason" className="text-sm font-medium text-foreground">
           关闭原因（可选）
         </Label>
         <Input
@@ -313,7 +313,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
 
       {/* 关闭超时 */}
       <div className="space-y-2">
-        <Label htmlFor="close_timeout_ms" className="text-sm font-medium text-black">
+        <Label htmlFor="close_timeout_ms" className="text-sm font-medium text-foreground">
           关闭超时
         </Label>
         <Input
@@ -332,7 +332,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-black">关闭码说明：</p>
+          <p className="font-medium text-foreground">关闭码说明：</p>
           <p><code className="rounded bg-muted px-1">1000</code> 正常关闭</p>
           <p><code className="rounded bg-muted px-1">1001</code> 端点离开（如页面关闭）</p>
           <p><code className="rounded bg-muted px-1">1002</code> 协议错误</p>

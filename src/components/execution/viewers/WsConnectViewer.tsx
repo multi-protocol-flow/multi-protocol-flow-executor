@@ -115,7 +115,7 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
             <Badge variant="outline" className="font-mono text-xs text-amber-600 bg-amber-50 border-0 shrink-0">
               WS
             </Badge>
-            <code className="flex-1 text-sm font-mono text-slate-700 break-all bg-slate-50 px-2 py-1 rounded">
+            <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
               {configUrl || <span className="text-muted-foreground italic">未配置 URL</span>}
             </code>
           </div>
@@ -171,7 +171,7 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
           {connectionId && (
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">连接 ID:</span>
-              <code className="text-xs bg-slate-100 px-2 py-1 rounded font-mono">
+              <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {connectionId}
               </code>
             </div>
@@ -205,9 +205,9 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
             {message.data !== undefined && (
               <div>
                 <div className="text-xs font-medium text-muted-foreground mb-1.5">数据</div>
-                <div className="bg-slate-50 rounded p-2">
+                <div className="bg-muted rounded p-2">
                   {typeof message.data === 'string' ? (
-                    <pre className="text-xs text-slate-700 whitespace-pre-wrap break-all">
+                    <pre className="text-xs text-foreground whitespace-pre-wrap break-all">
                       {message.data}
                     </pre>
                   ) : (
@@ -236,15 +236,15 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
             {connectDuration !== undefined && (
-              <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <span className="text-muted-foreground">连接耗时</span>
-                <span className="font-mono text-slate-700">{connectDuration}ms</span>
+                <span className="font-mono text-foreground">{connectDuration}ms</span>
               </div>
             )}
             {collectDuration !== undefined && (
-              <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <span className="text-muted-foreground">采集消息</span>
-                <span className="font-mono text-slate-700">{collectDuration}ms</span>
+                <span className="font-mono text-foreground">{collectDuration}ms</span>
               </div>
             )}
           </div>

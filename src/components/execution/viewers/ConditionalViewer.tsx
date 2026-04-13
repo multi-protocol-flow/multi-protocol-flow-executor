@@ -100,7 +100,7 @@ function ValueDisplay({ label, value }: ValueDisplayProps) {
   return (
     <div className="space-y-1">
       <div className="text-xs font-medium text-muted-foreground">{label}</div>
-      <div className="bg-slate-50 rounded p-2 font-mono text-sm text-slate-700 whitespace-pre-wrap break-all">
+      <div className="bg-muted rounded p-2 font-mono text-sm text-foreground whitespace-pre-wrap break-all">
         {displayValue}
       </div>
     </div>
@@ -291,7 +291,7 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
                 icon={<Code2 className="w-4 h-4" />}
                 defaultOpen={false}
               >
-                <div className="bg-slate-50 rounded p-2 font-mono text-sm text-slate-700">
+                <div className="bg-muted rounded p-2 font-mono text-sm text-foreground">
                   {expression}
                 </div>
               </CollapsibleSection>
@@ -324,7 +324,7 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
         defaultOpen={true}
       >
         {expression ? (
-          <div className="bg-slate-50 rounded p-2 font-mono text-sm text-slate-700">
+          <div className="bg-muted rounded p-2 font-mono text-sm text-foreground">
             {expression}
           </div>
         ) : (

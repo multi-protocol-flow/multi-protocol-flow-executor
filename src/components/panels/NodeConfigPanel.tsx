@@ -94,7 +94,7 @@ const NODE_TYPE_CONFIG = {
   db_close: {
     label: 'DB 关闭',
     badgeVariant: 'outline' as const,
-    badgeClass: 'border-gray-200 text-gray-700',
+    badgeClass: 'border-border text-muted-foreground',
   },
   script: {
     label: '脚本',
@@ -131,13 +131,13 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   if (!selectedNode) {
     return (
       <div className="flex h-full flex-col items-center justify-center p-6 text-center">
-        <div className="rounded-full bg-slate-100 p-4 mb-4">
-          <MousePointerClick className="h-8 w-8 text-slate-400" />
+        <div className="rounded-full bg-muted p-4 mb-4">
+          <MousePointerClick className="h-8 w-8 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-medium text-black">
+        <h3 className="text-lg font-medium text-foreground">
           {readOnly ? '调试模式' : '未选中节点'}
         </h3>
-        <p className="mt-2 text-sm text-slate-400">
+        <p className="mt-2 text-sm text-muted-foreground">
           {readOnly 
             ? '点击画布上的节点查看其配置信息' 
             : '请在画布上点击选择一个节点进行配置'}
@@ -210,13 +210,13 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
 
   return (
     <Card className="flex h-full flex-col overflow-hidden border-0 shadow-none w-full min-w-0">
-      <CardHeader className="shrink-0 border-b border-muted bg-white pb-4">
+      <CardHeader className="shrink-0 border-b border-muted bg-background pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {readOnly ? (
               <Lock className="h-4 w-4 text-amber-500 shrink-0" />
             ) : (
-              <Settings2 className="h-4 w-4 text-slate-400 shrink-0" />
+              <Settings2 className="h-4 w-4 text-muted-foreground shrink-0" />
             )}
             {isEditingName && !readOnly ? (
               <input
@@ -226,18 +226,18 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                 onChange={(e) => setEditingName(e.target.value)}
                 onBlur={handleSaveName}
                 onKeyDown={handleKeyDown}
-                className="text-base font-semibold text-black bg-white border-b-2 border-black outline-none flex-1 min-w-0 px-0.5"
+                className="text-base font-semibold text-foreground bg-background border-b-2 border-border outline-none flex-1 min-w-0 px-0.5"
                 autoFocus
               />
             ) : (
               <>
-                <CardTitle className="text-base font-semibold text-black truncate cursor-default">
+                <CardTitle className="text-base font-semibold text-foreground truncate cursor-default">
                   {selectedNode.name}
                 </CardTitle>
                 {!readOnly && (
                   <button
                     onClick={handleStartEdit}
-                    className="shrink-0 p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground hover:text-accent-foreground transition-colors"
                     title="编辑节点名称"
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -262,7 +262,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                className="h-7 w-7 text-muted-foreground hover:text-red-500 hover:bg-red-50"
                 onClick={handleDelete}
                 title="删除节点"
               >

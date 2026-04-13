@@ -129,13 +129,13 @@ export function DbCloseConfig({ data, onSave }: DbCloseConfigProps) {
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
       {/* 主说明卡片 - 灰色主题 */}
-      <div className="rounded-lg border border-gray-200/50 bg-gradient-to-br from-gray-50/80 to-slate-50/50 p-4 overflow-hidden">
+      <div className="rounded-lg border border-border/50 bg-gradient-to-br from-muted/80 to-muted/50 p-4 overflow-hidden">
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <XCircle className="h-4 w-4" />
             关闭连接节点
           </h4>
-          <p className="text-sm leading-relaxed text-gray-700/90 whitespace-normal break-words">
+          <p className="text-sm leading-relaxed text-muted-foreground whitespace-normal break-words">
             关闭指定的数据库连接，释放相关资源。
           </p>
         </div>
@@ -143,7 +143,7 @@ export function DbCloseConfig({ data, onSave }: DbCloseConfigProps) {
 
       {/* 连接选择下拉框 */}
       <div className="space-y-2">
-        <Label htmlFor="connection_uuid" className="text-sm font-medium text-black">
+        <Label htmlFor="connection_uuid" className="text-sm font-medium text-foreground">
           数据库连接 <span className="text-rose-500">*</span>
         </Label>
         <Select
@@ -184,8 +184,8 @@ export function DbCloseConfig({ data, onSave }: DbCloseConfigProps) {
 
       {/* 选中连接的只读信息卡片 */}
       {selectedConnection && (
-        <div className="rounded-lg border border-gray-100 bg-gray-50/30 p-4 space-y-3">
-          <h5 className="text-xs font-semibold text-gray-800 uppercase tracking-wide">
+        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+          <h5 className="text-xs font-semibold text-foreground uppercase tracking-wide">
             连接信息
           </h5>
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -203,7 +203,7 @@ export function DbCloseConfig({ data, onSave }: DbCloseConfigProps) {
                 selectedConnection.status === 'connected' ? 'text-green-600' :
                 selectedConnection.status === 'error' ? 'text-red-600' :
                 selectedConnection.status === 'testing' ? 'text-amber-600' :
-                'text-gray-500'
+                'text-muted-foreground'
               }`}>
                 {selectedConnection.status === 'connected' ? '已连接' :
                  selectedConnection.status === 'error' ? '连接错误' :

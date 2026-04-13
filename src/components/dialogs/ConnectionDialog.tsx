@@ -163,7 +163,7 @@ export function ConnectionDialog() {
         <div className="space-y-5 py-4">
           {/* 基本信息区 */}
           <div className="space-y-4">
-            <h4 className="text-sm font-medium text-slate-700 border-b border-slate-200 pb-1">
+            <h4 className="text-sm font-medium text-foreground border-b border-border pb-1">
               基本信息
             </h4>
 
@@ -204,7 +204,7 @@ export function ConnectionDialog() {
           {/* 连接参数区（非 SQLite） */}
           {!isSqlite && (
             <div className="space-y-4">
-              <h4 className="text-sm font-medium text-slate-700 border-b border-slate-200 pb-1">
+              <h4 className="text-sm font-medium text-foreground border-b border-border pb-1">
                 连接参数
               </h4>
 
@@ -277,9 +277,9 @@ export function ConnectionDialog() {
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-slate-400" />
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
                       ) : (
-                        <Eye className="h-4 w-4 text-slate-400" />
+                        <Eye className="h-4 w-4 text-muted-foreground" />
                       )}
                     </Button>
                   </div>
@@ -296,7 +296,7 @@ export function ConnectionDialog() {
                   placeholder="DB_PASSWORD（优先于密码字段）"
                   disabled={isSaving}
                 />
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   填写后将从环境变量读取密码，优先于上方密码字段
                 </p>
               </div>
@@ -306,7 +306,7 @@ export function ConnectionDialog() {
           {/* SQLite 文件路径 */}
           {isSqlite && (
             <div className="space-y-4">
-              <h4 className="text-sm font-medium text-slate-700 border-b border-slate-200 pb-1">
+              <h4 className="text-sm font-medium text-foreground border-b border-border pb-1">
                 连接参数
               </h4>
               <div className="space-y-2">
@@ -318,7 +318,7 @@ export function ConnectionDialog() {
                   placeholder="/path/to/database.db"
                   disabled={isSaving}
                 />
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   SQLite 数据库文件的绝对路径或相对路径
                 </p>
               </div>

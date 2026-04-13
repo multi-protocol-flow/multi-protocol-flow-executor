@@ -95,20 +95,20 @@ export function ExecuteButton() {
       disabled={!hasValidFlow || !hasEntryNode || isExecuting}
       className={cn(
         'relative overflow-hidden gap-2 min-w-[100px] h-9',
-        'bg-white border-2 border-black',
-        'hover:bg-slate-50 hover:border-black',
-        'active:bg-slate-100',
-        'text-black font-medium',
+        'bg-background border-2 border-border',
+        'hover:bg-accent hover:border-border',
+        'active:bg-accent',
+        'text-foreground font-medium',
         'rounded-2xl',
-        'disabled:bg-slate-100 disabled:border-slate-300',
-        'disabled:text-slate-400',
+        'disabled:bg-muted disabled:border-border',
+        'disabled:text-muted-foreground',
         'transition-all duration-200'
       )}
     >
       {/* 背景动画效果 */}
       <div
         className={cn(
-          'absolute inset-0 bg-slate-100',
+          'absolute inset-0 bg-muted',
           'translate-x-[-100%]',
           isExecuting && 'animate-shimmer'
         )}

@@ -146,7 +146,7 @@ export function CollapsiblePanel({
   return (
     <div
       className={cn(
-        'flex flex-col bg-white overflow-hidden',
+        'flex flex-col bg-background overflow-hidden',
         isCollapsed ? 'shrink-0' : 'min-h-0',
         isDragging && 'select-none',
         className
@@ -160,10 +160,10 @@ export function CollapsiblePanel({
         tabIndex={0}
         className={cn(
           'shrink-0 flex items-center justify-between px-3 h-8 w-full',
-          'border-b border-border bg-white',
+          'border-b border-border bg-background',
           'cursor-pointer select-none',
-          'hover:bg-slate-50 transition-colors duration-150',
-          'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-slate-300',
+          'hover:bg-accent transition-colors duration-150',
+          'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-muted-foreground',
           resizable && !isCollapsed && 'cursor-row-resize'
         )}
         onMouseDown={handleHeaderMouseDown}
@@ -174,11 +174,11 @@ export function CollapsiblePanel({
       >
         <div className="flex items-center gap-1.5">
           {isCollapsed ? (
-            <ChevronRight className="w-4 h-4 text-slate-400" />
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
           )}
-          <span className="text-sm font-medium text-slate-700">{title}</span>
+          <span className="text-sm font-medium text-foreground">{title}</span>
         </div>
         {headerRight && (
           <div

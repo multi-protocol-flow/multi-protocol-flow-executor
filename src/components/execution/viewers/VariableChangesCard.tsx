@@ -94,7 +94,7 @@ export function VariableChangesCard({ changes, defaultOpen = false }: VariableCh
                 >
                   {/* 变量名 */}
                   <div className="flex items-center gap-2 mb-2">
-                    <code className="font-mono text-slate-700 font-medium">
+                    <code className="font-mono text-foreground font-medium">
                       {change.key}
                     </code>
                     <span className={cn(
@@ -113,11 +113,11 @@ export function VariableChangesCard({ changes, defaultOpen = false }: VariableCh
                     <div className="flex-1 min-w-0">
                       <div className="text-xs text-muted-foreground mb-0.5">当前值</div>
                       {typeof change.new_value === 'object' && change.new_value !== null ? (
-                        <div className="bg-white/60 rounded p-1.5 max-h-32 overflow-auto">
+                        <div className="bg-background/60 rounded p-1.5 max-h-32 overflow-auto">
                           <RawJsonViewer data={change.new_value} />
                         </div>
                       ) : (
-                        <code className="font-mono text-slate-700 text-xs">
+                        <code className="font-mono text-foreground text-xs">
                           {formatValue(change.new_value)}
                         </code>
                       )}
@@ -130,11 +130,11 @@ export function VariableChangesCard({ changes, defaultOpen = false }: VariableCh
                         <div className="flex-1 min-w-0">
                           <div className="text-xs text-muted-foreground mb-0.5">旧值</div>
                           {typeof change.old_value === 'object' && change.old_value !== null ? (
-                            <div className="bg-white/60 rounded p-1.5 max-h-32 overflow-auto">
+                            <div className="bg-background/60 rounded p-1.5 max-h-32 overflow-auto">
                               <RawJsonViewer data={change.old_value} />
                             </div>
                           ) : (
-                            <code className="font-mono text-slate-500 text-xs line-through">
+                            <code className="font-mono text-muted-foreground text-xs line-through">
                               {formatValue(change.old_value)}
                             </code>
                           )}

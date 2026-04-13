@@ -258,7 +258,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
       {/* 脚本编辑器 */}
       <div className="space-y-2">
-        <Label htmlFor="script" className="text-sm font-medium text-black flex items-center gap-2">
+        <Label htmlFor="script" className="text-sm font-medium text-foreground flex items-center gap-2">
           <span>脚本代码</span>
           <span className="text-rose-500">*</span>
         </Label>
@@ -288,7 +288,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
         <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
           <div className="text-xs text-muted-foreground space-y-1">
-            <p className="font-medium text-black">可用 API：</p>
+            <p className="font-medium text-foreground">可用 API：</p>
             <p><code className="rounded bg-muted px-1">variables.get(name)</code> 获取变量</p>
             <p><code className="rounded bg-muted px-1">variables.set(name, value)</code> 设置变量</p>
             <p><code className="rounded bg-muted px-1">assert(condition, name)</code> 断言</p>
@@ -299,7 +299,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
 
       {/* 执行时机 */}
       <div className="space-y-2">
-        <Label htmlFor="execution_phase" className="text-sm font-medium text-black flex items-center gap-2">
+        <Label htmlFor="execution_phase" className="text-sm font-medium text-foreground flex items-center gap-2">
           <Clock className="h-4 w-4 text-muted-foreground" />
           执行时机
         </Label>
@@ -332,7 +332,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
       <div className="grid grid-cols-2 gap-4">
         {/* 超时时间 */}
         <div className="space-y-2">
-          <Label htmlFor="timeout_ms" className="text-sm font-medium text-black flex items-center gap-2">
+          <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
             超时时间
           </Label>
@@ -352,7 +352,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
 
         {/* 内存限制 */}
         <div className="space-y-2">
-          <Label htmlFor="memory_limit_mb" className="text-sm font-medium text-black flex items-center gap-2">
+          <Label htmlFor="memory_limit_mb" className="text-sm font-medium text-foreground flex items-center gap-2">
             <Database className="h-4 w-4 text-muted-foreground" />
             内存限制
           </Label>
@@ -373,7 +373,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
 
       {/* 错误处理策略 */}
       <div className="space-y-2">
-        <Label htmlFor="on_error" className="text-sm font-medium text-black flex items-center gap-2">
+        <Label htmlFor="on_error" className="text-sm font-medium text-foreground flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           错误处理
         </Label>
@@ -404,7 +404,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
 
       {/* 断言失败策略 */}
       <div className="space-y-2">
-        <Label htmlFor="on_assertion_fail" className="text-sm font-medium text-black flex items-center gap-2">
+        <Label htmlFor="on_assertion_fail" className="text-sm font-medium text-foreground flex items-center gap-2">
           <CheckCircle className="h-4 w-4 text-muted-foreground" />
           断言失败时
         </Label>

@@ -191,7 +191,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
     <form onBlur={handleBlur} className="w-full space-y-5">
       {/* 条件类型选择 */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-black">条件类型</Label>
+        <Label className="text-sm font-medium text-foreground">条件类型</Label>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -199,7 +199,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
             className={`flex items-center justify-center gap-2 rounded-lg border-2 p-3 transition-all ${
               conditionType === 'simple'
                 ? 'border-sky-500 bg-sky-50 text-sky-700'
-                : 'border-black hover:bg-slate-50'
+                : 'border-border hover:bg-accent'
             }`}
 >
             <Split className="h-4 w-4" />
@@ -211,7 +211,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
             className={`flex items-center justify-center gap-2 rounded-lg border-2 p-3 transition-all ${
               conditionType === 'advanced'
                 ? 'border-violet-500 bg-violet-50 text-violet-700'
-                : 'border-black hover:bg-slate-50'
+                : 'border-border hover:bg-accent'
             }`}
 >
             <Code2 className="h-4 w-4" />
@@ -225,7 +225,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
         <>
           {/* 字段路径 */}
           <div className="space-y-2">
-            <Label htmlFor="field_path" className="text-sm font-medium text-black">
+            <Label htmlFor="field_path" className="text-sm font-medium text-foreground">
               字段路径
             </Label>
             <VariableInput
@@ -253,7 +253,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
 
           {/* 操作符 */}
           <div className="space-y-2">
-            <Label htmlFor="operator" className="text-sm font-medium text-black">
+            <Label htmlFor="operator" className="text-sm font-medium text-foreground">
               操作符
             </Label>
             <Select
@@ -279,7 +279,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
           {/* 值类型选择器 - 仅当操作符为 equal 或 not_equal 时显示 */}
           {(watchedOperator === 'equal' || watchedOperator === 'not_equal') && (
             <div className="space-y-2">
-              <Label htmlFor="expected_value_type" className="text-sm font-medium text-black">
+              <Label htmlFor="expected_value_type" className="text-sm font-medium text-foreground">
                 值类型
               </Label>
               <Select
@@ -307,7 +307,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
 
           {/* 期望值 */}
           <div className="space-y-2">
-            <Label htmlFor="expected_value" className="text-sm font-medium text-black">
+            <Label htmlFor="expected_value" className="text-sm font-medium text-foreground">
               期望值
             </Label>
             <VariableInput
@@ -334,7 +334,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
       {/* 高级表达式配置 */}
       {conditionType === 'advanced' && (
         <div className="space-y-2">
-          <Label htmlFor="advanced_expression" className="text-sm font-medium text-black">
+          <Label htmlFor="advanced_expression" className="text-sm font-medium text-foreground">
             高级表达式
           </Label>
           <Textarea

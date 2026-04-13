@@ -66,7 +66,7 @@ function DataSection({ data, emptyText = '无数据' }: DataSectionProps) {
   }
 
   return (
-    <div className="bg-slate-50 rounded p-2">
+    <div className="bg-muted rounded p-2">
       <RawJsonViewer data={data} />
     </div>
   );
@@ -90,7 +90,7 @@ export function GenericViewer({ report }: GenericViewerProps) {
           </div>
           <div className="flex items-start gap-2">
             <span className="text-xs font-medium text-muted-foreground shrink-0 min-w-12">类型</span>
-            <code className="text-sm font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+            <code className="text-sm font-mono text-foreground bg-muted px-2 py-0.5 rounded">
               {node_type}
             </code>
           </div>

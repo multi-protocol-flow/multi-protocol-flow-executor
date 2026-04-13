@@ -262,7 +262,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
 
       {/* 连接选择下拉框 */}
       <div className="space-y-2">
-        <Label htmlFor="connection_uuid" className="text-sm font-medium text-black">
+        <Label htmlFor="connection_uuid" className="text-sm font-medium text-foreground">
           数据库连接 <span className="text-rose-500">*</span>
         </Label>
         <Select
@@ -378,7 +378,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
 
       {/* SQL 编辑区域 */}
       <div className="space-y-2">
-        <Label htmlFor="sql" className="text-sm font-medium text-black">
+        <Label htmlFor="sql" className="text-sm font-medium text-foreground">
           SQL 查询语句
         </Label>
         <Textarea
@@ -420,13 +420,13 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
       {/* 参数化查询 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-black">查询参数（可选）</Label>
+          <Label className="text-sm font-medium text-foreground">查询参数（可选）</Label>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={handleAddParam}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-black"
+            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
             添加参数
@@ -473,7 +473,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
 
       {/* fetch_mode 选择 */}
       <div className="space-y-2">
-        <Label htmlFor="fetch_mode" className="text-sm font-medium text-black">
+        <Label htmlFor="fetch_mode" className="text-sm font-medium text-foreground">
           获取模式
         </Label>
         <Select
@@ -498,7 +498,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
 
       {/* 查询超时 */}
       <div className="space-y-2">
-        <Label htmlFor="timeout_ms" className="text-sm font-medium text-black">
+        <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">
           查询超时
         </Label>
         <Input
@@ -516,7 +516,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
 
       {/* 结果存储变量名 */}
       <div className="space-y-2">
-        <Label htmlFor="result_to" className="text-sm font-medium text-black">
+        <Label htmlFor="result_to" className="text-sm font-medium text-foreground">
           结果存储变量名（可选）
         </Label>
         <Input
@@ -538,14 +538,14 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ArrowRightFromLine className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm font-medium text-black">输出变量映射（可选）</Label>
+            <Label className="text-sm font-medium text-foreground">输出变量映射（可选）</Label>
           </div>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={handleAddOutputMapping}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-black"
+            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
             添加映射
@@ -645,7 +645,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
           <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
             <div className="text-xs text-muted-foreground space-y-1">
-              <p className="font-medium text-black">JSONPath 语法：</p>
+              <p className="font-medium text-foreground">JSONPath 语法：</p>
               <p><code className="rounded bg-muted px-1">$.rows</code> 所有行</p>
               <p><code className="rounded bg-muted px-1">$.rows[0]</code> 第一行</p>
               <p><code className="rounded bg-muted px-1">$.rows[0].id</code> 第一行的 id 字段</p>

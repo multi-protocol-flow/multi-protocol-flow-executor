@@ -11,7 +11,7 @@ import type { LogLevel } from '@/types/events';
 // 日志级别颜色映射
 const levelColors: Record<LogLevel, string> = {
   INFO: 'text-blue-500',
-  DEBUG: 'text-gray-400',
+  DEBUG: 'text-muted-foreground',
   WARN: 'text-yellow-500',
   ERROR: 'text-red-500',
 };

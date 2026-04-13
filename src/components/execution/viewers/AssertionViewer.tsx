@@ -147,13 +147,13 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <div className="text-xs font-medium text-muted-foreground">期望值</div>
-              <div className="bg-white/60 rounded p-2 font-mono text-sm text-slate-700 break-all">
+              <div className="bg-background/60 rounded p-2 font-mono text-sm text-foreground break-all">
                 {formatValue(result.expected)}
               </div>
             </div>
             <div className="space-y-1">
               <div className="text-xs font-medium text-muted-foreground">实际值</div>
-              <div className="bg-white/60 rounded p-2 font-mono text-sm text-slate-700 break-all">
+              <div className="bg-background/60 rounded p-2 font-mono text-sm text-foreground break-all">
                 {formatValue(result.actual)}
               </div>
             </div>
