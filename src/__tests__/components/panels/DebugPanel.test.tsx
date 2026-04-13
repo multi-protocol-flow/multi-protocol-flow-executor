@@ -38,6 +38,7 @@ describe('DebugPanel', () => {
     executionStack: [],
     tempNodeConfigs: {},
     modifyNodeConfig: mockModifyNodeConfig,
+    wsStreams: new Map(),
   };
 
   const defaultFlowState = {

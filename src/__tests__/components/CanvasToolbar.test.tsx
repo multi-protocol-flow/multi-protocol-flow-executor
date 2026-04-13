@@ -48,14 +48,26 @@ describe('CanvasToolbar', () => {
     (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: { flow: null }) => unknown) => selector({ flow: null })
     );
+    const mockExecutionState = {
+      setReport: mockSetReport,
+      setError: mockSetError,
+      clearExecutionState: vi.fn(),
+      handleExecutionEvent: vi.fn(),
+      handleWsEvent: vi.fn(),
+    };
     (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: Record<string, unknown>) => unknown) =>
-        selector({ setReport: mockSetReport, setError: mockSetError })
+        selector(mockExecutionState)
     );
+    // ExecuteButton 使用 getState() 直接调用
+    (useExecutionStore as unknown as Record<string, unknown>).getState = vi.fn(() => mockExecutionState);
+    const mockUIState = { setConfigPanelOpen: mockSetConfigPanelOpen, setExecutionPanelOpen: vi.fn() };
     (useUIStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: Record<string, unknown>) => unknown) =>
-        selector({ setConfigPanelOpen: mockSetConfigPanelOpen })
+        selector(mockUIState)
     );
+    // ExecuteButton 使用 getState() 直接调用
+    (useUIStore as unknown as Record<string, unknown>).getState = vi.fn(() => mockUIState);
 
     // Mock console store
     (useConsoleStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(

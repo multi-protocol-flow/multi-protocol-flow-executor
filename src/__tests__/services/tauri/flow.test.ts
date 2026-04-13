@@ -179,6 +179,7 @@ describe('Tauri IPC flow.ts 服务', () => {
         flow,
         onEvent: expect.any(Object),
         onExecutionEvent: expect.any(Object),
+        onWsEvent: expect.any(Object),
       });
 
       expect(result).toEqual(mockOutput);
@@ -195,7 +196,7 @@ describe('Tauri IPC flow.ts 服务', () => {
       vi.mocked(invoke).mockResolvedValueOnce(mockOutput);
 
       const onLog = vi.fn();
-      const result = await executeFlowWithChannel(flow, onLog, vi.fn(), variables);
+      const result = await executeFlowWithChannel(flow, onLog, vi.fn(), vi.fn(), variables);
 
       expect(invoke).toHaveBeenCalledWith('execute_flow', {
         input: {
@@ -206,6 +207,7 @@ describe('Tauri IPC flow.ts 服务', () => {
         flow,
         onEvent: expect.any(Object),
         onExecutionEvent: expect.any(Object),
+        onWsEvent: expect.any(Object),
       });
 
       expect(result).toEqual(mockOutput);
