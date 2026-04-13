@@ -3,6 +3,7 @@
  * 显示已保存的流程列表，支持加载流程
  */
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, FileJson, MoreVertical, Copy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFlowListStore, useFlowStore, useUIStore } from '@/stores';
@@ -92,6 +93,7 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
 
   const [openMenuUuid, setOpenMenuUuid] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
   // 点击外部关闭菜单
   useEffect(() => {
@@ -198,14 +200,20 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
                   </p>
                 </div>
 
-                {/* 更多操作菜单 */}
-                <div className="relative" ref={openMenuUuid === flowMeta.uuid ? menuRef : undefined}>
+                {/* 更多操作菜单按钮 */}
+                <div className="relative">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setOpenMenuUuid(openMenuUuid === flowMeta.uuid ? null : flowMeta.uuid);
+                      if (openMenuUuid === flowMeta.uuid) {
+                        setOpenMenuUuid(null);
+                      } else {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setMenuPosition({ top: rect.bottom + 4, left: rect.right - 120 });
+                        setOpenMenuUuid(flowMeta.uuid);
+                      }
                     }}
                     className={cn(
                       'h-6 w-6 shrink-0 transition-opacity duration-150',
@@ -217,8 +225,12 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
                     <MoreVertical className="w-3.5 h-3.5" />
                   </Button>
 
-                  {openMenuUuid === flowMeta.uuid && (
-                    <div className="absolute right-0 top-7 z-50 min-w-[120px] rounded-md border border-border bg-background shadow-md animate-in fade-in-0 zoom-in-95">
+                  {openMenuUuid === flowMeta.uuid && createPortal(
+                    <div
+                      ref={menuRef}
+                      className="fixed z-[9999] min-w-[120px] rounded-md border border-border bg-background shadow-md animate-in fade-in-0 zoom-in-95"
+                      style={{ top: menuPosition.top, left: menuPosition.left }}
+                    >
                       <button
                         type="button"
                         onClick={(e) => {
@@ -241,7 +253,8 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
                         <Trash2 className="w-3.5 h-3.5" />
                         删除流程
                       </button>
-                    </div>
+                    </div>,
+                    document.body
                   )}
                 </div>
               </div>
