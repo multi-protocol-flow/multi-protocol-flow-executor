@@ -46,9 +46,9 @@ export function CanvasToolbar() {
     setIsExecuting(true);
     setConfigPanelOpen(false);
 
-    // 清空上次增量执行状态并打开进度面板
+    // 清空上次增量执行状态，打开底部面板并切换到运行标签
     useExecutionStore.getState().clearExecutionState();
-    useUIStore.getState().setExecutionPanelOpen(true);
+    useUIStore.setState({ isHistoryPanelOpen: true, bottomPanelTab: 'running' });
 
     // 每次执行前清空日志
     clearLogs();
