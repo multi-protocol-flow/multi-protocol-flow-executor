@@ -1,8 +1,9 @@
 /**
  * ExecutionPanel - 底部面板水平布局执行面板
- * 左右分栏：左侧节点列表（含状态），右侧选中节点详情或 WS 消息时间线
+ * 左右分栏：左侧节点列表（含状态），右侧选中节点详情
+ * 右侧详情区域包含子标签：[输出] [WS消息] [变量] [栈]
  */
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   Loader2,
   CheckCircle2,
@@ -11,18 +12,28 @@ import {
   Clock,
   MousePointerClick,
   Ban,
+  Lock,
+  LogOut,
 } from 'lucide-react';
-import { useExecutionStore, useFlowStore } from '@/stores';
+import { useExecutionStore, useFlowStore, useDebugStore, useUIStore } from '@/stores';
 import {
   selectIsExecuting,
   selectCompletedNodeCount,
   selectTotalNodes,
   selectReport,
 } from '@/stores/execution';
+import { selectIsDebugging, selectIsDebugDataReadOnly, selectCurrentNodeUuid } from '@/stores/debug';
+import { useWsStreamStore } from '@/stores/wsStream';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { NodeExecutionDetails } from './NodeExecutionDetails';
 import { WsMessageTimeline } from './WsMessageTimeline';
+import { VariableTreeView } from './VariableTreeView';
+import { ExecutionStackView } from './ExecutionStackView';
 import { NODE_TYPE_NAMES, NODE_TYPE_COLORS } from './constants';
 import { cn } from '@/lib/utils';
+import { sendDebugCommand } from '@/services/tauri';
+import { toast } from 'sonner';
 import type { Node } from '@/types';
 
 // ============================================================================
@@ -30,15 +41,10 @@ import type { Node } from '@/types';
 // ============================================================================
 
 interface NodeStatusItemProps {
-  /** 节点信息 */
   node: Node;
-  /** 执行状态: running / success / failed / cancelled / pending */
   status: 'running' | 'success' | 'failed' | 'cancelled' | 'pending';
-  /** 是否选中 */
   isSelected: boolean;
-  /** 执行耗时（ms），仅 completed 节点有值 */
   durationMs: number | null;
-  /** 点击回调 */
   onClick: () => void;
 }
 
@@ -52,7 +58,6 @@ function NodeStatusItem({
   const nodeTypeLabel = NODE_TYPE_NAMES[node.data.type] || node.data.type;
   const nodeTypeColor = NODE_TYPE_COLORS[node.data.type] || '';
 
-  // 状态图标
   const StatusIcon = () => {
     switch (status) {
       case 'running':
@@ -87,10 +92,7 @@ function NodeStatusItem({
         status === 'running' && !isSelected && 'bg-blue-500/5',
       )}
     >
-      {/* 状态图标 */}
       <StatusIcon />
-
-      {/* 节点名称 */}
       <span
         className={cn(
           'text-xs truncate flex-1 min-w-0',
@@ -99,8 +101,6 @@ function NodeStatusItem({
       >
         {node.name}
       </span>
-
-      {/* 类型徽标 */}
       <span
         className={cn(
           'text-[10px] px-1.5 py-0 rounded-sm shrink-0',
@@ -109,8 +109,6 @@ function NodeStatusItem({
       >
         {nodeTypeLabel}
       </span>
-
-      {/* 耗时 */}
       {durationMs !== null && (
         <span className="text-[10px] text-muted-foreground tabular-nums shrink-0 flex items-center gap-0.5">
           <Clock className="w-2.5 h-2.5" />
@@ -137,6 +135,9 @@ function isWsNodeType(nodeType: string): boolean {
 // 主组件：ExecutionPanel
 // ============================================================================
 
+/** 详情区域子标签类型 */
+type DetailTab = 'output' | 'ws' | 'variables' | 'stack';
+
 export function ExecutionPanel() {
   // ===== Store 数据 =====
   const nodes = useFlowStore((state) => state.flow?.nodes ?? []);
@@ -151,16 +152,39 @@ export function ExecutionPanel() {
   const getNodeExecutionReport = useExecutionStore(
     (state) => state.getNodeExecutionReport,
   );
-  const wsStreams = useExecutionStore((state) => state.wsStreams);
+  const wsStreams = useWsStreamStore((state) => state.wsStreams);
   const nodeReportsMap = useExecutionStore((state) => state.nodeReportsMap);
+
+  // ===== 调试状态 =====
+  const isDebugging = useDebugStore(selectIsDebugging);
+  const isDebugDataReadOnly = useDebugStore(selectIsDebugDataReadOnly);
+  const debugCurrentNodeUuid = useDebugStore(selectCurrentNodeUuid);
+  const variables = useDebugStore((state) => state.variables);
+  const executionStack = useDebugStore((state) => state.executionStack);
+  const clearDebugData = useDebugStore((state) => state.clearDebugData);
+  const focusOnNode = useFlowStore((state) => state.focusOnNode);
+
+  const showDebugTabs = isDebugging || isDebugDataReadOnly;
 
   // ===== 本地状态 =====
   const [selectedNodeUuid, setSelectedNodeUuid] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState<DetailTab>('output');
   const nodeListRef = useRef<HTMLDivElement>(null);
   const prevCompletedCountRef = useRef(0);
 
+  // ===== 调试开始时自动打开底部面板 =====
+  useEffect(() => {
+    if (isDebugging) {
+      useUIStore.getState().setExecutionPanelOpen(true);
+    }
+  }, [isDebugging]);
+
+  // ===== 调试只读模式下 "退出调试" 按钮 =====
+  const handleExitDebug = useCallback(() => {
+    clearDebugData();
+  }, [clearDebugData]);
+
   // ===== 有序节点列表 =====
-  // 使用 flow.nodes 的顺序，若最终报告有顺序则按报告排序
   const orderedNodes = useMemo(() => {
     if (!report || !report.node_reports.length) return nodes;
 
@@ -169,12 +193,10 @@ export function ExecutionPanel() {
     );
     const nodeMap = new Map(nodes.map((n) => [n.uuid, n]));
 
-    // 先按报告顺序排
     const ordered: Node[] = report.node_reports
       .map((r) => nodeMap.get(r.node_uuid))
       .filter((n): n is Node => n !== undefined);
 
-    // 追加报告中未出现但存在于 flow 中的节点
     for (const node of nodes) {
       if (!orderMap.has(node.uuid)) {
         ordered.push(node);
@@ -197,7 +219,6 @@ export function ExecutionPanel() {
       completedNodeCount > prevCompletedCountRef.current ||
       currentNodeUuid
     ) {
-      // 新节点完成或有节点开始执行，滚动到可见区域
       requestAnimationFrame(() => {
         const activeEl = nodeListRef.current?.querySelector(
           '[data-status="running"], [data-status="success"]:last-of-type',
@@ -226,16 +247,38 @@ export function ExecutionPanel() {
     const selectedNode = nodes.find((n) => n.uuid === selectedNodeUuid);
     if (!selectedNode || !isWsNodeType(selectedNode.data.type)) return [];
 
-    return Array.from(wsStreams.values()).filter((stream) =>
-      stream.segments.some((seg) => seg.node_uuid === selectedNodeUuid),
-    );
+    return Array.from(wsStreams.values());
   }, [selectedNodeUuid, nodes, wsStreams]);
+
+  // ===== 变量编辑回调 =====
+  const canEditVariables = useDebugStore((state) => state.status === 'paused') && !isDebugDataReadOnly;
+  const handleModifyVariable = useCallback(async (name: string, value: unknown) => {
+    try {
+      await sendDebugCommand({
+        ModifyVariable: { name, value },
+      });
+    } catch (error) {
+      toast.error(`修改变量失败: ${(error as Error).message}`);
+    }
+  }, []);
+
+  // ===== 自动切换 tab 逻辑 =====
+  // 选中 WS 节点时自动切换到 WS tab，否则切到输出 tab
+  useEffect(() => {
+    if (!selectedNodeUuid) return;
+    const selectedNode = nodes.find((n) => n.uuid === selectedNodeUuid);
+    if (selectedNode && isWsNodeType(selectedNode.data.type)) {
+      setDetailTab('ws');
+    } else {
+      setDetailTab((prev) => prev === 'ws' ? 'output' : prev);
+    }
+  }, [selectedNodeUuid, nodes]);
 
   // ===== 空状态（尚未执行） =====
   const hasAnyExecution =
     isExecuting || completedNodeCount > 0 || Object.keys(nodeReportsMap).length > 0;
 
-  if (!hasAnyExecution) {
+  if (!hasAnyExecution && !showDebugTabs) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground">
         <div className="flex flex-col items-center gap-2">
@@ -259,7 +302,6 @@ export function ExecutionPanel() {
           <span className="text-xs text-muted-foreground tabular-nums shrink-0">
             {progressPercent}%
           </span>
-          {/* 微型进度条 */}
           <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden min-w-[40px]">
             <div
               className={cn(
@@ -304,61 +346,126 @@ export function ExecutionPanel() {
 
       {/* ===== 右侧：详情区域 (~65%) ===== */}
       <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
-        {/* 未选中节点 */}
-        {!selectedNodeUuid && (
-          <div className="h-full flex items-center justify-center text-muted-foreground">
-            <span className="text-sm">选择节点查看详情</span>
-          </div>
-        )}
-
-        {/* 选中节点 - pending */}
-        {selectedNodeUuid && selectedStatus === 'pending' && (
-          <div className="h-full flex items-center justify-center text-muted-foreground">
-            <span className="text-sm">等待执行</span>
-          </div>
-        )}
-
-        {/* 选中节点 - running */}
-        {selectedNodeUuid && selectedStatus === 'running' && (
-          <div className="h-full flex flex-col overflow-hidden">
-            {/* 加载指示 */}
-            <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border shrink-0">
-              <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
-              <span className="text-xs text-muted-foreground">执行中...</span>
+        {/* 只读模式横幅 + 退出按钮 */}
+        {isDebugDataReadOnly && (
+          <div className="flex items-center justify-between px-3 py-1.5 bg-amber-50 dark:bg-amber-950/50 border-b border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs shrink-0">
+            <div className="flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5" />
+              <span className="font-medium">调试已结束</span>
+              <span className="text-amber-600 dark:text-amber-400">只读模式</span>
             </div>
-            {/* WS 实时消息 */}
-            {selectedWsStreams.length > 0 && (
-              <div className="flex-1 min-h-0 overflow-hidden">
-                <WsMessageTimeline
-                  streams={selectedWsStreams}
-                  live={isExecuting}
-                />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleExitDebug}
+              className="h-6 px-2 text-xs gap-1 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+            >
+              <LogOut className="w-3 h-3" />
+              退出调试
+            </Button>
+          </div>
+        )}
+
+        {/* 子标签栏 */}
+        <div className="border-b border-border shrink-0">
+          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as DetailTab)}>
+            <TabsList className="h-7 p-0.5 bg-transparent">
+              <TabsTrigger value="output" className="h-6 px-3 text-xs">
+                输出
+              </TabsTrigger>
+              <TabsTrigger value="ws" className="h-6 px-3 text-xs">
+                WS消息
+              </TabsTrigger>
+              {showDebugTabs && (
+                <>
+                  <TabsTrigger value="variables" className="h-6 px-3 text-xs">
+                    变量
+                  </TabsTrigger>
+                  <TabsTrigger value="stack" className="h-6 px-3 text-xs">
+                    栈
+                  </TabsTrigger>
+                </>
+              )}
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {/* 子标签内容 */}
+        <Tabs value={detailTab} className="flex-1 min-h-0 overflow-hidden">
+          <TabsContent value="output" className="m-0 h-full overflow-hidden">
+            {/* 输出标签页 - 原有逻辑 */}
+            {!selectedNodeUuid && (
+              <div className="h-full flex items-center justify-center text-muted-foreground">
+                <span className="text-sm">选择节点查看详情</span>
               </div>
             )}
-          </div>
-        )}
 
-        {/* 选中节点 - success / failed */}
-        {selectedNodeUuid &&
-          (selectedStatus === 'success' || selectedStatus === 'failed') && (
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <div className="p-3">
-                {/* WS 消息时间线（如果有） */}
-                {selectedWsStreams.length > 0 && (
-                  <div className="mb-3">
-                    <WsMessageTimeline
-                      streams={selectedWsStreams}
-                      live={isExecuting}
-                    />
+            {selectedNodeUuid && selectedStatus === 'pending' && (
+              <div className="h-full flex items-center justify-center text-muted-foreground">
+                <span className="text-sm">等待执行</span>
+              </div>
+            )}
+
+            {selectedNodeUuid && selectedStatus === 'running' && (
+              <div className="h-full flex flex-col overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border shrink-0">
+                  <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
+                  <span className="text-xs text-muted-foreground">执行中...</span>
+                </div>
+                {selectedReport && (
+                  <div className="flex-1 min-h-0 overflow-y-auto p-3">
+                    <NodeExecutionDetails report={selectedReport} />
                   </div>
                 )}
-                {/* 节点执行详情 */}
-                {selectedReport && (
-                  <NodeExecutionDetails report={selectedReport} />
-                )}
               </div>
-            </div>
+            )}
+
+            {selectedNodeUuid &&
+              (selectedStatus === 'success' || selectedStatus === 'failed') && (
+                <div className="h-full overflow-y-auto">
+                  <div className="p-3">
+                    {selectedReport && (
+                      <NodeExecutionDetails report={selectedReport} />
+                    )}
+                  </div>
+                </div>
+              )}
+          </TabsContent>
+
+          <TabsContent value="ws" className="m-0 h-full overflow-hidden">
+            {selectedWsStreams.length > 0 ? (
+              <WsMessageTimeline
+                streams={selectedWsStreams}
+                live={isExecuting}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center text-muted-foreground">
+                <span className="text-sm">选择 WebSocket 节点查看消息</span>
+              </div>
+            )}
+          </TabsContent>
+
+          {showDebugTabs && (
+            <>
+              <TabsContent value="variables" className="m-0 h-full overflow-hidden">
+                <VariableTreeView
+                  variables={variables}
+                  canEdit={canEditVariables}
+                  onEdit={handleModifyVariable}
+                />
+              </TabsContent>
+
+              <TabsContent value="stack" className="m-0 h-full overflow-hidden">
+                <ExecutionStackView
+                  executionStack={executionStack}
+                  currentNodeUuid={debugCurrentNodeUuid}
+                  isReadOnly={isDebugDataReadOnly}
+                  onNavigateToNode={focusOnNode}
+                />
+              </TabsContent>
+            </>
           )}
+        </Tabs>
       </div>
     </div>
   );

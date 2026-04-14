@@ -6,9 +6,10 @@ import { useState } from 'react';
 import { Play, Loader2, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { useFlowStore, useUIStore, useExecutionStore } from '@/stores';
+import { useFlowStore, useUIStore, useExecutionStore, useDebugStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
+import { useWsStreamStore } from '@/stores/wsStream';
 import { executeFlowWithChannel, saveFlowReport } from '@/services/tauri';
 import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
@@ -34,6 +35,9 @@ export function ExecuteButton() {
     clearExecutionState();
     useUIStore.setState({ isHistoryPanelOpen: true, bottomPanelTab: 'running' });
 
+    // 清理残留调试数据
+    useDebugStore.getState().clearDebugData();
+
     // 每次执行前清空日志
     clearLogs();
 
@@ -49,7 +53,7 @@ export function ExecuteButton() {
 
     // WS 流事件回调函数（实时 WS 消息流）
     const handleWsEvent = (event: import('@/types/debug').DebugEvent) => {
-      useExecutionStore.getState().handleWsEvent(event);
+      useWsStreamStore.getState().handleWsEvent(event);
     };
 
     try {
