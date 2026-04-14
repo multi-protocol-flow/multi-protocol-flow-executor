@@ -44,6 +44,8 @@ interface ExecutionState {
   clearError: () => void;
   /** 清除历史记录 */
   clearHistory: () => void;
+  /** 取消正在执行的流程 */
+  cancelExecution: () => Promise<void>;
   /** 处理执行事件（增量更新状态） */
   handleExecutionEvent: (event: ExecutionEvent) => void;
   /** 清空增量执行状态 */
@@ -128,6 +130,16 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
 
   clearHistory: () => set({ history: [] }),
 
+  cancelExecution: async () => {
+    try {
+      const { cancelFlow } = await import('@/services/tauri');
+      await cancelFlow();
+    } catch {
+      // Session may already be cleaned up, ignore
+    }
+    set({ isExecuting: false });
+  },
+
   handleExecutionEvent: (event: ExecutionEvent) => {
     if ('flowStarted' in event) {
       const { totalNodes } = event.flowStarted;
@@ -163,6 +175,8 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
           history: newHistory,
         };
       });
+    } else if ('flowCancelled' in event) {
+      set({ isExecuting: false });
     }
   },
 
