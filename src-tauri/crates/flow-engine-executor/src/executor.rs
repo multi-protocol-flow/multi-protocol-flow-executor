@@ -454,6 +454,13 @@ impl FlowExecutor {
             visited.insert(current_node_id.clone());
             context.current_node_uuid = Some(current_node_id.clone());
 
+            // 发送节点开始执行事件
+            context.emit_execution_event(ExecutionEvent::NodeStarted {
+                node_uuid: node.uuid.clone(),
+                node_name: node.name.clone(),
+                node_type: format!("{:?}", node.node_type),
+            }).await;
+
             // 记录节点开始时间
             let node_start_time = tokio::time::Instant::now();
             let node_start_ms = std::time::SystemTime::now()
