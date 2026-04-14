@@ -129,8 +129,17 @@ describe('DebugStore', () => {
       it('处理 NodeExecuted 事件（有输出）', () => {
         const event: DebugEvent = {
           NodeExecuted: {
-            node_uuid: 'node-1',
-            output: { status: 200, body: { id: 1 } },
+            entry: {
+              node_uuid: 'node-1',
+              node_name: 'HTTP请求',
+              node_type: 'http',
+              started_at: Date.now(),
+              ended_at: Date.now() + 100,
+              input: null,
+              output: { status: 200, body: { id: 1 } },
+              success: true,
+              error: undefined,
+            },
           },
         };
 
@@ -143,15 +152,24 @@ describe('DebugStore', () => {
       it('处理 NodeExecuted 事件（无输出）', () => {
         const event: DebugEvent = {
           NodeExecuted: {
-            node_uuid: 'node-1',
-            output: undefined,
+            entry: {
+              node_uuid: 'node-1',
+              node_name: 'Entry',
+              node_type: 'entry',
+              started_at: Date.now(),
+              ended_at: Date.now() + 10,
+              input: null,
+              output: null,
+              success: true,
+              error: undefined,
+            },
           },
         };
 
         useDebugStore.getState().handleDebugEvent(event);
 
         const state = useDebugStore.getState();
-        expect(state.currentNodeOutput).toBeUndefined();
+        expect(state.currentNodeOutput).toBeNull();
       });
     });
 

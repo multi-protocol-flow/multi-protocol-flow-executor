@@ -165,8 +165,7 @@ describe('调试功能端到端测试', () => {
       act(() => {
         debugEventCallback?.({
           NodeExecuted: {
-            node_uuid: 'entry-1',
-            output: null,
+            entry: createStackEntry('entry-1', '入口', 'entry'),
           },
         });
       });
@@ -240,7 +239,7 @@ describe('调试功能端到端测试', () => {
       // 模拟单步完成后在下一个节点暂停
       act(() => {
         debugEventCallback?.({
-          NodeExecuted: { node_uuid: 'entry-1', output: null },
+          NodeExecuted: { entry: createStackEntry('entry-1', '入口', 'entry') },
         });
         debugEventCallback?.({
           PausedAtNode: {
@@ -359,8 +358,7 @@ describe('调试功能端到端测试', () => {
       act(() => {
         debugEventCallback?.({
           NodeExecuted: {
-            node_uuid: 'http-1',
-            output: simulatedOutput,
+            entry: createStackEntry('http-1', 'HTTP请求', 'http', simulatedOutput),
           },
         });
         debugEventCallback?.({

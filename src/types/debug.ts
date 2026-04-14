@@ -100,7 +100,7 @@ export type DebugEvent =
         execution_stack: ExecutionStackEntry[];
       };
     }
-  | { NodeExecuted: { node_uuid: string; output?: unknown } }
+  | { NodeExecuted: { entry: ExecutionStackEntry } }
   | { SessionEnded: { reason: EndReason; report?: FlowExecutionReport; execution_stack: ExecutionStackEntry[] } }
   | { VariableModified: { name: string; value: unknown } }
   | { NodeConfigModified: { node_uuid: string; config: unknown } }

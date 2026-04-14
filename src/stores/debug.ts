@@ -477,13 +477,18 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         isBreakpoint ? node_uuid : null,
       );
     } else if ('NodeExecuted' in event) {
-      const { output } = event.NodeExecuted;
-      set({ currentNodeOutput: output });
+      const { entry } = event.NodeExecuted;
+      set({ currentNodeOutput: entry.output });
 
-      // 桥接：NodeExecuted 携带的数据有限，仅标记当前正在执行的节点
-      // 完整的状态同步会在下一个 PausedAtNode 中完成
+      // 桥接：增量同步已完成节点到 executionStore
+      // 使执行面板实时显示每个节点完成状态（而非等待 SessionEnded 批量更新）
+      const nodeReport = stackEntryToReport(entry);
+      const currentMap = useExecutionStore.getState().nodeReportsMap;
+      const newMap = { ...currentMap, [entry.node_uuid]: nodeReport };
       useExecutionStore.setState({
-        currentNodeUuid: event.NodeExecuted.node_uuid,
+        nodeReportsMap: newMap,
+        completedNodeCount: Object.keys(newMap).length,
+        currentNodeUuid: null, // 节点已完成，等待下一个节点开始（通过心跳或下一个 NodeExecuted 更新）
       });
     } else if ('SessionEnded' in event) {
       // 会话结束，清理定时器
