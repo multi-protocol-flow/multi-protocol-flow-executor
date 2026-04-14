@@ -4,7 +4,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, FileJson, MoreVertical, Copy, Trash2 } from 'lucide-react';
+import { Plus, FileJson, MoreVertical, Copy, Trash2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFlowListStore, useFlowStore, useUIStore } from '@/stores';
 import { listFlows, loadFlow, deleteFlow, saveFlow } from '@/services/storage/flowStorage';
@@ -95,6 +95,11 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
+  // 重命名状态
+  const [renamingUuid, setRenamingUuid] = useState<string | null>(null);
+  const [renamingName, setRenamingName] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
   // 点击外部关闭菜单
   useEffect(() => {
     if (openMenuUuid === null) return;
@@ -149,6 +154,59 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
     openNewFlowDialog();
   };
 
+  const handleStartRename = (uuid: string) => {
+    setOpenMenuUuid(null);
+    const flowMeta = flows.find((f) => f.uuid === uuid);
+    if (!flowMeta) return;
+    setRenamingUuid(uuid);
+    setRenamingName(flowMeta.name);
+    // 延迟聚焦以等待 DOM 更新
+    requestAnimationFrame(() => {
+      renameInputRef.current?.focus();
+      renameInputRef.current?.select();
+    });
+  };
+
+  const handleConfirmRename = () => {
+    if (!renamingUuid) return;
+    const trimmedName = renamingName.trim();
+    if (!trimmedName) {
+      // 名称为空，取消重命名
+      setRenamingUuid(null);
+      setRenamingName('');
+      return;
+    }
+    // 更新 flowList store
+    useFlowListStore.getState().updateFlow(renamingUuid, { name: trimmedName, updated_at: Date.now() });
+    // 更新 flowStore（如果正在编辑此流程）
+    const currentFlowState = useFlowStore.getState();
+    if (currentFlowState.flow?.uuid === renamingUuid) {
+      currentFlowState.updateFlowName(trimmedName);
+    }
+    // 持久化：加载完整 flow，修改名称后保存
+    const fullFlow = loadFlow(renamingUuid);
+    if (fullFlow) {
+      saveFlow({ ...fullFlow, name: trimmedName });
+    }
+    setRenamingUuid(null);
+    setRenamingName('');
+  };
+
+  const handleCancelRename = () => {
+    setRenamingUuid(null);
+    setRenamingName('');
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleConfirmRename();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancelRename();
+    }
+  };
+
   const flows = useFlowListStore((state) => state.flows);
 
   return (
@@ -178,7 +236,10 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
             return (
               <div
                 key={flowMeta.uuid}
-                onClick={() => handleSelectFlow(flowMeta.uuid)}
+                onClick={() => {
+                  if (renamingUuid === flowMeta.uuid) return;
+                  handleSelectFlow(flowMeta.uuid);
+                }}
                 className={cn(
                   'group w-full flex items-center gap-2 px-3 h-12 rounded-lg text-sm text-left transition-all duration-150',
                   'bg-background border border-border',
@@ -194,10 +255,25 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
                   )}
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="truncate font-medium">{flowMeta.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {formatRelativeTime(flowMeta.updated_at)}
-                  </p>
+                  {renamingUuid === flowMeta.uuid ? (
+                    <input
+                      ref={renameInputRef}
+                      type="text"
+                      value={renamingName}
+                      onChange={(e) => setRenamingName(e.target.value)}
+                      onBlur={handleConfirmRename}
+                      onKeyDown={handleRenameKeyDown}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full px-1 py-0 text-sm font-medium bg-background border border-primary rounded outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  ) : (
+                    <>
+                      <p className="truncate font-medium">{flowMeta.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {formatRelativeTime(flowMeta.updated_at)}
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 {/* 更多操作菜单按钮 */}
@@ -231,6 +307,17 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
                       className="fixed z-[9999] min-w-[120px] rounded-md border border-border bg-background shadow-md animate-in fade-in-0 zoom-in-95"
                       style={{ top: menuPosition.top, left: menuPosition.left }}
                     >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartRename(flowMeta.uuid);
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        重命名
+                      </button>
                       <button
                         type="button"
                         onClick={(e) => {
