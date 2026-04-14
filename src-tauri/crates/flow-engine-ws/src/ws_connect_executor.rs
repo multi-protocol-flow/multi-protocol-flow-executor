@@ -297,8 +297,22 @@ impl WsConnectExecutor {
     ) -> Result<CollectResult, String> {
         match config.collect_mode {
             WsCollectMode::FirstMatch => {
+                // 取消检查
+                if context.is_cancelled() {
+                    return Err("流程已取消".to_string());
+                }
                 let timeout_ms = config.collect_timeout_ms;
-                match self.ws_manager.receive(&node.uuid, timeout_ms).await {
+                // 使用 watch channel 监听取消信号
+                let receive_result = if let Some(ref rx) = context.cancel_receiver {
+                    let mut cancel_rx = rx.clone();
+                    tokio::select! {
+                        msg = self.ws_manager.receive(&node.uuid, timeout_ms) => msg,
+                        _ = cancel_rx.changed() => Err("流程已取消".to_string()),
+                    }
+                } else {
+                    self.ws_manager.receive(&node.uuid, timeout_ms).await
+                };
+                match receive_result {
                     Ok(Some(message)) => {
                         log::info!(
                             "[WebSocket] 收到初始消息: uuid={}, len={}",
@@ -362,6 +376,10 @@ impl WsConnectExecutor {
                         let mut collected: Vec<String> = Vec::new();
 
                         loop {
+                            // 取消检查
+                            if context.is_cancelled() {
+                                return Err("流程已取消".to_string());
+                            }
                             let elapsed = start.elapsed().as_millis() as u64;
                             if elapsed >= timeout_ms {
                                 log::info!(
@@ -372,7 +390,17 @@ impl WsConnectExecutor {
                             }
 
                             let remaining = timeout_ms - elapsed;
-                            match self.ws_manager.receive(&node.uuid, remaining.min(5000)).await {
+                            // 使用 watch channel 监听取消信号
+                            let receive_result = if let Some(ref rx) = context.cancel_receiver {
+                                let mut cancel_rx = rx.clone();
+                                tokio::select! {
+                                    msg = self.ws_manager.receive(&node.uuid, remaining.min(5000)) => msg,
+                                    _ = cancel_rx.changed() => Err("流程已取消".to_string()),
+                                }
+                            } else {
+                                self.ws_manager.receive(&node.uuid, remaining.min(5000)).await
+                            };
+                            match receive_result {
                                 Ok(Some(message)) => {
                                     // 记录消息到 WebSocket 消息流
                                     let ws_message = WsMessage::new(
@@ -479,7 +507,21 @@ impl WsConnectExecutor {
                 let mut collected: Vec<String> = Vec::new();
 
                 while start.elapsed().as_millis() < duration_ms as u128 {
-                    if let Ok(Some(message)) = self.ws_manager.receive(&node.uuid, 1000).await {
+                    // 取消检查
+                    if context.is_cancelled() {
+                        return Err("流程已取消".to_string());
+                    }
+                    // 使用 watch channel 监听取消信号
+                    let receive_result = if let Some(ref rx) = context.cancel_receiver {
+                        let mut cancel_rx = rx.clone();
+                        tokio::select! {
+                            msg = self.ws_manager.receive(&node.uuid, 1000) => msg,
+                            _ = cancel_rx.changed() => Err("流程已取消".to_string()),
+                        }
+                    } else {
+                        self.ws_manager.receive(&node.uuid, 1000).await
+                    };
+                    if let Ok(Some(message)) = receive_result {
                         log::debug!(
                             "[WebSocket] 收到消息（DurationCollect模式）: uuid={}, len={}",
                             node.uuid,

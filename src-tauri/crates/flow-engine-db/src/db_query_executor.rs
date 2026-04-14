@@ -253,9 +253,27 @@ impl NodeExecutor for DbQueryNodeExecutor {
             Arc::new(crate::db::MockPool::new("mock".to_string()))
         };
 
-        // 执行查询
+        // 执行查询（支持取消中断）
         let execute_start = Instant::now();
-        let result = pool.execute(&sql, params).await;
+        let result = if let Some(ref rx) = context.cancel_receiver {
+            // 有取消信号接收器时，使用 tokio::select! 监听取消
+            let mut cancel_rx = rx.clone();
+            tokio::select! {
+                r = pool.execute(&sql, params) => r,
+                _ = cancel_rx.changed() => {
+                    log::info!(
+                        "[流程 {}] [取消] 节点ID: {}, 节点名称: {}, 数据库查询被取消",
+                        context.flow_uuid,
+                        node.uuid,
+                        node.name
+                    );
+                    return Err("流程已取消".to_string());
+                }
+            }
+        } else {
+            // 无取消信号接收器时，直接执行
+            pool.execute(&sql, params).await
+        };
         let execute_ms = execute_start.elapsed().as_millis() as u64;
 
         // 处理查询结果

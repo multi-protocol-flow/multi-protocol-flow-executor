@@ -430,10 +430,22 @@ impl WsSendCollectExecutor {
     ) -> Result<CollectResult, String> {
         match config.collect_mode {
             WsCollectMode::FirstMatch => {
-                let result = self
-                    .ws_manager
-                    .receive(connection_id, config.collect_timeout_ms)
-                    .await?;
+                // 取消检查
+                if context.is_cancelled() {
+                    return Err("流程已取消".to_string());
+                }
+
+                // 使用 tokio::select! 监听取消信号
+                let result = if let Some(mut rx) = context.cancel_receiver.clone() {
+                    tokio::select! {
+                        res = self.ws_manager.receive(connection_id, config.collect_timeout_ms) => res?,
+                        _ = rx.changed() => {
+                            return Err("流程已取消".to_string());
+                        }
+                    }
+                } else {
+                    self.ws_manager.receive(connection_id, config.collect_timeout_ms).await?
+                };
 
                 if let Some(message) = result {
                     log::info!(
@@ -502,16 +514,28 @@ impl WsSendCollectExecutor {
                         let mut collected: Vec<String> = Vec::new();
 
                         loop {
+                            // 取消检查
+                            if context.is_cancelled() {
+                                return Err("流程已取消".to_string());
+                            }
+
                             let elapsed = start.elapsed().as_millis() as u64;
                             if elapsed >= timeout_ms {
                                 return Ok(CollectResult { collected, matched_index: None });
                             }
 
                             let remaining = timeout_ms - elapsed;
-                            let result = self
-                                .ws_manager
-                                .receive(connection_id, remaining.min(5000))
-                                .await?;
+                            // 使用 tokio::select! 监听取消信号
+                            let result = if let Some(mut rx) = context.cancel_receiver.clone() {
+                                tokio::select! {
+                                    res = self.ws_manager.receive(connection_id, remaining.min(5000)) => res?,
+                                    _ = rx.changed() => {
+                                        return Err("流程已取消".to_string());
+                                    }
+                                }
+                            } else {
+                                self.ws_manager.receive(connection_id, remaining.min(5000)).await?
+                            };
 
                             if let Some(message) = result {
                                 // 记录所有收到的消息
@@ -658,7 +682,22 @@ impl WsSendCollectExecutor {
                 let mut collected: Vec<String> = Vec::new();
 
                 while start.elapsed().as_millis() < duration_ms as u128 {
-                    let result = self.ws_manager.receive(connection_id, 1000).await?;
+                    // 取消检查
+                    if context.is_cancelled() {
+                        return Err("流程已取消".to_string());
+                    }
+
+                    // 使用 tokio::select! 监听取消信号
+                    let result = if let Some(mut rx) = context.cancel_receiver.clone() {
+                        tokio::select! {
+                            res = self.ws_manager.receive(connection_id, 1000) => res?,
+                            _ = rx.changed() => {
+                                return Err("流程已取消".to_string());
+                            }
+                        }
+                    } else {
+                        self.ws_manager.receive(connection_id, 1000).await?
+                    };
                     if let Some(message) = result {
                         log::debug!(
                             "[WebSocket] 收到消息（DurationCollect模式）: connection_id={}, len={}",

@@ -87,9 +87,21 @@ impl NodeExecutor for ScriptNodeExecutor {
         let timeout_ms = config.timeout_ms;
         let memory_limit_mb = config.memory_limit_mb;
 
-        // 超时中断标志（在外部创建，以便超时时能设置）
+        // 超时中断标志（在外部创建，以便超时/取消时能设置）
         let timeout_flag = Arc::new(AtomicBool::new(false));
         let timeout_flag_for_interrupt = timeout_flag.clone();
+
+        // 取消信号监听器：收到取消信号时设置 timeout_flag，触发 JS 中断
+        let cancel_handle = context.cancel_receiver.as_ref().map(|rx| {
+            let mut rx = rx.clone();
+            let flag = timeout_flag.clone();
+            tokio::spawn(async move {
+                // 等待取消信号（值变为 true）
+                if rx.changed().await.is_ok() {
+                    flag.store(true, Ordering::SeqCst);
+                }
+            })
+        });
 
         // 4. 执行脚本（在 spawn_blocking 内部创建 Runtime 和 Context，避免 Send 问题）
         let result = tokio::task::spawn_blocking(move || {
@@ -224,6 +236,11 @@ impl NodeExecutor for ScriptNodeExecutor {
 
         // 6. 等待结果（带超时）
         let result = tokio::time::timeout(Duration::from_millis(timeout_ms), result).await;
+
+        // 清理取消监听器（脚本已结束，不再需要监听取消信号）
+        if let Some(handle) = cancel_handle {
+            handle.abort();
+        }
 
         // 7. 处理结果
         match result {
@@ -826,5 +843,40 @@ mod tests {
             context.variables.get_variable("result"),
             Some(&serde_json::json!("ok"))
         );
+    }
+
+    #[tokio::test]
+    async fn test_script_executor_cancel_infinite_loop() {
+        let executor = ScriptNodeExecutor::new();
+        // 创建一个会死循环的脚本，超时设得很长（5s），依赖取消信号来中断
+        let node = create_test_node(
+            "script-cancel-001",
+            "while(true) { /* infinite loop */ }",
+            5000, // 5s 超时，不应该靠超时来结束
+        );
+        let mut context = create_test_context("test-flow");
+
+        // 设置取消信号
+        let (tx, rx) = tokio::sync::watch::channel(false);
+        context.cancel_receiver = Some(rx);
+        let connections = vec![];
+
+        // 在另一个任务中延迟发送取消信号
+        let cancel_tx = tx.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            let _ = cancel_tx.send(true);
+        });
+
+        let result = executor
+            .execute(&node, &mut context, &connections, &HashMap::new())
+            .await;
+
+        // 取消应该走 false 端口（Recoverable 策略）
+        assert!(result.is_ok());
+        let output_data = result.unwrap().1;
+        assert!(output_data.is_some());
+        let output = output_data.unwrap();
+        assert_eq!(output["success"], false);
     }
 }
