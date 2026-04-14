@@ -105,14 +105,6 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
   // 当前选中的连接 UUID
   const selectedConnectionUuid = watch('connection_uuid');
 
-  // 查找选中的 db_connect 节点配置
-  const selectedConnectConfig = useMemo(() => {
-    if (!selectedConnectionUuid) return null;
-    const node = dbConnectNodes.find((n) => n.uuid === selectedConnectionUuid);
-    if (!node) return null;
-    return node.data as DbConnectConfigType;
-  }, [selectedConnectionUuid, dbConnectNodes]);
-
   // 当外部数据变化时，重置表单
   useEffect(() => {
     reset(toFormData(data));
@@ -195,13 +187,13 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
                 const port = config.port ? `:${config.port}` : '';
                 return (
                   <SelectItem key={node.uuid} value={node.uuid}>
-                    <div className="flex items-center gap-2">
-                      <span className={`font-medium ${getDriverColor(driver)}`}>
+                    <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
+                      <span className="shrink-0">{node.name}</span>
+                      <span className={`shrink-0 font-medium text-xs ${getDriverColor(driver)}`}>
                         [{getDriverLabel(driver || '未设置')}]
                       </span>
-                      <span>{node.name}</span>
                       {host && (
-                        <span className="text-muted-foreground text-xs">
+                        <span className="text-muted-foreground text-xs truncate" title={`${host}${port}`}>
                           {host}{port}
                         </span>
                       )}
@@ -247,56 +239,6 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
         </p>
       </div>
 
-      {/* 选中连接的只读信息卡片 */}
-      {selectedConnectConfig && (
-        <div className="rounded-lg border border-orange-100 bg-orange-50/30 p-4 space-y-3">
-          <h5 className="text-xs font-semibold text-orange-800 uppercase tracking-wide">
-            连接信息
-          </h5>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            {/* 数据库类型 */}
-            <div>
-              <span className="text-muted-foreground text-xs">数据库类型</span>
-              <p className={`font-medium ${getDriverColor(selectedConnectConfig.driver || '')}`}>
-                {getDriverLabel(selectedConnectConfig.driver || '未设置')}
-              </p>
-            </div>
-            {/* 主机和端口 */}
-            {selectedConnectConfig.host && (
-              <div>
-                <span className="text-muted-foreground text-xs">主机</span>
-                <p className="font-mono text-xs">
-                  {selectedConnectConfig.host}
-                  {selectedConnectConfig.port ? `:${selectedConnectConfig.port}` : ''}
-                </p>
-              </div>
-            )}
-            {/* 数据库名 */}
-            {selectedConnectConfig.database && (
-              <div>
-                <span className="text-muted-foreground text-xs">数据库</span>
-                <p className="font-mono text-xs">{selectedConnectConfig.database}</p>
-              </div>
-            )}
-            {/* SQLite 文件路径 */}
-            {selectedConnectConfig.driver === 'sqlite' && selectedConnectConfig.connection_string && (
-              <div className="col-span-2">
-                <span className="text-muted-foreground text-xs">文件路径</span>
-                <p className="font-mono text-xs truncate" title={selectedConnectConfig.connection_string}>
-                  {selectedConnectConfig.connection_string}
-                </p>
-              </div>
-            )}
-            {/* 用户名 */}
-            {selectedConnectConfig.username && (
-              <div>
-                <span className="text-muted-foreground text-xs">用户名</span>
-                <p className="font-mono text-xs">{selectedConnectConfig.username}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </form>
   );
 }
