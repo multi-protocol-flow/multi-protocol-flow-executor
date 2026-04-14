@@ -455,6 +455,33 @@ pub async fn get_stress_test_status(
     flow_engine::stress_test::handle_get_stress_test_status(state.inner().clone()).await
 }
 
+/// 保存压力测试报告
+#[tauri::command]
+pub fn save_stress_test_report(
+    report: flow_engine::stress_test::StressTestReport,
+    reports_dir: String,
+) -> Result<String, String> {
+    let path = flow_engine::storage::save_stress_report(&report, std::path::Path::new(&reports_dir))?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+/// 加载压力测试报告
+#[tauri::command]
+pub fn load_stress_test_report(
+    file_path: String,
+) -> Result<flow_engine::stress_test::StressTestReport, String> {
+    let path = std::path::Path::new(&file_path);
+    flow_engine::storage::load_stress_report(path)
+}
+
+/// 列出所有压力测试报告摘要
+#[tauri::command]
+pub fn list_stress_test_reports(
+    reports_dir: String,
+) -> Result<Vec<flow_engine::storage::StressTestReportSummary>, String> {
+    flow_engine::storage::list_stress_reports(std::path::Path::new(&reports_dir))
+}
+
 // ============================================================================
 // 单元测试
 // ============================================================================
