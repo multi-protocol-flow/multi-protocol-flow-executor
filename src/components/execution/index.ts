@@ -8,4 +8,5 @@ export { NodeExecutionDetails } from './NodeExecutionDetails';
 export { ExecutionHistory } from './ExecutionHistory';
 export { ConsolePanel } from './ConsolePanel';
 export { NodeListItem } from './NodeListItem';
+export { StressTestHistory } from './StressTestHistory';
 export * from './constants';
