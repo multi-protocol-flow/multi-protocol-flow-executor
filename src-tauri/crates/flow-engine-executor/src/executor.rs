@@ -280,6 +280,8 @@ pub struct FlowExecutor {
     execution_event_sender: Option<Arc<dyn ExecutionEventSender>>,
     /// 调试事件发送器（普通模式下用于 WS 流事件广播）
     debug_event_sender: Option<Arc<dyn DebugEventSender>>,
+    /// 取消信号接收器（用于外部取消流程执行）
+    cancel_receiver: Option<tokio::sync::watch::Receiver<bool>>,
 }
 
 impl Default for FlowExecutor {
@@ -295,6 +297,7 @@ impl FlowExecutor {
             flow_file_path: None,
             execution_event_sender: None,
             debug_event_sender: None,
+            cancel_receiver: None,
         }
     }
 
@@ -329,6 +332,12 @@ impl FlowExecutor {
     /// 更新后的 `FlowExecutor`
     pub fn with_debug_event_sender(mut self, sender: Arc<dyn DebugEventSender>) -> Self {
         self.debug_event_sender = Some(sender);
+        self
+    }
+
+    /// 设置取消信号接收器
+    pub fn with_cancel_receiver(mut self, rx: tokio::sync::watch::Receiver<bool>) -> Self {
+        self.cancel_receiver = Some(rx);
         self
     }
 
@@ -384,7 +393,7 @@ impl FlowExecutor {
             last_node_output: None,
             debug_event_sender: self.debug_event_sender.clone(),
             execution_event_sender: self.execution_event_sender.clone(),
-            cancel_receiver: None,
+            cancel_receiver: self.cancel_receiver.clone(),
         };
 
         // 查找开始节点
@@ -439,7 +448,7 @@ impl FlowExecutor {
             total_nodes: flow.nodes.len() as u32,
         }).await;
 
-        while let Some(node) = node_map.get(&current_node_id) {
+        'execution: while let Some(node) = node_map.get(&current_node_id) {
             // 检测循环（简单防止无限循环）
             if visited.contains(&current_node_id) {
                 return ExecutionResult {
@@ -450,6 +459,16 @@ impl FlowExecutor {
                     node_reports,
                     flow_report: None,
                 };
+            }
+
+            // 非阻塞取消检查：每次迭代开始时检查取消信号
+            if context.is_cancelled() {
+                log::info!(
+                    "[流程 {}] 执行在节点 {} 之前被取消",
+                    context.flow_uuid,
+                    node.name
+                );
+                break 'execution;
             }
 
             visited.insert(current_node_id.clone());
@@ -473,10 +492,35 @@ impl FlowExecutor {
             // 用于计算节点执行期间的变量变更
             let variables_before = context.variables.get_merged_variables();
 
-            // 执行当前节点
-            match self
-                .execute_node(node, &mut context, &flow.connections, &node_map)
-                .await
+            // 执行当前节点（支持取消中断）
+            let node_result = if context.cancel_receiver.is_some() {
+                // 有取消接收器时，使用 tokio::select! 监听取消信号
+                let mut rx = context.cancel_receiver.clone().unwrap();
+                tokio::select! {
+                    result = self.execute_node(node, &mut context, &flow.connections, &node_map) => {
+                        Some(result)
+                    }
+                    _ = rx.changed() => {
+                        log::info!(
+                            "[流程 {}] 节点 {} 执行期间收到取消信号",
+                            context.flow_uuid,
+                            node.name
+                        );
+                        None
+                    }
+                }
+            } else {
+                // 无取消接收器，直接执行
+                Some(self.execute_node(node, &mut context, &flow.connections, &node_map).await)
+            };
+
+            // 取消中断：跳出循环生成取消报告
+            let node_result = match node_result {
+                Some(result) => result,
+                None => break 'execution,
+            };
+
+            match node_result
             {
                 Ok((next_node_id_from_executor, output_data)) => {
                     // 记录节点结束时间
@@ -991,7 +1035,30 @@ impl FlowExecutor {
             .unwrap()
             .as_millis() as u64;
         let start_time_ms = start_time.elapsed().as_millis() as u64;
-        let flow_status = if node_reports
+
+        // 获取最终变量快照
+        let final_variables = context.variables.get_merged_variables();
+
+        // 收集 WebSocket 消息流（完整数据）
+        let ws_streams: Vec<flow_engine_core::ws_stream::WsConnectionStream> = {
+            let streams = context.ws_streams.read().await;
+            streams.values().cloned().collect()
+        };
+
+        // 判断是否被取消
+        let is_cancelled = context.is_cancelled();
+
+        // 取消时清理资源：关闭所有 WS 连接和 DB 连接
+        if is_cancelled {
+            // 关闭所有 WebSocket 连接（drop 管理器触发连接清理）
+            context.ws_manager = None;
+            // 关闭所有数据库连接（drop 连接池即可）
+            context.db_manager = None;
+        }
+
+        let flow_status = if is_cancelled {
+            flow_engine_core::report::ExecutionStatus::Cancelled
+        } else if node_reports
             .iter()
             .any(|r| r.status == flow_engine_core::report::ExecutionStatus::Failed)
         {
@@ -1000,13 +1067,10 @@ impl FlowExecutor {
             flow_engine_core::report::ExecutionStatus::Success
         };
 
-        // 获取最终变量快照（Task 16）
-        let final_variables = context.variables.get_merged_variables();
-
-        // 收集 WebSocket 消息流（完整数据）
-        let ws_streams: Vec<flow_engine_core::ws_stream::WsConnectionStream> = {
-            let streams = context.ws_streams.read().await;
-            streams.values().cloned().collect()
+        let flow_error = if is_cancelled {
+            Some(ErrorDetail::new(ErrorKind::Cancelled, "流程执行被用户取消".to_string()))
+        } else {
+            None
         };
 
         let flow_report = flow_engine_core::report::FlowExecutionReport {
@@ -1024,9 +1088,8 @@ impl FlowExecutor {
                 &node_reports,
                 flow.nodes.len() as u32,
             ),
-            flow_error: None,
+            flow_error,
             execution_mode: flow_engine_core::report::ExecutionMode::Normal,
-            // 新增字段（Task 14, 15, 16）
             initial_variables: Some(json!(initial_variables)),
             final_variables: Some(json!(final_variables)),
             execution_path,
@@ -1034,23 +1097,40 @@ impl FlowExecutor {
             ws_streams,
         };
 
-        // 发送流程完成事件
-        context.emit_execution_event(ExecutionEvent::FlowCompleted {
-            report: Box::new(flow_report.clone()),
-        }).await;
+        // 发送流程结束事件
+        if is_cancelled {
+            context.emit_execution_event(ExecutionEvent::FlowCancelled {
+                flow_uuid: flow.uuid.clone(),
+                reason: "用户取消执行".to_string(),
+            }).await;
+        } else {
+            context.emit_execution_event(ExecutionEvent::FlowCompleted {
+                report: Box::new(flow_report.clone()),
+            }).await;
+        }
 
-        // 执行成功
-        ExecutionResult {
-            success: true,
-            data: Some(json!({
-                "flow_id": flow.uuid,
-                "executed_count": executed_count,
-                "execution_time": start_time_ms,
-            })),
-            error: None,
-            executed_count,
-            node_reports,
-            flow_report: Some(flow_report),
+        if is_cancelled {
+            ExecutionResult {
+                success: false,
+                data: None,
+                error: Some("流程执行被取消".to_string()),
+                executed_count,
+                node_reports,
+                flow_report: Some(flow_report),
+            }
+        } else {
+            ExecutionResult {
+                success: true,
+                data: Some(json!({
+                    "flow_id": flow.uuid,
+                    "executed_count": executed_count,
+                    "execution_time": start_time_ms,
+                })),
+                error: None,
+                executed_count,
+                node_reports,
+                flow_report: Some(flow_report),
+            }
         }
     }
 
@@ -2034,5 +2114,136 @@ mod tests {
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), val.to_string());
         }
+    }
+
+    // ============================================================================
+    // 取消功能测试
+    // ============================================================================
+
+    /// 测试取消信号在节点间生效：第二个节点不执行
+    #[tokio::test]
+    async fn test_cancel_between_nodes() {
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let end_node = Node {
+            uuid: format!("end-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "结束".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let connection = Connection {
+            id: format!("conn-{}", flow_id),
+            source_node_uuid: start_node.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
+            source_port_id: "out".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "取消测试流程".to_string(),
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+        };
+
+        // 创建取消通道并立即发送取消信号
+        let (tx, rx) = tokio::sync::watch::channel(false);
+        let _ = tx.send(true);
+
+        let executor = FlowExecutor::new().with_cancel_receiver(rx);
+        let result = executor.execute_flow(&flow, None, None).await;
+
+        // 验证取消结果
+        assert!(!result.success, "取消后不应该成功");
+        assert!(result.error.is_some());
+        assert!(result.error.unwrap().contains("取消"));
+
+        // 验证报告状态为 Cancelled
+        let report = result.flow_report.expect("取消时应有报告");
+        assert_eq!(report.status, flow_engine_core::report::ExecutionStatus::Cancelled);
+        assert_eq!(report.executed_count, 0, "第一个节点前取消，不应有已执行节点");
+    }
+
+    /// 测试无取消信号时正常执行
+    #[tokio::test]
+    async fn test_no_cancel_signal_executes_normally() {
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "正常执行测试流程".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        // 创建取消通道但不发送信号
+        let (_tx, rx) = tokio::sync::watch::channel(false);
+
+        let executor = FlowExecutor::new().with_cancel_receiver(rx);
+        let result = executor.execute_flow(&flow, None, None).await;
+
+        // 验证正常执行
+        assert!(result.success, "无取消信号时应正常执行");
+        assert!(result.error.is_none());
+        assert_eq!(result.executed_count, 1);
+    }
+
+    /// 测试取消时 flow_error 包含 Cancelled 错误
+    #[tokio::test]
+    async fn test_cancel_generates_cancelled_error_detail() {
+        let flow_id = Uuid::new_v4().to_string();
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: NodeType::Entry,
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            name: "取消错误测试".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        let (tx, rx) = tokio::sync::watch::channel(false);
+        let _ = tx.send(true);
+
+        let executor = FlowExecutor::new().with_cancel_receiver(rx);
+        let result = executor.execute_flow(&flow, None, None).await;
+
+        assert!(!result.success);
+        let report = result.flow_report.expect("应有报告");
+        let error = report.flow_error.expect("取消时应有 flow_error");
+        assert_eq!(error.error_kind, ErrorKind::Cancelled);
+        assert!(!error.is_fatal(), "Cancelled 不应是致命错误");
     }
 }

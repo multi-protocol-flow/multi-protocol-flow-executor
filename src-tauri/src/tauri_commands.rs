@@ -67,7 +67,7 @@ pub async fn execute_flow(
     );
     
     // 执行流程
-    flow_engine::commands::execute_flow(input, flow, Some(log_sender), execution_event_sender, debug_event_sender).await
+    flow_engine::commands::execute_flow(input, flow, Some(log_sender), execution_event_sender, debug_event_sender, None).await
 }
 
 /// 更新节点命令（桩实现）

@@ -55,7 +55,7 @@ async fn test_input_data_timing_basic() {
     };
 
     let log_sender = Arc::new(NoopLogSender);
-    let result = flow_engine::commands::execute_flow::execute_flow(input, flow, Some(log_sender), None, None).await;
+    let result = flow_engine::commands::execute_flow::execute_flow(input, flow, Some(log_sender), None, None, None).await;
 
     // 验证执行成功
     assert!(result.success, "流程执行失败: {:?}", result.error);
@@ -120,7 +120,7 @@ async fn test_input_data_timing_with_initial_variables() {
     };
 
     let log_sender = Arc::new(NoopLogSender);
-    let result = flow_engine::commands::execute_flow::execute_flow(input, flow, Some(log_sender), None, None).await;
+    let result = flow_engine::commands::execute_flow::execute_flow(input, flow, Some(log_sender), None, None, None).await;
 
     // 验证执行成功
     assert!(result.success, "流程执行失败: {:?}", result.error);
@@ -227,7 +227,7 @@ async fn test_input_data_timing_http_node() {
     };
 
     let log_sender = Arc::new(NoopLogSender);
-    let result = flow_engine::commands::execute_flow::execute_flow(input, flow, Some(log_sender), None, None).await;
+    let result = flow_engine::commands::execute_flow::execute_flow(input, flow, Some(log_sender), None, None, None).await;
 
     // 验证执行成功
     assert!(result.success, "流程执行失败: {:?}", result.error);
