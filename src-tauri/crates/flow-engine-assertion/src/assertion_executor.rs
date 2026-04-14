@@ -447,6 +447,8 @@ mod tests {
             db_manager: None,
             last_node_output: None,
             debug_event_sender: None,
+            execution_event_sender: None,
+            cancel_receiver: None,
         }
     }
 
@@ -895,6 +897,8 @@ mod tests {
             db_manager: None,
             last_node_output: None,
             debug_event_sender: Some(Arc::new(MpscDebugEventSender::new(event_sender))),
+            execution_event_sender: None,
+            cancel_receiver: None,
         };
         (context, event_receiver)
     }

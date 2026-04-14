@@ -85,6 +85,11 @@ pub struct ExecutionContext {
     /// 用于实时推送节点执行进度事件
     #[serde(skip)]
     pub execution_event_sender: Option<Arc<dyn ExecutionEventSender>>,
+
+    /// 取消信号接收器
+    /// 通过 `tokio::sync::watch` 接收取消信号，实现非阻塞取消检查
+    #[serde(skip)]
+    pub cancel_receiver: Option<tokio::sync::watch::Receiver<bool>>,
 }
 
 impl ExecutionContext {
@@ -114,6 +119,7 @@ impl ExecutionContext {
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
+            cancel_receiver: None,
         }
     }
 
@@ -208,6 +214,33 @@ impl ExecutionContext {
     pub fn with_execution_event_sender(mut self, sender: Arc<dyn ExecutionEventSender>) -> Self {
         self.execution_event_sender = Some(sender);
         self
+    }
+
+    /// 设置取消信号接收器
+    ///
+    /// # 参数
+    ///
+    /// * `receiver` - `tokio::sync::watch::Receiver<bool>` 取消信号接收器
+    ///
+    /// # 返回
+    ///
+    /// 更新后的 `ExecutionContext`
+    pub fn with_cancel_receiver(mut self, receiver: tokio::sync::watch::Receiver<bool>) -> Self {
+        self.cancel_receiver = Some(receiver);
+        self
+    }
+
+    /// 检查流程是否已被取消（非阻塞）
+    ///
+    /// # 返回
+    ///
+    /// 如果收到取消信号则返回 `true`，否则返回 `false`
+    pub fn is_cancelled(&self) -> bool {
+        if let Some(receiver) = &self.cancel_receiver {
+            *receiver.borrow()
+        } else {
+            false
+        }
     }
 
     /// Resolve file path (supports relative paths)
@@ -941,5 +974,43 @@ mod tests {
         let result = ctx.push_ws_message("conn-1", msg).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("已关闭"));
+    }
+
+    /// 测试 is_cancelled 默认返回 false
+    #[test]
+    fn test_is_cancelled_default() {
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+        assert!(!ctx.is_cancelled(), "默认不应被取消");
+    }
+
+    /// 测试 is_cancelled 在收到信号后返回 true
+    #[test]
+    fn test_is_cancelled_with_signal() {
+        let (tx, rx) = tokio::sync::watch::channel(false);
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000)
+            .with_cancel_receiver(rx);
+
+        assert!(!ctx.is_cancelled(), "初始状态不应被取消");
+
+        tx.send(true).expect("发送取消信号失败");
+        assert!(ctx.is_cancelled(), "收到信号后应返回 true");
+    }
+
+    /// 测试 ExecutionEvent::FlowCancelled 序列化
+    #[test]
+    fn test_flow_cancelled_serialization() {
+        let event = ExecutionEvent::FlowCancelled {
+            flow_uuid: "flow-001".to_string(),
+            reason: "用户取消".to_string(),
+        };
+
+        let json = serde_json::to_string(&event).expect("序列化失败");
+        assert!(json.contains("\"flowCancelled\""), "变体名应为 flowCancelled");
+        assert!(json.contains("\"flowUuid\""), "字段名应为 flowUuid");
+        assert!(json.contains("\"reason\""), "字段名应为 reason");
+
+        // 反序列化往返测试
+        let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化失败");
+        assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
     }
 }

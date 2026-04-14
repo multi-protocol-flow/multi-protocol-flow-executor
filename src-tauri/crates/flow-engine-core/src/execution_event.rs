@@ -49,6 +49,14 @@ pub enum ExecutionEvent {
         /// 流程执行报告
         report: Box<FlowExecutionReport>,
     },
+    /// 流程被取消
+    FlowCancelled {
+        #[serde(rename = "flowUuid")]
+        /// 流程唯一标识
+        flow_uuid: String,
+        /// 取消原因
+        reason: String,
+    },
 }
 
 #[cfg(test)]

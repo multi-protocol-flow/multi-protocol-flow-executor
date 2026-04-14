@@ -690,6 +690,7 @@ mod tests {
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
+            cancel_receiver: None,
         }
     }
 

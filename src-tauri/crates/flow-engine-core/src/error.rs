@@ -160,6 +160,10 @@ pub enum ErrorKind {
     ScriptAssertion,
     /// 用户调用 `fn.flow.abort()`
     ScriptAbort,
+
+    // ===== 取消错误（容错模式，继续执行） =====
+    /// 执行被取消
+    Cancelled,
 }
 
 impl ErrorKind {
@@ -391,5 +395,20 @@ mod tests {
                 "JSON 应包含小写形式的错误类型"
             );
         }
+    }
+
+    /// 测试 ErrorKind::Cancelled 非致命且序列化正确
+    #[test]
+    fn test_error_kind_cancelled() {
+        assert!(!ErrorKind::Cancelled.is_fatal(), "Cancelled 不应为致命错误");
+
+        let error = ErrorDetail::new(ErrorKind::Cancelled, "执行被取消".to_string());
+        assert!(!error.is_fatal());
+
+        let json = serde_json::to_string(&error).expect("序列化失败");
+        assert!(json.contains("cancelled"), "应序列化为 'cancelled'");
+
+        let deserialized: ErrorDetail = serde_json::from_str(&json).expect("反序列化失败");
+        assert_eq!(error.error_kind, deserialized.error_kind);
     }
 }

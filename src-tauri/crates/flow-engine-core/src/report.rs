@@ -10,6 +10,8 @@ pub enum ExecutionStatus {
     Failed,
     /// 跳过执行
     Skipped,
+    /// 执行取消
+    Cancelled,
 }
 
 /// 执行模式枚举
@@ -28,6 +30,7 @@ impl std::fmt::Display for ExecutionStatus {
             ExecutionStatus::Success => write!(f, "success"),
             ExecutionStatus::Failed => write!(f, "failed"),
             ExecutionStatus::Skipped => write!(f, "skipped"),
+            ExecutionStatus::Cancelled => write!(f, "cancelled"),
         }
     }
 }
@@ -474,5 +477,23 @@ mod tests {
         assert!(json.contains("ws_streams"));
         assert!(json.contains("conn-1"));
         assert!(json.contains("wss://example.com/ws"));
+    }
+
+    /// 测试 ExecutionStatus::Cancelled 序列化为 "cancelled"
+    #[test]
+    fn test_execution_status_cancelled_serialization() {
+        let status = ExecutionStatus::Cancelled;
+        let json = serde_json::to_string(&status).expect("序列化失败");
+        assert!(
+            json.contains("cancelled"),
+            "Cancelled 应序列化为 'cancelled'"
+        );
+
+        // 反序列化往返测试
+        let deserialized: ExecutionStatus = serde_json::from_str(&json).expect("反序列化失败");
+        assert_eq!(status, deserialized);
+
+        // Display trait 测试
+        assert_eq!(format!("{}", status), "cancelled");
     }
 }

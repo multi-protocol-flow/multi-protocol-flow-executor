@@ -71,6 +71,10 @@ impl FlowStatistics {
                 ExecutionStatus::Skipped => {
                     // 跳过的节点不计入成功/失败计数
                 }
+                ExecutionStatus::Cancelled => {
+                    // 取消的节点计入失败计数
+                    stats.failed_count += 1;
+                }
             }
         }
 

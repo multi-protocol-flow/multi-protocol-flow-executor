@@ -384,6 +384,7 @@ impl FlowExecutor {
             last_node_output: None,
             debug_event_sender: self.debug_event_sender.clone(),
             execution_event_sender: self.execution_event_sender.clone(),
+            cancel_receiver: None,
         };
 
         // 查找开始节点
@@ -1850,7 +1851,7 @@ mod tests {
             }),
             String::new(),
         );
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Bearer test-key");
@@ -1870,7 +1871,7 @@ mod tests {
             }),
             String::new(),
         );
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Hello Alice");
@@ -1881,7 +1882,7 @@ mod tests {
         // 测试严格模式（变量不存在时报错）
         let template = "{{nonexistent.var}}";
         let variables = VariableStorage::new();
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("未找到"));
@@ -1893,7 +1894,7 @@ mod tests {
         let template = "{{items[0]}}";
         let mut variables = VariableStorage::new();
         variables.set_variable("items".to_string(), json!(["a", "b", "c"]), String::new());
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不支持索引访问"));
@@ -1937,6 +1938,7 @@ mod tests {
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
+            cancel_receiver: None,
         };
         let result = replace_variables(&template, &context);
         assert!(result.is_err());
@@ -1966,20 +1968,21 @@ mod tests {
                 last_node_output: None,
                 debug_event_sender: None,
                 execution_event_sender: None,
+                cancel_receiver: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), value);
         }
 
-        /// 测试整数变量替换
+    /// 测试整数变量替换
         #[test]
         fn test_proptest_integer_replacement(
             num in -10000i64..10000i64
         ) {
-            let template = "{{num}}";
+            let template = "{{value}}";
             let mut variables = VariableStorage::new();
-            variables.set_variable("num".to_string(), json!(num), String::new());
+            variables.set_variable("value".to_string(), json!(num), String::new());
             let context = ExecutionContext {
                 flow_uuid: "test-flow".to_string(),
                 current_node_uuid: None,
@@ -1995,13 +1998,14 @@ mod tests {
                 last_node_output: None,
                 debug_event_sender: None,
                 execution_event_sender: None,
+                cancel_receiver: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), num.to_string());
         }
 
-        /// 测试布尔变量替换
+    /// 测试布尔变量替换
         #[test]
         fn test_proptest_bool_replacement(
             val in proptest::bool::ANY
@@ -2024,6 +2028,7 @@ mod tests {
                 last_node_output: None,
                 debug_event_sender: None,
                 execution_event_sender: None,
+                cancel_receiver: None,
             };
             let result = replace_variables(template, &context);
             assert!(result.is_ok());

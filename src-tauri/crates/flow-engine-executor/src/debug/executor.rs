@@ -186,6 +186,7 @@ impl DebuggableFlowExecutor {
             last_node_output: None,
             debug_event_sender: Some(Arc::new(crate::debug_event_adapter::MpscDebugEventSender::new(event_sender.clone()))),
             execution_event_sender: None,
+            cancel_receiver: None,
         };
 
         // 记录调试开始时间（用于报告生成）
