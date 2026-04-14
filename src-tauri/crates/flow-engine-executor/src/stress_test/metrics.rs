@@ -7,9 +7,12 @@
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
-use super::types::{ErrorSample, ErrorStatistics, ResponseTimeDistribution, StressTestStatistics};
+use super::types::{
+    ErrorSample, ErrorStatistics, NodeLevelStatistics, NodeMetrics, NodeTypeStatistics,
+    ResponseTimeDistribution, StressTestStatistics,
+};
 
 /// 延迟记录的最大容量
 const MAX_LATENCY_RECORDS: usize = 10_000;
@@ -42,6 +45,184 @@ pub struct MetricsCollector {
     /// 错误分类统计
     /// key: `error_kind`, value: (count, samples)
     error_stats: Mutex<HashMap<String, (u64, Vec<ErrorSample>)>>,
+    /// 节点级指标收集器
+    node_metrics: Mutex<HashMap<String, Arc<NodeMetricsInner>>>,
+}
+
+/// 节点级指标内部数据结构
+struct NodeMetricsInner {
+    node_name: String,
+    node_type: String,
+    success_count: AtomicU64,
+    failure_count: AtomicU64,
+    latencies: Mutex<(usize, Vec<u64>)>,
+    min_latency_ms: AtomicU64,
+    max_latency_ms: AtomicU64,
+    total_latency_ms: AtomicU64,
+    error_stats: Mutex<HashMap<String, (u64, Vec<ErrorSample>)>>,
+}
+
+impl NodeMetricsInner {
+    fn new(node_name: String, node_type: String) -> Self {
+        Self {
+            node_name,
+            node_type,
+            success_count: AtomicU64::new(0),
+            failure_count: AtomicU64::new(0),
+            latencies: Mutex::new((0, Vec::with_capacity(MAX_LATENCY_RECORDS))),
+            min_latency_ms: AtomicU64::new(u64::MAX),
+            max_latency_ms: AtomicU64::new(0),
+            total_latency_ms: AtomicU64::new(0),
+            error_stats: Mutex::new(HashMap::new()),
+        }
+    }
+
+    fn record_success(&self, latency_ms: u64) {
+        self.success_count.fetch_add(1, Ordering::SeqCst);
+        self.total_latency_ms
+            .fetch_add(latency_ms, Ordering::SeqCst);
+        // 更新 min/max
+        loop {
+            let current = self.min_latency_ms.load(Ordering::SeqCst);
+            if latency_ms >= current {
+                break;
+            }
+            if self
+                .min_latency_ms
+                .compare_exchange(current, latency_ms, Ordering::SeqCst, Ordering::SeqCst)
+                .is_ok()
+            {
+                break;
+            }
+        }
+        loop {
+            let current = self.max_latency_ms.load(Ordering::SeqCst);
+            if latency_ms <= current {
+                break;
+            }
+            if self
+                .max_latency_ms
+                .compare_exchange(current, latency_ms, Ordering::SeqCst, Ordering::SeqCst)
+                .is_ok()
+            {
+                break;
+            }
+        }
+        if let Ok(mut guard) = self.latencies.lock() {
+            let (head, data) = &mut *guard;
+            if data.len() < MAX_LATENCY_RECORDS {
+                data.push(latency_ms);
+            } else {
+                data[*head] = latency_ms;
+            }
+            *head = (*head + 1) % MAX_LATENCY_RECORDS;
+        }
+    }
+
+    fn record_failure(&self, error_kind: String, sample: ErrorSample) {
+        self.failure_count.fetch_add(1, Ordering::SeqCst);
+        if let Ok(mut stats) = self.error_stats.lock() {
+            let entry = stats.entry(error_kind).or_insert((0, Vec::new()));
+            entry.0 += 1;
+            if entry.1.len() >= MAX_ERROR_SAMPLES {
+                entry.1.remove(0);
+            }
+            entry.1.push(sample);
+        }
+    }
+
+    fn get_metrics(&self, node_uuid: &str) -> NodeMetrics {
+        let success = self.success_count.load(Ordering::SeqCst);
+        let failure = self.failure_count.load(Ordering::SeqCst);
+        let total = success + failure;
+        let success_rate = if total > 0 {
+            success as f64 / total as f64
+        } else {
+            0.0
+        };
+        let total_latency = self.total_latency_ms.load(Ordering::SeqCst);
+        let avg_latency_ms = if success > 0 {
+            total_latency as f64 / success as f64
+        } else {
+            0.0
+        };
+        let min_ms = self.min_latency_ms.load(Ordering::SeqCst);
+        let min_ms = if min_ms == u64::MAX { 0 } else { min_ms };
+
+        NodeMetrics {
+            node_uuid: node_uuid.to_string(),
+            node_name: self.node_name.clone(),
+            node_type: self.node_type.clone(),
+            total_executions: total,
+            successful_executions: success,
+            failed_executions: failure,
+            success_rate,
+            avg_latency_ms,
+            min_latency_ms: min_ms,
+            max_latency_ms: self.max_latency_ms.load(Ordering::SeqCst),
+            p50_latency_ms: self.calculate_percentile(50.0),
+            p95_latency_ms: self.calculate_percentile(95.0),
+        }
+    }
+
+    fn calculate_percentile(&self, p: f64) -> u64 {
+        if let Ok(guard) = self.latencies.lock() {
+            let data = &guard.1;
+            if data.is_empty() {
+                return 0;
+            }
+            let mut sorted: Vec<u64> = data.clone();
+            sorted.sort_unstable();
+            let n = sorted.len();
+            let rank = (p / 100.0) * (n - 1) as f64;
+            let lower = rank.floor() as usize;
+            let upper = rank.ceil() as usize;
+            if lower == upper || upper >= n {
+                return sorted[lower.min(n - 1)];
+            }
+            let fraction = rank - lower as f64;
+            (sorted[lower] as f64 + fraction * (sorted[upper] as f64 - sorted[lower] as f64))
+                .round() as u64
+        } else {
+            0
+        }
+    }
+
+    fn get_response_time_distribution(&self) -> ResponseTimeDistribution {
+        let total_latency = self.total_latency_ms.load(Ordering::SeqCst);
+        let success = self.success_count.load(Ordering::SeqCst);
+        let avg_ms = if success > 0 {
+            total_latency as f64 / success as f64
+        } else {
+            0.0
+        };
+        let min_ms = self.min_latency_ms.load(Ordering::SeqCst);
+        let min_ms = if min_ms == u64::MAX { 0 } else { min_ms };
+        ResponseTimeDistribution {
+            avg_ms,
+            min_ms,
+            max_ms: self.max_latency_ms.load(Ordering::SeqCst),
+            p50_ms: self.calculate_percentile(50.0),
+            p90_ms: self.calculate_percentile(90.0),
+            p95_ms: self.calculate_percentile(95.0),
+            p99_ms: self.calculate_percentile(99.0),
+        }
+    }
+
+    fn get_error_statistics(&self) -> Vec<ErrorStatistics> {
+        if let Ok(guard) = self.error_stats.lock() {
+            guard
+                .iter()
+                .map(|(kind, (count, samples))| ErrorStatistics {
+                    error_kind: kind.clone(),
+                    count: *count,
+                    samples: samples.clone(),
+                })
+                .collect()
+        } else {
+            vec![]
+        }
+    }
 }
 
 impl Default for MetricsCollector {
@@ -63,6 +244,7 @@ impl MetricsCollector {
             max_latency_ms: AtomicU64::new(0),
             total_latency_ms: AtomicU64::new(0),
             error_stats: Mutex::new(HashMap::new()),
+            node_metrics: Mutex::new(HashMap::new()),
         }
     }
 
@@ -321,6 +503,184 @@ impl MetricsCollector {
 
         if let Ok(mut guard) = self.error_stats.lock() {
             guard.clear();
+        }
+
+        if let Ok(mut guard) = self.node_metrics.lock() {
+            guard.clear();
+        }
+    }
+
+    /// 记录节点级成功执行
+    pub fn record_node_success(
+        &self,
+        node_uuid: &str,
+        node_name: &str,
+        node_type: &str,
+        latency_ms: u64,
+    ) {
+        if let Ok(mut guard) = self.node_metrics.lock() {
+            let inner = guard.entry(node_uuid.to_string()).or_insert_with(|| {
+                Arc::new(NodeMetricsInner::new(
+                    node_name.to_string(),
+                    node_type.to_string(),
+                ))
+            });
+            inner.record_success(latency_ms);
+        }
+    }
+
+    /// 记录节点级失败执行
+    pub fn record_node_failure(
+        &self,
+        node_uuid: &str,
+        node_name: &str,
+        node_type: &str,
+        error_kind: String,
+        sample: ErrorSample,
+    ) {
+        if let Ok(mut guard) = self.node_metrics.lock() {
+            let inner = guard.entry(node_uuid.to_string()).or_insert_with(|| {
+                Arc::new(NodeMetricsInner::new(
+                    node_name.to_string(),
+                    node_type.to_string(),
+                ))
+            });
+            inner.record_failure(error_kind, sample);
+        }
+    }
+
+    /// 获取所有节点的实时指标
+    pub fn get_node_metrics(&self) -> Vec<NodeMetrics> {
+        if let Ok(guard) = self.node_metrics.lock() {
+            guard
+                .iter()
+                .map(|(uuid, inner)| inner.get_metrics(uuid))
+                .collect()
+        } else {
+            vec![]
+        }
+    }
+
+    /// 获取节点级别统计（最终报告用）
+    pub fn get_node_level_statistics(&self) -> Vec<NodeLevelStatistics> {
+        if let Ok(guard) = self.node_metrics.lock() {
+            guard
+                .iter()
+                .map(|(uuid, inner)| {
+                    let success = inner.success_count.load(Ordering::SeqCst);
+                    let failure = inner.failure_count.load(Ordering::SeqCst);
+                    let total = success + failure;
+                    let success_rate = if total > 0 {
+                        success as f64 / total as f64
+                    } else {
+                        0.0
+                    };
+                    NodeLevelStatistics {
+                        node_uuid: uuid.clone(),
+                        node_name: inner.node_name.clone(),
+                        node_type: inner.node_type.clone(),
+                        total_executions: total,
+                        successful_executions: success,
+                        failed_executions: failure,
+                        success_rate,
+                        response_time_distribution: inner.get_response_time_distribution(),
+                        error_statistics: inner.get_error_statistics(),
+                    }
+                })
+                .collect()
+        } else {
+            vec![]
+        }
+    }
+
+    /// 获取节点类型聚合统计
+    pub fn get_node_type_statistics(&self) -> Vec<NodeTypeStatistics> {
+        if let Ok(guard) = self.node_metrics.lock() {
+            // 按节点类型聚合
+            let mut type_map: HashMap<String, Vec<&Arc<NodeMetricsInner>>> = HashMap::new();
+            for inner in guard.values() {
+                type_map
+                    .entry(inner.node_type.clone())
+                    .or_default()
+                    .push(inner);
+            }
+            type_map
+                .into_iter()
+                .map(|(node_type, inners)| {
+                    let node_count = inners.len() as u32;
+                    let mut total_executions = 0u64;
+                    let mut successful = 0u64;
+                    let mut failed = 0u64;
+                    let mut all_latencies = Vec::new();
+                    for inner in &inners {
+                        let s = inner.success_count.load(Ordering::SeqCst);
+                        let f = inner.failure_count.load(Ordering::SeqCst);
+                        successful += s;
+                        failed += f;
+                        total_executions += s + f;
+                        if let Ok(guard) = inner.latencies.lock() {
+                            all_latencies.extend_from_slice(&guard.1);
+                        }
+                    }
+                    let success_rate = if total_executions > 0 {
+                        successful as f64 / total_executions as f64
+                    } else {
+                        0.0
+                    };
+                    let avg_ms = if successful > 0 {
+                        let total_lat: u64 = inners
+                            .iter()
+                            .map(|i| i.total_latency_ms.load(Ordering::SeqCst))
+                            .sum();
+                        total_lat as f64 / successful as f64
+                    } else {
+                        0.0
+                    };
+                    all_latencies.sort_unstable();
+                    let n = all_latencies.len();
+                    let p50 = if n > 0 {
+                        all_latencies[n * 50 / 100].min(all_latencies[n - 1])
+                    } else {
+                        0
+                    };
+                    let p90 = if n > 0 {
+                        all_latencies[(n * 90).min(n - 1) / 100].min(all_latencies[n - 1])
+                    } else {
+                        0
+                    };
+                    let p95 = if n > 0 {
+                        all_latencies[(n * 95).min(n - 1) / 100].min(all_latencies[n - 1])
+                    } else {
+                        0
+                    };
+                    let p99 = if n > 0 {
+                        all_latencies[(n * 99).min(n - 1) / 100].min(all_latencies[n - 1])
+                    } else {
+                        0
+                    };
+                    let min_ms = all_latencies.first().copied().unwrap_or(0);
+                    let max_ms = all_latencies.last().copied().unwrap_or(0);
+                    NodeTypeStatistics {
+                        node_type,
+                        node_count,
+                        total_executions,
+                        successful_executions: successful,
+                        failed_executions: failed,
+                        success_rate,
+                        response_time_distribution: ResponseTimeDistribution {
+                            avg_ms,
+                            min_ms,
+                            max_ms,
+                            p50_ms: p50,
+                            p90_ms: p90,
+                            p95_ms: p95,
+                            p99_ms: p99,
+                        },
+                    }
+                })
+                .collect()
+        } else {
+            vec![]
         }
     }
 

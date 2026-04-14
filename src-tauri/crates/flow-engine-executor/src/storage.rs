@@ -771,6 +771,8 @@ mod tests {
                 p99_ms: 450,
             },
             error_statistics: vec![],
+            node_statistics: vec![],
+            node_type_statistics: vec![],
         };
 
         // 保存报告
@@ -822,6 +824,8 @@ mod tests {
                 statistics: StressTestStatistics::default(),
                 response_time_distribution: ResponseTimeDistribution::default(),
                 error_statistics: vec![],
+                node_statistics: vec![],
+                node_type_statistics: vec![],
             },
             StressTestReport {
                 uuid: "report-002".to_string(),
@@ -834,6 +838,8 @@ mod tests {
                 statistics: StressTestStatistics::default(),
                 response_time_distribution: ResponseTimeDistribution::default(),
                 error_statistics: vec![],
+                node_statistics: vec![],
+                node_type_statistics: vec![],
             },
             StressTestReport {
                 uuid: "report-003".to_string(),
@@ -846,6 +852,8 @@ mod tests {
                 statistics: StressTestStatistics::default(),
                 response_time_distribution: ResponseTimeDistribution::default(),
                 error_statistics: vec![],
+                node_statistics: vec![],
+                node_type_statistics: vec![],
             },
         ];
 

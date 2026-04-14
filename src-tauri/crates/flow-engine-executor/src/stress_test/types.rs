@@ -60,6 +60,9 @@ pub struct StressTestProgress {
     pub current_rps: f64,
     /// 平均延迟（毫秒）
     pub avg_latency_ms: f64,
+    /// 节点级实时指标
+    #[serde(default)]
+    pub node_metrics: Vec<NodeMetrics>,
 }
 
 /// 压力测试统计信息
@@ -127,6 +130,108 @@ pub struct ErrorStatistics {
     pub samples: Vec<ErrorSample>,
 }
 
+/// 节点级实时指标（压测过程中实时更新）
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeMetrics {
+    /// 节点 UUID
+    #[serde(default)]
+    pub node_uuid: String,
+    /// 节点名称
+    #[serde(default)]
+    pub node_name: String,
+    /// 节点类型 (`http`, `ws_connect`, `db_query` 等)
+    #[serde(default)]
+    pub node_type: String,
+    /// 总执行次数
+    #[serde(default)]
+    pub total_executions: u64,
+    /// 成功执行次数
+    #[serde(default)]
+    pub successful_executions: u64,
+    /// 失败执行次数
+    #[serde(default)]
+    pub failed_executions: u64,
+    /// 成功率 (0.0 - 1.0)
+    #[serde(default)]
+    pub success_rate: f64,
+    /// 平均延迟（毫秒）
+    #[serde(default)]
+    pub avg_latency_ms: f64,
+    /// 最小延迟（毫秒）
+    #[serde(default)]
+    pub min_latency_ms: u64,
+    /// 最大延迟（毫秒）
+    #[serde(default)]
+    pub max_latency_ms: u64,
+    /// P50 延迟（毫秒）
+    #[serde(default)]
+    pub p50_latency_ms: u64,
+    /// P95 延迟（毫秒）
+    #[serde(default)]
+    pub p95_latency_ms: u64,
+}
+
+/// 节点级别统计（单个节点的详细统计，用于最终报告）
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeLevelStatistics {
+    /// 节点 UUID
+    #[serde(default)]
+    pub node_uuid: String,
+    /// 节点名称
+    #[serde(default)]
+    pub node_name: String,
+    /// 节点类型
+    #[serde(default)]
+    pub node_type: String,
+    /// 总执行次数
+    #[serde(default)]
+    pub total_executions: u64,
+    /// 成功执行次数
+    #[serde(default)]
+    pub successful_executions: u64,
+    /// 失败执行次数
+    #[serde(default)]
+    pub failed_executions: u64,
+    /// 成功率 (0.0 - 1.0)
+    #[serde(default)]
+    pub success_rate: f64,
+    /// 响应时间分布
+    #[serde(default)]
+    pub response_time_distribution: ResponseTimeDistribution,
+    /// 该节点的错误统计
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub error_statistics: Vec<ErrorStatistics>,
+}
+
+/// 节点类型聚合统计
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeTypeStatistics {
+    /// 节点类型 (`http`, `ws_connect`, `db_query` 等)
+    #[serde(default)]
+    pub node_type: String,
+    /// 该类型的节点数量
+    #[serde(default)]
+    pub node_count: u32,
+    /// 总执行次数
+    #[serde(default)]
+    pub total_executions: u64,
+    /// 成功执行次数
+    #[serde(default)]
+    pub successful_executions: u64,
+    /// 失败执行次数
+    #[serde(default)]
+    pub failed_executions: u64,
+    /// 成功率 (0.0 - 1.0)
+    #[serde(default)]
+    pub success_rate: f64,
+    /// 响应时间分布（聚合后）
+    #[serde(default)]
+    pub response_time_distribution: ResponseTimeDistribution,
+}
+
 /// 压力测试报告
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -168,6 +273,14 @@ pub struct StressTestReport {
     /// 错误统计列表（按错误类型分组）
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub error_statistics: Vec<ErrorStatistics>,
+
+    // ===== 节点级统计 =====
+    /// 节点级别统计（每个节点的详细统计）
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub node_statistics: Vec<NodeLevelStatistics>,
+    /// 节点类型聚合统计
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub node_type_statistics: Vec<NodeTypeStatistics>,
 }
 
 #[cfg(test)]
@@ -291,6 +404,8 @@ mod tests {
                 p99_ms: 450,
             },
             error_statistics: vec![],
+            node_statistics: vec![],
+            node_type_statistics: vec![],
         };
 
         let json = serde_json::to_string(&report).expect("序列化失败");
@@ -331,6 +446,8 @@ mod tests {
                     error_message: "Request timeout".to_string(),
                 }],
             }],
+            node_statistics: vec![],
+            node_type_statistics: vec![],
         };
 
         let json = serde_json::to_string(&report).expect("序列化失败");
