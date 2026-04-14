@@ -425,7 +425,7 @@ function MessageRow({ message, isSelected, onClick }: Omit<MessageRowProps, 'glo
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-center gap-2 px-3 h-full cursor-pointer transition-colors border-b border-border/30',
+        'flex items-center gap-2 px-3 h-full w-full cursor-pointer transition-colors border-b border-border/30',
         isSelected
           ? isSent
             ? 'bg-emerald-600/5 border-l-2 border-l-emerald-600'
@@ -478,9 +478,10 @@ function MessageRow({ message, isSelected, onClick }: Omit<MessageRowProps, 'glo
 interface MessageDetailPanelProps {
   message: WsMessage;
   onClose: () => void;
+  onMount?: (el: HTMLElement | null) => void;
 }
 
-function MessageDetailPanel({ message, onClose }: MessageDetailPanelProps) {
+function MessageDetailPanel({ message, onClose, onMount }: MessageDetailPanelProps) {
   const isSent = message.direction === 'sent';
   const [formatTab, setFormatTab] = useState<FormatTab>('text');
   const [copied, setCopied] = useState(false);
@@ -506,7 +507,7 @@ function MessageDetailPanel({ message, onClose }: MessageDetailPanelProps) {
   }, [messageText]);
 
   return (
-    <div className="border-t border-border bg-background flex flex-col shrink-0 w-full overflow-hidden">
+    <div ref={onMount} className="border-t border-border bg-background flex flex-col w-full">
       {/* 详情头部 */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 shrink-0">
         <div className="flex items-center gap-3 text-xs min-w-0">
@@ -543,7 +544,7 @@ function MessageDetailPanel({ message, onClose }: MessageDetailPanelProps) {
 
       {/* 格式标签页 */}
       <Tabs value={formatTab} onValueChange={(v) => setFormatTab(v as FormatTab)}>
-        <div className="px-3 pt-1 shrink-0">
+        <div className="px-3 pt-1">
           <TabsList className="h-7 p-0.5">
             <TabsTrigger value="text" className="text-[11px] h-6 px-2.5">
               文本
@@ -561,19 +562,19 @@ function MessageDetailPanel({ message, onClose }: MessageDetailPanelProps) {
           </TabsList>
         </div>
 
-        <TabsContent value="text" className="mt-0 overflow-x-auto">
+        <TabsContent value="text" className="mt-0">
             <pre className="px-3 py-2 text-xs font-mono whitespace-pre-wrap break-all text-foreground/90 leading-relaxed">
               {messageText}
             </pre>
         </TabsContent>
 
-        <TabsContent value="json" className="mt-0 overflow-x-auto">
+        <TabsContent value="json" className="mt-0">
             <div className="px-3 py-2">
               <RawJsonViewer data={tryParseJson(messageText)} />
             </div>
         </TabsContent>
 
-        <TabsContent value="hex" className="mt-0 overflow-x-auto">
+        <TabsContent value="hex" className="mt-0">
             <pre className="px-3 py-2 text-[11px] font-mono whitespace-pre leading-relaxed text-foreground/80">
               {formatHexDump(message)}
             </pre>
@@ -833,13 +834,13 @@ export function WsMessageTimeline({
   if (!live) {
     return (
       <div
-        style={!isDetailOpen && maxHeight ? { height: maxHeight } : undefined}
-        className={cn('flex flex-col bg-background w-full', !isDetailOpen && 'overflow-hidden')}
+        style={maxHeight ? { height: maxHeight } : undefined}
+        className="flex flex-col bg-background w-full overflow-hidden h-full"
       >
         {headerSection}
 
-        {/* 消息列表 */}
-        <div className={!isDetailOpen ? 'flex-1 min-h-0 overflow-y-auto' : ''}>
+        {/* 消息列表 - 纵向可滚动，横向超出截断 */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
           {timelineItems.length > 0 ? (
             timelineItems.map((item, idx) => {
               const isMessage = item.type === 'message';
@@ -864,6 +865,14 @@ export function WsMessageTimeline({
                     <MessageDetailPanel
                       message={selectedMessage}
                       onClose={handleCloseDetail}
+                      onMount={(el: HTMLElement | null) => {
+                        if (el) {
+                          // 等待内容渲染完成后滚动到详情面板
+                          requestAnimationFrame(() => {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                          });
+                        }
+                      }}
                     />
                   )}
                 </Fragment>

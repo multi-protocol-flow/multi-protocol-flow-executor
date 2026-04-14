@@ -262,17 +262,25 @@ export function ExecutionPanel() {
     }
   }, []);
 
-  // ===== 自动切换 tab 逻辑 =====
-  // 选中 WS 节点时自动切换到 WS tab，否则切到输出 tab
+  // ===== 是否存在 WS 节点 =====
+  const hasWsNodes = useMemo(
+    () => nodes.some((n) => isWsNodeType(n.data.type)),
+    [nodes],
+  );
+
+  // ===== 新执行开始时重置标签到「输出」 =====
   useEffect(() => {
-    if (!selectedNodeUuid) return;
-    const selectedNode = nodes.find((n) => n.uuid === selectedNodeUuid);
-    if (selectedNode && isWsNodeType(selectedNode.data.type)) {
-      setDetailTab('ws');
-    } else {
-      setDetailTab((prev) => prev === 'ws' ? 'output' : prev);
+    if (isExecuting) {
+      setDetailTab('output');
     }
-  }, [selectedNodeUuid, nodes]);
+  }, [isExecuting]);
+
+  // ===== 流程无 WS 节点时回退到「输出」标签 =====
+  useEffect(() => {
+    if (detailTab === 'ws' && !hasWsNodes) {
+      setDetailTab('output');
+    }
+  }, [hasWsNodes, detailTab]);
 
   // ===== 空状态（尚未执行） =====
   const hasAnyExecution =
@@ -373,9 +381,11 @@ export function ExecutionPanel() {
               <TabsTrigger value="output" className="h-6 px-3 text-xs">
                 输出
               </TabsTrigger>
-              <TabsTrigger value="ws" className="h-6 px-3 text-xs">
-                WS消息
-              </TabsTrigger>
+              {hasWsNodes && (
+                <TabsTrigger value="ws" className="h-6 px-3 text-xs">
+                  WS消息
+                </TabsTrigger>
+              )}
               {showDebugTabs && (
                 <>
                   <TabsTrigger value="variables" className="h-6 px-3 text-xs">
@@ -432,18 +442,20 @@ export function ExecutionPanel() {
               )}
           </TabsContent>
 
-          <TabsContent value="ws" className="m-0 h-full overflow-hidden">
-            {selectedWsStreams.length > 0 ? (
-              <WsMessageTimeline
-                streams={selectedWsStreams}
-                live={isExecuting}
-              />
-            ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground">
-                <span className="text-sm">选择 WebSocket 节点查看消息</span>
-              </div>
-            )}
-          </TabsContent>
+          {hasWsNodes && (
+            <TabsContent value="ws" className="m-0 h-full overflow-hidden">
+              {selectedWsStreams.length > 0 ? (
+                <WsMessageTimeline
+                  streams={selectedWsStreams}
+                  live={isExecuting}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  <span className="text-sm">选择 WebSocket 节点查看消息</span>
+                </div>
+              )}
+            </TabsContent>
+          )}
 
           {showDebugTabs && (
             <>
