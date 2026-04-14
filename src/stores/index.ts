@@ -49,7 +49,7 @@ export {
 } from './ui';
 
 // UI types
-export type { PanelType } from './ui';
+export type { PanelType, BottomPanelTab } from './ui';
 
 // Debug store selectors
 export {

@@ -14,5 +14,6 @@ import type { NodeExecutionReport, FlowExecutionReport } from './report';
  */
 export type ExecutionEvent =
   | { flowStarted: { flowUuid: string; flowName: string; totalNodes: number } }
+  | { nodeStarted: { nodeUuid: string; nodeName: string; nodeType: string } }
   | { nodeCompleted: { report: NodeExecutionReport } }
   | { flowCompleted: { report: FlowExecutionReport } };

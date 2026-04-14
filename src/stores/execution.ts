@@ -140,6 +140,9 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
         report: null,
         error: null,
       });
+    } else if ('nodeStarted' in event) {
+      const { nodeUuid } = event.nodeStarted;
+      set({ currentNodeUuid: nodeUuid });
     } else if ('nodeCompleted' in event) {
       const { report } = event.nodeCompleted;
       set((state) => ({
