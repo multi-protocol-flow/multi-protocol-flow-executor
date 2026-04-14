@@ -389,10 +389,10 @@ impl DebuggableFlowExecutor {
                         };
                         debug_state.push_stack_entry(stack_entry);
 
-                        // 发送节点执行完成事件
+                        // 发送节点执行完成事件（包含完整的执行信息）
+                        let skip_entry = debug_state.execution_stack.last().expect("stack entry just pushed").clone();
                         if let Err(e) = event_sender.send(DebugEvent::NodeExecuted {
-                            node_uuid: node.uuid.clone(),
-                            output: simulated_output,
+                            entry: skip_entry,
                         }) {
                             log::error!("[调试 {}] 发送 NodeExecuted 事件失败 (跳过节点 {}): {}", context.flow_uuid, node.uuid, e);
                         }
@@ -609,10 +609,10 @@ impl DebuggableFlowExecutor {
                         None, // skip_reason 仅跳过节点时设置
                     );
 
-                    // 发送节点执行完成事件
+                    // 发送节点执行完成事件（包含完整的执行信息）
+                    let completed_entry = debug_state.execution_stack.last().expect("stack entry just pushed").clone();
                     if let Err(e) = event_sender.send(DebugEvent::NodeExecuted {
-                        node_uuid: node.uuid.clone(),
-                        output: output_data.clone(),
+                        entry: completed_entry,
                     }) {
                         log::error!("[调试 {}] 发送 NodeExecuted 事件失败 (节点 {}): {}", context.flow_uuid, node.uuid, e);
                     }
@@ -656,14 +656,6 @@ impl DebuggableFlowExecutor {
                         .unwrap()
                         .as_millis() as u64;
 
-                    // 发送节点执行完成事件（失败）
-                    if let Err(e) = event_sender.send(DebugEvent::NodeExecuted {
-                        node_uuid: node.uuid.clone(),
-                        output: None,
-                    }) {
-                        log::error!("[调试 {}] 发送 NodeExecuted 事件失败 (节点 {} 失败): {}", context.flow_uuid, node.uuid, e);
-                    }
-
                     // 检查节点是否支持 false 端口，以及是否有 false 端口的连接
                     let supports_false_port = matches!(
                         node.node_type,
@@ -702,6 +694,14 @@ impl DebuggableFlowExecutor {
                         None, // variable_changes
                         None, // skip_reason
                     );
+
+                    // 发送节点执行完成事件（包含完整的执行信息）
+                    let failed_entry = debug_state.execution_stack.last().expect("stack entry just pushed").clone();
+                    if let Err(e) = event_sender.send(DebugEvent::NodeExecuted {
+                        entry: failed_entry,
+                    }) {
+                        log::error!("[调试 {}] 发送 NodeExecuted 事件失败 (节点 {} 失败): {}", context.flow_uuid, node.uuid, e);
+                    }
 
                     if let Some(next_node_uuid) = false_port_next_node {
                         // 有 false 端口连接，继续执行 false 分支

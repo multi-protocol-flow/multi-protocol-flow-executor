@@ -146,10 +146,8 @@ pub enum DebugEvent {
     },
     /// 节点执行完成
     NodeExecuted {
-        /// 节点 UUID
-        node_uuid: String,
-        /// 节点输出
-        output: Option<serde_json::Value>,
+        /// 已完成的执行堆栈条目（包含完整的执行信息）
+        entry: ExecutionStackEntry,
     },
     /// 调试会话已结束
     SessionEnded {

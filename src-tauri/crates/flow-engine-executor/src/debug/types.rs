@@ -295,8 +295,21 @@ mod tests {
                 execution_stack: vec![],
             },
             DebugEvent::NodeExecuted {
-                node_uuid: "node-002".to_string(),
-                output: Some(json!({"status": 200})),
+                entry: ExecutionStackEntry {
+                    node_uuid: "node-002".to_string(),
+                    node_name: "HTTP Request".to_string(),
+                    node_type: "Http".to_string(),
+                    started_at: 1234567890,
+                    ended_at: Some(1234567895),
+                    input: None,
+                    output: Some(json!({"status": 200})),
+                    success: true,
+                    error: None,
+                    used_port_id: Some("out".to_string()),
+                    resolved_config: None,
+                    variable_changes: None,
+                    skip_reason: None,
+                },
             },
             DebugEvent::SessionEnded {
                 reason: EndReason::Completed,
