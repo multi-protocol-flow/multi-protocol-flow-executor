@@ -1,6 +1,5 @@
 // 命令模块 - Tauri 命令输入/输出结构体
 use flow_engine_core::report::FlowExecutionReport;
-use flow_engine_db::db::types::DbConnection;
 
 use flow_engine_core::flow::Flow;
 use serde_json::Value;
@@ -56,10 +55,6 @@ pub struct ExecuteFlowCommandInput {
     pub flow_id: String,
     /// 执行上下文变量（可选）
     pub variables: Option<Value>,
-    /// 数据库连接配置列表（可选）
-    /// 前端从连接配置中心获取，传递给后端执行器
-    #[serde(default)]
-    pub db_connections: Option<Vec<DbConnection>>,
 }
 
 /// 执行流程命令的输出结果

@@ -727,7 +727,6 @@ mod tests {
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             db_manager: None,
-            db_connections: std::collections::HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,

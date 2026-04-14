@@ -50,48 +50,15 @@ impl NodeExecutor for DbConnectExecutor {
             _ => return Err(format!("节点数据类型不是 DbConnectConfig: {}", node.uuid)),
         };
 
-        // 2. 从 context.db_connections 获取完整配置（如果节点配置不完整）
-        // 如果节点配置中缺少 driver，则从连接配置中心获取
-        let config = if node_config.driver.is_none() {
-            // 从连接配置中心查找
-            match context.db_connections.get(&node_config.connection_uuid) {
-                Some(db_conn) => {
-                    log::info!(
-                        "[Database] 从连接配置中心获取配置: uuid={}, driver={}",
-                        node_config.connection_uuid,
-                        db_conn.driver
-                    );
-                    // 合并配置：节点配置优先级高于连接配置中心
-                    DbConnectConfig {
-                        connection_uuid: node_config.connection_uuid.clone(),
-                        driver: Some(db_conn.driver.to_string()),
-                        connection_string: node_config.connection_string.clone().or(db_conn.connection_string.clone()),
-                        host: node_config.host.clone().or(db_conn.host.clone()),
-                        port: node_config.port.or(db_conn.port),
-                        database: node_config.database.clone().or(db_conn.database.clone()),
-                        username: node_config.username.clone().or(db_conn.username.clone()),
-                        password: node_config.password.clone().or(db_conn.password.clone()),
-                        min_connections: if node_config.min_connections > 0 { node_config.min_connections } else { db_conn.min_connections },
-                        max_connections: if node_config.max_connections > 0 { node_config.max_connections } else { db_conn.max_connections },
-                        test_query: node_config.test_query.clone(),
-                        connect_timeout_ms: node_config.connect_timeout_ms.or(Some(db_conn.connect_timeout_ms)),
-                    }
-                }
-                None => {
-                    log::warn!(
-                        "[Database] 连接配置中心未找到配置: uuid={}, 使用节点配置（可能不完整）",
-                        node_config.connection_uuid
-                    );
-                    node_config
-                }
-            }
-        } else {
-            node_config
-        };
+        // 2. 使用节点配置直接作为连接配置
+        let config = node_config;
 
-        // 3. 验证 connection_uuid
-        if config.connection_uuid.is_empty() {
-            let error_msg = "connection_uuid 不能为空".to_string();
+        // 2.5 连接池 key = 节点自身的 uuid
+        let pool_key = node.uuid.clone();
+
+        // 3. 验证 driver（必填字段）
+        if config.driver.is_none() {
+            let error_msg = "driver 不能为空".to_string();
             log::error!(
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid,
@@ -103,17 +70,17 @@ impl NodeExecutor for DbConnectExecutor {
             // 返回 false 端口
             return Ok((
                 self.get_false_port_nodes(node, connections),
-                Some(self.build_error_output(&config, &error_msg, start_time.elapsed().as_millis() as u64)),
+                Some(self.build_error_output(&config, &pool_key, &error_msg, start_time.elapsed().as_millis() as u64)),
             ));
         }
 
         // 3. 日志：开始连接
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: db_connect, connection_uuid: {}",
+            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: db_connect, pool_key: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
-            config.connection_uuid
+            pool_key
         );
 
         context
@@ -142,7 +109,7 @@ impl NodeExecutor for DbConnectExecutor {
             Some("sqlite") => {
                 // 构建 DbConnection 配置
                 let db_config = DbConnection {
-                    id: config.connection_uuid.clone(),
+                    id: pool_key.clone(),
                     name: node.name.clone(),
                     driver: DbDriver::Sqlite,
                     host: config.host.clone(),
@@ -163,7 +130,7 @@ impl NodeExecutor for DbConnectExecutor {
 
                 log::info!(
                     "[Database] 创建 SQLite 连接池: uuid={}, connection_string={}",
-                    config.connection_uuid,
+                    pool_key,
                     config.connection_string.as_deref().unwrap_or(":memory:")
                 );
 
@@ -172,14 +139,14 @@ impl NodeExecutor for DbConnectExecutor {
                     Ok(conn) => {
                         log::info!(
                             "[Database] SQLite 连接池创建成功: uuid={}",
-                            config.connection_uuid
+                            pool_key
                         );
                         Arc::new(conn) as Arc<dyn DatabasePool>
                     }
                     Err(e) => {
                         log::error!(
                             "[Database] SQLite 连接池创建失败: uuid={}, error={}",
-                            config.connection_uuid,
+                            pool_key,
                             e
                         );
 
@@ -203,6 +170,7 @@ impl NodeExecutor for DbConnectExecutor {
                             self.get_false_port_nodes(node, connections),
                             Some(self.build_error_output(
                                 &config,
+                                &pool_key,
                                 &format!("SQLite 连接失败: {}", e),
                                 start_time.elapsed().as_millis() as u64,
                             )),
@@ -213,7 +181,7 @@ impl NodeExecutor for DbConnectExecutor {
             Some("redis") => {
                 // 构建 DbConnection 配置
                 let db_config = DbConnection {
-                    id: config.connection_uuid.clone(),
+                    id: pool_key.clone(),
                     name: node.name.clone(),
                     driver: DbDriver::Redis,
                     host: config.host.clone(),
@@ -234,7 +202,7 @@ impl NodeExecutor for DbConnectExecutor {
 
                 log::info!(
                     "[Database] 创建 Redis 连接池: uuid={}, host={:?}",
-                    config.connection_uuid,
+                    pool_key,
                     config.host
                 );
 
@@ -243,14 +211,14 @@ impl NodeExecutor for DbConnectExecutor {
                     Ok(conn) => {
                         log::info!(
                             "[Database] Redis 连接池创建成功: uuid={}",
-                            config.connection_uuid
+                            pool_key
                         );
                         Arc::new(conn) as Arc<dyn DatabasePool>
                     }
                     Err(e) => {
                         log::error!(
                             "[Database] Redis 连接池创建失败: uuid={}, error={}",
-                            config.connection_uuid,
+                            pool_key,
                             e
                         );
 
@@ -272,6 +240,7 @@ impl NodeExecutor for DbConnectExecutor {
                             self.get_false_port_nodes(node, connections),
                             Some(self.build_error_output(
                                 &config,
+                                &pool_key,
                                 &format!("Redis 连接失败: {}", e),
                                 start_time.elapsed().as_millis() as u64,
                             )),
@@ -282,7 +251,7 @@ impl NodeExecutor for DbConnectExecutor {
             Some("mysql") => {
                 // 构建 DbConnection 配置
                 let db_config = DbConnection {
-                    id: config.connection_uuid.clone(),
+                    id: pool_key.clone(),
                     name: node.name.clone(),
                     driver: DbDriver::Mysql,
                     host: config.host.clone(),
@@ -303,7 +272,7 @@ impl NodeExecutor for DbConnectExecutor {
 
                 log::info!(
                     "[Database] 创建 MySQL 连接池: uuid={}, host={:?}",
-                    config.connection_uuid,
+                    pool_key,
                     config.host
                 );
 
@@ -312,14 +281,14 @@ impl NodeExecutor for DbConnectExecutor {
                     Ok(conn) => {
                         log::info!(
                             "[Database] MySQL 连接池创建成功: uuid={}",
-                            config.connection_uuid
+                            pool_key
                         );
                         Arc::new(conn) as Arc<dyn DatabasePool>
                     }
                     Err(e) => {
                         log::error!(
                             "[Database] MySQL 连接池创建失败: uuid={}, error={}",
-                            config.connection_uuid,
+                            pool_key,
                             e
                         );
 
@@ -341,6 +310,7 @@ impl NodeExecutor for DbConnectExecutor {
                             self.get_false_port_nodes(node, connections),
                             Some(self.build_error_output(
                                 &config,
+                                &pool_key,
                                 &format!("MySQL 连接失败: {}", e),
                                 start_time.elapsed().as_millis() as u64,
                             )),
@@ -351,7 +321,7 @@ impl NodeExecutor for DbConnectExecutor {
             Some("postgres") | Some("postgresql") => {
                 // 构建 DbConnection 配置
                 let db_config = DbConnection {
-                    id: config.connection_uuid.clone(),
+                    id: pool_key.clone(),
                     name: node.name.clone(),
                     driver: DbDriver::Postgres,
                     host: config.host.clone(),
@@ -372,7 +342,7 @@ impl NodeExecutor for DbConnectExecutor {
 
                 log::info!(
                     "[Database] 创建 PostgreSQL 连接池: uuid={}, host={:?}",
-                    config.connection_uuid,
+                    pool_key,
                     config.host
                 );
 
@@ -381,14 +351,14 @@ impl NodeExecutor for DbConnectExecutor {
                     Ok(conn) => {
                         log::info!(
                             "[Database] PostgreSQL 连接池创建成功: uuid={}",
-                            config.connection_uuid
+                            pool_key
                         );
                         Arc::new(conn) as Arc<dyn DatabasePool>
                     }
                     Err(e) => {
                         log::error!(
                             "[Database] PostgreSQL 连接池创建失败: uuid={}, error={}",
-                            config.connection_uuid,
+                            pool_key,
                             e
                         );
 
@@ -410,6 +380,7 @@ impl NodeExecutor for DbConnectExecutor {
                             self.get_false_port_nodes(node, connections),
                             Some(self.build_error_output(
                                 &config,
+                                &pool_key,
                                 &format!("PostgreSQL 连接失败: {}", e),
                                 start_time.elapsed().as_millis() as u64,
                             )),
@@ -422,9 +393,9 @@ impl NodeExecutor for DbConnectExecutor {
                 log::warn!(
                     "[Database] 数据库类型 '{}' 暂未实现，使用 MockPool: uuid={}",
                     db_type,
-                    config.connection_uuid
+                    pool_key
                 );
-                Arc::new(MockPool::new(config.connection_uuid.clone())) as Arc<dyn DatabasePool>
+                Arc::new(MockPool::new(pool_key.clone())) as Arc<dyn DatabasePool>
             }
         };
 
@@ -432,7 +403,7 @@ impl NodeExecutor for DbConnectExecutor {
         let create_result = self
             .db_manager
             .create_pool(
-                config.connection_uuid.clone(),
+                pool_key.clone(),
                 node.name.clone(),
                 db_type,
                 pool.clone(),
@@ -444,7 +415,7 @@ impl NodeExecutor for DbConnectExecutor {
             Ok(()) => {
                 log::info!(
                     "[Database] 连接池创建成功: uuid={}",
-                    config.connection_uuid
+                    pool_key
                 );
 
                 // 5. 执行测试查询（如果配置了）
@@ -452,7 +423,7 @@ impl NodeExecutor for DbConnectExecutor {
                     if !test_query.is_empty() {
                         log::info!(
                             "[Database] 执行测试查询: uuid={}, query={}",
-                            config.connection_uuid,
+                            pool_key,
                             test_query
                         );
 
@@ -460,14 +431,14 @@ impl NodeExecutor for DbConnectExecutor {
                             Ok(()) => {
                                 log::info!(
                                     "[Database] 测试查询成功: uuid={}",
-                                    config.connection_uuid
+                                    pool_key
                                 );
                                 Ok(())
                             }
                             Err(e) => {
                                 log::error!(
                                     "[Database] 测试查询失败: uuid={}, error={}",
-                                    config.connection_uuid,
+                                    pool_key,
                                     e
                                 );
                                 Err(e)
@@ -485,7 +456,7 @@ impl NodeExecutor for DbConnectExecutor {
                         // 6. 构建输出数据（成功）
                         let output_data = self.build_success_output(
                             &config,
-                            &node.uuid,
+                            &pool_key,
                             connect_duration_ms,
                             start_time.elapsed().as_millis() as u64,
                         );
@@ -522,7 +493,7 @@ impl NodeExecutor for DbConnectExecutor {
                         // 测试查询失败
                         log::error!(
                             "[Database] 测试查询失败: uuid={}, error={}",
-                            config.connection_uuid,
+                            pool_key,
                             e
                         );
 
@@ -542,13 +513,14 @@ impl NodeExecutor for DbConnectExecutor {
                             .await;
 
                         // 清理：关闭连接池
-                        let _ = self.db_manager.close_pool(&config.connection_uuid).await;
+                        let _ = self.db_manager.close_pool(&pool_key).await;
 
                         // 返回 false 端口
                         Ok((
                             self.get_false_port_nodes(node, connections),
                             Some(self.build_error_output(
                                 &config,
+                                &pool_key,
                                 &format!("测试查询失败: {}", e),
                                 start_time.elapsed().as_millis() as u64,
                             )),
@@ -560,7 +532,7 @@ impl NodeExecutor for DbConnectExecutor {
                 // 连接池创建失败
                 log::error!(
                     "[Database] 连接池创建失败: uuid={}, error={}",
-                    config.connection_uuid,
+                    pool_key,
                     e
                 );
 
@@ -582,7 +554,7 @@ impl NodeExecutor for DbConnectExecutor {
                 // 返回 false 端口
                 Ok((
                     self.get_false_port_nodes(node, connections),
-                    Some(self.build_error_output(&config, &e, start_time.elapsed().as_millis() as u64)),
+                    Some(self.build_error_output(&config, &pool_key, &e, start_time.elapsed().as_millis() as u64)),
                 ))
             }
         }
@@ -639,10 +611,10 @@ impl DbConnectExecutor {
             "success": true,
             "connected": true,
             "connection_id": connection_id,
-            "connection_uuid": config.connection_uuid,
+            "connection_uuid": connection_id,
             // 请求配置
             "request": {
-                "connection_uuid": config.connection_uuid,
+                "connection_uuid": connection_id,
                 "test_query": config.test_query,
                 "connect_timeout_ms": config.connect_timeout_ms,
             },
@@ -658,6 +630,7 @@ impl DbConnectExecutor {
     fn build_error_output(
         &self,
         config: &DbConnectConfig,
+        connection_id: &str,
         error: &str,
         total_ms: u64,
     ) -> serde_json::Value {
@@ -666,10 +639,10 @@ impl DbConnectExecutor {
             "success": false,
             "connected": false,
             "connection_id": serde_json::Value::Null,
-            "connection_uuid": config.connection_uuid,
+            "connection_uuid": connection_id,
             // 请求配置
             "request": {
-                "connection_uuid": config.connection_uuid,
+                "connection_uuid": connection_id,
                 "test_query": config.test_query,
                 "connect_timeout_ms": config.connect_timeout_ms,
             },
@@ -706,18 +679,17 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::{NodePosition, NodeType};
     use crate::db::pool::{DatabaseConnectionManager, PoolMetadata};
-    use crate::db::pool::MockPool;
 
     /// 创建测试节点
-    fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
+    fn create_test_node(uuid: &str, name: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
             node_type: NodeType::DbConnect,
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::DbConnect(DbConnectConfig {
-                connection_uuid: connection_uuid.to_string(),
-                driver: None,
+                connection_uuid: String::new(),
+                driver: Some("mock".to_string()),
                 connection_string: None,
                 host: None,
                 port: None,
@@ -738,7 +710,6 @@ mod tests {
     fn create_test_node_with_query(
         uuid: &str,
         name: &str,
-        connection_uuid: &str,
         test_query: &str,
     ) -> Node {
         Node {
@@ -747,8 +718,8 @@ mod tests {
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::DbConnect(DbConnectConfig {
-                connection_uuid: connection_uuid.to_string(),
-                driver: None,
+                connection_uuid: String::new(),
+                driver: Some("mock".to_string()),
                 connection_string: None,
                 host: None,
                 port: None,
@@ -758,6 +729,32 @@ mod tests {
                 min_connections: 1,
                 max_connections: 10,
                 test_query: Some(test_query.to_string()),
+                connect_timeout_ms: None,
+            }),
+            ports: None,
+            has_breakpoint: None,
+        }
+    }
+
+    /// 创建无 driver 的测试节点（用于验证失败场景）
+    fn create_test_node_no_driver(uuid: &str, name: &str) -> Node {
+        Node {
+            uuid: uuid.to_string(),
+            node_type: NodeType::DbConnect,
+            name: name.to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::DbConnect(DbConnectConfig {
+                connection_uuid: String::new(),
+                driver: None,
+                connection_string: None,
+                host: None,
+                port: None,
+                database: None,
+                username: None,
+                password: None,
+                min_connections: 1,
+                max_connections: 10,
+                test_query: None,
                 connect_timeout_ms: None,
             }),
             ports: None,
@@ -782,9 +779,9 @@ mod tests {
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             db_manager: None,
-            db_connections: std::collections::HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
+            execution_event_sender: None,
         }
     }
 
@@ -792,7 +789,7 @@ mod tests {
     async fn test_connect_success() {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbConnectExecutor::new(db_manager.clone());
-        let node = create_test_node("test-1", "测试连接", "conn-001");
+        let node = create_test_node("test-1", "测试连接");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -808,10 +805,10 @@ mod tests {
         let data = output_data.unwrap();
         assert_eq!(data["success"], true);
         assert_eq!(data["connected"], true);
-        assert_eq!(data["connection_uuid"], "conn-001");
+        assert_eq!(data["connection_uuid"], "test-1");
 
-        // 验证连接池已创建
-        let pool_metadata: Option<PoolMetadata> = db_manager.get_pool_metadata("conn-001").await;
+        // 验证连接池已创建（pool key = node uuid）
+        let pool_metadata: Option<PoolMetadata> = db_manager.get_pool_metadata("test-1").await;
         assert!(pool_metadata.is_some());
     }
 
@@ -819,7 +816,7 @@ mod tests {
     async fn test_connect_with_test_query() {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbConnectExecutor::new(db_manager);
-        let node = create_test_node_with_query("test-2", "测试查询", "conn-002", "SELECT 1");
+        let node = create_test_node_with_query("test-2", "测试查询", "SELECT 1");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -838,17 +835,17 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_connect_empty_connection_uuid() {
+    async fn test_connect_no_driver() {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbConnectExecutor::new(db_manager);
-        let node = create_test_node("test-3", "空 UUID", "");
+        let node = create_test_node_no_driver("test-3", "无 driver");
         let mut context = create_context("test-flow");
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回 false 端口（空 UUID）
+        // 应该返回 false 端口（driver 为空）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
         assert_eq!(next_nodes, vec!["false"]);
@@ -861,12 +858,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_connect_duplicate_uuid() {
+    async fn test_connect_duplicate_pool() {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbConnectExecutor::new(db_manager.clone());
 
-        // 第一次连接
-        let node1 = create_test_node("test-4a", "第一次连接", "conn-004");
+        // 第一次连接（pool key = node uuid "test-4"）
+        let node1 = create_test_node("test-4", "第一次连接");
         let mut context1 = create_context("test-flow");
 
         let result1 = executor
@@ -876,8 +873,8 @@ mod tests {
         let (next_nodes1, _) = result1.unwrap();
         assert_eq!(next_nodes1, vec!["true"]);
 
-        // 第二次连接相同 UUID
-        let node2 = create_test_node("test-4b", "第二次连接", "conn-004");
+        // 第二次连接相同 pool key（相同节点 uuid）
+        let node2 = create_test_node("test-4", "第二次连接");
         let mut context2 = create_context("test-flow");
 
         let result2 = executor
@@ -899,8 +896,8 @@ mod tests {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbConnectExecutor::new(db_manager);
 
-        // 创建空 UUID 节点（会失败）
-        let node = create_test_node("test-5", "失败测试", "");
+        // 创建无 driver 节点（会失败）
+        let node = create_test_node_no_driver("test-5", "失败测试");
         let mut context = create_context("test-flow");
 
         // 创建 false 端口连接
@@ -926,7 +923,7 @@ mod tests {
     async fn test_connect_timing_info() {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbConnectExecutor::new(db_manager);
-        let node = create_test_node("test-6", "计时测试", "conn-006");
+        let node = create_test_node("test-6", "计时测试");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -975,14 +972,14 @@ mod tests {
     // ========================================================================
 
     /// 创建 SQLite 测试节点
-    fn create_sqlite_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
+    fn create_sqlite_test_node(uuid: &str, name: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
             node_type: NodeType::DbConnect,
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::DbConnect(DbConnectConfig {
-                connection_uuid: connection_uuid.to_string(),
+                connection_uuid: String::new(),
                 driver: Some("sqlite".to_string()),
                 connection_string: Some(":memory:".to_string()),
                 host: None,
@@ -1004,7 +1001,6 @@ mod tests {
     fn create_sqlite_test_node_with_query(
         uuid: &str,
         name: &str,
-        connection_uuid: &str,
         test_query: &str,
     ) -> Node {
         Node {
@@ -1013,7 +1009,7 @@ mod tests {
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::DbConnect(DbConnectConfig {
-                connection_uuid: connection_uuid.to_string(),
+                connection_uuid: String::new(),
                 driver: Some("sqlite".to_string()),
                 connection_string: Some(":memory:".to_string()),
                 host: None,
@@ -1035,7 +1031,7 @@ mod tests {
     async fn test_sqlite_connect_success() {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
         let executor = DbConnectExecutor::new(db_manager.clone());
-        let node = create_sqlite_test_node("sqlite-1", "SQLite 测试连接", "sqlite-conn-001");
+        let node = create_sqlite_test_node("sqlite-1", "SQLite 测试连接");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -1051,10 +1047,10 @@ mod tests {
         let data = output_data.unwrap();
         assert_eq!(data["success"], true);
         assert_eq!(data["connected"], true);
-        assert_eq!(data["connection_uuid"], "sqlite-conn-001");
+        assert_eq!(data["connection_uuid"], "sqlite-1");
 
-        // 验证连接池已创建
-        let pool_metadata: Option<PoolMetadata> = db_manager.get_pool_metadata("sqlite-conn-001").await;
+        // 验证连接池已创建（pool key = node uuid）
+        let pool_metadata: Option<PoolMetadata> = db_manager.get_pool_metadata("sqlite-1").await;
         assert!(pool_metadata.is_some());
         let metadata = pool_metadata.unwrap();
         assert_eq!(metadata.db_type, "sqlite");
@@ -1067,7 +1063,6 @@ mod tests {
         let node = create_sqlite_test_node_with_query(
             "sqlite-2",
             "SQLite 测试查询",
-            "sqlite-conn-002",
             "SELECT 1",
         );
         let mut context = create_context("test-flow");
@@ -1099,7 +1094,7 @@ mod tests {
             name: "无效路径".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::DbConnect(DbConnectConfig {
-                connection_uuid: "sqlite-conn-003".to_string(),
+                connection_uuid: String::new(),
                 driver: Some("sqlite".to_string()),
                 connection_string: Some("Z:\\nonexistent\\invalid\\path\\db.sqlite".to_string()),
                 host: None,

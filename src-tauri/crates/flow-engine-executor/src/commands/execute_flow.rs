@@ -50,7 +50,7 @@ pub async fn execute_flow(
             .await;
     }
 
-    // 调用执行器，传递 log_sender 和 db_connections
+    // 调用执行器，传递 log_sender
     let mut executor = FlowExecutor::new();
     if let Some(sender) = execution_event_sender {
         executor = executor.with_execution_event_sender(sender);
@@ -59,7 +59,7 @@ pub async fn execute_flow(
         executor = executor.with_debug_event_sender(sender);
     }
     let result = executor
-        .execute_flow(&flow, input.variables, log_sender.clone(), input.db_connections)
+        .execute_flow(&flow, input.variables, log_sender.clone())
         .await;
 
     // 发送流程结束事件
@@ -141,10 +141,9 @@ mod tests {
         };
 
         let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-            db_connections: None,
-        };
+                    flow_id: flow_id.clone(),
+                    variables: None,
+                };
 
         // 执行流程（不使用日志发送器，不使用执行事件发送器）
         let result = execute_flow(input, flow, None, None, None).await;
@@ -190,10 +189,9 @@ mod tests {
         });
 
         let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: Some(variables.clone()),
-            db_connections: None,
-        };
+                    flow_id: flow_id.clone(),
+                    variables: Some(variables.clone()),
+                };
 
         let result = execute_flow(input, flow, None, None, None).await;
 
@@ -237,10 +235,9 @@ mod tests {
         };
 
         let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-            db_connections: None,
-        };
+                    flow_id: flow_id.clone(),
+                    variables: None,
+                };
 
         let result = execute_flow(input, flow, None, None, None).await;
 
@@ -277,10 +274,9 @@ mod tests {
         };
 
         let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-            db_connections: None,
-        };
+                    flow_id: flow_id.clone(),
+                    variables: None,
+                };
 
         // 使用 NoopLogSender
         let log_sender: Arc<dyn LogSender> = Arc::new(NoopLogSender);
@@ -333,10 +329,9 @@ mod tests {
         };
 
         let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-            db_connections: None,
-        };
+                    flow_id: flow_id.clone(),
+                    variables: None,
+                };
 
         let result = execute_flow(input, flow, None, None, None).await;
 
@@ -370,10 +365,9 @@ mod tests {
         };
 
         let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-            db_connections: None,
-        };
+                    flow_id: flow_id.clone(),
+                    variables: None,
+                };
 
         let result = execute_flow(input, flow, None, None, None).await;
 
@@ -411,10 +405,9 @@ mod tests {
         };
 
         let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-            db_connections: None,
-        };
+                    flow_id: flow_id.clone(),
+                    variables: None,
+                };
 
         let result = execute_flow(input, flow, None, None, None).await;
 
@@ -451,10 +444,9 @@ mod tests {
 
         // 传入空对象
         let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: Some(json!({})),
-            db_connections: None,
-        };
+                    flow_id: flow_id.clone(),
+                    variables: Some(json!({})),
+                };
 
         let result = execute_flow(input, flow, None, None, None).await;
 
@@ -493,10 +485,9 @@ mod tests {
         };
 
         let input = ExecuteFlowCommandInput {
-            flow_id: flow_id.clone(),
-            variables: None,
-            db_connections: None,
-        };
+                    flow_id: flow_id.clone(),
+                    variables: None,
+                };
 
         let result = execute_flow(input, flow, None, None, None).await;
 

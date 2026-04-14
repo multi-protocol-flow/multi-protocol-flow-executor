@@ -1,6 +1,5 @@
 // 上下文模块 - 执行上下文和变量存储
 
-use crate::db_types::DbConnection;
 use crate::log_event::LogEvent;
 use crate::report::NodeExecutionReport;
 use crate::variable::Variable;
@@ -69,12 +68,6 @@ pub struct ExecutionContext {
     #[serde(skip)]
     pub db_manager: Option<Arc<dyn DbProvider>>,
 
-    /// `数据库连接配置映射（connection_uuid` -> `DbConnection`）
-    /// 前端从连接配置中心获取，传递给后端执行器
-    /// 执行器根据 `connection_uuid` 从此映射获取完整的连接配置
-    #[serde(skip)]
-    pub db_connections: HashMap<String, DbConnection>,
-
     /// 最近一个协议节点的输出数据
     /// 协议节点（HTTP、WebSocket）执行后更新此字段
     /// 工具节点（Conditional、Entry、WsClose）不更新，延续上游数据
@@ -118,7 +111,6 @@ impl ExecutionContext {
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(RwLock::new(HashMap::new())),
             db_manager: None,
-            db_connections: HashMap::new(),
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,

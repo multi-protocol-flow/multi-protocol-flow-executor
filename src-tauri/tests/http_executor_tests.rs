@@ -35,7 +35,6 @@ fn create_context(flow_id: &str) -> ExecutionContext {
         db_manager: None,
         last_node_output: None,
         debug_event_sender: None,
-        db_connections: std::collections::HashMap::new(),
         execution_event_sender: None,
     }
 }
