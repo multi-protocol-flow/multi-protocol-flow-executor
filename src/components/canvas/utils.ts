@@ -130,7 +130,7 @@ export function createDefaultNodeData(type: NodeType): NodeData {
         continue_on_failure: false,
       };
     case 'db_connect':
-      return { type: 'db_connect', connection_uuid: '' };
+      return { type: 'db_connect' };
     case 'db_query':
       return { type: 'db_query', connection_uuid: '', sql: '', params: [], result_to: '' };
     case 'db_begin':

@@ -15,12 +15,42 @@ export interface DbConnectNodeData {
   config?: DbConnectConfig;
 }
 
-/**
- * DbConnect 节点 - 数据库连接
- * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
- */
+/** 驱动显示名称映射 */
+const DRIVER_LABELS: Record<string, string> = {
+  postgres: 'PostgreSQL',
+  mysql: 'MySQL',
+  sqlite: 'SQLite',
+  redis: 'Redis',
+};
+
+/** 根据配置生成连接摘要 */
+function getConnectionSummary(config?: DbConnectConfig): string | null {
+  if (!config?.driver) return null;
+  const driver = config.driver;
+
+  if (driver === 'sqlite') {
+    return config.connection_string || ':memory:';
+  }
+
+  const parts: string[] = [];
+  if (config.host) {
+    parts.push(config.host);
+    if (config.port) {
+      parts[parts.length - 1] = `${config.host}:${config.port}`;
+    }
+  }
+  if (config.database) {
+    parts.push(config.database);
+  }
+
+  return parts.length > 0 ? parts.join('/') : null;
+}
+
 export function DbConnectNode({ id, data, selected }: NodeProps) {
   const nodeData = data as DbConnectNodeData;
+  const config = nodeData.config;
+  const driverLabel = config?.driver ? (DRIVER_LABELS[config.driver] ?? config.driver) : null;
+  const connectionSummary = getConnectionSummary(config);
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
   const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
@@ -74,11 +104,18 @@ export function DbConnectNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-violet-600 font-medium uppercase tracking-wide">
-            DB
+            {driverLabel ?? 'DB'}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
             {nodeData.label || 'DB 连接'}
           </span>
+          {driverLabel ? (
+            <span className="text-[10px] text-muted-foreground truncate">
+              {connectionSummary ?? '未配置'}
+            </span>
+          ) : (
+            <span className="text-[10px] text-muted-foreground">未配置</span>
+          )}
         </div>
       </div>
       

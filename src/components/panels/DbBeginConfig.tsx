@@ -13,8 +13,8 @@ import {
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowRight } from 'lucide-react';
-import type { DbBeginConfig as DbBeginConfigType } from '@/types/node';
-import { useConnectionsStore, selectDbConnections } from '@/stores/connections';
+import type { DbBeginConfig as DbBeginConfigType, DbConnectConfig as DbConnectConfigType } from '@/types/node';
+import { useFlowStore } from '@/stores/flow';
 
 interface DbBeginConfigProps {
   /** 当前节点数据 */
@@ -95,16 +95,23 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
     mode: 'onBlur',
   });
 
-  // 获取连接列表
-  const connections = useConnectionsStore(selectDbConnections);
+  // 获取当前流程中的 db_connect 节点
+  const nodes = useFlowStore((state) => state.flow?.nodes ?? []);
+  const dbConnectNodes = useMemo(
+    () => nodes.filter((n) => n.data?.type === 'db_connect'),
+    [nodes],
+  );
 
   // 当前选中的连接 UUID
   const selectedConnectionUuid = watch('connection_uuid');
 
-  // 查找选中的连接
-  const selectedConnection = useMemo(() => {
-    return connections.find((c) => c.id === selectedConnectionUuid);
-  }, [connections, selectedConnectionUuid]);
+  // 查找选中的 db_connect 节点配置
+  const selectedConnectConfig = useMemo(() => {
+    if (!selectedConnectionUuid) return null;
+    const node = dbConnectNodes.find((n) => n.uuid === selectedConnectionUuid);
+    if (!node) return null;
+    return node.data as DbConnectConfigType;
+  }, [selectedConnectionUuid, dbConnectNodes]);
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
@@ -173,33 +180,44 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
           onValueChange={handleConnectionChange}
         >
           <SelectTrigger id="connection_uuid" className="font-mono">
-            <SelectValue placeholder="选择已配置的数据库连接" />
+            <SelectValue placeholder="选择流程中的数据库连接节点" />
           </SelectTrigger>
           <SelectContent>
-            {connections.length === 0 ? (
+            {dbConnectNodes.length === 0 ? (
               <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                暂无可用的数据库连接
+                无可用连接节点
               </div>
             ) : (
-              connections.map((conn) => (
-                <SelectItem key={conn.id} value={conn.id}>
-                  <div className="flex items-center gap-2">
-                    <span className={`font-medium ${getDriverColor(conn.driver)}`}>
-                      [{getDriverLabel(conn.driver)}]
-                    </span>
-                    <span>{conn.name}</span>
-                  </div>
-                </SelectItem>
-              ))
+              dbConnectNodes.map((node) => {
+                const config = node.data as DbConnectConfigType;
+                const driver = config.driver || '';
+                const host = config.host || '';
+                const port = config.port ? `:${config.port}` : '';
+                return (
+                  <SelectItem key={node.uuid} value={node.uuid}>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-medium ${getDriverColor(driver)}`}>
+                        [{getDriverLabel(driver || '未设置')}]
+                      </span>
+                      <span>{node.name}</span>
+                      {host && (
+                        <span className="text-muted-foreground text-xs">
+                          {host}{port}
+                        </span>
+                      )}
+                    </div>
+                  </SelectItem>
+                );
+              })
             )}
           </SelectContent>
         </Select>
         {errors.connection_uuid && (
           <p className="text-xs text-rose-500">{errors.connection_uuid.message}</p>
         )}
-        {connections.length === 0 && (
+        {dbConnectNodes.length === 0 && (
           <p className="text-xs text-amber-600">
-            请先在设置中配置数据库连接
+            请先在流程中添加数据库连接节点
           </p>
         )}
       </div>
@@ -230,7 +248,7 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
       </div>
 
       {/* 选中连接的只读信息卡片 */}
-      {selectedConnection && (
+      {selectedConnectConfig && (
         <div className="rounded-lg border border-orange-100 bg-orange-50/30 p-4 space-y-3">
           <h5 className="text-xs font-semibold text-orange-800 uppercase tracking-wide">
             连接信息
@@ -239,68 +257,44 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
             {/* 数据库类型 */}
             <div>
               <span className="text-muted-foreground text-xs">数据库类型</span>
-              <p className={`font-medium ${getDriverColor(selectedConnection.driver)}`}>
-                {getDriverLabel(selectedConnection.driver)}
-              </p>
-            </div>
-            {/* 连接状态 */}
-            <div>
-              <span className="text-muted-foreground text-xs">状态</span>
-              <p className={`font-medium ${
-                selectedConnection.status === 'connected' ? 'text-green-600' :
-                selectedConnection.status === 'error' ? 'text-red-600' :
-                selectedConnection.status === 'testing' ? 'text-amber-600' :
-                'text-gray-500'
-              }`}>
-                {selectedConnection.status === 'connected' ? '已连接' :
-                 selectedConnection.status === 'error' ? '连接错误' :
-                 selectedConnection.status === 'testing' ? '测试中' :
-                 '未连接'}
+              <p className={`font-medium ${getDriverColor(selectedConnectConfig.driver || '')}`}>
+                {getDriverLabel(selectedConnectConfig.driver || '未设置')}
               </p>
             </div>
             {/* 主机和端口 */}
-            {selectedConnection.host && (
+            {selectedConnectConfig.host && (
               <div>
                 <span className="text-muted-foreground text-xs">主机</span>
                 <p className="font-mono text-xs">
-                  {selectedConnection.host}
-                  {selectedConnection.port && `:${selectedConnection.port}`}
+                  {selectedConnectConfig.host}
+                  {selectedConnectConfig.port ? `:${selectedConnectConfig.port}` : ''}
                 </p>
               </div>
             )}
             {/* 数据库名 */}
-            {selectedConnection.database && (
+            {selectedConnectConfig.database && (
               <div>
                 <span className="text-muted-foreground text-xs">数据库</span>
-                <p className="font-mono text-xs">{selectedConnection.database}</p>
+                <p className="font-mono text-xs">{selectedConnectConfig.database}</p>
               </div>
             )}
             {/* SQLite 文件路径 */}
-            {selectedConnection.driver === 'sqlite' && selectedConnection.connection_string && (
+            {selectedConnectConfig.driver === 'sqlite' && selectedConnectConfig.connection_string && (
               <div className="col-span-2">
                 <span className="text-muted-foreground text-xs">文件路径</span>
-                <p className="font-mono text-xs truncate" title={selectedConnection.connection_string}>
-                  {selectedConnection.connection_string}
+                <p className="font-mono text-xs truncate" title={selectedConnectConfig.connection_string}>
+                  {selectedConnectConfig.connection_string}
                 </p>
               </div>
             )}
             {/* 用户名 */}
-            {selectedConnection.username && (
+            {selectedConnectConfig.username && (
               <div>
                 <span className="text-muted-foreground text-xs">用户名</span>
-                <p className="font-mono text-xs">{selectedConnection.username}</p>
+                <p className="font-mono text-xs">{selectedConnectConfig.username}</p>
               </div>
             )}
           </div>
-          {/* 错误信息 */}
-          {selectedConnection.last_error && (
-            <div className="mt-2 p-2 rounded bg-red-50 border border-red-100">
-              <p className="text-xs text-red-600">
-                <span className="font-medium">错误: </span>
-                {selectedConnection.last_error}
-              </p>
-            </div>
-          )}
         </div>
       )}
     </form>

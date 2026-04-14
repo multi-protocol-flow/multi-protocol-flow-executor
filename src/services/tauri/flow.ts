@@ -13,7 +13,6 @@ import type {
 } from '@/types/ipc';
 import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
-import { useConnectionsStore } from '@/stores/connections';
 
 /**
  * IPC 错误类
@@ -94,16 +93,11 @@ export async function executeFlowWithChannel(
     const wsEventChannel = new Channel<import('@/types/debug').DebugEvent>();
     wsEventChannel.onmessage = onWsEvent;
 
-    // 从连接配置中心获取所有数据库连接配置
-    // 执行器根据 connection_uuid 从此列表获取完整的连接配置
-    const dbConnections = useConnectionsStore.getState().connections;
-
     // 调用后端命令，传递三 Channel
     return await invoke<ExecuteFlowCommandOutput>('execute_flow', {
       input: {
         flow_id: flow.uuid,
         variables: variables || null,
-        db_connections: dbConnections,
       } as ExecuteFlowCommandInput,
       flow,
       onEvent: logChannel,

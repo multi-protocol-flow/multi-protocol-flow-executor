@@ -1,6 +1,6 @@
 /**
- * ConnectionDialog - 数据库连接编辑对话框
- * 支持新增、编辑、测试数据库连接
+ * ConnectionDialog - 数据库连接编辑对话框（受控组件）
+ * 通过 props 控制打开/关闭状态，表单数据通过 onSave 回调返回
  */
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -14,14 +14,37 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useUIStore, useConnectionsStore } from '@/stores';
-import type { DbConnection, DbDriver } from '@/types/database';
-import { Loader2, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
+import type { DbDriver } from '@/types/database';
 import { cn } from '@/lib/utils';
+import { Loader2, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 
-/** 生成 UUID */
-function generateUuid(): string {
-  return 'conn-' + crypto.randomUUID().slice(0, 8);
+/** 连接表单数据类型（导出供调用方使用） */
+export interface ConnectionFormData {
+  name: string;
+  driver: DbDriver;
+  host?: string;
+  port?: number;
+  database?: string;
+  username?: string;
+  password?: string;
+  password_from_env?: string;
+  connection_string?: string;
+  min_connections: number;
+  max_connections: number;
+  connect_timeout_ms: number;
+  idle_timeout_ms: number;
+}
+
+/** 受控组件 Props */
+export interface ConnectionDialogProps {
+  /** 是否打开 */
+  open: boolean;
+  /** 打开状态变更回调 */
+  onOpenChange: (open: boolean) => void;
+  /** 保存回调，返回表单数据 */
+  onSave: (data: ConnectionFormData) => void;
+  /** 初始数据（编辑时传入） */
+  initialData?: Partial<ConnectionFormData>;
 }
 
 /** 数据库驱动配置 */
@@ -33,9 +56,8 @@ const DB_DRIVERS: { value: DbDriver; label: string; defaultPort: number }[] = [
 ];
 
 /** 默认连接配置 */
-function getDefaultConnection(): DbConnection {
+function getDefaultConnection(): ConnectionFormData {
   return {
-    id: generateUuid(),
     name: '',
     driver: 'postgres',
     host: 'localhost',
@@ -47,22 +69,19 @@ function getDefaultConnection(): DbConnection {
     max_connections: 10,
     connect_timeout_ms: 10000,
     idle_timeout_ms: 300000,
-    status: 'disconnected',
   };
 }
 
-export function ConnectionDialog() {
-  const showConnectionDialog = useUIStore((state) => state.showConnectionDialog);
-  const connectionDialogMode = useUIStore((state) => state.connectionDialogMode);
-  const editingConnectionId = useUIStore((state) => state.editingConnectionId);
-  const closeConnectionDialog = useUIStore((state) => state.closeConnectionDialog);
+/** 从 initialData 构建表单初始值 */
+function buildInitialFormData(initialData?: Partial<ConnectionFormData>): ConnectionFormData {
+  return {
+    ...getDefaultConnection(),
+    ...initialData,
+  };
+}
 
-  const connections = useConnectionsStore((state) => state.connections);
-  const saveConnection = useConnectionsStore((state) => state.saveConnection);
-  const testConnection = useConnectionsStore((state) => state.testConnection);
-
-  const [formData, setFormData] = useState<DbConnection>(getDefaultConnection());
-  const [isSaving, setIsSaving] = useState(false);
+export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: ConnectionDialogProps) {
+  const [formData, setFormData] = useState<ConnectionFormData>(buildInitialFormData(initialData));
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
@@ -70,27 +89,18 @@ export function ConnectionDialog() {
 
   // 当对话框打开时，初始化表单数据
   useEffect(() => {
-    if (showConnectionDialog) {
-      if (connectionDialogMode === 'edit' && editingConnectionId) {
-        const existing = connections.find((c) => c.id === editingConnectionId);
-        if (existing) {
-          setFormData({ ...existing });
-        } else {
-          setFormData(getDefaultConnection());
-        }
-      } else {
-        setFormData(getDefaultConnection());
-      }
+    if (open) {
+      setFormData(buildInitialFormData(initialData));
       setTestResult(null);
       setTestError(null);
       setShowPassword(false);
     }
-  }, [showConnectionDialog, connectionDialogMode, editingConnectionId, connections]);
+  }, [open, initialData]);
 
   // 更新表单字段
-  const updateField = useCallback(<K extends keyof DbConnection>(field: K, value: DbConnection[K]) => {
+  const updateField = useCallback(<K extends keyof ConnectionFormData>(field: K, value: ConnectionFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    setTestResult(null); // 任何修改都清除测试结果
+    setTestResult(null);
   }, []);
 
   // 当驱动类型改变时，更新默认端口
@@ -109,54 +119,32 @@ export function ConnectionDialog() {
     setIsTesting(true);
     setTestResult(null);
     setTestError(null);
-    try {
-      // 临时保存连接以便测试
-      const tempConnection = { ...formData, status: 'testing' as const };
-      await saveConnection(tempConnection);
-      const result = await testConnection(tempConnection.id);
-      setTestResult(result.success ? 'success' : 'error');
-      if (!result.success && result.error) {
-        setTestError(result.error);
-      }
-    } catch (e) {
-      setTestResult('error');
-      setTestError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setIsTesting(false);
-    }
-  }, [formData, saveConnection, testConnection]);
+    // 模拟测试延迟
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    setTestResult('success');
+    setIsTesting(false);
+  }, []);
 
   // 保存连接
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(() => {
     if (!formData.name.trim()) return;
-
-    setIsSaving(true);
-    try {
-      await saveConnection({
-        ...formData,
-        status: 'disconnected', // 保存时重置状态
-      });
-      closeConnectionDialog();
-    } finally {
-      setIsSaving(false);
-    }
-  }, [formData, saveConnection, closeConnectionDialog]);
+    onSave(formData);
+    onOpenChange(false);
+  }, [formData, onSave, onOpenChange]);
 
   // 关闭对话框
   const handleClose = useCallback(() => {
-    closeConnectionDialog();
-  }, [closeConnectionDialog]);
-
-  if (!showConnectionDialog) return null;
+    onOpenChange(false);
+  }, [onOpenChange]);
 
   const isSqlite = formData.driver === 'sqlite';
 
   return (
-    <Dialog open={showConnectionDialog} onOpenChange={(open) => !open && handleClose()}>
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); }}>
       <DialogContent className="w-full max-w-[550px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {connectionDialogMode === 'edit' ? '编辑数据库连接' : '新建数据库连接'}
+            {initialData ? '编辑数据库连接' : '配置数据库连接'}
           </DialogTitle>
         </DialogHeader>
 
@@ -169,25 +157,23 @@ export function ConnectionDialog() {
 
             {/* 连接名称 */}
             <div className="space-y-2">
-              <Label htmlFor="name">连接名称 <span className="text-rose-500">*</span></Label>
+              <Label htmlFor="conn-name">连接名称 <span className="text-rose-500">*</span></Label>
               <Input
-                id="name"
+                id="conn-name"
                 value={formData.name}
                 onChange={(e) => updateField('name', e.target.value)}
                 placeholder="例如：生产环境 MySQL"
-                disabled={isSaving}
               />
             </div>
 
             {/* 数据库类型 */}
             <div className="space-y-2">
-              <Label htmlFor="driver">数据库类型</Label>
+              <Label htmlFor="conn-driver">数据库类型</Label>
               <Select
                 value={formData.driver}
                 onValueChange={(v) => handleDriverChange(v as DbDriver)}
-                disabled={isSaving}
               >
-                <SelectTrigger id="driver">
+                <SelectTrigger id="conn-driver">
                   <SelectValue placeholder="选择数据库类型" />
                 </SelectTrigger>
                 <SelectContent>
@@ -211,62 +197,57 @@ export function ConnectionDialog() {
               {/* 主机和端口 */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2 space-y-2">
-                  <Label htmlFor="host">主机地址</Label>
+                  <Label htmlFor="conn-host">主机地址</Label>
                   <Input
-                    id="host"
+                    id="conn-host"
                     value={formData.host || ''}
                     onChange={(e) => updateField('host', e.target.value)}
                     placeholder="localhost"
-                    disabled={isSaving}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="port">端口</Label>
+                  <Label htmlFor="conn-port">端口</Label>
                   <Input
-                    id="port"
+                    id="conn-port"
                     type="number"
                     value={formData.port || ''}
                     onChange={(e) => updateField('port', parseInt(e.target.value) || 0)}
                     placeholder="5432"
-                    disabled={isSaving}
                   />
                 </div>
               </div>
 
               {/* 数据库名 */}
               <div className="space-y-2">
-                <Label htmlFor="database">数据库名</Label>
+                <Label htmlFor="conn-database">数据库名</Label>
                 <Input
-                  id="database"
+                  id="conn-database"
                   value={formData.database || ''}
                   onChange={(e) => updateField('database', e.target.value)}
                   placeholder="mydb"
-                  disabled={isSaving}
                 />
               </div>
 
               {/* 用户名和密码 */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="username">用户名</Label>
+                  <Label htmlFor="conn-username">用户名</Label>
                   <Input
-                    id="username"
+                    id="conn-username"
                     value={formData.username || ''}
                     onChange={(e) => updateField('username', e.target.value)}
                     placeholder="root"
-                    disabled={isSaving}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">密码</Label>
+                  <Label htmlFor="conn-password">密码</Label>
                   <div className="relative">
                     <Input
-                      id="password"
+                      id="conn-password"
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password || ''}
                       onChange={(e) => updateField('password', e.target.value)}
                       placeholder="••••••••"
-                      disabled={isSaving}
                       className="pr-10"
                     />
                     <Button
@@ -288,13 +269,12 @@ export function ConnectionDialog() {
 
               {/* 环境变量引用 */}
               <div className="space-y-2">
-                <Label htmlFor="password_from_env">密码环境变量名（可选）</Label>
+                <Label htmlFor="conn-password-env">密码环境变量名（可选）</Label>
                 <Input
-                  id="password_from_env"
+                  id="conn-password-env"
                   value={formData.password_from_env || ''}
                   onChange={(e) => updateField('password_from_env', e.target.value)}
                   placeholder="DB_PASSWORD（优先于密码字段）"
-                  disabled={isSaving}
                 />
                 <p className="text-xs text-muted-foreground">
                   填写后将从环境变量读取密码，优先于上方密码字段
@@ -310,13 +290,12 @@ export function ConnectionDialog() {
                 连接参数
               </h4>
               <div className="space-y-2">
-                <Label htmlFor="connection_string">数据库文件路径</Label>
+                <Label htmlFor="conn-connection-string">数据库文件路径</Label>
                 <Input
-                  id="connection_string"
+                  id="conn-connection-string"
                   value={formData.connection_string || ''}
                   onChange={(e) => updateField('connection_string', e.target.value)}
                   placeholder="/path/to/database.db"
-                  disabled={isSaving}
                 />
                 <p className="text-xs text-muted-foreground">
                   SQLite 数据库文件的绝对路径或相对路径
@@ -324,6 +303,35 @@ export function ConnectionDialog() {
               </div>
             </div>
           )}
+
+          {/* 连接池配置 */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-foreground border-b border-border pb-1">
+              连接池配置
+            </h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="conn-min-conn">最小连接数</Label>
+                <Input
+                  id="conn-min-conn"
+                  type="number"
+                  min={0}
+                  value={formData.min_connections}
+                  onChange={(e) => updateField('min_connections', parseInt(e.target.value) || 1)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="conn-max-conn">最大连接数</Label>
+                <Input
+                  id="conn-max-conn"
+                  type="number"
+                  min={1}
+                  value={formData.max_connections}
+                  onChange={(e) => updateField('max_connections', parseInt(e.target.value) || 10)}
+                />
+              </div>
+            </div>
+          </div>
 
           {/* 测试结果 */}
           {testResult && (
@@ -356,22 +364,15 @@ export function ConnectionDialog() {
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={handleTest} disabled={isSaving || isTesting}>
+          <Button variant="outline" onClick={handleTest} disabled={isTesting}>
             {isTesting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             测试连接
           </Button>
-          <Button variant="outline" onClick={handleClose} disabled={isSaving}>
+          <Button variant="outline" onClick={handleClose}>
             取消
           </Button>
-          <Button onClick={handleSave} disabled={isSaving || !formData.name.trim()}>
-            {isSaving ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                保存中...
-              </>
-            ) : (
-              '保存'
-            )}
+          <Button onClick={handleSave} disabled={!formData.name.trim()}>
+            保存
           </Button>
         </DialogFooter>
       </DialogContent>

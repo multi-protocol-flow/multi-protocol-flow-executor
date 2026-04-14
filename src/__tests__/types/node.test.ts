@@ -53,7 +53,7 @@ function createNodeData(type: NodeData['type']): NodeData {
         continue_on_failure: false,
       };
     case 'db_connect':
-      return { type: 'db_connect', connection_uuid: 'db-conn-1' };
+      return { type: 'db_connect', driver: 'postgres', host: 'localhost', port: 5432, database: 'testdb' };
     case 'db_query':
       return { type: 'db_query', connection_uuid: 'db-conn-1' };
     case 'db_begin':

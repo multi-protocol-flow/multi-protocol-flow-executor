@@ -1,21 +1,24 @@
 /**
  * DB Connect 节点配置组件
- * 支持连接选择、超时配置、测试查询
+ * 显示连接摘要卡片 + "配置数据库连接" 按钮打开 ConnectionDialog
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   dbConnectConfigSchema,
   type DbConnectConfigFormData,
 } from './schemas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Database, Info } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Database, Settings2, Server, User, FileText } from 'lucide-react';
 import type { DbConnectConfig as DbConnectConfigType } from '@/types/node';
-import { useConnectionsStore, selectDbConnections } from '@/stores/connections';
+import {
+  ConnectionDialog,
+  type ConnectionFormData,
+} from '@/components/dialogs/ConnectionDialog';
 
 interface DbConnectConfigProps {
   /** 当前节点数据 */
@@ -30,9 +33,17 @@ interface DbConnectConfigProps {
 function toFormData(data: DbConnectConfigType): DbConnectConfigFormData {
   return {
     type: 'db_connect',
-    connection_uuid: data.connection_uuid || '',
+    driver: data.driver || '',
+    connection_string: data.connection_string || '',
+    host: data.host || '',
+    port: data.port,
+    database: data.database || '',
+    username: data.username || '',
+    password: data.password || '',
+    min_connections: data.min_connections,
+    max_connections: data.max_connections,
     test_query: data.test_query || '',
-    connect_timeout_ms: data.connect_timeout_ms ?? 30000,
+    connect_timeout_ms: data.connect_timeout_ms,
   };
 }
 
@@ -42,7 +53,15 @@ function toFormData(data: DbConnectConfigType): DbConnectConfigFormData {
 function fromFormData(formData: DbConnectConfigFormData): DbConnectConfigType {
   return {
     type: 'db_connect',
-    connection_uuid: formData.connection_uuid,
+    driver: formData.driver && formData.driver.trim() ? formData.driver.trim() : undefined,
+    connection_string: formData.connection_string && formData.connection_string.trim() ? formData.connection_string.trim() : undefined,
+    host: formData.host && formData.host.trim() ? formData.host.trim() : undefined,
+    port: formData.port ?? undefined,
+    database: formData.database && formData.database.trim() ? formData.database.trim() : undefined,
+    username: formData.username && formData.username.trim() ? formData.username.trim() : undefined,
+    password: formData.password && formData.password.trim() ? formData.password.trim() : undefined,
+    min_connections: formData.min_connections,
+    max_connections: formData.max_connections,
     test_query: formData.test_query && formData.test_query.trim() ? formData.test_query.trim() : undefined,
     connect_timeout_ms: formData.connect_timeout_ms,
   };
@@ -74,12 +93,63 @@ function getDriverColor(driver: string): string {
   return colors[driver] || 'text-purple-600';
 }
 
+/**
+ * 获取数据库驱动的徽标背景色
+ */
+function getDriverBadgeBg(driver: string): string {
+  const colors: Record<string, string> = {
+    postgres: 'bg-blue-50 border-blue-200',
+    mysql: 'bg-orange-50 border-orange-200',
+    sqlite: 'bg-green-50 border-green-200',
+    redis: 'bg-red-50 border-red-200',
+  };
+  return colors[driver] || 'bg-purple-50 border-purple-200';
+}
+
+/**
+ * 构建连接目标显示文本
+ */
+function getConnectionTarget(data: DbConnectConfigType): string | null {
+  if (data.driver === 'sqlite' && data.connection_string) {
+    return data.connection_string;
+  }
+  const parts: string[] = [];
+  if (data.host) {
+    parts.push(data.host);
+    if (data.port) {
+      parts[0] = `${data.host}:${data.port}`;
+    }
+  }
+  if (data.database) {
+    parts.push(data.database);
+  }
+  return parts.length > 0 ? parts.join(' / ') : null;
+}
+
+/**
+ * 将 DbConnectConfigType 转换为 ConnectionDialog 的 initialData
+ */
+function toConnectionInitialData(data: DbConnectConfigType): Partial<ConnectionFormData> {
+  return {
+    name: '', // 面板内编辑不需要名称，但 dialog 要求
+    driver: (data.driver as ConnectionFormData['driver']) || 'postgres',
+    host: data.host,
+    port: data.port,
+    database: data.database,
+    username: data.username,
+    password: data.password,
+    connection_string: data.connection_string,
+    min_connections: data.min_connections ?? 1,
+    max_connections: data.max_connections ?? 10,
+  };
+}
+
 export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
+  const [showDialog, setShowDialog] = useState(false);
+
   const {
     register,
     handleSubmit,
-    watch,
-    setValue,
     reset,
     formState: { errors },
   } = useForm<DbConnectConfigFormData>({
@@ -87,17 +157,6 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
     defaultValues: toFormData(data),
     mode: 'onBlur',
   });
-
-  // 获取连接列表
-  const connections = useConnectionsStore(selectDbConnections);
-
-  // 当前选中的连接 UUID
-  const selectedConnectionUuid = watch('connection_uuid');
-
-  // 查找选中的连接
-  const selectedConnection = useMemo(() => {
-    return connections.find((c) => c.id === selectedConnectionUuid);
-  }, [connections, selectedConnectionUuid]);
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
@@ -126,195 +185,168 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
   }, [saveData]);
 
   /**
-   * 处理连接选择变更
+   * ConnectionDialog 保存回调 — 将对话框数据合并到节点配置
    */
-  const handleConnectionChange = useCallback((value: string) => {
-    setValue('connection_uuid', value);
-    saveData();
-  }, [setValue, saveData]);
+  const handleDialogSave = useCallback((dialogData: ConnectionFormData) => {
+    const config: DbConnectConfigType = {
+      type: 'db_connect',
+      driver: dialogData.driver,
+      connection_string: dialogData.connection_string,
+      host: dialogData.host,
+      port: dialogData.port,
+      database: dialogData.database,
+      username: dialogData.username,
+      password: dialogData.password,
+      min_connections: dialogData.min_connections,
+      max_connections: dialogData.max_connections,
+      // 保留原有的 test_query 和 connect_timeout_ms
+      test_query: data.test_query,
+      connect_timeout_ms: data.connect_timeout_ms,
+    };
+    onSave(config);
+    // 同步重置表单
+    reset(toFormData(config));
+  }, [data.test_query, data.connect_timeout_ms, onSave, reset]);
+
+  const hasConnection = !!data.driver;
+  const connectionTarget = getConnectionTarget(data);
 
   return (
-    <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
-      {/* 主说明卡片 */}
-      <div className="rounded-lg border border-purple-200/50 bg-gradient-to-br from-purple-50/80 to-violet-50/50 p-4 overflow-hidden">
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-purple-900 flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            数据库连接节点
-          </h4>
-          <p className="text-sm leading-relaxed text-purple-700/90 whitespace-normal break-words">
-            建立数据库连接，支持 PostgreSQL、MySQL、SQLite、Redis。连接成功后可在后续节点中执行查询操作。
-          </p>
-        </div>
-      </div>
-
-      {/* 连接选择下拉框 */}
-      <div className="space-y-2">
-        <Label htmlFor="connection_uuid" className="text-sm font-medium text-foreground">
-          数据库连接 <span className="text-rose-500">*</span>
-        </Label>
-        <Select
-          value={selectedConnectionUuid || ''}
-          onValueChange={handleConnectionChange}
-        >
-          <SelectTrigger id="connection_uuid" className="font-mono">
-            <SelectValue placeholder="选择已配置的数据库连接" />
-          </SelectTrigger>
-          <SelectContent>
-            {connections.length === 0 ? (
-              <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                暂无可用的数据库连接
+    <>
+      <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
+        {/* 连接摘要卡片 */}
+        {hasConnection ? (
+          <div className="rounded-lg border border-indigo-200/60 bg-gradient-to-br from-indigo-50/80 to-sky-50/50 p-4 space-y-3 overflow-hidden">
+            {/* 驱动类型徽标 */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-semibold ${getDriverBadgeBg(data.driver!)}`}>
+                  <Database className={`h-3.5 w-3.5 ${getDriverColor(data.driver!)}`} />
+                  <span className={getDriverColor(data.driver!)}>{getDriverLabel(data.driver!)}</span>
+                </div>
               </div>
-            ) : (
-              connections.map((conn) => (
-                <SelectItem key={conn.id} value={conn.id}>
-                  <div className="flex items-center gap-2">
-                    <span className={`font-medium ${getDriverColor(conn.driver)}`}>
-                      [{getDriverLabel(conn.driver)}]
-                    </span>
-                    <span>{conn.name}</span>
-                  </div>
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-        {errors.connection_uuid && (
-          <p className="text-xs text-rose-500">{errors.connection_uuid.message}</p>
-        )}
-        {connections.length === 0 && (
-          <p className="text-xs text-amber-600">
-            请先在设置中配置数据库连接
-          </p>
-        )}
-      </div>
-
-      {/* 选中连接的只读信息卡片 */}
-      {selectedConnection && (
-        <div className="rounded-lg border border-purple-100 bg-purple-50/30 p-4 space-y-3">
-          <h5 className="text-xs font-semibold text-purple-800 uppercase tracking-wide">
-            连接信息
-          </h5>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            {/* 数据库类型 */}
-            <div>
-              <span className="text-muted-foreground text-xs">数据库类型</span>
-              <p className={`font-medium ${getDriverColor(selectedConnection.driver)}`}>
-                {getDriverLabel(selectedConnection.driver)}
-              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDialog(true)}
+                className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                修改配置
+              </Button>
             </div>
-            {/* 连接状态 */}
-            <div>
-              <span className="text-muted-foreground text-xs">状态</span>
-              <p className={`font-medium ${
-                selectedConnection.status === 'connected' ? 'text-green-600' :
-                selectedConnection.status === 'error' ? 'text-red-600' :
-                selectedConnection.status === 'testing' ? 'text-amber-600' :
-                'text-gray-500'
-              }`}>
-                {selectedConnection.status === 'connected' ? '已连接' :
-                 selectedConnection.status === 'error' ? '连接错误' :
-                 selectedConnection.status === 'testing' ? '测试中' :
-                 '未连接'}
-              </p>
+
+            {/* 连接详情 */}
+            <div className="space-y-2">
+              {connectionTarget && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Server className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
+                  <span className="font-mono text-xs text-indigo-800 truncate" title={connectionTarget}>
+                    {connectionTarget}
+                  </span>
+                </div>
+              )}
+              {data.username && (
+                <div className="flex items-center gap-2 text-sm">
+                  <User className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
+                  <span className="text-xs text-indigo-700/80">{data.username}</span>
+                </div>
+              )}
+              {(data.min_connections != null || data.max_connections != null) && (
+                <div className="flex items-center gap-2 text-sm">
+                  <FileText className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
+                  <span className="text-xs text-indigo-700/60">
+                    连接池 {data.min_connections ?? 1} - {data.max_connections ?? 10}
+                  </span>
+                </div>
+              )}
             </div>
-            {/* 主机和端口 */}
-            {selectedConnection.host && (
-              <div>
-                <span className="text-muted-foreground text-xs">主机</span>
-                <p className="font-mono text-xs">
-                  {selectedConnection.host}
-                  {selectedConnection.port && `:${selectedConnection.port}`}
-                </p>
-              </div>
-            )}
-            {/* 数据库名 */}
-            {selectedConnection.database && (
-              <div>
-                <span className="text-muted-foreground text-xs">数据库</span>
-                <p className="font-mono text-xs">{selectedConnection.database}</p>
-              </div>
-            )}
-            {/* SQLite 文件路径 */}
-            {selectedConnection.driver === 'sqlite' && selectedConnection.connection_string && (
-              <div className="col-span-2">
-                <span className="text-muted-foreground text-xs">文件路径</span>
-                <p className="font-mono text-xs truncate" title={selectedConnection.connection_string}>
-                  {selectedConnection.connection_string}
-                </p>
-              </div>
-            )}
-            {/* 用户名 */}
-            {selectedConnection.username && (
-              <div>
-                <span className="text-muted-foreground text-xs">用户名</span>
-                <p className="font-mono text-xs">{selectedConnection.username}</p>
-              </div>
-            )}
           </div>
-          {/* 错误信息 */}
-          {selectedConnection.last_error && (
-            <div className="mt-2 p-2 rounded bg-red-50 border border-red-100">
-              <p className="text-xs text-red-600">
-                <span className="font-medium">错误: </span>
-                {selectedConnection.last_error}
-              </p>
+        ) : (
+          /* 未配置状态 */
+          <div className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 p-5 space-y-3">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+              <Database className="h-5 w-5" />
+              <span className="text-sm font-medium">未配置数据库连接</span>
             </div>
+            <p className="text-center text-xs text-muted-foreground/70">
+              配置数据库驱动、连接参数和认证信息
+            </p>
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDialog(true)}
+                className="gap-1.5"
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                配置数据库连接
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* 已配置时的修改按钮（在摘要卡片下方再放一个主按钮，方便操作） */}
+        {hasConnection && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => setShowDialog(true)}
+          >
+            <Settings2 className="h-4 w-4" />
+            配置数据库连接
+          </Button>
+        )}
+
+        {/* 连接超时 */}
+        <div className="space-y-2">
+          <Label htmlFor="connect_timeout_ms" className="text-sm font-medium text-foreground">
+            连接超时
+          </Label>
+          <Input
+            id="connect_timeout_ms"
+            type="number"
+            min={1000}
+            max={300000}
+            {...register('connect_timeout_ms', { valueAsNumber: true })}
+          />
+          <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000，默认 30000</p>
+          {errors.connect_timeout_ms && (
+            <p className="text-xs text-rose-500">{errors.connect_timeout_ms.message}</p>
           )}
         </div>
-      )}
 
-      {/* 连接超时 */}
-      <div className="space-y-2">
-        <Label htmlFor="connect_timeout_ms" className="text-sm font-medium text-foreground">
-          连接超时
-        </Label>
-        <Input
-          id="connect_timeout_ms"
-          type="number"
-          min={1000}
-          max={300000}
-          {...register('connect_timeout_ms', { valueAsNumber: true })}
-        />
-        <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000，默认 30000</p>
-        {errors.connect_timeout_ms && (
-          <p className="text-xs text-rose-500">{errors.connect_timeout_ms.message}</p>
-        )}
-      </div>
-
-      {/* 测试查询 */}
-      <div className="space-y-2">
-        <Label htmlFor="test_query" className="text-sm font-medium text-foreground">
-          测试查询（可选）
-        </Label>
-        <Textarea
-          id="test_query"
-          {...register('test_query')}
-          placeholder="SELECT 1"
-          className="min-h-[80px] resize-y font-mono text-xs"
-          rows={3}
-        />
-        <p className="text-xs text-muted-foreground">
-          连接成功后执行的测试查询，用于验证连接有效性
-        </p>
-        {errors.test_query && (
-          <p className="text-xs text-rose-500">{errors.test_query.message}</p>
-        )}
-      </div>
-
-      {/* 提示信息 */}
-      <div className="flex items-start gap-2 rounded-md bg-sky-50/50 border border-sky-200/50 p-3">
-        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
-        <div className="text-xs text-sky-700/90 space-y-1">
-          <p className="font-medium text-sky-800">使用说明：</p>
-          <p>1. 选择已配置的数据库连接</p>
-          <p>2. 可选配置连接超时和测试查询</p>
-          <p>3. 连接成功后，使用 DB Query 节点执行查询</p>
-          <p className="text-sky-600/70 mt-2">
-            提示：连接管理在设置页面进行配置
+        {/* 测试查询 */}
+        <div className="space-y-2">
+          <Label htmlFor="test_query" className="text-sm font-medium text-foreground">
+            测试查询（可选）
+          </Label>
+          <Textarea
+            id="test_query"
+            {...register('test_query')}
+            placeholder="SELECT 1"
+            className="min-h-[80px] resize-y font-mono text-xs"
+            rows={3}
+          />
+          <p className="text-xs text-muted-foreground">
+            连接成功后执行的测试查询，用于验证连接有效性
           </p>
+          {errors.test_query && (
+            <p className="text-xs text-rose-500">{errors.test_query.message}</p>
+          )}
         </div>
-      </div>
-    </form>
+      </form>
+
+      {/* 受控连接配置对话框 */}
+      <ConnectionDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        onSave={handleDialogSave}
+        initialData={toConnectionInitialData(data)}
+      />
+    </>
   );
 }

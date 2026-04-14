@@ -174,7 +174,6 @@ describe('Tauri IPC flow.ts 服务', () => {
         input: {
           flow_id: flow.uuid,
           variables: null,
-          db_connections: expect.any(Array),
         },
         flow,
         onEvent: expect.any(Object),
@@ -202,7 +201,6 @@ describe('Tauri IPC flow.ts 服务', () => {
         input: {
           flow_id: flow.uuid,
           variables,
-          db_connections: expect.any(Array),
         },
         flow,
         onEvent: expect.any(Object),

@@ -240,13 +240,11 @@ interface TimelineHeaderProps {
 
 function TimelineHeader({
   stream,
-  messageCount,
   directionFilter,
   onDirectionFilterChange,
   searchQuery,
   onSearchQueryChange,
   searchMatchCount,
-  live,
 }: TimelineHeaderProps) {
   const stats = calculateStats(stream);
   const [searchVisible, setSearchVisible] = useState(false);
