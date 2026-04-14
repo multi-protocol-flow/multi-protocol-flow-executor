@@ -98,12 +98,12 @@ function getDriverColor(driver: string): string {
  */
 function getDriverBadgeBg(driver: string): string {
   const colors: Record<string, string> = {
-    postgres: 'bg-blue-50 border-blue-200',
-    mysql: 'bg-orange-50 border-orange-200',
-    sqlite: 'bg-green-50 border-green-200',
-    redis: 'bg-red-50 border-red-200',
+    postgres: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800',
+    mysql: 'bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800',
+    sqlite: 'bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800',
+    redis: 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800',
   };
-  return colors[driver] || 'bg-purple-50 border-purple-200';
+  return colors[driver] || 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800';
 }
 
 /**
@@ -216,7 +216,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
       <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
         {/* 连接摘要卡片 */}
         {hasConnection ? (
-          <div className="rounded-lg border border-indigo-200/60 bg-gradient-to-br from-indigo-50/80 to-sky-50/50 p-4 space-y-3 overflow-hidden">
+          <div className="rounded-lg border border-indigo-200/60 dark:border-indigo-800/60 bg-gradient-to-br from-indigo-50/80 dark:from-indigo-950/40 to-sky-50/50 dark:to-sky-950/30 p-4 space-y-3 overflow-hidden">
             {/* 驱动类型徽标 */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -242,7 +242,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
               {connectionTarget && (
                 <div className="flex items-center gap-2 text-sm">
                   <Server className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
-                  <span className="font-mono text-xs text-indigo-800 truncate" title={connectionTarget}>
+                  <span className="font-mono text-xs text-indigo-800 dark:text-indigo-300 truncate" title={connectionTarget}>
                     {connectionTarget}
                   </span>
                 </div>
@@ -250,13 +250,13 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
               {data.username && (
                 <div className="flex items-center gap-2 text-sm">
                   <User className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
-                  <span className="text-xs text-indigo-700/80">{data.username}</span>
+                  <span className="text-xs text-indigo-700/80 dark:text-indigo-400/80">{data.username}</span>
                 </div>
               )}
               {(data.min_connections != null || data.max_connections != null) && (
                 <div className="flex items-center gap-2 text-sm">
                   <FileText className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
-                  <span className="text-xs text-indigo-700/60">
+                  <span className="text-xs text-indigo-700/60 dark:text-indigo-400/60">
                     连接池 {data.min_connections ?? 1} - {data.max_connections ?? 10}
                   </span>
                 </div>

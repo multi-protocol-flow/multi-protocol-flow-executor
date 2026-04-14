@@ -229,7 +229,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
             <Send className="h-4 w-4" />
             WebSocket 发送+采集节点
           </h4>
-          <p className="text-sm leading-relaxed text-teal-700/90 whitespace-normal break-words">
+          <p className="text-sm leading-relaxed text-teal-700/90 dark:text-teal-300/90 whitespace-normal break-words">
             通过已建立的 WebSocket 连接发送消息，可选择采集响应或条件满足后继续流程。
           </p>
         </div>
@@ -455,43 +455,43 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
                   />
                   
                   {/* 匹配类型说明 */}
-                  <div className="flex items-start gap-2 rounded-md bg-sky-50/50 border border-sky-200/50 p-3">
-                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
-                    <div className="text-xs text-sky-700/90 space-y-2">
-                      <p className="font-medium text-sky-800">匹配类型说明：</p>
+                  <div className="flex items-start gap-2 rounded-md bg-sky-50/50 dark:bg-sky-950/30 border border-sky-200/50 dark:border-sky-800/50 p-3">
+                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500 dark:text-sky-400" />
+                    <div className="text-xs text-sky-700/90 dark:text-sky-300/90 space-y-2">
+                      <p className="font-medium text-sky-800 dark:text-sky-200">匹配类型说明：</p>
                       <div className="space-y-1.5">
                         {/* JSONPath */}
-                        <div className="p-2 rounded bg-background/50 border border-sky-100">
-                          <p className="font-medium text-sky-800">📌 JSONPath — 检查字段是否存在</p>
-                          <p className="font-mono text-[11px] text-sky-600 mt-1">
-                            <code className="bg-sky-100/50 px-1 rounded">$.msg</code> 检查 msg 字段是否存在
+                        <div className="p-2 rounded bg-background/50 border border-sky-100 dark:border-sky-900/50">
+                          <p className="font-medium text-sky-800 dark:text-sky-200">📌 JSONPath — 检查字段是否存在</p>
+                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400 mt-1">
+                            <code className="bg-sky-100/50 dark:bg-sky-900/50 px-1 rounded">$.msg</code> 检查 msg 字段是否存在
                           </p>
-                          <p className="font-mono text-[11px] text-sky-600">
-                            <code className="bg-sky-100/50 px-1 rounded">$.data.status</code> 检查嵌套字段
+                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400">
+                            <code className="bg-sky-100/50 dark:bg-sky-900/50 px-1 rounded">$.data.status</code> 检查嵌套字段
                           </p>
-                          <p className="text-[10px] text-sky-500 mt-1">⚠️ 仅检查字段存在，不支持值比较</p>
+                          <p className="text-[10px] text-sky-500 dark:text-sky-500 mt-1">⚠️ 仅检查字段存在，不支持值比较</p>
                         </div>
                         {/* Regex */}
-                        <div className="p-2 rounded bg-background/50 border border-sky-100">
-                          <p className="font-medium text-sky-800">🔍 正则表达式 — 匹配消息文本</p>
-                          <p className="font-mono text-[11px] text-sky-600 mt-1">
-                            <code className="bg-sky-100/50 px-1 rounded">authenticated</code> 包含该文本
+                        <div className="p-2 rounded bg-background/50 border border-sky-100 dark:border-sky-900/50">
+                          <p className="font-medium text-sky-800 dark:text-sky-200">🔍 正则表达式 — 匹配消息文本</p>
+                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400 mt-1">
+                            <code className="bg-sky-100/50 dark:bg-sky-900/50 px-1 rounded">authenticated</code> 包含该文本
                           </p>
-                          <p className="font-mono text-[11px] text-sky-600">
-                            <code className="bg-sky-100/50 px-1 rounded">success|ok</code> 多选一
+                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400">
+                            <code className="bg-sky-100/50 dark:bg-sky-900/50 px-1 rounded">success|ok</code> 多选一
                           </p>
-                          <p className="text-[10px] text-sky-500 mt-1">⚠️ 对整个消息文本进行正则匹配</p>
+                          <p className="text-[10px] text-sky-500 dark:text-sky-500 mt-1">⚠️ 对整个消息文本进行正则匹配</p>
                         </div>
                         {/* Expression */}
-                        <div className="p-2 rounded bg-background/50 border border-sky-100">
-                          <p className="font-medium text-sky-800">🧮 表达式 — 值比较（推荐）</p>
-                          <p className="font-mono text-[11px] text-sky-600 mt-1">
-                            <code className="bg-sky-100/50 px-1 rounded">msg == "authenticated"</code> 字符串比较
+                        <div className="p-2 rounded bg-background/50 border border-sky-100 dark:border-sky-900/50">
+                          <p className="font-medium text-sky-800 dark:text-sky-200">🧮 表达式 — 值比较（推荐）</p>
+                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400 mt-1">
+                            <code className="bg-sky-100/50 dark:bg-sky-900/50 px-1 rounded">msg == "authenticated"</code> 字符串比较
                           </p>
-                          <p className="font-mono text-[11px] text-sky-600">
-                            <code className="bg-sky-100/50 px-1 rounded">code == 1</code> 数字比较
+                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400">
+                            <code className="bg-sky-100/50 dark:bg-sky-900/50 px-1 rounded">code == 1</code> 数字比较
                           </p>
-                          <p className="text-[10px] text-sky-500 mt-1">✅ JSON 顶层字段自动注入，无需 $. 前缀</p>
+                          <p className="text-[10px] text-sky-500 dark:text-sky-500 mt-1">✅ JSON 顶层字段自动注入，无需 $. 前缀</p>
                         </div>
                       </div>
                     </div>

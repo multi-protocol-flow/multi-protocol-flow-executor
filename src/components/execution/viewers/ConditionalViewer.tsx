@@ -149,9 +149,9 @@ function getOperatorDisplay(operator?: string): string {
  */
 function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: ConditionalConfigData }) {
   return (
-    <div className="rounded-lg bg-red-50 border border-red-200 overflow-hidden">
+    <div className="rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 overflow-hidden">
       {/* 错误头部 */}
-      <div className="p-3 bg-red-100/50 border-b border-red-200">
+      <div className="p-3 bg-red-100/50 dark:bg-red-900/30 border-b border-red-200 dark:border-red-800">
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-red-600" />
           <Badge className="font-mono text-xs bg-red-200 text-red-800 border-red-300">
@@ -166,19 +166,19 @@ function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: Con
       </div>
       
       {/* 错误消息 */}
-      <div className="p-3 border-b border-red-200">
-        <p className="text-sm text-red-700 font-medium">{error.message}</p>
+      <div className="p-3 border-b border-red-200 dark:border-red-800">
+        <p className="text-sm text-red-700 dark:text-red-300 font-medium">{error.message}</p>
       </div>
 
       {/* 原始条件配置 */}
       {configData && (
-        <div className="p-3 bg-red-50/50">
-          <div className="text-xs font-medium text-red-600 mb-2">原始条件配置:</div>
+        <div className="p-3 bg-red-50/50 dark:bg-red-950/30">
+          <div className="text-xs font-medium text-red-600 dark:text-red-400 mb-2">原始条件配置:</div>
           <div className="space-y-1.5 text-sm">
             {configData.condition_type && (
               <div className="flex gap-2">
                 <span className="text-muted-foreground shrink-0">条件类型:</span>
-                <span className="font-mono text-red-700">
+                <span className="font-mono text-red-700 dark:text-red-300">
                   {configData.condition_type === 'simple' ? '简单条件' : '高级表达式'}
                 </span>
               </div>
@@ -188,7 +188,7 @@ function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: Con
                 {configData.field_path && (
                   <div className="flex gap-2">
                     <span className="text-muted-foreground shrink-0">字段路径:</span>
-                    <code className="font-mono text-red-700 bg-red-100 px-1 rounded text-xs">
+                    <code className="font-mono text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-1 rounded text-xs">
                       {configData.field_path}
                     </code>
                   </div>
@@ -196,7 +196,7 @@ function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: Con
                 {configData.operator && (
                   <div className="flex gap-2">
                     <span className="text-muted-foreground shrink-0">操作符:</span>
-                    <span className="font-mono text-red-700">
+                    <span className="font-mono text-red-700 dark:text-red-300">
                       {getOperatorDisplay(configData.operator)}
                     </span>
                   </div>
@@ -204,7 +204,7 @@ function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: Con
                 {configData.expected_value !== undefined && (
                   <div className="flex gap-2">
                     <span className="text-muted-foreground shrink-0">期望值:</span>
-                    <code className="font-mono text-red-700 bg-red-100 px-1 rounded text-xs">
+                    <code className="font-mono text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-1 rounded text-xs">
                       {typeof configData.expected_value === 'object' 
                         ? JSON.stringify(configData.expected_value) 
                         : String(configData.expected_value)}
@@ -214,7 +214,7 @@ function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: Con
                 {configData.expected_value_type && (
                   <div className="flex gap-2">
                     <span className="text-muted-foreground shrink-0">期望值类型:</span>
-                    <span className="font-mono text-red-700">
+                    <span className="font-mono text-red-700 dark:text-red-300">
                       {configData.expected_value_type}
                     </span>
                   </div>
@@ -224,7 +224,7 @@ function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: Con
             {configData.condition_type === 'advanced' && configData.advanced_expression && (
               <div className="flex flex-col gap-1">
                 <span className="text-muted-foreground">高级表达式:</span>
-                <code className="font-mono text-red-700 bg-red-100 px-2 py-1 rounded text-xs whitespace-pre-wrap">
+                <code className="font-mono text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-2 py-1 rounded text-xs whitespace-pre-wrap">
                   {configData.advanced_expression}
                 </code>
               </div>
@@ -235,11 +235,11 @@ function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: Con
 
       {/* 堆栈跟踪 */}
       {error.stack_trace && (
-        <details className="border-t border-red-200">
-          <summary className="p-2 text-xs text-red-500 cursor-pointer hover:bg-red-100/50">
+        <details className="border-t border-red-200 dark:border-red-800">
+          <summary className="p-2 text-xs text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/30">
             堆栈跟踪
           </summary>
-          <pre className="p-2 text-xs text-red-600 bg-red-100/50 overflow-x-auto max-h-32">
+          <pre className="p-2 text-xs text-red-600 dark:text-red-400 bg-red-100/50 dark:bg-red-900/30 overflow-x-auto max-h-32">
             {error.stack_trace}
           </pre>
         </details>
@@ -355,12 +355,12 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-red-600" />
-              <Badge className="font-mono text-sm px-3 py-1 text-red-600 bg-red-50">
+              <Badge className="font-mono text-sm px-3 py-1 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50">
                 评估失败
               </Badge>
             </div>
             {outputError && (
-              <div className="bg-red-50 rounded p-2 text-sm text-red-700">
+              <div className="bg-red-50 dark:bg-red-950/50 rounded p-2 text-sm text-red-700 dark:text-red-300">
                 {outputError}
               </div>
             )}
@@ -370,14 +370,14 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
           <div className="flex items-center gap-2">
             {result === true ? (
               <>
-                <Badge className="font-mono text-xs px-2 py-0.5 text-green-600 bg-green-50">
+                <Badge className="font-mono text-xs px-2 py-0.5 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/50">
                   true
                 </Badge>
                 <span className="text-sm text-muted-foreground">条件成立</span>
               </>
             ) : (
               <>
-                <Badge className="font-mono text-xs px-2 py-0.5 text-red-600 bg-red-50">
+                <Badge className="font-mono text-xs px-2 py-0.5 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50">
                   false
                 </Badge>
                 <span className="text-sm text-muted-foreground">条件不成立</span>

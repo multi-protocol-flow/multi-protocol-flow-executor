@@ -51,7 +51,7 @@ function WsMessageItem({ message }: { message: WsMessage }) {
   const content = formatContent(message.content);
 
   return (
-    <div className={cn('p-2.5 rounded-lg', isSent ? 'bg-emerald-50/50' : 'bg-blue-50/50')}>
+    <div className={cn('p-2.5 rounded-lg', isSent ? 'bg-emerald-50/50 dark:bg-emerald-950/30' : 'bg-blue-50/50 dark:bg-blue-950/30')}>
       {/* 头部信息行 */}
       <div className="flex items-center gap-2 mb-1.5">
         <div className={cn('w-5 h-5 flex items-center justify-center rounded-full shrink-0', isSent ? 'text-emerald-600' : 'text-blue-600')}>
@@ -83,7 +83,7 @@ function WsSegmentItem({ segment, index, expanded, onToggle }: { segment: WsStre
     <div>
       <button type="button" onClick={onToggle} className={cn('w-full flex items-center justify-between px-4 py-2.5', expanded ? 'bg-muted/30' : 'hover:bg-muted/20')}>
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className={cn('w-5 h-5 flex items-center justify-center text-xs font-medium rounded-full shrink-0', expanded ? 'bg-violet-100 text-violet-700' : 'bg-muted/50 text-muted-foreground')}>{index + 1}</span>
+          <span className={cn('w-5 h-5 flex items-center justify-center text-xs font-medium rounded-full shrink-0', expanded ? 'bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300' : 'bg-muted/50 text-muted-foreground')}>{index + 1}</span>
           <div className="text-muted-foreground shrink-0">{expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}</div>
           <span className="text-sm truncate">{segment.node_name}</span>
           <Badge variant="outline" className={cn('text-xs font-normal border-0 shrink-0', typeColor)}>{typeLabel}</Badge>

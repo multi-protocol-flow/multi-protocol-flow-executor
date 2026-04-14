@@ -338,7 +338,7 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
             <div
               className={cn(
                 'p-3 rounded-lg',
-                testResult === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                testResult === 'success' ? 'bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300'
               )}
             >
               {testResult === 'success' ? (
@@ -353,7 +353,7 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
                     <span>连接测试失败</span>
                   </div>
                   {testError && (
-                    <div className="text-sm bg-red-100 rounded p-2 font-mono break-all">
+                    <div className="text-sm bg-red-100 dark:bg-red-900/50 rounded p-2 font-mono break-all">
                       {testError}
                     </div>
                   )}

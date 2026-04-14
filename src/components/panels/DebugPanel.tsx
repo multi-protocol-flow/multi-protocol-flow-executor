@@ -153,14 +153,14 @@ function VariableItem({
           <>
             <button
               onClick={handleSaveEdit}
-              className="w-6 h-6 flex items-center justify-center text-green-600 hover:bg-green-50 rounded"
+              className="w-6 h-6 flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50 rounded"
               title="保存"
             >
               <Check className="w-3 h-3" />
             </button>
             <button
               onClick={handleCancelEdit}
-              className="w-6 h-6 flex items-center justify-center text-red-600 hover:bg-red-50 rounded"
+              className="w-6 h-6 flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded"
               title="取消"
             >
               <X className="w-3 h-3" />
@@ -263,7 +263,7 @@ function StackEntryItem({
         className={cn(
           'flex items-center gap-2 px-3 py-2 group',
           'hover:bg-accent transition-colors',
-          isCurrentNode && 'bg-blue-50 hover:bg-blue-50'
+          isCurrentNode && 'bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-50 dark:hover:bg-blue-950/50'
         )}
       >
         {/* 状态图标 */}
@@ -271,10 +271,10 @@ function StackEntryItem({
           className={cn(
             'w-5 h-5 rounded-full flex items-center justify-center text-xs',
             isCurrentNode
-              ? 'bg-amber-100 text-amber-600'
+              ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400'
               : entry.success
-                ? 'bg-green-100 text-green-600'
-                : 'bg-red-100 text-red-600'
+                ? 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400'
+                : 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
           )}
           title={isCurrentNode ? '当前暂停' : entry.success ? '执行成功' : '执行失败'}
         >
@@ -312,7 +312,7 @@ function StackEntryItem({
           <div
             className={cn(
               'text-sm font-medium truncate',
-              isCurrentNode ? 'text-blue-700' : 'text-foreground hover:text-blue-600'
+              isCurrentNode ? 'text-blue-700 dark:text-blue-300' : 'text-foreground hover:text-blue-600 dark:hover:text-blue-400'
             )}
           >
             {entry.node_name}
@@ -526,12 +526,12 @@ export function DebugPanel() {
     <div ref={containerRef} className="h-full flex flex-col bg-background overflow-hidden">
       {/* 只读模式横幅 */}
       {isDebugDataReadOnly && (
-        <div className="flex flex-col gap-0.5 px-3 py-2 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs shrink-0">
+        <div className="flex flex-col gap-0.5 px-3 py-2 bg-amber-50 dark:bg-amber-950/50 border-b border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs shrink-0">
           <div className="flex items-center gap-1.5">
             <Lock className="w-3.5 h-3.5" />
             <span className="font-medium">调试已结束</span>
           </div>
-          <span className="text-amber-600">只读模式（点击节点恢复正常）</span>
+          <span className="text-amber-600 dark:text-amber-400">只读模式（点击节点恢复正常）</span>
         </div>
       )}
 

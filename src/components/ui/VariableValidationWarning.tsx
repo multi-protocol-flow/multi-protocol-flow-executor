@@ -94,7 +94,7 @@ export function VariableValidationWarning({
     <div
       className={cn(
         "flex items-center gap-2 rounded-md border",
-        "bg-amber-50 border-amber-200 text-amber-700",
+        "bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300",
         compact ? "px-2 py-1" : "px-3 py-2",
         className
       )}
@@ -111,7 +111,7 @@ export function VariableValidationWarning({
             key={`${ref}-${index}`}
             className={cn(
               "inline-flex items-center rounded px-1.5 py-0.5",
-              "bg-amber-100 text-amber-800 font-mono text-xs",
+              "bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200 font-mono text-xs",
               "break-all"
             )}
           >
