@@ -4,13 +4,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { NodeConfigPanel, HttpConfig, ConditionalConfig, EntryConfig } from '@/components/panels';
-import { useFlowStore, useUIStore } from '@/stores';
+import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
 import type { Flow, HttpConfig as HttpConfigType, ConditionalConfig as ConditionalConfigType } from '@/types';
 
 // Mock useFlowStore and useUIStore
 vi.mock('@/stores', () => ({
   useFlowStore: vi.fn(),
   useUIStore: vi.fn(),
+  useDebugStore: vi.fn(),
 }));
 
 // 模拟流程数据
@@ -60,6 +61,7 @@ describe('NodeConfigPanel', () => {
     (useUIStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       showConfirm: vi.fn(),
     });
+    (useDebugStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue(vi.fn());
   });
 
   describe('空状态', () => {

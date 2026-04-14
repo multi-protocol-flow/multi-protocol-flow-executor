@@ -8,6 +8,7 @@ import { CanvasToolbar } from '@/components/canvas/CanvasToolbar';
 import { useFlowStore, useExecutionStore, useUIStore, useDebugStore, useStressTestStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
+import { useWsStreamStore } from '@/stores/wsStream';
 
 // Mock stores
 vi.mock('@/stores', () => ({
@@ -27,6 +28,11 @@ vi.mock('@/stores/console', () => ({
 // Mock settings store
 vi.mock('@/stores/settings', () => ({
   useSettingsStore: vi.fn(),
+}));
+
+// Mock wsStream store
+vi.mock('@/stores/wsStream', () => ({
+  useWsStreamStore: vi.fn(),
 }));
 
 // Mock tauri service
@@ -53,7 +59,6 @@ describe('CanvasToolbar', () => {
       setError: mockSetError,
       clearExecutionState: vi.fn(),
       handleExecutionEvent: vi.fn(),
-      handleWsEvent: vi.fn(),
     };
     (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: Record<string, unknown>) => unknown) =>
@@ -61,6 +66,15 @@ describe('CanvasToolbar', () => {
     );
     // ExecuteButton 使用 getState() 直接调用
     (useExecutionStore as unknown as Record<string, unknown>).getState = vi.fn(() => mockExecutionState);
+    const mockWsStreamState = {
+      handleWsEvent: vi.fn(),
+    };
+    (useWsStreamStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (selector: (state: Record<string, unknown>) => unknown) =>
+        selector(mockWsStreamState)
+    );
+    // ExecuteButton 使用 getState() 直接调用 wsStreamStore
+    (useWsStreamStore as unknown as Record<string, unknown>).getState = vi.fn(() => mockWsStreamState);
     const mockUIState = { setConfigPanelOpen: mockSetConfigPanelOpen, setExecutionPanelOpen: vi.fn() };
     (useUIStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: Record<string, unknown>) => unknown) =>

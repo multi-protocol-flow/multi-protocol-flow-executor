@@ -32,6 +32,15 @@ vi.mock('@/stores/settings', () => ({
     selector({ reportDir: '/tmp/reports' }),
 }));
 
+// Mock wsStream store
+vi.mock('@/stores/wsStream', () => ({
+  useWsStreamStore: Object.assign(
+    (selector: (state: Record<string, unknown>) => unknown) =>
+      selector({ handleWsEvent: vi.fn(), resetWsStreams: vi.fn() }),
+    { getState: vi.fn(() => ({ handleWsEvent: vi.fn(), resetWsStreams: vi.fn() })) }
+  ),
+}));
+
 // Mock tauri service - must define fn inside factory due to hoisting
 vi.mock('@/services/tauri', () => ({
   executeFlowWithChannel: vi.fn(),
