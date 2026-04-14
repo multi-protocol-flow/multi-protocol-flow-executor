@@ -10,9 +10,11 @@ import type {
   StressTestProgress,
   StressTestReport,
   StressTestEvent,
+  StressTestReportMetadata,
 } from '@/types/stressTest';
 import type { Flow } from '@/types/flow';
 import { startStressTest as startStressTestService, stopStressTest as stopStressTestService } from '@/services/tauri';
+import { stressTestStorage } from '@/services/storage/stressTestStorage';
 import { toast } from 'sonner';
 
 // ============================================================================
@@ -27,6 +29,8 @@ interface StressTestState {
   config: StressTestConfig | null;
   /** 压力测试进度 */
   progress: StressTestProgress | null;
+  /** 进度历史数据（用于图表渲染） */
+  progressHistory: StressTestProgress[];
   /** 压力测试报告 */
   report: StressTestReport | null;
   /** 是否正在加载 */
@@ -35,6 +39,10 @@ interface StressTestState {
   error: string | null;
   /** 报告 Dialog 是否打开 */
   isReportDialogOpen: boolean;
+  /** 压测报告历史列表 */
+  history: StressTestReportMetadata[];
+  /** 是否正在加载历史 */
+  isLoadingHistory: boolean;
 
   // ===== Actions =====
   /** 启动压力测试 */
@@ -47,10 +55,12 @@ interface StressTestState {
   openReportDialog: () => void;
   /** 关闭报告 Dialog（不清除报告数据） */
   closeReportDialog: () => void;
+  /** 加载压测报告历史列表 */
+  loadHistory: () => Promise<void>;
 
   // ===== Event handlers (internal) =====
   /** 处理压力测试事件 */
-  handleStressTestEvent: (event: StressTestEvent) => void;
+  handleStressTestEvent: (event: StressTestEvent) => Promise<void>;
 }
 
 // ============================================================================
@@ -61,10 +71,13 @@ const initialState = {
   status: 'idle' as StressTestStatus,
   config: null as StressTestConfig | null,
   progress: null as StressTestProgress | null,
+  progressHistory: [] as StressTestProgress[],
   report: null as StressTestReport | null,
   isLoading: false,
   error: null as string | null,
   isReportDialogOpen: false,
+  history: [] as StressTestReportMetadata[],
+  isLoadingHistory: false,
 };
 
 // ============================================================================
@@ -83,6 +96,7 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
         error: null,
         report: null,
         progress: null,
+        progressHistory: [],
       });
 
       // 调用 IPC 服务，传入事件处理器回调
@@ -117,9 +131,18 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
 
   openReportDialog: () => set({ isReportDialogOpen: true }),
   closeReportDialog: () => set({ isReportDialogOpen: false }),
+  loadHistory: async () => {
+    set({ isLoadingHistory: true });
+    try {
+      const history = await stressTestStorage.listReports();
+      set({ history, isLoadingHistory: false });
+    } catch (e) {
+      set({ isLoadingHistory: false });
+    }
+  },
 
   // ===== Event handlers =====
-  handleStressTestEvent: (event: StressTestEvent) => {
+  handleStressTestEvent: async (event: StressTestEvent) => {
     if (event.type === 'started') {
       // 压测开始事件：设置状态为爬升阶段，存储配置
       set({
@@ -128,11 +151,12 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
         error: null,
       });
     } else if (event.type === 'progress') {
-      // 进度更新事件：更新状态和进度信息
-      set({
+      // 进度更新事件：更新状态和进度信息，累积历史数据
+      set((state) => ({
         status: event.progress.status,
         progress: event.progress,
-      });
+        progressHistory: [...state.progressHistory, event.progress],
+      }));
     } else if (event.type === 'ended') {
       // 压测结束事件：设置状态为已停止，存储报告
       set({
@@ -140,6 +164,16 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
         report: event.report,
         progress: null,
       });
+
+      // 自动保存压测报告
+      try {
+        await stressTestStorage.saveReport(event.report);
+        // 重新加载历史列表
+        const history = await stressTestStorage.listReports();
+        set({ history });
+      } catch (e) {
+        console.error('保存压测报告失败:', e);
+      }
 
       // 显示 toast 通知
       const successRate = event.report.statistics.successRate;
@@ -172,3 +206,9 @@ export const selectIsStressTestRunning = (state: StressTestState) =>
 
 /** 选择压力测试错误信息 */
 export const selectStressTestError = (state: StressTestState) => state.error;
+
+/** 选择压力测试进度历史（用于图表） */
+export const selectStressTestProgressHistory = (state: StressTestState) => state.progressHistory;
+
+/** 选择压测报告历史列表 */
+export const selectStressTestHistory = (state: StressTestState) => state.history;

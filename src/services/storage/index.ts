@@ -21,3 +21,6 @@ export {
   deleteExecutionHistoryByFlow,
   type ExecutionHistoryItem,
 } from './historyStorage';
+
+// 压测报告存储
+export { stressTestStorage } from './stressTestStorage';

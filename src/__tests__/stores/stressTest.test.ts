@@ -59,6 +59,8 @@ function createMockReport(overrides: Partial<StressTestReport> = {}): StressTest
       p99Ms: 450,
     },
     errorStatistics: [],
+    nodeStatistics: [],
+    nodeTypeStatistics: [],
     ...overrides,
   };
 }
@@ -72,6 +74,7 @@ function createMockProgress(overrides: Partial<StressTestProgress> = {}): Stress
     failedIterations: 2,
     currentRps: 45,
     avgLatencyMs: 120,
+    nodeMetrics: [],
     ...overrides,
   };
 }
@@ -93,6 +96,7 @@ describe('StressTestStore', () => {
       expect(state.status).toBe('idle');
       expect(state.config).toBeNull();
       expect(state.progress).toBeNull();
+      expect(state.progressHistory).toEqual([]);
       expect(state.report).toBeNull();
       expect(state.isLoading).toBe(false);
       expect(state.error).toBeNull();
@@ -125,6 +129,21 @@ describe('StressTestStore', () => {
       const state = useStressTestStore.getState();
       expect(state.status).toBe('running');
       expect(state.progress).toEqual(progress);
+      expect(state.progressHistory).toEqual([progress]);
+    });
+
+    it('多次 progress 事件累积 progressHistory', () => {
+      const progress1 = createMockProgress({ elapsedSeconds: 5 });
+      const progress2 = createMockProgress({ elapsedSeconds: 10 });
+      const progress3 = createMockProgress({ elapsedSeconds: 15 });
+
+      useStressTestStore.getState().handleStressTestEvent({ type: 'progress', progress: progress1 });
+      useStressTestStore.getState().handleStressTestEvent({ type: 'progress', progress: progress2 });
+      useStressTestStore.getState().handleStressTestEvent({ type: 'progress', progress: progress3 });
+
+      const state = useStressTestStore.getState();
+      expect(state.progressHistory).toEqual([progress1, progress2, progress3]);
+      expect(state.progress).toEqual(progress3);
     });
 
     it('ended 事件设置报告和状态为 stopped', () => {
@@ -206,6 +225,7 @@ describe('StressTestStore', () => {
       expect(state.status).toBe('idle');
       expect(state.config).toBeNull();
       expect(state.progress).toBeNull();
+      expect(state.progressHistory).toEqual([]);
       expect(state.report).toBeNull();
       expect(state.isLoading).toBe(false);
       expect(state.error).toBeNull();

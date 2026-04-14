@@ -52,6 +52,8 @@ export interface StressTestProgress {
   currentRps: number;
   /** 平均延迟（毫秒） */
   avgLatencyMs: number;
+  /** 节点级实时指标 */
+  nodeMetrics: NodeMetrics[];
 }
 
 // ============================================================================
@@ -133,6 +135,58 @@ export interface ErrorStatistics {
 }
 
 // ============================================================================
+// 节点级指标与统计
+// ============================================================================
+
+/** 节点级实时指标（压测过程中实时更新） */
+export interface NodeMetrics {
+  nodeUuid: string;
+  nodeName: string;
+  nodeType: string;
+  totalExecutions: number;
+  successfulExecutions: number;
+  failedExecutions: number;
+  successRate: number;
+  avgLatencyMs: number;
+  minLatencyMs: number;
+  maxLatencyMs: number;
+  p50LatencyMs: number;
+  p95LatencyMs: number;
+}
+
+/** 节点级别统计（最终报告用） */
+export interface NodeLevelStatistics {
+  nodeUuid: string;
+  nodeName: string;
+  nodeType: string;
+  totalExecutions: number;
+  successfulExecutions: number;
+  failedExecutions: number;
+  successRate: number;
+  responseTimeDistribution: ResponseTimeDistribution;
+  errorStatistics: ErrorStatistics[];
+}
+
+/** 节点类型聚合统计 */
+export interface NodeTypeStatistics {
+  nodeType: string;
+  nodeCount: number;
+  totalExecutions: number;
+  successfulExecutions: number;
+  failedExecutions: number;
+  successRate: number;
+  responseTimeDistribution: ResponseTimeDistribution;
+}
+
+/** 压测报告元数据（用于历史列表） */
+export interface StressTestReportMetadata {
+  uuid: string;
+  flowUuid: string;
+  flowName: string;
+  startTime: number;
+}
+
+// ============================================================================
 // 压力测试报告
 // ============================================================================
 
@@ -160,6 +214,10 @@ export interface StressTestReport {
   responseTimeDistribution: ResponseTimeDistribution;
   /** 错误统计列表（按错误类型分组） */
   errorStatistics: ErrorStatistics[];
+  /** 节点级别统计 */
+  nodeStatistics: NodeLevelStatistics[];
+  /** 节点类型聚合统计 */
+  nodeTypeStatistics: NodeTypeStatistics[];
 }
 
 // ============================================================================
