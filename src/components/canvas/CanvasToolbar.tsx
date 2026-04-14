@@ -50,6 +50,9 @@ export function CanvasToolbar() {
     useExecutionStore.getState().clearExecutionState();
     useUIStore.setState({ isHistoryPanelOpen: true, bottomPanelTab: 'running' });
 
+    // 清理残留调试数据
+    useDebugStore.getState().clearDebugData();
+
     // 每次执行前清空日志
     clearLogs();
 

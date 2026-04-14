@@ -5,7 +5,7 @@
  */
 import { create } from 'zustand';
 import type { DebugStatus, PauseReason, ExecutionStackEntry, DebugEvent } from '@/types/debug';
-import type { FlowExecutionReport } from '@/types/report';
+import type { FlowExecutionReport, NodeExecutionReport } from '@/types/report';
 import { DEBUG_HEALTH_CONFIG } from '@/types/debug';
 import { startDebug, sendDebugCommand, endDebug as endDebugService, saveFlowReport } from '@/services/tauri';
 import type { Flow } from '@/types/flow';
@@ -13,6 +13,7 @@ import { useSettingsStore } from './settings';
 import { useExecutionStore } from './execution';
 import { useConsoleStore } from './console';
 import { useWsStreamStore } from './wsStream';
+import { useUIStore } from './ui';
 import { toast } from 'sonner';
 
 // ============================================================================
@@ -170,6 +171,62 @@ function clearCommandTimeout() {
 }
 
 // ============================================================================
+// 调试事件 → 执行状态桥接辅助函数
+// ============================================================================
+
+/**
+ * 将 ExecutionStackEntry 转换为 NodeExecutionReport，供 ExecutionPanel 使用
+ */
+function stackEntryToReport(entry: ExecutionStackEntry): NodeExecutionReport {
+  const endTime = entry.ended_at ?? entry.started_at;
+  const durationMs = entry.ended_at ? entry.ended_at - entry.started_at : 0;
+
+  let status: NodeExecutionReport['status'] = entry.success ? 'success' : 'failed';
+  if (entry.skip_reason) {
+    status = 'skipped';
+  }
+
+  return {
+    node_uuid: entry.node_uuid,
+    node_type: entry.node_type,
+    node_name: entry.node_name,
+    start_time: entry.started_at,
+    end_time: endTime,
+    duration_ms: durationMs,
+    status,
+    input_data: entry.input,
+    output_data: entry.output,
+    error: entry.error
+      ? { error_kind: 'execution', message: entry.error }
+      : undefined,
+    resolved_config: entry.resolved_config,
+    variable_changes: entry.variable_changes,
+    skip_reason: entry.skip_reason,
+  };
+}
+
+/**
+ * 从执行堆栈构建 nodeReportsMap 并同步到 executionStore
+ */
+function syncStackToExecutionStore(
+  executionStack: ExecutionStackEntry[],
+  currentNodeUuid?: string | null,
+) {
+  const nodeReportsMap: Record<string, NodeExecutionReport> = {};
+  for (const entry of executionStack) {
+    if (entry.ended_at !== undefined) {
+      nodeReportsMap[entry.node_uuid] = stackEntryToReport(entry);
+    }
+  }
+
+  useExecutionStore.setState({
+    nodeReportsMap,
+    completedNodeCount: Object.keys(nodeReportsMap).length,
+    currentNodeUuid: currentNodeUuid ?? null,
+  });
+}
+
+// ============================================================================
 // Store 实现
 // ============================================================================
 
@@ -190,6 +247,12 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         lastHeartbeatTime: Date.now(),
         healthStatus: 'healthy',
       });
+
+      // 清空执行状态（含 report、nodeReportsMap 等），确保不显示上次运行结果
+      useExecutionStore.getState().clearExecutionState();
+
+      // 打开底部面板并切换到运行标签
+      useUIStore.setState({ isHistoryPanelOpen: true, bottomPanelTab: 'running' });
 
       // 启动心跳检查
       startHeartbeatCheck();
@@ -373,6 +436,21 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         status: 'running',
         healthStatus: 'healthy',
       });
+
+      // 桥接：初始化 executionStore 执行状态
+      // 使用动态导入避免循环依赖
+      import('./flow').then(({ useFlowStore }) => {
+        const totalNodes = useFlowStore.getState().flow?.nodes.length ?? 0;
+        useExecutionStore.setState({
+          isExecuting: true,
+          totalNodes,
+          nodeReportsMap: {},
+          completedNodeCount: 0,
+          currentNodeUuid: null,
+          report: null,
+          error: null,
+        });
+      });
     } else if ('PausedAtNode' in event) {
       // 收到暂停事件，清除命令超时
       clearCommandTimeout();
@@ -389,9 +467,24 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         previousStatus: null,
         healthStatus: 'healthy',
       });
+
+      // 桥接：根据暂停原因决定 currentNodeUuid
+      // - breakpoint: 节点尚未执行，标记为 running（当前正在等待的节点）
+      // - step_complete: 节点刚执行完，已通过 execution_stack 同步到 nodeReportsMap
+      const isBreakpoint = reason.type === 'breakpoint';
+      syncStackToExecutionStore(
+        execution_stack,
+        isBreakpoint ? node_uuid : null,
+      );
     } else if ('NodeExecuted' in event) {
       const { output } = event.NodeExecuted;
       set({ currentNodeOutput: output });
+
+      // 桥接：NodeExecuted 携带的数据有限，仅标记当前正在执行的节点
+      // 完整的状态同步会在下一个 PausedAtNode 中完成
+      useExecutionStore.setState({
+        currentNodeUuid: event.NodeExecuted.node_uuid,
+      });
     } else if ('SessionEnded' in event) {
       // 会话结束，清理定时器
       clearAllTimers();
@@ -412,6 +505,9 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         executionStack: execution_stack,
       });
 
+      // 桥接：从最终执行堆栈同步所有节点报告到 executionStore
+      syncStackToExecutionStore(execution_stack, null);
+
       // 如果有报告，保存并呈现
       if (report) {
         // 1. 保存报告到后端
@@ -429,6 +525,9 @@ export const useDebugStore = create<DebugState>((set, get) => ({
           action: { label: '查看报告', onClick: () => useExecutionStore.getState().openReportDialog() },
           duration: 10000,
         });
+      } else {
+        // 没有最终报告时也要标记执行结束
+        useExecutionStore.setState({ isExecuting: false });
       }
     } else if ('VariableModified' in event) {
       const { name, value } = event.VariableModified;
@@ -466,6 +565,9 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         // 设置只读标记，保留调试数据
         isDebugDataReadOnly: true,
       });
+
+      // 桥接：标记执行结束
+      useExecutionStore.setState({ isExecuting: false });
     } else if ('Heartbeat' in event) {
       // 心跳事件 - 更新心跳时间（已在顶部更新）
       // 可以在这里验证后端状态是否与前端一致
@@ -483,6 +585,9 @@ export const useDebugStore = create<DebugState>((set, get) => ({
           isCommandPending: false,
           previousStatus: null,
         });
+
+        // 桥接：心跳修复时也同步当前节点
+        useExecutionStore.setState({ currentNodeUuid: current_node_uuid || null });
       }
       
       // 更新当前节点 UUID（如果后端有值且状态一致）
@@ -550,6 +655,8 @@ export const useDebugStore = create<DebugState>((set, get) => ({
     // 清除所有调试数据，恢复正常操作模式
     clearAllTimers();
     set(initialState);
+    // 同时清理执行状态，确保运行标签完全重置
+    useExecutionStore.getState().clearExecutionState();
   },
 
   reset: () => {
