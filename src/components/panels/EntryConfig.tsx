@@ -259,18 +259,7 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
         )}
       </div>
 
-      {/* 执行流程说明 */}
-      <div className="rounded-lg border border-blue-200/50 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 p-4 overflow-hidden">
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-blue-900 flex items-center gap-2">
-            <PlayCircle className="h-4 w-4" />
-            执行流程
-          </h4>
-          <p className="text-sm leading-relaxed text-blue-700/90 whitespace-normal break-words">
-            点击工具栏中的「执行」按钮即可开始执行整个流程。
-          </p>
-        </div>
-      </div>
+
     </form>
   );
 }

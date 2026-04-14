@@ -592,15 +592,15 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
       </div>
 
       {/* 提示信息 */}
-      <div className="flex items-start gap-2 rounded-md bg-sky-50/50 border border-sky-200/50 p-3">
-        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
-        <div className="text-xs text-sky-700/90 space-y-1">
-          <p className="font-medium text-sky-800">使用说明：</p>
+      <div className="flex items-start gap-2 rounded-md bg-sky-50/60 dark:bg-sky-950/40 border border-sky-200/50 dark:border-sky-700/40 p-3">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500 dark:text-sky-400" />
+        <div className="text-xs text-sky-700/90 dark:text-sky-300/90 space-y-1">
+          <p className="font-medium text-sky-800 dark:text-sky-200">使用说明：</p>
           <p>1. 选择已建立的数据库连接</p>
           <p>2. 编写 SQL 查询语句，支持 ? 占位符</p>
           <p>3. 可选配置参数化查询和结果映射</p>
           <p>4. 查询结果可存储到变量供后续节点使用</p>
-          <p className="text-sky-600/70 mt-2">
+          <p className="text-sky-600/70 dark:text-sky-400 mt-2">
             提示：使用 output_mappings 可精确提取查询结果中的特定字段
           </p>
         </div>
