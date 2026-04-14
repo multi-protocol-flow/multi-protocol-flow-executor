@@ -370,7 +370,15 @@ export type DbIsolationLevelFormData = z.infer<typeof dbIsolationLevelSchema>;
  */
 export const dbConnectConfigSchema = z.object({
   type: z.literal('db_connect'),
-  connection_uuid: z.string().min(1, '连接 UUID 不能为空'),
+  driver: z.string().optional(),
+  connection_string: z.string().optional(),
+  host: z.string().optional(),
+  port: z.number().optional(),
+  database: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+  min_connections: z.number().optional(),
+  max_connections: z.number().optional(),
   test_query: z.string().optional(),
   connect_timeout_ms: z.number().min(1000).max(300000).optional(),
 });

@@ -111,7 +111,7 @@ export type {
 export type { Variable, VariablePool, OutputMapping, InitialVariable } from './variable';
 
 // 数据库类型
-export type { DbDriver, DbConnection, DbFetchMode, DbIsolationLevel } from './database';
+export type { DbDriver, DbFetchMode, DbIsolationLevel } from './database';
 
 // 调试类型
 export type {

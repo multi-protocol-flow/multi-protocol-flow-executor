@@ -370,11 +370,28 @@ export interface WsCloseConfig {
 
 /**
  * DB Connect 节点配置
+ * 与 Rust DbConnectConfig 对齐 (node_config.rs)
  */
 export interface DbConnectConfig {
   type: 'db_connect';
-  /** 连接 UUID */
-  connection_uuid: string;
+  /** 数据库驱动类型: "postgres" | "mysql" | "sqlite" | "redis" */
+  driver?: string;
+  /** 连接字符串（SQLite 使用文件路径或 :memory:） */
+  connection_string?: string;
+  /** 主机地址（PostgreSQL/MySQL） */
+  host?: string;
+  /** 端口号（PostgreSQL/MySQL） */
+  port?: number;
+  /** 数据库名 */
+  database?: string;
+  /** 用户名 */
+  username?: string;
+  /** 密码 */
+  password?: string;
+  /** 最小连接数 */
+  min_connections?: number;
+  /** 最大连接数 */
+  max_connections?: number;
   /** 测试查询语句 */
   test_query?: string;
   /** 连接超时（毫秒） */

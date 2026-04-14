@@ -7,7 +7,6 @@ export { useFlowListStore } from './flowList';
 export { useExecutionStore } from './execution';
 export { useUIStore } from './ui';
 export { useDebugStore } from './debug';
-export { useConnectionsStore } from './connections';
 export { useStressTestStore } from './stressTest';
 
 // Flow store selectors
@@ -60,21 +59,6 @@ export {
   selectIsPaused,
   selectIsDebugDataReadOnly,
 } from './debug';
-
-// Connections store selectors
-export {
-  selectDbConnections,
-  selectActiveDbConnectionId,
-  selectDbConnectionsLoading,
-  selectDbConnectionsError,
-} from './connections';
-
-// Connections store types
-export type {
-  ConnectionsState,
-  ConnectionsActions,
-  ConnectionsStore,
-} from './connections';
 
 // StressTest store selectors
 export {

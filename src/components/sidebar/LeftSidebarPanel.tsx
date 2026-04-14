@@ -5,11 +5,11 @@
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
-import { FlowListPanel, ConnectionsPanel } from '@/components/sidebar';
+import { FlowListPanel } from '@/components/sidebar';
 import { NodeConfigPanel } from '@/components/panels';
 import { useUIStore, useFlowStore, useDebugStore } from '@/stores';
 import { selectIsDebugging } from '@/stores/debug';
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef } from 'react';
 
 /** 面板标题栏高度 */
 const HEADER_HEIGHT = 32;
@@ -20,60 +20,25 @@ const FLOW_LIST_COLLAPSED_HEIGHT = HEADER_HEIGHT;
 /** 流程列表最小高度（保证不会被完全挤掉） */
 const FLOW_LIST_MIN_HEIGHT = 100;
 
-/** 底部面板最小高度 */
-const BOTTOM_PANEL_MIN_HEIGHT = 100;
-
 export function LeftSidebarPanel() {
   // 获取选中节点（用于调试模式下的只读配置显示）
   const getSelectedNode = useFlowStore((state) => state.getSelectedNode);
 
   // UI 状态
   const isFlowListCollapsed = useUIStore((state) => state.isFlowListCollapsed);
-  const isConnectionsPanelCollapsed = useUIStore((state) => state.isConnectionsPanelCollapsed);
-  const connectionsPanelHeight = useUIStore((state) => state.connectionsPanelHeight);
   
   // 调试状态
   const isDebugging = useDebugStore(selectIsDebugging);
 
   // Actions
   const toggleFlowListCollapsed = useUIStore((state) => state.toggleFlowListCollapsed);
-  const toggleConnectionsPanelCollapsed = useUIStore((state) => state.toggleConnectionsPanelCollapsed);
-  const setConnectionsPanelHeight = useUIStore((state) => state.setConnectionsPanelHeight);
   const openNewFlowDialog = useUIStore((state) => state.openNewFlowDialog);
-  const openConnectionDialog = useUIStore((state) => state.openConnectionDialog);
   
   // 获取当前选中的节点
   const selectedNode = getSelectedNode();
 
-  // 容器引用和可用高度计算
+  // 容器引用
   const containerRef = useRef<HTMLDivElement>(null);
-  const [maxBottomPanelHeight, setMaxBottomPanelHeight] = useState(400);
-
-  // 计算底部面板区的最大可用高度（仅正常模式需要）
-  const updateMaxHeight = useCallback(() => {
-    if (!containerRef.current) return;
-    const containerHeight = containerRef.current.clientHeight;
-    // 流程列表至少保留最小高度 + 标题栏
-    const flowListReserved = isFlowListCollapsed 
-      ? FLOW_LIST_COLLAPSED_HEIGHT 
-      : FLOW_LIST_MIN_HEIGHT + HEADER_HEIGHT;
-    const available = containerHeight - flowListReserved;
-    setMaxBottomPanelHeight(Math.max(BOTTOM_PANEL_MIN_HEIGHT, available));
-  }, [isFlowListCollapsed]);
-
-  useEffect(() => {
-    updateMaxHeight();
-    
-    // 监听窗口大小变化
-    window.addEventListener('resize', updateMaxHeight);
-    return () => window.removeEventListener('resize', updateMaxHeight);
-  }, [updateMaxHeight]);
-
-  // 折叠状态变化时重新计算
-  useEffect(() => {
-    // 延迟一帧确保 DOM 更新完成
-    requestAnimationFrame(updateMaxHeight);
-  }, [updateMaxHeight]);
 
   return (
     <div ref={containerRef} className="h-full flex flex-col bg-background overflow-hidden">
@@ -108,38 +73,6 @@ export function LeftSidebarPanel() {
             {/* 流程列表内容（不含标题栏） */}
             <FlowListPanel showHeader={false} />
           </CollapsiblePanel>
-
-          {/* ===== 底部面板区：连接面板 ===== */}
-          <div className="shrink-0 flex flex-col mt-auto overflow-hidden">
-            {/* 数据库连接面板 */}
-            <CollapsiblePanel
-              title="数据库连接"
-              isCollapsed={isConnectionsPanelCollapsed}
-              onToggle={toggleConnectionsPanelCollapsed}
-              height={connectionsPanelHeight}
-              onHeightChange={setConnectionsPanelHeight}
-              resizable={!isConnectionsPanelCollapsed}
-              maxHeight={maxBottomPanelHeight}
-              className="border-t border-border"
-              headerRight={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openConnectionDialog();
-                  }}
-                  className="h-6 w-6 rounded-md hover:bg-accent"
-                  title="新建连接"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </Button>
-              }
-            >
-              {/* 连接面板内容（不含标题栏） */}
-              <ConnectionsPanel showHeader={false} />
-            </CollapsiblePanel>
-          </div>
         </>
       )}
     </div>
