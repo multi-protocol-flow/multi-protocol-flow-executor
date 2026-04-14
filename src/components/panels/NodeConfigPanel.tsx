@@ -116,8 +116,8 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   const { showConfirm } = useUIStore();
   const modifyNodeConfig = useDebugStore((state) => state.modifyNodeConfig);
   
-  // 只读模式使用外部传入的节点，否则使用 store 中的选中节点
-  const selectedNode = readOnly ? externalNode : getSelectedNode();
+  // 优先使用外部传入的节点，否则回退到 store 中的选中节点
+  const selectedNode = externalNode ?? getSelectedNode();
   
   // 节点名称编辑状态
   const [isEditingName, setIsEditingName] = useState(false);
