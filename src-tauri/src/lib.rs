@@ -47,7 +47,10 @@ pub use tauri_commands::{
     get_stress_test_status,
     // 数据库连接命令
     test_db_connection,
+    // 执行会话管理
+    cancel_flow,
     DebugSessionManager,
+    ExecutionSessionManager,
 };
 
 // 导出适配器（供测试使用）
@@ -72,6 +75,9 @@ pub fn run() {
             
             // 注册压力测试会话管理器状态
             app.manage(Arc::new(flow_engine::stress_test::StressTestSessionManager::new()));
+            
+            // 注册执行会话管理器状态（用于取消流程执行）
+            app.manage(ExecutionSessionManager::new());
             
             // 从 store 读取日志目录配置
             let log_dir = match app.store("store/settings.bin") {
@@ -130,7 +136,9 @@ pub fn run() {
             stop_stress_test,
             get_stress_test_status,
             // 数据库连接命令
-            test_db_connection
+            test_db_connection,
+            // 执行会话管理
+            cancel_flow
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

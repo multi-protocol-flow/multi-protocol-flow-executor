@@ -21,6 +21,34 @@ use flow_engine::flow::Flow;
 use flow_engine::debug::DebugEvent;
 use crate::tauri_adapters::{create_log_sender, TauriExecutionEventSender, TauriDebugEventSender};
 
+// ============================================================================
+// 执行会话管理
+// ============================================================================
+
+/// 执行会话管理器
+///
+/// 管理当前流程执行会话的取消信号发送端。
+/// 使用 `std::sync::Mutex` 保护，因为锁持有时间极短（仅在存取 sender 时）。
+pub struct ExecutionSessionManager {
+    /// 取消信号发送端（watch channel）
+    cancel_sender: std::sync::Mutex<Option<tokio::sync::watch::Sender<bool>>>,
+}
+
+impl ExecutionSessionManager {
+    /// 创建新的执行会话管理器
+    pub fn new() -> Self {
+        Self {
+            cancel_sender: std::sync::Mutex::new(None),
+        }
+    }
+}
+
+impl Default for ExecutionSessionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 
 
 // ============================================================================
@@ -37,11 +65,18 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
 
 /// 执行流程命令
 ///
-/// 执行指定的流程，调用 `FlowExecutor` 执行引擎，并通过 Channel 发送日志事件
+/// 执行指定的流程，调用 `FlowExecutor` 执行引擎，并通过 Channel 发送日志事件。
+/// 创建取消信号通道并存储 sender，允许前端通过 `cancel_flow` 命令取消执行。
 ///
 /// # 日志发送策略
 /// - **调试模式**: 同步发送日志，确保日志顺序和完整性，便于调试
 /// - **发布模式**: 队列异步发送日志，不阻塞执行流程，提升性能
+///
+/// # 取消机制
+/// - 创建 `watch::channel(false)` 取消信号通道
+/// - sender 存储在 `ExecutionSessionManager` 中
+/// - receiver 传递给执行引擎用于取消检查
+/// - 执行完成后自动清理 sender
 #[tauri::command]
 pub async fn execute_flow(
     input: ExecuteFlowCommandInput,
@@ -49,25 +84,61 @@ pub async fn execute_flow(
     on_event: Channel<LogEvent>,
     on_execution_event: Channel<ExecutionEvent>,
     on_ws_event: Channel<DebugEvent>,
-) -> ExecuteFlowCommandOutput {
+    state: State<'_, ExecutionSessionManager>,
+) -> Result<ExecuteFlowCommandOutput, String> {
+    // 创建取消信号通道
+    let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
+
+    // 存储 sender 到会话管理器
+    {
+        let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
+        *guard = Some(cancel_tx);
+    }
+
     // 创建队列日志发送器（调试模式同步，发布模式异步）
     let (log_sender, log_worker) = create_log_sender(on_event);
-    
+
     // 在后台启动日志消费任务
     tokio::spawn(log_worker);
-    
+
     // 创建执行事件发送器（包装 Tauri Channel）
     let execution_event_sender: Option<Arc<dyn ExecutionEventSender>> = Some(
         Arc::new(TauriExecutionEventSender::new(on_execution_event))
     );
-    
+
     // 创建 WS 流事件发送器（复用 DebugEvent 类型，用于普通执行中的 WS 消息流）
     let debug_event_sender: Option<Arc<dyn DebugEventSender>> = Some(
         Arc::new(TauriDebugEventSender::new(on_ws_event))
     );
-    
-    // 执行流程
-    flow_engine::commands::execute_flow(input, flow, Some(log_sender), execution_event_sender, debug_event_sender, None).await
+
+    // 执行流程（传入取消信号 receiver）
+    let result = flow_engine::commands::execute_flow(
+        input, flow, Some(log_sender), execution_event_sender, debug_event_sender, Some(cancel_rx),
+    ).await;
+
+    // 执行完成后清理会话（take sender 使其 drop，后续 cancel_flow 调用将返回"没有活跃的执行会话"）
+    {
+        let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
+        *guard = None;
+    }
+
+    Ok(result)
+}
+
+/// 取消流程执行
+///
+/// 向当前正在执行的流程发送取消信号。
+/// 幂等操作：第二次调用返回"没有活跃的执行会话"错误。
+#[tauri::command]
+pub fn cancel_flow(state: State<'_, ExecutionSessionManager>) -> Result<(), String> {
+    let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
+    match guard.take() {
+        Some(tx) => {
+            let _ = tx.send(true);
+            Ok(())
+        }
+        None => Err("没有活跃的执行会话".to_string()),
+    }
 }
 
 /// 更新节点命令（桩实现）
