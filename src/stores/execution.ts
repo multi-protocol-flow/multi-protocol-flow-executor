@@ -174,6 +174,8 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
       currentNodeUuid: null,
       completedNodeCount: 0,
       totalNodes: 0,
+      report: null,
+      error: null,
     });
   },
 
