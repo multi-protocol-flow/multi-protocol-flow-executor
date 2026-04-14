@@ -3,7 +3,7 @@
  * 位于画布顶部居中，包含执行按钮等操作
  */
 import { useState, useMemo } from 'react';
-import { Play, Loader2, Bug, Activity, Variable as VariableIcon, X } from 'lucide-react';
+import { Play, Square, Bug, Activity, Variable as VariableIcon, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
@@ -154,31 +154,38 @@ export function CanvasToolbar() {
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-start gap-2">
       {/* 主工具栏 */}
       <div className="flex items-center gap-3 bg-background/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-border/50 dark:border-white/20">
-        {/* 执行按钮 */}
-        <button
-          type="button"
-          onClick={handleExecute}
-          disabled={isDisabled}
-          title={isExecuting ? '执行中...' : '执行流程'}
-          className={cn(
-            'flex items-center justify-center',
-            'transition-all duration-150',
-            !isDisabled && [
-              'text-red-500 hover:text-red-600',
-              'hover:scale-110',
-              'cursor-pointer',
-            ],
-            isDisabled && [
-              'text-muted-foreground cursor-not-allowed',
-            ]
-          )}
-        >
-          {isExecuting ? (
-            <Loader2 className="w-6 h-6 animate-spin" />
-          ) : (
+        {/* 执行/停止按钮 */}
+        {isExecuting ? (
+          <button
+            type="button"
+            onClick={() => useExecutionStore.getState().cancelExecution()}
+            title="停止执行"
+            className="flex items-center justify-center transition-all duration-150 text-red-600 hover:text-red-700 hover:scale-110 cursor-pointer"
+          >
+            <Square className="w-6 h-6" fill="currentColor" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleExecute}
+            disabled={isDisabled}
+            title="执行流程"
+            className={cn(
+              'flex items-center justify-center',
+              'transition-all duration-150',
+              !isDisabled && [
+                'text-red-500 hover:text-red-600',
+                'hover:scale-110',
+                'cursor-pointer',
+              ],
+              isDisabled && [
+                'text-muted-foreground cursor-not-allowed',
+              ]
+            )}
+          >
             <Play className="w-6 h-6" fill="currentColor" stroke="none" />
-          )}
-        </button>
+          </button>
+        )}
 
         {/* 调试按钮 */}
         <button
