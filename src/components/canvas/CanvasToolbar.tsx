@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
+import { useWsStreamStore } from '@/stores/wsStream';
 import { useStressTestStore, selectIsStressTestRunning } from '@/stores/stressTest';
 import { executeFlowWithChannel, saveFlowReport } from '@/services/tauri';
 import { cn } from '@/lib/utils';
@@ -66,8 +67,13 @@ export function CanvasToolbar() {
       useExecutionStore.getState().handleExecutionEvent(event);
     };
 
+    // WS 流事件回调函数（实时 WS 消息流）
+    const handleWsEvent = (event: import('@/types/debug').DebugEvent) => {
+      useWsStreamStore.getState().handleWsEvent(event);
+    };
+
     try {
-      const result = await executeFlowWithChannel(flow, handleLog, handleExecutionEvent);
+      const result = await executeFlowWithChannel(flow, handleLog, handleExecutionEvent, handleWsEvent);
 
       if (result.success && result.flow_report) {
         setReport(result.flow_report);
