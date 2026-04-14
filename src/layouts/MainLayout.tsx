@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/sonner';
 
 import { LeftSidebarPanel } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
-import { NodeConfigPanel, SettingsPanel, DebugPanel } from '@/components/panels';
+import { NodeConfigPanel, SettingsPanel } from '@/components/panels';
 import { ExecutionReport, ExecutionHistory, ConsolePanel, ExecutionPanel } from '@/components/execution';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
@@ -76,8 +76,8 @@ export function MainLayout() {
   const isDebugging = useDebugStore(selectIsDebugging);
   const isDebugDataReadOnly = useDebugStore(selectIsDebugDataReadOnly);
   
-  // 是否显示调试面板（调试中或调试数据只读时）
-  const showDebugPanel = isDebugging || isDebugDataReadOnly;
+  // 调试时右侧面板只读
+  const isRightPanelReadOnly = isDebugging || isDebugDataReadOnly;
 
   // Console store values
   const filter = useConsoleStore((state) => state.filter);
@@ -230,13 +230,6 @@ export function MainLayout() {
       window.removeEventListener('mouseup', handleLeftPanelMouseUp);
     };
   }, [isLeftPanelDragging, handleLeftPanelMouseMove, handleLeftPanelMouseUp]);
-
-  // 调试进行中时自动打开右侧面板（只读模式下不自动打开，允许用户折叠）
-  useEffect(() => {
-    if (isDebugging && !isConfigPanelOpen) {
-      toggleConfigPanel();
-    }
-  }, [isDebugging, isConfigPanelOpen, toggleConfigPanel]);
 
   // 底部面板内容延迟渲染：展开动画结束后渲染，收起时立即移除
   useEffect(() => {
@@ -536,38 +529,34 @@ export function MainLayout() {
           )}
           {isConfigPanelOpen && (
             <div className="h-full min-w-0 overflow-hidden pl-2" style={{ width: configPanelWidth }}>
-              {showDebugPanel ? (
-                <DebugPanel />
-              ) : configPanelMode === 'settings' ? (
+              {configPanelMode === 'settings' ? (
                 <SettingsPanel />
               ) : (
-                <NodeConfigPanel />
+                <NodeConfigPanel readOnly={isRightPanelReadOnly} />
               )}
             </div>
           )}
         </aside>
 
-        {/* 右侧折叠按钮 - 调试进行中时禁用（只读模式允许折叠） */}
-        {!isDebugging && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleConfigPanel}
-            className={cn(
-              'absolute z-20 h-8 w-6 rounded-r-none rounded-l-lg top-[calc(50%-16px)]',
-              'bg-background hover:bg-accent border border-r-0 border-border',
-              'transition-colors duration-150'
-            )}
-            style={{ right: isConfigPanelOpen ? configPanelWidth : 0 }}
-            title={isConfigPanelOpen ? '收起配置面板' : '展开配置面板'}
-          >
-            {isConfigPanelOpen ? (
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            ) : (
-              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-            )}
-          </Button>
-        )}
+        {/* 右侧折叠按钮 */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleConfigPanel}
+          className={cn(
+            'absolute z-20 h-8 w-6 rounded-r-none rounded-l-lg top-[calc(50%-16px)]',
+            'bg-background hover:bg-accent border border-r-0 border-border',
+            'transition-colors duration-150'
+          )}
+          style={{ right: isConfigPanelOpen ? configPanelWidth : 0 }}
+          title={isConfigPanelOpen ? '收起配置面板' : '展开配置面板'}
+        >
+          {isConfigPanelOpen ? (
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+          )}
+        </Button>
 
       </div>
 

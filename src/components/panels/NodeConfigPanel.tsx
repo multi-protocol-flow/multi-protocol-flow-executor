@@ -3,7 +3,8 @@
  * 根据节点类型显示不同的配置表单
  */
 import { useState, useRef, useEffect } from 'react';
-import { useFlowStore, useUIStore } from '@/stores';
+import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
+import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
 import { EntryConfig } from './EntryConfig';
 import { HttpConfig } from './HttpConfig';
 import { ConditionalConfig } from './ConditionalConfig';
@@ -24,7 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData, Node } from '@/types';
 import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendCollectConfig, isWsCloseConfig, isAssertionConfig, isDbConnectConfig, isDbQueryConfig, isDbBeginConfig, isDbCommitConfig, isDbRollbackConfig, isDbCloseConfig, isScriptConfig } from '@/types';
-import { Settings2, MousePointerClick, Trash2, Pencil, Lock } from 'lucide-react';
+import { Settings2, MousePointerClick, Trash2, Pencil, Lock, PencilLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -113,6 +114,7 @@ interface NodeConfigPanelProps {
 export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeConfigPanelProps) {
   const { getSelectedNode, updateNode, removeNode, selectNode } = useFlowStore();
   const { showConfirm } = useUIStore();
+  const modifyNodeConfig = useDebugStore((state) => state.modifyNodeConfig);
   
   // 只读模式使用外部传入的节点，否则使用 store 中的选中节点
   const selectedNode = readOnly ? externalNode : getSelectedNode();
@@ -121,6 +123,9 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingName, setEditingName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 调试模式下编辑配置弹窗状态
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // 当选中节点变化时，重置编辑状态
   useEffect(() => {
@@ -248,9 +253,22 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {readOnly && (
-              <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800">
-                只读
-              </Badge>
+              <>
+                <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800">
+                  只读
+                </Badge>
+                {selectedNode && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 gap-1.5 text-xs"
+                    onClick={() => setIsEditDialogOpen(true)}
+                  >
+                    <PencilLine className="h-3 w-3" />
+                    编辑配置
+                  </Button>
+                )}
+              </>
             )}
             <Badge 
               variant={typeConfig.badgeVariant}
@@ -393,6 +411,19 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
           </div>
         </ScrollArea>
       </CardContent>
+
+      {/* 调试模式下编辑配置弹窗 */}
+      {readOnly && selectedNode && (
+        <DebugNodeConfigDialog
+          open={isEditDialogOpen}
+          nodeData={selectedNode.data}
+          nodeName={selectedNode.name}
+          onSave={async (data) => {
+            await modifyNodeConfig(selectedNode.uuid, data);
+          }}
+          onCancel={() => setIsEditDialogOpen(false)}
+        />
+      )}
     </Card>
   );
 }
