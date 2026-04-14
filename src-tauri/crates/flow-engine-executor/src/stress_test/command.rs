@@ -37,7 +37,7 @@ pub struct GetStressTestStatusOutput {
 
 /// 压力测试事件（从后端发送到前端）
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum StressTestEvent {
     /// 压力测试已启动
     Started {
@@ -110,8 +110,13 @@ impl StressTestSessionManager {
         let mut session = self.session.write().await;
 
         // 检查是否已有会话
-        if session.is_some() {
-            return Err("已有压测会话在运行，请先停止当前会话".to_string());
+        if let Some(ref executor) = *session {
+            let progress = executor.get_progress().await;
+            if progress.status != StressTestStatus::Stopped {
+                return Err("已有压测会话在运行，请先停止当前会话".to_string());
+            }
+            // 会话已停止，清理它以允许重新启动
+            *session = None;
         }
 
         // 创建执行器（传入 event_sender）
@@ -310,6 +315,7 @@ mod tests {
                 failed_iterations: 5,
                 current_rps: 10.0,
                 avg_latency_ms: 150.0,
+                node_metrics: vec![],
             }),
         };
 
@@ -379,6 +385,7 @@ mod tests {
                 failed_iterations: 10,
                 current_rps: 10.5,
                 avg_latency_ms: 120.5,
+                node_metrics: vec![],
             },
         };
 
@@ -418,6 +425,8 @@ mod tests {
                 p99_ms: 450,
             },
             error_statistics: vec![],
+            node_statistics: vec![],
+            node_type_statistics: vec![],
         };
         let event = StressTestEvent::Ended { report };
 

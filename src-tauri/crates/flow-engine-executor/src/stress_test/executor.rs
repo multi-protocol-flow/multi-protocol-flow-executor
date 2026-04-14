@@ -243,6 +243,7 @@ impl StressTestExecutor {
 
         let statistics = state.metrics.get_statistics();
         let response_time = state.metrics.get_response_time_distribution();
+        let node_metrics = state.metrics.get_node_metrics();
 
         StressTestProgress {
             status: state.status.clone(),
@@ -252,6 +253,7 @@ impl StressTestExecutor {
             failed_iterations: statistics.failed,
             current_rps: statistics.rps,
             avg_latency_ms: response_time.avg_ms,
+            node_metrics,
         }
     }
 
@@ -357,6 +359,7 @@ impl StressTestExecutor {
                         failed_iterations: statistics.failed,
                         current_rps: statistics.rps,
                         avg_latency_ms: response_time.avg_ms,
+                        node_metrics: state_guard.metrics.get_node_metrics(),
                     }
                 };
 
@@ -455,6 +458,38 @@ impl StressTestExecutor {
                 metrics.record_failure("ExecutionFailed".to_string(), sample);
             }
 
+            // 记录每个节点的执行结果
+            for node_report in &execution_result.node_reports {
+                let node_latency = node_report.duration_ms;
+                let node_status = &node_report.status;
+                let status_str = format!("{:?}", node_status);
+                if status_str.contains("Success") {
+                    metrics.record_node_success(
+                        &node_report.node_uuid,
+                        &node_report.node_name,
+                        &node_report.node_type,
+                        node_latency,
+                    );
+                } else {
+                    let node_error = node_report.error.as_ref()
+                        .map(|e| format!("{:?}", e))
+                        .unwrap_or_else(|| "未知节点错误".to_string());
+                    let node_sample = ErrorSample {
+                        iteration: metrics.get_statistics().total_iterations,
+                        node_uuid: node_report.node_uuid.clone(),
+                        node_name: node_report.node_name.clone(),
+                        error_message: node_error.clone(),
+                    };
+                    metrics.record_node_failure(
+                        &node_report.node_uuid,
+                        &node_report.node_name,
+                        &node_report.node_type,
+                        "NodeFailed".to_string(),
+                        node_sample,
+                    );
+                }
+            }
+
             // 短暂休眠，避免过于紧密的循环
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
@@ -480,6 +515,8 @@ impl StressTestExecutor {
         let statistics = metrics.get_statistics();
         let response_time = metrics.get_response_time_distribution();
         let error_statistics = metrics.get_error_statistics();
+        let node_statistics = metrics.get_node_level_statistics();
+        let node_type_statistics = metrics.get_node_type_statistics();
 
         StressTestReport {
             uuid: Uuid::new_v4().to_string(),
@@ -506,6 +543,8 @@ impl StressTestExecutor {
                 p99_ms: response_time.p99_ms,
             },
             error_statistics,
+            node_statistics,
+            node_type_statistics,
         }
     }
 }

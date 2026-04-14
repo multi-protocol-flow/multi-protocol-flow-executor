@@ -60,6 +60,8 @@ pub fn generate_report(
     let statistics = metrics.get_statistics();
     let response_time = metrics.get_response_time_distribution();
     let error_statistics = metrics.get_error_statistics();
+    let node_statistics = metrics.get_node_level_statistics();
+    let node_type_statistics = metrics.get_node_type_statistics();
 
     // 生成报告 UUID
     let report_uuid = Uuid::new_v4().to_string();
@@ -90,6 +92,8 @@ pub fn generate_report(
             p99_ms: response_time.p99_ms,
         },
         error_statistics,
+        node_statistics,
+        node_type_statistics,
     };
 
     // 如果提供了存储目录，保存报告
