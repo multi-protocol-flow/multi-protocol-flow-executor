@@ -10,6 +10,7 @@ import {
   Circle,
   Clock,
   MousePointerClick,
+  Ban,
 } from 'lucide-react';
 import { useExecutionStore, useFlowStore } from '@/stores';
 import {
@@ -31,8 +32,8 @@ import type { Node } from '@/types';
 interface NodeStatusItemProps {
   /** 节点信息 */
   node: Node;
-  /** 执行状态: running / success / failed / pending */
-  status: 'running' | 'success' | 'failed' | 'pending';
+  /** 执行状态: running / success / failed / cancelled / pending */
+  status: 'running' | 'success' | 'failed' | 'cancelled' | 'pending';
   /** 是否选中 */
   isSelected: boolean;
   /** 执行耗时（ms），仅 completed 节点有值 */
@@ -64,6 +65,8 @@ function NodeStatusItem({
         );
       case 'failed':
         return <XCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />;
+      case 'cancelled':
+        return <Ban className="w-3.5 h-3.5 text-amber-500 shrink-0" />;
       default:
         return (
           <Circle className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />

@@ -13,7 +13,7 @@ import type { WsConnectionStream } from './ws_stream';
 /**
  * 执行状态枚举
  */
-export type ExecutionStatus = 'success' | 'failed' | 'skipped';
+export type ExecutionStatus = 'success' | 'failed' | 'skipped' | 'cancelled';
 
 // ============================================================================
 // 执行模式枚举

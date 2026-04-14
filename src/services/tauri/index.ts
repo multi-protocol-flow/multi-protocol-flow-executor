@@ -223,6 +223,25 @@ export async function force_end_debug(): Promise<void> {
 // ============================================================================
 
 /**
+ * 取消正在执行的流程
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @throws IpcError 如果取消失败
+ */
+export async function cancelFlow(): Promise<void> {
+  if (isTauriEnv()) {
+    const { cancelFlow: cancelFlowImpl } = await import('./flow');
+    return cancelFlowImpl();
+  } else {
+    // Mock 环境 - 无操作
+  }
+}
+
+// ============================================================================
+// 压力测试命令
+// ============================================================================
+
+/**
  * 启动压力测试
  * 根据运行环境自动选择真实 IPC 或 Mock 服务
  *

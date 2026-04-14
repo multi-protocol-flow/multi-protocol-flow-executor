@@ -69,7 +69,7 @@ interface ExecutionState {
   /** 检查是否有执行结果 */
   hasResult: () => boolean;
   /** 获取节点执行状态 */
-  getNodeExecutionStatus: (nodeUuid: string) => 'running' | 'success' | 'failed' | 'pending';
+  getNodeExecutionStatus: (nodeUuid: string) => 'running' | 'success' | 'failed' | 'cancelled' | 'pending';
   /** 获取节点增量执行报告 */
   getNodeExecutionReport: (nodeUuid: string) => NodeExecutionReport | null;
 }

@@ -16,4 +16,5 @@ export type ExecutionEvent =
   | { flowStarted: { flowUuid: string; flowName: string; totalNodes: number } }
   | { nodeStarted: { nodeUuid: string; nodeName: string; nodeType: string } }
   | { nodeCompleted: { report: NodeExecutionReport } }
-  | { flowCompleted: { report: FlowExecutionReport } };
+  | { flowCompleted: { report: FlowExecutionReport } }
+  | { flowCancelled: { flowUuid: string; reason: string } };

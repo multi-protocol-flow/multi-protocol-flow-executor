@@ -319,3 +319,11 @@ export async function executeFlowWithChannel(
     execution_time: endTime - startTime,
   };
 }
+
+/**
+ * Mock 取消流程
+ * 模拟后端 cancel_flow 命令行为
+ */
+export async function cancelFlow(): Promise<void> {
+  // Mock 环境 - 无操作
+}

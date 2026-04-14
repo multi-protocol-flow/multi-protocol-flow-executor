@@ -108,3 +108,17 @@ export async function executeFlowWithChannel(
     throw formatError(error, 'execute_flow');
   }
 }
+
+/**
+ * 取消正在执行的流程
+ * 调用后端 cancel_flow IPC 命令
+ *
+ * @throws IpcError 如果取消失败
+ */
+export async function cancelFlow(): Promise<void> {
+  try {
+    await invoke<void>('cancel_flow');
+  } catch (error) {
+    throw formatError(error, 'cancel_flow');
+  }
+}
