@@ -21,7 +21,6 @@ export function ExecuteButton() {
   const addLog = useConsoleStore((state) => state.addLog);
   const clearLogs = useConsoleStore((state) => state.clearLogs);
   const setConfigPanelOpen = useUIStore((state) => state.setConfigPanelOpen);
-  const setExecutionPanelOpen = useUIStore((state) => state.setExecutionPanelOpen);
   const clearExecutionState = useExecutionStore((state) => state.clearExecutionState);
   const reportDir = useSettingsStore((state) => state.reportDir);
 
@@ -31,9 +30,9 @@ export function ExecuteButton() {
     setIsExecuting(true);
     setConfigPanelOpen(false);
 
-    // 清空上次增量执行状态并打开进度面板
+    // 清空上次增量执行状态，打开底部面板并切换到运行标签
     clearExecutionState();
-    setExecutionPanelOpen(true);
+    useUIStore.setState({ isHistoryPanelOpen: true, bottomPanelTab: 'running' });
 
     // 每次执行前清空日志
     clearLogs();

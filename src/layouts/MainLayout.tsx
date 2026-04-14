@@ -12,6 +12,7 @@ import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 
 import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
+import type { BottomPanelTab } from '@/stores/ui';
 import { useConsoleStore } from '@/stores/console';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, Settings, GripVertical, GripHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -400,10 +401,13 @@ export function MainLayout() {
               <div className="h-full flex flex-col pt-2">
                 {/* 面板头部：Tab 切换 + 关闭按钮 */}
                 <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
-                    <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as 'history' | 'console')} className="w-auto">
+                    <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as BottomPanelTab)} className="w-auto">
                       <TabsList className="h-7 p-0.5">
                         <TabsTrigger value="history" className="h-6 px-3 text-xs">
                           执行历史
+                        </TabsTrigger>
+                        <TabsTrigger value="running" className="h-6 px-3 text-xs">
+                          运行
                         </TabsTrigger>
                         <TabsTrigger value="console" className="h-6 px-3 text-xs">
                           控制台
@@ -422,9 +426,12 @@ export function MainLayout() {
                   </div>
 
                   {/* Tab 内容 */}
-                  <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as 'history' | 'console')} className="flex-1 min-h-0">
+                  <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as BottomPanelTab)} className="flex-1 min-h-0">
                     <TabsContent value="history" className="m-0 h-full overflow-hidden">
                       <ExecutionHistory />
+                    </TabsContent>
+                    <TabsContent value="running" className="m-0 h-full overflow-hidden">
+                      <ExecutionPanel />
                     </TabsContent>
                     <TabsContent value="console" className="m-0 h-full overflow-hidden flex flex-col">
                       {/* 过滤控件 */}
@@ -562,8 +569,6 @@ export function MainLayout() {
           </Button>
         )}
 
-        {/* ===== 执行进度面板（最右侧） ===== */}
-        <ExecutionPanel />
       </div>
 
       {/* ===== 执行报告弹窗 ===== */}
