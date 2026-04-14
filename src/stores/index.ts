@@ -8,6 +8,7 @@ export { useExecutionStore } from './execution';
 export { useUIStore } from './ui';
 export { useDebugStore } from './debug';
 export { useStressTestStore } from './stressTest';
+export { useWsStreamStore } from './wsStream';
 
 // Flow store selectors
 export {
@@ -68,3 +69,9 @@ export {
   selectIsStressTestRunning,
   selectStressTestError,
 } from './stressTest';
+
+// WsStream store selectors
+export {
+  selectWsStreams,
+  selectActiveWsConnectionId,
+} from './wsStream';

@@ -6,13 +6,13 @@
 import { create } from 'zustand';
 import type { DebugStatus, PauseReason, ExecutionStackEntry, DebugEvent } from '@/types/debug';
 import type { FlowExecutionReport } from '@/types/report';
-import type { WsConnectionStream, WsMessage, WsStreamSegment } from '@/types/ws_stream';
 import { DEBUG_HEALTH_CONFIG } from '@/types/debug';
 import { startDebug, sendDebugCommand, endDebug as endDebugService, saveFlowReport } from '@/services/tauri';
 import type { Flow } from '@/types/flow';
 import { useSettingsStore } from './settings';
 import { useExecutionStore } from './execution';
 import { useConsoleStore } from './console';
+import { useWsStreamStore } from './wsStream';
 import { toast } from 'sonner';
 
 // ============================================================================
@@ -53,10 +53,6 @@ interface DebugState {
   lastDebugReport: FlowExecutionReport | null;
   /** 调试数据是否为只读模式（调试结束后保留数据但禁止编辑） */
   isDebugDataReadOnly: boolean;
-  /** WebSocket 连接流映射 (connection_id -> WsConnectionStream) */
-  wsStreams: Map<string, WsConnectionStream>;
-  /** 当前活动的 WebSocket 连接 ID */
-  activeConnectionId: string | null;
 
   // ===== Actions =====
   /** 启动调试会话 */
@@ -83,17 +79,6 @@ interface DebugState {
   clearDebugData: () => void;
   /** 重置状态 */
   reset: () => void;
-  // ===== WebSocket 事件处理 =====
-  /** 处理 WebSocket 连接创建事件 */
-  handleWsStreamCreated: (stream: WsConnectionStream) => void;
-  /** 处理 WebSocket 消息接收事件 */
-  handleWsMessageReceived: (connectionId: string, message: WsMessage) => void;
-  /** 处理 WebSocket 消息发送事件 */
-  handleWsMessageSent: (connectionId: string, message: WsMessage) => void;
-  /** 处理 WebSocket 流所有者变更事件 */
-  handleWsStreamOwnerChanged: (connectionId: string, ownerNodeUuid: string | null) => void;
-  /** 处理 WebSocket 流关闭事件 */
-  handleWsStreamClosed: (connectionId: string) => void;
 }
 
 // ============================================================================
@@ -116,8 +101,6 @@ const initialState = {
   previousStatus: null,
   lastDebugReport: null,
   isDebugDataReadOnly: false,
-  wsStreams: new Map<string, WsConnectionStream>(),
-  activeConnectionId: null,
 };
 
 // ============================================================================
@@ -506,125 +489,12 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       if (current_node_uuid !== undefined && get().status === backendStatus) {
         set({ currentNodeUuid: current_node_uuid });
       }
-    } else if ('WsStreamCreated' in event) {
-      // WebSocket 连接创建事件（后端发送，需转换为前端格式）
-      // 后端发送: { connection_id, url, owner_node_uuid, owner_node_name }
-      // 前端期望: WsConnectionStream
-      const { connection_id, url, owner_node_uuid, owner_node_name } = event.WsStreamCreated;
-      const stream: WsConnectionStream = {
-        connection_id,
-        url,
-        current_owner_node_uuid: owner_node_uuid,
-        segments: [{
-          node_uuid: owner_node_uuid,
-          node_name: owner_node_name,
-          node_type: 'ws_connect',
-          started_at: Date.now(),
-          ended_at: null,
-          messages: [],
-          max_messages: 1000,
-          dropped_message_count: 0,
-        }],
-        max_messages_per_segment: 1000,
-        max_total_messages: 10000,
-        is_closed: false,
-      };
-      get().handleWsStreamCreated(stream);
-    } else if ('WsMessageReceived' in event) {
-      // WebSocket 消息接收事件
-      // 后端使用 #[serde(flatten)] 展平了 message 字段，需要重新构建
-      const { connection_id, owner_node_uuid: _owner, timestamp, direction, content, is_binary, size } = event.WsMessageReceived;
-      const message: WsMessage = { timestamp, direction, content, is_binary, size };
-      get().handleWsMessageReceived(connection_id, message);
-    } else if ('WsMessageSent' in event) {
-      // WebSocket 消息发送事件
-      // 后端使用 #[serde(flatten)] 展平了 message 字段，需要重新构建
-      const { connection_id, owner_node_uuid: _owner, timestamp, direction, content, is_binary, size } = event.WsMessageSent;
-      const message: WsMessage = { timestamp, direction, content, is_binary, size };
-      get().handleWsMessageSent(connection_id, message);
-    } else if ('WsSegmentStarted' in event) {
-      // WebSocket 流段开始事件 - 更新 segments 和 owner
-      const { connection_id, segment } = event.WsSegmentStarted;
-      set((state) => {
-        const stream = state.wsStreams.get(connection_id);
-        if (!stream) {
-          console.warn(`[调试] 未知连接 ${connection_id} 的流段开始`);
-          return {};
-        }
-
-        const segments = [...stream.segments, segment];
-        const newStreams = new Map(state.wsStreams);
-        newStreams.set(connection_id, {
-          ...stream,
-          segments,
-          current_owner_node_uuid: segment.node_uuid,
-        });
-        return { wsStreams: newStreams };
-      });
-    } else if ('WsSegmentEnded' in event) {
-      // WebSocket 流段结束事件
-      const { connection_id, segment } = event.WsSegmentEnded;
-      set((state) => {
-        const stream = state.wsStreams.get(connection_id);
-        if (!stream) {
-          console.warn(`[调试] 未知连接 ${connection_id} 的流段结束`);
-          return {};
-        }
-
-        // 更新对应的 segment
-        const segments = stream.segments.map(s => 
-          s.node_uuid === segment.node_uuid && s.started_at === segment.started_at
-            ? segment
-            : s
-        );
-        const newStreams = new Map(state.wsStreams);
-        newStreams.set(connection_id, { ...stream, segments });
-        return { wsStreams: newStreams };
-      });
-    } else if ('WsStreamOwnerChanged' in event) {
-      // WebSocket 流所有权变更事件（后端发送）
-      const { connection_id, to_node_uuid } = event.WsStreamOwnerChanged;
-      set((state) => {
-        const stream = state.wsStreams.get(connection_id);
-        if (!stream) {
-          console.warn(`[调试] 未知连接 ${connection_id} 的所有者变更`);
-          return {};
-        }
-
-        const now = Date.now();
-        
-        // 结束上一个 segment
-        const updatedSegments = stream.segments.map((s, idx) => {
-          if (idx === stream.segments.length - 1 && s.ended_at === null) {
-            return { ...s, ended_at: now };
-          }
-          return s;
-        });
-
-        // 添加新 segment
-        const newSegment: WsStreamSegment = {
-          node_uuid: to_node_uuid,
-          node_name: '', // 后端没有发送名称，前端需要从 flow 中获取
-          node_type: 'ws_send_collect', // 假设是 send_collect 节点
-          started_at: now,
-          ended_at: null,
-          messages: [],
-          max_messages: 1000,
-          dropped_message_count: 0,
-        };
-
-        const newStreams = new Map(state.wsStreams);
-        newStreams.set(connection_id, {
-          ...stream,
-          segments: [...updatedSegments, newSegment],
-          current_owner_node_uuid: to_node_uuid,
-        });
-        return { wsStreams: newStreams };
-      });
-    } else if ('WsStreamClosed' in event) {
-      // WebSocket 流关闭事件（后端发送）
-      const { connection_id } = event.WsStreamClosed;
-      get().handleWsStreamClosed(connection_id);
+    } else if ('WsStreamCreated' in event || 'WsMessageReceived' in event ||
+               'WsMessageSent' in event || 'WsSegmentStarted' in event ||
+               'WsSegmentEnded' in event || 'WsStreamOwnerChanged' in event ||
+               'WsStreamClosed' in event) {
+      // 所有 WS 流事件委托到 wsStreamStore 处理
+      useWsStreamStore.getState().handleWsEvent(event);
     }
   },
 
@@ -685,127 +555,6 @@ export const useDebugStore = create<DebugState>((set, get) => ({
   reset: () => {
     clearAllTimers();
     set(initialState);
-  },
-
-  // ===== WebSocket 事件处理 =====
-  handleWsStreamCreated: (stream: WsConnectionStream) => {
-    set((state) => {
-      const newStreams = new Map(state.wsStreams);
-      newStreams.set(stream.connection_id, stream);
-      return {
-        wsStreams: newStreams,
-        // 如果没有活动连接，设置为新创建的连接
-        activeConnectionId: state.activeConnectionId || stream.connection_id,
-      };
-    });
-  },
-
-  handleWsMessageReceived: (connectionId: string, message: WsMessage) => {
-    set((state) => {
-      const stream = state.wsStreams.get(connectionId);
-      if (!stream) {
-        console.warn(`[调试] 收到未知连接 ${connectionId} 的消息`);
-        return {};
-      }
-
-      // 找到当前活动的 segment（最后一个未结束的）
-      const segments = [...stream.segments];
-      const lastSegment = segments[segments.length - 1];
-      
-      if (lastSegment && lastSegment.ended_at === null) {
-        // 添加消息到当前 segment
-        lastSegment.messages.push(message);
-        // 检查是否超过最大消息数
-        if (lastSegment.messages.length > lastSegment.max_messages) {
-          lastSegment.dropped_message_count += lastSegment.messages.length - lastSegment.max_messages;
-          lastSegment.messages = lastSegment.messages.slice(-lastSegment.max_messages);
-        }
-      }
-
-      const newStreams = new Map(state.wsStreams);
-      newStreams.set(connectionId, { ...stream, segments });
-      return { wsStreams: newStreams };
-    });
-  },
-
-  handleWsMessageSent: (connectionId: string, message: WsMessage) => {
-    set((state) => {
-      const stream = state.wsStreams.get(connectionId);
-      if (!stream) {
-        console.warn(`[调试] 发送到未知连接 ${connectionId} 的消息`);
-        return {};
-      }
-
-      // 找到当前活动的 segment（最后一个未结束的）
-      const segments = [...stream.segments];
-      const lastSegment = segments[segments.length - 1];
-      
-      if (lastSegment && lastSegment.ended_at === null) {
-        // 添加消息到当前 segment
-        lastSegment.messages.push(message);
-        // 检查是否超过最大消息数
-        if (lastSegment.messages.length > lastSegment.max_messages) {
-          lastSegment.dropped_message_count += lastSegment.messages.length - lastSegment.max_messages;
-          lastSegment.messages = lastSegment.messages.slice(-lastSegment.max_messages);
-        }
-      }
-
-      const newStreams = new Map(state.wsStreams);
-      newStreams.set(connectionId, { ...stream, segments });
-      return { wsStreams: newStreams };
-    });
-  },
-
-  handleWsStreamOwnerChanged: (connectionId: string, ownerNodeUuid: string | null) => {
-    set((state) => {
-      const stream = state.wsStreams.get(connectionId);
-      if (!stream) {
-        console.warn(`[调试] 未知连接 ${connectionId} 的所有者变更`);
-        return {};
-      }
-
-      const newStreams = new Map(state.wsStreams);
-      newStreams.set(connectionId, {
-        ...stream,
-        current_owner_node_uuid: ownerNodeUuid,
-      });
-      return { wsStreams: newStreams };
-    });
-  },
-
-  handleWsStreamClosed: (connectionId: string) => {
-    set((state) => {
-      const stream = state.wsStreams.get(connectionId);
-      if (!stream) {
-        console.warn(`[调试] 关闭未知连接 ${connectionId}`);
-        return {};
-      }
-
-      // 结束当前活动的 segment
-      const segments = [...stream.segments];
-      const lastSegment = segments[segments.length - 1];
-      if (lastSegment && lastSegment.ended_at === null) {
-        lastSegment.ended_at = Date.now();
-      }
-
-      const newStreams = new Map(state.wsStreams);
-      newStreams.set(connectionId, {
-        ...stream,
-        segments,
-        is_closed: true,
-        current_owner_node_uuid: null,
-      });
-
-      // 如果关闭的是当前活动连接，清除活动连接
-      const newActiveConnectionId = state.activeConnectionId === connectionId 
-        ? null 
-        : state.activeConnectionId;
-
-      return {
-        wsStreams: newStreams,
-        activeConnectionId: newActiveConnectionId,
-      };
-    });
   },
 }));
 
