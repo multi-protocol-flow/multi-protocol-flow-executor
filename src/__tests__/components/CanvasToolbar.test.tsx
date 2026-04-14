@@ -96,15 +96,19 @@ describe('CanvasToolbar', () => {
     );
 
     // Mock debug store
+    const mockDebugState = {
+      status: 'idle',
+      currentNodeUuid: null,
+      startDebugSession: vi.fn(),
+      isDebugging: false,
+      clearDebugData: vi.fn(),
+    };
     (useDebugStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: Record<string, unknown>) => unknown) =>
-        selector({
-          status: 'idle',
-          currentNodeUuid: null,
-          startDebugSession: vi.fn(),
-          isDebugging: false,
-        })
+        selector(mockDebugState)
     );
+    // CanvasToolbar 使用 getState() 直接调用
+    (useDebugStore as unknown as Record<string, unknown>).getState = vi.fn(() => mockDebugState);
 
     // Mock stress test store
     (useStressTestStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
