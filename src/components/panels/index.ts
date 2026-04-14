@@ -5,7 +5,6 @@
 // 主组件
 export { NodeConfigPanel } from './NodeConfigPanel';
 export { SettingsPanel } from './SettingsPanel';
-export { DebugPanel } from './DebugPanel';
 
 // 变量面板
 export { VariablePanel } from './VariablePanel';

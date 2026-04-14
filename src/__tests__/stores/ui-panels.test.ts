@@ -368,9 +368,9 @@ describe('UIStore - 布局', () => {
       expect(useUIStore.getState().bottomPanelHeight).toBe(100);
     });
 
-    it('高度有最大值限制（500）', () => {
-      useUIStore.getState().setBottomPanelHeight(600);
-      expect(useUIStore.getState().bottomPanelHeight).toBe(500);
+    it('高度有最大值限制（700）', () => {
+      useUIStore.getState().setBottomPanelHeight(800);
+      expect(useUIStore.getState().bottomPanelHeight).toBe(700);
     });
 
     it('高度在有效范围内正常设置', () => {
@@ -447,9 +447,6 @@ describe('UIStore - resetPanels 完整测试', () => {
       isExecutionPanelOpen: true,
       bottomPanelTab: 'console',
       isFlowListCollapsed: true,
-      isContextVariablesCollapsed: true,
-      isExecutionStackCollapsed: true,
-      executionStackHeight: 250,
     });
   });
 
@@ -467,11 +464,6 @@ describe('UIStore - resetPanels 完整测试', () => {
     // 左侧栏面板状态
     expect(state.isFlowListCollapsed).toBe(false);
     expect(state.isVariableDrawerOpen).toBe(false);
-
-    // 调试面板状态
-    expect(state.isContextVariablesCollapsed).toBe(false);
-    expect(state.isExecutionStackCollapsed).toBe(false);
-    expect(state.executionStackHeight).toBe(192);
   });
 
   it('resetPanels 不影响布局尺寸', () => {

@@ -49,18 +49,6 @@ interface UIState {
   /** 变量抽屉是否打开 */
   isVariableDrawerOpen: boolean;
 
-  // ===== 调试面板折叠状态 =====
-  /** 上下文变量是否折叠 */
-  isContextVariablesCollapsed: boolean;
-  /** 执行堆栈是否折叠 */
-  isExecutionStackCollapsed: boolean;
-  /** WebSocket 消息流是否折叠 */
-  isWsStreamCollapsed: boolean;
-  /** 执行堆栈高度（像素） */
-  executionStackHeight: number;
-  /** WebSocket 消息流高度（像素） */
-  wsStreamHeight: number;
-
   // ===== 模态框状态 =====
   /** 是否显示新建流程对话框 */
   showNewFlowDialog: boolean;
@@ -159,18 +147,6 @@ interface UIState {
   /** 切换变量抽屉状态 */
   toggleVariableDrawer: () => void;
 
-  // ===== 调试面板 Actions =====
-  /** 切换上下文变量折叠状态 */
-  toggleContextVariablesCollapsed: () => void;
-  /** 切换执行堆栈折叠状态 */
-  toggleExecutionStackCollapsed: () => void;
-  /** 切换 WebSocket 消息流折叠状态 */
-  toggleWsStreamCollapsed: () => void;
-  /** 设置执行堆栈高度 */
-  setExecutionStackHeight: (height: number) => void;
-  /** 设置 WebSocket 消息流高度 */
-  setWsStreamHeight: (height: number) => void;
-
   // ===== 布局 Actions =====
   /** 设置侧边栏宽度 */
   setSidebarWidth: (width: number) => void;
@@ -191,7 +167,7 @@ const MAX_SIDEBAR_WIDTH = 400;
 const MIN_CONFIG_WIDTH = 250;
 const MAX_CONFIG_WIDTH = 500;
 const MIN_BOTTOM_PANEL_HEIGHT = 100;
-const MAX_BOTTOM_PANEL_HEIGHT = 500;
+const MAX_BOTTOM_PANEL_HEIGHT = 700;
 const MIN_LEFT_PANEL_HEIGHT = 100;
 const MAX_LEFT_PANEL_HEIGHT = 400;
 
@@ -209,13 +185,6 @@ const initialState = {
   isConnectionsPanelCollapsed: false,
   connectionsPanelHeight: 150,
   isVariableDrawerOpen: false,
-
-  // 调试面板折叠状态
-  isContextVariablesCollapsed: false,
-  isExecutionStackCollapsed: false,
-  isWsStreamCollapsed: false,
-  executionStackHeight: 192,
-  wsStreamHeight: 200,
 
   // 模态框状态
   showNewFlowDialog: false,
@@ -354,32 +323,6 @@ export const useUIStore = create<UIState>((set) => ({
       isVariableDrawerOpen: !state.isVariableDrawerOpen,
     })),
 
-  // ===== 调试面板 Actions =====
-  toggleContextVariablesCollapsed: () =>
-    set((state) => ({
-      isContextVariablesCollapsed: !state.isContextVariablesCollapsed,
-    })),
-
-  toggleExecutionStackCollapsed: () =>
-    set((state) => ({
-      isExecutionStackCollapsed: !state.isExecutionStackCollapsed,
-    })),
-
-  toggleWsStreamCollapsed: () =>
-    set((state) => ({
-      isWsStreamCollapsed: !state.isWsStreamCollapsed,
-    })),
-
-  setExecutionStackHeight: (height) =>
-    set({
-      executionStackHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
-    }),
-
-  setWsStreamHeight: (height) =>
-    set({
-      wsStreamHeight: Math.max(MIN_LEFT_PANEL_HEIGHT, Math.min(MAX_LEFT_PANEL_HEIGHT, height)),
-    }),
-
   // ===== 布局 Actions =====
   setSidebarWidth: (width) =>
     set({
@@ -411,11 +354,6 @@ export const useUIStore = create<UIState>((set) => ({
       bottomPanelTab: 'history' as BottomPanelTab,
       isFlowListCollapsed: false,
       isVariableDrawerOpen: false,
-      isContextVariablesCollapsed: false,
-      isExecutionStackCollapsed: false,
-      isWsStreamCollapsed: false,
-      executionStackHeight: 192,
-      wsStreamHeight: 200,
     }),
 }));
 
