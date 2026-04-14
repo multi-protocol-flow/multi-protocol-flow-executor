@@ -484,7 +484,21 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
                         </div>
                         {/* Expression */}
                         <div className="p-2 rounded bg-white/60 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-700/30 w-full">
-                          <p className="font-medium text-sky-800 dark:text-sky-200">🧮 表达式 — 值比较（推荐）</p>
+                          <div className="flex items-center gap-1">
+                            <p className="font-medium text-sky-800 dark:text-sky-200">🧮 多条件表达式 — 值比较（推荐）</p>
+                            <span className="relative group inline-flex">
+                              <Info className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400 cursor-help" />
+                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-[11px] whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity pointer-events-none z-10 shadow-lg">
+                                <div className="space-y-1">
+                                  <p>支持多条件组合：</p>
+                                  <p><code className="font-mono">&&</code> 与 &nbsp; <code className="font-mono">||</code> 或 &nbsp; <code className="font-mono">!</code> 非</p>
+                                  <p><code className="font-mono">&gt; &lt; &gt;= &lt;= == !=</code></p>
+                                  <p className="text-[10px] opacity-80">例：a == "" && b != ""</p>
+                                </div>
+                                <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900 dark:border-t-gray-100" />
+                              </span>
+                            </span>
+                          </div>
                           <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400 mt-1">
                             <code className="bg-sky-100/50 dark:bg-sky-800/60 px-1 rounded">msg == "authenticated"</code> 字符串比较
                           </p>
