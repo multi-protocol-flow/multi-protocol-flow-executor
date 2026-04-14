@@ -425,14 +425,14 @@ function MessageRow({ message, isSelected, onClick }: Omit<MessageRowProps, 'glo
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-center gap-2 px-3 h-full w-full cursor-pointer transition-colors border-b border-border/30',
+        'flex items-center gap-2 px-3 h-full w-full cursor-pointer transition-colors border-b border-border/30 text-left',
         isSelected
           ? isSent
             ? 'bg-emerald-600/5 border-l-2 border-l-emerald-600'
             : 'bg-blue-600/5 border-l-2 border-l-blue-600'
           : isSent
-            ? 'hover:bg-emerald-600/5'
-            : 'hover:bg-blue-600/5',
+            ? 'hover:bg-emerald-600/5 border-l-2 border-l-transparent'
+            : 'hover:bg-blue-600/5 border-l-2 border-l-transparent',
       )}
       title={preview}
     >
