@@ -4,7 +4,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, FileJson, MoreVertical, Copy, Trash2, Pencil } from 'lucide-react';
+import { Plus, FileJson, MoreVertical, Copy, Trash2, Pencil, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFlowListStore, useFlowStore, useUIStore } from '@/stores';
 import { listFlows, loadFlow, deleteFlow, saveFlow } from '@/services/storage/flowStorage';
@@ -27,7 +27,7 @@ function formatRelativeTime(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString('zh-CN');
 }
 
-export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
+export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUuid }: { showHeader?: boolean; disabled?: boolean; debugFlowUuid?: string | null }) {
   const { setFlows, addFlow: addFlowToList, removeFlow: removeFlowFromList } = useFlowListStore();
   const { setFlow, flow: currentFlow, isDirty, markSaved } = useFlowStore();
   const { openNewFlowDialog, showConfirm } = useUIStore();
@@ -218,9 +218,10 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleNewFlow}
-            className="h-7 w-7 rounded-md bg-background border border-border hover:bg-accent"
-            title="新建流程"
+            onClick={disabled ? undefined : handleNewFlow}
+            disabled={disabled}
+            className="h-7 w-7 rounded-md bg-background border border-border hover:bg-accent disabled:opacity-50"
+            title={disabled ? "调试中不可新建流程" : "新建流程"}
           >
             <Plus className="w-4 h-4 text-foreground" />
           </Button>
@@ -232,28 +233,37 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
         <div className="p-2 space-y-1">
           {flows.map((flowMeta) => {
             const isSelected = currentFlow?.uuid === flowMeta.uuid;
+            const isDebugFlow = disabled && debugFlowUuid === flowMeta.uuid;
 
             return (
               <div
                 key={flowMeta.uuid}
                 onClick={() => {
+                  if (disabled) return;
                   if (renamingUuid === flowMeta.uuid) return;
                   handleSelectFlow(flowMeta.uuid);
                 }}
+                title={disabled ? '调试中不可切换流程' : undefined}
                 className={cn(
                   'group w-full flex items-center gap-2 px-3 h-12 rounded-lg text-sm text-left transition-all duration-150',
                   'bg-background border border-border',
-                  'hover:bg-accent',
-                  isSelected && 'bg-background border-border',
-                  !isSelected && 'text-muted-foreground'
+                  !disabled && 'hover:bg-accent',
+                  isSelected && !disabled && 'bg-background border-border',
+                  !isSelected && !disabled && 'text-muted-foreground',
+                  disabled && 'opacity-50 pointer-events-none',
+                  isDebugFlow && '!opacity-100 !pointer-events-none border-primary/50 bg-primary/5'
                 )}
               >
-                <FileJson
-                  className={cn(
-                    'w-4 h-4 shrink-0 transition-colors',
-                    isSelected ? 'text-emerald-500' : 'text-muted-foreground'
-                  )}
-                />
+                {isDebugFlow ? (
+                  <Bug className="w-4 h-4 shrink-0 text-amber-500" />
+                ) : (
+                  <FileJson
+                    className={cn(
+                      'w-4 h-4 shrink-0 transition-colors',
+                      isSelected ? 'text-emerald-500' : 'text-muted-foreground'
+                    )}
+                  />
+                )}
                 <div className="flex-1 min-w-0">
                   {renamingUuid === flowMeta.uuid ? (
                     <input
@@ -277,6 +287,7 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
                 </div>
 
                 {/* 更多操作菜单按钮 */}
+                {!disabled && (
                 <div className="relative">
                   <Button
                     variant="ghost"
@@ -344,6 +355,7 @@ export function FlowListPanel({ showHeader = true }: { showHeader?: boolean }) {
                     document.body
                   )}
                 </div>
+                )}
               </div>
             );
           })}
