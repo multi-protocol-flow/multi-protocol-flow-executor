@@ -2,8 +2,8 @@
  * 节点配置面板主组件
  * 根据节点类型显示不同的配置表单
  */
-import { useState, useRef, useEffect } from 'react';
-import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
+import { useState } from 'react';
+import { useFlowStore, useDebugStore } from '@/stores';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
 import { EntryConfig } from './EntryConfig';
 import { HttpConfig } from './HttpConfig';
@@ -25,7 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData, Node } from '@/types';
 import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendCollectConfig, isWsCloseConfig, isAssertionConfig, isDbConnectConfig, isDbQueryConfig, isDbBeginConfig, isDbCommitConfig, isDbRollbackConfig, isDbCloseConfig, isScriptConfig } from '@/types';
-import { Settings2, MousePointerClick, Trash2, Pencil, Lock, PencilLine } from 'lucide-react';
+import { Settings2, MousePointerClick, Lock, PencilLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -112,25 +112,14 @@ interface NodeConfigPanelProps {
 }
 
 export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeConfigPanelProps) {
-  const { getSelectedNode, updateNode, removeNode, selectNode } = useFlowStore();
-  const { showConfirm } = useUIStore();
+  const { getSelectedNode, updateNode } = useFlowStore();
   const modifyNodeConfig = useDebugStore((state) => state.modifyNodeConfig);
   
   // 优先使用外部传入的节点，否则回退到 store 中的选中节点
   const selectedNode = externalNode ?? getSelectedNode();
-  
-  // 节点名称编辑状态
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editingName, setEditingName] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // 调试模式下编辑配置弹窗状态
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
-  // 当选中节点变化时，重置编辑状态
-  useEffect(() => {
-    setIsEditingName(false);
-  }, [selectedNode?.uuid]);
 
   // 未选中节点时的空状态
   if (!selectedNode) {
@@ -160,59 +149,6 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
     updateNode(selectedNode.uuid, { data });
   };
 
-  /**
-   * 处理删除节点
-   */
-  const handleDelete = () => {
-    showConfirm({
-      title: '删除节点',
-      description: `确定要删除节点「${selectedNode.name}」吗？`,
-      confirmText: '删除',
-      onConfirm: () => {
-        removeNode(selectedNode.uuid);
-        selectNode(null);
-      },
-    });
-  };
-
-  /**
-   * 开始编辑节点名称
-   */
-  const handleStartEdit = () => {
-    setEditingName(selectedNode.name);
-    setIsEditingName(true);
-  };
-
-  /**
-   * 保存节点名称
-   */
-  const handleSaveName = () => {
-    const trimmedName = editingName.trim();
-    if (trimmedName && trimmedName !== selectedNode.name) {
-      updateNode(selectedNode.uuid, { name: trimmedName });
-    }
-    setIsEditingName(false);
-  };
-
-  /**
-   * 取消编辑节点名称
-   */
-  const handleCancelEdit = () => {
-    setIsEditingName(false);
-    setEditingName(selectedNode.name);
-  };
-
-  /**
-   * 处理键盘事件
-   */
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSaveName();
-    } else if (e.key === 'Escape') {
-      handleCancelEdit();
-    }
-  };
-
   return (
     <Card className="flex h-full flex-col overflow-hidden border-0 shadow-none w-full min-w-0">
       <CardHeader className="shrink-0 border-b border-muted bg-background pb-4">
@@ -223,33 +159,9 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             ) : (
               <Settings2 className="h-4 w-4 text-muted-foreground shrink-0" />
             )}
-            {isEditingName && !readOnly ? (
-              <input
-                ref={inputRef}
-                type="text"
-                value={editingName}
-                onChange={(e) => setEditingName(e.target.value)}
-                onBlur={handleSaveName}
-                onKeyDown={handleKeyDown}
-                className="text-base font-semibold text-foreground bg-background border-b-2 border-border outline-none flex-1 min-w-0 px-0.5"
-                autoFocus
-              />
-            ) : (
-              <>
-                <CardTitle className="text-base font-semibold text-foreground truncate cursor-default">
-                  {selectedNode.name}
-                </CardTitle>
-                {!readOnly && (
-                  <button
-                    onClick={handleStartEdit}
-                    className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground hover:text-accent-foreground transition-colors"
-                    title="编辑节点名称"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </>
-            )}
+            <CardTitle className="text-base font-semibold text-foreground truncate">
+              {selectedNode.name}
+            </CardTitle>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {readOnly && (
@@ -276,17 +188,6 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             >
               {typeConfig.label}
             </Badge>
-            {!readOnly && selectedNode.type !== 'entry' && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-muted-foreground hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50"
-                onClick={handleDelete}
-                title="删除节点"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
           </div>
         </div>
       </CardHeader>
