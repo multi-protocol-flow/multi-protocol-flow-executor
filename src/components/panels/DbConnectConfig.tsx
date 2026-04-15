@@ -4,7 +4,7 @@
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   dbConnectConfigSchema,
   type DbConnectConfigFormData,
@@ -158,6 +158,24 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
     mode: 'onBlur',
   });
 
+  // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
+
   // 当外部数据变化时，重置表单
   useEffect(() => {
     reset(toFormData(data));
@@ -181,7 +199,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    setTimeout(saveData, 100);
+    safeSetTimeout(saveData, 100);
   }, [saveData]);
 
   /**

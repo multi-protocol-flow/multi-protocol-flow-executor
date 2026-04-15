@@ -4,7 +4,7 @@
  */
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   wsConnectConfigSchema,
   type WsConnectConfigFormData,
@@ -158,6 +158,24 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
     return labels;
   }, [flow]);
 
+  // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
+
   // 监听表单值变化
   const collectMessage = watch('collect_message');
   const collectMode = watch('collect_mode');
@@ -185,8 +203,8 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    setTimeout(saveData, 100);
-  }, [saveData]);
+    safeSetTimeout(saveData, 100);
+  }, [safeSetTimeout, saveData]);
 
   /**
    * 添加 Header
@@ -200,8 +218,8 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
    */
   const handleRemoveHeader = useCallback((index: number) => {
     remove(index);
-    setTimeout(saveData, 100);
-  }, [remove, saveData]);
+    safeSetTimeout(saveData, 100);
+  }, [remove, saveData, safeSetTimeout]);
 
   /**
    * 添加输出映射
@@ -215,8 +233,8 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
    */
   const handleRemoveOutputMapping = useCallback((index: number) => {
     outputMappings.remove(index);
-    setTimeout(saveData, 100);
-  }, [outputMappings, saveData]);
+    safeSetTimeout(saveData, 100);
+  }, [outputMappings, saveData, safeSetTimeout]);
 
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">

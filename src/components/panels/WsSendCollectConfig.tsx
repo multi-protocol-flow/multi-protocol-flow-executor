@@ -4,7 +4,7 @@
  */
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   wsSendCollectConfigSchema,
   type WsSendCollectConfigFormData,
@@ -179,6 +179,24 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
   const collectResponse = watch('collect_response');
   const collectMode = watch('collect_mode');
 
+  // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
+
   // 当外部数据变化时，重置表单（确保所有字段同步）
   useEffect(() => {
     reset(toFormData(data));
@@ -202,8 +220,8 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    setTimeout(saveData, 100);
-  }, [saveData]);
+    safeSetTimeout(saveData, 100);
+  }, [safeSetTimeout, saveData]);
 
   /**
    * 添加输出映射
@@ -217,8 +235,8 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
    */
   const handleRemoveOutputMapping = useCallback((index: number) => {
     outputMappings.remove(index);
-    setTimeout(saveData, 100);
-  }, [outputMappings, saveData]);
+    safeSetTimeout(saveData, 100);
+  }, [outputMappings, safeSetTimeout, saveData]);
 
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">

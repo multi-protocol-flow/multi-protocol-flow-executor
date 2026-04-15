@@ -4,7 +4,7 @@
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { wsCloseConfigSchema, type WsCloseConfigFormData } from './schemas';
 import { Input } from '@/components/ui/input';
 import { VariableInput } from '@/components/ui/VariableInput';
@@ -76,6 +76,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<WsCloseConfigFormData>({
     resolver: zodResolver(wsCloseConfigSchema),
@@ -169,14 +170,32 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
     return labels;
   }, [flow]);
 
-  // 当外部数据变化时，重置表单
+  // 当外部数据变化时，完整重置表单（防止节点切换时残留旧数据）
   useEffect(() => {
-    const formData = toFormData(data);
-    setValue('connection_id', formData.connection_id);
-    setValue('close_code', formData.close_code);
-    setValue('close_reason', formData.close_reason);
-    setValue('close_timeout_ms', formData.close_timeout_ms);
-  }, [data, setValue]);
+    reset(toFormData(data));
+  }, [data, reset]);
+
+  // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      // 组件卸载时清除所有待执行的定时器
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  /**
+   * 安全的延迟执行包装器，注册定时器以便卸载时清理
+   */
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
 
   /**
    * 保存表单数据
@@ -196,8 +215,8 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    setTimeout(saveData, 100);
-  }, [saveData]);
+    safeSetTimeout(saveData, 100);
+  }, [safeSetTimeout, saveData]);
 
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">

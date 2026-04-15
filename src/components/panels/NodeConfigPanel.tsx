@@ -63,11 +63,19 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
     );
   }
 
+  // 冻结节点 UUID，防止快速切换节点时闭包捕获到过时的节点
+  // 仅用于调试模式下 DebugNodeConfigDialog 的回调
+  const frozenNodeUuid = selectedNode.uuid;
+
   /**
    * 处理配置保存
+   * 动态从 store 获取当前选中的节点，避免闭包捕获过时的 selectedNode
    */
   const handleSave = (data: NodeData) => {
-    updateNode(selectedNode.uuid, { data });
+    const node = externalNode ?? useFlowStore.getState().getSelectedNode();
+    if (node) {
+      updateNode(node.uuid, { data });
+    }
   };
 
   return (
@@ -235,7 +243,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
           nodeData={selectedNode.data}
           nodeName={selectedNode.name}
           onSave={async (data) => {
-            await modifyNodeConfig(selectedNode.uuid, data);
+            await modifyNodeConfig(frozenNodeUuid, data);
           }}
           onCancel={() => setIsEditDialogOpen(false)}
         />

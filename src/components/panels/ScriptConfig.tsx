@@ -5,7 +5,7 @@
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -194,12 +194,31 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<ScriptConfigFormData>({
     resolver: zodResolver(scriptConfigSchema),
     defaultValues: toFormData(data),
     mode: 'onBlur',
   });
+
+  // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
 
   // 监听表单值
   const watchedScript = watch('script');
@@ -209,14 +228,8 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
-    const formData = toFormData(data);
-    setValue('script', formData.script);
-    setValue('timeout_ms', formData.timeout_ms);
-    setValue('memory_limit_mb', formData.memory_limit_mb);
-    setValue('execution_phase', formData.execution_phase);
-    setValue('on_error', formData.on_error);
-    setValue('on_assertion_fail', formData.on_assertion_fail);
-  }, [data, setValue]);
+    reset(toFormData(data));
+  }, [data, reset]);
 
   /**
    * 保存表单数据
@@ -237,7 +250,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
    */
   const handleBlur = useCallback(() => {
     // 延迟保存，确保表单校验完成
-    setTimeout(saveData, 100);
+    safeSetTimeout(saveData, 100);
   }, [saveData]);
 
   /**

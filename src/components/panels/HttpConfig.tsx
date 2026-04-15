@@ -112,6 +112,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     control,
     watch,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<HttpConfigFormData>({
     resolver: zodResolver(httpConfigSchema),
@@ -188,13 +189,32 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   // 监听表单值变化
   const watchedMethod = watch('method');
 
-  // 当外部数据变化时，重置表单
+  // 当外部数据变化时，完整重置表单（防止节点切换时残留旧数据）
   useEffect(() => {
-    const formData = toFormData(data);
-    setValue('url', formData.url);
-    setValue('method', formData.method);
-    setValue('body', formData.body);
-  }, [data, setValue]);
+    reset(toFormData(data));
+  }, [data, reset]);
+
+  // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      // 组件卸载时清除所有待执行的定时器
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  /**
+   * 安全的延迟执行包装器，注册定时器以便卸载时清理
+   */
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
 
   /**
    * 保存表单数据
@@ -215,7 +235,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
    */
   const handleBlur = useCallback(() => {
     // 延迟保存，确保表单校验完成
-    setTimeout(saveData, 100);
+    safeSetTimeout(saveData, 100);
   }, [saveData]);
 
   /**
@@ -237,7 +257,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
    */
   const handleRemoveFormField = useCallback((index: number) => {
     formFields.remove(index);
-    setTimeout(saveData, 100);
+    safeSetTimeout(saveData, 100);
   }, [formFields, saveData]);
 
   /**
@@ -245,7 +265,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
    */
   const handleRemoveHeader = useCallback((index: number) => {
     remove(index);
-    setTimeout(saveData, 100);
+    safeSetTimeout(saveData, 100);
   }, [remove, saveData]);
 
   /**
@@ -260,7 +280,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
    */
   const handleRemoveOutputMapping = useCallback((index: number) => {
     outputMappings.remove(index);
-    setTimeout(saveData, 100);
+    safeSetTimeout(saveData, 100);
   }, [outputMappings, saveData]);
   /** 隐藏的文件输入框 ref (用于非 Tauri 环境) */
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -278,7 +298,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       if (selected) {
         setValue('file_path', selected as string);
         // 延迟保存，确保表单值已更新
-        setTimeout(saveData, 100);
+        safeSetTimeout(saveData, 100);
       }
     } else {
       // 非 Tauri 环境：触发隐藏的 input[type=file]
@@ -295,7 +315,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       // 在浏览器环境中，只能获取文件名，无法获取完整路径
       setValue('file_path', file.name);
       // 延迟保存，确保表单值已更新
-      setTimeout(saveData, 100);
+      safeSetTimeout(saveData, 100);
     }
     // 重置 input 以允许重复选择同一文件
     e.target.value = '';
@@ -314,7 +334,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       if (selected) {
         setValue(`form_fields.${index}.file_path`, selected as string);
         // 延迟保存，确保表单值已更新
-        setTimeout(saveData, 100);
+        safeSetTimeout(saveData, 100);
       }
     } else {
       // 非 Tauri 环境：动态创建 input 元素
@@ -326,7 +346,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         if (file) {
           setValue(`form_fields.${index}.file_path`, file.name);
           // 延迟保存，确保表单值已更新
-          setTimeout(saveData, 100);
+          safeSetTimeout(saveData, 100);
         }
       };
       newInput.click();
