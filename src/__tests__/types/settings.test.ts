@@ -15,11 +15,13 @@ describe('Settings types', () => {
     const settings: Settings = {
       reportDir: '/path/to/reports',
       logDir: '/path/to/logs',
+      flowsDir: '/path/to/flows',
       theme: 'system',
     };
 
     expect(settings.reportDir).toBe('/path/to/reports');
     expect(settings.logDir).toBe('/path/to/logs');
+    expect(settings.flowsDir).toBe('/path/to/flows');
     expect(settings.theme).toBe('system');
   });
 
@@ -27,6 +29,7 @@ describe('Settings types', () => {
     const state: SettingsState = {
       reportDir: '/path/to/reports',
       logDir: '/path/to/logs',
+      flowsDir: '/path/to/flows',
       theme: 'system',
       isLoading: false,
       error: null,
@@ -41,6 +44,7 @@ describe('Settings types', () => {
     const state: SettingsState = {
       reportDir: '',
       logDir: '',
+      flowsDir: '',
       theme: 'dark',
       isLoading: true,
       error: 'Failed to load settings',
@@ -55,37 +59,46 @@ describe('Settings types', () => {
       loadSettings: async () => {},
       setReportDir: async (_dir: string) => {},
       setLogDir: async (_dir: string) => {},
+      setFlowsDir: async (_dir: string) => {},
       setTheme: async (_theme: 'light' | 'dark' | 'system') => {},
       openReportDir: async () => {},
       openLogDir: async () => {},
+      openFlowsDir: async () => {},
     };
 
     expect(typeof actions.loadSettings).toBe('function');
     expect(typeof actions.setReportDir).toBe('function');
     expect(typeof actions.setLogDir).toBe('function');
+    expect(typeof actions.setFlowsDir).toBe('function');
     expect(typeof actions.setTheme).toBe('function');
     expect(typeof actions.openReportDir).toBe('function');
     expect(typeof actions.openLogDir).toBe('function');
+    expect(typeof actions.openFlowsDir).toBe('function');
   });
 
   it('SettingsStore should combine state and actions', () => {
     const store: SettingsStore = {
       reportDir: '/path/to/reports',
       logDir: '/path/to/logs',
+      flowsDir: '/path/to/flows',
       theme: 'light',
       isLoading: false,
       error: null,
       loadSettings: async () => {},
       setReportDir: async (_dir: string) => {},
       setLogDir: async (_dir: string) => {},
+      setFlowsDir: async (_dir: string) => {},
       setTheme: async (_theme: 'light' | 'dark' | 'system') => {},
       openReportDir: async () => {},
       openLogDir: async () => {},
+      openFlowsDir: async () => {},
     };
 
     expect(store.reportDir).toBe('/path/to/reports');
+    expect(store.flowsDir).toBe('/path/to/flows');
     expect(store.theme).toBe('light');
     expect(typeof store.loadSettings).toBe('function');
+    expect(typeof store.setFlowsDir).toBe('function');
     expect(typeof store.setTheme).toBe('function');
   });
 });

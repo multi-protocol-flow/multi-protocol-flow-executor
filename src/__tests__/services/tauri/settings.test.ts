@@ -41,18 +41,21 @@ describe('Settings Mock Service', () => {
 
       expect(settings.reportDir).toBe('~/.app/reports/');
       expect(settings.logDir).toBe('~/.app/logs/');
+      expect(settings.flowsDir).toBe('~/.app/flows/');
     });
 
     it('返回已存储的设置', async () => {
       localStorageMock.setItem('app-settings', JSON.stringify({
         reportDir: '/custom/reports/',
         logDir: '/custom/logs/',
+        flowsDir: '/custom/flows/',
       }));
 
       const settings = await loadSettings();
 
       expect(settings.reportDir).toBe('/custom/reports/');
       expect(settings.logDir).toBe('/custom/logs/');
+      expect(settings.flowsDir).toBe('/custom/flows/');
     });
 
     it('部分设置使用默认值', async () => {
@@ -64,6 +67,7 @@ describe('Settings Mock Service', () => {
 
       expect(settings.reportDir).toBe('/custom/reports/');
       expect(settings.logDir).toBe('~/.app/logs/');
+      expect(settings.flowsDir).toBe('~/.app/flows/');
     });
 
     it('处理无效 JSON', async () => {

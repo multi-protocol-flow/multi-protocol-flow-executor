@@ -32,6 +32,7 @@ describe('SettingsStore', () => {
     useSettingsStore.setState({
       reportDir: '',
       logDir: '',
+      flowsDir: '',
       isLoading: true,
       error: null,
     });
@@ -44,6 +45,10 @@ describe('SettingsStore', () => {
 
     it('初始 logDir 为空字符串', () => {
       expect(useSettingsStore.getState().logDir).toBe('');
+    });
+
+    it('初始 flowsDir 为空字符串', () => {
+      expect(useSettingsStore.getState().flowsDir).toBe('');
     });
 
     it('初始 isLoading 为 true', () => {
@@ -61,12 +66,14 @@ describe('SettingsStore', () => {
       localStorageMock.setItem('app-settings', JSON.stringify({
         reportDir: '/custom/reports/',
         logDir: '/custom/logs/',
+        flowsDir: '/custom/flows/',
       }));
 
       await useSettingsStore.getState().loadSettings();
 
       expect(useSettingsStore.getState().reportDir).toBe('/custom/reports/');
       expect(useSettingsStore.getState().logDir).toBe('/custom/logs/');
+      expect(useSettingsStore.getState().flowsDir).toBe('/custom/flows/');
       expect(useSettingsStore.getState().isLoading).toBe(false);
       expect(useSettingsStore.getState().error).toBeNull();
     });
@@ -76,6 +83,7 @@ describe('SettingsStore', () => {
 
       expect(useSettingsStore.getState().reportDir).toBe('~/.app/reports/');
       expect(useSettingsStore.getState().logDir).toBe('~/.app/logs/');
+      expect(useSettingsStore.getState().flowsDir).toBe('~/.app/flows/');
       expect(useSettingsStore.getState().isLoading).toBe(false);
     });
   });
@@ -104,6 +112,18 @@ describe('SettingsStore', () => {
     });
   });
 
+  describe('setFlowsDir', () => {
+    it('更新 flowsDir 并持久化', async () => {
+      await useSettingsStore.getState().setFlowsDir('/new/flows/');
+
+      expect(useSettingsStore.getState().flowsDir).toBe('/new/flows/');
+
+      // 验证已持久化
+      const stored = JSON.parse(localStorageMock.getItem('app-settings') || '{}');
+      expect(stored.flowsDir).toBe('/new/flows/');
+    });
+  });
+
   describe('openReportDir', () => {
     it('调用 openDirectory 完成无错误', async () => {
       useSettingsStore.setState({ reportDir: '/test/reports/' });
@@ -117,6 +137,15 @@ describe('SettingsStore', () => {
     it('调用 openDirectory 完成无错误', async () => {
       useSettingsStore.setState({ logDir: '/test/logs/' });
       await useSettingsStore.getState().openLogDir();
+      // Mock 环境下函数正常完成即可
+      expect(useSettingsStore.getState().error).toBeNull();
+    });
+  });
+
+  describe('openFlowsDir', () => {
+    it('调用 openDirectory 完成无错误', async () => {
+      useSettingsStore.setState({ flowsDir: '/test/flows/' });
+      await useSettingsStore.getState().openFlowsDir();
       // Mock 环境下函数正常完成即可
       expect(useSettingsStore.getState().error).toBeNull();
     });
