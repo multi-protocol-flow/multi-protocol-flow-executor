@@ -37,7 +37,7 @@ import {
   createDefaultNodeName,
 } from './utils';
 import { cn } from '@/lib/utils';
-import { saveFlow } from '@/services/storage/flowStorage';
+import { flowStorage } from '@/services/storage';
 
 /**
  * 自定义十字准星光标 SVG (data URI)
@@ -243,13 +243,14 @@ function FlowCanvasInner() {
     }
   }, [flow?.uuid, fitView]);
 
-  // 自动防抖保存：当 isDirty 变为 true 时，延迟保存到 localStorage
+  // 自动防抖保存：当 isDirty 变为 true 时，延迟保存到文件存储
   useEffect(() => {
     if (!isDirty || !flow) return;
 
     const timeoutId = setTimeout(() => {
-      saveFlow(flow);
-      markSaved();
+      flowStorage.saveFlow(flow).then(() => markSaved()).catch((err) => {
+        console.error('[FlowCanvas] 自动保存失败:', err);
+      });
     }, 500); // 500ms 防抖
 
     return () => clearTimeout(timeoutId);

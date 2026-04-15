@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUIStore, useFlowStore, useFlowListStore } from '@/stores';
 import { createFlow } from '@/services/tauri';
-import { saveFlow } from '@/services/storage/flowStorage';
+import { flowStorage } from '@/services/storage';
 export function NewFlowDialog() {
   const showNewFlowDialog = useUIStore((state) => state.showNewFlowDialog);
   const closeNewFlowDialog = useUIStore((state) => state.closeNewFlowDialog);
@@ -38,7 +38,7 @@ export function NewFlowDialog() {
       const newFlow = await createFlow(flowName.trim());
 
       // 2. 持久化流程到存储
-      saveFlow(newFlow);
+      await flowStorage.saveFlow(newFlow);
 
       // 3. 设置当前流程
       setFlow(newFlow);
