@@ -25,7 +25,7 @@ import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode,
 import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
 import { CustomEdge } from './edges/CustomEdge';
-import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
+import { useFlowStore, useUIStore, useDebugStore, selectIsDebugging, useExecutionStore, selectIsExecuting, useStressTestStore, selectIsStressTestRunning } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
 import type { NodeType } from '@/types';
 import {
@@ -148,6 +148,12 @@ function FlowCanvasInner() {
   } = useFlowStore();
   const { setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen } = useUIStore();
   const { resolvedTheme } = useTheme();
+
+  // 执行状态：执行/调试/压测时隐藏节点栏和小地图
+  const isExecuting = useExecutionStore(selectIsExecuting);
+  const isDebugging = useDebugStore(selectIsDebugging);
+  const isStressTestRunning = useStressTestStore(selectIsStressTestRunning);
+  const isAnyActive = isExecuting || isDebugging || isStressTestRunning;
 
   const { screenToFlowPosition, fitView, setCenter, getNode } = useReactFlow();
   
@@ -511,8 +517,8 @@ function FlowCanvasInner() {
       {/* 画布悬浮工具栏 */}
       <CanvasToolbar />
 
-      {/* 底部节点工具条 */}
-      <NodePalette />
+      {/* 底部节点工具条（执行/调试/压测时隐藏） */}
+      {!isAnyActive && <NodePalette />}
       
       <ReactFlow
         nodes={nodes}
@@ -559,14 +565,16 @@ function FlowCanvasInner() {
           showInteractive
         />
 
-        {/* 小地图 */}
-        <MiniMap
-          nodeColor={minimapNodeColor}
-          maskColor={resolvedTheme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)'}
-          className="!bg-background !border-border"
-          pannable
-          zoomable
-        />
+        {/* 小地图（执行/调试/压测时隐藏） */}
+        {!isAnyActive && (
+          <MiniMap
+            nodeColor={minimapNodeColor}
+            maskColor={resolvedTheme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)'}
+            className="!bg-background !border-border"
+            pannable
+            zoomable
+          />
+        )}
       </ReactFlow>
     </div>
   );
