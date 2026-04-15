@@ -186,27 +186,32 @@ export function ExecutionPanel() {
     clearDebugData();
   }, [clearDebugData]);
 
-  // ===== 有序节点列表 =====
+  // ===== 有序节点列表（仅显示实际执行路径上的节点） =====
   const orderedNodes = useMemo(() => {
-    if (!report || !report.node_reports.length) return nodes;
-
-    const orderMap = new Map(
-      report.node_reports.map((r, i) => [r.node_uuid, i]),
-    );
     const nodeMap = new Map(nodes.map((n) => [n.uuid, n]));
 
-    const ordered: Node[] = report.node_reports
-      .map((r) => nodeMap.get(r.node_uuid))
-      .filter((n): n is Node => n !== undefined);
-
-    for (const node of nodes) {
-      if (!orderMap.has(node.uuid)) {
-        ordered.push(node);
-      }
+    // 执行完成：仅显示报告中的节点（实际执行路径）
+    if (report && report.node_reports.length) {
+      return report.node_reports
+        .map((r) => nodeMap.get(r.node_uuid))
+        .filter((n): n is Node => n !== undefined);
     }
 
-    return ordered;
-  }, [nodes, report]);
+    // 执行中：显示已完成节点 + 当前正在执行的节点（保持执行顺序）
+    if (isExecuting) {
+      const completedUuids = Object.keys(nodeReportsMap);
+      const uuids = [...completedUuids];
+      if (currentNodeUuid && !uuids.includes(currentNodeUuid)) {
+        uuids.push(currentNodeUuid);
+      }
+      return uuids
+        .map((uuid) => nodeMap.get(uuid))
+        .filter((n): n is Node => n !== undefined);
+    }
+
+    // 未执行：空列表（空状态由 hasAnyExecution 守卫处理）
+    return [];
+  }, [nodes, report, isExecuting, nodeReportsMap, currentNodeUuid]);
 
   // ===== 自动选中正在运行的节点 =====
   useEffect(() => {
