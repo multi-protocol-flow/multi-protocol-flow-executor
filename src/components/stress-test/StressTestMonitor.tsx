@@ -3,7 +3,7 @@
  * 显示压测进度、实时指标和停止按钮
  */
 import { useState, useMemo, useCallback } from 'react';
-import { Activity, Gauge, Timer, Square } from 'lucide-react';
+import { Activity, Gauge, Timer, Square, X, FileBarChart } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
   selectStressTestProgress,
   selectStressTestStatus,
   selectStressTestProgressHistory,
+  selectStressTestReport,
 } from '@/stores/stressTest';
 import type { NodeMetrics } from '@/types/stressTest';
 import { StressTestCharts } from './StressTestCharts';
@@ -55,14 +56,20 @@ function MetricCard({
 
 /**
  * 压力测试监控面板
- * 仅在压力测试运行时（rampUp 或 running 状态）渲染
+ * 运行时显示实时指标，结束后保持显示最终数据供用户查看
  */
 export function StressTestMonitor() {
   const isRunning = useStressTestStore(selectIsStressTestRunning);
   const progress = useStressTestStore(selectStressTestProgress);
   const status = useStressTestStore(selectStressTestStatus);
   const progressHistory = useStressTestStore(selectStressTestProgressHistory);
+  const report = useStressTestStore(selectStressTestReport);
   const stopStressTest = useStressTestStore((state) => state.stopStressTest);
+  const openReportDialog = useStressTestStore((state) => state.openReportDialog);
+  const reset = useStressTestStore((state) => state.reset);
+
+  // 是否已完成（有最终数据可供查看）
+  const isCompleted = status === 'stopped' && (progressHistory.length > 0 || report !== null);
 
   // 节点类型筛选状态
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -93,8 +100,8 @@ export function StressTestMonitor() {
     return nodeMetrics.filter((n) => selectedTypes.includes(n.nodeType));
   }, [nodeMetrics, selectedTypes]);
 
-  // 仅在运行时渲染
-  if (!isRunning) {
+  // 仅在运行时或刚完成时渲染
+  if (!isRunning && !isCompleted) {
     return null;
   }
 
@@ -105,6 +112,8 @@ export function StressTestMonitor() {
         return '预热中';
       case 'running':
         return '运行中';
+      case 'stopped':
+        return '已完成';
       default:
         return '';
     }
@@ -117,6 +126,8 @@ export function StressTestMonitor() {
         return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'running':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'stopped':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
       default:
         return '';
     }
@@ -131,11 +142,16 @@ export function StressTestMonitor() {
     }
   };
 
+  // 关闭完成面板
+  const handleClose = () => {
+    reset();
+  };
+
   return (
-    <Card className="border-border shadow-lg">
-      <CardContent className="p-4">
+    <Card className="border-border shadow-lg max-h-[calc(100vh-140px)] flex flex-col overflow-hidden relative z-20">
+      <CardContent className="p-4 flex-1 min-h-0 flex flex-col">
         {/* 头部：状态和时间 */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 shrink-0">
           <div className="flex items-center gap-3">
             <Activity className="w-5 h-5 text-blue-500" />
             <span className="font-semibold">压力测试</span>
@@ -154,6 +170,8 @@ export function StressTestMonitor() {
           </div>
         </div>
 
+        {/* 可滚动内容区域 */}
+        <div className="flex-1 overflow-y-auto min-h-0">
         {/* 指标卡片网格 */}
         <div className="grid grid-cols-3 gap-3 mb-4">
           <MetricCard
@@ -279,17 +297,44 @@ export function StressTestMonitor() {
           </div>
         )}
 
-        {/* 底部：停止按钮 */}
-        <div className="flex justify-end">
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleStopStressTest}
-            className="gap-1.5"
-          >
-            <Square className="w-4 h-4" />
-            停止压测
-          </Button>
+        </div>{/* 可滚动内容区域结束 */}
+
+        {/* 底部按钮 */}
+        <div className="flex justify-end gap-2 shrink-0 pt-4 border-t border-border mt-4">
+          {isRunning ? (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleStopStressTest}
+              className="gap-1.5"
+            >
+              <Square className="w-4 h-4" />
+              停止压测
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClose}
+                className="gap-1.5"
+              >
+                <X className="w-4 h-4" />
+                关闭
+              </Button>
+              {report && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={openReportDialog}
+                  className="gap-1.5"
+                >
+                  <FileBarChart className="w-4 h-4" />
+                  查看报告
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
