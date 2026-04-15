@@ -279,6 +279,8 @@ impl StressTestExecutor {
         let start_time = Instant::now();
         let duration = Duration::from_secs(config.duration_seconds as u64);
         let mut last_progress_time = Instant::now();
+        // 累积进度历史，用于持久化到报告中供历史查看时渲染图表
+        let mut progress_history: Vec<StressTestProgress> = Vec::new();
 
         // 用于管理虚拟用户任务
         let (task_stop_tx, _task_stop_rx) = broadcast::channel::<()>(1);
@@ -363,7 +365,8 @@ impl StressTestExecutor {
                     }
                 };
 
-                let _ = event_sender.send(StressTestEvent::Progress { progress });
+                let _ = event_sender.send(StressTestEvent::Progress { progress: progress.clone() });
+                progress_history.push(progress);
                 last_progress_time = Instant::now();
             }
 
@@ -395,7 +398,7 @@ impl StressTestExecutor {
         }
 
         // 生成最终报告
-        let report = Self::generate_report(&flow, &config, &metrics, start_time);
+        let report = Self::generate_report(&flow, &config, &metrics, start_time, &progress_history);
 
         // 更新最终状态并存储报告
         {
@@ -501,6 +504,7 @@ impl StressTestExecutor {
         config: &StressTestConfig,
         metrics: &MetricsCollector,
         start_time: Instant,
+        progress_history: &[StressTestProgress],
     ) -> StressTestReport {
         let end_time = Instant::now();
         let duration_ms = end_time.duration_since(start_time).as_millis() as u64;
@@ -545,6 +549,7 @@ impl StressTestExecutor {
             error_statistics,
             node_statistics,
             node_type_statistics,
+            progress_history: progress_history.to_vec(),
         }
     }
 }

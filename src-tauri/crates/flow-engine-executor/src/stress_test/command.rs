@@ -427,6 +427,7 @@ mod tests {
             error_statistics: vec![],
             node_statistics: vec![],
             node_type_statistics: vec![],
+            progress_history: vec![],
         };
         let event = StressTestEvent::Ended { report };
 

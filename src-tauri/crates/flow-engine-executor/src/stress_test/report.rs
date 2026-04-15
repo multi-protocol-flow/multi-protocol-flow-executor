@@ -94,6 +94,7 @@ pub fn generate_report(
         error_statistics,
         node_statistics,
         node_type_statistics,
+        progress_history: vec![],
     };
 
     // 如果提供了存储目录，保存报告

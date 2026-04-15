@@ -281,6 +281,11 @@ pub struct StressTestReport {
     /// 节点类型聚合统计
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub node_type_statistics: Vec<NodeTypeStatistics>,
+
+    // ===== 进度历史 =====
+    /// 进度历史数据（用于折线图等可视化，每次进度事件记录一条）
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub progress_history: Vec<StressTestProgress>,
 }
 
 #[cfg(test)]
@@ -406,6 +411,7 @@ mod tests {
             error_statistics: vec![],
             node_statistics: vec![],
             node_type_statistics: vec![],
+            progress_history: vec![],
         };
 
         let json = serde_json::to_string(&report).expect("序列化失败");
@@ -448,6 +454,7 @@ mod tests {
             }],
             node_statistics: vec![],
             node_type_statistics: vec![],
+            progress_history: vec![],
         };
 
         let json = serde_json::to_string(&report).expect("序列化失败");
