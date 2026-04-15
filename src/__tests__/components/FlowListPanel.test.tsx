@@ -8,15 +8,20 @@ import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FlowListPanel } from '@/components/sidebar/FlowListPanel';
 import { useUIStore, useFlowStore, useFlowListStore } from '@/stores';
-import * as flowStorage from '@/services/storage/flowStorage';
 import type { Flow } from '@/types';
 
-// Mock flowStorage - 只 mock 存储服务
-vi.mock('@/services/storage/flowStorage', () => ({
+// Mock flowStorage - 使用 vi.hoisted 确保在 vi.mock 之前可用
+const mockFlowStorage = vi.hoisted(() => ({
   listFlows: vi.fn(),
   loadFlow: vi.fn(),
   deleteFlow: vi.fn(),
   saveFlow: vi.fn(),
+  copyFlow: vi.fn(),
+  refreshFlows: vi.fn(),
+}));
+
+vi.mock('@/services/storage', () => ({
+  flowStorage: mockFlowStorage,
 }));
 
 // Mock templates
@@ -54,10 +59,10 @@ describe('FlowListPanel', () => {
     useUIStore.getState().hideConfirm();
     
     // 默认存储状态 - 返回非空数组避免触发内置模板加载
-    vi.mocked(flowStorage.listFlows).mockReturnValue([
-      { uuid: 'default-flow', name: '默认流程', updated_at: Date.now() }
+    mockFlowStorage.listFlows.mockResolvedValue([
+      { uuid: 'default-flow', name: '默认流程', updatedAt: Date.now(), filePath: 'default-flow.mpe' }
     ]);
-    vi.mocked(flowStorage.loadFlow).mockReturnValue(null);
+    mockFlowStorage.loadFlow.mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -68,13 +73,13 @@ describe('FlowListPanel', () => {
   describe('流程列表渲染', () => {
     it('渲染流程列表', async () => {
       const flowMetas = [
-        { uuid: 'flow-1', name: '流程1', updated_at: Date.now() },
-        { uuid: 'flow-2', name: '流程2', updated_at: Date.now() },
+        { uuid: 'flow-1', name: '流程1', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
+        { uuid: 'flow-2', name: '流程2', updatedAt: Date.now(), filePath: 'flow-2.mpe' },
       ];
-      vi.mocked(flowStorage.listFlows).mockReturnValue(flowMetas);
+      mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
 
       // 先设置 flowListStore
-      useFlowListStore.getState().setFlows(flowMetas);
+      useFlowListStore.getState().setFlows(flowMetas.map(m => ({ uuid: m.uuid, name: m.name, updated_at: m.updatedAt })));
 
       await act(async () => {
         render(<FlowListPanel />);
@@ -93,17 +98,17 @@ describe('FlowListPanel', () => {
       const targetFlow = createMockFlow('flow-2', '目标流程');
       
       const flowMetas = [
-        { uuid: 'flow-1', name: '当前流程', updated_at: Date.now() },
-        { uuid: 'flow-2', name: '目标流程', updated_at: Date.now() },
+        { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
+        { uuid: 'flow-2', name: '目标流程', updatedAt: Date.now(), filePath: 'flow-2.mpe' },
       ];
 
       // 设置当前流程为已修改状态
       useFlowStore.getState().setFlow(modifiedFlow);
       useFlowStore.setState({ isDirty: true });
-      useFlowListStore.getState().setFlows(flowMetas);
+      useFlowListStore.getState().setFlows(flowMetas.map(m => ({ uuid: m.uuid, name: m.name, updated_at: m.updatedAt })));
 
-      vi.mocked(flowStorage.listFlows).mockReturnValue(flowMetas);
-      vi.mocked(flowStorage.loadFlow).mockReturnValue(targetFlow);
+      mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
+      mockFlowStorage.loadFlow.mockResolvedValue(targetFlow);
 
       await act(async () => {
         render(<FlowListPanel />);
@@ -115,7 +120,7 @@ describe('FlowListPanel', () => {
       });
 
       // 验证：应调用 saveFlow 保存当前修改
-      expect(flowStorage.saveFlow).toHaveBeenCalledWith(modifiedFlow);
+      expect(mockFlowStorage.saveFlow).toHaveBeenCalledWith(modifiedFlow);
       // 验证：isDirty 应被重置
       expect(useFlowStore.getState().isDirty).toBe(false);
       // 验证：应加载目标流程
@@ -128,23 +133,23 @@ describe('FlowListPanel', () => {
       const targetFlow = createMockFlow('flow-2', '目标流程');
       
       const flowMetas = [
-        { uuid: 'flow-1', name: '当前流程', updated_at: Date.now() },
-        { uuid: 'flow-2', name: '目标流程', updated_at: Date.now() },
+        { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
+        { uuid: 'flow-2', name: '目标流程', updatedAt: Date.now(), filePath: 'flow-2.mpe' },
       ];
 
       // 设置当前流程，无未保存修改
       useFlowStore.getState().setFlow(currentFlow);
-      useFlowListStore.getState().setFlows(flowMetas);
+      useFlowListStore.getState().setFlows(flowMetas.map(m => ({ uuid: m.uuid, name: m.name, updated_at: m.updatedAt })));
 
-      vi.mocked(flowStorage.listFlows).mockReturnValue(flowMetas);
-      vi.mocked(flowStorage.loadFlow).mockReturnValue(targetFlow);
+      mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
+      mockFlowStorage.loadFlow.mockResolvedValue(targetFlow);
 
       await act(async () => {
         render(<FlowListPanel />);
       });
       
       // 清除初始化调用
-      vi.mocked(flowStorage.saveFlow).mockClear();
+      mockFlowStorage.saveFlow.mockClear();
 
       await act(async () => {
         await user.click(screen.getByText('目标流程'));
@@ -152,9 +157,12 @@ describe('FlowListPanel', () => {
 
       // 验证：点击后不应调用 saveFlow（因为 isDirty=false）
       // 注意：只验证点击行为后的调用，不包括组件初始化
-      const saveFlowCalls = vi.mocked(flowStorage.saveFlow).mock.calls;
+      const saveFlowCalls = mockFlowStorage.saveFlow.mock.calls;
       const callsAfterClick = saveFlowCalls.filter(
-        call => call[0].uuid !== 'demo-flow' && call[0].uuid !== 'demo-ws-testing'
+        (call: { uuid: string }[]) => {
+          const flow = call[0] as Flow;
+          return flow.uuid !== 'demo-flow' && flow.uuid !== 'demo-ws-testing';
+        }
       );
       expect(callsAfterClick.length).toBe(0);
       // 验证：应加载目标流程
@@ -184,20 +192,26 @@ describe('FlowListPanel', () => {
     it('点击删除按钮应显示确认对话框', async () => {
       const user = userEvent.setup();
       const flowMetas = [
-        { uuid: 'flow-1', name: '流程1', updated_at: Date.now() },
+        { uuid: 'flow-1', name: '流程1', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
       ];
-      vi.mocked(flowStorage.listFlows).mockReturnValue(flowMetas);
-      useFlowListStore.getState().setFlows(flowMetas);
+      mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
+      useFlowListStore.getState().setFlows(flowMetas.map(m => ({ uuid: m.uuid, name: m.name, updated_at: m.updatedAt })));
 
       await act(async () => {
         render(<FlowListPanel />);
       });
 
-      // 鼠标悬停以显示删除按钮（按钮默认 opacity-0）
+      // 鼠标悬停以显示更多操作按钮
       const flowItem = screen.getByText('流程1');
       await user.hover(flowItem);
 
-      // 点击删除按钮
+      // 先点击"更多操作"按钮打开下拉菜单
+      const moreButton = screen.getByRole('button', { name: '更多操作' });
+      await act(async () => {
+        await user.click(moreButton);
+      });
+
+      // 现在可以找到删除按钮
       const deleteButton = screen.getByRole('button', { name: '删除流程' });
       await act(async () => {
         await user.click(deleteButton);
@@ -213,10 +227,10 @@ describe('FlowListPanel', () => {
     it('确认删除应调用 deleteFlow 并从列表移除', async () => {
       const user = userEvent.setup();
       const flowMetas = [
-        { uuid: 'flow-1', name: '流程1', updated_at: Date.now() },
+        { uuid: 'flow-1', name: '流程1', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
       ];
-      vi.mocked(flowStorage.listFlows).mockReturnValue(flowMetas);
-      useFlowListStore.getState().setFlows(flowMetas);
+      mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
+      useFlowListStore.getState().setFlows(flowMetas.map(m => ({ uuid: m.uuid, name: m.name, updated_at: m.updatedAt })));
 
       await act(async () => {
         render(<FlowListPanel />);
@@ -225,6 +239,10 @@ describe('FlowListPanel', () => {
       // 触发删除
       const flowItem = screen.getByText('流程1');
       await user.hover(flowItem);
+      const moreButton = screen.getByRole('button', { name: '更多操作' });
+      await act(async () => {
+        await user.click(moreButton);
+      });
       const deleteButton = screen.getByRole('button', { name: '删除流程' });
       await act(async () => {
         await user.click(deleteButton);
@@ -239,7 +257,7 @@ describe('FlowListPanel', () => {
       });
 
       // 验证 deleteFlow 被调用
-      expect(flowStorage.deleteFlow).toHaveBeenCalledWith('flow-1');
+      expect(mockFlowStorage.deleteFlow).toHaveBeenCalledWith('flow-1');
       // 验证列表已更新
       expect(useFlowListStore.getState().flows).toEqual([]);
     });
@@ -248,13 +266,13 @@ describe('FlowListPanel', () => {
       const user = userEvent.setup();
       const currentFlow = createMockFlow('flow-1', '当前流程');
       const flowMetas = [
-        { uuid: 'flow-1', name: '当前流程', updated_at: Date.now() },
+        { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
       ];
       
       // 设置当前流程
       useFlowStore.getState().setFlow(currentFlow);
-      vi.mocked(flowStorage.listFlows).mockReturnValue(flowMetas);
-      useFlowListStore.getState().setFlows(flowMetas);
+      mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
+      useFlowListStore.getState().setFlows(flowMetas.map(m => ({ uuid: m.uuid, name: m.name, updated_at: m.updatedAt })));
 
       await act(async () => {
         render(<FlowListPanel />);
@@ -263,6 +281,10 @@ describe('FlowListPanel', () => {
       // 触发删除当前流程
       const flowItem = screen.getByText('当前流程');
       await user.hover(flowItem);
+      const moreButton = screen.getByRole('button', { name: '更多操作' });
+      await act(async () => {
+        await user.click(moreButton);
+      });
       const deleteButton = screen.getByRole('button', { name: '删除流程' });
       await act(async () => {
         await user.click(deleteButton);
@@ -282,29 +304,35 @@ describe('FlowListPanel', () => {
       const user = userEvent.setup();
       const currentFlow = createMockFlow('flow-1', '当前流程');
       const flowMetas = [
-        { uuid: 'flow-1', name: '当前流程', updated_at: Date.now() },
-        { uuid: 'flow-2', name: '其他流程', updated_at: Date.now() },
+        { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
+        { uuid: 'flow-2', name: '其他流程', updatedAt: Date.now(), filePath: 'flow-2.mpe' },
       ];
       
       // 设置当前流程
       useFlowStore.getState().setFlow(currentFlow);
-      vi.mocked(flowStorage.listFlows).mockReturnValue(flowMetas);
-      useFlowListStore.getState().setFlows(flowMetas);
+      mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
+      useFlowListStore.getState().setFlows(flowMetas.map(m => ({ uuid: m.uuid, name: m.name, updated_at: m.updatedAt })));
 
       await act(async () => {
         render(<FlowListPanel />);
       });
 
-      // 触发删除其他流程 - 使用 getAllByRole 获取所有删除按钮
+      // 触发删除其他流程 - 点击其"更多操作"按钮
       const flowItem = screen.getByText('其他流程');
       await user.hover(flowItem);
       
-      // 获取所有删除按钮，选择第二个（其他流程的）
-      const deleteButtons = screen.getAllByRole('button', { name: '删除流程' });
-      expect(deleteButtons.length).toBe(2);
+      // 获取所有"更多操作"按钮 - 点击第二个（其他流程的）
+      const moreButtons = screen.getAllByRole('button', { name: '更多操作' });
       
       await act(async () => {
-        await user.click(deleteButtons[1]);
+        await user.click(moreButtons[moreButtons.length - 1]);
+      });
+      
+      // 获取删除按钮（点击更多操作后只有一个删除按钮可见）
+      const deleteButton = screen.getByRole('button', { name: '删除流程' });
+      
+      await act(async () => {
+        await user.click(deleteButton);
       });
 
       // 确认删除
@@ -324,11 +352,11 @@ describe('FlowListPanel', () => {
   describe('空列表状态', () => {
     it('无流程时应显示空状态提示', async () => {
       // 需要同时 mock listFlows 和 saveFlow 来避免内置模板加载
-      vi.mocked(flowStorage.listFlows).mockReturnValueOnce([]); // 首次调用返回空
+      mockFlowStorage.listFlows.mockResolvedValueOnce([]); // 首次调用返回空
       useFlowListStore.getState().setFlows([]);
 
       // Mock saveFlow 来避免 useEffect 中的内置模板保存
-      vi.mocked(flowStorage.saveFlow).mockImplementation(() => {});
+      mockFlowStorage.saveFlow.mockResolvedValue(undefined);
 
       await act(async () => {
         render(<FlowListPanel />);

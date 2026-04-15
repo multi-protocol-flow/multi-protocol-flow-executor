@@ -1,22 +1,24 @@
 /**
  * 存储服务测试
+ * 测试 flowStorage 对象 API (async IPC-based)
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  saveFlow,
-  loadFlow,
-  listFlows,
-  deleteFlow,
-  clearFlows,
-  saveExecutionHistory,
-  listExecutionHistory,
-  clearExecutionHistory,
-  deleteExecutionHistoryByFlow,
-  type FlowMetadata,
-  type ExecutionHistoryItem,
+  flowStorage,
 } from '@/services/storage';
+import { invoke } from '@tauri-apps/api/core';
 import type { Flow } from '@/types';
+
+// Mock Tauri IPC
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn(),
+}));
+
+// Mock settings
+vi.mock('@/services/tauri/settings', () => ({
+  getAppDataDir: vi.fn().mockResolvedValue('/test/appdata'),
+}));
 
 /** 创建测试用的空流程 */
 function createTestFlow(uuid: string, name: string): Flow {
@@ -29,206 +31,137 @@ function createTestFlow(uuid: string, name: string): Flow {
 }
 
 describe('FlowStorage', () => {
+  const mockInvoke = invoke as unknown as ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
-    localStorage.clear();
+    vi.clearAllMocks();
   });
 
   describe('saveFlow', () => {
-    it('可以保存流程', () => {
+    it('调用 IPC 保存流程（无 _meta）', async () => {
       const flow = createTestFlow('test-1', '测试流程');
-      saveFlow(flow);
-      const loaded = loadFlow('test-1');
-      expect(loaded).not.toBeNull();
-      expect(loaded?.uuid).toBe('test-1');
-      expect(loaded?.name).toBe('测试流程');
+      mockInvoke.mockResolvedValue(undefined);
+
+      await flowStorage.saveFlow(flow);
+
+      expect(invoke).toHaveBeenCalledWith('save_flow_file', {
+        flow,
+        flowsDir: '/test/appdata/flows/',
+        meta: null,
+      });
     });
 
-    it('更新已存在的流程', () => {
-      saveFlow(createTestFlow('test-1', '流程1'));
-      saveFlow(createTestFlow('test-1', '更新后的流程'));
+    it('调用 IPC 保存流程（带 _meta）', async () => {
+      const flow = { ...createTestFlow('test-1', '测试流程'), _meta: { version: 5, isBuiltin: true } };
+      mockInvoke.mockResolvedValue(undefined);
 
-      const loaded = loadFlow('test-1');
-      expect(loaded?.name).toBe('更新后的流程');
+      await flowStorage.saveFlow(flow);
+
+      expect(invoke).toHaveBeenCalledWith('save_flow_file', {
+        flow: createTestFlow('test-1', '测试流程'),
+        flowsDir: '/test/appdata/flows/',
+        meta: { version: 5, isBuiltin: true },
+      });
     });
   });
 
   describe('loadFlow', () => {
-    it('加载不存在的流程返回 null', () => {
-      expect(loadFlow('not-exist')).toBeNull();
+    it('调用 IPC 加载流程（无 _meta）', async () => {
+      const flow = createTestFlow('test-1', '测试流程');
+      mockInvoke.mockResolvedValue({ _version: 1, flow });
+
+      const loaded = await flowStorage.loadFlow('test-1');
+
+      expect(invoke).toHaveBeenCalledWith('load_flow_file', {
+        uuid: 'test-1',
+        flowsDir: '/test/appdata/flows/',
+      });
+      expect(loaded.uuid).toBe('test-1');
+      expect(loaded.name).toBe('测试流程');
+    });
+
+    it('调用 IPC 加载流程（带 _meta）', async () => {
+      const flow = createTestFlow('test-1', '测试流程');
+      const _meta = { version: 5, isBuiltin: true };
+      mockInvoke.mockResolvedValue({ _version: 1, flow, _meta });
+
+      const loaded = await flowStorage.loadFlow('test-1') as typeof flow & { _meta?: typeof _meta };
+
+      expect(invoke).toHaveBeenCalledWith('load_flow_file', {
+        uuid: 'test-1',
+        flowsDir: '/test/appdata/flows/',
+      });
+      expect(loaded.uuid).toBe('test-1');
+      expect(loaded._meta).toEqual(_meta);
     });
   });
 
   describe('listFlows', () => {
-    it('空存储返回空数组', () => {
-      expect(listFlows()).toEqual([]);
+    it('调用 IPC 列出流程', async () => {
+      const flowMetas = [
+        { uuid: 'test-1', name: '流程1', filePath: 'test-1.mpe', updatedAt: Date.now() },
+      ];
+      mockInvoke.mockResolvedValue(flowMetas);
+
+      const list = await flowStorage.listFlows();
+
+      expect(invoke).toHaveBeenCalledWith('list_flow_files', {
+        flowsDir: '/test/appdata/flows/',
+      });
+      expect(list).toEqual(flowMetas);
+      expect(list).toHaveLength(1);
+      expect(list[0].name).toBe('流程1');
     });
 
-    it('可以列出流程元数据', () => {
-      saveFlow(createTestFlow('test-1', '流程1'));
-      saveFlow(createTestFlow('test-2', '流程2'));
+    it('空结果返回空数组', async () => {
+      mockInvoke.mockResolvedValue([]);
 
-      const list = listFlows();
-      expect(list).toHaveLength(2);
-      expect(list.map((f) => f.name)).toContain('流程1');
-      expect(list.map((f) => f.name)).toContain('流程2');
-    });
-
-    it('列表只包含元数据', () => {
-      saveFlow(createTestFlow('test-1', '流程1'));
-
-      const list = listFlows() as FlowMetadata[];
-      expect(list[0]).toHaveProperty('uuid');
-      expect(list[0]).toHaveProperty('name');
-      expect(list[0]).toHaveProperty('updated_at');
-      expect(list[0]).not.toHaveProperty('nodes');
-      expect(list[0]).not.toHaveProperty('connections');
+      const list = await flowStorage.listFlows();
+      expect(list).toEqual([]);
     });
   });
 
   describe('deleteFlow', () => {
-    it('可以删除流程', () => {
-      saveFlow(createTestFlow('test-1', '流程1'));
+    it('调用 IPC 删除流程', async () => {
+      mockInvoke.mockResolvedValue(undefined);
 
-      deleteFlow('test-1');
+      await flowStorage.deleteFlow('test-1');
 
-      expect(loadFlow('test-1')).toBeNull();
-      expect(listFlows()).toHaveLength(0);
-    });
-
-    it('删除不存在的流程不会报错', () => {
-      expect(() => deleteFlow('not-exist')).not.toThrow();
-    });
-  });
-
-  describe('clearFlows', () => {
-    it('可以清空所有流程', () => {
-      saveFlow(createTestFlow('test-1', '流程1'));
-      saveFlow(createTestFlow('test-2', '流程2'));
-
-      clearFlows();
-
-      expect(loadFlow('test-1')).toBeNull();
-      expect(loadFlow('test-2')).toBeNull();
-      expect(listFlows()).toHaveLength(0);
-    });
-  });
-});
-
-describe('HistoryStorage', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  describe('saveExecutionHistory', () => {
-    it('可以保存执行历史', () => {
-      const item: ExecutionHistoryItem = {
-        uuid: 'history-1',
-        flow_uuid: 'flow-1',
-        flow_name: '测试流程',
-        status: 'success',
-        duration_ms: 100,
-        timestamp: Date.now(),
-      };
-
-      saveExecutionHistory(item);
-
-      const history = listExecutionHistory();
-      expect(history).toHaveLength(1);
-      expect(history[0].uuid).toBe('history-1');
-    });
-
-    it('历史记录按时间倒序排列', () => {
-      const item1: ExecutionHistoryItem = {
-        uuid: 'history-1',
-        flow_uuid: 'flow-1',
-        flow_name: '流程1',
-        status: 'success',
-        duration_ms: 100,
-        timestamp: 1000,
-      };
-      const item2: ExecutionHistoryItem = {
-        uuid: 'history-2',
-        flow_uuid: 'flow-2',
-        flow_name: '流程2',
-        status: 'failed',
-        duration_ms: 200,
-        timestamp: 2000,
-      };
-
-      saveExecutionHistory(item1);
-      saveExecutionHistory(item2);
-
-      const history = listExecutionHistory();
-      expect(history[0].uuid).toBe('history-2'); // 最新的在前
-      expect(history[1].uuid).toBe('history-1');
-    });
-
-    it('限制历史记录数量为100条', () => {
-      for (let i = 0; i < 150; i++) {
-        saveExecutionHistory({
-          uuid: `history-${i}`,
-          flow_uuid: 'flow-1',
-          flow_name: '流程',
-          status: 'success',
-          duration_ms: 100,
-          timestamp: i,
-        });
-      }
-
-      const history = listExecutionHistory();
-      expect(history).toHaveLength(100);
-      // 最新的记录应该保留
-      expect(history[0].uuid).toBe('history-149');
-    });
-  });
-
-  describe('listExecutionHistory', () => {
-    it('空存储返回空数组', () => {
-      expect(listExecutionHistory()).toEqual([]);
-    });
-  });
-
-  describe('clearExecutionHistory', () => {
-    it('可以清空执行历史', () => {
-      saveExecutionHistory({
-        uuid: 'history-1',
-        flow_uuid: 'flow-1',
-        flow_name: '流程1',
-        status: 'success',
-        duration_ms: 100,
-        timestamp: Date.now(),
+      expect(invoke).toHaveBeenCalledWith('delete_flow_file', {
+        uuid: 'test-1',
+        flowsDir: '/test/appdata/flows/',
       });
-
-      clearExecutionHistory();
-
-      expect(listExecutionHistory()).toHaveLength(0);
     });
   });
 
-  describe('deleteExecutionHistoryByFlow', () => {
-    it('可以删除指定流程的执行历史', () => {
-      saveExecutionHistory({
-        uuid: 'history-1',
-        flow_uuid: 'flow-1',
-        flow_name: '流程1',
-        status: 'success',
-        duration_ms: 100,
-        timestamp: 1000,
-      });
-      saveExecutionHistory({
-        uuid: 'history-2',
-        flow_uuid: 'flow-2',
-        flow_name: '流程2',
-        status: 'success',
-        duration_ms: 100,
-        timestamp: 2000,
-      });
+  describe('copyFlow', () => {
+    it('调用 IPC 复制流程', async () => {
+      const copiedFlow = createTestFlow('new-uuid', '流程1 (副本)');
+      mockInvoke.mockResolvedValue(copiedFlow);
 
-      deleteExecutionHistoryByFlow('flow-1');
+      const result = await flowStorage.copyFlow('test-1');
 
-      const history = listExecutionHistory();
-      expect(history).toHaveLength(1);
-      expect(history[0].flow_uuid).toBe('flow-2');
+      expect(invoke).toHaveBeenCalledWith('copy_flow_file', {
+        uuid: 'test-1',
+        flowsDir: '/test/appdata/flows/',
+      });
+      expect(result).toEqual(copiedFlow);
+    });
+  });
+
+  describe('refreshFlows', () => {
+    it('调用 IPC 刷新流程列表', async () => {
+      const flowMetas = [
+        { uuid: 'test-1', name: '流程1', filePath: 'test-1.mpe', updatedAt: Date.now() },
+      ];
+      mockInvoke.mockResolvedValue(flowMetas);
+
+      const list = await flowStorage.refreshFlows();
+
+      expect(invoke).toHaveBeenCalledWith('list_flow_files', {
+        flowsDir: '/test/appdata/flows/',
+      });
+      expect(list).toEqual(flowMetas);
     });
   });
 });

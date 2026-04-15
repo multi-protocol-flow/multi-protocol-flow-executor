@@ -20,6 +20,18 @@ vi.mock('@/services/tauri', () => ({
   createFlow: vi.fn(),
 }));
 
+// Mock flowStorage (now async IPC-based)
+vi.mock('@/services/storage', () => ({
+  flowStorage: {
+    saveFlow: vi.fn().mockResolvedValue(undefined),
+    loadFlow: vi.fn(),
+    listFlows: vi.fn(),
+    deleteFlow: vi.fn(),
+    copyFlow: vi.fn(),
+    refreshFlows: vi.fn(),
+  },
+}));
+
 describe('NewFlowDialog', () => {
   const mockCloseNewFlowDialog = vi.fn();
   const mockSetFlow = vi.fn();

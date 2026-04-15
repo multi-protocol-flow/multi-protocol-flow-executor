@@ -23,10 +23,11 @@ services/
 │   └── connection.mock.ts    # 数据库连接 Mock
 └── storage/                  # 本地存储服务
     ├── index.ts              # 统一导出
-    ├── flowStorage.ts        # 流程元数据存储
-    ├── historyStorage.ts     # 执行历史存储
+    ├── flowStorage.ts        # 流程元数据存储（IPC-based）
+    ├── stressTestStorage.ts  # 压测报告存储
     ├── reportStorage.ts      # 报告存储 IPC
-    └── reportStorage.mock.ts # 报告存储 Mock
+    ├── reportStorage.mock.ts # 报告存储 Mock
+    └── migration.ts          # 数据迁移（旧 localStorage → .mpe 文件）
 ```
 
 ## 快速定位
@@ -40,7 +41,6 @@ services/
 | 压力测试 IPC | `tauri/stressTest.ts` |
 | 数据库连接 IPC | `tauri/connection.ts` |
 | 存储流程数据 | `storage/flowStorage.ts` |
-| 执行历史管理 | `storage/historyStorage.ts` |
 | 报告存储 | `storage/reportStorage.ts` |
 
 ## 约定
