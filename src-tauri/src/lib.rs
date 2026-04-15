@@ -53,6 +53,12 @@ pub use tauri_commands::{
     test_db_connection,
     // 执行会话管理
     cancel_flow,
+    // 流程文件存储命令
+    list_flow_files,
+    load_flow_file,
+    save_flow_file,
+    delete_flow_file,
+    copy_flow_file,
     DebugSessionManager,
     ExecutionSessionManager,
 };
@@ -143,11 +149,17 @@ pub fn run() {
             load_stress_test_report,
             list_stress_test_reports,
             delete_stress_test_report,
-            // 数据库连接命令
-            test_db_connection,
-            // 执行会话管理
-            cancel_flow
-        ])
+    // 数据库连接命令
+    test_db_connection,
+    // 执行会话管理
+    cancel_flow,
+    // 流程文件存储命令
+    list_flow_files,
+    load_flow_file,
+    save_flow_file,
+    delete_flow_file,
+    copy_flow_file
+])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

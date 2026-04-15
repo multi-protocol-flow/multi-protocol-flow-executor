@@ -491,6 +491,55 @@ pub fn delete_stress_test_report(
 }
 
 // ============================================================================
+// 流程文件存储命令
+// ============================================================================
+
+/// 列出所有流程文件元数据
+#[tauri::command]
+pub fn list_flow_files(
+    flows_dir: String,
+) -> Result<Vec<flow_engine::storage::FlowMetadata>, String> {
+    flow_engine::storage::list_flow_files(std::path::Path::new(&flows_dir))
+}
+
+/// 加载流程文件（包含 _meta 元数据）
+#[tauri::command]
+pub fn load_flow_file(
+    uuid: String,
+    flows_dir: String,
+) -> Result<flow_engine::storage::FlowFile, String> {
+    flow_engine::storage::load_flow_file_raw(&uuid, std::path::Path::new(&flows_dir))
+}
+
+/// 保存流程文件（可选携带 _meta 元数据）
+#[tauri::command]
+pub fn save_flow_file(
+    flow: Flow,
+    flows_dir: String,
+    meta: Option<serde_json::Value>,
+) -> Result<(), String> {
+    flow_engine::storage::save_flow_file_with_meta(&flow, std::path::Path::new(&flows_dir), meta)
+}
+
+/// 删除流程文件
+#[tauri::command]
+pub fn delete_flow_file(
+    uuid: String,
+    flows_dir: String,
+) -> Result<(), String> {
+    flow_engine::storage::delete_flow_file(&uuid, std::path::Path::new(&flows_dir))
+}
+
+/// 复制流程文件
+#[tauri::command]
+pub fn copy_flow_file(
+    uuid: String,
+    flows_dir: String,
+) -> Result<Flow, String> {
+    flow_engine::storage::copy_flow_file(&uuid, std::path::Path::new(&flows_dir))
+}
+
+// ============================================================================
 // 单元测试
 // ============================================================================
 
