@@ -21,88 +21,11 @@ import { DbCloseConfig } from './DbCloseConfig';
 import { ScriptConfig } from './ScriptConfig';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData, Node } from '@/types';
 import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendCollectConfig, isWsCloseConfig, isAssertionConfig, isDbConnectConfig, isDbQueryConfig, isDbBeginConfig, isDbCommitConfig, isDbRollbackConfig, isDbCloseConfig, isScriptConfig } from '@/types';
 import { Settings2, MousePointerClick, Lock, PencilLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-/**
- * 节点类型配置映射
- */
-const NODE_TYPE_CONFIG = {
-  entry: {
-    label: '入口',
-    badgeVariant: 'default' as const,
-    badgeClass: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300',
-  },
-  http: {
-    label: 'HTTP',
-    badgeVariant: 'secondary' as const,
-    badgeClass: 'bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300',
-  },
-  conditional: {
-    label: '条件',
-    badgeVariant: 'outline' as const,
-    badgeClass: 'border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300',
-  },
-  ws_connect: {
-    label: 'WS 连接',
-    badgeVariant: 'secondary' as const,
-    badgeClass: 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300',
-  },
-  ws_send_collect: {
-    label: 'WS 发送采集',
-    badgeVariant: 'secondary' as const,
-    badgeClass: 'bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300',
-  },
-  ws_close: {
-    label: 'WS 关闭',
-    badgeVariant: 'outline' as const,
-    badgeClass: 'border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300',
-  },
-  assertion: {
-    label: '断言',
-    badgeVariant: 'outline' as const,
-    badgeClass: 'border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300',
-  },
-  db_connect: {
-    label: 'DB 连接',
-    badgeVariant: 'secondary' as const,
-    badgeClass: 'bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300',
-  },
-  db_query: {
-    label: 'DB 查询',
-    badgeVariant: 'secondary' as const,
-    badgeClass: 'bg-cyan-50 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300',
-  },
-  db_begin: {
-    label: 'DB 开始事务',
-    badgeVariant: 'outline' as const,
-    badgeClass: 'border-lime-200 dark:border-lime-800 text-lime-700 dark:text-lime-300',
-  },
-  db_commit: {
-    label: 'DB 提交',
-    badgeVariant: 'outline' as const,
-    badgeClass: 'border-green-200 dark:border-green-800 text-green-700 dark:text-green-300',
-  },
-  db_rollback: {
-    label: 'DB 回滚',
-    badgeVariant: 'outline' as const,
-    badgeClass: 'border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
-  },
-  db_close: {
-    label: 'DB 关闭',
-    badgeVariant: 'outline' as const,
-    badgeClass: 'border-border text-muted-foreground',
-  },
-  script: {
-    label: '脚本',
-    badgeVariant: 'secondary' as const,
-    badgeClass: 'bg-fuchsia-50 dark:bg-fuchsia-950/50 text-fuchsia-700 dark:text-fuchsia-300',
-  },
-};
 
 interface NodeConfigPanelProps {
   /** 只读模式（调试时查看节点配置） */
@@ -140,8 +63,6 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
     );
   }
 
-  const typeConfig = NODE_TYPE_CONFIG[selectedNode.type];
-
   /**
    * 处理配置保存
    */
@@ -166,9 +87,9 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
           <div className="flex items-center gap-2 shrink-0">
             {readOnly && (
               <>
-                <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800">
+                <span className="inline-flex items-center rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                   只读
-                </Badge>
+                </span>
                 {selectedNode && (
                   <Button
                     variant="outline"
@@ -182,12 +103,6 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                 )}
               </>
             )}
-            <Badge 
-              variant={typeConfig.badgeVariant}
-              className={typeConfig.badgeClass}
-            >
-              {typeConfig.label}
-            </Badge>
           </div>
         </div>
       </CardHeader>

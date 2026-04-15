@@ -73,8 +73,8 @@ export function WsSendCollectNode({ id, data, selected }: NodeProps) {
           <Send className="w-3.5 h-3.5" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="text-xs text-teal-600 font-medium uppercase tracking-wide">
-            WS
+          <span className="text-xs text-teal-600 font-medium tracking-wide">
+            WS-发送采集
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
             {nodeData.label || 'WS 发送采集'}

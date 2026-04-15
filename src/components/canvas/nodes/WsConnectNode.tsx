@@ -72,8 +72,8 @@ export function WsConnectNode({ id, data, selected }: NodeProps) {
           <Wifi className="w-3.5 h-3.5" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="text-xs text-amber-600 font-medium uppercase tracking-wide">
-            WS
+          <span className="text-xs text-amber-600 font-medium tracking-wide">
+            WS-连接
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
             {nodeData.label || 'WS 连接'}

@@ -72,8 +72,8 @@ export function DbCloseNode({ id, data, selected }: NodeProps) {
           <Plug className="w-3.5 h-3.5" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="text-xs text-violet-600 font-medium uppercase tracking-wide">
-            DB
+          <span className="text-xs text-violet-600 font-medium tracking-wide">
+            DB-关闭
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
             {nodeData.label || 'DB 关闭'}
