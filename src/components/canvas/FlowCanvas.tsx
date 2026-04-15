@@ -327,6 +327,12 @@ function FlowCanvasInner() {
     [selectNode, setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen]
   );
 
+  // 处理边点击 - 取消节点选中，避免 Backspace 误删节点
+  const onEdgeClick = useCallback(() => {
+    selectNode(null);
+    setConfigPanelOpen(false);
+  }, [selectNode, setConfigPanelOpen]);
+
   // 处理画布空白处点击 - 取消选中并收起面板
   const onPaneClick = useCallback(() => {
     selectNode(null);
@@ -528,6 +534,7 @@ function FlowCanvasInner() {
         onConnect={onConnect}
         onNodeDragStop={onNodeDragStop}
         onNodeClick={onNodeClick}
+        onEdgeClick={onEdgeClick}
         onDragOver={onDragOver}
         onDrop={onDrop}
         onPaneClick={onPaneClick}
