@@ -3,7 +3,7 @@
  * 位于画布顶部居中，包含执行按钮等操作
  */
 import { useState, useMemo } from 'react';
-import { Play, Square, Bug, Activity, Variable as VariableIcon, X } from 'lucide-react';
+import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
@@ -11,6 +11,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useWsStreamStore } from '@/stores/wsStream';
 import { useStressTestStore, selectIsStressTestRunning } from '@/stores/stressTest';
 import { executeFlowWithChannel, saveFlowReport } from '@/services/tauri';
+import { flowStorage } from '@/services/storage';
 import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
@@ -26,6 +27,8 @@ import { VariablePanel, extractVariableGroups } from '@/components/panels/Variab
 export function CanvasToolbar() {
   const [isExecuting, setIsExecuting] = useState(false);
   const flow = useFlowStore((state) => state.flow);
+  const isDirty = useFlowStore((state) => state.isDirty);
+  const markSaved = useFlowStore((state) => state.markSaved);
   const setReport = useExecutionStore((state) => state.setReport);
   const setError = useExecutionStore((state) => state.setError);
   const addLog = useConsoleStore((state) => state.addLog);
@@ -40,6 +43,17 @@ export function CanvasToolbar() {
   const showStressTestConfigDialog = useUIStore((state) => state.showStressTestConfigDialog);
   const openStressTestConfigDialog = useUIStore((state) => state.openStressTestConfigDialog);
   const closeStressTestConfigDialog = useUIStore((state) => state.closeStressTestConfigDialog);
+
+  const handleSave = async () => {
+    if (!flow) return;
+    try {
+      await flowStorage.saveFlow(flow);
+      markSaved();
+      toast.success('保存成功', { description: flow.name });
+    } catch (err) {
+      toast.error('保存失败', { description: (err as Error).message });
+    }
+  };
 
   const handleExecute = async () => {
     if (!flow || isExecuting) return;
@@ -82,8 +96,12 @@ export function CanvasToolbar() {
         try {
           await saveFlowReport(result.flow_report, reportDir);
         } catch (saveError) {
-          // 保存失败不影响 UI 显示，只记录日志
+          // 保存失败不影响 UI 显示，但提示用户
           console.error('保存报告失败:', saveError);
+          toast.warning('报告保存失败', {
+            description: `${(saveError as Error).message}，报告仅在当前会话可见`,
+            duration: 8000,
+          });
         }
 
         toast.success('流程执行完成', {
@@ -163,6 +181,31 @@ export function CanvasToolbar() {
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-start gap-2">
       {/* 主工具栏 */}
       <div className="flex items-center gap-3 bg-background/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-border/50 dark:border-white/20">
+        {/* 保存按钮 */}
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!flow || !isDirty}
+          title={!flow ? '无流程' : isDirty ? '保存流程 (Ctrl+S)' : '已保存'}
+          className={cn(
+            'flex items-center justify-center',
+            'transition-all duration-150',
+            flow && isDirty && [
+              'text-amber-500 hover:text-amber-600',
+              'hover:scale-110',
+              'cursor-pointer',
+            ],
+            !flow || !isDirty && [
+              'text-muted-foreground cursor-not-allowed',
+            ]
+          )}
+        >
+          <Save className="w-5 h-5" />
+        </button>
+
+        {/* 分隔线 */}
+        <div className="w-px h-5 bg-border/50" />
+
         {/* 执行/停止按钮 */}
         {isExecuting ? (
           <button

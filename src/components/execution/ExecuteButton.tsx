@@ -66,8 +66,12 @@ export function ExecuteButton() {
         try {
           await saveFlowReport(result.flow_report, reportDir);
         } catch (saveError) {
-          // 保存失败不影响 UI 显示，只记录日志
+          // 保存失败不影响 UI 显示，但提示用户
           console.error('保存报告失败:', saveError);
+          toast.warning('报告保存失败', {
+            description: `${(saveError as Error).message}，报告仅在当前会话可见`,
+            duration: 8000,
+          });
         }
 
         toast.success('执行完成', {
