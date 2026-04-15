@@ -68,8 +68,11 @@ export function StressTestHistory() {
   const handleSelectReport = useCallback(async (item: { uuid: string; filePath: string }) => {
     try {
       const report = await stressTestStorage.loadReport(item.filePath);
-      // 将报告写入 store 并打开弹窗
-      useStressTestStore.setState({ report: report as StressTestReport });
+      // 将报告写入 store 并打开弹窗，同时恢复进度历史数据以支持图表渲染
+      useStressTestStore.setState({
+        report: report as StressTestReport,
+        progressHistory: (report as StressTestReport).progressHistory ?? [],
+      });
       openReportDialog();
     } catch (error) {
       console.error('加载压测报告失败:', error);

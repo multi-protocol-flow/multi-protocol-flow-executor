@@ -311,13 +311,13 @@ export function StressTestResult() {
                 </div>
 
                 {/* RPS 实时曲线 & 响应时间分布图表 */}
-                {progressHistory.length > 0 && (
+                {(progressHistory.length > 0 || (report.progressHistory && report.progressHistory.length > 0)) && (
                   <div className="flex flex-col gap-3">
                     <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <BarChart3 className="w-4 h-4" />
                       压测图表
                     </h3>
-                    <StressTestCharts progressHistory={progressHistory} />
+                    <StressTestCharts progressHistory={progressHistory.length > 0 ? progressHistory : report.progressHistory!} />
                   </div>
                 )}
 

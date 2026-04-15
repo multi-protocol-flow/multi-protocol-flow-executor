@@ -220,6 +220,8 @@ export interface StressTestReport {
   nodeStatistics?: NodeLevelStatistics[];
   /** 节点类型聚合统计（无数据时省略） */
   nodeTypeStatistics?: NodeTypeStatistics[];
+  /** 进度历史数据（用于折线图等可视化，无数据时省略） */
+  progressHistory?: StressTestProgress[];
 }
 
 // ============================================================================
