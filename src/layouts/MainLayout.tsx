@@ -15,7 +15,8 @@ import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
 import type { BottomPanelTab } from '@/stores/ui';
 import { useConsoleStore } from '@/stores/console';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, Settings, GripVertical, GripHorizontal } from 'lucide-react';
+import { useZoomStore } from '@/stores/zoom';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, Settings, GripVertical, GripHorizontal, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -69,6 +70,12 @@ export function MainLayout() {
   const setSidebarWidth = useUIStore((state) => state.setSidebarWidth);
   const openSettingsDialog = useUIStore((state) => state.openSettingsDialog);
   const showConfirm = useUIStore((state) => state.showConfirm);
+
+  // 缩放状态
+  const zoom = useZoomStore((state) => state.zoom);
+  const zoomIn = useZoomStore((state) => state.zoomIn);
+  const zoomOut = useZoomStore((state) => state.zoomOut);
+  const resetZoom = useZoomStore((state) => state.resetZoom);
 
   const isDirty = useFlowStore((state) => state.isDirty);
   const flow = useFlowStore((state) => state.flow);
@@ -291,6 +298,37 @@ export function MainLayout() {
 
         {/* 右侧：操作按钮 */}
         <div className="flex items-center gap-2">
+
+          {/* 缩放控件 */}
+          <div className="flex items-center gap-0.5 border border-border rounded-md px-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={zoomOut}
+              className="h-7 w-7"
+              title="缩小 (Ctrl+-)"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetZoom}
+              className="h-7 min-w-[3.5rem] px-1 text-xs text-muted-foreground"
+              title="重置缩放 (Ctrl+0)"
+            >
+              {Math.round(zoom * 100)}%
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={zoomIn}
+              className="h-7 w-7"
+              title="放大 (Ctrl+=)"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+          </div>
 
           {/* 设置按钮 */}
           <Button

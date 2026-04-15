@@ -10,6 +10,7 @@
     "core:window:default",
     "core:window:allow-show",
     "core:window:allow-close",
+    "core:webview:allow-set-webview-zoom",
     "dialog:default",
     "opener:allow-open-path",
     "store:default"

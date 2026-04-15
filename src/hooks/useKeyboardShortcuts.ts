@@ -3,7 +3,10 @@
  * 提供全局键盘快捷键支持
  */
 import { useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useFlowStore, useUIStore } from '@/stores';
+import { flowStorage } from '@/services/storage';
+import { useZoomStore } from '@/stores/zoom';
 
 /**
  * 键盘快捷键 Hook
@@ -11,9 +14,13 @@ import { useFlowStore, useUIStore } from '@/stores';
  * 支持的快捷键：
  * - Delete / Backspace: 删除选中的节点（带确认弹窗）或选中的边
  * - Escape: 取消选择节点
+ * - Ctrl/Cmd + S: 保存当前流程
  * - Ctrl/Cmd + B: 切换左侧面板
  * - Ctrl/Cmd + H: 切换历史面板
  * - Ctrl/Cmd + J: 切换配置面板
+ * - Ctrl/Cmd + =: 放大
+ * - Ctrl/Cmd + -: 缩小
+ * - Ctrl/Cmd + 0: 重置缩放
  */
 export function useKeyboardShortcuts() {
   const { selectedNodeId, selectNode } = useFlowStore();
@@ -62,7 +69,7 @@ export function useKeyboardShortcuts() {
   );
 
   const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
+    async (e: KeyboardEvent) => {
       // 忽略在输入框中的按键
       const target = e.target as HTMLElement;
       const isInputting =
@@ -80,6 +87,24 @@ export function useKeyboardShortcuts() {
       // 快捷键：面板切换（仅在非输入状态）
       if (isInputting) return;
 
+      // Ctrl/Cmd + S: 保存当前流程
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        const { flow, isDirty, markSaved } = useFlowStore.getState();
+        if (!flow || !isDirty) {
+          toast.info('无需保存', { description: '流程没有未保存的修改' });
+          return;
+        }
+        try {
+          await flowStorage.saveFlow(flow);
+          markSaved();
+          toast.success('保存成功', { description: flow.name });
+        } catch (err) {
+          toast.error('保存失败', { description: (err as Error).message });
+        }
+        return;
+      }
+
       // Ctrl/Cmd + B: 切换左侧面板
       if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
         e.preventDefault();
@@ -96,6 +121,24 @@ export function useKeyboardShortcuts() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'j') {
         e.preventDefault();
         toggleConfigPanel();
+      }
+
+      // Ctrl/Cmd + =/+: 放大
+      if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) {
+        e.preventDefault();
+        useZoomStore.getState().zoomIn();
+      }
+
+      // Ctrl/Cmd + -: 缩小
+      if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+        e.preventDefault();
+        useZoomStore.getState().zoomOut();
+      }
+
+      // Ctrl/Cmd + 0: 重置缩放
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault();
+        useZoomStore.getState().resetZoom();
       }
     },
     [selectedNodeId, selectNode, toggleFlowListPanel, toggleHistoryPanel, toggleConfigPanel]
