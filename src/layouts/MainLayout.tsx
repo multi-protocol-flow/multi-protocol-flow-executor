@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { LeftSidebarPanel } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
 import { NodeConfigPanel, SettingsPanel } from '@/components/panels';
-import { ExecutionReport, ExecutionHistory, ConsolePanel, ExecutionPanel, StressTestHistory } from '@/components/execution';
+import { ExecutionReport, ExecutionHistory, ConsolePanel, ExecutionPanel } from '@/components/execution';
 import { StressTestResult } from '@/components/stress-test/StressTestResult';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
@@ -403,9 +403,6 @@ export function MainLayout() {
                         <TabsTrigger value="running" className="h-6 px-3 text-xs">
                           运行
                         </TabsTrigger>
-                        <TabsTrigger value="stress_history" className="h-6 px-3 text-xs">
-                          压测历史
-                        </TabsTrigger>
                         <TabsTrigger value="console" className="h-6 px-3 text-xs">
                           控制台
                         </TabsTrigger>
@@ -429,9 +426,6 @@ export function MainLayout() {
                     </TabsContent>
                     <TabsContent value="running" className="m-0 h-full overflow-hidden">
                       <ExecutionPanel />
-                    </TabsContent>
-                    <TabsContent value="stress_history" className="m-0 h-full overflow-hidden">
-                      <StressTestHistory />
                     </TabsContent>
                     <TabsContent value="console" className="m-0 h-full overflow-hidden flex flex-col">
                       {/* 过滤控件 */}

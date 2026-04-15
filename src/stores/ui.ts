@@ -9,7 +9,7 @@ export type PanelType = 'flowList' | 'history' | 'config' | 'execution';
 /** 右侧配置面板模式 */
 export type ConfigPanelMode = 'node' | 'settings' | 'debug';
 /** 底部面板 Tab 类型 */
-export type BottomPanelTab = 'history' | 'console' | 'running' | 'stress_history';
+export type BottomPanelTab = 'history' | 'console' | 'running';
 
 /** 确认对话框配置 */
 export interface ConfirmDialogConfig {
