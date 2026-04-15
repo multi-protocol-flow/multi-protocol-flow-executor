@@ -138,9 +138,11 @@ function isWsNodeType(nodeType: string): boolean {
 /** 详情区域子标签类型 */
 type DetailTab = 'output' | 'ws' | 'variables' | 'stack';
 
+const EMPTY_NODES: Node[] = [];
+
 export function ExecutionPanel() {
   // ===== Store 数据 =====
-  const nodes = useFlowStore((state) => state.flow?.nodes ?? []);
+  const nodes = useFlowStore((state) => state.flow?.nodes ?? EMPTY_NODES);
   const isExecuting = useExecutionStore(selectIsExecuting);
   const currentNodeUuid = useExecutionStore((state) => state.currentNodeUuid);
   const completedNodeCount = useExecutionStore(selectCompletedNodeCount);
