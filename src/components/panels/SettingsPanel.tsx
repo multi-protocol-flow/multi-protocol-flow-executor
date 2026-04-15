@@ -3,7 +3,7 @@
  * 复用 NodeConfigPanel 的布局样式，提供配置文件存储位置提示
  */
 import { useEffect, useState } from 'react';
-import { Settings2, FolderOpen, FolderCog, Info, Sun, Moon, Monitor } from 'lucide-react';
+import { Settings2, FolderOpen, FolderCog, FolderInput, Info, Sun, Moon, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -25,14 +25,17 @@ export function SettingsPanel() {
   const {
     reportDir,
     logDir,
+    flowsDir,
     theme,
     isLoading,
     loadSettings,
     setReportDir,
     setLogDir,
+    setFlowsDir,
     setTheme,
     openReportDir,
     openLogDir,
+    openFlowsDir,
   } = useSettingsStore();
 
   // 配置文件存储路径
@@ -72,6 +75,14 @@ export function SettingsPanel() {
     const dir = await service.selectDirectory(logDir);
     if (dir) {
       await setLogDir(dir);
+    }
+  };
+
+  const handleSelectFlowsDir = async () => {
+    const service = await getSettingsService();
+    const dir = await service.selectDirectory(flowsDir);
+    if (dir) {
+      await setFlowsDir(dir);
     }
   };
 
@@ -135,6 +146,25 @@ export function SettingsPanel() {
                   </SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* 流程保存目录 */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-sm">
+                <FolderInput className="h-4 w-4 text-muted-foreground" />
+                流程保存目录
+              </Label>
+              <div className="text-sm text-foreground bg-muted border border-border rounded-md px-3 py-2 break-all leading-relaxed">
+                {isLoading ? '加载中...' : flowsDir || '未设置'}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleSelectFlowsDir} className="flex-1">
+                  选择目录
+                </Button>
+                <Button variant="outline" size="sm" onClick={openFlowsDir} className="flex-1">
+                  打开目录
+                </Button>
+              </div>
             </div>
 
             {/* 报告目录 */}
