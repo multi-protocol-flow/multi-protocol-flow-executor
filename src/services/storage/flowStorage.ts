@@ -30,9 +30,16 @@ interface FlowFileResponse {
 
 /**
  * 获取流程存储目录
- * 默认为 {appDataDir}/flows/
+ * 优先使用全局设置中的 flowsDir，未设置时默认为 {appDataDir}/flows/
  */
 async function getFlowsDir(): Promise<string> {
+  // 尝试从 Settings Store 缓存中读取自定义目录
+  const { useSettingsStore } = await import('@/stores/settings');
+  const cachedFlowsDir = useSettingsStore.getState().flowsDir;
+  if (cachedFlowsDir) {
+    return cachedFlowsDir;
+  }
+  // 未设置时使用默认目录
   const appDataDir = await getAppDataDir();
   return `${appDataDir}/flows/`;
 }
