@@ -8,8 +8,8 @@ import type { StressTestReport, StressTestReportMetadata } from '@/types/stressT
 
 export const stressTestStorage = {
   /** 保存压测报告 */
-  async saveReport(report: StressTestReport): Promise<string> {
-    return invoke<string>('save_stress_test_report', { report });
+  async saveReport(report: StressTestReport, reportsDir: string): Promise<string> {
+    return invoke<string>('save_stress_test_report', { report, reportsDir });
   },
 
   /** 加载压测报告 */
@@ -18,7 +18,12 @@ export const stressTestStorage = {
   },
 
   /** 列出所有压测报告 */
-  async listReports(): Promise<StressTestReportMetadata[]> {
-    return invoke<StressTestReportMetadata[]>('list_stress_test_reports');
+  async listReports(reportsDir: string): Promise<StressTestReportMetadata[]> {
+    return invoke<StressTestReportMetadata[]>('list_stress_test_reports', { reportsDir });
+  },
+
+  /** 删除压测报告 */
+  async deleteReport(filePath: string): Promise<void> {
+    await invoke<void>('delete_stress_test_report', { filePath });
   },
 };

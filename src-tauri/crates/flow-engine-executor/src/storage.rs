@@ -325,6 +325,8 @@ pub struct StressTestReportSummary {
     pub flow_name: String,
     /// 测试开始时间（毫秒时间戳）
     pub start_time: u64,
+    /// 报告文件完整路径（用于加载报告）
+    pub file_path: String,
 }
 
 /// 保存压测报告到指定目录
@@ -411,6 +413,24 @@ pub fn load_stress_report(file_path: &Path) -> Result<StressTestReport, String> 
     Ok(report)
 }
 
+/// 删除压测报告文件
+///
+/// # 参数
+/// - `file_path`: 报告文件路径
+///
+/// # 返回
+/// - `Ok(())`: 删除成功
+/// - `Err(String)`: 删除失败，包含错误信息
+pub fn delete_stress_report(file_path: &Path) -> Result<(), String> {
+    if !file_path
+        .try_exists()
+        .map_err(|e| format!("检查压测报告文件失败: {}", e))?
+    {
+        return Err(format!("压测报告文件不存在: {:?}", file_path));
+    }
+    fs::remove_file(file_path).map_err(|e| format!("删除压测报告文件 {:?} 失败: {}", file_path, e))
+}
+
 /// 列出压测报告摘要
 ///
 /// # 参数
@@ -454,6 +474,7 @@ pub fn list_stress_reports(reports_dir: &Path) -> Result<Vec<StressTestReportSum
                         flow_uuid: report.flow_uuid,
                         flow_name: report.flow_name,
                         start_time: report.start_time,
+                        file_path: path.to_string_lossy().to_string(),
                     });
                 }
             }
@@ -712,6 +733,7 @@ mod tests {
             flow_uuid: "flow-001".to_string(),
             flow_name: "Test Flow".to_string(),
             start_time: 1705315845000,
+            file_path: "/tmp/performance_Test_Flow_20240115.json".to_string(),
         };
 
         let json = serde_json::to_string(&summary).expect("序列化失败");

@@ -65,9 +65,9 @@ export function StressTestHistory() {
   }, [history]);
 
   // 点击加载完整报告
-  const handleSelectReport = useCallback(async (reportUuid: string) => {
+  const handleSelectReport = useCallback(async (item: { uuid: string; filePath: string }) => {
     try {
-      const report = await stressTestStorage.loadReport(reportUuid);
+      const report = await stressTestStorage.loadReport(item.filePath);
       // 将报告写入 store 并打开弹窗
       useStressTestStore.setState({ report: report as StressTestReport });
       openReportDialog();
@@ -80,15 +80,14 @@ export function StressTestHistory() {
   }, [openReportDialog]);
 
   // 删除单个报告（带确认）
-  const handleDelete = useCallback((uuid: string) => {
+  const handleDelete = useCallback((item: { uuid: string; filePath: string }) => {
     showConfirm({
       title: '删除压测报告',
       description: '确定要删除此压测报告吗？删除后无法恢复。',
       confirmText: '删除',
       onConfirm: async () => {
         try {
-          // 通过重新加载来同步（后端没有单独删除的 IPC 命令，这里调用 list 后本地过滤）
-          setLocalHistory((prev) => prev.filter((item) => item.uuid !== uuid));
+          await stressTestStorage.deleteReport(item.filePath);
           toast.success('报告已删除');
           // 重新加载历史列表
           await loadHistory();
@@ -144,10 +143,10 @@ export function StressTestHistory() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    handleSelectReport(item.uuid);
+                    handleSelectReport(item);
                   }
                 }}
-                onClick={() => handleSelectReport(item.uuid)}
+                onClick={() => handleSelectReport(item)}
                 className={cn(
                   'group flex items-center justify-between p-2.5 rounded-lg w-full',
                   'border border-transparent hover:border-border',
@@ -185,7 +184,7 @@ export function StressTestHistory() {
                     size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(item.uuid);
+                      handleDelete(item);
                     }}
                     className={cn(
                       'w-8 h-8 opacity-0 group-hover:opacity-100',

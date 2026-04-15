@@ -15,6 +15,7 @@ import type {
 import type { Flow } from '@/types/flow';
 import { startStressTest as startStressTestService, stopStressTest as stopStressTestService } from '@/services/tauri';
 import { stressTestStorage } from '@/services/storage/stressTestStorage';
+import { useSettingsStore } from './settings';
 import { toast } from 'sonner';
 
 // ============================================================================
@@ -134,8 +135,13 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
   loadHistory: async () => {
     set({ isLoadingHistory: true });
     try {
-      const history = await stressTestStorage.listReports();
-      set({ history, isLoadingHistory: false });
+      const reportsDir = useSettingsStore.getState().reportDir;
+      if (reportsDir) {
+        const history = await stressTestStorage.listReports(reportsDir);
+        set({ history, isLoadingHistory: false });
+      } else {
+        set({ isLoadingHistory: false });
+      }
     } catch (e) {
       set({ isLoadingHistory: false });
     }
@@ -167,10 +173,13 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
 
       // 自动保存压测报告
       try {
-        await stressTestStorage.saveReport(event.report);
-        // 重新加载历史列表
-        const history = await stressTestStorage.listReports();
-        set({ history });
+        const reportsDir = useSettingsStore.getState().reportDir;
+        if (reportsDir) {
+          await stressTestStorage.saveReport(event.report, reportsDir);
+          // 重新加载历史列表
+          const history = await stressTestStorage.listReports(reportsDir);
+          set({ history });
+        }
       } catch (e) {
         console.error('保存压测报告失败:', e);
       }

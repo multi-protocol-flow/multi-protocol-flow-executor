@@ -184,6 +184,8 @@ export interface StressTestReportMetadata {
   flowUuid: string;
   flowName: string;
   startTime: number;
+  /** 报告文件完整路径（用于加载报告） */
+  filePath: string;
 }
 
 // ============================================================================
@@ -212,12 +214,12 @@ export interface StressTestReport {
   statistics: StressTestStatistics;
   /** 响应时间分布 */
   responseTimeDistribution: ResponseTimeDistribution;
-  /** 错误统计列表（按错误类型分组） */
-  errorStatistics: ErrorStatistics[];
-  /** 节点级别统计 */
-  nodeStatistics: NodeLevelStatistics[];
-  /** 节点类型聚合统计 */
-  nodeTypeStatistics: NodeTypeStatistics[];
+  /** 错误统计列表（按错误类型分组，无错误时省略） */
+  errorStatistics?: ErrorStatistics[];
+  /** 节点级别统计（无数据时省略） */
+  nodeStatistics?: NodeLevelStatistics[];
+  /** 节点类型聚合统计（无数据时省略） */
+  nodeTypeStatistics?: NodeTypeStatistics[];
 }
 
 // ============================================================================
