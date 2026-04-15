@@ -482,6 +482,14 @@ pub fn list_stress_test_reports(
     flow_engine::storage::list_stress_reports(std::path::Path::new(&reports_dir))
 }
 
+/// 删除压力测试报告
+#[tauri::command]
+pub fn delete_stress_test_report(
+    file_path: String,
+) -> Result<(), String> {
+    flow_engine::storage::delete_stress_report(std::path::Path::new(&file_path))
+}
+
 // ============================================================================
 // 单元测试
 // ============================================================================

@@ -8,6 +8,7 @@ import { LeftSidebarPanel } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
 import { NodeConfigPanel, SettingsPanel } from '@/components/panels';
 import { ExecutionReport, ExecutionHistory, ConsolePanel, ExecutionPanel, StressTestHistory } from '@/components/execution';
+import { StressTestResult } from '@/components/stress-test/StressTestResult';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 
@@ -568,6 +569,9 @@ export function MainLayout() {
 
       {/* ===== 执行报告弹窗 ===== */}
       <ExecutionReport />
+
+      {/* ===== 压测报告弹窗 ===== */}
+      <StressTestResult />
 
       {/* ===== 新建流程对话框 ===== */}
       <NewFlowDialog />

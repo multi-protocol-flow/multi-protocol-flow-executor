@@ -48,6 +48,7 @@ pub use tauri_commands::{
     save_stress_test_report,
     load_stress_test_report,
     list_stress_test_reports,
+    delete_stress_test_report,
     // 数据库连接命令
     test_db_connection,
     // 执行会话管理
@@ -141,6 +142,7 @@ pub fn run() {
             save_stress_test_report,
             load_stress_test_report,
             list_stress_test_reports,
+            delete_stress_test_report,
             // 数据库连接命令
             test_db_connection,
             // 执行会话管理

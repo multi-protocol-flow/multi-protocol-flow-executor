@@ -27,7 +27,6 @@ import {
   selectStressTestReport,
   selectStressTestProgressHistory,
 } from '@/stores/stressTest';
-import { useFlowStore } from '@/stores';
 import { StressTestCharts } from './StressTestCharts';
 import { cn } from '@/lib/utils';
 
@@ -86,7 +85,6 @@ export function StressTestResult() {
   const progressHistory = useStressTestStore(selectStressTestProgressHistory);
   const isReportDialogOpen = useStressTestStore((state) => state.isReportDialogOpen);
   const closeReportDialog = useStressTestStore((state) => state.closeReportDialog);
-  const unlockFlow = useFlowStore((state) => state.unlockFlow);
 
   // 统计级别 Tab 状态（所有 hooks 必须在条件返回之前）
   const [statLevel, setStatLevel] = useState<'flow' | 'node'>('flow');
@@ -132,10 +130,12 @@ export function StressTestResult() {
 
   const isSuccess = report.statistics.successRate >= 0.99;
 
+  // Rust 端 skip_serializing_if 空数组时省略字段，需默认空数组
+  const errorStatistics = report.errorStatistics ?? [];
+
   // 关闭弹窗
   const handleClose = () => {
     closeReportDialog();
-    unlockFlow();
   };
 
   // 使用筛选后的统计数据（如果有筛选的话）
@@ -322,7 +322,7 @@ export function StressTestResult() {
                 )}
 
                 {/* 错误统计 */}
-                {report.errorStatistics.length > 0 && (
+                {errorStatistics.length > 0 && (
                   <div className="flex flex-col gap-3">
                     <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-red-500" />
@@ -341,7 +341,7 @@ export function StressTestResult() {
                           </tr>
                         </thead>
                         <tbody>
-                          {report.errorStatistics.slice(0, 5).map((error, index) => (
+                          {errorStatistics.slice(0, 5).map((error, index) => (
                             <tr
                               key={`${error.errorKind}-${index}`}
                               className="border-t border-border/50"
@@ -357,9 +357,9 @@ export function StressTestResult() {
                         </tbody>
                       </table>
                     </div>
-                    {report.errorStatistics.length > 5 && (
+                    {errorStatistics.length > 5 && (
                       <p className="text-xs text-muted-foreground text-center">
-                        显示前 5 种错误类型，共 {report.errorStatistics.length} 种
+                        显示前 5 种错误类型，共 {errorStatistics.length} 种
                       </p>
                     )}
                   </div>

@@ -17,7 +17,7 @@ import type { ExecutionEvent } from '@/types/execution_event';
 import { DebugToolbar } from './DebugToolbar';
 import { StressTestConfigDialog } from '@/components/stress-test/StressTestConfigDialog';
 import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
-import { StressTestResult } from '@/components/stress-test/StressTestResult';
+
 import { VariablePanel, extractVariableGroups } from '@/components/panels/VariablePanel';
 
 /**
@@ -332,9 +332,6 @@ export function CanvasToolbar() {
       
       {/* 压力测试监控面板（仅在运行时显示） */}
       <StressTestMonitor />
-      
-      {/* 压力测试结果（仅在完成时显示） */}
-      <StressTestResult />
     </>
   );
 }
