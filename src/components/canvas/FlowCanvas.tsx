@@ -2,7 +2,7 @@
  * FlowCanvas - 主画布组件
  * 基于 React Flow 的流程编辑器
  */
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -24,6 +24,7 @@ import '@xyflow/react/dist/style.css';
 import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode } from './nodes';
 import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
+import { NodeContextMenu } from './NodeContextMenu';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore, selectIsDebugging, useExecutionStore, selectIsExecuting, useStressTestStore, selectIsStressTestRunning } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
@@ -162,6 +163,22 @@ function FlowCanvasInner() {
   
   // 跟踪已触发 fitView 的流程，避免重复触发
   const fittedFlowUuidRef = useRef<string | null>(null);
+
+  // 右键菜单状态
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    nodeId: string;
+    nodeType: string;
+    nodeName: string;
+  } | null>(null);
+
+  // 重命名浮动输入框状态
+  const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
+  const [renamingValue, setRenamingValue] = useState('');
+  const [renamingPosition, setRenamingPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
   // 转换 Flow 数据为 React Flow 格式
   const initialData = useMemo(() => {
     if (!flow) return { nodes: [], edges: [] };
@@ -337,7 +354,110 @@ function FlowCanvasInner() {
   const onPaneClick = useCallback(() => {
     selectNode(null);
     setConfigPanelOpen(false);
+    setContextMenu(null);
   }, [selectNode, setConfigPanelOpen]);
+
+  // 处理节点右键菜单
+  const onNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      event.preventDefault();
+      const nodeData = node.data as { label: string };
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        nodeId: node.id,
+        nodeType: node.type || '',
+        nodeName: nodeData.label || '',
+      });
+    },
+    []
+  );
+
+  // 复制节点（含源端连接复制）
+  const handleCopyNode = useCallback(
+    (nodeId: string) => {
+      const { flow: currentFlow, addNode: addNewNode } = useFlowStore.getState();
+      if (!currentFlow) return;
+
+      const sourceNode = currentFlow.nodes.find((n) => n.uuid === nodeId);
+      if (!sourceNode) return;
+
+      const newUuid = crypto.randomUUID();
+      const offset = 50;
+
+      // 深拷贝节点数据（孤立节点，不复制连接）
+      addNewNode({
+        uuid: newUuid,
+        type: sourceNode.type,
+        name: `${sourceNode.name} (副本)`,
+        position: {
+          x: sourceNode.position.x + offset,
+          y: sourceNode.position.y + offset,
+        },
+        data: JSON.parse(JSON.stringify(sourceNode.data)),
+      });
+    },
+    []
+  );
+
+  // 删除节点（通过确认弹窗）
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      const { flow: currentFlow, removeNode: removeNodeById, selectNode: deselectNode } = useFlowStore.getState();
+      if (!currentFlow) return;
+
+      const node = currentFlow.nodes.find((n) => n.uuid === nodeId);
+      if (!node || node.type === 'entry') return;
+
+      const { showConfirm } = useUIStore.getState();
+      showConfirm({
+        title: '删除节点',
+        description: `确定要删除节点「${node.name}」吗？`,
+        confirmText: '删除',
+        onConfirm: () => {
+          removeNodeById(node.uuid);
+          deselectNode(null);
+        },
+      });
+    },
+    []
+  );
+
+  // 触发重命名浮动输入框
+  const handleRenameNode = useCallback(
+    (nodeId: string) => {
+      const { flow: currentFlow } = useFlowStore.getState();
+      if (!currentFlow) return;
+
+      const node = currentFlow.nodes.find((n) => n.uuid === nodeId);
+      if (!node) return;
+
+      // 使用右键菜单位置作为输入框位置
+      setRenamingNodeId(nodeId);
+      setRenamingValue(node.name);
+      setRenamingPosition(
+        contextMenu
+          ? { x: contextMenu.x, y: contextMenu.y }
+          : { x: 0, y: 0 }
+      );
+    },
+    [contextMenu]
+  );
+
+  // 重命名确认
+  const handleRenameConfirm = useCallback(() => {
+    if (renamingNodeId && renamingValue.trim()) {
+      updateNode(renamingNodeId, { name: renamingValue.trim() });
+    }
+    setRenamingNodeId(null);
+    setRenamingValue('');
+  }, [renamingNodeId, renamingValue, updateNode]);
+
+  // 重命名取消
+  const handleRenameCancel = useCallback(() => {
+    setRenamingNodeId(null);
+    setRenamingValue('');
+  }, []);
 
   // 处理节点变化（过滤掉删除变化，只处理位置变化等）
   // 注意：节点删除需要通过工具栏按钮确认，防止误操作
@@ -534,6 +654,7 @@ function FlowCanvasInner() {
         onConnect={onConnect}
         onNodeDragStop={onNodeDragStop}
         onNodeClick={onNodeClick}
+        onNodeContextMenu={onNodeContextMenu}
         onEdgeClick={onEdgeClick}
         onDragOver={onDragOver}
         onDrop={onDrop}
@@ -583,6 +704,57 @@ function FlowCanvasInner() {
           />
         )}
       </ReactFlow>
+
+      {/* 节点右键菜单 */}
+      {contextMenu && (
+        <NodeContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          nodeId={contextMenu.nodeId}
+          nodeType={contextMenu.nodeType}
+          nodeName={contextMenu.nodeName}
+          onClose={() => setContextMenu(null)}
+          onCopy={handleCopyNode}
+          onDelete={handleDeleteNode}
+          onRename={handleRenameNode}
+        />
+      )}
+
+      {/* 重命名浮动输入框 */}
+      {renamingNodeId && (
+        <div
+          className={cn(
+            'fixed z-50',
+            'animate-in fade-in-0 zoom-in-95 duration-100',
+          )}
+          style={{ left: renamingPosition.x, top: renamingPosition.y }}
+        >
+          <input
+            ref={renameInputRef}
+            type="text"
+            value={renamingValue}
+            onChange={(e) => setRenamingValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleRenameConfirm();
+              } else if (e.key === 'Escape') {
+                handleRenameCancel();
+              }
+            }}
+            onBlur={handleRenameConfirm}
+            autoFocus
+            className={cn(
+              'w-48 px-2 py-1.5 text-sm',
+              'bg-background border border-border rounded-md',
+              'shadow-lg outline-none',
+              'focus:ring-2 focus:ring-ring focus:ring-offset-1',
+            )}
+          />
+          <div className="text-[10px] text-muted-foreground mt-0.5 px-1">
+            Enter 确认 · Esc 取消
+          </div>
+        </div>
+      )}
     </div>
   );
 }
