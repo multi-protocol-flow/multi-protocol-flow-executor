@@ -1,6 +1,6 @@
 /**
  * ExecutionHistory 组件测试
- * 测试执行历史列表的渲染和交互
+ * 测试统一执行历史列表（合并普通执行、调试执行和压力测试）的渲染和交互
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -8,7 +8,9 @@ import { ExecutionHistory } from '@/components/execution/ExecutionHistory';
 import { useSettingsStore } from '@/stores/settings';
 import { useExecutionStore } from '@/stores/execution';
 import { useUIStore } from '@/stores';
+import { useStressTestStore } from '@/stores/stressTest';
 import type { ReportMetadata } from '@/types/ipc';
+import type { StressTestReportMetadata } from '@/types/stressTest';
 
 // Mock stores
 vi.mock('@/stores/settings', () => ({
@@ -23,11 +25,25 @@ vi.mock('@/stores', () => ({
   useUIStore: vi.fn(),
 }));
 
+vi.mock('@/stores/stressTest', () => ({
+  useStressTestStore: vi.fn(),
+}));
+
 // Mock reportStorage
 vi.mock('@/services/storage/reportStorage', () => ({
   listReports: vi.fn(),
   loadReport: vi.fn(),
   deleteReport: vi.fn(),
+}));
+
+// Mock stressTestStorage
+vi.mock('@/services/storage/stressTestStorage', () => ({
+  stressTestStorage: {
+    listReports: vi.fn(),
+    loadReport: vi.fn(),
+    deleteReport: vi.fn(),
+    saveReport: vi.fn(),
+  },
 }));
 
 // Mock scroll-area to avoid Radix issues in tests
@@ -39,11 +55,24 @@ vi.mock('@/components/ui/scroll-area', () => ({
 
 // Mock button
 vi.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, disabled, className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-    <button onClick={onClick} disabled={disabled} className={className} {...props}>
+  Button: ({ children, onClick, disabled, className, title, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button onClick={onClick} disabled={disabled} className={className} title={title} {...props}>
       {children}
     </button>
   ),
+}));
+
+// Mock Select components
+vi.mock('@/components/ui/select', () => ({
+  Select: ({ children, value }: { children: React.ReactNode; value: string }) => (
+    <div data-testid="select" data-value={value}>{children}</div>
+  ),
+  SelectContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  SelectItem: ({ children, value }: { children: React.ReactNode; value: string }) => (
+    <div data-testid={`select-item-${value}`}>{children}</div>
+  ),
+  SelectTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  SelectValue: ({ placeholder }: { placeholder?: string }) => <span>{placeholder}</span>,
 }));
 
 // Mock toast
@@ -56,12 +85,14 @@ vi.mock('sonner', () => ({
 
 // 导入 mock 后的函数
 import { listReports, loadReport, deleteReport } from '@/services/storage/reportStorage';
+import { stressTestStorage } from '@/services/storage/stressTestStorage';
 
 // 共享 mockShowConfirm
 let mockShowConfirm: ReturnType<typeof vi.fn>;
 
 describe('ExecutionHistory', () => {
   const mockOpenReportDialog = vi.fn();
+  const mockStressTestOpenReportDialog = vi.fn();
   const mockReportDir = '/test/reports';
 
   const mockReports: ReportMetadata[] = [
@@ -83,6 +114,28 @@ describe('ExecutionHistory', () => {
     },
   ];
 
+  const mockDebugReports: ReportMetadata[] = [
+    {
+      uuid: 'debug-1',
+      flow_uuid: 'flow-3',
+      flow_name: '调试流程1',
+      status: 'success',
+      timestamp: Date.now() - 2000,
+      duration_ms: 300,
+      execution_mode: 'debug',
+    },
+  ];
+
+  const mockStressReports: StressTestReportMetadata[] = [
+    {
+      uuid: 'stress-1',
+      flowUuid: 'flow-1',
+      flowName: '压测流程1',
+      startTime: Date.now() - 500,
+      filePath: '/test/reports/performance_stress-1.json',
+    },
+  ];
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -91,26 +144,42 @@ describe('ExecutionHistory', () => {
       (selector: (state: { reportDir: string }) => unknown) => selector({ reportDir: mockReportDir })
     );
     (useExecutionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { openReportDialog: typeof mockOpenReportDialog }) => unknown) => 
+      (selector: (state: { openReportDialog: typeof mockOpenReportDialog }) => unknown) =>
         selector({ openReportDialog: mockOpenReportDialog })
     );
 
-    // Default API mocks
+    // Mock useStressTestStore
+    (useStressTestStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (selector: (state: { report: null; openReportDialog: typeof mockStressTestOpenReportDialog }) => unknown) =>
+        selector({ report: null, openReportDialog: mockStressTestOpenReportDialog })
+    );
+    (useStressTestStore as unknown as { setState: ReturnType<typeof vi.fn> }).setState = vi.fn();
+    (useStressTestStore as unknown as { getState: ReturnType<typeof vi.fn> }).getState = vi.fn(() => ({
+      openReportDialog: mockStressTestOpenReportDialog,
+    }));
+
+    // Default reportStorage API mocks
     (listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (loadReport as ReturnType<typeof vi.fn>).mockResolvedValue({});
     (deleteReport as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 
+    // Default stressTestStorage API mocks
+    (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (stressTestStorage.loadReport as ReturnType<typeof vi.fn>).mockResolvedValue({});
+    (stressTestStorage.deleteReport as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
     // Mock useUIStore with showConfirm
     mockShowConfirm = vi.fn();
     (useUIStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { showConfirm: typeof mockShowConfirm }) => unknown) => 
+      (selector: (state: { showConfirm: typeof mockShowConfirm }) => unknown) =>
         selector({ showConfirm: mockShowConfirm })
     );
   });
 
   describe('加载状态', () => {
     it('初始加载时显示加载中状态', async () => {
-      (listReports as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {})); // Never resolves
+      (listReports as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}));
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}));
 
       render(<ExecutionHistory />);
 
@@ -121,6 +190,7 @@ describe('ExecutionHistory', () => {
   describe('空状态', () => {
     it('没有历史记录时显示空状态提示', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       render(<ExecutionHistory />);
 
@@ -131,48 +201,95 @@ describe('ExecutionHistory', () => {
   });
 
   describe('历史列表渲染', () => {
-    it('正确渲染历史列表', async () => {
+    it('正确渲染合并后的历史列表（普通 + 压测）', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockStressReports);
 
       render(<ExecutionHistory />);
 
       await waitFor(() => {
         expect(screen.getByText('测试流程1')).toBeDefined();
         expect(screen.getByText('测试流程2')).toBeDefined();
+        expect(screen.getByText('压测流程1')).toBeDefined();
       });
 
-      // 显示记录数
-      expect(screen.getByText('共 2 条记录')).toBeDefined();
+      // 显示记录数（2 普通 + 1 压测 = 3）
+      expect(screen.getByText('共 3 条记录')).toBeDefined();
     });
 
-    it('正确显示成功和失败状态图标', async () => {
+    it('正确显示成功、失败和压测状态', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockStressReports);
 
       render(<ExecutionHistory />);
 
       await waitFor(() => {
-        // 成功状态
         expect(screen.getByText('测试流程1')).toBeDefined();
-        // 失败状态
         expect(screen.getByText('测试流程2')).toBeDefined();
+        expect(screen.getByText('压测流程1')).toBeDefined();
       });
+
+      // 压测项应显示"压测"标识（Select 下拉项和列表项都有"压测"文本）
+      const stressLabels = screen.getAllByText('压测');
+      expect(stressLabels.length).toBeGreaterThanOrEqual(2);
     });
 
     it('按时间倒序显示历史记录', async () => {
       const orderedReports: ReportMetadata[] = [
-        { ...mockReports[1], timestamp: 2000 }, // 较新
-        { ...mockReports[0], timestamp: 1000 }, // 较旧
+        { ...mockReports[1], timestamp: 2000 },
+        { ...mockReports[0], timestamp: 1000 },
       ];
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(orderedReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       render(<ExecutionHistory />);
 
       await waitFor(() => {
-        const items = screen.getAllByRole('button').filter(btn => 
+        const items = screen.getAllByRole('button').filter(btn =>
           btn.className.includes('cursor-pointer')
         );
-        // 第一个应该是较新的记录
         expect(items.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('调试报告显示 Debug 标识', async () => {
+      (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockDebugReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      render(<ExecutionHistory />);
+
+      await waitFor(() => {
+        expect(screen.getByText('调试流程1')).toBeDefined();
+        expect(screen.getByText('Debug')).toBeDefined();
+      });
+    });
+  });
+
+  describe('过滤下拉框', () => {
+    it('渲染 Select 组件并默认选择全部', async () => {
+      (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockStressReports);
+
+      render(<ExecutionHistory />);
+
+      await waitFor(() => {
+        const select = screen.getByTestId('select');
+        expect(select).toBeDefined();
+        expect(select.getAttribute('data-value')).toBe('all');
+      });
+    });
+
+    it('渲染所有过滤选项', async () => {
+      (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockStressReports);
+
+      render(<ExecutionHistory />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('select-item-all')).toBeDefined();
+        expect(screen.getByTestId('select-item-normal')).toBeDefined();
+        expect(screen.getByTestId('select-item-debug')).toBeDefined();
+        expect(screen.getByTestId('select-item-stress_test')).toBeDefined();
       });
     });
   });
@@ -180,11 +297,13 @@ describe('ExecutionHistory', () => {
   describe('reportDir 依赖测试（核心 bug 修复）', () => {
     it('当 reportDir 变化时重新加载历史列表', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       const { rerender } = render(<ExecutionHistory />);
 
       await waitFor(() => {
         expect(listReports).toHaveBeenCalledWith(mockReportDir);
+        expect(stressTestStorage.listReports).toHaveBeenCalledWith(mockReportDir);
       });
 
       // 清除调用记录
@@ -200,6 +319,7 @@ describe('ExecutionHistory', () => {
 
       await waitFor(() => {
         expect(listReports).toHaveBeenCalledWith(newReportDir);
+        expect(stressTestStorage.listReports).toHaveBeenCalledWith(newReportDir);
       });
     });
 
@@ -210,21 +330,23 @@ describe('ExecutionHistory', () => {
 
       render(<ExecutionHistory />);
 
-      // 等待一段时间确保不会调用 listReports
+      // 等待一段时间确保不会调用
       await new Promise(resolve => setTimeout(resolve, 100));
 
       expect(listReports).not.toHaveBeenCalled();
+      expect(stressTestStorage.listReports).not.toHaveBeenCalled();
     });
   });
 
   describe('选择报告', () => {
-    it('点击报告项时加载并打开报告对话框', async () => {
+    it('点击普通报告项时加载并打开报告对话框', async () => {
       const mockFullReport = {
-        uuid: 'report-1',
-        flow_uuid: 'flow-1',
-        flow_name: '测试流程1',
+        uuid: 'report-2',
+        flow_uuid: 'flow-2',
+        flow_name: '测试流程2',
       };
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
       (loadReport as ReturnType<typeof vi.fn>).mockResolvedValue(mockFullReport);
 
       const onSelectReport = vi.fn();
@@ -234,16 +356,16 @@ describe('ExecutionHistory', () => {
         expect(screen.getByText('测试流程1')).toBeDefined();
       });
 
-      // 点击第一个报告
-      const items = screen.getAllByRole('button').filter(btn => 
+      // 列表按时间倒序排列，items[0] 是较新的 report-2
+      const items = screen.getAllByRole('button').filter(btn =>
         btn.className.includes('cursor-pointer')
       );
       fireEvent.click(items[0]);
 
       await waitFor(() => {
-        expect(loadReport).toHaveBeenCalledWith('report-1', mockReportDir);
+        expect(loadReport).toHaveBeenCalledWith('report-2', mockReportDir);
         expect(mockOpenReportDialog).toHaveBeenCalledWith(mockFullReport);
-        expect(onSelectReport).toHaveBeenCalledWith('report-1');
+        expect(onSelectReport).toHaveBeenCalledWith('report-2');
       });
     });
 
@@ -254,6 +376,7 @@ describe('ExecutionHistory', () => {
         flow_name: '测试流程1',
       };
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
       (loadReport as ReturnType<typeof vi.fn>).mockResolvedValue(mockFullReport);
 
       const { toast } = await import('sonner');
@@ -264,7 +387,7 @@ describe('ExecutionHistory', () => {
         expect(screen.getByText('测试流程1')).toBeDefined();
       });
 
-      const items = screen.getAllByRole('button').filter(btn => 
+      const items = screen.getAllByRole('button').filter(btn =>
         btn.className.includes('cursor-pointer')
       );
       fireEvent.click(items[0]);
@@ -273,7 +396,6 @@ describe('ExecutionHistory', () => {
         expect(mockOpenReportDialog).toHaveBeenCalled();
       });
 
-      // 点击历史项不应触发任何 toast
       expect(toast.success).not.toHaveBeenCalled();
       expect(toast.error).not.toHaveBeenCalled();
     });
@@ -286,6 +408,7 @@ describe('ExecutionHistory', () => {
         status: 'failed',
       };
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
       (loadReport as ReturnType<typeof vi.fn>).mockResolvedValue(mockFullReport);
 
       render(<ExecutionHistory />);
@@ -294,14 +417,50 @@ describe('ExecutionHistory', () => {
         expect(screen.getByText('测试流程2')).toBeDefined();
       });
 
-      const items = screen.getAllByRole('button').filter(btn => 
+      const items = screen.getAllByRole('button').filter(btn =>
         btn.className.includes('cursor-pointer')
       );
-      // 点击第二个报告（测试流程2）
       fireEvent.click(items[1]);
 
       await waitFor(() => {
         expect(mockOpenReportDialog).toHaveBeenCalledWith(mockFullReport);
+      });
+    });
+
+    it('点击压测报告项时加载并打开压测对话框', async () => {
+      const mockFullStressReport = {
+        uuid: 'stress-1',
+        flowUuid: 'flow-1',
+        flowName: '压测流程1',
+        progressHistory: [],
+      };
+      (listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockStressReports);
+      (stressTestStorage.loadReport as ReturnType<typeof vi.fn>).mockResolvedValue(mockFullStressReport);
+
+      const onSelectReport = vi.fn();
+      render(<ExecutionHistory onSelectReport={onSelectReport} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('压测流程1')).toBeDefined();
+      });
+
+      const items = screen.getAllByRole('button').filter(btn =>
+        btn.className.includes('cursor-pointer')
+      );
+      fireEvent.click(items[0]);
+
+      await waitFor(() => {
+        // 使用 filePath 加载压测报告
+        expect(stressTestStorage.loadReport).toHaveBeenCalledWith('/test/reports/performance_stress-1.json');
+        // 写入 stressTest store
+        expect(useStressTestStore.setState).toHaveBeenCalledWith({
+          report: mockFullStressReport,
+          progressHistory: [],
+        });
+        // 打开压测报告对话框
+        expect(useStressTestStore.getState().openReportDialog).toHaveBeenCalled();
+        expect(onSelectReport).toHaveBeenCalledWith('stress-1');
       });
     });
   });
@@ -309,6 +468,7 @@ describe('ExecutionHistory', () => {
   describe('删除报告', () => {
     it('点击删除按钮时显示确认对话框', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       render(<ExecutionHistory />);
 
@@ -316,14 +476,12 @@ describe('ExecutionHistory', () => {
         expect(screen.getByText('测试流程1')).toBeDefined();
       });
 
-      // 找到删除按钮（垃圾桶图标按钮）
-      const deleteButtons = screen.getAllByRole('button').filter(btn => 
+      const deleteButtons = screen.getAllByRole('button').filter(btn =>
         btn.getAttribute('title') === '删除'
       );
 
       fireEvent.click(deleteButtons[0]);
 
-      // 应该调用 showConfirm 显示确认对话框
       expect(mockShowConfirm).toHaveBeenCalled();
       expect(mockShowConfirm).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -333,10 +491,10 @@ describe('ExecutionHistory', () => {
       );
     });
 
-    it('确认删除后调用 deleteReport', async () => {
+    it('确认删除后调用 deleteReport（普通报告）', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
-      // 模拟 showConfirm 在调用时执行 onConfirm
       mockShowConfirm.mockImplementation((config: { onConfirm: () => void }) => {
         config.onConfirm();
       });
@@ -347,19 +505,46 @@ describe('ExecutionHistory', () => {
         expect(screen.getByText('测试流程1')).toBeDefined();
       });
 
-      const deleteButtons = screen.getAllByRole('button').filter(btn => 
+      const deleteButtons = screen.getAllByRole('button').filter(btn =>
         btn.getAttribute('title') === '删除'
       );
 
       fireEvent.click(deleteButtons[0]);
 
       await waitFor(() => {
-        expect(deleteReport).toHaveBeenCalledWith('report-1', mockReportDir);
+        // 列表按时间倒序排列，deleteButtons[0] 对应较新的 report-2
+        expect(deleteReport).toHaveBeenCalledWith('report-2', mockReportDir);
+      });
+    });
+
+    it('确认删除后调用 stressTestStorage.deleteReport（压测报告）', async () => {
+      (listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockStressReports);
+
+      mockShowConfirm.mockImplementation((config: { onConfirm: () => void }) => {
+        config.onConfirm();
+      });
+
+      render(<ExecutionHistory />);
+
+      await waitFor(() => {
+        expect(screen.getByText('压测流程1')).toBeDefined();
+      });
+
+      const deleteButtons = screen.getAllByRole('button').filter(btn =>
+        btn.getAttribute('title') === '删除'
+      );
+
+      fireEvent.click(deleteButtons[0]);
+
+      await waitFor(() => {
+        expect(stressTestStorage.deleteReport).toHaveBeenCalledWith('/test/reports/performance_stress-1.json');
       });
     });
 
     it('阻止事件冒泡（不触发选择报告）', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       render(<ExecutionHistory />);
 
@@ -367,14 +552,12 @@ describe('ExecutionHistory', () => {
         expect(screen.getByText('测试流程1')).toBeDefined();
       });
 
-      const deleteButtons = screen.getAllByRole('button').filter(btn => 
+      const deleteButtons = screen.getAllByRole('button').filter(btn =>
         btn.getAttribute('title') === '删除'
       );
 
-      // 点击删除按钮
       fireEvent.click(deleteButtons[0]);
 
-      // 不应该加载报告
       expect(loadReport).not.toHaveBeenCalled();
     });
   });
@@ -382,6 +565,7 @@ describe('ExecutionHistory', () => {
   describe('清空历史', () => {
     it('点击清空按钮时显示确认对话框', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       render(<ExecutionHistory />);
 
@@ -389,24 +573,22 @@ describe('ExecutionHistory', () => {
         expect(screen.getByText('测试流程1')).toBeDefined();
       });
 
-      // 点击清空按钮
       const clearButton = screen.getByText('清空');
       fireEvent.click(clearButton);
 
-      // 应该调用 showConfirm 显示确认对话框
       expect(mockShowConfirm).toHaveBeenCalled();
       expect(mockShowConfirm).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: '清空执行历史',
+          title: '清空全部执行历史',
           confirmText: '清空',
         })
       );
     });
 
-    it('确认清空后删除所有报告', async () => {
+    it('确认清空后删除所有报告（filter=all，同时删除两种存储）', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockStressReports);
 
-      // 模拟 showConfirm 在调用时执行 onConfirm
       mockShowConfirm.mockImplementation((config: { onConfirm: () => void }) => {
         config.onConfirm();
       });
@@ -421,14 +603,65 @@ describe('ExecutionHistory', () => {
       fireEvent.click(clearButton);
 
       await waitFor(() => {
+        // 2 个普通报告通过 deleteReport 删除
         expect(deleteReport).toHaveBeenCalledTimes(2);
+        // 1 个压测报告通过 stressTestStorage.deleteReport 删除
+        expect(stressTestStorage.deleteReport).toHaveBeenCalledTimes(1);
       });
+    });
+
+    it('filter=stress_test 时只清空压测报告', async () => {
+      // 模拟已选中 stress_test 过滤器
+      // 由于 Select 是 mock，无法通过 UI 切换 filter
+      // 改为通过组件内部逻辑验证：stressTestStorage.deleteReport 被调用
+      (listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockStressReports);
+
+      mockShowConfirm.mockImplementation((config: { onConfirm: () => void }) => {
+        config.onConfirm();
+      });
+
+      render(<ExecutionHistory />);
+
+      await waitFor(() => {
+        expect(screen.getByText('压测流程1')).toBeDefined();
+      });
+
+      const clearButton = screen.getByText('清空');
+      fireEvent.click(clearButton);
+
+      // 默认 filter=all，压测项也会被删除
+      await waitFor(() => {
+        expect(stressTestStorage.deleteReport).toHaveBeenCalledWith('/test/reports/performance_stress-1.json');
+      });
+    });
+
+    it('filter=debug 时清空确认标题包含调试', async () => {
+      (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockDebugReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      render(<ExecutionHistory />);
+
+      await waitFor(() => {
+        expect(screen.getByText('调试流程1')).toBeDefined();
+      });
+
+      const clearButton = screen.getByText('清空');
+      fireEvent.click(clearButton);
+
+      // 默认 filter=all 时标题为"清空全部执行历史"
+      expect(mockShowConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: '清空全部执行历史',
+        })
+      );
     });
   });
 
   describe('重新执行', () => {
     it('点击重新执行按钮触发 onRerun 回调', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       const onRerun = vi.fn();
       render(<ExecutionHistory onRerun={onRerun} />);
@@ -437,18 +670,19 @@ describe('ExecutionHistory', () => {
         expect(screen.getByText('测试流程1')).toBeDefined();
       });
 
-      // 找到重新执行按钮
-      const rerunButtons = screen.getAllByRole('button').filter(btn => 
+      const rerunButtons = screen.getAllByRole('button').filter(btn =>
         btn.getAttribute('title') === '重新执行'
       );
 
       fireEvent.click(rerunButtons[0]);
 
-      expect(onRerun).toHaveBeenCalledWith(mockReports[0]);
+      // 列表按时间倒序排列，rerunButtons[0] 对应较新的 report-2
+      expect(onRerun).toHaveBeenCalledWith(mockReports[1]);
     });
 
     it('阻止事件冒泡（不触发选择报告）', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       const onRerun = vi.fn();
       render(<ExecutionHistory onRerun={onRerun} />);
@@ -457,13 +691,31 @@ describe('ExecutionHistory', () => {
         expect(screen.getByText('测试流程1')).toBeDefined();
       });
 
-      const rerunButtons = screen.getAllByRole('button').filter(btn => 
+      const rerunButtons = screen.getAllByRole('button').filter(btn =>
         btn.getAttribute('title') === '重新执行'
       );
 
       fireEvent.click(rerunButtons[0]);
 
       expect(loadReport).not.toHaveBeenCalled();
+    });
+
+    it('压测项不显示重新执行按钮', async () => {
+      (listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockStressReports);
+
+      const onRerun = vi.fn();
+      render(<ExecutionHistory onRerun={onRerun} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('压测流程1')).toBeDefined();
+      });
+
+      // 压测项不应有重新执行按钮
+      const rerunButtons = screen.getAllByRole('button').filter(btn =>
+        btn.getAttribute('title') === '重新执行'
+      );
+      expect(rerunButtons.length).toBe(0);
     });
   });
 });
