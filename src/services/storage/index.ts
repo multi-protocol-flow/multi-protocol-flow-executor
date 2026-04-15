@@ -1,26 +1,13 @@
 /**
  * 本地存储服务
- * 提供流程和执行历史的 CRUD 操作
+ * 提供流程的 CRUD 操作
  */
 
 // 流程存储
-export {
-  saveFlow,
-  loadFlow,
-  listFlows,
-  deleteFlow,
-  clearFlows,
-  type FlowMetadata,
-} from './flowStorage';
+export { flowStorage, type FlowMetadata } from './flowStorage';
 
-// 执行历史存储
-export {
-  saveExecutionHistory,
-  listExecutionHistory,
-  clearExecutionHistory,
-  deleteExecutionHistoryByFlow,
-  type ExecutionHistoryItem,
-} from './historyStorage';
+// 数据迁移
+export { migrateFlowsToFiles } from './migration';
 
 // 压测报告存储
 export { stressTestStorage } from './stressTestStorage';

@@ -1,125 +1,84 @@
 /**
  * 流程存储服务
- * 使用 localStorage 存储流程数据
+ * 通过 Tauri IPC 调用后端流程文件存储命令
  */
 
-import type { Flow } from '@/types';
-
-const STORAGE_KEYS = {
-  FLOWS: 'mpe_flows',
-  FLOW_LIST: 'mpe_flow_list',
-  VERSION: 'mpe_version',
-};
-
-/** 当前数据版本 */
-const CURRENT_VERSION = 1;
+import { invoke } from '@tauri-apps/api/core';
+import { getAppDataDir } from '@/services/tauri/settings';
+import type { Flow } from '@/types/flow';
 
 /** 流程元数据（用于列表展示） */
 export interface FlowMetadata {
   uuid: string;
   name: string;
-  updated_at: number;
+  filePath: string;
+  updatedAt: number;
 }
 
-/** 流程存储结构 */
-interface FlowStorage {
+/** 内置模板元数据 */
+export interface FlowMeta {
   version: number;
-  flows: Record<string, Flow>;
+  isBuiltin: boolean;
+}
+
+/** 后端 FlowFile 结构（包含 _version, flow, _meta） */
+interface FlowFileResponse {
+  _version: number;
+  flow: Flow;
+  _meta?: FlowMeta;
 }
 
 /**
- * 加载流程存储
+ * 获取流程存储目录
+ * 默认为 {appDataDir}/flows/
  */
-function loadFlowStorage(): FlowStorage {
-  const json = localStorage.getItem(STORAGE_KEYS.FLOWS);
-  if (json) {
-    try {
-      const storage = JSON.parse(json) as FlowStorage;
-      // 版本检查，便于未来迁移
-      if (storage.version === CURRENT_VERSION) {
-        return storage;
-      }
-      // 未来可在此处理版本迁移
-    } catch {
-      // 解析失败，返回空存储
+async function getFlowsDir(): Promise<string> {
+  const appDataDir = await getAppDataDir();
+  return `${appDataDir}/flows/`;
+}
+
+export const flowStorage = {
+  /** 列出所有流程（仅元数据） */
+  async listFlows(): Promise<FlowMetadata[]> {
+    const flowsDir = await getFlowsDir();
+    return invoke<FlowMetadata[]>('list_flow_files', { flowsDir });
+  },
+
+  /** 加载流程 */
+  async loadFlow(uuid: string): Promise<Flow> {
+    const flowsDir = await getFlowsDir();
+    const flowFile = await invoke<FlowFileResponse>('load_flow_file', { uuid, flowsDir });
+    // 将 _meta 附加到 flow 对象上（运行时属性，TypeScript 类型不包含）
+    const flow = flowFile.flow as Flow & { _meta?: FlowMeta };
+    if (flowFile._meta) {
+      flow._meta = flowFile._meta;
     }
-  }
-  return { version: CURRENT_VERSION, flows: {} };
-}
+    return flow;
+  },
 
-/**
- * 更新流程列表
- */
-function updateFlowList(flow: Flow): void {
-  const list = listFlows();
-  const index = list.findIndex((f) => f.uuid === flow.uuid);
-  const metadata: FlowMetadata = {
-    uuid: flow.uuid,
-    name: flow.name,
-    updated_at: Date.now(),
-  };
-  if (index >= 0) {
-    list[index] = metadata;
-  } else {
-    list.push(metadata);
-  }
-  localStorage.setItem(STORAGE_KEYS.FLOW_LIST, JSON.stringify(list));
-}
+  /** 保存流程 */
+  async saveFlow(flow: Flow & { _meta?: FlowMeta }): Promise<void> {
+    const flowsDir = await getFlowsDir();
+    // 提取 _meta，其余作为 flow 发送
+    const { _meta, ...flowData } = flow as Flow & { _meta?: FlowMeta };
+    await invoke<void>('save_flow_file', { flow: flowData, flowsDir, meta: _meta ?? null });
+  },
 
-/**
- * 保存流程
- * @param flow 流程数据
- */
-export function saveFlow(flow: Flow): void {
-  const storage = loadFlowStorage();
-  storage.flows[flow.uuid] = flow;
-  localStorage.setItem(STORAGE_KEYS.FLOWS, JSON.stringify(storage));
-  updateFlowList(flow);
-}
+  /** 删除流程 */
+  async deleteFlow(uuid: string): Promise<void> {
+    const flowsDir = await getFlowsDir();
+    await invoke<void>('delete_flow_file', { uuid, flowsDir });
+  },
 
-/**
- * 加载流程
- * @param uuid 流程 UUID
- * @returns 流程数据，不存在返回 null
- */
-export function loadFlow(uuid: string): Flow | null {
-  const storage = loadFlowStorage();
-  return storage.flows[uuid] || null;
-}
+  /** 复制流程 */
+  async copyFlow(uuid: string): Promise<Flow> {
+    const flowsDir = await getFlowsDir();
+    return invoke<Flow>('copy_flow_file', { uuid, flowsDir });
+  },
 
-/**
- * 列出所有流程（仅元数据）
- * @returns 流程元数据列表
- */
-export function listFlows(): FlowMetadata[] {
-  const json = localStorage.getItem(STORAGE_KEYS.FLOW_LIST);
-  if (json) {
-    try {
-      return JSON.parse(json) as FlowMetadata[];
-    } catch {
-      return [];
-    }
-  }
-  return [];
-}
-
-/**
- * 删除流程
- * @param uuid 流程 UUID
- */
-export function deleteFlow(uuid: string): void {
-  const storage = loadFlowStorage();
-  delete storage.flows[uuid];
-  localStorage.setItem(STORAGE_KEYS.FLOWS, JSON.stringify(storage));
-  // 更新列表
-  const list = listFlows().filter((f) => f.uuid !== uuid);
-  localStorage.setItem(STORAGE_KEYS.FLOW_LIST, JSON.stringify(list));
-}
-
-/**
- * 清空所有流程数据
- */
-export function clearFlows(): void {
-  localStorage.removeItem(STORAGE_KEYS.FLOWS);
-  localStorage.removeItem(STORAGE_KEYS.FLOW_LIST);
-}
+  /** 刷新流程列表（与 listFlows 相同，便捷别名） */
+  async refreshFlows(): Promise<FlowMetadata[]> {
+    const flowsDir = await getFlowsDir();
+    return invoke<FlowMetadata[]>('list_flow_files', { flowsDir });
+  },
+};
