@@ -8,6 +8,7 @@ import type { Settings, ThemeMode } from '@/types/settings';
 const STORAGE_KEY = 'app-settings';
 const DEFAULT_REPORT_DIR = '~/.app/reports/';
 const DEFAULT_LOG_DIR = '~/.app/logs/';
+const DEFAULT_FLOWS_DIR = '~/.app/flows/';
 const DEFAULT_THEME: ThemeMode = 'system';
 
 /**
@@ -30,6 +31,7 @@ export async function loadSettings(): Promise<Settings> {
   return {
     reportDir: stored.reportDir ?? DEFAULT_REPORT_DIR,
     logDir: stored.logDir ?? DEFAULT_LOG_DIR,
+    flowsDir: stored.flowsDir ?? DEFAULT_FLOWS_DIR,
     theme: stored.theme ?? DEFAULT_THEME,
   };
 }

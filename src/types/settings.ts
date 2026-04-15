@@ -17,6 +17,8 @@ export interface Settings {
   reportDir: string;
   /** 日志目录路径 */
   logDir: string;
+  /** 流程保存目录路径 */
+  flowsDir: string;
   /** 主题模式 */
   theme: ThemeMode;
 }
@@ -33,6 +35,8 @@ export interface SettingsState {
   reportDir: string;
   /** 日志目录路径 */
   logDir: string;
+  /** 流程保存目录路径 */
+  flowsDir: string;
   /** 主题模式 */
   theme: ThemeMode;
   /** 是否正在加载 */
@@ -55,12 +59,16 @@ export interface SettingsActions {
   setReportDir: (dir: string) => Promise<void>;
   /** 设置日志目录 */
   setLogDir: (dir: string) => Promise<void>;
+  /** 设置流程保存目录 */
+  setFlowsDir: (dir: string) => Promise<void>;
   /** 设置主题模式 */
   setTheme: (theme: ThemeMode) => Promise<void>;
   /** 打开报告目录 */
   openReportDir: () => Promise<void>;
   /** 打开日志目录 */
   openLogDir: () => Promise<void>;
+  /** 打开流程保存目录 */
+  openFlowsDir: () => Promise<void>;
 }
 
 /**

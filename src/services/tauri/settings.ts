@@ -29,11 +29,13 @@ export async function loadSettings(): Promise<Settings> {
   const s = await getStore();
   const reportDir = await s.get<string>('reportDir');
   const logDir = await s.get<string>('logDir');
+  const flowsDir = await s.get<string>('flowsDir');
   const theme = await s.get<string>('theme');
   const appDataDir = await invoke<string>('get_app_data_dir');
   return {
     reportDir: reportDir ?? `${appDataDir}/reports/`,
     logDir: logDir ?? `${appDataDir}/logs/`,
+    flowsDir: flowsDir ?? `${appDataDir}/flows/`,
     theme: (theme as ThemeMode) ?? 'system',
   };
 }
@@ -48,6 +50,9 @@ export async function saveSettings(settings: Partial<Settings>): Promise<void> {
   }
   if (settings.logDir !== undefined) {
     await s.set('logDir', settings.logDir);
+  }
+  if (settings.flowsDir !== undefined) {
+    await s.set('flowsDir', settings.flowsDir);
   }
   if (settings.theme !== undefined) {
     await s.set('theme', settings.theme);

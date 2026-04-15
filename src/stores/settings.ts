@@ -29,6 +29,7 @@ function formatErrorMessage(e: unknown): string {
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
   reportDir: '',
   logDir: '',
+  flowsDir: '',
   theme: 'system' as ThemeMode,
   isLoading: true,
   error: null,
@@ -41,6 +42,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       set({
         reportDir: settings.reportDir,
         logDir: settings.logDir,
+        flowsDir: settings.flowsDir,
         theme: settings.theme,
         isLoading: false,
       });
@@ -72,6 +74,16 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     }
   },
 
+  setFlowsDir: async (dir: string) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ flowsDir: dir });
+      set({ flowsDir: dir });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
   setTheme: async (theme: ThemeMode) => {
     try {
       const service = await getSettingsService();
@@ -95,6 +107,15 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     try {
       const service = await getSettingsService();
       await service.openDirectory(get().logDir);
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  openFlowsDir: async () => {
+    try {
+      const service = await getSettingsService();
+      await service.openDirectory(get().flowsDir);
     } catch (e) {
       set({ error: formatErrorMessage(e) });
     }
