@@ -654,9 +654,10 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
 
     return (
       <div key={`folder-${folderPath}`}>
-        {/* 文件夹行 */}
-        <button
-          type="button"
+        {/* 文件夹行 - 使用 div 避免 button 嵌套 button */}
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => toggleFolder(folderPath)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -722,7 +723,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
           >
             <MoreVertical className="w-3 h-3" />
           </Button>
-        </button>
+        </div>
 
         {/* 文件夹下的流程列表 */}
         {isExpanded && (
