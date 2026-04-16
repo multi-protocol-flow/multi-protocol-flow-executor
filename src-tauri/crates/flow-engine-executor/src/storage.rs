@@ -920,7 +920,7 @@ pub struct FolderInfo {
 
 /// 列出 `flows_dir` 下所有子文件夹
 ///
-/// 仅扫描包含 .mpf 文件或子文件夹的目录（跳过空目录）。
+/// 扫描所有子目录（包括空目录）。
 /// 返回结果按路径排序。
 pub fn list_folders(flows_dir: &Path) -> Result<Vec<FolderInfo>, String> {
     let mut folders = Vec::new();
@@ -929,7 +929,7 @@ pub fn list_folders(flows_dir: &Path) -> Result<Vec<FolderInfo>, String> {
     Ok(folders)
 }
 
-/// 递归收集所有包含 .mpf 文件的子目录
+/// 递归收集所有子目录（包括空目录）
 fn collect_folders(
     base_dir: &Path,
     flows_dir: &Path,
@@ -946,24 +946,20 @@ fn collect_folders(
         let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
         let path = entry.path();
         if path.is_dir() {
-            // 检查此目录是否包含 .mpf 文件（直接或递归）
-            let has_mpf = has_mpf_files_recursive(&path)?;
-            if has_mpf {
-                let rel_path = path
-                    .strip_prefix(flows_dir)
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_default();
-                let name = path
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_default();
-                folders.push(FolderInfo {
-                    name,
-                    path: rel_path.clone(),
-                });
-                // 递归扫描子目录
-                collect_folders(&path, flows_dir, folders)?;
-            }
+            let rel_path = path
+                .strip_prefix(flows_dir)
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let name = path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+            folders.push(FolderInfo {
+                name,
+                path: rel_path.clone(),
+            });
+            // 递归扫描子目录
+            collect_folders(&path, flows_dir, folders)?;
         }
     }
 

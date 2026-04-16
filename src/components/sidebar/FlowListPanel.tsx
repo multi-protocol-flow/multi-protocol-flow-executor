@@ -483,11 +483,17 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       folderFlows.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
     }
 
+    // 合并所有文件夹路径（包括空文件夹）
+    const allFolderPaths = new Set(folderMap.keys());
+    for (const folder of folders) {
+      allFolderPaths.add(folder.path);
+    }
+
     // 排序文件夹路径
-    const sortedFolderPaths = Array.from(folderMap.keys()).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    const sortedFolderPaths = Array.from(allFolderPaths).sort((a, b) => a.localeCompare(b, 'zh-CN'));
 
     return { rootFlows, folderMap, sortedFolderPaths };
-  }, [flows]);
+  }, [flows, folders]);
 
   // ===== 渲染流程项 =====
   const renderFlowItem = (flowMeta: typeof flows[number], depth: number) => {
