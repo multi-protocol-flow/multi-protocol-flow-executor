@@ -161,6 +161,36 @@ export async function moveFlowToFolder(uuid: string, targetFolderPath: string, _
 }
 
 /**
+ * 移动文件夹到另一个文件夹（或根目录）
+ */
+export async function moveFolder(sourceFolderPath: string, targetFolderPath: string, _flowsDir?: string): Promise<void> {
+  // 查找所有以 sourceFolderPath 开头的路径
+  const pathsToMove = Array.from(folderStore).filter(p => p === sourceFolderPath || p.startsWith(sourceFolderPath + '/'));
+  // 删除旧路径
+  for (const p of pathsToMove) {
+    folderStore.delete(p);
+  }
+  // 计算新路径并添加
+  const folderName = sourceFolderPath.split('/').pop() ?? sourceFolderPath;
+  const newBase = targetFolderPath ? `${targetFolderPath}/${folderName}` : folderName;
+  folderStore.add(newBase);
+  for (const p of pathsToMove) {
+    if (p !== sourceFolderPath) {
+      const relativePath = p.slice(sourceFolderPath.length);
+      folderStore.add(`${newBase}${relativePath}`);
+    }
+  }
+  // 同时更新相关流程的 folderPath
+  for (const [, entry] of flowStore) {
+    if (entry.folderPath === sourceFolderPath) {
+      entry.folderPath = newBase;
+    } else if (entry.folderPath.startsWith(sourceFolderPath + '/')) {
+      entry.folderPath = `${newBase}${entry.folderPath.slice(sourceFolderPath.length)}`;
+    }
+  }
+}
+
+/**
  * 清空所有流程（测试辅助函数）
  */
 export function clearMockFlows(): void {

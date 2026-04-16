@@ -1200,6 +1200,102 @@ pub fn move_flow_to_folder(
     Ok(())
 }
 
+/// 移动文件夹到另一个文件夹（或根目录）
+///
+/// 将指定的源文件夹移动到目标文件夹内（或移动到根目录）。
+/// `source_folder_path` 为相对于 `flows_dir` 的源路径。
+/// `target_folder_path` 为相对于 `flows_dir` 的目标父文件夹路径，空字符串表示移动到根目录。
+pub fn move_folder(
+    flows_dir: &Path,
+    source_folder_path: &str,
+    target_folder_path: &str,
+) -> Result<(), String> {
+    if source_folder_path.is_empty() {
+        return Err("源文件夹路径不能为空".to_string());
+    }
+
+    let source_full = flows_dir.join(source_folder_path);
+
+    // 验证源文件夹存在
+    if !source_full
+        .try_exists()
+        .map_err(|e| format!("检查源目录失败: {}", e))?
+    {
+        return Err(format!("源文件夹不存在: {}", source_folder_path));
+    }
+
+    // 安全检查：规范化路径，防止路径遍历
+    let canonical_flows_dir = flows_dir
+        .canonicalize()
+        .map_err(|e| format!("规范化流程目录失败: {}", e))?;
+    let canonical_source = source_full
+        .canonicalize()
+        .map_err(|_| format!("源文件夹不存在: {}", source_folder_path))?;
+
+    if !canonical_source.starts_with(&canonical_flows_dir) {
+        return Err("不允许操作流程目录之外的文件夹".to_string());
+    }
+
+    // 防止移动到自身或自身的子目录
+    if !target_folder_path.is_empty() {
+        let target_full = flows_dir.join(target_folder_path);
+        let canonical_target = target_full
+            .canonicalize()
+            .map_err(|_| format!("目标文件夹不存在: {}", target_folder_path))?;
+
+        if canonical_source == canonical_target {
+            return Err("不能将文件夹移动到自身".to_string());
+        }
+
+        // 检查目标是否是源的子目录
+        if canonical_target.starts_with(&canonical_source) {
+            return Err("不能将文件夹移动到自身的子目录中".to_string());
+        }
+    }
+
+    // 计算目标路径
+    let folder_name = source_full
+        .file_name()
+        .ok_or_else(|| "无法获取文件夹名称".to_string())?;
+
+    let target_dir = if target_folder_path.is_empty() {
+        flows_dir.to_path_buf()
+    } else {
+        let target_parent = flows_dir.join(target_folder_path);
+        // 验证目标文件夹存在
+        if !target_parent
+            .try_exists()
+            .map_err(|e| format!("检查目标目录失败: {}", e))?
+        {
+            return Err(format!("目标文件夹不存在: {}", target_folder_path));
+        }
+        target_parent
+    };
+
+    let new_path = target_dir.join(folder_name);
+
+    // 检查是否已在目标位置
+    if source_full == new_path {
+        return Ok(());
+    }
+
+    // 检查目标位置是否有同名文件夹
+    if new_path
+        .try_exists()
+        .map_err(|e| format!("检查目标路径失败: {}", e))?
+    {
+        return Err(format!(
+            "目标位置已存在同名文件夹: {}",
+            folder_name.to_string_lossy()
+        ));
+    }
+
+    // 移动文件夹
+    fs::rename(&source_full, &new_path).map_err(|e| format!("移动文件夹失败: {}", e))?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

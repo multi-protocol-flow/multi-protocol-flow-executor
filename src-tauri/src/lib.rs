@@ -65,6 +65,7 @@ pub use tauri_commands::{
     delete_folder,
     rename_folder,
     move_flow_to_folder,
+    move_folder,
     DebugSessionManager,
     ExecutionSessionManager,
 };
@@ -170,7 +171,8 @@ pub fn run() {
     create_folder,
     delete_folder,
     rename_folder,
-    move_flow_to_folder
+    move_flow_to_folder,
+    move_folder
 ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

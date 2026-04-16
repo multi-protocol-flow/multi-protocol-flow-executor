@@ -589,6 +589,16 @@ pub fn move_flow_to_folder(
     flow_engine::storage::move_flow_to_folder(&uuid, std::path::Path::new(&flows_dir), &target_folder_path)
 }
 
+/// 移动文件夹到另一个文件夹（或根目录）
+#[tauri::command]
+pub fn move_folder(
+    flows_dir: String,
+    source_folder_path: String,
+    target_folder_path: String,
+) -> Result<(), String> {
+    flow_engine::storage::move_folder(std::path::Path::new(&flows_dir), &source_folder_path, &target_folder_path)
+}
+
 // ============================================================================
 // 单元测试
 // ============================================================================

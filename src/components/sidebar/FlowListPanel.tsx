@@ -44,6 +44,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const newFolderInputRef = useRef<HTMLInputElement>(null);
+  const [newFolderParentPath, setNewFolderParentPath] = useState('');
 
   // 文件夹重命名状态
   const [renamingFolderPath, setRenamingFolderPath] = useState<string | null>(null);
@@ -207,6 +208,11 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const moveMenuRef = useRef<HTMLDivElement>(null);
   const [moveMenuPosition, setMoveMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
+  // 文件夹移动子菜单
+  const [moveFolderMenuPath, setMoveFolderMenuPath] = useState<string | null>(null);
+  const moveFolderMenuRef = useRef<HTMLDivElement>(null);
+  const [moveFolderMenuPosition, setMoveFolderMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
   /**
    * 计算菜单定位，考虑视口边界自动翻转方向
    * @param anchorRect 触发元素的 boundingClientRect
@@ -262,16 +268,20 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       if (moveMenuUuid !== null && moveMenuRef.current && !moveMenuRef.current.contains(e.target as Node)) {
         setMoveMenuUuid(null);
       }
+      if (moveFolderMenuPath !== null && moveFolderMenuRef.current && !moveFolderMenuRef.current.contains(e.target as Node)) {
+        setMoveFolderMenuPath(null);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openMenuUuid, openFolderMenuPath, moveMenuUuid]);
+  }, [openMenuUuid, openFolderMenuPath, moveMenuUuid, moveFolderMenuPath]);
 
   // ===== 文件夹操作 =====
 
   /** 开始创建文件夹 */
-  const handleStartCreateFolder = () => {
+  const handleStartCreateFolder = (parentPath?: string) => {
     setIsCreatingFolder(true);
+    setNewFolderParentPath(parentPath ?? '');
     setNewFolderName('');
     requestAnimationFrame(() => {
       newFolderInputRef.current?.focus();
@@ -283,6 +293,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     if (onCreateFolderTrigger) {
       onCreateFolderTrigger(() => {
         setIsCreatingFolder(true);
+        setNewFolderParentPath('');
         setNewFolderName('');
         requestAnimationFrame(() => {
           newFolderInputRef.current?.focus();
@@ -298,21 +309,27 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     if (!trimmedName) {
       setIsCreatingFolder(false);
       setNewFolderName('');
+      setNewFolderParentPath('');
       return;
     }
     try {
-      await flowStorage.createFolder(trimmedName);
+      const fullPath = newFolderParentPath
+        ? `${newFolderParentPath}/${trimmedName}`
+        : trimmedName;
+      await flowStorage.createFolder(fullPath);
       await refreshAll();
     } catch (err) {
       console.error('[FlowListPanel] 创建文件夹失败:', err);
     }
     setIsCreatingFolder(false);
     setNewFolderName('');
+    setNewFolderParentPath('');
   };
 
   const handleCancelCreateFolder = () => {
     setIsCreatingFolder(false);
     setNewFolderName('');
+    setNewFolderParentPath('');
   };
 
   /** 删除文件夹 */
@@ -389,6 +406,18 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       await refreshAll();
     } catch (err) {
       console.error('[FlowListPanel] 移动流程失败:', err);
+    }
+  };
+
+  /** 移动文件夹 */
+  const handleMoveFolder = async (sourcePath: string, targetPath: string) => {
+    setMoveFolderMenuPath(null);
+    setOpenFolderMenuPath(null);
+    try {
+      await flowStorage.moveFolder(sourcePath, targetPath);
+      await refreshAll();
+    } catch (err) {
+      console.error('[FlowListPanel] 移动文件夹失败:', err);
     }
   };
 
@@ -534,10 +563,29 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       allFolderPaths.add(folder.path);
     }
 
-    // 排序文件夹路径
-    const sortedFolderPaths = Array.from(allFolderPaths).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    // 构建文件夹树结构
+    const folderChildrenMap = new Map<string, string[]>(); // parentPath -> childPaths
+    const rootFolderPaths: string[] = [];
 
-    return { rootFlows, folderMap, sortedFolderPaths };
+    for (const path of allFolderPaths) {
+      const parentPath = path.includes('/') ? path.substring(0, path.lastIndexOf('/')) : '';
+      if (parentPath && allFolderPaths.has(parentPath)) {
+        const children = folderChildrenMap.get(parentPath) ?? [];
+        children.push(path);
+        folderChildrenMap.set(parentPath, children);
+      } else {
+        rootFolderPaths.push(path);
+      }
+    }
+
+    // 排序
+    const sortPaths = (paths: string[]) => paths.sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    sortPaths(rootFolderPaths);
+    for (const [, children] of folderChildrenMap) {
+      sortPaths(children);
+    }
+
+    return { rootFlows, folderMap, rootFolderPaths, folderChildrenMap };
   }, [flows, folders]);
 
   // ===== 渲染流程项 =====
@@ -780,12 +828,39 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
         {isExpanded && (
           <div className="space-y-0.5 mt-0.5">
             {folderFlows.map(flow => renderFlowItem(flow, depth + 1))}
-            {folderFlows.length === 0 && (
+            {folderFlows.length === 0 && !(isCreatingFolder && newFolderParentPath === folderPath) && (
               <div
                 className="text-xs text-muted-foreground/60 italic px-3 py-1"
                 style={{ marginLeft: `${(depth + 1) * 20}px` }}
               >
                 空文件夹
+              </div>
+            )}
+            {isCreatingFolder && newFolderParentPath === folderPath && (
+              <div
+                className="w-full flex items-center gap-1.5 h-8 rounded-md text-sm"
+                style={{ marginLeft: `${(depth + 1) * 20}px`, paddingRight: '12px' }}
+              >
+                <ChevronRight className="w-3 h-3 shrink-0 text-muted-foreground" />
+                <Folder className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                <input
+                  ref={newFolderInputRef}
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onBlur={() => handleConfirmCreateFolder()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleConfirmCreateFolder();
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      handleCancelCreateFolder();
+                    }
+                  }}
+                  placeholder="文件夹名称..."
+                  className="flex-1 min-w-0 px-1 py-0 text-sm bg-background border border-primary rounded outline-none focus:ring-1 focus:ring-primary"
+                />
               </div>
             )}
           </div>
@@ -814,7 +889,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             <Button
               variant="ghost"
               size="icon"
-              onClick={disabled ? undefined : handleStartCreateFolder}
+              onClick={disabled ? undefined : () => handleStartCreateFolder()}
               disabled={disabled}
               className="h-7 w-7 rounded-md bg-background border border-border hover:bg-accent disabled:opacity-50"
               title={disabled ? "调试中不可创建文件夹" : "新建文件夹"}
@@ -848,7 +923,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin">
           <div className="p-2 space-y-1">
             {/* 新建文件夹输入框（始终可见，不依赖 showHeader） */}
-            {isCreatingFolder && (
+            {isCreatingFolder && !newFolderParentPath && (
               <div
                 className="w-full flex items-center gap-1.5 h-8 rounded-md text-sm"
                 style={{ paddingLeft: '8px', paddingRight: '12px' }}
@@ -876,13 +951,30 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               </div>
             )}
 
-            {/* 文件夹节点（优先排在前面） */}
-            {treeData.sortedFolderPaths.map(folderPath => renderFolderItem(folderPath, 0))}
+            {/* 文件夹节点（递归渲染） */}
+            {(() => {
+              const renderFolderTree = (folderPaths: string[], depth: number) => {
+                return folderPaths.map(folderPath => {
+                  const children = treeData.folderChildrenMap.get(folderPath) ?? [];
+                  return (
+                    <div key={`folder-tree-${folderPath}`}>
+                      {renderFolderItem(folderPath, depth)}
+                      {expandedFolders.has(folderPath) && children.length > 0 && (
+                        <div className="space-y-0.5 mt-0.5">
+                          {renderFolderTree(children, depth + 1)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              };
+              return renderFolderTree(treeData.rootFolderPaths, 0);
+            })()}
 
             {/* 根目录流程（排在文件夹后面） */}
             {treeData.rootFlows.map(flow => renderFlowItem(flow, 0))}
 
-            {flows.length === 0 && folders.length === 0 && !isCreatingFolder && (
+            {flows.length === 0 && treeData.rootFolderPaths.length === 0 && !isCreatingFolder && (
               <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
                 <FileJson className="w-8 h-8 mb-2 opacity-40" />
                 <p className="text-sm">暂无流程</p>
@@ -911,6 +1003,32 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
           >
             <Plus className="w-3.5 h-3.5" />
             新建流程
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenFolderMenuPath(null);
+              handleStartCreateFolder(openFolderMenuPath ?? undefined);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+          >
+            <FolderPlus className="w-3.5 h-3.5" />
+            新建子文件夹
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenFolderMenuPath(null);
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              setMoveFolderMenuPosition(computeMenuPosition(rect, 140, 140, 4, 'right'));
+              setMoveFolderMenuPath(openFolderMenuPath);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+          >
+            <Move className="w-3.5 h-3.5" />
+            移动到...
           </button>
           <button
             type="button"
@@ -970,6 +1088,49 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               {folder.name}
             </button>
           ))}
+        </div>,
+        document.body
+      )}
+
+      {/* 文件夹移动子菜单 Portal */}
+      {moveFolderMenuPath !== null && createPortal(
+        <div
+          ref={moveFolderMenuRef}
+          className="fixed z-[10000] min-w-[140px] rounded-md border border-border bg-background shadow-md animate-in fade-in-0 zoom-in-95"
+          style={{ top: moveFolderMenuPosition.top, left: moveFolderMenuPosition.left }}
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleMoveFolder(moveFolderMenuPath, '');
+            }}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+          >
+            <FileJson className="w-3.5 h-3.5" />
+            根目录
+          </button>
+          {folders
+            .filter(f => {
+              // 排除自身和自身的子目录
+              if (f.path === moveFolderMenuPath) return false;
+              if (f.path.startsWith(moveFolderMenuPath + '/')) return false;
+              return true;
+            })
+            .map(folder => (
+              <button
+                key={folder.path}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMoveFolder(moveFolderMenuPath, folder.path);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+              >
+                <Folder className="w-3.5 h-3.5 text-amber-500" />
+                {folder.name}
+              </button>
+            ))}
         </div>,
         document.body
       )}

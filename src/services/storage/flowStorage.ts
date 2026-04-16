@@ -130,4 +130,10 @@ export const flowStorage = {
     const flowsDir = await getFlowsDir();
     await invoke<void>('move_flow_to_folder', { uuid, flowsDir, targetFolderPath });
   },
+
+  /** 移动文件夹到另一个文件夹（或根目录） */
+  async moveFolder(sourceFolderPath: string, targetFolderPath: string): Promise<void> {
+    const flowsDir = await getFlowsDir();
+    await invoke<void>('move_folder', { flowsDir, sourceFolderPath, targetFolderPath });
+  },
 };
