@@ -11,6 +11,7 @@ const createTestFlow = (overrides?: Partial<FlowMetadata>): FlowMetadata => ({
   uuid: crypto.randomUUID(),
   name: 'Test Flow',
   updated_at: Date.now(),
+  folder_path: '',
   ...overrides,
 });
 
