@@ -411,11 +411,11 @@ pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
             .map(|d| d.as_millis() as u64)
             .unwrap_or(0);
 
-        // 计算相对文件夹路径
+        // 计算相对文件夹路径（统一使用 / 分隔符，确保跨平台前端一致）
         let folder_path = path
             .parent()
             .and_then(|parent| parent.strip_prefix(flows_dir).ok())
-            .map(|rel| rel.to_string_lossy().to_string())
+            .map(|rel| rel.to_string_lossy().replace('\\', "/"))
             .unwrap_or_default();
 
         metadata_list.push(FlowMetadata {
@@ -948,7 +948,7 @@ fn collect_folders(
         if path.is_dir() {
             let rel_path = path
                 .strip_prefix(flows_dir)
-                .map(|p| p.to_string_lossy().to_string())
+                .map(|p| p.to_string_lossy().replace('\\', "/"))
                 .unwrap_or_default();
             let name = path
                 .file_name()
@@ -1114,7 +1114,7 @@ pub fn rename_folder(
     let new_rel = parent
         .strip_prefix(flows_dir)
         .map(|p| {
-            let base = p.to_string_lossy().to_string();
+            let base = p.to_string_lossy().replace('\\', "/");
             if base.is_empty() {
                 clean_name.clone()
             } else {
@@ -1820,6 +1820,7 @@ mod tests {
             name: "元数据测试".to_string(),
             file_path: "/flows/test.json".to_string(),
             updated_at: 1705315845000,
+            folder_path: String::new(),
         };
 
         let json = serde_json::to_string(&metadata).expect("序列化 FlowMetadata 失败");
