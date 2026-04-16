@@ -2,7 +2,7 @@
  * FlowListPanel - 流程列表面板
  * 显示已保存的流程列表，支持加载流程，支持文件夹分组树形结构
  */
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Plus, FileJson, MoreVertical, Copy, Trash2, Pencil, Bug, RefreshCw,
@@ -745,7 +745,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   };
 
   // ===== 渲染文件夹项 =====
-  const renderFolderItem = (folderPath: string, depth: number) => {
+  const renderFolderItem = (folderPath: string, depth: number, childFolderElements?: React.ReactNode) => {
     const folder = folders.find(f => f.path === folderPath);
     const displayName = folder?.name ?? folderPath.split('/').pop() ?? folderPath;
     const isExpanded = expandedFolders.has(folderPath);
@@ -824,11 +824,13 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
           </Button>
         </div>
 
-        {/* 文件夹下的流程列表 */}
+        {/* 文件夹展开内容：子文件夹（优先）→ 流程 → 新建文件夹输入 */}
         {isExpanded && (
           <div className="space-y-0.5 mt-0.5">
+            {/* 子文件夹优先渲染 */}
+            {childFolderElements}
             {folderFlows.map(flow => renderFlowItem(flow, depth + 1))}
-            {folderFlows.length === 0 && !(isCreatingFolder && newFolderParentPath === folderPath) && (
+            {folderFlows.length === 0 && !childFolderElements && !(isCreatingFolder && newFolderParentPath === folderPath) && (
               <div
                 className="text-xs text-muted-foreground/60 italic px-3 py-1"
                 style={{ marginLeft: `${(depth + 1) * 20}px` }}
@@ -951,19 +953,17 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               </div>
             )}
 
-            {/* 文件夹节点（递归渲染） */}
+            {/* 文件夹节点（递归渲染，子文件夹优先于流程） */}
             {(() => {
-              const renderFolderTree = (folderPaths: string[], depth: number) => {
+              const renderFolderTree = (folderPaths: string[], depth: number): ReactNode => {
                 return folderPaths.map(folderPath => {
                   const children = treeData.folderChildrenMap.get(folderPath) ?? [];
+                  const childElements = expandedFolders.has(folderPath) && children.length > 0
+                    ? <div key={`children-${folderPath}`} className="space-y-0.5 mt-0.5">{renderFolderTree(children, depth + 1)}</div>
+                    : null;
                   return (
                     <div key={`folder-tree-${folderPath}`}>
-                      {renderFolderItem(folderPath, depth)}
-                      {expandedFolders.has(folderPath) && children.length > 0 && (
-                        <div className="space-y-0.5 mt-0.5">
-                          {renderFolderTree(children, depth + 1)}
-                        </div>
-                      )}
+                      {renderFolderItem(folderPath, depth, childElements)}
                     </div>
                   );
                 });
