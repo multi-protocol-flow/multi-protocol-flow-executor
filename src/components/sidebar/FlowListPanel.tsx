@@ -207,6 +207,44 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const moveMenuRef = useRef<HTMLDivElement>(null);
   const [moveMenuPosition, setMoveMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
+  /**
+   * 计算菜单定位，考虑视口边界自动翻转方向
+   * @param anchorRect 触发元素的 boundingClientRect
+   * @param menuWidth 菜单宽度
+   * @param menuHeight 菜单预估高度
+   * @param gap 菜单与触发元素的间距
+   * @param side 方向：'bottom' 在下方弹出，'right' 在右侧弹出（子菜单）
+   */
+  const computeMenuPosition = (
+    anchorRect: DOMRect,
+    menuWidth: number,
+    menuHeight: number,
+    gap: number = 4,
+    side: 'bottom' | 'right' = 'bottom',
+  ): { top: number; left: number } => {
+    const viewportH = window.innerHeight;
+    const viewportW = window.innerWidth;
+
+    if (side === 'bottom') {
+      const spaceBelow = viewportH - anchorRect.bottom - gap;
+      const showAbove = spaceBelow < menuHeight && anchorRect.top > menuHeight + gap;
+      const top = showAbove
+        ? anchorRect.top - menuHeight - gap
+        : anchorRect.bottom + gap;
+      const left = Math.max(4, Math.min(anchorRect.right - menuWidth, viewportW - menuWidth - 4));
+      return { top, left };
+    }
+
+    // side === 'right'
+    const spaceRight = viewportW - anchorRect.right - gap;
+    const showLeft = spaceRight < menuWidth && anchorRect.left > menuWidth + gap;
+    const top = Math.max(4, Math.min(anchorRect.top, viewportH - menuHeight - 4));
+    const left = showLeft
+      ? anchorRect.left - menuWidth - gap
+      : anchorRect.right + gap;
+    return { top, left };
+  };
+
   // 重命名流程状态
   const [renamingUuid, setRenamingUuid] = useState<string | null>(null);
   const [renamingName, setRenamingName] = useState('');
@@ -574,7 +612,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                 setOpenMenuUuid(null);
               } else {
                 const rect = e.currentTarget.getBoundingClientRect();
-                setMenuPosition({ top: rect.bottom + 4, left: rect.right - 120 });
+                setMenuPosition(computeMenuPosition(rect, 120, 140));
                 setOpenMenuUuid(flowMeta.uuid);
               }
             }}
@@ -623,7 +661,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                   // 显示移动子菜单
                   setOpenMenuUuid(null);
                   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  setMoveMenuPosition({ top: rect.top, left: rect.right + 4 });
+                  setMoveMenuPosition(computeMenuPosition(rect, 140, 140, 4, 'right'));
                   setMoveMenuUuid(flowMeta.uuid);
                 }}
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
@@ -676,7 +714,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
           onContextMenu={(e) => {
             e.preventDefault();
             const rect = e.currentTarget.getBoundingClientRect();
-            setFolderMenuPosition({ top: rect.bottom + 4, left: rect.right - 120 });
+            setFolderMenuPosition(computeMenuPosition(rect, 120, 110));
             setOpenFolderMenuPath(folderPath);
           }}
         >
@@ -716,7 +754,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                 setOpenFolderMenuPath(null);
               } else {
                 const rect = e.currentTarget.getBoundingClientRect();
-                setFolderMenuPosition({ top: rect.bottom + 4, left: rect.right - 120 });
+                setFolderMenuPosition(computeMenuPosition(rect, 120, 110));
                 setOpenFolderMenuPath(folderPath);
               }
             }}
