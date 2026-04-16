@@ -1,7 +1,7 @@
 # 项目知识库
 
-**生成时间:** 2026-04-08
-**Commit:** cc2bf47
+**生成时间:** 2026-04-16
+**Commit:** 158c34c
 **Branch:** master
 
 ## 概述
@@ -33,7 +33,7 @@ multi-protocol-flow-executor/
 │   │   ├── flow-engine-script/     # QuickJS 运行时 + 脚本执行器
 │   │   ├── flow-engine-assertion/  # 15 种断言操作符 + 执行器
 │   │   └── flow-engine-executor/   # 主执行器、调试模式、压力测试、业务命令
-│   └── bin/cli.rs          # CLI 二进制
+│   └── bin/mpe.rs          # CLI 二进制 (mpe 命令)
 ├── tests/                  # CLI 测试数据 + fixtures
 └── docs/                   # 架构文档
 ```
@@ -68,7 +68,7 @@ Layer 4:         app (src-tauri/)                              (→ flow-engine)
 | 数据库节点 | `src-tauri/crates/flow-engine-db/` (详见该 crate 的 AGENTS.md) |
 | 调试模式 | `src-tauri/crates/flow-engine-executor/src/debug/` + `src/stores/debug.ts` |
 | 压力测试 | `src-tauri/crates/flow-engine-executor/src/stress_test/` + `src/stores/stressTest.ts` |
-| IPC 命令 | `src-tauri/src/tauri_commands.rs` (19 命令) |
+| IPC 命令 | `src-tauri/src/tauri_commands.rs` (26+ 命令) |
 | 加密模块 | `src-tauri/crates/flow-engine-crypto/` |
 | 节点类型定义 | `src-tauri/crates/flow-engine-core/src/node.rs` + `node_config.rs` |
 | 执行上下文/变量 | `src-tauri/crates/flow-engine-core/src/context.rs` + `variable.rs` |
@@ -199,7 +199,7 @@ npm run typecheck && npm run test        # 无需编译 Rust
 
 ### 测试约定
 
-1. 组件测试文件头部标记 `/** @vitest-environment jsdom */`
+1. jsdom 环境已在 vitest.config.ts 全局配置，组件测试无需单独标记 `/** @vitest-environment jsdom */`
 2. Store 测试在 `beforeEach` 中调用 `reset()` 重置状态
 3. 测试文件末尾调用 `vi.restoreAllMocks()` 清理 mock
 4. E2E 测试文件命名 `*.e2e.test.ts`
@@ -229,6 +229,9 @@ npm run typecheck && npm run test        # 无需编译 Rust
 | `src/components/canvas/utils.ts:101` | TODO: 添加更多连接验证逻辑 | 中 |
 | `src/types/error.ts` | 缺少 WebSocket 错误类型定义 (与 Rust 不对齐) | 中 |
 | 无 CI/CD | 无 `.github/workflows`，需手动运行测试 | 中 |
+| Workspace 依赖管理 | 仅 core crate 使用 `workspace = true`，其余 7 个 crate 硬编码版本号 | 中 |
+| `src-tauri/compile_errors.txt` | 调试产物被 git 跟踪，应 gitignore | 低 |
+| `components.json` | 引用不存在的 `tailwind.config.js` (TailwindCSS 4 使用 CSS 配置) | 低 |
 
 ## 命令
 
@@ -242,7 +245,7 @@ npm run typecheck    # TypeScript 类型检查
 # 后端开发
 cd src-tauri
 cargo build          # 调试构建
-cargo build --release --bin cli  # 生产 CLI
+cargo build --release --bin mpe  # 生产 CLI
 cargo test           # Rust 测试
 cargo clippy         # Lint 检查
 
@@ -253,7 +256,7 @@ npm run tauri build  # 构建安装包
 
 ## 注意事项
 
-1. **双二进制输出**: `src-tauri/Cargo.toml` 定义了 `app` (Tauri 桌面应用) 和 `cli` (独立 CLI 工具，支持 `cli -e -f flow.json`)
+1. **双二进制输出**: `src-tauri/Cargo.toml` 定义了 `app` (Tauri 桌面应用) 和 `mpe` (独立 CLI 工具，支持 `mpe run -f flow.mpf`)
 
 2. **TailwindCSS 4**: 使用 CSS-based 配置 (`@import "tailwindcss"` + `@theme`)，无 `tailwind.config.js`
 
@@ -301,6 +304,8 @@ npm run tauri build  # 构建安装包
 - [src-tauri/crates/flow-engine-http/src/AGENTS.md](./src-tauri/crates/flow-engine-http/src/AGENTS.md) - HTTP crate
 - [src-tauri/crates/flow-engine-db/src/AGENTS.md](./src-tauri/crates/flow-engine-db/src/AGENTS.md) - 数据库 crate
 - [src-tauri/crates/flow-engine-ws/src/AGENTS.md](./src-tauri/crates/flow-engine-ws/src/AGENTS.md) - WebSocket crate
+- [src-tauri/crates/flow-engine-script/src/AGENTS.md](./src-tauri/crates/flow-engine-script/src/AGENTS.md) - 脚本 crate
+- [src-tauri/crates/flow-engine-assertion/src/AGENTS.md](./src-tauri/crates/flow-engine-assertion/src/AGENTS.md) - 断言 crate
 - [src/stores/AGENTS.md](./src/stores/AGENTS.md) - Zustand 状态管理
 - [src/services/AGENTS.md](./src/services/AGENTS.md) - Tauri IPC 服务
 - [src/types/AGENTS.md](./src/types/AGENTS.md) - TypeScript 类型定义
