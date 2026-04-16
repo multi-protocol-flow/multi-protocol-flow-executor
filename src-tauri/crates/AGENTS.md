@@ -1,7 +1,7 @@
 # Rust Workspace 总览
 
-**生成时间:** 2026-04-08
-**Commit:** cc2bf47
+**生成时间:** 2026-04-16
+**Commit:** 158c34c
 
 ## 概述
 
@@ -81,3 +81,5 @@ cargo clippy -p flow-engine-db
 - [flow-engine-http/src/AGENTS.md](./flow-engine-http/src/AGENTS.md) - HTTP
 - [flow-engine-db/src/AGENTS.md](./flow-engine-db/src/AGENTS.md) - 数据库
 - [flow-engine-ws/src/AGENTS.md](./flow-engine-ws/src/AGENTS.md) - WebSocket
+- [flow-engine-script/src/AGENTS.md](./flow-engine-script/src/AGENTS.md) - 脚本
+- [flow-engine-assertion/src/AGENTS.md](./flow-engine-assertion/src/AGENTS.md) - 断言
