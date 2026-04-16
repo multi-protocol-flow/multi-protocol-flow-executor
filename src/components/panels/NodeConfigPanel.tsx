@@ -2,7 +2,7 @@
  * 节点配置面板主组件
  * 根据节点类型显示不同的配置表单
  */
-import { useState } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useFlowStore, useDebugStore } from '@/stores';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
 import { EntryConfig } from './EntryConfig';
@@ -41,6 +41,17 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   // 优先使用外部传入的节点，否则回退到 store 中的选中节点
   const selectedNode = externalNode ?? getSelectedNode();
 
+  // 冻结节点 UUID（ref 持久化），确保组件卸载时（如点击画布取消选中）仍能正确保存
+  const frozenNodeUuidRef = useRef<string | null>(null);
+  if (selectedNode) {
+    frozenNodeUuidRef.current = selectedNode.uuid;
+  }
+
+  // 稳定数据引用：仅在节点 UUID 变化时更新
+  // 避免自动保存后 store 更新 → data prop 变化 → 子组件 reset() → 输入框失焦
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableData = useMemo(() => selectedNode?.data ?? null, [selectedNode?.uuid]);
+
   // 调试模式下编辑配置弹窗状态
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
@@ -67,14 +78,16 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   // 仅用于调试模式下 DebugNodeConfigDialog 的回调
   const frozenNodeUuid = selectedNode.uuid;
 
+  // stableData 在节点 UUID 变化后才更新，此處 selectedNode 必定非空
+  const nodeData = stableData as NodeData;
+
   /**
    * 处理配置保存
-   * 动态从 store 获取当前选中的节点，避免闭包捕获过时的 selectedNode
+   * 使用 ref 持久化的 UUID，确保取消选中节点后仍能正确保存
    */
   const handleSave = (data: NodeData) => {
-    const node = externalNode ?? useFlowStore.getState().getSelectedNode();
-    if (node) {
-      updateNode(node.uuid, { data });
+    if (frozenNodeUuidRef.current) {
+      updateNode(frozenNodeUuidRef.current, { data });
     }
   };
 
@@ -122,113 +135,113 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             readOnly && "pointer-events-none select-none opacity-80"
           )}>
             {/* Entry 节点：初始变量配置 */}
-            {selectedNode.type === 'entry' && isEntryConfig(selectedNode.data) && (
+            {selectedNode.type === 'entry' && isEntryConfig(nodeData) && (
               <EntryConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
 
             {/* HTTP 节点：URL/方法/Headers/Body 配置 */}
-            {selectedNode.type === 'http' && isHttpConfig(selectedNode.data) && (
+            {selectedNode.type === 'http' && isHttpConfig(nodeData) && (
               <HttpConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
 
             {/* Conditional 节点：条件配置 */}
-            {selectedNode.type === 'conditional' && isConditionalConfig(selectedNode.data) && (
+            {selectedNode.type === 'conditional' && isConditionalConfig(nodeData) && (
               <ConditionalConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
 
             {/* WS Connect 节点：WebSocket 连接配置 */}
-            {selectedNode.type === 'ws_connect' && isWsConnectConfig(selectedNode.data) && (
+            {selectedNode.type === 'ws_connect' && isWsConnectConfig(nodeData) && (
               <WsConnectConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
 
             {/* WS Send+Collect 节点：WebSocket 发送采集配置 */}
-            {selectedNode.type === 'ws_send_collect' && isWsSendCollectConfig(selectedNode.data) && (
+            {selectedNode.type === 'ws_send_collect' && isWsSendCollectConfig(nodeData) && (
               <WsSendCollectConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
 
             {/* WS Close 节点：WebSocket 关闭配置 */}
-            {selectedNode.type === 'ws_close' && isWsCloseConfig(selectedNode.data) && (
+            {selectedNode.type === 'ws_close' && isWsCloseConfig(nodeData) && (
               <WsCloseConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
 
             {/* Assertion 节点：断言配置 */}
-            {selectedNode.type === 'assertion' && isAssertionConfig(selectedNode.data) && (
+            {selectedNode.type === 'assertion' && isAssertionConfig(nodeData) && (
               <AssertionConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
 
             {/* DB Connect 节点：数据库连接配置 */}
-            {selectedNode.type === 'db_connect' && isDbConnectConfig(selectedNode.data) && (
+            {selectedNode.type === 'db_connect' && isDbConnectConfig(nodeData) && (
               <DbConnectConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
 
             {/* DB Query 节点：数据库查询配置 */}
-            {selectedNode.type === 'db_query' && isDbQueryConfig(selectedNode.data) && (
+            {selectedNode.type === 'db_query' && isDbQueryConfig(nodeData) && (
               <DbQueryConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
 
             {/* DB Begin 节点：事务开始配置 */}
-            {selectedNode.type === 'db_begin' && isDbBeginConfig(selectedNode.data) && (
+            {selectedNode.type === 'db_begin' && isDbBeginConfig(nodeData) && (
               <DbBeginConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
 
             {/* DB Commit 节点：事务提交配置 */}
-            {selectedNode.type === 'db_commit' && isDbCommitConfig(selectedNode.data) && (
+            {selectedNode.type === 'db_commit' && isDbCommitConfig(nodeData) && (
               <DbCommitConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
 
             {/* DB Rollback 节点：事务回滚配置 */}
-            {selectedNode.type === 'db_rollback' && isDbRollbackConfig(selectedNode.data) && (
+            {selectedNode.type === 'db_rollback' && isDbRollbackConfig(nodeData) && (
               <DbRollbackConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
 
             {/* DB Close 节点：数据库关闭配置 */}
-            {selectedNode.type === 'db_close' && isDbCloseConfig(selectedNode.data) && (
+            {selectedNode.type === 'db_close' && isDbCloseConfig(nodeData) && (
               <DbCloseConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
 
             {/* Script 节点：脚本配置 */}
-            {selectedNode.type === 'script' && isScriptConfig(selectedNode.data) && (
+            {selectedNode.type === 'script' && isScriptConfig(nodeData) && (
               <ScriptConfig
-                data={selectedNode.data}
+                data={nodeData}
                 onSave={(data) => handleSave(data as NodeData)}
               />
             )}
@@ -236,7 +249,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
         </ScrollArea>
       </CardContent>
 
-      {/* 调试模式下编辑配置弹窗 */}
+      {/* 调试模式下编辑配置弹窗（使用 selectedNode.data 以获取最新数据） */}
       {readOnly && selectedNode && (
         <DebugNodeConfigDialog
           open={isEditDialogOpen}

@@ -203,6 +203,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
     control,
     watch,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm<AssertionConfigFormData>({
     resolver: zodResolver(assertionConfigSchema) as never,
@@ -230,6 +231,20 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
     // 重置断言数组
     setValue('assertions', formData.assertions);
   }, [data, setValue]);
+
+  // 组件卸载时同步保存，防止点击画布导致编辑丢失
+  useEffect(() => {
+    return () => {
+      try {
+        const formData = getValues();
+        const config = fromFormData(formData);
+        onSave(config);
+      } catch {
+        // 静默处理卸载时的保存错误
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * 保存表单数据

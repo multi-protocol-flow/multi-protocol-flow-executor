@@ -111,6 +111,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     handleSubmit,
     control,
     watch,
+    getValues,
     setValue,
     reset,
     formState: { errors },
@@ -203,6 +204,20 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       pendingTimersRef.current.forEach((id) => clearTimeout(id));
       pendingTimersRef.current.clear();
     };
+  }, []);
+
+  // 组件卸载时同步保存，防止点击画布导致编辑丢失
+  useEffect(() => {
+    return () => {
+      try {
+        const formData = getValues();
+        const config = fromFormData(formData);
+        onSave(config);
+      } catch {
+        // 静默处理卸载时的保存错误
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**

@@ -134,6 +134,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
     control,
     watch,
     setValue,
+    getValues,
     reset,
     formState: { errors },
   } = useForm<DbQueryConfigFormData>({
@@ -176,6 +177,20 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
   useEffect(() => {
     reset(toFormData(data));
   }, [data, reset]);
+
+  // 组件卸载时同步保存，防止点击画布导致编辑丢失
+  useEffect(() => {
+    return () => {
+      try {
+        const formData = getValues();
+        const config = fromFormData(formData);
+        onSave(config);
+      } catch {
+        // 静默处理卸载时的保存错误
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * 保存表单数据
