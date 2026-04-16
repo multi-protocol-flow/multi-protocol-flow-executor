@@ -99,7 +99,7 @@ describe('FlowStorage', () => {
   describe('listFlows', () => {
     it('调用 IPC 列出流程', async () => {
       const flowMetas = [
-        { uuid: 'test-1', name: '流程1', filePath: 'test-1.mpe', updatedAt: Date.now() },
+        { uuid: 'test-1', name: '流程1', filePath: 'test-1.mpf', updatedAt: Date.now() },
       ];
       mockInvoke.mockResolvedValue(flowMetas);
 
@@ -152,7 +152,7 @@ describe('FlowStorage', () => {
   describe('refreshFlows', () => {
     it('调用 IPC 刷新流程列表', async () => {
       const flowMetas = [
-        { uuid: 'test-1', name: '流程1', filePath: 'test-1.mpe', updatedAt: Date.now() },
+        { uuid: 'test-1', name: '流程1', filePath: 'test-1.mpf', updatedAt: Date.now() },
       ];
       mockInvoke.mockResolvedValue(flowMetas);
 

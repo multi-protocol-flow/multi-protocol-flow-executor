@@ -60,7 +60,7 @@ describe('FlowListPanel', () => {
     
     // 默认存储状态 - 返回非空数组避免触发内置模板加载
     mockFlowStorage.listFlows.mockResolvedValue([
-      { uuid: 'default-flow', name: '默认流程', updatedAt: Date.now(), filePath: 'default-flow.mpe' }
+      { uuid: 'default-flow', name: '默认流程', updatedAt: Date.now(), filePath: 'default-flow.mpf' }
     ]);
     mockFlowStorage.loadFlow.mockResolvedValue(null);
   });
@@ -73,8 +73,8 @@ describe('FlowListPanel', () => {
   describe('流程列表渲染', () => {
     it('渲染流程列表', async () => {
       const flowMetas = [
-        { uuid: 'flow-1', name: '流程1', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
-        { uuid: 'flow-2', name: '流程2', updatedAt: Date.now(), filePath: 'flow-2.mpe' },
+        { uuid: 'flow-1', name: '流程1', updatedAt: Date.now(), filePath: 'flow-1.mpf' },
+        { uuid: 'flow-2', name: '流程2', updatedAt: Date.now(), filePath: 'flow-2.mpf' },
       ];
       mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
 
@@ -98,8 +98,8 @@ describe('FlowListPanel', () => {
       const targetFlow = createMockFlow('flow-2', '目标流程');
       
       const flowMetas = [
-        { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
-        { uuid: 'flow-2', name: '目标流程', updatedAt: Date.now(), filePath: 'flow-2.mpe' },
+        { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpf' },
+        { uuid: 'flow-2', name: '目标流程', updatedAt: Date.now(), filePath: 'flow-2.mpf' },
       ];
 
       // 设置当前流程为已修改状态
@@ -133,8 +133,8 @@ describe('FlowListPanel', () => {
       const targetFlow = createMockFlow('flow-2', '目标流程');
       
       const flowMetas = [
-        { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
-        { uuid: 'flow-2', name: '目标流程', updatedAt: Date.now(), filePath: 'flow-2.mpe' },
+        { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpf' },
+        { uuid: 'flow-2', name: '目标流程', updatedAt: Date.now(), filePath: 'flow-2.mpf' },
       ];
 
       // 设置当前流程，无未保存修改
@@ -192,7 +192,7 @@ describe('FlowListPanel', () => {
     it('点击删除按钮应显示确认对话框', async () => {
       const user = userEvent.setup();
       const flowMetas = [
-        { uuid: 'flow-1', name: '流程1', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
+        { uuid: 'flow-1', name: '流程1', updatedAt: Date.now(), filePath: 'flow-1.mpf' },
       ];
       mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
       useFlowListStore.getState().setFlows(flowMetas.map(m => ({ uuid: m.uuid, name: m.name, updated_at: m.updatedAt })));
@@ -227,7 +227,7 @@ describe('FlowListPanel', () => {
     it('确认删除应调用 deleteFlow 并从列表移除', async () => {
       const user = userEvent.setup();
       const flowMetas = [
-        { uuid: 'flow-1', name: '流程1', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
+        { uuid: 'flow-1', name: '流程1', updatedAt: Date.now(), filePath: 'flow-1.mpf' },
       ];
       mockFlowStorage.listFlows.mockResolvedValue(flowMetas);
       useFlowListStore.getState().setFlows(flowMetas.map(m => ({ uuid: m.uuid, name: m.name, updated_at: m.updatedAt })));
@@ -266,7 +266,7 @@ describe('FlowListPanel', () => {
       const user = userEvent.setup();
       const currentFlow = createMockFlow('flow-1', '当前流程');
       const flowMetas = [
-        { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
+        { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpf' },
       ];
       
       // 设置当前流程
@@ -304,8 +304,8 @@ describe('FlowListPanel', () => {
       const user = userEvent.setup();
       const currentFlow = createMockFlow('flow-1', '当前流程');
       const flowMetas = [
-        { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpe' },
-        { uuid: 'flow-2', name: '其他流程', updatedAt: Date.now(), filePath: 'flow-2.mpe' },
+        { uuid: 'flow-1', name: '当前流程', updatedAt: Date.now(), filePath: 'flow-1.mpf' },
+        { uuid: 'flow-2', name: '其他流程', updatedAt: Date.now(), filePath: 'flow-2.mpf' },
       ];
       
       // 设置当前流程

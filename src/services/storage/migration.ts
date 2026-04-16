@@ -1,13 +1,13 @@
 /**
  * 数据迁移服务
- * 将 localStorage 中的流程数据一次性迁移到 .mpe 文件存储
+ * 将 localStorage 中的流程数据一次性迁移到 .mpf 文件存储
  */
 
 import { flowStorage } from './flowStorage';
 import type { Flow } from '@/types/flow';
 
 /** 迁移完成标记 key */
-const MIGRATION_FLAG_KEY = 'mpe_migrated_v1';
+const MIGRATION_FLAG_KEY = 'mpf_migrated_v1';
 
 /** localStorage 中旧数据的 key */
 const LEGACY_KEYS = {
@@ -22,7 +22,7 @@ interface LegacyFlowStorage {
 }
 
 /**
- * 将 localStorage 中的流程数据迁移到 .mpe 文件存储
+ * 将 localStorage 中的流程数据迁移到 .mpf 文件存储
  *
  * 幂等操作：已迁移时直接返回，可安全多次调用。
  * 部分失败时保留 localStorage 数据并记录错误，下次启动可重试。

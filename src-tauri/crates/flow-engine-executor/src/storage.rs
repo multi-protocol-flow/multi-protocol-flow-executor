@@ -169,7 +169,7 @@ pub fn load_flow(path: &str) -> Result<Flow, String> {
         .map_err(|e| format!("读取文件 {:?} 失败: {}", file_path, e))?;
 
     // 反序列化为 Flow
-    // 先尝试 FlowFile 包装格式（.mpe 文件），失败则尝试直接 Flow 格式（旧 JSON）
+    // 先尝试 FlowFile 包装格式（.mpf 文件），失败则尝试直接 Flow 格式（旧 JSON）
     let flow: Flow = if let Ok(flow_file) = serde_json::from_str::<FlowFile>(&content) {
         flow_file.flow
     } else {
@@ -179,10 +179,10 @@ pub fn load_flow(path: &str) -> Result<Flow, String> {
     Ok(flow)
 }
 
-// === .mpe 流程文件管理 ===
+// === .mpf 流程文件管理 ===
 
-/// 递归收集目录下所有 .mpe 文件路径
-fn collect_mpe_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), String> {
+/// 递归收集目录下所有 .mpf 文件路径
+fn collect_mpf_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), String> {
     if !dir
         .try_exists()
         .map_err(|e| format!("检查目录失败: {}", e))?
@@ -194,8 +194,8 @@ fn collect_mpe_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), String>
         let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
         let path = entry.path();
         if path.is_dir() {
-            collect_mpe_files(&path, files)?;
-        } else if path.extension().map(|e| e == "mpe").unwrap_or(false) {
+            collect_mpf_files(&path, files)?;
+        } else if path.extension().map(|e| e == "mpf").unwrap_or(false) {
             files.push(path);
         }
     }
@@ -203,21 +203,21 @@ fn collect_mpe_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), String>
     Ok(())
 }
 
-/// 保存流程到 .mpe 文件（原子写入）
+/// 保存流程到 .mpf 文件（原子写入）
 ///
 /// 使用 `FlowFile` 包装结构序列化，通过 `NamedTempFile` + `persist` 实现原子写入。
 /// 如果同 UUID 的流程文件已存在，则覆盖该文件；否则生成新文件名。
-/// 新文件名由流程名称经过 `sanitize_filename` 清理后加上 `.mpe` 扩展名生成，
+/// 新文件名由流程名称经过 `sanitize_filename` 清理后加上 `.mpf` 扩展名生成，
 /// 如果同名文件已存在则追加递增数字后缀。
 pub fn save_flow_file(flow: &Flow, flows_dir: &Path) -> Result<(), String> {
     save_flow_file_with_meta(flow, flows_dir, None)
 }
 
-/// 保存流程到 .mpe 文件（原子写入），可携带 _meta 元数据
+/// 保存流程到 .mpf 文件（原子写入），可携带 _meta 元数据
 ///
 /// 使用 `FlowFile` 包装结构序列化，通过 `NamedTempFile` + `persist` 实现原子写入。
 /// 如果同 UUID 的流程文件已存在，则覆盖该文件；否则生成新文件名。
-/// 新文件名由流程名称经过 `sanitize_filename` 清理后加上 `.mpe` 扩展名生成，
+/// 新文件名由流程名称经过 `sanitize_filename` 清理后加上 `.mpf` 扩展名生成，
 /// 如果同名文件已存在则追加递增数字后缀。
 pub fn save_flow_file_with_meta(
     flow: &Flow,
@@ -240,9 +240,9 @@ pub fn save_flow_file_with_meta(
 
     // 检查是否已存在同 UUID 的文件（更新场景）
     let mut existing_path = None;
-    let mut mpe_files = Vec::new();
-    let _ = collect_mpe_files(flows_dir, &mut mpe_files);
-    for path in &mpe_files {
+    let mut mpf_files = Vec::new();
+    let _ = collect_mpf_files(flows_dir, &mut mpf_files);
+    for path in &mpf_files {
         let mut content = String::new();
         if let Ok(mut file) = File::open(path) {
             if file.read_to_string(&mut content).is_ok() {
@@ -271,7 +271,7 @@ pub fn save_flow_file_with_meta(
 
     // 新建文件：生成文件名，处理冲突
     let safe_name = sanitize_filename(&flow.name);
-    let mut filename = format!("{}.mpe", safe_name);
+    let mut filename = format!("{}.mpf", safe_name);
     let mut counter = 2u32;
 
     // 文件名冲突时追加递增数字
@@ -283,7 +283,7 @@ pub fn save_flow_file_with_meta(
         {
             break;
         }
-        filename = format!("{}_{}.mpe", safe_name, counter);
+        filename = format!("{}_{}.mpf", safe_name, counter);
         counter += 1;
     }
 
@@ -304,14 +304,14 @@ pub fn save_flow_file_with_meta(
     Ok(())
 }
 
-/// 从 .mpe 文件加载流程文件（按 UUID 查找）
+/// 从 .mpf 文件加载流程文件（按 UUID 查找）
 ///
-/// 递归扫描 `flows_dir` 下所有 `.mpe` 文件，找到匹配 UUID 的流程文件并返回完整的 FlowFile。
+/// 递归扫描 `flows_dir` 下所有 `.mpf` 文件，找到匹配 UUID 的流程文件并返回完整的 FlowFile。
 pub fn load_flow_file_raw(uuid: &str, flows_dir: &Path) -> Result<FlowFile, String> {
-    let mut mpe_files = Vec::new();
-    collect_mpe_files(flows_dir, &mut mpe_files)?;
+    let mut mpf_files = Vec::new();
+    collect_mpf_files(flows_dir, &mut mpf_files)?;
 
-    for path in mpe_files {
+    for path in mpf_files {
         let mut content = String::new();
         let read_ok = (|| -> Result<(), String> {
             let mut file = File::open(&path).map_err(|e| format!("打开文件失败: {}", e))?;
@@ -334,28 +334,28 @@ pub fn load_flow_file_raw(uuid: &str, flows_dir: &Path) -> Result<FlowFile, Stri
     Err(format!("流程不存在: {}", uuid))
 }
 
-/// 从 .mpe 文件加载流程（按 UUID 查找），仅返回 Flow 部分
+/// 从 .mpf 文件加载流程（按 UUID 查找），仅返回 Flow 部分
 ///
-/// 递归扫描 `flows_dir` 下所有 `.mpe` 文件，找到匹配 UUID 的流程并返回。
+/// 递归扫描 `flows_dir` 下所有 `.mpf` 文件，找到匹配 UUID 的流程并返回。
 pub fn load_flow_file(uuid: &str, flows_dir: &Path) -> Result<Flow, String> {
     let flow_file = load_flow_file_raw(uuid, flows_dir)?;
     Ok(flow_file.flow)
 }
 
-/// 列出所有 .mpe 流程文件的元数据
+/// 列出所有 .mpf 流程文件的元数据
 ///
-/// 递归扫描目录下所有 `.mpe` 文件，提取元数据。
+/// 递归扫描目录下所有 `.mpf` 文件，提取元数据。
 /// 损坏的文件（JSON 解析失败）会被跳过并记录警告日志。
 /// UUID 冲突时会自动重新分配 UUID 并写回文件。
 /// 结果按流程名称字母序排序。
 pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
-    let mut mpe_files = Vec::new();
-    collect_mpe_files(flows_dir, &mut mpe_files)?;
+    let mut mpf_files = Vec::new();
+    collect_mpf_files(flows_dir, &mut mpf_files)?;
 
     let mut metadata_list = Vec::new();
     let mut seen_uuids = HashSet::new();
 
-    for path in &mpe_files {
+    for path in &mpf_files {
         let mut content = String::new();
         let read_ok = (|| -> Result<(), String> {
             let mut file = File::open(path).map_err(|e| format!("打开文件失败: {}", e))?;
@@ -424,12 +424,12 @@ pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
 
 /// 删除指定 UUID 的流程文件
 ///
-/// 递归扫描查找匹配 UUID 的 .mpe 文件并删除。
+/// 递归扫描查找匹配 UUID 的 .mpf 文件并删除。
 pub fn delete_flow_file(uuid: &str, flows_dir: &Path) -> Result<(), String> {
-    let mut mpe_files = Vec::new();
-    collect_mpe_files(flows_dir, &mut mpe_files)?;
+    let mut mpf_files = Vec::new();
+    collect_mpf_files(flows_dir, &mut mpf_files)?;
 
-    for path in mpe_files {
+    for path in mpf_files {
         let mut content = String::new();
         let read_ok = (|| -> Result<(), String> {
             let mut file = File::open(&path).map_err(|e| format!("打开文件失败: {}", e))?;
@@ -465,9 +465,9 @@ pub fn copy_flow_file(uuid: &str, flows_dir: &Path) -> Result<Flow, String> {
 
     // 收集现有流程名称，用于冲突检测
     let mut existing_names = HashSet::new();
-    let mut mpe_files = Vec::new();
-    collect_mpe_files(flows_dir, &mut mpe_files)?;
-    for path in &mpe_files {
+    let mut mpf_files = Vec::new();
+    collect_mpf_files(flows_dir, &mut mpf_files)?;
+    for path in &mpf_files {
         let mut content = String::new();
         let read_ok = (|| -> Result<(), String> {
             let mut file = File::open(path).map_err(|e| format!("打开文件失败: {}", e))?;
@@ -1429,7 +1429,7 @@ mod tests {
     }
 
     // ============================================================================
-    // .mpe 流程文件管理测试
+    // .mpf 流程文件管理测试
     // ============================================================================
 
     /// 创建测试用的 Flow 对象
@@ -1456,27 +1456,27 @@ mod tests {
         // 保存
         save_flow_file(&flow, flows_dir).expect("保存流程文件失败");
 
-        // 验证文件已创建，扩展名为 .mpe
-        let mpe_files: Vec<_> = fs::read_dir(flows_dir)
+        // 验证文件已创建，扩展名为 .mpf
+        let mpf_files: Vec<_> = fs::read_dir(flows_dir)
             .unwrap()
             .filter_map(|e| e.ok())
             .filter(|e| {
                 e.path()
                     .extension()
-                    .map(|ext| ext == "mpe")
+                    .map(|ext| ext == "mpf")
                     .unwrap_or(false)
             })
             .collect();
-        assert_eq!(mpe_files.len(), 1, "应恰好创建一个 .mpe 文件");
-        let file_name = mpe_files[0].file_name().to_string_lossy().to_string();
+        assert_eq!(mpf_files.len(), 1, "应恰好创建一个 .mpf 文件");
+        let file_name = mpf_files[0].file_name().to_string_lossy().to_string();
         assert!(
             file_name.starts_with("测试流程"),
             "文件名应以流程名称开头: {}",
             file_name
         );
         assert!(
-            file_name.ends_with(".mpe"),
-            "文件名应以 .mpe 结尾: {}",
+            file_name.ends_with(".mpf"),
+            "文件名应以 .mpf 结尾: {}",
             file_name
         );
 
@@ -1509,14 +1509,14 @@ mod tests {
         let sub_dir = flows_dir.join("subdir");
         fs::create_dir_all(&sub_dir).expect("创建子目录失败");
         let flow2 = create_test_flow("list-002", "Beta流程");
-        // 手动在子目录创建 .mpe 文件（测试递归扫描）
+        // 手动在子目录创建 .mpf 文件（测试递归扫描）
         let flow_file = FlowFile {
             _version: 1,
             flow: flow2.clone(),
             _meta: None,
         };
         let json = serde_json::to_string_pretty(&flow_file).expect("序列化失败");
-        fs::write(sub_dir.join("Beta流程.mpe"), json).expect("写入文件失败");
+        fs::write(sub_dir.join("Beta流程.mpf"), json).expect("写入文件失败");
 
         // 在更深子目录创建流程
         let deep_dir = sub_dir.join("deep");
@@ -1528,7 +1528,7 @@ mod tests {
             _meta: None,
         };
         let json3 = serde_json::to_string_pretty(&flow_file3).expect("序列化失败");
-        fs::write(deep_dir.join("Gamma流程.mpe"), json3).expect("写入文件失败");
+        fs::write(deep_dir.join("Gamma流程.mpf"), json3).expect("写入文件失败");
 
         // 列出并验证
         let list = list_flow_files(flows_dir).expect("列出流程文件失败");
@@ -1545,7 +1545,7 @@ mod tests {
         assert!(list[0].updated_at > 0 || list[0].updated_at == 0); // mtime 可能为 0
     }
 
-    /// 测试损坏的 .mpe 文件被跳过而不报错
+    /// 测试损坏的 .mpf 文件被跳过而不报错
     #[test]
     fn test_corrupted_file_skipped() {
         use tempfile::TempDir;
@@ -1557,16 +1557,16 @@ mod tests {
         let flow = create_test_flow("good-001", "正常流程");
         save_flow_file(&flow, flows_dir).expect("保存正常流程失败");
 
-        // 创建一个损坏的 .mpe 文件
+        // 创建一个损坏的 .mpf 文件
         fs::write(
-            flows_dir.join("corrupted.mpe"),
+            flows_dir.join("corrupted.mpf"),
             "this is not valid json {{{",
         )
         .expect("写入损坏文件失败");
 
-        // 再创建一个损坏的 .mpe 文件（JSON 格式但不是 FlowFile）
+        // 再创建一个损坏的 .mpf 文件（JSON 格式但不是 FlowFile）
         fs::write(
-            flows_dir.join("wrong_structure.mpe"),
+            flows_dir.join("wrong_structure.mpf"),
             r#"{"not_a_flow": true}"#,
         )
         .expect("写入错误结构文件失败");
@@ -1588,7 +1588,7 @@ mod tests {
 
         let duplicate_uuid = "collision-uuid";
 
-        // 手动创建两个相同 UUID 的 .mpe 文件
+        // 手动创建两个相同 UUID 的 .mpf 文件
         let flow1 = create_test_flow(duplicate_uuid, "流程A");
         let flow_file1 = FlowFile {
             _version: 1,
@@ -1596,7 +1596,7 @@ mod tests {
             _meta: None,
         };
         let json1 = serde_json::to_string_pretty(&flow_file1).expect("序列化失败");
-        fs::write(flows_dir.join("flow_a.mpe"), json1).expect("写入文件 A 失败");
+        fs::write(flows_dir.join("flow_a.mpf"), json1).expect("写入文件 A 失败");
 
         let flow2 = create_test_flow(duplicate_uuid, "流程B");
         let flow_file2 = FlowFile {
@@ -1605,7 +1605,7 @@ mod tests {
             _meta: None,
         };
         let json2 = serde_json::to_string_pretty(&flow_file2).expect("序列化失败");
-        fs::write(flows_dir.join("flow_b.mpe"), json2).expect("写入文件 B 失败");
+        fs::write(flows_dir.join("flow_b.mpf"), json2).expect("写入文件 B 失败");
 
         // 列出 — 应触发 UUID 冲突修复
         let list = list_flow_files(flows_dir).expect("列出流程文件应成功");
