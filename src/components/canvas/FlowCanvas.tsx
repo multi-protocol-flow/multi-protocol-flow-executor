@@ -8,6 +8,7 @@ import {
   ReactFlowProvider,
   Background,
   Controls,
+  ControlButton,
   MiniMap,
   useNodesState,
   useEdgesState,
@@ -28,6 +29,7 @@ import { NodeContextMenu } from './NodeContextMenu';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore, selectIsDebugging, useExecutionStore, selectIsExecuting, useStressTestStore, selectIsStressTestRunning } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
+import { MapIcon } from 'lucide-react';
 import type { NodeType } from '@/types';
 import {
   convertFlowToReactFlow,
@@ -147,7 +149,7 @@ function FlowCanvasInner() {
     focusNodeUuid,
     clearFocusNode,
   } = useFlowStore();
-  const { setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen } = useUIStore();
+  const { setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen, showMinimap, toggleMinimap } = useUIStore();
   const { resolvedTheme } = useTheme();
 
   // 执行状态：执行/调试/压测时隐藏节点栏和小地图
@@ -692,10 +694,20 @@ function FlowCanvasInner() {
           showZoom
           showFitView
           showInteractive
-        />
+        >
+          {/* 小地图开关（执行/调试/压测时隐藏） */}
+          {!isAnyActive && (
+            <ControlButton
+              onClick={toggleMinimap}
+              title={showMinimap ? '关闭小地图' : '打开小地图'}
+            >
+              <MapIcon className="w-4 h-4" />
+            </ControlButton>
+          )}
+        </Controls>
 
         {/* 小地图（执行/调试/压测时隐藏） */}
-        {!isAnyActive && (
+        {!isAnyActive && showMinimap && (
           <MiniMap
             nodeColor={minimapNodeColor}
             maskColor={resolvedTheme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)'}

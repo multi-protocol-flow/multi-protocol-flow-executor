@@ -87,6 +87,8 @@ interface UIState {
   bottomPanelHeight: number;
   /** 画布缩放比例 */
   canvasZoom: number;
+  /** 小地图是否显示 */
+  showMinimap: boolean;
 
   // ===== Actions =====
   /** 切换流程列表面板 */
@@ -158,6 +160,8 @@ interface UIState {
   setBottomPanelHeight: (height: number) => void;
   /** 设置画布缩放 */
   setCanvasZoom: (zoom: number) => void;
+  /** 切换小地图显隐 */
+  toggleMinimap: () => void;
 
   // ===== 工具方法 =====
   /** 重置所有面板状态 */
@@ -209,6 +213,7 @@ const initialState = {
   configPanelWidth: 320,
   bottomPanelHeight: 208,
   canvasZoom: 1,
+      showMinimap: false,
 };
 
 export const useUIStore = create<UIState>((set) => ({
@@ -347,6 +352,11 @@ export const useUIStore = create<UIState>((set) => ({
       canvasZoom: Math.max(0.25, Math.min(2, zoom)),
     }),
 
+  toggleMinimap: () =>
+    set((state) => ({
+      showMinimap: !state.showMinimap,
+    })),
+
   // ===== 工具方法 =====
   resetPanels: () =>
     set({
@@ -357,6 +367,7 @@ export const useUIStore = create<UIState>((set) => ({
       bottomPanelTab: 'history' as BottomPanelTab,
       isFlowListCollapsed: false,
       isVariableDrawerOpen: false,
+  showMinimap: false,
     }),
 }));
 
