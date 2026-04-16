@@ -64,8 +64,8 @@ const initialState = {
   flows: [],
   isLoading: false,
   searchKeyword: '',
-  sortBy: 'updated_at' as const,
-  sortOrder: 'desc' as const,
+  sortBy: 'name' as const,
+  sortOrder: 'asc' as const,
   expandedFolders: new Set<string>(),
 };
 
