@@ -19,6 +19,7 @@ import type { FolderInfo } from '@/services/storage';
 
 export function NewFlowDialog() {
   const showNewFlowDialog = useUIStore((state) => state.showNewFlowDialog);
+  const newFlowDialogFolderPath = useUIStore((state) => state.newFlowDialogFolderPath);
   const closeNewFlowDialog = useUIStore((state) => state.closeNewFlowDialog);
   const setFlow = useFlowStore((state) => state.setFlow);
   const addFlow = useFlowListStore((state) => state.addFlow);
@@ -28,12 +29,13 @@ export function NewFlowDialog() {
   const [folders, setFolders] = useState<FolderInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 对话框打开时加载文件夹列表
+  // 对话框打开时加载文件夹列表，并设置预选文件夹
   useEffect(() => {
     if (showNewFlowDialog) {
+      setSelectedFolder(newFlowDialogFolderPath);
       flowStorage.listFolders().then(setFolders).catch(() => setFolders([]));
     }
-  }, [showNewFlowDialog]);
+  }, [showNewFlowDialog, newFlowDialogFolderPath]);
 
   const handleClose = () => {
     setFlowName('');

@@ -52,6 +52,8 @@ interface UIState {
   // ===== 模态框状态 =====
   /** 是否显示新建流程对话框 */
   showNewFlowDialog: boolean;
+  /** 新建流程对话框预选的文件夹路径 */
+  newFlowDialogFolderPath: string;
   /** 是否显示删除确认对话框 */
   showDeleteConfirmDialog: boolean;
   /** 待删除的流程 UUID（用于删除确认） */
@@ -105,8 +107,8 @@ interface UIState {
   setBottomPanelTab: (tab: BottomPanelTab) => void;
 
   // ===== 模态框 Actions =====
-  /** 显示新建流程对话框 */
-  openNewFlowDialog: () => void;
+  /** 显示新建流程对话框（可指定预选的文件夹路径） */
+  openNewFlowDialog: (folderPath?: string) => void;
   /** 关闭新建流程对话框 */
   closeNewFlowDialog: () => void;
   /** 显示删除确认对话框 */
@@ -188,6 +190,7 @@ const initialState = {
 
   // 模态框状态
   showNewFlowDialog: false,
+  newFlowDialogFolderPath: '',
   showDeleteConfirmDialog: false,
   pendingDeleteFlowUuid: null,
   showSettingsDialog: false,
@@ -241,9 +244,9 @@ export const useUIStore = create<UIState>((set) => ({
   setBottomPanelTab: (bottomPanelTab) => set({ bottomPanelTab }),
 
   // ===== 模态框 Actions =====
-  openNewFlowDialog: () => set({ showNewFlowDialog: true }),
+  openNewFlowDialog: (folderPath?: string) => set({ showNewFlowDialog: true, newFlowDialogFolderPath: folderPath ?? '' }),
 
-  closeNewFlowDialog: () => set({ showNewFlowDialog: false }),
+  closeNewFlowDialog: () => set({ showNewFlowDialog: false, newFlowDialogFolderPath: '' }),
 
   openDeleteConfirmDialog: (flowUuid: string) =>
     set({

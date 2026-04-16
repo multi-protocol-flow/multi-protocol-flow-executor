@@ -415,11 +415,18 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     setOpenMenuUuid(null);
     try {
       const duplicatedFlow = await flowStorage.copyFlow(uuid);
+      // 保留原流程所在的文件夹
+      const originalFlow = flows.find(f => f.uuid === uuid);
+      const folderPath = originalFlow?.folder_path ?? '';
+      // 如果原流程在文件夹中，将复制的流程也移动到同一文件夹
+      if (folderPath) {
+        await flowStorage.moveFlowToFolder(duplicatedFlow.uuid, folderPath);
+      }
       addFlowToList({
         uuid: duplicatedFlow.uuid,
         name: duplicatedFlow.name,
         updated_at: Date.now(),
-        folder_path: '',
+        folder_path: folderPath,
       });
       // 切换到复制后的流程
       setFlow(duplicatedFlow);
@@ -557,8 +564,8 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
           }
         }}
         title={disabled ? '调试中不可切换流程' : undefined}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
-        className={cn(
+          style={{ marginLeft: `${depth * 20}px` }}
+          className={cn(
           'group w-full flex items-center gap-2 px-3 h-12 rounded-lg text-sm text-left transition-all duration-150',
           'bg-background border border-border',
           !disabled && 'hover:bg-accent',
@@ -710,7 +717,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             }
           }}
           className="group w-full flex items-center gap-1.5 h-8 rounded-md text-sm text-left transition-colors hover:bg-accent/50 cursor-pointer"
-          style={{ paddingLeft: `${depth * 16 + 8}px`, paddingRight: '12px' }}
+          style={{ marginLeft: `${depth * 20}px`, paddingRight: '12px' }}
           onContextMenu={(e) => {
             e.preventDefault();
             const rect = e.currentTarget.getBoundingClientRect();
@@ -776,7 +783,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             {folderFlows.length === 0 && (
               <div
                 className="text-xs text-muted-foreground/60 italic px-3 py-1"
-                style={{ paddingLeft: `${(depth + 1) * 16 + 8}px` }}
+                style={{ marginLeft: `${(depth + 1) * 20}px` }}
               >
                 空文件夹
               </div>
@@ -898,7 +905,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             onClick={(e) => {
               e.stopPropagation();
               setOpenFolderMenuPath(null);
-              openNewFlowDialog();
+              openNewFlowDialog(openFolderMenuPath ?? undefined);
             }}
             className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
           >
