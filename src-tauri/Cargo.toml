@@ -68,8 +68,8 @@ name = "app_lib"
 crate-type = ["lib"]
 
 [[bin]]
-name = "cli"
-path = "bin/cli.rs"
+name = "mpe"
+path = "bin/mpe.rs"
 
 [build-dependencies]
 tauri-build = { version = "2.5.4", features = [] }
@@ -96,6 +96,10 @@ tokio = { version = "1", features = ["full"] }
 # CLI 日志
 fern = { version = "0.7", default-features = false }
 chrono = "0.4"
+
+# CLI 框架 + 配置解析
+clap = { version = "4", features = ["derive"] }
+toml = "0.8"
 
 [dev-dependencies]
 mockito = "1.0"

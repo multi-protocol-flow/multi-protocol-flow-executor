@@ -1,0 +1,161 @@
+//! mpe stress 子命令 — 压力测试执行与报告管理
+
+use std::path::PathBuf;
+use tokio::sync::mpsc;
+
+use super::{CliError, StressCommands, StressReportCommands, config, output};
+use super::output::CliOutput;
+
+/// 执行 stress 子命令
+pub async fn execute(
+    _format: &str,
+    command: StressCommands,
+    cancel_rx: tokio::sync::watch::Receiver<bool>,
+) -> Result<(), CliError> {
+    match command {
+        StressCommands::Run {
+            flow,
+            concurrent_users,
+            ramp_up,
+            duration,
+            output,
+        } => execute_run(&flow, concurrent_users, ramp_up, duration, output.as_deref(), cancel_rx).await,
+        StressCommands::Report { command } => execute_report(command, _format).await,
+    }
+}
+
+/// 执行压力测试
+async fn execute_run(
+    flow_path: &str,
+    concurrent_users: u32,
+    ramp_up: u32,
+    duration: u32,
+    output_path: Option<&str>,
+    cancel_rx: tokio::sync::watch::Receiver<bool>,
+) -> Result<(), CliError> {
+    let path = PathBuf::from(flow_path);
+    if !path.exists() {
+        return Err(CliError::InvalidArgs(format!(
+            "流程文件不存在: {}",
+            flow_path
+        )));
+    }
+
+    // 加载流程文件
+    let flow_json = std::fs::read_to_string(&path)
+        .map_err(|e| CliError::Io(format!("读取流程文件失败: {}", e)))?;
+    let flow: app_lib::flow::Flow = serde_json::from_str(&flow_json)
+        .map_err(|e| CliError::Execution(format!("解析流程文件失败: {}", e)))?;
+
+    // 创建压测配置
+    let stress_config = app_lib::stress_test::StressTestConfig {
+        concurrent_users,
+        ramp_up_seconds: ramp_up,
+        duration_seconds: duration,
+        flow_uuid: flow.uuid.clone(),
+    };
+
+    // 创建事件通道
+    let (event_tx, mut event_rx) = mpsc::unbounded_channel();
+
+    // 创建执行器
+    let executor = app_lib::stress_test::StressTestExecutor::new(
+        flow.clone(),
+        stress_config.clone(),
+        event_tx,
+    );
+
+    // 启动执行器
+    executor
+        .start()
+        .await
+        .map_err(|e| CliError::Execution(format!("启动压力测试失败: {}", e)))?;
+
+    // 流式输出事件 (NDJSON)，同时监听取消信号
+    let mut final_report: Option<app_lib::stress_test::StressTestReport> = None;
+    let mut cancel_rx = cancel_rx;
+    loop {
+        tokio::select! {
+            event = event_rx.recv() => {
+                match event {
+                    Some(evt) => {
+                        if let app_lib::stress_test::StressTestEvent::Ended { ref report } = evt {
+                            final_report = Some(report.clone());
+                        }
+                        output::output_ndjson(&evt);
+                    }
+                    None => break, // 通道关闭，执行完成
+                }
+            }
+            _ = cancel_rx.changed() => {
+                // Ctrl+C: 输出取消事件并退出
+                eprintln!("\n压力测试被用户取消，正在停止...");
+                // drop executor 停止所有任务
+                drop(executor);
+                break;
+            }
+        }
+    }
+
+    // 保存报告到默认目录
+    if let Some(report) = &final_report {
+        let app_config = config::AppConfig::load().map_err(CliError::Config)?;
+        let _ = app_lib::storage::save_stress_report(report, &app_config.reports_dir);
+    }
+
+    // 如指定输出路径，写入报告文件
+    if let Some(path) = output_path {
+        if let Some(report) = final_report {
+            let json = serde_json::to_string_pretty(&report)
+                .map_err(|e| CliError::Execution(format!("序列化报告失败: {}", e)))?;
+            std::fs::write(path, json)
+                .map_err(|e| CliError::Io(format!("写入报告失败: {}", e)))?;
+        }
+    }
+
+    Ok(())
+}
+
+/// 执行压测报告管理子命令
+async fn execute_report(command: StressReportCommands, format: &str) -> Result<(), CliError> {
+    match command {
+        StressReportCommands::List => {
+            let app_config = config::AppConfig::load().map_err(CliError::Config)?;
+            let reports = app_lib::storage::list_stress_reports(&app_config.reports_dir)
+                .map_err(|e| CliError::Execution(format!("列出压测报告失败: {}", e)))?;
+
+            if format == "table" {
+                let headers = ["UUID", "流程名称", "开始时间"];
+                let rows: Vec<Vec<String>> = reports
+                    .iter()
+                    .map(|r| {
+                        let dt = chrono::DateTime::from_timestamp_millis(r.start_time as i64)
+                            .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
+                            .unwrap_or_else(|| r.start_time.to_string());
+                        vec![
+                            r.uuid.chars().take(8).collect(),
+                            r.flow_name.clone(),
+                            dt,
+                        ]
+                    })
+                    .collect();
+                print!("{}", output::format_table(&headers, &rows));
+            } else {
+                output::output_json(&CliOutput::success(&reports));
+            }
+            Ok(())
+        }
+        StressReportCommands::Show { file_path } => {
+            let report = app_lib::storage::load_stress_report(&PathBuf::from(&file_path))
+                .map_err(|e| CliError::Execution(format!("加载压测报告失败: {}", e)))?;
+            output::output_json(&CliOutput::success(&report));
+            Ok(())
+        }
+        StressReportCommands::Delete { file_path } => {
+            app_lib::storage::delete_stress_report(&PathBuf::from(&file_path))
+                .map_err(|e| CliError::Execution(format!("删除压测报告失败: {}", e)))?;
+            output::output_json(&CliOutput::success(serde_json::json!({"deleted": file_path})));
+            Ok(())
+        }
+    }
+}
