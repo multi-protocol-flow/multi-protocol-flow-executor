@@ -140,7 +140,6 @@ export function CollapsiblePanel({
     ...style,
     height: typeof panelHeight === 'number' ? panelHeight : undefined,
     maxHeight: typeof panelHeight === 'number' ? panelHeight : undefined,
-    flex: isCollapsed ? 'none' : '0 0 auto',
   };
 
   return (
