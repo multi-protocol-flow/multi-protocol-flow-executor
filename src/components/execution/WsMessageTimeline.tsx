@@ -1,6 +1,6 @@
 /**
  * WebSocket 消息时间线组件
- * Postman 风格的平面化消息流视图，替代旧的嵌套手风琴和虚拟化列表
+ * Postman 风格的平面化消息流视图
  */
 import {
   Fragment,
@@ -10,7 +10,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { VariableSizeList as List, type ListChildComponentProps } from 'react-window';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -171,13 +170,6 @@ interface WsMessageTimelineProps {
   live?: boolean;
   /** 最大高度（默认自适应） */
   maxHeight?: string;
-}
-
-/** 虚拟列表行数据 */
-interface RowData {
-  items: TimelineItem[];
-  selectedGlobalIndex: number | null;
-  onMessageClick: (message: WsMessage, globalIndex: number) => void;
 }
 
 // ============================================================================
@@ -585,35 +577,6 @@ function MessageDetailPanel({ message, onClose, onMount }: MessageDetailPanelPro
 }
 
 // ============================================================================
-// 虚拟列表行渲染器
-// ============================================================================
-
-function TimelineRow({ index, style, data }: ListChildComponentProps<RowData>) {
-  const { items, selectedGlobalIndex, onMessageClick } = data;
-  const item = items[index];
-  if (!item) return null;
-
-  if (item.type === 'segment-divider') {
-    return (
-      <div style={style}>
-        <SegmentDivider segment={item.segment} />
-      </div>
-    );
-  }
-
-  const { message, globalIndex } = item;
-  return (
-    <div style={style}>
-      <MessageRow
-        message={message}
-        isSelected={selectedGlobalIndex === globalIndex}
-        onClick={() => onMessageClick(message, globalIndex)}
-      />
-    </div>
-  );
-}
-
-// ============================================================================
 // 空状态
 // ============================================================================
 
@@ -658,10 +621,8 @@ export function WsMessageTimeline({
   const [autoScroll, setAutoScroll] = useState(live);
   const [userScrolled, setUserScrolled] = useState(false);
 
-  // 列表引用
-  const listRef = useRef<List<RowData>>(null);
-  const outerRef = useRef<HTMLDivElement>(null);
-  const [outerHeight, setOuterHeight] = useState(300);
+  // 滚动容器引用
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // 切换连接时重置状态
   const handleStreamSelect = useCallback((idx: number) => {
@@ -734,48 +695,29 @@ export function WsMessageTimeline({
     setSelectedMessage(null);
   }, []);
 
-  // 虚拟列表行数据
-  const rowData = useMemo<RowData>(
-    () => ({
-      items: timelineItems,
-      selectedGlobalIndex,
-      onMessageClick: handleMessageClick,
-    }),
-    [timelineItems, selectedGlobalIndex, handleMessageClick],
-  );
-
-  // 监听外层容器高度
+  // 自动滚动到底部（live 模式）
   useEffect(() => {
-    const outer = outerRef.current;
-    if (!outer) return;
+    if (!autoScroll || !live) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    // 使用 requestAnimationFrame 确保 DOM 更新后再滚动
+    requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight;
+    });
+  }, [autoScroll, live]);
 
-    const updateHeight = () => {
-      if (outer) setOuterHeight(outer.clientHeight);
-    };
-
-    const observer = new ResizeObserver(updateHeight);
-    observer.observe(outer);
-    updateHeight();
-    return () => observer.disconnect();
-  }, []);
-
-  // 自动滚动
-  useEffect(() => {
-    if (autoScroll && listRef.current && timelineItems.length > 0) {
-      listRef.current.scrollToItem(timelineItems.length - 1, 'end');
+  // 检测用户手动向上滚动（暂停自动滚动）
+  const handleScroll = useCallback(() => {
+    if (!live || !autoScroll) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    // 距离底部超过 30px 则认为用户手动滚动了
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (distanceFromBottom > 30) {
+      setUserScrolled(true);
+      setAutoScroll(false);
     }
-  }, [timelineItems.length, autoScroll]);
-
-  // 列表滚动检测
-  const handleListScroll = useCallback(
-    ({ scrollDirection }: { scrollDirection: 'forward' | 'backward' }) => {
-      if (scrollDirection === 'backward' && live && autoScroll) {
-        setUserScrolled(true);
-        setAutoScroll(false);
-      }
-    },
-    [live, autoScroll],
-  );
+  }, [live, autoScroll]);
 
   // 总消息数（未过滤）
   const totalMessageCount = useMemo(() => {
@@ -788,11 +730,8 @@ export function WsMessageTimeline({
   }, [activeStream]);
 
   // ========================================================================
-  // 渲染
+  // 渲染（live 和非 live 统一渲染方式，live 仅控制自动滚动）
   // ========================================================================
-
-  // 是否展开详情模式
-  const isDetailOpen = selectedMessage !== null;
 
   // 空流列表
   if (streams.length === 0) {
@@ -803,9 +742,25 @@ export function WsMessageTimeline({
     );
   }
 
-  // 公共头部（连接选择器 + 时间线头部）
-  const headerSection = (
-    <>
+  // ------------------------------------------------------------------
+  // 渲染（live 和非 live 统一渲染方式，live 仅控制自动滚动）
+  // ------------------------------------------------------------------
+
+  // 空流列表
+  if (streams.length === 0) {
+    return (
+      <div style={maxHeight ? { height: maxHeight } : undefined} className="h-full">
+        <EmptyState hasConnections={false} />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={maxHeight ? { height: maxHeight } : undefined}
+      className="flex flex-col bg-background w-full overflow-hidden h-full"
+    >
+      {/* 连接选择器 */}
       {streams.length > 1 && (
         <ConnectionSelector
           streams={streams}
@@ -813,6 +768,8 @@ export function WsMessageTimeline({
           onSelect={handleStreamSelect}
         />
       )}
+
+      {/* 时间线头部 */}
       {activeStream && (
         <TimelineHeader
           stream={activeStream}
@@ -825,116 +782,68 @@ export function WsMessageTimeline({
           live={live}
         />
       )}
-    </>
-  );
 
-  // ------------------------------------------------------------------
-  // 报告模式（非实时）：直接渲染，详情内联展开，撑高容器由父级滚动
-  // ------------------------------------------------------------------
-  if (!live) {
-    return (
+      {/* 消息列表 - 纵向可滚动，横向超出截断 */}
       <div
-        style={maxHeight ? { height: maxHeight } : undefined}
-        className="flex flex-col bg-background w-full overflow-hidden h-full"
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative"
       >
-        {headerSection}
-
-        {/* 消息列表 - 纵向可滚动，横向超出截断 */}
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-          {timelineItems.length > 0 ? (
-            timelineItems.map((item, idx) => {
-              const isMessage = item.type === 'message';
-              const isSelected = isMessage && selectedGlobalIndex === item.globalIndex;
-              return (
-                <Fragment key={`${item.type}-${idx}`}>
-                  {item.type === 'segment-divider' ? (
-                    <div style={{ height: SEGMENT_DIVIDER_HEIGHT }} className="flex items-center">
-                      <SegmentDivider segment={item.segment} />
-                    </div>
-                  ) : (
-                    <div style={{ height: MESSAGE_ROW_HEIGHT }}>
-                      <MessageRow
-                        message={item.message}
-                        isSelected={isSelected}
-                        onClick={() => handleMessageClick(item.message, item.globalIndex)}
-                      />
-                    </div>
-                  )}
-                  {/* 选中消息的详情面板，内联展示在消息下方 */}
-                  {isSelected && selectedMessage && (
-                    <MessageDetailPanel
-                      message={selectedMessage}
-                      onClose={handleCloseDetail}
-                      onMount={(el: HTMLElement | null) => {
-                        if (el) {
-                          // 等待内容渲染完成后滚动到详情面板
-                          requestAnimationFrame(() => {
-                            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                          });
-                        }
-                      }}
-                    />
-                  )}
-                </Fragment>
-              );
-            })
-          ) : (
-            <EmptyState hasConnections />
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ------------------------------------------------------------------
-  // 实时模式：虚拟化列表
-  // ------------------------------------------------------------------
-  return (
-    <div
-      style={maxHeight ? { height: maxHeight } : undefined}
-      className="flex flex-col overflow-hidden bg-background"
-    >
-      {headerSection}
-
-      <div ref={outerRef} className="flex-1 min-h-0 relative overflow-hidden">
         {timelineItems.length > 0 ? (
-          <>
-            <List
-              ref={listRef}
-              height={outerHeight}
-              width="100%"
-              itemCount={timelineItems.length}
-              itemSize={(index: number): number =>
-                timelineItems[index]?.type === 'segment-divider'
-                  ? SEGMENT_DIVIDER_HEIGHT
-                  : MESSAGE_ROW_HEIGHT
-              }
-              itemData={rowData}
-              overscanCount={15}
-              onScroll={handleListScroll}
-              className="font-mono"
-            >
-              {TimelineRow}
-            </List>
-
-            {live && !autoScroll && userScrolled && (
-              <button
-                type="button"
-                onClick={() => {
-                  setAutoScroll(true);
-                  setUserScrolled(false);
-                }}
-                className="absolute bottom-2 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background border border-border shadow-md text-xs text-muted-foreground hover:text-foreground hover:border-foreground/20 transition-colors"
-              >
-                <ArrowDownToLine className="w-3 h-3" />
-                自动滚动
-              </button>
-            )}
-          </>
+          timelineItems.map((item, idx) => {
+            const isMessage = item.type === 'message';
+            const isSelected = isMessage && selectedGlobalIndex === item.globalIndex;
+            return (
+              <Fragment key={`${item.type}-${idx}`}>
+                {item.type === 'segment-divider' ? (
+                  <div style={{ height: SEGMENT_DIVIDER_HEIGHT }} className="flex items-center">
+                    <SegmentDivider segment={item.segment} />
+                  </div>
+                ) : (
+                  <div style={{ height: MESSAGE_ROW_HEIGHT }}>
+                    <MessageRow
+                      message={item.message}
+                      isSelected={isSelected}
+                      onClick={() => handleMessageClick(item.message, item.globalIndex)}
+                    />
+                  </div>
+                )}
+                {/* 选中消息的详情面板，内联展示在消息下方 */}
+                {isSelected && selectedMessage && (
+                  <MessageDetailPanel
+                    message={selectedMessage}
+                    onClose={handleCloseDetail}
+                    onMount={(el: HTMLElement | null) => {
+                      if (el) {
+                        requestAnimationFrame(() => {
+                          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        });
+                      }
+                    }}
+                  />
+                )}
+              </Fragment>
+            );
+          })
         ) : (
           <EmptyState hasConnections />
         )}
       </div>
+
+      {/* 自动滚动恢复按钮 */}
+      {live && !autoScroll && userScrolled && (
+        <button
+          type="button"
+          onClick={() => {
+            setAutoScroll(true);
+            setUserScrolled(false);
+          }}
+          className="absolute bottom-2 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background border border-border shadow-md text-xs text-muted-foreground hover:text-foreground hover:border-foreground/20 transition-colors"
+        >
+          <ArrowDownToLine className="w-3 h-3" />
+          自动滚动
+        </button>
+      )}
     </div>
   );
 }
