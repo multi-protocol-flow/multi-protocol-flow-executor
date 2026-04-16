@@ -1,27 +1,31 @@
 # 测试知识库
 
-**生成时间:** 2026-03-09
+**生成时间:** 2026-04-16
 
 ## 概述
 
-前端单元测试，Vitest 3.x + Testing Library 16.x。
+前端单元测试，Vitest 3.x + Testing Library 16.x。全局 jsdom 环境（vitest.config.ts 配置，无需逐文件标记）。
 
 ## 结构
 
 ```
 src/__tests__/
-├── components/   # React 组件测试 (55 个文件)
+├── components/   # React 组件测试 (~25 个文件)
 │   ├── canvas/   # 画布相关组件
 │   ├── panels/   # 配置面板
 │   ├── execution/ # 执行相关
-│   └── ...
-├── stores/       # Zustand Store 测试
-├── services/     # 服务层测试
-├── types/        # 类型测试
-├── hooks/        # Hooks 测试
-├── e2e/          # 端到端测试
-├── layouts/      # 布局组件测试
-└── setup.ts      # Polyfills (ResizeObserver, matchMedia)
+│   └── ui.test.tsx
+├── stores/       # Zustand Store 测试 (9 个文件)
+├── services/     # 服务层测试 (7 个文件)
+│   ├── tauri/    # IPC 子模块测试 (flow/debug/settings)
+│   └── storage/reportStorage/events
+├── types/        # 类型测试 (11 个文件)
+├── hooks/        # Hooks 测试 (2 个文件)
+├── e2e/          # 端到端测试 (debug.e2e.test.ts, settings.test.ts)
+├── layouts/      # 布局测试 (1 个文件)
+├── templates.test.ts
+├── setup.test.tsx
+└── setup.ts      # Polyfills (ResizeObserver, matchMedia, getComputedStyle)
 ```
 
 ## 快速定位
@@ -30,35 +34,39 @@ src/__tests__/
 |------|------|
 | 组件 | `components/*.test.tsx` |
 | Store | `stores/*.test.ts` |
-| IPC | `services/tauri.test.ts` |
+| IPC | `services/tauri/*.test.ts` |
 | 变量 | `types/variable.test.ts` |
 | E2E | `e2e/*.e2e.test.ts` |
 
 ## 约定
 
-### 组件测试
-```tsx
-/** @vitest-environment jsdom */
-vi.mock('@xyflow/react', async (importActual) => ({
-  ...await importActual(), useReactFlow: () => ({ fitView: vi.fn() })
-}));
-```
+### Mock 三层体系
+
+| 层级 | 用途 | 方式 |
+|------|------|------|
+| Full mock service | 组件/Store 测试 | `import from '@/services/tauri/mock'` |
+| 模块级 vi.mock | 隔离服务层 | `vi.mock('@/services/tauri', () => ({...}))` |
+| Tauri API mock | 测试真实 IPC 包装 | `vi.mock('@tauri-apps/api/core', () => ({invoke: vi.fn()}))` |
 
 ### Store 测试
 ```ts
-beforeEach(() => useFlowStore.getState().reset());
+beforeEach(() => {
+  useXxxStore.getState().reset();
+  vi.clearAllMocks();
+});
 ```
 
-### E2E 测试
-```tsx
-/** @vitest-environment jsdom */
-// 测试完整用户流程
+### React Flow Mock
+```ts
+vi.mock('@xyflow/react', async () => ({
+  ...await vi.importActual('@xyflow/react'),
+  useReactFlow: () => ({ screenToFlowPosition: vi.fn(), fitView: vi.fn() })
+}));
 ```
 
-### Mock 规则
-- React Flow: Mock `useReactFlow`/`useNodes`/`useEdges`
-- Tauri IPC: 使用 `services/tauri/mock.ts`
-- 浏览器 API: 在 `setup.ts` 添加
+### 其他 Mock
+- sonner toast: `vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }))`
+- TestWrapper: `<ReactFlowProvider>{children}</ReactFlowProvider>`
 
 ## 命令
 
@@ -69,8 +77,8 @@ npm run typecheck  # 类型检查
 
 ## 注意
 
-1. 组件测试标记 `@vitest-environment jsdom`
-2. Store 测试 `beforeEach` 调用 `reset()`
+1. jsdom 环境已全局配置，组件测试无需单独标记 `/** @vitest-environment jsdom */`
+2. Store 测试 `beforeEach` 调用 `reset()` + `vi.clearAllMocks()`
 3. 用 `userEvent` 不用 `fireEvent`
-4. 末尾 `vi.restoreAllMocks()`
-5. E2E 测试文件命名 `*.e2e.test.ts`
+4. E2E 测试文件命名 `*.e2e.test.ts`
+5. 覆盖率阈值: 80% statements, 75% branches, 80% functions, 80% lines
