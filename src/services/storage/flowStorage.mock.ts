@@ -4,16 +4,21 @@
  */
 
 import type { Flow } from '@/types/flow';
-import type { FlowMetadata, FlowMeta } from './flowStorage';
+import type { FlowMetadata, FlowMeta, FolderInfo } from './flowStorage';
 
 /** 带有 _meta 的流程存储结构 */
 interface FlowWithMeta {
   flow: Flow;
   _meta?: FlowMeta;
+  /** 所属文件夹路径（模拟） */
+  folderPath: string;
 }
 
 // 内存存储
 const flowStore = new Map<string, FlowWithMeta>();
+
+// 模拟文件夹存储
+const folderStore = new Set<string>();
 
 /**
  * 保存流程
@@ -22,7 +27,7 @@ const flowStore = new Map<string, FlowWithMeta>();
  */
 export async function saveFlow(flow: Flow & { _meta?: FlowMeta }, _flowsDir?: string): Promise<void> {
   const { _meta, ...flowData } = flow as Flow & { _meta?: FlowMeta };
-  flowStore.set(flow.uuid, { flow: flowData, _meta });
+  flowStore.set(flow.uuid, { flow: flowData, _meta, folderPath: '' });
 }
 
 /**
@@ -55,6 +60,7 @@ export async function listFlows(_flowsDir?: string): Promise<FlowMetadata[]> {
     name: entry.flow.name,
     filePath: `mock://flows/${entry.flow.uuid}.json`,
     updatedAt: Date.now(),
+    folderPath: entry.folderPath,
   }));
 }
 
@@ -89,7 +95,7 @@ export async function copyFlow(uuid: string, _flowsDir?: string): Promise<Flow> 
     nodes: [...source.flow.nodes],
     connections: [...source.flow.connections],
   };
-  flowStore.set(newUuid, { flow: copy, _meta: source._meta });
+  flowStore.set(newUuid, { flow: copy, _meta: source._meta, folderPath: source.folderPath });
   return copy;
 }
 
@@ -102,11 +108,64 @@ export async function refreshFlows(_flowsDir?: string): Promise<FlowMetadata[]> 
   return listFlows(_flowsDir);
 }
 
+// ===== 文件夹操作（Mock） =====
+
+/**
+ * 列出所有文件夹
+ */
+export async function listFolders(_flowsDir?: string): Promise<FolderInfo[]> {
+  return Array.from(folderStore).map((path) => ({
+    name: path.split('/').pop() ?? path,
+    path,
+  }));
+}
+
+/**
+ * 创建文件夹
+ */
+export async function createFolder(folderPath: string, _flowsDir?: string): Promise<FolderInfo> {
+  folderStore.add(folderPath);
+  return {
+    name: folderPath.split('/').pop() ?? folderPath,
+    path: folderPath,
+  };
+}
+
+/**
+ * 删除文件夹
+ */
+export async function deleteFolder(folderPath: string, _flowsDir?: string): Promise<void> {
+  folderStore.delete(folderPath);
+}
+
+/**
+ * 重命名文件夹
+ */
+export async function renameFolder(folderPath: string, newName: string, _flowsDir?: string): Promise<FolderInfo> {
+  folderStore.delete(folderPath);
+  const parts = folderPath.split('/');
+  parts[parts.length - 1] = newName;
+  const newPath = parts.join('/');
+  folderStore.add(newPath);
+  return { name: newName, path: newPath };
+}
+
+/**
+ * 移动流程到指定文件夹
+ */
+export async function moveFlowToFolder(uuid: string, targetFolderPath: string, _flowsDir?: string): Promise<void> {
+  const entry = flowStore.get(uuid);
+  if (entry) {
+    entry.folderPath = targetFolderPath;
+  }
+}
+
 /**
  * 清空所有流程（测试辅助函数）
  */
 export function clearMockFlows(): void {
   flowStore.clear();
+  folderStore.clear();
 }
 
 /**

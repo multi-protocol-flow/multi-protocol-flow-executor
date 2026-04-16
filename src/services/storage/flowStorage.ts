@@ -13,12 +13,22 @@ export interface FlowMetadata {
   name: string;
   filePath: string;
   updatedAt: number;
+  /** 所属文件夹相对路径（相对于 flows_dir，空字符串表示根目录） */
+  folderPath: string;
 }
 
 /** 内置模板元数据 */
 export interface FlowMeta {
   version: number;
   isBuiltin: boolean;
+}
+
+/** 文件夹信息 */
+export interface FolderInfo {
+  /** 文件夹名称 */
+  name: string;
+  /** 文件夹相对路径 */
+  path: string;
 }
 
 /** 后端 FlowFile 结构（包含 _version, flow, _meta） */
@@ -87,5 +97,37 @@ export const flowStorage = {
   async refreshFlows(): Promise<FlowMetadata[]> {
     const flowsDir = await getFlowsDir();
     return invoke<FlowMetadata[]>('list_flow_files', { flowsDir });
+  },
+
+  // ===== 文件夹操作 =====
+
+  /** 列出所有文件夹 */
+  async listFolders(): Promise<FolderInfo[]> {
+    const flowsDir = await getFlowsDir();
+    return invoke<FolderInfo[]>('list_folders', { flowsDir });
+  },
+
+  /** 创建文件夹 */
+  async createFolder(folderPath: string): Promise<FolderInfo> {
+    const flowsDir = await getFlowsDir();
+    return invoke<FolderInfo>('create_folder', { flowsDir, folderPath });
+  },
+
+  /** 删除文件夹（仅空文件夹） */
+  async deleteFolder(folderPath: string): Promise<void> {
+    const flowsDir = await getFlowsDir();
+    await invoke<void>('delete_folder', { flowsDir, folderPath });
+  },
+
+  /** 重命名文件夹 */
+  async renameFolder(folderPath: string, newName: string): Promise<FolderInfo> {
+    const flowsDir = await getFlowsDir();
+    return invoke<FolderInfo>('rename_folder', { flowsDir, folderPath, newName });
+  },
+
+  /** 移动流程到指定文件夹 */
+  async moveFlowToFolder(uuid: string, targetFolderPath: string): Promise<void> {
+    const flowsDir = await getFlowsDir();
+    await invoke<void>('move_flow_to_folder', { uuid, flowsDir, targetFolderPath });
   },
 };

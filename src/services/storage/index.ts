@@ -4,7 +4,7 @@
  */
 
 // 流程存储
-export { flowStorage, type FlowMetadata } from './flowStorage';
+export { flowStorage, type FlowMetadata, type FolderInfo } from './flowStorage';
 
 // 数据迁移
 export { migrateFlowsToFiles } from './migration';
