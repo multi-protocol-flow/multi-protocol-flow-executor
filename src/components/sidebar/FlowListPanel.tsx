@@ -566,7 +566,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
         title={disabled ? '调试中不可切换流程' : undefined}
           style={{ marginLeft: `${depth * 20}px` }}
           className={cn(
-          'group w-full flex items-center gap-2 px-3 h-12 rounded-lg text-sm text-left transition-all duration-150',
+          'group flex items-center gap-2 px-3 h-12 rounded-lg text-sm text-left transition-all duration-150',
           'bg-background border border-border',
           !disabled && 'hover:bg-accent',
           isSelected && !disabled && 'bg-background border-border',
@@ -716,7 +716,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               toggleFolder(folderPath);
             }
           }}
-          className="group w-full flex items-center gap-1.5 h-8 rounded-md text-sm text-left transition-colors hover:bg-accent/50 cursor-pointer"
+          className="group flex items-center gap-1.5 h-8 rounded-md text-sm text-left transition-colors hover:bg-accent/50 cursor-pointer"
           style={{ marginLeft: `${depth * 20}px`, paddingRight: '12px' }}
           onContextMenu={(e) => {
             e.preventDefault();
