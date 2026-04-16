@@ -36,10 +36,13 @@ pub struct FlowMetadata {
     pub uuid: String,
     /// 流程名称
     pub name: String,
-    /// 文件路径
+    /// 文件路径（绝对路径）
     pub file_path: String,
     /// 最后更新时间戳（毫秒）
     pub updated_at: u64,
+    /// 所属文件夹相对路径（相对于 `flows_dir`，空字符串表示根目录）
+    #[serde(default)]
+    pub folder_path: String,
 }
 
 /// 获取用户数据目录路径
@@ -306,7 +309,7 @@ pub fn save_flow_file_with_meta(
 
 /// 从 .mpf 文件加载流程文件（按 UUID 查找）
 ///
-/// 递归扫描 `flows_dir` 下所有 `.mpf` 文件，找到匹配 UUID 的流程文件并返回完整的 FlowFile。
+/// 递归扫描 `flows_dir` 下所有 `.mpf` 文件，找到匹配 UUID 的流程文件并返回完整的 `FlowFile`。
 pub fn load_flow_file_raw(uuid: &str, flows_dir: &Path) -> Result<FlowFile, String> {
     let mut mpf_files = Vec::new();
     collect_mpf_files(flows_dir, &mut mpf_files)?;
@@ -408,16 +411,28 @@ pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
             .map(|d| d.as_millis() as u64)
             .unwrap_or(0);
 
+        // 计算相对文件夹路径
+        let folder_path = path
+            .parent()
+            .and_then(|parent| parent.strip_prefix(flows_dir).ok())
+            .map(|rel| rel.to_string_lossy().to_string())
+            .unwrap_or_default();
+
         metadata_list.push(FlowMetadata {
             uuid: final_uuid,
             name: flow_file.flow.name.clone(),
             file_path: path.to_string_lossy().to_string(),
             updated_at,
+            folder_path,
         });
     }
 
-    // 按名称字母序排序
-    metadata_list.sort_by(|a, b| a.name.cmp(&b.name));
+    // 按文件夹路径排序，同文件夹内按名称排序
+    metadata_list.sort_by(|a, b| {
+        a.folder_path
+            .cmp(&b.folder_path)
+            .then_with(|| a.name.cmp(&b.name))
+    });
 
     Ok(metadata_list)
 }
@@ -887,6 +902,306 @@ fn sanitize_filename(name: &str) -> String {
         result = result.chars().take(50).collect();
     }
     result
+}
+
+// ============================================================================
+// 文件夹管理函数
+// ============================================================================
+
+/// 文件夹信息
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderInfo {
+    /// 文件夹名称（仅文件夹名，不含路径）
+    pub name: String,
+    /// 文件夹相对路径（相对于 `flows_dir`）
+    pub path: String,
+}
+
+/// 列出 `flows_dir` 下所有子文件夹
+///
+/// 仅扫描包含 .mpf 文件或子文件夹的目录（跳过空目录）。
+/// 返回结果按路径排序。
+pub fn list_folders(flows_dir: &Path) -> Result<Vec<FolderInfo>, String> {
+    let mut folders = Vec::new();
+    collect_folders(flows_dir, flows_dir, &mut folders)?;
+    folders.sort_by(|a, b| a.path.cmp(&b.path));
+    Ok(folders)
+}
+
+/// 递归收集所有包含 .mpf 文件的子目录
+fn collect_folders(
+    base_dir: &Path,
+    flows_dir: &Path,
+    folders: &mut Vec<FolderInfo>,
+) -> Result<(), String> {
+    if !base_dir
+        .try_exists()
+        .map_err(|e| format!("检查目录失败: {}", e))?
+    {
+        return Ok(());
+    }
+
+    for entry in fs::read_dir(base_dir).map_err(|e| format!("读取目录失败: {}", e))? {
+        let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+        let path = entry.path();
+        if path.is_dir() {
+            // 检查此目录是否包含 .mpf 文件（直接或递归）
+            let has_mpf = has_mpf_files_recursive(&path)?;
+            if has_mpf {
+                let rel_path = path
+                    .strip_prefix(flows_dir)
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                let name = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_default();
+                folders.push(FolderInfo {
+                    name,
+                    path: rel_path.clone(),
+                });
+                // 递归扫描子目录
+                collect_folders(&path, flows_dir, folders)?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// 检查目录（递归）是否包含 .mpf 文件
+fn has_mpf_files_recursive(dir: &Path) -> Result<bool, String> {
+    if !dir
+        .try_exists()
+        .map_err(|e| format!("检查目录失败: {}", e))?
+    {
+        return Ok(false);
+    }
+
+    for entry in fs::read_dir(dir).map_err(|e| format!("读取目录失败: {}", e))? {
+        let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+        let path = entry.path();
+        if path.is_dir() {
+            if has_mpf_files_recursive(&path)? {
+                return Ok(true);
+            }
+        } else if path.extension().map(|e| e == "mpf").unwrap_or(false) {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
+/// 创建文件夹
+///
+/// 在 `flows_dir` 下创建指定名称的子文件夹。
+///
+/// `folder_path` 为相对于 `flows_dir` 的路径，如 "认证测试" 或 "API/登录"。
+pub fn create_folder(flows_dir: &Path, folder_path: &str) -> Result<FolderInfo, String> {
+    if folder_path.is_empty() {
+        return Err("文件夹路径不能为空".to_string());
+    }
+
+    // 清理路径中的非法字符（每段单独清理）
+    let clean_parts: Vec<String> = folder_path
+        .split(['/', '\\'])
+        .filter(|s| !s.is_empty())
+        .map(sanitize_filename)
+        .collect();
+
+    if clean_parts.is_empty() {
+        return Err("文件夹路径不能为空".to_string());
+    }
+
+    let clean_path = clean_parts.join("/");
+    let full_path = flows_dir.join(&clean_path);
+
+    // 检查是否已存在
+    if full_path
+        .try_exists()
+        .map_err(|e| format!("检查目录失败: {}", e))?
+    {
+        return Err(format!("文件夹已存在: {}", clean_path));
+    }
+
+    // 创建目录（包括所有必要的父目录）
+    fs::create_dir_all(&full_path).map_err(|e| format!("创建文件夹失败: {}", e))?;
+
+    let name = clean_parts.last().expect("clean_parts 不为空").clone();
+
+    Ok(FolderInfo {
+        name,
+        path: clean_path,
+    })
+}
+
+/// 删除文件夹
+///
+/// 删除指定的文件夹。仅允许删除空文件夹（不包含 .mpf 文件和子文件夹）。
+/// `folder_path` 为相对于 `flows_dir` 的路径。
+pub fn delete_folder(flows_dir: &Path, folder_path: &str) -> Result<(), String> {
+    if folder_path.is_empty() {
+        return Err("文件夹路径不能为空".to_string());
+    }
+
+    let full_path = flows_dir.join(folder_path);
+
+    // 安全检查：确保路径在 flows_dir 内
+    let canonical_flows_dir = flows_dir
+        .canonicalize()
+        .map_err(|e| format!("规范化流程目录失败: {}", e))?;
+    let canonical_full_path = full_path
+        .canonicalize()
+        .map_err(|_| format!("文件夹不存在: {}", folder_path))?;
+
+    if !canonical_full_path.starts_with(&canonical_flows_dir) {
+        return Err("不允许删除流程目录之外的文件夹".to_string());
+    }
+
+    // 检查是否为空（无 .mpf 文件且无子目录）
+    if has_mpf_files_recursive(&full_path)? {
+        return Err("文件夹不为空，无法删除（请先移走其中的流程）".to_string());
+    }
+
+    // 删除空目录树
+    fs::remove_dir_all(&full_path).map_err(|e| format!("删除文件夹失败: {}", e))?;
+
+    Ok(())
+}
+
+/// 重命名文件夹
+///
+/// 重命名指定的文件夹，保持其内容不变。
+/// `folder_path` 为相对于 `flows_dir` 的原路径。
+/// `new_name` 为新的文件夹名称（仅最后一层）。
+pub fn rename_folder(
+    flows_dir: &Path,
+    folder_path: &str,
+    new_name: &str,
+) -> Result<FolderInfo, String> {
+    if folder_path.is_empty() {
+        return Err("文件夹路径不能为空".to_string());
+    }
+    if new_name.trim().is_empty() {
+        return Err("文件夹名称不能为空".to_string());
+    }
+
+    let clean_name = sanitize_filename(new_name.trim());
+    let full_path = flows_dir.join(folder_path);
+
+    if !full_path
+        .try_exists()
+        .map_err(|e| format!("检查目录失败: {}", e))?
+    {
+        return Err(format!("文件夹不存在: {}", folder_path));
+    }
+
+    // 计算新路径
+    let parent = full_path
+        .parent()
+        .ok_or_else(|| "无法获取父目录".to_string())?;
+    let new_full_path = parent.join(&clean_name);
+
+    if new_full_path
+        .try_exists()
+        .map_err(|e| format!("检查目录失败: {}", e))?
+    {
+        return Err(format!("文件夹名称已存在: {}", clean_name));
+    }
+
+    // 重命名
+    fs::rename(&full_path, &new_full_path).map_err(|e| format!("重命名文件夹失败: {}", e))?;
+
+    // 计算新的相对路径
+    let new_rel = parent
+        .strip_prefix(flows_dir)
+        .map(|p| {
+            let base = p.to_string_lossy().to_string();
+            if base.is_empty() {
+                clean_name.clone()
+            } else {
+                format!("{}/{}", base, clean_name)
+            }
+        })
+        .unwrap_or(clean_name.clone());
+
+    Ok(FolderInfo {
+        name: clean_name,
+        path: new_rel,
+    })
+}
+
+/// 移动流程到指定文件夹
+///
+/// 将指定 UUID 的流程文件移动到目标文件夹。
+/// `target_folder_path` 为相对于 `flows_dir` 的目标路径，空字符串表示根目录。
+pub fn move_flow_to_folder(
+    uuid: &str,
+    flows_dir: &Path,
+    target_folder_path: &str,
+) -> Result<(), String> {
+    // 找到原始文件
+    let mut mpf_files = Vec::new();
+    collect_mpf_files(flows_dir, &mut mpf_files)?;
+
+    let source_path = mpf_files
+        .iter()
+        .find(|path| {
+            let mut content = String::new();
+            if let Ok(mut file) = File::open(path) {
+                if file.read_to_string(&mut content).is_ok() {
+                    if let Ok(flow_file) = serde_json::from_str::<FlowFile>(&content) {
+                        return flow_file.flow.uuid == uuid;
+                    }
+                }
+            }
+            false
+        })
+        .ok_or_else(|| format!("流程不存在: {}", uuid))?
+        .clone();
+
+    // 计算目标路径
+    let target_dir = if target_folder_path.is_empty() {
+        flows_dir.to_path_buf()
+    } else {
+        flows_dir.join(target_folder_path)
+    };
+
+    // 确保目标目录存在
+    if !target_dir
+        .try_exists()
+        .map_err(|e| format!("检查目标目录失败: {}", e))?
+    {
+        fs::create_dir_all(&target_dir).map_err(|e| format!("创建目标目录失败: {}", e))?;
+    }
+
+    let file_name = source_path
+        .file_name()
+        .ok_or_else(|| "无法获取文件名".to_string())?;
+    let target_path = target_dir.join(file_name);
+
+    // 检查是否已在目标位置
+    if source_path == target_path {
+        return Ok(());
+    }
+
+    // 检查目标位置是否有同名文件
+    if target_path
+        .try_exists()
+        .map_err(|e| format!("检查目标文件失败: {}", e))?
+    {
+        return Err(format!(
+            "目标文件夹中已存在同名文件: {}",
+            file_name.to_string_lossy()
+        ));
+    }
+
+    // 移动文件
+    fs::rename(&source_path, &target_path).map_err(|e| format!("移动流程文件失败: {}", e))?;
+
+    Ok(())
 }
 
 #[cfg(test)]

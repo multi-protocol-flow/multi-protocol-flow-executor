@@ -59,6 +59,12 @@ pub use tauri_commands::{
     save_flow_file,
     delete_flow_file,
     copy_flow_file,
+    // 文件夹管理命令
+    list_folders,
+    create_folder,
+    delete_folder,
+    rename_folder,
+    move_flow_to_folder,
     DebugSessionManager,
     ExecutionSessionManager,
 };
@@ -158,7 +164,13 @@ pub fn run() {
     load_flow_file,
     save_flow_file,
     delete_flow_file,
-    copy_flow_file
+    copy_flow_file,
+    // 文件夹管理命令
+    list_folders,
+    create_folder,
+    delete_folder,
+    rename_folder,
+    move_flow_to_folder
 ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

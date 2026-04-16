@@ -540,6 +540,56 @@ pub fn copy_flow_file(
 }
 
 // ============================================================================
+// 文件夹管理命令
+// ============================================================================
+
+/// 列出所有文件夹
+#[tauri::command]
+pub fn list_folders(
+    flows_dir: String,
+) -> Result<Vec<flow_engine::storage::FolderInfo>, String> {
+    flow_engine::storage::list_folders(std::path::Path::new(&flows_dir))
+}
+
+/// 创建文件夹
+#[tauri::command]
+pub fn create_folder(
+    flows_dir: String,
+    folder_path: String,
+) -> Result<flow_engine::storage::FolderInfo, String> {
+    flow_engine::storage::create_folder(std::path::Path::new(&flows_dir), &folder_path)
+}
+
+/// 删除文件夹
+#[tauri::command]
+pub fn delete_folder(
+    flows_dir: String,
+    folder_path: String,
+) -> Result<(), String> {
+    flow_engine::storage::delete_folder(std::path::Path::new(&flows_dir), &folder_path)
+}
+
+/// 重命名文件夹
+#[tauri::command]
+pub fn rename_folder(
+    flows_dir: String,
+    folder_path: String,
+    new_name: String,
+) -> Result<flow_engine::storage::FolderInfo, String> {
+    flow_engine::storage::rename_folder(std::path::Path::new(&flows_dir), &folder_path, &new_name)
+}
+
+/// 移动流程到指定文件夹
+#[tauri::command]
+pub fn move_flow_to_folder(
+    uuid: String,
+    flows_dir: String,
+    target_folder_path: String,
+) -> Result<(), String> {
+    flow_engine::storage::move_flow_to_folder(&uuid, std::path::Path::new(&flows_dir), &target_folder_path)
+}
+
+// ============================================================================
 // 单元测试
 // ============================================================================
 
