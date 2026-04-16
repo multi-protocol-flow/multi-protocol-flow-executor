@@ -2,28 +2,42 @@
  * 执行组件共享常量
  */
 
-/** 节点类型中文名映射 */
+/** 节点类型标签映射（与画布节点标签保持一致） */
 export const NODE_TYPE_NAMES: Record<string, string> = {
   entry: '入口',
-  http: 'HTTP 请求',
-  conditional: '条件分支',
+  http: 'HTTP',
+  conditional: '条件',
+  script: '脚本',
   assertion: '断言',
   end: '终止',
-  ws_connect: 'WebSocket 连接',
-  ws_send_collect: 'WebSocket 发送采集',
-  ws_close: 'WebSocket 关闭',
+  ws_connect: 'WS-连接',
+  ws_send_collect: 'WS-发送采集',
+  ws_close: 'WS-关闭',
+  db_connect: 'DB-连接',
+  db_query: 'DB-查询',
+  db_begin: 'DB-开始事务',
+  db_commit: 'DB-提交',
+  db_rollback: 'DB-回滚',
+  db_close: 'DB-关闭',
 };
 
-/** 节点类型颜色映射 */
+/** 节点类型颜色映射（与画布节点主题色保持一致） */
 export const NODE_TYPE_COLORS: Record<string, string> = {
   entry: 'bg-emerald-100 text-emerald-700',
   http: 'bg-blue-100 text-blue-700',
-  conditional: 'bg-amber-100 text-amber-700',
-  assertion: 'bg-rose-100 text-rose-700',
+  conditional: 'bg-orange-100 text-orange-700',
+  script: 'bg-indigo-100 text-indigo-700',
+  assertion: 'bg-purple-100 text-purple-700',
   end: 'bg-slate-100 text-slate-700',
-  ws_connect: 'bg-violet-100 text-violet-700',
-  ws_send_collect: 'bg-violet-100 text-violet-700',
-  ws_close: 'bg-violet-100 text-violet-700',
+  ws_connect: 'bg-amber-100 text-amber-700',
+  ws_send_collect: 'bg-teal-100 text-teal-700',
+  ws_close: 'bg-rose-100 text-rose-700',
+  db_connect: 'bg-violet-100 text-violet-700',
+  db_query: 'bg-violet-100 text-violet-700',
+  db_begin: 'bg-violet-100 text-violet-700',
+  db_commit: 'bg-violet-100 text-violet-700',
+  db_rollback: 'bg-violet-100 text-violet-700',
+  db_close: 'bg-violet-100 text-violet-700',
 };
 
 // ============================================================================
