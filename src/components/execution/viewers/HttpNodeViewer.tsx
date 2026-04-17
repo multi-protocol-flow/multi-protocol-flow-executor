@@ -11,7 +11,7 @@ import {
   Clock,
   ArrowDownToLine,
 } from 'lucide-react';
-import type { NodeExecutionReport } from '@/types';
+import type { NodeExecutionReport, FormField } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
@@ -106,6 +106,129 @@ function KeyValueList({ data }: KeyValueListProps) {
   );
 }
 
+// ============================================================================
+// Body 类型辅助工具
+// ============================================================================
+
+/** 类型守卫：带 fields 数组的 body 对象 */
+function isFieldsBody(body: unknown): body is { fields: FormField[] } {
+  if (typeof body !== 'object' || body === null) return false;
+  const obj = body as Record<string, unknown>;
+  return 'fields' in obj && Array.isArray(obj.fields);
+}
+
+/** 类型守卫：二进制 body 信息 */
+function isBinaryBody(body: unknown): body is { type?: string; path?: string; size?: number } {
+  return typeof body === 'object' && body !== null;
+}
+
+/** 从 body 和 form_fields 中提取 form-data 字段 */
+function extractFormFields(body: unknown, formFields?: FormField[]): FormField[] {
+  if (formFields && formFields.length > 0) return formFields;
+  if (isFieldsBody(body)) return body.fields;
+  return [];
+}
+
+/** 从 body 中提取 urlencoded 字段 */
+function extractUrlEncodedFields(body: unknown): Array<{ key: string; value: string }> {
+  if (isFieldsBody(body)) return body.fields;
+  return [];
+}
+
+/** 从 body 中提取二进制文件信息 */
+function extractBinaryInfo(body: unknown, filePath?: string): { path?: string; size?: number } {
+  const result: { path?: string; size?: number } = {};
+  if (filePath) result.path = filePath;
+  if (isBinaryBody(body)) {
+    if (!result.path && body.path) result.path = body.path;
+    if (body.size !== undefined) result.size = body.size;
+  }
+  return result;
+}
+
+/** 格式化文件大小 */
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * Form-Data 字段表格
+ */
+function FormDataFieldsTable({ fields }: { fields: FormField[] }) {
+  return (
+    <div className="border border-border rounded overflow-hidden text-sm">
+      <div className="grid grid-cols-[1fr_70px_2fr] bg-muted/50">
+        <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground">Key</div>
+        <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground text-center">Type</div>
+        <div className="px-2.5 py-1.5 font-medium border-b border-border text-xs text-muted-foreground">Value</div>
+      </div>
+      {fields.map((field, i) => (
+        <div key={`${field.key}-${i}`} className="grid grid-cols-[1fr_70px_2fr]">
+          <div className="px-2.5 py-1.5 border-r border-b border-border font-mono text-foreground break-all">{field.key}</div>
+          <div className="px-2.5 py-1.5 border-r border-b border-border text-center">
+            <span className={cn(
+              'text-[10px] px-1.5 py-0.5 rounded font-mono',
+              field.type === 'file' ? 'text-amber-600 bg-amber-50' : 'text-muted-foreground bg-muted'
+            )}>
+              {field.type === 'file' ? 'file' : 'text'}
+            </span>
+          </div>
+          <div className="px-2.5 py-1.5 border-b border-border break-all">
+            {field.type === 'file' ? (
+              <span className="font-mono text-muted-foreground">{field.file_path || '未选择文件'}</span>
+            ) : (
+              <span className="text-foreground">{field.value}</span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * URL-Encoded 字段列表
+ */
+function UrlEncodedFieldsList({ fields }: { fields: Array<{ key: string; value: string }> }) {
+  return (
+    <div className="space-y-1.5">
+      {fields.map((field) => (
+        <div key={field.key} className="flex items-start gap-2 text-sm">
+          <span className="font-mono text-muted-foreground min-w-0 shrink-0">{field.key}:</span>
+          <span className="text-foreground break-all">{field.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 二进制文件信息展示
+ */
+function BinaryFileDisplay({ path, size }: { path?: string; size?: number }) {
+  return (
+    <div className="bg-muted rounded p-2 space-y-1 text-sm">
+      {path && (
+        <div className="flex items-start gap-2">
+          <span className="text-muted-foreground shrink-0">文件路径:</span>
+          <code className="text-foreground break-all">{path}</code>
+        </div>
+      )}
+      {size !== undefined && (
+        <div className="flex items-start gap-2">
+          <span className="text-muted-foreground shrink-0">文件大小:</span>
+          <span className="text-foreground">{formatFileSize(size)}</span>
+        </div>
+      )}
+      {!path && size === undefined && (
+        <span className="text-muted-foreground italic">无文件信息</span>
+      )}
+    </div>
+  );
+}
+
 /**
  * HTTP 请求配置数据
  */
@@ -115,6 +238,9 @@ interface HttpRequestConfig {
   headers?: Record<string, unknown>;
   body?: unknown;
   body_type?: string;
+  content_type?: string;
+  form_fields?: FormField[];
+  file_path?: string;
 }
 
 /**
@@ -149,12 +275,37 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
     headers: resolvedConfig?.headers || requestData?.headers || {},
     body: resolvedConfig?.body ?? requestData?.body,
     body_type: resolvedConfig?.body_type || requestData?.body_type || 'none',
+    content_type: resolvedConfig?.content_type || requestData?.content_type,
+    form_fields: resolvedConfig?.form_fields || requestData?.form_fields,
+    file_path: resolvedConfig?.file_path || requestData?.file_path,
   };
 
   const status = outputData?.status;
   const headers = outputData?.headers;
   const body = outputData?.body;
   const timing = outputData?.timing;
+
+  // 请求体类型相关计算
+  const bodyType = config.body_type || 'body';
+  const bodyLabel = bodyType === 'body' && config.content_type
+    ? `body · ${config.content_type}`
+    : bodyType;
+
+  const hasBody = config.body !== undefined && config.body !== null;
+
+  const formDataFields = bodyType === 'form-data'
+    ? extractFormFields(config.body, config.form_fields) : null;
+  const urlEncodedFields = bodyType === 'x-www-form-urlencoded'
+    ? extractUrlEncodedFields(config.body) : null;
+  const binaryInfo = bodyType === 'binary'
+    ? extractBinaryInfo(config.body, config.file_path) : null;
+
+  const showBody = bodyType !== 'none' && (
+    hasBody
+    || (formDataFields !== null && formDataFields.length > 0)
+    || (urlEncodedFields !== null && urlEncodedFields.length > 0)
+    || binaryInfo !== null
+  );
 
   return (
     <div className="space-y-3">
@@ -184,14 +335,35 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
           )}
 
           {/* Body */}
-          {config.body_type !== 'none' && config.body !== undefined && config.body !== null && (
+          {showBody && (
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">
-                请求体 <span className="font-normal">({config.body_type})</span>
+                请求体 <span className="font-normal">({bodyLabel})</span>
               </div>
-              <div className="bg-muted rounded p-2">
-                <RawJsonViewer data={config.body} />
-              </div>
+              {bodyType === 'body' && hasBody && (
+                <div className="bg-muted rounded p-2">
+                  <RawJsonViewer data={config.body} />
+                </div>
+              )}
+              {bodyType === 'form-data' && formDataFields && formDataFields.length > 0 && (
+                <FormDataFieldsTable fields={formDataFields} />
+              )}
+              {bodyType === 'form-data' && (!formDataFields || formDataFields.length === 0) && hasBody && (
+                <div className="bg-muted rounded p-2">
+                  <RawJsonViewer data={config.body} />
+                </div>
+              )}
+              {bodyType === 'x-www-form-urlencoded' && urlEncodedFields && urlEncodedFields.length > 0 && (
+                <UrlEncodedFieldsList fields={urlEncodedFields} />
+              )}
+              {bodyType === 'x-www-form-urlencoded' && (!urlEncodedFields || urlEncodedFields.length === 0) && hasBody && (
+                <div className="bg-muted rounded p-2">
+                  <RawJsonViewer data={config.body} />
+                </div>
+              )}
+              {bodyType === 'binary' && binaryInfo && (
+                <BinaryFileDisplay path={binaryInfo.path} size={binaryInfo.size} />
+              )}
             </div>
           )}
         </div>
