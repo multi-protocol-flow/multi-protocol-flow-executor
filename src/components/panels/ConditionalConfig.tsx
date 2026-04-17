@@ -355,7 +355,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
           <Textarea
             id="advanced_expression"
             {...register('advanced_expression')}
-            placeholder="http_response.status >= 200 && http_response.status < 300"
+            placeholder="status == 200 && body.data.token != null"
             className="min-h-[120px] resize-y font-mono text-sm"
             rows={4}
           />
@@ -371,15 +371,22 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
               <p className="mb-1 font-medium text-foreground">变量引用方式：</p>
               <ul className="ml-3 list-disc space-y-0.5">
                 <li>直接使用变量名，无需 <code className="rounded bg-muted px-1">{"{{}}"}</code> 或 <code className="rounded bg-muted px-1">{"$."}</code></li>
-                <li>示例: <code className="rounded bg-muted px-1">status == 200 && code == 0</code></li>
+                <li>支持嵌套字段：<code className="rounded bg-muted px-1">body.data.token == "abc"</code></li>
+                <li>多条件组合：<code className="rounded bg-muted px-1">status == 200 && code == 0</code></li>
+              </ul>
+            </div>
+            <div>
+              <p className="mb-1 font-medium text-sky-600 dark:text-sky-400">📋 数据来源（按优先级从高到低）：</p>
+              <ul className="ml-3 list-disc space-y-0.5">
+                <li><span className="font-medium">上游节点输出</span> — 自动注入上一个协议节点的原始输出（如 HTTP 响应的 status、body 等），优先级最高</li>
+                <li><span className="font-medium">变量池</span> — 通过输出变量映射设置的变量，优先级较低</li>
               </ul>
             </div>
             <div className="border-t border-border pt-2 mt-2">
               <p className="mb-1 font-medium text-amber-600">⚠️ 注意事项：</p>
               <ul className="ml-3 list-disc space-y-0.5">
-                <li><span className="font-medium">不支持 JSONPath</span>（如 <code className="rounded bg-muted px-1">$.body.data</code>），仅支持引用变量池中的变量</li>
-                <li>如需使用 HTTP 响应字段，请先在 HTTP 节点配置 <span className="font-medium">输出变量映射</span></li>
                 <li>字符串值需用双引号: <code className="rounded bg-muted px-1">name == "John"</code></li>
+                <li>嵌套字段用点号连接: <code className="rounded bg-muted px-1">body.data.token</code>（自动展开，等同于 <code className="rounded bg-muted px-1">$.body.data.token</code>）</li>
               </ul>
             </div>
           </div>
