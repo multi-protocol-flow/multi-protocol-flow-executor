@@ -29,8 +29,9 @@ import { NodeContextMenu } from './NodeContextMenu';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore, selectIsDebugging, useExecutionStore, selectIsExecuting, useStressTestStore, selectIsStressTestRunning } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
-import { MapIcon } from 'lucide-react';
+import { MapIcon, ArrowRightLeft, ArrowDownUp } from 'lucide-react';
 import type { NodeType } from '@/types';
+import { getLayoutedPositions, type LayoutDirection } from './layout';
 import {
   convertFlowToReactFlow,
   convertEdgeToConnection,
@@ -148,6 +149,7 @@ function FlowCanvasInner() {
     markSaved,
     focusNodeUuid,
     clearFocusNode,
+    batchUpdateNodePositions,
   } = useFlowStore();
   const { setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen, showMinimap, toggleMinimap } = useUIStore();
   const { resolvedTheme } = useTheme();
@@ -359,6 +361,19 @@ function FlowCanvasInner() {
     setConfigPanelOpen(false);
     setContextMenu(null);
   }, [selectNode, setConfigPanelOpen]);
+
+  // 自动布局处理
+  const handleAutoLayout = useCallback((direction: LayoutDirection) => {
+    if (!flow) return;
+
+    const positions = getLayoutedPositions(flow.nodes, flow.connections, direction);
+    batchUpdateNodePositions(positions);
+
+    // 延迟 fitView，等待 React Flow 完成位置更新
+    setTimeout(() => {
+      fitView({ padding: 0.2, duration: 300 });
+    }, 150);
+  }, [flow, batchUpdateNodePositions, fitView]);
 
   // 处理节点右键菜单
   const onNodeContextMenu = useCallback(
@@ -641,6 +656,14 @@ function FlowCanvasInner() {
         .react-flow__node.dragging * {
           cursor: url("${GRABBING_CURSOR_SVG}") 8 8, grabbing !important;
         }
+        /* 节点自动布局动画 */
+        .react-flow__node {
+          transition: transform 300ms ease-out;
+        }
+        /* 拖拽时禁用过渡动画，避免拖拽卡顿 */
+        .react-flow__node.dragging {
+          transition: none !important;
+        }
       `}</style>
 
       {/* 画布悬浮工具栏 */}
@@ -695,19 +718,31 @@ function FlowCanvasInner() {
           showFitView
           showInteractive
         >
-          {/* 小地图开关（执行/调试/压测时隐藏） */}
-          {!isAnyActive && (
-            <ControlButton
-              onClick={toggleMinimap}
-              title={showMinimap ? '关闭小地图' : '打开小地图'}
-            >
-              <MapIcon className="w-4 h-4" />
-            </ControlButton>
-          )}
+          {/* 小地图开关 */}
+          <ControlButton
+            onClick={toggleMinimap}
+            title={showMinimap ? '关闭小地图' : '打开小地图'}
+          >
+            <MapIcon className="w-4 h-4" />
+          </ControlButton>
+          {/* 水平自动布局 */}
+          <ControlButton
+            onClick={() => handleAutoLayout('LR')}
+            title="水平自动布局"
+          >
+            <ArrowRightLeft className="w-4 h-4" />
+          </ControlButton>
+          {/* 垂直自动布局 */}
+          <ControlButton
+            onClick={() => handleAutoLayout('TB')}
+            title="垂直自动布局"
+          >
+            <ArrowDownUp className="w-4 h-4" />
+          </ControlButton>
         </Controls>
 
-        {/* 小地图（执行/调试/压测时隐藏） */}
-        {!isAnyActive && showMinimap && (
+        {/* 小地图 */}
+        {showMinimap && (
           <MiniMap
             nodeColor={minimapNodeColor}
             maskColor={resolvedTheme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)'}

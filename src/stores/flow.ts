@@ -31,6 +31,8 @@ interface FlowState {
   addNode: (node: Node) => void;
   /** 更新节点 */
   updateNode: (uuid: string, updates: Partial<Node>) => void;
+  /** 批量更新节点位置（自动布局用） */
+  batchUpdateNodePositions: (positions: Map<string, { x: number; y: number }>) => void;
   /** 移除节点 */
   removeNode: (uuid: string) => void;
   /** 添加连接 */
@@ -115,6 +117,20 @@ export const useFlowStore = create<FlowState>((set, get) => ({
             nodes: state.flow.nodes.map((n) =>
               n.uuid === uuid ? { ...n, ...updates } : n
             ),
+          }
+        : null,
+      isDirty: true,
+    })),
+
+  batchUpdateNodePositions: (positions) =>
+    set((state) => ({
+      flow: state.flow
+        ? {
+            ...state.flow,
+            nodes: state.flow.nodes.map((n) => {
+              const pos = positions.get(n.uuid);
+              return pos ? { ...n, position: { x: pos.x, y: pos.y } } : n;
+            }),
           }
         : null,
       isDirty: true,
