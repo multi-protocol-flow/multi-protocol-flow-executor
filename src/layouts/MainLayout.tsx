@@ -8,11 +8,13 @@ import { LeftSidebarPanel } from '@/components/sidebar';
 import { FlowCanvas } from '@/components/canvas';
 import { NodeConfigPanel, SettingsPanel } from '@/components/panels';
 import { ExecutionReport, ExecutionHistory, ConsolePanel, ExecutionPanel } from '@/components/execution';
+import { FlowCompareDialog } from '@/components/execution/FlowCompareDialog';
 import { StressTestResult } from '@/components/stress-test/StressTestResult';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 
 import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
+import { useSettingsStore } from '@/stores/settings';
 import type { BottomPanelTab } from '@/stores/ui';
 import { useConsoleStore } from '@/stores/console';
 import { useZoomStore } from '@/stores/zoom';
@@ -23,6 +25,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { toast } from 'sonner';
+import { loadReport } from '@/services/storage/reportStorage';
+import { stressTestStorage } from '@/services/storage/stressTestStorage';
+import { flowStorage } from '@/services/storage/flowStorage';
+import type { Flow } from '@/types';
 
 /**
  * 确认对话框处理器组件
@@ -47,7 +54,10 @@ function ConfirmDialogHandler() {
         confirmDialogConfig.onConfirm();
         hideConfirm();
       }}
-      onCancel={hideConfirm}
+      onCancel={() => {
+        confirmDialogConfig.onCancel?.();
+        hideConfirm();
+      }}
     />
   );
 }
@@ -80,6 +90,9 @@ export function MainLayout() {
   const isDirty = useFlowStore((state) => state.isDirty);
   const flow = useFlowStore((state) => state.flow);
 
+  // 设置 store
+  const reportDir = useSettingsStore((state) => state.reportDir);
+
   // Debug store values
   const isDebugging = useDebugStore(selectIsDebugging);
   const isDebugDataReadOnly = useDebugStore(selectIsDebugDataReadOnly);
@@ -106,10 +119,58 @@ export function MainLayout() {
     });
   }, [clearLogs, showConfirm]);
 
+  // 对比回调：加载报告快照并打开对比对话框
+  const handleCompare = useCallback(async (reportUuid: string) => {
+    try {
+      // 尝试加载普通报告
+      const report = await loadReport(reportUuid, reportDir);
+      if (report?.flow_snapshot) {
+        setCompareSnapshotFlow(report.flow_snapshot);
+        setCompareSnapshotName(report.flow_name);
+        const currentFlow = await flowStorage.loadFlow(report.flow_uuid).catch(() => null);
+        setCompareCurrentFlow(currentFlow);
+        setCompareCurrentName(currentFlow?.name ?? report.flow_name);
+        setCompareOpen(true);
+        return;
+      }
+    } catch {
+      // 普通报告加载失败，尝试压测报告
+      console.warn('加载普通报告失败，尝试压测报告:', reportUuid);
+    }
+    try {
+      // 通过历史列表找到对应的压测报告 filePath
+      const stressReports = await stressTestStorage.listReports(reportDir);
+      const stressMeta = stressReports.find((s) => s.uuid === reportUuid);
+      if (stressMeta) {
+        const stressReport = await stressTestStorage.loadReport(stressMeta.filePath);
+        if (stressReport?.flowSnapshot) {
+          setCompareSnapshotFlow(stressReport.flowSnapshot);
+          setCompareSnapshotName(stressReport.flowName);
+          const currentFlow = await flowStorage.loadFlow(stressReport.flowUuid).catch(() => null);
+          setCompareCurrentFlow(currentFlow);
+          setCompareCurrentName(currentFlow?.name ?? stressReport.flowName);
+          setCompareOpen(true);
+          return;
+        }
+      }
+    } catch {
+      // 压测报告加载失败
+      console.warn('加载压测报告失败:', reportUuid);
+    }
+    toast.error('该报告不包含流程快照，无法对比');
+  }, [reportDir]);
+
   // 底部面板拖拽调整高度相关状态
   const [isDragging, setIsDragging] = useState(false);
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
+
+  // 对比对话框状态
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [compareSnapshotFlow, setCompareSnapshotFlow] = useState<Flow | null>(null);
+  const [compareCurrentFlow, setCompareCurrentFlow] = useState<Flow | null>(null);
+  const [compareSnapshotName, setCompareSnapshotName] = useState('');
+  const [compareCurrentName, setCompareCurrentName] = useState('');
 
   // 底部面板内容延迟渲染：展开动画结束后再渲染内容
   const [bottomPanelContentReady, setBottomPanelContentReady] = useState(isHistoryPanelOpen);
@@ -460,7 +521,7 @@ export function MainLayout() {
                   {/* Tab 内容 */}
                   <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as BottomPanelTab)} className="flex-1 min-h-0">
                     <TabsContent value="history" className="m-0 h-full overflow-hidden">
-                      <ExecutionHistory />
+                      <ExecutionHistory onCompare={handleCompare} />
                     </TabsContent>
                     <TabsContent value="running" className="m-0 h-full overflow-hidden">
                       <ExecutionPanel />
@@ -607,6 +668,18 @@ export function MainLayout() {
 
       {/* ===== 新建流程对话框 ===== */}
       <NewFlowDialog />
+
+      {/* ===== 流程对比对话框 ===== */}
+      {compareSnapshotFlow && (
+        <FlowCompareDialog
+          open={compareOpen}
+          onOpenChange={setCompareOpen}
+          snapshotFlow={compareSnapshotFlow}
+          currentFlow={compareCurrentFlow}
+          snapshotName={compareSnapshotName}
+          currentName={compareCurrentName}
+        />
+      )}
 
       {/* ===== Toast 提示 ===== */}
       <Toaster />
