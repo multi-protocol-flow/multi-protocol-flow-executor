@@ -21,6 +21,8 @@ export interface ConfirmDialogConfig {
   confirmText?: string;
   /** 确认回调 */
   onConfirm: () => void | Promise<void>;
+  /** 取消/关闭回调 */
+  onCancel?: () => void;
 }
 
 /** 连接对话框模式 */
