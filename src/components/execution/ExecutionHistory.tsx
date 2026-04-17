@@ -4,7 +4,7 @@
  */
 import { toast } from 'sonner';
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircle2, XCircle, RotateCcw, Clock, History, Loader2, Trash2, Bug, BarChart3 } from 'lucide-react';
+import { CheckCircle2, XCircle, GitCompare, Clock, History, Loader2, Trash2, Bug, BarChart3 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -98,14 +98,15 @@ function getFilterLabel(filter: FilterType): string {
 interface ExecutionHistoryProps {
   /** 选择报告回调（点击历史项时触发） */
   onSelectReport?: (reportUuid: string) => void;
-  /** 重新执行回调 */
+  /** 对比回调 */
+  onCompare?: (reportUuid: string) => void;
+  /** 重新执行回调（保留向后兼容） */
   onRerun?: (report: ReportMetadata) => void;
 }
 
-export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryProps) {
+export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare }: ExecutionHistoryProps) {
   const [unifiedHistory, setUnifiedHistory] = useState<UnifiedHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadingReportUuid, setLoadingReportUuid] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -188,7 +189,6 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
 
   // 点击普通/调试报告 - 加载完整报告
   const handleSelectReport = useCallback(async (item: UnifiedHistoryItem) => {
-    setLoadingReportUuid(item.uuid);
     try {
       if (item.type === 'stress_test' && item.stressMetadata) {
         // 压测报告：加载后写入 stressTest store 并打开弹窗
@@ -209,8 +209,6 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
       toast.error('加载报告失败', {
         description: error instanceof Error ? error.message : '未知错误',
       });
-    } finally {
-      setLoadingReportUuid(null);
     }
   }, [openReportDialog, onSelectReport, reportDir]);
 
@@ -410,8 +408,6 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
           {filteredHistory.map((item) => {
             const isStress = item.type === 'stress_test';
             const isSuccess = item.status === 'success' || item.status === 'completed';
-            const isLoading = loadingReportUuid === item.uuid;
-
             return (
               <div
                 key={item.uuid}
@@ -505,27 +501,22 @@ export function ExecutionHistory({ onSelectReport, onRerun }: ExecutionHistoryPr
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
 
-                  {/* 重新执行按钮（仅普通/调试报告） */}
-                  {!isStress && item.reportMetadata && (
+                  {/* 对比按钮 */}
+                  {(item.reportMetadata || item.stressMetadata) && (
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onRerun?.(item.reportMetadata!);
+                        onCompare?.(item.uuid);
                       }}
-                      disabled={isLoading}
                       className={cn(
                         'w-8 h-8 opacity-0 group-hover:opacity-100',
-                        'transition-opacity duration-150'
+                        'transition-opacity duration-150 text-muted-foreground hover:text-blue-500'
                       )}
-                      title="重新执行"
+                      title="对比"
                     >
-                      {isLoading ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <RotateCcw className="w-3.5 h-3.5" />
-                      )}
+                      <GitCompare className="w-3.5 h-3.5" />
                     </Button>
                   )}
                 </div>

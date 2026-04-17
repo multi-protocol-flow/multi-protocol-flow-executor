@@ -658,64 +658,64 @@ describe('ExecutionHistory', () => {
     });
   });
 
-  describe('重新执行', () => {
-    it('点击重新执行按钮触发 onRerun 回调', async () => {
+  describe('对比', () => {
+    it('点击对比按钮触发 onCompare 回调', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
       (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
-      const onRerun = vi.fn();
-      render(<ExecutionHistory onRerun={onRerun} />);
+      const onCompare = vi.fn();
+      render(<ExecutionHistory onCompare={onCompare} />);
 
       await waitFor(() => {
         expect(screen.getByText('测试流程1')).toBeDefined();
       });
 
-      const rerunButtons = screen.getAllByRole('button').filter(btn =>
-        btn.getAttribute('title') === '重新执行'
+      const compareButtons = screen.getAllByRole('button').filter(btn =>
+        btn.getAttribute('title') === '对比'
       );
 
-      fireEvent.click(rerunButtons[0]);
+      fireEvent.click(compareButtons[0]);
 
-      // 列表按时间倒序排列，rerunButtons[0] 对应较新的 report-2
-      expect(onRerun).toHaveBeenCalledWith(mockReports[1]);
+      // 列表按时间倒序排列，compareButtons[0] 对应较新的 report-2
+      expect(onCompare).toHaveBeenCalledWith(mockReports[1].uuid);
     });
 
     it('阻止事件冒泡（不触发选择报告）', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockReports);
       (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
-      const onRerun = vi.fn();
-      render(<ExecutionHistory onRerun={onRerun} />);
+      const onCompare = vi.fn();
+      render(<ExecutionHistory onCompare={onCompare} />);
 
       await waitFor(() => {
         expect(screen.getByText('测试流程1')).toBeDefined();
       });
 
-      const rerunButtons = screen.getAllByRole('button').filter(btn =>
-        btn.getAttribute('title') === '重新执行'
+      const compareButtons = screen.getAllByRole('button').filter(btn =>
+        btn.getAttribute('title') === '对比'
       );
 
-      fireEvent.click(rerunButtons[0]);
+      fireEvent.click(compareButtons[0]);
 
       expect(loadReport).not.toHaveBeenCalled();
     });
 
-    it('压测项不显示重新执行按钮', async () => {
+    it('压测项也显示对比按钮', async () => {
       (listReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
       (stressTestStorage.listReports as ReturnType<typeof vi.fn>).mockResolvedValue(mockStressReports);
 
-      const onRerun = vi.fn();
-      render(<ExecutionHistory onRerun={onRerun} />);
+      const onCompare = vi.fn();
+      render(<ExecutionHistory onCompare={onCompare} />);
 
       await waitFor(() => {
         expect(screen.getByText('压测流程1')).toBeDefined();
       });
 
-      // 压测项不应有重新执行按钮
-      const rerunButtons = screen.getAllByRole('button').filter(btn =>
-        btn.getAttribute('title') === '重新执行'
+      // 压测项应有对比按钮
+      const compareButtons = screen.getAllByRole('button').filter(btn =>
+        btn.getAttribute('title') === '对比'
       );
-      expect(rerunButtons.length).toBe(0);
+      expect(compareButtons.length).toBe(1);
     });
   });
 });
