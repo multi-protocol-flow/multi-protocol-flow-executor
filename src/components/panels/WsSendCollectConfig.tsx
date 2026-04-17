@@ -85,6 +85,15 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
     mode: 'onBlur',
   });
 
+  // 追踪用户是否修改了表单（防止卸载时无变化也保存）
+  const isDirtyRef = useRef(false);
+  useEffect(() => {
+    const subscription = watch(() => {
+      isDirtyRef.current = true;
+    });
+    return () => subscription.unsubscribe();
+  }, [watch]);
+
   const outputMappings = useFieldArray({
     control,
     name: 'output_mappings' as never,
@@ -190,9 +199,10 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
     };
   }, []);
 
-  // 组件卸载时同步保存，防止点击画布导致编辑丢失
+  // 组件卸载时同步保存（仅当用户实际修改过表单时）
   useEffect(() => {
     return () => {
+      if (!isDirtyRef.current) return;
       try {
         const formData = getValues();
         const config = fromFormData(formData);
@@ -215,6 +225,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
   // 当外部数据变化时，重置表单（确保所有字段同步）
   useEffect(() => {
     reset(toFormData(data));
+    isDirtyRef.current = false;
   }, [data, reset]);
 
   /**
@@ -235,6 +246,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
+    if (!isDirtyRef.current) return;
     safeSetTimeout(saveData, 100);
   }, [safeSetTimeout, saveData]);
 

@@ -18,6 +18,8 @@ import { useZoomStore } from '@/stores/zoom';
  * - Ctrl/Cmd + B: 切换左侧面板
  * - Ctrl/Cmd + H: 切换历史面板
  * - Ctrl/Cmd + J: 切换配置面板
+ * - Ctrl/Cmd + Z: 撤销
+ * - Ctrl/Cmd + Shift + Z / Ctrl/Cmd + Y: 重做
  * - Ctrl/Cmd + =: 放大
  * - Ctrl/Cmd + -: 缩小
  * - Ctrl/Cmd + 0: 重置缩放
@@ -86,6 +88,27 @@ export function useKeyboardShortcuts() {
 
       // 快捷键：面板切换（仅在非输入状态）
       if (isInputting) return;
+
+      // Ctrl/Cmd + Shift + Z / Ctrl/Cmd + Y: 重做
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'Z' || e.key === 'z') && e.shiftKey) {
+        e.preventDefault();
+        useFlowStore.getState().redo();
+        return;
+      }
+
+      // Ctrl/Cmd + Y: 重做
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault();
+        useFlowStore.getState().redo();
+        return;
+      }
+
+      // Ctrl/Cmd + Z: 撤销
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
+        e.preventDefault();
+        useFlowStore.getState().undo();
+        return;
+      }
 
       // Ctrl/Cmd + S: 保存当前流程
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {

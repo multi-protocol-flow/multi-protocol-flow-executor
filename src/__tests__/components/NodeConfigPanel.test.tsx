@@ -12,6 +12,7 @@ vi.mock('@/stores', () => ({
   useFlowStore: vi.fn(),
   useUIStore: vi.fn(),
   useDebugStore: vi.fn(),
+  selectHistoryVersion: vi.fn(),
 }));
 
 // 模拟流程数据

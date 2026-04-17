@@ -17,6 +17,9 @@ export {
   selectIsDirty,
   selectNodes,
   selectConnections,
+  selectCanUndo,
+  selectCanRedo,
+  selectHistoryVersion,
 } from './flow';
 
 // FlowList store selectors

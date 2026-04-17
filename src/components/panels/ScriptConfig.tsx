@@ -203,6 +203,15 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
     mode: 'onBlur',
   });
 
+  // 追踪用户是否修改了表单（防止卸载时无变化也保存）
+  const isDirtyRef = useRef(false);
+  useEffect(() => {
+    const subscription = watch(() => {
+      isDirtyRef.current = true;
+    });
+    return () => subscription.unsubscribe();
+  }, [watch]);
+
   // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
   const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
@@ -213,9 +222,10 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
     };
   }, []);
 
-  // 组件卸载时同步保存，防止点击画布导致编辑丢失
+  // 组件卸载时同步保存（仅当用户实际修改过表单时）
   useEffect(() => {
     return () => {
+      if (!isDirtyRef.current) return;
       try {
         const formData = getValues();
         const config = fromFormData(formData);
@@ -244,6 +254,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
   // 当外部数据变化时，重置表单
   useEffect(() => {
     reset(toFormData(data));
+    isDirtyRef.current = false;
   }, [data, reset]);
 
   /**
@@ -264,6 +275,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
+    if (!isDirtyRef.current) return;
     // 延迟保存，确保表单校验完成
     safeSetTimeout(saveData, 100);
   }, [saveData]);

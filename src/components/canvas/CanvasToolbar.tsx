@@ -3,9 +3,9 @@
  * 位于画布顶部居中，包含执行按钮等操作
  */
 import { useState, useMemo } from 'react';
-import { Play, Square, Bug, Activity, Variable as VariableIcon, X } from 'lucide-react';
+import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Undo2, Redo2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging } from '@/stores';
+import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging, selectCanUndo, selectCanRedo } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
 import { useWsStreamStore } from '@/stores/wsStream';
@@ -26,6 +26,10 @@ import { VariablePanel, extractVariableGroups } from '@/components/panels/Variab
 export function CanvasToolbar() {
   const [isExecuting, setIsExecuting] = useState(false);
   const flow = useFlowStore((state) => state.flow);
+  const undo = useFlowStore((state) => state.undo);
+  const redo = useFlowStore((state) => state.redo);
+  const canUndo = useFlowStore(selectCanUndo);
+  const canRedo = useFlowStore(selectCanRedo);
   const setReport = useExecutionStore((state) => state.setReport);
   const setError = useExecutionStore((state) => state.setError);
   const addLog = useConsoleStore((state) => state.addLog);
@@ -167,6 +171,37 @@ export function CanvasToolbar() {
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-start gap-2">
       {/* 主工具栏 */}
       <div className="flex items-center gap-3 bg-background/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-border/50 dark:border-white/20">
+        {/* 撤销/重做按钮 */}
+        <button
+          type="button"
+          onClick={undo}
+          disabled={!canUndo}
+          title="撤销 (Ctrl+Z)"
+          className={cn(
+            'flex items-center justify-center transition-all duration-150',
+            canUndo && 'text-muted-foreground hover:text-foreground hover:scale-110 cursor-pointer',
+            !canUndo && 'text-muted-foreground/30 cursor-not-allowed'
+          )}
+        >
+          <Undo2 className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={redo}
+          disabled={!canRedo}
+          title="重做 (Ctrl+Shift+Z)"
+          className={cn(
+            'flex items-center justify-center transition-all duration-150',
+            canRedo && 'text-muted-foreground hover:text-foreground hover:scale-110 cursor-pointer',
+            !canRedo && 'text-muted-foreground/30 cursor-not-allowed'
+          )}
+        >
+          <Redo2 className="w-4 h-4" />
+        </button>
+
+        {/* 分隔线 */}
+        <div className="w-px h-5 bg-border" />
+
         {/* 执行/停止按钮 */}
         {isExecuting ? (
           <button

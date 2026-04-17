@@ -4,6 +4,23 @@
 import { create } from 'zustand';
 import type { Flow, Node, Connection, NodeType } from '@/types';
 
+/** 浅比较两个 Flow 对象是否相同（用于去重历史快照） */
+function isFlowEqual(a: Flow, b: Flow): boolean {
+  if (a.uuid !== b.uuid || a.name !== b.name) return false;
+  if (JSON.stringify(a.initial_variables) !== JSON.stringify(b.initial_variables)) return false;
+  if (a.nodes.length !== b.nodes.length) return false;
+  if (a.connections.length !== b.connections.length) return false;
+  // 逐节点比较（浅比较 JSON 序列化结果）
+  for (let i = 0; i < a.nodes.length; i++) {
+    if (a.nodes[i].uuid !== b.nodes[i].uuid) return false;
+    if (JSON.stringify(a.nodes[i]) !== JSON.stringify(b.nodes[i])) return false;
+  }
+  for (let i = 0; i < a.connections.length; i++) {
+    if (JSON.stringify(a.connections[i]) !== JSON.stringify(b.connections[i])) return false;
+  }
+  return true;
+}
+
 interface FlowState {
   /** 当前编辑的流程 */
   flow: Flow | null;
@@ -19,6 +36,12 @@ interface FlowState {
   isLocked: boolean;
   /** 锁定原因 */
   lockReason: string | null;
+  /** 撤销历史栈（最多 10 步） */
+  past: Flow[];
+  /** 重做历史栈（最多 10 步） */
+  future: Flow[];
+  /** 历史 version，每次 undo/redo 递增，用于通知 UI 同步表单状态 */
+  historyVersion: number;
 
   // ===== Actions =====
   /** 设置当前流程 */
@@ -61,6 +84,10 @@ interface FlowState {
   lockFlow: (reason: string) => void;
   /** 解锁流程 */
   unlockFlow: () => void;
+  /** 撤销 */
+  undo: () => void;
+  /** 重做 */
+  redo: () => void;
 
   // ===== Computed (Selectors) =====
   /** 获取当前选中的节点 */
@@ -69,6 +96,10 @@ interface FlowState {
   getNodeByUuid: (uuid: string) => Node | null;
   /** 检查节点是否有断点 */
   hasBreakpoint: (uuid: string) => boolean;
+  /** 是否可撤销 */
+  canUndo: () => boolean;
+  /** 是否可重做 */
+  canRedo: () => boolean;
 }
 
 const initialState = {
@@ -79,103 +110,134 @@ const initialState = {
   focusNodeUuid: null,
   isLocked: false,
   lockReason: null,
+  past: [],
+  future: [],
+  historyVersion: 0,
 };
 
-export const useFlowStore = create<FlowState>((set, get) => ({
-  ...initialState,
+export const useFlowStore = create<FlowState>((set, get) => {
+  /** 历史栈最大步数 */
+  const MAX_HISTORY = 10;
 
-  // ===== Actions =====
-  setFlow: (flow) => set({ flow, selectedNodeId: null, isDirty: false }),
+  /** 将当前 flow 推入历史栈（带去重：如果修改前后 flow 相同则跳过） */
+  function pushHistory(state: FlowState, newFlow: Flow): { past: Flow[]; future: Flow[] } | null {
+    // 去重：如果新 flow 和当前 flow（修改前）完全相同，说明没有实际变更，不推入
+    if (isFlowEqual(state.flow!, newFlow)) {
+      return null;
+    }
+    const newPast = [...state.past, state.flow!];
+    if (newPast.length > MAX_HISTORY) newPast.shift();
+    return { past: newPast, future: [] };
+  }
 
-  updateFlowName: (name) =>
-    set((state) => ({
-      flow: state.flow ? { ...state.flow, name } : null,
-      isDirty: true,
-    })),
+  return {
+    ...initialState,
 
-  updateInitialVariables: (variables) =>
-    set((state) => ({
-      flow: state.flow
-        ? { ...state.flow, initial_variables: variables }
-        : null,
-      isDirty: true,
-    })),
+    // ===== Actions =====
+    setFlow: (flow) => set({ flow, selectedNodeId: null, isDirty: false, past: [], future: [] }),
 
-  addNode: (node) =>
-    set((state) => ({
-      flow: state.flow
-        ? { ...state.flow, nodes: [...state.flow.nodes, node] }
-        : null,
-      isDirty: true,
-    })),
+    updateFlowName: (name) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const newFlow = { ...state.flow, name };
+        const history = pushHistory(state, newFlow);
+        if (!history) return { flow: newFlow, isDirty: true };
+        return { ...history, flow: newFlow, isDirty: true };
+      }),
 
-  updateNode: (uuid, updates) =>
-    set((state) => ({
-      flow: state.flow
-        ? {
-            ...state.flow,
-            nodes: state.flow.nodes.map((n) =>
-              n.uuid === uuid ? { ...n, ...updates } : n
-            ),
-          }
-        : null,
-      isDirty: true,
-    })),
+    updateInitialVariables: (variables) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const newFlow = { ...state.flow, initial_variables: variables };
+        const history = pushHistory(state, newFlow);
+        if (!history) return { flow: newFlow, isDirty: true };
+        return { ...history, flow: newFlow, isDirty: true };
+      }),
 
-  batchUpdateNodePositions: (positions) =>
-    set((state) => ({
-      flow: state.flow
-        ? {
-            ...state.flow,
-            nodes: state.flow.nodes.map((n) => {
-              const pos = positions.get(n.uuid);
-              return pos ? { ...n, position: { x: pos.x, y: pos.y } } : n;
-            }),
-          }
-        : null,
-      isDirty: true,
-    })),
+    addNode: (node) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const newFlow = { ...state.flow, nodes: [...state.flow.nodes, node] };
+        const history = pushHistory(state, newFlow);
+        if (!history) return { flow: newFlow, isDirty: true };
+        return { ...history, flow: newFlow, isDirty: true };
+      }),
 
-  removeNode: (uuid) =>
-    set((state) => ({
-      flow: state.flow
-        ? {
-            ...state.flow,
-            nodes: state.flow.nodes.filter((n) => n.uuid !== uuid),
-            connections: state.flow.connections.filter(
-              (c) =>
-                c.source_node_uuid !== uuid && c.target_node_uuid !== uuid
-            ),
-          }
-        : null,
-      selectedNodeId:
-        state.selectedNodeId === uuid ? null : state.selectedNodeId,
-      isDirty: true,
-    })),
+    updateNode: (uuid, updates) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const newFlow = {
+          ...state.flow,
+          nodes: state.flow.nodes.map((n) =>
+            n.uuid === uuid ? { ...n, ...updates } : n
+          ),
+        };
+        const history = pushHistory(state, newFlow);
+        if (!history) return { flow: newFlow, isDirty: true };
+        return { ...history, flow: newFlow, isDirty: true };
+      }),
 
-  addConnection: (connection) =>
-    set((state) => ({
-      flow: state.flow
-        ? {
-            ...state.flow,
-            connections: [...state.flow.connections, connection],
-          }
-        : null,
-      isDirty: true,
-    })),
+    batchUpdateNodePositions: (positions) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const newFlow = {
+          ...state.flow,
+          nodes: state.flow.nodes.map((n) => {
+            const pos = positions.get(n.uuid);
+            return pos ? { ...n, position: { x: pos.x, y: pos.y } } : n;
+          }),
+        };
+        const history = pushHistory(state, newFlow);
+        if (!history) return { flow: newFlow, isDirty: true };
+        return { ...history, flow: newFlow, isDirty: true };
+      }),
 
-  removeConnection: (id) =>
-    set((state) => ({
-      flow: state.flow
-        ? {
-            ...state.flow,
-            connections: state.flow.connections.filter(
-              (c) => c.id !== id
-            ),
-          }
-        : null,
-      isDirty: true,
-    })),
+    removeNode: (uuid) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const newFlow = {
+          ...state.flow,
+          nodes: state.flow.nodes.filter((n) => n.uuid !== uuid),
+          connections: state.flow.connections.filter(
+            (c) =>
+              c.source_node_uuid !== uuid && c.target_node_uuid !== uuid
+          ),
+        };
+        const history = pushHistory(state, newFlow);
+        return {
+          ...(history ?? {}),
+          flow: newFlow,
+          selectedNodeId:
+            state.selectedNodeId === uuid ? null : state.selectedNodeId,
+          isDirty: true,
+        };
+      }),
+
+    addConnection: (connection) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const newFlow = {
+          ...state.flow,
+          connections: [...state.flow.connections, connection],
+        };
+        const history = pushHistory(state, newFlow);
+        if (!history) return { flow: newFlow, isDirty: true };
+        return { ...history, flow: newFlow, isDirty: true };
+      }),
+
+    removeConnection: (id) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const newFlow = {
+          ...state.flow,
+          connections: state.flow.connections.filter(
+            (c) => c.id !== id
+          ),
+        };
+        const history = pushHistory(state, newFlow);
+        if (!history) return { flow: newFlow, isDirty: true };
+        return { ...history, flow: newFlow, isDirty: true };
+      }),
 
   selectNode: (uuid) => set({ selectedNodeId: uuid }),
 
@@ -237,6 +299,42 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   lockFlow: (reason) => set({ isLocked: true, lockReason: reason }),
   unlockFlow: () => set({ isLocked: false, lockReason: null }),
 
+  undo: () => {
+    const { flow, past, future, selectedNodeId, historyVersion } = get();
+    if (!flow || past.length === 0) return;
+    const restoredFlow = past[past.length - 1];
+    // 保留选中状态，仅当节点不存在于恢复后的 flow 时才清除
+    const stillExists = selectedNodeId
+      ? restoredFlow.nodes.some((n) => n.uuid === selectedNodeId)
+      : false;
+    set({
+      past: past.slice(0, -1),
+      future: [...future, flow],
+      flow: restoredFlow,
+      selectedNodeId: stillExists ? selectedNodeId : null,
+      isDirty: true,
+      historyVersion: historyVersion + 1,
+    });
+  },
+
+  redo: () => {
+    const { flow, past, future, selectedNodeId, historyVersion } = get();
+    if (!flow || future.length === 0) return;
+    const restoredFlow = future[future.length - 1];
+    // 保留选中状态，仅当节点不存在于恢复后的 flow 时才清除
+    const stillExists = selectedNodeId
+      ? restoredFlow.nodes.some((n) => n.uuid === selectedNodeId)
+      : false;
+    set({
+      past: [...past, flow],
+      future: future.slice(0, -1),
+      flow: restoredFlow,
+      selectedNodeId: stillExists ? selectedNodeId : null,
+      isDirty: true,
+      historyVersion: historyVersion + 1,
+    });
+  },
+
   // ===== Computed (Selectors) =====
   getSelectedNode: () => {
     const { flow, selectedNodeId } = get();
@@ -256,7 +354,11 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     const node = flow.nodes.find((n) => n.uuid === uuid);
     return node?.hasBreakpoint ?? false;
   },
-}));
+
+  canUndo: () => get().past.length > 0,
+  canRedo: () => get().future.length > 0,
+  };
+});
 
 // ===== Selectors =====
 /** 选择当前流程 */
@@ -274,3 +376,9 @@ export const selectConnections = (state: FlowState) =>
 export const selectIsLocked = (state: FlowState) => state.isLocked;
 /** 选择锁定原因 */
 export const selectLockReason = (state: FlowState) => state.lockReason;
+/** 选择是否可撤销 */
+export const selectCanUndo = (state: FlowState) => state.past.length > 0;
+/** 选择是否可重做 */
+export const selectCanRedo = (state: FlowState) => state.future.length > 0;
+/** 选择历史版本号 */
+export const selectHistoryVersion = (state: FlowState) => state.historyVersion;

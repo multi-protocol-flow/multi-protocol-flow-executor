@@ -18,6 +18,8 @@ vi.mock('@/stores', () => ({
   useDebugStore: vi.fn(),
   useStressTestStore: vi.fn(),
   selectIsDebugging: vi.fn((state) => state.status !== 'idle' && state.status !== 'ended'),
+  selectCanUndo: vi.fn((state) => state.past?.length > 0),
+  selectCanRedo: vi.fn((state) => state.future?.length > 0),
 }));
 
 // Mock console store
@@ -52,7 +54,7 @@ describe('CanvasToolbar', () => {
 
     // Default mocks for disabled state (no flow)
     (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { flow: null }) => unknown) => selector({ flow: null })
+      (selector: (state: { flow: null; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: null, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
     );
     const mockExecutionState = {
       setReport: mockSetReport,
@@ -170,14 +172,19 @@ describe('CanvasToolbar', () => {
       expect(toolbar).toBeInTheDocument();
 
       const children = toolbar?.children;
-      expect(children).toHaveLength(3);
+      expect(children).toHaveLength(6);
 
-      // 第一个是执行按钮
-      expect(children?.[0]).toHaveAttribute('title', '执行流程');
-      // 第二个是调试按钮
-      expect(children?.[1]).toHaveAttribute('title', '开始调试');
-      // 第三个是压测按钮
-      expect(children?.[2]).toHaveAttribute('title', '压力测试');
+      // 前两个是撤销/重做按钮
+      expect(children?.[0]).toHaveAttribute('title', '撤销 (Ctrl+Z)');
+      expect(children?.[1]).toHaveAttribute('title', '重做 (Ctrl+Shift+Z)');
+      // 第三个是分隔线
+      expect(children?.[2]).toHaveClass('bg-border');
+      // 第四个是执行按钮
+      expect(children?.[3]).toHaveAttribute('title', '执行流程');
+      // 第五个是调试按钮
+      expect(children?.[4]).toHaveAttribute('title', '开始调试');
+      // 第六个是压测按钮
+      expect(children?.[5]).toHaveAttribute('title', '压力测试');
     });
   });
 
@@ -206,7 +213,7 @@ describe('CanvasToolbar', () => {
       };
 
       (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-        (selector: (state: { flow: typeof mockFlow }) => unknown) => selector({ flow: mockFlow })
+        (selector: (state: { flow: typeof mockFlow; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: mockFlow, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
       );
 
       render(<CanvasToolbar />);
@@ -232,7 +239,7 @@ describe('CanvasToolbar', () => {
       };
 
       (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-        (selector: (state: { flow: typeof mockFlow }) => unknown) => selector({ flow: mockFlow })
+        (selector: (state: { flow: typeof mockFlow; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: mockFlow, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
       );
 
       render(<CanvasToolbar />);
@@ -258,7 +265,7 @@ describe('CanvasToolbar', () => {
       };
 
       (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-        (selector: (state: { flow: typeof mockFlow }) => unknown) => selector({ flow: mockFlow })
+        (selector: (state: { flow: typeof mockFlow; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: mockFlow, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
       );
 
       render(<CanvasToolbar />);
@@ -313,7 +320,7 @@ describe('CanvasToolbar', () => {
       };
 
       (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-        (selector: (state: { flow: typeof mockFlow }) => unknown) => selector({ flow: mockFlow })
+        (selector: (state: { flow: typeof mockFlow; undo: ReturnType<typeof vi.fn>; redo: ReturnType<typeof vi.fn>; past: never[]; future: never[] }) => unknown) => selector({ flow: mockFlow, undo: vi.fn(), redo: vi.fn(), past: [], future: [] })
       );
 
       const { executeFlowWithChannel } = await import('@/services/tauri');

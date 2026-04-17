@@ -3,7 +3,7 @@
  * 根据节点类型显示不同的配置表单
  */
 import { useState, useRef, useMemo } from 'react';
-import { useFlowStore, useDebugStore } from '@/stores';
+import { useFlowStore, useDebugStore, selectHistoryVersion } from '@/stores';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
 import { EntryConfig } from './EntryConfig';
 import { HttpConfig } from './HttpConfig';
@@ -35,8 +35,9 @@ interface NodeConfigPanelProps {
 }
 
 export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeConfigPanelProps) {
-  const { getSelectedNode, updateNode } = useFlowStore();
+  const { flow, getSelectedNode, updateNode } = useFlowStore();
   const modifyNodeConfig = useDebugStore((state) => state.modifyNodeConfig);
+  const historyVersion = useFlowStore(selectHistoryVersion);
   
   // 优先使用外部传入的节点，否则回退到 store 中的选中节点
   const selectedNode = externalNode ?? getSelectedNode();
@@ -47,10 +48,11 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
     frozenNodeUuidRef.current = selectedNode.uuid;
   }
 
-  // 稳定数据引用：仅在节点 UUID 变化时更新
+  // 稳定数据引用：仅在节点 UUID 变化或 undo/redo 时更新
   // 避免自动保存后 store 更新 → data prop 变化 → 子组件 reset() → 输入框失焦
+  // historyVersion 作为额外依赖，确保 undo/redo 能正确同步表单状态
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const stableData = useMemo(() => selectedNode?.data ?? null, [selectedNode?.uuid]);
+  const stableData = useMemo(() => selectedNode?.data ?? null, [selectedNode?.uuid, historyVersion]);
 
   // 调试模式下编辑配置弹窗状态
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -84,9 +86,15 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   /**
    * 处理配置保存
    * 使用 ref 持久化的 UUID，确保取消选中节点后仍能正确保存
+   * 去重：如果 data 和当前节点数据相同则跳过，避免卸载时自动保存产生无效快照
    */
   const handleSave = (data: NodeData) => {
     if (frozenNodeUuidRef.current) {
+      // 从 flow 中按 UUID 查找节点（不用 getSelectedNode，因为卸载时选中状态可能已变）
+      const node = flow?.nodes.find((n) => n.uuid === frozenNodeUuidRef.current);
+      if (node && JSON.stringify(node.data) === JSON.stringify(data)) {
+        return;
+      }
       updateNode(frozenNodeUuidRef.current, { data });
     }
   };
