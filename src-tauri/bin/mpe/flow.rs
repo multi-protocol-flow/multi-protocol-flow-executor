@@ -36,7 +36,7 @@ async fn execute_list(
     let flows_dir = &config.flows_dir;
 
     let mut list = app_lib::storage::list_flow_files(flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     // 搜索过滤
     if let Some(ref keyword) = search {
@@ -81,11 +81,11 @@ async fn execute_show(uuid_or_path: &str) -> Result<(), CliError> {
     let flow = if is_file_path(uuid_or_path) {
         // 文件路径直接加载
         app_lib::storage::load_flow(uuid_or_path)
-            .map_err(|e| CliError::Execution(e))?
+            .map_err(CliError::Execution)?
     } else {
         // UUID 加载
         app_lib::storage::load_flow_file(uuid_or_path, flows_dir)
-            .map_err(|e| CliError::Execution(e))?
+            .map_err(CliError::Execution)?
     };
 
     let output = CliOutput::success(flow);
@@ -108,7 +108,7 @@ async fn execute_create(name: &str) -> Result<(), CliError> {
     let output = app_lib::commands::create_flow(input);
 
     app_lib::storage::save_flow_file(&output.flow, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     let cli_output = CliOutput::success(output.flow);
     super::output::output_json(&cli_output);
@@ -121,7 +121,7 @@ async fn execute_copy(uuid: &str) -> Result<(), CliError> {
     let flows_dir = &config.flows_dir;
 
     let copied = app_lib::storage::copy_flow_file(uuid, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     let output = CliOutput::success(copied);
     super::output::output_json(&output);
@@ -134,7 +134,7 @@ async fn execute_delete(uuid: &str) -> Result<(), CliError> {
     let flows_dir = &config.flows_dir;
 
     app_lib::storage::delete_flow_file(uuid, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     #[derive(serde::Serialize)]
     struct DeletedResult {
@@ -159,7 +159,7 @@ async fn execute_import(flow_path: &str, name: &str) -> Result<(), CliError> {
 
     // 加载外部流程文件
     let mut flow = app_lib::storage::load_flow(flow_path)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     // 修改名称，生成新 UUID
     flow.name = name.to_string();
@@ -167,7 +167,7 @@ async fn execute_import(flow_path: &str, name: &str) -> Result<(), CliError> {
 
     // 保存到 flows_dir
     app_lib::storage::save_flow_file(&flow, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     let output = CliOutput::success(flow);
     super::output::output_json(&output);

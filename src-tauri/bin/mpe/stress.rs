@@ -80,7 +80,7 @@ async fn execute_run(
                 match event {
                     Some(evt) => {
                         if let app_lib::stress_test::StressTestEvent::Ended { ref report } = evt {
-                            final_report = Some(report.clone());
+                            final_report = Some((**report).clone());
                         }
                         output::output_ndjson(&evt);
                     }

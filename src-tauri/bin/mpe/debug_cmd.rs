@@ -23,7 +23,7 @@ use super::output;
 
 // ── 变量解析 ──────────────────────────────────────────────────────
 
-/// 解析 `--var key=value` 参数为 HashMap
+/// 解析 `--var key=value` 参数为 `HashMap`
 ///
 /// 值优先尝试 JSON 解析，失败则作为纯字符串处理。
 fn parse_vars(vars: &[String]) -> Result<HashMap<String, serde_json::Value>, super::CliError> {
@@ -39,7 +39,7 @@ fn parse_vars(vars: &[String]) -> Result<HashMap<String, serde_json::Value>, sup
     Ok(map)
 }
 
-/// 判断是否为 SessionEnded 事件
+/// 判断是否为 `SessionEnded` 事件
 fn is_session_ended(event: &app_lib::debug::DebugEvent) -> bool {
     matches!(event, app_lib::debug::DebugEvent::SessionEnded { .. })
 }
@@ -77,7 +77,6 @@ pub async fn execute(
         let map = parse_vars(vars)?;
         Some(serde_json::Value::Object(
             map.into_iter()
-                .map(|(k, v)| (k, v))
                 .collect::<serde_json::Map<_, _>>(),
         ))
     };

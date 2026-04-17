@@ -53,6 +53,7 @@ pub struct AppConfig {
     /// 报告存储目录
     pub reports_dir: PathBuf,
     /// 日志存储目录
+    #[allow(dead_code)]
     pub logs_dir: PathBuf,
 }
 
@@ -164,9 +165,14 @@ impl AppConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{LazyLock, Mutex};
+
+    /// 全局互斥锁，序列化所有涉及环境变量的测试，避免并行竞争
+    static ENV_TEST_MUTEX: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
     #[test]
     fn test_load_config_returns_defaults_when_no_file() {
+        let _lock = ENV_TEST_MUTEX.lock().unwrap();
         // 清除可能存在的环境变量，确保测试隔离
         std::env::remove_var("MPE_CONFIG");
         std::env::remove_var("MPE_FLOWS_DIR");
@@ -185,6 +191,14 @@ mod tests {
 
     #[test]
     fn test_env_var_overrides_default() {
+        let _lock = ENV_TEST_MUTEX.lock().unwrap();
+
+        // 清除所有相关环境变量，确保测试隔离
+        std::env::remove_var("MPE_CONFIG");
+        std::env::remove_var("MPE_FLOWS_DIR");
+        std::env::remove_var("MPE_REPORTS_DIR");
+        std::env::remove_var("MPE_LOGS_DIR");
+
         let temp = std::env::temp_dir();
 
         std::env::set_var("MPE_FLOWS_DIR", temp.to_string_lossy().as_ref());
@@ -205,6 +219,14 @@ mod tests {
 
     #[test]
     fn test_relative_path_in_env_var_fails() {
+        let _lock = ENV_TEST_MUTEX.lock().unwrap();
+
+        // 清除所有相关环境变量，避免并行测试竞争
+        std::env::remove_var("MPE_CONFIG");
+        std::env::remove_var("MPE_FLOWS_DIR");
+        std::env::remove_var("MPE_REPORTS_DIR");
+        std::env::remove_var("MPE_LOGS_DIR");
+
         std::env::set_var("MPE_FLOWS_DIR", "relative/path");
 
         let result = AppConfig::load();
@@ -216,6 +238,8 @@ mod tests {
 
     #[test]
     fn test_config_file_with_storage_section() {
+        let _lock = ENV_TEST_MUTEX.lock().unwrap();
+
         let temp_dir = tempfile::tempdir().expect("创建临时目录失败");
         let config_path = temp_dir.path().join("config.toml");
 

@@ -408,7 +408,7 @@ impl StressTestExecutor {
         }
 
         // 发送结束事件
-        let _ = event_sender.send(StressTestEvent::Ended { report });
+        let _ = event_sender.send(StressTestEvent::Ended { report: Box::new(report) });
 
         log::info!("[压测] 压力测试完成: flow={}", flow.uuid);
     }

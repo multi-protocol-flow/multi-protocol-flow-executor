@@ -13,7 +13,7 @@ use super::output::CliOutput;
 
 // ── 变量解析 ──────────────────────────────────────────────────────
 
-/// 将 `--var key=value` 参数解析为 HashMap
+/// 将 `--var key=value` 参数解析为 `HashMap`
 ///
 /// 值优先尝试解析为 JSON（数字、布尔等），失败则作为字符串处理。
 fn parse_vars(vars: &[String]) -> Result<HashMap<String, serde_json::Value>, CliError> {
@@ -136,7 +136,7 @@ pub async fn execute(
     Ok(())
 }
 
-/// 非流式执行 — 直接调用 FlowExecutor
+/// 非流式执行 — 直接调用 `FlowExecutor`
 async fn execute_simple(
     path: PathBuf,
     flow: &app_lib::flow::Flow,

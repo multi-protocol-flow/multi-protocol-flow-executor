@@ -54,7 +54,7 @@ pub enum StressTestEvent {
     /// 压力测试已结束
     Ended {
         /// 最终报告
-        report: StressTestReport,
+        report: Box<StressTestReport>,
     },
 }
 
@@ -429,7 +429,7 @@ mod tests {
             node_type_statistics: vec![],
             progress_history: vec![],
         };
-        let event = StressTestEvent::Ended { report };
+        let event = StressTestEvent::Ended { report: Box::new(report) };
 
         let json = serde_json::to_string(&event).expect("序列化失败");
         assert!(json.contains("ended"));
@@ -451,7 +451,7 @@ mod tests {
                 progress: StressTestProgress::default(),
             },
             StressTestEvent::Ended {
-                report: StressTestReport::default(),
+                report: Box::new(StressTestReport::default()),
             },
         ];
 

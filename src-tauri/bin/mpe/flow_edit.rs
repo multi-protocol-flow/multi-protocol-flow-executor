@@ -55,13 +55,13 @@ pub async fn execute(
     }
 }
 
-/// 解析字符串为 NodeType
+/// 解析字符串为 `NodeType`
 fn parse_node_type(type_str: &str) -> Result<NodeType, CliError> {
     serde_json::from_value(serde_json::Value::String(type_str.to_string()))
         .map_err(|e| CliError::InvalidArgs(format!("无效的节点类型 '{}': {}", type_str, e)))
 }
 
-/// 根据节点类型和可选配置 JSON 创建 NodeData
+/// 根据节点类型和可选配置 JSON 创建 `NodeData`
 fn create_node_data(
     node_type: &NodeType,
     config_json: Option<&str>,
@@ -78,7 +78,7 @@ fn create_node_data(
     Ok(default_node_data(node_type))
 }
 
-/// 根据 NodeType 返回默认 NodeData
+/// 根据 `NodeType` 返回默认 `NodeData`
 fn default_node_data(node_type: &NodeType) -> NodeData {
     match node_type {
         NodeType::Entry => NodeData::entry(),
@@ -122,7 +122,7 @@ async fn execute_node_add(
     config_json: Option<&str>,
 ) -> Result<(), CliError> {
     let mut flow = app_lib::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     let node_type = parse_node_type(type_str)?;
     let data = create_node_data(&node_type, config_json)?;
@@ -140,7 +140,7 @@ async fn execute_node_add(
     flow.nodes.push(node);
 
     app_lib::storage::save_flow_file(&flow, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     let output = CliOutput::success(&flow);
     super::output::output_json(&output);
@@ -154,7 +154,7 @@ async fn execute_node_remove(
     node_uuid: &str,
 ) -> Result<(), CliError> {
     let mut flow = app_lib::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     // 检查节点是否存在
     let node_idx = flow
@@ -171,7 +171,7 @@ async fn execute_node_remove(
         .retain(|c| c.source_node_uuid != node_uuid && c.target_node_uuid != node_uuid);
 
     app_lib::storage::save_flow_file(&flow, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     let output = CliOutput::success(&flow);
     super::output::output_json(&output);
@@ -186,7 +186,7 @@ async fn execute_node_update(
     config_json: Option<&str>,
 ) -> Result<(), CliError> {
     let mut flow = app_lib::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     let node = flow
         .nodes
@@ -203,7 +203,7 @@ async fn execute_node_update(
     // config 为 None 时不做任何修改
 
     app_lib::storage::save_flow_file(&flow, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     let output = CliOutput::success(&flow);
     super::output::output_json(&output);
@@ -222,7 +222,7 @@ async fn execute_connection_add(
     target_port: &str,
 ) -> Result<(), CliError> {
     let mut flow = app_lib::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     // 验证源节点存在
     if !flow.nodes.iter().any(|n| n.uuid == source_uuid) {
@@ -251,7 +251,7 @@ async fn execute_connection_add(
     flow.connections.push(connection);
 
     app_lib::storage::save_flow_file(&flow, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     let output = CliOutput::success(&flow);
     super::output::output_json(&output);
@@ -265,7 +265,7 @@ async fn execute_connection_remove(
     connection_id: &str,
 ) -> Result<(), CliError> {
     let mut flow = app_lib::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     let before = flow.connections.len();
     flow.connections.retain(|c| c.id != connection_id);
@@ -278,7 +278,7 @@ async fn execute_connection_remove(
     }
 
     app_lib::storage::save_flow_file(&flow, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     let output = CliOutput::success(&flow);
     super::output::output_json(&output);
@@ -295,7 +295,7 @@ async fn execute_variable_set(
     value: &str,
 ) -> Result<(), CliError> {
     let mut flow = app_lib::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     // 尝试解析为 JSON 值，失败则作为字符串
     let json_value: serde_json::Value =
@@ -311,7 +311,7 @@ async fn execute_variable_set(
     }
 
     app_lib::storage::save_flow_file(&flow, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     let output = CliOutput::success(&flow);
     super::output::output_json(&output);
@@ -325,7 +325,7 @@ async fn execute_variable_remove(
     key: &str,
 ) -> Result<(), CliError> {
     let mut flow = app_lib::storage::load_flow_file(flow_uuid, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     match flow.initial_variables {
         Some(ref mut vars) => {
@@ -349,7 +349,7 @@ async fn execute_variable_remove(
     }
 
     app_lib::storage::save_flow_file(&flow, flows_dir)
-        .map_err(|e| CliError::Execution(e))?;
+        .map_err(CliError::Execution)?;
 
     let output = CliOutput::success(&flow);
     super::output::output_json(&output);
