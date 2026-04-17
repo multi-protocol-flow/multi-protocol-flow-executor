@@ -286,6 +286,11 @@ pub struct StressTestReport {
     /// 进度历史数据（用于折线图等可视化，每次进度事件记录一条）
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub progress_history: Vec<StressTestProgress>,
+
+    // ===== Flow 快照 =====
+    /// Flow 快照（执行时的流程完整副本）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flow_snapshot: Option<flow_engine_core::flow::Flow>,
 }
 
 #[cfg(test)]
@@ -412,6 +417,7 @@ mod tests {
             node_statistics: vec![],
             node_type_statistics: vec![],
             progress_history: vec![],
+            flow_snapshot: None,
         };
 
         let json = serde_json::to_string(&report).expect("序列化失败");
@@ -455,6 +461,7 @@ mod tests {
             node_statistics: vec![],
             node_type_statistics: vec![],
             progress_history: vec![],
+            flow_snapshot: None,
         };
 
         let json = serde_json::to_string(&report).expect("序列化失败");
@@ -472,5 +479,109 @@ mod tests {
 
         let deserialized: StressTestStatus = serde_json::from_str(&json).expect("反序列化失败");
         assert_eq!(deserialized, StressTestStatus::Running);
+    }
+
+    /// 测试 flow_snapshot 序列化往返（camelCase 键名）
+    #[test]
+    fn test_stress_test_report_snapshot_serialization() {
+        let flow = flow_engine_core::flow::Flow {
+            uuid: "flow-snap-001".to_string(),
+            name: "Snapshot Flow".to_string(),
+            initial_variables: None,
+            nodes: vec![],
+            connections: vec![],
+        };
+
+        let report = StressTestReport {
+            uuid: "report-snap-001".to_string(),
+            flow_uuid: "flow-snap-001".to_string(),
+            flow_name: "Snapshot Flow".to_string(),
+            start_time: 1000,
+            end_time: 2000,
+            duration_ms: 1000,
+            config: StressTestConfig::default(),
+            statistics: StressTestStatistics::default(),
+            response_time_distribution: ResponseTimeDistribution::default(),
+            error_statistics: vec![],
+            node_statistics: vec![],
+            node_type_statistics: vec![],
+            progress_history: vec![],
+            flow_snapshot: Some(flow.clone()),
+        };
+
+        let json = serde_json::to_string(&report).expect("序列化失败");
+        // rename_all = "camelCase" → flowSnapshot
+        assert!(json.contains("flowSnapshot"));
+        assert!(json.contains("flow-snap-001"));
+
+        // 反序列化往返
+        let deserialized: StressTestReport = serde_json::from_str(&json).expect("反序列化失败");
+        assert_eq!(deserialized.flow_snapshot, Some(flow));
+    }
+
+    /// 测试 flow_snapshot 向后兼容（JSON 中缺少字段时反序列化为 None）
+    #[test]
+    fn test_stress_test_report_snapshot_backward_compat() {
+        let json = r#"{
+            "uuid": "report-bc-001",
+            "flowUuid": "flow-bc-001",
+            "flowName": "BackCompat Flow",
+            "startTime": 1000,
+            "endTime": 2000,
+            "durationMs": 1000,
+            "config": {
+                "concurrentUsers": 10,
+                "rampUpSeconds": 10,
+                "durationSeconds": 60,
+                "flowUuid": "flow-bc-001"
+            },
+            "statistics": {
+                "totalIterations": 0,
+                "successful": 0,
+                "failed": 0,
+                "successRate": 0.0,
+                "rps": 0.0
+            },
+            "responseTimeDistribution": {
+                "avgMs": 0.0,
+                "minMs": 0,
+                "maxMs": 0,
+                "p50Ms": 0,
+                "p90Ms": 0,
+                "p95Ms": 0,
+                "p99Ms": 0
+            }
+        }"#;
+
+        let report: StressTestReport = serde_json::from_str(json).expect("反序列化失败");
+        assert_eq!(report.uuid, "report-bc-001");
+        assert!(report.flow_snapshot.is_none());
+    }
+
+    /// 测试 flow_snapshot 为 None 时序列化结果不包含该字段
+    #[test]
+    fn test_stress_test_report_snapshot_skip_when_none() {
+        let report = StressTestReport {
+            uuid: "report-skip-001".to_string(),
+            flow_uuid: "flow-skip-001".to_string(),
+            flow_name: "Skip Flow".to_string(),
+            start_time: 1000,
+            end_time: 2000,
+            duration_ms: 1000,
+            config: StressTestConfig::default(),
+            statistics: StressTestStatistics::default(),
+            response_time_distribution: ResponseTimeDistribution::default(),
+            error_statistics: vec![],
+            node_statistics: vec![],
+            node_type_statistics: vec![],
+            progress_history: vec![],
+            flow_snapshot: None,
+        };
+
+        let json = serde_json::to_string(&report).expect("序列化失败");
+        assert!(
+            !json.contains("flowSnapshot"),
+            "flow_snapshot 为 None 时不应出现在 JSON 中"
+        );
     }
 }

@@ -550,6 +550,7 @@ impl StressTestExecutor {
             node_statistics,
             node_type_statistics,
             progress_history: progress_history.to_vec(),
+            flow_snapshot: None,
         }
     }
 }

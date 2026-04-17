@@ -1573,6 +1573,7 @@ mod tests {
             node_statistics: vec![],
             node_type_statistics: vec![],
             progress_history: vec![],
+            flow_snapshot: None,
         };
 
         // 保存报告
@@ -1627,6 +1628,7 @@ mod tests {
                 node_statistics: vec![],
                 node_type_statistics: vec![],
                 progress_history: vec![],
+                flow_snapshot: None,
             },
             StressTestReport {
                 uuid: "report-002".to_string(),
@@ -1642,6 +1644,7 @@ mod tests {
                 node_statistics: vec![],
                 node_type_statistics: vec![],
                 progress_history: vec![],
+                flow_snapshot: None,
             },
             StressTestReport {
                 uuid: "report-003".to_string(),
@@ -1657,6 +1660,7 @@ mod tests {
                 node_statistics: vec![],
                 node_type_statistics: vec![],
                 progress_history: vec![],
+                flow_snapshot: None,
             },
         ];
 

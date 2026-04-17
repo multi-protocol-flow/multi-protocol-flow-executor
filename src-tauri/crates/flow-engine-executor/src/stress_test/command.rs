@@ -428,6 +428,7 @@ mod tests {
             node_statistics: vec![],
             node_type_statistics: vec![],
             progress_history: vec![],
+            flow_snapshot: None,
         };
         let event = StressTestEvent::Ended { report: Box::new(report) };
 

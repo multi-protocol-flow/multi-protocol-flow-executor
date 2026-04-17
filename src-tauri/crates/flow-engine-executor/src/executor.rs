@@ -988,6 +988,7 @@ impl FlowExecutor {
                             execution_path: execution_path.clone(),
                             skipped_nodes: skipped_nodes.clone(),
                             ws_streams,
+                            flow_snapshot: Some(flow.clone()),
                         };
 
                         return ExecutionResult {
@@ -1095,6 +1096,7 @@ impl FlowExecutor {
             execution_path,
             skipped_nodes,
             ws_streams,
+            flow_snapshot: Some(flow.clone()),
         };
 
         // 发送流程结束事件

@@ -1287,6 +1287,7 @@ impl DebuggableFlowExecutor {
                 let streams = context.ws_streams.read().await;
                 streams.values().cloned().collect()
             },
+            flow_snapshot: Some(flow.clone()),
         }
     }
 }

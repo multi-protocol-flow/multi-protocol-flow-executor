@@ -110,6 +110,7 @@ mod tests {
             execution_path: vec!["node-1".to_string(), "node-2".to_string()],
             skipped_nodes: vec![],
             ws_streams: vec![],
+            flow_snapshot: None,
         }
     }
 
