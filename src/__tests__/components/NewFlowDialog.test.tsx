@@ -29,6 +29,8 @@ vi.mock('@/services/storage', () => ({
     deleteFlow: vi.fn(),
     copyFlow: vi.fn(),
     refreshFlows: vi.fn(),
+    listFolders: vi.fn().mockResolvedValue([]),
+    moveFlowToFolder: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -42,8 +44,8 @@ describe('NewFlowDialog', () => {
 
     // Setup store mocks
     (useUIStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { showNewFlowDialog: boolean; closeNewFlowDialog: typeof mockCloseNewFlowDialog }) => unknown) => {
-        const state = { showNewFlowDialog: true, closeNewFlowDialog: mockCloseNewFlowDialog };
+      (selector: (state: { showNewFlowDialog: boolean; closeNewFlowDialog: typeof mockCloseNewFlowDialog; newFlowDialogFolderPath: string }) => unknown) => {
+        const state = { showNewFlowDialog: true, closeNewFlowDialog: mockCloseNewFlowDialog, newFlowDialogFolderPath: '' };
         return selector(state);
       }
     );
@@ -65,8 +67,8 @@ describe('NewFlowDialog', () => {
 
   it('当对话框关闭时不渲染', () => {
     (useUIStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { showNewFlowDialog: boolean; closeNewFlowDialog: typeof mockCloseNewFlowDialog }) => unknown) => {
-        const state = { showNewFlowDialog: false, closeNewFlowDialog: mockCloseNewFlowDialog };
+      (selector: (state: { showNewFlowDialog: boolean; closeNewFlowDialog: typeof mockCloseNewFlowDialog; newFlowDialogFolderPath: string }) => unknown) => {
+        const state = { showNewFlowDialog: false, closeNewFlowDialog: mockCloseNewFlowDialog, newFlowDialogFolderPath: '' };
         return selector(state);
       }
     );

@@ -658,13 +658,16 @@ describe('ExecutionStore', () => {
       expect(state.totalNodes).toBe(0);
     });
 
-    it('should not affect report and history', () => {
+    it('should also clear report and error', () => {
       const report = createMockReport();
       useExecutionStore.getState().setReport(report);
+      useExecutionStore.getState().setError('test error');
       useExecutionStore.getState().clearExecutionState();
 
       const state = useExecutionStore.getState();
-      expect(state.report).toEqual(report);
+      expect(state.report).toBeNull();
+      expect(state.error).toBeNull();
+      // history 不受影响
       expect(state.history).toHaveLength(1);
     });
   });

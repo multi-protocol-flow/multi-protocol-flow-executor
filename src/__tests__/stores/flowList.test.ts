@@ -33,12 +33,12 @@ describe('FlowListStore', () => {
       expect(useFlowListStore.getState().searchKeyword).toBe('');
     });
 
-    it('初始 sortBy 为 updated_at', () => {
-      expect(useFlowListStore.getState().sortBy).toBe('updated_at');
+    it('初始 sortBy 为 name', () => {
+      expect(useFlowListStore.getState().sortBy).toBe('name');
     });
 
-    it('初始 sortOrder 为 desc', () => {
-      expect(useFlowListStore.getState().sortOrder).toBe('desc');
+    it('初始 sortOrder 为 asc', () => {
+      expect(useFlowListStore.getState().sortOrder).toBe('asc');
     });
   });
 
@@ -223,8 +223,8 @@ describe('FlowListStore', () => {
       expect(state.flows).toEqual([]);
       expect(state.isLoading).toBe(false);
       expect(state.searchKeyword).toBe('');
-      expect(state.sortBy).toBe('updated_at');
-      expect(state.sortOrder).toBe('desc');
+      expect(state.sortBy).toBe('name');
+      expect(state.sortOrder).toBe('asc');
     });
   });
 

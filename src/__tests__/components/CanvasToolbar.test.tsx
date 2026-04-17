@@ -82,6 +82,8 @@ describe('CanvasToolbar', () => {
     );
     // ExecuteButton 使用 getState() 直接调用
     (useUIStore as unknown as Record<string, unknown>).getState = vi.fn(() => mockUIState);
+    // ExecuteButton 使用 setState 直接调用
+    (useUIStore as unknown as Record<string, unknown>).setState = vi.fn();
 
     // Mock console store
     (useConsoleStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(

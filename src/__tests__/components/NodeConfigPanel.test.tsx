@@ -318,11 +318,10 @@ describe('EntryConfig', () => {
     expect(screen.getByText(/入口节点是流程的起点/)).toBeDefined();
   });
 
-  it('显示功能说明', () => {
+  it('显示初始变量区域', () => {
     render(<EntryConfig data={{ type: 'entry' }} onSave={() => {}} />);
 
     expect(screen.getByText('初始变量')).toBeDefined();
-    expect(screen.getByText('执行流程')).toBeDefined();
     expect(screen.getByText('暂无初始变量')).toBeDefined();
   });
 });

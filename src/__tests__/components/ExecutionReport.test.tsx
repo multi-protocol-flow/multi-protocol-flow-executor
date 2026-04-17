@@ -206,8 +206,8 @@ describe('ExecutionReport', () => {
 
     // 检查节点类型标签 - 分栏布局下类型标签在左右两侧都会出现
     expect(screen.getAllByText('入口').length).toBeGreaterThan(0);
-    // HTTP 请求会出现在节点名称和类型标签中
-    expect(screen.getAllByText('HTTP 请求').length).toBeGreaterThan(0);
+    // HTTP 类型标签
+    expect(screen.getAllByText('HTTP').length).toBeGreaterThan(0);
   });
 
   it('显示正确的统计卡片数值', () => {

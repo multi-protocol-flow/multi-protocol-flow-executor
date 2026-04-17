@@ -260,7 +260,7 @@ describe('NodeExecutionDetails', () => {
       const report = createMockReport({ node_type: 'http' });
       render(<NodeExecutionDetails report={report} />);
 
-      expect(screen.getByText('HTTP 请求')).toBeDefined();
+      expect(screen.getByText('HTTP')).toBeDefined();
     });
 
     it('显示 Entry 节点类型标签', () => {
@@ -274,7 +274,7 @@ describe('NodeExecutionDetails', () => {
       const report = createMockReport({ node_type: 'conditional' });
       render(<NodeExecutionDetails report={report} />);
 
-      expect(screen.getByText('条件分支')).toBeDefined();
+      expect(screen.getByText('条件')).toBeDefined();
     });
 
     it('显示未知节点类型的原始值', () => {

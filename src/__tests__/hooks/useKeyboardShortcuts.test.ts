@@ -24,6 +24,29 @@ vi.mock('@/stores', () => ({
   })),
 }));
 
+// Mock flowStorage (hook imports it for Ctrl+S)
+vi.mock('@/services/storage', () => ({
+  flowStorage: {
+    saveFlow: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+// Mock zoom store (hook imports it for zoom shortcuts)
+vi.mock('@/stores/zoom', () => ({
+  useZoomStore: {
+    getState: vi.fn(() => ({
+      zoomIn: vi.fn(),
+      zoomOut: vi.fn(),
+      resetZoom: vi.fn(),
+    })),
+  },
+}));
+
+// Mock sonner (hook uses toast)
+vi.mock('sonner', () => ({
+  toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() },
+}));
+
 describe('useKeyboardShortcuts', () => {
   let addEventListenerSpy: ReturnType<typeof vi.spyOn>;
   let removeEventListenerSpy: ReturnType<typeof vi.spyOn>;
@@ -69,15 +92,15 @@ describe('useKeyboardShortcuts', () => {
 
       renderHook(() => useKeyboardShortcuts());
 
-      // 获取事件处理函数
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      // 获取冒泡阶段的事件处理函数（第二个 keydown 监听器，非 capture）
+      const bubbleHandler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       // 模拟 Escape 键，设置 target 为 document.body
       const event = new KeyboardEvent('keydown', { key: 'Escape' });
       Object.defineProperty(event, 'target', { value: document.body, writable: false });
-      handler(event);
+      bubbleHandler(event);
 
       expect(mockSelectNode).toHaveBeenCalledWith(null);
     });
@@ -85,9 +108,9 @@ describe('useKeyboardShortcuts', () => {
     it('无选中节点时按 Escape 不调用 selectNode', () => {
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const event = new KeyboardEvent('keydown', { key: 'Escape' });
       Object.defineProperty(event, 'target', { value: document.body, writable: false });
@@ -101,9 +124,9 @@ describe('useKeyboardShortcuts', () => {
     it('Ctrl+B 调用 toggleFlowListPanel', () => {
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const event = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true });
       Object.defineProperty(event, 'target', { value: document.body, writable: false });
@@ -116,9 +139,9 @@ describe('useKeyboardShortcuts', () => {
     it('Cmd+B (metaKey) 也调用 toggleFlowListPanel', () => {
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const event = new KeyboardEvent('keydown', { key: 'b', metaKey: true });
       Object.defineProperty(event, 'target', { value: document.body, writable: false });
@@ -131,9 +154,9 @@ describe('useKeyboardShortcuts', () => {
     it('Ctrl+B 调用 preventDefault', () => {
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const event = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true });
       const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
@@ -149,9 +172,9 @@ describe('useKeyboardShortcuts', () => {
     it('Ctrl+H 调用 toggleHistoryPanel', () => {
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const event = new KeyboardEvent('keydown', { key: 'h', ctrlKey: true });
       Object.defineProperty(event, 'target', { value: document.body, writable: false });
@@ -164,9 +187,9 @@ describe('useKeyboardShortcuts', () => {
     it('Cmd+H (metaKey) 也调用 toggleHistoryPanel', () => {
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const event = new KeyboardEvent('keydown', { key: 'h', metaKey: true });
       Object.defineProperty(event, 'target', { value: document.body, writable: false });
@@ -181,9 +204,9 @@ describe('useKeyboardShortcuts', () => {
     it('Ctrl+J 调用 toggleConfigPanel', () => {
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const event = new KeyboardEvent('keydown', { key: 'j', ctrlKey: true });
       Object.defineProperty(event, 'target', { value: document.body, writable: false });
@@ -196,9 +219,9 @@ describe('useKeyboardShortcuts', () => {
     it('Cmd+J (metaKey) 也调用 toggleConfigPanel', () => {
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const event = new KeyboardEvent('keydown', { key: 'j', metaKey: true });
       Object.defineProperty(event, 'target', { value: document.body, writable: false });
@@ -213,9 +236,9 @@ describe('useKeyboardShortcuts', () => {
     it('在 INPUT 中不响应快捷键', () => {
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const inputElement = document.createElement('input');
       const event = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true });
@@ -229,9 +252,9 @@ describe('useKeyboardShortcuts', () => {
     it('在 TEXTAREA 中不响应快捷键', () => {
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const textareaElement = document.createElement('textarea');
       const event = new KeyboardEvent('keydown', { key: 'h', ctrlKey: true });
@@ -245,9 +268,9 @@ describe('useKeyboardShortcuts', () => {
     it('在 isContentEditable 元素中不响应快捷键', () => {
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const editableElement = document.createElement('div');
       // 在 jsdom 中需要直接设置 isContentEditable 属性
@@ -269,9 +292,9 @@ describe('useKeyboardShortcuts', () => {
 
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const inputElement = document.createElement('input');
       const event = new KeyboardEvent('keydown', { key: 'Escape' });
@@ -287,9 +310,9 @@ describe('useKeyboardShortcuts', () => {
     it('单独按 b 不触发任何操作', () => {
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const event = new KeyboardEvent('keydown', { key: 'b' });
       Object.defineProperty(event, 'target', { value: document.body, writable: false });
@@ -302,9 +325,9 @@ describe('useKeyboardShortcuts', () => {
     it('按其他字母键不触发任何操作', () => {
       renderHook(() => useKeyboardShortcuts());
 
-      const handler = addEventListenerSpy.mock.calls.find(
-        (call) => call[0] === 'keydown'
-      )?.[1] as EventListener;
+      const handler = addEventListenerSpy.mock.calls
+        .filter((call) => call[0] === 'keydown' && !call[2])
+        [0]?.[1] as EventListener;
 
       const event = new KeyboardEvent('keydown', { key: 'x', ctrlKey: true });
       Object.defineProperty(event, 'target', { value: document.body, writable: false });

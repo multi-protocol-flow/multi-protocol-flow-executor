@@ -96,14 +96,6 @@ describe('EntryConfig - 样式测试', () => {
     expect(addButton).toBeDefined();
   });
 
-  it('应该显示执行流程说明', () => {
-    render(<EntryConfig data={defaultData} onSave={mockOnSave} />);
-
-    // 验证执行流程说明存在
-    expect(screen.getByText(/执行流程/i)).toBeDefined();
-    expect(screen.getByText(/点击工具栏中的「执行」按钮/i)).toBeDefined();
-  });
-
   it('变量名提示不应该包含图标', () => {
     const dataWithVariables: EntryConfigType = {
       type: 'entry',
@@ -125,17 +117,5 @@ describe('EntryConfig - 样式测试', () => {
     expect(infoIcon).toBeNull();
   });
 
-  it('执行流程提示应该使用蓝色渐变样式', () => {
-    render(<EntryConfig data={defaultData} onSave={mockOnSave} />);
 
-    // 查找执行流程标题元素
-    const titleElement = screen.getByText('执行流程');
-    expect(titleElement).toBeDefined();
-
-    // 验证标题在蓝色渐变容器内（通过检查祖先容器的类名）
-    const cardContainer = titleElement.closest('div[class*="from-blue-50"]');
-    expect(cardContainer).toBeDefined();
-    expect(cardContainer?.className).toContain('border-blue-200');
-    expect(cardContainer?.className).toContain('to-indigo-50');
-  });
 });

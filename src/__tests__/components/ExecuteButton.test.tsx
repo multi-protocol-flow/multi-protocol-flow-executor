@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { toast } from 'sonner';
 import { ExecuteButton } from '@/components/execution/ExecuteButton';
-import { useFlowStore, useExecutionStore, useUIStore } from '@/stores';
+import { useFlowStore, useExecutionStore, useUIStore, useDebugStore } from '@/stores';
 import { executeFlowWithChannel, saveFlowReport } from '@/services/tauri';
 
 // Mock stores
@@ -13,6 +13,7 @@ vi.mock('@/stores', () => ({
   useFlowStore: vi.fn(),
   useExecutionStore: vi.fn(),
   useUIStore: vi.fn(),
+  useDebugStore: vi.fn(),
 }));
 
 // Mock sonner toast - must define fn inside factory due to hoisting
@@ -103,6 +104,16 @@ describe('ExecuteButton', () => {
       (selector: (state: Record<string, unknown>) => unknown) => 
         selector({ setConfigPanelOpen: mockSetConfigPanelOpen, setExecutionPanelOpen: mockSetExecutionPanelOpen })
     );
+    // ExecuteButton 使用 setState 直接调用
+    (useUIStore as unknown as Record<string, unknown>).setState = vi.fn();
+    // Mock debug store (clearDebugData called in handleExecute)
+    (useDebugStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (selector: (state: Record<string, unknown>) => unknown) =>
+        selector({ clearDebugData: vi.fn() })
+    );
+    (useDebugStore as unknown as Record<string, unknown>).getState = vi.fn(() => ({
+      clearDebugData: vi.fn(),
+    }));
   });
 
   it('当没有流程时按钮被禁用', () => {
