@@ -4,7 +4,7 @@
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   dbCommitConfigSchema,
   type DbCommitConfigFormData,
@@ -75,7 +75,7 @@ export function DbCommitConfig({ data, onSave }: DbCommitConfigProps) {
     setValue,
     reset,
     getValues,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<DbCommitConfigFormData>({
     resolver: zodResolver(dbCommitConfigSchema),
     defaultValues: toFormData(data),
@@ -92,14 +92,19 @@ export function DbCommitConfig({ data, onSave }: DbCommitConfigProps) {
   // 当前选中的连接 UUID
   const selectedConnectionUuid = watch('connection_uuid');
 
+  // 追踪表单实际修改状态（useRef 用于卸载时读取）
+  const isActuallyDirtyRef = useRef(false);
+  useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
+
   // 当外部数据变化时，重置表单
   useEffect(() => {
     reset(toFormData(data));
   }, [data, reset]);
 
-  // 组件卸载时同步保存，防止点击画布导致编辑丢失
+  // 组件卸载时同步保存（仅当用户实际修改过表单时）
   useEffect(() => {
     return () => {
+      if (!isActuallyDirtyRef.current) return;
       try {
         const formData = getValues();
         const config = fromFormData(formData);

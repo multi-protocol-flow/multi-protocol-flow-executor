@@ -3,6 +3,28 @@
  * 根据节点类型显示不同的配置表单
  */
 import { useState, useRef, useMemo } from 'react';
+
+/** 深度比较两个值是否相等（属性顺序无关，undefined 值视为缺失） */
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a == null || b == null) return a === b;
+  if (typeof a !== typeof b) return false;
+  if (Array.isArray(a)) {
+    if (!Array.isArray(b)) return false;
+    if (a.length !== b.length) return false;
+    return a.every((item, i) => deepEqual(item, b[i]));
+  }
+  if (typeof a === 'object') {
+    const aObj = a as Record<string, unknown>;
+    const bObj = b as Record<string, unknown>;
+    const aKeys = Object.keys(aObj).filter(k => aObj[k] !== undefined);
+    const bKeys = Object.keys(bObj).filter(k => bObj[k] !== undefined);
+    if (aKeys.length !== bKeys.length) return false;
+    const bKeySet = new Set(bKeys);
+    return aKeys.every(k => bKeySet.has(k) && deepEqual(aObj[k], bObj[k]));
+  }
+  return false;
+}
 import { useFlowStore, useDebugStore, selectHistoryVersion } from '@/stores';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
 import { EntryConfig } from './EntryConfig';
@@ -86,13 +108,13 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   /**
    * 处理配置保存
    * 使用 ref 持久化的 UUID，确保取消选中节点后仍能正确保存
-   * 去重：如果 data 和当前节点数据相同则跳过，避免卸载时自动保存产生无效快照
+   * 去重：使用深度比较（属性顺序无关），避免表单序列化差异触发无意义保存
    */
   const handleSave = (data: NodeData) => {
     if (frozenNodeUuidRef.current) {
       // 从 flow 中按 UUID 查找节点（不用 getSelectedNode，因为卸载时选中状态可能已变）
       const node = flow?.nodes.find((n) => n.uuid === frozenNodeUuidRef.current);
-      if (node && JSON.stringify(node.data) === JSON.stringify(data)) {
+      if (node && deepEqual(node.data, data)) {
         return;
       }
       updateNode(frozenNodeUuidRef.current, { data });

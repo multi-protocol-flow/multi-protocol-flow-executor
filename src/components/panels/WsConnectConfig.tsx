@@ -82,7 +82,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
     setValue,
     reset,
     getValues,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<WsConnectConfigFormData>({
     resolver: zodResolver(wsConnectConfigSchema),
     defaultValues: toFormData(data),
@@ -169,9 +169,14 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
     };
   }, []);
 
-  // 组件卸载时同步保存，防止点击画布导致编辑丢失
+  // 追踪表单实际修改状态（useRef 用于卸载时读取）
+  const isActuallyDirtyRef = useRef(false);
+  useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
+
+  // 组件卸载时同步保存（仅当用户实际修改过表单时）
   useEffect(() => {
     return () => {
+      if (!isActuallyDirtyRef.current) return;
       try {
         const formData = getValues();
         const config = fromFormData(formData);

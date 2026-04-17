@@ -78,21 +78,16 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
     watch,
     setValue,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<WsSendCollectConfigFormData>({
     resolver: zodResolver(wsSendCollectConfigSchema),
     defaultValues: toFormData(data),
     mode: 'onBlur',
   });
 
-  // 追踪用户是否修改了表单（防止卸载时无变化也保存）
-  const isDirtyRef = useRef(false);
-  useEffect(() => {
-    const subscription = watch(() => {
-      isDirtyRef.current = true;
-    });
-    return () => subscription.unsubscribe();
-  }, [watch]);
+  // 追踪表单实际修改状态（useRef 用于卸载时读取）
+  const isActuallyDirtyRef = useRef(false);
+  useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
 
   const outputMappings = useFieldArray({
     control,
@@ -202,7 +197,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
   // 组件卸载时同步保存（仅当用户实际修改过表单时）
   useEffect(() => {
     return () => {
-      if (!isDirtyRef.current) return;
+      if (!isActuallyDirtyRef.current) return;
       try {
         const formData = getValues();
         const config = fromFormData(formData);
@@ -225,7 +220,6 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
   // 当外部数据变化时，重置表单（确保所有字段同步）
   useEffect(() => {
     reset(toFormData(data));
-    isDirtyRef.current = false;
   }, [data, reset]);
 
   /**
@@ -246,7 +240,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    if (!isDirtyRef.current) return;
+    if (!isActuallyDirtyRef.current) return;
     safeSetTimeout(saveData, 100);
   }, [safeSetTimeout, saveData]);
 

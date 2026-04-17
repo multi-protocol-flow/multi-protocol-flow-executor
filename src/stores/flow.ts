@@ -4,19 +4,40 @@
 import { create } from 'zustand';
 import type { Flow, Node, Connection, NodeType } from '@/types';
 
-/** 浅比较两个 Flow 对象是否相同（用于去重历史快照） */
+/** 深度比较两个值是否相等（属性顺序无关，undefined 值视为缺失） */
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a == null || b == null) return a === b;
+  if (typeof a !== typeof b) return false;
+  if (Array.isArray(a)) {
+    if (!Array.isArray(b)) return false;
+    if (a.length !== b.length) return false;
+    return a.every((item, i) => deepEqual(item, b[i]));
+  }
+  if (typeof a === 'object') {
+    const aObj = a as Record<string, unknown>;
+    const bObj = b as Record<string, unknown>;
+    const aKeys = Object.keys(aObj).filter(k => aObj[k] !== undefined);
+    const bKeys = Object.keys(bObj).filter(k => bObj[k] !== undefined);
+    if (aKeys.length !== bKeys.length) return false;
+    const bKeySet = new Set(bKeys);
+    return aKeys.every(k => bKeySet.has(k) && deepEqual(aObj[k], bObj[k]));
+  }
+  return false;
+}
+
+/** 深度比较两个 Flow 对象是否相同（用于去重历史快照，属性顺序无关） */
 function isFlowEqual(a: Flow, b: Flow): boolean {
   if (a.uuid !== b.uuid || a.name !== b.name) return false;
-  if (JSON.stringify(a.initial_variables) !== JSON.stringify(b.initial_variables)) return false;
+  if (!deepEqual(a.initial_variables, b.initial_variables)) return false;
   if (a.nodes.length !== b.nodes.length) return false;
   if (a.connections.length !== b.connections.length) return false;
-  // 逐节点比较（浅比较 JSON 序列化结果）
   for (let i = 0; i < a.nodes.length; i++) {
     if (a.nodes[i].uuid !== b.nodes[i].uuid) return false;
-    if (JSON.stringify(a.nodes[i]) !== JSON.stringify(b.nodes[i])) return false;
+    if (!deepEqual(a.nodes[i], b.nodes[i])) return false;
   }
   for (let i = 0; i < a.connections.length; i++) {
-    if (JSON.stringify(a.connections[i]) !== JSON.stringify(b.connections[i])) return false;
+    if (!deepEqual(a.connections[i], b.connections[i])) return false;
   }
   return true;
 }
@@ -172,8 +193,12 @@ export const useFlowStore = create<FlowState>((set, get) => {
             n.uuid === uuid ? { ...n, ...updates } : n
           ),
         };
+        // 检查是否有实际变更，无变更则不标记 isDirty（避免选中/取消选中触发无意义保存）
         const history = pushHistory(state, newFlow);
-        if (!history) return { flow: newFlow, isDirty: true };
+        if (!history) {
+          // pushHistory 去重判定为无变更，不触发 isDirty
+          return state;
+        }
         return { ...history, flow: newFlow, isDirty: true };
       }),
 

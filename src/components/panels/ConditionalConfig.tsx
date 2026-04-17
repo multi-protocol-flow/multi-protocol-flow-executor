@@ -4,7 +4,7 @@
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   conditionalConfigSchema,
   type ConditionalConfigFormData,
@@ -90,6 +90,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
     watch,
     setValue,
     getValues,
+    formState: { isDirty },
   } = useForm<ConditionalConfigFormData>({
     resolver: zodResolver(conditionalConfigSchema),
     defaultValues: toFormData(data),
@@ -159,9 +160,14 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
     setValue('expected_value_type', formData.expected_value_type);
   }, [data, setValue]);
 
-  // 组件卸载时同步保存，防止点击画布导致编辑丢失
+  // 追踪表单实际修改状态（useRef 用于卸载时读取）
+  const isActuallyDirtyRef = useRef(false);
+  useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
+
+  // 组件卸载时同步保存（仅当用户实际修改过表单时）
   useEffect(() => {
     return () => {
+      if (!isActuallyDirtyRef.current) return;
       try {
         const formData = getValues();
         const config = fromFormData(formData);
