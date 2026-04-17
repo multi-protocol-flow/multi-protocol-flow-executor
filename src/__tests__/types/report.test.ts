@@ -13,6 +13,8 @@ import type {
   ReportMetadata,
   FlowExecutionReport,
 } from '@/types/report';
+import type { StressTestReport } from '@/types/stressTest';
+import type { Flow } from '@/types/flow';
 
 describe('Report types', () => {
   describe('ExecutionStatus type', () => {
@@ -261,6 +263,132 @@ describe('Report types', () => {
       expect(report.execution_path).toHaveLength(3);
       expect(report.skipped_nodes).toHaveLength(1);
       expect(report.initial_variables).toEqual({ api_key: 'secret' });
+    });
+
+    it('should accept flow_snapshot with Flow data', () => {
+      const snapshot: Flow = {
+        uuid: 'flow-1',
+        name: 'Test Flow',
+        nodes: [],
+        connections: [],
+      };
+      const report: FlowExecutionReport = {
+        uuid: 'report-1',
+        flow_uuid: 'flow-1',
+        flow_name: 'Test Flow',
+        start_time: 1000,
+        end_time: 5000,
+        duration_ms: 4000,
+        total_nodes: 1,
+        executed_count: 1,
+        status: 'success',
+        node_reports: [],
+        statistics: { success_count: 1, failed_count: 0 },
+        flow_snapshot: snapshot,
+      };
+
+      expect(report.flow_snapshot).toBeDefined();
+      expect(report.flow_snapshot?.uuid).toBe('flow-1');
+      expect(report.flow_snapshot?.name).toBe('Test Flow');
+    });
+
+    it('should allow flow_snapshot to be undefined for backward compatibility', () => {
+      const report: FlowExecutionReport = {
+        uuid: 'report-1',
+        flow_uuid: 'flow-1',
+        flow_name: 'Test Flow',
+        start_time: 1000,
+        end_time: 5000,
+        duration_ms: 4000,
+        total_nodes: 1,
+        executed_count: 1,
+        status: 'success',
+        node_reports: [],
+        statistics: { success_count: 1, failed_count: 0 },
+      };
+
+      expect(report.flow_snapshot).toBeUndefined();
+    });
+  });
+
+  describe('StressTestReport flowSnapshot', () => {
+    it('should accept flowSnapshot with Flow data', () => {
+      const snapshot: Flow = {
+        uuid: 'flow-2',
+        name: 'Stress Flow',
+        nodes: [],
+        connections: [],
+      };
+      const report: StressTestReport = {
+        uuid: 'stress-report-1',
+        flowUuid: 'flow-2',
+        flowName: 'Stress Flow',
+        startTime: 1000,
+        endTime: 5000,
+        durationMs: 4000,
+        config: {
+          concurrentUsers: 10,
+          rampUpSeconds: 5,
+          durationSeconds: 60,
+          flowUuid: 'flow-2',
+        },
+        statistics: {
+          totalIterations: 100,
+          successful: 95,
+          failed: 5,
+          successRate: 0.95,
+          rps: 10,
+        },
+        responseTimeDistribution: {
+          avgMs: 100,
+          minMs: 50,
+          maxMs: 500,
+          p50Ms: 90,
+          p90Ms: 200,
+          p95Ms: 300,
+          p99Ms: 450,
+        },
+        flowSnapshot: snapshot,
+      };
+
+      expect(report.flowSnapshot).toBeDefined();
+      expect(report.flowSnapshot?.uuid).toBe('flow-2');
+      expect(report.flowSnapshot?.name).toBe('Stress Flow');
+    });
+
+    it('should allow flowSnapshot to be undefined for backward compatibility', () => {
+      const report: StressTestReport = {
+        uuid: 'stress-report-1',
+        flowUuid: 'flow-2',
+        flowName: 'Stress Flow',
+        startTime: 1000,
+        endTime: 5000,
+        durationMs: 4000,
+        config: {
+          concurrentUsers: 10,
+          rampUpSeconds: 5,
+          durationSeconds: 60,
+          flowUuid: 'flow-2',
+        },
+        statistics: {
+          totalIterations: 100,
+          successful: 95,
+          failed: 5,
+          successRate: 0.95,
+          rps: 10,
+        },
+        responseTimeDistribution: {
+          avgMs: 100,
+          minMs: 50,
+          maxMs: 500,
+          p50Ms: 90,
+          p90Ms: 200,
+          p95Ms: 300,
+          p99Ms: 450,
+        },
+      };
+
+      expect(report.flowSnapshot).toBeUndefined();
     });
   });
 });
