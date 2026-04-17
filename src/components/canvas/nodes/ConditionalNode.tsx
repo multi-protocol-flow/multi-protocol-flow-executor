@@ -6,7 +6,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { GitBranch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ConditionalConfig } from '@/types';
-import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
+import { useFlowStore, useDebugStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 
 /** Conditional 节点数据类型 */
@@ -26,9 +26,6 @@ export function ConditionalNode({ id, data, selected }: NodeProps) {
   const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
   const isPaused = useDebugStore(selectIsPaused);
   const isDebugPausedAtThisNode = isPaused && currentNodeUuid === id;
-  const getNodeExecutionStatus = useExecutionStore((state) => state.getNodeExecutionStatus);
-  const executionStatus = getNodeExecutionStatus(id);
-  const executionClassName = executionStatus !== 'pending' ? `execution-${executionStatus}` : '';
   const isDebugging = useDebugStore(selectIsDebugging);
   
   return (
@@ -41,8 +38,7 @@ export function ConditionalNode({ id, data, selected }: NodeProps) {
         'w-[180px]',
         'flex items-center',
         selected && 'border-[3px] border-amber-500',
-        isDebugPausedAtThisNode && 'debug-breathing-amber',
-        executionClassName
+        isDebugPausedAtThisNode && 'debug-breathing-amber'
       )}
     >
       {isDebugging && (

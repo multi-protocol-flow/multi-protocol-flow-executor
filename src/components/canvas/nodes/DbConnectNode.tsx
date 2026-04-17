@@ -6,7 +6,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DbConnectConfig } from '@/types';
-import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
+import { useFlowStore, useDebugStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 
 /** DbConnect 节点数据类型 */
@@ -56,10 +56,6 @@ export function DbConnectNode({ id, data, selected }: NodeProps) {
   const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
   const isPaused = useDebugStore(selectIsPaused);
   const isDebugPausedAtThisNode = isPaused && currentNodeUuid === id;
-  const getNodeExecutionStatus = useExecutionStore((state) => state.getNodeExecutionStatus);
-  const executionStatus = getNodeExecutionStatus(id);
-  const executionClassName = executionStatus !== 'pending' ? `execution-${executionStatus}` : '';
-  
   const isDebugging = useDebugStore(selectIsDebugging);
   
   return (
@@ -72,8 +68,7 @@ export function DbConnectNode({ id, data, selected }: NodeProps) {
         'w-[180px]',
         'flex items-center',
         selected && 'border-[3px] border-violet-500',
-        isDebugPausedAtThisNode && 'debug-breathing-violet',
-        executionClassName
+        isDebugPausedAtThisNode && 'debug-breathing-violet'
       )}
     >
       {isDebugging && (

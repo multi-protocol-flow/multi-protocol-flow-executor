@@ -6,7 +6,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { WsSendCollectConfig } from '@/types';
-import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
+import { useFlowStore, useDebugStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 
 /** WsSendCollect 节点数据类型 */
@@ -26,10 +26,6 @@ export function WsSendCollectNode({ id, data, selected }: NodeProps) {
   const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
   const isPaused = useDebugStore(selectIsPaused);
   const isDebugPausedAtThisNode = isPaused && currentNodeUuid === id;
-  const getNodeExecutionStatus = useExecutionStore((state) => state.getNodeExecutionStatus);
-  const executionStatus = getNodeExecutionStatus(id);
-  const executionClassName = executionStatus !== 'pending' ? `execution-${executionStatus}` : '';
-  
   const isDebugging = useDebugStore(selectIsDebugging);
   
   return (
@@ -42,8 +38,7 @@ export function WsSendCollectNode({ id, data, selected }: NodeProps) {
         'w-[180px]',
         'flex items-center',
         selected && 'border-[3px] border-teal-500',
-        isDebugPausedAtThisNode && 'debug-breathing-teal',
-        executionClassName
+        isDebugPausedAtThisNode && 'debug-breathing-teal'
       )}
     >
       {isDebugging && (
