@@ -3,6 +3,8 @@
  * 与后端 src-tauri/crates/flow-engine/src/stress_test/types.rs 中的结构体对齐
  */
 
+import type { Flow } from './flow';
+
 // ============================================================================
 // 压力测试状态枚举
 // ============================================================================
@@ -222,6 +224,8 @@ export interface StressTestReport {
   nodeTypeStatistics?: NodeTypeStatistics[];
   /** 进度历史数据（用于折线图等可视化，无数据时省略） */
   progressHistory?: StressTestProgress[];
+  /** Flow 快照（执行时的流程完整副本） */
+  flowSnapshot?: Flow;
 }
 
 // ============================================================================
