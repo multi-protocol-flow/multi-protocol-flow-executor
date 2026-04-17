@@ -27,7 +27,7 @@ pub struct VariablePool {
 }
 
 /// 输出映射配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OutputMapping {
     /// 源字段路径（如 "status", "body.data.id"）
     pub source: String,
@@ -39,7 +39,7 @@ pub struct OutputMapping {
 }
 
 /// 初始变量配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct InitialVariable {
     /// 变量名
     pub name: String,

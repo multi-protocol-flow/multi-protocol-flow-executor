@@ -47,7 +47,7 @@ pub enum NodeType {
 }
 
 /// 节点位置结构体
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct NodePosition {
     /// X 坐标
     pub x: f64,
@@ -72,7 +72,7 @@ pub enum PortType {
 }
 
 /// 端口结构体
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Port {
     /// 端口唯一标识符
     pub id: String,
@@ -84,7 +84,7 @@ pub struct Port {
 }
 
 /// 节点数据结构
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Node {
     /// 节点唯一标识符（前端生成UUID，用于连接关联）
     pub uuid: String,

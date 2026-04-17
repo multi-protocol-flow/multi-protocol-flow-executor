@@ -245,6 +245,9 @@ pub struct FlowExecutionReport {
     /// WebSocket 消息流完整数据列表
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ws_streams: Vec<crate::ws_stream::WsConnectionStream>,
+    /// Flow 快照（执行时的流程完整副本）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flow_snapshot: Option<crate::flow::Flow>,
 }
 
 #[cfg(test)]
@@ -438,6 +441,7 @@ mod tests {
             execution_path: vec![],
             skipped_nodes: vec![],
             ws_streams: vec![],
+            flow_snapshot: None,
         };
 
         let json = serde_json::to_string(&report).expect("序列化失败");
@@ -470,6 +474,7 @@ mod tests {
             execution_path: vec![],
             skipped_nodes: vec![],
             ws_streams: vec![ws_stream],
+            flow_snapshot: None,
         };
 
         let json = serde_json::to_string(&report).expect("序列化失败");
@@ -495,5 +500,113 @@ mod tests {
 
         // Display trait 测试
         assert_eq!(format!("{}", status), "cancelled");
+    }
+
+    /// 测试 flow_snapshot 序列化往返
+    #[test]
+    fn test_flow_report_snapshot_serialization() {
+        let flow = crate::flow::Flow {
+            uuid: "flow-snap-001".to_string(),
+            name: "Snapshot Flow".to_string(),
+            initial_variables: None,
+            nodes: vec![],
+            connections: vec![],
+        };
+
+        let report = FlowExecutionReport {
+            uuid: "report-snap-001".to_string(),
+            flow_uuid: "flow-snap-001".to_string(),
+            flow_name: "Snapshot Flow".to_string(),
+            start_time: 1000,
+            end_time: 2000,
+            duration_ms: 1000,
+            total_nodes: 1,
+            executed_count: 1,
+            status: ExecutionStatus::Success,
+            node_reports: vec![],
+            statistics: crate::statistics::FlowStatistics::default(),
+            flow_error: None,
+            execution_mode: ExecutionMode::Normal,
+            initial_variables: None,
+            final_variables: None,
+            execution_path: vec![],
+            skipped_nodes: vec![],
+            ws_streams: vec![],
+            flow_snapshot: Some(flow.clone()),
+        };
+
+        let json = serde_json::to_string(&report).expect("序列化失败");
+        assert!(json.contains("flow_snapshot"));
+        assert!(json.contains("flow-snap-001"));
+        assert!(json.contains("Snapshot Flow"));
+
+        // 反序列化往返
+        let deserialized: FlowExecutionReport = serde_json::from_str(&json).expect("反序列化失败");
+        assert_eq!(deserialized.flow_snapshot, Some(flow));
+    }
+
+    /// 测试 flow_snapshot 向后兼容（JSON 中缺少字段时反序列化为 None）
+    #[test]
+    fn test_flow_report_snapshot_backward_compat() {
+        let json = r#"{
+            "uuid": "report-bc-001",
+            "flow_uuid": "flow-bc-001",
+            "flow_name": "BackCompat Flow",
+            "start_time": 1000,
+            "end_time": 2000,
+            "duration_ms": 1000,
+            "total_nodes": 1,
+            "executed_count": 1,
+            "status": "success",
+            "node_reports": [],
+            "statistics": {
+                "total_nodes": 0,
+                "executed_nodes": 0,
+                "success_count": 0,
+                "failed_count": 0,
+                "skipped_count": 0,
+                "total_duration_ms": 0
+            },
+            "flow_error": null,
+            "execution_mode": "normal",
+            "execution_path": [],
+            "skipped_nodes": []
+        }"#;
+
+        let report: FlowExecutionReport = serde_json::from_str(json).expect("反序列化失败");
+        assert_eq!(report.uuid, "report-bc-001");
+        assert!(report.flow_snapshot.is_none());
+    }
+
+    /// 测试 flow_snapshot 为 None 时序列化结果不包含该字段
+    #[test]
+    fn test_flow_report_snapshot_skip_when_none() {
+        let report = FlowExecutionReport {
+            uuid: "report-skip-001".to_string(),
+            flow_uuid: "flow-skip-001".to_string(),
+            flow_name: "Skip Flow".to_string(),
+            start_time: 1000,
+            end_time: 2000,
+            duration_ms: 1000,
+            total_nodes: 1,
+            executed_count: 1,
+            status: ExecutionStatus::Success,
+            node_reports: vec![],
+            statistics: crate::statistics::FlowStatistics::default(),
+            flow_error: None,
+            execution_mode: ExecutionMode::Normal,
+            initial_variables: None,
+            final_variables: None,
+            execution_path: vec![],
+            skipped_nodes: vec![],
+            ws_streams: vec![],
+            flow_snapshot: None,
+        };
+
+        let json = serde_json::to_string(&report).expect("序列化失败");
+        assert!(
+            !json.contains("flow_snapshot"),
+            "flow_snapshot 为 None 时不应出现在 JSON 中"
+        );
     }
 }

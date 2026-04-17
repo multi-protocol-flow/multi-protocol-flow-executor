@@ -193,6 +193,7 @@ mod tests {
             execution_path: vec![],
             skipped_nodes: vec![],
             ws_streams: vec![],
+            flow_snapshot: None,
         };
 
         let event = ExecutionEvent::FlowCompleted {
@@ -277,6 +278,7 @@ mod tests {
             execution_path: vec![],
             skipped_nodes: vec![],
             ws_streams: vec![],
+            flow_snapshot: None,
         };
         let event = ExecutionEvent::FlowCompleted {
             report: Box::new(report),

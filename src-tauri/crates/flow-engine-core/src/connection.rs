@@ -1,7 +1,7 @@
 // 连接模块 - 连接结构体实现
 
 /// 连接数据结构
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Connection {
     /// 连接唯一标识符
     pub id: String,

@@ -5,7 +5,7 @@ use crate::node::Node;
 use std::collections::HashMap;
 
 /// 流程数据结构
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Flow {
     /// 流程唯一标识符（前端生成）
     pub uuid: String,

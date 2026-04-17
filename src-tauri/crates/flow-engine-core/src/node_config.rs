@@ -10,7 +10,7 @@ use std::collections::HashMap;
 // ============================================================================
 
 /// 入口节点配置
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct EntryConfig {
     /// 初始变量列表
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -84,7 +84,7 @@ pub enum FormFieldType {
 }
 
 /// 表单字段
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FormField {
     /// 字段键名
     pub key: String,
@@ -99,7 +99,7 @@ pub struct FormField {
 }
 
 /// Http 节点配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HttpConfig {
     /// 请求 URL
     pub url: String,
@@ -153,7 +153,7 @@ impl Default for HttpConfig {
 // ============================================================================
 
 /// 条件类型枚举
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ConditionType {
     /// 简单条件（字段比较）
@@ -164,7 +164,7 @@ pub enum ConditionType {
 }
 
 /// 条件操作符枚举
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ConditionOperator {
     /// 等于
@@ -206,7 +206,7 @@ pub enum ExpectedValueType {
 }
 
 /// Conditional 节点配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConditionalConfig {
     /// 条件类型
     #[serde(default)]
@@ -285,7 +285,7 @@ impl PartialEq for WsCollectCondition {
 }
 
 /// WebSocket Connect 节点配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WsConnectConfig {
     /// WebSocket URL
     pub url: String,
@@ -332,7 +332,7 @@ impl Default for WsConnectConfig {
 }
 
 /// WebSocket Send+Collect 节点配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WsSendCollectConfig {
     /// 连接 ID
     pub connection_id: String,
@@ -378,7 +378,7 @@ impl Default for WsSendCollectConfig {
 }
 
 /// WebSocket Close 节点配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WsCloseConfig {
     /// 连接 ID
     pub connection_id: String,
@@ -462,7 +462,7 @@ pub enum AssertionOperator {
 }
 
 /// 单条断言配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Assertion {
     /// 断言 ID
     pub id: String,
@@ -507,7 +507,7 @@ pub enum OnFailureMode {
 }
 
 /// 断言节点配置
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct AssertionConfig {
     /// 预设名称
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -550,7 +550,7 @@ pub struct AssertionResult {
 }
 
 /// 断言节点输出
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AssertionOutput {
     /// 整体是否通过
     pub passed: bool,
@@ -573,7 +573,7 @@ pub struct AssertionOutput {
 // ============================================================================
 
 /// 数据库连接节点配置
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct DbConnectConfig {
     /// 连接 UUID
     #[serde(default)]
@@ -622,7 +622,7 @@ fn default_max_connections() -> u32 {
 }
 
 /// 数据库查询节点配置
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct DbQueryConfig {
     /// 连接 UUID
     #[serde(default)]
@@ -660,7 +660,7 @@ pub struct DbQueryConfig {
 }
 
 /// 数据库事务开始节点配置
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct DbBeginConfig {
     /// 连接 UUID
     #[serde(default)]
@@ -671,7 +671,7 @@ pub struct DbBeginConfig {
 }
 
 /// 数据库事务提交节点配置
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct DbCommitConfig {
     /// 连接 UUID
     #[serde(default)]
@@ -679,7 +679,7 @@ pub struct DbCommitConfig {
 }
 
 /// 数据库事务回滚节点配置
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct DbRollbackConfig {
     /// 连接 UUID
     #[serde(default)]
@@ -687,7 +687,7 @@ pub struct DbRollbackConfig {
 }
 
 /// 数据库关闭节点配置
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct DbCloseConfig {
     /// 连接 UUID
     #[serde(default)]
@@ -736,7 +736,7 @@ pub enum AssertionFailStrategy {
 }
 
 /// 脚本节点配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ScriptNodeConfig {
     /// 脚本内容（JavaScript 代码）
     pub script: String,
@@ -782,7 +782,7 @@ impl Default for ScriptNodeConfig {
 // ============================================================================
 
 /// 节点数据配置（强类型枚举）
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum NodeData {
     /// 入口节点配置
