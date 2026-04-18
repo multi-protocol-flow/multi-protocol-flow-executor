@@ -235,9 +235,18 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    if (!isActuallyDirtyRef.current) return;
-    safeSetTimeout(saveData, 100);
+    safeSetTimeout(() => {
+      if (!isActuallyDirtyRef.current) return;
+      saveData();
+    }, 100);
   }, [safeSetTimeout, saveData]);
+
+  // 监听 Ctrl+S 刷新事件，将表单数据同步到 store
+  useEffect(() => {
+    const handleFlush = () => { saveData(); };
+    window.addEventListener('flush-config-panel', handleFlush);
+    return () => { window.removeEventListener('flush-config-panel', handleFlush); };
+  }, [saveData]);
 
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
@@ -263,7 +272,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
           <Select
             value={watch('connection_id') || ''}
             onValueChange={(value) => {
-              setValue('connection_id', value);
+              setValue('connection_id', value, { shouldDirty: true });
               saveData();
             }}
           >
@@ -287,7 +296,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
             variables={variables}
             nodeLabels={nodeLabels}
             value={watch('connection_id') || ''}
-            onValueChange={(value) => setValue('connection_id', value)}
+            onValueChange={(value) => setValue('connection_id', value, { shouldDirty: true })}
             placeholder="ws_connection_id"
             className="font-mono text-sm"
           />
@@ -315,7 +324,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
         <Select
           value={String(watch('close_code') || 1000)}
           onValueChange={(value) => {
-            setValue('close_code', Number(value));
+            setValue('close_code', Number(value), { shouldDirty: true });
             saveData();
           }}
         >

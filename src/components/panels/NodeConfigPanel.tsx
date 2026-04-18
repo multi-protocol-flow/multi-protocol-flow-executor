@@ -2,7 +2,7 @@
  * 节点配置面板主组件
  * 根据节点类型显示不同的配置表单
  */
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 
 /** 深度比较两个值是否相等（属性顺序无关，undefined 值视为缺失） */
 function deepEqual(a: unknown, b: unknown): boolean {
@@ -65,10 +65,12 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   const selectedNode = externalNode ?? getSelectedNode();
 
   // 冻结节点 UUID（ref 持久化），确保组件卸载时（如点击画布取消选中）仍能正确保存
+  // 使用 useEffect 更新而非渲染期间更新，确保子组件的 cleanup effect 执行时
+  // ref 仍是旧节点的 UUID，避免卸载保存时写入错误节点
   const frozenNodeUuidRef = useRef<string | null>(null);
-  if (selectedNode) {
-    frozenNodeUuidRef.current = selectedNode.uuid;
-  }
+  useEffect(() => {
+    frozenNodeUuidRef.current = selectedNode?.uuid ?? null;
+  }, [selectedNode?.uuid]);
 
   // 稳定数据引用：仅在节点 UUID 变化或 undo/redo 时更新
   // 避免自动保存后 store 更新 → data prop 变化 → 子组件 reset() → 输入框失焦

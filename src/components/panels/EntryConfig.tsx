@@ -74,6 +74,7 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
     watch,
     setValue,
     getValues,
+    reset,
     formState: { errors, isDirty },
   } = useForm<EntryConfigFormData>({
     resolver: zodResolver(entryConfigSchema),
@@ -88,13 +89,33 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
-    const formData = toFormData(data);
-    setValue('initial_variables', formData.initial_variables || []);
-  }, [data, setValue]);
+    reset(toFormData(data));
+  }, [data, reset]);
 
   // 追踪表单实际修改状态（useRef 用于卸载时读取）
   const isActuallyDirtyRef = useRef(false);
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
+
+  // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  /**
+   * 安全的延迟执行包装器，注册定时器以便卸载时清理
+   */
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
 
   // 组件卸载时同步保存（仅当用户实际修改过表单时）
   useEffect(() => {
@@ -129,8 +150,18 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    // 延迟保存，确保表单校验完成
-    setTimeout(saveData, 100);
+    // 延迟保存，确保表单校验完成且 isDirty ref 已更新
+    safeSetTimeout(() => {
+      if (!isActuallyDirtyRef.current) return;
+      saveData();
+    }, 100);
+  }, [safeSetTimeout, saveData]);
+
+  // 监听 Ctrl+S 刷新事件，将表单数据同步到 store
+  useEffect(() => {
+    const handleFlush = () => { saveData(); };
+    window.addEventListener('flush-config-panel', handleFlush);
+    return () => { window.removeEventListener('flush-config-panel', handleFlush); };
   }, [saveData]);
 
   /**
@@ -153,7 +184,7 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
    */
   const handleValueChange = useCallback((index: number, valueString: string) => {
     const value = stringToValue(valueString);
-    setValue(`initial_variables.${index}.value`, value);
+    setValue(`initial_variables.${index}.value`, value, { shouldDirty: true });
   }, [setValue]);
 
   // 监听所有变量名，用于唯一性检查

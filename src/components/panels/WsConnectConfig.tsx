@@ -223,8 +223,18 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    safeSetTimeout(saveData, 100);
+    safeSetTimeout(() => {
+      if (!isActuallyDirtyRef.current) return;
+      saveData();
+    }, 100);
   }, [safeSetTimeout, saveData]);
+
+  // 监听 Ctrl+S 刷新事件，将表单数据同步到 store
+  useEffect(() => {
+    const handleFlush = () => { saveData(); };
+    window.addEventListener('flush-config-panel', handleFlush);
+    return () => { window.removeEventListener('flush-config-panel', handleFlush); };
+  }, [saveData]);
 
   /**
    * 添加 Header
@@ -283,7 +293,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
             variables={variables}
             nodeLabels={nodeLabels}
             value={watch('url') || ''}
-            onValueChange={(value) => setValue('url', value)}
+            onValueChange={(value) => setValue('url', value, { shouldDirty: true })}
             placeholder="wss://example.com/socket"
             className="pl-9 font-mono text-sm text-left"
           />
@@ -341,7 +351,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                   variables={variables}
                   nodeLabels={nodeLabels}
                   value={watch(`headers.${index}.value`) || ''}
-                  onValueChange={(value) => setValue(`headers.${index}.value`, value)}
+                  onValueChange={(value) => setValue(`headers.${index}.value`, value, { shouldDirty: true })}
                   placeholder="Value"
                   className="h-8 flex-1 font-mono text-xs"
                 />
@@ -364,7 +374,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
         <Input
           id="subprotocols"
           value={watch('subprotocols')?.join(', ') || ''}
-          onChange={(e) => setValue('subprotocols', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+          onChange={(e) => setValue('subprotocols', e.target.value.split(',').map(s => s.trim()).filter(Boolean), { shouldDirty: true })}
           onBlur={handleBlur}
           placeholder="protocol1, protocol2"
           className="font-mono text-sm"
@@ -395,12 +405,12 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
           id="collect_message"
           checked={collectMessage || false}
           onCheckedChange={(checked) => {
-            setValue('collect_message', checked);
+            setValue('collect_message', checked, { shouldDirty: true });
             if (!checked) {
               // 关闭采集消息时，清除所有关联字段，避免 schema 验证失败
-              setValue('collect_mode', undefined as unknown as WsCollectMode);
-              setValue('collect_condition', undefined as unknown as { match_type: WsMatchType; expression: string });
-              setValue('collect_timeout_ms', undefined as unknown as number);
+              setValue('collect_mode', undefined as unknown as WsCollectMode, { shouldDirty: true });
+              setValue('collect_condition', undefined as unknown as { match_type: WsMatchType; expression: string }, { shouldDirty: true });
+              setValue('collect_timeout_ms', undefined as unknown as number, { shouldDirty: true });
             }
             saveData();
           }}
@@ -421,13 +431,13 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
             <Select
               value={collectMode || 'first_match'}
               onValueChange={(value) => {
-                setValue('collect_mode', value as WsCollectMode);
+                setValue('collect_mode', value as WsCollectMode, { shouldDirty: true });
                 if (value === 'condition_match') {
                   // 切换到 condition_match 模式时，初始化 collect_condition 为默认值
-                  setValue('collect_condition', { match_type: 'json_path', expression: '' });
+                  setValue('collect_condition', { match_type: 'json_path', expression: '' }, { shouldDirty: true });
                 } else {
                   // 切换到非 condition_match 模式时，清除 collect_condition，避免 schema 验证失败
-                  setValue('collect_condition', undefined as unknown as { match_type: WsMatchType; expression: string });
+                  setValue('collect_condition', undefined as unknown as { match_type: WsMatchType; expression: string }, { shouldDirty: true });
                 }
                 saveData();
               }}
@@ -456,7 +466,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                   <Select
                     value={watch('collect_condition.match_type') || 'json_path'}
                     onValueChange={(value) => {
-                      setValue('collect_condition.match_type', value as WsMatchType);
+                      setValue('collect_condition.match_type', value as WsMatchType, { shouldDirty: true });
                       saveData();
                     }}
                   >

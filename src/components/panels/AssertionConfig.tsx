@@ -204,6 +204,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
     watch,
     setValue,
     getValues,
+    reset,
     formState: { errors, isDirty },
   } = useForm<AssertionConfigFormData>({
     resolver: zodResolver(assertionConfigSchema) as never,
@@ -223,18 +224,33 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
-    const formData = toFormData(data);
-    setValue('preset', formData.preset);
-    setValue('mode', formData.mode);
-    setValue('on_failure', formData.on_failure);
-    setValue('continue_on_failure', formData.continue_on_failure);
-    // 重置断言数组
-    setValue('assertions', formData.assertions);
-  }, [data, setValue]);
+    reset(toFormData(data));
+  }, [data, reset]);
 
   // 追踪表单实际修改状态（useRef 用于卸载时读取）
   const isActuallyDirtyRef = useRef(false);
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
+
+  // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  /**
+   * 安全的延迟执行包装器，注册定时器以便卸载时清理
+   */
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
 
   // 组件卸载时同步保存（仅当用户实际修改过表单时）
   useEffect(() => {
@@ -269,7 +285,17 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    * 处理失焦事件 (100ms debounce)
    */
   const handleBlur = useCallback(() => {
-    setTimeout(saveData, 100);
+        safeSetTimeout(() => {
+          if (!isActuallyDirtyRef.current) return;
+          saveData();
+        }, 100);
+      }, [safeSetTimeout, saveData]);
+
+  // 监听 Ctrl+S 刷新事件，将表单数据同步到 store
+  useEffect(() => {
+    const handleFlush = () => { saveData(); };
+    window.addEventListener('flush-config-panel', handleFlush);
+    return () => { window.removeEventListener('flush-config-panel', handleFlush); };
   }, [saveData]);
 
   /**
@@ -296,10 +322,10 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    * 处理预设选择
    */
   const handlePresetChange = useCallback((value: string) => {
-    setValue('preset', value);
+    setValue('preset', value, { shouldDirty: true });
     if (value !== 'none' && PRESET_ASSERTIONS[value]) {
       // 使用预设断言替换当前断言
-      setValue('assertions', [...PRESET_ASSERTIONS[value]]);
+      setValue('assertions', [...PRESET_ASSERTIONS[value]], { shouldDirty: true });
     }
     saveData();
   }, [setValue, saveData]);
@@ -308,7 +334,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    * 处理组合模式变更
    */
   const handleModeChange = useCallback((value: string) => {
-    setValue('mode', value as 'all' | 'any');
+    setValue('mode', value as 'all' | 'any', { shouldDirty: true });
     saveData();
   }, [setValue, saveData]);
 
@@ -316,7 +342,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    * 处理失败行为变更
    */
   const handleOnFailureChange = useCallback((value: string) => {
-    setValue('on_failure', value as 'route_false' | 'throw');
+    setValue('on_failure', value as 'route_false' | 'throw', { shouldDirty: true });
     saveData();
   }, [setValue, saveData]);
 
@@ -324,7 +350,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    * 处理失败后继续执行变更
    */
   const handleContinueOnFailureChange = useCallback((checked: boolean) => {
-    setValue('continue_on_failure', checked);
+    setValue('continue_on_failure', checked, { shouldDirty: true });
     saveData();
   }, [setValue, saveData]);
 
@@ -332,7 +358,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    * 处理断言启用/禁用切换
    */
   const handleEnabledChange = useCallback((index: number, checked: boolean) => {
-    setValue(`assertions.${index}.enabled`, checked);
+    setValue(`assertions.${index}.enabled`, checked, { shouldDirty: true });
     saveData();
   }, [setValue, saveData]);
 
@@ -340,7 +366,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    * 处理断言操作符变更
    */
   const handleOperatorChange = useCallback((index: number, value: string) => {
-    setValue(`assertions.${index}.operator`, value as AssertionFormData['operator']);
+    setValue(`assertions.${index}.operator`, value as AssertionFormData['operator'], { shouldDirty: true });
     saveData();
   }, [setValue, saveData]);
 

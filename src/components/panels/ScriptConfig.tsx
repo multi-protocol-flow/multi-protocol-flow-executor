@@ -269,16 +269,25 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    if (!isActuallyDirtyRef.current) return;
-    // 延迟保存，确保表单校验完成
-    safeSetTimeout(saveData, 100);
+    // 延迟保存，确保表单校验完成且 isDirty ref 已更新
+    safeSetTimeout(() => {
+      if (!isActuallyDirtyRef.current) return;
+      saveData();
+    }, 100);
+  }, [saveData]);
+
+  // 监听 Ctrl+S 刷新事件，将表单数据同步到 store
+  useEffect(() => {
+    const handleFlush = () => { saveData(); };
+    window.addEventListener('flush-config-panel', handleFlush);
+    return () => { window.removeEventListener('flush-config-panel', handleFlush); };
   }, [saveData]);
 
   /**
    * 处理脚本编辑器变更
    */
   const handleScriptChange = useCallback((value: string) => {
-    setValue('script', value);
+    setValue('script', value, { shouldDirty: true });
     // 不立即保存，等用户离开编辑器时保存
   }, [setValue]);
 
@@ -303,7 +312,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
             theme={oneDark}
             extensions={editorExtensions}
             onChange={handleScriptChange}
-            onBlur={saveData}
+            onBlur={() => { if (isActuallyDirtyRef.current) saveData(); }}
             basicSetup={{
               lineNumbers: true,
               foldGutter: false,
@@ -340,7 +349,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
         <Select
           value={watchedExecutionPhase || 'post_request'}
           onValueChange={(value) => {
-            setValue('execution_phase', value as ScriptConfigFormData['execution_phase']);
+            setValue('execution_phase', value as ScriptConfigFormData['execution_phase'], { shouldDirty: true });
             saveData();
           }}
         >
@@ -414,7 +423,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
         <Select
           value={watchedOnError || 'recoverable'}
           onValueChange={(value) => {
-            setValue('on_error', value as ScriptConfigFormData['on_error']);
+            setValue('on_error', value as ScriptConfigFormData['on_error'], { shouldDirty: true });
             saveData();
           }}
         >
@@ -445,7 +454,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
         <Select
           value={watchedOnAssertionFail || 'route_false'}
           onValueChange={(value) => {
-            setValue('on_assertion_fail', value as ScriptConfigFormData['on_assertion_fail']);
+            setValue('on_assertion_fail', value as ScriptConfigFormData['on_assertion_fail'], { shouldDirty: true });
             saveData();
           }}
         >

@@ -91,7 +91,7 @@ function fromFormData(formData: HttpConfigFormData): HttpConfigType {
     body_type: formData.body_type,
     content_type: formData.content_type,
     form_fields: formFields && formFields.length > 0 ? formFields : undefined,
-    file_path: formData.file_path,
+    file_path: formData.file_path || undefined,
     timeout_ms: formData.timeout_ms,
     output_mappings: formData.output_mappings && formData.output_mappings.length > 0 ? formData.output_mappings : undefined,
   };
@@ -255,8 +255,18 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    // 延迟保存，确保表单校验完成
-    safeSetTimeout(saveData, 100);
+    // 延迟保存，确保表单校验完成且 isDirty ref 已更新
+    safeSetTimeout(() => {
+      if (!isActuallyDirtyRef.current) return;
+      saveData();
+    }, 100);
+  }, [saveData]);
+
+  // 监听 Ctrl+S 刷新事件，将表单数据同步到 store
+  useEffect(() => {
+    const handleFlush = () => { saveData(); };
+    window.addEventListener('flush-config-panel', handleFlush);
+    return () => { window.removeEventListener('flush-config-panel', handleFlush); };
   }, [saveData]);
 
   /**
@@ -317,7 +327,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         filters: [{ name: '*', extensions: ['*'] }],
       });
       if (selected) {
-        setValue('file_path', selected as string);
+        setValue('file_path', selected as string, { shouldDirty: true });
         // 延迟保存，确保表单值已更新
         safeSetTimeout(saveData, 100);
       }
@@ -334,7 +344,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     const file = e.target.files?.[0];
     if (file) {
       // 在浏览器环境中，只能获取文件名，无法获取完整路径
-      setValue('file_path', file.name);
+      setValue('file_path', file.name, { shouldDirty: true });
       // 延迟保存，确保表单值已更新
       safeSetTimeout(saveData, 100);
     }
@@ -353,7 +363,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         filters: [{ name: '*', extensions: ['*'] }],
       });
       if (selected) {
-        setValue(`form_fields.${index}.file_path`, selected as string);
+        setValue(`form_fields.${index}.file_path`, selected as string, { shouldDirty: true });
         // 延迟保存，确保表单值已更新
         safeSetTimeout(saveData, 100);
       }
@@ -365,7 +375,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         const target = e.target as HTMLInputElement;
         const file = target.files?.[0];
         if (file) {
-          setValue(`form_fields.${index}.file_path`, file.name);
+          setValue(`form_fields.${index}.file_path`, file.name, { shouldDirty: true });
           // 延迟保存，确保表单值已更新
           safeSetTimeout(saveData, 100);
         }
@@ -395,7 +405,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
             variables={variables}
             nodeLabels={nodeLabels}
             value={watch('url') || ''}
-            onValueChange={(value) => setValue('url', value)}
+            onValueChange={(value) => setValue('url', value, { shouldDirty: true })}
             placeholder="https://api.example.com/endpoint"
             className="pl-9 font-mono text-sm text-left"
           />
@@ -418,7 +428,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         <Select
           value={watchedMethod}
           onValueChange={(value) => {
-            setValue('method', value as HttpConfigFormData['method']);
+            setValue('method', value as HttpConfigFormData['method'], { shouldDirty: true });
             saveData();
           }}
         >
@@ -495,7 +505,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   variables={variables}
                   nodeLabels={nodeLabels}
                   value={watch(`headers.${index}.value`) || ''}
-                  onValueChange={(value) => setValue(`headers.${index}.value`, value)}
+                  onValueChange={(value) => setValue(`headers.${index}.value`, value, { shouldDirty: true })}
                   placeholder="Value"
                   className="h-8 flex-1 font-mono text-xs"
                 />
@@ -517,7 +527,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         <Select
           value={watchedBodyType || 'none'}
           onValueChange={(value) => {
-            setValue('body_type', value as HttpConfigFormData['body_type']);
+            setValue('body_type', value as HttpConfigFormData['body_type'], { shouldDirty: true });
             saveData();
           }}
         >
@@ -566,7 +576,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           <Select
             value={watch('content_type') || 'json'}
             onValueChange={(value) => {
-              setValue('content_type', value as HttpConfigFormData['content_type']);
+              setValue('content_type', value as HttpConfigFormData['content_type'], { shouldDirty: true });
               saveData();
             }}
           >
@@ -625,11 +635,11 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                           <Select
                             value={fieldType}
                             onValueChange={(value) => {
-                              setValue(`form_fields.${index}.type`, value as 'text' | 'file');
+                              setValue(`form_fields.${index}.type`, value as 'text' | 'file', { shouldDirty: true });
                               if (value === 'file') {
-                                setValue(`form_fields.${index}.value`, '');
+                                setValue(`form_fields.${index}.value`, '', { shouldDirty: true });
                               } else {
-                                setValue(`form_fields.${index}.file_path`, '');
+                                setValue(`form_fields.${index}.file_path`, '', { shouldDirty: true });
                               }
                               saveData();
                             }}
@@ -670,7 +680,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                               variant="ghost"
                               size="icon"
                               onClick={() => {
-                                setValue(`form_fields.${index}.file_path`, '');
+                                setValue(`form_fields.${index}.file_path`, '', { shouldDirty: true });
                                 saveData();
                               }}
                               className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
@@ -684,7 +694,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                           variables={variables}
                           nodeLabels={nodeLabels}
                           value={watch(`form_fields.${index}.value`) || ''}
-                          onValueChange={(value) => setValue(`form_fields.${index}.value`, value)}
+                          onValueChange={(value) => setValue(`form_fields.${index}.value`, value, { shouldDirty: true })}
                           placeholder="Value"
                           className="h-8 flex-1 font-mono text-xs"
                         />
@@ -718,7 +728,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 variant="ghost"
                 size="icon"
                 onClick={() => {
-                  setValue('file_path', '');
+                  setValue('file_path', '', { shouldDirty: true });
                   saveData();
                 }}
                 className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"

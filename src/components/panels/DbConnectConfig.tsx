@@ -219,8 +219,17 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    if (!isActuallyDirtyRef.current) return;
-    safeSetTimeout(saveData, 100);
+    safeSetTimeout(() => {
+      if (!isActuallyDirtyRef.current) return;
+      saveData();
+    }, 100);
+  }, [saveData]);
+
+  // 监听 Ctrl+S 刷新事件，将表单数据同步到 store
+  useEffect(() => {
+    const handleFlush = () => { saveData(); };
+    window.addEventListener('flush-config-panel', handleFlush);
+    return () => { window.removeEventListener('flush-config-panel', handleFlush); };
   }, [saveData]);
 
   /**

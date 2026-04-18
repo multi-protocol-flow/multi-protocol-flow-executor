@@ -240,9 +240,18 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    if (!isActuallyDirtyRef.current) return;
-    safeSetTimeout(saveData, 100);
+    safeSetTimeout(() => {
+      if (!isActuallyDirtyRef.current) return;
+      saveData();
+    }, 100);
   }, [safeSetTimeout, saveData]);
+
+  // 监听 Ctrl+S 刷新事件，将表单数据同步到 store
+  useEffect(() => {
+    const handleFlush = () => { saveData(); };
+    window.addEventListener('flush-config-panel', handleFlush);
+    return () => { window.removeEventListener('flush-config-panel', handleFlush); };
+  }, [saveData]);
 
   /**
    * 添加输出映射
@@ -283,7 +292,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
           <Select
             value={watch('connection_id') || ''}
             onValueChange={(value) => {
-              setValue('connection_id', value);
+              setValue('connection_id', value, { shouldDirty: true });
               saveData();
             }}
           >
@@ -307,7 +316,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
             variables={variables}
             nodeLabels={nodeLabels}
             value={watch('connection_id') || ''}
-            onValueChange={(value) => setValue('connection_id', value)}
+            onValueChange={(value) => setValue('connection_id', value, { shouldDirty: true })}
             placeholder="ws_connection_id"
             className="font-mono text-sm"
           />
@@ -359,7 +368,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
         <Select
           value={watch('message_type') || 'text'}
           onValueChange={(value) => {
-            setValue('message_type', value as WsMessageType);
+            setValue('message_type', value as WsMessageType, { shouldDirty: true });
             saveData();
           }}
         >
@@ -394,12 +403,12 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
           id="collect_response"
           checked={collectResponse || false}
           onCheckedChange={(checked) => {
-            setValue('collect_response', checked);
+            setValue('collect_response', checked, { shouldDirty: true });
             if (!checked) {
               // 关闭采集响应时，清除所有关联字段，避免 schema 验证失败
-              setValue('collect_mode', undefined as unknown as WsCollectMode);
-              setValue('collect_condition', undefined as unknown as { match_type: WsMatchType; expression: string });
-              setValue('collect_timeout_ms', undefined as unknown as number);
+              setValue('collect_mode', undefined as unknown as WsCollectMode, { shouldDirty: true });
+              setValue('collect_condition', undefined as unknown as { match_type: WsMatchType; expression: string }, { shouldDirty: true });
+              setValue('collect_timeout_ms', undefined as unknown as number, { shouldDirty: true });
             }
             saveData();
           }}
@@ -420,13 +429,13 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
             <Select
               value={collectMode || 'first_match'}
                 onValueChange={(value) => {
-                  setValue('collect_mode', value as WsCollectMode);
+                  setValue('collect_mode', value as WsCollectMode, { shouldDirty: true });
                   if (value === 'condition_match') {
                     // 切换到 condition_match 模式时，初始化 collect_condition 为默认值
-                    setValue('collect_condition', { match_type: 'json_path', expression: '' });
+                    setValue('collect_condition', { match_type: 'json_path', expression: '' }, { shouldDirty: true });
                   } else {
                     // 切换到非 condition_match 模式时，清除 collect_condition，避免 schema 验证失败
-                    setValue('collect_condition', undefined as unknown as { match_type: WsMatchType; expression: string });
+                    setValue('collect_condition', undefined as unknown as { match_type: WsMatchType; expression: string }, { shouldDirty: true });
                   }
                   saveData();
                 }}
@@ -455,7 +464,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
                   <Select
                     value={watch('collect_condition.match_type') || 'json_path'}
                     onValueChange={(value) => {
-                      setValue('collect_condition.match_type', value as WsMatchType);
+                      setValue('collect_condition.match_type', value as WsMatchType, { shouldDirty: true });
                       saveData();
                     }}
                   >

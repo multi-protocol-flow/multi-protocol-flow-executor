@@ -110,6 +110,27 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
   const isActuallyDirtyRef = useRef(false);
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
 
+  // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  /**
+   * 安全的延迟执行包装器，注册定时器以便卸载时清理
+   */
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
+
   // 当外部数据变化时，重置表单
   useEffect(() => {
     reset(toFormData(data));
@@ -148,14 +169,24 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    setTimeout(saveData, 100);
+        safeSetTimeout(() => {
+          if (!isActuallyDirtyRef.current) return;
+          saveData();
+        }, 100);
+      }, [safeSetTimeout, saveData]);
+
+  // 监听 Ctrl+S 刷新事件，将表单数据同步到 store
+  useEffect(() => {
+    const handleFlush = () => { saveData(); };
+    window.addEventListener('flush-config-panel', handleFlush);
+    return () => { window.removeEventListener('flush-config-panel', handleFlush); };
   }, [saveData]);
 
   /**
    * 处理连接选择变更
    */
   const handleConnectionChange = useCallback((value: string) => {
-    setValue('connection_uuid', value);
+    setValue('connection_uuid', value, { shouldDirty: true });
     saveData();
   }, [setValue, saveData]);
 
@@ -163,7 +194,7 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
    * 处理隔离级别选择变更
    */
   const handleIsolationLevelChange = useCallback((value: string) => {
-    setValue('isolation_level', value as DbIsolationLevelFormData);
+    setValue('isolation_level', value as DbIsolationLevelFormData, { shouldDirty: true });
     saveData();
   }, [setValue, saveData]);
 

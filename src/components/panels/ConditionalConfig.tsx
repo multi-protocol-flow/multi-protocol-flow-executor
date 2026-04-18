@@ -90,6 +90,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
     watch,
     setValue,
     getValues,
+    reset,
     formState: { isDirty },
   } = useForm<ConditionalConfigFormData>({
     resolver: zodResolver(conditionalConfigSchema),
@@ -151,18 +152,33 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
-    const formData = toFormData(data);
-    setValue('condition_type', formData.condition_type);
-    setValue('field_path', formData.field_path || '');
-    setValue('operator', formData.operator);
-    setValue('expected_value', formData.expected_value);
-    setValue('advanced_expression', formData.advanced_expression || '');
-    setValue('expected_value_type', formData.expected_value_type);
-  }, [data, setValue]);
+    reset(toFormData(data));
+  }, [data, reset]);
 
   // 追踪表单实际修改状态（useRef 用于卸载时读取）
   const isActuallyDirtyRef = useRef(false);
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
+
+  // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  /**
+   * 安全的延迟执行包装器，注册定时器以便卸载时清理
+   */
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
 
   // 组件卸载时同步保存（仅当用户实际修改过表单时）
   useEffect(() => {
@@ -197,14 +213,24 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
    * 处理失焦事件
    */
   const handleBlur = useCallback(() => {
-    setTimeout(saveData, 100);
+        safeSetTimeout(() => {
+          if (!isActuallyDirtyRef.current) return;
+          saveData();
+        }, 100);
+      }, [safeSetTimeout, saveData]);
+
+  // 监听 Ctrl+S 刷新事件，将表单数据同步到 store
+  useEffect(() => {
+    const handleFlush = () => { saveData(); };
+    window.addEventListener('flush-config-panel', handleFlush);
+    return () => { window.removeEventListener('flush-config-panel', handleFlush); };
   }, [saveData]);
 
   /**
    * 切换条件类型
    */
   const handleConditionTypeChange = useCallback((value: string) => {
-    setValue('condition_type', value as 'simple' | 'advanced');
+    setValue('condition_type', value as 'simple' | 'advanced', { shouldDirty: true });
     saveData();
   }, [setValue, saveData]);
 
@@ -254,7 +280,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
               variables={variables}
               nodeLabels={nodeLabels}
               value={watch('field_path') || ''}
-              onValueChange={(value) => setValue('field_path', value)}
+              onValueChange={(value) => setValue('field_path', value, { shouldDirty: true })}
               placeholder="{{变量名}} 或 $.body.data.token"
               className="font-mono text-sm"
             />
@@ -280,7 +306,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
             <Select
               value={watchedOperator}
               onValueChange={(value) => {
-                setValue('operator', value as ConditionalConfigFormData['operator']);
+                setValue('operator', value as ConditionalConfigFormData['operator'], { shouldDirty: true });
                 saveData();
               }}
             >
@@ -306,7 +332,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
               <Select
                 value={watch('expected_value_type') || 'string'}
                 onValueChange={(value) => {
-                  setValue('expected_value_type', value as 'number' | 'string' | 'boolean' | 'null');
+                  setValue('expected_value_type', value as 'number' | 'string' | 'boolean' | 'null', { shouldDirty: true });
                   saveData();
                 }}
               >
@@ -336,7 +362,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
               variables={variables}
               nodeLabels={nodeLabels}
               value={watch('expected_value') || ''}
-              onValueChange={(value) => setValue('expected_value', value)}
+              onValueChange={(value) => setValue('expected_value', value, { shouldDirty: true })}
               placeholder="200"
               className="font-mono text-sm"
             />
