@@ -113,6 +113,13 @@ export function useKeyboardShortcuts() {
       // Ctrl/Cmd + S: 保存当前流程
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
+        
+        // 先刷新配置面板的表单数据到 store
+        window.dispatchEvent(new CustomEvent('flush-config-panel'));
+        
+        // 等待一个微任务，让面板的 saveData -> handleSave -> updateNode 完成同步更新
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
         const { flow, isDirty, markSaved } = useFlowStore.getState();
         if (!flow || !isDirty) {
           toast.info('无需保存', { description: '流程没有未保存的修改' });
