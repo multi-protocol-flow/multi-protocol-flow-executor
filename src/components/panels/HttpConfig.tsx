@@ -78,8 +78,8 @@ function fromFormData(formData: HttpConfigFormData): HttpConfigType {
   const formFields = formData.form_fields?.filter(field => field.key.trim());
 
   let body: string | undefined = undefined;
-  if (formData.body?.trim()) {
-    body = formData.body.trim();
+  if (formData.body !== undefined && formData.body !== '') {
+    body = formData.body;
   }
 
   return {
@@ -104,6 +104,15 @@ const HTTP_METHODS = [
   { value: 'delete', label: 'DELETE', color: 'text-rose-600' },
   { value: 'patch', label: 'PATCH', color: 'text-violet-600' },
 ] as const;
+
+/** 根据 Content-Type 返回对应的 Body 标签和占位提示 */
+const BODY_CONTENT_TYPE_META: Record<string, { label: string; placeholder: string }> = {
+  json: { label: 'Body (JSON)', placeholder: '{"key": "value"}' },
+  text: { label: 'Body (Text)', placeholder: '输入文本内容...' },
+  html: { label: 'Body (HTML)', placeholder: '<div>...</div>' },
+  xml: { label: 'Body (XML)', placeholder: '<root>\n  <item>value</item>\n</root>' },
+  javascript: { label: 'Body (JavaScript)', placeholder: '// JavaScript 代码\n' },
+};
 
 export function HttpConfig({ data, onSave }: HttpConfigProps) {
   const {
@@ -190,6 +199,9 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   }, [flow]);
   // 监听 body_type 变化
   const watchedBodyType = watch('body_type');
+
+  // 监听 content_type 变化
+  const watchedContentType = watch('content_type') || 'json';
 
   // 监听表单值变化
   const watchedMethod = watch('method');
@@ -548,12 +560,12 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {watchedBodyType === 'body' && (
         <div className="space-y-2">
           <Label htmlFor="body" className="text-sm font-medium text-foreground">
-            Body (JSON)
+            {(BODY_CONTENT_TYPE_META[watchedContentType] ?? BODY_CONTENT_TYPE_META.json).label}
           </Label>
           <Textarea
             id="body"
             {...register('body')}
-            placeholder='{"key": "value"}'
+            placeholder={(BODY_CONTENT_TYPE_META[watchedContentType] ?? BODY_CONTENT_TYPE_META.json).placeholder}
             className="min-h-[120px] resize-y font-mono text-sm"
             rows={5}
           />
