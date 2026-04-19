@@ -2,7 +2,7 @@
  * DebugNodeConfigDialog - 调试模式节点配置弹窗
  * 复用节点配置面板组件，允许在调试模式下临时修改节点配置
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,14 @@ import { ConditionalConfig } from '@/components/panels/ConditionalConfig';
 import { WsConnectConfig } from '@/components/panels/WsConnectConfig';
 import { WsSendCollectConfig } from '@/components/panels/WsSendCollectConfig';
 import { WsCloseConfig } from '@/components/panels/WsCloseConfig';
+import { ScriptConfig } from '@/components/panels/ScriptConfig';
+import { AssertionConfig } from '@/components/panels/AssertionConfig';
+import { DbConnectConfig } from '@/components/panels/DbConnectConfig';
+import { DbQueryConfig } from '@/components/panels/DbQueryConfig';
+import { DbBeginConfig } from '@/components/panels/DbBeginConfig';
+import { DbCommitConfig } from '@/components/panels/DbCommitConfig';
+import { DbRollbackConfig } from '@/components/panels/DbRollbackConfig';
+import { DbCloseConfig } from '@/components/panels/DbCloseConfig';
 
 // 类型和类型守卫
 import type { NodeData } from '@/types';
@@ -29,6 +37,14 @@ import {
   isWsConnectConfig,
   isWsSendCollectConfig,
   isWsCloseConfig,
+  isScriptConfig,
+  isAssertionConfig,
+  isDbConnectConfig,
+  isDbQueryConfig,
+  isDbBeginConfig,
+  isDbCommitConfig,
+  isDbRollbackConfig,
+  isDbCloseConfig,
 } from '@/types';
 
 export interface DebugNodeConfigDialogProps {
@@ -54,6 +70,14 @@ const NODE_TYPE_LABELS: Record<string, string> = {
   ws_connect: 'WebSocket 连接',
   ws_send_collect: 'WebSocket 发送采集',
   ws_close: 'WebSocket 关闭',
+  script: '脚本节点',
+  assertion: '断言节点',
+  db_connect: '数据库连接',
+  db_query: '数据库查询',
+  db_begin: '事务开始',
+  db_commit: '事务提交',
+  db_rollback: '事务回滚',
+  db_close: '数据库关闭',
 };
 
 export function DebugNodeConfigDialog({
@@ -67,18 +91,40 @@ export function DebugNodeConfigDialog({
   const [editedData, setEditedData] = useState<NodeData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // 使用 ref 持久化最新 editedData，避免异步闭包读取到旧值
+  const editedDataRef = useRef<NodeData | null>(null);
+
   // 当 nodeData 变化时，重置编辑状态
   useEffect(() => {
     setEditedData(nodeData);
+    editedDataRef.current = nodeData;
   }, [nodeData]);
 
-  // 处理保存
+  // 处理配置组件的保存回调
+  const handleConfigSave = useCallback((data: NodeData) => {
+    setEditedData(data);
+    editedDataRef.current = data;
+  }, []);
+
+  // 处理保存：先通过 flush-config-panel 事件强制当前 config 组件提交表单，
+  // 等待 onSave 回调更新 editedData 后再发送到后端
   const handleSave = async () => {
-    if (!editedData) return;
+    if (!editedDataRef.current) return;
 
     setIsSaving(true);
     try {
-      await onSave(editedData);
+      // 触发 config 组件内部的 form 提交，确保表单数据同步
+      // 所有 config 组件都监听此事件并在回调中调用 onSave
+      window.dispatchEvent(new CustomEvent('flush-config-panel'));
+
+      // 等待一个微任务周期，让 config 组件的 onSave 回调更新 editedDataRef
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // 通过 ref 读取最新数据（flush 回调可能已更新）
+      const latestData = editedDataRef.current;
+      if (!latestData) return;
+
+      await onSave(latestData);
       toast.success('节点配置已临时修改');
       onCancel(); // 关闭弹窗
     } catch (error) {
@@ -86,11 +132,6 @@ export function DebugNodeConfigDialog({
     } finally {
       setIsSaving(false);
     }
-  };
-
-  // 处理配置组件的保存回调
-  const handleConfigSave = (data: NodeData) => {
-    setEditedData(data);
   };
 
   // 处理弹窗关闭
@@ -106,9 +147,6 @@ export function DebugNodeConfigDialog({
   // 渲染配置组件
   const renderConfigComponent = () => {
     if (!editedData) return null;
-
-    // 保存节点类型用于错误提示
-    const nodeType = editedData.type;
 
     // 根据节点类型渲染对应的配置组件
     if (isEntryConfig(editedData)) {
@@ -165,11 +203,79 @@ export function DebugNodeConfigDialog({
       );
     }
 
-    return (
-      <div className="text-sm text-muted-foreground text-center py-8">
-        不支持的节点类型: {nodeType}
-      </div>
-    );
+    if (isScriptConfig(editedData)) {
+      return (
+        <ScriptConfig
+          data={editedData}
+          onSave={(data) => handleConfigSave(data as NodeData)}
+        />
+      );
+    }
+
+    if (isAssertionConfig(editedData)) {
+      return (
+        <AssertionConfig
+          data={editedData}
+          onSave={(data) => handleConfigSave(data as NodeData)}
+        />
+      );
+    }
+
+    if (isDbConnectConfig(editedData)) {
+      return (
+        <DbConnectConfig
+          data={editedData}
+          onSave={(data) => handleConfigSave(data as NodeData)}
+        />
+      );
+    }
+
+    if (isDbQueryConfig(editedData)) {
+      return (
+        <DbQueryConfig
+          data={editedData}
+          onSave={(data) => handleConfigSave(data as NodeData)}
+        />
+      );
+    }
+
+    if (isDbBeginConfig(editedData)) {
+      return (
+        <DbBeginConfig
+          data={editedData}
+          onSave={(data) => handleConfigSave(data as NodeData)}
+        />
+      );
+    }
+
+    if (isDbCommitConfig(editedData)) {
+      return (
+        <DbCommitConfig
+          data={editedData}
+          onSave={(data) => handleConfigSave(data as NodeData)}
+        />
+      );
+    }
+
+    if (isDbRollbackConfig(editedData)) {
+      return (
+        <DbRollbackConfig
+          data={editedData}
+          onSave={(data) => handleConfigSave(data as NodeData)}
+        />
+      );
+    }
+
+    if (isDbCloseConfig(editedData)) {
+      return (
+        <DbCloseConfig
+          data={editedData}
+          onSave={(data) => handleConfigSave(data as NodeData)}
+        />
+      );
+    }
+
+    return null;
   };
 
   return (
