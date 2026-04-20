@@ -284,13 +284,13 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
               placeholder="{{变量名}} 或 $.body.data.token"
               className="font-mono text-sm"
             />
-            <p className="text-xs text-muted-foreground break-all">
-              支持两种格式：
-              <br />
-              • <code className="rounded bg-muted px-1">{"{{变量名}}"}</code> 从变量池获取
-              <br />
-              • <code className="rounded bg-muted px-1">$.json.path</code> JSONPath 从数据中提取
-            </p>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>支持两种格式：</p>
+              <ul className="ml-3 list-disc space-y-0.5">
+                <li><code className="rounded bg-muted px-1">{"{{变量名}}"}</code> 从变量池获取</li>
+                <li><code className="rounded bg-muted px-1">$.json.path</code> JSONPath 从上游节点的 <code className="rounded bg-muted px-1">output_data</code> 中提取（如 HTTP 响应的 <code className="rounded bg-muted px-1">$.body.data.token</code>）</li>
+              </ul>
+            </div>
             <VariableValidationWarning
               value={watch('field_path') || ''}
               availableVariables={availableVariableNames}

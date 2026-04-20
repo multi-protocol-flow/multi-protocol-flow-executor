@@ -593,7 +593,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
               <p className="text-xs text-muted-foreground">暂无输出映射</p>
               <p className="mt-1 text-xs text-muted-foreground/60">
-                点击「添加映射」配置变量提取规则
+                点击「添加映射」从节点执行结果的 output_data 中提取变量
               </p>
             </div>
           ) : (
@@ -684,7 +684,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
           <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
             <div className="text-xs text-muted-foreground space-y-1">
-              <p className="font-medium text-foreground">JSONPath 语法：</p>
+              <p className="font-medium text-foreground">JSONPath 语法（从节点执行结果的 <code className="rounded bg-muted px-1">output_data</code> 中提取）：</p>
               <p><code className="rounded bg-muted px-1">$.message</code> 消息内容</p>
               <p><code className="rounded bg-muted px-1">$.connection_id</code> 连接 ID</p>
               <p><code className="rounded bg-muted px-1">$.data.status</code> 嵌套字段</p>
