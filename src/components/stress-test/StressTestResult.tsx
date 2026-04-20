@@ -330,8 +330,8 @@ export function StressTestResult() {
                       <AlertCircle className="w-4 h-4 text-red-500" />
                       错误统计
                     </h3>
-                    <div className="rounded-xl border border-border/50 overflow-hidden">
-                      <table className="w-full text-sm">
+                    <div className="rounded-xl border border-border/50 overflow-x-auto">
+                      <table className="w-full min-w-max whitespace-nowrap text-sm">
                         <thead>
                           <tr className="bg-muted/50">
                             <th className="text-left py-2 px-3 font-medium text-muted-foreground">
@@ -377,17 +377,17 @@ export function StressTestResult() {
             ) : (
               <>
                 {/* 节点级别统计表格 */}
-                {filteredNodeStats.length > 0 ? (
-                  <div className="rounded-xl border border-border/50 overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-muted/50">
-                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                            节点名称
-                          </th>
-                          <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                            类型
-                          </th>
+                 {filteredNodeStats.length > 0 ? (
+                   <div className="rounded-xl border border-border/50 overflow-x-auto">
+                     <table className="w-full min-w-max whitespace-nowrap text-sm">
+                       <thead>
+                         <tr className="bg-muted/50">
+                           <th className="sticky left-0 z-20 bg-muted text-left py-2 px-3 font-medium text-muted-foreground">
+                             节点名称
+                           </th>
+                           <th className="sticky left-[120px] z-10 bg-muted text-left py-2 px-3 font-medium text-muted-foreground border-r border-border/50">
+                             类型
+                           </th>
                           <th className="text-right py-2 px-3 font-medium text-muted-foreground">
                             执行次数
                           </th>
@@ -429,10 +429,10 @@ export function StressTestResult() {
                             key={node.nodeUuid}
                             className="border-t border-border/50"
                           >
-                            <td className="py-2 px-3 font-medium truncate max-w-[120px]">
+                            <td className="sticky left-0 z-20 bg-background py-2 px-3 font-medium truncate w-[120px]">
                               {node.nodeName}
                             </td>
-                            <td className="py-2 px-3 text-muted-foreground">
+                            <td className="sticky left-[120px] z-10 bg-background py-2 px-3 text-muted-foreground border-r border-border/50">
                               {node.nodeType}
                             </td>
                             <td className="py-2 px-3 text-right tabular-nums">
@@ -489,8 +489,8 @@ export function StressTestResult() {
                       <BarChart3 className="w-4 h-4" />
                       节点类型聚合
                     </h3>
-                    <div className="rounded-xl border border-border/50 overflow-hidden">
-                      <table className="w-full text-sm">
+                    <div className="rounded-xl border border-border/50 overflow-x-auto">
+                      <table className="w-full min-w-max whitespace-nowrap text-sm">
                         <thead>
                           <tr className="bg-muted/50">
                             <th className="text-left py-2 px-3 font-medium text-muted-foreground">

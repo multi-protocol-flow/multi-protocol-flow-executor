@@ -237,14 +237,14 @@ export function StressTestMonitor() {
 
             {/* 节点指标表格 */}
             <ScrollArea className="max-h-[280px]">
-              <div className="rounded-xl border border-border/50 overflow-hidden">
-                <table className="w-full text-xs">
+              <div className="rounded-xl border border-border/50 overflow-x-auto">
+                <table className="w-full min-w-max whitespace-nowrap text-xs">
                   <thead>
                     <tr className="bg-muted/50">
-                      <th className="text-left py-1.5 px-2 font-medium text-muted-foreground">
+                      <th className="sticky left-0 z-20 bg-muted text-left py-1.5 px-2 font-medium text-muted-foreground">
                         节点名称
                       </th>
-                      <th className="text-left py-1.5 px-2 font-medium text-muted-foreground">
+                      <th className="sticky left-[120px] z-10 bg-muted text-left py-1.5 px-2 font-medium text-muted-foreground border-r border-border/50">
                         类型
                       </th>
                       <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
@@ -282,10 +282,10 @@ export function StressTestMonitor() {
                         key={node.nodeUuid}
                         className="border-t border-border/50"
                       >
-                        <td className="py-1.5 px-2 font-medium truncate max-w-[120px]">
+                        <td className="sticky left-0 z-20 bg-background py-1.5 px-2 font-medium truncate w-[120px]">
                           {node.nodeName}
                         </td>
-                        <td className="py-1.5 px-2 text-muted-foreground">
+                        <td className="sticky left-[120px] z-10 bg-background py-1.5 px-2 text-muted-foreground border-r border-border/50">
                           {node.nodeType}
                         </td>
                         <td className="py-1.5 px-2 text-right tabular-nums">
