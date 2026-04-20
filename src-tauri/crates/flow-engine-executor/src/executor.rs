@@ -720,20 +720,39 @@ impl FlowExecutor {
                     }
 
                     // 查找下一个节点
+                    // 是否为端口路由节点（使用 true/false/out 端口路由的节点类型）
+                    // 这些节点的执行器已经根据端口做了路由决策，不应回退到无过滤的 connection_map
+                    let is_port_routing_node = matches!(
+                        node.node_type,
+                        NodeType::Http
+                            | NodeType::Conditional
+                            | NodeType::Assertion
+                            | NodeType::WsConnect
+                            | NodeType::WsSendCollect
+                            | NodeType::WsClose
+                            | NodeType::DbConnect
+                            | NodeType::DbQuery
+                            | NodeType::DbBegin
+                            | NodeType::DbCommit
+                            | NodeType::DbRollback
+                            | NodeType::DbClose
+                            | NodeType::Script
+                    );
+
                     let next_node_id = if !next_node_id_from_executor.is_empty() {
                         // 如果执行器返回了下一个节点 ID，使用它
                         Some(next_node_id_from_executor[0].clone())
-                    } else if matches!(node.node_type, NodeType::Http) {
-                        // HTTP 节点：如果执行器返回空列表，说明没有匹配的端口连接
+                    } else if is_port_routing_node {
+                        // 端口路由节点：如果执行器返回空列表，说明没有匹配的端口连接
                         // 不使用 connection_map 回退，直接终止
                         log::info!(
-                            "[流程 {}] HTTP 节点 {} 没有匹配的端口连接，执行完成",
+                            "[流程 {}] 端口路由节点 {} 没有匹配的端口连接，执行完成",
                             context.flow_uuid,
                             node.name
                         );
                         None
                     } else {
-                        // 其他节点：使用连接映射查找下一个节点
+                        // 非端口路由节点（如 Entry）：使用连接映射查找下一个节点
                         connection_map.get(&current_node_id).and_then(|targets| {
                             if targets.is_empty() {
                                 None
