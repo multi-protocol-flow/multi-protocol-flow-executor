@@ -12,8 +12,6 @@ import {
   Clock,
   MousePointerClick,
   Ban,
-  Lock,
-  LogOut,
 } from 'lucide-react';
 import { useExecutionStore, useFlowStore, useDebugStore, useUIStore } from '@/stores';
 import {
@@ -22,10 +20,9 @@ import {
   selectTotalNodes,
   selectReport,
 } from '@/stores/execution';
-import { selectIsDebugging, selectIsDebugDataReadOnly, selectCurrentNodeUuid } from '@/stores/debug';
+import { selectIsDebugging, selectCurrentNodeUuid } from '@/stores/debug';
 import { useWsStreamStore } from '@/stores/wsStream';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
 import { NodeExecutionDetails } from './NodeExecutionDetails';
 import { WsMessageTimeline } from './WsMessageTimeline';
 import { VariableTreeView } from './VariableTreeView';
@@ -159,14 +156,12 @@ export function ExecutionPanel() {
 
   // ===== 调试状态 =====
   const isDebugging = useDebugStore(selectIsDebugging);
-  const isDebugDataReadOnly = useDebugStore(selectIsDebugDataReadOnly);
   const debugCurrentNodeUuid = useDebugStore(selectCurrentNodeUuid);
   const variables = useDebugStore((state) => state.variables);
   const executionStack = useDebugStore((state) => state.executionStack);
-  const clearDebugData = useDebugStore((state) => state.clearDebugData);
   const focusOnNode = useFlowStore((state) => state.focusOnNode);
 
-  const showDebugTabs = isDebugging || isDebugDataReadOnly;
+  const showDebugTabs = isDebugging;
 
   // ===== 本地状态 =====
   const [selectedNodeUuid, setSelectedNodeUuid] = useState<string | null>(null);
@@ -180,11 +175,6 @@ export function ExecutionPanel() {
       useUIStore.getState().setExecutionPanelOpen(true);
     }
   }, [isDebugging]);
-
-  // ===== 调试只读模式下 "退出调试" 按钮 =====
-  const handleExitDebug = useCallback(() => {
-    clearDebugData();
-  }, [clearDebugData]);
 
   // ===== 有序节点列表（仅显示实际执行路径上的节点） =====
   const orderedNodes = useMemo(() => {
@@ -258,7 +248,7 @@ export function ExecutionPanel() {
   }, [selectedNodeUuid, nodes, wsStreams]);
 
   // ===== 变量编辑回调 =====
-  const canEditVariables = useDebugStore((state) => state.status === 'paused') && !isDebugDataReadOnly;
+  const canEditVariables = useDebugStore((state) => state.status === 'paused');
   const handleModifyVariable = useCallback(async (name: string, value: unknown) => {
     try {
       await sendDebugCommand({
@@ -361,26 +351,6 @@ export function ExecutionPanel() {
 
       {/* ===== 右侧：详情区域 (~65%) ===== */}
       <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
-        {/* 只读模式横幅 + 退出按钮 */}
-        {isDebugDataReadOnly && (
-          <div className="flex items-center justify-between px-3 py-1.5 bg-amber-50 dark:bg-amber-950/50 border-b border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs shrink-0">
-            <div className="flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5" />
-              <span className="font-medium">调试已结束</span>
-              <span className="text-amber-600 dark:text-amber-400">只读模式</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleExitDebug}
-              className="h-6 px-2 text-xs gap-1 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50"
-            >
-              <LogOut className="w-3 h-3" />
-              退出调试
-            </Button>
-          </div>
-        )}
-
         {/* 子标签栏 */}
         <div className="border-b border-border shrink-0">
           <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as DetailTab)}>
@@ -478,7 +448,7 @@ export function ExecutionPanel() {
                 <ExecutionStackView
                   executionStack={executionStack}
                   currentNodeUuid={debugCurrentNodeUuid}
-                  isReadOnly={isDebugDataReadOnly}
+                  isReadOnly={false}
                   onNavigateToNode={focusOnNode}
                 />
               </TabsContent>

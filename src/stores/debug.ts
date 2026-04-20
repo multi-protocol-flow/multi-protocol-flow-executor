@@ -385,12 +385,11 @@ export const useDebugStore = create<DebugState>((set, get) => ({
     try {
       clearAllTimers();
       await endDebugService();
-      // 设置只读标记而不是完全清空，保留调试数据用于查看
+      // 调试结束，保留执行数据用于查看（与普通执行模式一致）
       set({ 
         status: 'ended',
         isCommandPending: false,
         previousStatus: null,
-        isDebugDataReadOnly: true,
       });
     } catch (error) {
       set({ error: (error as Error).message });
@@ -502,8 +501,6 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         isCommandPending: false,
         previousStatus: null,
         healthStatus: 'healthy',
-        // 设置只读标记
-        isDebugDataReadOnly: true,
         // 存储调试报告（如果有）
         lastDebugReport: report || null,
         // 更新执行堆栈（包含所有节点，包括最后一个）
@@ -567,8 +564,6 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         isCommandPending: false,
         previousStatus: null,
         healthStatus: 'dead',
-        // 设置只读标记，保留调试数据
-        isDebugDataReadOnly: true,
       });
 
       // 桥接：标记执行结束
@@ -639,8 +634,6 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         error: '调试会话失去响应（心跳超时）',
         isCommandPending: false,
         previousStatus: null,
-        // 设置只读标记，保留调试数据
-        isDebugDataReadOnly: true,
       });
     } else if (timeSinceLastHeartbeat > DEBUG_HEALTH_CONFIG.HEARTBEAT_TIMEOUT_MS / 2) {
       // 心跳延迟，标记为降级状态
@@ -657,11 +650,10 @@ export const useDebugStore = create<DebugState>((set, get) => ({
   },
 
   clearDebugData: () => {
-    // 清除所有调试数据，恢复正常操作模式
+    // 清除调试数据，恢复正常操作模式
+    // 不清理 executionStore，保留执行结果供用户查看（与普通执行模式一致）
     clearAllTimers();
     set(initialState);
-    // 同时清理执行状态，确保运行标签完全重置
-    useExecutionStore.getState().clearExecutionState();
   },
 
   reset: () => {

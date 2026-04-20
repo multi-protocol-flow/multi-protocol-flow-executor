@@ -333,10 +333,6 @@ function FlowCanvasInner() {
   // 处理节点点击 - 选中节点并展开面板
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
-      // 如果处于调试只读模式，点击节点时清除调试数据，恢复正常操作
-      if (useDebugStore.getState().isDebugDataReadOnly) {
-        useDebugStore.getState().clearDebugData();
-      }
       selectNode(node.id);
       setConfigPanelOpen(true);
       setConfigPanelMode('node');

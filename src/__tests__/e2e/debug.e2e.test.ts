@@ -193,9 +193,9 @@ describe('调试功能端到端测试', () => {
       });
 
       expect(mockEndDebug).toHaveBeenCalled();
-      // 调试结束后状态为 ended，数据保留为只读模式
+      // 调试结束后状态为 ended，执行数据保留在 executionStore
       expect(useDebugStore.getState().status).toBe('ended');
-      expect(useDebugStore.getState().isDebugDataReadOnly).toBe(true);
+      expect(useDebugStore.getState().isDebugDataReadOnly).toBe(false);
     });
   });
 

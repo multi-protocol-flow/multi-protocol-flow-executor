@@ -196,7 +196,7 @@ describe('DebugStore', () => {
         // 调试结束后保留数据用于只读查看
         expect(state.currentNodeUuid).toBe('node-1'); // 保留最后暂停的节点
         expect(state.pauseReason).not.toBeNull(); // 保留暂停原因
-        expect(state.isDebugDataReadOnly).toBe(true); // 设置只读标记
+        expect(state.isDebugDataReadOnly).toBe(false); // 不再设置只读标记，执行数据保留在 executionStore
       });
 
       it('处理 SessionEnded 事件（用户终止）', () => {
@@ -684,7 +684,7 @@ describe('DebugStore', () => {
       // 调试结束后设置为 ended 状态并保留数据（只读模式）
       const state = useDebugStore.getState();
       expect(state.status).toBe('ended');
-      expect(state.isDebugDataReadOnly).toBe(true);
+      expect(state.isDebugDataReadOnly).toBe(false); // 不再设置只读标记，执行数据保留在 executionStore
     });
 
     it('continueExecution 处理错误', async () => {
