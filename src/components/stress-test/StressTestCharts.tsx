@@ -230,7 +230,12 @@ export function StressTestCharts({ progressHistory }: StressTestChartsProps) {
 
       {/* 响应时间分布 */}
       <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold text-foreground">响应时间分布</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-foreground">响应时间分布</h3>
+          <span className="text-xs text-muted-foreground">
+            · 每秒采样一次平均延迟，统计各延迟区间对应的采样秒数
+          </span>
+        </div>
         <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
