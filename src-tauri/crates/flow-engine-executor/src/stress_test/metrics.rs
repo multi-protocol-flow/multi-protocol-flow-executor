@@ -184,7 +184,9 @@ impl NodeMetricsInner {
             min_latency_ms: min_ms,
             max_latency_ms: self.max_latency_ms.load(Ordering::SeqCst),
             p50_latency_ms: self.calculate_percentile(50.0),
+            p90_latency_ms: self.calculate_percentile(90.0),
             p95_latency_ms: self.calculate_percentile(95.0),
+            p99_latency_ms: self.calculate_percentile(99.0),
         }
     }
 

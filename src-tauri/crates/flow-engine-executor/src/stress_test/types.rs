@@ -167,9 +167,15 @@ pub struct NodeMetrics {
     /// P50 延迟（毫秒）
     #[serde(default)]
     pub p50_latency_ms: u64,
+    /// P90 延迟（毫秒）
+    #[serde(default)]
+    pub p90_latency_ms: u64,
     /// P95 延迟（毫秒）
     #[serde(default)]
     pub p95_latency_ms: u64,
+    /// P99 延迟（毫秒）
+    #[serde(default)]
+    pub p99_latency_ms: u64,
 }
 
 /// 节点级别统计（单个节点的详细统计，用于最终报告）
