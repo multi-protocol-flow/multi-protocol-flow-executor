@@ -149,6 +149,8 @@ function FlowCanvasInner() {
     markSaved,
     focusNodeUuid,
     clearFocusNode,
+    centerOnNodeUuid,
+    clearCenterOnNode,
     batchUpdateNodePositions,
   } = useFlowStore();
   const { setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen, showMinimap, toggleMinimap } = useUIStore();
@@ -278,6 +280,20 @@ function FlowCanvasInner() {
     }
   }, [focusNodeUuid, getNode, setCenter, selectNode, clearFocusNode]);
 
+  // 处理节点居中定位（从节点列表点击定位，仅居中不选中）
+  useEffect(() => {
+    if (!centerOnNodeUuid) return;
+
+    const node = getNode(centerOnNodeUuid);
+    if (node) {
+      setCenter(node.position.x, node.position.y, {
+        zoom: 1.2,
+        duration: 300,
+      });
+      clearCenterOnNode();
+    }
+  }, [centerOnNodeUuid, getNode, setCenter, clearCenterOnNode]);
+
   // 处理连接创建
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -351,10 +367,10 @@ function FlowCanvasInner() {
     setConfigPanelOpen(false);
   }, [selectNode, setConfigPanelOpen]);
 
-  // 处理画布空白处点击 - 取消选中并收起面板
+  // 处理画布空白处点击 - 取消选中，保持面板打开显示节点列表
   const onPaneClick = useCallback(() => {
     selectNode(null);
-    setConfigPanelOpen(false);
+    setConfigPanelOpen(true);
     setContextMenu(null);
   }, [selectNode, setConfigPanelOpen]);
 

@@ -27,6 +27,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
 }
 import { useFlowStore, useDebugStore, selectHistoryVersion } from '@/stores';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
+import { FlowNodeList } from './FlowNodeList';
 import { EntryConfig } from './EntryConfig';
 import { HttpConfig } from './HttpConfig';
 import { ConditionalConfig } from './ConditionalConfig';
@@ -81,23 +82,24 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   // 调试模式下编辑配置弹窗状态
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  // 未选中节点时的空状态
+  // 未选中节点时显示流程节点列表
   if (!selectedNode) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center p-6 text-center">
-        <div className="rounded-full bg-muted p-4 mb-4">
-          <MousePointerClick className="h-8 w-8 text-muted-foreground" />
+    if (readOnly) {
+      return (
+        <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <MousePointerClick className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-medium text-foreground">
+            调试模式
+          </h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            点击画布上的节点查看其配置信息
+          </p>
         </div>
-        <h3 className="text-lg font-medium text-foreground">
-          {readOnly ? '调试模式' : '未选中节点'}
-        </h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {readOnly 
-            ? '点击画布上的节点查看其配置信息' 
-            : '请在画布上点击选择一个节点进行配置'}
-        </p>
-      </div>
-    );
+      );
+    }
+    return <FlowNodeList />;
   }
 
   // 冻结节点 UUID，防止快速切换节点时闭包捕获到过时的节点

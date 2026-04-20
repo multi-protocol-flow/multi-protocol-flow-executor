@@ -13,6 +13,8 @@ vi.mock('@/stores', () => ({
   useUIStore: vi.fn(),
   useDebugStore: vi.fn(),
   selectHistoryVersion: vi.fn(),
+  selectNodes: vi.fn(() => []),
+  selectConnections: vi.fn(() => []),
 }));
 
 // 模拟流程数据
@@ -55,9 +57,14 @@ describe('NodeConfigPanel', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-      getSelectedNode: vi.fn(() => null),
-      updateNode: mockUpdateNode,
+    (useFlowStore as unknown as ReturnType<typeof vi.fn>).mockImplementation((selector?: Function) => {
+      const state = {
+        getSelectedNode: vi.fn(() => null),
+        updateNode: mockUpdateNode,
+        nodes: [],
+        connections: [],
+      };
+      return selector ? selector(state) : state;
     });
     (useUIStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       showConfirm: vi.fn(),
@@ -66,11 +73,19 @@ describe('NodeConfigPanel', () => {
   });
 
   describe('空状态', () => {
-    it('当没有选中节点时显示提示', () => {
+    it('当没有选中节点且非只读模式时显示流程节点列表', () => {
       render(<NodeConfigPanel />);
 
-      expect(screen.getByText('未选中节点')).toBeDefined();
-      expect(screen.getByText('请在画布上点击选择一个节点进行配置')).toBeDefined();
+      // FlowNodeList 组件显示"流程节点"标题
+      expect(screen.getByText('流程节点')).toBeDefined();
+      // 无节点时显示"暂无节点"
+      expect(screen.getByText('暂无节点')).toBeDefined();
+    });
+
+    it('当没有选中节点且为只读模式时显示调试模式提示', () => {
+      render(<NodeConfigPanel readOnly={true} />);
+
+      expect(screen.getByText('调试模式')).toBeDefined();
     });
   });
 
