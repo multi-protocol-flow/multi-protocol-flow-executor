@@ -401,10 +401,25 @@ export function StressTestResult() {
                             成功率
                           </th>
                           <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                            平均响应
+                            最小
+                          </th>
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                            平均
+                          </th>
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                            最大
+                          </th>
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                            P50
+                          </th>
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                            P90
                           </th>
                           <th className="text-right py-2 px-3 font-medium text-muted-foreground">
                             P95
+                          </th>
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                            P99
                           </th>
                         </tr>
                       </thead>
@@ -436,10 +451,25 @@ export function StressTestResult() {
                               {(node.successRate * 100).toFixed(1)}%
                             </td>
                             <td className="py-2 px-3 text-right tabular-nums">
+                              {node.responseTimeDistribution.minMs}ms
+                            </td>
+                            <td className="py-2 px-3 text-right tabular-nums">
                               {node.responseTimeDistribution.avgMs.toFixed(0)}ms
                             </td>
                             <td className="py-2 px-3 text-right tabular-nums">
-                              {node.responseTimeDistribution.p95Ms.toFixed(0)}ms
+                              {node.responseTimeDistribution.maxMs}ms
+                            </td>
+                            <td className="py-2 px-3 text-right tabular-nums">
+                              {node.responseTimeDistribution.p50Ms}ms
+                            </td>
+                            <td className="py-2 px-3 text-right tabular-nums">
+                              {node.responseTimeDistribution.p90Ms}ms
+                            </td>
+                            <td className="py-2 px-3 text-right tabular-nums">
+                              {node.responseTimeDistribution.p95Ms}ms
+                            </td>
+                            <td className="py-2 px-3 text-right tabular-nums">
+                              {node.responseTimeDistribution.p99Ms}ms
                             </td>
                           </tr>
                         ))}

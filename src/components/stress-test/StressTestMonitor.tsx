@@ -254,10 +254,25 @@ export function StressTestMonitor() {
                         成功率
                       </th>
                       <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
-                        平均响应
+                        最小
+                      </th>
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
+                        平均
+                      </th>
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
+                        最大
+                      </th>
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
+                        P50
+                      </th>
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
+                        P90
                       </th>
                       <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
                         P95
+                      </th>
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
+                        P99
                       </th>
                     </tr>
                   </thead>
@@ -283,10 +298,25 @@ export function StressTestMonitor() {
                           {(node.successRate * 100).toFixed(1)}%
                         </td>
                         <td className="py-1.5 px-2 text-right tabular-nums">
+                          {node.minLatencyMs}ms
+                        </td>
+                        <td className="py-1.5 px-2 text-right tabular-nums">
                           {node.avgLatencyMs.toFixed(0)}ms
                         </td>
                         <td className="py-1.5 px-2 text-right tabular-nums">
-                          {node.p95LatencyMs.toFixed(0)}ms
+                          {node.maxLatencyMs}ms
+                        </td>
+                        <td className="py-1.5 px-2 text-right tabular-nums">
+                          {node.p50LatencyMs}ms
+                        </td>
+                        <td className="py-1.5 px-2 text-right tabular-nums">
+                          {node.p90LatencyMs}ms
+                        </td>
+                        <td className="py-1.5 px-2 text-right tabular-nums">
+                          {node.p95LatencyMs}ms
+                        </td>
+                        <td className="py-1.5 px-2 text-right tabular-nums">
+                          {node.p99LatencyMs}ms
                         </td>
                       </tr>
                     ))}

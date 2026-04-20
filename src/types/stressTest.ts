@@ -153,7 +153,9 @@ export interface NodeMetrics {
   minLatencyMs: number;
   maxLatencyMs: number;
   p50LatencyMs: number;
+  p90LatencyMs: number;
   p95LatencyMs: number;
+  p99LatencyMs: number;
 }
 
 /** 节点级别统计（最终报告用） */
