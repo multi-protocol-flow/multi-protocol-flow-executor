@@ -20,6 +20,7 @@ export {
   selectCanUndo,
   selectCanRedo,
   selectHistoryVersion,
+  selectCenterOnNodeUuid,
 } from './flow';
 
 // FlowList store selectors

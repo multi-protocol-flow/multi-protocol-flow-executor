@@ -53,6 +53,8 @@ interface FlowState {
   pendingAddNodeType: NodeType | null;
   /** 需要聚焦的节点 UUID（由 DebugPanel 设置，FlowCanvas 处理） */
   focusNodeUuid: string | null;
+  /** 需要居中定位的节点 UUID（由 FlowNodeList 设置，FlowCanvas 处理，仅居中不选中） */
+  centerOnNodeUuid: string | null;
   /** 流程是否被锁定（禁止编辑） */
   isLocked: boolean;
   /** 锁定原因 */
@@ -79,6 +81,8 @@ interface FlowState {
   batchUpdateNodePositions: (positions: Map<string, { x: number; y: number }>) => void;
   /** 移除节点 */
   removeNode: (uuid: string) => void;
+  /** 批量移除节点（单次撤销步骤） */
+  removeNodes: (uuids: string[]) => void;
   /** 添加连接 */
   addConnection: (connection: Connection) => void;
   /** 移除连接 */
@@ -101,6 +105,10 @@ interface FlowState {
   focusOnNode: (uuid: string) => void;
   /** 清除节点聚焦状态 */
   clearFocusNode: () => void;
+  /** 居中定位到指定节点（不触发选中） */
+  centerOnNode: (uuid: string) => void;
+  /** 清除居中定位状态 */
+  clearCenterOnNode: () => void;
   /** 锁定流程 */
   lockFlow: (reason: string) => void;
   /** 解锁流程 */
@@ -129,6 +137,7 @@ const initialState = {
   isDirty: false,
   pendingAddNodeType: null,
   focusNodeUuid: null,
+  centerOnNodeUuid: null,
   isLocked: false,
   lockReason: null,
   past: [],
@@ -238,6 +247,27 @@ export const useFlowStore = create<FlowState>((set, get) => {
         };
       }),
 
+    removeNodes: (uuids) =>
+      set((state) => {
+        if (!state.flow || uuids.length === 0) return state;
+        const uuidSet = new Set(uuids);
+        const newFlow = {
+          ...state.flow,
+          nodes: state.flow.nodes.filter((n) => !uuidSet.has(n.uuid)),
+          connections: state.flow.connections.filter(
+            (c) => !uuidSet.has(c.source_node_uuid) && !uuidSet.has(c.target_node_uuid)
+          ),
+        };
+        const history = pushHistory(state, newFlow);
+        const selectedCleared = uuidSet.has(state.selectedNodeId ?? '');
+        return {
+          ...(history ?? {}),
+          flow: newFlow,
+          selectedNodeId: selectedCleared ? null : state.selectedNodeId,
+          isDirty: true,
+        };
+      }),
+
     addConnection: (connection) =>
       set((state) => {
         if (!state.flow) return state;
@@ -321,6 +351,9 @@ export const useFlowStore = create<FlowState>((set, get) => {
 
   clearFocusNode: () => set({ focusNodeUuid: null }),
 
+  centerOnNode: (uuid) => set({ centerOnNodeUuid: uuid }),
+  clearCenterOnNode: () => set({ centerOnNodeUuid: null }),
+
   lockFlow: (reason) => set({ isLocked: true, lockReason: reason }),
   unlockFlow: () => set({ isLocked: false, lockReason: null }),
 
@@ -386,6 +419,10 @@ export const useFlowStore = create<FlowState>((set, get) => {
 });
 
 // ===== Selectors =====
+/** 稳定的空数组引用，避免 useSyncExternalStore 无限循环 */
+const EMPTY_NODES: Node[] = [];
+const EMPTY_CONNECTIONS: Connection[] = [];
+
 /** 选择当前流程 */
 export const selectFlow = (state: FlowState) => state.flow;
 /** 选择选中的节点 ID */
@@ -393,10 +430,10 @@ export const selectSelectedNodeId = (state: FlowState) => state.selectedNodeId;
 /** 选择是否已修改 */
 export const selectIsDirty = (state: FlowState) => state.isDirty;
 /** 选择节点列表 */
-export const selectNodes = (state: FlowState) => state.flow?.nodes ?? [];
+export const selectNodes = (state: FlowState) => state.flow?.nodes ?? EMPTY_NODES;
 /** 选择连接列表 */
 export const selectConnections = (state: FlowState) =>
-  state.flow?.connections ?? [];
+  state.flow?.connections ?? EMPTY_CONNECTIONS;
 /** 选择流程是否被锁定 */
 export const selectIsLocked = (state: FlowState) => state.isLocked;
 /** 选择锁定原因 */
@@ -407,3 +444,5 @@ export const selectCanUndo = (state: FlowState) => state.past.length > 0;
 export const selectCanRedo = (state: FlowState) => state.future.length > 0;
 /** 选择历史版本号 */
 export const selectHistoryVersion = (state: FlowState) => state.historyVersion;
+/** 选择居中定位节点 UUID */
+export const selectCenterOnNodeUuid = (state: FlowState) => state.centerOnNodeUuid;
