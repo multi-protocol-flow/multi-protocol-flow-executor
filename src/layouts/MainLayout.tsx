@@ -10,6 +10,7 @@ import { NodeConfigPanel, SettingsPanel } from '@/components/panels';
 import { ExecutionReport, ExecutionHistory, ConsolePanel, ExecutionPanel } from '@/components/execution';
 import { FlowCompareDialog } from '@/components/execution/FlowCompareDialog';
 import { StressTestResult } from '@/components/stress-test/StressTestResult';
+import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 
@@ -665,6 +666,9 @@ export function MainLayout() {
 
       {/* ===== 压测报告弹窗 ===== */}
       <StressTestResult />
+
+      {/* ===== 压测实时监控面板 ===== */}
+      <StressTestMonitor />
 
       {/* ===== 新建流程对话框 ===== */}
       <NewFlowDialog />

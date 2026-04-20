@@ -9,13 +9,36 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
+/// 从已排序的数据中计算指定分位数（线性插值）
+///
+/// # 参数
+///
+/// * `sorted` - 已排序的延迟数据
+/// * `p` - 分位数百分比（0.0 - 100.0）
+fn calculate_percentile_from_sorted(sorted: &[u64], p: f64) -> u64 {
+    if sorted.is_empty() {
+        return 0;
+    }
+    let n = sorted.len();
+    let rank = (p / 100.0) * (n - 1) as f64;
+    let lower = rank.floor() as usize;
+    let upper = rank.ceil() as usize;
+    if lower == upper || upper >= n {
+        return sorted[lower.min(n - 1)];
+    }
+    let fraction = rank - lower as f64;
+    let lower_val = sorted[lower] as f64;
+    let upper_val = sorted[upper] as f64;
+    (lower_val + fraction * (upper_val - lower_val)).round() as u64
+}
+
 use super::types::{
     ErrorSample, ErrorStatistics, NodeLevelStatistics, NodeMetrics, NodeTypeStatistics,
     ResponseTimeDistribution, StressTestStatistics,
 };
 
 /// 延迟记录的最大容量
-const MAX_LATENCY_RECORDS: usize = 10_000;
+const MAX_LATENCY_RECORDS: usize = 100_000;
 
 /// 错误样本的最大保留数量（每种错误类型）
 const MAX_ERROR_SAMPLES: usize = 10;
@@ -173,16 +196,7 @@ impl NodeMetricsInner {
             }
             let mut sorted: Vec<u64> = data.clone();
             sorted.sort_unstable();
-            let n = sorted.len();
-            let rank = (p / 100.0) * (n - 1) as f64;
-            let lower = rank.floor() as usize;
-            let upper = rank.ceil() as usize;
-            if lower == upper || upper >= n {
-                return sorted[lower.min(n - 1)];
-            }
-            let fraction = rank - lower as f64;
-            (sorted[lower] as f64 + fraction * (sorted[upper] as f64 - sorted[lower] as f64))
-                .round() as u64
+            calculate_percentile_from_sorted(&sorted, p)
         } else {
             0
         }
@@ -444,21 +458,7 @@ impl MetricsCollector {
             let mut sorted: Vec<u64> = data.clone();
             sorted.sort_unstable();
 
-            let n = sorted.len();
-            let rank = (p / 100.0) * (n - 1) as f64;
-            let lower = rank.floor() as usize;
-            let upper = rank.ceil() as usize;
-
-            if lower == upper || upper >= n {
-                return sorted[lower.min(n - 1)];
-            }
-
-            // 线性插值
-            let fraction = rank - lower as f64;
-            let lower_val = sorted[lower] as f64;
-            let upper_val = sorted[upper] as f64;
-
-            (lower_val + fraction * (upper_val - lower_val)).round() as u64
+            calculate_percentile_from_sorted(&sorted, p)
         } else {
             0
         }
@@ -637,27 +637,10 @@ impl MetricsCollector {
                         0.0
                     };
                     all_latencies.sort_unstable();
-                    let n = all_latencies.len();
-                    let p50 = if n > 0 {
-                        all_latencies[n * 50 / 100].min(all_latencies[n - 1])
-                    } else {
-                        0
-                    };
-                    let p90 = if n > 0 {
-                        all_latencies[(n * 90).min(n - 1) / 100].min(all_latencies[n - 1])
-                    } else {
-                        0
-                    };
-                    let p95 = if n > 0 {
-                        all_latencies[(n * 95).min(n - 1) / 100].min(all_latencies[n - 1])
-                    } else {
-                        0
-                    };
-                    let p99 = if n > 0 {
-                        all_latencies[(n * 99).min(n - 1) / 100].min(all_latencies[n - 1])
-                    } else {
-                        0
-                    };
+                    let p50 = calculate_percentile_from_sorted(&all_latencies, 50.0);
+                    let p90 = calculate_percentile_from_sorted(&all_latencies, 90.0);
+                    let p95 = calculate_percentile_from_sorted(&all_latencies, 95.0);
+                    let p99 = calculate_percentile_from_sorted(&all_latencies, 99.0);
                     let min_ms = all_latencies.first().copied().unwrap_or(0);
                     let max_ms = all_latencies.last().copied().unwrap_or(0);
                     NodeTypeStatistics {

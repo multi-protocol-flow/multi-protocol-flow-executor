@@ -70,7 +70,7 @@ function prepareRpsChartData(history: StressTestProgress[]): RpsChartDataPoint[]
 
 /**
  * 根据延迟值计算延迟分布桶
- * 注意：由于只有 avgLatencyMs，这是一个近似分布
+ * 注意：由于只有 avgLatencyMs，这是按采样点（每秒一次）统计的分布，非请求级别分布
  */
 function prepareLatencyBuckets(history: StressTestProgress[]): LatencyBucketData[] {
   // 初始化桶计数
@@ -144,7 +144,7 @@ function LatencyTooltip({ active, payload }: LatencyTooltipProps) {
   return (
     <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-md">
       <p className="text-xs text-muted-foreground">
-        {data.name}: <span className="font-medium text-foreground">{data.count} 次</span>
+        {data.name}: <span className="font-medium text-foreground">{data.count} 秒</span>
       </p>
     </div>
   );
@@ -249,7 +249,7 @@ export function StressTestCharts({ progressHistory }: StressTestChartsProps) {
                 tickLine={{ stroke: 'oklch(0.88 0 0)' }}
                 axisLine={{ stroke: 'oklch(0.88 0 0)' }}
                 label={{
-                  value: '次数',
+                  value: '采样秒数',
                   angle: -90,
                   position: 'insideLeft',
                   offset: 10,

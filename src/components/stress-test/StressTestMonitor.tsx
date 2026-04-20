@@ -68,7 +68,7 @@ export function StressTestMonitor() {
   const openReportDialog = useStressTestStore((state) => state.openReportDialog);
   const reset = useStressTestStore((state) => state.reset);
 
-  // 是否已完成（有最终数据可供查看）
+  // 已完成（有数据可供查看）
   const isCompleted = status === 'stopped' && (progressHistory.length > 0 || report !== null);
 
   // 节点类型筛选状态
@@ -100,10 +100,15 @@ export function StressTestMonitor() {
     return nodeMetrics.filter((n) => selectedTypes.includes(n.nodeType));
   }, [nodeMetrics, selectedTypes]);
 
-  // 仅在运行时或刚完成时渲染
+  // 仅在运行时或刚完成时渲染，用户手动关闭后消失
   if (!isRunning && !isCompleted) {
     return null;
   }
+
+  // 关闭面板
+  const handleClose = () => {
+    reset();
+  };
 
   // 获取状态显示文本
   const getStatusText = () => {
@@ -142,13 +147,8 @@ export function StressTestMonitor() {
     }
   };
 
-  // 关闭完成面板
-  const handleClose = () => {
-    reset();
-  };
-
   return (
-    <Card className="border-border shadow-lg max-h-[calc(100vh-140px)] flex flex-col overflow-hidden relative z-20">
+    <Card className="fixed top-16 right-16 w-[420px] max-h-[calc(100vh-140px)] flex flex-col overflow-hidden z-50 shadow-xl">
       <CardContent className="p-4 flex-1 min-h-0 flex flex-col">
         {/* 头部：状态和时间 */}
         <div className="flex items-center justify-between mb-4 shrink-0">

@@ -104,16 +104,18 @@ export function StressTestResult() {
   }, [report, selectedNodeTypes]);
 
   // 根据选中的节点类型重新计算流程级统计
+  // 注意：节点级 totalExecutions 是每个节点独立计数的，不能简单累加作为流程迭代次数
   const recalculatedStats = useMemo(() => {
     if (!report || selectedNodeTypes.length === 0) return null;
     const nodes = filteredNodeStats;
     if (nodes.length === 0) return null;
-    const totalExec = nodes.reduce((s, n) => s + n.totalExecutions, 0);
     const totalSucc = nodes.reduce((s, n) => s + n.successfulExecutions, 0);
     const totalFail = nodes.reduce((s, n) => s + n.failedExecutions, 0);
-    const successRate = totalExec > 0 ? totalSucc / totalExec : 0;
-    const rps = report.durationMs > 0 ? (totalExec / (report.durationMs / 1000)) : 0;
-    return { totalIterations: totalExec, successful: totalSucc, failed: totalFail, successRate, rps };
+    const totalNodeExec = totalSucc + totalFail;
+    const successRate = totalNodeExec > 0 ? totalSucc / totalNodeExec : 0;
+    // 使用流程级迭代次数，而非节点级累加（避免 N 倍膨胀）
+    const rps = report.durationMs > 0 ? (report.statistics.totalIterations / (report.durationMs / 1000)) : 0;
+    return { totalIterations: report.statistics.totalIterations, successful: totalSucc, failed: totalFail, successRate, rps };
   }, [report, filteredNodeStats, selectedNodeTypes]);
 
   // 切换节点类型筛选
