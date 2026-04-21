@@ -423,6 +423,7 @@ async fn test_report_includes_ws_streams() {
         execution_path: vec![],
         skipped_nodes: vec![],
         ws_streams: ws_streams.clone(),
+        flow_snapshot: None,
     };
     
     // 验证报告序列化包含 ws_streams

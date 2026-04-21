@@ -28,6 +28,7 @@ fn test_flow_report_fields_exist() {
         execution_path: vec!["node-1".to_string(), "node-2".to_string()],
         skipped_nodes: vec![],
         ws_streams: vec![],
+        flow_snapshot: None,
     };
 
     // 验证新字段可以正常访问
@@ -86,6 +87,7 @@ fn test_flow_report_empty_path() {
         execution_path: vec![],
         skipped_nodes: vec![],
         ws_streams: vec![],
+        flow_snapshot: None,
     };
 
     // 验证空路径

@@ -37,6 +37,7 @@ fn create_context(flow_id: &str) -> ExecutionContext {
         debug_event_sender: None,
         execution_event_sender: None,
         cancel_receiver: None,
+        providers: std::collections::HashMap::new(),
     }
 }
 
