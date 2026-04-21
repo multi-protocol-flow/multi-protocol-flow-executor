@@ -4,3 +4,4 @@
 
 pub mod assertion;
 pub mod assertion_executor;
+pub mod plugin;

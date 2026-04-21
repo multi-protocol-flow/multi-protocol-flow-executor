@@ -394,6 +394,7 @@ impl FlowExecutor {
             debug_event_sender: self.debug_event_sender.clone(),
             execution_event_sender: self.execution_event_sender.clone(),
             cancel_receiver: self.cancel_receiver.clone(),
+            providers: std::collections::HashMap::new(),
         };
 
         // 查找开始节点

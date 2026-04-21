@@ -8,6 +8,7 @@ use crate::execution_event::ExecutionEvent;
 use crate::ws_stream::{WsConnectionStream, WsMessage};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::any::Any;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -90,6 +91,13 @@ pub struct ExecutionContext {
     /// 通过 `tokio::sync::watch` 接收取消信号，实现非阻塞取消检查
     #[serde(skip)]
     pub cancel_receiver: Option<tokio::sync::watch::Receiver<bool>>,
+
+    /// 通用 provider 注册表（替代具体的 `ws_manager`/`db_manager`）
+    /// key: provider 名称（如 "ws"、"db"）
+    /// value: 包装在 Arc 中的 provider 实例
+    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn Any 不支持序列化
+    #[serde(skip)]
+    pub providers: HashMap<String, Arc<dyn Any + Send + Sync>>,
 }
 
 impl ExecutionContext {
@@ -120,6 +128,7 @@ impl ExecutionContext {
             debug_event_sender: None,
             execution_event_sender: None,
             cancel_receiver: None,
+            providers: HashMap::new(),
         }
     }
 
@@ -241,6 +250,35 @@ impl ExecutionContext {
         } else {
             false
         }
+    }
+
+    /// 获取通用 provider
+    ///
+    /// 从 providers 注册表中按名称获取 provider，并尝试向下转型为指定类型。
+    ///
+    /// # 参数
+    ///
+    /// * `name` - provider 名称（如 "ws"、"db"）
+    ///
+    /// # 返回
+    ///
+    /// 如果找到且类型匹配则返回 `Some(Arc<T>)`，否则返回 `None`
+    pub fn get_provider<T: 'static + Send + Sync>(&self, name: &str) -> Option<Arc<T>> {
+        self.providers
+            .get(name)
+            .and_then(|p| p.clone().downcast::<T>().ok())
+    }
+
+    /// 设置通用 provider
+    ///
+    /// 向 providers 注册表中注册或替换一个 provider。
+    ///
+    /// # 参数
+    ///
+    /// * `name` - provider 名称（如 "ws"、"db"）
+    /// * `provider` - 包装在 Arc 中的 provider 实例
+    pub fn set_provider(&mut self, name: impl Into<String>, provider: Arc<dyn Any + Send + Sync>) {
+        self.providers.insert(name.into(), provider);
     }
 
     /// Resolve file path (supports relative paths)
@@ -1012,5 +1050,66 @@ mod tests {
         // 反序列化往返测试
         let deserialized: ExecutionEvent = serde_json::from_str(&json).expect("反序列化失败");
         assert_eq!(json, serde_json::to_string(&deserialized).unwrap());
+    }
+
+    // ===== Provider 注册表测试 =====
+
+    /// 测试 set_provider + get_provider 往返
+    #[test]
+    fn test_provider_set_get_roundtrip() {
+        // 使用简单的 i32 类型测试 provider 存取
+        let value: Arc<i32> = Arc::new(42);
+        let mut ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        ctx.set_provider("test", value.clone() as Arc<dyn Any + Send + Sync>);
+
+        let retrieved: Option<Arc<i32>> = ctx.get_provider("test");
+        assert!(retrieved.is_some(), "应该能获取到 provider");
+        assert_eq!(*retrieved.unwrap(), 42, "值应该匹配");
+    }
+
+    /// 测试 get_provider 对不存在的 key 返回 None
+    #[test]
+    fn test_provider_get_missing_key() {
+        let ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        let result: Option<Arc<i32>> = ctx.get_provider("nonexistent");
+        assert!(result.is_none(), "不存在的 key 应返回 None");
+    }
+
+    /// 测试 get_provider 对错误类型返回 None
+    #[test]
+    fn test_provider_get_wrong_type() {
+        let value: Arc<String> = Arc::new("hello".to_string());
+        let mut ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        ctx.set_provider("test", value as Arc<dyn Any + Send + Sync>);
+
+        // 尝试用错误的类型获取
+        let result: Option<Arc<i32>> = ctx.get_provider("test");
+        assert!(result.is_none(), "类型不匹配应返回 None");
+    }
+
+    /// 测试 providers 在序列化时被跳过
+    #[test]
+    fn test_provider_skipped_in_serialization() {
+        let mut ctx = ExecutionContext::new("test-flow".to_string(), 1000);
+
+        // 添加 provider
+        let value: Arc<i32> = Arc::new(42);
+        ctx.set_provider("test", value as Arc<dyn Any + Send + Sync>);
+
+        // 序列化
+        let json = serde_json::to_string(&ctx).expect("序列化失败");
+
+        // providers 不应出现在 JSON 中
+        assert!(!json.contains("providers"), "providers 不应出现在序列化结果中");
+
+        // 反序列化后 providers 应为空
+        let deserialized: ExecutionContext = serde_json::from_str(&json).expect("反序列化失败");
+        assert!(
+            deserialized.providers.is_empty(),
+            "反序列化后 providers 应为空"
+        );
     }
 }

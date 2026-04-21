@@ -16,3 +16,5 @@ pub mod db_commit_executor;
 pub mod db_rollback_executor;
 /// 连接关闭节点执行器，从连接池中移除并关闭数据库连接
 pub mod db_close_executor;
+/// 数据库节点插件（NodePlugin trait 实现），支持批量注册
+pub mod plugin;

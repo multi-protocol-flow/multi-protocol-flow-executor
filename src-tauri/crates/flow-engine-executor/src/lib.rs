@@ -19,3 +19,7 @@ pub mod storage;
 pub mod validator;
 /// 命令定义，提供 CLI 和 IPC 层的输入输出类型
 pub mod command;
+/// 入口节点插件
+pub mod plugin_entry;
+/// 条件分支节点插件
+pub mod plugin_conditional;
