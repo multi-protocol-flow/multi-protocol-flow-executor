@@ -96,10 +96,6 @@ impl NodePlugin for DbConnectPlugin {
         }
     }
 
-    fn is_protocol_node(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_uuid": config.get("connection_uuid"),
@@ -194,10 +190,6 @@ impl NodePlugin for DbQueryPlugin {
             }
             _ => "false".to_string(),
         }
-    }
-
-    fn is_protocol_node(&self) -> bool {
-        true
     }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
@@ -296,10 +288,6 @@ impl NodePlugin for DbBeginPlugin {
         }
     }
 
-    fn is_protocol_node(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_uuid": config.get("connection_uuid"),
@@ -383,10 +371,6 @@ impl NodePlugin for DbCommitPlugin {
             }
             _ => "false".to_string(),
         }
-    }
-
-    fn is_protocol_node(&self) -> bool {
-        true
     }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
@@ -473,10 +457,6 @@ impl NodePlugin for DbRollbackPlugin {
         }
     }
 
-    fn is_protocol_node(&self) -> bool {
-        true
-    }
-
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({
             "connection_uuid": config.get("connection_uuid"),
@@ -546,10 +526,6 @@ impl NodePlugin for DbClosePlugin {
     /// DbClose 始终返回 "out"（关闭操作是幂等的）
     fn resolve_port(&self, _output: &Option<serde_json::Value>) -> String {
         "out".to_string()
-    }
-
-    fn is_protocol_node(&self) -> bool {
-        true
     }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
