@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# 子 crate 依赖（facade 只做 re-export）
 flow-engine-core = { path = "../flow-engine-core" }
 flow-engine-crypto = { path = "../flow-engine-crypto" }
 flow-engine-http = { path = "../flow-engine-http" }
@@ -12,43 +13,13 @@ flow-engine-script = { path = "../flow-engine-script" }
 flow-engine-assertion = { path = "../flow-engine-assertion" }
 flow-engine-ws = { path = "../flow-engine-ws" }
 flow-engine-executor = { path = "../flow-engine-executor" }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-evalexpr = "11.0.0"
-regex = "1.10"
-async-trait = "0.1"
-tokio = { version = "1", features = ["full"] }
-chrono = "0.4"
-uuid = { version = "1.0", features = ["v4", "serde"] }
-mime_guess = "2.0"
-tempfile = "3.0"
-serde_json_path = "0.7"
-jsonpath-rust = "1.0.4"
-log = "0.4"
-http = "1.3"
-tokio-rustls = "0.26"
-rustls = "0.23"
-rustls-pki-types = "1"
-webpki-roots = "0.26"
-url = "2.5"
-thiserror = "1.0"
 
-# 加密模块依赖
-aes-gcm = { version = "0.10", features = ["std"] }
-keyring = "3"
-zeroize = "1"
-base64 = "0.22"
-urlencoding = "2.1"
-rand = "0.8"
-once_cell = "1"
-
-# 加密哈希函数
-sha2 = "0.10"
-md-5 = "0.10"
-hmac = "0.12"
-hex = "0.4"
+# facade 自身代码需要的最小依赖（仅用于 re-export 类型的序列化边界）
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 [dev-dependencies]
+tokio = { workspace = true }
 mockito = "1.0"
 wiremock = "0.6"
 proptest = "1.4"
