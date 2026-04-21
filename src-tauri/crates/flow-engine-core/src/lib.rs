@@ -24,6 +24,10 @@ pub mod flow;
 pub mod log_event;
 /// 节点定义，包括节点类型、端口和位置信息
 pub mod node;
+/// 节点插件 trait 定义，所有节点类型的统一接口
+pub mod plugin;
+/// 节点注册表，管理所有已注册的节点插件
+pub mod registry;
 /// 节点配置枚举，14 种节点类型的差异化配置数据
 pub mod node_config;
 /// 执行报告结构，包含节点级和流程级的执行结果与统计数据

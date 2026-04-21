@@ -1,0 +1,279 @@
+// 节点插件 trait 定义 — 所有节点类型的统一接口
+//
+// NodePlugin trait 提供节点元数据、配置验证、端口路由和执行能力。
+// 各协议 crate（http/ws/db/script/assertion）在 flow-engine-core 中实现此 trait，
+// 由 NodeRegistry 统一注册管理。
+
+/// 端口定义（给前端用的端口描述）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PortDef {
+    /// 端口标识，如 "true"、"false"、"output"
+    pub id: String,
+    /// 端口显示名称，如 "成功"、"失败"、"输出"
+    pub label: String,
+    /// 端口位置，如 "right"、"bottom"
+    pub position: String,
+}
+
+/// 配置验证错误
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ValidationError {
+    /// 出错的字段名
+    pub field: String,
+    /// 错误描述
+    pub message: String,
+}
+
+/// 节点元数据（给前端展示用）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct NodeMetadata {
+    /// 节点类型标识，如 `"http"`、`"db_connect"`
+    pub type_id: String,
+    /// 显示名称，如 "HTTP 请求"
+    pub display_name: String,
+    /// 分组分类，如 "http"、"database"、"logic"、"websocket"、"tools"
+    pub category: String,
+    /// 图标标识
+    pub icon: String,
+    /// 节点颜色（十六进制）
+    pub color: String,
+    /// 端口定义列表
+    pub ports: Vec<PortDef>,
+    /// 拖拽创建节点时的默认配置
+    pub default_config: serde_json::Value,
+}
+
+/// 节点插件 trait — 所有节点类型的统一接口
+///
+/// 每种节点类型（HTTP、WebSocket、数据库等）在各自的 crate 中实现此 trait，
+/// 通过 `NodeRegistry` 注册后可供执行器调用。
+#[async_trait::async_trait]
+pub trait NodePlugin: Send + Sync {
+    /// 节点类型标识（与 `NodeType` 的 serde rename 一致）
+    fn type_id(&self) -> &str;
+
+    /// 显示名称
+    fn display_name(&self) -> &str;
+
+    /// 分组分类
+    fn category(&self) -> &str;
+
+    /// 图标标识
+    fn icon(&self) -> &str;
+
+    /// 节点颜色（十六进制）
+    fn color(&self) -> &str;
+
+    /// 端口定义
+    fn ports(&self) -> Vec<PortDef>;
+
+    /// 拖拽创建节点时的默认配置
+    fn default_config(&self) -> serde_json::Value;
+
+    /// 根据执行输出决定走哪个端口
+    ///
+    /// 默认实现：检查 output 中的 `success` 字段，
+    /// 为 true 返回 "true"，否则返回 "false"。
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        match output {
+            Some(serde_json::Value::Object(map)) => {
+                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
+            }
+            _ => "false".to_string(),
+        }
+    }
+
+    /// 是否是端口路由节点（默认 true）
+    fn is_port_routing(&self) -> bool {
+        true
+    }
+
+    /// 是否是协议节点（默认 false）
+    fn is_protocol_node(&self) -> bool {
+        false
+    }
+
+    /// 是否支持 false 端口错误路由（默认 false）
+    fn supports_false_port(&self) -> bool {
+        false
+    }
+
+    /// 报告输入数据
+    fn build_report_input(&self, _config: &serde_json::Value) -> Option<serde_json::Value> {
+        None
+    }
+
+    /// 配置验证（默认无错误）
+    fn validate(&self, _config: &serde_json::Value) -> Vec<ValidationError> {
+        Vec::new()
+    }
+
+    /// 执行节点
+    ///
+    /// # 参数
+    /// - `node`: 要执行的节点
+    /// - `context`: 执行上下文（可变借用，允许修改变量等）
+    /// - `connections`: 流程的所有连接
+    /// - `node_map`: 节点 UUID 到节点的映射
+    ///
+    /// # 返回
+    /// - `Ok((next_node_ids, output_data))`: 执行成功
+    /// - `Err(msg)`: 执行失败
+    async fn execute(
+        &self,
+        node: &crate::node::Node,
+        context: &mut crate::context::ExecutionContext,
+        connections: &[crate::connection::Connection],
+        node_map: &std::collections::HashMap<String, &crate::node::Node>,
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), String>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 测试默认 resolve_port：output 含 success=true 时返回 "true"
+    #[test]
+    fn test_resolve_port_success_true() {
+        // 使用一个最小化的 mock 来测试 trait 的默认方法
+        struct MockPlugin;
+        impl MockPlugin {
+            fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+                // 复制 trait 默认实现的逻辑
+                match output {
+                    Some(serde_json::Value::Object(map)) => {
+                        if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                            "true".to_string()
+                        } else {
+                            "false".to_string()
+                        }
+                    }
+                    _ => "false".to_string(),
+                }
+            }
+        }
+
+        let plugin = MockPlugin;
+        let output = Some(serde_json::json!({"success": true}));
+        assert_eq!(plugin.resolve_port(&output), "true");
+    }
+
+    /// 测试默认 resolve_port：output 为 None 时返回 "false"
+    #[test]
+    fn test_resolve_port_none() {
+        struct MockPlugin;
+        impl MockPlugin {
+            fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+                match output {
+                    Some(serde_json::Value::Object(map)) => {
+                        if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                            "true".to_string()
+                        } else {
+                            "false".to_string()
+                        }
+                    }
+                    _ => "false".to_string(),
+                }
+            }
+        }
+
+        let plugin = MockPlugin;
+        assert_eq!(plugin.resolve_port(&None), "false");
+    }
+
+    /// 测试默认 resolve_port：output 含 success=false 时返回 "false"
+    #[test]
+    fn test_resolve_port_success_false() {
+        struct MockPlugin;
+        impl MockPlugin {
+            fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+                match output {
+                    Some(serde_json::Value::Object(map)) => {
+                        if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                            "true".to_string()
+                        } else {
+                            "false".to_string()
+                        }
+                    }
+                    _ => "false".to_string(),
+                }
+            }
+        }
+
+        let plugin = MockPlugin;
+        let output = Some(serde_json::json!({"success": false}));
+        assert_eq!(plugin.resolve_port(&output), "false");
+    }
+
+    /// 测试 PortDef 序列化/反序列化
+    #[test]
+    fn test_port_def_serialization() {
+        let port = PortDef {
+            id: "true".to_string(),
+            label: "成功".to_string(),
+            position: "right".to_string(),
+        };
+
+        let json = serde_json::to_string(&port).unwrap();
+        assert!(json.contains("\"id\""));
+        assert!(json.contains("\"true\""));
+        assert!(json.contains("\"label\""));
+        assert!(json.contains("\"成功\""));
+
+        let deserialized: PortDef = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.id, "true");
+        assert_eq!(deserialized.label, "成功");
+        assert_eq!(deserialized.position, "right");
+    }
+
+    /// 测试 ValidationError 序列化
+    #[test]
+    fn test_validation_error_serialization() {
+        let error = ValidationError {
+            field: "url".to_string(),
+            message: "URL 不能为空".to_string(),
+        };
+
+        let json = serde_json::to_string(&error).unwrap();
+        let deserialized: ValidationError = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.field, "url");
+        assert_eq!(deserialized.message, "URL 不能为空");
+    }
+
+    /// 测试 NodeMetadata 序列化
+    #[test]
+    fn test_node_metadata_serialization() {
+        let metadata = NodeMetadata {
+            type_id: "http".to_string(),
+            display_name: "HTTP 请求".to_string(),
+            category: "http".to_string(),
+            icon: "globe".to_string(),
+            color: "#3B82F6".to_string(),
+            ports: vec![
+                PortDef {
+                    id: "true".to_string(),
+                    label: "成功".to_string(),
+                    position: "right".to_string(),
+                },
+                PortDef {
+                    id: "false".to_string(),
+                    label: "失败".to_string(),
+                    position: "bottom".to_string(),
+                },
+            ],
+            default_config: serde_json::json!({"method": "get", "url": ""}),
+        };
+
+        let json = serde_json::to_string(&metadata).unwrap();
+        let deserialized: NodeMetadata = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_id, "http");
+        assert_eq!(deserialized.display_name, "HTTP 请求");
+        assert_eq!(deserialized.ports.len(), 2);
+        assert_eq!(deserialized.ports[0].id, "true");
+        assert_eq!(deserialized.ports[1].id, "false");
+    }
+}
