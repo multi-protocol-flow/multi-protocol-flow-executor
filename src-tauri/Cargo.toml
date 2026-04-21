@@ -17,7 +17,7 @@ resolver = "2"
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "sync", "net", "time", "io-util", "io-std", "signal"] }
 async-trait = "0.1"
 uuid = { version = "1.0", features = ["v4", "serde"] }
 chrono = "0.4"
@@ -91,7 +91,7 @@ serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 uuid = { version = "1.0", features = ["v4", "serde"] }
 async-trait = "0.1"
-tokio = { version = "1", features = ["full"] }
+tokio = { workspace = true }
 
 # CLI 日志
 fern = { version = "0.7", default-features = false }
@@ -111,6 +111,14 @@ tempfile = "3.0"
 # WebSocket 依赖测试
 tokio-tungstenite = { version = "0.28", features = ["native-tls"] }
 futures-util = "0.3"
+
+# Release 构建优化（减小二进制体积）
+[profile.release]
+lto = true            # 跨 crate 链接时优化，消除未使用代码
+codegen-units = 1     # 单编译单元，允许更好的内联优化
+strip = true          # 剥离调试符号
+panic = "abort"       # abort 替代 unwind，减小二进制体积
+opt-level = "z"       # 体积优先优化
 
 [lints]
 workspace = true
