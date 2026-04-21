@@ -8,6 +8,11 @@
 //! - 支持变量读写 (`fn.variables.*`)
 //! - 支持响应数据访问 (`fn.response.*`)
 //! - 支持请求数据访问 (`fn.request.*`)
+//! - 支持日志输出 (`fn.console.*`)
+//! - 支持流程控制 (`fn.flow.*`)
+//! - 支持流程/节点信息 (`fn.info.*`)
+//! - 支持工具函数 (`fn.util.*`)
+//! - 支持链式断言 (`fn.expect()`)
 //! - 内存限制和超时控制
 //! - 错误处理策略 (致命/可恢复)
 
@@ -18,12 +23,30 @@ use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::{NodeData, ScriptErrorStrategy, ScriptNodeConfig};
-use crate::script_api::{RequestData, ResponseData};
+use crate::script_api::{LogEntry, RequestData, ResponseData, ScriptExecutionContext};
 use rquickjs::{CatchResultExt, Context as JsContext, Runtime as JsRuntime};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
+
+/// 脚本执行结果
+struct ScriptExecutionResult {
+    /// 脚本修改后的变量
+    variables: HashMap<String, serde_json::Value>,
+    /// 脚本通过 `fn.console` 输出的日志
+    logs: Vec<LogEntry>,
+    /// 是否跳过后续节点 (`fn.flow.skip()`)
+    should_skip: bool,
+    /// 是否终止流程并报错 (`fn.flow.abort()`)
+    should_abort: bool,
+    /// 终止消息
+    abort_message: Option<String>,
+    /// 是否正常终止流程 (`fn.flow.stop()`)
+    should_stop: bool,
+    /// `fn.expect()` 断言结果
+    test_results: Vec<crate::script_api::TestResult>,
+}
 
 /// 脚本节点执行器
 pub struct ScriptNodeExecutor;
@@ -103,7 +126,13 @@ impl NodeExecutor for ScriptNodeExecutor {
             })
         });
 
-        // 4. 执行脚本（在 spawn_blocking 内部创建 Runtime 和 Context，避免 Send 问题）
+        // 4. 准备流程/节点信息
+        let flow_uuid = context.flow_uuid.clone();
+        let node_uuid = node.uuid.clone();
+        let node_name = node.name.clone();
+
+        // 5. 执行脚本（在 spawn_blocking 内部创建 Runtime 和 Context，避免 Send 问题）
+        // ScriptExecutionContext 使用 Rc<RefCell>（非 Send），必须在闭包内创建
         let result = tokio::task::spawn_blocking(move || {
             // 创建 QuickJS Runtime 并设置内存/超时限制
             let rt = JsRuntime::new().map_err(|e| format!("创建 JS Runtime 失败: {}", e))?;
@@ -118,109 +147,35 @@ impl NodeExecutor for ScriptNodeExecutor {
             let ctx = JsContext::full(&rt).map_err(|e| format!("创建 JS Context 失败: {}", e))?;
 
             ctx.with(|ctx| {
-                // 创建全局 fn 对象
-                let fn_obj = rquickjs::Object::new(ctx.clone())
-                    .map_err(|e| format!("创建 fn 对象失败: {}", e))?;
+                // 构建脚本执行上下文（在闭包内创建，因为使用 Rc<RefCell>）
+                let mut script_ctx = ScriptExecutionContext::new();
 
-                // 注册 variables API
-                let vars_obj = rquickjs::Object::new(ctx.clone())
-                    .map_err(|e| format!("创建 variables 对象失败: {}", e))?;
-                
-                // 使用共享的变量存储，使 get/set/has 能看到彼此的修改
-                let vars_storage = Arc::new(std::sync::Mutex::new(initial_vars.clone()));
-                
-                // get 函数
-                let vars_get = vars_storage.clone();
-                vars_obj.set(
-                    "get",
-                    rquickjs::function::Func::from(move |key: String| -> Option<String> {
-                        vars_get
-                            .lock()
-                            .unwrap()
-                            .get(&key)
-                            .and_then(|v| v.as_str().map(|s| s.to_string()))
-                    }),
-                ).map_err(|e| format!("设置 variables.get 失败: {}", e))?;
+                // 注入初始变量
+                for (key, value) in &initial_vars {
+                    script_ctx
+                        .variables
+                        .borrow_mut()
+                        .insert(key.clone(), value.clone());
+                }
 
-                // set 函数
-                let vars_set = vars_storage.clone();
-                vars_obj.set(
-                    "set",
-                    rquickjs::function::Func::from(move |key: String, value: String| {
-                        vars_set
-                            .lock()
-                            .unwrap()
-                            .insert(key, serde_json::Value::String(value));
-                    }),
-                ).map_err(|e| format!("设置 variables.set 失败: {}", e))?;
-
-                // has 函数
-                let vars_has = vars_storage.clone();
-                vars_obj.set(
-                    "has",
-                    rquickjs::function::Func::from(move |key: String| -> bool {
-                        vars_has.lock().unwrap().contains_key(&key)
-                    }),
-                ).map_err(|e| format!("设置 variables.has 失败: {}", e))?;
-
-                fn_obj.set("variables", vars_obj).map_err(|e| format!("设置 fn.variables 失败: {}", e))?;
-
-                // 注册 response API（如果有）
+                // 设置响应数据
                 if let Some(ref response) = response_data {
-                    let response_obj = rquickjs::Object::new(ctx.clone())
-                        .map_err(|e| format!("创建 response 对象失败: {}", e))?;
-                    response_obj.set("code", response.code).map_err(|e| format!("设置 response.code 失败: {}", e))?;
-                    response_obj.set("status", response.status.clone()).map_err(|e| format!("设置 response.status 失败: {}", e))?;
-                    response_obj.set("body", response.body.to_string()).map_err(|e| format!("设置 response.body 失败: {}", e))?;
-                    response_obj.set("size", response.size).map_err(|e| format!("设置 response.size 失败: {}", e))?;
-                    response_obj.set("time", response.time).map_err(|e| format!("设置 response.time 失败: {}", e))?;
-
-                    // headers 对象
-                    let headers_obj = rquickjs::Object::new(ctx.clone())
-                        .map_err(|e| format!("创建 response headers 对象失败: {}", e))?;
-                    for (key, value) in &response.headers {
-                        headers_obj.set(key, value.clone()).map_err(|e| format!("设置 response header 失败: {}", e))?;
-                    }
-                    response_obj.set("headers", headers_obj).map_err(|e| format!("设置 response.headers 失败: {}", e))?;
-
-                    // text() 函数
-                    let raw_body = response.raw_body.clone();
-                    response_obj.set(
-                        "text",
-                        rquickjs::function::Func::from(move || -> String { raw_body.clone() }),
-                    ).map_err(|e| format!("设置 response.text 失败: {}", e))?;
-
-                    // json() 函数
-                    let body_clone = response.body.clone();
-                    response_obj.set(
-                        "json",
-                        rquickjs::function::Func::from(move || -> String { body_clone.to_string() }),
-                    ).map_err(|e| format!("设置 response.json 失败: {}", e))?;
-
-                    fn_obj.set("response", response_obj).map_err(|e| format!("设置 fn.response 失败: {}", e))?;
+                    script_ctx = script_ctx.with_response(response.clone());
                 }
 
-                // 注册 request API（如果有）
+                // 设置请求数据
                 if let Some(ref request) = request_data {
-                    let request_obj = rquickjs::Object::new(ctx.clone())
-                        .map_err(|e| format!("创建 request 对象失败: {}", e))?;
-                    request_obj.set("url", request.url.clone()).map_err(|e| format!("设置 request.url 失败: {}", e))?;
-                    request_obj.set("method", request.method.clone()).map_err(|e| format!("设置 request.method 失败: {}", e))?;
-
-                    // headers 对象
-                    let headers_obj = rquickjs::Object::new(ctx.clone())
-                        .map_err(|e| format!("创建 request headers 对象失败: {}", e))?;
-                    for (key, value) in &request.headers {
-                        headers_obj.set(key, value.clone()).map_err(|e| format!("设置 request header 失败: {}", e))?;
-                    }
-                    request_obj.set("headers", headers_obj).map_err(|e| format!("设置 request.headers 失败: {}", e))?;
-
-                    request_obj.set("body", request.body.to_string()).map_err(|e| format!("设置 request.body 失败: {}", e))?;
-
-                    fn_obj.set("request", request_obj).map_err(|e| format!("设置 fn.request 失败: {}", e))?;
+                    script_ctx = script_ctx.with_request(request.clone());
                 }
 
-                ctx.globals().set("fn", fn_obj).map_err(|e| format!("设置全局 fn 对象失败: {}", e))?;
+                // 设置流程/节点信息
+                script_ctx = script_ctx.with_flow_info(flow_uuid.clone(), flow_uuid.clone());
+                script_ctx = script_ctx.with_node_info(node_uuid.clone(), node_name.clone());
+
+                // 注册全部 fn.* API
+                script_ctx
+                    .register_all_apis(&ctx)
+                    .map_err(|e| format!("注册脚本 API 失败: {}", e))?;
 
                 // 执行脚本
                 let _: () = ctx
@@ -228,13 +183,28 @@ impl NodeExecutor for ScriptNodeExecutor {
                     .catch(&ctx)
                     .map_err(|e| format!("脚本执行错误: {}", e))?;
 
-                // 返回修改后的变量
-                let result_vars = vars_storage.lock().unwrap().clone();
-                Ok::<_, String>(result_vars)
+                // 收集执行结果
+                let result_vars = script_ctx.variables.borrow().clone();
+                let logs = script_ctx.logs.borrow().clone();
+                let should_skip = *script_ctx.should_skip.borrow();
+                let should_abort = *script_ctx.should_abort.borrow();
+                let abort_message = script_ctx.abort_message.borrow().clone();
+                let should_stop = *script_ctx.should_stop.borrow();
+                let test_results = script_ctx.test_results.borrow().clone();
+
+                Ok::<_, String>(ScriptExecutionResult {
+                    variables: result_vars,
+                    logs,
+                    should_skip,
+                    should_abort,
+                    abort_message,
+                    should_stop,
+                    test_results,
+                })
             })
         });
 
-        // 6. 等待结果（带超时）
+        // 7. 等待结果（带超时）
         let result = tokio::time::timeout(Duration::from_millis(timeout_ms), result).await;
 
         // 清理取消监听器（脚本已结束，不再需要监听取消信号）
@@ -242,11 +212,11 @@ impl NodeExecutor for ScriptNodeExecutor {
             handle.abort();
         }
 
-        // 7. 处理结果
+        // 8. 处理结果
         match result {
-            Ok(Ok(Ok(modified_vars))) => {
+            Ok(Ok(Ok(exec_result))) => {
                 // 脚本执行成功，同步变量回 ExecutionContext
-                for (key, value) in modified_vars {
+                for (key, value) in exec_result.variables {
                     log::debug!(
                         "[流程 {}] 同步变量: {} = {:?}",
                         context.flow_uuid,
@@ -254,6 +224,45 @@ impl NodeExecutor for ScriptNodeExecutor {
                         value
                     );
                     context.variables.set_variable(key, value, node.uuid.clone());
+                }
+
+                // 发送脚本 console 日志到执行上下文
+                for log_entry in &exec_result.logs {
+                    let level = match log_entry.level.as_str() {
+                        "error" => LogLevel::Error,
+                        "warn" => LogLevel::Warn,
+                        "debug" => LogLevel::Debug,
+                        _ => LogLevel::Info,
+                    };
+                    context
+                        .emit_log(LogEvent {
+                            level,
+                            message: format!("[console.{}] {}", log_entry.level, log_entry.message),
+                            timestamp: std::time::SystemTime::now()
+                                .duration_since(std::time::UNIX_EPOCH)
+                                .expect("系统时间错误")
+                                .as_millis() as u64,
+                            node_uuid: Some(node.uuid.clone()),
+                            node_name: Some(node.name.clone()),
+                            flow_uuid: context.flow_uuid.clone(),
+                        })
+                        .await;
+                }
+
+                // 处理 fn.flow.abort() — 终止流程并报错
+                if exec_result.should_abort {
+                    let msg = exec_result
+                        .abort_message
+                        .unwrap_or_else(|| "流程被脚本终止 (fn.flow.abort)".to_string());
+                    return self
+                        .handle_error(
+                            ErrorDetail::new(ErrorKind::ScriptRuntime, msg),
+                            &config,
+                            context,
+                            node,
+                            connections,
+                        )
+                        .await;
                 }
 
                 // 发送完成日志
@@ -271,11 +280,29 @@ impl NodeExecutor for ScriptNodeExecutor {
                     })
                     .await;
 
+                // 构建输出数据（包含断言结果和流程控制标记）
+                let mut output_data = serde_json::json!({
+                    "success": true,
+                    "logs": exec_result.logs,
+                });
+
+                // 包含断言结果
+                if !exec_result.test_results.is_empty() {
+                    output_data["test_results"] = serde_json::json!(exec_result.test_results);
+                    let all_passed = exec_result.test_results.iter().all(|r| r.passed);
+                    output_data["all_assertions_passed"] = serde_json::json!(all_passed);
+                }
+
+                // 包含流程控制标记
+                if exec_result.should_skip {
+                    output_data["flow_skip"] = serde_json::json!(true);
+                }
+                if exec_result.should_stop {
+                    output_data["flow_stop"] = serde_json::json!(true);
+                }
+
                 // 返回 true 端口的连接
                 let next_nodes = self.get_next_nodes_by_port(node, "true", connections);
-                let output_data = serde_json::json!({
-                    "success": true,
-                });
                 Ok((next_nodes, Some(output_data)))
             }
             Ok(Ok(Err(e))) => {
