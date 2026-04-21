@@ -4,7 +4,7 @@
  */
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { httpConfigSchema, type HttpConfigFormData, type HeaderEntry, type HttpBodyType } from './schemas';
 import { open } from '@tauri-apps/plugin-dialog';
 import { Input } from '@/components/ui/input';
@@ -14,11 +14,21 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Globe, X, ArrowRightFromLine, Info } from 'lucide-react';
+import { Plus, Trash2, Globe, X, ArrowRightFromLine, Info, Terminal } from 'lucide-react';
 import type { HttpConfig as HttpConfigType } from '@/types';
 import type { Variable } from '@/types/variable';
 import { useFlowStore } from '@/stores';
 import { isEntryConfig, isHttpConfig } from '@/types/node';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import { parseCurlToFormData } from '@/lib/curlParser';
 /** 检测是否在 Tauri 环境中运行 */
 const isTauriEnv = () => {
   return typeof window !== 'undefined' && '__TAURI__' in window;
@@ -328,6 +338,40 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   /** 隐藏的文件输入框 ref (用于非 Tauri 环境) */
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  /** cURL 导入弹窗状态 */
+  const [isCurlDialogOpen, setIsCurlDialogOpen] = useState(false);
+  const [curlText, setCurlText] = useState('');
+  const [curlError, setCurlError] = useState<string | null>(null);
+
+  /** 处理 cURL 导入 */
+  const handleCurlImport = useCallback(() => {
+    if (!curlText.trim()) {
+      setCurlError('请输入 cURL 命令');
+      return;
+    }
+
+    const formData = parseCurlToFormData(curlText);
+    if (!formData) {
+      setCurlError('无法解析 cURL 命令，请检查格式是否正确');
+      return;
+    }
+
+    // 用解析结果填充表单（保留 output_mappings 不变）
+    const currentValues = getValues();
+    reset({
+      ...formData,
+      output_mappings: currentValues.output_mappings || [],
+    });
+
+    toast.success('cURL 命令已导入');
+    setCurlText('');
+    setCurlError(null);
+    setIsCurlDialogOpen(false);
+
+    // 延迟保存，确保表单值已更新
+    safeSetTimeout(saveData, 100);
+  }, [curlText, getValues, reset, safeSetTimeout, saveData]);
+
   /**
    * 选择 Binary 文件
    */
@@ -405,6 +449,72 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         className="hidden"
         onChange={handleFileInputChange}
       />
+
+      {/* cURL 导入按钮 */}
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          onClick={() => setIsCurlDialogOpen(true)}
+        >
+          <Terminal className="h-3 w-3" />
+          导入 cURL
+        </Button>
+      </div>
+
+      {/* cURL 导入弹窗 */}
+      <Dialog open={isCurlDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setCurlText('');
+          setCurlError(null);
+        }
+        setIsCurlDialogOpen(open);
+      }}>
+        <DialogContent className="max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>导入 cURL 命令</DialogTitle>
+            <DialogDescription>
+              粘贴从浏览器 DevTools 或 Postman 复制的 cURL 命令，自动解析为 HTTP 请求配置
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Textarea
+              value={curlText}
+              onChange={(e) => {
+                setCurlText(e.target.value);
+                setCurlError(null);
+              }}
+              placeholder={'curl -X POST https://api.example.com/users \\\n  -H \'Content-Type: application/json\' \\\n  -H \'Authorization: Bearer token\' \\\n  -d \'{"name": "test"}\''}
+              className="min-h-[160px] resize-y font-mono text-xs"
+              rows={7}
+              autoFocus
+            />
+            {curlError && (
+              <p className="text-xs text-rose-500">{curlError}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              支持 -X、-H、-d、--data-raw、-F、-b 等常用参数
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCurlDialogOpen(false);
+                setCurlText('');
+                setCurlError(null);
+              }}
+            >
+              取消
+            </Button>
+            <Button onClick={handleCurlImport}>
+              导入
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* URL 输入 */}
       <div className="space-y-2">
         <Label htmlFor="url" className="text-sm font-medium text-foreground">
