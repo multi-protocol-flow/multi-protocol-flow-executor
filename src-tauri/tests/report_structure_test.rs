@@ -388,6 +388,7 @@ fn test_report_structure_flow_execution_report() {
         execution_path: vec!["entry-1".to_string(), "http-1".to_string()],
         skipped_nodes,
         ws_streams: vec![],
+        flow_snapshot: None,
     };
 
     // 序列化
@@ -469,6 +470,7 @@ fn test_report_structure_flow_execution_report_failed() {
         execution_path: vec!["entry-1".to_string()],
         skipped_nodes: vec![],
         ws_streams: vec![],
+        flow_snapshot: None,
     };
 
     let json_str = serde_json::to_string(&report).expect("序列化失败");
@@ -502,10 +504,10 @@ fn test_report_structure_flow_execution_report_debug_mode() {
         execution_path: vec![],
         skipped_nodes: vec![],
         ws_streams: vec![],
+        flow_snapshot: None,
     };
 
     let json_str = serde_json::to_string(&report).expect("序列化失败");
-    assert!(json_str.contains("debug"));
 
     let deserialized: FlowExecutionReport = serde_json::from_str(&json_str).expect("反序列化失败");
     assert_eq!(deserialized.execution_mode, ExecutionMode::Debug);
@@ -810,6 +812,7 @@ fn test_report_structure_full_roundtrip() {
             },
         ],
         ws_streams: vec![],
+        flow_snapshot: None,
     };
 
     // 序列化

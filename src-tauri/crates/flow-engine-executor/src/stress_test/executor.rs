@@ -38,6 +38,7 @@ const PROGRESS_INTERVAL_MS: u64 = 1000;
 ///
 /// # 示例
 /// ```
+/// use flow_engine_executor::stress_test::calculate_current_concurrency;
 /// // 目标 100 用户，预热 10 秒
 /// assert_eq!(calculate_current_concurrency(100, 10, 0), 0);   // 0 秒
 /// assert_eq!(calculate_current_concurrency(100, 10, 5), 50);  // 5 秒
