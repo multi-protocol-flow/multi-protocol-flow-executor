@@ -88,8 +88,8 @@ export function VariableChangesCard({ changes, defaultOpen = false }: VariableCh
                   className={cn(
                     'rounded-lg p-2.5 text-sm border',
                     isNewVariable 
-                      ? 'bg-emerald-50/50 border-emerald-200' 
-                      : 'bg-amber-50/50 border-amber-200'
+                      ? 'bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800' 
+                      : 'bg-amber-50/50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800'
                   )}
                 >
                   {/* 变量名 */}
@@ -100,8 +100,8 @@ export function VariableChangesCard({ changes, defaultOpen = false }: VariableCh
                     <span className={cn(
                       'text-xs px-1.5 py-0.5 rounded',
                       isNewVariable 
-                        ? 'bg-emerald-100 text-emerald-700' 
-                        : 'bg-amber-100 text-amber-700'
+                        ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' 
+                        : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
                     )}>
                       {isNewVariable ? '新增' : '更新'}
                     </span>
