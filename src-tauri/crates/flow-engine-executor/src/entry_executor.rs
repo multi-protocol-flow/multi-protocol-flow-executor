@@ -211,6 +211,7 @@ mod tests {
             debug_event_sender: None,
             execution_event_sender: None,
             cancel_receiver: None,
+            providers: std::collections::HashMap::new(),
         };
 
         let mut node_map = HashMap::new();
@@ -269,6 +270,7 @@ mod tests {
             debug_event_sender: None,
             execution_event_sender: None,
             cancel_receiver: None,
+            providers: std::collections::HashMap::new(),
         };
 
         let node_map = HashMap::new();
@@ -350,6 +352,7 @@ mod tests {
             debug_event_sender: None,
             execution_event_sender: None,
             cancel_receiver: None,
+            providers: std::collections::HashMap::new(),
         };
 
         let mut node_map = HashMap::new();
@@ -424,6 +427,7 @@ mod tests {
             debug_event_sender: None,
             execution_event_sender: None,
             cancel_receiver: None,
+            providers: std::collections::HashMap::new(),
         };
 
         let mut node_map = HashMap::new();
@@ -499,6 +503,7 @@ mod tests {
             debug_event_sender: None,
             execution_event_sender: None,
             cancel_receiver: None,
+            providers: std::collections::HashMap::new(),
         };
 
         let mut node_map = HashMap::new();
@@ -563,6 +568,7 @@ mod tests {
             debug_event_sender: None,
             execution_event_sender: None,
             cancel_receiver: None,
+            providers: std::collections::HashMap::new(),
         };
 
         let mut node_map = HashMap::new();
@@ -633,6 +639,7 @@ mod tests {
             debug_event_sender: None,
             execution_event_sender: None,
             cancel_receiver: None,
+            providers: std::collections::HashMap::new(),
         };
 
         let mut node_map = HashMap::new();

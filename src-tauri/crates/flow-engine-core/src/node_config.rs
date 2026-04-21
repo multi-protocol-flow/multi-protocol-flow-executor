@@ -782,7 +782,11 @@ impl Default for ScriptNodeConfig {
 // ============================================================================
 
 /// 节点数据配置（强类型枚举）
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+///
+/// 使用 `#[serde(tag = "type")]` 进行内部标签的反序列化。
+/// 对于未知的 `type` 值，通过自定义反序列化回退到 `Plugin(Value)` 变体，
+/// 保证向前兼容——反序列化未知节点类型不会报错。
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum NodeData {
     /// 入口节点配置
@@ -823,6 +827,75 @@ pub enum NodeData {
     /// 脚本节点配置
     #[serde(rename = "script")]
     Script(ScriptNodeConfig),
+    /// 插件节点配置（未知类型的兜底捕获）
+    ///
+    /// 当反序列化遇到不认识的 `type` 值时，整个 JSON 对象会被保留在此变体中。
+    /// 此变体必须是枚举的最后一个。
+    Plugin(serde_json::Value),
+}
+
+/// 自定义 `NodeData` 反序列化：已知 type 走标准 serde 内部标签逻辑，
+/// 未知 type 回退到 `Plugin(Value)`。
+impl<'de> serde::Deserialize<'de> for NodeData {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        // 先反序列化为通用的 Map，提取 type 字段
+        let value = serde_json::Value::deserialize(deserializer)?;
+        let type_str = value
+            .get("type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+
+        // 尝试按已知类型反序列化
+        match type_str {
+            "entry" => serde_json::from_value::<EntryConfig>(value.clone())
+                .map(NodeData::Entry)
+                .map_err(serde::de::Error::custom),
+            "http" => serde_json::from_value::<HttpConfig>(value.clone())
+                .map(NodeData::Http)
+                .map_err(serde::de::Error::custom),
+            "conditional" => serde_json::from_value::<ConditionalConfig>(value.clone())
+                .map(NodeData::Conditional)
+                .map_err(serde::de::Error::custom),
+            "ws_connect" => serde_json::from_value::<WsConnectConfig>(value.clone())
+                .map(NodeData::WsConnect)
+                .map_err(serde::de::Error::custom),
+            "ws_send_collect" => serde_json::from_value::<WsSendCollectConfig>(value.clone())
+                .map(NodeData::WsSendCollect)
+                .map_err(serde::de::Error::custom),
+            "ws_close" => serde_json::from_value::<WsCloseConfig>(value.clone())
+                .map(NodeData::WsClose)
+                .map_err(serde::de::Error::custom),
+            "assertion" => serde_json::from_value::<AssertionConfig>(value.clone())
+                .map(NodeData::Assertion)
+                .map_err(serde::de::Error::custom),
+            "db_connect" => serde_json::from_value::<DbConnectConfig>(value.clone())
+                .map(NodeData::DbConnect)
+                .map_err(serde::de::Error::custom),
+            "db_query" => serde_json::from_value::<DbQueryConfig>(value.clone())
+                .map(NodeData::DbQuery)
+                .map_err(serde::de::Error::custom),
+            "db_begin" => serde_json::from_value::<DbBeginConfig>(value.clone())
+                .map(NodeData::DbBegin)
+                .map_err(serde::de::Error::custom),
+            "db_commit" => serde_json::from_value::<DbCommitConfig>(value.clone())
+                .map(NodeData::DbCommit)
+                .map_err(serde::de::Error::custom),
+            "db_rollback" => serde_json::from_value::<DbRollbackConfig>(value.clone())
+                .map(NodeData::DbRollback)
+                .map_err(serde::de::Error::custom),
+            "db_close" => serde_json::from_value::<DbCloseConfig>(value.clone())
+                .map(NodeData::DbClose)
+                .map_err(serde::de::Error::custom),
+            "script" => serde_json::from_value::<ScriptNodeConfig>(value.clone())
+                .map(NodeData::Script)
+                .map_err(serde::de::Error::custom),
+            // 未知 type → 兜底到 Plugin
+            _ => Ok(NodeData::Plugin(value)),
+        }
+    }
 }
 
 impl NodeData {
@@ -843,6 +916,7 @@ impl NodeData {
             NodeData::DbRollback(_) => "db_rollback",
             NodeData::DbClose(_) => "db_close",
             NodeData::Script(_) => "script",
+            NodeData::Plugin(_) => "plugin",
         }
     }
 
@@ -1471,6 +1545,81 @@ mod tests {
                 assert_eq!(config.timeout_ms, 5000); // default
             }
             _ => panic!("Expected Script variant"),
+        }
+    }
+
+    // ========================================================================
+    // Plugin 兜底变体测试
+    // ========================================================================
+
+    #[test]
+    fn test_node_data_plugin_catch_all() {
+        // 未知 type 字符串应反序列化为 Plugin 变体
+        let json = r#"{"type":"grpc_request","url":"http://example.com"}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        match data {
+            NodeData::Plugin(val) => {
+                // 原始 JSON（含 type 字段）应完整保留
+                assert_eq!(
+                    val.get("type").unwrap().as_str(),
+                    Some("grpc_request")
+                );
+                assert_eq!(
+                    val.get("url").unwrap().as_str(),
+                    Some("http://example.com")
+                );
+            }
+            _ => panic!("Expected Plugin variant for unknown type"),
+        }
+    }
+
+    #[test]
+    fn test_node_data_plugin_type_name() {
+        let json = r#"{"type":"custom_node","foo":"bar"}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        // Plugin 变体的 type_name 固定返回 "plugin"
+        assert_eq!(data.type_name(), "plugin");
+    }
+
+    #[test]
+    fn test_node_data_existing_types_unchanged() {
+        // HTTP 应正常反序列化
+        let json = r#"{"type":"http","url":"https://example.com","method":"get"}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        match data {
+            NodeData::Http(config) => assert_eq!(config.url, "https://example.com"),
+            _ => panic!("Expected Http variant"),
+        }
+
+        // ws_connect 应正常反序列化
+        let json = r#"{"type":"ws_connect","url":"wss://example.com"}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        match data {
+            NodeData::WsConnect(config) => assert_eq!(config.url, "wss://example.com"),
+            _ => panic!("Expected WsConnect variant"),
+        }
+
+        // entry 应正常反序列化
+        let json = r#"{"type":"entry"}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        assert!(matches!(data, NodeData::Entry(_)));
+
+        // script 应正常反序列化
+        let json = r#"{"type":"script","script":"return 1;"}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        match data {
+            NodeData::Script(config) => assert_eq!(config.script, "return 1;"),
+            _ => panic!("Expected Script variant"),
+        }
+
+        // db_connect 应正常反序列化
+        let json = r#"{"type":"db_connect","driver":"postgres","connection_string":"postgres://localhost/test"}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        match data {
+            NodeData::DbConnect(config) => {
+                assert_eq!(config.connection_string, Some("postgres://localhost/test".to_string()));
+            }
+            _ => panic!("Expected DbConnect variant"),
         }
     }
 }

@@ -23,3 +23,5 @@ pub mod command;
 pub mod plugin_entry;
 /// 条件分支节点插件
 pub mod plugin_conditional;
+/// 默认节点注册表，注册全部 14 个内置插件
+pub mod default_registry;
