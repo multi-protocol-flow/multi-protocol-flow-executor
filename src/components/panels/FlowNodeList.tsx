@@ -119,12 +119,10 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
     }
   }, [allChecked, nodes]);
 
-  // 点击节点 → 居中定位
+  // 点击节点 → 选中并居中定位，切换到节点配置面板
   const handleClickNode = useCallback((uuid: string) => {
-    useFlowStore.getState().centerOnNode(uuid);
-    requestAnimationFrame(() => {
-      useFlowStore.getState().clearCenterOnNode();
-    });
+    useFlowStore.getState().selectNode(uuid);
+    useFlowStore.getState().focusOnNode(uuid);
   }, []);
 
   // 批量删除

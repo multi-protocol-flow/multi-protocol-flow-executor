@@ -262,7 +262,7 @@ function FlowCanvasInner() {
     return () => clearTimeout(timeoutId);
   }, [isDirty, flow, markSaved]);
 
-  // 处理节点聚焦跳转（从调试面板点击跳转）
+  // 处理节点聚焦跳转（从调试面板/节点列表点击跳转）
   useEffect(() => {
     if (!focusNodeUuid) return;
 
@@ -273,12 +273,16 @@ function FlowCanvasInner() {
         zoom: 1.2,
         duration: 300,
       });
-      // 选中该节点
+      // 选中该节点（Zustand store）
       selectNode(focusNodeUuid);
+      // 同步 React Flow 节点选中状态（驱动视觉高亮）
+      setNodes((nds) =>
+        nds.map((n) => ({ ...n, selected: n.id === focusNodeUuid }))
+      );
       // 清除聚焦状态
       clearFocusNode();
     }
-  }, [focusNodeUuid, getNode, setCenter, selectNode, clearFocusNode]);
+  }, [focusNodeUuid, getNode, setCenter, selectNode, clearFocusNode, setNodes]);
 
   // 处理节点居中定位（从节点列表点击定位，仅居中不选中）
   useEffect(() => {
