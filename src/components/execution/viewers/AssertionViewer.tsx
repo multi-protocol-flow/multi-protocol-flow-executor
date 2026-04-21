@@ -102,16 +102,16 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
   const [showDetails, setShowDetails] = useState(false);
 
   return (
-    <div className="rounded-lg bg-red-50 border border-red-200 overflow-hidden">
+    <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 overflow-hidden">
       {/* 失败头部 */}
       <button
         type="button"
         onClick={() => setShowDetails(!showDetails)}
-        className="w-full p-3 bg-red-100/50 hover:bg-red-100/70 transition-colors text-left"
+        className="w-full p-3 bg-red-100/50 dark:bg-red-900/30 hover:bg-red-100/70 dark:hover:bg-red-900/50 transition-colors text-left"
       >
         <div className="flex items-center gap-2">
-          <XCircle className="w-4 h-4 text-red-600 shrink-0" />
-          <span className="font-medium text-red-700 text-sm">
+          <XCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
+          <span className="font-medium text-red-700 dark:text-red-300 text-sm">
             {result.description || `断言 #${index + 1}`}
           </span>
           <div className="ml-auto text-muted-foreground">
@@ -126,18 +126,18 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
 
       {/* 失败详情 */}
       {showDetails && (
-        <div className="p-3 border-t border-red-200 space-y-3">
+        <div className="p-3 border-t border-red-200 dark:border-red-800 space-y-3">
           {/* 目标和操作符 */}
           <div className="space-y-1.5">
             <div className="flex items-start gap-2 text-sm">
               <span className="text-muted-foreground shrink-0 min-w-16">目标:</span>
-              <code className="font-mono text-red-700 bg-red-100 px-1.5 py-0.5 rounded text-xs break-all">
+              <code className="font-mono text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-1.5 py-0.5 rounded text-xs break-all">
                 {result.target}
               </code>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground shrink-0 min-w-16">操作符:</span>
-              <span className="font-mono text-red-700">
+              <span className="font-mono text-red-700 dark:text-red-300">
                 {getOperatorDisplay(result.operator)}
               </span>
             </div>
@@ -161,10 +161,10 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
 
           {/* 错误信息 */}
           {result.error && (
-            <div className="rounded bg-red-100/70 p-2">
+            <div className="rounded bg-red-100/70 dark:bg-red-900/40 p-2">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                <p className="text-sm text-red-700">{result.error}</p>
+                <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700 dark:text-red-300">{result.error}</p>
               </div>
             </div>
           )}
@@ -179,16 +179,16 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
  */
 function ErrorCard({ error }: { error: ErrorDetail }) {
   return (
-    <div className="rounded-lg bg-red-50 border border-red-200 overflow-hidden">
+    <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 overflow-hidden">
       {/* 错误头部 */}
-      <div className="p-3 bg-red-100/50 border-b border-red-200">
+      <div className="p-3 bg-red-100/50 dark:bg-red-900/30 border-b border-red-200 dark:border-red-800">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-red-600" />
-          <Badge className="font-mono text-xs bg-red-200 text-red-800 border-red-300">
+          <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+          <Badge className="font-mono text-xs bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700">
             执行错误
           </Badge>
           {error.error_code && (
-            <Badge variant="outline" className="font-mono text-xs text-red-600 border-red-300">
+            <Badge variant="outline" className="font-mono text-xs text-red-600 dark:text-red-400 border-red-300 dark:border-red-700">
               {error.error_code}
             </Badge>
           )}
@@ -197,16 +197,16 @@ function ErrorCard({ error }: { error: ErrorDetail }) {
       
       {/* 错误消息 */}
       <div className="p-3">
-        <p className="text-sm text-red-700 font-medium">{error.message}</p>
+        <p className="text-sm text-red-700 dark:text-red-300 font-medium">{error.message}</p>
       </div>
 
       {/* 堆栈跟踪 */}
       {error.stack_trace && (
-        <details className="border-t border-red-200">
-          <summary className="p-2 text-xs text-red-500 cursor-pointer hover:bg-red-100/50">
+        <details className="border-t border-red-200 dark:border-red-800">
+          <summary className="p-2 text-xs text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/30">
             堆栈跟踪
           </summary>
-          <pre className="p-2 text-xs text-red-600 bg-red-100/50 overflow-x-auto max-h-32">
+          <pre className="p-2 text-xs text-red-600 dark:text-red-300 bg-red-100/50 dark:bg-red-900/30 overflow-x-auto max-h-32">
             {error.stack_trace}
           </pre>
         </details>
@@ -240,8 +240,8 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
           >
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <XCircle className="w-4 h-4 text-red-600" />
-                <Badge className="font-mono text-sm px-3 py-1 text-red-600 bg-red-50">
+                <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                <Badge className="font-mono text-sm px-3 py-1 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40">
                   执行失败
                 </Badge>
               </div>
@@ -281,15 +281,15 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
       <div className={cn(
         'rounded-lg p-4 border',
         passed
-          ? 'bg-green-50 border-green-200'
-          : 'bg-red-50 border-red-200'
+          ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800'
+          : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
       )}>
         <div className="flex items-center gap-3">
           {/* 通过/失败图标 */}
           {passed ? (
-            <CheckCircle className="w-6 h-6 text-green-600" />
+            <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
           ) : (
-            <XCircle className="w-6 h-6 text-red-600" />
+            <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
           )}
           
           {/* 统计信息 */}
@@ -297,22 +297,22 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
             <div className="flex items-center gap-2">
               <span className={cn(
                 'font-semibold',
-                passed ? 'text-green-700' : 'text-red-700'
+                passed ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
               )}>
                 {passed ? '全部通过' : '断言失败'}
               </span>
               <Badge className={cn(
                 'font-mono text-xs',
                 passed
-                  ? 'bg-green-100 text-green-700 border-green-200'
-                  : 'bg-red-100 text-red-700 border-red-200'
+                  ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800'
+                  : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
               )}>
                 {passed_count} / {total}
               </Badge>
             </div>
             <p className={cn(
               'text-sm mt-1',
-              passed ? 'text-green-600' : 'text-red-600'
+              passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
             )}>
               {hasFailures
                 ? `${failed_count} 条断言失败`
@@ -337,7 +337,7 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
           icon={<AlertTriangle className="w-4 h-4 text-red-500" />}
           defaultOpen={true}
           badge={
-            <Badge className="bg-red-100 text-red-700 border-red-200 font-mono text-xs">
+            <Badge className="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800 font-mono text-xs">
               {failed_count} 条
             </Badge>
           }
@@ -373,8 +373,8 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
                 className={cn(
                   'flex items-center gap-2 p-2 rounded text-sm',
                   result.passed
-                    ? 'bg-green-50/50 text-green-700'
-                    : 'bg-red-50/50 text-red-700'
+                    ? 'bg-green-50/50 dark:bg-green-950/30 text-green-700 dark:text-green-300'
+                    : 'bg-red-50/50 dark:bg-red-950/30 text-red-700 dark:text-red-300'
                 )}
               >
                 {result.passed ? (

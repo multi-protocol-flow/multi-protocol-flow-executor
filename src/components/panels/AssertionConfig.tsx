@@ -139,7 +139,10 @@ function fromFormData(formData: AssertionConfigFormData): AssertionNodeConfig {
 
   return {
     type: 'assertion',
-    preset: formData.preset === 'none' ? undefined : formData.preset,
+    // 预设仅用于前端 UI 填充断言模板，不传给后端。
+    // 后端 merge_preset_and_custom 会根据 preset 字段再追加预设断言，
+    // 导致与已展平到 assertions 中的预设断言重复计算。
+    preset: undefined,
     mode: formData.mode,
     on_failure: formData.on_failure,
     continue_on_failure: formData.continue_on_failure,
