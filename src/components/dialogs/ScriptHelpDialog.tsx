@@ -10,8 +10,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   BookOpen,
+  ExternalLink,
   ChevronRight,
   Variable,
   Globe,
@@ -372,9 +374,28 @@ fn.expect(result).to.eql({ status: 'ok' });`} />
             </div>
             <div>
               <DialogTitle className="text-lg">脚本节点 API 参考</DialogTitle>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                QuickJS 沙箱环境 · ES2020 语法 · 安全隔离执行
-              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-sm text-muted-foreground">
+                  QuickJS 沙箱环境 · ES2020 语法 · 安全隔离执行
+                </p>
+                <button
+                  type="button"
+                  onClick={() => openUrl('https://bellard.org/quickjs/')}
+                  className="inline-flex items-center gap-1 text-xs text-violet-600 hover:text-violet-700 hover:underline transition-colors"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  QuickJS 文档
+                </button>
+                <span className="text-muted-foreground/40">|</span>
+                <button
+                  type="button"
+                  onClick={() => openUrl('https://es6.ruanyifeng.com/')}
+                  className="inline-flex items-center gap-1 text-xs text-violet-600 hover:text-violet-700 hover:underline transition-colors"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  ES6 入门教程
+                </button>
+              </div>
             </div>
           </div>
         </div>
