@@ -31,6 +31,8 @@ import { useFlowStore, useUIStore, useDebugStore, selectIsDebugging, useExecutio
 import { useTheme } from '@/hooks/useTheme';
 import { MapIcon, ArrowRightLeft } from 'lucide-react';
 import type { NodeType } from '@/types';
+import type { NodeMetadata } from '@/types/nodeRegistry';
+import { getNodeMetadata } from '@/lib/NodeRegistry';
 import { getLayoutedPositions, type LayoutDirection } from './layout';
 import {
   convertFlowToReactFlow,
@@ -101,35 +103,22 @@ const edgeTypes = {
   custom: CustomEdge,
 };
 
-/** MiniMap 节点颜色 */
-const minimapNodeColor = (node: Node) => {
-  switch (node.type) {
-    case 'entry':
-      return '#22c55e';
-    case 'http':
-      return '#3b82f6';
-    case 'conditional':
-      return '#f97316';
-    case 'ws_connect':
-      return '#f59e0b'; // amber-500
-    case 'ws_send_collect':
-      return '#14b8a6'; // teal-500
-    case 'ws_close':
-      return '#f43f5e'; // rose-500
-    case 'assertion':
-      return '#a855f7'; // purple-500
-    case 'db_connect':
-    case 'db_query':
-    case 'db_begin':
-    case 'db_commit':
-    case 'db_rollback':
-    case 'db_close':
-      return '#8b5cf6'; // violet-500
-    case 'script':
-      return '#6366f1'; // indigo-500
-    default:
-      return '#94a3b8';
-  }
+/** MiniMap 节点颜色 — 静态回退 */
+const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
+  entry: '#22c55e',
+  http: '#3b82f6',
+  conditional: '#f97316',
+  ws_connect: '#f59e0b',
+  ws_send_collect: '#14b8a6',
+  ws_close: '#f43f5e',
+  assertion: '#a855f7',
+  db_connect: '#8b5cf6',
+  db_query: '#8b5cf6',
+  db_begin: '#8b5cf6',
+  db_commit: '#8b5cf6',
+  db_rollback: '#8b5cf6',
+  db_close: '#8b5cf6',
+  script: '#6366f1',
 };
 
 /**
@@ -155,6 +144,23 @@ function FlowCanvasInner() {
   } = useFlowStore();
   const { setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen, showMinimap, toggleMinimap } = useUIStore();
   const { resolvedTheme } = useTheme();
+
+  // 动态节点元数据
+  const [nodeMetadata, setNodeMetadata] = useState<NodeMetadata[]>([]);
+
+  // 挂载时获取元数据
+  useEffect(() => {
+    getNodeMetadata().then(setNodeMetadata);
+  }, []);
+
+  // MiniMap 节点颜色：优先使用后端元数据的颜色，回退到静态映射
+  const minimapNodeColor = useCallback((node: Node) => {
+    if (node.type) {
+      const meta = nodeMetadata.find((m) => m.type_id === node.type);
+      if (meta) return meta.color;
+    }
+    return FALLBACK_MINIMAP_COLORS[node.type ?? ''] ?? '#94a3b8';
+  }, [nodeMetadata]);
 
   // 执行状态：执行/调试/压测时隐藏节点栏和小地图
   const isExecuting = useExecutionStore(selectIsExecuting);

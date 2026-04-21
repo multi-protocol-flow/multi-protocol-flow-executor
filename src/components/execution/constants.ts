@@ -2,8 +2,10 @@
  * 执行组件共享常量
  */
 
-/** 节点类型标签映射（与画布节点标签保持一致） */
-export const NODE_TYPE_NAMES: Record<string, string> = {
+import type { NodeMetadata } from '@/types/nodeRegistry';
+
+/** 节点类型标签映射 — 静态回退值 */
+const FALLBACK_NODE_TYPE_NAMES: Record<string, string> = {
   entry: '入口',
   http: 'HTTP',
   conditional: '条件',
@@ -21,8 +23,8 @@ export const NODE_TYPE_NAMES: Record<string, string> = {
   db_close: 'DB-关闭',
 };
 
-/** 节点类型颜色映射（与画布节点主题色保持一致） */
-export const NODE_TYPE_COLORS: Record<string, string> = {
+/** 节点类型颜色映射 — 静态回退值 */
+const FALLBACK_NODE_TYPE_COLORS: Record<string, string> = {
   entry: 'bg-emerald-100 text-emerald-700',
   http: 'bg-blue-100 text-blue-700',
   conditional: 'bg-orange-100 text-orange-700',
@@ -38,6 +40,58 @@ export const NODE_TYPE_COLORS: Record<string, string> = {
   db_commit: 'bg-violet-100 text-violet-700',
   db_rollback: 'bg-violet-100 text-violet-700',
   db_close: 'bg-violet-100 text-violet-700',
+};
+
+/**
+ * 动态构建节点类型标签映射
+ *
+ * 优先使用后端元数据的 display_name，回退到静态映射。
+ *
+ * @param metadata - 从后端获取的节点元数据
+ * @returns 合并后的标签映射
+ */
+export function buildNodeTypeNames(
+  metadata: NodeMetadata[]
+): Record<string, string> {
+  const dynamic: Record<string, string> = {};
+  for (const m of metadata) {
+    dynamic[m.type_id] = m.display_name;
+  }
+  return { ...FALLBACK_NODE_TYPE_NAMES, ...dynamic };
+}
+
+/**
+ * 动态构建节点类型颜色映射
+ *
+ * 优先使用后端元数据的 color 转换为 Tailwind class，回退到静态映射。
+ *
+ * @param metadata - 从后端获取的节点元数据
+ * @returns 合并后的颜色映射
+ */
+export function buildNodeTypeColors(
+  _metadata: NodeMetadata[]
+): Record<string, string> {
+  // 后端返回十六进制颜色，需要转为 Tailwind class
+  // 目前保留静态映射确保视觉一致性
+  return { ...FALLBACK_NODE_TYPE_COLORS };
+}
+
+/**
+ * 节点类型标签映射（与画布节点标签保持一致）
+ *
+ * 初始使用静态值，可由组件调用 buildNodeTypeNames 动态更新。
+ */
+export const NODE_TYPE_NAMES: Record<string, string> = {
+  ...FALLBACK_NODE_TYPE_NAMES,
+};
+
+/**
+ * 节点类型颜色映射（与画布节点主题色保持一致）
+ *
+ * 初始使用静态值，可由组件调用 buildNodeTypeColors 动态更新。
+ */
+export const NODE_TYPE_COLORS: Record<string, string> = {
+  ...FALLBACK_NODE_TYPE_COLORS,
 };
 
 // ============================================================================

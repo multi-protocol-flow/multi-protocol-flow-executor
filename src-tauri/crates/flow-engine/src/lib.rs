@@ -6,6 +6,8 @@ pub use flow_engine_executor::commands;
 
 // Re-exports from flow-engine-core
 pub use flow_engine_core::connection;
+pub use flow_engine_core::plugin;
+pub use flow_engine_core::registry;
 pub use flow_engine_core::error;
 pub use flow_engine_core::execution_event;
 pub use flow_engine_core::flow;
@@ -56,6 +58,9 @@ pub use flow_engine_script::script_executor;
 
 // Wave 7: 压力测试模块
 pub use flow_engine_executor::stress_test;
+
+// Wave 8: 节点注册表
+pub use flow_engine_executor::default_registry;
 
 // Re-exports
 pub use traits::{

@@ -19,6 +19,7 @@ use flow_engine::traits::DebugEventSender;
 use flow_engine::report::{FlowExecutionReport, ReportMetadata};
 use flow_engine::flow::Flow;
 use flow_engine::debug::DebugEvent;
+use flow_engine::plugin::NodeMetadata;
 use crate::tauri_adapters::{create_log_sender, TauriExecutionEventSender, TauriDebugEventSender};
 
 // ============================================================================
@@ -597,6 +598,16 @@ pub fn move_folder(
     target_folder_path: String,
 ) -> Result<(), String> {
     flow_engine::storage::move_folder(std::path::Path::new(&flows_dir), &source_folder_path, &target_folder_path)
+}
+
+/// 获取所有已注册的节点类型元数据
+///
+/// 从默认节点注册表获取全部 14 种节点类型的元数据信息，
+/// 供前端动态渲染节点面板和画布。
+#[tauri::command]
+pub fn get_registered_node_types() -> Vec<NodeMetadata> {
+    let registry = flow_engine::default_registry::default_registry();
+    registry.all_metadata()
 }
 
 // ============================================================================

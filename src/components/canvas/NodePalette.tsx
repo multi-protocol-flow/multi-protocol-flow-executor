@@ -1,6 +1,8 @@
 /**
  * NodePalette - 画布底部浮动节点工具条
  * Figma/Excalidraw 风格，分组展示节点类型，支持拖拽到画布和点击添加
+ *
+ * 动态从后端 NodeRegistry 获取节点分组，回退到静态分组。
  */
 import { type LucideIcon } from 'lucide-react';
 import {
@@ -15,11 +17,20 @@ import {
   RotateCcw,
   Code,
   Wrench,
+  Play,
 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { useFlowStore } from '@/stores';
 import type { NodeType } from '@/types';
+import type { NodeMetadata } from '@/types/nodeRegistry';
+import {
+  getNodeMetadata,
+  groupByCategory,
+  CATEGORY_NAMES,
+  getCategoryOrder,
+} from '@/lib/NodeRegistry';
 import { cn } from '@/lib/utils';
+import { useEffect, useMemo, useState } from 'react';
 
 /** 节点条目定义 */
 interface NodeItem {
@@ -40,8 +51,36 @@ interface NodeGroup {
   items: NodeItem[];
 }
 
-/** 节点分组数据 */
-const NODE_GROUPS: NodeGroup[] = [
+/** 后端 category 对应的图标 */
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  logic: GitBranch,
+  http: Globe,
+  websocket: Wifi,
+  database: Database,
+  tools: Wrench,
+  script: Code,
+  assertion: CheckCircle,
+};
+
+/** 后端 icon 字段到 lucide-react 组件的映射 */
+const ICON_MAP: Record<string, LucideIcon> = {
+  play: Play,
+  globe: Globe,
+  'git-branch': GitBranch,
+  code: Code,
+  'check-circle': CheckCircle,
+  wifi: Wifi,
+  send: Send,
+  plug: Plug,
+  database: Database,
+  'circle-play': CirclePlay,
+  check: CheckCircle,
+  'rotate-ccw': RotateCcw,
+  wrench: Wrench,
+};
+
+/** 静态回退分组数据 */
+const FALLBACK_NODE_GROUPS: NodeGroup[] = [
   {
     key: 'http',
     label: 'HTTP',
@@ -89,12 +128,58 @@ const NODE_GROUPS: NodeGroup[] = [
 ];
 
 /**
+ * 从后端元数据构建分组
+ *
+ * 将后端 NodeMetadata 转换为 NodePalette 所需的 NodeGroup 结构。
+ */
+function buildGroupsFromMetadata(metadata: NodeMetadata[]): NodeGroup[] {
+  const grouped = groupByCategory(metadata);
+
+  const groups: NodeGroup[] = Object.entries(grouped)
+    .sort(([a], [b]) => getCategoryOrder(a) - getCategoryOrder(b))
+    .map(([category, items]) => {
+      // 排除 entry 类型（入口节点自动创建，不需要手动添加）
+      const filtered = items.filter((m) => m.type_id !== 'entry');
+
+      if (filtered.length === 0) return null;
+
+      return {
+        key: category,
+        label: CATEGORY_NAMES[category] ?? category,
+        icon: CATEGORY_ICONS[category] ?? Wrench,
+        items: filtered.map((m) => ({
+          type: m.type_id as NodeType,
+          name: m.display_name,
+          icon: ICON_MAP[m.icon] ?? Wrench,
+        })),
+      };
+    })
+    .filter((g): g is NodeGroup => g !== null && g.items.length > 0);
+
+  return groups.length > 0 ? groups : FALLBACK_NODE_GROUPS;
+}
+
+/**
  * 节点工具条组件
  * 悬浮在画布底部居中，分组展示可用节点类型
  */
 export function NodePalette() {
   const setPendingAddNodeType = useFlowStore((s) => s.setPendingAddNodeType);
   const flow = useFlowStore((s) => s.flow);
+
+  // 动态元数据状态
+  const [metadata, setMetadata] = useState<NodeMetadata[]>([]);
+
+  // 挂载时获取元数据
+  useEffect(() => {
+    getNodeMetadata().then(setMetadata);
+  }, []);
+
+  // 从元数据构建分组（回退到静态）
+  const nodeGroups = useMemo(
+    () => buildGroupsFromMetadata(metadata),
+    [metadata]
+  );
 
   /** 拖拽开始：设置 dataTransfer */
   const handleDragStart = (e: React.DragEvent, type: NodeType) => {
@@ -117,7 +202,7 @@ export function NodePalette() {
         'shadow-lg border border-border/50',
       )}
     >
-      {NODE_GROUPS.map((group, groupIndex) => {
+      {nodeGroups.map((group, groupIndex) => {
         const isDirectAction = group.items.length === 1;
         const item = group.items[0];
         const GroupIcon = group.icon;

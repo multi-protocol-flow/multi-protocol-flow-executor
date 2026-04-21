@@ -66,6 +66,8 @@ pub use tauri_commands::{
     rename_folder,
     move_flow_to_folder,
     move_folder,
+    // 节点注册表命令
+    get_registered_node_types,
     DebugSessionManager,
     ExecutionSessionManager,
 };
@@ -172,7 +174,9 @@ pub fn run() {
     delete_folder,
     rename_folder,
     move_flow_to_folder,
-    move_folder
+    move_folder,
+    // 节点注册表命令
+    get_registered_node_types,
 ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
