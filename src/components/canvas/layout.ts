@@ -6,7 +6,7 @@ import dagre from '@dagrejs/dagre';
 import type { Node, Connection } from '@/types';
 
 /** 布局方向 */
-export type LayoutDirection = 'LR' | 'TB';
+export type LayoutDirection = 'LR';
 
 /** 所有节点统一尺寸 */
 const NODE_WIDTH = 180;
@@ -15,7 +15,6 @@ const NODE_HEIGHT = 80;
 /** 布局参数配置 */
 const LAYOUT_CONFIG = {
   LR: { nodesep: 50, ranksep: 100 },
-  TB: { nodesep: 60, ranksep: 80 },
 } as const;
 
 /**
@@ -23,7 +22,7 @@ const LAYOUT_CONFIG = {
  *
  * @param nodes - 流程节点列表
  * @param connections - 流程连接列表
- * @param direction - 布局方向（LR=水平，TB=垂直）
+ * @param direction - 布局方向（LR=水平）
  * @returns 每个节点的新位置 Map（uuid → {x, y}，左上角坐标）
  */
 export function getLayoutedPositions(

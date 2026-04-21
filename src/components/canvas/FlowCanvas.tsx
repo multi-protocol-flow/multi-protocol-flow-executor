@@ -29,7 +29,7 @@ import { NodeContextMenu } from './NodeContextMenu';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore, selectIsDebugging, useExecutionStore, selectIsExecuting, useStressTestStore, selectIsStressTestRunning } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
-import { MapIcon, ArrowRightLeft, ArrowDownUp } from 'lucide-react';
+import { MapIcon, ArrowRightLeft } from 'lucide-react';
 import type { NodeType } from '@/types';
 import { getLayoutedPositions, type LayoutDirection } from './layout';
 import {
@@ -747,13 +747,6 @@ function FlowCanvasInner() {
             title="水平自动布局"
           >
             <ArrowRightLeft className="w-4 h-4" />
-          </ControlButton>
-          {/* 垂直自动布局 */}
-          <ControlButton
-            onClick={() => handleAutoLayout('TB')}
-            title="垂直自动布局"
-          >
-            <ArrowDownUp className="w-4 h-4" />
           </ControlButton>
         </Controls>
 
