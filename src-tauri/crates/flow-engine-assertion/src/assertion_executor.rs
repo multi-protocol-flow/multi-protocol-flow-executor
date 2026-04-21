@@ -449,6 +449,7 @@ mod tests {
             debug_event_sender: None,
             execution_event_sender: None,
             cancel_receiver: None,
+            providers: HashMap::new(),
         }
     }
 
@@ -899,6 +900,7 @@ mod tests {
             debug_event_sender: Some(Arc::new(MpscDebugEventSender::new(event_sender))),
             execution_event_sender: None,
             cancel_receiver: None,
+            providers: HashMap::new(),
         };
         (context, event_receiver)
     }

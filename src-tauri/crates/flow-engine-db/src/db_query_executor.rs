@@ -591,6 +591,7 @@ mod tests {
             debug_event_sender: None,
             execution_event_sender: None,
             cancel_receiver: None,
+            providers: HashMap::new(),
         }
     }
 
