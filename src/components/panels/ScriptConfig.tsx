@@ -5,7 +5,7 @@
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -14,8 +14,9 @@ import { scriptConfigSchema, type ScriptConfigFormData } from './schemas';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Info, Clock, Database, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Clock, Database, AlertTriangle, CheckCircle, BookOpen } from 'lucide-react';
 import type { ScriptNodeConfig } from '@/types/node';
+import { ScriptHelpDialog } from '@/components/dialogs/ScriptHelpDialog';
 
 interface ScriptConfigProps {
   /** 当前节点数据 */
@@ -189,6 +190,7 @@ function fnApiCompletions(context: CompletionContext) {
 }
 
 export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
+  const [helpOpen, setHelpOpen] = useState(false);
   const {
     register,
     handleSubmit,
@@ -301,10 +303,20 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
       {/* 脚本编辑器 */}
       <div className="space-y-2">
-        <Label htmlFor="script" className="text-sm font-medium text-foreground flex items-center gap-2">
-          <span>脚本代码</span>
-          <span className="text-rose-500">*</span>
-        </Label>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="script" className="text-sm font-medium text-foreground flex items-center gap-2">
+            <span>脚本代码</span>
+            <span className="text-rose-500">*</span>
+          </Label>
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            <span>API 参考</span>
+          </button>
+        </div>
         <div className="rounded-md border overflow-hidden">
           <CodeMirror
             value={watchedScript || ''}
@@ -327,17 +339,7 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
         {errors.script && (
           <p className="text-xs text-rose-500">{errors.script.message}</p>
         )}
-        {/* 脚本 API 提示 */}
-        <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p className="font-medium text-foreground">可用 API：</p>
-            <p><code className="rounded bg-muted px-1">variables.get(name)</code> 获取变量</p>
-            <p><code className="rounded bg-muted px-1">variables.set(name, value)</code> 设置变量</p>
-            <p><code className="rounded bg-muted px-1">assert(condition, name)</code> 断言</p>
-            <p><code className="rounded bg-muted px-1">log(msg)</code> / <code className="rounded bg-muted px-1">console.log(msg)</code> 输出日志</p>
-          </div>
-        </div>
+
       </div>
 
       {/* 执行时机 */}
@@ -475,6 +477,9 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
           {ON_ASSERTION_FAIL_OPTIONS.find(o => o.value === watchedOnAssertionFail)?.description}
         </p>
       </div>
+
+      {/* API 参考弹窗 */}
+      <ScriptHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </form>
   );
 }
