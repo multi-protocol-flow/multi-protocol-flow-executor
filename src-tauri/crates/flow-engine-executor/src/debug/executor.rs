@@ -8,25 +8,14 @@ use crate::debug::{
     DebugCommand, DebugEvent, DebugSessionState, DebugStatus, EndReason, ExecutionStackEntry,
     PauseReason,
 };
-use crate::entry_executor::EntryNodeExecutor;
-use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::flow::Flow;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::{Node, NodeType};
 use flow_engine_core::node_config::NodeData;
-use flow_engine_assertion::assertion_executor::AssertionNodeExecutor;
 use flow_engine_ws::websocket_manager::WebSocketConnectionManager;
-use flow_engine_ws::ws_close_executor::WsCloseExecutor;
-use flow_engine_ws::ws_connect_executor::WsConnectExecutor;
-use flow_engine_ws::ws_send_collect_executor::WsSendCollectExecutor;
 use flow_engine_core::traits::LogSender;
 use flow_engine_db::db::DatabaseConnectionManager;
-use flow_engine_db::db_connect_executor::DbConnectExecutor;
-use flow_engine_db::db_query_executor::DbQueryNodeExecutor;
-use flow_engine_db::db_begin_executor::DbBeginExecutor;
-use flow_engine_db::db_commit_executor::DbCommitExecutor;
-use flow_engine_db::db_rollback_executor::DbRollbackExecutor;
-use flow_engine_db::db_close_executor::DbCloseExecutor;
+use flow_engine_core::registry::NodeRegistry;
 use serde_json::json;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -51,6 +40,8 @@ struct SkipNodeResult {
 pub struct DebuggableFlowExecutor {
     /// 流程文件路径（用于 CLI 相对路径解析）
     flow_file_path: Option<PathBuf>,
+    /// 节点插件注册表（通过 registry 查找替代 match 分发）
+    registry: Arc<NodeRegistry>,
 }
 
 impl Default for DebuggableFlowExecutor {
@@ -64,6 +55,7 @@ impl DebuggableFlowExecutor {
     pub fn new() -> Self {
         DebuggableFlowExecutor {
             flow_file_path: None,
+            registry: Arc::new(crate::default_registry::default_registry()),
         }
     }
 
@@ -532,69 +524,11 @@ impl DebuggableFlowExecutor {
                         .unwrap()
                         .as_millis() as u64;
 
-                    // 根据节点类型和输出数据确定 used_port_id
-                    let used_port_id = match node.node_type {
-                        NodeType::Entry => Some("out".to_string()),
-                        NodeType::Http => Some("out".to_string()),
-                        NodeType::Conditional => {
-                            // Conditional 节点：根据输出数据判断条件结果
-                            output_data.as_ref().and_then(|data| {
-                                data.get("result").and_then(|v| v.as_bool()).map(|is_true| {
-                                    if is_true {
-                                        "true".to_string()
-                                    } else {
-                                        "false".to_string()
-                                    }
-                                })
-                            })
-                        }
-                        NodeType::WsConnect => {
-                            // WsConnect 节点：根据连接成功与否返回 true 或 false 端口
-                            output_data.as_ref().and_then(|data| {
-                                data.get("connected").and_then(|v| v.as_bool()).map(|connected| {
-                                    if connected {
-                                        "true".to_string()
-                                    } else {
-                                        "false".to_string()
-                                    }
-                                })
-                            })
-                        }
-                        NodeType::WsSendCollect | NodeType::WsClose => {
-                            Some("out".to_string())
-                        }
-                        // Assertion 节点：根据 passed 字段判断
-                        NodeType::Assertion => {
-                            output_data.as_ref().and_then(|data| {
-                                data.get("passed").and_then(|v| v.as_bool()).map(|passed| {
-                                    if passed {
-                                        "true".to_string()
-                                    } else {
-                                        "false".to_string()
-                                    }
-                                })
-                            })
-                        }
-                        // 数据库节点 - 尚未实现
-                        NodeType::DbConnect
-                        | NodeType::DbQuery
-                        | NodeType::DbBegin
-                        | NodeType::DbCommit
-                        | NodeType::DbRollback
-                        | NodeType::DbClose => Some("out".to_string()),
-                        // 脚本节点：根据 success 字段判断
-                        NodeType::Script => {
-                            output_data.as_ref().and_then(|data| {
-                                data.get("success").and_then(|v| v.as_bool()).map(|success| {
-                                    if success {
-                                        "true".to_string()
-                                    } else {
-                                        "false".to_string()
-                                    }
-                                })
-                            })
-                        }
-                    };
+                    // 根据节点类型和输出数据确定 used_port_id（通过 registry 查找）
+                    let type_id = node.data.type_name();
+                    let used_port_id = self.registry.get(type_id)
+                        .map(|plugin| Some(plugin.resolve_port(&output_data)))
+                        .unwrap_or(None);
 
                     // 从实际使用的节点配置获取 resolved_config
                     let effective_resolved_config = serde_json::to_value(&effective_node.data).ok();
@@ -618,13 +552,12 @@ impl DebuggableFlowExecutor {
                         log::error!("[调试 {}] 发送 NodeExecuted 事件失败 (节点 {}): {}", context.flow_uuid, node.uuid, e);
                     }
 
-                    // 更新 last_node_output（仅协议节点更新，工具节点延续上游数据）
                     // 协议节点：Http, WsConnect, WsSendCollect
                     // 工具节点：Entry, Conditional, WsClose（不更新，延续上游）
-                    let is_protocol_node = matches!(
-                        node.node_type,
-                        NodeType::Http | NodeType::WsConnect | NodeType::WsSendCollect
-                    );
+                    let type_id = node.data.type_name();
+                    let is_protocol_node = self.registry.get(type_id)
+                        .map(|p| p.is_protocol_node())
+                        .unwrap_or(false);
                     if is_protocol_node {
                         context.last_node_output = output_data.clone();
                         log::debug!(
@@ -658,10 +591,10 @@ impl DebuggableFlowExecutor {
                         .as_millis() as u64;
 
                     // 检查节点是否支持 false 端口，以及是否有 false 端口的连接
-                    let supports_false_port = matches!(
-                        node.node_type,
-                        NodeType::WsConnect | NodeType::WsSendCollect | NodeType::WsClose
-                    );
+                    let type_id = node.data.type_name();
+                    let supports_false_port = self.registry.get(type_id)
+                        .map(|p| p.supports_false_port())
+                        .unwrap_or(false);
 
                     let false_port_next_node = if supports_false_port {
                         // 查找 false 端口的连接
@@ -1003,175 +936,19 @@ impl DebuggableFlowExecutor {
             })
             .await;
 
-        match node.node_type {
-            NodeType::Entry => {
+        let type_id = node.data.type_name();
+        match self.registry.get(type_id) {
+            Some(plugin) => {
                 log::info!(
-                    "[调试 {}] 执行开始节点: {} ({})",
+                    "[调试 {}] 执行{}节点: {} ({})",
                     context.flow_uuid,
+                    plugin.display_name(),
                     node.name,
                     node.uuid
                 );
-                let executor = EntryNodeExecutor::new();
-                executor.execute(node, context, connections, node_map).await
+                plugin.execute(node, context, connections, node_map).await
             }
-            NodeType::Http => {
-                log::info!(
-                    "[调试 {}] 执行 HTTP 节点: {} ({})",
-                    context.flow_uuid,
-                    node.name,
-                    node.uuid
-                );
-                let executor = flow_engine_http::http_executor::HttpNodeExecutor::new();
-                executor.execute(node, context, connections, node_map).await
-            }
-            NodeType::Conditional => {
-                log::info!(
-                    "[调试 {}] 执行条件节点: {} ({})",
-                    context.flow_uuid,
-                    node.name,
-                    node.uuid
-                );
-                let executor = crate::conditional_executor::ConditionalNodeExecutor::new();
-                executor.execute(node, context, connections, node_map).await
-            }
-            NodeType::WsConnect => {
-                log::info!(
-                    "[调试 {}] 执行 WebSocket 连接节点: {} ({})",
-                    context.flow_uuid,
-                    node.name,
-                    node.uuid
-                );
-                let ws_manager = context.ws_manager.clone().unwrap_or_else(|| {
-                    Arc::new(WebSocketConnectionManager::new())
-                });
-                let executor = WsConnectExecutor::new(ws_manager);
-                executor.execute(node, context, connections, node_map).await
-            }
-            NodeType::WsSendCollect => {
-                log::info!(
-                    "[调试 {}] 执行 WebSocket Send+Wait 节点: {} ({})",
-                    context.flow_uuid,
-                    node.name,
-                    node.uuid
-                );
-                let ws_manager = context.ws_manager.clone().unwrap_or_else(|| {
-                    Arc::new(WebSocketConnectionManager::new())
-                });
-                let executor = WsSendCollectExecutor::new(ws_manager);
-                executor.execute(node, context, connections, node_map).await
-            }
-            NodeType::WsClose => {
-                log::info!(
-                    "[调试 {}] 执行 WebSocket Close 节点: {} ({})",
-                    context.flow_uuid,
-                    node.name,
-                    node.uuid
-                );
-                let ws_manager = context.ws_manager.clone().unwrap_or_else(|| {
-                    Arc::new(WebSocketConnectionManager::new())
-                });
-                let executor = WsCloseExecutor::new(ws_manager);
-                executor.execute(node, context, connections, node_map).await
-            }
-            NodeType::Assertion => {
-                log::info!(
-                    "[调试 {}] 执行断言节点: {} ({})",
-                    context.flow_uuid,
-                    node.name,
-                    node.uuid
-                );
-                let executor = AssertionNodeExecutor::new();
-                executor.execute(node, context, connections, node_map).await
-            }
-            // 数据库节点
-            NodeType::DbConnect => {
-                log::info!(
-                    "[调试 {}] 执行数据库连接节点: {} ({})",
-                    context.flow_uuid,
-                    node.name,
-                    node.uuid
-                );
-                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
-                    Arc::new(DatabaseConnectionManager::new())
-                });
-                let executor = DbConnectExecutor::new(db_manager);
-                executor.execute(node, context, connections, node_map).await
-            }
-            NodeType::DbQuery => {
-                log::info!(
-                    "[调试 {}] 执行数据库查询节点: {} ({})",
-                    context.flow_uuid,
-                    node.name,
-                    node.uuid
-                );
-                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
-                    Arc::new(DatabaseConnectionManager::new())
-                });
-                let executor = DbQueryNodeExecutor::with_db_manager(db_manager);
-                executor.execute(node, context, connections, node_map).await
-            }
-            NodeType::DbBegin => {
-                log::info!(
-                    "[调试 {}] 执行数据库事务开始节点: {} ({})",
-                    context.flow_uuid,
-                    node.name,
-                    node.uuid
-                );
-                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
-                    Arc::new(DatabaseConnectionManager::new())
-                });
-                let executor = DbBeginExecutor::new(db_manager);
-                executor.execute(node, context, connections, node_map).await
-            }
-            NodeType::DbCommit => {
-                log::info!(
-                    "[调试 {}] 执行数据库事务提交节点: {} ({})",
-                    context.flow_uuid,
-                    node.name,
-                    node.uuid
-                );
-                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
-                    Arc::new(DatabaseConnectionManager::new())
-                });
-                let executor = DbCommitExecutor::new(db_manager);
-                executor.execute(node, context, connections, node_map).await
-            }
-            NodeType::DbRollback => {
-                log::info!(
-                    "[调试 {}] 执行数据库事务回滚节点: {} ({})",
-                    context.flow_uuid,
-                    node.name,
-                    node.uuid
-                );
-                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
-                    Arc::new(DatabaseConnectionManager::new())
-                });
-                let executor = DbRollbackExecutor::new(db_manager);
-                executor.execute(node, context, connections, node_map).await
-            }
-            NodeType::DbClose => {
-                log::info!(
-                    "[调试 {}] 执行数据库关闭节点: {} ({})",
-                    context.flow_uuid,
-                    node.name,
-                    node.uuid
-                );
-                let db_manager = context.db_manager.clone().unwrap_or_else(|| {
-                    Arc::new(DatabaseConnectionManager::new())
-                });
-                let executor = DbCloseExecutor::new(db_manager);
-                executor.execute(node, context, connections, node_map).await
-            }
-            // 脚本节点（执行器尚未实现）
-            NodeType::Script => {
-                log::info!(
-                    "[调试 {}] 执行脚本节点: {} ({})",
-                    context.flow_uuid,
-                    node.name,
-                    node.uuid
-                );
-                Err("Script 节点执行器尚未实现".to_string())
-            }
+            None => Err(format!("未注册的节点类型: {}", type_id)),
         }
     }
 
