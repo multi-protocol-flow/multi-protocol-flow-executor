@@ -297,6 +297,11 @@ describe('DebugNodeConfigDialog', () => {
       // 保存中状态
       expect(screen.getByRole('button', { name: '保存中...' })).toBeDefined();
 
+      // 等待 onSave 被调用（组件内部有 150ms 延迟后才调用 onSave）
+      await waitFor(() => {
+        expect(slowSave).toHaveBeenCalled();
+      });
+
       // 完成 Promise
       resolvePromise!();
 
