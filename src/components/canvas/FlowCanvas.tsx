@@ -23,6 +23,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode } from './nodes';
+import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
 import { NodeContextMenu } from './NodeContextMenu';
@@ -96,6 +97,7 @@ const nodeTypes = {
   db_rollback: DbRollbackNode,
   db_close: DbCloseNode,
   script: ScriptNode,
+  default: DynamicPluginNode,
 };
 
 /** 边类型映射 */

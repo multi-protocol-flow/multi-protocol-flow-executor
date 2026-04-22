@@ -327,3 +327,24 @@ export async function executeFlowWithChannel(
 export async function cancelFlow(): Promise<void> {
   // Mock 环境 - 无操作
 }
+
+/**
+ * Mock 获取节点配置 JSON Schema
+ * 模拟后端 get_node_config_schema 命令行为
+ *
+ * @param _typeId - 节点类型 ID（Mock 中未使用）
+ * @returns null（Mock 环境不提供真实 schema）
+ */
+export async function getNodeConfigSchema(_typeId: string): Promise<null> {
+  return null;
+}
+
+/**
+ * Mock 获取所有已注册插件列表
+ * 模拟后端 list_registered_plugins 命令行为
+ *
+ * @returns 空数组（Mock 环境不提供真实插件数据）
+ */
+export async function listRegisteredPlugins(): Promise<[]> {
+  return [];
+}

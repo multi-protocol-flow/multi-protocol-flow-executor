@@ -15,3 +15,4 @@ export { DbCommitNode, type DbCommitNodeData } from './DbCommitNode';
 export { DbRollbackNode, type DbRollbackNodeData } from './DbRollbackNode';
 export { DbCloseNode, type DbCloseNodeData } from './DbCloseNode';
 export { ScriptNode, type ScriptNodeData } from './ScriptNode';
+export { default as DynamicPluginNode } from './DynamicPluginNode';

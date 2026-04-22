@@ -482,3 +482,17 @@ export const scriptConfigSchema = z.object({
 });
 
 export type ScriptConfigFormData = z.infer<typeof scriptConfigSchema>;
+
+// ============================================================================
+// 未知节点类型 Fallback Schema
+// ============================================================================
+
+/**
+ * 未知节点类型（插件/动态注册）的通用配置 Schema
+ * 接受任意 type 字符串 + passthrough 属性，用于 SchemaConfigPanel 渲染
+ */
+export const unknownNodeConfigSchema = z.object({
+  type: z.string(),
+}).passthrough();
+
+export type UnknownNodeConfigFormData = z.infer<typeof unknownNodeConfigSchema>;
