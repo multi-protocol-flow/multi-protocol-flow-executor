@@ -3,6 +3,7 @@
  */
 import type { Node, Edge } from '@xyflow/react';
 import type { Flow, Connection, NodeData, NodeType } from '@/types';
+import { getCachedDefaultConfig, getCachedDisplayName } from '@/lib/NodeRegistry';
 
 /** React Flow 节点数据类型 */
 export type FlowNodeData = Record<string, unknown> & {
@@ -102,8 +103,15 @@ export function isValidConnection(
 
 /**
  * 创建节点类型的默认配置数据
+ * 优先从后端缓存获取，兜底使用静态默认配置
  */
 export function createDefaultNodeData(type: NodeType): NodeData {
+  // 优先从后端缓存获取默认配置
+  const cachedConfig = getCachedDefaultConfig(type);
+  if (cachedConfig) {
+    return { ...cachedConfig, type } as NodeData;
+  }
+  // 兜底：静态默认配置
   switch (type) {
     case 'http':
       return { type: 'http', url: '', method: 'get', headers: {}, body: '' };
@@ -150,8 +158,9 @@ export function createDefaultNodeData(type: NodeType): NodeData {
 
 /**
  * 节点类型对应的显示名称
+ * 优先从后端缓存获取，兜底使用静态映射
  */
-const NODE_TYPE_LABELS: Record<NodeType, string> = {
+const STATIC_NODE_TYPE_LABELS: Record<NodeType, string> = {
   http: 'HTTP 请求',
   conditional: '条件判断',
   ws_connect: 'WS 连接',
@@ -169,8 +178,16 @@ const NODE_TYPE_LABELS: Record<NodeType, string> = {
 };
 
 /**
+ * 获取节点类型的显示名称（动态，优先后端缓存）
+ */
+export function getNodeTypeName(type: NodeType): string {
+  const cached = getCachedDisplayName(type);
+  return cached ?? STATIC_NODE_TYPE_LABELS[type] ?? type;
+}
+
+/**
  * 创建默认节点显示名称
  */
 export function createDefaultNodeName(type: NodeType, count: number): string {
-  return `${NODE_TYPE_LABELS[type]} ${count}`;
+  return `${getNodeTypeName(type)} ${count}`;
 }

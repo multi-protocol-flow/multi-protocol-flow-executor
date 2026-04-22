@@ -162,3 +162,41 @@ export function buildDefaultConfigMap(
 export function getCategoryOrder(category: string): number {
   return CATEGORY_ORDER[category] ?? 99;
 }
+
+// ============================================================================
+// 同步缓存访问方法（供 nodeMeta / utils 等同步上下文使用）
+// ============================================================================
+
+/**
+ * 获取已缓存的节点元数据（同步）
+ * 如果缓存未加载则返回 null
+ */
+export function getCachedMetadata(): NodeMetadata[] | null {
+  return cachedMetadata;
+}
+
+/**
+ * 从缓存中获取指定类型的默认配置（同步）
+ */
+export function getCachedDefaultConfig(typeId: string): Record<string, unknown> | null {
+  if (!cachedMetadata) return null;
+  const meta = cachedMetadata.find(m => m.type_id === typeId);
+  return meta?.default_config ?? null;
+}
+
+/**
+ * 从缓存中获取指定类型的显示名称（同步）
+ */
+export function getCachedDisplayName(typeId: string): string | null {
+  if (!cachedMetadata) return null;
+  const meta = cachedMetadata.find(m => m.type_id === typeId);
+  return meta?.display_name ?? null;
+}
+
+/**
+ * 从缓存中获取指定类型的完整元数据（同步）
+ */
+export function getCachedNodeMeta(typeId: string): NodeMetadata | null {
+  if (!cachedMetadata) return null;
+  return cachedMetadata.find(m => m.type_id === typeId) ?? null;
+}

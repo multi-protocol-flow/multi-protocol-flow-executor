@@ -28,25 +28,12 @@ function deepEqual(a: unknown, b: unknown): boolean {
 import { useFlowStore, useDebugStore, selectHistoryVersion } from '@/stores';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
 import { FlowNodeList } from './FlowNodeList';
-import { EntryConfig } from './EntryConfig';
-import { HttpConfig } from './HttpConfig';
-import { ConditionalConfig } from './ConditionalConfig';
-import { WsConnectConfig } from './WsConnectConfig';
-import { WsSendCollectConfig } from './WsSendCollectConfig';
-import { WsCloseConfig } from './WsCloseConfig';
-import { AssertionConfig } from './AssertionConfig';
-import { DbConnectConfig } from './DbConnectConfig';
-import { DbQueryConfig } from './DbQueryConfig';
-import { DbBeginConfig } from './DbBeginConfig';
-import { DbCommitConfig } from './DbCommitConfig';
-import { DbRollbackConfig } from './DbRollbackConfig';
-import { DbCloseConfig } from './DbCloseConfig';
-import { ScriptConfig } from './ScriptConfig';
+import { getConfigComponent, isSchemaDriven } from '@/lib/configPanelRegistry';
+import { SchemaConfigPanel } from '@/components/panels/SchemaConfigPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData, Node } from '@/types';
-import { isEntryConfig, isHttpConfig, isConditionalConfig, isWsConnectConfig, isWsSendCollectConfig, isWsCloseConfig, isAssertionConfig, isDbConnectConfig, isDbQueryConfig, isDbBeginConfig, isDbCommitConfig, isDbRollbackConfig, isDbCloseConfig, isScriptConfig } from '@/types';
 import { Settings2, MousePointerClick, Lock, PencilLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -168,117 +155,25 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             "w-full min-w-0 max-w-full overflow-hidden px-6 py-4",
             readOnly && "pointer-events-none select-none opacity-80"
           )}>
-            {/* Entry 节点：初始变量配置 */}
-            {selectedNode.type === 'entry' && isEntryConfig(nodeData) && (
-              <EntryConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
-
-            {/* HTTP 节点：URL/方法/Headers/Body 配置 */}
-            {selectedNode.type === 'http' && isHttpConfig(nodeData) && (
-              <HttpConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
-
-            {/* Conditional 节点：条件配置 */}
-            {selectedNode.type === 'conditional' && isConditionalConfig(nodeData) && (
-              <ConditionalConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
-
-            {/* WS Connect 节点：WebSocket 连接配置 */}
-            {selectedNode.type === 'ws_connect' && isWsConnectConfig(nodeData) && (
-              <WsConnectConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
-
-            {/* WS Send+Collect 节点：WebSocket 发送采集配置 */}
-            {selectedNode.type === 'ws_send_collect' && isWsSendCollectConfig(nodeData) && (
-              <WsSendCollectConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
-
-            {/* WS Close 节点：WebSocket 关闭配置 */}
-            {selectedNode.type === 'ws_close' && isWsCloseConfig(nodeData) && (
-              <WsCloseConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
-
-            {/* Assertion 节点：断言配置 */}
-            {selectedNode.type === 'assertion' && isAssertionConfig(nodeData) && (
-              <AssertionConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
-
-            {/* DB Connect 节点：数据库连接配置 */}
-            {selectedNode.type === 'db_connect' && isDbConnectConfig(nodeData) && (
-              <DbConnectConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
-
-            {/* DB Query 节点：数据库查询配置 */}
-            {selectedNode.type === 'db_query' && isDbQueryConfig(nodeData) && (
-              <DbQueryConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
-
-            {/* DB Begin 节点：事务开始配置 */}
-            {selectedNode.type === 'db_begin' && isDbBeginConfig(nodeData) && (
-              <DbBeginConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
-
-            {/* DB Commit 节点：事务提交配置 */}
-            {selectedNode.type === 'db_commit' && isDbCommitConfig(nodeData) && (
-              <DbCommitConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
-
-            {/* DB Rollback 节点：事务回滚配置 */}
-            {selectedNode.type === 'db_rollback' && isDbRollbackConfig(nodeData) && (
-              <DbRollbackConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
-
-            {/* DB Close 节点：数据库关闭配置 */}
-            {selectedNode.type === 'db_close' && isDbCloseConfig(nodeData) && (
-              <DbCloseConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
-
-            {/* Script 节点：脚本配置 */}
-            {selectedNode.type === 'script' && isScriptConfig(nodeData) && (
-              <ScriptConfig
-                data={nodeData}
-                onSave={(data) => handleSave(data as NodeData)}
-              />
-            )}
+            {/* 根据节点类型注册表渲染对应的配置组件 */}
+            {(() => {
+              const nodeType = selectedNode.type;
+              const ConfigComponent = getConfigComponent(nodeType);
+              if (ConfigComponent) {
+                return <ConfigComponent data={nodeData} onSave={(data: NodeData) => handleSave(data)} />;
+              }
+              // 未知节点类型 → SchemaConfigPanel fallback
+              if (isSchemaDriven(nodeType)) {
+                return (
+                  <SchemaConfigPanel
+                    schema={{}}
+                    data={nodeData as unknown as Record<string, unknown>}
+                    onSave={(data) => handleSave(data as unknown as NodeData)}
+                  />
+                );
+              }
+              return null;
+            })()}
           </div>
         </ScrollArea>
       </CardContent>

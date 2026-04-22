@@ -15,13 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { NODE_TYPE_NAMES, NODE_TYPE_COLORS } from './constants';
 import { RawJsonViewer } from './viewers/RawJsonViewer';
-import { HttpNodeViewer } from './viewers/HttpNodeViewer';
-import { WsConnectViewer } from './viewers/WsConnectViewer';
-import { WsSendCollectViewer } from './viewers/WsSendCollectViewer';
-import { WsCloseViewer } from './viewers/WsCloseViewer';
-import { ConditionalViewer } from './viewers/ConditionalViewer';
-import { AssertionViewer } from './viewers/AssertionViewer';
-import { GenericViewer } from './viewers/GenericViewer';
+import { getViewerComponent } from '@/lib/viewerRegistry';
 
 interface NodeExecutionDetailsProps {
   report: NodeExecutionReport;
@@ -40,23 +34,8 @@ function toSnakeCase(str: string): string {
 function NodeViewerSelector({ report }: NodeExecutionDetailsProps) {
   // 后端返回的 node_type 可能是 PascalCase（如 "WsConnect"），转为 snake_case 匹配
   const nodeType = toSnakeCase(report.node_type);
-  
-  switch (nodeType) {
-    case 'http':
-      return <HttpNodeViewer report={report} />;
-    case 'ws_connect':
-      return <WsConnectViewer report={report} />;
-    case 'ws_send_collect':
-      return <WsSendCollectViewer report={report} />;
-    case 'ws_close':
-      return <WsCloseViewer report={report} />;
-    case 'conditional':
-      return <ConditionalViewer report={report} />;
-    case 'assertion':
-      return <AssertionViewer report={report} />;
-    default:
-      return <GenericViewer report={report} />;
-  }
+  const ViewerComponent = getViewerComponent(nodeType);
+  return <ViewerComponent report={report} />;
 }
 
 

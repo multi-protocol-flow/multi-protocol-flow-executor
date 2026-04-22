@@ -12,40 +12,12 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// 节点配置组件
-import { EntryConfig } from '@/components/panels/EntryConfig';
-import { HttpConfig } from '@/components/panels/HttpConfig';
-import { ConditionalConfig } from '@/components/panels/ConditionalConfig';
-import { WsConnectConfig } from '@/components/panels/WsConnectConfig';
-import { WsSendCollectConfig } from '@/components/panels/WsSendCollectConfig';
-import { WsCloseConfig } from '@/components/panels/WsCloseConfig';
-import { ScriptConfig } from '@/components/panels/ScriptConfig';
-import { AssertionConfig } from '@/components/panels/AssertionConfig';
-import { DbConnectConfig } from '@/components/panels/DbConnectConfig';
-import { DbQueryConfig } from '@/components/panels/DbQueryConfig';
-import { DbBeginConfig } from '@/components/panels/DbBeginConfig';
-import { DbCommitConfig } from '@/components/panels/DbCommitConfig';
-import { DbRollbackConfig } from '@/components/panels/DbRollbackConfig';
-import { DbCloseConfig } from '@/components/panels/DbCloseConfig';
+import { getConfigComponent, isSchemaDriven } from '@/lib/configPanelRegistry';
+import { SchemaConfigPanel } from '@/components/panels/SchemaConfigPanel';
+import { NODE_META } from '@/lib/nodeMeta';
 
-// 类型和类型守卫
+// 类型
 import type { NodeData } from '@/types';
-import {
-  isEntryConfig,
-  isHttpConfig,
-  isConditionalConfig,
-  isWsConnectConfig,
-  isWsSendCollectConfig,
-  isWsCloseConfig,
-  isScriptConfig,
-  isAssertionConfig,
-  isDbConnectConfig,
-  isDbQueryConfig,
-  isDbBeginConfig,
-  isDbCommitConfig,
-  isDbRollbackConfig,
-  isDbCloseConfig,
-} from '@/types';
 
 export interface DebugNodeConfigDialogProps {
   /** 是否显示对话框 */
@@ -60,25 +32,7 @@ export interface DebugNodeConfigDialogProps {
   onCancel: () => void;
 }
 
-/**
- * 节点类型显示名称映射
- */
-const NODE_TYPE_LABELS: Record<string, string> = {
-  entry: '入口节点',
-  http: 'HTTP 请求',
-  conditional: '条件分支',
-  ws_connect: 'WebSocket 连接',
-  ws_send_collect: 'WebSocket 发送采集',
-  ws_close: 'WebSocket 关闭',
-  script: '脚本节点',
-  assertion: '断言节点',
-  db_connect: '数据库连接',
-  db_query: '数据库查询',
-  db_begin: '事务开始',
-  db_commit: '事务提交',
-  db_rollback: '事务回滚',
-  db_close: '数据库关闭',
-};
+
 
 export function DebugNodeConfigDialog({
   open,
@@ -142,140 +96,30 @@ export function DebugNodeConfigDialog({
   };
 
   // 获取节点类型标签
-  const nodeTypeLabel = nodeData ? NODE_TYPE_LABELS[nodeData.type] || nodeData.type : '';
+  const nodeTypeLabel = nodeData ? (NODE_META[nodeData.type as keyof typeof NODE_META]?.name ?? nodeData.type) : '';
 
   // 渲染配置组件
   const renderConfigComponent = () => {
     if (!editedData) return null;
 
-    // 根据节点类型渲染对应的配置组件
-    if (isEntryConfig(editedData)) {
+    const nodeType = editedData.type;
+    const ConfigComponent = getConfigComponent(nodeType);
+    if (ConfigComponent) {
+      return <ConfigComponent data={editedData} onSave={(data: NodeData) => handleConfigSave(data)} />;
+    }
+
+    // 未知节点类型 → SchemaConfigPanel fallback
+    if (isSchemaDriven(nodeType)) {
       return (
-        <EntryConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
+        <SchemaConfigPanel
+          schema={{}}
+          data={editedData as unknown as Record<string, unknown>}
+          onSave={(data) => handleConfigSave(data as unknown as NodeData)}
         />
       );
     }
 
-    if (isHttpConfig(editedData)) {
-      return (
-        <HttpConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
-        />
-      );
-    }
-
-    if (isConditionalConfig(editedData)) {
-      return (
-        <ConditionalConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
-        />
-      );
-    }
-
-    if (isWsConnectConfig(editedData)) {
-      return (
-        <WsConnectConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
-        />
-      );
-    }
-
-    if (isWsSendCollectConfig(editedData)) {
-      return (
-        <WsSendCollectConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
-        />
-      );
-    }
-
-    if (isWsCloseConfig(editedData)) {
-      return (
-        <WsCloseConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
-        />
-      );
-    }
-
-    if (isScriptConfig(editedData)) {
-      return (
-        <ScriptConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
-        />
-      );
-    }
-
-    if (isAssertionConfig(editedData)) {
-      return (
-        <AssertionConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
-        />
-      );
-    }
-
-    if (isDbConnectConfig(editedData)) {
-      return (
-        <DbConnectConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
-        />
-      );
-    }
-
-    if (isDbQueryConfig(editedData)) {
-      return (
-        <DbQueryConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
-        />
-      );
-    }
-
-    if (isDbBeginConfig(editedData)) {
-      return (
-        <DbBeginConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
-        />
-      );
-    }
-
-    if (isDbCommitConfig(editedData)) {
-      return (
-        <DbCommitConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
-        />
-      );
-    }
-
-    if (isDbRollbackConfig(editedData)) {
-      return (
-        <DbRollbackConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
-        />
-      );
-    }
-
-    if (isDbCloseConfig(editedData)) {
-      return (
-        <DbCloseConfig
-          data={editedData}
-          onSave={(data) => handleConfigSave(data as NodeData)}
-        />
-      );
-    }
-
-    return null;
+    return <div className="text-muted-foreground">不支持的节点类型</div>;
   };
 
   return (
