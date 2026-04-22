@@ -89,6 +89,47 @@ impl NodePlugin for HttpPlugin {
         }))
     }
 
+    fn config_schema(&self) -> Option<serde_json::Value> {
+        Some(serde_json::json!({
+            "type": "object",
+            "required": ["url", "method"],
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "title": "URL",
+                    "description": "请求 URL，支持变量引用 {{variable}}"
+                },
+                "method": {
+                    "type": "string",
+                    "title": "请求方法",
+                    "enum": ["get", "post", "put", "delete", "patch", "head", "options"]
+                },
+                "headers": {
+                    "type": "object",
+                    "title": "请求头",
+                    "additionalProperties": { "type": "string" }
+                },
+                "body_type": {
+                    "type": "string",
+                    "title": "请求体类型",
+                    "enum": ["none", "body", "form-data", "x-www-form-urlencoded", "binary"],
+                    "default": "none"
+                },
+                "body": {
+                    "type": "string",
+                    "title": "请求体"
+                },
+                "timeout_ms": {
+                    "type": "integer",
+                    "title": "超时时间（毫秒）",
+                    "minimum": 1000,
+                    "maximum": 300000,
+                    "default": 30000
+                }
+            }
+        }))
+    }
+
     async fn execute(
         &self,
         node: &Node,

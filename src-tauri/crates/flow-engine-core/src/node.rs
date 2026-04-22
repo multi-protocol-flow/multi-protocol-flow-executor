@@ -88,9 +88,9 @@ pub struct Port {
 pub struct Node {
     /// 节点唯一标识符（前端生成UUID，用于连接关联）
     pub uuid: String,
-    /// 节点类型
+    /// 节点类型（字符串形式，使用 `node_types` 模块中的常量进行比较）
     #[serde(rename = "type")]
-    pub node_type: NodeType,
+    pub node_type: String,
     /// 节点名称
     pub name: String,
     /// 节点位置
@@ -108,7 +108,7 @@ impl Default for Node {
     fn default() -> Self {
         Self {
             uuid: String::new(),
-            node_type: NodeType::Entry,
+            node_type: crate::node_types::ENTRY.to_string(),
             name: String::new(),
             position: NodePosition::default(),
             data: NodeData::default(),
@@ -128,7 +128,7 @@ mod tests {
     fn test_node_creation() {
         let node = Node {
             uuid: "node-uuid-123".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Entry Node".to_string(),
             position: NodePosition { x: 100.0, y: 200.0 },
             data: NodeData::entry(),
@@ -147,7 +147,7 @@ mod tests {
     fn test_node_serialization() {
         let node = Node {
             uuid: "node-uuid-456".to_string(),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "HTTP Request".to_string(),
             position: NodePosition { x: 150.0, y: 250.0 },
             data: NodeData::http("https://api.example.com"),
@@ -227,7 +227,7 @@ mod tests {
 
         let node = Node {
             uuid: "node-uuid-999".to_string(),
-            node_type: NodeType::Conditional,
+            node_type: "conditional".to_string(),
             name: "Conditional Node".to_string(),
             position: NodePosition { x: 50.0, y: 75.0 },
             data: NodeData::conditional_simple("field", ConditionOperator::Equal, json!(1)),

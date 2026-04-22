@@ -29,7 +29,7 @@ pub fn update_node(_input: UpdateNodeCommandInput, _flow: Flow) -> UpdateNodeCom
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::node::{Node, NodePosition, NodeType};
+    use flow_engine_core::node::{Node, NodePosition};
     use flow_engine_core::node_config::NodeData;
     use serde_json::json;
 
@@ -49,7 +49,7 @@ mod tests {
         let node = Node {
             uuid: "test-node-uuid".to_string(),
             name: "测试节点".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,

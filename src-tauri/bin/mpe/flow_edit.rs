@@ -5,9 +5,10 @@ use super::output::CliOutput;
 use super::CliError;
 use super::FlowEditCommands;
 
-use app_lib::node::{Node, NodePosition, NodeType};
+use app_lib::node::{Node, NodePosition};
 use app_lib::node_config::NodeData;
 use app_lib::connection::Connection;
+use app_lib::node_types;
 use std::collections::HashMap;
 
 /// 执行 flow edit 子命令
@@ -56,14 +57,16 @@ pub async fn execute(
 }
 
 /// 解析字符串为 `NodeType`
-fn parse_node_type(type_str: &str) -> Result<NodeType, CliError> {
-    serde_json::from_value(serde_json::Value::String(type_str.to_string()))
-        .map_err(|e| CliError::InvalidArgs(format!("无效的节点类型 '{}': {}", type_str, e)))
+fn parse_node_type(type_str: &str) -> Result<String, CliError> {
+    // 验证节点类型字符串是否合法（通过 serde 反序列化到 NodeType 验证）
+    let _node_type: app_lib::node::NodeType = serde_json::from_value(serde_json::Value::String(type_str.to_string()))
+        .map_err(|e| CliError::InvalidArgs(format!("无效的节点类型 '{}': {}", type_str, e)))?;
+    Ok(type_str.to_string())
 }
 
 /// 根据节点类型和可选配置 JSON 创建 `NodeData`
 fn create_node_data(
-    node_type: &NodeType,
+    node_type: &str,
     config_json: Option<&str>,
 ) -> Result<NodeData, CliError> {
     // 如果提供了配置 JSON，直接解析为 NodeData（带 type tag）
@@ -78,27 +81,28 @@ fn create_node_data(
     Ok(default_node_data(node_type))
 }
 
-/// 根据 `NodeType` 返回默认 `NodeData`
-fn default_node_data(node_type: &NodeType) -> NodeData {
+/// 根据节点类型字符串返回默认 `NodeData`
+fn default_node_data(node_type: &str) -> NodeData {
     match node_type {
-        NodeType::Entry => NodeData::entry(),
-        NodeType::Http => NodeData::http(""),
-        NodeType::Conditional => NodeData::conditional_simple(
+        node_types::ENTRY => NodeData::entry(),
+        node_types::HTTP => NodeData::http(""),
+        node_types::CONDITIONAL => NodeData::conditional_simple(
             "",
             app_lib::node_config::ConditionOperator::Equal,
             serde_json::Value::Null,
         ),
-        NodeType::WsConnect => NodeData::ws_connect(""),
-        NodeType::WsSendCollect => NodeData::ws_send_collect("", ""),
-        NodeType::WsClose => NodeData::ws_close(""),
-        NodeType::Assertion => NodeData::assertion(),
-        NodeType::DbConnect => NodeData::db_connect(""),
-        NodeType::DbQuery => NodeData::db_query(""),
-        NodeType::DbBegin => NodeData::db_begin(""),
-        NodeType::DbCommit => NodeData::db_commit(""),
-        NodeType::DbRollback => NodeData::db_rollback(""),
-        NodeType::DbClose => NodeData::db_close(""),
-        NodeType::Script => NodeData::script(""),
+        node_types::WS_CONNECT => NodeData::ws_connect(""),
+        node_types::WS_SEND_COLLECT => NodeData::ws_send_collect("", ""),
+        node_types::WS_CLOSE => NodeData::ws_close(""),
+        node_types::ASSERTION => NodeData::assertion(),
+        node_types::DB_CONNECT => NodeData::db_connect(""),
+        node_types::DB_QUERY => NodeData::db_query(""),
+        node_types::DB_BEGIN => NodeData::db_begin(""),
+        node_types::DB_COMMIT => NodeData::db_commit(""),
+        node_types::DB_ROLLBACK => NodeData::db_rollback(""),
+        node_types::DB_CLOSE => NodeData::db_close(""),
+        node_types::SCRIPT => NodeData::script(""),
+        _ => NodeData::entry(),
     }
 }
 

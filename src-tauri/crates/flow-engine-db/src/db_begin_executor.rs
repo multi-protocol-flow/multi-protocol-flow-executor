@@ -301,13 +301,13 @@ impl DbBeginExecutor {
 mod tests {
     use super::*;
     use flow_engine_core::context::VariableStorage;
-    use flow_engine_core::node::{NodePosition, NodeType};
+    use flow_engine_core::node::{NodePosition};
     use crate::db::pool::DatabaseConnectionManager;
     /// 创建测试节点
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::DbBegin,
+            node_type: "db_begin".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::DbBegin(DbBeginConfig {
@@ -328,7 +328,7 @@ mod tests {
     ) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::DbBegin,
+            node_type: "db_begin".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::DbBegin(DbBeginConfig {
@@ -543,7 +543,7 @@ mod tests {
         // 创建一个使用错误数据类型的节点
         let node = Node {
             uuid: "test-8".to_string(),
-            node_type: NodeType::DbBegin,
+            node_type: "db_begin".to_string(),
             name: "错误类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(), // 错误：使用 Entry 配置

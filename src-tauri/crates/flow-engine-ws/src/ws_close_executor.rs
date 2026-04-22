@@ -230,7 +230,7 @@ impl NodeExecutor for WsCloseExecutor {
 mod tests {
     use super::*;
     use flow_engine_core::context::VariableStorage;
-    use flow_engine_core::node::{NodePosition, NodeType};
+    use flow_engine_core::node::{NodePosition};
     use flow_engine_core::node_config::WsCloseConfig;
     use crate::websocket_manager::WebSocketConnectionManager;
     use std::sync::Arc;
@@ -239,7 +239,7 @@ mod tests {
     fn create_test_node(uuid: &str, name: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::WsClose,
+            node_type: "ws_close".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsClose(WsCloseConfig {
@@ -343,7 +343,7 @@ mod tests {
         // 创建带自定义关闭码的节点
         let node = Node {
             uuid: "test-custom-code".to_string(),
-            node_type: NodeType::WsClose,
+            node_type: "ws_close".to_string(),
             name: "自定义关闭码".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsClose(WsCloseConfig {
@@ -453,7 +453,7 @@ mod tests {
             // 创建带关闭原因的节点
             let node = Node {
                 uuid: "close-reason-test".to_string(),
-                node_type: NodeType::WsClose,
+                node_type: "ws_close".to_string(),
                 name: "关闭原因测试".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
                 data: NodeData::WsClose(WsCloseConfig {

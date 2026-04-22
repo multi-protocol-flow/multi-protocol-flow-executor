@@ -114,7 +114,7 @@ mod tests {
 
     /// 创建测试用的简单流程
     fn create_test_flow() -> Flow {
-        use flow_engine_core::node::{Node, NodePosition, NodeType};
+        use flow_engine_core::node::{Node, NodePosition};
         use flow_engine_core::node_config::NodeData;
 
         Flow {
@@ -122,7 +122,7 @@ mod tests {
             name: "Test Flow".to_string(),
             nodes: vec![Node {
                 uuid: "entry-001".to_string(),
-                node_type: NodeType::Entry,
+                node_type: "entry".to_string(),
                 name: "Entry".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
                 data: NodeData::entry(),

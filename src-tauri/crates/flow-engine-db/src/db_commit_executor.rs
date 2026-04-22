@@ -250,13 +250,13 @@ impl DbCommitExecutor {
 mod tests {
     use super::*;
     use flow_engine_core::context::VariableStorage;
-    use flow_engine_core::node::{NodePosition, NodeType};
+    use flow_engine_core::node::{NodePosition};
     use crate::db::pool::DatabaseConnectionManager;
     /// 创建测试节点
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::DbCommit,
+            node_type: "db_commit".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::DbCommit(DbCommitConfig {
@@ -436,7 +436,7 @@ mod tests {
         // 创建一个使用错误数据类型的节点
         let node = Node {
             uuid: "test-6".to_string(),
-            node_type: NodeType::DbCommit,
+            node_type: "db_commit".to_string(),
             name: "错误类型".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(), // 错误：使用 Entry 配置

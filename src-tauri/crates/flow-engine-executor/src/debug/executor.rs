@@ -10,9 +10,10 @@ use crate::debug::{
 };
 use flow_engine_core::flow::Flow;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
-use flow_engine_core::node::{Node, NodeType};
+use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_ws::websocket_manager::WebSocketConnectionManager;
+use flow_engine_core::node_types;
 use flow_engine_core::traits::LogSender;
 use flow_engine_db::db::DatabaseConnectionManager;
 use flow_engine_core::registry::NodeRegistry;
@@ -189,7 +190,7 @@ impl DebuggableFlowExecutor {
         let start_node = match flow
             .nodes
             .iter()
-            .find(|node| matches!(node.node_type, NodeType::Entry))
+            .find(|node| node.node_type == node_types::ENTRY)
         {
             Some(node) => node,
             None => {
@@ -368,7 +369,7 @@ impl DebuggableFlowExecutor {
                         let stack_entry = ExecutionStackEntry {
                             node_uuid: node.uuid.clone(),
                             node_name: node.name.clone(),
-                            node_type: format!("{:?}", node.node_type),
+                            node_type: node.node_type.clone(),
                             started_at: node_end_ms,
                             ended_at: Some(node_end_ms),
                             input: Some(json!(context.variables.get_merged_variables())),
@@ -467,7 +468,7 @@ impl DebuggableFlowExecutor {
             let stack_entry = ExecutionStackEntry {
                 node_uuid: node.uuid.clone(),
                 node_name: node.name.clone(),
-                node_type: format!("{:?}", node.node_type),
+                node_type: node.node_type.clone(),
                 started_at: node_start_ms,
                 ended_at: None,
                 input: Some(json!(context.variables.get_merged_variables())),
@@ -526,7 +527,7 @@ impl DebuggableFlowExecutor {
 
                     // 根据节点类型和输出数据确定 used_port_id（通过 registry 查找）
                     let type_id = node.data.type_name();
-                    let used_port_id = self.registry.get(type_id)
+                    let used_port_id = self.registry.get(&type_id)
                         .map(|plugin| Some(plugin.resolve_port(&output_data)))
                         .unwrap_or(None);
 
@@ -555,7 +556,7 @@ impl DebuggableFlowExecutor {
                     // 协议节点：Http, WsConnect, WsSendCollect
                     // 工具节点：Entry, Conditional, WsClose（不更新，延续上游）
                     let type_id = node.data.type_name();
-                    let is_protocol_node = self.registry.get(type_id)
+                    let is_protocol_node = self.registry.get(&type_id)
                         .map(|p| p.is_protocol_node())
                         .unwrap_or(false);
                     if is_protocol_node {
@@ -592,7 +593,7 @@ impl DebuggableFlowExecutor {
 
                     // 检查节点是否支持 false 端口，以及是否有 false 端口的连接
                     let type_id = node.data.type_name();
-                    let supports_false_port = self.registry.get(type_id)
+                    let supports_false_port = self.registry.get(&type_id)
                         .map(|p| p.supports_false_port())
                         .unwrap_or(false);
 
@@ -925,7 +926,7 @@ impl DebuggableFlowExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("执行节点 {} ({:?})", node.name, node.node_type),
+                message: format!("执行节点 {} ({})", node.name, node.node_type),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .expect("系统时间错误")
@@ -937,7 +938,7 @@ impl DebuggableFlowExecutor {
             .await;
 
         let type_id = node.data.type_name();
-        match self.registry.get(type_id) {
+        match self.registry.get(&type_id) {
             Some(plugin) => {
                 log::info!(
                     "[调试 {}] 执行{}节点: {} ({})",
@@ -1092,7 +1093,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -1125,7 +1126,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -1184,7 +1185,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -1194,7 +1195,7 @@ mod tests {
 
         let second_node = Node {
             uuid: format!("second-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "第二个节点".to_string(),
             position: NodePosition { x: 200.0, y: 0.0 },
             data: NodeData::entry(),
@@ -1311,7 +1312,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -1321,7 +1322,7 @@ mod tests {
 
         let second_node = Node {
             uuid: format!("second-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "第二个节点".to_string(),
             position: NodePosition { x: 200.0, y: 0.0 },
             data: NodeData::entry(),
@@ -1426,7 +1427,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(EntryConfig {
@@ -1444,7 +1445,7 @@ mod tests {
 
         let second_node = Node {
             uuid: format!("second-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "第二个节点".to_string(),
             position: NodePosition { x: 200.0, y: 0.0 },
             data: NodeData::entry(),
@@ -1563,7 +1564,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(EntryConfig {
@@ -1581,7 +1582,7 @@ mod tests {
 
         let second_node = Node {
             uuid: format!("second-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "第二个节点".to_string(),
             position: NodePosition { x: 200.0, y: 0.0 },
             data: NodeData::entry(),
@@ -1709,7 +1710,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(EntryConfig {
@@ -1819,7 +1820,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -1829,7 +1830,7 @@ mod tests {
 
         let second_node = Node {
             uuid: format!("second-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "第二个节点".to_string(),
             position: NodePosition { x: 200.0, y: 0.0 },
             data: NodeData::entry(),
@@ -1839,7 +1840,7 @@ mod tests {
 
         let third_node = Node {
             uuid: format!("third-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "第三个节点".to_string(),
             position: NodePosition { x: 400.0, y: 0.0 },
             data: NodeData::entry(),
@@ -1957,7 +1958,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -1967,7 +1968,7 @@ mod tests {
 
         let second_node = Node {
             uuid: format!("second-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "第二个节点".to_string(),
             position: NodePosition { x: 200.0, y: 0.0 },
             data: NodeData::entry(),

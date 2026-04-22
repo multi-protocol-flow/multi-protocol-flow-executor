@@ -68,6 +68,8 @@ pub use tauri_commands::{
     move_folder,
     // 节点注册表命令
     get_registered_node_types,
+    get_node_config_schema,
+    list_registered_plugins,
     DebugSessionManager,
     ExecutionSessionManager,
 };
@@ -177,6 +179,8 @@ pub fn run() {
     move_folder,
     // 节点注册表命令
     get_registered_node_types,
+    get_node_config_schema,
+    list_registered_plugins,
 ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

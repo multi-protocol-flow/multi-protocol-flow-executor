@@ -683,7 +683,7 @@ impl WsConnectExecutor {
 mod tests {
     use super::*;
     use flow_engine_core::context::VariableStorage;
-    use flow_engine_core::node::{NodePosition, NodeType};
+    use flow_engine_core::node::{NodePosition};
     use flow_engine_core::node_config::{WsConnectConfig, WsCollectCondition, WsMatchType};
     use flow_engine_core::variable::OutputMapping;
     use crate::websocket_manager::WebSocketConnectionManager;
@@ -693,7 +693,7 @@ mod tests {
     fn create_test_node(uuid: &str, name: &str, url: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::WsConnect,
+            node_type: "ws_connect".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
@@ -762,7 +762,7 @@ mod tests {
         // 使用不可达地址测试超时
         let node = Node {
             uuid: "test-timeout".to_string(),
-            node_type: NodeType::WsConnect,
+            node_type: "ws_connect".to_string(),
             name: "超时测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
@@ -824,7 +824,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-wait-first".to_string(),
-            node_type: NodeType::WsConnect,
+            node_type: "ws_connect".to_string(),
             name: "等待第一条消息".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
@@ -858,7 +858,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-wait-condition".to_string(),
-            node_type: NodeType::WsConnect,
+            node_type: "ws_connect".to_string(),
             name: "条件等待".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
@@ -896,7 +896,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-wait-duration".to_string(),
-            node_type: NodeType::WsConnect,
+            node_type: "ws_connect".to_string(),
             name: "时长等待".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
@@ -930,7 +930,7 @@ mod tests {
 
         let node = Node {
             uuid: "test-mappings".to_string(),
-            node_type: NodeType::WsConnect,
+            node_type: "ws_connect".to_string(),
             name: "输出映射测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {

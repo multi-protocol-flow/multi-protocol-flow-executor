@@ -510,14 +510,14 @@ impl ScriptNodeExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::node::{NodePosition, NodeType};
+    use flow_engine_core::node::{NodePosition};
     use flow_engine_core::node_config::{AssertionFailStrategy, ScriptExecutionPhase};
 
     /// 创建测试用的脚本节点
     fn create_test_node(uuid: &str, script: &str, timeout_ms: u64) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::Script,
+            node_type: "script".to_string(),
             name: format!("Test Script {}", uuid),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Script(ScriptNodeConfig {
@@ -699,7 +699,7 @@ mod tests {
         // 创建致命错误配置的节点
         let node = Node {
             uuid: "script-007".to_string(),
-            node_type: NodeType::Script,
+            node_type: "script".to_string(),
             name: "Fatal Script".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Script(ScriptNodeConfig {

@@ -14,6 +14,7 @@ pub use flow_engine_core::flow;
 pub use flow_engine_core::log_event;
 pub use flow_engine_core::node;
 pub use flow_engine_core::node_config;
+pub use flow_engine_core::node_types;
 pub use flow_engine_core::report;
 pub use flow_engine_core::statistics;
 pub use flow_engine_core::traits;
@@ -90,7 +91,7 @@ pub use db::{
 #[cfg(test)]
 pub mod test_utils {
     use crate::context::ExecutionContext;
-    use crate::node::{Node, NodePosition, NodeType};
+    use crate::node::{Node, NodePosition};
     use crate::node_config::{
         WsCloseConfig, WsCollectMode, WsConnectConfig, WsMessageType, WsSendCollectConfig,
     };
@@ -107,7 +108,7 @@ pub mod test_utils {
     pub fn create_ws_connect_node(uuid: &str, name: &str, url: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::WsConnect,
+            node_type: crate::node_types::WS_CONNECT.to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: crate::node_config::NodeData::WsConnect(WsConnectConfig {
@@ -138,7 +139,7 @@ pub mod test_utils {
     pub fn create_ws_send_collect_node(uuid: &str, connection_id: &str, message: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::WsSendCollect,
+            node_type: crate::node_types::WS_SEND_COLLECT.to_string(),
             name: format!("WS Send+Collect {}", uuid),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: crate::node_config::NodeData::WsSendCollect(WsSendCollectConfig {
@@ -168,7 +169,7 @@ pub mod test_utils {
     pub fn create_ws_close_node(uuid: &str, connection_id: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::WsClose,
+            node_type: crate::node_types::WS_CLOSE.to_string(),
             name: format!("WS Close {}", uuid),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: crate::node_config::NodeData::WsClose(WsCloseConfig {
@@ -204,7 +205,7 @@ mod tests {
 
         assert_eq!(node.uuid, "ws-001");
         assert_eq!(node.name, "Test WS Connect");
-        assert_eq!(node.node_type, crate::node::NodeType::WsConnect);
+        assert_eq!(node.node_type, crate::node_types::WS_CONNECT);
     }
 
     #[test]
@@ -212,7 +213,7 @@ mod tests {
         let node = create_ws_send_collect_node("ws-002", "conn-001", "Hello, WebSocket!");
 
         assert_eq!(node.uuid, "ws-002");
-        assert_eq!(node.node_type, crate::node::NodeType::WsSendCollect);
+        assert_eq!(node.node_type, crate::node_types::WS_SEND_COLLECT);
         assert!(node.name.contains("ws-002"));
     }
 
@@ -221,7 +222,7 @@ mod tests {
         let node = create_ws_close_node("ws-003", "conn-001");
 
         assert_eq!(node.uuid, "ws-003");
-        assert_eq!(node.node_type, crate::node::NodeType::WsClose);
+        assert_eq!(node.node_type, crate::node_types::WS_CLOSE);
         assert!(node.name.contains("ws-003"));
     }
 

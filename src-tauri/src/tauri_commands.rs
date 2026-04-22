@@ -610,6 +610,26 @@ pub fn get_registered_node_types() -> Vec<NodeMetadata> {
     registry.all_metadata()
 }
 
+/// 获取指定节点类型的配置 JSON Schema
+///
+/// 通过 type_id 查找已注册的节点插件，返回其配置 schema。
+/// 若 type_id 不存在或插件未提供 schema，返回 None。
+#[tauri::command]
+pub fn get_node_config_schema(type_id: String) -> Option<serde_json::Value> {
+    let registry = flow_engine::default_registry::default_registry();
+    registry.get(&type_id).and_then(|plugin| plugin.config_schema())
+}
+
+/// 获取所有已注册插件的元数据列表
+///
+/// 与 get_registered_node_types 相同，语义上更侧重"插件"概念。
+/// 返回全部插件的 NodeMetadata 列表。
+#[tauri::command]
+pub fn list_registered_plugins() -> Vec<NodeMetadata> {
+    let registry = flow_engine::default_registry::default_registry();
+    registry.all_metadata()
+}
+
 // ============================================================================
 // 单元测试
 // ============================================================================
@@ -620,7 +640,7 @@ mod tests {
     use super::*;
     use serde_json::json;
     use uuid::Uuid;
-    use flow_engine::node::{Node, NodePosition, NodeType};
+    use flow_engine::node::{Node, NodePosition};
     use flow_engine::node_config::NodeData;
     use flow_engine::connection::Connection;
     use flow_engine::executor::FlowExecutor;
@@ -644,7 +664,7 @@ mod tests {
         assert_eq!(output.flow.nodes.len(), 1);
 
         // 验证开始节点类型
-        assert!(matches!(output.flow.nodes[0].node_type, NodeType::Entry));
+        assert_eq!(output.flow.nodes[0].node_type, "entry");
 
         // 验证开始节点名称
         assert_eq!(output.flow.nodes[0].name, "开始");
@@ -682,7 +702,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -691,7 +711,7 @@ mod tests {
 
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
@@ -736,7 +756,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -766,7 +786,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -800,7 +820,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -845,7 +865,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -885,7 +905,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -894,7 +914,7 @@ mod tests {
 
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -960,7 +980,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -969,7 +989,7 @@ mod tests {
 
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
@@ -1006,7 +1026,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -1041,7 +1061,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),

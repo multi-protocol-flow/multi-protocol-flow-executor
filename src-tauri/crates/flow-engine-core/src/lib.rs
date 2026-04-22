@@ -30,6 +30,8 @@ pub mod plugin;
 pub mod registry;
 /// 节点配置枚举，14 种节点类型的差异化配置数据
 pub mod node_config;
+/// 节点类型常量，提供所有已注册节点类型的字符串常量
+pub mod node_types;
 /// 执行报告结构，包含节点级和流程级的执行结果与统计数据
 pub mod report;
 /// 流程统计信息，记录执行时间、节点数等聚合指标

@@ -2,7 +2,7 @@
 
 use crate::command::{CreateFlowCommandInput, CreateFlowCommandOutput};
 use flow_engine_core::flow::Flow;
-use flow_engine_core::node::{Node, NodePosition, NodeType};
+use flow_engine_core::node::{Node, NodePosition};
 use flow_engine_core::node_config::NodeData;
 use uuid::Uuid;
 
@@ -22,7 +22,7 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
     // 创建开始节点
     let start_node = Node {
         uuid: format!("start-{}", flow_id),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "开始".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::entry(),
@@ -45,7 +45,6 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::node::NodeType;
 
     /// 测试基本流程创建
     #[test]
@@ -73,7 +72,7 @@ mod tests {
         assert_eq!(output.flow.nodes.len(), 1);
 
         let start_node = &output.flow.nodes[0];
-        assert_eq!(start_node.node_type, NodeType::Entry);
+        assert_eq!(start_node.node_type, "entry");
         assert_eq!(start_node.name, "开始");
         assert_eq!(start_node.position.x, 0.0);
         assert_eq!(start_node.position.y, 0.0);

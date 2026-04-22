@@ -1,8 +1,9 @@
 // 流程验证器模块 - FlowValidator 实现
 
 use flow_engine_core::flow::Flow;
-use flow_engine_core::node::{Node, NodeType};
+use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
+use flow_engine_core::node_types;
 
 /// 验证结果
 #[derive(Debug, Clone)]
@@ -72,7 +73,7 @@ impl FlowValidator {
         let entry_nodes: Vec<&Node> = flow
             .nodes
             .iter()
-            .filter(|node| matches!(node.node_type, NodeType::Entry))
+            .filter(|node| node.node_type == node_types::ENTRY)
             .collect();
 
         if entry_nodes.is_empty() {
@@ -213,7 +214,7 @@ mod tests {
     use super::*;
     use flow_engine_core::connection::Connection;
     use flow_engine_core::flow::Flow;
-    use flow_engine_core::node::{Node, NodePosition, NodeType};
+    use flow_engine_core::node::{Node, NodePosition};
     use flow_engine_core::node_config::NodeData;
     use uuid::Uuid;
 
@@ -221,7 +222,7 @@ mod tests {
     fn create_entry_node() -> Node {
         Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "入口".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -234,7 +235,7 @@ mod tests {
     fn create_end_node() -> Node {
         Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com/end"),
@@ -304,7 +305,7 @@ mod tests {
         // 创建没有 Entry 节点的流程（新架构只检查是否有 Entry 节点）
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "HTTP 节点".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -359,7 +360,7 @@ mod tests {
         // 创建没有 Entry 节点的流程
         let http_node1 = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "HTTP 节点 1".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com/1"),
@@ -368,7 +369,7 @@ mod tests {
         };
         let http_node2 = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "HTTP 节点 2".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com/2"),
@@ -442,7 +443,7 @@ mod tests {
         let start_node = create_entry_node();
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -477,7 +478,7 @@ mod tests {
         let start_node = create_entry_node();
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "HTTP 请求".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -541,7 +542,7 @@ mod tests {
         // 创建有 Entry 节点的流程（应该通过验证）
         let start_node = Node {
             uuid: "start-uuid-test".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -553,7 +554,7 @@ mod tests {
         // 创建不匹配的连接（source 不是 start_node.uuid）
         let other_node = Node {
             uuid: "other-node-uuid".to_string(),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "其他节点".to_string(),
             position: NodePosition { x: 200.0, y: 0.0 },
             data: NodeData::http("https://example.com/other"),
@@ -602,7 +603,7 @@ mod tests {
         // 新架构：测试缺少 Entry 节点的错误消息
         let http_node = Node {
             uuid: "error-test-http".to_string(),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "HTTP 节点".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
@@ -660,7 +661,7 @@ mod tests {
         // 测试使用特定 UUID 的连接
         let start_node = Node {
             uuid: "specific-start-uuid-001".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -670,7 +671,7 @@ mod tests {
 
         let end_node = Node {
             uuid: "specific-end-uuid-002".to_string(),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com/end"),

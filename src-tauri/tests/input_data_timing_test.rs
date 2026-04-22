@@ -12,7 +12,7 @@ use std::sync::Arc;
 use flow_engine::command::ExecuteFlowCommandInput;
 use flow_engine::connection::Connection;
 use flow_engine::flow::Flow;
-use flow_engine::node::{Node, NodePosition, NodeType, Port, PortType};
+use flow_engine::node::{Node, NodePosition, Port, PortType};
 use flow_engine::node_config::{EntryConfig, HttpConfig, HttpMethod, NodeData};
 use flow_engine::traits::NoopLogSender;
 
@@ -25,7 +25,7 @@ async fn test_input_data_timing_basic() {
     // 创建 Entry 节点
     let entry_node = Node {
         uuid: "entry-1".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "入口".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::Entry(EntryConfig::default()),
@@ -86,7 +86,7 @@ async fn test_input_data_timing_with_initial_variables() {
     // 创建 Entry 节点（无初始变量）
     let entry_node = Node {
         uuid: "entry-2".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "入口".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::Entry(EntryConfig::default()),
@@ -154,7 +154,7 @@ async fn test_input_data_timing_http_node() {
     // 创建 Entry 节点
     let entry_node = Node {
         uuid: "entry-3".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "入口".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::Entry(EntryConfig::default()),
@@ -171,7 +171,7 @@ async fn test_input_data_timing_http_node() {
     // 创建 HTTP 节点（使用变量引用）
     let http_node = Node {
         uuid: "http-3".to_string(),
-        node_type: NodeType::Http,
+        node_type: "http".to_string(),
         name: "HTTP 请求".to_string(),
         position: NodePosition { x: 200.0, y: 0.0 },
         data: NodeData::Http(HttpConfig {

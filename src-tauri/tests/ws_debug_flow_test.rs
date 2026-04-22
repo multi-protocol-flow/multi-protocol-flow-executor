@@ -12,7 +12,7 @@ use flow_engine::connection::Connection;
 use flow_engine::context::ExecutionContext;
 use flow_engine::debug::{DebugCommand, DebugEvent, DebugStatus, DebuggableFlowExecutor};
 use flow_engine::flow::Flow;
-use flow_engine::node::{Node, NodePosition, NodeType};
+use flow_engine::node::{Node, NodePosition};
 use flow_engine::node_config::{NodeData, WsConnectConfig, WsSendCollectConfig, WsCloseConfig, WsCollectMode, WsMessageType};
 use flow_engine::report::FlowExecutionReport;
 use flow_engine::ws_stream::{MessageContent, MessageDirection, WsMessage};
@@ -31,7 +31,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
             // Entry 节点
             Node {
                 uuid: format!("entry-{}", flow_uuid),
-                node_type: NodeType::Entry,
+                node_type: "entry".to_string(),
                 name: "入口".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
                 data: NodeData::entry(),
@@ -41,7 +41,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
             // WsConnect 节点
             Node {
                 uuid: format!("ws-connect-{}", flow_uuid),
-                node_type: NodeType::WsConnect,
+                node_type: "ws_connect".to_string(),
                 name: "WS 连接".to_string(),
                 position: NodePosition { x: 200.0, y: 0.0 },
                 data: NodeData::WsConnect(WsConnectConfig {
@@ -61,7 +61,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
             // WsSendCollect 节点
             Node {
                 uuid: format!("ws-send-collect-{}", flow_uuid),
-                node_type: NodeType::WsSendCollect,
+                node_type: "ws_send_collect".to_string(),
                 name: "WS 发送采集".to_string(),
                 position: NodePosition { x: 400.0, y: 0.0 },
                 data: NodeData::WsSendCollect(WsSendCollectConfig {
@@ -81,7 +81,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
             // WsClose 节点
             Node {
                 uuid: format!("ws-close-{}", flow_uuid),
-                node_type: NodeType::WsClose,
+                node_type: "ws_close".to_string(),
                 name: "WS 关闭".to_string(),
                 position: NodePosition { x: 600.0, y: 0.0 },
                 data: NodeData::WsClose(WsCloseConfig {
@@ -216,7 +216,7 @@ async fn test_debug_flow_with_breakpoint() {
     
     // 验证至少执行了 Entry 节点
     let has_entry = debug_state.execution_stack.iter().any(|e| {
-        e.node_type == "Entry"
+        e.node_type == "entry"
     });
     assert!(has_entry, "应该执行了 Entry 节点");
 }

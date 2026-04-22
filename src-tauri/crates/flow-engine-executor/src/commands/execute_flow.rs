@@ -114,7 +114,7 @@ mod tests {
     use super::*;
     use crate::command::ExecuteFlowCommandInput;
     use flow_engine_core::flow::Flow;
-    use flow_engine_core::node::{Node, NodeType, NodePosition};
+    use flow_engine_core::node::{Node, NodePosition};
     use flow_engine_core::node_config::NodeData;
     use flow_engine_core::connection::Connection;
     use flow_engine_core::traits::NoopLogSender;
@@ -129,7 +129,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始节点".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -170,7 +170,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始节点".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -220,7 +220,7 @@ mod tests {
         // 创建没有 Entry 节点的流程（只有 HTTP 节点）
         let http_node = Node {
             uuid: format!("http-{}", flow_id),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "HTTP请求".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Http(flow_engine_core::node_config::HttpConfig {
@@ -262,7 +262,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始节点".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -299,7 +299,7 @@ mod tests {
         
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -309,7 +309,7 @@ mod tests {
 
         let end_node = Node {
             uuid: format!("end-{}", flow_id),
-            node_type: NodeType::Entry,  // 使用 Entry 作为第二个节点进行测试
+            node_type: "entry".to_string(),  // 使用 Entry 作为第二个节点进行测试
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
@@ -353,7 +353,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始节点".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -393,7 +393,7 @@ mod tests {
         
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始节点".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -431,7 +431,7 @@ mod tests {
         let flow_id = Uuid::new_v4().to_string();
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "开始节点".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -473,7 +473,7 @@ mod tests {
         
         let start_node = Node {
             uuid: format!("start-{}", flow_id),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: node_name.clone(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),

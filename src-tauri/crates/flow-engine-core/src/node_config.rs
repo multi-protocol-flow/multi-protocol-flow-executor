@@ -900,23 +900,27 @@ impl<'de> serde::Deserialize<'de> for NodeData {
 
 impl NodeData {
     /// 获取节点类型名称
-    pub fn type_name(&self) -> &'static str {
+    pub fn type_name(&self) -> String {
         match self {
-            NodeData::Entry(_) => "entry",
-            NodeData::Http(_) => "http",
-            NodeData::Conditional(_) => "conditional",
-            NodeData::WsConnect(_) => "ws_connect",
-            NodeData::WsSendCollect(_) => "ws_send_collect",
-            NodeData::WsClose(_) => "ws_close",
-            NodeData::Assertion(_) => "assertion",
-            NodeData::DbConnect(_) => "db_connect",
-            NodeData::DbQuery(_) => "db_query",
-            NodeData::DbBegin(_) => "db_begin",
-            NodeData::DbCommit(_) => "db_commit",
-            NodeData::DbRollback(_) => "db_rollback",
-            NodeData::DbClose(_) => "db_close",
-            NodeData::Script(_) => "script",
-            NodeData::Plugin(_) => "plugin",
+            NodeData::Entry(_) => "entry".to_string(),
+            NodeData::Http(_) => "http".to_string(),
+            NodeData::Conditional(_) => "conditional".to_string(),
+            NodeData::WsConnect(_) => "ws_connect".to_string(),
+            NodeData::WsSendCollect(_) => "ws_send_collect".to_string(),
+            NodeData::WsClose(_) => "ws_close".to_string(),
+            NodeData::Assertion(_) => "assertion".to_string(),
+            NodeData::DbConnect(_) => "db_connect".to_string(),
+            NodeData::DbQuery(_) => "db_query".to_string(),
+            NodeData::DbBegin(_) => "db_begin".to_string(),
+            NodeData::DbCommit(_) => "db_commit".to_string(),
+            NodeData::DbRollback(_) => "db_rollback".to_string(),
+            NodeData::DbClose(_) => "db_close".to_string(),
+            NodeData::Script(_) => "script".to_string(),
+            NodeData::Plugin(val) => val
+                .get("type")
+                .and_then(|v| v.as_str())
+                .unwrap_or("plugin")
+                .to_string(),
         }
     }
 
@@ -1575,9 +1579,14 @@ mod tests {
 
     #[test]
     fn test_node_data_plugin_type_name() {
+        // Plugin 变体应从 JSON 的 "type" 字段提取类型名称
         let json = r#"{"type":"custom_node","foo":"bar"}"#;
         let data: NodeData = serde_json::from_str(json).unwrap();
-        // Plugin 变体的 type_name 固定返回 "plugin"
+        assert_eq!(data.type_name(), "custom_node");
+
+        // 无 "type" 字段时回退到 "plugin"
+        let json = r#"{"foo":"bar"}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
         assert_eq!(data.type_name(), "plugin");
     }
 
@@ -1621,5 +1630,99 @@ mod tests {
             }
             _ => panic!("Expected DbConnect variant"),
         }
+    }
+
+    // ========================================================================
+    // B5: .mpf 格式兼容性验证 + 未知节点类型反序列化测试
+    // ========================================================================
+
+    #[test]
+    fn test_unknown_node_type_deserialize() {
+        // 未知节点类型应反序列化为 Plugin 变体，保留完整 JSON
+        let json = r#"{"type": "custom_grpc", "endpoint": "localhost:50051"}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+
+        match &data {
+            NodeData::Plugin(val) => {
+                assert_eq!(val.get("type").and_then(|v| v.as_str()), Some("custom_grpc"));
+                assert_eq!(val.get("endpoint").and_then(|v| v.as_str()), Some("localhost:50051"));
+            }
+            _ => panic!("Expected Plugin variant for unknown type"),
+        }
+
+        // type_name() 应返回 JSON 中的实际类型
+        assert_eq!(data.type_name(), "custom_grpc");
+    }
+
+    #[test]
+    fn test_plugin_type_name_from_json() {
+        // Plugin 带 type 字段应返回 type 值
+        let json = r#"{"type": "my_custom_node", "some_config": "value"}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        assert_eq!(data.type_name(), "my_custom_node");
+
+        // Plugin 无 type 字段应回退到 "plugin"
+        let json_no_type = r#"{"config": "value"}"#;
+        let data_no_type: NodeData = serde_json::from_str(json_no_type).unwrap();
+        assert_eq!(data_no_type.type_name(), "plugin");
+    }
+
+    #[test]
+    fn test_node_with_unknown_type_roundtrip() {
+        use crate::node::{Node, NodePosition};
+
+        // 未知类型节点应正确序列化/反序列化
+        let node = Node {
+            uuid: "test-uuid".to_string(),
+            node_type: "custom_grpc".to_string(),
+            name: "Custom Node".to_string(),
+            position: NodePosition { x: 100.0, y: 200.0 },
+            data: NodeData::Plugin(json!({
+                "type": "custom_grpc",
+                "endpoint": "localhost:50051"
+            })),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        // 序列化
+        let json = serde_json::to_string(&node).unwrap();
+
+        // 验证序列化格式保留 type 字段
+        assert!(json.contains(r#""type":"custom_grpc""#));
+
+        // 反序列化
+        let deserialized: Node = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.node_type, "custom_grpc");
+        assert_eq!(deserialized.uuid, "test-uuid");
+        assert_eq!(deserialized.name, "Custom Node");
+        assert_eq!(deserialized.position.x, 100.0);
+        assert_eq!(deserialized.position.y, 200.0);
+    }
+
+    #[test]
+    fn test_known_node_type_serialization_unchanged() {
+        use crate::node::{Node, NodePosition};
+
+        // 已知类型序列化格式不应改变
+        let node = Node {
+            uuid: "test-http".to_string(),
+            node_type: "http".to_string(),
+            name: "HTTP Request".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::http("https://example.com"),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let json = serde_json::to_string(&node).unwrap();
+
+        // 序列化后 JSON 应包含 "type":"http"
+        assert!(json.contains(r#""type":"http""#));
+
+        // 往返验证
+        let back: Node = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.node_type, "http");
+        assert_eq!(back.uuid, "test-http");
     }
 }

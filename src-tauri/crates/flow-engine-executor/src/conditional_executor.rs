@@ -852,7 +852,7 @@ mod tests {
     use super::*;
     use flow_engine_core::connection::Connection;
     use flow_engine_core::context::{ExecutionContext, VariableStorage};
-    use flow_engine_core::node::{Node, NodeType, NodePosition};
+    use flow_engine_core::node::{Node, NodePosition};
     use flow_engine_core::node_config::NodeData;
     use flow_engine_core::node_config::{ConditionalConfig, ConditionOperator, ConditionType, ExpectedValueType};
     use serde_json::json;
@@ -863,7 +863,7 @@ mod tests {
         Node {
             uuid: "test-node-id".to_string(),
             name: "Test Condition Node".to_string(),
-            node_type: NodeType::Conditional,
+            node_type: "conditional".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Conditional(config),
             ports: None,

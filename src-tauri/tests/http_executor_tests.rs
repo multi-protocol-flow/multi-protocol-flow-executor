@@ -3,7 +3,7 @@
 
 #![allow(missing_docs)]
 use flow_engine::context::{ExecutionContext, VariableStorage};
-use flow_engine::node::{Node, NodePosition, NodeType};
+use flow_engine::node::{Node, NodePosition};
 use flow_engine::node_config::{FormField, FormFieldType, HttpBodyType, HttpConfig, HttpMethod, NodeData};
 use flow_engine::executor::NodeExecutor;
 use flow_engine::http_executor::HttpNodeExecutor;
@@ -45,7 +45,7 @@ fn create_context(flow_id: &str) -> ExecutionContext {
 fn create_file_upload_node(uuid: &str, url: &str, form_fields: Vec<FormField>) -> Node {
     Node {
         uuid: uuid.to_string(),
-        node_type: NodeType::Http,
+        node_type: "http".to_string(),
         name: "文件上传节点".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::Http(HttpConfig {
@@ -69,7 +69,7 @@ fn create_file_upload_node(uuid: &str, url: &str, form_fields: Vec<FormField>) -
 fn create_timeout_node(uuid: &str, url: &str, timeout_ms: u64) -> Node {
     Node {
         uuid: uuid.to_string(),
-        node_type: NodeType::Http,
+        node_type: "http".to_string(),
         name: "超时测试节点".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::Http(HttpConfig {
@@ -394,7 +394,7 @@ async fn test_timeout_config_default() {
     // 不设置超时（使用默认值）
     let node = Node {
         uuid: "default-timeout".to_string(),
-        node_type: NodeType::Http,
+        node_type: "http".to_string(),
         name: "默认超时测试".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::Http(HttpConfig {

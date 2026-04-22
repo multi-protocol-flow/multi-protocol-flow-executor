@@ -650,7 +650,7 @@ mod tests {
             name: "Test Flow".to_string(),
             nodes: vec![Node {
                 uuid: "entry-001".to_string(),
-                node_type: NodeType::Entry,
+                node_type: "entry".to_string(),
                 name: "Entry".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
                 data: NodeData::entry(),

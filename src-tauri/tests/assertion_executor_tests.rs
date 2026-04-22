@@ -2,7 +2,7 @@
 
 #![allow(missing_docs)]
 use flow_engine::context::{ExecutionContext, VariableStorage};
-use flow_engine::node::{Node, NodePosition, NodeType};
+use flow_engine::node::{Node, NodePosition};
 use flow_engine::node_config::{
     Assertion, AssertionConfig, AssertionMode, AssertionOperator, NodeData, OnFailureMode,
     AssertionOutput,
@@ -45,7 +45,7 @@ fn create_context(flow_id: &str) -> ExecutionContext {
 fn create_assertion_node(uuid: &str, config: AssertionConfig) -> Node {
     Node {
         uuid: uuid.to_string(),
-        node_type: NodeType::Assertion,
+        node_type: "assertion".to_string(),
         name: "断言节点".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::Assertion(config),

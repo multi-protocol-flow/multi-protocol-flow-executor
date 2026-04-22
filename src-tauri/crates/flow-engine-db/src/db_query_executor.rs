@@ -524,7 +524,7 @@ mod tests {
     use super::*;
     use flow_engine_core::context::VariableStorage;
     use crate::db::{DatabaseConnectionManager, MockPool};
-    use flow_engine_core::node::{Node, NodePosition, NodeType};
+    use flow_engine_core::node::{Node, NodePosition};
     use flow_engine_core::node_config::{DbQueryConfig, NodeData};
     use flow_engine_core::variable::OutputMapping;
     use serde_json::json;
@@ -542,7 +542,7 @@ mod tests {
     ) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::DbQuery,
+            node_type: "db_query".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::DbQuery(DbQueryConfig {
@@ -668,7 +668,7 @@ mod tests {
     async fn test_db_query_missing_sql() {
         let node = Node {
             uuid: "query-001".to_string(),
-            node_type: NodeType::DbQuery,
+            node_type: "db_query".to_string(),
             name: "Test Query".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::DbQuery(DbQueryConfig {
@@ -1110,7 +1110,7 @@ mod tests {
     fn test_get_false_port_nodes() {
         let node = Node {
             uuid: "node-001".to_string(),
-            node_type: NodeType::DbQuery,
+            node_type: "db_query".to_string(),
             name: "Test".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::DbQuery(DbQueryConfig::default()),

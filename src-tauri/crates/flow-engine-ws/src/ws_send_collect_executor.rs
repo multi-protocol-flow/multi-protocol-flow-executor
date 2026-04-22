@@ -906,7 +906,7 @@ impl WsSendCollectExecutor {
 mod tests {
     use super::*;
     use flow_engine_core::context::ExecutionContext;
-    use flow_engine_core::node::{NodePosition, NodeType};
+    use flow_engine_core::node::{NodePosition};
     use flow_engine_core::node_config::{WsMatchType, WsSendCollectConfig, WsCollectCondition, WsCollectMode};
     use flow_engine_core::variable::OutputMapping;
     use crate::websocket_manager::WebSocketConnectionManager;
@@ -917,7 +917,7 @@ mod tests {
     fn create_test_node(uuid: &str, name: &str, connection_id: &str, message: &str) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::WsSendCollect,
+            node_type: "ws_send_collect".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsSendCollect(WsSendCollectConfig {
@@ -1004,7 +1004,7 @@ mod tests {
         // 创建配置了等待第一条消息的节点
         let node = Node {
             uuid: "test-wait-first".to_string(),
-            node_type: NodeType::WsSendCollect,
+            node_type: "ws_send_collect".to_string(),
             name: "等待第一条消息".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsSendCollect(WsSendCollectConfig {
@@ -1044,7 +1044,7 @@ mod tests {
         // 创建配置了条件等待的节点
         let node = Node {
             uuid: "test-wait-condition".to_string(),
-            node_type: NodeType::WsSendCollect,
+            node_type: "ws_send_collect".to_string(),
             name: "条件等待".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsSendCollect(WsSendCollectConfig {
@@ -1087,7 +1087,7 @@ mod tests {
         // 创建配置了时长等待的节点
         let node = Node {
             uuid: "test-wait-duration".to_string(),
-            node_type: NodeType::WsSendCollect,
+            node_type: "ws_send_collect".to_string(),
             name: "时长等待".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsSendCollect(WsSendCollectConfig {
@@ -1127,7 +1127,7 @@ mod tests {
         // 创建带输出映射的节点
         let node = Node {
             uuid: "test-mappings".to_string(),
-            node_type: NodeType::WsSendCollect,
+            node_type: "ws_send_collect".to_string(),
             name: "输出映射测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsSendCollect(WsSendCollectConfig {
@@ -1171,7 +1171,7 @@ mod tests {
         // 创建二进制消息节点
         let node = Node {
             uuid: "test-binary".to_string(),
-            node_type: NodeType::WsSendCollect,
+            node_type: "ws_send_collect".to_string(),
             name: "二进制消息".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsSendCollect(WsSendCollectConfig {
@@ -1284,7 +1284,7 @@ mod tests {
             // 创建带等待响应的节点
             let node = Node {
                 uuid: "echo-test-2".to_string(),
-                node_type: NodeType::WsSendCollect,
+                node_type: "ws_send_collect".to_string(),
                 name: "Echo 测试 2".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
                 data: NodeData::WsSendCollect(WsSendCollectConfig {

@@ -10,7 +10,7 @@
 use flow_engine::connection::Connection;
 use flow_engine::executor::FlowExecutor;
 use flow_engine::flow::Flow;
-use flow_engine::node::{Node, NodePosition, NodeType};
+use flow_engine::node::{Node, NodePosition};
 use flow_engine::node_config::NodeData;
 use serde_json::json;
 use uuid::Uuid;
@@ -24,7 +24,7 @@ async fn test_variable_tracking_new_variable() {
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
         uuid: "start-1".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "开始".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::entry(),
@@ -34,7 +34,7 @@ async fn test_variable_tracking_new_variable() {
 
     let end_node = Node {
         uuid: "end-1".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "结束".to_string(),
         position: NodePosition { x: 100.0, y: 0.0 },
         data: NodeData::entry(),
@@ -81,7 +81,7 @@ async fn test_execution_path_tracking() {
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
         uuid: "start-uuid-path".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "开始".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::entry(),
@@ -91,7 +91,7 @@ async fn test_execution_path_tracking() {
 
     let end_node = Node {
         uuid: "end-uuid-path".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "结束".to_string(),
         position: NodePosition { x: 100.0, y: 0.0 },
         data: NodeData::entry(),
@@ -135,7 +135,7 @@ async fn test_variable_snapshots() {
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
         uuid: "start-snap".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "开始".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::entry(),
@@ -145,7 +145,7 @@ async fn test_variable_snapshots() {
 
     let end_node = Node {
         uuid: "end-snap".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "结束".to_string(),
         position: NodePosition { x: 100.0, y: 0.0 },
         data: NodeData::entry(),
@@ -202,7 +202,7 @@ async fn test_variable_snapshots_empty_initial() {
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
         uuid: "start-empty".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "开始".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::entry(),
@@ -242,7 +242,7 @@ async fn test_single_node_execution_path() {
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
         uuid: "single-node".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "单节点".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::entry(),
@@ -277,7 +277,7 @@ async fn test_skipped_nodes_default_empty() {
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
         uuid: "start-skip".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "开始".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::entry(),
@@ -309,7 +309,7 @@ async fn test_all_nodes_have_resolved_config() {
     let flow_id = Uuid::new_v4().to_string();
     let start_node = Node {
         uuid: "start-resolved".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "开始".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::entry(),
@@ -319,7 +319,7 @@ async fn test_all_nodes_have_resolved_config() {
 
     let end_node = Node {
         uuid: "end-resolved".to_string(),
-        node_type: NodeType::Entry,
+        node_type: "entry".to_string(),
         name: "结束".to_string(),
         position: NodePosition { x: 100.0, y: 0.0 },
         data: NodeData::entry(),

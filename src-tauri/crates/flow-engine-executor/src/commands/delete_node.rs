@@ -2,7 +2,7 @@
 
 use crate::command::{DeleteNodeCommandInput, DeleteNodeCommandOutput};
 use flow_engine_core::flow::Flow;
-use flow_engine_core::node::NodeType;
+use flow_engine_core::node_types;
 
 /// 删除节点命令（桩实现）
 ///
@@ -36,7 +36,7 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
     };
 
     // 检查是否是开始节点
-    if matches!(node.node_type, NodeType::Entry) {
+    if node.node_type == node_types::ENTRY {
         return DeleteNodeCommandOutput {
             success: false,
             error: Some("不能删除开始节点".to_string()),
@@ -58,14 +58,14 @@ mod tests {
     use super::*;
     use crate::command::DeleteNodeCommandInput;
     use flow_engine_core::flow::Flow;
-    use flow_engine_core::node::{Node, NodePosition, NodeType};
+    use flow_engine_core::node::{Node, NodePosition};
     use flow_engine_core::node_config::NodeData;
 
     /// 创建测试用流程
     fn create_test_flow() -> Flow {
         let entry_node = Node {
             uuid: "entry-001".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "入口节点".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -75,7 +75,7 @@ mod tests {
 
         let http_node = Node {
             uuid: "http-001".to_string(),
-            node_type: NodeType::Http,
+            node_type: "http".to_string(),
             name: "HTTP 请求节点".to_string(),
             position: NodePosition { x: 200.0, y: 0.0 },
             data: NodeData::http("https://api.example.com"),

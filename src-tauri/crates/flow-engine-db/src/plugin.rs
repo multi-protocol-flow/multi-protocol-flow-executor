@@ -104,8 +104,72 @@ impl NodePlugin for DbConnectPlugin {
         }))
     }
 
-    async fn execute(
-        &self,
+    fn config_schema(&self) -> Option<serde_json::Value> {
+        Some(serde_json::json!({
+            "type": "object",
+            "required": ["connection_uuid"],
+            "properties": {
+                "connection_uuid": {
+                    "type": "string",
+                    "title": "连接 UUID",
+                    "description": "数据库连接标识符"
+                },
+                "driver": {
+                    "type": "string",
+                    "title": "数据库驱动",
+                    "enum": ["postgresql", "mysql", "sqlite", "redis"]
+                },
+                "connection_string": {
+                    "type": "string",
+                    "title": "连接字符串"
+                },
+                "host": {
+                    "type": "string",
+                    "title": "主机地址"
+                },
+                "port": {
+                    "type": "integer",
+                    "title": "端口号"
+                },
+                "database": {
+                    "type": "string",
+                    "title": "数据库名"
+                },
+                "username": {
+                    "type": "string",
+                    "title": "用户名"
+                },
+                "password": {
+                    "type": "string",
+                    "title": "密码",
+                    "format": "password"
+                },
+                "min_connections": {
+                    "type": "integer",
+                    "title": "最小连接数",
+                    "minimum": 1,
+                    "default": 1
+                },
+                "max_connections": {
+                    "type": "integer",
+                    "title": "最大连接数",
+                    "minimum": 1,
+                    "default": 10
+                },
+                "test_query": {
+                    "type": "string",
+                    "title": "测试查询语句"
+                },
+                "connect_timeout_ms": {
+                    "type": "integer",
+                    "title": "连接超时（毫秒）"
+                }
+            }
+        }))
+    }
+
+    async fn execute
+        (&self,
         node: &Node,
         context: &mut ExecutionContext,
         connections: &[Connection],

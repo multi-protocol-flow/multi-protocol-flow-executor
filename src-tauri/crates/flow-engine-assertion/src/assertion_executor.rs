@@ -402,7 +402,7 @@ mod tests {
     use super::*;
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::debug_types::DebugEvent;
-    use flow_engine_core::node::{NodePosition, NodeType};
+    use flow_engine_core::node::{NodePosition};
     use flow_engine_core::node_config::{
         Assertion, AssertionMode, AssertionOperator, OnFailureMode,
     };
@@ -457,7 +457,7 @@ mod tests {
     fn create_assertion_node(uuid: &str, config: AssertionConfig) -> Node {
         Node {
             uuid: uuid.to_string(),
-            node_type: NodeType::Assertion,
+            node_type: "assertion".to_string(),
             name: "断言节点".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Assertion(config),

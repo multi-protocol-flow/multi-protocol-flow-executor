@@ -112,6 +112,12 @@ pub trait NodePlugin: Send + Sync {
         Vec::new()
     }
 
+    /// 返回节点配置的 JSON Schema（用于前端动态表单渲染）
+    /// 默认返回 None，表示该节点类型使用前端硬编码的配置面板
+    fn config_schema(&self) -> Option<serde_json::Value> {
+        None
+    }
+
     /// 执行节点
     ///
     /// # 参数

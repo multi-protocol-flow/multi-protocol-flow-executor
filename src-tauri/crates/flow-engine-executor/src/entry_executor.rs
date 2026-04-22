@@ -159,7 +159,7 @@ impl NodeExecutor for EntryNodeExecutor {
 mod tests {
     use super::*;
     use flow_engine_core::context::{ExecutionContext, VariableStorage};
-    use flow_engine_core::node::{Node, NodePosition, NodeType};
+    use flow_engine_core::node::{Node, NodePosition};
     use flow_engine_core::node_config::NodeData;
     use std::sync::Arc;
     use std::time::Instant;
@@ -169,7 +169,7 @@ mod tests {
         // 创建测试流程
         let entry_node = Node {
             uuid: "entry-1".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Entry".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -179,7 +179,7 @@ mod tests {
 
         let next_node = Node {
             uuid: "next-1".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Next".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
@@ -246,7 +246,7 @@ mod tests {
         // 创建没有连接的 Entry 节点 - 正常流程终止
         let entry_node = Node {
             uuid: "entry-1".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Entry".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -292,7 +292,7 @@ mod tests {
         // 测试多个连接的情况
         let entry_node = Node {
             uuid: "entry-1".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Entry".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -302,7 +302,7 @@ mod tests {
 
         let next_node_1 = Node {
             uuid: "next-1".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Next 1".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
@@ -312,7 +312,7 @@ mod tests {
 
         let next_node_2 = Node {
             uuid: "next-2".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Next 2".to_string(),
             position: NodePosition { x: 100.0, y: 100.0 },
             data: NodeData::entry(),
@@ -385,7 +385,7 @@ mod tests {
         // 测试执行时间 < 1ms
         let entry_node = Node {
             uuid: "entry-1".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Entry".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -395,7 +395,7 @@ mod tests {
 
         let next_node = Node {
             uuid: "next-1".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Next".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
@@ -460,7 +460,7 @@ mod tests {
         let node_uuid = "test-node-uuid-execute";
         let entry_node = Node {
             uuid: node_uuid.to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Entry".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -470,7 +470,7 @@ mod tests {
 
         let next_node = Node {
             uuid: "next-node-uuid".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Next".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
@@ -526,7 +526,7 @@ mod tests {
         // 测试节点执行逻辑正确
         let entry_node = Node {
             uuid: "logic-test-entry".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Entry".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
@@ -536,7 +536,7 @@ mod tests {
 
         let next_node = Node {
             uuid: "logic-test-next".to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Next".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
@@ -615,7 +615,7 @@ mod tests {
 
         let entry_node = Node {
             uuid: source_uuid.to_string(),
-            node_type: NodeType::Entry,
+            node_type: "entry".to_string(),
             name: "Entry".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
