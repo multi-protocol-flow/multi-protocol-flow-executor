@@ -1,12 +1,12 @@
-//! 默认节点注册表 — 注册全部 14 个内置节点插件
+//! 默认节点注册表 — 注册全部 17 个内置节点插件
 //!
 //! 此模块位于 `flow-engine-executor` crate 中，因为它需要依赖所有协议 crate
-//! （http、ws、db、script、assertion），而 `flow-engine-core` 作为叶子 crate
+//! （http、ws、db、script、assertion、grpc），而 `flow-engine-core` 作为叶子 crate
 //! 不能依赖它们。
 
 use flow_engine_core::registry::NodeRegistry;
 
-/// 创建包含全部 14 个内置节点的默认注册表
+/// 创建包含全部 17 个内置节点的默认注册表
 ///
 /// # 注册的插件
 ///
@@ -26,6 +26,9 @@ use flow_engine_core::registry::NodeRegistry;
 /// | Database | DbClosePlugin | `db_close` |
 /// | Script | ScriptPlugin | `script` |
 /// | Assertion | AssertionPlugin | `assertion` |
+/// | gRPC | GrpcConnectPlugin | `grpc_connect` |
+/// | gRPC | GrpcCallPlugin | `grpc_call` |
+/// | gRPC | GrpcClosePlugin | `grpc_close` |
 pub fn default_registry() -> NodeRegistry {
     let mut registry = NodeRegistry::new();
 
@@ -54,6 +57,9 @@ pub fn default_registry() -> NodeRegistry {
         flow_engine_assertion::plugin::AssertionPlugin,
     ));
 
+    // gRPC (flow-engine-grpc) — 批量注册 3 个插件
+    flow_engine_grpc::plugin::GrpcPluginGroup::register_all(&mut registry);
+
     registry
 }
 
@@ -62,12 +68,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_default_registry_has_14_plugins() {
+    fn test_default_registry_has_17_plugins() {
         let registry = default_registry();
-        assert_eq!(registry.len(), 14);
+        assert_eq!(registry.len(), 17);
 
         let metadata = registry.all_metadata();
-        assert_eq!(metadata.len(), 14);
+        assert_eq!(metadata.len(), 17);
 
         // 验证每个 type_id 都已注册
         let type_ids: Vec<&str> = metadata.iter().map(|m| m.type_id.as_str()).collect();
@@ -86,6 +92,9 @@ mod tests {
             "db_rollback",
             "db_close",
             "script",
+            "grpc_connect",
+            "grpc_call",
+            "grpc_close",
         ];
 
         for exp in &expected {
