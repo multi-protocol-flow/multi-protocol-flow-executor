@@ -1,18 +1,19 @@
 # flow-engine-db
 
-**Layer 1** | 15 文件 | 7,760 行 | 依赖 core
+**Layer 1** | 16 文件 | ~8,400 行 | 依赖 core
 
 ## 概述
 
-数据库连接池 + 6 种数据库节点执行器。支持 PostgreSQL、MySQL、SQLite、Redis。
+数据库连接池 + 6 种数据库节点执行器 + NodePlugin 实现。支持 PostgreSQL、MySQL、SQLite、Redis。
 
 ## 结构
 
 ```
 flow-engine-db/src/
 ├── lib.rs                     # 模块导出
-├── db_connect_executor.rs     # 连接执行器 (1,031 行)
-├── db_query_executor.rs       # 查询执行器 (998 行)
+├── plugin.rs                  # NodePlugin 实现 (555 行)
+├── db_connect_executor.rs     # 连接执行器 (~1,027 行)
+├── db_query_executor.rs       # 查询执行器 (~1,012 行)
 ├── db_begin_executor.rs       # 事务开始
 ├── db_commit_executor.rs      # 事务提交
 ├── db_rollback_executor.rs    # 事务回滚
@@ -32,6 +33,7 @@ flow-engine-db/src/
 
 | 任务 | 文件 |
 |------|------|
+| NodePlugin 注册 | `plugin.rs` |
 | 数据库连接 | `db_connect_executor.rs` |
 | SQL/Redis 查询 | `db_query_executor.rs` |
 | 连接池管理 | `db/pool.rs` |

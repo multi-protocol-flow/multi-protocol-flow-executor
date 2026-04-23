@@ -1,18 +1,19 @@
 # flow-engine-script
 
-**Layer 1** | 4 文件 | ~3,374 行 | 依赖 core
+**Layer 1** | 5 文件 | ~3,500 行 | 依赖 core
 
 ## 概述
 
-QuickJS 运行时 + 脚本节点执行器。提供 `fn.*` API 供脚本访问变量、响应、控制台等。
+QuickJS 运行时 + 脚本节点执行器 + NodePlugin 实现。提供 `fn.*` API 供脚本访问变量、响应、控制台等。
 
 ## 结构
 
 ```
 flow-engine-script/src/
 ├── lib.rs              # 模块导出
-├── script_executor.rs  # ScriptNodeExecutor (实现 NodeExecutor)
-├── script_api.rs       # 脚本 API 绑定 (fn.* API，~2,500 行)
+├── plugin.rs           # NodePlugin 实现 (88 行)
+├── script_executor.rs  # ScriptNodeExecutor (实现 NodeExecutor, ~802 行)
+├── script_api.rs       # 脚本 API 绑定 (fn.* API，~2,456 行)
 └── script_poc.rs       # 概念验证 (开发参考)
 ```
 
@@ -20,6 +21,7 @@ flow-engine-script/src/
 
 | 任务 | 文件 |
 |------|------|
+| NodePlugin 注册 | `plugin.rs` |
 | 脚本执行逻辑 | `script_executor.rs` |
 | API 绑定 (fn.*) | `script_api.rs` |
 | 变量操作 API | `script_api.rs` → `fn.variables.*` |

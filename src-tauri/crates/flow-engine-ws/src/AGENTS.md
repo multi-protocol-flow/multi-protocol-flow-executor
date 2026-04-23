@@ -1,26 +1,28 @@
 # flow-engine-ws
 
-**Layer 1** | 5 文件 | 5,360 行 | 依赖 core
+**Layer 1** | 6 文件 | ~5,500 行 | 依赖 core
 
 ## 概述
 
-WebSocket 连接管理 + 3 种节点执行器。基于 tokio-tungstenite。
+WebSocket 连接管理 + 3 种节点执行器 + NodePlugin 实现。基于 tokio-tungstenite。
 
 ## 结构
 
 ```
 flow-engine-ws/src/
 ├── lib.rs                      # 模块导出
-├── websocket_manager.rs        # 连接池管理 (1,936 行)
-├── ws_connect_executor.rs      # 连接执行器 (913 行)
-├── ws_send_collect_executor.rs # 发送收集执行器 (2,058 行)
-└── ws_close_executor.rs        # 关闭连接执行器
+├── plugin.rs                   # NodePlugin 实现 (253 行)
+├── websocket_manager.rs        # 连接池管理 (~2,268 行)
+├── ws_connect_executor.rs      # 连接执行器 (~978 行)
+├── ws_send_collect_executor.rs # 发送收集执行器 (~1,429 行)
+└── ws_close_executor.rs        # 关闭连接执行器 (~449 行)
 ```
 
 ## 快速定位
 
 | 任务 | 文件 |
 |------|------|
+| NodePlugin 注册 | `plugin.rs` |
 | WebSocket 连接管理 | `websocket_manager.rs` |
 | 连接节点逻辑 | `ws_connect_executor.rs` |
 | 发送收集逻辑 | `ws_send_collect_executor.rs` |

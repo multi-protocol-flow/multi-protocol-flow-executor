@@ -1,28 +1,30 @@
 # flow-engine-assertion
 
-**Layer 1** | 6 文件 | ~2,946 行 | 依赖 core
+**Layer 1** | 7 文件 | ~3,000 行 | 依赖 core
 
 ## 概述
 
-15 种断言操作符 + 断言节点执行器。支持 All/Any 模式和预设断言。
+15 种断言操作符 + 断言节点执行器 + NodePlugin 实现。支持 All/Any 模式和预设断言。
 
 ## 结构
 
 ```
 flow-engine-assertion/src/
 ├── lib.rs                  # 模块导出
-├── assertion_executor.rs   # AssertionNodeExecutor (实现 NodeExecutor, ~850 行)
+├── plugin.rs               # NodePlugin 实现 (85 行)
+├── assertion_executor.rs   # AssertionNodeExecutor (实现 NodeExecutor, ~1,030 行)
 └── assertion/              # 断言引擎
     ├── mod.rs              # 导出
-    ├── operator.rs         # 15 种操作符实现 (~750 行)
-    ├── evaluator.rs        # AssertionEvaluator 求值器 (~680 行)
-    └── preset.rs           # 预设断言模板
+    ├── operator.rs         # 15 种操作符实现 (~841 行)
+    ├── evaluator.rs        # AssertionEvaluator 求值器 (~723 行)
+    └── preset.rs           # 预设断言模板 (~339 行)
 ```
 
 ## 快速定位
 
 | 任务 | 文件 |
 |------|------|
+| NodePlugin 注册 | `plugin.rs` |
 | 断言执行逻辑 | `assertion_executor.rs` |
 | 添加新操作符 | `assertion/operator.rs` |
 | 修改求值逻辑 | `assertion/evaluator.rs` |
