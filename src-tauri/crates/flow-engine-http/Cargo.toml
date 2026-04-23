@@ -13,7 +13,7 @@ http-body-util = "0.1"
 tower-service = "0.3"
 bytes = "1.10"
 tokio-rustls = "0.26"
-rustls = "0.23"
+rustls = { version = "0.23", features = ["ring"] }
 rustls-pki-types = "1"
 webpki-roots = "0.26"
 url = "2.5"
