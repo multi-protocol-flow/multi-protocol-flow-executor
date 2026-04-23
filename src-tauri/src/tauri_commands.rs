@@ -227,6 +227,98 @@ pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionRes
 }
 
 // ============================================================================
+// gRPC 服务发现命令
+// ============================================================================
+
+use flow_engine::grpc_connection_manager;
+use flow_engine::traits::GrpcServiceInfo;
+
+/// gRPC 服务发现请求参数
+#[derive(serde::Deserialize)]
+pub struct GrpcDiscoverServicesInput {
+    /// gRPC 服务器地址
+    pub url: String,
+    /// 是否使用 TLS
+    pub use_tls: Option<bool>,
+    /// 是否跳过 TLS 证书验证
+    pub tls_skip_verify: Option<bool>,
+    /// 是否启用 Server Reflection
+    pub enable_reflection: Option<bool>,
+    /// Proto 文件列表 (path, content)
+    pub proto_files: Option<Vec<(String, String)>>,
+    /// 连接超时（毫秒）
+    pub connect_timeout_ms: Option<u64>,
+}
+
+/// gRPC 服务发现响应
+#[derive(serde::Serialize)]
+pub struct GrpcDiscoverServicesOutput {
+    /// 是否成功
+    pub success: bool,
+    /// 发现的服务列表
+    pub services: Vec<GrpcServiceInfo>,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// 发现 gRPC 服务
+///
+/// 设计时调用：通过 Server Reflection 或解析 Proto 文件发现可用服务。
+/// 不创建持久连接，仅返回服务/方法列表供前端缓存。
+#[tauri::command]
+pub async fn grpc_discover_services(
+    input: GrpcDiscoverServicesInput,
+) -> GrpcDiscoverServicesOutput {
+    let enable_reflection = input.enable_reflection.unwrap_or(false);
+    let connect_timeout_ms = input.connect_timeout_ms.unwrap_or(30000);
+    let use_tls = input.use_tls.unwrap_or(false);
+    let tls_skip_verify = input.tls_skip_verify.unwrap_or(false);
+    let proto_files = input.proto_files.unwrap_or_default();
+
+    log::info!(
+        "[gRPC] 发现服务: url={}, reflection={}, proto_files={}",
+        input.url,
+        enable_reflection,
+        proto_files.len()
+    );
+
+    let result = if enable_reflection {
+        // 通过 Server Reflection 发现
+        grpc_connection_manager::discover_services_via_reflection(
+            &input.url,
+            use_tls,
+            tls_skip_verify,
+            connect_timeout_ms,
+        )
+        .await
+    } else if !proto_files.is_empty() {
+        // 通过解析 Proto 文件发现
+        grpc_connection_manager::discover_services_via_proto(&proto_files)
+    } else {
+        Err("未提供 proto 文件且未启用 Server Reflection".to_string())
+    };
+
+    match result {
+        Ok(services) => {
+            log::info!("[gRPC] 服务发现成功: 发现 {} 个服务", services.len());
+            GrpcDiscoverServicesOutput {
+                success: true,
+                services,
+                error: None,
+            }
+        }
+        Err(e) => {
+            log::error!("[gRPC] 服务发现失败: {}", e);
+            GrpcDiscoverServicesOutput {
+                success: false,
+                services: vec![],
+                error: Some(e),
+            }
+        }
+    }
+}
+
+// ============================================================================
 // 应用设置命令
 // ============================================================================
 

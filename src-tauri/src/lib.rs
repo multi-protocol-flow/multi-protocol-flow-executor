@@ -51,6 +51,8 @@ pub use tauri_commands::{
     delete_stress_test_report,
     // 数据库连接命令
     test_db_connection,
+    // gRPC 服务发现命令
+    grpc_discover_services,
     // 执行会话管理
     cancel_flow,
     // 流程文件存储命令
@@ -166,6 +168,8 @@ pub fn run() {
             delete_stress_test_report,
     // 数据库连接命令
     test_db_connection,
+    // gRPC 服务发现命令
+    grpc_discover_services,
     // 执行会话管理
     cancel_flow,
     // 流程文件存储命令
