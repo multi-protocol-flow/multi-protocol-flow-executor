@@ -1,7 +1,7 @@
 # Tauri 应用层
 
-**生成时间:** 2026-04-16
-**Commit:** 158c34c
+**生成时间:** 2026-04-23
+**Commit:** 5995d24
 
 ## OVERVIEW
 
@@ -14,7 +14,7 @@ src/
 ├── lib.rs              # 模块导出 + Tauri 应用启动 (插件注册/日志配置)
 ├── main.rs             # 应用入口 (调用 lib::run())
 ├── tauri_adapters.rs   # Tauri 适配器 (LogSender/DirectoryOpener/AppDirProvider)
-└── tauri_commands.rs   # IPC 命令 (19 个 #[tauri::command] 包装器)
+└── tauri_commands.rs   # IPC 命令 (39 个 #[tauri::command] 包装器)
 ```
 
 ## WHERE TO LOOK
@@ -27,57 +27,28 @@ src/
 | 修改应用启动逻辑 | `lib.rs` → `setup` |
 | 执行器/节点/流程等 | `crates/flow-engine/` |
 
-## IPC 命令 (19 个)
+## IPC 命令 (39 个)
 
-### 流程命令 (4 个)
-| 命令 | 用途 |
-|------|------|
-| `create_flow` | 创建流程 |
-| `execute_flow` | 执行流程 (带 Channel 日志) |
-| `update_node` | 更新节点 |
-| `delete_node` | 删除节点 |
-
-### 报告命令 (4 个)
-| 命令 | 用途 |
-|------|------|
-| `save_flow_report` | 保存执行报告 |
-| `load_flow_report` | 加载报告 |
-| `list_flow_reports` | 列出所有报告 |
-| `delete_flow_report` | 删除报告 |
-
-### 数据库命令 (1 个)
-| 命令 | 用途 |
-|------|------|
-| `test_db_connection` | 测试数据库连接 |
-
-### 设置命令 (2 个)
-| 命令 | 用途 |
-|------|------|
-| `get_app_data_dir` | 获取应用数据目录 |
-| `open_directory` | 打开目录 |
-
-### 调试命令 (5 个)
-| 命令 | 用途 |
-|------|------|
-| `start_debug` | 启动调试会话 (双 Channel) |
-| `send_debug_command` | 发送调试命令 (Continue/StepOver) |
-| `end_debug` | 结束调试会话 |
-| `get_debug_status` | 获取调试状态 |
-| `force_end_debug` | 强制结束 (页面刷新恢复) |
-
-### 压力测试命令 (3 个)
-| 命令 | 用途 |
-|------|------|
-| `start_stress_test` | 启动压力测试 |
-| `stop_stress_test` | 停止压力测试 |
-| `get_stress_test_status` | 获取压力测试状态 |
+| 分类 | 数量 | 命令 |
+|------|------|------|
+| Flow | 5 | create_flow, execute_flow, cancel_flow, update_node, delete_node |
+| Reports | 4 | save/load/list/delete_flow_report |
+| Stress Reports | 4 | save/load/list/delete_stress_test_report |
+| Debug | 5 | start_debug, send_debug_command, end_debug, get_debug_status, force_end_debug |
+| Stress Test | 3 | start/stop/get_stress_test_status |
+| Database | 1 | test_db_connection |
+| gRPC | 1 | grpc_discover_services |
+| Settings | 2 | get_app_data_dir, open_directory |
+| Flow Files | 5 | list/load/save/delete/copy_flow_file |
+| Folders | 6 | list/create/delete/rename_folder, move_flow_to_folder, move_folder |
+| Registry | 3 | get_registered_node_types, get_node_config_schema, list_registered_plugins |
 
 ## CONVENTIONS
 
 - **命令委托**: IPC 命令仅做类型转换，调用 `flow_engine::commands::*`
 - **适配器模式**: 实现 `flow_engine::traits::*` 接口桥接 Tauri
 - **Channel 日志**: `TauriLogSender` 包装 `Channel<LogEvent>` 发送到前端
-- **状态管理**: `DebugSessionManager` 通过 `tauri::State` 共享
+- **状态管理**: `DebugSessionManager` + `ExecutionSessionManager` (cancel 支持) 通过 `tauri::State` 共享
 - **测试**: Windows 跳过单元测试 (Tauri 依赖问题)
 
 ## 与 flow-engine 关系
