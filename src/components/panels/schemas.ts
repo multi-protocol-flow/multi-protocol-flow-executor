@@ -484,6 +484,71 @@ export const scriptConfigSchema = z.object({
 export type ScriptConfigFormData = z.infer<typeof scriptConfigSchema>;
 
 // ============================================================================
+// gRPC 配置 Schema
+// ============================================================================
+
+/**
+ * Proto 文件 Schema
+ */
+export const protoFileSchema = z.object({
+  path: z.string().min(1, '文件路径不能为空'),
+  content: z.string().min(1, '文件内容不能为空'),
+});
+
+export type ProtoFileFormData = z.infer<typeof protoFileSchema>;
+
+/**
+ * gRPC Metadata 条目 Schema
+ */
+export const grpcMetadataEntrySchema = z.object({
+  key: z.string(),
+  value: z.string(),
+});
+
+export type GrpcMetadataEntryFormData = z.infer<typeof grpcMetadataEntrySchema>;
+
+/**
+ * gRPC Connect 配置表单 Schema
+ */
+export const grpcConnectConfigSchema = z.object({
+  type: z.literal('grpc_connect'),
+  url: z.string().min(1, 'gRPC 服务器地址不能为空'),
+  use_tls: z.boolean().optional(),
+  tls_skip_verify: z.boolean().optional(),
+  enable_reflection: z.boolean().optional(),
+  proto_files: z.array(protoFileSchema).optional(),
+  default_metadata: z.array(grpcMetadataEntrySchema).optional(),
+  connect_timeout_ms: z.number().min(1000).max(300000).optional(),
+});
+
+export type GrpcConnectConfigFormData = z.infer<typeof grpcConnectConfigSchema>;
+
+/**
+ * gRPC Call 配置表单 Schema
+ */
+export const grpcCallConfigSchema = z.object({
+  type: z.literal('grpc_call'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  service_name: z.string().min(1, '服务名称不能为空'),
+  method_name: z.string().min(1, '方法名称不能为空'),
+  request_json: z.string(),
+  timeout_ms: z.number().min(1000).max(300000).optional(),
+  metadata: z.array(grpcMetadataEntrySchema).optional(),
+});
+
+export type GrpcCallConfigFormData = z.infer<typeof grpcCallConfigSchema>;
+
+/**
+ * gRPC Close 配置表单 Schema
+ */
+export const grpcCloseConfigSchema = z.object({
+  type: z.literal('grpc_close'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+});
+
+export type GrpcCloseConfigFormData = z.infer<typeof grpcCloseConfigSchema>;
+
+// ============================================================================
 // 未知节点类型 Fallback Schema
 // ============================================================================
 

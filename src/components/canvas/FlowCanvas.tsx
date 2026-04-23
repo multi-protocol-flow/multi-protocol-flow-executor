@@ -22,7 +22,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
@@ -97,6 +97,9 @@ const nodeTypes = {
   db_rollback: DbRollbackNode,
   db_close: DbCloseNode,
   script: ScriptNode,
+  grpc_connect: GrpcConnectNode,
+  grpc_call: GrpcCallNode,
+  grpc_close: GrpcCloseNode,
   default: DynamicPluginNode,
 };
 
@@ -121,6 +124,9 @@ const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
   db_rollback: '#8b5cf6',
   db_close: '#8b5cf6',
   script: '#6366f1',
+  grpc_connect: '#8b5cf6',
+  grpc_call: '#8b5cf6',
+  grpc_close: '#8b5cf6',
 };
 
 /**

@@ -15,4 +15,7 @@ export { DbCommitNode, type DbCommitNodeData } from './DbCommitNode';
 export { DbRollbackNode, type DbRollbackNodeData } from './DbRollbackNode';
 export { DbCloseNode, type DbCloseNodeData } from './DbCloseNode';
 export { ScriptNode, type ScriptNodeData } from './ScriptNode';
+export { GrpcConnectNode, type GrpcConnectNodeData } from './GrpcConnectNode';
+export { GrpcCallNode, type GrpcCallNodeData } from './GrpcCallNode';
+export { GrpcCloseNode, type GrpcCloseNodeData } from './GrpcCloseNode';
 export { default as DynamicPluginNode } from './DynamicPluginNode';

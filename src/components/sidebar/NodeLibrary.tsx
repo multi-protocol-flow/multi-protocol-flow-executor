@@ -1,135 +1,92 @@
 /**
  * NodeLibrary - 节点库面板
  * 显示可用的节点类型，支持点击添加或拖拽到画布
+ *
+ * 动态从后端 NodeRegistry 获取节点元数据，按分类分组展示。
  */
-import { Globe, GitBranch, GripVertical, Sparkles, Wifi, Send, Plug, CheckCircle, Database, CirclePlay, RotateCcw, Code } from 'lucide-react';
+import { GripVertical, Sparkles, Wrench } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useFlowStore } from '@/stores';
 import type { NodeType } from '@/types';
+import type { NodeMetadata } from '@/types/nodeRegistry';
+import {
+  getNodeMetadata,
+  groupByCategory,
+  CATEGORY_NAMES,
+  getCategoryOrder,
+} from '@/lib/NodeRegistry';
+import { ICON_MAP } from '@/lib/nodeMeta';
 import { cn } from '@/lib/utils';
+import { useEffect, useMemo, useState } from 'react';
 
-/** 节点类型定义 */
-const NODE_TYPES = [
-  {
-    type: 'http',
-    name: 'HTTP 请求',
-    description: '发送 HTTP 请求',
-    icon: Globe,
-    color: 'bg-sky-500',
-    colorHover: 'hover:bg-sky-400',
-    iconColor: 'text-white',
-  },
-  {
-    type: 'conditional',
-    name: '条件判断',
-    description: '根据条件分支',
-    icon: GitBranch,
-    color: 'bg-amber-500',
-    colorHover: 'hover:bg-amber-400',
-    iconColor: 'text-white',
-  },
-  {
-    type: 'ws_connect',
-    name: 'WS 连接',
-    description: '建立 WebSocket 连接',
-    icon: Wifi,
-    color: 'bg-amber-500',
-    colorHover: 'hover:bg-amber-400',
-    iconColor: 'text-white',
-  },
-  {
-    type: 'ws_send_collect',
-    name: 'WS 发送采集',
-    description: '发送 WebSocket 消息并采集响应',
-    icon: Send,
-    color: 'bg-teal-500',
-    colorHover: 'hover:bg-teal-400',
-    iconColor: 'text-white',
-  },
-  {
-    type: 'ws_close',
-    name: 'WS 关闭',
-    description: '关闭 WebSocket 连接',
-    icon: Plug,
-    color: 'bg-rose-500',
-    colorHover: 'hover:bg-rose-400',
-    iconColor: 'text-white',
-  },
-  {
-    type: 'assertion',
-    name: '断言',
-    description: '验证执行结果是否符合预期',
-    icon: CheckCircle,
-    color: 'bg-emerald-500',
-    colorHover: 'hover:bg-emerald-400',
-    iconColor: 'text-white',
-  },
-  {
-    type: 'db_connect',
-    name: 'DB 连接',
-    description: '建立数据库连接',
-    icon: Database,
-    color: 'bg-violet-500',
-    colorHover: 'hover:bg-violet-400',
-    iconColor: 'text-white',
-  },
-  {
-    type: 'db_query',
-    name: 'DB 查询',
-    description: '执行数据库查询',
-    icon: Database,
-    color: 'bg-violet-500',
-    colorHover: 'hover:bg-violet-400',
-    iconColor: 'text-white',
-  },
-  {
-    type: 'db_begin',
-    name: 'DB 开始事务',
-    description: '开始数据库事务',
-    icon: CirclePlay,
-    color: 'bg-violet-500',
-    colorHover: 'hover:bg-violet-400',
-    iconColor: 'text-white',
-  },
-  {
-    type: 'db_commit',
-    name: 'DB 提交',
-    description: '提交数据库事务',
-    icon: CheckCircle,
-    color: 'bg-violet-500',
-    colorHover: 'hover:bg-violet-400',
-    iconColor: 'text-white',
-  },
-  {
-    type: 'db_rollback',
-    name: 'DB 回滚',
-    description: '回滚数据库事务',
-    icon: RotateCcw,
-    color: 'bg-violet-500',
-    colorHover: 'hover:bg-violet-400',
-    iconColor: 'text-white',
-  },
-  {
-    type: 'db_close',
-    name: 'DB 关闭',
-    description: '关闭数据库连接',
-    icon: Plug,
-    color: 'bg-violet-500',
-    colorHover: 'hover:bg-violet-400',
-    iconColor: 'text-white',
-  },
-  {
-    type: 'script',
-    name: '脚本',
-    description: '执行自定义 JavaScript 代码',
-    icon: Code,
-    color: 'bg-indigo-500',
-    colorHover: 'hover:bg-indigo-400',
-    iconColor: 'text-white',
-  },
-] as const;
+/** 节点描述兜底映射 */
+const DESCRIPTION_MAP: Record<string, string> = {
+  http: '发送 HTTP 请求',
+  conditional: '根据条件分支',
+  ws_connect: '建立 WebSocket 连接',
+  ws_send_collect: '发送 WebSocket 消息并采集响应',
+  ws_close: '关闭 WebSocket 连接',
+  assertion: '验证执行结果是否符合预期',
+  db_connect: '建立数据库连接',
+  db_query: '执行数据库查询',
+  db_begin: '开始数据库事务',
+  db_commit: '提交数据库事务',
+  db_rollback: '回滚数据库事务',
+  db_close: '关闭数据库连接',
+  script: '执行自定义 JavaScript 代码',
+};
+
+/** 节点条目 */
+interface NodeItem {
+  type: NodeType;
+  name: string;
+  description: string;
+  icon: LucideIcon;
+}
+
+/** 节点分组 */
+interface NodeGroup {
+  key: string;
+  label: string;
+  items: NodeItem[];
+}
+
+/**
+ * 从后端元数据构建分组
+ */
+function buildGroupsFromMetadata(metadata: NodeMetadata[]): NodeGroup[] {
+  const filtered = metadata.filter((m) => m.type_id !== 'entry');
+  const grouped = groupByCategory(filtered);
+
+  const groups: NodeGroup[] = Object.entries(grouped)
+    .sort(([a], [b]) => getCategoryOrder(a) - getCategoryOrder(b))
+    .map(([category, items]) => ({
+      key: category,
+      label: CATEGORY_NAMES[category] ?? category,
+      items: items.map((m) => ({
+        type: m.type_id as NodeType,
+        name: m.display_name,
+        description: DESCRIPTION_MAP[m.type_id] ?? m.display_name,
+        icon: ICON_MAP[m.type_id]?.icon ?? Wrench,
+      })),
+    }))
+    .filter((g) => g.items.length > 0);
+
+  return groups;
+}
 
 export function NodeLibrary({ showHeader = true }: { showHeader?: boolean }) {
   const { setPendingAddNodeType, flow } = useFlowStore();
+  const [metadata, setMetadata] = useState<NodeMetadata[]>([]);
+
+  useEffect(() => {
+    getNodeMetadata().then(setMetadata);
+  }, []);
+
+  const nodeGroups = useMemo(
+    () => buildGroupsFromMetadata(metadata),
+    [metadata]
+  );
 
   const handleDragStart = (e: React.DragEvent, type: NodeType) => {
     e.dataTransfer.setData('application/reactflow/nodeType', type);
@@ -152,49 +109,65 @@ export function NodeLibrary({ showHeader = true }: { showHeader?: boolean }) {
       )}
 
       {/* 节点列表 */}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin p-2 space-y-1.5">
-        {NODE_TYPES.map((nodeType) => (
-          <button
-            type="button"
-            key={nodeType.type}
-            onClick={() => handleAddNode(nodeType.type)}
-            draggable
-            onDragStart={(e) => handleDragStart(e, nodeType.type)}
-            className={cn(
-              'w-full flex items-center gap-3 px-3 h-14 rounded-lg',
-              'bg-background border border-border',
-              'hover:bg-accent transition-all duration-150 cursor-pointer',
-              'group text-left'
-            )}
-          >
-            {/* 节点图标 */}
-            <div
-              className={cn(
-                'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
-                'bg-background border border-border'
-              )}
-            >
-              <nodeType.icon className="w-5 h-5 text-foreground" />
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin p-2 space-y-3">
+        {nodeGroups.map((group) => (
+          <div key={group.key}>
+            {/* 分类标题 */}
+            <div className="px-1 mb-1">
+              <span className="text-xs font-medium text-muted-foreground">
+                {group.label}
+              </span>
             </div>
+            {/* 分类下节点 */}
+            <div className="space-y-1.5">
+              {group.items.map((nodeType) => {
+                const Icon = nodeType.icon;
+                return (
+                  <button
+                    type="button"
+                    key={nodeType.type}
+                    onClick={() => handleAddNode(nodeType.type)}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, nodeType.type)}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-3 h-14 rounded-lg',
+                      'bg-background border border-border',
+                      'hover:bg-accent transition-all duration-150 cursor-pointer',
+                      'group text-left'
+                    )}
+                  >
+                    {/* 节点图标 */}
+                    <div
+                      className={cn(
+                        'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
+                        'bg-background border border-border'
+                      )}
+                    >
+                      <Icon className="w-5 h-5 text-foreground" />
+                    </div>
 
-            {/* 节点信息 */}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {nodeType.name}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {nodeType.description}
-              </p>
+                    {/* 节点信息 */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {nodeType.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {nodeType.description}
+                      </p>
+                    </div>
+
+                    {/* 拖拽手柄 */}
+                    <GripVertical
+                      className={cn(
+                        'w-4 h-4 text-muted-foreground shrink-0',
+                        'opacity-0 group-hover:opacity-100 transition-opacity'
+                      )}
+                    />
+                  </button>
+                );
+              })}
             </div>
-
-            {/* 拖拽手柄 */}
-            <GripVertical
-              className={cn(
-                'w-4 h-4 text-muted-foreground shrink-0',
-                'opacity-0 group-hover:opacity-100 transition-opacity'
-              )}
-            />
-          </button>
+          </div>
         ))}
       </div>
 
