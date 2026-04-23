@@ -48,6 +48,10 @@ pub use flow_engine_http::http_executor;
 pub use flow_engine_ws::ws_close_executor;
 pub use flow_engine_ws::ws_connect_executor;
 pub use flow_engine_ws::ws_send_collect_executor;
+pub use flow_engine_grpc::grpc_close_executor;
+pub use flow_engine_grpc::grpc_connect_executor;
+pub use flow_engine_grpc::grpc_connection_manager;
+pub use flow_engine_grpc::grpc_call_executor;
 // Wave 4: 调试模块
 pub use flow_engine_executor::debug;
 // Wave 5: 断言模块

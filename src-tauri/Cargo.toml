@@ -10,6 +10,7 @@ members = [
     "crates/flow-engine-assertion",
     "crates/flow-engine-crypto",
     "crates/flow-engine-executor",
+    "crates/flow-engine-grpc",
 ]
 resolver = "2"
 
