@@ -4,7 +4,7 @@
  */
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   grpcConnectConfigSchema,
   type GrpcConnectConfigFormData,
@@ -14,8 +14,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Cable, FileText, Info } from 'lucide-react';
-import type { GrpcConnectConfig as GrpcConnectConfigType } from '@/types';
+import { Plus, Trash2, Cable, FileText, Info, Search, Loader2 } from 'lucide-react';
+import type { GrpcConnectConfig as GrpcConnectConfigType, GrpcServiceInfo } from '@/types';
+import { invoke } from '@tauri-apps/api/core';
 
 interface GrpcConnectConfigProps {
   /** 当前节点数据 */
@@ -37,6 +38,7 @@ function toFormData(data: GrpcConnectConfigType): GrpcConnectConfigFormData {
     proto_files: data.proto_files || [],
     default_metadata: data.default_metadata || [],
     connect_timeout_ms: data.connect_timeout_ms ?? 30000,
+    discovered_services: data.discovered_services,
   };
 }
 
@@ -56,6 +58,7 @@ function fromFormData(formData: GrpcConnectConfigFormData): GrpcConnectConfigTyp
     proto_files: protoFiles && protoFiles.length > 0 ? protoFiles : undefined,
     default_metadata: metadata && metadata.length > 0 ? metadata : undefined,
     connect_timeout_ms: formData.connect_timeout_ms,
+    discovered_services: formData.discovered_services,
   };
 }
 
@@ -191,6 +194,70 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
     metadataFields.remove(index);
     safeSetTimeout(saveData, 100);
   }, [metadataFields, saveData, safeSetTimeout]);
+
+  // 服务发现状态
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [discoveryResult, setDiscoveryResult] = useState<{
+    success: boolean;
+    services: GrpcServiceInfo[];
+    error: string | null;
+  } | null>(null);
+
+  /**
+   * 测试连接 & 发现服务
+   */
+  const handleDiscoverServices = useCallback(async () => {
+    const formData = getValues();
+    const url = formData.url?.trim();
+    if (!url) return;
+
+    setIsDiscovering(true);
+    setDiscoveryResult(null);
+
+    try {
+      console.log('[gRPC] 开始发现服务:', {
+        url,
+        enable_reflection: formData.enable_reflection,
+        use_tls: formData.use_tls,
+      });
+
+      const result = await invoke<{
+        success: boolean;
+        services: GrpcServiceInfo[];
+        error: string | null;
+      }>('grpc_discover_services', {
+        input: {
+          url,
+          use_tls: formData.use_tls ?? false,
+          tls_skip_verify: formData.tls_skip_verify ?? false,
+          enable_reflection: formData.enable_reflection ?? false,
+          proto_files: formData.proto_files
+            ?.filter(f => f.path.trim() && f.content.trim())
+            .map(f => [f.path, f.content] as [string, string]),
+          connect_timeout_ms: formData.connect_timeout_ms ?? 30000,
+        },
+      });
+
+      console.log('[gRPC] 发现服务结果:', result);
+      setDiscoveryResult(result);
+
+      if (result.success && result.services.length > 0) {
+        // 将发现的服务缓存到节点数据中
+        const config = fromFormData(formData);
+        config.discovered_services = result.services;
+        onSave(config);
+      }
+    } catch (error) {
+      console.error('[gRPC] 发现服务失败:', error);
+      setDiscoveryResult({
+        success: false,
+        services: [],
+        error: typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)),
+      });
+    } finally {
+      setIsDiscovering(false);
+    }
+  }, [getValues, onSave]);
 
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
@@ -347,6 +414,40 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
         )}
       </div>
 
+      {/* 测试连接 & 发现服务 */}
+      <div className="space-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full gap-2"
+          disabled={!watch('url')?.trim() || isDiscovering}
+          onClick={handleDiscoverServices}
+        >
+          {isDiscovering ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+          {isDiscovering ? '正在发现服务...' : '测试连接 & 发现服务'}
+        </Button>
+
+        {/* 发现结果摘要 */}
+        {discoveryResult && (
+          <div className={`rounded-md border px-3 py-2 text-xs ${
+            discoveryResult.success
+              ? 'border-emerald-200/60 bg-emerald-50/50 text-emerald-700'
+              : 'border-rose-200/60 bg-rose-50/50 text-rose-600'
+          }`}>
+            {discoveryResult.success ? (
+              <p>发现 {discoveryResult.services.length} 个服务</p>
+            ) : (
+              <p className="text-rose-500">{discoveryResult.error}</p>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* 默认 Metadata */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -417,6 +518,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
           <p className="font-medium text-foreground">Proto 来源说明：</p>
           <p><code className="rounded bg-muted px-1">Server Reflection</code> 从服务器自动获取服务定义，无需手动上传</p>
           <p><code className="rounded bg-muted px-1">手动上传</code> 适合不支持 Reflection 的服务器或离线开发</p>
+          <p><code className="rounded bg-muted px-1">测试连接</code> 验证连接并发现可用服务，结果自动缓存供 gRPC Call 节点使用</p>
         </div>
       </div>
     </form>

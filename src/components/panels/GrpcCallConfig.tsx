@@ -4,7 +4,7 @@
  */
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   grpcCallConfigSchema,
   type GrpcCallConfigFormData,
@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Radio, Info } from 'lucide-react';
-import type { GrpcCallConfig as GrpcCallConfigType } from '@/types';
+import type { GrpcCallConfig as GrpcCallConfigType, GrpcServiceInfo, GrpcMethodInfo } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isGrpcConnectConfig } from '@/types/node';
 
@@ -97,6 +97,45 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
     });
     return connections;
   }, [flow]);
+
+  // 服务/方法选择模式：'select' 表示下拉选择，'manual' 表示手动输入
+  const [serviceInputMode, setServiceInputMode] = useState<'select' | 'manual'>('select');
+  const [methodInputMode, setMethodInputMode] = useState<'select' | 'manual'>('select');
+
+  // 当前选中的 connection_id
+  const currentConnectionId = watch('connection_id');
+
+  // 从选中连接的 grpc_connect 节点中提取 discovered_services
+  const discoveredServices = useMemo((): GrpcServiceInfo[] => {
+    if (!flow || !currentConnectionId) return [];
+    const connectNode = flow.nodes.find(n => n.uuid === currentConnectionId);
+    if (!connectNode || !isGrpcConnectConfig(connectNode.data)) return [];
+    return connectNode.data.discovered_services || [];
+  }, [flow, currentConnectionId]);
+
+  // 当前选中的 service_name
+  const currentServiceName = watch('service_name');
+
+  // 从已选服务中提取方法列表
+  const discoveredMethods = useMemo((): GrpcMethodInfo[] => {
+    if (!currentServiceName || discoveredServices.length === 0) return [];
+    const service = discoveredServices.find(s => s.service_name === currentServiceName);
+    return service?.methods || [];
+  }, [currentServiceName, discoveredServices]);
+
+  // 当 connection_id 变化时，检查已选服务是否仍有效
+  useEffect(() => {
+    if (!currentConnectionId || discoveredServices.length === 0) return;
+    const currentService = getValues('service_name');
+    if (currentService) {
+      const stillExists = discoveredServices.some(s => s.service_name === currentService);
+      if (!stillExists) {
+        // 服务不再存在于新连接中，清空选择
+        setValue('service_name', '', { shouldDirty: true });
+        setValue('method_name', '', { shouldDirty: true });
+      }
+    }
+  }, [currentConnectionId, discoveredServices, getValues, setValue]);
 
   // 追踪待执行的 setTimeout，组件卸载时清除
   const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
@@ -211,6 +250,9 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
             value={watch('connection_id') || ''}
             onValueChange={(value) => {
               setValue('connection_id', value, { shouldDirty: true });
+              // 切换连接时重置服务和方法选择
+              setValue('service_name', '', { shouldDirty: true });
+              setValue('method_name', '', { shouldDirty: true });
               saveData();
             }}
           >
@@ -248,34 +290,170 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
 
       {/* 服务选择 */}
       <div className="space-y-2">
-        <Label htmlFor="service_name" className="text-sm font-medium text-foreground">
-          服务名称 <span className="text-rose-500">*</span>
-        </Label>
-        <Input
-          id="service_name"
-          {...register('service_name')}
-          placeholder="package.ServiceName"
-          className="font-mono text-sm"
-        />
+        <div className="flex items-center justify-between">
+          <Label htmlFor="service_name" className="text-sm font-medium text-foreground">
+            服务名称 <span className="text-rose-500">*</span>
+          </Label>
+          {discoveredServices.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setServiceInputMode(prev => prev === 'select' ? 'manual' : 'select')}
+              className="text-xs text-violet-600 hover:text-violet-800 hover:underline transition-colors"
+            >
+              {serviceInputMode === 'select' ? '手动输入' : '下拉选择'}
+            </button>
+          )}
+        </div>
+        {discoveredServices.length > 0 && serviceInputMode === 'select' ? (
+          <div className="space-y-1.5">
+            <Select
+              value={watch('service_name') || ''}
+              onValueChange={(value) => {
+                setValue('service_name', value, { shouldDirty: true });
+                // 切换服务时清空方法选择
+                setValue('method_name', '', { shouldDirty: true });
+                setMethodInputMode('select');
+                safeSetTimeout(saveData, 100);
+              }}
+            >
+              <SelectTrigger id="service_name" className="font-mono">
+                <SelectValue placeholder="选择服务" />
+              </SelectTrigger>
+              <SelectContent>
+                {discoveredServices.map((svc) => (
+                  <SelectItem key={svc.service_name} value={svc.service_name}>
+                    <span className="font-mono text-sm">{svc.service_name}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      ({svc.methods.length} 个方法)
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
+                {discoveredServices.length} 个服务
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <Input
+              id="service_name"
+              {...register('service_name')}
+              placeholder="package.ServiceName"
+              className="font-mono text-sm"
+            />
+            {discoveredServices.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                当前为手动输入模式，
+                <button
+                  type="button"
+                  onClick={() => setServiceInputMode('select')}
+                  className="text-violet-600 hover:underline"
+                >
+                  切换到下拉选择
+                </button>
+              </p>
+            )}
+          </div>
+        )}
         {errors.service_name && (
           <p className="text-xs text-rose-500">{errors.service_name.message}</p>
         )}
-        <p className="text-xs text-muted-foreground">
-          完整的服务名称（含包名），如 <code className="rounded bg-muted px-1">mypackage.MyService</code>
-        </p>
+        {discoveredServices.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            完整的服务名称（含包名），如 <code className="rounded bg-muted px-1">mypackage.MyService</code>
+            {currentConnectionId && '（连接节点未发现服务，请手动输入）'}
+          </p>
+        )}
       </div>
 
       {/* 方法选择 */}
       <div className="space-y-2">
-        <Label htmlFor="method_name" className="text-sm font-medium text-foreground">
-          方法名称 <span className="text-rose-500">*</span>
-        </Label>
-        <Input
-          id="method_name"
-          {...register('method_name')}
-          placeholder="MethodName"
-          className="font-mono text-sm"
-        />
+        <div className="flex items-center justify-between">
+          <Label htmlFor="method_name" className="text-sm font-medium text-foreground">
+            方法名称 <span className="text-rose-500">*</span>
+          </Label>
+          {discoveredMethods.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setMethodInputMode(prev => prev === 'select' ? 'manual' : 'select')}
+              className="text-xs text-violet-600 hover:text-violet-800 hover:underline transition-colors"
+            >
+              {methodInputMode === 'select' ? '手动输入' : '下拉选择'}
+            </button>
+          )}
+        </div>
+        {discoveredMethods.length > 0 && methodInputMode === 'select' ? (
+          <div className="space-y-1.5">
+            <Select
+              value={watch('method_name') || ''}
+              onValueChange={(value) => {
+                setValue('method_name', value, { shouldDirty: true });
+                safeSetTimeout(saveData, 100);
+              }}
+            >
+              <SelectTrigger id="method_name" className="font-mono">
+                <SelectValue placeholder="选择方法" />
+              </SelectTrigger>
+              <SelectContent>
+                {discoveredMethods.map((method) => (
+                  <SelectItem key={method.method_name} value={method.method_name}>
+                    <span className="font-mono text-sm">{method.method_name}</span>
+                    {method.is_server_streaming && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                        stream
+                      </span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* 方法类型信息 */}
+            {watch('method_name') && (() => {
+              const selected = discoveredMethods.find(m => m.method_name === watch('method_name'));
+              if (!selected) return null;
+              return (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="font-mono text-emerald-700 bg-emerald-50 rounded px-1.5 py-0.5">
+                    {selected.input_type}
+                  </span>
+                  <span>→</span>
+                  <span className="font-mono text-blue-700 bg-blue-50 rounded px-1.5 py-0.5">
+                    {selected.output_type}
+                  </span>
+                  {selected.is_server_streaming && (
+                    <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                      服务端流式
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <Input
+              id="method_name"
+              {...register('method_name')}
+              placeholder="MethodName"
+              className="font-mono text-sm"
+            />
+            {discoveredMethods.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                当前为手动输入模式，
+                <button
+                  type="button"
+                  onClick={() => setMethodInputMode('select')}
+                  className="text-violet-600 hover:underline"
+                >
+                  切换到下拉选择
+                </button>
+              </p>
+            )}
+          </div>
+        )}
         {errors.method_name && (
           <p className="text-xs text-rose-500">{errors.method_name.message}</p>
         )}
