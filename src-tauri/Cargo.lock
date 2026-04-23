@@ -1682,6 +1682,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tonic",
+ "tonic-reflection",
 ]
 
 [[package]]
@@ -6403,6 +6404,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877c5b330756d856ffcc4553ab34a5684481ade925ecc54bcd1bf02b1d0d4d52"
 dependencies = [
  "async-stream",
+ "async-trait",
  "axum",
  "base64 0.22.1",
  "bytes",
@@ -6425,6 +6427,19 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "tonic-reflection"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "878d81f52e7fcfd80026b7fdb6a9b578b3c3653ba987f87f0dce4b64043cba27"
+dependencies = [
+ "prost",
+ "prost-types",
+ "tokio",
+ "tokio-stream",
+ "tonic",
 ]
 
 [[package]]

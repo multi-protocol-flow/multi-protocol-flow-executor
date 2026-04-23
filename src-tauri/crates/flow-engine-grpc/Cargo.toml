@@ -11,6 +11,7 @@ prost = "0.13"
 prost-reflect = { version = "0.14", features = ["serde"] }
 prost-types = "0.13"
 protox = "0.7"
+tonic-reflection = "0.12"
 tokio-stream = "0.1"
 http = "1"
 # Workspace 共享依赖
