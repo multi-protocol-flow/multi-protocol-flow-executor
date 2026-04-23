@@ -20,6 +20,9 @@ import {
   CirclePlay,
   Check,
   RotateCcw,
+  Cable,
+  PhoneOutgoing,
+  PhoneOff,
 } from 'lucide-react';
 import { getCachedDisplayName } from '@/lib/NodeRegistry';
 
@@ -53,6 +56,9 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
   db_commit: { icon: Check, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
   db_rollback: { icon: RotateCcw, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
   db_close: { icon: Plug, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+  grpc_connect: { icon: Cable, iconBg: 'bg-sky-500', labelColor: 'text-sky-600', badge: 'bg-sky-100 text-sky-700' },
+  grpc_call: { icon: PhoneOutgoing, iconBg: 'bg-sky-500', labelColor: 'text-sky-600', badge: 'bg-sky-100 text-sky-700' },
+  grpc_close: { icon: PhoneOff, iconBg: 'bg-sky-500', labelColor: 'text-sky-600', badge: 'bg-sky-100 text-sky-700' },
 };
 
 /** 静态显示名称兜底映射 */
@@ -71,6 +77,9 @@ const STATIC_DISPLAY_NAMES: Record<string, string> = {
   db_commit: 'DB-提交',
   db_rollback: 'DB-回滚',
   db_close: 'DB-关闭',
+  grpc_connect: 'gRPC-连接',
+  grpc_call: 'gRPC-调用',
+  grpc_close: 'gRPC-关闭',
 };
 
 /**
