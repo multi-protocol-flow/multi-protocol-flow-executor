@@ -33,6 +33,12 @@ export type ErrorKind =
   | 'web_socket_message' // WebSocket 消息错误
   | 'web_socket_close' // WebSocket 关闭错误
   | 'web_socket_protocol' // WebSocket 协议错误
+  // ===== gRPC 错误（容错模式，继续执行） =====
+  | 'grpc_connection' // gRPC 连接失败
+  | 'grpc_timeout' // gRPC 超时
+  | 'grpc_message' // gRPC 消息错误
+  | 'grpc_status' // gRPC 状态错误
+  | 'grpc_close' // gRPC 关闭错误
   // ===== 断言错误（容错模式，继续执行） =====
   | 'assertion' // 断言失败
   // ===== 脚本错误（根据 on_error 配置决定是否致命） =====

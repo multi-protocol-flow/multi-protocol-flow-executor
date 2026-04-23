@@ -9,6 +9,7 @@ mod execution_event_sender;
 mod directory_opener;
 mod log_sender;
 mod ws_provider;
+mod grpc_provider;
 
 pub use app_dir::{AppDirProvider, DefaultAppDirProvider};
 pub use db_provider::{
@@ -17,6 +18,7 @@ pub use db_provider::{
 pub use debug_event_sender::DebugEventSender;
 pub use execution_event_sender::{ExecutionEventSender, NoopExecutionEventSender};
 pub use directory_opener::{DirectoryOpener, NoopDirectoryOpener};
+pub use grpc_provider::{GrpcMethodInfo, GrpcProvider, GrpcServiceInfo, GrpcConnectionInfo};
 pub use log_sender::{
     ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
 };

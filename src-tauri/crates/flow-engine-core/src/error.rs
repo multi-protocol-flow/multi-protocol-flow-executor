@@ -145,6 +145,18 @@ pub enum ErrorKind {
     /// WebSocket 协议错误
     WebSocketProtocol,
 
+    // ===== gRPC 错误（容错模式，继续执行） =====
+    /// gRPC 连接失败
+    GrpcConnection,
+    /// gRPC 超时
+    GrpcTimeout,
+    /// gRPC 消息错误
+    GrpcMessage,
+    /// gRPC 状态错误
+    GrpcStatus,
+    /// gRPC 关闭错误
+    GrpcClose,
+
     // ===== 断言错误（容错模式，继续执行） =====
     /// 断言失败
     Assertion,

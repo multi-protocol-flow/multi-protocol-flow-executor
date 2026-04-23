@@ -422,6 +422,140 @@ fn default_close_timeout() -> u64 {
 }
 
 // ============================================================================
+// gRPC 节点配置
+// ============================================================================
+
+/// Proto 文件描述
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProtoFile {
+    /// 文件路径/名称
+    pub path: String,
+    /// 文件内容
+    pub content: String,
+}
+
+impl Default for ProtoFile {
+    fn default() -> Self {
+        Self {
+            path: String::new(),
+            content: String::new(),
+        }
+    }
+}
+
+/// gRPC Metadata 条目
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GrpcMetadataEntry {
+    /// 键
+    pub key: String,
+    /// 值
+    pub value: String,
+}
+
+impl Default for GrpcMetadataEntry {
+    fn default() -> Self {
+        Self {
+            key: String::new(),
+            value: String::new(),
+        }
+    }
+}
+
+/// gRPC Connect 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GrpcConnectConfig {
+    /// gRPC 服务器地址
+    pub url: String,
+    /// 是否使用 TLS
+    #[serde(default)]
+    pub use_tls: bool,
+    /// 是否跳过 TLS 证书验证
+    #[serde(default)]
+    pub tls_skip_verify: bool,
+    /// 是否启用 Server Reflection
+    #[serde(default)]
+    pub enable_reflection: bool,
+    /// Proto 文件列表（当不使用 Reflection 时）
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub proto_files: Vec<ProtoFile>,
+    /// 默认 metadata
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub default_metadata: Vec<GrpcMetadataEntry>,
+    /// 连接超时（毫秒）
+    #[serde(default = "default_grpc_connect_timeout")]
+    pub connect_timeout_ms: u64,
+}
+
+impl Default for GrpcConnectConfig {
+    fn default() -> Self {
+        Self {
+            url: String::new(),
+            use_tls: false,
+            tls_skip_verify: false,
+            enable_reflection: false,
+            proto_files: Vec::new(),
+            default_metadata: Vec::new(),
+            connect_timeout_ms: default_grpc_connect_timeout(),
+        }
+    }
+}
+
+/// gRPC Call 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GrpcCallConfig {
+    /// 连接 ID（引用 grpc_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 服务名称
+    pub service_name: String,
+    /// 方法名称
+    pub method_name: String,
+    /// 请求 JSON
+    pub request_json: String,
+    /// 调用超时（毫秒）
+    #[serde(default = "default_grpc_call_timeout")]
+    pub timeout_ms: u64,
+    /// 调用级 metadata
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub metadata: Vec<GrpcMetadataEntry>,
+}
+
+impl Default for GrpcCallConfig {
+    fn default() -> Self {
+        Self {
+            connection_id: String::new(),
+            service_name: String::new(),
+            method_name: String::new(),
+            request_json: String::new(),
+            timeout_ms: default_grpc_call_timeout(),
+            metadata: Vec::new(),
+        }
+    }
+}
+
+/// gRPC Close 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GrpcCloseConfig {
+    /// 连接 ID（引用 grpc_connect 节点的 UUID）
+    pub connection_id: String,
+}
+
+impl Default for GrpcCloseConfig {
+    fn default() -> Self {
+        Self {
+            connection_id: String::new(),
+        }
+    }
+}
+
+// gRPC Default value helpers
+fn default_grpc_connect_timeout() -> u64 {
+    30000
+}
+fn default_grpc_call_timeout() -> u64 {
+    30000
+}
+
+// ============================================================================
 // Assertion 节点配置
 // ============================================================================
 
@@ -827,6 +961,15 @@ pub enum NodeData {
     /// 脚本节点配置
     #[serde(rename = "script")]
     Script(ScriptNodeConfig),
+    /// gRPC 连接节点配置
+    #[serde(rename = "grpc_connect")]
+    GrpcConnect(GrpcConnectConfig),
+    /// gRPC 调用节点配置
+    #[serde(rename = "grpc_call")]
+    GrpcCall(GrpcCallConfig),
+    /// gRPC 关闭节点配置
+    #[serde(rename = "grpc_close")]
+    GrpcClose(GrpcCloseConfig),
     /// 插件节点配置（未知类型的兜底捕获）
     ///
     /// 当反序列化遇到不认识的 `type` 值时，整个 JSON 对象会被保留在此变体中。
@@ -892,6 +1035,15 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "script" => serde_json::from_value::<ScriptNodeConfig>(value.clone())
                 .map(NodeData::Script)
                 .map_err(serde::de::Error::custom),
+            "grpc_connect" => serde_json::from_value::<GrpcConnectConfig>(value.clone())
+                .map(NodeData::GrpcConnect)
+                .map_err(serde::de::Error::custom),
+            "grpc_call" => serde_json::from_value::<GrpcCallConfig>(value.clone())
+                .map(NodeData::GrpcCall)
+                .map_err(serde::de::Error::custom),
+            "grpc_close" => serde_json::from_value::<GrpcCloseConfig>(value.clone())
+                .map(NodeData::GrpcClose)
+                .map_err(serde::de::Error::custom),
             // 未知 type → 兜底到 Plugin
             _ => Ok(NodeData::Plugin(value)),
         }
@@ -916,6 +1068,9 @@ impl NodeData {
             NodeData::DbRollback(_) => "db_rollback".to_string(),
             NodeData::DbClose(_) => "db_close".to_string(),
             NodeData::Script(_) => "script".to_string(),
+            NodeData::GrpcConnect(_) => "grpc_connect".to_string(),
+            NodeData::GrpcCall(_) => "grpc_call".to_string(),
+            NodeData::GrpcClose(_) => "grpc_close".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
                 .and_then(|v| v.as_str())
@@ -987,6 +1142,31 @@ impl NodeData {
         Self::WsClose(WsCloseConfig {
             connection_id: connection_id.into(),
             ..Default::default()
+        })
+    }
+
+    /// 创建 `GrpcConnect` 节点配置
+    pub fn grpc_connect(url: impl Into<String>) -> Self {
+        Self::GrpcConnect(GrpcConnectConfig {
+            url: url.into(),
+            ..Default::default()
+        })
+    }
+
+    /// 创建 `GrpcCall` 节点配置
+    pub fn grpc_call(connection_id: impl Into<String>, service_name: impl Into<String>, method_name: impl Into<String>) -> Self {
+        Self::GrpcCall(GrpcCallConfig {
+            connection_id: connection_id.into(),
+            service_name: service_name.into(),
+            method_name: method_name.into(),
+            ..Default::default()
+        })
+    }
+
+    /// 创建 `GrpcClose` 节点配置
+    pub fn grpc_close(connection_id: impl Into<String>) -> Self {
+        Self::GrpcClose(GrpcCloseConfig {
+            connection_id: connection_id.into(),
         })
     }
 

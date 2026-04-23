@@ -30,7 +30,10 @@ export type NodeType =
   | 'db_commit'
   | 'db_rollback'
   | 'db_close'
-  | 'script';
+  | 'script'
+  | 'grpc_connect'
+  | 'grpc_call'
+  | 'grpc_close';
 
 /**
  * 节点位置结构体
@@ -365,6 +368,79 @@ export interface WsCloseConfig {
 }
 
 // ============================================================================
+// gRPC 节点类型定义
+// ============================================================================
+
+/**
+ * Proto 文件描述
+ */
+export interface ProtoFile {
+  /** 文件路径/名称 */
+  path: string;
+  /** 文件内容 */
+  content: string;
+}
+
+/**
+ * gRPC Metadata 条目
+ */
+export interface GrpcMetadataEntry {
+  /** 键 */
+  key: string;
+  /** 值 */
+  value: string;
+}
+
+/**
+ * gRPC Connect 节点配置
+ */
+export interface GrpcConnectConfig {
+  type: 'grpc_connect';
+  /** gRPC 服务器地址 */
+  url: string;
+  /** 是否使用 TLS */
+  use_tls?: boolean;
+  /** 是否跳过 TLS 证书验证 */
+  tls_skip_verify?: boolean;
+  /** 是否启用 Server Reflection */
+  enable_reflection?: boolean;
+  /** Proto 文件列表 */
+  proto_files?: ProtoFile[];
+  /** 默认 metadata */
+  default_metadata?: GrpcMetadataEntry[];
+  /** 连接超时（毫秒） */
+  connect_timeout_ms?: number;
+}
+
+/**
+ * gRPC Call 节点配置
+ */
+export interface GrpcCallConfig {
+  type: 'grpc_call';
+  /** 连接 ID */
+  connection_id: string;
+  /** 服务名称 */
+  service_name: string;
+  /** 方法名称 */
+  method_name: string;
+  /** 请求 JSON */
+  request_json: string;
+  /** 调用超时（毫秒） */
+  timeout_ms?: number;
+  /** 调用级 metadata */
+  metadata?: GrpcMetadataEntry[];
+}
+
+/**
+ * gRPC Close 节点配置
+ */
+export interface GrpcCloseConfig {
+  type: 'grpc_close';
+  /** 连接 ID */
+  connection_id: string;
+}
+
+// ============================================================================
 // 数据库节点类型定义
 // ============================================================================
 
@@ -571,6 +647,9 @@ export type NodeData =
   | WsSendCollectConfig
   | WsCloseConfig
   | AssertionNodeConfig
+  | GrpcConnectConfig
+  | GrpcCallConfig
+  | GrpcCloseConfig
   | DbConnectConfig
   | DbQueryConfig
   | DbBeginConfig
@@ -647,6 +726,27 @@ export function isWsSendCollectConfig(data: NodeData): data is WsSendCollectConf
  */
 export function isWsCloseConfig(data: NodeData): data is WsCloseConfig {
   return data.type === 'ws_close';
+}
+
+/**
+ * 判断是否为 GrpcConnectConfig
+ */
+export function isGrpcConnectConfig(data: NodeData): data is GrpcConnectConfig {
+  return data.type === 'grpc_connect';
+}
+
+/**
+ * 判断是否为 GrpcCallConfig
+ */
+export function isGrpcCallConfig(data: NodeData): data is GrpcCallConfig {
+  return data.type === 'grpc_call';
+}
+
+/**
+ * 判断是否为 GrpcCloseConfig
+ */
+export function isGrpcCloseConfig(data: NodeData): data is GrpcCloseConfig {
+  return data.type === 'grpc_close';
 }
 
 /**

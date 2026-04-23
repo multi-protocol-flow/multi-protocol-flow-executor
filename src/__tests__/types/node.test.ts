@@ -66,6 +66,12 @@ function createNodeData(type: NodeData['type']): NodeData {
       return { type: 'db_close', connection_uuid: 'db-conn-1' };
     case 'script':
       return { type: 'script', script: '// test script' };
+    case 'grpc_connect':
+      return { type: 'grpc_connect', url: 'http://localhost:50051' };
+    case 'grpc_call':
+      return { type: 'grpc_call', connection_id: 'grpc-conn-1', service_name: 'TestService', method_name: 'TestMethod', request_json: '{}' };
+    case 'grpc_close':
+      return { type: 'grpc_close', connection_id: 'grpc-conn-1' };
   }
 }
 

@@ -151,6 +151,12 @@ export function createDefaultNodeData(type: NodeType): NodeData {
       return { type: 'db_close', connection_uuid: '' };
     case 'script':
       return { type: 'script', script: '' };
+    case 'grpc_connect':
+      return { type: 'grpc_connect', url: '' };
+    case 'grpc_call':
+      return { type: 'grpc_call', connection_id: '', service_name: '', method_name: '', request_json: '' };
+    case 'grpc_close':
+      return { type: 'grpc_close', connection_id: '' };
     case 'entry':
       return { type: 'entry' };
   }
@@ -175,6 +181,9 @@ const STATIC_NODE_TYPE_LABELS: Record<NodeType, string> = {
   db_close: 'DB 关闭',
   script: '脚本',
   entry: '入口',
+  grpc_connect: 'gRPC 连接',
+  grpc_call: 'gRPC 调用',
+  grpc_close: 'gRPC 关闭',
 };
 
 /**
