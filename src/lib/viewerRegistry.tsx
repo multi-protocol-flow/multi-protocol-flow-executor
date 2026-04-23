@@ -11,6 +11,7 @@ import { WsCloseViewer } from '@/components/execution/viewers/WsCloseViewer';
 import { ConditionalViewer } from '@/components/execution/viewers/ConditionalViewer';
 import { AssertionViewer } from '@/components/execution/viewers/AssertionViewer';
 import { GenericViewer } from '@/components/execution/viewers/GenericViewer';
+import { GrpcViewer } from '@/components/execution/viewers/GrpcViewer';
 
 interface ViewerProps {
   report: NodeExecutionReport;
@@ -27,6 +28,9 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   ws_close: WsCloseViewer,
   conditional: ConditionalViewer,
   assertion: AssertionViewer,
+  grpc_connect: GrpcViewer,
+  grpc_call: GrpcViewer,
+  grpc_close: GrpcViewer,
 };
 
 /**

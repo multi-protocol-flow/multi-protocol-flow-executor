@@ -19,6 +19,9 @@ import { DbCommitConfig } from '@/components/panels/DbCommitConfig';
 import { DbRollbackConfig } from '@/components/panels/DbRollbackConfig';
 import { DbCloseConfig } from '@/components/panels/DbCloseConfig';
 import { ScriptConfig } from '@/components/panels/ScriptConfig';
+import { GrpcConnectConfig } from '@/components/panels/GrpcConnectConfig';
+import { GrpcCallConfig } from '@/components/panels/GrpcCallConfig';
+import { GrpcCloseConfig } from '@/components/panels/GrpcCloseConfig';
 
 export const configPanelRegistry: Record<string, ComponentType<any>> = {
   entry: EntryConfig,
@@ -35,6 +38,9 @@ export const configPanelRegistry: Record<string, ComponentType<any>> = {
   db_rollback: DbRollbackConfig,
   db_close: DbCloseConfig,
   script: ScriptConfig,
+  grpc_connect: GrpcConnectConfig,
+  grpc_call: GrpcCallConfig,
+  grpc_close: GrpcCloseConfig,
 };
 
 /** 根据节点类型获取对应的配置面板组件 */
