@@ -1,10 +1,11 @@
 # flow-engine (门面 crate)
 
-**Layer 3 (门面)** | 2 文件 | 205 行 | 依赖全部 8 个 crate
+**Layer 3 (门面)** | 2 文件 | ~205 行 | 依赖全部 9 个 crate
 
 ## 概述
 
 纯 re-export 门面 crate，无自身业务逻辑。`app` (src-tauri/) 仅依赖此 crate。
+Re-export 全部 9 个子 crate: core, crypto, http, ws, db, script, assertion, grpc, executor。
 
 ## 结构
 
