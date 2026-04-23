@@ -508,6 +508,28 @@ export const grpcMetadataEntrySchema = z.object({
 export type GrpcMetadataEntryFormData = z.infer<typeof grpcMetadataEntrySchema>;
 
 /**
+ * gRPC 方法信息 Schema
+ */
+export const grpcMethodInfoSchema = z.object({
+  method_name: z.string(),
+  input_type: z.string(),
+  output_type: z.string(),
+  is_server_streaming: z.boolean(),
+});
+
+export type GrpcMethodInfoFormData = z.infer<typeof grpcMethodInfoSchema>;
+
+/**
+ * gRPC 服务信息 Schema
+ */
+export const grpcServiceInfoSchema = z.object({
+  service_name: z.string(),
+  methods: z.array(grpcMethodInfoSchema),
+});
+
+export type GrpcServiceInfoFormData = z.infer<typeof grpcServiceInfoSchema>;
+
+/**
  * gRPC Connect 配置表单 Schema
  */
 export const grpcConnectConfigSchema = z.object({
@@ -519,6 +541,7 @@ export const grpcConnectConfigSchema = z.object({
   proto_files: z.array(protoFileSchema).optional(),
   default_metadata: z.array(grpcMetadataEntrySchema).optional(),
   connect_timeout_ms: z.number().min(1000).max(300000).optional(),
+  discovered_services: z.array(grpcServiceInfoSchema).optional(),
 });
 
 export type GrpcConnectConfigFormData = z.infer<typeof grpcConnectConfigSchema>;

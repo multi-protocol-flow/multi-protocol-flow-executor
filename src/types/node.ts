@@ -392,6 +392,30 @@ export interface GrpcMetadataEntry {
 }
 
 /**
+ * gRPC 方法信息（从 Server Reflection 或 Proto 解析得到）
+ */
+export interface GrpcMethodInfo {
+  /** 方法名 */
+  method_name: string;
+  /** 输入类型全名 */
+  input_type: string;
+  /** 输出类型全名 */
+  output_type: string;
+  /** 是否为服务端流式 */
+  is_server_streaming: boolean;
+}
+
+/**
+ * gRPC 服务信息（从 Server Reflection 或 Proto 解析得到）
+ */
+export interface GrpcServiceInfo {
+  /** 服务全名（如 "package.ServiceName"） */
+  service_name: string;
+  /** 方法列表 */
+  methods: GrpcMethodInfo[];
+}
+
+/**
  * gRPC Connect 节点配置
  */
 export interface GrpcConnectConfig {
@@ -410,6 +434,8 @@ export interface GrpcConnectConfig {
   default_metadata?: GrpcMetadataEntry[];
   /** 连接超时（毫秒） */
   connect_timeout_ms?: number;
+  /** 通过 Server Reflection 或 Proto 解析发现的服务列表（设计时缓存） */
+  discovered_services?: GrpcServiceInfo[];
 }
 
 /**

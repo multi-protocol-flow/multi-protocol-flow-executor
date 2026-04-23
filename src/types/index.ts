@@ -32,6 +32,8 @@ export type {
   GrpcCloseConfig,
   ProtoFile,
   GrpcMetadataEntry,
+  GrpcMethodInfo,
+  GrpcServiceInfo,
   AssertionOperator,
   AssertionMode,
   OnFailureMode,
