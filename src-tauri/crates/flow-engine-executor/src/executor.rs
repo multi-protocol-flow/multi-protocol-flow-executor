@@ -246,6 +246,9 @@ impl FlowExecutor {
         // 初始化数据库连接池管理器（流程级别的单例）
         let db_manager = Arc::new(flow_engine_db::db::pool::DatabaseConnectionManager::new());
 
+        // 初始化 gRPC 连接管理器（流程级别的单例）
+        let grpc_manager = Arc::new(flow_engine_grpc::grpc_connection_manager::GrpcConnectionManager::new());
+
         let mut context = ExecutionContext {
             flow_uuid: flow.uuid.clone(),
             current_node_uuid: None,
@@ -261,7 +264,7 @@ impl FlowExecutor {
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
             db_manager: Some(db_manager),
-            grpc_manager: None,
+            grpc_manager: Some(grpc_manager),
             last_node_output: None,
             debug_event_sender: self.debug_event_sender.clone(),
             execution_event_sender: self.execution_event_sender.clone(),
