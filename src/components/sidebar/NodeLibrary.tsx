@@ -34,6 +34,9 @@ const DESCRIPTION_MAP: Record<string, string> = {
   db_rollback: '回滚数据库事务',
   db_close: '关闭数据库连接',
   script: '执行自定义 JavaScript 代码',
+  grpc_connect: '建立 gRPC 连接',
+  grpc_call: 'gRPC 调用（支持 Unary/Streaming 模式）',
+  grpc_close: '关闭 gRPC 连接',
 };
 
 /** 节点条目 */

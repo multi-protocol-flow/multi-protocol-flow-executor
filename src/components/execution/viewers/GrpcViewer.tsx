@@ -129,6 +129,8 @@ interface GrpcConnectOutput {
  */
 interface GrpcCallOutput {
   success?: boolean;
+  /** Streaming pattern: 'unary' | 'server_streaming' | 'client_streaming' | 'bidi_streaming' */
+  pattern?: string;
   connection_id?: string;
   service_name?: string;
   method_name?: string;
@@ -144,18 +146,29 @@ interface GrpcCallOutput {
     call_ms?: number;
     total_ms?: number;
   };
-  /** 响应数据（Unary 为单个对象，Server Streaming 为数组） */
+  /** Response data (Unary/Client Streaming: single object) */
   data?: unknown;
-  /** gRPC 状态 */
+  /** Responses array (Server/Bidi Streaming: multiple responses) */
+  responses?: Array<{ index?: number; data?: unknown; received_at_ms?: number }>;
+  /** Number of messages sent (Client/Bidi Streaming) */
+  sent_count?: number;
+  /** Number of messages received (Server/Bidi Streaming) */
+  received_count?: number;
+  /** gRPC status */
   status?: string;
-  /** gRPC 状态消息 */
+  /** gRPC status message */
   status_message?: string;
-  /** 响应 metadata */
+  /** Response metadata */
   response_metadata?: Record<string, unknown>;
-  /** 响应 trailers */
+  /** Response trailers */
   trailers?: Record<string, unknown>;
-  /** 是否为 Server Streaming 响应 */
+  /** Whether server streaming response */
   is_streaming?: boolean;
+  /** Streaming timing info */
+  streaming_timing?: {
+    total_ms?: number;
+    first_response_ms?: number;
+  };
   error?: string;
 }
 
@@ -415,6 +428,23 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
   const trailers = output?.trailers;
   const isStreaming = output?.is_streaming ?? isStreamingData(responseData);
 
+  // Streaming responses (new unified format)
+  const streamingResponses = output?.responses ?? [];
+  const hasStreamingResponses = streamingResponses.length > 0;
+
+  // Determine pattern label and color
+  const patternLabel = (() => {
+    switch (output?.pattern) {
+      case 'unary': return { text: 'Unary', color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/50' };
+      case 'server_streaming': return { text: 'Server Stream', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50' };
+      case 'client_streaming': return { text: 'Client Stream', color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50' };
+      case 'bidi_streaming': return { text: 'Bidi Stream', color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50' };
+      default: return isStreaming
+        ? { text: 'Server Stream', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50' }
+        : { text: 'Unary', color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/50' };
+    }
+  })();
+
   return (
     <div className="space-y-3">
       {/* 调用配置 */}
@@ -426,11 +456,8 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
         <div className="space-y-3">
           {/* 服务名.方法名 */}
           <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className="font-mono text-xs text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/50 border-0 shrink-0"
-            >
-              {isStreaming ? 'Server Stream' : 'Unary'}
+            <Badge variant="outline" className={cn("font-mono text-xs border-0 shrink-0", patternLabel.color)}>
+              {patternLabel.text}
             </Badge>
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
               {serviceName && methodName
@@ -506,10 +533,88 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
         </div>
       </CollapsibleSection>
 
-      {/* 响应数据 */}
-      {responseData !== undefined && responseData !== null && (
+      {/* Streaming Statistics */}
+      {(output?.sent_count !== undefined || output?.received_count !== undefined) && (
         <CollapsibleSection
-          title={isStreaming ? `响应数据 (${Array.isArray(responseData) ? responseData.length : 0} 条消息)` : '响应数据'}
+          title="流式统计"
+          icon={<Server className="w-4 h-4" />}
+          defaultOpen={true}
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            {output?.sent_count !== undefined && (
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
+                <span className="text-muted-foreground">发送消息数</span>
+                <span className="font-mono text-blue-600 font-medium">{output.sent_count}</span>
+              </div>
+            )}
+            {output?.received_count !== undefined && (
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
+                <span className="text-muted-foreground">接收消息数</span>
+                <span className="font-mono text-emerald-600 font-medium">{output.received_count}</span>
+              </div>
+            )}
+            {output?.streaming_timing?.first_response_ms !== undefined && (
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
+                <span className="text-muted-foreground">首响应耗时</span>
+                <span className="font-mono text-foreground">{output.streaming_timing.first_response_ms}ms</span>
+              </div>
+            )}
+            {output?.streaming_timing?.total_ms !== undefined && (
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
+                <span className="text-muted-foreground">流式总耗时</span>
+                <span className="font-mono text-foreground">{output.streaming_timing.total_ms}ms</span>
+              </div>
+            )}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Response Data - Single Response (Unary/Client Streaming) */}
+      {responseData !== undefined && responseData !== null && !hasStreamingResponses && (
+        <CollapsibleSection
+          title="响应数据"
+          icon={<Globe className="w-4 h-4" />}
+          defaultOpen={false}
+        >
+          <div className="bg-muted rounded p-2">
+            <RawJsonViewer data={responseData} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Response Data - Streaming Responses (Server/Bidi Streaming) */}
+      {hasStreamingResponses && (
+        <CollapsibleSection
+          title={`响应消息 (${streamingResponses.length} 条)`}
+          icon={<Globe className="w-4 h-4" />}
+          defaultOpen={false}
+        >
+          <div className="space-y-2">
+            {streamingResponses.map((resp, idx) => (
+              <div key={idx} className="border border-border rounded p-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge variant="outline" className="text-[10px] px-1 py-0 font-mono">
+                    #{resp.index ?? idx + 1}
+                  </Badge>
+                  {resp.received_at_ms !== undefined && (
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {resp.received_at_ms}ms
+                    </span>
+                  )}
+                </div>
+                <div className="bg-muted rounded p-1.5">
+                  <RawJsonViewer data={resp.data} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Legacy: array response data fallback (backward compatibility) */}
+      {responseData !== undefined && responseData !== null && hasStreamingResponses && Array.isArray(responseData) && (
+        <CollapsibleSection
+          title={`响应数据 (${responseData.length} 条消息)`}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={false}
         >

@@ -426,7 +426,7 @@ fn default_close_timeout() -> u64 {
 // ============================================================================
 
 /// Proto 文件描述
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct ProtoFile {
     /// 文件路径/名称
     pub path: String,
@@ -434,17 +434,8 @@ pub struct ProtoFile {
     pub content: String,
 }
 
-impl Default for ProtoFile {
-    fn default() -> Self {
-        Self {
-            path: String::new(),
-            content: String::new(),
-        }
-    }
-}
-
 /// gRPC Metadata 条目
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct GrpcMetadataEntry {
     /// 键
     pub key: String,
@@ -452,11 +443,60 @@ pub struct GrpcMetadataEntry {
     pub value: String,
 }
 
-impl Default for GrpcMetadataEntry {
+/// gRPC 流式消息
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct StreamMessage {
+    /// 是否启用
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    /// 消息内容（JSON 字符串）
+    #[serde(default)]
+    pub content: String,
+}
+
+/// gRPC 采集模式
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum GrpcCollectMode {
+    /// 全部采集
+    #[default]
+    All,
+    /// 采集前 N 条
+    FirstN,
+    /// 持续采集指定时长
+    Duration,
+    /// 条件匹配
+    ConditionMatch,
+}
+
+/// gRPC 采集配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GrpcCollectConfig {
+    /// 采集模式
+    #[serde(default)]
+    pub mode: GrpcCollectMode,
+    /// 最大采集数量（FirstN 模式）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_count: Option<usize>,
+    /// 持续时长（Duration 模式，毫秒）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<u64>,
+    /// 匹配条件（ConditionMatch 模式）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub condition: Option<String>,
+    /// 采集超时（毫秒）
+    #[serde(default = "default_grpc_call_timeout")]
+    pub timeout_ms: u64,
+}
+
+impl Default for GrpcCollectConfig {
     fn default() -> Self {
         Self {
-            key: String::new(),
-            value: String::new(),
+            mode: GrpcCollectMode::default(),
+            max_count: None,
+            duration_ms: None,
+            condition: None,
+            timeout_ms: default_grpc_call_timeout(),
         }
     }
 }
@@ -503,7 +543,7 @@ impl Default for GrpcConnectConfig {
 /// gRPC Call 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GrpcCallConfig {
-    /// 连接 ID（引用 grpc_connect 节点的 UUID）
+    /// 连接 ID（引用 `grpc_connect` 节点的 UUID）
     pub connection_id: String,
     /// 服务名称
     pub service_name: String,
@@ -517,6 +557,12 @@ pub struct GrpcCallConfig {
     /// 调用级 metadata
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub metadata: Vec<GrpcMetadataEntry>,
+    /// 流式消息列表（Client/Bidi Streaming 模式）
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub request_messages: Vec<StreamMessage>,
+    /// 响应采集配置（Server/Bidi Streaming 模式）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub collect_config: Option<GrpcCollectConfig>,
 }
 
 impl Default for GrpcCallConfig {
@@ -528,23 +574,17 @@ impl Default for GrpcCallConfig {
             request_json: String::new(),
             timeout_ms: default_grpc_call_timeout(),
             metadata: Vec::new(),
+            request_messages: Vec::new(),
+            collect_config: None,
         }
     }
 }
 
 /// gRPC Close 节点配置
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct GrpcCloseConfig {
-    /// 连接 ID（引用 grpc_connect 节点的 UUID）
+    /// 连接 ID（引用 `grpc_connect` 节点的 UUID）
     pub connection_id: String,
-}
-
-impl Default for GrpcCloseConfig {
-    fn default() -> Self {
-        Self {
-            connection_id: String::new(),
-        }
-    }
 }
 
 // gRPC Default value helpers
@@ -553,6 +593,10 @@ fn default_grpc_connect_timeout() -> u64 {
 }
 fn default_grpc_call_timeout() -> u64 {
     30000
+}
+
+fn default_true() -> bool {
+    true
 }
 
 // ============================================================================

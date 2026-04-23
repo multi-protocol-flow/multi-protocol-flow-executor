@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
-use flow_engine_core::traits::{GrpcMethodInfo, GrpcProvider, GrpcServiceInfo};
+use flow_engine_core::traits::{GrpcMethodInfo, GrpcProvider, GrpcServiceInfo, GrpcStreamingResult, GrpcTimingInfo};
 use http::uri::PathAndQuery;
 use prost_reflect::{DynamicMessage, MethodDescriptor};
 use serde_json::de::Deserializer;
@@ -356,6 +356,7 @@ pub async fn discover_services_via_reflection(
                     input_type: m.input_type.clone(),
                     output_type: m.output_type.clone(),
                     is_server_streaming: m.is_server_streaming,
+                    is_client_streaming: m.is_client_streaming,
                 })
                 .collect(),
         })
@@ -393,6 +394,7 @@ pub fn discover_services_via_proto(
                     input_type: m.input_type.clone(),
                     output_type: m.output_type.clone(),
                     is_server_streaming: m.is_server_streaming,
+                    is_client_streaming: m.is_client_streaming,
                 })
                 .collect(),
         })
@@ -616,6 +618,7 @@ impl GrpcProvider for GrpcConnectionManager {
                         input_type: m.input_type.clone(),
                         output_type: m.output_type.clone(),
                         is_server_streaming: m.is_server_streaming,
+                        is_client_streaming: m.is_client_streaming,
                     })
                     .collect(),
             })
@@ -805,6 +808,177 @@ impl GrpcProvider for GrpcConnectionManager {
         Ok(results)
     }
 
+    /// gRPC Client Streaming 调用
+    async fn call_client_streaming(
+        &self,
+        connection_id: &str,
+        service_name: &str,
+        method_name: &str,
+        request_messages: Vec<String>,
+        metadata: Vec<(String, String)>,
+        timeout_ms: u64,
+    ) -> Result<serde_json::Value, String> {
+        // 1. 从连接池获取连接信息
+        let (channel, pool) = {
+            let conns = self.connections.read().map_err(|e| format!("获取连接池读锁失败: {}", e))?;
+            let conn = conns.get(connection_id).ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
+            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool))
+        };
+
+        // 2. 查找方法描述符
+        let service = pool.get_service_by_name(service_name)
+            .ok_or_else(|| format!("服务 '{}' 不存在", service_name))?;
+        let method = service.methods()
+            .find(|m| m.name() == method_name)
+            .ok_or_else(|| format!("方法 '{}' 在服务 '{}' 中不存在", method_name, service_name))?;
+
+        // 3. 将所有 request_messages 解码为 DynamicMessage
+        let messages: Vec<DynamicMessage> = request_messages.iter()
+            .map(|json| json_to_dynamic_message(json, method.input()))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        // 4. 构造请求流
+        let request_stream = tokio_stream::iter(messages);
+        let mut request = tonic::Request::new(request_stream);
+
+        // 5. 设置 metadata
+        for (key, value) in metadata {
+            let meta_key = MetadataKey::from_bytes(key.as_bytes())
+                .map_err(|e| format!("无效的 metadata key '{}': {:?}", key, e))?;
+            let meta_val = MetadataValue::try_from(&value)
+                .map_err(|e| format!("无效的 metadata value '{}': {:?}", value, e))?;
+            request.metadata_mut().insert(meta_key, meta_val);
+        }
+        if timeout_ms > 0 {
+            request.set_timeout(std::time::Duration::from_millis(timeout_ms));
+        }
+
+        // 6. 发起 Client Streaming 调用
+        let path = build_method_path(service_name, method_name)?;
+        let codec = DynamicCodec::new(method);
+        let mut client = tonic::client::Grpc::new(channel);
+        client.ready().await.map_err(|e| format!("gRPC 客户端未就绪: {}", e))?;
+
+        let response = client.client_streaming(request, path, codec).await
+            .map_err(|e| format!("gRPC Client Streaming 调用失败: {} ({})", e.message(), e.code()))?;
+
+        // 7. 序列化单个响应为 JSON
+        let response_msg = response.into_inner();
+        dynamic_message_to_json(&response_msg)
+    }
+
+    /// gRPC Bidi Streaming 调用
+    async fn call_bidi_streaming(
+        &self,
+        connection_id: &str,
+        service_name: &str,
+        method_name: &str,
+        request_messages: Vec<String>,
+        metadata: Vec<(String, String)>,
+        timeout_ms: u64,
+        collect_timeout_ms: u64,
+    ) -> Result<GrpcStreamingResult, String> {
+        use std::time::Instant;
+
+        let start = Instant::now();
+
+        // 1. 从连接池获取连接信息
+        let (channel, pool) = {
+            let conns = self.connections.read().map_err(|e| format!("获取连接池读锁失败: {}", e))?;
+            let conn = conns.get(connection_id).ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
+            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool))
+        };
+
+        // 2. 查找方法描述符
+        let service = pool.get_service_by_name(service_name)
+            .ok_or_else(|| format!("服务 '{}' 不存在", service_name))?;
+        let method = service.methods()
+            .find(|m| m.name() == method_name)
+            .ok_or_else(|| format!("方法 '{}' 在服务 '{}' 中不存在", method_name, service_name))?;
+
+        // 3. 将所有 request_messages 解码为 DynamicMessage
+        let messages: Vec<DynamicMessage> = request_messages.iter()
+            .map(|json| json_to_dynamic_message(json, method.input()))
+            .collect::<Result<Vec<_>, _>>()?;
+        let sent_count = messages.len();
+
+        // 4. 构造请求流
+        let request_stream = tokio_stream::iter(messages);
+        let mut request = tonic::Request::new(request_stream);
+
+        // 5. 设置 metadata
+        for (key, value) in metadata {
+            let meta_key = MetadataKey::from_bytes(key.as_bytes())
+                .map_err(|e| format!("无效的 metadata key '{}': {:?}", key, e))?;
+            let meta_val = MetadataValue::try_from(&value)
+                .map_err(|e| format!("无效的 metadata value '{}': {:?}", value, e))?;
+            request.metadata_mut().insert(meta_key, meta_val);
+        }
+        if timeout_ms > 0 {
+            request.set_timeout(std::time::Duration::from_millis(timeout_ms));
+        }
+
+        // 6. 发起 Bidi Streaming 调用
+        let path = build_method_path(service_name, method_name)?;
+        let codec = DynamicCodec::new(method);
+        let mut client = tonic::client::Grpc::new(channel);
+        client.ready().await.map_err(|e| format!("gRPC 客户端未就绪: {}", e))?;
+
+        let response = client.streaming(request, path, codec).await
+            .map_err(|e| format!("gRPC Bidi Streaming 调用失败: {} ({})", e.message(), e.code()))?;
+
+        // 7. 采集响应流（带超时）
+        let mut stream = response.into_inner();
+        let mut responses = Vec::new();
+        let mut first_response_ms: Option<u64> = None;
+
+        let collect_result = tokio::time::timeout(
+            std::time::Duration::from_millis(collect_timeout_ms),
+            async {
+                loop {
+                    match stream.message().await {
+                        Ok(Some(msg)) => {
+                            if first_response_ms.is_none() {
+                                first_response_ms = Some(start.elapsed().as_millis() as u64);
+                            }
+                            let json_val = dynamic_message_to_json(&msg)?;
+                            responses.push(json_val);
+                        }
+                        Ok(None) => break,
+                        Err(e) => {
+                            return Err(format!("Bidi 流式响应错误: {} ({})", e.message(), e.code()));
+                        }
+                    }
+                }
+                Ok(())
+            },
+        ).await;
+
+        match collect_result {
+            Ok(Ok(_)) => {},
+            Ok(Err(e)) => return Err(e),
+            Err(_) => {
+                // 超时，收集已获取的响应（非致命）
+                log::warn!("[gRPC Bidi] 采集超时 ({}ms)，已收集 {} 条响应", collect_timeout_ms, responses.len());
+            }
+        }
+
+        let received_count = responses.len();
+        let total_ms = start.elapsed().as_millis() as u64;
+
+        Ok(GrpcStreamingResult {
+            status: 0, // gRPC OK
+            responses,
+            sent_count,
+            received_count,
+            trailers: std::collections::HashMap::new(),
+            timing: GrpcTimingInfo {
+                total_ms,
+                first_response_ms,
+            },
+        })
+    }
+
     /// 关闭 gRPC 连接
     ///
     /// 从连接池中移除连接，tonic Channel 自动 drop 关闭。
@@ -843,6 +1017,7 @@ impl GrpcProvider for GrpcConnectionManager {
                             input_type: m.input_type.clone(),
                             output_type: m.output_type.clone(),
                             is_server_streaming: m.is_server_streaming,
+                            is_client_streaming: m.is_client_streaming,
                         })
                         .collect(),
                 })

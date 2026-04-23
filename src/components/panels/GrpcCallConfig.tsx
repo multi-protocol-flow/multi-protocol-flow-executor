@@ -38,6 +38,8 @@ function toFormData(data: GrpcCallConfigType): GrpcCallConfigFormData {
     request_json: data.request_json || '{}',
     timeout_ms: data.timeout_ms ?? 30000,
     metadata: data.metadata || [],
+    request_messages: data.request_messages || [],
+    collect_config: data.collect_config || undefined,
   };
 }
 
@@ -55,6 +57,9 @@ function fromFormData(formData: GrpcCallConfigFormData): GrpcCallConfigType {
     request_json: formData.request_json,
     timeout_ms: formData.timeout_ms,
     metadata: metadata && metadata.length > 0 ? metadata : undefined,
+    request_messages: formData.request_messages && formData.request_messages.length > 0
+      ? formData.request_messages : undefined,
+    collect_config: formData.collect_config || undefined,
   };
 }
 
@@ -122,6 +127,17 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
     const service = discoveredServices.find(s => s.service_name === currentServiceName);
     return service?.methods || [];
   }, [currentServiceName, discoveredServices]);
+
+  // 判断选中方法的流式模式
+  const selectedMethod = useMemo((): GrpcMethodInfo | null => {
+    const methodName = watch('method_name');
+    if (!methodName || discoveredMethods.length === 0) return null;
+    return discoveredMethods.find(m => m.method_name === methodName) || null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watch('method_name'), discoveredMethods]);
+
+  const isClientStreaming = selectedMethod?.is_client_streaming ?? false;
+  const isServerStreaming = selectedMethod?.is_server_streaming ?? false;
 
   // 当 connection_id 变化时，检查已选服务是否仍有效
   useEffect(() => {
@@ -192,6 +208,22 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
       }
     })();
   }, [handleSubmit, onSave]);
+
+  // 消息列表字段数组（Client/Bidi Streaming 模式）
+  const messageFields = useFieldArray({
+    control,
+    name: 'request_messages' as never,
+  });
+
+  const handleAddMessage = useCallback(() => {
+    messageFields.append({ enabled: true, content: '{}' });
+  }, [messageFields]);
+
+  const handleRemoveMessage = useCallback((index: number) => {
+    messageFields.remove(index);
+    safeSetTimeout(saveData, 100);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messageFields, saveData, safeSetTimeout]);
 
   /**
    * 处理失焦事件
@@ -423,9 +455,21 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
                   <span className="font-mono text-blue-700 bg-blue-50 rounded px-1.5 py-0.5">
                     {selected.output_type}
                   </span>
-                  {selected.is_server_streaming && (
+                  {selected.is_server_streaming && selected.is_client_streaming ? (
+                    <span className="inline-flex items-center rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700">
+                      双向流式
+                    </span>
+                  ) : selected.is_server_streaming ? (
                     <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
                       服务端流式
+                    </span>
+                  ) : selected.is_client_streaming ? (
+                    <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
+                      客户端流式
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
+                      Unary
                     </span>
                   )}
                 </div>
@@ -459,25 +503,166 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
         )}
       </div>
 
-      {/* 请求 JSON */}
-      <div className="space-y-2">
-        <Label htmlFor="request_json" className="text-sm font-medium text-foreground">
-          请求 JSON
-        </Label>
-        <Textarea
-          id="request_json"
-          {...register('request_json')}
-          placeholder='{"field": "value"}'
-          className="min-h-[120px] resize-y font-mono text-sm"
-          rows={5}
-        />
-        {errors.request_json && (
-          <p className="text-xs text-rose-500">{errors.request_json.message}</p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          请求消息的 JSON 格式，将自动序列化发送
-        </p>
-      </div>
+      {/* 消息列表（Client/Bidi Streaming 模式） */}
+      {isClientStreaming && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium text-foreground">
+              消息列表
+            </Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleAddMessage}
+              className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="h-3 w-3" />
+              添加消息
+            </Button>
+          </div>
+          {messageFields.fields.length === 0 ? (
+            <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
+              <p className="text-xs text-muted-foreground">点击"添加消息"按钮添加请求消息</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {messageFields.fields.map((field, index) => (
+                <div key={field.id} className="flex items-start gap-2 p-2 rounded-md border bg-muted/30">
+                  <input
+                    type="checkbox"
+                    {...register(`request_messages.${index}.enabled`)}
+                    className="mt-2 h-4 w-4 shrink-0"
+                    defaultChecked={(field as Record<string, unknown>).enabled as boolean}
+                  />
+                  <div className="flex-1 space-y-1">
+                    <Textarea
+                      {...register(`request_messages.${index}.content`)}
+                      placeholder='{"field": "value"}'
+                      className="min-h-[60px] resize-y font-mono text-xs"
+                      rows={3}
+                    />
+                    <p className="text-[10px] text-muted-foreground">消息 {index + 1}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveMessage(index)}
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            启用的消息将按顺序发送，禁用的消息会被跳过
+          </p>
+        </div>
+      )}
+
+      {/* 单消息编辑器（Unary/Server Streaming 模式） */}
+      {!isClientStreaming && (
+        <div className="space-y-2">
+          <Label htmlFor="request_json" className="text-sm font-medium text-foreground">
+            请求 JSON
+          </Label>
+          <Textarea
+            id="request_json"
+            {...register('request_json')}
+            placeholder='{"field": "value"}'
+            className="min-h-[120px] resize-y font-mono text-sm"
+            rows={5}
+          />
+          {errors.request_json && (
+            <p className="text-xs text-rose-500">{errors.request_json.message}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            请求消息的 JSON 格式，将自动序列化发送
+          </p>
+        </div>
+      )}
+
+      {/* 响应采集配置（Server/Bidi Streaming 模式） */}
+      {isServerStreaming && (
+        <div className="space-y-3 rounded-lg border border-blue-200/50 bg-blue-50/30 p-3">
+          <h5 className="text-sm font-medium text-foreground">响应采集配置</h5>
+
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">采集模式</Label>
+            <Select
+              value={watch('collect_config.mode') || 'all'}
+              onValueChange={(value) => {
+                setValue('collect_config', {
+                  mode: value as 'all' | 'first_n' | 'duration' | 'condition_match',
+                  timeout_ms: watch('collect_config.timeout_ms') || 30000,
+                }, { shouldDirty: true });
+              }}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="选择采集模式" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部采集</SelectItem>
+                <SelectItem value="first_n">采集前 N 条</SelectItem>
+                <SelectItem value="duration">持续采集指定时长</SelectItem>
+                <SelectItem value="condition_match">条件匹配</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {watch('collect_config.mode') === 'first_n' && (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">采集数量 N</Label>
+              <Input
+                type="number"
+                min={1}
+                {...register('collect_config.max_count', { valueAsNumber: true })}
+                className="h-8 text-xs"
+                placeholder="10"
+              />
+            </div>
+          )}
+
+          {watch('collect_config.mode') === 'duration' && (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">持续时长（毫秒）</Label>
+              <Input
+                type="number"
+                min={100}
+                {...register('collect_config.duration_ms', { valueAsNumber: true })}
+                className="h-8 text-xs"
+                placeholder="5000"
+              />
+            </div>
+          )}
+
+          {watch('collect_config.mode') === 'condition_match' && (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">匹配条件（JSONPath 表达式）</Label>
+              <Input
+                {...register('collect_config.condition')}
+                className="h-8 text-xs font-mono"
+                placeholder="$.status == 'complete'"
+              />
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">采集超时（毫秒）</Label>
+            <Input
+              type="number"
+              min={1000}
+              max={300000}
+              {...register('collect_config.timeout_ms', { valueAsNumber: true })}
+              className="h-8 text-xs"
+              placeholder="30000"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Metadata */}
       <div className="space-y-2">

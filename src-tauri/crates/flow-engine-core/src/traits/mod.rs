@@ -18,7 +18,10 @@ pub use db_provider::{
 pub use debug_event_sender::DebugEventSender;
 pub use execution_event_sender::{ExecutionEventSender, NoopExecutionEventSender};
 pub use directory_opener::{DirectoryOpener, NoopDirectoryOpener};
-pub use grpc_provider::{GrpcMethodInfo, GrpcProvider, GrpcServiceInfo, GrpcConnectionInfo};
+pub use grpc_provider::{
+    GrpcConnectionInfo, GrpcMethodInfo, GrpcPattern, GrpcProvider, GrpcServiceInfo,
+    GrpcStreamingResult, GrpcTimingInfo,
+};
 pub use log_sender::{
     ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
 };

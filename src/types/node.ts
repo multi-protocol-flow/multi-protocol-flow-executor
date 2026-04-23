@@ -392,6 +392,70 @@ export interface GrpcMetadataEntry {
 }
 
 /**
+ * gRPC 通信模式
+ */
+export type GrpcPattern = 'unary' | 'server_streaming' | 'client_streaming' | 'bidi_streaming';
+
+/**
+ * gRPC 采集模式
+ */
+export type GrpcCollectMode = 'all' | 'first_n' | 'duration' | 'condition_match';
+
+/**
+ * gRPC 流式消息
+ */
+export interface StreamMessage {
+  /** 是否启用 */
+  enabled: boolean;
+  /** 消息内容（JSON 字符串） */
+  content: string;
+}
+
+/**
+ * gRPC 采集配置
+ */
+export interface GrpcCollectConfig {
+  /** 采集模式 */
+  mode: GrpcCollectMode;
+  /** 最大采集数量（FirstN 模式） */
+  max_count?: number;
+  /** 持续时长（Duration 模式，毫秒） */
+  duration_ms?: number;
+  /** 匹配条件（ConditionMatch 模式） */
+  condition?: string;
+  /** 采集超时（毫秒） */
+  timeout_ms: number;
+}
+
+/**
+ * gRPC 计时信息
+ */
+export interface GrpcTimingInfo {
+  /** 总耗时（毫秒） */
+  total_ms: number;
+  /** 首个响应耗时（毫秒） */
+  first_response_ms?: number;
+}
+
+/**
+ * gRPC 流式结果
+ */
+export interface GrpcStreamingResult {
+  /** gRPC 状态码 */
+  status: number;
+  /** 响应列表 */
+  responses: Array<{ index: number; data: unknown; received_at_ms: number }>;
+  /** 已发送消息数 */
+  sent_count: number;
+  /** 已接收消息数 */
+  received_count: number;
+  /** Trailers metadata */
+  trailers: Record<string, string>;
+  /** 计时信息 */
+  timing: GrpcTimingInfo;
+}
+
+/**
  * gRPC 方法信息（从 Server Reflection 或 Proto 解析得到）
  */
 export interface GrpcMethodInfo {
@@ -403,6 +467,8 @@ export interface GrpcMethodInfo {
   output_type: string;
   /** 是否为服务端流式 */
   is_server_streaming: boolean;
+  /** 是否为客户端流式 */
+  is_client_streaming?: boolean;
 }
 
 /**
@@ -455,6 +521,10 @@ export interface GrpcCallConfig {
   timeout_ms?: number;
   /** 调用级 metadata */
   metadata?: GrpcMetadataEntry[];
+  /** 流式消息列表（Client/Bidi Streaming 模式） */
+  request_messages?: StreamMessage[];
+  /** 响应采集配置（Server/Bidi Streaming 模式） */
+  collect_config?: GrpcCollectConfig;
 }
 
 /**

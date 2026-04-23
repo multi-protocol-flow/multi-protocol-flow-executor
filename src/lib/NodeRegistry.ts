@@ -64,6 +64,7 @@ export const CATEGORY_NAMES: Record<string, string> = {
   tools: '工具',
   script: '脚本',
   assertion: '断言',
+  grpc: 'gRPC',
 };
 
 /**
@@ -74,9 +75,10 @@ export const CATEGORY_ORDER: Record<string, number> = {
   logic: 1,
   websocket: 2,
   database: 3,
-  tools: 4,
-  script: 5,
-  assertion: 6,
+  grpc: 4,
+  tools: 5,
+  script: 6,
+  assertion: 7,
 };
 
 /**
@@ -104,6 +106,9 @@ export function getBadgeClassForType(typeId: string): string {
     db_commit: 'bg-violet-100 text-violet-700',
     db_rollback: 'bg-violet-100 text-violet-700',
     db_close: 'bg-violet-100 text-violet-700',
+    grpc_connect: 'bg-sky-100 text-sky-700',
+    grpc_call: 'bg-sky-100 text-sky-700',
+    grpc_close: 'bg-sky-100 text-sky-700',
   };
   return badgeMap[typeId] ?? 'bg-slate-100 text-slate-700';
 }

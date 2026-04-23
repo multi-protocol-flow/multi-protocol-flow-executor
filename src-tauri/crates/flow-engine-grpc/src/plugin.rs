@@ -127,7 +127,7 @@ impl NodePlugin for GrpcCallPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "gRPC 调用"
+        "gRPC 调用（支持 Unary/Streaming 模式）"
     }
 
     fn category(&self) -> &str {
@@ -165,6 +165,8 @@ impl NodePlugin for GrpcCallPlugin {
             "request_json": "{}",
             "timeout_ms": 30000,
             "metadata": [],
+            "request_messages": [],
+            "collect_config": null,
         })
     }
 
@@ -198,6 +200,8 @@ impl NodePlugin for GrpcCallPlugin {
             "request_json": config.get("request_json"),
             "timeout_ms": config.get("timeout_ms"),
             "metadata": config.get("metadata"),
+            "request_messages": config.get("request_messages"),
+            "collect_config": config.get("collect_config"),
         }))
     }
 
@@ -335,7 +339,7 @@ mod tests {
     fn test_grpc_call_plugin_metadata() {
         let plugin = GrpcCallPlugin;
         assert_eq!(plugin.type_id(), "grpc_call");
-        assert_eq!(plugin.display_name(), "gRPC 调用");
+        assert_eq!(plugin.display_name(), "gRPC 调用（支持 Unary/Streaming 模式）");
         assert_eq!(plugin.category(), "grpc");
         assert_eq!(plugin.icon(), "send");
         assert_eq!(plugin.color(), "#8B5CF6");
@@ -448,5 +452,184 @@ mod tests {
         let report = report.unwrap();
         assert_eq!(report["url"], "http://localhost:50051");
         assert_eq!(report["use_tls"], true);
+    }
+
+    // ========================================================================
+    // GrpcCallPlugin 验证测试
+    // ========================================================================
+
+    #[test]
+    fn test_call_default_config_contains_request_messages() {
+        let plugin = GrpcCallPlugin;
+        let config = plugin.default_config();
+        assert!(config.is_object());
+        assert!(
+            config.get("request_messages").is_some(),
+            "default_config 应包含 request_messages 字段"
+        );
+        assert_eq!(config["request_messages"], serde_json::json!([]));
+    }
+
+    #[test]
+    fn test_call_default_config_contains_collect_config() {
+        let plugin = GrpcCallPlugin;
+        let config = plugin.default_config();
+        assert!(
+            config.get("collect_config").is_some(),
+            "default_config 应包含 collect_config 字段"
+        );
+        assert_eq!(config["collect_config"], serde_json::Value::Null);
+    }
+
+    #[test]
+    fn test_call_default_config_contains_all_fields() {
+        let plugin = GrpcCallPlugin;
+        let config = plugin.default_config();
+        // 验证所有关键字段存在
+        assert!(config.get("connection_id").is_some());
+        assert!(config.get("service_name").is_some());
+        assert!(config.get("method_name").is_some());
+        assert!(config.get("request_json").is_some());
+        assert!(config.get("timeout_ms").is_some());
+        assert!(config.get("metadata").is_some());
+        assert!(config.get("request_messages").is_some());
+        assert!(config.get("collect_config").is_some());
+    }
+
+    #[test]
+    fn test_call_build_report_input_includes_new_fields() {
+        let plugin = GrpcCallPlugin;
+        let config = serde_json::json!({
+            "connection_id": "conn-1",
+            "service_name": "test.Service",
+            "method_name": "GetUser",
+            "request_json": "{}",
+            "timeout_ms": 30000,
+            "metadata": [{"key": "auth", "value": "token123"}],
+            "request_messages": [{"enabled": true, "content": "{}"}],
+            "collect_config": {"mode": "all", "timeout_ms": 10000},
+        });
+        let report = plugin.build_report_input(&config);
+        assert!(report.is_some());
+        let report = report.unwrap();
+        // 验证新字段包含在报告输入中
+        assert!(report.get("request_messages").is_some(), "报告应包含 request_messages");
+        assert!(report.get("collect_config").is_some(), "报告应包含 collect_config");
+        // 验证基本字段
+        assert!(report.get("connection_id").is_some());
+        assert!(report.get("service_name").is_some());
+        assert!(report.get("method_name").is_some());
+    }
+
+    #[test]
+    fn test_call_resolve_port_with_streaming_output() {
+        let plugin = GrpcCallPlugin;
+
+        // 模拟 streaming 成功输出（有 responses 数组）
+        let streaming_success = serde_json::json!({
+            "success": true,
+            "pattern": "server_streaming",
+            "responses": [{"chunk": 1}, {"chunk": 2}],
+        });
+        assert_eq!(plugin.resolve_port(&Some(streaming_success)), "true");
+
+        // 模拟 streaming 失败输出
+        let streaming_error = serde_json::json!({
+            "success": false,
+            "pattern": "bidi_streaming",
+            "error": "超时",
+        });
+        assert_eq!(plugin.resolve_port(&Some(streaming_error)), "false");
+    }
+
+    #[test]
+    fn test_connect_resolve_port_with_streaming_output() {
+        let plugin = GrpcConnectPlugin;
+
+        // 连接成功
+        let success = serde_json::json!({"success": true, "services": []});
+        assert_eq!(plugin.resolve_port(&Some(success)), "true");
+
+        // 连接失败
+        let failure = serde_json::json!({"success": false, "error": "连接超时"});
+        assert_eq!(plugin.resolve_port(&Some(failure)), "false");
+    }
+
+    #[test]
+    fn test_close_resolve_port_with_various_outputs() {
+        let plugin = GrpcClosePlugin;
+
+        // 关闭成功
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": true}))),
+            "true"
+        );
+
+        // 关闭失败
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": false}))),
+            "false"
+        );
+
+        // 非 object 输出 → false
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!("string"))),
+            "false"
+        );
+
+        // array 输出 → false
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!([1, 2, 3]))),
+            "false"
+        );
+    }
+
+    #[test]
+    fn test_call_resolve_port_edge_cases() {
+        let plugin = GrpcCallPlugin;
+
+        // success 为 null → false
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": null}))),
+            "false"
+        );
+
+        // success 为数字 → false
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": 1}))),
+            "false"
+        );
+
+        // 空 object → false
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({}))),
+            "false"
+        );
+    }
+
+    #[test]
+    fn test_connect_build_report_input_includes_all_fields() {
+        let plugin = GrpcConnectPlugin;
+        let config = serde_json::json!({
+            "url": "http://localhost:50051",
+            "use_tls": false,
+            "tls_skip_verify": false,
+            "enable_reflection": true,
+            "proto_files": [],
+            "default_metadata": [{"key": "auth", "value": "Bearer test"}],
+            "connect_timeout_ms": 5000,
+        });
+        let report = plugin.build_report_input(&config).expect("报告应存在");
+        assert_eq!(report["url"], "http://localhost:50051");
+        assert_eq!(report["enable_reflection"], true);
+        assert_eq!(report["connect_timeout_ms"], 5000);
+    }
+
+    #[test]
+    fn test_close_build_report_input() {
+        let plugin = GrpcClosePlugin;
+        let config = serde_json::json!({"connection_id": "conn-123"});
+        let report = plugin.build_report_input(&config).expect("报告应存在");
+        assert_eq!(report["connection_id"], "conn-123");
     }
 }

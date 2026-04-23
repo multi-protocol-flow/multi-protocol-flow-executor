@@ -95,6 +95,8 @@ fn test_grpc_call_config_serde_roundtrip() {
                 value: "abc-456".to_string(),
             },
         ],
+        request_messages: vec![],
+        collect_config: None,
     };
 
     let json = serde_json::to_string(&config).expect("序列化应成功");
@@ -113,6 +115,8 @@ fn test_grpc_call_config_via_node_data_roundtrip() {
         request_json: r#"{"product_id":"p1","qty":3}"#.to_string(),
         timeout_ms: 5000,
         metadata: vec![],
+        request_messages: vec![],
+        collect_config: None,
     };
     let node_data = NodeData::GrpcCall(config.clone());
 
@@ -319,7 +323,7 @@ fn test_grpc_call_plugin_full_metadata() {
     let plugin = GrpcCallPlugin;
 
     assert_eq!(plugin.type_id(), "grpc_call");
-    assert_eq!(plugin.display_name(), "gRPC 调用");
+    assert_eq!(plugin.display_name(), "gRPC 调用（支持 Unary/Streaming 模式）");
     assert_eq!(plugin.category(), "grpc");
     assert_eq!(plugin.icon(), "send");
     assert_eq!(plugin.color(), "#8B5CF6");
@@ -581,6 +585,8 @@ async fn test_connect_call_close_flow_wiring() {
             request_json: r#"{"user_id":"1"}"#.to_string(),
             timeout_ms: 5000,
             metadata: vec![],
+            request_messages: vec![],
+            collect_config: None,
         }),
         ports: None,
         has_breakpoint: None,
@@ -740,6 +746,8 @@ async fn test_call_and_close_plugins_delegate() {
             request_json: "{}".to_string(),
             timeout_ms: 1000,
             metadata: vec![],
+            request_messages: vec![],
+            collect_config: None,
         }),
         ports: None,
         has_breakpoint: None,

@@ -35,6 +35,8 @@ pub struct MethodInfo {
     pub output_type: String,
     /// 是否为服务端流式
     pub is_server_streaming: bool,
+    /// 是否为客户端流式
+    pub is_client_streaming: bool,
 }
 
 /// Proto 解析错误
@@ -115,6 +117,7 @@ pub fn list_services(pool: &DescriptorPool) -> Vec<ServiceInfo> {
                     input_type: method.input().full_name().to_string(),
                     output_type: method.output().full_name().to_string(),
                     is_server_streaming: method.is_server_streaming(),
+                    is_client_streaming: method.is_client_streaming(),
                 })
                 .collect();
 
