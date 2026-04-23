@@ -1,10 +1,10 @@
 # 状态管理 (Stores)
 
-**生成时间:** 2026-04-16
+**生成时间:** 2026-04-23
 
 ## 概述
 
-Zustand 5.x 状态管理，每个 store 一个文件。使用 `create` + `selectors` 模式。共 9 个 stores。
+Zustand 5.x 状态管理，每个 store 一个文件。使用 `create` + `selectors` 模式。共 10 个 stores。
 
 ## 结构
 
@@ -19,7 +19,8 @@ stores/
 ├── debug.ts          # 调试状态 (isPaused, currentNodeUuid, isDebugging)
 ├── console.ts        # 控制台日志
 ├── stressTest.ts     # 压力测试状态 (status, config, progress, report)
-└── connections.ts    # 数据库连接管理 (connections, activeConnectionId)
+├── wsStream.ts       # WebSocket 消息流 (sharedStreams, activeConnectionId)
+└── zoom.ts           # 页面缩放 (zoom, Tauri native WebView API, localStorage 持久化)
 ```
 
 ## 快速定位
@@ -33,7 +34,8 @@ stores/
 | 调试状态管理 | `debug.ts` |
 | 控制台日志 | `console.ts` |
 | 压力测试状态 | `stressTest.ts` |
-| 数据库连接管理 | `connections.ts` |
+| WebSocket 消息流 | `wsStream.ts` |
+| 页面缩放 | `zoom.ts` |
 
 ## 约定
 
@@ -71,7 +73,7 @@ useDebugStore.getState().continueExecution();
 - 所有 store 必须实现 `reset()` 方法
 - 测试 `beforeEach` 必须调用 `reset()`
 
-## Stores 列表 (9 个)
+## Stores 列表 (10 个)
 
 | Store | 用途 | 关键状态 |
 |-------|------|----------|
@@ -83,4 +85,9 @@ useDebugStore.getState().continueExecution();
 | `debug` | 调试状态 | sessionId, status, currentNodeUuid, variables, executionStack, wsStreams, 健康检查 |
 | `console` | 控制台 | logs, 过滤条件 (level, nodeUuid, searchKeyword) |
 | `stressTest` | 压力测试 | status, config (concurrentUsers, rampUpSeconds, durationSeconds), progress, report |
-| `connections` | 数据库连接 | connections, activeConnectionId, CRUD 操作 |
+| `wsStream` | WebSocket 消息流 | wsStreams, activeConnectionId, WsDebugEvent 处理 |
+| `zoom` | 页面缩放 | zoom (0.5~2.0), ZOOM_MIN/MAX/STEP/DEFAULT 常量, Tauri WebView API + localStorage 持久化 |
+
+## 注意
+
+- `console` store 未在 `index.ts` 中 re-export，需直接 `import from './console'`

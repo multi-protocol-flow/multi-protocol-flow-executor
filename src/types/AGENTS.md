@@ -1,6 +1,6 @@
 # TypeScript 类型定义
 
-**生成时间:** 2026-04-16
+**生成时间:** 2026-04-23
 
 ## 概述
 
@@ -11,7 +11,8 @@
 ```
 src/types/
 ├── index.ts          # 统一导出入口
-├── node.ts           # 节点类型 + 配置 (判别联合，14 种节点)
+├── node.ts           # 节点类型 + 配置 (判别联合，17 种节点)
+├── nodeRegistry.ts   # 后端节点元数据 (PortDef, NodeMetadata)
 ├── flow.ts           # 流程结构
 ├── connection.ts     # 节点连接
 ├── report.ts         # 执行报告 + 统计
@@ -23,7 +24,9 @@ src/types/
 ├── settings.ts       # 全局设置
 ├── port.ts           # 端口定义
 ├── database.ts       # 数据库连接类型
-└── stressTest.ts     # 压力测试类型
+├── stressTest.ts     # 压力测试类型
+├── events.ts         # 日志事件 (LogLevel, LogEvent)
+└── execution_event.ts # 执行事件 (ExecutionEvent discriminated union)
 ```
 
 ## 快速定位
@@ -31,6 +34,7 @@ src/types/
 | 任务 | 文件 | 对应 Rust 文件 |
 |------|------|---------------|
 | 修改节点类型 | `node.ts` | `node.rs` + `node_config.rs` |
+| 修改节点元数据 | `nodeRegistry.ts` | core traits |
 | 修改流程结构 | `flow.ts` | `flow.rs` |
 | 修改连接定义 | `connection.ts` | `connection.rs` |
 | 修改执行报告 | `report.ts` | `report.rs` + `statistics.rs` |
@@ -40,6 +44,8 @@ src/types/
 | 修改 WebSocket 消息流 | `ws_stream.ts` | `ws_stream.rs` |
 | 修改数据库类型 | `database.ts` | `db/types.rs` |
 | 修改压力测试类型 | `stressTest.ts` | `stress_test/types.rs` |
+| 修改日志事件 | `events.ts` | core `log_event.rs` |
+| 修改执行事件 | `execution_event.ts` | executor event types |
 
 ## 约定
 
@@ -49,6 +55,7 @@ src/types/
 
 对应关系（注意: 后端已拆分为多个 crate）：
 - `node.ts` ↔ `src-tauri/crates/flow-engine-core/src/node.rs` + `node_config.rs`
+- `nodeRegistry.ts` ↔ `src-tauri/crates/flow-engine-core/src/` (PortDef, NodeMetadata)
 - `flow.ts` ↔ `src-tauri/crates/flow-engine-core/src/flow.rs`
 - `connection.ts` ↔ `src-tauri/crates/flow-engine-core/src/connection.rs`
 - `report.ts` ↔ `src-tauri/crates/flow-engine-core/src/report.rs` + `statistics.rs`
@@ -58,6 +65,7 @@ src/types/
 - `ws_stream.ts` ↔ `src-tauri/crates/flow-engine-core/src/ws_stream.rs`
 - `database.ts` ↔ `src-tauri/crates/flow-engine-core/src/db_types.rs`
 - `stressTest.ts` ↔ `src-tauri/crates/flow-engine-executor/src/stress_test/types.rs`
+- gRPC 类型 (`node.ts` 中) ↔ `src-tauri/crates/flow-engine-core/src/node_config.rs` + `core/traits/grpc_provider.rs`
 
 ### 类型安全红线
 
@@ -72,7 +80,8 @@ src/types/
 ```typescript
 type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | AssertionConfig
   | WsConnectConfig | WsSendWaitConfig | WsCloseConfig
-  | DbConnectConfig | DbQueryConfig | DbBeginConfig | DbCommitConfig | DbRollbackConfig | DbCloseConfig;
+  | DbConnectConfig | DbQueryConfig | DbBeginConfig | DbCommitConfig | DbRollbackConfig | DbCloseConfig
+  | GrpcConnectConfig | GrpcCallConfig | GrpcCloseConfig;
 ```
 
 ### 可选字段
@@ -81,7 +90,7 @@ type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | As
 - 必须与 Rust 端 `Option<T>` 对应
 - 默认值在 Rust 端实现，前端仅声明类型
 
-## 节点类型 (14 种)
+## 节点类型 (17 种)
 
 | 类型 | 配置类型 | 用途 |
 |------|----------|------|
@@ -99,6 +108,9 @@ type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | As
 | `db_commit` | DbCommitConfig | 事务提交 |
 | `db_rollback` | DbRollbackConfig | 事务回滚 |
 | `db_close` | DbCloseConfig | 数据库关闭 |
+| `grpc_connect` | GrpcConnectConfig | gRPC 连接 |
+| `grpc_call` | GrpcCallConfig | gRPC 调用 |
+| `grpc_close` | GrpcCloseConfig | gRPC 关闭 |
 
 ## 类型漂移风险
 
