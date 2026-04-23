@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }
 # gRPC 依赖
-tonic = { version = "0.12", default-features = false, features = ["prost", "transport", "tls"] }
+tonic = { version = "0.12", default-features = false, features = ["prost", "transport", "tls", "tls-native-roots", "tls-webpki-roots"] }
 prost = "0.13"
 prost-reflect = { version = "0.14", features = ["serde"] }
 prost-types = "0.13"
@@ -14,6 +14,13 @@ protox = "0.7"
 tonic-reflection = "0.12"
 tokio-stream = "0.1"
 http = "1"
+# TLS 依赖（用于 tls_skip_verify 的自定义 ClientConfig）
+rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "tls12"] }
+rustls-native-certs = "0.8"
+tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "tls12", "ring"] }
+webpki-roots = "0.26"
+hyper-util = "0.1"
+tower = { version = "0.4", default-features = false }
 # Workspace 共享依赖
 async-trait = { workspace = true }
 serde = { workspace = true }

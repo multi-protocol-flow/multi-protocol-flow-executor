@@ -17,6 +17,182 @@ use tonic::metadata::{MetadataKey, MetadataValue};
 
 use crate::proto_parser;
 
+// ---------------------------------------------------------------------------
+// TLS 辅助函数
+// ---------------------------------------------------------------------------
+
+/// 不验证任何证书的 ServerCertVerifier（仅用于 `tls_skip_verify=true`）
+///
+/// **警告**: 仅用于开发/测试环境，切勿在生产环境使用。
+#[derive(Debug)]
+struct NoVerifier;
+
+impl rustls::client::danger::ServerCertVerifier for NoVerifier {
+    fn verify_server_cert(
+        &self,
+        _end_entity: &rustls::pki_types::CertificateDer<'_>,
+        _intermediates: &[rustls::pki_types::CertificateDer<'_>],
+        _server_name: &rustls::pki_types::ServerName<'_>,
+        _ocsp_response: &[u8],
+        _now: rustls::pki_types::UnixTime,
+    ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
+        Ok(rustls::client::danger::ServerCertVerified::assertion())
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        _message: &[u8],
+        _cert: &rustls::pki_types::CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        _message: &[u8],
+        _cert: &rustls::pki_types::CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+        vec![
+            rustls::SignatureScheme::RSA_PKCS1_SHA256,
+            rustls::SignatureScheme::RSA_PKCS1_SHA384,
+            rustls::SignatureScheme::RSA_PKCS1_SHA512,
+            rustls::SignatureScheme::ECDSA_NISTP256_SHA256,
+            rustls::SignatureScheme::ECDSA_NISTP384_SHA384,
+            rustls::SignatureScheme::ECDSA_NISTP521_SHA512,
+            rustls::SignatureScheme::RSA_PSS_SHA256,
+            rustls::SignatureScheme::RSA_PSS_SHA384,
+            rustls::SignatureScheme::RSA_PSS_SHA512,
+            rustls::SignatureScheme::ED25519,
+            rustls::SignatureScheme::ED448,
+        ]
+    }
+}
+
+/// 确保已安装 CryptoProvider（幂等，多次调用安全）
+fn ensure_crypto_provider() {
+    // install_default 只在首次调用时安装，后续调用返回 Err 但不影响程序
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
+/// 配置端点的 TLS（标准验证模式）
+///
+/// 使用 tonic 内置的 webpki-roots + 系统原生证书信任链。
+fn apply_standard_tls(
+    endpoint: tonic::transport::Endpoint,
+) -> Result<tonic::transport::Endpoint, String> {
+    let tls_config = tonic::transport::ClientTlsConfig::new()
+        .with_webpki_roots()
+        .with_native_roots();
+    endpoint
+        .tls_config(tls_config)
+        .map_err(|e| format!("TLS 配置失败: {}", e))
+}
+
+/// 构建 gRPC channel（跳过证书验证模式）
+///
+/// 使用自定义 rustls `ClientConfig` + dangerous verifier，
+/// 通过 `connect_with_connector_lazy()` 注入自定义 TLS 连接器。
+fn build_skip_verify_channel(
+    url_with_scheme: &str,
+    connect_timeout_ms: u64,
+) -> Result<tonic::transport::Channel, String> {
+    ensure_crypto_provider();
+
+    // 解析原始 URL 获取 host（用于 TLS SNI）
+    let original_uri: http::Uri = url_with_scheme
+        .parse()
+        .map_err(|e| format!("解析 URL 失败: {}", e))?;
+    let host = original_uri
+        .host()
+        .ok_or_else(|| format!("URL 缺少 host: {}", url_with_scheme))?
+        .to_string();
+    let port = original_uri.port_u16().unwrap_or(443);
+
+    // 构建 dangerous verifier 的 rustls ClientConfig
+    let client_config = {
+        let mut cfg = rustls::ClientConfig::builder()
+            .dangerous()
+            .with_custom_certificate_verifier(Arc::new(NoVerifier))
+            .with_no_client_auth();
+        cfg.alpn_protocols = vec![b"h2".to_vec()];
+        Arc::new(cfg)
+    };
+
+    // TLS SNI 名称
+    let server_name = rustls::pki_types::ServerName::try_from(host.clone())
+        .map_err(|e| format!("无效的 TLS 服务器名 '{}': {}", host, e))?
+        .to_owned();
+
+    // 使用 http:// 方案创建端点（绕过 tonic 的内置 TLS）
+    let http_url = format!("http://{}:{}", host, port);
+    let mut endpoint = tonic::transport::Endpoint::from_shared(http_url)
+        .map_err(|e| format!("创建 gRPC 端点失败: {}", e))?;
+
+    if connect_timeout_ms > 0 {
+        endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
+    }
+
+    // 构建自定义连接器: TCP 连接 + TLS 握手
+    let tls_connector = tokio_rustls::TlsConnector::from(client_config);
+
+    let connector = tower::service_fn(move |uri: http::Uri| {
+        let tls = tls_connector.clone();
+        let sni = server_name.clone();
+
+        async move {
+            let host = uri.host().ok_or_else(|| {
+                std::io::Error::new(std::io::ErrorKind::InvalidInput, "URI 缺少 host")
+            })?;
+            let port = uri.port_u16().unwrap_or(443);
+            let addr = format!("{}:{}", host, port);
+
+            let tcp_stream = tokio::net::TcpStream::connect(&addr).await?;
+            tcp_stream.set_nodelay(true)?;
+
+            let tls_stream = tls.connect(sni.to_owned(), tcp_stream).await?;
+            Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(tls_stream))
+        }
+    });
+
+    Ok(endpoint.connect_with_connector_lazy(connector))
+}
+
+/// 根据 TLS 配置创建 tonic channel
+///
+/// - `tls_skip_verify=true`: 跳过证书验证
+/// - `tls_skip_verify=false`: 标准验证（webpki-roots + 系统原生证书）
+fn create_channel(
+    url_with_scheme: &str,
+    use_tls: bool,
+    tls_skip_verify: bool,
+    connect_timeout_ms: u64,
+) -> Result<tonic::transport::Channel, String> {
+    let mut endpoint = tonic::transport::Endpoint::from_shared(url_with_scheme.to_string())
+        .map_err(|e| format!("创建 gRPC 端点失败: {}", e))?;
+
+    if use_tls && tls_skip_verify {
+        // 跳过证书验证: 使用自定义 TLS 连接器
+        return build_skip_verify_channel(url_with_scheme, connect_timeout_ms);
+    }
+
+    if use_tls {
+        // 标准验证: webpki-roots + 系统原生证书
+        endpoint = apply_standard_tls(endpoint)?;
+    }
+
+    if connect_timeout_ms > 0 {
+        endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
+    }
+
+    Ok(endpoint.connect_lazy())
+}
+
 /// 通过 Server Reflection 协议发现 gRPC 服务
 ///
 /// 连接到 gRPC 服务器后，使用 v1alpha 反射协议:
@@ -296,7 +472,7 @@ fn is_reflection_service(name: &str) -> bool {
 pub async fn discover_services_via_reflection(
     url: &str,
     use_tls: bool,
-    _tls_skip_verify: bool,
+    tls_skip_verify: bool,
     connect_timeout_ms: u64,
 ) -> Result<Vec<GrpcServiceInfo>, String> {
     // 1. 构造 URL
@@ -309,35 +485,15 @@ pub async fn discover_services_via_reflection(
     };
 
     log::info!(
-        "[gRPC] 开始反射发现: url={}, use_tls={}, timeout={}ms",
+        "[gRPC] 开始反射发现: url={}, use_tls={}, tls_skip_verify={}, timeout={}ms",
         url_with_scheme,
         use_tls,
+        tls_skip_verify,
         connect_timeout_ms
     );
 
-    // 2. 创建临时连接
-    let mut endpoint = tonic::transport::Endpoint::from_shared(url_with_scheme.clone())
-        .map_err(|e| format!("创建 gRPC 端点失败: {}", e))?;
-
-    if use_tls {
-        let tls_config = tonic::transport::ClientTlsConfig::new();
-        endpoint = endpoint
-            .tls_config(tls_config)
-            .map_err(|e| format!("TLS 配置失败: {}", e))?;
-    }
-
-    // 设置连接超时
-    endpoint = endpoint
-        .connect_timeout(std::time::Duration::from_millis(connect_timeout_ms))
-        .timeout(std::time::Duration::from_secs(30));
-
-    // 使用 connect_lazy() 创建懒连接 channel。
-    // 关键: tonic 的 eager connect().await 会先完成 TCP+HTTP/2 握手，
-    // 但某些服务器（如 grpcb.in）在 eager 连接后对 bidi streaming RPC
-    // 返回 "transport error"。使用 connect_lazy() 让实际连接在第一个
-    // RPC 调用时建立，可避免此问题。超时由 connect_timeout 和 timeout 保证。
-    log::info!("[gRPC] 创建懒连接 channel (url={})...", url_with_scheme);
-    let channel = endpoint.connect_lazy();
+    // 2. 创建 channel（含 TLS 配置）
+    let channel = create_channel(&url_with_scheme, use_tls, tls_skip_verify, connect_timeout_ms)?;
 
     // 3. 通过反射发现服务
     let pool = reflect_services(channel).await?;
@@ -562,29 +718,8 @@ impl GrpcProvider for GrpcConnectionManager {
             format!("http://{}", url)
         };
 
-        // 2. 创建 tonic 端点并连接
-        let mut endpoint = tonic::transport::Endpoint::from_shared(url_with_scheme)
-            .map_err(|e| format!("创建 gRPC 端点失败: {}", e))?;
-
-        if use_tls {
-            // 注意: tonic 0.12 不支持 danger_accept_invalid_certs
-            // 使用默认 TLS 验证。如需跳过验证，需自行构建 rustls ClientConfig。
-            let _tls_skip_verify = tls_skip_verify; // 抑制未使用变量警告
-            let tls_config = tonic::transport::ClientTlsConfig::new();
-            endpoint = endpoint
-                .tls_config(tls_config)
-                .map_err(|e| format!("TLS 配置失败: {}", e))?;
-        }
-
-        if connect_timeout_ms > 0 {
-            endpoint = endpoint
-                .connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
-        }
-
-        // 使用 connect_lazy() 避免某些服务器在 eager connect 后
-        // 对 bidi streaming RPC 返回 "transport error" 的问题。
-        // 详见 discover_services_via_reflection 中的注释。
-        let channel = endpoint.connect_lazy();
+        // 2. 创建 channel（含 TLS 配置）
+        let channel = create_channel(&url_with_scheme, use_tls, tls_skip_verify, connect_timeout_ms)?;
 
         // 3. 获取 DescriptorPool（反射或解析 proto 文件）
         let pool = if enable_reflection && proto_files.is_empty() {

@@ -1670,19 +1670,25 @@ dependencies = [
  "chrono",
  "flow-engine-core",
  "http",
+ "hyper-util",
  "log",
  "prost",
  "prost-reflect",
  "prost-types",
  "protox",
+ "rustls",
+ "rustls-native-certs",
  "serde",
  "serde_json",
  "tempfile",
  "thiserror 1.0.69",
  "tokio",
+ "tokio-rustls",
  "tokio-stream",
  "tonic",
  "tonic-reflection",
+ "tower 0.4.13",
+ "webpki-roots 0.26.11",
 ]
 
 [[package]]
@@ -4775,6 +4781,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustls-native-certs"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "612460d5f7bea540c490b2b6395d8e34a953e52b491accd6c86c8164c5932a63"
+dependencies = [
+ "openssl-probe",
+ "rustls-pki-types",
+ "schannel",
+ "security-framework",
+]
+
+[[package]]
 name = "rustls-pemfile"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6418,6 +6436,7 @@ dependencies = [
  "percent-encoding",
  "pin-project",
  "prost",
+ "rustls-native-certs",
  "rustls-pemfile",
  "socket2 0.5.10",
  "tokio",
@@ -6427,6 +6446,7 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+ "webpki-roots 0.26.11",
 ]
 
 [[package]]
