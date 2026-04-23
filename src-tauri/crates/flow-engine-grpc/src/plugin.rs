@@ -1,0 +1,452 @@
+// gRPC 节点插件 — NodePlugin trait 实现
+//
+// 提供 3 个 gRPC 节点的元数据、端口定义、配置验证和执行能力：
+// - GrpcConnectPlugin: gRPC 连接
+// - GrpcCallPlugin: gRPC 调用
+// - GrpcClosePlugin: gRPC 关闭
+// 以及 GrpcPluginGroup 批量注册辅助。
+
+use flow_engine_core::connection::Connection;
+use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::executor::NodeExecutor;
+use flow_engine_core::node::Node;
+use flow_engine_core::plugin::{NodePlugin, PortDef};
+use std::collections::HashMap;
+use std::sync::Arc;
+
+/// gRPC 连接节点插件
+pub struct GrpcConnectPlugin;
+
+#[async_trait::async_trait]
+impl NodePlugin for GrpcConnectPlugin {
+    fn type_id(&self) -> &str {
+        "grpc_connect"
+    }
+
+    fn display_name(&self) -> &str {
+        "gRPC 连接"
+    }
+
+    fn category(&self) -> &str {
+        "grpc"
+    }
+
+    fn icon(&self) -> &str {
+        "radio"
+    }
+
+    fn color(&self) -> &str {
+        "#8B5CF6"
+    }
+
+    fn ports(&self) -> Vec<PortDef> {
+        vec![
+            PortDef {
+                id: "true".into(),
+                label: "连接成功".into(),
+                position: "right".into(),
+            },
+            PortDef {
+                id: "false".into(),
+                label: "连接失败".into(),
+                position: "bottom".into(),
+            },
+        ]
+    }
+
+    fn default_config(&self) -> serde_json::Value {
+        serde_json::json!({
+            "url": "",
+            "use_tls": false,
+            "tls_skip_verify": false,
+            "enable_reflection": false,
+            "proto_files": [],
+            "default_metadata": [],
+            "connect_timeout_ms": 30000,
+        })
+    }
+
+    /// `GrpcConnect` 检查 $.success → "true" / "false"
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        match output {
+            Some(serde_json::Value::Object(map)) => {
+                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
+            }
+            _ => "false".to_string(),
+        }
+    }
+
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
+
+    fn supports_false_port(&self) -> bool {
+        true
+    }
+
+    fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
+        Some(serde_json::json!({
+            "url": config.get("url"),
+            "use_tls": config.get("use_tls"),
+            "tls_skip_verify": config.get("tls_skip_verify"),
+            "enable_reflection": config.get("enable_reflection"),
+            "proto_files": config.get("proto_files"),
+            "default_metadata": config.get("default_metadata"),
+            "connect_timeout_ms": config.get("connect_timeout_ms"),
+        }))
+    }
+
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
+        node_map: &HashMap<String, &Node>,
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+        let grpc_manager = context.grpc_manager.clone().unwrap_or_else(|| {
+            Arc::new(crate::grpc_connection_manager::GrpcConnectionManager::new())
+        });
+        let executor = crate::grpc_connect_executor::GrpcConnectExecutor::new(grpc_manager);
+        executor
+            .execute(node, context, connections, node_map)
+            .await
+    }
+}
+
+/// gRPC 调用节点插件
+pub struct GrpcCallPlugin;
+
+#[async_trait::async_trait]
+impl NodePlugin for GrpcCallPlugin {
+    fn type_id(&self) -> &str {
+        "grpc_call"
+    }
+
+    fn display_name(&self) -> &str {
+        "gRPC 调用"
+    }
+
+    fn category(&self) -> &str {
+        "grpc"
+    }
+
+    fn icon(&self) -> &str {
+        "send"
+    }
+
+    fn color(&self) -> &str {
+        "#8B5CF6"
+    }
+
+    fn ports(&self) -> Vec<PortDef> {
+        vec![
+            PortDef {
+                id: "true".into(),
+                label: "调用成功".into(),
+                position: "right".into(),
+            },
+            PortDef {
+                id: "false".into(),
+                label: "调用失败".into(),
+                position: "bottom".into(),
+            },
+        ]
+    }
+
+    fn default_config(&self) -> serde_json::Value {
+        serde_json::json!({
+            "connection_id": "",
+            "service_name": "",
+            "method_name": "",
+            "request_json": "{}",
+            "timeout_ms": 30000,
+            "metadata": [],
+        })
+    }
+
+    /// `GrpcCall` 检查 $.success → "true" / "false"
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        match output {
+            Some(serde_json::Value::Object(map)) => {
+                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
+            }
+            _ => "false".to_string(),
+        }
+    }
+
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
+
+    fn supports_false_port(&self) -> bool {
+        true
+    }
+
+    fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
+        Some(serde_json::json!({
+            "connection_id": config.get("connection_id"),
+            "service_name": config.get("service_name"),
+            "method_name": config.get("method_name"),
+            "request_json": config.get("request_json"),
+            "timeout_ms": config.get("timeout_ms"),
+            "metadata": config.get("metadata"),
+        }))
+    }
+
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
+        node_map: &HashMap<String, &Node>,
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+        let grpc_manager = context.grpc_manager.clone().unwrap_or_else(|| {
+            Arc::new(crate::grpc_connection_manager::GrpcConnectionManager::new())
+        });
+        let executor = crate::grpc_call_executor::GrpcCallExecutor::new(grpc_manager);
+        executor
+            .execute(node, context, connections, node_map)
+            .await
+    }
+}
+
+/// gRPC 关闭节点插件
+pub struct GrpcClosePlugin;
+
+#[async_trait::async_trait]
+impl NodePlugin for GrpcClosePlugin {
+    fn type_id(&self) -> &str {
+        "grpc_close"
+    }
+
+    fn display_name(&self) -> &str {
+        "gRPC 关闭"
+    }
+
+    fn category(&self) -> &str {
+        "grpc"
+    }
+
+    fn icon(&self) -> &str {
+        "x-circle"
+    }
+
+    fn color(&self) -> &str {
+        "#8B5CF6"
+    }
+
+    fn ports(&self) -> Vec<PortDef> {
+        vec![PortDef {
+            id: "out".into(),
+            label: "输出".into(),
+            position: "right".into(),
+        }]
+    }
+
+    fn default_config(&self) -> serde_json::Value {
+        serde_json::json!({
+            "connection_id": "",
+        })
+    }
+
+    /// `GrpcClose` 检查 $.success → "true" / "false"
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        match output {
+            Some(serde_json::Value::Object(map)) => {
+                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
+            }
+            _ => "false".to_string(),
+        }
+    }
+
+    fn supports_false_port(&self) -> bool {
+        true
+    }
+
+    fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
+        Some(serde_json::json!({
+            "connection_id": config.get("connection_id"),
+        }))
+    }
+
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
+        node_map: &HashMap<String, &Node>,
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+        let grpc_manager = context.grpc_manager.clone().unwrap_or_else(|| {
+            Arc::new(crate::grpc_connection_manager::GrpcConnectionManager::new())
+        });
+        let executor = crate::grpc_close_executor::GrpcCloseExecutor::new(grpc_manager);
+        executor
+            .execute(node, context, connections, node_map)
+            .await
+    }
+}
+
+/// gRPC 插件组 — 批量注册辅助
+pub struct GrpcPluginGroup;
+
+impl GrpcPluginGroup {
+    /// 注册全部 gRPC 节点插件到注册表
+    pub fn register_all(registry: &mut flow_engine_core::registry::NodeRegistry) {
+        registry.register(Arc::new(GrpcConnectPlugin));
+        registry.register(Arc::new(GrpcCallPlugin));
+        registry.register(Arc::new(GrpcClosePlugin));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_grpc_connect_plugin_metadata() {
+        let plugin = GrpcConnectPlugin;
+        assert_eq!(plugin.type_id(), "grpc_connect");
+        assert_eq!(plugin.display_name(), "gRPC 连接");
+        assert_eq!(plugin.category(), "grpc");
+        assert_eq!(plugin.icon(), "radio");
+        assert_eq!(plugin.color(), "#8B5CF6");
+        assert!(plugin.is_protocol_node());
+        assert!(plugin.supports_false_port());
+
+        let ports = plugin.ports();
+        assert_eq!(ports.len(), 2);
+        assert_eq!(ports[0].id, "true");
+        assert_eq!(ports[1].id, "false");
+    }
+
+    #[test]
+    fn test_grpc_call_plugin_metadata() {
+        let plugin = GrpcCallPlugin;
+        assert_eq!(plugin.type_id(), "grpc_call");
+        assert_eq!(plugin.display_name(), "gRPC 调用");
+        assert_eq!(plugin.category(), "grpc");
+        assert_eq!(plugin.icon(), "send");
+        assert_eq!(plugin.color(), "#8B5CF6");
+        assert!(plugin.is_protocol_node());
+        assert!(plugin.supports_false_port());
+
+        let ports = plugin.ports();
+        assert_eq!(ports.len(), 2);
+        assert_eq!(ports[0].id, "true");
+        assert_eq!(ports[1].id, "false");
+    }
+
+    #[test]
+    fn test_grpc_close_plugin_metadata() {
+        let plugin = GrpcClosePlugin;
+        assert_eq!(plugin.type_id(), "grpc_close");
+        assert_eq!(plugin.display_name(), "gRPC 关闭");
+        assert_eq!(plugin.category(), "grpc");
+        assert_eq!(plugin.icon(), "x-circle");
+        assert_eq!(plugin.color(), "#8B5CF6");
+        assert!(plugin.supports_false_port());
+
+        let ports = plugin.ports();
+        assert_eq!(ports.len(), 1);
+        assert_eq!(ports[0].id, "out");
+    }
+
+    #[test]
+    fn test_grpc_connect_resolve_port() {
+        let plugin = GrpcConnectPlugin;
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": true}))),
+            "true"
+        );
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": false}))),
+            "false"
+        );
+        assert_eq!(plugin.resolve_port(&None), "false");
+    }
+
+    #[test]
+    fn test_grpc_call_resolve_port() {
+        let plugin = GrpcCallPlugin;
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": true}))),
+            "true"
+        );
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": false}))),
+            "false"
+        );
+    }
+
+    #[test]
+    fn test_grpc_close_resolve_port() {
+        let plugin = GrpcClosePlugin;
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": true}))),
+            "true"
+        );
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": false}))),
+            "false"
+        );
+    }
+
+    #[test]
+    fn test_default_config_not_empty() {
+        let connect_plugin = GrpcConnectPlugin;
+        let config = connect_plugin.default_config();
+        assert!(config.is_object());
+        assert!(config.get("url").is_some());
+        assert!(config.get("connect_timeout_ms").is_some());
+
+        let call_plugin = GrpcCallPlugin;
+        let config = call_plugin.default_config();
+        assert!(config.is_object());
+        assert!(config.get("connection_id").is_some());
+        assert!(config.get("service_name").is_some());
+
+        let close_plugin = GrpcClosePlugin;
+        let config = close_plugin.default_config();
+        assert!(config.is_object());
+        assert!(config.get("connection_id").is_some());
+    }
+
+    #[test]
+    fn test_grpc_plugin_group_register_all() {
+        let mut registry = flow_engine_core::registry::NodeRegistry::new();
+        assert!(registry.is_empty());
+
+        GrpcPluginGroup::register_all(&mut registry);
+        assert_eq!(registry.len(), 3);
+
+        assert!(registry.get("grpc_connect").is_some());
+        assert!(registry.get("grpc_call").is_some());
+        assert!(registry.get("grpc_close").is_some());
+    }
+
+    #[test]
+    fn test_build_report_input() {
+        let plugin = GrpcConnectPlugin;
+        let config = serde_json::json!({
+            "url": "http://localhost:50051",
+            "use_tls": true,
+        });
+        let report = plugin.build_report_input(&config);
+        assert!(report.is_some());
+        let report = report.unwrap();
+        assert_eq!(report["url"], "http://localhost:50051");
+        assert_eq!(report["use_tls"], true);
+    }
+}

@@ -1,0 +1,27 @@
+[package]
+name = "flow-engine-grpc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+flow-engine-core = { path = "../flow-engine-core" }
+# gRPC 依赖
+tonic = { version = "0.12", default-features = false, features = ["prost", "transport", "tls"] }
+prost = "0.13"
+prost-reflect = { version = "0.14", features = ["serde"] }
+prost-types = "0.13"
+protox = "0.7"
+tokio-stream = "0.1"
+http = "1"
+# Workspace 共享依赖
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+log = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+tempfile = "3.0"
+
+[lints]
+workspace = true
