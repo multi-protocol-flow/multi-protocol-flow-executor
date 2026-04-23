@@ -86,6 +86,10 @@ fn default_logs_dir(app: &tauri::AppHandle) -> PathBuf {
 /// 启动 Tauri 应用
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 安装 rustls CryptoProvider（HTTP/gRPC TLS 需要）
+    // rustls 0.23+ 要求显式选择加密后端
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())

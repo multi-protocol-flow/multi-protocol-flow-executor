@@ -79,6 +79,9 @@ tauri-build = { version = "2.5.4", features = [] }
 # 业务逻辑引擎
 flow-engine = { path = "crates/flow-engine" }
 
+# TLS 加密后端（HTTP/gRPC 的 rustls 0.23 需要显式安装 CryptoProvider）
+rustls = { version = "0.23", features = ["ring"] }
+
 # Tauri 框架
 tauri = { version = "2.10.0", features = [] }
 tauri-plugin-log = "2"

@@ -181,6 +181,7 @@ dependencies = [
  "mockito",
  "predicates",
  "proptest",
+ "rustls",
  "serde",
  "serde_json",
  "tauri",
