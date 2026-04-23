@@ -1,39 +1,44 @@
 # 项目知识库
 
-**生成时间:** 2026-04-16
-**Commit:** 158c34c
+**生成时间:** 2026-04-23
+**Commit:** 5995d24
 **Branch:** master
 
 ## 概述
 
-多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 工具。支持 HTTP、WebSocket、数据库（PostgreSQL/MySQL/SQLite/Redis）协议，具备调试模式和压力测试功能。
+多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 工具。支持 HTTP、WebSocket、数据库（PostgreSQL/MySQL/SQLite/Redis）、gRPC 协议，具备调试模式和压力测试功能。
 - **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + React Flow
-- **后端:** Rust Workspace (9 crates) + Tauri 2.x
+- **后端:** Rust Workspace (10 crates) + Tauri 2.x
 
 ## 结构
 
 ```
 multi-protocol-flow-executor/
 ├── src/                    # 前端源码 (React/TypeScript)
-│   ├── components/         # UI 组件 (97 文件，详见 src/components/AGENTS.md)
-│   ├── stores/             # Zustand 状态管理 (9 stores)
+│   ├── components/         # UI 组件 (~111 文件)
+│   ├── stores/             # Zustand 状态管理 (10 stores)
 │   ├── services/           # Tauri IPC 服务 + Mock + Storage
-│   ├── types/              # TypeScript 类型 (与 Rust 对齐)
+│   ├── types/              # TypeScript 类型 (17 种节点)
+│   ├── hooks/              # 自定义 React Hooks (3 个)
+│   ├── layouts/            # 布局组件 (MainLayout)
+│   ├── lib/                # 工具函数 + 注册表 (7 个模块)
 │   ├── templates/          # 内置流程模板
-│   └── __tests__/          # Vitest 单元测试
-├── src-tauri/              # Rust 后端 (Workspace，详见 src-tauri/crates/AGENTS.md)
-│   ├── src/                # Tauri 适配层 + IPC 命令 (详见 src-tauri/src/AGENTS.md)
-│   ├── crates/             # 9 个子 crate (详见下方依赖图)
-│   │   ├── flow-engine/    # 门面 crate (re-export 全部子 crate)
-│   │   ├── flow-engine-core/       # 基础类型、traits、共享数据结构
+│   ├── test-utils/         # 测试工厂函数
+│   └── __tests__/          # Vitest 单元测试 (~76 文件)
+├── src-tauri/              # Rust 后端 (Workspace)
+│   ├── src/                # Tauri 适配层 + IPC 命令 (39 命令)
+│   ├── crates/             # 10 个子 crate
+│   │   ├── flow-engine/    # 门面 crate (re-export)
+│   │   ├── flow-engine-core/       # 基础类型、traits、插件注册
 │   │   ├── flow-engine-crypto/     # AES-256-GCM 加密 + OS Keychain
 │   │   ├── flow-engine-http/       # HTTP 客户端 (hyper 1.x) + 执行器
 │   │   ├── flow-engine-ws/         # WebSocket 连接管理 + 3 个执行器
-│   │   ├── flow-engine-db/         # 数据库连接池 + 6 个执行器 (PG/MySQL/SQLite/Redis)
+│   │   ├── flow-engine-db/         # 数据库连接池 + 6 个执行器
 │   │   ├── flow-engine-script/     # QuickJS 运行时 + 脚本执行器
 │   │   ├── flow-engine-assertion/  # 15 种断言操作符 + 执行器
-│   │   └── flow-engine-executor/   # 主执行器、调试模式、压力测试、业务命令
-│   └── bin/mpe.rs          # CLI 二进制 (mpe 命令)
+│   │   ├── flow-engine-grpc/       # gRPC 客户端 (tonic) + 3 个执行器 [NEW]
+│   │   └── flow-engine-executor/   # 主执行器、调试模式、压力测试、插件注册
+│   └── bin/mpe/            # CLI 工具 (6 子命令, mpe run/validate/debug/stress/flow/report)
 ├── tests/                  # CLI 测试数据 + fixtures
 └── docs/                   # 架构文档
 ```
@@ -43,10 +48,11 @@ multi-protocol-flow-executor/
 ```
 Layer 0 (叶子):  flow-engine-core, flow-engine-crypto
 Layer 1:         flow-engine-http, flow-engine-ws, flow-engine-db,
-                 flow-engine-script, flow-engine-assertion    (→ core)
-Layer 2:         flow-engine-executor                          (→ core + 全部 Layer 1 + crypto)
-Layer 3:         flow-engine                                   (门面，re-export 全部)
-Layer 4:         app (src-tauri/)                              (→ flow-engine)
+                 flow-engine-script, flow-engine-assertion,
+                 flow-engine-grpc                                    (→ core)
+Layer 2:         flow-engine-executor                                (→ core + 全部 Layer 1 + crypto)
+Layer 3:         flow-engine                                         (门面，re-export 全部)
+Layer 4:         app (src-tauri/)                                    (→ flow-engine)
 ```
 
 **增量编译关键**: 修改 Layer N 的 crate 会触发 Layer N+1 及以上重编译。core 是最关键的基础——修改它会级联全部 crate。
@@ -55,10 +61,10 @@ Layer 4:         app (src-tauri/)                              (→ flow-engine)
 
 | 任务 | 位置 |
 |------|------|
-| 添加新节点类型 | `src-tauri/crates/flow-engine-core/src/` (类型) + `src-tauri/crates/flow-engine-executor/src/` (执行器) + `src/types/node.ts` + `src/components/canvas/nodes/` |
+| 添加新节点类型 | `src-tauri/crates/flow-engine-core/src/` (类型+插件) + `src-tauri/crates/flow-engine-executor/src/` (执行器) + `src/types/node.ts` + `src/components/canvas/nodes/` + `src/lib/NodeRegistry.ts` |
 | 修改执行逻辑 | `src-tauri/crates/flow-engine-executor/src/executor.rs` |
-| 添加前端组件 | `src/components/` (97 组件) |
-| 修改状态管理 | `src/stores/` (9 stores) |
+| 添加前端组件 | `src/components/` (~111 组件) |
+| 修改状态管理 | `src/stores/` (10 stores) |
 | HTTP 请求节点 | `src-tauri/crates/flow-engine-http/` (详见该 crate 的 AGENTS.md) |
 | 条件分支节点 | `src-tauri/crates/flow-engine-executor/src/conditional_executor.rs` |
 | 脚本节点 | `src-tauri/crates/flow-engine-script/` (详见该 crate 的 AGENTS.md) |
@@ -66,9 +72,13 @@ Layer 4:         app (src-tauri/)                              (→ flow-engine)
 | WebSocket 节点 | `src-tauri/crates/flow-engine-ws/` (详见该 crate 的 AGENTS.md) |
 | WebSocket 消息流 | `src-tauri/crates/flow-engine-core/src/ws_stream.rs` + `src/types/ws_stream.ts` |
 | 数据库节点 | `src-tauri/crates/flow-engine-db/` (详见该 crate 的 AGENTS.md) |
+| gRPC 节点 | `src-tauri/crates/flow-engine-grpc/` (详见该 crate 的 AGENTS.md) |
+| gRPC 服务发现 | `src-tauri/crates/flow-engine-grpc/src/proto_parser.rs` + `grpc_connection_manager.rs` |
+| 插件注册表 | `src-tauri/crates/flow-engine-core/src/registry.rs` + `plugin.rs` |
+| 前端注册表 | `src/lib/NodeRegistry.ts` + `configPanelRegistry.ts` + `viewerRegistry.tsx` |
 | 调试模式 | `src-tauri/crates/flow-engine-executor/src/debug/` + `src/stores/debug.ts` |
 | 压力测试 | `src-tauri/crates/flow-engine-executor/src/stress_test/` + `src/stores/stressTest.ts` |
-| IPC 命令 | `src-tauri/src/tauri_commands.rs` (26+ 命令) |
+| IPC 命令 | `src-tauri/src/tauri_commands.rs` (39 命令) |
 | 加密模块 | `src-tauri/crates/flow-engine-crypto/` |
 | 节点类型定义 | `src-tauri/crates/flow-engine-core/src/node.rs` + `node_config.rs` |
 | 执行上下文/变量 | `src-tauri/crates/flow-engine-core/src/context.rs` + `variable.rs` |
@@ -92,6 +102,10 @@ Layer 4:         app (src-tauri/)                              (→ flow-engine)
 - 禁止删除失败测试来"通过"
 - 注释使用中文
 
+### 架构约定
+- NodePlugin trait + NodeRegistry 替代旧的 match 分发模式，新增节点类型只需实现 trait 并注册
+- 前端 3 个注册表: NodeRegistry (后端元数据), configPanelRegistry (配置面板), viewerRegistry (结果查看器)
+
 ## 增量编译 (减少编译时间)
 
 **核心原则: 修改哪个模块就编译/测试哪个模块，避免全量重编译。**
@@ -103,16 +117,19 @@ cd src-tauri
 
 # 编译单个 crate (仅触发该 crate 及其依赖重编译)
 cargo build -p flow-engine-http          # Layer 1 - 仅 core + http
+cargo build -p flow-engine-grpc          # Layer 1 - 仅 core + grpc
 cargo build -p flow-engine-executor      # Layer 2 - core + 全部协议 crate + executor
 cargo build -p flow-engine               # Layer 3 - 全部 (等同全量)
 cargo build -p app                       # Layer 4 - 全部 + Tauri 链接
 
 # 测试单个 crate
 cargo test -p flow-engine-http           # 只测 HTTP crate
+cargo test -p flow-engine-grpc           # 只测 gRPC crate
 cargo test -p flow-engine-core           # 只测基础类型
 
 # Lint 单个 crate
 cargo clippy -p flow-engine-db           # 只检查 DB crate
+cargo clippy -p flow-engine-grpc         # 只检查 gRPC crate
 ```
 
 ### 修改影响分析
@@ -121,7 +138,7 @@ cargo clippy -p flow-engine-db           # 只检查 DB crate
 |-------------|-----------|--------|
 | `flow-engine-core` | 全部 crate (级联) | **全量** |
 | `flow-engine-crypto` | executor → flow-engine → app | ~3 crate |
-| `flow-engine-http/ws/db/script/assertion` | executor → flow-engine → app | ~3 crate |
+| `flow-engine-http/ws/db/script/assertion/grpc` | executor → flow-engine → app | ~3 crate |
 | `flow-engine-executor` | flow-engine → app | ~2 crate |
 | `flow-engine` (门面) | app | ~1 crate |
 | `src-tauri/src/*` (Tauri 层) | app | ~1 crate |
@@ -135,6 +152,10 @@ cargo test -p flow-engine-http           # 快速测试
 cargo clippy -p flow-engine-http         # 快速 lint
 # 满意后再全量验证
 cargo test && cargo clippy               # 完整回归
+
+# 场景: 修改 gRPC 执行器
+cargo test -p flow-engine-grpc           # 快速测试
+cargo clippy -p flow-engine-grpc         # 快速 lint
 
 # 场景: 修改基础类型 (core)
 cargo test -p flow-engine-core           # 先测 core
@@ -211,7 +232,8 @@ npm run typecheck && npm run test        # 无需编译 Rust
 | `unsafe_code` | Rust | forbid 级别禁止 |
 | `as any` | TypeScript | 类型安全红线 |
 | `@ts-ignore` | TypeScript | 禁止压制类型错误 |
-| CSS `!important` | FlowCanvas.tsx | 仅用于覆盖 ReactFlow 样式 |
+| `unwrap()` 生产代码 | `core/src/executor.rs:32-33` | 2 个违规 (regex captures) |
+| `eslint-disable` 生产组件 | `panels/*.tsx` | 7 处 react-hooks/exhaustive-deps |
 
 ## Bug 修复规范
 
@@ -226,12 +248,14 @@ npm run typecheck && npm run test        # 无需编译 Rust
 
 | 位置 | 内容 | 优先级 |
 |------|------|--------|
-| `src/components/canvas/utils.ts:101` | TODO: 添加更多连接验证逻辑 | 中 |
+| 无 CI/CD | 无 `.github/workflows`，需手动运行测试 | 高 |
 | `src/types/error.ts` | 缺少 WebSocket 错误类型定义 (与 Rust 不对齐) | 中 |
-| 无 CI/CD | 无 `.github/workflows`，需手动运行测试 | 中 |
-| Workspace 依赖管理 | 仅 core crate 使用 `workspace = true`，其余 7 个 crate 硬编码版本号 | 中 |
-| `src-tauri/compile_errors.txt` | 调试产物被 git 跟踪，应 gitignore | 低 |
-| `components.json` | 引用不存在的 `tailwind.config.js` (TailwindCSS 4 使用 CSS 配置) | 低 |
+| Workspace 依赖管理 | 部分 crate 硬编码版本号，未统一使用 workspace = true | 中 |
+| 生产代码 unwrap() | `core/executor.rs:32-33` 违反无 unwrap 规则 | 中 |
+| 无 ESLint/Prettier | 前端无 lint/format 配置，但代码中有 eslint-disable | 中 |
+| gRPC 服务层缺失 | 前端组件直接 invoke，无 service wrapper + mock | 中 |
+| CSP 未配置 | tauri.conf.json csp: null，生产安全风险 | 中 |
+| `components.json` | 引用不存在的 `tailwind.config.js` | 低 |
 
 ## 命令
 
@@ -249,14 +273,33 @@ cargo build --release --bin mpe  # 生产 CLI
 cargo test           # Rust 测试
 cargo clippy         # Lint 检查
 
+# 单 crate 测试/Lint
+cargo test -p flow-engine-grpc && cargo clippy -p flow-engine-grpc
+
 # Tauri 桌面应用
 npm run tauri dev    # 开发模式
 npm run tauri build  # 构建安装包
 ```
 
+## IPC 命令 (39)
+
+| 分类 | 命令 |
+|------|------|
+| Flow (5) | create_flow, execute_flow, cancel_flow, update_node, delete_node |
+| Reports (4) | save/load/list/delete_flow_report |
+| Stress Reports (4) | save/load/list/delete_stress_test_report |
+| Debug (5) | start_debug, send_debug_command, end_debug, get_debug_status, force_end_debug |
+| Stress Test (3) | start/stop/get_stress_test_status |
+| Database (1) | test_db_connection |
+| gRPC (1) | grpc_discover_services |
+| Settings (2) | get_app_data_dir, open_directory |
+| Flow Files (5) | list/load/save/delete/copy_flow_file |
+| Folders (6) | list/create/delete/rename_folder, move_flow_to_folder, move_folder |
+| Registry (3) | get_registered_node_types, get_node_config_schema, list_registered_plugins |
+
 ## 注意事项
 
-1. **双二进制输出**: `src-tauri/Cargo.toml` 定义了 `app` (Tauri 桌面应用) 和 `mpe` (独立 CLI 工具，支持 `mpe run -f flow.mpf`)
+1. **双二进制输出**: `src-tauri/Cargo.toml` 定义了 `app` (Tauri 桌面应用) 和 `mpe` (独立 CLI 工具，6 子命令: run/validate/debug/stress/flow/report)
 
 2. **TailwindCSS 4**: 使用 CSS-based 配置 (`@import "tailwindcss"` + `@theme`)，无 `tailwind.config.js`
 
@@ -293,6 +336,8 @@ npm run tauri build  # 构建安装包
 
 17. **加密模块**: AES-256-GCM 加密存储数据库密码，集成 OS Keychain (Windows Credential Manager / macOS Keychain / Linux Secret Service)
 
+18. **gRPC 支持**: 三种节点类型 - `grpc_connect` (连接+服务发现)、`grpc_call` (调用，支持 Unary/SS/CS/Bidi 四种模式)、`grpc_close` (关闭)。运行时 .proto 解析 (protox + prost-reflect)，无需编译时代码生成。TLS 支持明文/标准/跳过验证三种模式
+
 ## 子目录知识库
 
 - [src/components/AGENTS.md](./src/components/AGENTS.md) - 前端组件架构
@@ -306,6 +351,7 @@ npm run tauri build  # 构建安装包
 - [src-tauri/crates/flow-engine-ws/src/AGENTS.md](./src-tauri/crates/flow-engine-ws/src/AGENTS.md) - WebSocket crate
 - [src-tauri/crates/flow-engine-script/src/AGENTS.md](./src-tauri/crates/flow-engine-script/src/AGENTS.md) - 脚本 crate
 - [src-tauri/crates/flow-engine-assertion/src/AGENTS.md](./src-tauri/crates/flow-engine-assertion/src/AGENTS.md) - 断言 crate
+- [src-tauri/crates/flow-engine-grpc/src/AGENTS.md](./src-tauri/crates/flow-engine-grpc/src/AGENTS.md) - gRPC crate
 - [src/stores/AGENTS.md](./src/stores/AGENTS.md) - Zustand 状态管理
 - [src/services/AGENTS.md](./src/services/AGENTS.md) - Tauri IPC 服务
 - [src/types/AGENTS.md](./src/types/AGENTS.md) - TypeScript 类型定义
