@@ -202,7 +202,7 @@ export function CanvasToolbar() {
 
   // 工具栏内容
   const toolbarContent = (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-start gap-2">
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
       {/* 主工具栏 */}
       <div className="flex items-center gap-3 bg-background/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-border/50 dark:border-white/20">
         {/* 撤销/重做按钮 */}
@@ -435,70 +435,85 @@ export function CanvasToolbar() {
             </div>
           </>
         )}
-      </div>
-
-      {/* 变量按钮 - 独立元素，紧贴工具栏右侧 */}
-      {hasVariables && (
-        <div className="relative">
-          <button
-            type="button"
-            onClick={toggleVariableDrawer}
-            className={cn(
-              'flex items-center justify-center',
-              'w-10 h-10 rounded-full',
-              'bg-background/90 backdrop-blur-sm shadow-lg border border-border/50 dark:border-white/20',
-              'transition-all duration-150 hover:shadow-lg',
-              'cursor-pointer',
-              isVariableDrawerOpen
-                ? 'text-violet-600 border-violet-200 dark:border-violet-500/50'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-            title={isVariableDrawerOpen ? '收起变量面板' : `变量 (${totalVariables})`}
-          >
+        {/* 变量按钮 - 工具栏内，与节点分组同高 */}
+        {hasVariables && !isAnyActive && (
+          <>
+            <div className="w-px h-5 bg-border" />
             <div className="relative">
-              <VariableIcon className="w-6 h-6" />
-              <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400 text-[9px] font-bold leading-none px-0.5">
-                {totalVariables}
-              </span>
-            </div>
-          </button>
+              <Popover.Root open={isVariableDrawerOpen} onOpenChange={(open) => { if (!open) toggleVariableDrawer(); }}>
+                <Popover.Trigger asChild>
+                  <button
+                    type="button"
+                    onClick={toggleVariableDrawer}
+                    className={cn(
+                      'flex flex-col items-center justify-center',
+                      'w-9 h-9 rounded-lg',
+                      'text-foreground',
+                      'hover:bg-accent hover:scale-105',
+                      'active:scale-95',
+                      'transition-all duration-100 cursor-pointer',
+                      'select-none',
+                      isVariableDrawerOpen && 'bg-accent text-violet-600',
+                    )}
+                    title={isVariableDrawerOpen ? '收起变量面板' : `变量 (${totalVariables})`}
+                  >
+                    <div className="relative">
+                      <VariableIcon className="w-3.5 h-3.5" />
+                      <span className="absolute -top-1 -right-1.5 min-w-[10px] h-[10px] flex items-center justify-center rounded-full bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400 text-[7px] font-bold leading-none px-px">
+                        {totalVariables}
+                      </span>
+                    </div>
+                    <span className="text-[9px] text-muted-foreground leading-none mt-0.5">
+                      变量
+                    </span>
+                  </button>
+                </Popover.Trigger>
 
-          {/* 变量抽屉面板 */}
-          {isVariableDrawerOpen && (
-            <div className={cn(
-              'absolute top-full mt-2 left-1/2 -translate-x-1/2',
-              'w-72 max-h-[calc(100vh-200px)]',
-              'bg-background/95 backdrop-blur-xl rounded-xl',
-              'shadow-xl border border-border/50 dark:border-white/20',
-              'overflow-hidden',
-              'animate-in fade-in-0 zoom-in-95 duration-200'
-            )}>
-              {/* 标题栏 + 关闭按钮 */}
-              <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-                <div className="flex items-center gap-2">
-                  <VariableIcon className="w-4 h-4 text-violet-600" />
-                  <span className="text-sm font-semibold text-foreground">变量</span>
-                  <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-                    {totalVariables}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={toggleVariableDrawer}
-                  className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                  title="收起"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              {/* 变量面板内容 */}
-              <div className="h-[calc(100%-40px)] overflow-hidden">
-                <VariablePanel flow={flow!} nodes={flow!.nodes} showHeader={false} />
-              </div>
+                <Popover.Portal>
+                  <Popover.Content
+                    side="bottom"
+                    sideOffset={8}
+                    align="center"
+                    className={cn(
+                      'z-50',
+                      'w-72 max-h-[calc(100vh-200px)]',
+                      'bg-background/95 backdrop-blur-xl rounded-xl',
+                      'shadow-xl border border-border/50 dark:border-white/20',
+                      'overflow-hidden',
+                      'animate-in fade-in-0 zoom-in-95',
+                      'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
+                    )}
+                  >
+                    {/* 标题栏 + 关闭按钮 */}
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                      <div className="flex items-center gap-2">
+                        <VariableIcon className="w-4 h-4 text-violet-600" />
+                        <span className="text-sm font-semibold text-foreground">变量</span>
+                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                          {totalVariables}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={toggleVariableDrawer}
+                        className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        title="收起"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {/* 变量面板内容 */}
+                    <div className="h-[calc(100%-40px)] overflow-hidden">
+                      <VariablePanel flow={flow!} nodes={flow!.nodes} showHeader={false} />
+                    </div>
+                    <Popover.Arrow className="fill-background drop-shadow-sm" />
+                  </Popover.Content>
+                </Popover.Portal>
+              </Popover.Root>
             </div>
-          )}
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 
