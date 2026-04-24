@@ -32,7 +32,7 @@ impl NodePlugin for GrpcConnectPlugin {
     }
 
     fn icon(&self) -> &str {
-        "radio"
+        "cable"
     }
 
     fn color(&self) -> &str {
@@ -127,7 +127,7 @@ impl NodePlugin for GrpcCallPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "gRPC 调用（支持 Unary/Streaming 模式）"
+        "gRPC 调用"
     }
 
     fn category(&self) -> &str {
@@ -135,7 +135,7 @@ impl NodePlugin for GrpcCallPlugin {
     }
 
     fn icon(&self) -> &str {
-        "send"
+        "phone-outgoing"
     }
 
     fn color(&self) -> &str {
@@ -240,7 +240,7 @@ impl NodePlugin for GrpcClosePlugin {
     }
 
     fn icon(&self) -> &str {
-        "x-circle"
+        "phone-off"
     }
 
     fn color(&self) -> &str {
@@ -324,7 +324,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "grpc_connect");
         assert_eq!(plugin.display_name(), "gRPC 连接");
         assert_eq!(plugin.category(), "grpc");
-        assert_eq!(plugin.icon(), "radio");
+        assert_eq!(plugin.icon(), "cable");
         assert_eq!(plugin.color(), "#8B5CF6");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -339,9 +339,9 @@ mod tests {
     fn test_grpc_call_plugin_metadata() {
         let plugin = GrpcCallPlugin;
         assert_eq!(plugin.type_id(), "grpc_call");
-        assert_eq!(plugin.display_name(), "gRPC 调用（支持 Unary/Streaming 模式）");
+        assert_eq!(plugin.display_name(), "gRPC 调用");
         assert_eq!(plugin.category(), "grpc");
-        assert_eq!(plugin.icon(), "send");
+        assert_eq!(plugin.icon(), "phone-outgoing");
         assert_eq!(plugin.color(), "#8B5CF6");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -358,7 +358,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "grpc_close");
         assert_eq!(plugin.display_name(), "gRPC 关闭");
         assert_eq!(plugin.category(), "grpc");
-        assert_eq!(plugin.icon(), "x-circle");
+        assert_eq!(plugin.icon(), "phone-off");
         assert_eq!(plugin.color(), "#8B5CF6");
         assert!(plugin.supports_false_port());
 

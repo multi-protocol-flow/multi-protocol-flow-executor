@@ -296,7 +296,7 @@ fn test_grpc_connect_plugin_full_metadata() {
     assert_eq!(plugin.type_id(), "grpc_connect");
     assert_eq!(plugin.display_name(), "gRPC 连接");
     assert_eq!(plugin.category(), "grpc");
-    assert_eq!(plugin.icon(), "radio");
+    assert_eq!(plugin.icon(), "cable");
     assert_eq!(plugin.color(), "#8B5CF6");
     assert!(plugin.is_protocol_node());
     assert!(plugin.supports_false_port());
@@ -326,9 +326,9 @@ fn test_grpc_call_plugin_full_metadata() {
     let plugin = GrpcCallPlugin;
 
     assert_eq!(plugin.type_id(), "grpc_call");
-    assert_eq!(plugin.display_name(), "gRPC 调用（支持 Unary/Streaming 模式）");
+    assert_eq!(plugin.display_name(), "gRPC 调用");
     assert_eq!(plugin.category(), "grpc");
-    assert_eq!(plugin.icon(), "send");
+    assert_eq!(plugin.icon(), "phone-outgoing");
     assert_eq!(plugin.color(), "#8B5CF6");
     assert!(plugin.is_protocol_node());
     assert!(plugin.supports_false_port());
@@ -359,7 +359,7 @@ fn test_grpc_close_plugin_full_metadata() {
     assert_eq!(plugin.type_id(), "grpc_close");
     assert_eq!(plugin.display_name(), "gRPC 关闭");
     assert_eq!(plugin.category(), "grpc");
-    assert_eq!(plugin.icon(), "x-circle");
+    assert_eq!(plugin.icon(), "phone-off");
     assert_eq!(plugin.color(), "#8B5CF6");
     assert!(plugin.supports_false_port());
 
