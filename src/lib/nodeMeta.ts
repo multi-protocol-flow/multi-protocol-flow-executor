@@ -86,7 +86,7 @@ const STATIC_DISPLAY_NAMES: Record<string, string> = {
   db_rollback: 'DB-回滚',
   db_close: 'DB-关闭',
   grpc_connect: 'gRPC-连接',
-  grpc_call: 'gRPC-调用（支持 Unary/Streaming 模式）',
+  grpc_call: 'gRPC-调用',
   grpc_close: 'gRPC-关闭',
   mcp_connect: 'MCP-连接',
   mcp_call_tool: 'MCP-调用工具',

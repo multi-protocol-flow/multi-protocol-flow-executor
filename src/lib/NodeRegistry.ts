@@ -57,11 +57,10 @@ export function groupByCategory(
  * 分类显示名称映射
  */
 export const CATEGORY_NAMES: Record<string, string> = {
-  logic: '逻辑',
   http: 'HTTP',
-  websocket: 'WebSocket',
-  database: '数据库',
-  tools: '工具',
+  websocket: 'WS',
+  database: 'DB',
+  tools: 'Tool',
   script: '脚本',
   assertion: '断言',
   grpc: 'gRPC',
@@ -73,14 +72,13 @@ export const CATEGORY_NAMES: Record<string, string> = {
  */
 export const CATEGORY_ORDER: Record<string, number> = {
   http: 0,
-  logic: 1,
+  tools: 1,
   websocket: 2,
   database: 3,
   grpc: 4,
   mcp: 5,
-  tools: 6,
-  script: 7,
-  assertion: 8,
+  script: 6,
+  assertion: 7,
 };
 
 /**
