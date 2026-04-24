@@ -3,7 +3,7 @@
 use crate::log_event::LogEvent;
 use crate::report::NodeExecutionReport;
 use crate::variable::Variable;
-use crate::traits::{LogSender, DebugEventSender, ExecutionEventSender, WsProvider, DbProvider, GrpcProvider};
+use crate::traits::{LogSender, DebugEventSender, ExecutionEventSender, WsProvider, DbProvider, GrpcProvider, McpProvider};
 use crate::execution_event::ExecutionEvent;
 use crate::ws_stream::{WsConnectionStream, WsMessage};
 use serde::{Deserialize, Serialize};
@@ -75,6 +75,12 @@ pub struct ExecutionContext {
     #[serde(skip)]
     pub grpc_manager: Option<Arc<dyn GrpcProvider>>,
 
+    /// MCP 连接管理器（通过 `McpProvider` trait 解耦）
+    /// 用于管理 MCP 连接的生命周期（连接、工具调用、资源读取、关闭）
+    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `McpProvider` 不支持序列化
+    #[serde(skip)]
+    pub mcp_manager: Option<Arc<dyn McpProvider>>,
+
     /// 最近一个协议节点的输出数据
     /// 协议节点（HTTP、WebSocket）执行后更新此字段
     /// 工具节点（Conditional、Entry、WsClose）不更新，延续上游数据
@@ -131,6 +137,7 @@ impl ExecutionContext {
             ws_streams: Arc::new(RwLock::new(HashMap::new())),
             db_manager: None,
             grpc_manager: None,
+            mcp_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -207,6 +214,12 @@ impl ExecutionContext {
     /// 设置 gRPC 连接管理器
     pub fn with_grpc_manager(mut self, grpc_manager: Arc<dyn GrpcProvider>) -> Self {
         self.grpc_manager = Some(grpc_manager);
+        self
+    }
+
+    /// 设置 MCP 连接管理器
+    pub fn with_mcp_manager(mut self, mcp_manager: Arc<dyn McpProvider>) -> Self {
+        self.mcp_manager = Some(mcp_manager);
         self
     }
 
