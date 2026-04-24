@@ -4,7 +4,7 @@
  */
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   grpcConnectConfigSchema,
   type GrpcConnectConfigFormData,
@@ -14,9 +14,10 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Cable, FileText, Info, Search, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Cable, FileText, Info, Search, Loader2, ChevronDown } from 'lucide-react';
 import type { GrpcConnectConfig as GrpcConnectConfigType, GrpcServiceInfo } from '@/types';
 import { invoke } from '@tauri-apps/api/core';
+import { cn } from '@/lib/utils';
 
 interface GrpcConnectConfigProps {
   /** 当前节点数据 */
@@ -202,6 +203,37 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
     services: GrpcServiceInfo[];
     error: string | null;
   } | null>(null);
+
+  // 可折叠服务树的展开状态
+  const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set());
+
+  // 合并发现结果：优先使用最新的发现结果，否则使用已缓存的服务
+  const displayServices = useMemo((): GrpcServiceInfo[] => {
+    if (discoveryResult?.success && discoveryResult.services.length > 0) {
+      return discoveryResult.services;
+    }
+    return data.discovered_services || [];
+  }, [discoveryResult, data.discovered_services]);
+
+  // 监听 URL 变化，清除已发现的服务
+  const currentUrl = watch('url');
+  const prevUrlRef = useRef(data.url);
+  useEffect(() => {
+    const trimmedUrl = currentUrl?.trim();
+    const prevTrimmed = prevUrlRef.current?.trim();
+    if (trimmedUrl !== prevTrimmed && prevTrimmed !== undefined) {
+      // URL 发生变化，清除已发现的服务
+      const formData = getValues();
+      const config = fromFormData(formData);
+      config.discovered_services = undefined;
+      onSave(config);
+      setDiscoveryResult(null);
+      prevUrlRef.current = trimmedUrl;
+    } else {
+      prevUrlRef.current = trimmedUrl;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUrl]);
 
   /**
    * 测试连接 & 发现服务
@@ -436,14 +468,88 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
         {discoveryResult && (
           <div className={`rounded-md border px-3 py-2 text-xs ${
             discoveryResult.success
-              ? 'border-emerald-200/60 bg-emerald-50/50 text-emerald-700'
-              : 'border-rose-200/60 bg-rose-50/50 text-rose-600'
+              ? 'border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
+              : 'border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400'
           }`}>
             {discoveryResult.success ? (
               <p>发现 {discoveryResult.services.length} 个服务</p>
             ) : (
-              <p className="text-rose-500">{discoveryResult.error}</p>
+              <p className="text-rose-500 dark:text-rose-400">{discoveryResult.error}</p>
             )}
+          </div>
+        )}
+
+        {/* 已发现的服务树 */}
+        {displayServices.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-muted-foreground">已发现的服务</Label>
+              <span className="inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300">
+                {displayServices.length} 个服务
+              </span>
+            </div>
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {displayServices.map((service) => {
+                const isExpanded = expandedServices.has(service.service_name);
+                return (
+                  <div key={service.service_name} className="border rounded-lg overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExpandedServices(prev => {
+                          const next = new Set(prev);
+                          if (next.has(service.service_name)) next.delete(service.service_name);
+                          else next.add(service.service_name);
+                          return next;
+                        });
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-muted/50 transition-colors"
+                    >
+                      <span className="font-mono text-sm font-medium text-foreground truncate">
+                        {service.service_name}
+                      </span>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        <span className="text-xs text-muted-foreground">
+                          {service.methods.length} 个方法
+                        </span>
+                        <ChevronDown className={cn(
+                          "h-3.5 w-3.5 text-muted-foreground transition-transform",
+                          isExpanded && "rotate-180"
+                        )} />
+                      </div>
+                    </button>
+                    {isExpanded && service.methods.length > 0 && (
+                      <div className="border-t bg-muted/20 px-3 py-2 space-y-1">
+                        {service.methods.map((method) => (
+                          <div key={method.method_name} className="flex items-center gap-2 text-xs rounded px-2 py-1 bg-background/50">
+                            <code className="text-foreground font-mono">{method.method_name}</code>
+                            <span className="text-muted-foreground">→</span>
+                            <code className="text-muted-foreground font-mono text-[11px]">{method.output_type}</code>
+                            {method.is_server_streaming && method.is_client_streaming ? (
+                              <span className="inline-flex items-center rounded-full bg-purple-100 dark:bg-purple-900/30 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:text-purple-300">
+                                双向流式
+                              </span>
+                            ) : method.is_server_streaming ? (
+                              <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                服务端流式
+                              </span>
+                            ) : method.is_client_streaming ? (
+                              <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                                客户端流式
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-300">
+                                Unary
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
