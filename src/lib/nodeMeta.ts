@@ -1,6 +1,6 @@
 /**
  * 节点类型元数据
- * 提供 14 种节点类型的图标、颜色映射，以及动态显示名称获取
+ * 提供 18 种节点类型的图标、颜色映射，以及动态显示名称获取
  *
  * - ICON_MAP: 前端独有数据（图标组件），不可从后端获取
  * - getNodeDisplayName(): 优先从 NodeRegistry 缓存获取动态名称
@@ -23,6 +23,10 @@ import {
   Cable,
   PhoneOutgoing,
   PhoneOff,
+  Puzzle,
+  Wrench,
+  FileSearch,
+  Unplug,
 } from 'lucide-react';
 import { getCachedDisplayName } from '@/lib/NodeRegistry';
 
@@ -59,6 +63,10 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
   grpc_connect: { icon: Cable, iconBg: 'bg-sky-500', labelColor: 'text-sky-600', badge: 'bg-sky-100 text-sky-700' },
   grpc_call: { icon: PhoneOutgoing, iconBg: 'bg-sky-500', labelColor: 'text-sky-600', badge: 'bg-sky-100 text-sky-700' },
   grpc_close: { icon: PhoneOff, iconBg: 'bg-sky-500', labelColor: 'text-sky-600', badge: 'bg-sky-100 text-sky-700' },
+  mcp_connect: { icon: Puzzle, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
+  mcp_call_tool: { icon: Wrench, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
+  mcp_read_resource: { icon: FileSearch, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
+  mcp_close: { icon: Unplug, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
 };
 
 /** 静态显示名称兜底映射 */
@@ -80,6 +88,10 @@ const STATIC_DISPLAY_NAMES: Record<string, string> = {
   grpc_connect: 'gRPC-连接',
   grpc_call: 'gRPC-调用（支持 Unary/Streaming 模式）',
   grpc_close: 'gRPC-关闭',
+  mcp_connect: 'MCP-连接',
+  mcp_call_tool: 'MCP-调用工具',
+  mcp_read_resource: 'MCP-读取资源',
+  mcp_close: 'MCP-关闭',
 };
 
 /**

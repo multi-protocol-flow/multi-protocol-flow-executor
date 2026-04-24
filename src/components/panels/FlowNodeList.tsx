@@ -64,6 +64,13 @@ function InlineCheckbox({ checked, disabled, onChange }: InlineCheckboxProps) {
 
 function NodeTypeIcon({ type }: { type: NodeType }) {
   const meta = NODE_META[type];
+  if (!meta) {
+    return (
+      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] bg-gray-400">
+        <span className="text-[8px] font-bold text-white">?</span>
+      </div>
+    );
+  }
   const Icon = meta.icon;
   return (
     <div className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px]', meta.iconBg)}>
@@ -242,9 +249,11 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
                   <span className="truncate text-sm text-foreground/90">{node.name}</span>
 
                   {/* 节点类型标签 */}
-                  <span className={cn('ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none', meta.badge)}>
-                    {meta.name}
-                  </span>
+                  {meta && (
+                    <span className={cn('ml-auto shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium leading-none', meta.badge)}>
+                      {meta.name}
+                    </span>
+                  )}
                 </div>
               );
             })}
