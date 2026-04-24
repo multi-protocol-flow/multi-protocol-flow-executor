@@ -18,4 +18,8 @@ export { ScriptNode, type ScriptNodeData } from './ScriptNode';
 export { GrpcConnectNode, type GrpcConnectNodeData } from './GrpcConnectNode';
 export { GrpcCallNode, type GrpcCallNodeData } from './GrpcCallNode';
 export { GrpcCloseNode, type GrpcCloseNodeData } from './GrpcCloseNode';
+export { McpConnectNode, type McpConnectNodeData } from './McpConnectNode';
+export { McpCallToolNode, type McpCallToolNodeData } from './McpCallToolNode';
+export { McpReadResourceNode, type McpReadResourceNodeData } from './McpReadResourceNode';
+export { McpCloseNode, type McpCloseNodeData } from './McpCloseNode';
 export { default as DynamicPluginNode } from './DynamicPluginNode';

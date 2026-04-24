@@ -65,6 +65,7 @@ export const CATEGORY_NAMES: Record<string, string> = {
   script: '脚本',
   assertion: '断言',
   grpc: 'gRPC',
+  mcp: 'MCP',
 };
 
 /**
@@ -76,9 +77,10 @@ export const CATEGORY_ORDER: Record<string, number> = {
   websocket: 2,
   database: 3,
   grpc: 4,
-  tools: 5,
-  script: 6,
-  assertion: 7,
+  mcp: 5,
+  tools: 6,
+  script: 7,
+  assertion: 8,
 };
 
 /**
@@ -109,6 +111,10 @@ export function getBadgeClassForType(typeId: string): string {
     grpc_connect: 'bg-sky-100 text-sky-700',
     grpc_call: 'bg-sky-100 text-sky-700',
     grpc_close: 'bg-sky-100 text-sky-700',
+    mcp_connect: 'bg-amber-100 text-amber-700',
+    mcp_call_tool: 'bg-amber-100 text-amber-700',
+    mcp_read_resource: 'bg-amber-100 text-amber-700',
+    mcp_close: 'bg-amber-100 text-amber-700',
   };
   return badgeMap[typeId] ?? 'bg-slate-100 text-slate-700';
 }

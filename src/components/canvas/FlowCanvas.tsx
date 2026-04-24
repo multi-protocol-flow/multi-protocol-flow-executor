@@ -22,7 +22,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpCloseNode } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
@@ -100,6 +100,10 @@ const nodeTypes = {
   grpc_connect: GrpcConnectNode,
   grpc_call: GrpcCallNode,
   grpc_close: GrpcCloseNode,
+  mcp_connect: McpConnectNode,
+  mcp_call_tool: McpCallToolNode,
+  mcp_read_resource: McpReadResourceNode,
+  mcp_close: McpCloseNode,
   default: DynamicPluginNode,
 };
 
@@ -127,6 +131,10 @@ const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
   grpc_connect: '#8b5cf6',
   grpc_call: '#8b5cf6',
   grpc_close: '#8b5cf6',
+  mcp_connect: '#f59e0b',
+  mcp_call_tool: '#f59e0b',
+  mcp_read_resource: '#f59e0b',
+  mcp_close: '#f59e0b',
 };
 
 /**

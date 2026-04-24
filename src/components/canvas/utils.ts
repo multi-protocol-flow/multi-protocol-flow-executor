@@ -157,6 +157,14 @@ export function createDefaultNodeData(type: NodeType): NodeData {
       return { type: 'grpc_call', connection_id: '', service_name: '', method_name: '', request_json: '' };
     case 'grpc_close':
       return { type: 'grpc_close', connection_id: '' };
+    case 'mcp_connect':
+      return { type: 'mcp_connect', url: '' };
+    case 'mcp_call_tool':
+      return { type: 'mcp_call_tool', connection_id: '', tool_name: '' };
+    case 'mcp_read_resource':
+      return { type: 'mcp_read_resource', connection_id: '', resource_uri: '' };
+    case 'mcp_close':
+      return { type: 'mcp_close', connection_id: '' };
     case 'entry':
       return { type: 'entry' };
   }
@@ -184,6 +192,10 @@ const STATIC_NODE_TYPE_LABELS: Record<NodeType, string> = {
   grpc_connect: 'gRPC 连接',
   grpc_call: 'gRPC 调用',
   grpc_close: 'gRPC 关闭',
+  mcp_connect: 'MCP 连接',
+  mcp_call_tool: 'MCP 调用工具',
+  mcp_read_resource: 'MCP 读取资源',
+  mcp_close: 'MCP 关闭',
 };
 
 /**
