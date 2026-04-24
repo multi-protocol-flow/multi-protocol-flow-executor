@@ -3,7 +3,7 @@
  * 琥珀色主题，表示建立 MCP 连接
  */
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Plug } from 'lucide-react';
+import { Puzzle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { McpConnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
@@ -65,7 +65,7 @@ export function McpConnectNode({ id, data, selected }: NodeProps) {
           'shrink-0 p-1.5 rounded-lg',
           'bg-amber-500 text-white'
         )}>
-          <Plug className="w-3.5 h-3.5" />
+          <Puzzle className="w-3.5 h-3.5" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-amber-600 font-medium tracking-wide">

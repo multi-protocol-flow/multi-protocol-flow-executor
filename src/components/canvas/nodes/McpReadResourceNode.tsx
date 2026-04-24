@@ -3,7 +3,7 @@
  * 琥珀色主题，表示读取 MCP 资源
  */
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { FileText } from 'lucide-react';
+import { FileSearch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { McpReadResourceConfig } from '@/types';
 import { useFlowStore, useDebugStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
@@ -65,7 +65,7 @@ export function McpReadResourceNode({ id, data, selected }: NodeProps) {
           'shrink-0 p-1.5 rounded-lg',
           'bg-amber-500 text-white'
         )}>
-          <FileText className="w-3.5 h-3.5" />
+          <FileSearch className="w-3.5 h-3.5" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-amber-600 font-medium tracking-wide">

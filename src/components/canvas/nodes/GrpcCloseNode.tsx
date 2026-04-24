@@ -3,7 +3,7 @@
  * 紫色主题，表示关闭 gRPC 连接
  */
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Unplug } from 'lucide-react';
+import { PhoneOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { GrpcCloseConfig } from '@/types';
 import { useFlowStore, useDebugStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
@@ -65,7 +65,7 @@ export function GrpcCloseNode({ id, data, selected }: NodeProps) {
           'shrink-0 p-1.5 rounded-lg',
           'bg-violet-500 text-white'
         )}>
-          <Unplug className="w-3.5 h-3.5" />
+          <PhoneOff className="w-3.5 h-3.5" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-violet-600 font-medium tracking-wide">

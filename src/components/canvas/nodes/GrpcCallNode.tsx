@@ -3,7 +3,7 @@
  * 紫色主题，表示调用 gRPC 方法
  */
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Radio } from 'lucide-react';
+import { PhoneOutgoing } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { GrpcCallConfig } from '@/types';
 import { useFlowStore, useDebugStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
@@ -70,7 +70,7 @@ export function GrpcCallNode({ id, data, selected }: NodeProps) {
           'shrink-0 p-1.5 rounded-lg',
           'bg-violet-500 text-white'
         )}>
-          <Radio className="w-3.5 h-3.5" />
+          <PhoneOutgoing className="w-3.5 h-3.5" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-violet-600 font-medium tracking-wide">
