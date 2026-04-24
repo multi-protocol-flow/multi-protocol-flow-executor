@@ -69,6 +69,14 @@ export interface McpDiscoverToolsInput {
   url: string;
   headers?: Record<string, string>;
   protocol_version?: string;
+  /** 传输模式：streamable_http (默认) | stdio */
+  transport?: 'streamable_http' | 'stdio';
+  /** Stdio 模式：可执行文件路径 */
+  command?: string;
+  /** Stdio 模式：命令参数 */
+  args?: string[];
+  /** Stdio 模式：环境变量 */
+  env?: Record<string, string>;
 }
 
 /**

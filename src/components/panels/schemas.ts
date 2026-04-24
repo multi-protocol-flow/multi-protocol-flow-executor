@@ -589,16 +589,45 @@ export type GrpcCloseConfigFormData = z.infer<typeof grpcCloseConfigSchema>;
 
 /**
  * MCP Connect 配置表单 Schema
+ *
+ * 条件验证：
+ * - streamable_http 模式下 url 必填
+ * - stdio 模式下 command 必填
  */
 export const mcpConnectConfigSchema = z.object({
   type: z.literal('mcp_connect'),
-  url: z.string().min(1, 'MCP 服务器地址不能为空'),
+  transport: z.enum(['streamable_http', 'stdio']).optional(),
+  url: z.string().optional(),
   protocol_version: z.string().optional(),
   custom_headers: z.array(z.object({
     key: z.string(),
     value: z.string(),
   })).optional(),
-});
+  command: z.string().optional(),
+  args: z.array(z.string()).optional(),
+  env: z.array(z.object({
+    key: z.string(),
+    value: z.string(),
+  })).optional(),
+}).refine(
+  (data) => {
+    const transport = data.transport || 'streamable_http';
+    if (transport === 'streamable_http') {
+      return !!data.url && data.url.trim().length > 0;
+    }
+    return true;
+  },
+  { message: 'Streamable HTTP 模式下 MCP 服务器地址不能为空', path: ['url'] },
+).refine(
+  (data) => {
+    const transport = data.transport || 'streamable_http';
+    if (transport === 'stdio') {
+      return !!data.command && data.command.trim().length > 0;
+    }
+    return true;
+  },
+  { message: 'Stdio 模式下命令不能为空', path: ['command'] },
+);
 
 export type McpConnectConfigFormData = z.infer<typeof mcpConnectConfigSchema>;
 

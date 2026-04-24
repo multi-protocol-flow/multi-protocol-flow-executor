@@ -577,14 +577,22 @@ export interface McpPromptInfo {
  */
 export interface McpConnectConfig {
   type: 'mcp_connect';
-  /** MCP 服务器 URL（Streamable HTTP） */
+  /** 传输模式：streamable_http (默认) | stdio */
+  transport?: 'streamable_http' | 'stdio';
+  /** MCP 服务器 URL（Streamable HTTP 模式） */
   url: string;
-  /** 请求头 */
+  /** 请求头（Streamable HTTP 模式） */
   headers?: Record<string, string>;
   /** 协议版本（默认 "2025-11-25"） */
   protocol_version?: string;
-  /** 自定义请求头 */
+  /** 自定义请求头（Streamable HTTP 模式） */
   custom_headers?: Record<string, string>;
+  /** Stdio 模式：可执行文件路径（如 npx, uvx, node） */
+  command?: string;
+  /** Stdio 模式：命令参数 */
+  args?: string[];
+  /** Stdio 模式：环境变量 */
+  env?: Record<string, string>;
   /** 设计时发现缓存 - 工具列表 */
   discovered_tools?: McpToolInfo[];
   /** 设计时发现缓存 - 资源列表 */
