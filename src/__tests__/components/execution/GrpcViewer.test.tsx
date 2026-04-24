@@ -164,7 +164,7 @@ describe('GrpcViewer', () => {
       });
       render(<GrpcViewer report={report} />);
 
-      expect(screen.getByText('Server Stream')).toBeDefined();
+      expect(screen.getByText('服务端流式')).toBeDefined();
     });
 
     it('显示流式统计（sent_count / received_count）', () => {
@@ -226,7 +226,7 @@ describe('GrpcViewer', () => {
       });
       render(<GrpcViewer report={report} />);
 
-      expect(screen.getByText('Client Stream')).toBeDefined();
+      expect(screen.getByText('客户端流式')).toBeDefined();
     });
 
     it('显示单一响应数据', async () => {
@@ -265,7 +265,7 @@ describe('GrpcViewer', () => {
       });
       render(<GrpcViewer report={report} />);
 
-      expect(screen.getByText('Bidi Stream')).toBeDefined();
+      expect(screen.getByText('双向流式')).toBeDefined();
     });
 
     it('显示流式统计和响应时间线', async () => {
@@ -359,7 +359,7 @@ describe('GrpcViewer', () => {
       });
       render(<GrpcViewer report={report} />);
 
-      expect(screen.getByText('Server Stream')).toBeDefined();
+      expect(screen.getByText('服务端流式')).toBeDefined();
     });
   });
 

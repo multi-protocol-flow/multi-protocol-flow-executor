@@ -359,12 +359,33 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
                         <code className="text-foreground font-mono">{method.method_name}</code>
                         <span className="text-muted-foreground">→</span>
                         <code className="text-muted-foreground font-mono">{method.output_type}</code>
-                        {method.is_server_streaming && (
+                        {method.is_server_streaming && method.is_client_streaming ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1 py-0 text-purple-600 dark:text-purple-400 border-purple-300 dark:border-purple-700"
+                          >
+                            双向流式
+                          </Badge>
+                        ) : method.is_server_streaming ? (
                           <Badge
                             variant="outline"
                             className="text-[10px] px-1 py-0 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700"
                           >
-                            streaming
+                            服务端流式
+                          </Badge>
+                        ) : method.is_client_streaming ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1 py-0 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700"
+                          >
+                            客户端流式
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1 py-0 text-green-600 dark:text-green-400 border-green-300 dark:border-green-700"
+                          >
+                            Unary
                           </Badge>
                         )}
                       </div>
@@ -436,11 +457,11 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
   const patternLabel = (() => {
     switch (output?.pattern) {
       case 'unary': return { text: 'Unary', color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/50' };
-      case 'server_streaming': return { text: 'Server Stream', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50' };
-      case 'client_streaming': return { text: 'Client Stream', color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50' };
-      case 'bidi_streaming': return { text: 'Bidi Stream', color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50' };
+      case 'server_streaming': return { text: '服务端流式', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50' };
+      case 'client_streaming': return { text: '客户端流式', color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50' };
+      case 'bidi_streaming': return { text: '双向流式', color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50' };
       default: return isStreaming
-        ? { text: 'Server Stream', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50' }
+        ? { text: '服务端流式', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50' }
         : { text: 'Unary', color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/50' };
     }
   })();
