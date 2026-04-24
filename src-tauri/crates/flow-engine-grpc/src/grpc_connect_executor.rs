@@ -314,6 +314,7 @@ mod tests {
                 proto_files: vec![],
                 default_metadata: vec![],
                 connect_timeout_ms: 30000,
+                discovered_services: vec![],
             }),
             ports: None,
             has_breakpoint: None,
@@ -343,6 +344,7 @@ mod tests {
             cancel_receiver: None,
             grpc_manager: None,
             providers: HashMap::new(),
+            mcp_manager: None,
         }
     }
 
@@ -457,6 +459,7 @@ message GetUserResponse {
                 }],
                 default_metadata: vec![],
                 connect_timeout_ms: 2000, // 2 秒超时
+                discovered_services: vec![],
             }),
             ports: None,
             has_breakpoint: None,

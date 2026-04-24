@@ -230,6 +230,7 @@ mod tests {
             cancel_receiver: None,
             grpc_manager: None,
             providers: HashMap::new(),
+            mcp_manager: None,
         }
     }
 

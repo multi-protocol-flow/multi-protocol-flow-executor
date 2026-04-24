@@ -23,6 +23,7 @@ use std::sync::Arc;
 fn test_grpc_connect_config_serde_roundtrip() {
     let config = GrpcConnectConfig {
         url: "http://localhost:50051".to_string(),
+        discovered_services: vec![],
         use_tls: true,
         tls_skip_verify: false,
         enable_reflection: true,
@@ -64,6 +65,7 @@ fn test_grpc_connect_config_serde_minimal() {
 fn test_grpc_connect_config_via_node_data_roundtrip() {
     let config = GrpcConnectConfig {
         url: "https://grpc.example.com".to_string(),
+        discovered_services: vec![],
         use_tls: true,
         tls_skip_verify: true,
         enable_reflection: false,
@@ -189,6 +191,7 @@ fn test_connect_config_skip_empty_vectors() {
     // 验证 skip_serializing_if = "Vec::is_empty" 行为
     let config = GrpcConnectConfig {
         url: "http://localhost:50051".to_string(),
+        discovered_services: vec![],
         use_tls: false,
         tls_skip_verify: false,
         enable_reflection: false,
@@ -519,9 +522,10 @@ fn create_test_context(flow_id: &str) -> flow_engine_core::context::ExecutionCon
         debug_event_sender: None,
         execution_event_sender: None,
         cancel_receiver: None,
-        grpc_manager: None,
-        providers: HashMap::new(),
-    }
+            grpc_manager: None,
+            providers: HashMap::new(),
+            mcp_manager: None,
+        }
 }
 
 #[tokio::test]
@@ -547,6 +551,7 @@ async fn test_connect_call_close_flow_wiring() {
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::GrpcConnect(GrpcConnectConfig {
             url: "http://localhost:50051".to_string(),
+            discovered_services: vec![],
             use_tls: false,
             tls_skip_verify: false,
             enable_reflection: false,
@@ -656,7 +661,9 @@ message PongResponse { string message = 1; }
         name: "带 Proto 的连接".to_string(),
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::GrpcConnect(GrpcConnectConfig {
-            url: "http://192.0.2.1:50051".to_string(), // 不可路由地址
+            url: "http://192.0.2.1:50051".to_string(),
+            discovered_services: vec![],
+            // 不可路由地址
             use_tls: false,
             tls_skip_verify: false,
             enable_reflection: false,
@@ -703,6 +710,7 @@ async fn test_plugin_execute_delegates_to_executor() {
         position: NodePosition { x: 0.0, y: 0.0 },
         data: NodeData::GrpcConnect(GrpcConnectConfig {
             url: "http://localhost:99999".to_string(),
+            discovered_services: vec![],
             use_tls: false,
             tls_skip_verify: false,
             enable_reflection: false,
