@@ -1,5 +1,6 @@
 /**
  * MCP Connect 节点配置组件
+ * 支持 Streamable HTTP 和 Stdio 两种传输模式
  * 支持服务器地址、自定义请求头、协议版本、工具/资源/提示词发现
  */
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -13,7 +14,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Plug, Info, Search, Loader2, ChevronDown, Wrench, FileSearch, MessageSquare } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Trash2, Plug, Info, Search, Loader2, ChevronDown, Wrench, FileSearch, MessageSquare, Terminal } from 'lucide-react';
 import type { McpConnectConfig as McpConnectConfigType, McpToolInfo, McpResourceInfo, McpPromptInfo } from '@/types';
 import { discoverMcpTools } from '@/services/tauri/mcp';
 import { cn } from '@/lib/utils';
@@ -33,11 +35,19 @@ function toFormData(data: McpConnectConfigType): McpConnectConfigFormData {
     ? Object.entries(data.custom_headers).map(([key, value]) => ({ key, value }))
     : [];
 
+  const envPairs = data.env
+    ? Object.entries(data.env).map(([key, value]) => ({ key, value }))
+    : [];
+
   return {
     type: 'mcp_connect',
+    transport: data.transport || 'streamable_http',
     url: data.url || '',
     protocol_version: data.protocol_version || '2025-11-25',
     custom_headers: customHeaders.length > 0 ? customHeaders : [],
+    command: data.command || '',
+    args: data.args || [],
+    env: envPairs.length > 0 ? envPairs : [],
   };
 }
 
@@ -46,13 +56,23 @@ function toFormData(data: McpConnectConfigType): McpConnectConfigFormData {
  */
 function fromFormData(formData: McpConnectConfigFormData, cachedData?: McpConnectConfigType): McpConnectConfigType {
   const customHeaders = formData.custom_headers?.filter(h => h.key.trim());
+  const envPairs = formData.env?.filter(h => h.key.trim());
+  const transport = formData.transport || 'streamable_http';
 
   return {
     type: 'mcp_connect',
-    url: formData.url,
+    transport,
+    url: transport === 'streamable_http' ? (formData.url || '') : '',
     protocol_version: formData.protocol_version || undefined,
     custom_headers: customHeaders && customHeaders.length > 0
       ? Object.fromEntries(customHeaders.map(h => [h.key, h.value]))
+      : undefined,
+    command: transport === 'stdio' ? (formData.command || undefined) : undefined,
+    args: transport === 'stdio' && formData.args && formData.args.length > 0
+      ? formData.args
+      : undefined,
+    env: transport === 'stdio' && envPairs && envPairs.length > 0
+      ? Object.fromEntries(envPairs.map(h => [h.key, h.value]))
       : undefined,
     discovered_tools: cachedData?.discovered_tools,
     discovered_resources: cachedData?.discovered_resources,
@@ -67,6 +87,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
     control,
     reset,
     getValues,
+    setValue,
     watch,
     formState: { errors, isDirty },
   } = useForm<McpConnectConfigFormData>({
@@ -78,6 +99,11 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
   const headerFields = useFieldArray({
     control,
     name: 'custom_headers' as never,
+  });
+
+  const envFields = useFieldArray({
+    control,
+    name: 'env' as never,
   });
 
   // 追踪表单实际修改状态
@@ -134,7 +160,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
         console.error('保存 MCP Connect 配置失败:', error);
       }
     })();
-  }, [handleSubmit, onSave]);
+  }, [handleSubmit, onSave, data]);
 
   /**
    * 处理失焦事件
@@ -168,6 +194,21 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
     safeSetTimeout(saveData, 100);
   }, [headerFields, saveData, safeSetTimeout]);
 
+  /**
+   * 添加环境变量
+   */
+  const handleAddEnv = useCallback(() => {
+    envFields.append({ key: '', value: '' });
+  }, [envFields]);
+
+  /**
+   * 删除环境变量
+   */
+  const handleRemoveEnv = useCallback((index: number) => {
+    envFields.remove(index);
+    safeSetTimeout(saveData, 100);
+  }, [envFields, saveData, safeSetTimeout]);
+
   // 服务发现状态
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
@@ -175,6 +216,9 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
   // 可折叠区域的展开状态
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [expandedTool, setExpandedTool] = useState<string | null>(null);
+
+  // 当前传输模式
+  const currentTransport = watch('transport') || 'streamable_http';
 
   // 合并发现结果：使用已缓存的数据
   const displayTools = useMemo((): McpToolInfo[] => {
@@ -191,12 +235,11 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
 
   // 监听 URL 变化，清除已发现的数据
   const currentUrl = watch('url');
-  const prevUrlRef = useRef(data.url);
+  const prevUrlRef = useRef<string | undefined>(data.url);
   useEffect(() => {
     const trimmedUrl = currentUrl?.trim();
     const prevTrimmed = prevUrlRef.current?.trim();
     if (trimmedUrl !== prevTrimmed && prevTrimmed !== undefined) {
-      // URL 发生变化，清除已发现的数据
       const formData = getValues();
       const config = fromFormData(formData);
       config.discovered_tools = undefined;
@@ -211,13 +254,61 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUrl]);
 
+  // 监听 command 变化，清除已发现的数据
+  const currentCommand = watch('command');
+  const prevCommandRef = useRef(data.command);
+  useEffect(() => {
+    const trimmedCommand = currentCommand?.trim();
+    const prevTrimmed = prevCommandRef.current?.trim();
+    if (trimmedCommand !== prevTrimmed && prevTrimmed !== undefined) {
+      const formData = getValues();
+      const config = fromFormData(formData);
+      config.discovered_tools = undefined;
+      config.discovered_resources = undefined;
+      config.discovered_prompts = undefined;
+      onSave(config);
+      setDiscoveryError(null);
+      prevCommandRef.current = trimmedCommand;
+    } else {
+      prevCommandRef.current = trimmedCommand;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentCommand]);
+
+  /**
+   * 传输模式切换处理
+   */
+  const handleTransportChange = useCallback((value: string) => {
+    const newTransport = value as 'streamable_http' | 'stdio';
+    setValue('transport', newTransport, { shouldDirty: true });
+
+    // 清除已发现的数据
+    const formData = getValues();
+    const config = fromFormData({ ...formData, transport: newTransport });
+    config.discovered_tools = undefined;
+    config.discovered_resources = undefined;
+    config.discovered_prompts = undefined;
+    onSave(config);
+    setDiscoveryError(null);
+
+    safeSetTimeout(saveData, 100);
+  }, [setValue, getValues, onSave, saveData, safeSetTimeout]);
+
   /**
    * 测试连接 & 发现服务
    */
   const handleDiscover = useCallback(async () => {
     const formData = getValues();
-    const url = formData.url?.trim();
-    if (!url) return;
+    const transport = formData.transport || 'streamable_http';
+
+    // 按模式验证必填字段
+    if (transport === 'streamable_http') {
+      const url = formData.url?.trim();
+      if (!url) return;
+    } else {
+      const command = formData.command?.trim();
+      if (!command) return;
+    }
 
     setIsDiscovering(true);
     setDiscoveryError(null);
@@ -229,14 +320,25 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
         ? Object.fromEntries(formData.custom_headers.filter(h => h.key.trim()).map(h => [h.key, h.value]))
         : undefined;
 
+      // 构造环境变量
+      const envMap = formData.env
+        ?.filter(h => h.key.trim())
+        ? Object.fromEntries(formData.env.filter(h => h.key.trim()).map(h => [h.key, h.value]))
+        : undefined;
+
       const result = await discoverMcpTools({
-        url,
-        headers: customHeaders,
+        url: transport === 'streamable_http' ? (formData.url?.trim() || '') : '',
+        headers: transport === 'streamable_http' ? customHeaders : undefined,
         protocol_version: formData.protocol_version || undefined,
+        transport,
+        command: transport === 'stdio' ? formData.command?.trim() : undefined,
+        args: transport === 'stdio' && formData.args && formData.args.length > 0
+          ? formData.args
+          : undefined,
+        env: transport === 'stdio' ? envMap : undefined,
       });
 
       if (result.success) {
-        // 将发现的结果缓存到节点数据中
         const config = fromFormData(formData);
         config.discovered_tools = result.tools;
         config.discovered_resources = result.resources;
@@ -268,6 +370,13 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
   // 是否有发现的数据
   const hasDiscoveredData = displayTools.length > 0 || displayResources.length > 0 || displayPrompts.length > 0;
 
+  // 发现按钮是否禁用
+  const isDiscoverDisabled = isDiscovering || (
+    currentTransport === 'streamable_http'
+      ? !watch('url')?.trim()
+      : !watch('command')?.trim()
+  );
+
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
       {/* 主说明卡片 */}
@@ -278,32 +387,249 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
             MCP 连接节点
           </h4>
           <p className="text-sm leading-relaxed text-amber-700/90 whitespace-normal break-words">
-            建立 MCP（Model Context Protocol）连接，支持 Streamable HTTP 传输。
+            建立 MCP（Model Context Protocol）连接，支持 Streamable HTTP 和 Stdio 两种传输模式。
           </p>
         </div>
       </div>
 
-      {/* 服务器地址 */}
+      {/* 传输模式选择 */}
       <div className="space-y-2">
-        <Label htmlFor="url" className="text-sm font-medium text-foreground">
-          MCP 服务器地址 <span className="text-rose-500">*</span>
+        <Label className="text-sm font-medium text-foreground">
+          传输模式
         </Label>
-        <div className="relative">
-          <Plug className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
-          <Input
-            id="url"
-            {...register('url')}
-            placeholder="http://localhost:3000/mcp"
-            className="pl-9 font-mono text-sm"
-          />
-        </div>
-        {errors.url && (
-          <p className="text-xs text-rose-500">{errors.url.message}</p>
-        )}
+        <Select
+          value={currentTransport}
+          onValueChange={handleTransportChange}
+        >
+          <SelectTrigger className="font-mono text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="streamable_http">Streamable HTTP</SelectItem>
+            <SelectItem value="stdio">Stdio</SelectItem>
+          </SelectContent>
+        </Select>
         <p className="text-xs text-muted-foreground">
-          MCP 服务器的 Streamable HTTP 端点地址
+          {currentTransport === 'streamable_http'
+            ? '通过 HTTP 协议连接 MCP 服务器'
+            : '通过子进程连接 MCP 服务器'}
         </p>
       </div>
+
+      {/* 按传输模式条件渲染表单 */}
+      {currentTransport === 'streamable_http' ? (
+        <>
+          {/* Streamable HTTP 模式字段 */}
+
+          {/* 服务器地址 */}
+          <div className="space-y-2">
+            <Label htmlFor="url" className="text-sm font-medium text-foreground">
+              MCP 服务器地址 <span className="text-rose-500">*</span>
+            </Label>
+            <div className="relative">
+              <Plug className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
+              <Input
+                id="url"
+                {...register('url')}
+                placeholder="http://localhost:3000/mcp"
+                className="pl-9 font-mono text-sm"
+              />
+            </div>
+            {errors.url && (
+              <p className="text-xs text-rose-500">{errors.url.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              MCP 服务器的 Streamable HTTP 端点地址
+            </p>
+          </div>
+
+          {/* 自定义请求头 */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-foreground">自定义请求头（可选）</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleAddHeader}
+                className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-3 w-3" />
+                添加
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {headerFields.fields.length === 0 ? (
+                <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
+                  <p className="text-xs text-muted-foreground">暂无自定义请求头</p>
+                </div>
+              ) : (
+                headerFields.fields.map((field, index) => (
+                  <div key={field.id} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30">
+                    <Input
+                      {...register(`custom_headers.${index}.key`)}
+                      placeholder="Key"
+                      className="h-8 flex-1 font-mono text-xs"
+                    />
+                    <Input
+                      {...register(`custom_headers.${index}.value`)}
+                      placeholder="Value"
+                      className="h-8 flex-1 font-mono text-xs"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveHeader(index)}
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Stdio 模式字段 */}
+
+          {/* Command */}
+          <div className="space-y-2">
+            <Label htmlFor="command" className="text-sm font-medium text-foreground">
+              命令 <span className="text-rose-500">*</span>
+            </Label>
+            <div className="relative">
+              <Terminal className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
+              <Input
+                id="command"
+                {...register('command')}
+                placeholder="npx"
+                className="pl-9 font-mono text-sm"
+              />
+            </div>
+            {errors.command && (
+              <p className="text-xs text-rose-500">{errors.command.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              可执行文件路径，如 npx、uvx、node
+            </p>
+          </div>
+
+          {/* Args */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-foreground">命令参数（可选）</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const currentArgs = getValues('args') || [];
+                  setValue('args', [...currentArgs, ''], { shouldDirty: true });
+                }}
+                className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-3 w-3" />
+                添加
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {(() => {
+                const args = watch('args') || [];
+                if (args.length === 0) {
+                  return (
+                    <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
+                      <p className="text-xs text-muted-foreground">暂无命令参数</p>
+                    </div>
+                  );
+                }
+                return args.map((_, index) => (
+                  <div key={index} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30">
+                    <Input
+                      {...register(`args.${index}`)}
+                      placeholder="-y"
+                      className="h-8 flex-1 font-mono text-xs"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        const currentArgs = getValues('args') || [];
+                        const newArgs = currentArgs.filter((_, i) => i !== index);
+                        setValue('args', newArgs, { shouldDirty: true });
+                        safeSetTimeout(saveData, 100);
+                      }}
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+
+          {/* Env 环境变量 */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-foreground">环境变量（可选）</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleAddEnv}
+                className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-3 w-3" />
+                添加
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {envFields.fields.length === 0 ? (
+                <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
+                  <p className="text-xs text-muted-foreground">暂无环境变量</p>
+                </div>
+              ) : (
+                envFields.fields.map((field, index) => (
+                  <div key={field.id} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30">
+                    <Input
+                      {...register(`env.${index}.key`)}
+                      placeholder="Key"
+                      className="h-8 flex-1 font-mono text-xs"
+                    />
+                    <Input
+                      {...register(`env.${index}.value`)}
+                      placeholder="Value"
+                      className="h-8 flex-1 font-mono text-xs"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveEnv(index)}
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Stdio 模式提示 */}
+          <div className="flex items-start gap-2 rounded-md border border-blue-200/50 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 p-3">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-500" />
+            <div className="text-xs text-blue-700/90 space-y-1">
+              <p>Stdio 模式通过子进程连接 MCP Server。适用于本地开发和调试。</p>
+              <p>注意：Stdio 模式不支持并发压测，压测时将共享同一连接。</p>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* 测试连接 & 发现服务 */}
       <div className="space-y-2">
@@ -312,7 +638,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           variant="outline"
           size="sm"
           className="w-full gap-2"
-          disabled={!watch('url')?.trim() || isDiscovering}
+          disabled={isDiscoverDisabled}
           onClick={handleDiscover}
         >
           {isDiscovering ? (
@@ -527,61 +853,13 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
         </p>
       </div>
 
-      {/* 自定义请求头 */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">自定义请求头（可选）</Label>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleAddHeader}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <Plus className="h-3 w-3" />
-            添加
-          </Button>
-        </div>
-        <div className="space-y-2">
-          {headerFields.fields.length === 0 ? (
-            <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无自定义请求头</p>
-            </div>
-          ) : (
-            headerFields.fields.map((field, index) => (
-              <div key={field.id} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30">
-                <Input
-                  {...register(`custom_headers.${index}.key`)}
-                  placeholder="Key"
-                  className="h-8 flex-1 font-mono text-xs"
-                />
-                <Input
-                  {...register(`custom_headers.${index}.value`)}
-                  placeholder="Value"
-                  className="h-8 flex-1 font-mono text-xs"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveHeader(index)}
-                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
       {/* 提示信息 */}
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
           <p className="font-medium text-foreground">MCP 协议说明：</p>
           <p>MCP（Model Context Protocol）用于与大语言模型工具和服务交互</p>
-          <p>支持 Streamable HTTP 传输方式，兼容标准 MCP 服务器</p>
+          <p>支持 Streamable HTTP 和 Stdio 两种传输模式，兼容标准 MCP 服务器</p>
           <p><code className="rounded bg-muted px-1">测试连接</code> 验证连接并发现可用工具、资源和提示词，结果自动缓存供下游节点使用</p>
         </div>
       </div>
