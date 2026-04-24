@@ -956,6 +956,88 @@ impl Default for ScriptNodeConfig {
 }
 
 // ============================================================================
+// MCP 节点配置
+// ============================================================================
+
+/// MCP Connect 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct McpConnectConfig {
+    /// MCP 服务器 URL（Streamable HTTP）
+    pub url: String,
+    /// 请求头
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub headers: Option<std::collections::HashMap<String, String>>,
+    /// 协议版本（默认 "2025-11-25"）
+    #[serde(default = "default_mcp_protocol_version")]
+    pub protocol_version: String,
+    /// 自定义请求头
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub custom_headers: Option<std::collections::HashMap<String, String>>,
+}
+
+impl Default for McpConnectConfig {
+    fn default() -> Self {
+        Self {
+            url: String::new(),
+            headers: None,
+            protocol_version: default_mcp_protocol_version(),
+            custom_headers: None,
+        }
+    }
+}
+
+fn default_mcp_protocol_version() -> String {
+    "2025-11-25".to_string()
+}
+
+/// MCP Call Tool 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct McpCallToolConfig {
+    /// 连接 ID（引用 mcp_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 工具名称
+    pub tool_name: String,
+    /// 工具参数（JSON）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arguments: Option<serde_json::Value>,
+}
+
+impl Default for McpCallToolConfig {
+    fn default() -> Self {
+        Self {
+            connection_id: String::new(),
+            tool_name: String::new(),
+            arguments: None,
+        }
+    }
+}
+
+/// MCP Read Resource 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct McpReadResourceConfig {
+    /// 连接 ID（引用 mcp_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 资源 URI
+    pub resource_uri: String,
+}
+
+impl Default for McpReadResourceConfig {
+    fn default() -> Self {
+        Self {
+            connection_id: String::new(),
+            resource_uri: String::new(),
+        }
+    }
+}
+
+/// MCP Close 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct McpCloseConfig {
+    /// 连接 ID（引用 mcp_connect 节点的 UUID）
+    pub connection_id: String,
+}
+
+// ============================================================================
 // 节点数据配置统一枚举
 // ============================================================================
 
@@ -1014,6 +1096,18 @@ pub enum NodeData {
     /// gRPC 关闭节点配置
     #[serde(rename = "grpc_close")]
     GrpcClose(GrpcCloseConfig),
+    /// MCP 连接节点配置
+    #[serde(rename = "mcp_connect")]
+    McpConnect(McpConnectConfig),
+    /// MCP 调用工具节点配置
+    #[serde(rename = "mcp_call_tool")]
+    McpCallTool(McpCallToolConfig),
+    /// MCP 读取资源节点配置
+    #[serde(rename = "mcp_read_resource")]
+    McpReadResource(McpReadResourceConfig),
+    /// MCP 关闭连接节点配置
+    #[serde(rename = "mcp_close")]
+    McpClose(McpCloseConfig),
     /// 插件节点配置（未知类型的兜底捕获）
     ///
     /// 当反序列化遇到不认识的 `type` 值时，整个 JSON 对象会被保留在此变体中。
@@ -1088,6 +1182,18 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "grpc_close" => serde_json::from_value::<GrpcCloseConfig>(value.clone())
                 .map(NodeData::GrpcClose)
                 .map_err(serde::de::Error::custom),
+            "mcp_connect" => serde_json::from_value::<McpConnectConfig>(value.clone())
+                .map(NodeData::McpConnect)
+                .map_err(serde::de::Error::custom),
+            "mcp_call_tool" => serde_json::from_value::<McpCallToolConfig>(value.clone())
+                .map(NodeData::McpCallTool)
+                .map_err(serde::de::Error::custom),
+            "mcp_read_resource" => serde_json::from_value::<McpReadResourceConfig>(value.clone())
+                .map(NodeData::McpReadResource)
+                .map_err(serde::de::Error::custom),
+            "mcp_close" => serde_json::from_value::<McpCloseConfig>(value.clone())
+                .map(NodeData::McpClose)
+                .map_err(serde::de::Error::custom),
             // 未知 type → 兜底到 Plugin
             _ => Ok(NodeData::Plugin(value)),
         }
@@ -1115,6 +1221,10 @@ impl NodeData {
             NodeData::GrpcConnect(_) => "grpc_connect".to_string(),
             NodeData::GrpcCall(_) => "grpc_call".to_string(),
             NodeData::GrpcClose(_) => "grpc_close".to_string(),
+            NodeData::McpConnect(_) => "mcp_connect".to_string(),
+            NodeData::McpCallTool(_) => "mcp_call_tool".to_string(),
+            NodeData::McpReadResource(_) => "mcp_read_resource".to_string(),
+            NodeData::McpClose(_) => "mcp_close".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
                 .and_then(|v| v.as_str())
@@ -1210,6 +1320,38 @@ impl NodeData {
     /// 创建 `GrpcClose` 节点配置
     pub fn grpc_close(connection_id: impl Into<String>) -> Self {
         Self::GrpcClose(GrpcCloseConfig {
+            connection_id: connection_id.into(),
+        })
+    }
+
+    /// 创建 MCP Connect 节点配置
+    pub fn mcp_connect(url: impl Into<String>) -> Self {
+        Self::McpConnect(McpConnectConfig {
+            url: url.into(),
+            ..Default::default()
+        })
+    }
+
+    /// 创建 MCP Call Tool 节点配置
+    pub fn mcp_call_tool(connection_id: impl Into<String>, tool_name: impl Into<String>) -> Self {
+        Self::McpCallTool(McpCallToolConfig {
+            connection_id: connection_id.into(),
+            tool_name: tool_name.into(),
+            ..Default::default()
+        })
+    }
+
+    /// 创建 MCP Read Resource 节点配置
+    pub fn mcp_read_resource(connection_id: impl Into<String>, resource_uri: impl Into<String>) -> Self {
+        Self::McpReadResource(McpReadResourceConfig {
+            connection_id: connection_id.into(),
+            resource_uri: resource_uri.into(),
+        })
+    }
+
+    /// 创建 MCP Close 节点配置
+    pub fn mcp_close(connection_id: impl Into<String>) -> Self {
+        Self::McpClose(McpCloseConfig {
             connection_id: connection_id.into(),
         })
     }

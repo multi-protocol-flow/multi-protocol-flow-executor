@@ -157,6 +157,16 @@ pub enum ErrorKind {
     /// gRPC 关闭错误
     GrpcClose,
 
+    // ===== MCP 错误（容错模式，继续执行） =====
+    /// MCP 连接失败
+    McpConnection,
+    /// MCP 工具调用失败
+    McpToolCall,
+    /// MCP 资源读取失败
+    McpResourceRead,
+    /// MCP 连接未找到
+    McpNotConnected,
+
     // ===== 断言错误（容错模式，继续执行） =====
     /// 断言失败
     Assertion,

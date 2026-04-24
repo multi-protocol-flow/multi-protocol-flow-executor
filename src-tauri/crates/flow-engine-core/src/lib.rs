@@ -52,6 +52,8 @@ pub use traits::{
     ExecutionEventSender, NoopExecutionEventSender,
     LogSender, NoopLogSender,
     QueuedLogSender, UnderlyingLogSender, LogWorker,
+    McpConnectionInfo, McpProvider, McpResourceInfo, McpResourceReadResult, McpServerInfo,
+    McpToolCallResult, McpToolInfo,
 };
 
 // Re-export debug types
