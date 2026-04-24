@@ -348,3 +348,37 @@ export async function getNodeConfigSchema(_typeId: string): Promise<null> {
 export async function listRegisteredPlugins(): Promise<[]> {
   return [];
 }
+
+/**
+ * Mock 发现 MCP 工具
+ * 模拟后端 mcp_discover_tools 命令行为
+ *
+ * @param _input - MCP 发现工具输入（Mock 中未使用）
+ * @returns 模拟的 MCP 工具和资源列表
+ */
+export async function discoverMcpTools(
+  _input: import('./mcp').McpDiscoverToolsInput
+): Promise<import('./mcp').McpDiscoverToolsOutput> {
+  return {
+    success: true,
+    tools: [
+      {
+        name: 'mock_tool',
+        description: 'Mock MCP tool for testing',
+        input_schema: { type: 'object', properties: {} },
+      },
+    ],
+    resources: [
+      {
+        uri: 'mock://resource',
+        name: 'Mock Resource',
+        description: 'Mock MCP resource for testing',
+        mime_type: 'text/plain',
+      },
+    ],
+    server_info: {
+      name: 'Mock MCP Server',
+      version: '1.0.0',
+    },
+  };
+}

@@ -31,6 +31,10 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   grpc_connect: GrpcViewer,
   grpc_call: GrpcViewer,
   grpc_close: GrpcViewer,
+  mcp_connect: GenericViewer,
+  mcp_call_tool: GenericViewer,
+  mcp_read_resource: GenericViewer,
+  mcp_close: GenericViewer,
 };
 
 /**

@@ -604,6 +604,58 @@ export const grpcCloseConfigSchema = z.object({
 export type GrpcCloseConfigFormData = z.infer<typeof grpcCloseConfigSchema>;
 
 // ============================================================================
+// MCP 配置 Schema
+// ============================================================================
+
+/**
+ * MCP Connect 配置表单 Schema
+ */
+export const mcpConnectConfigSchema = z.object({
+  type: z.literal('mcp_connect'),
+  url: z.string().min(1, 'MCP 服务器地址不能为空'),
+  protocol_version: z.string().optional(),
+  custom_headers: z.array(z.object({
+    key: z.string(),
+    value: z.string(),
+  })).optional(),
+});
+
+export type McpConnectConfigFormData = z.infer<typeof mcpConnectConfigSchema>;
+
+/**
+ * MCP Call Tool 配置表单 Schema
+ */
+export const mcpCallToolConfigSchema = z.object({
+  type: z.literal('mcp_call_tool'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  tool_name: z.string().min(1, '工具名称不能为空'),
+  arguments: z.any().optional(),
+});
+
+export type McpCallToolConfigFormData = z.infer<typeof mcpCallToolConfigSchema>;
+
+/**
+ * MCP Read Resource 配置表单 Schema
+ */
+export const mcpReadResourceConfigSchema = z.object({
+  type: z.literal('mcp_read_resource'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  resource_uri: z.string().min(1, '资源 URI 不能为空'),
+});
+
+export type McpReadResourceConfigFormData = z.infer<typeof mcpReadResourceConfigSchema>;
+
+/**
+ * MCP Close 配置表单 Schema
+ */
+export const mcpCloseConfigSchema = z.object({
+  type: z.literal('mcp_close'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+});
+
+export type McpCloseConfigFormData = z.infer<typeof mcpCloseConfigSchema>;
+
+// ============================================================================
 // 未知节点类型 Fallback Schema
 // ============================================================================
 

@@ -22,6 +22,10 @@ import { ScriptConfig } from '@/components/panels/ScriptConfig';
 import { GrpcConnectConfig } from '@/components/panels/GrpcConnectConfig';
 import { GrpcCallConfig } from '@/components/panels/GrpcCallConfig';
 import { GrpcCloseConfig } from '@/components/panels/GrpcCloseConfig';
+import { McpConnectConfig } from '@/components/panels/McpConnectConfig';
+import { McpCallToolConfig } from '@/components/panels/McpCallToolConfig';
+import { McpReadResourceConfig } from '@/components/panels/McpReadResourceConfig';
+import { McpCloseConfig } from '@/components/panels/McpCloseConfig';
 
 export const configPanelRegistry: Record<string, ComponentType<any>> = {
   entry: EntryConfig,
@@ -41,6 +45,10 @@ export const configPanelRegistry: Record<string, ComponentType<any>> = {
   grpc_connect: GrpcConnectConfig,
   grpc_call: GrpcCallConfig,
   grpc_close: GrpcCloseConfig,
+  mcp_connect: McpConnectConfig,
+  mcp_call_tool: McpCallToolConfig,
+  mcp_read_resource: McpReadResourceConfig,
+  mcp_close: McpCloseConfig,
 };
 
 /** 根据节点类型获取对应的配置面板组件 */
