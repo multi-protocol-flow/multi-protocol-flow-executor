@@ -39,8 +39,6 @@ export type {
   GrpcMethodInfo,
   GrpcServiceInfo,
   GrpcPattern,
-  GrpcCollectMode,
-  GrpcCollectConfig,
   StreamMessage,
   GrpcStreamingResult,
   GrpcTimingInfo,

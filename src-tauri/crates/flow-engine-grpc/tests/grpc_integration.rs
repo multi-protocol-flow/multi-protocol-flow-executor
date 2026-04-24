@@ -98,7 +98,6 @@ fn test_grpc_call_config_serde_roundtrip() {
             },
         ],
         request_messages: vec![],
-        collect_config: None,
     };
 
     let json = serde_json::to_string(&config).expect("序列化应成功");
@@ -118,7 +117,6 @@ fn test_grpc_call_config_via_node_data_roundtrip() {
         timeout_ms: 5000,
         metadata: vec![],
         request_messages: vec![],
-        collect_config: None,
     };
     let node_data = NodeData::GrpcCall(config.clone());
 
@@ -591,7 +589,6 @@ async fn test_connect_call_close_flow_wiring() {
             timeout_ms: 5000,
             metadata: vec![],
             request_messages: vec![],
-            collect_config: None,
         }),
         ports: None,
         has_breakpoint: None,
@@ -755,7 +752,6 @@ async fn test_call_and_close_plugins_delegate() {
             timeout_ms: 1000,
             metadata: vec![],
             request_messages: vec![],
-            collect_config: None,
         }),
         ports: None,
         has_breakpoint: None,

@@ -7,7 +7,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
 
-use async_trait::async_trait;
+        use async_trait::async_trait;
 use flow_engine_core::traits::{GrpcMethodInfo, GrpcProvider, GrpcServiceInfo, GrpcStreamingResult, GrpcTimingInfo};
 use http::uri::PathAndQuery;
 use prost_reflect::{DynamicMessage, MethodDescriptor};
@@ -896,11 +896,7 @@ impl GrpcProvider for GrpcConnectionManager {
                 .map_err(|e| format!("无效的 metadata value '{}': {:?}", value, e))?;
             request.metadata_mut().insert(meta_key, meta_val);
         }
-        if timeout_ms > 0 {
-            request.set_timeout(std::time::Duration::from_millis(timeout_ms));
-        }
-
-        // 5. 发起 Server Streaming 调用
+        // 5. 发起 Server Streaming 调用（不设 request deadline，避免过早终止流式响应）
         let path = build_method_path(service_name, method_name)?;
         let codec = DynamicCodec::new(method);
         let mut client = tonic::client::Grpc::new(channel);
@@ -920,23 +916,43 @@ impl GrpcProvider for GrpcConnectionManager {
                 )
             })?;
 
-        // 6. 收集所有流式响应
+        // 6. 采集响应流（带超时）
         let mut stream = response.into_inner();
         let mut results = Vec::new();
-        loop {
-            match stream.message().await {
-                Ok(Some(msg)) => {
-                    let json_val = dynamic_message_to_json(&msg)?;
-                    results.push(json_val);
+
+        let collect_result = tokio::time::timeout(
+            std::time::Duration::from_millis(timeout_ms),
+            async {
+                loop {
+                    match stream.message().await {
+                        Ok(Some(msg)) => {
+                            let json_val = dynamic_message_to_json(&msg)?;
+                            results.push(json_val);
+                        }
+                        Ok(None) => break,
+                        Err(e) => {
+                            return Err(format!(
+                                "流式响应错误: {} ({})",
+                                e.message(),
+                                e.code()
+                            ));
+                        }
+                    }
                 }
-                Ok(None) => break,
-                Err(e) => {
-                    return Err(format!(
-                        "流式响应错误: {} ({})",
-                        e.message(),
-                        e.code()
-                    ));
-                }
+                Ok(())
+            },
+        )
+        .await;
+
+        match collect_result {
+            Ok(Ok(_)) => {}
+            Ok(Err(e)) => return Err(e),
+            Err(_) => {
+                log::warn!(
+                    "[gRPC Server Streaming] 采集超时 ({}ms)，已收集 {} 条响应",
+                    timeout_ms,
+                    results.len()
+                );
             }
         }
 
@@ -1011,7 +1027,6 @@ impl GrpcProvider for GrpcConnectionManager {
         request_messages: Vec<String>,
         metadata: Vec<(String, String)>,
         timeout_ms: u64,
-        collect_timeout_ms: u64,
     ) -> Result<GrpcStreamingResult, String> {
         use std::time::Instant;
 
@@ -1049,11 +1064,8 @@ impl GrpcProvider for GrpcConnectionManager {
                 .map_err(|e| format!("无效的 metadata value '{}': {:?}", value, e))?;
             request.metadata_mut().insert(meta_key, meta_val);
         }
-        if timeout_ms > 0 {
-            request.set_timeout(std::time::Duration::from_millis(timeout_ms));
-        }
 
-        // 6. 发起 Bidi Streaming 调用
+        // 6. 发起 Bidi Streaming 调用（不设 request deadline，避免过早终止流式响应）
         let path = build_method_path(service_name, method_name)?;
         let codec = DynamicCodec::new(method);
         let mut client = tonic::client::Grpc::new(channel);
@@ -1068,7 +1080,7 @@ impl GrpcProvider for GrpcConnectionManager {
         let mut first_response_ms: Option<u64> = None;
 
         let collect_result = tokio::time::timeout(
-            std::time::Duration::from_millis(collect_timeout_ms),
+            std::time::Duration::from_millis(timeout_ms),
             async {
                 loop {
                     match stream.message().await {
@@ -1094,7 +1106,7 @@ impl GrpcProvider for GrpcConnectionManager {
             Ok(Err(e)) => return Err(e),
             Err(_) => {
                 // 超时，收集已获取的响应（非致命）
-                log::warn!("[gRPC Bidi] 采集超时 ({}ms)，已收集 {} 条响应", collect_timeout_ms, responses.len());
+                log::warn!("[gRPC Bidi] 采集超时 ({}ms)，已收集 {} 条响应", timeout_ms, responses.len());
             }
         }
 

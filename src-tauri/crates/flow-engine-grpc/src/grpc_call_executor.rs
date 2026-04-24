@@ -239,11 +239,6 @@ impl NodeExecutor for GrpcCallExecutor {
                     .filter(|m| m.enabled)
                     .map(|m| m.content.clone())
                     .collect();
-                let collect_timeout = config
-                    .collect_config
-                    .as_ref()
-                    .map(|c| c.timeout_ms)
-                    .unwrap_or(30000);
                 let sent = messages.len();
                 self.grpc_manager
                     .call_bidi_streaming(
@@ -253,7 +248,6 @@ impl NodeExecutor for GrpcCallExecutor {
                         messages,
                         metadata,
                         config.timeout_ms,
-                        collect_timeout,
                     )
                     .await
                     .map(|result| {
@@ -481,7 +475,6 @@ mod tests {
                 timeout_ms: 30000,
                 metadata: vec![],
                 request_messages: vec![],
-                collect_config: None,
             }),
             ports: None,
             has_breakpoint: None,
@@ -556,7 +549,6 @@ mod tests {
                 timeout_ms: 30000,
                 metadata: vec![],
                 request_messages: vec![],
-                collect_config: None,
             }),
             ports: None,
             has_breakpoint: None,
@@ -610,7 +602,6 @@ mod tests {
                     value: "Bearer {{token}}".to_string(),
                 }],
                 request_messages: vec![],
-                collect_config: None,
             }),
             ports: None,
             has_breakpoint: None,
@@ -675,7 +666,6 @@ mod tests {
         call_bidi_streaming_count: AtomicUsize,
         last_client_messages: std::sync::Mutex<Vec<String>>,
         last_bidi_messages: std::sync::Mutex<Vec<String>>,
-        last_bidi_collect_timeout_ms: std::sync::Mutex<u64>,
     }
 
     impl MockCallLog {
@@ -687,7 +677,6 @@ mod tests {
                 call_bidi_streaming_count: AtomicUsize::new(0),
                 last_client_messages: std::sync::Mutex::new(Vec::new()),
                 last_bidi_messages: std::sync::Mutex::new(Vec::new()),
-                last_bidi_collect_timeout_ms: std::sync::Mutex::new(0),
             }
         }
     }
@@ -785,11 +774,10 @@ mod tests {
         async fn call_bidi_streaming(
             &self, _connection_id: &str, _service_name: &str, _method_name: &str,
             request_messages: Vec<String>, _metadata: Vec<(String, String)>,
-            _timeout_ms: u64, collect_timeout_ms: u64,
+            _timeout_ms: u64,
         ) -> Result<GrpcStreamingResult, String> {
             self.call_log.call_bidi_streaming_count.fetch_add(1, AtomicOrdering::SeqCst);
             *self.call_log.last_bidi_messages.lock().expect("锁不应失败") = request_messages;
-            *self.call_log.last_bidi_collect_timeout_ms.lock().expect("锁不应失败") = collect_timeout_ms;
             self.bidi_streaming_response.clone()
         }
 
@@ -891,7 +879,6 @@ mod tests {
                 timeout_ms: 30000,
                 metadata: vec![],
                 request_messages: vec![],
-                collect_config: None,
             }),
             ports: None,
             has_breakpoint: None,
@@ -963,7 +950,6 @@ mod tests {
                         content: r#"{"item": 3}"#.to_string(),
                     },
                 ],
-                collect_config: None,
             }),
             ports: None,
             has_breakpoint: None,
@@ -996,7 +982,7 @@ mod tests {
     // ========================================================================
 
     #[tokio::test]
-    async fn test_bidi_streaming_pattern_routes_with_collect_timeout() {
+    async fn test_bidi_streaming_pattern_routes_correctly() {
         let services = make_services("test.TestService", "Chat", true, true);
         let mock = Arc::new(MockGrpcProvider::new_success(services));
         let executor = GrpcCallExecutor::new(mock.clone());
@@ -1019,13 +1005,6 @@ mod tests {
                         content: r#"{"msg": "hello"}"#.to_string(),
                     },
                 ],
-                collect_config: Some(flow_engine_core::node_config::GrpcCollectConfig {
-                    mode: flow_engine_core::node_config::GrpcCollectMode::All,
-                    max_count: None,
-                    duration_ms: None,
-                    condition: None,
-                    timeout_ms: 15000,
-                }),
             }),
             ports: None,
             has_breakpoint: None,
@@ -1052,10 +1031,6 @@ mod tests {
         // 验证 streaming_timing 字段
         assert!(data.get("streaming_timing").is_some());
         assert_eq!(data["streaming_timing"]["total_ms"], 100);
-
-        // 验证 collect_timeout 使用了 collect_config.timeout_ms
-        let timeout = mock.call_log.last_bidi_collect_timeout_ms.lock().expect("锁不应失败");
-        assert_eq!(*timeout, 15000);
     }
 
     // ========================================================================
@@ -1095,7 +1070,6 @@ mod tests {
                         content: r#"{"skip": 3}"#.to_string(),
                     },
                 ],
-                collect_config: None,
             }),
             ports: None,
             has_breakpoint: None,
@@ -1219,50 +1193,6 @@ mod tests {
         assert!(request.get("method_name").is_some());
         assert!(request.get("request_json").is_some());
         assert!(request.get("timeout_ms").is_some());
-    }
-
-    // ========================================================================
-    // Bidi 无 collect_config 时使用默认 timeout
-    // ========================================================================
-
-    #[tokio::test]
-    async fn test_bidi_default_collect_timeout_when_no_config() {
-        let services = make_services("test.TestService", "Chat", true, true);
-        let mock = Arc::new(MockGrpcProvider::new_success(services));
-        let executor = GrpcCallExecutor::new(mock.clone());
-
-        let node = Node {
-            uuid: "node-bidi-default".to_string(),
-            node_type: "grpc_call".to_string(),
-            name: "Bidi 默认超时测试".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig {
-                connection_id: "conn-1".to_string(),
-                service_name: "test.TestService".to_string(),
-                method_name: "Chat".to_string(),
-                request_json: "{}".to_string(),
-                timeout_ms: 5000,
-                metadata: vec![],
-                request_messages: vec![
-                    flow_engine_core::node_config::StreamMessage {
-                        enabled: true,
-                        content: r#"{"msg": "hi"}"#.to_string(),
-                    },
-                ],
-                collect_config: None, // 无配置，应使用默认 30000ms
-            }),
-            ports: None,
-            has_breakpoint: None,
-        };
-        let mut context = create_context_with_grpc("flow-bidi-default", mock.clone());
-
-        let result = executor
-            .execute(&node, &mut context, &[], &HashMap::new())
-            .await;
-
-        assert!(result.is_ok());
-        let timeout = mock.call_log.last_bidi_collect_timeout_ms.lock().expect("锁不应失败");
-        assert_eq!(*timeout, 30000); // 默认 30s
     }
 
     // ========================================================================

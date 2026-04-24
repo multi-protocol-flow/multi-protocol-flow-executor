@@ -39,7 +39,6 @@ function toFormData(data: GrpcCallConfigType): GrpcCallConfigFormData {
     timeout_ms: data.timeout_ms ?? 30000,
     metadata: data.metadata || [],
     request_messages: data.request_messages || [],
-    collect_config: data.collect_config || undefined,
   };
 }
 
@@ -59,7 +58,6 @@ function fromFormData(formData: GrpcCallConfigFormData): GrpcCallConfigType {
     metadata: metadata && metadata.length > 0 ? metadata : undefined,
     request_messages: formData.request_messages && formData.request_messages.length > 0
       ? formData.request_messages : undefined,
-    collect_config: formData.collect_config || undefined,
   };
 }
 
@@ -137,7 +135,6 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
   }, [watch('method_name'), discoveredMethods]);
 
   const isClientStreaming = selectedMethod?.is_client_streaming ?? false;
-  const isServerStreaming = selectedMethod?.is_server_streaming ?? false;
 
   // 当 connection_id 变化时，检查已选服务是否仍有效
   useEffect(() => {
@@ -582,85 +579,6 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
           <p className="text-xs text-muted-foreground">
             请求消息的 JSON 格式，将自动序列化发送
           </p>
-        </div>
-      )}
-
-      {/* 响应采集配置（Server/Bidi Streaming 模式） */}
-      {isServerStreaming && (
-        <div className="space-y-3 rounded-lg border border-blue-200/50 bg-blue-50/30 p-3">
-          <h5 className="text-sm font-medium text-foreground">响应采集配置</h5>
-
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">采集模式</Label>
-            <Select
-              value={watch('collect_config.mode') || 'all'}
-              onValueChange={(value) => {
-                setValue('collect_config', {
-                  mode: value as 'all' | 'first_n' | 'duration' | 'condition_match',
-                  timeout_ms: watch('collect_config.timeout_ms') || 30000,
-                }, { shouldDirty: true });
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="选择采集模式" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部采集</SelectItem>
-                <SelectItem value="first_n">采集前 N 条</SelectItem>
-                <SelectItem value="duration">持续采集指定时长</SelectItem>
-                <SelectItem value="condition_match">条件匹配</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {watch('collect_config.mode') === 'first_n' && (
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">采集数量 N</Label>
-              <Input
-                type="number"
-                min={1}
-                {...register('collect_config.max_count', { valueAsNumber: true })}
-                className="h-8 text-xs"
-                placeholder="10"
-              />
-            </div>
-          )}
-
-          {watch('collect_config.mode') === 'duration' && (
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">持续时长（毫秒）</Label>
-              <Input
-                type="number"
-                min={100}
-                {...register('collect_config.duration_ms', { valueAsNumber: true })}
-                className="h-8 text-xs"
-                placeholder="5000"
-              />
-            </div>
-          )}
-
-          {watch('collect_config.mode') === 'condition_match' && (
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">匹配条件（JSONPath 表达式）</Label>
-              <Input
-                {...register('collect_config.condition')}
-                className="h-8 text-xs font-mono"
-                placeholder="$.status == 'complete'"
-              />
-            </div>
-          )}
-
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">采集超时（毫秒）</Label>
-            <Input
-              type="number"
-              min={1000}
-              max={300000}
-              {...register('collect_config.timeout_ms', { valueAsNumber: true })}
-              className="h-8 text-xs"
-              placeholder="30000"
-            />
-          </div>
         </div>
       )}
 

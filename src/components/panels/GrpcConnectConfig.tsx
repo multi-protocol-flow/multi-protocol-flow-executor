@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Cable, FileText, Info, Search, Loader2, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Cable, FileText, Info, Search, Loader2, ChevronDown, AlertTriangle } from 'lucide-react';
 import type { GrpcConnectConfig as GrpcConnectConfigType, GrpcServiceInfo } from '@/types';
 import { invoke } from '@tauri-apps/api/core';
 import { cn } from '@/lib/utils';
@@ -348,19 +348,29 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
         </div>
 
         {useTls && (
-          <div className="flex items-center space-x-2 pl-2">
-            <Switch
-              id="tls_skip_verify"
-              checked={watch('tls_skip_verify') || false}
-              onCheckedChange={(checked) => {
-                setValue('tls_skip_verify', checked, { shouldDirty: true });
-                saveData();
-              }}
-            />
-            <Label htmlFor="tls_skip_verify" className="text-sm text-muted-foreground cursor-pointer">
-              跳过证书验证
-            </Label>
-          </div>
+          <>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="tls_skip_verify"
+                checked={watch('tls_skip_verify') || false}
+                onCheckedChange={(checked) => {
+                  setValue('tls_skip_verify', checked, { shouldDirty: true });
+                  saveData();
+                }}
+              />
+              <Label htmlFor="tls_skip_verify" className="text-sm font-medium text-foreground cursor-pointer">
+                跳过证书验证
+              </Label>
+            </div>
+            {watch('tls_skip_verify') && (
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-800/60 dark:bg-amber-950/30">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-400">
+                  跳过证书验证会使连接面临中间人攻击风险，数据仍会加密传输，但无法确认服务端身份。仅建议在开发/测试环境使用。
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
 

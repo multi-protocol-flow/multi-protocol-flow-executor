@@ -162,7 +162,6 @@ pub trait GrpcProvider: Send + Sync {
         request_messages: Vec<String>,
         metadata: Vec<(String, String)>,
         timeout_ms: u64,
-        collect_timeout_ms: u64,
     ) -> Result<GrpcStreamingResult, String>;
 
     /// 关闭 gRPC 连接

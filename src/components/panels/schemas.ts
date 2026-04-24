@@ -558,25 +558,6 @@ export const streamMessageSchema = z.object({
 export type StreamMessageFormData = z.infer<typeof streamMessageSchema>;
 
 /**
- * gRPC 采集模式枚举
- */
-export const grpcCollectModeSchema = z.enum(['all', 'first_n', 'duration', 'condition_match']);
-export type GrpcCollectModeFormData = z.infer<typeof grpcCollectModeSchema>;
-
-/**
- * gRPC 采集配置 Schema
- */
-export const grpcCollectConfigSchema = z.object({
-  mode: grpcCollectModeSchema,
-  max_count: z.number().optional(),
-  duration_ms: z.number().optional(),
-  condition: z.string().optional(),
-  timeout_ms: z.number(),
-});
-
-export type GrpcCollectConfigFormData = z.infer<typeof grpcCollectConfigSchema>;
-
-/**
  * gRPC Call 配置表单 Schema
  */
 export const grpcCallConfigSchema = z.object({
@@ -588,7 +569,6 @@ export const grpcCallConfigSchema = z.object({
   timeout_ms: z.number().min(1000).max(300000).optional(),
   metadata: z.array(grpcMetadataEntrySchema).optional(),
   request_messages: z.array(streamMessageSchema).optional(),
-  collect_config: grpcCollectConfigSchema.optional(),
 });
 
 export type GrpcCallConfigFormData = z.infer<typeof grpcCallConfigSchema>;

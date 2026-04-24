@@ -166,7 +166,6 @@ impl NodePlugin for GrpcCallPlugin {
             "timeout_ms": 30000,
             "metadata": [],
             "request_messages": [],
-            "collect_config": null,
         })
     }
 
@@ -201,7 +200,6 @@ impl NodePlugin for GrpcCallPlugin {
             "timeout_ms": config.get("timeout_ms"),
             "metadata": config.get("metadata"),
             "request_messages": config.get("request_messages"),
-            "collect_config": config.get("collect_config"),
         }))
     }
 
@@ -471,14 +469,13 @@ mod tests {
     }
 
     #[test]
-    fn test_call_default_config_contains_collect_config() {
+    fn test_call_default_config_does_not_contain_collect_config() {
         let plugin = GrpcCallPlugin;
         let config = plugin.default_config();
         assert!(
-            config.get("collect_config").is_some(),
-            "default_config 应包含 collect_config 字段"
+            config.get("collect_config").is_none(),
+            "default_config 不应包含 collect_config 字段"
         );
-        assert_eq!(config["collect_config"], serde_json::Value::Null);
     }
 
     #[test]
@@ -493,7 +490,8 @@ mod tests {
         assert!(config.get("timeout_ms").is_some());
         assert!(config.get("metadata").is_some());
         assert!(config.get("request_messages").is_some());
-        assert!(config.get("collect_config").is_some());
+        // collect_config 已移除
+        assert!(config.get("collect_config").is_none());
     }
 
     #[test]
@@ -507,14 +505,14 @@ mod tests {
             "timeout_ms": 30000,
             "metadata": [{"key": "auth", "value": "token123"}],
             "request_messages": [{"enabled": true, "content": "{}"}],
-            "collect_config": {"mode": "all", "timeout_ms": 10000},
         });
         let report = plugin.build_report_input(&config);
         assert!(report.is_some());
         let report = report.unwrap();
         // 验证新字段包含在报告输入中
         assert!(report.get("request_messages").is_some(), "报告应包含 request_messages");
-        assert!(report.get("collect_config").is_some(), "报告应包含 collect_config");
+        // collect_config 已移除
+        assert!(report.get("collect_config").is_none(), "报告不应包含 collect_config");
         // 验证基本字段
         assert!(report.get("connection_id").is_some());
         assert!(report.get("service_name").is_some());

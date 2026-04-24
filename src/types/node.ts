@@ -401,11 +401,6 @@ export interface GrpcMetadataEntry {
 export type GrpcPattern = 'unary' | 'server_streaming' | 'client_streaming' | 'bidi_streaming';
 
 /**
- * gRPC 采集模式
- */
-export type GrpcCollectMode = 'all' | 'first_n' | 'duration' | 'condition_match';
-
-/**
  * gRPC 流式消息
  */
 export interface StreamMessage {
@@ -413,22 +408,6 @@ export interface StreamMessage {
   enabled: boolean;
   /** 消息内容（JSON 字符串） */
   content: string;
-}
-
-/**
- * gRPC 采集配置
- */
-export interface GrpcCollectConfig {
-  /** 采集模式 */
-  mode: GrpcCollectMode;
-  /** 最大采集数量（FirstN 模式） */
-  max_count?: number;
-  /** 持续时长（Duration 模式，毫秒） */
-  duration_ms?: number;
-  /** 匹配条件（ConditionMatch 模式） */
-  condition?: string;
-  /** 采集超时（毫秒） */
-  timeout_ms: number;
 }
 
 /**
@@ -527,8 +506,6 @@ export interface GrpcCallConfig {
   metadata?: GrpcMetadataEntry[];
   /** 流式消息列表（Client/Bidi Streaming 模式） */
   request_messages?: StreamMessage[];
-  /** 响应采集配置（Server/Bidi Streaming 模式） */
-  collect_config?: GrpcCollectConfig;
 }
 
 /**

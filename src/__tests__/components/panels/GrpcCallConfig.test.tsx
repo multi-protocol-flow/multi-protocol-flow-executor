@@ -1,9 +1,9 @@
 /**
  * GrpcCallConfig 组件测试
- * - Unary 模式：单消息编辑器，无消息列表，无采集配置
- * - Server Streaming 模式：单消息编辑器 + 采集配置
- * - Client Streaming 模式：消息列表编辑器，无采集配置
- * - Bidi Streaming 模式：消息列表编辑器 + 采集配置
+ * - Unary 模式：单消息编辑器，无消息列表
+ * - Server Streaming 模式：单消息编辑器
+ * - Client Streaming 模式：消息列表编辑器
+ * - Bidi Streaming 模式：消息列表编辑器
  * - 添加/删除/禁用消息
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -177,18 +177,6 @@ describe('GrpcCallConfig', () => {
       expect(screen.queryByText('消息列表')).toBeNull();
     });
 
-    it('不显示响应采集配置', () => {
-      const services = createServicesWithMethod({
-        method_name: 'SayHello',
-        is_server_streaming: false,
-        is_client_streaming: false,
-      });
-      setupStoreMock(services);
-      const config = createBaseConfig({ method_name: 'SayHello' });
-      render(<GrpcCallConfig data={config} onSave={mockOnSave} />);
-
-      expect(screen.queryByText('响应采集配置')).toBeNull();
-    });
   });
 
   describe('Server Streaming 方法 - UI 切换', () => {
@@ -203,19 +191,6 @@ describe('GrpcCallConfig', () => {
       render(<GrpcCallConfig data={config} onSave={mockOnSave} />);
 
       expect(screen.getByText('请求 JSON')).toBeDefined();
-    });
-
-    it('显示响应采集配置', () => {
-      const services = createServicesWithMethod({
-        method_name: 'StreamGreetings',
-        is_server_streaming: true,
-        is_client_streaming: false,
-      });
-      setupStoreMock(services);
-      const config = createBaseConfig({ method_name: 'StreamGreetings' });
-      render(<GrpcCallConfig data={config} onSave={mockOnSave} />);
-
-      expect(screen.getByText('响应采集配置')).toBeDefined();
     });
   });
 
@@ -239,19 +214,6 @@ describe('GrpcCallConfig', () => {
       // 不显示单一请求 JSON 编辑器
       expect(screen.queryByText('请求 JSON')).toBeNull();
     });
-
-    it('不显示响应采集配置', () => {
-      const services = createServicesWithMethod({
-        method_name: 'SendGreetings',
-        is_server_streaming: false,
-        is_client_streaming: true,
-      });
-      setupStoreMock(services);
-      const config = createBaseConfig({ method_name: 'SendGreetings' });
-      render(<GrpcCallConfig data={config} onSave={mockOnSave} />);
-
-      expect(screen.queryByText('响应采集配置')).toBeNull();
-    });
   });
 
   describe('Bidi Streaming 方法 - UI 切换', () => {
@@ -271,7 +233,6 @@ describe('GrpcCallConfig', () => {
       render(<GrpcCallConfig data={config} onSave={mockOnSave} />);
 
       expect(screen.getByText('消息列表')).toBeDefined();
-      expect(screen.getByText('响应采集配置')).toBeDefined();
       // 不显示单一请求 JSON 编辑器
       expect(screen.queryByText('请求 JSON')).toBeNull();
     });
