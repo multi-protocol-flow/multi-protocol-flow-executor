@@ -62,6 +62,10 @@ impl NodePlugin for McpConnectPlugin {
             "headers": null,
             "protocol_version": "2025-11-25",
             "custom_headers": null,
+            "transport": "streamable_http",
+            "command": null,
+            "args": null,
+            "env": null,
         })
     }
 
@@ -93,6 +97,9 @@ impl NodePlugin for McpConnectPlugin {
             "protocol_version": config.get("protocol_version"),
             "headers": config.get("headers"),
             "custom_headers": config.get("custom_headers"),
+            "transport": config.get("transport"),
+            "command": config.get("command"),
+            "args": config.get("args"),
         }))
     }
 

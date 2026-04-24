@@ -43,7 +43,7 @@ impl NodeExecutor for McpConnectExecutor {
             _ => return Err(format!("节点数据类型不是 McpConnectConfig: {}", node.uuid)),
         };
 
-        // 2. 变量替换 URL
+        // 2. 变量替换（URL 和 Stdio 的 command/args 都需要替换）
         let url = replace_variables(&config.url, context).map_err(|e| {
             let error_msg = format!("URL 变量替换失败: {}", e);
             log::error!(
@@ -56,13 +56,47 @@ impl NodeExecutor for McpConnectExecutor {
             error_msg
         })?;
 
+        // Stdio 模式下替换 command 和 args 中的变量
+        let command = match &config.command {
+            Some(cmd) => Some(replace_variables(cmd, context).map_err(|e| {
+                format!("command 变量替换失败: {}", e)
+            })?),
+            None => None,
+        };
+        let args = match &config.args {
+            Some(arg_list) => {
+                let mut replaced = Vec::new();
+                for arg in arg_list {
+                    replaced.push(replace_variables(arg, context).map_err(|e| {
+                        format!("args 变量替换失败: {}", e)
+                    })?);
+                }
+                Some(replaced)
+            }
+            None => None,
+        };
+
         // 3. 日志：开始连接
+        let display_url = match &command {
+            Some(cmd) => {
+                let args_display = args.as_ref()
+                    .map(|a| a.join(" "))
+                    .unwrap_or_default();
+                if args_display.is_empty() {
+                    cmd.clone()
+                } else {
+                    format!("{} {}", cmd, args_display)
+                }
+            }
+            None => url.clone(),
+        };
+
         log::info!(
             "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: mcp_connect, URL: {}",
             context.flow_uuid,
             node.uuid,
             node.name,
-            url
+            display_url
         );
 
         context
@@ -79,22 +113,25 @@ impl NodeExecutor for McpConnectExecutor {
             })
             .await;
 
-        // 4. 合并 headers
-        let mut headers = config.headers.clone().unwrap_or_default();
-        if let Some(custom) = &config.custom_headers {
-            headers.extend(custom.clone());
-        }
+        // 4. 构建连接配置（使用替换后的值）
+        let connect_config = flow_engine_core::node_config::McpConnectConfig {
+            url,
+            headers: config.headers.clone(),
+            protocol_version: config.protocol_version.clone(),
+            custom_headers: config.custom_headers.clone(),
+            discovered_tools: Vec::new(),
+            discovered_resources: Vec::new(),
+            discovered_prompts: Vec::new(),
+            transport: config.transport.clone(),
+            command,
+            args,
+            env: config.env.clone(),
+        };
 
         // 5. 建立连接
         let connect_result = self
             .mcp_manager
-            .connect(
-                node.uuid.clone(),
-                url.clone(),
-                headers,
-                config.protocol_version.clone(),
-                config.custom_headers.clone().unwrap_or_default(),
-            )
+            .connect(node.uuid.clone(), connect_config)
             .await;
 
         match connect_result {
@@ -102,7 +139,7 @@ impl NodeExecutor for McpConnectExecutor {
                 log::info!(
                     "[MCP] 连接成功: uuid={}, url={}, 工具数={}, 资源数={}",
                     node.uuid,
-                    url,
+                    conn_info.url,
                     conn_info.tools.len(),
                     conn_info.resources.len()
                 );
@@ -112,7 +149,7 @@ impl NodeExecutor for McpConnectExecutor {
                 let output_data = json!({
                     "success": true,
                     "connection_id": conn_info.connection_id,
-                    "url": url,
+                    "url": conn_info.url,
                     "server_info": {
                         "name": conn_info.server_info.name,
                         "version": conn_info.server_info.version,
@@ -138,8 +175,12 @@ impl NodeExecutor for McpConnectExecutor {
                         })).collect::<Vec<_>>(),
                     })).collect::<Vec<_>>(),
                     "request": {
-                        "url": url,
+                        "url": conn_info.url,
                         "protocol_version": config.protocol_version,
+                        "transport": match config.transport {
+                            flow_engine_core::node_config::McpTransportMode::StreamableHttp => "streamable_http",
+                            flow_engine_core::node_config::McpTransportMode::Stdio => "stdio",
+                        },
                     },
                     "timing": {
                         "connect_ms": duration.as_millis() as u64,
@@ -191,7 +232,7 @@ impl NodeExecutor for McpConnectExecutor {
                 log::error!(
                     "[MCP] 连接失败: uuid={}, url={}, error={}",
                     node.uuid,
-                    url,
+                    display_url,
                     e
                 );
 
@@ -215,9 +256,9 @@ impl NodeExecutor for McpConnectExecutor {
                 let error_output = json!({
                     "success": false,
                     "connection_id": serde_json::Value::Null,
-                    "url": url,
+                    "url": display_url,
                     "request": {
-                        "url": url,
+                        "url": display_url,
                         "protocol_version": config.protocol_version,
                     },
                     "timing": {
@@ -256,6 +297,7 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::McpConnectConfig;
+    use flow_engine_core::node_config::McpTransportMode;
     use crate::mcp_connection_manager::McpConnectionManager;
 
     /// 创建测试节点
@@ -273,6 +315,10 @@ mod tests {
                 discovered_tools: Vec::new(),
                 discovered_resources: Vec::new(),
                 discovered_prompts: Vec::new(),
+                transport: McpTransportMode::StreamableHttp,
+                command: None,
+                args: None,
+                env: None,
             }),
             ports: None,
             has_breakpoint: None,

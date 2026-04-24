@@ -333,6 +333,14 @@ pub struct McpDiscoverToolsInput {
     pub headers: Option<std::collections::HashMap<String, String>>,
     /// MCP 协议版本
     pub protocol_version: Option<String>,
+    /// 传输模式: "streamable_http" | "stdio"
+    pub transport: Option<String>,
+    /// Stdio 模式：可执行文件路径
+    pub command: Option<String>,
+    /// Stdio 模式：命令参数
+    pub args: Option<Vec<String>>,
+    /// Stdio 模式：环境变量
+    pub env: Option<std::collections::HashMap<String, String>>,
 }
 
 /// MCP 工具发现响应
@@ -411,26 +419,48 @@ pub struct McpPromptInfoOutput {
 ///
 /// 设计时调用：连接 MCP 服务器，获取可用工具和资源列表。
 /// 不创建持久连接，仅返回信息供前端缓存。
+/// 支持 Streamable HTTP 和 Stdio 两种传输模式。
 #[tauri::command]
 pub async fn mcp_discover_tools(
     input: McpDiscoverToolsInput,
 ) -> McpDiscoverToolsOutput {
+    use flow_engine::node_config::{McpConnectConfig, McpTransportMode};
+
+    let transport = match input.transport.as_deref() {
+        Some("stdio") => McpTransportMode::Stdio,
+        _ => McpTransportMode::StreamableHttp,
+    };
+
     log::info!(
-        "[MCP] 发现工具: url={}, protocol_version={}",
+        "[MCP] 发现工具: url={}, protocol_version={}, transport={}",
         input.url,
-        input.protocol_version.as_deref().unwrap_or("default")
+        input.protocol_version.as_deref().unwrap_or("default"),
+        match transport {
+            McpTransportMode::StreamableHttp => "streamable_http",
+            McpTransportMode::Stdio => "stdio",
+        }
     );
 
     // 创建临时连接管理器
     let manager = flow_engine::flow_engine_mcp::McpConnectionManager::new();
-    let headers = input.headers.unwrap_or_default();
+
+    let config = McpConnectConfig {
+        url: input.url,
+        headers: input.headers,
+        protocol_version: input.protocol_version.unwrap_or_else(|| "2025-11-25".to_string()),
+        custom_headers: None,
+        discovered_tools: Vec::new(),
+        discovered_resources: Vec::new(),
+        discovered_prompts: Vec::new(),
+        transport,
+        command: input.command,
+        args: input.args,
+        env: input.env,
+    };
 
     match manager.connect(
         "temp-discover".to_string(),
-        input.url,
-        headers,
-        input.protocol_version.unwrap_or_else(|| "2025-11-25".to_string()),
-        std::collections::HashMap::new(),
+        config,
     ).await {
         Ok(conn_info) => {
             // 关闭临时连接
