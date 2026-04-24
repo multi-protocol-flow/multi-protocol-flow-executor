@@ -1,10 +1,11 @@
 /**
  * CanvasToolbar - 画布悬浮工具栏
- * 位于画布顶部居中，包含执行按钮等操作
+ * 位于画布顶部居中，包含撤销/重做、执行按钮、节点分组、变量按钮
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Undo2, Redo2 } from 'lucide-react';
 import { toast } from 'sonner';
+import * as Popover from '@radix-ui/react-popover';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging, selectCanUndo, selectCanRedo } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
@@ -14,9 +15,16 @@ import { executeFlowWithChannel, saveFlowReport } from '@/services/tauri';
 import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
+import type { NodeType } from '@/types';
+import type { NodeMetadata } from '@/types/nodeRegistry';
+import { getNodeMetadata } from '@/lib/NodeRegistry';
 import { DebugToolbar } from './DebugToolbar';
 import { StressTestConfigDialog } from '@/components/stress-test/StressTestConfigDialog';
 import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
+import {
+  buildGroupsFromMetadata,
+  type NodeItem,
+} from './NodePalette';
 
 import { VariablePanel, extractVariableGroups } from '@/components/panels/VariablePanel';
 
@@ -44,6 +52,32 @@ export function CanvasToolbar() {
   const showStressTestConfigDialog = useUIStore((state) => state.showStressTestConfigDialog);
   const openStressTestConfigDialog = useUIStore((state) => state.openStressTestConfigDialog);
   const closeStressTestConfigDialog = useUIStore((state) => state.closeStressTestConfigDialog);
+
+  // 节点分组逻辑
+  const setPendingAddNodeType = useFlowStore((s) => s.setPendingAddNodeType);
+  const [metadata, setMetadata] = useState<NodeMetadata[]>([]);
+
+  useEffect(() => {
+    getNodeMetadata().then(setMetadata);
+  }, []);
+
+  const nodeGroups = useMemo(
+    () => buildGroupsFromMetadata(metadata),
+    [metadata]
+  );
+
+  const handleDragStart = (e: React.DragEvent, type: NodeType) => {
+    e.dataTransfer.setData('application/reactflow/nodeType', type);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleNodeClick = (type: NodeType) => {
+    if (!flow) return;
+    setPendingAddNodeType(type);
+  };
+
+  // 是否有活跃的执行/调试/压测
+  const isAnyActive = isExecuting || isDebugging || isStressTestRunning;
 
   const handleExecute = async () => {
     if (!flow || isExecuting) return;
@@ -292,6 +326,115 @@ export function CanvasToolbar() {
         >
           <Activity className="w-6 h-6" />
         </button>
+
+        {/* 节点分组按钮（执行/调试/压测时隐藏） */}
+        {!isAnyActive && nodeGroups.length > 0 && (
+          <>
+            {/* 分隔线 */}
+            <div className="w-px h-5 bg-border" />
+
+            {/* 节点分组 - 紧凑排列 */}
+            <div className="flex items-center gap-1">
+              {nodeGroups.map((group) => {
+                const isDirectAction = group.items.length === 1;
+                const item = group.items[0];
+                const GroupIcon = group.icon;
+
+                return isDirectAction ? (
+                  /* 单项分组：直接按钮 */
+                  <button
+                    key={group.key}
+                    type="button"
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, item.type)}
+                    onClick={() => handleNodeClick(item.type)}
+                    title={item.name}
+                    className={cn(
+                      'flex flex-col items-center justify-center',
+                      'w-9 h-9 rounded-lg',
+                      'text-foreground',
+                      'hover:bg-accent hover:scale-105',
+                      'active:scale-95',
+                      'transition-all duration-100 cursor-pointer',
+                      'select-none',
+                    )}
+                  >
+                    <GroupIcon className="w-3.5 h-3.5" />
+                    <span className="text-[9px] text-muted-foreground leading-none mt-0.5">
+                      {group.label}
+                    </span>
+                  </button>
+                ) : (
+                  /* 多项分组：Popover 弹出 */
+                  <Popover.Root key={group.key}>
+                    <Popover.Trigger asChild>
+                      <button
+                        type="button"
+                        title={group.label}
+                        className={cn(
+                          'flex flex-col items-center justify-center',
+                          'w-9 h-9 rounded-lg',
+                          'text-foreground',
+                          'hover:bg-accent hover:scale-105',
+                          'active:scale-95',
+                          'transition-all duration-100 cursor-pointer',
+                          'select-none',
+                          'data-[state=open]:bg-accent',
+                        )}
+                      >
+                        <GroupIcon className="w-3.5 h-3.5" />
+                        <span className="text-[9px] text-muted-foreground leading-none mt-0.5">
+                          {group.label}
+                        </span>
+                      </button>
+                    </Popover.Trigger>
+
+                    <Popover.Portal>
+                      <Popover.Content
+                        side="bottom"
+                        sideOffset={6}
+                        align="center"
+                        className={cn(
+                          'bg-background rounded-lg shadow-xl border border-border',
+                          'p-1 min-w-[150px]',
+                          'animate-in fade-in-0 zoom-in-95',
+                          'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
+                          'z-50',
+                        )}
+                      >
+                        {group.items.map((nodeItem: NodeItem) => {
+                          const ItemIcon = nodeItem.icon;
+                          return (
+                            <Popover.Close asChild key={nodeItem.type}>
+                              <button
+                                type="button"
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, nodeItem.type)}
+                                onClick={() => handleNodeClick(nodeItem.type)}
+                                title={nodeItem.name}
+                                className={cn(
+                                  'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md',
+                                  'text-xs text-foreground',
+                                  'hover:bg-accent',
+                                  'transition-colors duration-100 cursor-pointer',
+                                  'select-none',
+                                )}
+                              >
+                                <ItemIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <span>{nodeItem.name}</span>
+                              </button>
+                            </Popover.Close>
+                          );
+                        })}
+                        <Popover.Arrow className="fill-background drop-shadow-sm" />
+                      </Popover.Content>
+                    </Popover.Portal>
+                  </Popover.Root>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       {/* 变量按钮 - 独立元素，紧贴工具栏右侧 */}

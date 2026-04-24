@@ -25,10 +25,9 @@ import '@xyflow/react/dist/style.css';
 import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpCloseNode } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { CanvasToolbar } from './CanvasToolbar';
-import { NodePalette } from './NodePalette';
 import { NodeContextMenu } from './NodeContextMenu';
 import { CustomEdge } from './edges/CustomEdge';
-import { useFlowStore, useUIStore, useDebugStore, selectIsDebugging, useExecutionStore, selectIsExecuting, useStressTestStore, selectIsStressTestRunning } from '@/stores';
+import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
 import { MapIcon, ArrowRightLeft } from 'lucide-react';
 import type { NodeType } from '@/types';
@@ -177,12 +176,6 @@ function FlowCanvasInner() {
     }
     return FALLBACK_MINIMAP_COLORS[node.type ?? ''] ?? '#94a3b8';
   }, [nodeMetadata]);
-
-  // 执行状态：执行/调试/压测时隐藏节点栏和小地图
-  const isExecuting = useExecutionStore(selectIsExecuting);
-  const isDebugging = useDebugStore(selectIsDebugging);
-  const isStressTestRunning = useStressTestStore(selectIsStressTestRunning);
-  const isAnyActive = isExecuting || isDebugging || isStressTestRunning;
 
   const { screenToFlowPosition, fitView, setCenter, getNode } = useReactFlow();
   
@@ -706,9 +699,6 @@ function FlowCanvasInner() {
 
       {/* 画布悬浮工具栏 */}
       <CanvasToolbar />
-
-      {/* 底部节点工具条（执行/调试/压测时隐藏） */}
-      {!isAnyActive && <NodePalette />}
       
       <ReactFlow
         nodes={nodes}

@@ -18,6 +18,13 @@ import {
   Code,
   Wrench,
   Play,
+  Network,
+  Puzzle,
+  Cable,
+  PhoneOutgoing,
+  PhoneOff,
+  FileSearch,
+  Unplug,
 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { useFlowStore } from '@/stores';
@@ -29,18 +36,19 @@ import {
   CATEGORY_NAMES,
   getCategoryOrder,
 } from '@/lib/NodeRegistry';
+import { ICON_MAP as NODE_TYPE_ICON_MAP } from '@/lib/nodeMeta';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
 
 /** 节点条目定义 */
-interface NodeItem {
+export interface NodeItem {
   type: NodeType;
   name: string;
   icon: LucideIcon;
 }
 
 /** 节点分组定义 */
-interface NodeGroup {
+export interface NodeGroup {
   /** 分组键 */
   key: string;
   /** 分组显示名称 */
@@ -52,7 +60,7 @@ interface NodeGroup {
 }
 
 /** 后端 category 对应的图标 */
-const CATEGORY_ICONS: Record<string, LucideIcon> = {
+export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   logic: GitBranch,
   http: Globe,
   websocket: Wifi,
@@ -60,10 +68,12 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   tools: Wrench,
   script: Code,
   assertion: CheckCircle,
+  grpc: Network,
+  mcp: Puzzle,
 };
 
 /** 后端 icon 字段到 lucide-react 组件的映射 */
-const ICON_MAP: Record<string, LucideIcon> = {
+export const ICON_MAP: Record<string, LucideIcon> = {
   play: Play,
   globe: Globe,
   'git-branch': GitBranch,
@@ -77,10 +87,19 @@ const ICON_MAP: Record<string, LucideIcon> = {
   check: CheckCircle,
   'rotate-ccw': RotateCcw,
   wrench: Wrench,
+  network: Network,
+  puzzle: Puzzle,
+  cable: Cable,
+  'phone-outgoing': PhoneOutgoing,
+  'phone-off': PhoneOff,
+  'file-search': FileSearch,
+  'file-text': FileSearch,
+  unplug: Unplug,
+  'x-circle': Unplug,
 };
 
 /** 静态回退分组数据 */
-const FALLBACK_NODE_GROUPS: NodeGroup[] = [
+export const FALLBACK_NODE_GROUPS: NodeGroup[] = [
   {
     key: 'http',
     label: 'HTTP',
@@ -88,14 +107,18 @@ const FALLBACK_NODE_GROUPS: NodeGroup[] = [
     items: [{ type: 'http', name: 'HTTP 请求', icon: Globe }],
   },
   {
-    key: 'logic',
-    label: '逻辑',
-    icon: GitBranch,
-    items: [{ type: 'conditional', name: '条件判断', icon: GitBranch }],
+    key: 'tools',
+    label: 'Tool',
+    icon: Wrench,
+    items: [
+      { type: 'conditional', name: '条件判断', icon: GitBranch },
+      { type: 'script', name: '脚本', icon: Code },
+      { type: 'assertion', name: '断言', icon: CheckCircle },
+    ],
   },
   {
     key: 'websocket',
-    label: 'WebSocket',
+    label: 'WS',
     icon: Wifi,
     items: [
       { type: 'ws_connect', name: 'WS 连接', icon: Wifi },
@@ -105,7 +128,7 @@ const FALLBACK_NODE_GROUPS: NodeGroup[] = [
   },
   {
     key: 'database',
-    label: '数据库',
+    label: 'DB',
     icon: Database,
     items: [
       { type: 'db_connect', name: 'DB 连接', icon: Database },
@@ -116,24 +139,23 @@ const FALLBACK_NODE_GROUPS: NodeGroup[] = [
       { type: 'db_close', name: 'DB 关闭', icon: Plug },
     ],
   },
-  {
-    key: 'tools',
-    label: '工具',
-    icon: Wrench,
-    items: [
-      { type: 'script', name: '脚本', icon: Code },
-      { type: 'assertion', name: '断言', icon: CheckCircle },
-    ],
-  },
 ];
 
 /**
  * 从后端元数据构建分组
  *
  * 将后端 NodeMetadata 转换为 NodePalette 所需的 NodeGroup 结构。
+ * logic 分类的节点会合并到 tools 分类。
  */
-function buildGroupsFromMetadata(metadata: NodeMetadata[]): NodeGroup[] {
+export function buildGroupsFromMetadata(metadata: NodeMetadata[]): NodeGroup[] {
   const grouped = groupByCategory(metadata);
+
+  // 将 logic 分类合并到 tools 分类
+  if (grouped['logic']) {
+    if (!grouped['tools']) grouped['tools'] = [];
+    grouped['tools'] = [...grouped['logic'], ...grouped['tools']];
+    delete grouped['logic'];
+  }
 
   const groups: NodeGroup[] = Object.entries(grouped)
     .sort(([a], [b]) => getCategoryOrder(a) - getCategoryOrder(b))
@@ -150,7 +172,8 @@ function buildGroupsFromMetadata(metadata: NodeMetadata[]): NodeGroup[] {
         items: filtered.map((m) => ({
           type: m.type_id as NodeType,
           name: m.display_name,
-          icon: ICON_MAP[m.icon] ?? Wrench,
+          // 优先使用 nodeMeta.ts 的 type_id 映射（与画布节点一致），回退到后端 icon 字段映射
+          icon: NODE_TYPE_ICON_MAP[m.type_id]?.icon ?? ICON_MAP[m.icon] ?? Wrench,
         })),
       };
     })
