@@ -1,6 +1,12 @@
 //! MCP 提供者抽象 trait
 
 use async_trait::async_trait;
+use crate::node_config::{McpConnectConfig, McpTransportMode};
+
+/// MCP 传输模式默认值辅助函数
+fn default_transport_mode() -> McpTransportMode {
+    McpTransportMode::default()
+}
 
 /// MCP 工具信息
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -83,7 +89,7 @@ pub struct McpServerInfo {
 pub struct McpConnectionInfo {
     /// 连接 ID
     pub connection_id: String,
-    /// 连接 URL
+    /// 连接 URL（Stdio 模式下为 command 描述，如 "npx @server/memory"）
     pub url: String,
     /// 服务器信息
     pub server_info: McpServerInfo,
@@ -93,6 +99,9 @@ pub struct McpConnectionInfo {
     pub resources: Vec<McpResourceInfo>,
     /// 可用提示词列表
     pub prompts: Vec<McpPromptInfo>,
+    /// 传输模式
+    #[serde(default = "default_transport_mode")]
+    pub transport: McpTransportMode,
 }
 
 /// MCP 工具调用结果
@@ -124,10 +133,7 @@ pub trait McpProvider: Send + Sync {
     async fn connect(
         &self,
         uuid: String,
-        url: String,
-        headers: std::collections::HashMap<String, String>,
-        protocol_version: String,
-        custom_headers: std::collections::HashMap<String, String>,
+        config: McpConnectConfig,
     ) -> Result<McpConnectionInfo, String>;
 
     /// 调用 MCP 工具
@@ -231,6 +237,7 @@ mod tests {
             }],
             resources: vec![],
             prompts: vec![],
+            transport: McpTransportMode::StreamableHttp,
         };
 
         let json = serde_json::to_string(&info).expect("序列化应成功");
@@ -242,6 +249,7 @@ mod tests {
         assert_eq!(deserialized.tools.len(), 1);
         assert!(deserialized.resources.is_empty());
         assert!(deserialized.prompts.is_empty());
+        assert_eq!(deserialized.transport, McpTransportMode::StreamableHttp);
     }
 
     #[test]

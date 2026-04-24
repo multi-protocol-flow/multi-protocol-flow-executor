@@ -913,10 +913,22 @@ impl Default for ScriptNodeConfig {
 // MCP 节点配置
 // ============================================================================
 
+/// MCP 传输模式
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub enum McpTransportMode {
+    /// Streamable HTTP 传输（默认）
+    #[serde(rename = "streamable_http")]
+    #[default]
+    StreamableHttp,
+    /// Stdio 子进程传输
+    #[serde(rename = "stdio")]
+    Stdio,
+}
+
 /// MCP Connect 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct McpConnectConfig {
-    /// MCP 服务器 URL（Streamable HTTP）
+    /// MCP 服务器 URL（Streamable HTTP 模式使用；Stdio 模式下为空字符串）
     pub url: String,
     /// 请求头
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -936,6 +948,18 @@ pub struct McpConnectConfig {
     /// 发现的提示词列表（缓存）
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub discovered_prompts: Vec<crate::traits::McpPromptInfo>,
+    /// 传输模式（默认 `streamable_http`）
+    #[serde(default)]
+    pub transport: McpTransportMode,
+    /// Stdio 模式：可执行文件路径
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
+    /// Stdio 模式：命令参数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args: Option<Vec<String>>,
+    /// Stdio 模式：环境变量
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub env: Option<std::collections::HashMap<String, String>>,
 }
 
 impl Default for McpConnectConfig {
@@ -948,6 +972,10 @@ impl Default for McpConnectConfig {
             discovered_tools: Vec::new(),
             discovered_resources: Vec::new(),
             discovered_prompts: Vec::new(),
+            transport: McpTransportMode::default(),
+            command: None,
+            args: None,
+            env: None,
         }
     }
 }
