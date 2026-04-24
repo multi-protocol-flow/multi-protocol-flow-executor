@@ -1,5 +1,6 @@
 // 节点配置模块 - 强类型节点配置定义
 
+use crate::traits::GrpcServiceInfo;
 use crate::variable::{InitialVariable, OutputMapping};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -524,6 +525,9 @@ pub struct GrpcConnectConfig {
     /// 连接超时（毫秒）
     #[serde(default = "default_grpc_connect_timeout")]
     pub connect_timeout_ms: u64,
+    /// 通过 Server Reflection 或 Proto 解析发现的服务列表（设计时缓存，仅前端使用）
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub discovered_services: Vec<GrpcServiceInfo>,
 }
 
 impl Default for GrpcConnectConfig {
@@ -536,6 +540,7 @@ impl Default for GrpcConnectConfig {
             proto_files: Vec::new(),
             default_metadata: Vec::new(),
             connect_timeout_ms: default_grpc_connect_timeout(),
+            discovered_services: Vec::new(),
         }
     }
 }

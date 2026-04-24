@@ -55,7 +55,7 @@ pub struct GrpcStreamingResult {
 }
 
 /// gRPC 服务信息（service + method 列表）
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GrpcServiceInfo {
     /// 服务全名（如 "package.ServiceName"）
     pub service_name: String,
@@ -64,7 +64,7 @@ pub struct GrpcServiceInfo {
 }
 
 /// gRPC 方法信息
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct GrpcMethodInfo {
     /// 方法名
     pub method_name: String,
