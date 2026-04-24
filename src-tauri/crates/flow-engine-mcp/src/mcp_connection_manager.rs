@@ -11,6 +11,7 @@ use async_trait::async_trait;
 use log::{info, warn};
 use tokio::sync::RwLock;
 
+use flow_engine_core::node_config::{McpConnectConfig, McpTransportMode};
 use flow_engine_core::traits::{
     McpConnectionInfo, McpProvider, McpPromptInfo, McpPromptResult, McpResourceInfo,
     McpResourceReadResult, McpServerInfo, McpToolCallResult, McpToolInfo,
@@ -26,7 +27,7 @@ pub struct McpConnection {
     pub(crate) service: rmcp::service::RunningService<rmcp::service::RoleClient, ()>,
     /// 连接 ID
     pub connection_id: String,
-    /// 连接 URL
+    /// 连接 URL 或 command 描述
     pub url: String,
     /// 服务器信息
     pub server_info: McpServerInfo,
@@ -38,6 +39,8 @@ pub struct McpConnection {
     pub prompts: Vec<McpPromptInfo>,
     /// 连接创建时间（毫秒时间戳）
     pub created_at: u64,
+    /// 传输模式
+    pub transport: McpTransportMode,
 }
 
 /// MCP 连接管理器（per-flow-execution 作用域）
@@ -47,13 +50,26 @@ pub struct McpConnection {
 pub struct McpConnectionManager {
     /// 连接池: `connection_id` → [`McpConnection`]
     connections: RwLock<HashMap<String, McpConnection>>,
+    /// 压测共享模式下 close 为 no-op
+    shared_mode: bool,
 }
 
 impl McpConnectionManager {
-    /// 创建新的连接管理器
+    /// 创建新的连接管理器（普通模式）
     pub fn new() -> Self {
         Self {
             connections: RwLock::new(HashMap::new()),
+            shared_mode: false,
+        }
+    }
+
+    /// 创建共享模式的连接管理器（压测场景）
+    ///
+    /// 共享模式下 close 为 no-op，避免并发虚拟用户互相关闭连接。
+    pub fn new_shared() -> Self {
+        Self {
+            connections: RwLock::new(HashMap::new()),
+            shared_mode: true,
         }
     }
 }
@@ -61,6 +77,17 @@ impl McpConnectionManager {
 impl Default for McpConnectionManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Drop for McpConnectionManager {
+    fn drop(&mut self) {
+        // Drop 时尝试清理所有连接（非阻塞）
+        if let Ok(mut connections) = self.connections.try_write() {
+            for (id, _conn) in connections.drain() {
+                log::info!("MCP 连接 {} 已随 Manager 释放而清理", id);
+            }
+        }
     }
 }
 
@@ -73,19 +100,30 @@ impl McpProvider for McpConnectionManager {
     async fn connect(
         &self,
         uuid: String,
-        url: String,
-        headers: std::collections::HashMap<String, String>,
-        _protocol_version: String,
-        custom_headers: std::collections::HashMap<String, String>,
+        config: McpConnectConfig,
     ) -> Result<McpConnectionInfo, String> {
-        info!("MCP 开始连接: url={}, id={}", url, uuid);
+        let display_url = mcp_client::get_display_url(&config);
+        info!("MCP 开始连接: url={}, id={}", display_url, uuid);
 
-        // 合并 headers 和 custom_headers
-        let mut merged_headers = headers;
-        merged_headers.extend(custom_headers);
+        // UUID 去重：如果已存在直接返回缓存的连接信息
+        {
+            let conns = self.connections.read().await;
+            if let Some(existing) = conns.get(&uuid) {
+                info!("MCP 复用已有连接: id={}", uuid);
+                return Ok(McpConnectionInfo {
+                    connection_id: existing.connection_id.clone(),
+                    url: existing.url.clone(),
+                    server_info: existing.server_info.clone(),
+                    tools: existing.tools.clone(),
+                    resources: existing.resources.clone(),
+                    prompts: existing.prompts.clone(),
+                    transport: existing.transport.clone(),
+                });
+            }
+        }
 
         // 创建 MCP 客户端
-        let result = mcp_client::create_mcp_client(&url, merged_headers).await?;
+        let result = mcp_client::create_mcp_client(&config).await?;
 
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -97,25 +135,29 @@ impl McpProvider for McpConnectionManager {
             version: result.server_version.clone(),
         };
 
+        let transport = config.transport.clone();
+
         let connection_info = McpConnectionInfo {
             connection_id: uuid.clone(),
-            url: url.clone(),
+            url: display_url.clone(),
             server_info: server_info.clone(),
             tools: result.tools.clone(),
             resources: result.resources.clone(),
             prompts: result.prompts.clone(),
+            transport: transport.clone(),
         };
 
         // 存入连接池
         let connection = McpConnection {
             service: result.service,
             connection_id: uuid.clone(),
-            url,
+            url: display_url,
             server_info,
             tools: result.tools,
             resources: result.resources,
             prompts: result.prompts,
             created_at: now,
+            transport,
         };
 
         {
@@ -284,7 +326,13 @@ impl McpProvider for McpConnectionManager {
     /// 关闭 MCP 连接
     ///
     /// 从连接池中移除连接，RunningService drop 自动关闭连接。
+    /// 共享模式下为 no-op，避免并发虚拟用户互相关闭连接。
     async fn close(&self, connection_id: &str) -> Result<(), String> {
+        if self.shared_mode {
+            log::info!("共享模式下忽略 close 请求: {}", connection_id);
+            return Ok(());
+        }
+
         let mut conns = self.connections.write().await;
         let removed = conns.remove(connection_id);
         if removed.is_some() {
@@ -309,6 +357,7 @@ impl McpProvider for McpConnectionManager {
             tools: conn.tools.clone(),
             resources: conn.resources.clone(),
             prompts: conn.prompts.clone(),
+            transport: conn.transport.clone(),
         })
     }
 }
@@ -330,12 +379,26 @@ mod tests {
         assert!(manager.get_connection_info("non-existent").is_none());
     }
 
+    #[test]
+    fn test_connection_manager_new_shared() {
+        let manager = McpConnectionManager::new_shared();
+        assert!(manager.get_connection_info("non-existent").is_none());
+    }
+
     #[tokio::test]
     async fn test_close_nonexistent_connection() {
         let manager = McpConnectionManager::new();
         let result = manager.close("non-existent").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不存在"));
+    }
+
+    #[tokio::test]
+    async fn test_shared_mode_close_is_noop() {
+        let manager = McpConnectionManager::new_shared();
+        // 共享模式下 close 不存在的连接也返回 Ok
+        let result = manager.close("non-existent").await;
+        assert!(result.is_ok());
     }
 
     #[tokio::test]

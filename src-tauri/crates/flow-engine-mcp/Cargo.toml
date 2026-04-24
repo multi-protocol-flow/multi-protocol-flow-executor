@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }
 # MCP SDK
-rmcp = { version = "1.5", default-features = false, features = ["client", "transport-streamable-http-client-reqwest"] }
+rmcp = { version = "1.5", default-features = false, features = ["client", "transport-streamable-http-client-reqwest", "transport-child-process"] }
 # HTTP 客户端（用于自定义请求头）
 reqwest = "0.13"
 # Workspace 共享依赖
