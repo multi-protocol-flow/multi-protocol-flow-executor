@@ -376,6 +376,9 @@ export async function discoverMcpTools(
         mime_type: 'text/plain',
       },
     ],
+    prompts: [
+      { name: 'example_prompt', description: '示例提示词', arguments: [{ name: 'topic', description: '主题', required: true }] }
+    ],
     server_info: {
       name: 'Mock MCP Server',
       version: '1.0.0',

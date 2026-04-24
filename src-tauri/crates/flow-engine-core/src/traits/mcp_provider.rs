@@ -3,7 +3,7 @@
 use async_trait::async_trait;
 
 /// MCP 工具信息
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct McpToolInfo {
     /// 工具名称
     pub name: String,
@@ -16,7 +16,7 @@ pub struct McpToolInfo {
 }
 
 /// MCP 资源信息
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct McpResourceInfo {
     /// 资源 URI
     pub uri: String,
@@ -28,6 +28,44 @@ pub struct McpResourceInfo {
     /// MIME 类型
     #[serde(default)]
     pub mime_type: Option<String>,
+}
+
+/// MCP 提示词参数信息
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct McpPromptArgumentInfo {
+    /// 参数名称
+    pub name: String,
+    /// 参数描述
+    #[serde(default)]
+    pub description: Option<String>,
+    /// 是否必填
+    #[serde(default)]
+    pub required: Option<bool>,
+}
+
+/// MCP 提示词信息
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct McpPromptInfo {
+    /// 提示词名称
+    pub name: String,
+    /// 提示词描述
+    #[serde(default)]
+    pub description: Option<String>,
+    /// 提示词参数
+    #[serde(default)]
+    pub arguments: Vec<McpPromptArgumentInfo>,
+}
+
+/// MCP 提示词结果
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct McpPromptResult {
+    /// 提示词描述
+    #[serde(default)]
+    pub description: Option<String>,
+    /// 提示词消息列表
+    pub messages: Vec<serde_json::Value>,
+    /// 耗时（毫秒）
+    pub timing_ms: u64,
 }
 
 /// MCP 服务器信息
@@ -53,6 +91,8 @@ pub struct McpConnectionInfo {
     pub tools: Vec<McpToolInfo>,
     /// 可用资源列表
     pub resources: Vec<McpResourceInfo>,
+    /// 可用提示词列表
+    pub prompts: Vec<McpPromptInfo>,
 }
 
 /// MCP 工具调用结果
@@ -110,6 +150,17 @@ pub trait McpProvider: Send + Sync {
 
     /// 获取连接信息
     fn get_connection_info(&self, connection_id: &str) -> Option<McpConnectionInfo>;
+
+    /// 获取 MCP 提示词列表
+    async fn list_prompts(&self, connection_id: &str) -> Result<Vec<McpPromptInfo>, String>;
+
+    /// 获取 MCP 提示词
+    async fn get_prompt(
+        &self,
+        connection_id: &str,
+        prompt_name: &str,
+        arguments: std::collections::HashMap<String, String>,
+    ) -> Result<McpPromptResult, String>;
 }
 
 #[cfg(test)]
@@ -179,6 +230,7 @@ mod tests {
                 input_schema: None,
             }],
             resources: vec![],
+            prompts: vec![],
         };
 
         let json = serde_json::to_string(&info).expect("序列化应成功");
@@ -189,6 +241,7 @@ mod tests {
         assert_eq!(deserialized.connection_id, "conn-1");
         assert_eq!(deserialized.tools.len(), 1);
         assert!(deserialized.resources.is_empty());
+        assert!(deserialized.prompts.is_empty());
     }
 
     #[test]

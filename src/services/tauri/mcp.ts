@@ -23,10 +23,35 @@ export interface McpResourceInfo {
   mime_type?: string;
 }
 
+/** MCP 提示词参数信息 */
+export interface McpPromptArgumentInfo {
+  name: string;
+  description?: string;
+  required?: boolean;
+}
+
+/** MCP 提示词信息 */
+export interface McpPromptInfo {
+  name: string;
+  description?: string;
+  arguments?: McpPromptArgumentInfo[];
+}
+
 /** MCP 服务器信息 */
 export interface McpServerInfo {
   name: string;
   version: string;
+}
+
+/** MCP 提示词信息 */
+export interface McpPromptInfo {
+  name: string;
+  description?: string;
+  arguments?: Array<{
+    name: string;
+    description?: string;
+    required?: boolean;
+  }>;
 }
 
 /** MCP 发现工具输出 */
@@ -34,6 +59,7 @@ export interface McpDiscoverToolsOutput {
   success: boolean;
   tools: McpToolInfo[];
   resources: McpResourceInfo[];
+  prompts: McpPromptInfo[];
   server_info?: McpServerInfo;
   error?: string;
 }

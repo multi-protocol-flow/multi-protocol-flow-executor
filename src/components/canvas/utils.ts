@@ -163,6 +163,8 @@ export function createDefaultNodeData(type: NodeType): NodeData {
       return { type: 'mcp_call_tool', connection_id: '', tool_name: '' };
     case 'mcp_read_resource':
       return { type: 'mcp_read_resource', connection_id: '', resource_uri: '' };
+    case 'mcp_get_prompt':
+      return { type: 'mcp_get_prompt', connection_id: '', prompt_name: '', arguments: {} };
     case 'mcp_close':
       return { type: 'mcp_close', connection_id: '' };
     case 'entry':
@@ -195,6 +197,7 @@ const STATIC_NODE_TYPE_LABELS: Record<NodeType, string> = {
   mcp_connect: 'MCP 连接',
   mcp_call_tool: 'MCP 调用工具',
   mcp_read_resource: 'MCP 读取资源',
+  mcp_get_prompt: 'MCP 获取提示词',
   mcp_close: 'MCP 关闭',
 };
 

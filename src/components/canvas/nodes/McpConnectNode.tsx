@@ -79,6 +79,32 @@ export function McpConnectNode({ id, data, selected }: NodeProps) {
               {nodeData.config.url}
             </span>
           )}
+          {(() => {
+            const tools = nodeData.config?.discovered_tools?.length || 0;
+            const resources = nodeData.config?.discovered_resources?.length || 0;
+            const prompts = nodeData.config?.discovered_prompts?.length || 0;
+            const total = tools + resources + prompts;
+            if (total === 0) return null;
+            return (
+              <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                {tools > 0 && (
+                  <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0 text-[9px] font-medium text-amber-700">
+                    🛠{tools}
+                  </span>
+                )}
+                {resources > 0 && (
+                  <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0 text-[9px] font-medium text-blue-700">
+                    📄{resources}
+                  </span>
+                )}
+                {prompts > 0 && (
+                  <span className="inline-flex items-center rounded-full bg-purple-100 px-1.5 py-0 text-[9px] font-medium text-purple-700">
+                    💬{prompts}
+                  </span>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
       

@@ -1,16 +1,16 @@
 /**
  * MCP Read Resource 节点配置组件
- * 支持选择连接、资源 URI
+ * 支持选择连接、资源 URI（从已发现资源选择或手动输入）
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { mcpReadResourceConfigSchema, type McpReadResourceConfigFormData } from './schemas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Info } from 'lucide-react';
-import type { McpReadResourceConfig as McpReadResourceConfigType } from '@/types';
+import type { McpReadResourceConfig as McpReadResourceConfigType, McpResourceInfo } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isMcpConnectConfig } from '@/types/node';
 
@@ -79,6 +79,33 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
     });
     return connections;
   }, [flow]);
+
+  // 当前选中的 connection_id
+  const currentConnectionId = watch('connection_id');
+
+  // 从选中连接的 mcp_connect 节点中提取 discovered_resources
+  const discoveredResources: McpResourceInfo[] = useMemo(() => {
+    if (!flow || !currentConnectionId) return [];
+    const connectNode = flow.nodes.find(n => n.uuid === currentConnectionId);
+    if (!connectNode || !isMcpConnectConfig(connectNode.data)) return [];
+    return connectNode.data.discovered_resources || [];
+  }, [flow, currentConnectionId]);
+
+  // 资源 URI 输入模式：'select' 下拉选择 | 'manual' 手动输入
+  const [uriInputMode, setUriInputMode] = useState<'select' | 'manual'>('select');
+
+  // 当 connection_id 变化时，重置 resource_uri
+  useEffect(() => {
+    if (currentConnectionId) {
+      const currentUri = getValues('resource_uri');
+      if (currentUri) {
+        const stillExists = discoveredResources.some(r => r.uri === currentUri);
+        if (!stillExists) {
+          setValue('resource_uri', '', { shouldDirty: true });
+        }
+      }
+    }
+  }, [currentConnectionId, discoveredResources, getValues, setValue]);
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
@@ -174,6 +201,8 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
             value={watch('connection_id') || ''}
             onValueChange={(value) => {
               setValue('connection_id', value, { shouldDirty: true });
+              // 切换连接时重置资源 URI
+              setValue('resource_uri', '', { shouldDirty: true });
               saveData();
             }}
           >
@@ -211,22 +240,107 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
 
       {/* 资源 URI */}
       <div className="space-y-2">
-        <Label htmlFor="resource_uri" className="text-sm font-medium text-foreground">
-          资源 URI <span className="text-rose-500">*</span>
-        </Label>
-        <Input
-          id="resource_uri"
-          {...register('resource_uri')}
-          placeholder="例如：file:///path/to/resource"
-          className="font-mono text-sm"
-        />
+        <div className="flex items-center justify-between">
+          <Label htmlFor="resource_uri" className="text-sm font-medium text-foreground">
+            资源 URI <span className="text-rose-500">*</span>
+          </Label>
+          {discoveredResources.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setUriInputMode(prev => prev === 'select' ? 'manual' : 'select')}
+              className="text-xs text-amber-600 hover:text-amber-800 hover:underline transition-colors"
+            >
+              {uriInputMode === 'select' ? '手动输入' : '下拉选择'}
+            </button>
+          )}
+        </div>
+        {discoveredResources.length > 0 && uriInputMode === 'select' ? (
+          <div className="space-y-1.5">
+            <Select
+              value={watch('resource_uri') || ''}
+              onValueChange={(value) => {
+                setValue('resource_uri', value, { shouldDirty: true });
+                safeSetTimeout(saveData, 100);
+              }}
+            >
+              <SelectTrigger id="resource_uri" className="font-mono">
+                <SelectValue placeholder="选择资源" />
+              </SelectTrigger>
+              <SelectContent>
+                {discoveredResources.map((resource) => (
+                  <SelectItem key={resource.uri} value={resource.uri} title={resource.description}>
+                    <span className="font-mono text-sm">{resource.name}</span>
+                    <span className="ml-2 text-xs text-muted-foreground truncate max-w-[200px] inline-block align-bottom">
+                      ({resource.uri.length > 40
+                        ? resource.uri.substring(0, 40) + '...'
+                        : resource.uri})
+                    </span>
+                    {resource.mime_type && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                        {resource.mime_type}
+                      </span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                {discoveredResources.length} 个资源
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <Input
+              id="resource_uri"
+              {...register('resource_uri')}
+              placeholder="例如：file:///path/to/resource"
+              className="font-mono text-sm"
+            />
+            {discoveredResources.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                当前为手动输入模式，
+                <button
+                  type="button"
+                  onClick={() => setUriInputMode('select')}
+                  className="text-amber-600 hover:underline"
+                >
+                  切换到下拉选择
+                </button>
+              </p>
+            )}
+          </div>
+        )}
         {errors.resource_uri && (
           <p className="text-xs text-rose-500">{errors.resource_uri.message}</p>
         )}
-        <p className="text-xs text-muted-foreground">
-          MCP 资源的 URI 标识符
-        </p>
+        {discoveredResources.length === 0 && currentConnectionId && (
+          <p className="text-xs text-muted-foreground">
+            连接节点未发现资源，请手动输入资源 URI
+          </p>
+        )}
+        {!currentConnectionId && (
+          <p className="text-xs text-muted-foreground">
+            MCP 资源的 URI 标识符
+          </p>
+        )}
       </div>
+
+      {/* 选中资源的描述 */}
+      {(() => {
+        const currentUri = watch('resource_uri');
+        if (!currentUri || discoveredResources.length === 0) return null;
+        const selectedResource = discoveredResources.find(r => r.uri === currentUri);
+        if (!selectedResource?.description) return null;
+        return (
+          <div className="rounded-md bg-amber-50/60 border border-amber-100 px-3 py-2">
+            <p className="text-xs text-amber-800 whitespace-normal break-words">
+              {selectedResource.description}
+            </p>
+          </div>
+        );
+      })()}
 
       {/* 提示信息 */}
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
@@ -235,6 +349,9 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
           <p className="font-medium text-foreground">资源读取说明：</p>
           <p>资源 URI 需与 MCP 服务器支持的资源路径匹配</p>
           <p>读取结果将作为节点输出传递给后续节点</p>
+          {discoveredResources.length === 0 && currentConnectionId && (
+            <p className="text-amber-600">提示：连接节点尚未发现资源，请先在连接节点中执行资源发现</p>
+          )}
         </div>
       </div>
     </form>

@@ -34,6 +34,7 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   mcp_connect: GenericViewer,
   mcp_call_tool: GenericViewer,
   mcp_read_resource: GenericViewer,
+  mcp_get_prompt: GenericViewer,
   mcp_close: GenericViewer,
 };
 

@@ -635,6 +635,18 @@ export const mcpCloseConfigSchema = z.object({
 
 export type McpCloseConfigFormData = z.infer<typeof mcpCloseConfigSchema>;
 
+/**
+ * MCP Get Prompt 配置表单 Schema
+ */
+export const mcpGetPromptConfigSchema = z.object({
+  type: z.literal('mcp_get_prompt'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  prompt_name: z.string().min(1, '提示词名称不能为空'),
+  arguments: z.record(z.string(), z.string()).optional(),
+});
+
+export type McpGetPromptConfigFormData = z.infer<typeof mcpGetPromptConfigSchema>;
+
 // ============================================================================
 // 未知节点类型 Fallback Schema
 // ============================================================================

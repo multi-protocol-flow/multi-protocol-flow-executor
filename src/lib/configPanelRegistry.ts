@@ -26,6 +26,7 @@ import { McpConnectConfig } from '@/components/panels/McpConnectConfig';
 import { McpCallToolConfig } from '@/components/panels/McpCallToolConfig';
 import { McpReadResourceConfig } from '@/components/panels/McpReadResourceConfig';
 import { McpCloseConfig } from '@/components/panels/McpCloseConfig';
+import { McpGetPromptConfig } from '@/components/panels/McpGetPromptConfig';
 
 export const configPanelRegistry: Record<string, ComponentType<any>> = {
   entry: EntryConfig,
@@ -49,6 +50,7 @@ export const configPanelRegistry: Record<string, ComponentType<any>> = {
   mcp_call_tool: McpCallToolConfig,
   mcp_read_resource: McpReadResourceConfig,
   mcp_close: McpCloseConfig,
+  mcp_get_prompt: McpGetPromptConfig,
 };
 
 /** 根据节点类型获取对应的配置面板组件 */

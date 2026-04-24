@@ -112,6 +112,7 @@ export function getBadgeClassForType(typeId: string): string {
     mcp_connect: 'bg-amber-100 text-amber-700',
     mcp_call_tool: 'bg-amber-100 text-amber-700',
     mcp_read_resource: 'bg-amber-100 text-amber-700',
+    mcp_get_prompt: 'bg-amber-100 text-amber-700',
     mcp_close: 'bg-amber-100 text-amber-700',
   };
   return badgeMap[typeId] ?? 'bg-slate-100 text-slate-700';

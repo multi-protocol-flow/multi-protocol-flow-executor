@@ -78,6 +78,8 @@ function createNodeData(type: NodeData['type']): NodeData {
       return { type: 'mcp_call_tool', connection_id: 'mcp-conn-1', tool_name: 'test_tool' };
     case 'mcp_read_resource':
       return { type: 'mcp_read_resource', connection_id: 'mcp-conn-1', resource_uri: 'test://resource' };
+    case 'mcp_get_prompt':
+      return { type: 'mcp_get_prompt', connection_id: 'mcp-conn-1', prompt_name: 'test_prompt' };
     case 'mcp_close':
       return { type: 'mcp_close', connection_id: 'mcp-conn-1' };
   }

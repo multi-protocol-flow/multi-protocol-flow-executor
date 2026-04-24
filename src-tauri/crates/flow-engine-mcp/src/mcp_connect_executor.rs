@@ -128,6 +128,15 @@ impl NodeExecutor for McpConnectExecutor {
                         "description": r.description,
                         "mime_type": r.mime_type,
                     })).collect::<Vec<_>>(),
+                    "prompts": conn_info.prompts.iter().map(|p| json!({
+                        "name": p.name,
+                        "description": p.description,
+                        "arguments": p.arguments.iter().map(|a| json!({
+                            "name": a.name,
+                            "description": a.description,
+                            "required": a.required,
+                        })).collect::<Vec<_>>(),
+                    })).collect::<Vec<_>>(),
                     "request": {
                         "url": url,
                         "protocol_version": config.protocol_version,
@@ -143,9 +152,10 @@ impl NodeExecutor for McpConnectExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "MCP 连接成功，发现 {} 个工具，{} 个资源 ({}ms)",
+                            "MCP 连接成功，发现 {} 个工具，{} 个资源，{} 个提示词 ({}ms)",
                             conn_info.tools.len(),
                             conn_info.resources.len(),
+                            conn_info.prompts.len(),
                             duration.as_millis()
                         ),
                         timestamp: std::time::SystemTime::now()
@@ -260,6 +270,9 @@ mod tests {
                 headers: None,
                 protocol_version: "2025-11-25".to_string(),
                 custom_headers: None,
+                discovered_tools: Vec::new(),
+                discovered_resources: Vec::new(),
+                discovered_prompts: Vec::new(),
             }),
             ports: None,
             has_breakpoint: None,

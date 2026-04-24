@@ -13,10 +13,12 @@ pub mod mcp_connect_executor;
 pub mod mcp_call_tool_executor;
 /// MCP 读取资源节点执行器
 pub mod mcp_read_resource_executor;
+/// MCP 获取提示词节点执行器
+pub mod mcp_get_prompt_executor;
 /// MCP 关闭节点执行器
 pub mod mcp_close_executor;
 /// MCP 节点插件（NodePlugin 实现 + [`McpPluginGroup`]）
 pub mod plugin;
 
 pub use mcp_connection_manager::{McpConnection, McpConnectionManager};
-pub use plugin::{McpPluginGroup, McpConnectPlugin, McpCallToolPlugin, McpReadResourcePlugin, McpClosePlugin};
+pub use plugin::{McpPluginGroup, McpConnectPlugin, McpCallToolPlugin, McpReadResourcePlugin, McpGetPromptPlugin, McpClosePlugin};

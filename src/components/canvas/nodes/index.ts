@@ -21,5 +21,6 @@ export { GrpcCloseNode, type GrpcCloseNodeData } from './GrpcCloseNode';
 export { McpConnectNode, type McpConnectNodeData } from './McpConnectNode';
 export { McpCallToolNode, type McpCallToolNodeData } from './McpCallToolNode';
 export { McpReadResourceNode, type McpReadResourceNodeData } from './McpReadResourceNode';
+export { McpGetPromptNode, type McpGetPromptNodeData } from './McpGetPromptNode';
 export { McpCloseNode, type McpCloseNodeData } from './McpCloseNode';
 export { default as DynamicPluginNode } from './DynamicPluginNode';

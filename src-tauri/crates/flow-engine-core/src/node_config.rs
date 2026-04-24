@@ -927,6 +927,15 @@ pub struct McpConnectConfig {
     /// 自定义请求头
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub custom_headers: Option<std::collections::HashMap<String, String>>,
+    /// 发现的工具列表（缓存）
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub discovered_tools: Vec<crate::traits::McpToolInfo>,
+    /// 发现的资源列表（缓存）
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub discovered_resources: Vec<crate::traits::McpResourceInfo>,
+    /// 发现的提示词列表（缓存）
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub discovered_prompts: Vec<crate::traits::McpPromptInfo>,
 }
 
 impl Default for McpConnectConfig {
@@ -936,6 +945,9 @@ impl Default for McpConnectConfig {
             headers: None,
             protocol_version: default_mcp_protocol_version(),
             custom_headers: None,
+            discovered_tools: Vec::new(),
+            discovered_resources: Vec::new(),
+            discovered_prompts: Vec::new(),
         }
     }
 }
@@ -989,6 +1001,28 @@ impl Default for McpReadResourceConfig {
 pub struct McpCloseConfig {
     /// 连接 ID（引用 mcp_connect 节点的 UUID）
     pub connection_id: String,
+}
+
+/// MCP Get Prompt 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct McpGetPromptConfig {
+    /// 连接 ID（引用 mcp_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 提示词名称
+    pub prompt_name: String,
+    /// 提示词参数
+    #[serde(default)]
+    pub arguments: std::collections::HashMap<String, String>,
+}
+
+impl Default for McpGetPromptConfig {
+    fn default() -> Self {
+        Self {
+            connection_id: String::new(),
+            prompt_name: String::new(),
+            arguments: std::collections::HashMap::new(),
+        }
+    }
 }
 
 // ============================================================================
@@ -1062,6 +1096,9 @@ pub enum NodeData {
     /// MCP 关闭连接节点配置
     #[serde(rename = "mcp_close")]
     McpClose(McpCloseConfig),
+    /// MCP 获取提示词节点配置
+    #[serde(rename = "mcp_get_prompt")]
+    McpGetPrompt(McpGetPromptConfig),
     /// 插件节点配置（未知类型的兜底捕获）
     ///
     /// 当反序列化遇到不认识的 `type` 值时，整个 JSON 对象会被保留在此变体中。
@@ -1148,6 +1185,9 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "mcp_close" => serde_json::from_value::<McpCloseConfig>(value.clone())
                 .map(NodeData::McpClose)
                 .map_err(serde::de::Error::custom),
+            "mcp_get_prompt" => serde_json::from_value::<McpGetPromptConfig>(value.clone())
+                .map(NodeData::McpGetPrompt)
+                .map_err(serde::de::Error::custom),
             // 未知 type → 兜底到 Plugin
             _ => Ok(NodeData::Plugin(value)),
         }
@@ -1179,6 +1219,7 @@ impl NodeData {
             NodeData::McpCallTool(_) => "mcp_call_tool".to_string(),
             NodeData::McpReadResource(_) => "mcp_read_resource".to_string(),
             NodeData::McpClose(_) => "mcp_close".to_string(),
+            NodeData::McpGetPrompt(_) => "mcp_get_prompt".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
                 .and_then(|v| v.as_str())
@@ -1307,6 +1348,15 @@ impl NodeData {
     pub fn mcp_close(connection_id: impl Into<String>) -> Self {
         Self::McpClose(McpCloseConfig {
             connection_id: connection_id.into(),
+        })
+    }
+
+    /// 创建 MCP Get Prompt 节点配置
+    pub fn mcp_get_prompt(connection_id: impl Into<String>, prompt_name: impl Into<String>) -> Self {
+        Self::McpGetPrompt(McpGetPromptConfig {
+            connection_id: connection_id.into(),
+            prompt_name: prompt_name.into(),
+            arguments: std::collections::HashMap::new(),
         })
     }
 

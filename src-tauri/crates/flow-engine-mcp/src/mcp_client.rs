@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
-use flow_engine_core::traits::{McpResourceInfo, McpToolInfo};
+use flow_engine_core::traits::{McpPromptArgumentInfo, McpPromptInfo, McpResourceInfo, McpToolInfo};
 use log::info;
 
 use rmcp::service::ServiceExt;
@@ -96,12 +96,40 @@ pub async fn create_mcp_client(
         })
         .collect();
 
+    // 获取可用提示词列表
+    let prompts_result = service
+        .list_all_prompts()
+        .await
+        .map_err(|e| format!("获取提示词列表失败: {}", e))?;
+    let prompts: Vec<McpPromptInfo> = prompts_result
+        .iter()
+        .map(|prompt| {
+            let arguments = match &prompt.arguments {
+                Some(args) => args
+                    .iter()
+                    .map(|arg| McpPromptArgumentInfo {
+                        name: arg.name.clone(),
+                        description: arg.description.clone(),
+                        required: arg.required,
+                    })
+                    .collect(),
+                None => Vec::new(),
+            };
+            McpPromptInfo {
+                name: prompt.name.clone(),
+                description: prompt.description.clone(),
+                arguments,
+            }
+        })
+        .collect();
+
     Ok(McpClientResult {
         service,
         server_name,
         server_version,
         tools,
         resources,
+        prompts,
         connect_time_ms: connect_time.as_millis() as u64,
     })
 }
@@ -120,6 +148,8 @@ pub struct McpClientResult {
     pub tools: Vec<McpToolInfo>,
     /// 可用资源列表
     pub resources: Vec<McpResourceInfo>,
+    /// 可用提示词列表
+    pub prompts: Vec<McpPromptInfo>,
     /// 连接耗时（毫秒）
     pub connect_time_ms: u64,
 }

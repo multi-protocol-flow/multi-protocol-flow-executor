@@ -1,4 +1,4 @@
-//! 默认节点注册表 — 注册全部 21 个内置节点插件
+//! 默认节点注册表 — 注册全部 22 个内置节点插件
 //!
 //! 此模块位于 `flow-engine-executor` crate 中，因为它需要依赖所有协议 crate
 //! （http、ws、db、script、assertion、grpc、mcp），而 `flow-engine-core` 作为叶子 crate
@@ -60,7 +60,7 @@ pub fn default_registry() -> NodeRegistry {
     // gRPC (flow-engine-grpc) — 批量注册 3 个插件
     flow_engine_grpc::plugin::GrpcPluginGroup::register_all(&mut registry);
 
-    // MCP (flow-engine-mcp) — 批量注册 4 个插件
+    // MCP (flow-engine-mcp) — 批量注册 5 个插件
     flow_engine_mcp::plugin::McpPluginGroup::register_all(&mut registry);
 
     registry
@@ -73,10 +73,10 @@ mod tests {
     #[test]
     fn test_default_registry_has_17_plugins() {
         let registry = default_registry();
-        assert_eq!(registry.len(), 21);
+        assert_eq!(registry.len(), 22);
 
         let metadata = registry.all_metadata();
-        assert_eq!(metadata.len(), 21);
+        assert_eq!(metadata.len(), 22);
 
         // 验证每个 type_id 都已注册
         let type_ids: Vec<&str> = metadata.iter().map(|m| m.type_id.as_str()).collect();
@@ -101,6 +101,7 @@ mod tests {
             "mcp_connect",
             "mcp_call_tool",
             "mcp_read_resource",
+            "mcp_get_prompt",
             "mcp_close",
         ];
 

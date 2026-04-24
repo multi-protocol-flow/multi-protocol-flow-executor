@@ -92,10 +92,11 @@ impl NodeExecutor for McpCallToolExecutor {
             })
             .await;
 
-        // 4. 调用工具
+        // 4. 调用工具（MCP 协议要求 arguments 必须是 object，None 时传空对象）
+        let arguments = config.arguments.clone().unwrap_or_else(|| json!({}));
         let call_result = self
             .mcp_manager
-            .call_tool(&connection_id, &tool_name, config.arguments.clone())
+            .call_tool(&connection_id, &tool_name, Some(arguments))
             .await;
 
         match call_result {

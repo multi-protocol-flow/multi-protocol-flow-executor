@@ -24,8 +24,8 @@ pub use grpc_provider::{
     GrpcStreamingResult, GrpcTimingInfo,
 };
 pub use mcp_provider::{
-    McpConnectionInfo, McpProvider, McpResourceInfo, McpResourceReadResult, McpServerInfo,
-    McpToolCallResult, McpToolInfo,
+    McpConnectionInfo, McpProvider, McpPromptArgumentInfo, McpPromptInfo, McpPromptResult,
+    McpResourceInfo, McpResourceReadResult, McpServerInfo, McpToolCallResult, McpToolInfo,
 };
 pub use log_sender::{
     ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender,

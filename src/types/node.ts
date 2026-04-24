@@ -37,6 +37,7 @@ export type NodeType =
   | 'mcp_connect'
   | 'mcp_call_tool'
   | 'mcp_read_resource'
+  | 'mcp_get_prompt'
   | 'mcp_close';
 
 /**
@@ -522,6 +523,56 @@ export interface GrpcCloseConfig {
 // ============================================================================
 
 /**
+ * MCP 工具信息（从 MCP 服务器发现）
+ */
+export interface McpToolInfo {
+  /** 工具名称 */
+  name: string;
+  /** 工具描述 */
+  description?: string;
+  /** 工具参数 JSON Schema */
+  input_schema?: Record<string, unknown>;
+}
+
+/**
+ * MCP 资源信息（从 MCP 服务器发现）
+ */
+export interface McpResourceInfo {
+  /** 资源 URI */
+  uri: string;
+  /** 资源名称 */
+  name: string;
+  /** 资源描述 */
+  description?: string;
+  /** MIME 类型 */
+  mime_type?: string;
+}
+
+/**
+ * MCP 提示词参数信息
+ */
+export interface McpPromptArgumentInfo {
+  /** 参数名称 */
+  name: string;
+  /** 参数描述 */
+  description?: string;
+  /** 是否必填 */
+  required?: boolean;
+}
+
+/**
+ * MCP 提示词信息（从 MCP 服务器发现）
+ */
+export interface McpPromptInfo {
+  /** 提示词名称 */
+  name: string;
+  /** 提示词描述 */
+  description?: string;
+  /** 提示词参数 */
+  arguments?: McpPromptArgumentInfo[];
+}
+
+/**
  * MCP Connect 节点配置
  */
 export interface McpConnectConfig {
@@ -534,6 +585,12 @@ export interface McpConnectConfig {
   protocol_version?: string;
   /** 自定义请求头 */
   custom_headers?: Record<string, string>;
+  /** 设计时发现缓存 - 工具列表 */
+  discovered_tools?: McpToolInfo[];
+  /** 设计时发现缓存 - 资源列表 */
+  discovered_resources?: McpResourceInfo[];
+  /** 设计时发现缓存 - 提示词列表 */
+  discovered_prompts?: McpPromptInfo[];
 }
 
 /**
@@ -569,13 +626,25 @@ export interface McpCloseConfig {
   connection_id: string;
 }
 
+/**
+ * MCP Get Prompt 节点配置
+ */
+export interface McpGetPromptConfig {
+  type: 'mcp_get_prompt';
+  /** 连接 ID（引用 mcp_connect 节点的 UUID） */
+  connection_id: string;
+  /** 提示词名称 */
+  prompt_name: string;
+  /** 提示词参数 */
+  arguments?: Record<string, string>;
+}
+
 // ============================================================================
 // 数据库节点类型定义
 // ============================================================================
 
 /**
  * DB Connect 节点配置
- * 与 Rust DbConnectConfig 对齐 (node_config.rs)
  */
 export interface DbConnectConfig {
   type: 'db_connect';
@@ -782,6 +851,7 @@ export type NodeData =
   | McpConnectConfig
   | McpCallToolConfig
   | McpReadResourceConfig
+  | McpGetPromptConfig
   | McpCloseConfig
   | DbConnectConfig
   | DbQueryConfig
@@ -908,6 +978,13 @@ export function isMcpReadResourceConfig(data: NodeData): data is McpReadResource
  */
 export function isMcpCloseConfig(data: NodeData): data is McpCloseConfig {
   return data.type === 'mcp_close';
+}
+
+/**
+ * 判断是否为 McpGetPromptConfig
+ */
+export function isMcpGetPromptConfig(data: NodeData): data is McpGetPromptConfig {
+  return data.type === 'mcp_get_prompt';
 }
 
 /**

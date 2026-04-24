@@ -1,9 +1,10 @@
 // MCP 节点插件 — NodePlugin trait 实现
 //
-// 提供 4 个 MCP 节点的元数据、端口定义、配置验证和执行能力：
+// 提供 5 个 MCP 节点的元数据、端口定义、配置验证和执行能力：
 // - McpConnectPlugin: MCP 连接
 // - McpCallToolPlugin: MCP 调用工具
 // - McpReadResourcePlugin: MCP 读取资源
+// - McpGetPromptPlugin: MCP 获取提示词
 // - McpClosePlugin: MCP 关闭
 // 以及 McpPluginGroup 批量注册辅助。
 
@@ -375,6 +376,101 @@ impl NodePlugin for McpClosePlugin {
     }
 }
 
+/// MCP 获取提示词节点插件
+pub struct McpGetPromptPlugin;
+
+#[async_trait::async_trait]
+impl NodePlugin for McpGetPromptPlugin {
+    fn type_id(&self) -> &str {
+        "mcp_get_prompt"
+    }
+
+    fn display_name(&self) -> &str {
+        "MCP 获取提示词"
+    }
+
+    fn category(&self) -> &str {
+        "mcp"
+    }
+
+    fn icon(&self) -> &str {
+        "message-square"
+    }
+
+    fn color(&self) -> &str {
+        "#F59E0B"
+    }
+
+    fn ports(&self) -> Vec<PortDef> {
+        vec![
+            PortDef {
+                id: "true".into(),
+                label: "获取成功".into(),
+                position: "right".into(),
+            },
+            PortDef {
+                id: "false".into(),
+                label: "获取失败".into(),
+                position: "bottom".into(),
+            },
+        ]
+    }
+
+    fn default_config(&self) -> serde_json::Value {
+        serde_json::json!({
+            "connection_id": "",
+            "prompt_name": "",
+            "arguments": {},
+        })
+    }
+
+    /// `McpGetPrompt` 检查 $.success → "true" / "false"
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        match output {
+            Some(serde_json::Value::Object(map)) => {
+                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
+            }
+            _ => "false".to_string(),
+        }
+    }
+
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
+
+    fn supports_false_port(&self) -> bool {
+        true
+    }
+
+    fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
+        Some(serde_json::json!({
+            "connection_id": config.get("connection_id"),
+            "prompt_name": config.get("prompt_name"),
+            "arguments": config.get("arguments"),
+        }))
+    }
+
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
+        node_map: &HashMap<String, &Node>,
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+        let mcp_manager = context.mcp_manager.clone().unwrap_or_else(|| {
+            Arc::new(crate::mcp_connection_manager::McpConnectionManager::new())
+        });
+        let executor = crate::mcp_get_prompt_executor::McpGetPromptExecutor::new(mcp_manager);
+        executor
+            .execute(node, context, connections, node_map)
+            .await
+    }
+}
+
 /// MCP 插件组 — 批量注册辅助
 pub struct McpPluginGroup;
 
@@ -384,6 +480,7 @@ impl McpPluginGroup {
         registry.register(Arc::new(McpConnectPlugin));
         registry.register(Arc::new(McpCallToolPlugin));
         registry.register(Arc::new(McpReadResourcePlugin));
+        registry.register(Arc::new(McpGetPromptPlugin));
         registry.register(Arc::new(McpClosePlugin));
     }
 }
@@ -546,11 +643,12 @@ mod tests {
         assert!(registry.is_empty());
 
         McpPluginGroup::register_all(&mut registry);
-        assert_eq!(registry.len(), 4);
+        assert_eq!(registry.len(), 5);
 
         assert!(registry.get("mcp_connect").is_some());
         assert!(registry.get("mcp_call_tool").is_some());
         assert!(registry.get("mcp_read_resource").is_some());
+        assert!(registry.get("mcp_get_prompt").is_some());
         assert!(registry.get("mcp_close").is_some());
     }
 
@@ -599,6 +697,60 @@ mod tests {
         let config = serde_json::json!({"connection_id": "conn-123"});
         let report = plugin.build_report_input(&config).expect("报告应存在");
         assert_eq!(report["connection_id"], "conn-123");
+    }
+
+    #[test]
+    fn test_mcp_get_prompt_plugin_metadata() {
+        let plugin = McpGetPromptPlugin;
+        assert_eq!(plugin.type_id(), "mcp_get_prompt");
+        assert_eq!(plugin.display_name(), "MCP 获取提示词");
+        assert_eq!(plugin.category(), "mcp");
+        assert_eq!(plugin.icon(), "message-square");
+        assert_eq!(plugin.color(), "#F59E0B");
+        assert!(plugin.is_protocol_node());
+        assert!(plugin.supports_false_port());
+
+        let ports = plugin.ports();
+        assert_eq!(ports.len(), 2);
+        assert_eq!(ports[0].id, "true");
+        assert_eq!(ports[1].id, "false");
+    }
+
+    #[test]
+    fn test_mcp_get_prompt_resolve_port() {
+        let plugin = McpGetPromptPlugin;
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": true}))),
+            "true"
+        );
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": false}))),
+            "false"
+        );
+        assert_eq!(plugin.resolve_port(&None), "false");
+    }
+
+    #[test]
+    fn test_get_prompt_build_report_input() {
+        let plugin = McpGetPromptPlugin;
+        let config = serde_json::json!({
+            "connection_id": "conn-1",
+            "prompt_name": "greet",
+            "arguments": {"name": "Alice"},
+        });
+        let report = plugin.build_report_input(&config).expect("报告应存在");
+        assert_eq!(report["connection_id"], "conn-1");
+        assert_eq!(report["prompt_name"], "greet");
+    }
+
+    #[test]
+    fn test_get_prompt_default_config() {
+        let plugin = McpGetPromptPlugin;
+        let config = plugin.default_config();
+        assert!(config.is_object());
+        assert!(config.get("connection_id").is_some());
+        assert!(config.get("prompt_name").is_some());
+        assert!(config.get("arguments").is_some());
     }
 
     #[test]

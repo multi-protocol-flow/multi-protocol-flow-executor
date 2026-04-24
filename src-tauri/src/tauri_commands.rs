@@ -344,6 +344,8 @@ pub struct McpDiscoverToolsOutput {
     pub tools: Vec<McpToolInfoOutput>,
     /// 发现的资源列表
     pub resources: Vec<McpResourceInfoOutput>,
+    /// 发现的提示词列表
+    pub prompts: Vec<McpPromptInfoOutput>,
     /// 服务器信息
     pub server_info: Option<McpServerInfoOutput>,
     /// 错误信息（失败时）
@@ -383,6 +385,28 @@ pub struct McpServerInfoOutput {
     pub version: Option<String>,
 }
 
+/// MCP 提示词参数信息（IPC 输出）
+#[derive(Debug, serde::Serialize)]
+pub struct McpPromptArgumentOutput {
+    /// 参数名称
+    pub name: String,
+    /// 参数描述
+    pub description: Option<String>,
+    /// 是否必填
+    pub required: Option<bool>,
+}
+
+/// MCP 提示词信息（IPC 输出）
+#[derive(Debug, serde::Serialize)]
+pub struct McpPromptInfoOutput {
+    /// 提示词名称
+    pub name: String,
+    /// 提示词描述
+    pub description: Option<String>,
+    /// 提示词参数
+    pub arguments: Vec<McpPromptArgumentOutput>,
+}
+
 /// 发现 MCP 工具
 ///
 /// 设计时调用：连接 MCP 服务器，获取可用工具和资源列表。
@@ -413,9 +437,10 @@ pub async fn mcp_discover_tools(
             let _ = manager.close(&conn_info.connection_id).await;
 
             log::info!(
-                "[MCP] 工具发现成功: 发现 {} 个工具, {} 个资源",
+                "[MCP] 工具发现成功: 发现 {} 个工具, {} 个资源, {} 个提示词",
                 conn_info.tools.len(),
-                conn_info.resources.len()
+                conn_info.resources.len(),
+                conn_info.prompts.len()
             );
 
             McpDiscoverToolsOutput {
@@ -431,6 +456,15 @@ pub async fn mcp_discover_tools(
                     description: r.description,
                     mime_type: r.mime_type,
                 }).collect(),
+                prompts: conn_info.prompts.into_iter().map(|p| McpPromptInfoOutput {
+                    name: p.name,
+                    description: p.description,
+                    arguments: p.arguments.into_iter().map(|a| McpPromptArgumentOutput {
+                        name: a.name,
+                        description: a.description,
+                        required: a.required,
+                    }).collect(),
+                }).collect(),
                 server_info: Some(McpServerInfoOutput {
                     name: conn_info.server_info.name,
                     version: conn_info.server_info.version,
@@ -444,6 +478,7 @@ pub async fn mcp_discover_tools(
                 success: false,
                 tools: vec![],
                 resources: vec![],
+                prompts: vec![],
                 server_info: None,
                 error: Some(e),
             }

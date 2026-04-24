@@ -26,6 +26,7 @@ import {
   Puzzle,
   Wrench,
   FileSearch,
+  MessageSquare,
   Unplug,
 } from 'lucide-react';
 import { getCachedDisplayName } from '@/lib/NodeRegistry';
@@ -66,6 +67,7 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
   mcp_connect: { icon: Puzzle, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
   mcp_call_tool: { icon: Wrench, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
   mcp_read_resource: { icon: FileSearch, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
+  mcp_get_prompt: { icon: MessageSquare, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
   mcp_close: { icon: Unplug, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
 };
 
@@ -91,6 +93,7 @@ const STATIC_DISPLAY_NAMES: Record<string, string> = {
   mcp_connect: 'MCP-连接',
   mcp_call_tool: 'MCP-调用工具',
   mcp_read_resource: 'MCP-读取资源',
+  mcp_get_prompt: 'MCP-获取提示词',
   mcp_close: 'MCP-关闭',
 };
 

@@ -12,8 +12,8 @@ use log::{info, warn};
 use tokio::sync::RwLock;
 
 use flow_engine_core::traits::{
-    McpConnectionInfo, McpProvider, McpResourceInfo, McpResourceReadResult, McpServerInfo,
-    McpToolCallResult, McpToolInfo,
+    McpConnectionInfo, McpProvider, McpPromptInfo, McpPromptResult, McpResourceInfo,
+    McpResourceReadResult, McpServerInfo, McpToolCallResult, McpToolInfo,
 };
 
 use crate::mcp_client;
@@ -34,6 +34,8 @@ pub struct McpConnection {
     pub tools: Vec<McpToolInfo>,
     /// 可用资源列表（连接时获取）
     pub resources: Vec<McpResourceInfo>,
+    /// 可用提示词列表（连接时获取）
+    pub prompts: Vec<McpPromptInfo>,
     /// 连接创建时间（毫秒时间戳）
     pub created_at: u64,
 }
@@ -101,6 +103,7 @@ impl McpProvider for McpConnectionManager {
             server_info: server_info.clone(),
             tools: result.tools.clone(),
             resources: result.resources.clone(),
+            prompts: result.prompts.clone(),
         };
 
         // 存入连接池
@@ -111,6 +114,7 @@ impl McpProvider for McpConnectionManager {
             server_info,
             tools: result.tools,
             resources: result.resources,
+            prompts: result.prompts,
             created_at: now,
         };
 
@@ -218,6 +222,65 @@ impl McpProvider for McpConnectionManager {
         })
     }
 
+    /// 获取 MCP 提示词列表
+    async fn list_prompts(&self, connection_id: &str) -> Result<Vec<McpPromptInfo>, String> {
+        let conns = self.connections.read().await;
+        let conn = conns
+            .get(connection_id)
+            .ok_or_else(|| format!("MCP 连接 '{}' 不存在", connection_id))?;
+        Ok(conn.prompts.clone())
+    }
+
+    /// 获取 MCP 提示词
+    async fn get_prompt(
+        &self,
+        connection_id: &str,
+        prompt_name: &str,
+        arguments: std::collections::HashMap<String, String>,
+    ) -> Result<McpPromptResult, String> {
+        let start = Instant::now();
+
+        // 从连接池获取连接
+        let peer = {
+            let conns = self.connections.read().await;
+            let conn = conns
+                .get(connection_id)
+                .ok_or_else(|| format!("MCP 连接 '{}' 不存在", connection_id))?;
+            conn.service.peer().clone()
+        };
+
+        // 构建获取提示词参数
+        let mut prompt_params = rmcp::model::GetPromptRequestParams::new(prompt_name.to_string());
+        if !arguments.is_empty() {
+            let args_map: serde_json::Map<String, serde_json::Value> = arguments
+                .into_iter()
+                .map(|(k, v)| (k, serde_json::Value::String(v)))
+                .collect();
+            prompt_params = prompt_params.with_arguments(args_map);
+        }
+
+        // 获取提示词
+        let result = peer
+            .get_prompt(prompt_params)
+            .await
+            .map_err(|e| format!("MCP 获取提示词失败 '{}': {}", prompt_name, e))?;
+
+        let timing_ms = start.elapsed().as_millis() as u64;
+
+        // 转换消息内容
+        let messages: Vec<serde_json::Value> = result
+            .messages
+            .iter()
+            .map(|m| serde_json::to_value(m).unwrap_or(serde_json::Value::Null))
+            .collect();
+
+        Ok(McpPromptResult {
+            description: result.description,
+            messages,
+            timing_ms,
+        })
+    }
+
     /// 关闭 MCP 连接
     ///
     /// 从连接池中移除连接，RunningService drop 自动关闭连接。
@@ -245,6 +308,7 @@ impl McpProvider for McpConnectionManager {
             server_info: conn.server_info.clone(),
             tools: conn.tools.clone(),
             resources: conn.resources.clone(),
+            prompts: conn.prompts.clone(),
         })
     }
 }
@@ -286,6 +350,24 @@ mod tests {
     async fn test_read_resource_nonexistent_connection() {
         let manager = McpConnectionManager::new();
         let result = manager.read_resource("non-existent", "resource://test").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("不存在"));
+    }
+
+    #[tokio::test]
+    async fn test_list_prompts_nonexistent_connection() {
+        let manager = McpConnectionManager::new();
+        let result = manager.list_prompts("non-existent").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("不存在"));
+    }
+
+    #[tokio::test]
+    async fn test_get_prompt_nonexistent_connection() {
+        let manager = McpConnectionManager::new();
+        let result = manager
+            .get_prompt("non-existent", "test_prompt", std::collections::HashMap::new())
+            .await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不存在"));
     }
