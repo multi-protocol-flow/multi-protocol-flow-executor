@@ -12,6 +12,7 @@ flow-engine-script = { path = "../flow-engine-script" }
 flow-engine-assertion = { path = "../flow-engine-assertion" }
 flow-engine-crypto = { path = "../flow-engine-crypto" }
 flow-engine-grpc = { path = "../flow-engine-grpc" }
+flow-engine-mcp = { path = "../flow-engine-mcp" }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

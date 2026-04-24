@@ -177,6 +177,7 @@ impl DebuggableFlowExecutor {
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             db_manager: Some(db_manager),
             grpc_manager: None,
+            mcp_manager: None,
             last_node_output: None,
             debug_event_sender: Some(Arc::new(crate::debug_event_adapter::MpscDebugEventSender::new(event_sender.clone()))),
             execution_event_sender: None,
