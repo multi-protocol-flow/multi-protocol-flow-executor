@@ -69,16 +69,58 @@ export const CATEGORY_NAMES: Record<string, string> = {
 
 /**
  * 分类排序顺序（越小越靠前）
+ * http → ws → grpc → mcp → db → tool
  */
 export const CATEGORY_ORDER: Record<string, number> = {
   http: 0,
-  tools: 1,
-  websocket: 2,
-  database: 3,
-  grpc: 4,
-  mcp: 5,
+  websocket: 1,
+  grpc: 2,
+  mcp: 3,
+  database: 4,
+  tools: 5,
   script: 6,
   assertion: 7,
+};
+
+/**
+ * 分组内节点排序（越小越靠前）
+ * 协议类: 连接 → 调用/发送 → 关闭
+ * 数据库: 连接 → 开启事务 → 查询 → 提交 → 回滚 → 关闭
+ * 工具类: 条件判断 → 脚本 → 断言
+ */
+const NODE_TYPE_ORDER: Record<string, number> = {
+  // HTTP (单项，无排序需求)
+  http: 0,
+
+  // WebSocket: 连接 → 发送采集 → 关闭
+  ws_connect: 0,
+  ws_send_collect: 1,
+  ws_close: 2,
+
+  // gRPC: 连接 → 调用 → 关闭
+  grpc_connect: 0,
+  grpc_call: 1,
+  grpc_close: 2,
+
+  // MCP: 连接 → 调用工具 → 读取资源 → 获取提示 → 关闭
+  mcp_connect: 0,
+  mcp_call_tool: 1,
+  mcp_read_resource: 2,
+  mcp_get_prompt: 3,
+  mcp_close: 4,
+
+  // 数据库: 连接 → 开启事务 → 查询 → 提交 → 回滚 → 关闭
+  db_connect: 0,
+  db_begin: 1,
+  db_query: 2,
+  db_commit: 3,
+  db_rollback: 4,
+  db_close: 5,
+
+  // 工具: 条件判断 → 脚本 → 断言
+  conditional: 0,
+  script: 1,
+  assertion: 2,
 };
 
 /**
@@ -171,6 +213,13 @@ export function buildDefaultConfigMap(
  */
 export function getCategoryOrder(category: string): number {
   return CATEGORY_ORDER[category] ?? 99;
+}
+
+/**
+ * 获取节点类型在分组内的排序权重
+ */
+export function getNodeTypeOrder(typeId: string): number {
+  return NODE_TYPE_ORDER[typeId] ?? 99;
 }
 
 // ============================================================================

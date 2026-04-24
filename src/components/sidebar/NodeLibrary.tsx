@@ -14,6 +14,7 @@ import {
   groupByCategory,
   CATEGORY_NAMES,
   getCategoryOrder,
+  getNodeTypeOrder,
 } from '@/lib/NodeRegistry';
 import { ICON_MAP } from '@/lib/nodeMeta';
 import { cn } from '@/lib/utils';
@@ -63,16 +64,21 @@ function buildGroupsFromMetadata(metadata: NodeMetadata[]): NodeGroup[] {
 
   const groups: NodeGroup[] = Object.entries(grouped)
     .sort(([a], [b]) => getCategoryOrder(a) - getCategoryOrder(b))
-    .map(([category, items]) => ({
-      key: category,
-      label: CATEGORY_NAMES[category] ?? category,
-      items: items.map((m) => ({
-        type: m.type_id as NodeType,
-        name: m.display_name,
-        description: DESCRIPTION_MAP[m.type_id] ?? m.display_name,
-        icon: ICON_MAP[m.type_id]?.icon ?? Wrench,
-      })),
-    }))
+    .map(([category, items]) => {
+      // 分组内排序: 连接 → 调用 → 关闭
+      items.sort((a, b) => getNodeTypeOrder(a.type_id) - getNodeTypeOrder(b.type_id));
+
+      return {
+        key: category,
+        label: CATEGORY_NAMES[category] ?? category,
+        items: items.map((m) => ({
+          type: m.type_id as NodeType,
+          name: m.display_name,
+          description: DESCRIPTION_MAP[m.type_id] ?? m.display_name,
+          icon: ICON_MAP[m.type_id]?.icon ?? Wrench,
+        })),
+      };
+    })
     .filter((g) => g.items.length > 0);
 
   return groups;

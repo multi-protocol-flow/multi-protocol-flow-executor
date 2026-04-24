@@ -35,6 +35,7 @@ import {
   groupByCategory,
   CATEGORY_NAMES,
   getCategoryOrder,
+  getNodeTypeOrder,
 } from '@/lib/NodeRegistry';
 import { ICON_MAP as NODE_TYPE_ICON_MAP } from '@/lib/nodeMeta';
 import { cn } from '@/lib/utils';
@@ -107,16 +108,6 @@ export const FALLBACK_NODE_GROUPS: NodeGroup[] = [
     items: [{ type: 'http', name: 'HTTP 请求', icon: Globe }],
   },
   {
-    key: 'tools',
-    label: 'Tool',
-    icon: Wrench,
-    items: [
-      { type: 'conditional', name: '条件判断', icon: GitBranch },
-      { type: 'script', name: '脚本', icon: Code },
-      { type: 'assertion', name: '断言', icon: CheckCircle },
-    ],
-  },
-  {
     key: 'websocket',
     label: 'WS',
     icon: Wifi,
@@ -127,16 +118,36 @@ export const FALLBACK_NODE_GROUPS: NodeGroup[] = [
     ],
   },
   {
+    key: 'grpc',
+    label: 'gRPC',
+    icon: Network,
+    items: [
+      { type: 'grpc_connect', name: 'gRPC 连接', icon: Cable },
+      { type: 'grpc_call', name: 'gRPC 调用', icon: PhoneOutgoing },
+      { type: 'grpc_close', name: 'gRPC 关闭', icon: PhoneOff },
+    ],
+  },
+  {
     key: 'database',
     label: 'DB',
     icon: Database,
     items: [
       { type: 'db_connect', name: 'DB 连接', icon: Database },
-      { type: 'db_query', name: 'DB 查询', icon: Database },
       { type: 'db_begin', name: 'DB 开始事务', icon: CirclePlay },
+      { type: 'db_query', name: 'DB 查询', icon: Database },
       { type: 'db_commit', name: 'DB 提交', icon: CheckCircle },
       { type: 'db_rollback', name: 'DB 回滚', icon: RotateCcw },
       { type: 'db_close', name: 'DB 关闭', icon: Plug },
+    ],
+  },
+  {
+    key: 'tools',
+    label: 'Tool',
+    icon: Wrench,
+    items: [
+      { type: 'conditional', name: '条件判断', icon: GitBranch },
+      { type: 'script', name: '脚本', icon: Code },
+      { type: 'assertion', name: '断言', icon: CheckCircle },
     ],
   },
 ];
@@ -164,6 +175,9 @@ export function buildGroupsFromMetadata(metadata: NodeMetadata[]): NodeGroup[] {
       const filtered = items.filter((m) => m.type_id !== 'entry');
 
       if (filtered.length === 0) return null;
+
+      // 分组内排序: 连接 → 调用 → 关闭
+      filtered.sort((a, b) => getNodeTypeOrder(a.type_id) - getNodeTypeOrder(b.type_id));
 
       return {
         key: category,
