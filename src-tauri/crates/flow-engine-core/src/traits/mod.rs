@@ -10,6 +10,7 @@ mod directory_opener;
 mod log_sender;
 mod ws_provider;
 mod grpc_provider;
+mod mcp_provider;
 
 pub use app_dir::{AppDirProvider, DefaultAppDirProvider};
 pub use db_provider::{
@@ -21,6 +22,10 @@ pub use directory_opener::{DirectoryOpener, NoopDirectoryOpener};
 pub use grpc_provider::{
     GrpcConnectionInfo, GrpcMethodInfo, GrpcPattern, GrpcProvider, GrpcServiceInfo,
     GrpcStreamingResult, GrpcTimingInfo,
+};
+pub use mcp_provider::{
+    McpConnectionInfo, McpProvider, McpResourceInfo, McpResourceReadResult, McpServerInfo,
+    McpToolCallResult, McpToolInfo,
 };
 pub use log_sender::{
     ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
