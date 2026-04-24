@@ -1,0 +1,292 @@
+//! MCP 连接管理器
+//!
+//! 实现 [`McpProvider`] trait，管理 MCP 连接的生命周期。
+//! 使用 rmcp [`RunningService`](rmcp::service::RunningService) 进行 MCP 通信，
+//! 使用 [`tokio::sync::RwLock`] 保护连接池。
+
+use std::collections::HashMap;
+use std::time::Instant;
+
+use async_trait::async_trait;
+use log::{info, warn};
+use tokio::sync::RwLock;
+
+use flow_engine_core::traits::{
+    McpConnectionInfo, McpProvider, McpResourceInfo, McpResourceReadResult, McpServerInfo,
+    McpToolCallResult, McpToolInfo,
+};
+
+use crate::mcp_client;
+
+/// MCP 连接（存储 `RunningService` + 元数据）
+///
+/// `RunningService` 保持 MCP 连接活跃，通过它调用工具和读取资源。
+pub struct McpConnection {
+    /// rmcp 运行中的服务（保持连接活跃）
+    pub(crate) service: rmcp::service::RunningService<rmcp::service::RoleClient, ()>,
+    /// 连接 ID
+    pub connection_id: String,
+    /// 连接 URL
+    pub url: String,
+    /// 服务器信息
+    pub server_info: McpServerInfo,
+    /// 可用工具列表（连接时获取）
+    pub tools: Vec<McpToolInfo>,
+    /// 可用资源列表（连接时获取）
+    pub resources: Vec<McpResourceInfo>,
+    /// 连接创建时间（毫秒时间戳）
+    pub created_at: u64,
+}
+
+/// MCP 连接管理器（per-flow-execution 作用域）
+///
+/// 管理 MCP 连接池，实现 `McpProvider` trait。
+/// 线程安全，使用 `tokio::sync::RwLock` 保护连接池。
+pub struct McpConnectionManager {
+    /// 连接池: `connection_id` → [`McpConnection`]
+    connections: RwLock<HashMap<String, McpConnection>>,
+}
+
+impl McpConnectionManager {
+    /// 创建新的连接管理器
+    pub fn new() -> Self {
+        Self {
+            connections: RwLock::new(HashMap::new()),
+        }
+    }
+}
+
+impl Default for McpConnectionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[async_trait]
+impl McpProvider for McpConnectionManager {
+    /// 建立 MCP 连接
+    ///
+    /// 调用 [`mcp_client::create_mcp_client`] 创建连接，
+    /// 将连接信息存入连接池。
+    async fn connect(
+        &self,
+        uuid: String,
+        url: String,
+        headers: std::collections::HashMap<String, String>,
+        _protocol_version: String,
+        custom_headers: std::collections::HashMap<String, String>,
+    ) -> Result<McpConnectionInfo, String> {
+        info!("MCP 开始连接: url={}, id={}", url, uuid);
+
+        // 合并 headers 和 custom_headers
+        let mut merged_headers = headers;
+        merged_headers.extend(custom_headers);
+
+        // 创建 MCP 客户端
+        let result = mcp_client::create_mcp_client(&url, merged_headers).await?;
+
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+
+        let server_info = McpServerInfo {
+            name: result.server_name.clone(),
+            version: result.server_version.clone(),
+        };
+
+        let connection_info = McpConnectionInfo {
+            connection_id: uuid.clone(),
+            url: url.clone(),
+            server_info: server_info.clone(),
+            tools: result.tools.clone(),
+            resources: result.resources.clone(),
+        };
+
+        // 存入连接池
+        let connection = McpConnection {
+            service: result.service,
+            connection_id: uuid.clone(),
+            url,
+            server_info,
+            tools: result.tools,
+            resources: result.resources,
+            created_at: now,
+        };
+
+        {
+            let mut conns = self.connections.write().await;
+            info!("MCP 添加连接: id={}", uuid);
+            conns.insert(uuid, connection);
+        }
+
+        Ok(connection_info)
+    }
+
+    /// 调用 MCP 工具
+    ///
+    /// 从连接池获取连接，调用工具并记录耗时。
+    async fn call_tool(
+        &self,
+        connection_id: &str,
+        tool_name: &str,
+        arguments: Option<serde_json::Value>,
+    ) -> Result<McpToolCallResult, String> {
+        let start = Instant::now();
+
+        // 从连接池获取连接（克隆 service 的 peer 引用后释放锁）
+        let peer = {
+            let conns = self.connections.read().await;
+            let conn = conns
+                .get(connection_id)
+                .ok_or_else(|| format!("MCP 连接 '{}' 不存在", connection_id))?;
+            conn.service.peer().clone()
+        }; // 读锁在此释放
+
+        // 构建调用参数（non-exhaustive struct，使用 builder 模式）
+        let args_map = arguments
+            .and_then(|v| v.as_object().cloned());
+
+        let mut call_params = rmcp::model::CallToolRequestParams::new(tool_name.to_string());
+        if let Some(args) = args_map {
+            call_params = call_params.with_arguments(args);
+        }
+
+        // 调用工具
+        let result = peer
+            .call_tool(call_params)
+            .await
+            .map_err(|e| format!("MCP 工具调用失败 '{}': {}", tool_name, e))?;
+
+        let timing_ms = start.elapsed().as_millis() as u64;
+
+        // 转换结果内容
+        let content: Vec<serde_json::Value> = result
+            .content
+            .iter()
+            .map(|c| serde_json::to_value(c).unwrap_or(serde_json::Value::Null))
+            .collect();
+
+        let is_error = result.is_error.unwrap_or(false);
+
+        Ok(McpToolCallResult {
+            content,
+            is_error,
+            timing_ms,
+        })
+    }
+
+    /// 读取 MCP 资源
+    ///
+    /// 从连接池获取连接，读取资源并记录耗时。
+    async fn read_resource(
+        &self,
+        connection_id: &str,
+        resource_uri: &str,
+    ) -> Result<McpResourceReadResult, String> {
+        let start = Instant::now();
+
+        // 从连接池获取连接
+        let peer = {
+            let conns = self.connections.read().await;
+            let conn = conns
+                .get(connection_id)
+                .ok_or_else(|| format!("MCP 连接 '{}' 不存在", connection_id))?;
+            conn.service.peer().clone()
+        };
+
+        // 读取资源
+        let read_params = rmcp::model::ReadResourceRequestParams::new(resource_uri.to_string());
+
+        let result = peer
+            .read_resource(read_params)
+            .await
+            .map_err(|e| format!("MCP 读取资源失败 '{}': {}", resource_uri, e))?;
+
+        let timing_ms = start.elapsed().as_millis() as u64;
+
+        // 转换资源内容
+        let contents: Vec<serde_json::Value> = result
+            .contents
+            .iter()
+            .map(|c| serde_json::to_value(c).unwrap_or(serde_json::Value::Null))
+            .collect();
+
+        Ok(McpResourceReadResult {
+            contents,
+            timing_ms,
+        })
+    }
+
+    /// 关闭 MCP 连接
+    ///
+    /// 从连接池中移除连接，RunningService drop 自动关闭连接。
+    async fn close(&self, connection_id: &str) -> Result<(), String> {
+        let mut conns = self.connections.write().await;
+        let removed = conns.remove(connection_id);
+        if removed.is_some() {
+            info!("MCP 关闭连接: id={}", connection_id);
+            Ok(())
+        } else {
+            warn!("MCP 关闭连接失败: 连接 '{}' 不存在", connection_id);
+            Err(format!("MCP 连接 '{}' 不存在", connection_id))
+        }
+    }
+
+    /// 获取连接信息
+    ///
+    /// 非阻塞读取连接池，构造 [`McpConnectionInfo`]。
+    fn get_connection_info(&self, connection_id: &str) -> Option<McpConnectionInfo> {
+        let conns = self.connections.try_read().ok()?;
+        let conn = conns.get(connection_id)?;
+        Some(McpConnectionInfo {
+            connection_id: conn.connection_id.clone(),
+            url: conn.url.clone(),
+            server_info: conn.server_info.clone(),
+            tools: conn.tools.clone(),
+            resources: conn.resources.clone(),
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_connection_manager_new() {
+        let manager = McpConnectionManager::new();
+        // 新创建的 manager 应该没有连接
+        assert!(manager.get_connection_info("non-existent").is_none());
+    }
+
+    #[test]
+    fn test_connection_manager_default() {
+        let manager = McpConnectionManager::default();
+        assert!(manager.get_connection_info("non-existent").is_none());
+    }
+
+    #[tokio::test]
+    async fn test_close_nonexistent_connection() {
+        let manager = McpConnectionManager::new();
+        let result = manager.close("non-existent").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("不存在"));
+    }
+
+    #[tokio::test]
+    async fn test_call_tool_nonexistent_connection() {
+        let manager = McpConnectionManager::new();
+        let result = manager.call_tool("non-existent", "tool", None).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("不存在"));
+    }
+
+    #[tokio::test]
+    async fn test_read_resource_nonexistent_connection() {
+        let manager = McpConnectionManager::new();
+        let result = manager.read_resource("non-existent", "resource://test").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("不存在"));
+    }
+}

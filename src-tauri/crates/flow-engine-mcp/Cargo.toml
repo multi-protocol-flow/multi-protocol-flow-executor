@@ -1,0 +1,21 @@
+[package]
+name = "flow-engine-mcp"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+flow-engine-core = { path = "../flow-engine-core" }
+# MCP SDK
+rmcp = { version = "1.5", default-features = false, features = ["client", "transport-streamable-http-client-reqwest"] }
+# HTTP 客户端（用于自定义请求头）
+reqwest = "0.13"
+# Workspace 共享依赖
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+log = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true
