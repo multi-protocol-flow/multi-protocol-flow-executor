@@ -430,9 +430,21 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
                 {discoveredMethods.map((method) => (
                   <SelectItem key={method.method_name} value={method.method_name}>
                     <span className="font-mono text-sm">{method.method_name}</span>
-                    {method.is_server_streaming && (
+                    {method.is_server_streaming && method.is_client_streaming ? (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700">
+                        双向流式
+                      </span>
+                    ) : method.is_server_streaming ? (
                       <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-                        stream
+                        服务端流式
+                      </span>
+                    ) : method.is_client_streaming ? (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
+                        客户端流式
+                      </span>
+                    ) : (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
+                        Unary
                       </span>
                     )}
                   </SelectItem>
@@ -452,23 +464,6 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
                   <span className="font-mono text-blue-700 bg-blue-50 rounded px-1.5 py-0.5">
                     {selected.output_type}
                   </span>
-                  {selected.is_server_streaming && selected.is_client_streaming ? (
-                    <span className="inline-flex items-center rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700">
-                      双向流式
-                    </span>
-                  ) : selected.is_server_streaming ? (
-                    <span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-                      服务端流式
-                    </span>
-                  ) : selected.is_client_streaming ? (
-                    <span className="inline-flex items-center rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
-                      客户端流式
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
-                      Unary
-                    </span>
-                  )}
                 </div>
               );
             })()}
