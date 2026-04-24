@@ -180,10 +180,21 @@ impl NodeExecutor for GrpcCallExecutor {
                 .await
                 .map(|responses| {
                     let received = responses.len();
+                    // 包装为前端期望的 { index, data } 格式
+                    let wrapped: Vec<serde_json::Value> = responses
+                        .into_iter()
+                        .enumerate()
+                        .map(|(i, r)| {
+                            json!({
+                                "index": i + 1,
+                                "data": r,
+                            })
+                        })
+                        .collect();
                     (
                         "server_streaming",
                         serde_json::Value::Null,
-                        responses,
+                        wrapped,
                         1usize,
                         received,
                         std::collections::HashMap::new(),
@@ -248,10 +259,22 @@ impl NodeExecutor for GrpcCallExecutor {
                     .map(|result| {
                         let received = result.received_count;
                         let timing = Some(result.timing);
+                        // 包装为前端期望的 { index, data } 格式
+                        let wrapped: Vec<serde_json::Value> = result
+                            .responses
+                            .into_iter()
+                            .enumerate()
+                            .map(|(i, r)| {
+                                json!({
+                                    "index": i + 1,
+                                    "data": r,
+                                })
+                            })
+                            .collect();
                         (
                             "bidi_streaming",
                             serde_json::Value::Null,
-                            result.responses,
+                            wrapped,
                             sent,
                             received,
                             result.trailers,
@@ -488,6 +511,7 @@ mod tests {
             cancel_receiver: None,
             grpc_manager: None,
             providers: HashMap::new(),
+            mcp_manager: None,
         }
     }
 
@@ -888,8 +912,11 @@ mod tests {
         assert_eq!(data["data"], serde_json::Value::Null);
         let responses = data["responses"].as_array().expect("responses 应为数组");
         assert_eq!(responses.len(), 2);
-        assert_eq!(responses[0]["chunk"], 1);
-        assert_eq!(responses[1]["chunk"], 2);
+        // 每条响应包装为 { index, data } 格式
+        assert_eq!(responses[0]["index"], 1);
+        assert_eq!(responses[0]["data"]["chunk"], 1);
+        assert_eq!(responses[1]["index"], 2);
+        assert_eq!(responses[1]["data"]["chunk"], 2);
         assert_eq!(data["sent_count"], 1);
         assert_eq!(data["received_count"], 2);
 
@@ -1015,10 +1042,11 @@ mod tests {
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["success"], true);
         assert_eq!(data["pattern"], "bidi_streaming");
-        // bidi streaming 有 responses 数组
+        // bidi streaming 有 responses 数组，每条包装为 { index, data } 格式
         let responses = data["responses"].as_array().expect("responses 应为数组");
         assert_eq!(responses.len(), 1);
-        assert_eq!(responses[0]["resp"], "bidi1");
+        assert_eq!(responses[0]["index"], 1);
+        assert_eq!(responses[0]["data"]["resp"], "bidi1");
         assert_eq!(data["sent_count"], 1);
         assert_eq!(data["received_count"], 1);
         // 验证 streaming_timing 字段
