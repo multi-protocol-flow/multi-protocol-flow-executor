@@ -319,6 +319,139 @@ pub async fn grpc_discover_services(
 }
 
 // ============================================================================
+// MCP 工具发现命令
+// ============================================================================
+
+use flow_engine::traits::McpProvider;
+
+/// MCP 工具发现请求参数
+#[derive(Debug, serde::Deserialize)]
+pub struct McpDiscoverToolsInput {
+    /// MCP 服务器地址
+    pub url: String,
+    /// 额外请求头
+    pub headers: Option<std::collections::HashMap<String, String>>,
+    /// MCP 协议版本
+    pub protocol_version: Option<String>,
+}
+
+/// MCP 工具发现响应
+#[derive(Debug, serde::Serialize)]
+pub struct McpDiscoverToolsOutput {
+    /// 是否成功
+    pub success: bool,
+    /// 发现的工具列表
+    pub tools: Vec<McpToolInfoOutput>,
+    /// 发现的资源列表
+    pub resources: Vec<McpResourceInfoOutput>,
+    /// 服务器信息
+    pub server_info: Option<McpServerInfoOutput>,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// MCP 工具信息（IPC 输出）
+#[derive(Debug, serde::Serialize)]
+pub struct McpToolInfoOutput {
+    /// 工具名称
+    pub name: String,
+    /// 工具描述
+    pub description: Option<String>,
+    /// 工具输入 schema
+    pub input_schema: Option<serde_json::Value>,
+}
+
+/// MCP 资源信息（IPC 输出）
+#[derive(Debug, serde::Serialize)]
+pub struct McpResourceInfoOutput {
+    /// 资源 URI
+    pub uri: String,
+    /// 资源名称
+    pub name: String,
+    /// 资源描述
+    pub description: Option<String>,
+    /// MIME 类型
+    pub mime_type: Option<String>,
+}
+
+/// MCP 服务器信息（IPC 输出）
+#[derive(Debug, serde::Serialize)]
+pub struct McpServerInfoOutput {
+    /// 服务器名称
+    pub name: String,
+    /// 服务器版本
+    pub version: Option<String>,
+}
+
+/// 发现 MCP 工具
+///
+/// 设计时调用：连接 MCP 服务器，获取可用工具和资源列表。
+/// 不创建持久连接，仅返回信息供前端缓存。
+#[tauri::command]
+pub async fn mcp_discover_tools(
+    input: McpDiscoverToolsInput,
+) -> McpDiscoverToolsOutput {
+    log::info!(
+        "[MCP] 发现工具: url={}, protocol_version={}",
+        input.url,
+        input.protocol_version.as_deref().unwrap_or("default")
+    );
+
+    // 创建临时连接管理器
+    let manager = flow_engine::flow_engine_mcp::McpConnectionManager::new();
+    let headers = input.headers.unwrap_or_default();
+
+    match manager.connect(
+        "temp-discover".to_string(),
+        input.url,
+        headers,
+        input.protocol_version.unwrap_or_else(|| "2025-11-25".to_string()),
+        std::collections::HashMap::new(),
+    ).await {
+        Ok(conn_info) => {
+            // 关闭临时连接
+            let _ = manager.close(&conn_info.connection_id).await;
+
+            log::info!(
+                "[MCP] 工具发现成功: 发现 {} 个工具, {} 个资源",
+                conn_info.tools.len(),
+                conn_info.resources.len()
+            );
+
+            McpDiscoverToolsOutput {
+                success: true,
+                tools: conn_info.tools.into_iter().map(|t| McpToolInfoOutput {
+                    name: t.name,
+                    description: t.description,
+                    input_schema: t.input_schema,
+                }).collect(),
+                resources: conn_info.resources.into_iter().map(|r| McpResourceInfoOutput {
+                    uri: r.uri,
+                    name: r.name,
+                    description: r.description,
+                    mime_type: r.mime_type,
+                }).collect(),
+                server_info: Some(McpServerInfoOutput {
+                    name: conn_info.server_info.name,
+                    version: conn_info.server_info.version,
+                }),
+                error: None,
+            }
+        }
+        Err(e) => {
+            log::error!("[MCP] 工具发现失败: {}", e);
+            McpDiscoverToolsOutput {
+                success: false,
+                tools: vec![],
+                resources: vec![],
+                server_info: None,
+                error: Some(e),
+            }
+        }
+    }
+}
+
+// ============================================================================
 // 应用设置命令
 // ============================================================================
 
