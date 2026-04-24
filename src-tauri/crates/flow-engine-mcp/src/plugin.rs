@@ -33,7 +33,7 @@ impl NodePlugin for McpConnectPlugin {
     }
 
     fn icon(&self) -> &str {
-        "plug"
+        "puzzle"
     }
 
     fn color(&self) -> &str {
@@ -225,7 +225,7 @@ impl NodePlugin for McpReadResourcePlugin {
     }
 
     fn icon(&self) -> &str {
-        "file-text"
+        "file-search"
     }
 
     fn color(&self) -> &str {
@@ -318,7 +318,7 @@ impl NodePlugin for McpClosePlugin {
     }
 
     fn icon(&self) -> &str {
-        "x-circle"
+        "unplug"
     }
 
     fn color(&self) -> &str {
@@ -398,7 +398,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "mcp_connect");
         assert_eq!(plugin.display_name(), "MCP 连接");
         assert_eq!(plugin.category(), "mcp");
-        assert_eq!(plugin.icon(), "plug");
+        assert_eq!(plugin.icon(), "puzzle");
         assert_eq!(plugin.color(), "#F59E0B");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -432,7 +432,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "mcp_read_resource");
         assert_eq!(plugin.display_name(), "MCP 读取资源");
         assert_eq!(plugin.category(), "mcp");
-        assert_eq!(plugin.icon(), "file-text");
+        assert_eq!(plugin.icon(), "file-search");
         assert_eq!(plugin.color(), "#F59E0B");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -449,7 +449,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "mcp_close");
         assert_eq!(plugin.display_name(), "MCP 关闭");
         assert_eq!(plugin.category(), "mcp");
-        assert_eq!(plugin.icon(), "x-circle");
+        assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#F59E0B");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
