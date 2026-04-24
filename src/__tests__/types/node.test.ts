@@ -72,6 +72,14 @@ function createNodeData(type: NodeData['type']): NodeData {
       return { type: 'grpc_call', connection_id: 'grpc-conn-1', service_name: 'TestService', method_name: 'TestMethod', request_json: '{}' };
     case 'grpc_close':
       return { type: 'grpc_close', connection_id: 'grpc-conn-1' };
+    case 'mcp_connect':
+      return { type: 'mcp_connect', url: 'http://localhost:3000/mcp' };
+    case 'mcp_call_tool':
+      return { type: 'mcp_call_tool', connection_id: 'mcp-conn-1', tool_name: 'test_tool' };
+    case 'mcp_read_resource':
+      return { type: 'mcp_read_resource', connection_id: 'mcp-conn-1', resource_uri: 'test://resource' };
+    case 'mcp_close':
+      return { type: 'mcp_close', connection_id: 'mcp-conn-1' };
   }
 }
 

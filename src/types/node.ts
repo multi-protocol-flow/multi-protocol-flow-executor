@@ -33,7 +33,11 @@ export type NodeType =
   | 'script'
   | 'grpc_connect'
   | 'grpc_call'
-  | 'grpc_close';
+  | 'grpc_close'
+  | 'mcp_connect'
+  | 'mcp_call_tool'
+  | 'mcp_read_resource'
+  | 'mcp_close';
 
 /**
  * 节点位置结构体
@@ -537,6 +541,58 @@ export interface GrpcCloseConfig {
 }
 
 // ============================================================================
+// MCP 节点类型定义
+// ============================================================================
+
+/**
+ * MCP Connect 节点配置
+ */
+export interface McpConnectConfig {
+  type: 'mcp_connect';
+  /** MCP 服务器 URL（Streamable HTTP） */
+  url: string;
+  /** 请求头 */
+  headers?: Record<string, string>;
+  /** 协议版本（默认 "2025-11-25"） */
+  protocol_version?: string;
+  /** 自定义请求头 */
+  custom_headers?: Record<string, string>;
+}
+
+/**
+ * MCP Call Tool 节点配置
+ */
+export interface McpCallToolConfig {
+  type: 'mcp_call_tool';
+  /** 连接 ID（引用 mcp_connect 节点的 UUID） */
+  connection_id: string;
+  /** 工具名称 */
+  tool_name: string;
+  /** 工具参数（JSON） */
+  arguments?: Record<string, unknown>;
+}
+
+/**
+ * MCP Read Resource 节点配置
+ */
+export interface McpReadResourceConfig {
+  type: 'mcp_read_resource';
+  /** 连接 ID（引用 mcp_connect 节点的 UUID） */
+  connection_id: string;
+  /** 资源 URI */
+  resource_uri: string;
+}
+
+/**
+ * MCP Close 节点配置
+ */
+export interface McpCloseConfig {
+  type: 'mcp_close';
+  /** 连接 ID（引用 mcp_connect 节点的 UUID） */
+  connection_id: string;
+}
+
+// ============================================================================
 // 数据库节点类型定义
 // ============================================================================
 
@@ -746,6 +802,10 @@ export type NodeData =
   | GrpcConnectConfig
   | GrpcCallConfig
   | GrpcCloseConfig
+  | McpConnectConfig
+  | McpCallToolConfig
+  | McpReadResourceConfig
+  | McpCloseConfig
   | DbConnectConfig
   | DbQueryConfig
   | DbBeginConfig
@@ -843,6 +903,34 @@ export function isGrpcCallConfig(data: NodeData): data is GrpcCallConfig {
  */
 export function isGrpcCloseConfig(data: NodeData): data is GrpcCloseConfig {
   return data.type === 'grpc_close';
+}
+
+/**
+ * 判断是否为 McpConnectConfig
+ */
+export function isMcpConnectConfig(data: NodeData): data is McpConnectConfig {
+  return data.type === 'mcp_connect';
+}
+
+/**
+ * 判断是否为 McpCallToolConfig
+ */
+export function isMcpCallToolConfig(data: NodeData): data is McpCallToolConfig {
+  return data.type === 'mcp_call_tool';
+}
+
+/**
+ * 判断是否为 McpReadResourceConfig
+ */
+export function isMcpReadResourceConfig(data: NodeData): data is McpReadResourceConfig {
+  return data.type === 'mcp_read_resource';
+}
+
+/**
+ * 判断是否为 McpCloseConfig
+ */
+export function isMcpCloseConfig(data: NodeData): data is McpCloseConfig {
+  return data.type === 'mcp_close';
 }
 
 /**
