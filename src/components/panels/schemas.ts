@@ -950,6 +950,24 @@ export const mqttRequestConfigSchema = z.object({
 export type MqttRequestConfigFormData = z.infer<typeof mqttRequestConfigSchema>;
 
 // ============================================================================
+// Variable Extractor 配置 Schema
+// ============================================================================
+
+/**
+ * Variable Extractor 配置表单 Schema
+ */
+export const variableExtractorConfigSchema = z.object({
+  type: z.literal('variable_extractor'),
+  output_mappings: z.array(outputMappingSchema).optional(),
+  source_node_id: z.string().optional(),
+}).refine(data => {
+  const targets = (data.output_mappings || []).map(m => m.target).filter(Boolean);
+  return new Set(targets).size === targets.length;
+}, { message: '变量名不能重复', path: ['output_mappings'] });
+
+export type VariableExtractorConfigFormData = z.infer<typeof variableExtractorConfigSchema>;
+
+// ============================================================================
 // 未知节点类型 Fallback Schema
 // ============================================================================
 

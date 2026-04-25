@@ -53,6 +53,7 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   mqtt_disconnect: MqttViewer,
   mqtt_wait_message: MqttViewer,
   mqtt_request: MqttViewer,
+  variable_extractor: GenericViewer,
 };
 
 /**

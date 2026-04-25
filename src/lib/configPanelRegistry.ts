@@ -41,6 +41,7 @@ import { MqttUnsubscribeConfig } from '@/components/panels/MqttUnsubscribeConfig
 import { MqttDisconnectConfig } from '@/components/panels/MqttDisconnectConfig';
 import { MqttWaitMessageConfig } from '@/components/panels/MqttWaitMessageConfig';
 import { MqttRequestConfig } from '@/components/panels/MqttRequestConfig';
+import { VariableExtractorConfig as VariableExtractorConfigPanel } from '@/components/panels/VariableExtractorConfig';
 
 export const configPanelRegistry: Record<string, ComponentType<any>> = {
   entry: EntryConfig,
@@ -79,6 +80,7 @@ export const configPanelRegistry: Record<string, ComponentType<any>> = {
   mqtt_disconnect: MqttDisconnectConfig,
   mqtt_wait_message: MqttWaitMessageConfig,
   mqtt_request: MqttRequestConfig,
+  variable_extractor: VariableExtractorConfigPanel,
 };
 
 /** 根据节点类型获取对应的配置面板组件 */
