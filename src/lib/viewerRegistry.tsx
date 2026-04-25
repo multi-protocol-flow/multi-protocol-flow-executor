@@ -14,6 +14,7 @@ import { GenericViewer } from '@/components/execution/viewers/GenericViewer';
 import { GrpcViewer } from '@/components/execution/viewers/GrpcViewer';
 import { TcpUdpViewer } from '@/components/execution/viewers/TcpUdpViewer';
 import { McpViewer } from '@/components/execution/viewers/McpViewer';
+import { MqttViewer } from '@/components/execution/viewers/MqttViewer';
 
 interface ViewerProps {
   report: NodeExecutionReport;
@@ -45,6 +46,13 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   udp_send_to: TcpUdpViewer,
   udp_recv_from: TcpUdpViewer,
   udp_close: TcpUdpViewer,
+  mqtt_connect: MqttViewer,
+  mqtt_publish: MqttViewer,
+  mqtt_subscribe: MqttViewer,
+  mqtt_unsubscribe: MqttViewer,
+  mqtt_disconnect: MqttViewer,
+  mqtt_wait_message: MqttViewer,
+  mqtt_request: MqttViewer,
 };
 
 /**

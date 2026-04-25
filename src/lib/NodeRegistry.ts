@@ -65,6 +65,7 @@ export const CATEGORY_NAMES: Record<string, string> = {
   assertion: '断言',
   grpc: 'gRPC',
   mcp: 'MCP',
+  mqtt: 'MQTT',
   tcp: 'TCP',
   udp: 'UDP',
 };
@@ -78,12 +79,13 @@ export const CATEGORY_ORDER: Record<string, number> = {
   websocket: 1,
   grpc: 2,
   mcp: 3,
-  tcp: 4,
-  udp: 5,
-  database: 6,
-  tools: 7,
-  script: 8,
-  assertion: 9,
+  mqtt: 4,
+  tcp: 5,
+  udp: 6,
+  database: 7,
+  tools: 8,
+  script: 9,
+  assertion: 10,
 };
 
 /**
@@ -112,6 +114,15 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   mcp_read_resource: 2,
   mcp_get_prompt: 3,
   mcp_close: 4,
+
+  // MQTT: 连接 → 发布 → 订阅 → 取消订阅 → 断开 → 等待消息 → 请求
+  mqtt_connect: 0,
+  mqtt_publish: 1,
+  mqtt_subscribe: 2,
+  mqtt_unsubscribe: 3,
+  mqtt_disconnect: 4,
+  mqtt_wait_message: 5,
+  mqtt_request: 6,
 
   // TCP: 连接 → 发送 → 关闭
   tcp_connect: 0,
@@ -171,6 +182,13 @@ export function getBadgeClassForType(typeId: string): string {
     mcp_read_resource: 'bg-amber-100 text-amber-700',
     mcp_get_prompt: 'bg-amber-100 text-amber-700',
     mcp_close: 'bg-amber-100 text-amber-700',
+    mqtt_connect: 'bg-cyan-100 text-cyan-700',
+    mqtt_publish: 'bg-cyan-100 text-cyan-700',
+    mqtt_subscribe: 'bg-cyan-100 text-cyan-700',
+    mqtt_unsubscribe: 'bg-cyan-100 text-cyan-700',
+    mqtt_disconnect: 'bg-cyan-100 text-cyan-700',
+    mqtt_wait_message: 'bg-cyan-100 text-cyan-700',
+    mqtt_request: 'bg-cyan-100 text-cyan-700',
     tcp_connect: 'bg-emerald-100 text-emerald-700',
     tcp_send: 'bg-emerald-100 text-emerald-700',
     tcp_close: 'bg-emerald-100 text-emerald-700',

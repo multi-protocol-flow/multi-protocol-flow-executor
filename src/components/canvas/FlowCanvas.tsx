@@ -22,7 +22,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode, MqttConnectNode, MqttPublishNode, MqttSubscribeNode, MqttUnsubscribeNode, MqttDisconnectNode, MqttWaitMessageNode, MqttRequestNode } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { CanvasToolbar } from './CanvasToolbar';
 import { NodeContextMenu } from './NodeContextMenu';
@@ -111,6 +111,13 @@ const nodeTypes = {
   mcp_read_resource: McpReadResourceNode,
   mcp_get_prompt: McpGetPromptNode,
   mcp_close: McpCloseNode,
+  mqtt_connect: MqttConnectNode,
+  mqtt_publish: MqttPublishNode,
+  mqtt_subscribe: MqttSubscribeNode,
+  mqtt_unsubscribe: MqttUnsubscribeNode,
+  mqtt_disconnect: MqttDisconnectNode,
+  mqtt_wait_message: MqttWaitMessageNode,
+  mqtt_request: MqttRequestNode,
   default: DynamicPluginNode,
 };
 
@@ -149,6 +156,13 @@ const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
   mcp_call_tool: '#f59e0b',
   mcp_read_resource: '#f59e0b',
   mcp_close: '#f59e0b',
+  mqtt_connect: '#06b6d4',
+  mqtt_publish: '#06b6d4',
+  mqtt_subscribe: '#06b6d4',
+  mqtt_unsubscribe: '#06b6d4',
+  mqtt_disconnect: '#06b6d4',
+  mqtt_wait_message: '#06b6d4',
+  mqtt_request: '#06b6d4',
 };
 
 /**

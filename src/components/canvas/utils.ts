@@ -167,6 +167,34 @@ export function createDefaultNodeData(type: NodeType): NodeData {
       return { type: 'mcp_get_prompt', connection_id: '', prompt_name: '', arguments: {} };
     case 'mcp_close':
       return { type: 'mcp_close', connection_id: '' };
+    case 'tcp_connect':
+      return { type: 'tcp_connect', host: '', port: 0 };
+    case 'tcp_send':
+      return { type: 'tcp_send', connection_id: '', data: '' };
+    case 'tcp_close':
+      return { type: 'tcp_close', connection_id: '' };
+    case 'udp_bind':
+      return { type: 'udp_bind', local_port: 0 };
+    case 'udp_send_to':
+      return { type: 'udp_send_to', connection_id: '', data: '', target_addr: '', target_port: 0 };
+    case 'udp_recv_from':
+      return { type: 'udp_recv_from', connection_id: '' };
+    case 'udp_close':
+      return { type: 'udp_close', connection_id: '' };
+    case 'mqtt_connect':
+      return { type: 'mqtt_connect', url: 'mqtt://localhost:1883' };
+    case 'mqtt_publish':
+      return { type: 'mqtt_publish', connection_id: '', topic: '' };
+    case 'mqtt_subscribe':
+      return { type: 'mqtt_subscribe', connection_id: '', topic: '' };
+    case 'mqtt_unsubscribe':
+      return { type: 'mqtt_unsubscribe', connection_id: '', topic: '' };
+    case 'mqtt_disconnect':
+      return { type: 'mqtt_disconnect', connection_id: '' };
+    case 'mqtt_wait_message':
+      return { type: 'mqtt_wait_message', connection_id: '', topic: '' };
+    case 'mqtt_request':
+      return { type: 'mqtt_request', connection_id: '', request_topic: '', response_topic: '' };
     case 'entry':
       return { type: 'entry' };
   }
@@ -199,6 +227,20 @@ const STATIC_NODE_TYPE_LABELS: Record<NodeType, string> = {
   mcp_read_resource: 'MCP 读取资源',
   mcp_get_prompt: 'MCP 获取提示词',
   mcp_close: 'MCP 关闭',
+  tcp_connect: 'TCP 连接',
+  tcp_send: 'TCP 发送',
+  tcp_close: 'TCP 关闭',
+  udp_bind: 'UDP 绑定',
+  udp_send_to: 'UDP 发送',
+  udp_recv_from: 'UDP 接收',
+  udp_close: 'UDP 关闭',
+  mqtt_connect: 'MQTT 连接',
+  mqtt_publish: 'MQTT 发布',
+  mqtt_subscribe: 'MQTT 订阅',
+  mqtt_unsubscribe: 'MQTT 取消订阅',
+  mqtt_disconnect: 'MQTT 断开',
+  mqtt_wait_message: 'MQTT 等待消息',
+  mqtt_request: 'MQTT 请求',
 };
 
 /**

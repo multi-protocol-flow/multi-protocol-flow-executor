@@ -34,6 +34,13 @@ import { UdpBindConfig } from '@/components/panels/UdpBindConfig';
 import { UdpSendToConfig } from '@/components/panels/UdpSendToConfig';
 import { UdpRecvFromConfig } from '@/components/panels/UdpRecvFromConfig';
 import { UdpCloseConfig } from '@/components/panels/UdpCloseConfig';
+import { MqttConnectConfig } from '@/components/panels/MqttConnectConfig';
+import { MqttPublishConfig } from '@/components/panels/MqttPublishConfig';
+import { MqttSubscribeConfig } from '@/components/panels/MqttSubscribeConfig';
+import { MqttUnsubscribeConfig } from '@/components/panels/MqttUnsubscribeConfig';
+import { MqttDisconnectConfig } from '@/components/panels/MqttDisconnectConfig';
+import { MqttWaitMessageConfig } from '@/components/panels/MqttWaitMessageConfig';
+import { MqttRequestConfig } from '@/components/panels/MqttRequestConfig';
 
 export const configPanelRegistry: Record<string, ComponentType<any>> = {
   entry: EntryConfig,
@@ -65,6 +72,13 @@ export const configPanelRegistry: Record<string, ComponentType<any>> = {
   udp_send_to: UdpSendToConfig,
   udp_recv_from: UdpRecvFromConfig,
   udp_close: UdpCloseConfig,
+  mqtt_connect: MqttConnectConfig,
+  mqtt_publish: MqttPublishConfig,
+  mqtt_subscribe: MqttSubscribeConfig,
+  mqtt_unsubscribe: MqttUnsubscribeConfig,
+  mqtt_disconnect: MqttDisconnectConfig,
+  mqtt_wait_message: MqttWaitMessageConfig,
+  mqtt_request: MqttRequestConfig,
 };
 
 /** 根据节点类型获取对应的配置面板组件 */
