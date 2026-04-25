@@ -15,6 +15,7 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
+  Download,
 } from 'lucide-react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { Card, CardContent } from '@/components/ui/card';
@@ -60,6 +61,48 @@ interface VariableMatch {
 // 辅助函数
 // ============================================================================
 
+/**
+ * 根据流程的 Entry 初始变量生成 CSV 模板内容
+ * 使用初始变量名作为列头，示例值填充前 3 行
+ */
+function generateCsvTemplate(flow: {
+  nodes: { type: string; data: NodeData }[];
+}): string {
+  const variableNames = getEntryVariableNames(flow);
+
+  if (variableNames.length === 0) {
+    // 没有初始变量时，提供一个通用模板示例
+    return [
+      'name,value,description',
+      '示例1,值1,说明1',
+      '示例2,值2,说明2',
+      '示例3,值3,说明3',
+    ].join('\n');
+  }
+
+  // 用变量名作为列头，生成 3 行示例占位数据
+  const header = variableNames.join(',');
+  const rows = Array.from({ length: 3 }, (_, i) =>
+    variableNames.map(() => `示例${i + 1}`).join(',')
+  );
+  return [header, ...rows].join('\n');
+}
+
+/** 触发浏览器下载 CSV 文件 */
+function downloadCsv(content: string, filename: string): void {
+  // 使用 UTF-8 BOM 确保 Excel 正确识别中文编码
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + content], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 /** 格式化毫秒为可读时间 */
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
@@ -100,12 +143,14 @@ function FileSelectionArea({
   isLoading,
   fileNotFound,
   onFileSelect,
+  onDownloadTemplate,
 }: {
   csvPath: string | null;
   csvInfo: CsvInfo | null;
   isLoading: boolean;
   fileNotFound: boolean;
   onFileSelect: () => void;
+  onDownloadTemplate: () => void;
 }) {
   return (
     <div className="space-y-2">
@@ -153,19 +198,30 @@ function FileSelectionArea({
           </Button>
         </div>
       ) : (
-        <Button
-          variant="outline"
-          onClick={onFileSelect}
-          disabled={isLoading}
-          className="w-full h-20 border-dashed gap-2"
-        >
-          {isLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <FileSpreadsheet className="w-5 h-5" />
-          )}
-          {isLoading ? '正在读取...' : '选择 CSV 文件'}
-        </Button>
+        <div className="space-y-2">
+          <Button
+            variant="outline"
+            onClick={onFileSelect}
+            disabled={isLoading}
+            className="w-full h-20 border-dashed gap-2"
+          >
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="w-5 h-5" />
+            )}
+            {isLoading ? '正在读取...' : '选择 CSV 文件'}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onDownloadTemplate}
+            className="w-full gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Download className="w-3.5 h-3.5" />
+            下载 CSV 模板
+          </Button>
+        </div>
       )}
     </div>
   );
@@ -392,6 +448,14 @@ export function DatasetExecutionPanel({
     [flow]
   );
 
+  // 下载 CSV 模板
+  const handleDownloadTemplate = useCallback(() => {
+    if (!flow) return;
+    const content = generateCsvTemplate(flow);
+    const flowName = flow.name.replace(/[/\\?%*:|"<>]/g, '_');
+    downloadCsv(content, `${flowName}_数据模板.csv`);
+  }, [flow]);
+
   // 变量匹配计算
   const variableMatches: VariableMatch[] = useMemo(() => {
     if (!csvInfo) return [];
@@ -541,6 +605,7 @@ export function DatasetExecutionPanel({
               isLoading={isLoadingCsv}
               fileNotFound={fileNotFound}
               onFileSelect={handleFileSelect}
+              onDownloadTemplate={handleDownloadTemplate}
             />
 
             {/* 数据预览 */}
