@@ -15,6 +15,7 @@ flow-engine-ws = { path = "../flow-engine-ws" }
 flow-engine-grpc = { path = "../flow-engine-grpc" }
 flow-engine-mcp = { path = "../flow-engine-mcp" }
 flow-engine-tcp = { path = "../flow-engine-tcp" }
+flow-engine-mqtt = { path = "../flow-engine-mqtt" }
 flow-engine-executor = { path = "../flow-engine-executor" }
 
 # facade 自身代码需要的最小依赖（仅用于 re-export 类型的序列化边界）

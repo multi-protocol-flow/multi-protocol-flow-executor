@@ -67,6 +67,15 @@ pub use flow_engine_tcp::udp_send_to_executor;
 pub use flow_engine_tcp::udp_socket_manager;
 // MCP (flow-engine-mcp)
 pub use flow_engine_mcp;
+// MQTT (flow-engine-mqtt)
+pub use flow_engine_mqtt::mqtt_connect_executor;
+pub use flow_engine_mqtt::mqtt_publish_executor;
+pub use flow_engine_mqtt::mqtt_subscribe_executor;
+pub use flow_engine_mqtt::mqtt_unsubscribe_executor;
+pub use flow_engine_mqtt::mqtt_disconnect_executor;
+pub use flow_engine_mqtt::mqtt_wait_message_executor;
+pub use flow_engine_mqtt::mqtt_request_executor;
+pub use flow_engine_mqtt::mqtt_connection_manager;
 // Wave 4: 调试模块
 pub use flow_engine_executor::debug;
 // Wave 5: 断言模块
