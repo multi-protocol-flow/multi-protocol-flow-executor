@@ -16,7 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2, Cable, FileText, Info, Search, Loader2, ChevronDown, AlertTriangle } from 'lucide-react';
 import type { GrpcConnectConfig as GrpcConnectConfigType, GrpcServiceInfo } from '@/types';
-import { invoke } from '@tauri-apps/api/core';
+import { discoverGrpcServices } from '@/services/tauri';
 import { cn } from '@/lib/utils';
 
 interface GrpcConnectConfigProps {
@@ -253,21 +253,15 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
         use_tls: formData.use_tls,
       });
 
-      const result = await invoke<{
-        success: boolean;
-        services: GrpcServiceInfo[];
-        error: string | null;
-      }>('grpc_discover_services', {
-        input: {
-          url,
-          use_tls: formData.use_tls ?? false,
-          tls_skip_verify: formData.tls_skip_verify ?? false,
-          enable_reflection: formData.enable_reflection ?? false,
-          proto_files: formData.proto_files
-            ?.filter(f => f.path.trim() && f.content.trim())
-            .map(f => [f.path, f.content] as [string, string]),
-          connect_timeout_ms: formData.connect_timeout_ms ?? 30000,
-        },
+      const result = await discoverGrpcServices({
+        url,
+        use_tls: formData.use_tls ?? false,
+        tls_skip_verify: formData.tls_skip_verify ?? false,
+        enable_reflection: formData.enable_reflection ?? false,
+        proto_files: formData.proto_files
+          ?.filter(f => f.path.trim() && f.content.trim())
+          .map(f => [f.path, f.content] as [string, string]),
+        connect_timeout_ms: formData.connect_timeout_ms ?? 30000,
       });
 
       console.log('[gRPC] 发现服务结果:', result);

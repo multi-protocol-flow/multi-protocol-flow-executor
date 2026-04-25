@@ -356,6 +356,72 @@ export async function listRegisteredPlugins(): Promise<[]> {
  * @param _input - MCP 发现工具输入（Mock 中未使用）
  * @returns 模拟的 MCP 工具和资源列表
  */
+/**
+ * Mock 发现 gRPC 服务
+ * 模拟后端 grpc_discover_services 命令行为
+ *
+ * @param _input - gRPC 服务发现请求参数（Mock 中未使用）
+ * @returns 模拟的 gRPC 服务发现结果
+ */
+export async function discoverGrpcServices(
+  _input: import('./grpc').GrpcDiscoverServicesInput
+): Promise<import('./grpc').GrpcDiscoverServicesOutput> {
+  // 模拟网络延迟
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  return {
+    success: true,
+    services: [
+      {
+        service_name: 'grpc.health.v1.Health',
+        methods: [
+          {
+            method_name: 'Check',
+            input_type: 'grpc.health.v1.HealthCheckRequest',
+            output_type: 'grpc.health.v1.HealthCheckResponse',
+            is_server_streaming: false,
+            is_client_streaming: false,
+          },
+          {
+            method_name: 'Watch',
+            input_type: 'grpc.health.v1.HealthCheckRequest',
+            output_type: 'grpc.health.v1.HealthCheckResponse',
+            is_server_streaming: true,
+            is_client_streaming: false,
+          },
+        ],
+      },
+      {
+        service_name: 'example.Greeter',
+        methods: [
+          {
+            method_name: 'SayHello',
+            input_type: 'example.HelloRequest',
+            output_type: 'example.HelloReply',
+            is_server_streaming: false,
+            is_client_streaming: false,
+          },
+          {
+            method_name: 'SayHelloStream',
+            input_type: 'example.HelloRequest',
+            output_type: 'example.HelloReply',
+            is_server_streaming: true,
+            is_client_streaming: false,
+          },
+          {
+            method_name: 'StreamGreetings',
+            input_type: 'example.HelloRequest',
+            output_type: 'example.HelloReply',
+            is_server_streaming: true,
+            is_client_streaming: true,
+          },
+        ],
+      },
+    ],
+    error: null,
+  };
+}
+
 export async function discoverMcpTools(
   _input: import('./mcp').McpDiscoverToolsInput
 ): Promise<import('./mcp').McpDiscoverToolsOutput> {
@@ -384,4 +450,86 @@ export async function discoverMcpTools(
       version: '1.0.0',
     },
   };
+}
+
+// ============================================================================
+// TCP/UDP 录制 Mock
+// ============================================================================
+
+/** 模拟录制数据 */
+function createMockRecording(): import('@/types/node').TcpUdpRecording {
+  return {
+    id: 'rec_mock_001',
+    name: '模拟 TCP 录制',
+    created_at: Date.now(),
+    entries: [
+      {
+        timestamp_ms: 0,
+        direction: 'send',
+        connection_id: 'conn-mock-1',
+        data_base64: btoa('Hello, TCP Server!'),
+        data_size: 18,
+        metadata: {},
+      },
+      {
+        timestamp_ms: 50,
+        direction: 'receive',
+        connection_id: 'conn-mock-1',
+        data_base64: btoa('Hello, Client!'),
+        data_size: 15,
+        metadata: {},
+      },
+      {
+        timestamp_ms: 120,
+        direction: 'send',
+        connection_id: 'conn-mock-1',
+        data_base64: btoa('GET /api/status HTTP/1.1\r\nHost: example.com\r\n\r\n'),
+        data_size: 46,
+        metadata: {},
+      },
+      {
+        timestamp_ms: 200,
+        direction: 'receive',
+        connection_id: 'conn-mock-1',
+        data_base64: btoa('HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK'),
+        data_size: 38,
+        metadata: {},
+      },
+    ],
+    duration_ms: 250,
+  };
+}
+
+/**
+ * Mock 停止 TCP 录制
+ * @param _connectionId 连接 ID（Mock 中未使用）
+ */
+export async function stopTcpRecording(_connectionId: string): Promise<import('@/types/node').TcpUdpRecording> {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  return createMockRecording();
+}
+
+/**
+ * Mock 保存 TCP 录制
+ * @param _recording 录制数据（Mock 中未使用）
+ * @param _dir 目标目录（Mock 中未使用）
+ */
+export async function saveTcpRecording(_recording: import('@/types/node').TcpUdpRecording, _dir?: string): Promise<string> {
+  return '/mock/recordings/rec_mock_001.json';
+}
+
+/**
+ * Mock 加载 TCP 录制
+ * @param _path 文件路径（Mock 中未使用）
+ */
+export async function loadTcpRecording(_path: string): Promise<import('@/types/node').TcpUdpRecording> {
+  return createMockRecording();
+}
+
+/**
+ * Mock 列出 TCP 录制文件
+ * @param _dir 目录路径（Mock 中未使用）
+ */
+export async function listTcpRecordings(_dir?: string): Promise<string[]> {
+  return [];
 }

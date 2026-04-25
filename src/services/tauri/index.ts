@@ -219,6 +219,34 @@ export async function force_end_debug(): Promise<void> {
 }
 
 // ============================================================================
+// gRPC 命令
+// ============================================================================
+
+export type {
+  GrpcDiscoverServicesInput,
+  GrpcDiscoverServicesOutput,
+} from './grpc';
+
+/**
+ * 发现 gRPC 服务
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @param input - 服务发现请求参数
+ * @returns 服务发现结果
+ */
+export async function discoverGrpcServices(
+  input: import('./grpc').GrpcDiscoverServicesInput
+): Promise<import('./grpc').GrpcDiscoverServicesOutput> {
+  if (isTauriEnv()) {
+    const { discoverGrpcServices: discoverGrpcServicesImpl } = await import('./grpc');
+    return discoverGrpcServicesImpl(input);
+  } else {
+    const { discoverGrpcServices: discoverGrpcServicesImpl } = await import('./mock');
+    return discoverGrpcServicesImpl(input);
+  }
+}
+
+// ============================================================================
 // MCP 命令
 // ============================================================================
 
@@ -316,5 +344,76 @@ export async function getStressTestStatus(): Promise<import('@/types/stressTest'
       status: 'idle',
       progress: undefined,
     };
+  }
+}
+
+// ============================================================================
+// TCP/UDP 录制命令
+// ============================================================================
+
+/**
+ * 开始 TCP/UDP 录制
+ * @param connectionId 连接 ID
+ */
+export async function startTcpRecording(connectionId: string): Promise<void> {
+  if (isTauriEnv()) {
+    await invoke<void>('start_tcp_recording', { connectionId });
+  }
+}
+
+/**
+ * 停止 TCP/UDP 录制并返回录制结果
+ * @param connectionId 连接 ID
+ * @returns 录制数据
+ */
+export async function stopTcpRecording(connectionId: string): Promise<import('@/types/node').TcpUdpRecording> {
+  if (isTauriEnv()) {
+    return await invoke<import('@/types/node').TcpUdpRecording>('stop_tcp_recording', { connectionId });
+  } else {
+    const { stopTcpRecording: stopTcpRecordingImpl } = await import('./mock');
+    return stopTcpRecordingImpl(connectionId);
+  }
+}
+
+/**
+ * 保存 TCP/UDP 录制到文件
+ * @param recording 录制数据
+ * @param dir 目标目录（可选）
+ * @returns 保存的文件路径
+ */
+export async function saveTcpRecording(recording: import('@/types/node').TcpUdpRecording, dir?: string): Promise<string> {
+  if (isTauriEnv()) {
+    return await invoke<string>('save_tcp_recording', { recording, dir });
+  } else {
+    const { saveTcpRecording: saveTcpRecordingImpl } = await import('./mock');
+    return saveTcpRecordingImpl(recording, dir);
+  }
+}
+
+/**
+ * 从文件加载 TCP/UDP 录制
+ * @param path 文件路径
+ * @returns 录制数据
+ */
+export async function loadTcpRecording(path: string): Promise<import('@/types/node').TcpUdpRecording> {
+  if (isTauriEnv()) {
+    return await invoke<import('@/types/node').TcpUdpRecording>('load_tcp_recording', { path });
+  } else {
+    const { loadTcpRecording: loadTcpRecordingImpl } = await import('./mock');
+    return loadTcpRecordingImpl(path);
+  }
+}
+
+/**
+ * 列出目录中的 TCP/UDP 录制文件
+ * @param dir 目录路径（可选）
+ * @returns 录制文件路径列表
+ */
+export async function listTcpRecordings(dir?: string): Promise<string[]> {
+  if (isTauriEnv()) {
+    return await invoke<string[]>('list_tcp_recordings', { dir });
+  } else {
+    const { listTcpRecordings: listTcpRecordingsImpl } = await import('./mock');
+    return listTcpRecordingsImpl(dir);
   }
 }
