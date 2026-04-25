@@ -5,6 +5,7 @@
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::debug_types::DebugEvent;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -355,6 +356,18 @@ impl NodeExecutor for GrpcCallExecutor {
                         flow_uuid: context.flow_uuid.clone(),
                     })
                     .await;
+
+                // 9.5 发送调试事件：GrpcMethodCalled
+                if let Some(sender) = &context.debug_event_sender {
+                    let _ = sender.send_event(DebugEvent::GrpcMethodCalled {
+                        node_uuid: node.uuid.clone(),
+                        connection_id: connection_id.clone(),
+                        service: config.service_name.clone(),
+                        method: config.method_name.clone(),
+                        pattern: pattern_str.to_string(),
+                        duration_ms: call_duration_ms,
+                    });
+                }
 
                 // 10. 返回 true 端口
                 let next_node_ids: Vec<String> = {
@@ -1218,6 +1231,110 @@ mod tests {
         let (_, output_data) = result.expect("执行应成功");
         let data = output_data.expect("应有输出数据");
         assert_eq!(data["pattern"], "unary");
+    }
+
+    // ========================================================================
+    // 调试事件发射测试
+    // ========================================================================
+
+    use flow_engine_core::debug_types::DebugEvent;
+    use flow_engine_core::traits::DebugEventSender;
+
+    /// Mock DebugEventSender，记录发送的事件
+    struct MockDebugEventSender {
+        events: std::sync::Mutex<Vec<DebugEvent>>,
+    }
+
+    impl MockDebugEventSender {
+        fn new() -> Self {
+            Self {
+                events: std::sync::Mutex::new(Vec::new()),
+            }
+        }
+
+        /// 获取已发送的事件
+        fn events(&self) -> Vec<DebugEvent> {
+            self.events.lock().expect("锁不应失败").clone()
+        }
+    }
+
+    impl DebugEventSender for MockDebugEventSender {
+        fn send_event(&self, event: DebugEvent) -> Result<(), String> {
+            self.events.lock().expect("锁不应失败").push(event);
+            Ok(())
+        }
+    }
+
+    /// 创建带 debug_event_sender 的执行上下文
+    fn create_context_with_debug(flow_id: &str, sender: Arc<dyn DebugEventSender>) -> ExecutionContext {
+        let mut ctx = create_context(flow_id);
+        ctx.debug_event_sender = Some(sender);
+        ctx
+    }
+
+    #[tokio::test]
+    async fn test_debug_event_grpc_method_called_on_success() {
+        let services = make_services("test.TestService", "GetUser", false, false);
+        let mock = Arc::new(MockGrpcProvider::new_success(services));
+        let executor = GrpcCallExecutor::new(mock.clone());
+        let debug_sender = Arc::new(MockDebugEventSender::new());
+
+        let node = create_test_node("node-debug", "调试事件测试", "conn-1");
+        let mut context = create_context_with_debug("flow-debug", debug_sender.clone());
+        context.grpc_manager = Some(mock.clone());
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        assert!(result.is_ok());
+        let (_, output_data) = result.expect("执行应成功");
+        let data = output_data.expect("应有输出数据");
+        assert_eq!(data["success"], true);
+
+        // 验证 debug 事件已发送
+        let events = debug_sender.events();
+        assert_eq!(events.len(), 1, "应发送 1 个调试事件");
+
+        match &events[0] {
+            DebugEvent::GrpcMethodCalled {
+                node_uuid,
+                connection_id,
+                service,
+                method,
+                pattern,
+                duration_ms,
+            } => {
+                assert_eq!(node_uuid, "node-debug");
+                assert_eq!(connection_id, "conn-1");
+                assert_eq!(service, "test.TestService");
+                assert_eq!(method, "GetUser");
+                assert_eq!(pattern, "unary");
+                assert!(duration_ms > &0 || duration_ms == &0, "duration_ms 应为非负数");
+            }
+            other => panic!("期望 GrpcMethodCalled 事件，实际为: {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_no_debug_event_on_call_failure() {
+        let services = make_services("test.TestService", "GetUser", false, false);
+        let mock = Arc::new(MockGrpcProvider::new_error(services));
+        let executor = GrpcCallExecutor::new(mock.clone());
+        let debug_sender = Arc::new(MockDebugEventSender::new());
+
+        let node = create_test_node("node-fail", "失败无事件测试", "conn-1");
+        let mut context = create_context_with_debug("flow-fail", debug_sender.clone());
+        context.grpc_manager = Some(mock.clone());
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        assert!(result.is_ok());
+        // 失败时不应发送 GrpcMethodCalled 事件
+        let events = debug_sender.events();
+        assert_eq!(events.len(), 0, "失败时不应发送调试事件");
     }
 }
 

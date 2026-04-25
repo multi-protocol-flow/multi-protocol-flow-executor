@@ -335,6 +335,96 @@ pub enum DebugEvent {
         /// 是否成功
         success: bool,
     },
+    // ===== gRPC 调试事件 =====
+    /// gRPC 通道已创建
+    GrpcChannelCreated {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 连接 ID
+        connection_id: String,
+        /// gRPC 服务器 URL
+        url: String,
+        /// 发现的服务数量
+        service_count: usize,
+    },
+    /// gRPC 方法已调用
+    GrpcMethodCalled {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 连接 ID
+        connection_id: String,
+        /// 服务名称
+        service: String,
+        /// 方法名称
+        method: String,
+        /// 通信模式（`unary`/`server_streaming`/`client_streaming`/`bidi_streaming`）
+        pattern: String,
+        /// 调用耗时（毫秒）
+        duration_ms: u64,
+    },
+    /// gRPC 通道已关闭
+    GrpcChannelClosed {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 连接 ID
+        connection_id: String,
+        /// gRPC 服务器 URL
+        url: String,
+    },
+    // ===== MCP 调试事件 =====
+    /// MCP 连接已创建
+    McpConnectionCreated {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 连接 ID
+        connection_id: String,
+        /// MCP 服务器 URL
+        url: String,
+        /// 服务器名称
+        server_name: String,
+    },
+    /// MCP 工具已调用
+    McpToolCalled {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 连接 ID
+        connection_id: String,
+        /// 工具名称
+        tool_name: String,
+        /// 调用耗时（毫秒）
+        duration_ms: u64,
+    },
+    /// MCP 资源已读取
+    McpResourceRead {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 连接 ID
+        connection_id: String,
+        /// 资源 URI
+        uri: String,
+        /// 读取耗时（毫秒）
+        duration_ms: u64,
+    },
+    /// MCP 提示词已获取
+    McpPromptGet {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 连接 ID
+        connection_id: String,
+        /// 提示词名称
+        prompt_name: String,
+        /// 获取耗时（毫秒）
+        duration_ms: u64,
+    },
+    /// MCP 连接已关闭
+    McpConnectionClosed {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 连接 ID
+        connection_id: String,
+        /// MCP 服务器 URL
+        url: String,
+    },
 }
 
 // ============================================================================
@@ -516,5 +606,170 @@ impl DebugSessionState {
     /// 清除所有临时节点配置
     pub fn clear_temp_node_configs(&mut self) {
         self.temp_node_configs.clear();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ===== gRPC 调试事件序列化测试 =====
+
+    #[test]
+    fn test_grpc_channel_created_event() {
+        let event = DebugEvent::GrpcChannelCreated {
+            node_uuid: "node-001".to_string(),
+            connection_id: "conn-grpc-1".to_string(),
+            url: "http://localhost:50051".to_string(),
+            service_count: 3,
+        };
+
+        let json = serde_json::to_string(&event).expect("序列化应成功");
+        assert!(json.contains("GrpcChannelCreated"), "应包含变体名");
+        assert!(json.contains("conn-grpc-1"));
+        assert!(json.contains("http://localhost:50051"));
+
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).expect("反序列化应成功");
+        assert_eq!(event, deserialized, "序列化往返应保持一致");
+    }
+
+    #[test]
+    fn test_grpc_method_called_event() {
+        let event = DebugEvent::GrpcMethodCalled {
+            node_uuid: "node-002".to_string(),
+            connection_id: "conn-grpc-1".to_string(),
+            service: "package.ServiceName".to_string(),
+            method: "GetUser".to_string(),
+            pattern: "unary".to_string(),
+            duration_ms: 120,
+        };
+
+        let json = serde_json::to_string(&event).expect("序列化应成功");
+        assert!(json.contains("GrpcMethodCalled"), "应包含变体名");
+        assert!(json.contains("package.ServiceName"));
+        assert!(json.contains("unary"));
+
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).expect("反序列化应成功");
+        assert_eq!(event, deserialized, "序列化往返应保持一致");
+
+        // 验证 pattern 字段为 String 类型（非枚举）
+        if let DebugEvent::GrpcMethodCalled {
+            pattern, duration_ms, ..
+        } = &deserialized
+        {
+            assert_eq!(pattern, "unary");
+            assert_eq!(*duration_ms, 120);
+        } else {
+            panic!("反序列化后应为 GrpcMethodCalled 变体");
+        }
+    }
+
+    #[test]
+    fn test_grpc_channel_closed_event() {
+        let event = DebugEvent::GrpcChannelClosed {
+            node_uuid: "node-003".to_string(),
+            connection_id: "conn-grpc-1".to_string(),
+            url: "http://localhost:50051".to_string(),
+        };
+
+        let json = serde_json::to_string(&event).expect("序列化应成功");
+        assert!(json.contains("GrpcChannelClosed"), "应包含变体名");
+        assert!(json.contains("conn-grpc-1"));
+
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).expect("反序列化应成功");
+        assert_eq!(event, deserialized, "序列化往返应保持一致");
+    }
+
+    // ===== MCP 调试事件序列化测试 =====
+
+    #[test]
+    fn test_mcp_connection_created_event() {
+        let event = DebugEvent::McpConnectionCreated {
+            node_uuid: "node-010".to_string(),
+            connection_id: "conn-mcp-1".to_string(),
+            url: "http://localhost:8080/mcp".to_string(),
+            server_name: "test-server".to_string(),
+        };
+
+        let json = serde_json::to_string(&event).expect("序列化应成功");
+        assert!(json.contains("McpConnectionCreated"), "应包含变体名");
+        assert!(json.contains("conn-mcp-1"));
+        assert!(json.contains("test-server"));
+
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).expect("反序列化应成功");
+        assert_eq!(event, deserialized, "序列化往返应保持一致");
+    }
+
+    #[test]
+    fn test_mcp_tool_called_event() {
+        let event = DebugEvent::McpToolCalled {
+            node_uuid: "node-011".to_string(),
+            connection_id: "conn-mcp-1".to_string(),
+            tool_name: "get_weather".to_string(),
+            duration_ms: 200,
+        };
+
+        let json = serde_json::to_string(&event).expect("序列化应成功");
+        assert!(json.contains("McpToolCalled"), "应包含变体名");
+        assert!(json.contains("get_weather"));
+
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).expect("反序列化应成功");
+        assert_eq!(event, deserialized, "序列化往返应保持一致");
+    }
+
+    #[test]
+    fn test_mcp_resource_read_event() {
+        let event = DebugEvent::McpResourceRead {
+            node_uuid: "node-012".to_string(),
+            connection_id: "conn-mcp-1".to_string(),
+            uri: "file:///data/config.json".to_string(),
+            duration_ms: 80,
+        };
+
+        let json = serde_json::to_string(&event).expect("序列化应成功");
+        assert!(json.contains("McpResourceRead"), "应包含变体名");
+
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).expect("反序列化应成功");
+        assert_eq!(event, deserialized, "序列化往返应保持一致");
+    }
+
+    #[test]
+    fn test_mcp_prompt_get_event() {
+        let event = DebugEvent::McpPromptGet {
+            node_uuid: "node-013".to_string(),
+            connection_id: "conn-mcp-1".to_string(),
+            prompt_name: "greeting".to_string(),
+            duration_ms: 50,
+        };
+
+        let json = serde_json::to_string(&event).expect("序列化应成功");
+        assert!(json.contains("McpPromptGet"), "应包含变体名");
+        assert!(json.contains("greeting"));
+
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).expect("反序列化应成功");
+        assert_eq!(event, deserialized, "序列化往返应保持一致");
+    }
+
+    #[test]
+    fn test_mcp_connection_closed_event() {
+        let event = DebugEvent::McpConnectionClosed {
+            node_uuid: "node-014".to_string(),
+            connection_id: "conn-mcp-1".to_string(),
+            url: "http://localhost:8080/mcp".to_string(),
+        };
+
+        let json = serde_json::to_string(&event).expect("序列化应成功");
+        assert!(json.contains("McpConnectionClosed"), "应包含变体名");
+
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).expect("反序列化应成功");
+        assert_eq!(event, deserialized, "序列化往返应保持一致");
     }
 }

@@ -5,7 +5,7 @@
 
 ## 概述
 
-10 个 crate 组成的 Rust Workspace。`flow-engine` 为门面 crate (re-export 全部)，`app` (src-tauri/src/) 仅依赖 `flow-engine`。
+12 个 crate 组成的 Rust Workspace。`flow-engine` 为门面 crate (re-export 全部)，`app` (src-tauri/src/) 仅依赖 `flow-engine`。
 
 ## 依赖图
 
@@ -13,7 +13,7 @@
 Layer 0 (叶子):   flow-engine-core, flow-engine-crypto
 Layer 1 (协议):   flow-engine-http, flow-engine-ws, flow-engine-db,
                   flow-engine-script, flow-engine-assertion,
-                  flow-engine-grpc                                (→ core)
+                  flow-engine-grpc, flow-engine-mcp, flow-engine-tcp  (→ core)
 Layer 2 (编排):   flow-engine-executor                          (→ core + 全部 Layer 1 + crypto)
 Layer 3 (门面):   flow-engine                                   (re-export 全部)
 Layer 4 (应用):   app (src-tauri/)                              (→ flow-engine)
@@ -31,8 +31,10 @@ Layer 4 (应用):   app (src-tauri/)                              (→ flow-engi
 | flow-engine-script | 1 | core | 5 | ~3,500 |
 | flow-engine-assertion | 1 | core | 7 | ~3,000 |
 | flow-engine-grpc | 1 | core | 7 | ~4,365 |
+| flow-engine-mcp | 1 | core | 9 | ~4,000 |
+| flow-engine-tcp | 1 | core | 15 | ~5,000 |
 | flow-engine-executor | 2 | core + 全部 Layer 1 + crypto | 28 | ~15,717 |
-| flow-engine | 3 | 全部 9 个 crate | 2 | ~205 |
+| flow-engine | 3 | 全部 11 个 crate | 2 | ~205 |
 
 ## 快速定位
 
@@ -45,6 +47,8 @@ Layer 4 (应用):   app (src-tauri/)                              (→ flow-engi
 | 脚本节点 | flow-engine-script | `script/src/` |
 | 断言节点 | flow-engine-assertion | `assertion/src/` |
 | gRPC 执行器 | flow-engine-grpc | `grpc/src/` |
+| MCP 执行器 | flow-engine-mcp | `mcp/src/` |
+| TCP/UDP 执行器 | flow-engine-tcp | `tcp/src/` |
 | 主执行器 / 调试 / 压测 | flow-engine-executor | `executor/src/` |
 | 加密 / Keychain | flow-engine-crypto | `crypto/src/` |
 
@@ -63,7 +67,7 @@ cargo clippy -p flow-engine-db           # 仅 Lint DB
 |-------------|-----------|--------|
 | `flow-engine-core` | 全部 crate (级联) | **全量** |
 | `flow-engine-crypto` | executor → flow-engine → app | ~3 crate |
-| `flow-engine-http/ws/db/script/assertion/grpc` | executor → flow-engine → app | ~3 crate |
+| `flow-engine-http/ws/db/script/assertion/grpc/mcp/tcp` | executor → flow-engine → app | ~3 crate |
 | `flow-engine-executor` | flow-engine → app | ~2 crate |
 | `flow-engine` (门面) | app | ~1 crate |
 
@@ -78,3 +82,5 @@ cargo clippy -p flow-engine-db           # 仅 Lint DB
 - [flow-engine-script/src/AGENTS.md](./flow-engine-script/src/AGENTS.md) - 脚本
 - [flow-engine-assertion/src/AGENTS.md](./flow-engine-assertion/src/AGENTS.md) - 断言
 - [flow-engine-grpc/src/AGENTS.md](./flow-engine-grpc/src/AGENTS.md) - gRPC
+- [flow-engine-mcp/src/AGENTS.md](./flow-engine-mcp/src/AGENTS.md) - MCP
+- [flow-engine-tcp/src/AGENTS.md](./flow-engine-tcp/src/AGENTS.md) - TCP/UDP

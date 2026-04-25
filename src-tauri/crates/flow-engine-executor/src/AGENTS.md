@@ -12,7 +12,7 @@
 flow-engine-executor/src/
 ├── lib.rs                  # 模块导出
 ├── executor.rs             # FlowExecutor 主执行循环 (~1,702 行)
-├── default_registry.rs     # 默认节点注册表，注册 17 个插件 (107 行)
+├── default_registry.rs     # 默认节点注册表，注册 29 个插件 (153 行)
 ├── plugin_entry.rs         # Entry 节点 NodePlugin (60 行)
 ├── plugin_conditional.rs   # 条件分支 NodePlugin (84 行)
 ├── entry_executor.rs       # 入口节点执行器
@@ -61,14 +61,14 @@ flow-engine-executor/src/
 
 ### 插件架构
 - **NodePlugin trait** (core): 每种节点类型实现一个 Plugin
-- **default_registry.rs**: 注册全部 17 个插件 (entry, http, ws×3, db×6, script, assertion, grpc×3, conditional)
+- **default_registry.rs**: 注册全部 29 个插件 (entry, conditional, http, ws×3, db×6, script, assertion, grpc×3, mcp×5, tcp×3, udp×4)
 - **NodeRegistry**: 替代旧 match 分发模式，通过 `registry.get_executor(node_type)` 查找执行器
 
 ### FlowExecutor (executor.rs)
 - `execute()`: 主执行循环，遍历节点图
 - `replace_variables()`: 全局变量替换
 - `execute_node()`: 通过 NodeRegistry 插件查找执行器 (替代旧 match 分发)
-- 端口路由: HTTP/WS/DB/Conditional/Assertion/gRPC 节点使用 true/false 端口
+- 端口路由: HTTP/WS/DB/Conditional/Assertion/gRPC/MCP/TCP/UDP 节点使用 true/false 端口
 - **gRPC 管理器初始化**: GrpcConnectionManager 注入 ExecutionContext
 - **cancel 功能**: cancel_receiver + tokio::select! 支持流程取消
 - **变量变更追踪**: compute_variable_changes() 追踪变量差异
@@ -76,13 +76,13 @@ flow-engine-executor/src/
 ### DebugFlowExecutor (debug/executor.rs)
 - 断点暂停、单步执行、继续、跳过
 - 通过 Channel 实现实时日志流
-- 注意: 尚未集成 gRPC 节点
+- 支持全部 29 种节点类型
 
 ### 压力测试 (stress_test/)
 - 并发用户数、渐进启动、持续时长
 - 实时进度 (RPS、延迟、迭代数)
 - 最终报告 (p50/p90/p95/p99)
-- 注意: 尚未集成 gRPC 节点
+- 支持全部 29 种节点类型
 
 ## 编译影响
 

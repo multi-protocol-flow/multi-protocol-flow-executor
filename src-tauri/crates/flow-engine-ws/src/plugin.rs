@@ -143,11 +143,18 @@ impl NodePlugin for WsSendCollectPlugin {
     }
 
     fn ports(&self) -> Vec<PortDef> {
-        vec![PortDef {
-            id: "out".into(),
-            label: "输出".into(),
-            position: "right".into(),
-        }]
+        vec![
+            PortDef {
+                id: "true".into(),
+                label: "成功".into(),
+                position: "right".into(),
+            },
+            PortDef {
+                id: "false".into(),
+                label: "失败".into(),
+                position: "bottom".into(),
+            },
+        ]
     }
 
     fn default_config(&self) -> serde_json::Value {
@@ -162,9 +169,18 @@ impl NodePlugin for WsSendCollectPlugin {
         })
     }
 
-    /// WsSendCollect 始终走 "out" 端口
-    fn resolve_port(&self, _output: &Option<serde_json::Value>) -> String {
-        "out".to_string()
+    /// WsSendCollect 检查 $.success → "true" / "false"
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        match output {
+            Some(serde_json::Value::Object(map)) => {
+                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
+            }
+            _ => "false".to_string(),
+        }
     }
 
     fn is_protocol_node(&self) -> bool {
@@ -230,11 +246,18 @@ impl NodePlugin for WsClosePlugin {
     }
 
     fn ports(&self) -> Vec<PortDef> {
-        vec![PortDef {
-            id: "out".into(),
-            label: "输出".into(),
-            position: "right".into(),
-        }]
+        vec![
+            PortDef {
+                id: "true".into(),
+                label: "成功".into(),
+                position: "right".into(),
+            },
+            PortDef {
+                id: "false".into(),
+                label: "失败".into(),
+                position: "bottom".into(),
+            },
+        ]
     }
 
     fn default_config(&self) -> serde_json::Value {
@@ -246,9 +269,18 @@ impl NodePlugin for WsClosePlugin {
         })
     }
 
-    /// WsClose 始终走 "out" 端口
-    fn resolve_port(&self, _output: &Option<serde_json::Value>) -> String {
-        "out".to_string()
+    /// WsClose 检查 $.success → "true" / "false"
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        match output {
+            Some(serde_json::Value::Object(map)) => {
+                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
+            }
+            _ => "false".to_string(),
+        }
     }
 
     fn supports_false_port(&self) -> bool {
@@ -290,5 +322,73 @@ impl WsPluginGroup {
         registry.register(Arc::new(WsConnectPlugin));
         registry.register(Arc::new(WsSendCollectPlugin));
         registry.register(Arc::new(WsClosePlugin));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use flow_engine_core::plugin::NodePlugin;
+
+    // --- WsSendCollectPlugin 测试 ---
+
+    #[test]
+    fn test_ws_send_collect_plugin_ports() {
+        let plugin = WsSendCollectPlugin;
+        let ports = plugin.ports();
+        assert_eq!(ports.len(), 2);
+        assert_eq!(ports[0].id, "true");
+        assert_eq!(ports[1].id, "false");
+    }
+
+    #[test]
+    fn test_ws_send_collect_plugin_resolve_port_true() {
+        let plugin = WsSendCollectPlugin;
+        let output = Some(serde_json::json!({"success": true}));
+        assert_eq!(plugin.resolve_port(&output), "true");
+    }
+
+    #[test]
+    fn test_ws_send_collect_plugin_resolve_port_false() {
+        let plugin = WsSendCollectPlugin;
+        let output = Some(serde_json::json!({"success": false}));
+        assert_eq!(plugin.resolve_port(&output), "false");
+    }
+
+    #[test]
+    fn test_ws_send_collect_plugin_resolve_port_none() {
+        let plugin = WsSendCollectPlugin;
+        assert_eq!(plugin.resolve_port(&None), "false");
+    }
+
+    // --- WsClosePlugin 测试 ---
+
+    #[test]
+    fn test_ws_close_plugin_ports() {
+        let plugin = WsClosePlugin;
+        let ports = plugin.ports();
+        assert_eq!(ports.len(), 2);
+        assert_eq!(ports[0].id, "true");
+        assert_eq!(ports[1].id, "false");
+    }
+
+    #[test]
+    fn test_ws_close_plugin_resolve_port_true() {
+        let plugin = WsClosePlugin;
+        let output = Some(serde_json::json!({"success": true}));
+        assert_eq!(plugin.resolve_port(&output), "true");
+    }
+
+    #[test]
+    fn test_ws_close_plugin_resolve_port_false() {
+        let plugin = WsClosePlugin;
+        let output = Some(serde_json::json!({"success": false}));
+        assert_eq!(plugin.resolve_port(&output), "false");
+    }
+
+    #[test]
+    fn test_ws_close_plugin_resolve_port_none() {
+        let plugin = WsClosePlugin;
+        assert_eq!(plugin.resolve_port(&None), "false");
     }
 }

@@ -36,6 +36,26 @@ export interface GrpcDiscoverServicesOutput {
   error: string | null;
 }
 
+/** gRPC 请求骨架生成请求参数（对应 Rust GrpcGenerateRequestSkeletonInput） */
+export interface GrpcGenerateRequestSkeletonInput {
+  /** Proto 文件列表 [path, content] */
+  proto_files: [string, string][];
+  /** 服务全名（如 "package.ServiceName"） */
+  service_name: string;
+  /** 方法名 */
+  method_name: string;
+}
+
+/** gRPC 请求骨架生成响应（对应 Rust GrpcGenerateRequestSkeletonOutput） */
+export interface GrpcGenerateRequestSkeletonOutput {
+  /** 是否成功 */
+  success: boolean;
+  /** 生成的 JSON 骨架字符串 */
+  skeleton: string | null;
+  /** 错误信息（失败时） */
+  error: string | null;
+}
+
 // ============================================================================
 // IPC 调用
 // ============================================================================
@@ -59,5 +79,27 @@ export async function discoverGrpcServices(
     });
   } catch (error) {
     throw formatError(error, 'grpc_discover_services');
+  }
+}
+
+/**
+ * 生成 gRPC 请求消息的 JSON 骨架
+ *
+ * 根据指定服务和方法的 Input Type，解析 proto 文件并生成占位 JSON。
+ * 用于帮助用户快速构造请求消息。
+ *
+ * @param input - 骨架生成请求参数
+ * @returns 骨架生成结果
+ * @throws IpcError 如果调用失败
+ */
+export async function generateGrpcRequestSkeleton(
+  input: GrpcGenerateRequestSkeletonInput
+): Promise<GrpcGenerateRequestSkeletonOutput> {
+  try {
+    return await invoke<GrpcGenerateRequestSkeletonOutput>('grpc_generate_request_skeleton', {
+      input,
+    });
+  } catch (error) {
+    throw formatError(error, 'grpc_generate_request_skeleton');
   }
 }

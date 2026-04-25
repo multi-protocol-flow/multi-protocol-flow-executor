@@ -14,10 +14,11 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Radio, Info } from 'lucide-react';
+import { Plus, Trash2, Radio, Info, FileJson } from 'lucide-react';
 import type { GrpcCallConfig as GrpcCallConfigType, GrpcServiceInfo, GrpcMethodInfo } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isGrpcConnectConfig } from '@/types/node';
+import { generateGrpcRequestSkeleton } from '@/services/tauri';
 
 interface GrpcCallConfigProps {
   /** 当前节点数据 */
@@ -116,6 +117,16 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
     return connectNode.data.discovered_services || [];
   }, [flow, currentConnectionId]);
 
+  // 从选中连接的 grpc_connect 节点中提取 proto_files
+  const protoFiles = useMemo((): [string, string][] => {
+    if (!flow || !currentConnectionId) return [];
+    const connectNode = flow.nodes.find(n => n.uuid === currentConnectionId);
+    if (!connectNode || !isGrpcConnectConfig(connectNode.data)) return [];
+    const files = connectNode.data.proto_files;
+    if (!files || files.length === 0) return [];
+    return files.map(f => [f.path, f.content] as [string, string]);
+  }, [flow, currentConnectionId]);
+
   // 当前选中的 service_name
   const currentServiceName = watch('service_name');
 
@@ -135,6 +146,17 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
   }, [watch('method_name'), discoveredMethods]);
 
   const isClientStreaming = selectedMethod?.is_client_streaming ?? false;
+
+  // 骨架生成加载状态
+  const [isGeneratingSkeleton, setIsGeneratingSkeleton] = useState(false);
+
+  // 判断骨架按钮是否可用（service + method 都已选择，且有 proto_files）
+  const canGenerateSkeleton = useMemo(() => {
+    return currentServiceName.length > 0
+      && watch('method_name').length > 0
+      && protoFiles.length > 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentServiceName, watch('method_name'), protoFiles]);
 
   // 当 connection_id 变化时，检查已选服务是否仍有效
   useEffect(() => {
@@ -205,6 +227,32 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
       }
     })();
   }, [handleSubmit, onSave]);
+
+  /**
+   * 生成请求 JSON 骨架
+   */
+  const handleGenerateSkeleton = useCallback(async () => {
+    const serviceName = getValues('service_name');
+    const methodName = getValues('method_name');
+    if (!serviceName || !methodName || protoFiles.length === 0) return;
+
+    setIsGeneratingSkeleton(true);
+    try {
+      const result = await generateGrpcRequestSkeleton({
+        proto_files: protoFiles,
+        service_name: serviceName,
+        method_name: methodName,
+      });
+      if (result.success && result.skeleton) {
+        setValue('request_json', result.skeleton, { shouldDirty: true });
+        safeSetTimeout(saveData, 100);
+      }
+    } catch (error) {
+      console.error('生成 gRPC 请求骨架失败:', error);
+    } finally {
+      setIsGeneratingSkeleton(false);
+    }
+  }, [protoFiles, getValues, setValue, saveData, safeSetTimeout]);
 
   // 消息列表字段数组（Client/Bidi Streaming 模式）
   const messageFields = useFieldArray({
@@ -558,9 +606,22 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
       {/* 单消息编辑器（Unary/Server Streaming 模式） */}
       {!isClientStreaming && (
         <div className="space-y-2">
-          <Label htmlFor="request_json" className="text-sm font-medium text-foreground">
-            请求 JSON
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="request_json" className="text-sm font-medium text-foreground">
+              请求 JSON
+            </Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={!canGenerateSkeleton || isGeneratingSkeleton}
+              onClick={handleGenerateSkeleton}
+              className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              <FileJson className="h-3 w-3" />
+              {isGeneratingSkeleton ? '生成中...' : '生成骨架'}
+            </Button>
+          </div>
           <Textarea
             id="request_json"
             {...register('request_json')}

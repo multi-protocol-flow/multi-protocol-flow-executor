@@ -171,7 +171,112 @@ export type DebugEvent =
         connection_id: string;
         last_owner_node_uuid: string;
       };
+    }
+  // ===== gRPC 调试事件 =====
+  | {
+      GrpcChannelCreated: {
+        node_uuid: string;
+        connection_id: string;
+        url: string;
+        service_count: number;
+      };
+    }
+  | {
+      GrpcMethodCalled: {
+        node_uuid: string;
+        connection_id: string;
+        service: string;
+        method: string;
+        pattern: string;
+        duration_ms: number;
+      };
+    }
+  | {
+      GrpcChannelClosed: {
+        node_uuid: string;
+        connection_id: string;
+        url: string;
+      };
+    }
+  // ===== MCP 调试事件 =====
+  | {
+      McpConnectionCreated: {
+        node_uuid: string;
+        connection_id: string;
+        url: string;
+        server_name: string;
+      };
+    }
+  | {
+      McpToolCalled: {
+        node_uuid: string;
+        connection_id: string;
+        tool_name: string;
+        duration_ms: number;
+      };
+    }
+  | {
+      McpResourceRead: {
+        node_uuid: string;
+        connection_id: string;
+        uri: string;
+        duration_ms: number;
+      };
+    }
+  | {
+      McpPromptGet: {
+        node_uuid: string;
+        connection_id: string;
+        prompt_name: string;
+        duration_ms: number;
+      };
+    }
+  | {
+      McpConnectionClosed: {
+        node_uuid: string;
+        connection_id: string;
+        url: string;
+      };
     };
+
+// ============================================================================
+// gRPC 调试数据结构
+// ============================================================================
+
+/** gRPC 通道连接信息 */
+export interface GrpcConnectionInfo {
+  url: string;
+  service_count: number;
+}
+
+/** gRPC 方法调用记录 */
+export interface GrpcMethodCallRecord {
+  node_uuid: string;
+  service: string;
+  method: string;
+  pattern: string;
+  duration_ms: number;
+}
+
+// ============================================================================
+// MCP 调试数据结构
+// ============================================================================
+
+/** MCP 连接信息 */
+export interface McpConnectionInfo {
+  url: string;
+  server_name: string;
+}
+
+/** MCP 操作记录 (工具调用 / 资源读取 / 提示词获取) */
+export interface McpOperationRecord {
+  node_uuid: string;
+  operation_type: 'tool_call' | 'resource_read' | 'prompt_get';
+  name: string;
+  /** 资源读取时为 uri，其余为对应名称 */
+  detail?: string;
+  duration_ms: number;
+}
 
 // ============================================================================
 // 调试配置常量

@@ -4,6 +4,7 @@
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::debug_types::DebugEvent;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -118,6 +119,18 @@ impl NodeExecutor for McpCallToolExecutor {
                         tool_name,
                         duration.as_millis()
                     );
+                }
+
+                // 发送调试事件：McpToolCalled
+                if !is_error {
+                    if let Some(sender) = &context.debug_event_sender {
+                        let _ = sender.send_event(DebugEvent::McpToolCalled {
+                            node_uuid: node.uuid.clone(),
+                            connection_id: connection_id.clone(),
+                            tool_name: tool_name.clone(),
+                            duration_ms: duration.as_millis() as u64,
+                        });
+                    }
                 }
 
                 // 5. 构建输出数据
@@ -386,5 +399,177 @@ mod tests {
 
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("McpCallToolConfig"));
+    }
+
+    // ===== 调试事件测试 =====
+
+    /// mpsc adapter for DebugEventSender (测试用)
+    struct MpscDebugEventSender {
+        sender: tokio::sync::mpsc::UnboundedSender<DebugEvent>,
+    }
+
+    impl MpscDebugEventSender {
+        fn new(sender: tokio::sync::mpsc::UnboundedSender<DebugEvent>) -> Self {
+            Self { sender }
+        }
+    }
+
+    impl flow_engine_core::traits::DebugEventSender for MpscDebugEventSender {
+        fn send_event(&self, event: DebugEvent) -> Result<(), String> {
+            self.sender
+                .send(event)
+                .map_err(|e| format!("Failed to send debug event: {}", e))
+        }
+    }
+
+    /// 模拟 MCP Provider（call_tool 成功）
+    struct MockMcpProvider;
+
+    #[async_trait::async_trait]
+    impl flow_engine_core::traits::McpProvider for MockMcpProvider {
+        async fn connect(
+            &self,
+            _uuid: String,
+            _config: flow_engine_core::node_config::McpConnectConfig,
+        ) -> Result<flow_engine_core::traits::McpConnectionInfo, String> {
+            Err("not implemented".to_string())
+        }
+        async fn call_tool(
+            &self,
+            _connection_id: &str,
+            _tool_name: &str,
+            _arguments: Option<serde_json::Value>,
+        ) -> Result<flow_engine_core::traits::McpToolCallResult, String> {
+            Ok(flow_engine_core::traits::McpToolCallResult {
+                content: vec![serde_json::json!("result")],
+                is_error: false,
+                timing_ms: 50,
+            })
+        }
+        async fn read_resource(
+            &self,
+            _connection_id: &str,
+            _resource_uri: &str,
+        ) -> Result<flow_engine_core::traits::McpResourceReadResult, String> {
+            Err("not implemented".to_string())
+        }
+        async fn close(&self, _connection_id: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn get_connection_info(
+            &self,
+            _connection_id: &str,
+        ) -> Option<flow_engine_core::traits::McpConnectionInfo> {
+            None
+        }
+        async fn list_prompts(
+            &self,
+            _connection_id: &str,
+        ) -> Result<Vec<flow_engine_core::traits::McpPromptInfo>, String> {
+            Ok(vec![])
+        }
+        async fn get_prompt(
+            &self,
+            _connection_id: &str,
+            _prompt_name: &str,
+            _arguments: std::collections::HashMap<String, String>,
+        ) -> Result<flow_engine_core::traits::McpPromptResult, String> {
+            Err("not implemented".to_string())
+        }
+    }
+
+    /// 创建带调试事件发送器的上下文
+    fn create_context_with_debug_sender(
+        flow_id: &str,
+    ) -> (
+        ExecutionContext,
+        tokio::sync::mpsc::UnboundedReceiver<DebugEvent>,
+    ) {
+        let (event_sender, event_receiver) = tokio::sync::mpsc::unbounded_channel();
+        let context = ExecutionContext {
+            flow_uuid: flow_id.to_string(),
+            current_node_uuid: None,
+            variables: VariableStorage::new(),
+            node_reports: vec![],
+            flow_trigger_time: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("系统时间错误")
+                .as_millis() as u64,
+            log_sender: None,
+            flow_file_path: None,
+            ws_manager: None,
+            ws_connection_urls: HashMap::new(),
+            ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            db_manager: None,
+            grpc_manager: None,
+            mcp_manager: None,
+            tcp_manager: None,
+            udp_manager: None,
+            last_node_output: None,
+            debug_event_sender: Some(Arc::new(MpscDebugEventSender::new(event_sender))),
+            execution_event_sender: None,
+            cancel_receiver: None,
+            providers: HashMap::new(),
+        };
+        (context, event_receiver)
+    }
+
+    /// 测试：调用失败时不发射 McpToolCalled 调试事件
+    #[tokio::test]
+    async fn test_debug_event_not_emitted_on_call_tool_failure() {
+        let mcp_manager = Arc::new(McpConnectionManager::new());
+        let executor = McpCallToolExecutor::new(mcp_manager);
+        let node = create_test_node("test-fail", "失败测试", "nonexistent", "test_tool");
+        let (mut context, mut event_receiver) = create_context_with_debug_sender("test-flow");
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        assert!(result.is_ok());
+        // 连接不存在导致调用失败，不应发射调试事件
+        let events: Vec<_> = (&mut event_receiver).try_recv().into_iter().collect();
+        assert!(
+            events.is_empty(),
+            "调用失败时不应发射调试事件，但收到: {:?}",
+            events
+        );
+    }
+
+    /// 测试：调用成功时发射 McpToolCalled 调试事件
+    #[tokio::test]
+    async fn test_debug_event_mcp_tool_called() {
+        let mcp_manager = Arc::new(MockMcpProvider);
+        let executor = McpCallToolExecutor::new(mcp_manager);
+        let node = create_test_node("test-ok", "成功测试", "mock-conn-1", "get_weather");
+        let (mut context, mut event_receiver) = create_context_with_debug_sender("test-flow");
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        assert!(result.is_ok());
+
+        // 验证收到 McpToolCalled 调试事件
+        let event = event_receiver.try_recv().expect("应收到调试事件");
+        match &event {
+            DebugEvent::McpToolCalled {
+                node_uuid,
+                connection_id,
+                tool_name,
+                duration_ms,
+            } => {
+                assert_eq!(node_uuid, "test-ok");
+                assert_eq!(connection_id, "mock-conn-1");
+                assert_eq!(tool_name, "get_weather");
+                assert!(*duration_ms > 0 || *duration_ms == 0, "duration_ms 应为 u64");
+            }
+            _ => panic!("期望 McpToolCalled 事件，收到: {:?}", event),
+        }
+
+        assert!(
+            event_receiver.try_recv().is_err(),
+            "不应有额外的调试事件"
+        );
     }
 }

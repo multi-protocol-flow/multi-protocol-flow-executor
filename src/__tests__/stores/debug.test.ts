@@ -801,4 +801,261 @@ describe('DebugStore', () => {
       expect(state.error).toBeNull();
     });
   });
+
+  describe('gRPC 调试事件', () => {
+    it('处理 GrpcChannelCreated 事件 — 存储连接信息', () => {
+      const event: DebugEvent = {
+        GrpcChannelCreated: {
+          node_uuid: 'node-grpc-1',
+          connection_id: 'conn-grpc-1',
+          url: 'http://localhost:50051',
+          service_count: 3,
+        },
+      };
+
+      useDebugStore.getState().handleDebugEvent(event);
+
+      const state = useDebugStore.getState();
+      expect(state.grpcConnections['conn-grpc-1']).toEqual({
+        url: 'http://localhost:50051',
+        service_count: 3,
+      });
+    });
+
+    it('处理 GrpcMethodCalled 事件 — 记录方法调用', () => {
+      const event: DebugEvent = {
+        GrpcMethodCalled: {
+          node_uuid: 'node-grpc-2',
+          connection_id: 'conn-grpc-1',
+          service: 'Greeter',
+          method: 'SayHello',
+          pattern: 'unary',
+          duration_ms: 42,
+        },
+      };
+
+      useDebugStore.getState().handleDebugEvent(event);
+
+      const state = useDebugStore.getState();
+      expect(state.grpcMethodCalls['conn-grpc-1']).toHaveLength(1);
+      expect(state.grpcMethodCalls['conn-grpc-1'][0]).toEqual({
+        node_uuid: 'node-grpc-2',
+        service: 'Greeter',
+        method: 'SayHello',
+        pattern: 'unary',
+        duration_ms: 42,
+      });
+    });
+
+    it('同一连接多次 GrpcMethodCalled 追加记录', () => {
+      const connId = 'conn-grpc-multi';
+
+      const call1: DebugEvent = {
+        GrpcMethodCalled: {
+          node_uuid: 'node-a',
+          connection_id: connId,
+          service: 'ServiceA',
+          method: 'MethodA',
+          pattern: 'unary',
+          duration_ms: 10,
+        },
+      };
+      const call2: DebugEvent = {
+        GrpcMethodCalled: {
+          node_uuid: 'node-b',
+          connection_id: connId,
+          service: 'ServiceB',
+          method: 'MethodB',
+          pattern: 'server_streaming',
+          duration_ms: 20,
+        },
+      };
+
+      useDebugStore.getState().handleDebugEvent(call1);
+      useDebugStore.getState().handleDebugEvent(call2);
+
+      const state = useDebugStore.getState();
+      expect(state.grpcMethodCalls[connId]).toHaveLength(2);
+      expect(state.grpcMethodCalls[connId][0].service).toBe('ServiceA');
+      expect(state.grpcMethodCalls[connId][1].service).toBe('ServiceB');
+    });
+
+    it('处理 GrpcChannelClosed 事件 — 保留连接信息', () => {
+      // 先创建连接
+      useDebugStore.getState().handleDebugEvent({
+        GrpcChannelCreated: {
+          node_uuid: 'node-grpc-1',
+          connection_id: 'conn-grpc-close',
+          url: 'http://localhost:50051',
+          service_count: 1,
+        },
+      });
+
+      // 关闭连接
+      useDebugStore.getState().handleDebugEvent({
+        GrpcChannelClosed: {
+          node_uuid: 'node-grpc-1',
+          connection_id: 'conn-grpc-close',
+          url: 'http://localhost:50051',
+        },
+      });
+
+      const state = useDebugStore.getState();
+      // 连接信息应保留
+      expect(state.grpcConnections['conn-grpc-close']).toEqual({
+        url: 'http://localhost:50051',
+        service_count: 1,
+      });
+    });
+  });
+
+  describe('MCP 调试事件', () => {
+    it('处理 McpConnectionCreated 事件 — 存储连接信息', () => {
+      const event: DebugEvent = {
+        McpConnectionCreated: {
+          node_uuid: 'node-mcp-1',
+          connection_id: 'conn-mcp-1',
+          url: 'http://localhost:8080/mcp',
+          server_name: 'test-server',
+        },
+      };
+
+      useDebugStore.getState().handleDebugEvent(event);
+
+      const state = useDebugStore.getState();
+      expect(state.mcpConnections['conn-mcp-1']).toEqual({
+        url: 'http://localhost:8080/mcp',
+        server_name: 'test-server',
+      });
+    });
+
+    it('处理 McpToolCalled 事件 — 记录工具调用', () => {
+      const event: DebugEvent = {
+        McpToolCalled: {
+          node_uuid: 'node-mcp-2',
+          connection_id: 'conn-mcp-1',
+          tool_name: 'search',
+          duration_ms: 150,
+        },
+      };
+
+      useDebugStore.getState().handleDebugEvent(event);
+
+      const state = useDebugStore.getState();
+      expect(state.mcpOperations['conn-mcp-1']).toHaveLength(1);
+      expect(state.mcpOperations['conn-mcp-1'][0]).toEqual({
+        node_uuid: 'node-mcp-2',
+        operation_type: 'tool_call',
+        name: 'search',
+        duration_ms: 150,
+      });
+    });
+
+    it('处理 McpResourceRead 事件 — 记录资源读取', () => {
+      const event: DebugEvent = {
+        McpResourceRead: {
+          node_uuid: 'node-mcp-3',
+          connection_id: 'conn-mcp-1',
+          uri: 'file:///data/config.json',
+          duration_ms: 30,
+        },
+      };
+
+      useDebugStore.getState().handleDebugEvent(event);
+
+      const state = useDebugStore.getState();
+      expect(state.mcpOperations['conn-mcp-1']).toHaveLength(1);
+      expect(state.mcpOperations['conn-mcp-1'][0]).toEqual({
+        node_uuid: 'node-mcp-3',
+        operation_type: 'resource_read',
+        name: 'file:///data/config.json',
+        duration_ms: 30,
+      });
+    });
+
+    it('处理 McpPromptGet 事件 — 记录提示词获取', () => {
+      const event: DebugEvent = {
+        McpPromptGet: {
+          node_uuid: 'node-mcp-4',
+          connection_id: 'conn-mcp-1',
+          prompt_name: 'greeting',
+          duration_ms: 5,
+        },
+      };
+
+      useDebugStore.getState().handleDebugEvent(event);
+
+      const state = useDebugStore.getState();
+      expect(state.mcpOperations['conn-mcp-1']).toHaveLength(1);
+      expect(state.mcpOperations['conn-mcp-1'][0]).toEqual({
+        node_uuid: 'node-mcp-4',
+        operation_type: 'prompt_get',
+        name: 'greeting',
+        duration_ms: 5,
+      });
+    });
+
+    it('同一连接多种 MCP 操作追加记录', () => {
+      const connId = 'conn-mcp-multi';
+
+      useDebugStore.getState().handleDebugEvent({
+        McpToolCalled: {
+          node_uuid: 'node-a',
+          connection_id: connId,
+          tool_name: 'search',
+          duration_ms: 100,
+        },
+      });
+      useDebugStore.getState().handleDebugEvent({
+        McpResourceRead: {
+          node_uuid: 'node-b',
+          connection_id: connId,
+          uri: 'file:///data.txt',
+          duration_ms: 50,
+        },
+      });
+      useDebugStore.getState().handleDebugEvent({
+        McpPromptGet: {
+          node_uuid: 'node-c',
+          connection_id: connId,
+          prompt_name: 'summarize',
+          duration_ms: 20,
+        },
+      });
+
+      const state = useDebugStore.getState();
+      expect(state.mcpOperations[connId]).toHaveLength(3);
+      expect(state.mcpOperations[connId][0].operation_type).toBe('tool_call');
+      expect(state.mcpOperations[connId][1].operation_type).toBe('resource_read');
+      expect(state.mcpOperations[connId][2].operation_type).toBe('prompt_get');
+    });
+
+    it('处理 McpConnectionClosed 事件 — 保留连接信息', () => {
+      // 先创建连接
+      useDebugStore.getState().handleDebugEvent({
+        McpConnectionCreated: {
+          node_uuid: 'node-mcp-1',
+          connection_id: 'conn-mcp-close',
+          url: 'http://localhost:8080/mcp',
+          server_name: 'test-server',
+        },
+      });
+
+      // 关闭连接
+      useDebugStore.getState().handleDebugEvent({
+        McpConnectionClosed: {
+          node_uuid: 'node-mcp-1',
+          connection_id: 'conn-mcp-close',
+          url: 'http://localhost:8080/mcp',
+        },
+      });
+
+      const state = useDebugStore.getState();
+      // 连接信息应保留
+      expect(state.mcpConnections['conn-mcp-close']).toEqual({
+        url: 'http://localhost:8080/mcp',
+        server_name: 'test-server',
+      });
+    });
+  });
 });

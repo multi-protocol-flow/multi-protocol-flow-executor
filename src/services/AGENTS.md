@@ -10,11 +10,13 @@
 
 ```
 services/
-├── tauri/                    # Tauri IPC 服务 (8 文件)
+├── tauri/                    # Tauri IPC 服务 (10 文件)
 │   ├── index.ts              # 主入口，自动检测环境切换实现
 │   ├── flow.ts               # 流程创建/执行（真实 IPC）
 │   ├── debug.ts              # 调试会话 IPC (startDebug, sendDebugCommand, endDebug)
 │   ├── stressTest.ts         # 压力测试 IPC (startStressTest, stopStressTest)
+│   ├── grpc.ts               # gRPC 服务发现 + 请求骨架生成
+│   ├── mcp.ts                # MCP 工具发现
 │   ├── mock.ts               # Mock 实现（非 Tauri 环境）
 │   ├── events.ts             # 事件订阅
 │   ├── settings.ts           # 全局设置（Tauri）
@@ -38,6 +40,8 @@ services/
 | 调试 IPC 调用 | `tauri/flow.ts` 的 `formatError()` |
 | 调试会话管理 | `tauri/debug.ts` |
 | 压力测试 IPC | `tauri/stressTest.ts` |
+| gRPC 服务调用 | `tauri/grpc.ts` |
+| MCP 服务调用 | `tauri/mcp.ts` |
 | 存储流程数据 | `storage/flowStorage.ts` |
 | 报告存储 | `storage/reportStorage.ts` |
 
@@ -71,5 +75,5 @@ function isTauriEnv(): boolean {
 
 ## 注意
 
-- **gRPC 服务层缺失**: gRPC 节点配置组件 (GrpcConnectConfig.tsx) 直接调用 Tauri `invoke`，未通过独立 service 文件抽象
 - **无 connection service**: 数据库连接管理通过 store 直接调用 Tauri IPC，无独立 `tauri/connection.ts` 文件
+- **无 TCP/UDP service**: TCP/UDP 节点无独立 service 抽象，配置组件直接调用 Tauri invoke

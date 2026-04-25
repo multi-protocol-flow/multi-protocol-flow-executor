@@ -225,6 +225,8 @@ export async function force_end_debug(): Promise<void> {
 export type {
   GrpcDiscoverServicesInput,
   GrpcDiscoverServicesOutput,
+  GrpcGenerateRequestSkeletonInput,
+  GrpcGenerateRequestSkeletonOutput,
 } from './grpc';
 
 /**
@@ -243,6 +245,25 @@ export async function discoverGrpcServices(
   } else {
     const { discoverGrpcServices: discoverGrpcServicesImpl } = await import('./mock');
     return discoverGrpcServicesImpl(input);
+  }
+}
+
+/**
+ * 生成 gRPC 请求消息的 JSON 骨架
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @param input - 骨架生成请求参数
+ * @returns 骨架生成结果
+ */
+export async function generateGrpcRequestSkeleton(
+  input: import('./grpc').GrpcGenerateRequestSkeletonInput
+): Promise<import('./grpc').GrpcGenerateRequestSkeletonOutput> {
+  if (isTauriEnv()) {
+    const { generateGrpcRequestSkeleton: generateGrpcRequestSkeletonImpl } = await import('./grpc');
+    return generateGrpcRequestSkeletonImpl(input);
+  } else {
+    const { generateGrpcRequestSkeleton: generateGrpcRequestSkeletonImpl } = await import('./mock');
+    return generateGrpcRequestSkeletonImpl(input);
   }
 }
 

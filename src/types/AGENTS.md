@@ -11,7 +11,7 @@
 ```
 src/types/
 ├── index.ts          # 统一导出入口
-├── node.ts           # 节点类型 + 配置 (判别联合，17 种节点)
+├── node.ts           # 节点类型 + 配置 (判别联合，29 种节点)
 ├── nodeRegistry.ts   # 后端节点元数据 (PortDef, NodeMetadata)
 ├── flow.ts           # 流程结构
 ├── connection.ts     # 节点连接
@@ -79,9 +79,12 @@ src/types/
 `NodeData` 使用判别联合，通过 `type` 字段区分：
 ```typescript
 type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | AssertionConfig
-  | WsConnectConfig | WsSendWaitConfig | WsCloseConfig
+  | WsConnectConfig | WsSendCollectConfig | WsCloseConfig
   | DbConnectConfig | DbQueryConfig | DbBeginConfig | DbCommitConfig | DbRollbackConfig | DbCloseConfig
-  | GrpcConnectConfig | GrpcCallConfig | GrpcCloseConfig;
+  | GrpcConnectConfig | GrpcCallConfig | GrpcCloseConfig
+  | McpConnectConfig | McpCallToolConfig | McpReadResourceConfig | McpGetPromptConfig | McpCloseConfig
+  | TcpConnectConfig | TcpSendConfig | TcpCloseConfig
+  | UdpBindConfig | UdpSendToConfig | UdpRecvFromConfig | UdpCloseConfig;
 ```
 
 ### 可选字段
@@ -90,7 +93,7 @@ type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | As
 - 必须与 Rust 端 `Option<T>` 对应
 - 默认值在 Rust 端实现，前端仅声明类型
 
-## 节点类型 (17 种)
+## 节点类型 (29 种)
 
 | 类型 | 配置类型 | 用途 |
 |------|----------|------|
@@ -100,7 +103,7 @@ type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | As
 | `script` | ScriptConfig | JavaScript 脚本 |
 | `assertion` | AssertionConfig | 断言验证 |
 | `ws_connect` | WsConnectConfig | WebSocket 连接 |
-| `ws_send_wait` | WsSendWaitConfig | WebSocket 发送等待 |
+| `ws_send_collect` | WsSendCollectConfig | WebSocket 发送收集 |
 | `ws_close` | WsCloseConfig | WebSocket 关闭 |
 | `db_connect` | DbConnectConfig | 数据库连接 |
 | `db_query` | DbQueryConfig | 数据库查询 |
@@ -111,6 +114,18 @@ type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | As
 | `grpc_connect` | GrpcConnectConfig | gRPC 连接 |
 | `grpc_call` | GrpcCallConfig | gRPC 调用 |
 | `grpc_close` | GrpcCloseConfig | gRPC 关闭 |
+| `mcp_connect` | McpConnectConfig | MCP 连接 |
+| `mcp_call_tool` | McpCallToolConfig | MCP 调用工具 |
+| `mcp_read_resource` | McpReadResourceConfig | MCP 读取资源 |
+| `mcp_get_prompt` | McpGetPromptConfig | MCP 获取提示 |
+| `mcp_close` | McpCloseConfig | MCP 关闭 |
+| `tcp_connect` | TcpConnectConfig | TCP 连接 |
+| `tcp_send` | TcpSendConfig | TCP 发送 |
+| `tcp_close` | TcpCloseConfig | TCP 关闭 |
+| `udp_bind` | UdpBindConfig | UDP 绑定 |
+| `udp_send_to` | UdpSendToConfig | UDP 发送 |
+| `udp_recv_from` | UdpRecvFromConfig | UDP 接收 |
+| `udp_close` | UdpCloseConfig | UDP 关闭 |
 
 ## 类型漂移风险
 

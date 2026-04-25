@@ -422,6 +422,26 @@ export async function discoverGrpcServices(
   };
 }
 
+/**
+ * Mock 生成 gRPC 请求骨架
+ * 模拟后端 grpc_generate_request_skeleton 命令行为
+ *
+ * @param _input - 骨架生成请求参数（Mock 中未使用）
+ * @returns 模拟的骨架生成结果
+ */
+export async function generateGrpcRequestSkeleton(
+  _input: import('./grpc').GrpcGenerateRequestSkeletonInput
+): Promise<import('./grpc').GrpcGenerateRequestSkeletonOutput> {
+  // 模拟网络延迟
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  return {
+    success: true,
+    skeleton: JSON.stringify({ field: '' }, null, 2),
+    error: null,
+  };
+}
+
 export async function discoverMcpTools(
   _input: import('./mcp').McpDiscoverToolsInput
 ): Promise<import('./mcp').McpDiscoverToolsOutput> {

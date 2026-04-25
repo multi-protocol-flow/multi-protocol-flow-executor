@@ -571,6 +571,8 @@ struct GrpcConnection {
     #[allow(dead_code)]
     /// 创建时间（预留用于连接超时管理）
     created_at: chrono::DateTime<chrono::Utc>,
+    /// 连接级默认 metadata（由 `grpc_connect` 节点配置）
+    default_metadata: Vec<(String, String)>,
 }
 
 /// 动态 gRPC 编解码器
@@ -689,6 +691,21 @@ fn dynamic_message_to_json(msg: &DynamicMessage) -> Result<serde_json::Value, St
     serde_json::from_slice(&buf).map_err(|e| format!("解析响应 JSON 失败: {}", e))
 }
 
+/// 合并连接级默认 metadata 与调用级 metadata
+///
+/// 调用级 metadata 同名 key 覆盖连接级（后者优先）。
+fn merge_metadata(
+    default_metadata: &[(String, String)],
+    call_metadata: Vec<(String, String)>,
+) -> Vec<(String, String)> {
+    default_metadata
+        .iter()
+        .filter(|(k, _)| !call_metadata.iter().any(|(mk, _)| mk == k))
+        .chain(call_metadata.iter())
+        .cloned()
+        .collect()
+}
+
 #[async_trait]
 impl GrpcProvider for GrpcConnectionManager {
     /// 建立 gRPC 连接
@@ -706,7 +723,7 @@ impl GrpcProvider for GrpcConnectionManager {
         tls_skip_verify: bool,
         enable_reflection: bool,
         proto_files: Vec<(String, String)>,
-        _metadata: Vec<(String, String)>,
+        metadata: Vec<(String, String)>,
         connect_timeout_ms: u64,
     ) -> Result<Vec<GrpcServiceInfo>, String> {
         // 1. 构造 URL（确保包含 scheme）
@@ -766,6 +783,7 @@ impl GrpcProvider for GrpcConnectionManager {
             url,
             status: "connected".to_string(),
             created_at: chrono::Utc::now(),
+            default_metadata: metadata,
         };
 
         {
@@ -793,7 +811,7 @@ impl GrpcProvider for GrpcConnectionManager {
         timeout_ms: u64,
     ) -> Result<serde_json::Value, String> {
         // 1. 从连接池获取连接信息（克隆后释放锁）
-        let (channel, pool) = {
+        let (channel, pool, default_metadata) = {
             let conns = self
                 .connections
                 .read()
@@ -801,10 +819,13 @@ impl GrpcProvider for GrpcConnectionManager {
             let conn = conns
                 .get(connection_id)
                 .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
-            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool))
+            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone())
         }; // 读锁在此释放
 
-        // 2. 查找方法描述符
+        // 2. 合并 metadata（调用级覆盖连接级同名 key）
+        let merged_metadata = merge_metadata(&default_metadata, metadata);
+
+        // 3. 查找方法描述符
         let service = pool
             .get_service_by_name(service_name)
             .ok_or_else(|| format!("服务 '{}' 不存在", service_name))?;
@@ -813,13 +834,13 @@ impl GrpcProvider for GrpcConnectionManager {
             .find(|m| m.name() == method_name)
             .ok_or_else(|| format!("方法 '{}' 在服务 '{}' 中不存在", method_name, service_name))?;
 
-        // 3. 反序列化请求 JSON 为 DynamicMessage
+        // 4. 反序列化请求 JSON 为 DynamicMessage
         let req_message = json_to_dynamic_message(request_json, method.input())?;
 
-        // 4. 构造 tonic 请求
+        // 5. 构造 tonic 请求
         let mut request = tonic::Request::new(req_message);
-        // 设置 metadata
-        for (key, value) in metadata {
+        // 设置合并后的 metadata
+        for (key, value) in merged_metadata {
             let meta_key = MetadataKey::from_bytes(key.as_bytes())
                 .map_err(|e| format!("无效的 metadata key '{}': {:?}", key, e))?;
             let meta_val = MetadataValue::try_from(&value)
@@ -831,7 +852,7 @@ impl GrpcProvider for GrpcConnectionManager {
             request.set_timeout(std::time::Duration::from_millis(timeout_ms));
         }
 
-        // 5. 发起 Unary 调用
+        // 6. 发起 Unary 调用
         let path = build_method_path(service_name, method_name)?;
         let codec = DynamicCodec::new(method);
         let mut client = tonic::client::Grpc::new(channel);
@@ -845,7 +866,7 @@ impl GrpcProvider for GrpcConnectionManager {
             .await
             .map_err(|e| format!("gRPC Unary 调用失败: {} ({})", e.message(), e.code()))?;
 
-        // 6. 序列化响应为 JSON
+        // 7. 序列化响应为 JSON
         let response_msg = response.into_inner();
         dynamic_message_to_json(&response_msg)
     }
@@ -864,7 +885,7 @@ impl GrpcProvider for GrpcConnectionManager {
         timeout_ms: u64,
     ) -> Result<Vec<serde_json::Value>, String> {
         // 1. 从连接池获取连接信息（克隆后释放锁）
-        let (channel, pool) = {
+        let (channel, pool, default_metadata) = {
             let conns = self
                 .connections
                 .read()
@@ -872,10 +893,13 @@ impl GrpcProvider for GrpcConnectionManager {
             let conn = conns
                 .get(connection_id)
                 .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
-            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool))
+            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone())
         }; // 读锁在此释放
 
-        // 2. 查找方法描述符
+        // 2. 合并 metadata（调用级覆盖连接级同名 key）
+        let merged_metadata = merge_metadata(&default_metadata, metadata);
+
+        // 3. 查找方法描述符
         let service = pool
             .get_service_by_name(service_name)
             .ok_or_else(|| format!("服务 '{}' 不存在", service_name))?;
@@ -884,19 +908,19 @@ impl GrpcProvider for GrpcConnectionManager {
             .find(|m| m.name() == method_name)
             .ok_or_else(|| format!("方法 '{}' 在服务 '{}' 中不存在", method_name, service_name))?;
 
-        // 3. 反序列化请求 JSON 为 DynamicMessage
+        // 4. 反序列化请求 JSON 为 DynamicMessage
         let req_message = json_to_dynamic_message(request_json, method.input())?;
 
-        // 4. 构造 tonic 请求
+        // 5. 构造 tonic 请求
         let mut request = tonic::Request::new(req_message);
-        for (key, value) in metadata {
+        for (key, value) in merged_metadata {
             let meta_key = MetadataKey::from_bytes(key.as_bytes())
                 .map_err(|e| format!("无效的 metadata key '{}': {:?}", key, e))?;
             let meta_val = MetadataValue::try_from(&value)
                 .map_err(|e| format!("无效的 metadata value '{}': {:?}", value, e))?;
             request.metadata_mut().insert(meta_key, meta_val);
         }
-        // 5. 发起 Server Streaming 调用（不设 request deadline，避免过早终止流式响应）
+        // 6. 发起 Server Streaming 调用（不设 request deadline，避免过早终止流式响应）
         let path = build_method_path(service_name, method_name)?;
         let codec = DynamicCodec::new(method);
         let mut client = tonic::client::Grpc::new(channel);
@@ -970,30 +994,33 @@ impl GrpcProvider for GrpcConnectionManager {
         timeout_ms: u64,
     ) -> Result<serde_json::Value, String> {
         // 1. 从连接池获取连接信息
-        let (channel, pool) = {
+        let (channel, pool, default_metadata) = {
             let conns = self.connections.read().map_err(|e| format!("获取连接池读锁失败: {}", e))?;
             let conn = conns.get(connection_id).ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
-            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool))
+            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone())
         };
 
-        // 2. 查找方法描述符
+        // 2. 合并 metadata（调用级覆盖连接级同名 key）
+        let merged_metadata = merge_metadata(&default_metadata, metadata);
+
+        // 3. 查找方法描述符
         let service = pool.get_service_by_name(service_name)
             .ok_or_else(|| format!("服务 '{}' 不存在", service_name))?;
         let method = service.methods()
             .find(|m| m.name() == method_name)
             .ok_or_else(|| format!("方法 '{}' 在服务 '{}' 中不存在", method_name, service_name))?;
 
-        // 3. 将所有 request_messages 解码为 DynamicMessage
+        // 4. 将所有 request_messages 解码为 DynamicMessage
         let messages: Vec<DynamicMessage> = request_messages.iter()
             .map(|json| json_to_dynamic_message(json, method.input()))
             .collect::<Result<Vec<_>, _>>()?;
 
-        // 4. 构造请求流
+        // 5. 构造请求流
         let request_stream = tokio_stream::iter(messages);
         let mut request = tonic::Request::new(request_stream);
 
-        // 5. 设置 metadata
-        for (key, value) in metadata {
+        // 6. 设置合并后的 metadata
+        for (key, value) in merged_metadata {
             let meta_key = MetadataKey::from_bytes(key.as_bytes())
                 .map_err(|e| format!("无效的 metadata key '{}': {:?}", key, e))?;
             let meta_val = MetadataValue::try_from(&value)
@@ -1033,31 +1060,34 @@ impl GrpcProvider for GrpcConnectionManager {
         let start = Instant::now();
 
         // 1. 从连接池获取连接信息
-        let (channel, pool) = {
+        let (channel, pool, default_metadata) = {
             let conns = self.connections.read().map_err(|e| format!("获取连接池读锁失败: {}", e))?;
             let conn = conns.get(connection_id).ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
-            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool))
+            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone())
         };
 
-        // 2. 查找方法描述符
+        // 2. 合并 metadata（调用级覆盖连接级同名 key）
+        let merged_metadata = merge_metadata(&default_metadata, metadata);
+
+        // 3. 查找方法描述符
         let service = pool.get_service_by_name(service_name)
             .ok_or_else(|| format!("服务 '{}' 不存在", service_name))?;
         let method = service.methods()
             .find(|m| m.name() == method_name)
             .ok_or_else(|| format!("方法 '{}' 在服务 '{}' 中不存在", method_name, service_name))?;
 
-        // 3. 将所有 request_messages 解码为 DynamicMessage
+        // 4. 将所有 request_messages 解码为 DynamicMessage
         let messages: Vec<DynamicMessage> = request_messages.iter()
             .map(|json| json_to_dynamic_message(json, method.input()))
             .collect::<Result<Vec<_>, _>>()?;
         let sent_count = messages.len();
 
-        // 4. 构造请求流
+        // 5. 构造请求流
         let request_stream = tokio_stream::iter(messages);
         let mut request = tonic::Request::new(request_stream);
 
-        // 5. 设置 metadata
-        for (key, value) in metadata {
+        // 6. 设置合并后的 metadata
+        for (key, value) in merged_metadata {
             let meta_key = MetadataKey::from_bytes(key.as_bytes())
                 .map_err(|e| format!("无效的 metadata key '{}': {:?}", key, e))?;
             let meta_val = MetadataValue::try_from(&value)
@@ -1065,7 +1095,7 @@ impl GrpcProvider for GrpcConnectionManager {
             request.metadata_mut().insert(meta_key, meta_val);
         }
 
-        // 6. 发起 Bidi Streaming 调用（不设 request deadline，避免过早终止流式响应）
+        // 7. 发起 Bidi Streaming 调用（不设 request deadline，避免过早终止流式响应）
         let path = build_method_path(service_name, method_name)?;
         let codec = DynamicCodec::new(method);
         let mut client = tonic::client::Grpc::new(channel);
@@ -1304,5 +1334,68 @@ message TestResponse {
         let json = dynamic_message_to_json(&msg).expect("序列化应成功");
         assert_eq!(json["name"], "Alice");
         assert_eq!(json["age"], 30);
+    }
+
+    // ===== metadata 合并测试 =====
+
+    #[test]
+    fn test_merge_metadata_both_present() {
+        // 连接级和调用级各有不同的 key → 两者都保留
+        let default = vec![
+            ("auth".to_string(), "token-a".to_string()),
+        ];
+        let call = vec![
+            ("trace".to_string(), "id-1".to_string()),
+        ];
+        let merged = merge_metadata(&default, call);
+        assert_eq!(merged.len(), 2);
+        let auth_val = merged.iter().find(|(k, _)| k == "auth").map(|(_, v)| v.clone());
+        let trace_val = merged.iter().find(|(k, _)| k == "trace").map(|(_, v)| v.clone());
+        assert_eq!(auth_val, Some("token-a".to_string()));
+        assert_eq!(trace_val, Some("id-1".to_string()));
+    }
+
+    #[test]
+    fn test_merge_metadata_call_overrides_default() {
+        // 同名 key → 调用级覆盖连接级
+        let default = vec![
+            ("key".to_string(), "old".to_string()),
+            ("extra".to_string(), "keep".to_string()),
+        ];
+        let call = vec![
+            ("key".to_string(), "new".to_string()),
+        ];
+        let merged = merge_metadata(&default, call);
+        assert_eq!(merged.len(), 2);
+        let key_val = merged.iter().find(|(k, _)| k == "key").map(|(_, v)| v.clone());
+        let extra_val = merged.iter().find(|(k, _)| k == "extra").map(|(_, v)| v.clone());
+        assert_eq!(key_val, Some("new".to_string())); // 调用级覆盖
+        assert_eq!(extra_val, Some("keep".to_string())); // 连接级保留
+    }
+
+    #[test]
+    fn test_merge_metadata_empty_default() {
+        // 连接级为空 → 只使用调用级
+        let default: Vec<(String, String)> = vec![];
+        let call = vec![
+            ("token".to_string(), "abc".to_string()),
+        ];
+        let merged = merge_metadata(&default, call);
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].0, "token");
+        assert_eq!(merged[0].1, "abc");
+    }
+
+    #[test]
+    fn test_merge_metadata_empty_call() {
+        // 调用级为空 → 只使用连接级
+        let default = vec![
+            ("auth".to_string(), "bearer".to_string()),
+        ];
+        let call: Vec<(String, String)> = vec![];
+        let merged = merge_metadata(&default, call);
+        assert_eq!(merged.len(), 1);
+        assert_eq!(merged[0].0, "auth");
+        assert_eq!(merged[0].1, "bearer");
     }
 }

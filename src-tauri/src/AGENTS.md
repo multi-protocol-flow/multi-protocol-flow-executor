@@ -14,7 +14,7 @@ src/
 ├── lib.rs              # 模块导出 + Tauri 应用启动 (插件注册/日志配置)
 ├── main.rs             # 应用入口 (调用 lib::run())
 ├── tauri_adapters.rs   # Tauri 适配器 (LogSender/DirectoryOpener/AppDirProvider)
-└── tauri_commands.rs   # IPC 命令 (39 个 #[tauri::command] 包装器)
+└── tauri_commands.rs   # IPC 命令 (48 个 #[tauri::command] 包装器)
 ```
 
 ## WHERE TO LOOK
@@ -27,7 +27,7 @@ src/
 | 修改应用启动逻辑 | `lib.rs` → `setup` |
 | 执行器/节点/流程等 | `crates/flow-engine/` |
 
-## IPC 命令 (39 个)
+## IPC 命令 (48 个)
 
 | 分类 | 数量 | 命令 |
 |------|------|------|
@@ -37,11 +37,13 @@ src/
 | Debug | 5 | start_debug, send_debug_command, end_debug, get_debug_status, force_end_debug |
 | Stress Test | 3 | start/stop/get_stress_test_status |
 | Database | 1 | test_db_connection |
-| gRPC | 1 | grpc_discover_services |
+| gRPC | 2 | grpc_discover_services, grpc_generate_request_skeleton |
+| MCP | 1 | mcp_discover_tools |
 | Settings | 2 | get_app_data_dir, open_directory |
 | Flow Files | 5 | list/load/save/delete/copy_flow_file |
 | Folders | 6 | list/create/delete/rename_folder, move_flow_to_folder, move_folder |
 | Registry | 3 | get_registered_node_types, get_node_config_schema, list_registered_plugins |
+| Dataset | 6 | validate_dataset_csv, execute_flow_with_dataset, cancel_dataset_execution, list/load/delete_dataset_report, load_dataset_row_detail |
 
 ## CONVENTIONS
 

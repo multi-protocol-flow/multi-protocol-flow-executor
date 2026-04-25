@@ -53,6 +53,8 @@ pub use tauri_commands::{
     test_db_connection,
     // gRPC 服务发现命令
     grpc_discover_services,
+    // gRPC 请求骨架生成命令
+    grpc_generate_request_skeleton,
     // MCP 工具发现命令
     mcp_discover_tools,
     // 执行会话管理
@@ -185,6 +187,8 @@ pub fn run() {
     test_db_connection,
     // gRPC 服务发现命令
     grpc_discover_services,
+    // gRPC 请求骨架生成命令
+    grpc_generate_request_skeleton,
     // MCP 工具发现命令
     mcp_discover_tools,
     // 执行会话管理

@@ -4,6 +4,7 @@
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
+use flow_engine_core::debug_types::DebugEvent;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
@@ -146,7 +147,17 @@ impl NodeExecutor for GrpcConnectExecutor {
                     })
                     .await;
 
-                // 7. 返回 true 端口（连接成功）
+                // 7. 发送调试事件：GrpcChannelCreated
+                if let Some(sender) = &context.debug_event_sender {
+                    let _ = sender.send_event(DebugEvent::GrpcChannelCreated {
+                        node_uuid: node.uuid.clone(),
+                        connection_id: node.uuid.clone(),
+                        url: url.clone(),
+                        service_count: services.len(),
+                    });
+                }
+
+                // 8. 返回 true 端口（连接成功）
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
                         .iter()

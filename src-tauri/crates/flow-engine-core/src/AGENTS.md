@@ -12,7 +12,7 @@
 flow-engine-core/src/
 ├── lib.rs                 # 模块导出
 ├── node.rs                # Node/NodeType/Port 定义 (15 variants)
-├── node_config.rs         # NodeData 配置枚举 (17 种节点 + Plugin 兜底, ~1,771 行)
+├── node_config.rs         # NodeData 配置枚举 (29 种节点 + Plugin 兜底, ~1,771 行)
 ├── node_types.rs          # 辅助节点类型
 ├── flow.rs                # Flow 结构体
 ├── connection.rs          # Connection 定义
@@ -68,8 +68,8 @@ flow-engine-core/src/
 - **NodeRegistry**: 插件注册表，定义在 `registry.rs`
 - **ErrorKind**: 区分致命错误 (`Configuration`, `ConditionSyntax`) 和可恢复错误，含 5 个 gRPC 变体
 - **ExecutionContext**: 流程执行上下文，包含 VariableStorage + grpc_manager
-- **NodeData**: 17 种节点配置 + Plugin 兜底的判别联合
-- **NodeType**: 15 个枚举变体 (注意: NodeData 17 种 + Plugin 兜底可处理未知类型)
+- **NodeData**: 29 种节点配置 + Plugin 兜底的判别联合
+- **NodeType**: 27 个枚举变体 (注意: NodeData 29 种 + Plugin 兜底可处理未知类型)
 
 ## 约定
 

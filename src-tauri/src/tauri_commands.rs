@@ -319,6 +319,212 @@ pub async fn grpc_discover_services(
 }
 
 // ============================================================================
+// gRPC 请求骨架生成命令
+// ============================================================================
+
+use flow_engine::proto_parser;
+
+/// gRPC 请求骨架生成请求参数
+#[derive(serde::Deserialize)]
+pub struct GrpcGenerateRequestSkeletonInput {
+    /// Proto 文件列表 (path, content)
+    pub proto_files: Vec<(String, String)>,
+    /// 服务全名（如 "package.ServiceName"）
+    pub service_name: String,
+    /// 方法名
+    pub method_name: String,
+}
+
+/// gRPC 请求骨架生成响应
+#[derive(serde::Serialize)]
+pub struct GrpcGenerateRequestSkeletonOutput {
+    /// 是否成功
+    pub success: bool,
+    /// 生成的 JSON 骨架字符串
+    pub skeleton: Option<String>,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// 生成 gRPC 请求消息的 JSON 骨架
+///
+/// 根据指定服务和方法的 Input Type，解析 proto 文件并生成占位 JSON。
+/// 用于帮助用户快速构造请求消息。
+#[tauri::command]
+pub async fn grpc_generate_request_skeleton(
+    input: GrpcGenerateRequestSkeletonInput,
+) -> GrpcGenerateRequestSkeletonOutput {
+    log::info!(
+        "[gRPC] 生成请求骨架: service={}, method={}, proto_files={}",
+        input.service_name,
+        input.method_name,
+        input.proto_files.len()
+    );
+
+    // 将 (path, content) 元组转换为 ProtoFile
+    let files: Vec<proto_parser::ProtoFile> = input
+        .proto_files
+        .iter()
+        .map(|(path, content)| proto_parser::ProtoFile {
+            path: path.clone(),
+            content: content.clone(),
+        })
+        .collect();
+
+    // 解析 proto 文件
+    let pool = match proto_parser::parse_proto_files(&files) {
+        Ok(pool) => pool,
+        Err(e) => {
+            let err_msg = format!("解析 proto 文件失败: {}", e);
+            log::error!("[gRPC] {}", err_msg);
+            return GrpcGenerateRequestSkeletonOutput {
+                success: false,
+                skeleton: None,
+                error: Some(err_msg),
+            };
+        }
+    };
+
+    // 查找指定服务和方法
+    let service = match pool.get_service_by_name(&input.service_name) {
+        Some(svc) => svc,
+        None => {
+            let err_msg = format!("未找到服务: {}", input.service_name);
+            log::error!("[gRPC] {}", err_msg);
+            return GrpcGenerateRequestSkeletonOutput {
+                success: false,
+                skeleton: None,
+                error: Some(err_msg),
+            };
+        }
+    };
+
+    let method = match service.methods().find(|m| m.name() == input.method_name) {
+        Some(m) => m,
+        None => {
+            let err_msg = format!(
+                "服务 {} 中未找到方法: {}",
+                input.service_name, input.method_name
+            );
+            log::error!("[gRPC] {}", err_msg);
+            return GrpcGenerateRequestSkeletonOutput {
+                success: false,
+                skeleton: None,
+                error: Some(err_msg),
+            };
+        }
+    };
+
+    // 获取输入消息描述符并生成骨架
+    let input_msg = method.input();
+    let skeleton = proto_parser::generate_json_skeleton(&input_msg);
+    let skeleton_str = serde_json::to_string_pretty(&skeleton).unwrap_or_else(|_| "{}".to_string());
+
+    log::info!(
+        "[gRPC] 骨架生成成功: {}",
+        skeleton_str.chars().take(100).collect::<String>()
+    );
+
+    GrpcGenerateRequestSkeletonOutput {
+        success: true,
+        skeleton: Some(skeleton_str),
+        error: None,
+    }
+}
+
+#[cfg(test)]
+mod grpc_skeleton_tests {
+    use super::*;
+
+    /// 测试用的简单 proto 文件
+    const TEST_PROTO: &str = r#"
+syntax = "proto3";
+
+package test;
+
+service TestService {
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+}
+
+message GetUserRequest {
+  string user_id = 1;
+  int32 page = 2;
+}
+
+message GetUserResponse {
+  string user_id = 1;
+  string name = 2;
+}
+"#;
+
+    /// 测试成功生成请求骨架
+    #[tokio::test]
+    async fn test_grpc_generate_skeleton_success() {
+        let input = GrpcGenerateRequestSkeletonInput {
+            proto_files: vec![("test.proto".to_string(), TEST_PROTO.to_string())],
+            service_name: "test.TestService".to_string(),
+            method_name: "GetUser".to_string(),
+        };
+
+        let output = grpc_generate_request_skeleton(input).await;
+
+        assert!(output.success, "应成功生成骨架");
+        assert!(output.skeleton.is_some(), "应返回骨架内容");
+        assert!(output.error.is_none(), "不应有错误");
+
+        let skeleton = output.skeleton.expect("骨架应存在");
+        assert!(skeleton.contains("user_id"), "骨架应包含 user_id 字段");
+        assert!(skeleton.contains("page"), "骨架应包含 page 字段");
+    }
+
+    /// 测试无效服务名
+    #[tokio::test]
+    async fn test_grpc_generate_skeleton_invalid_service() {
+        let input = GrpcGenerateRequestSkeletonInput {
+            proto_files: vec![("test.proto".to_string(), TEST_PROTO.to_string())],
+            service_name: "test.NonExistent".to_string(),
+            method_name: "GetUser".to_string(),
+        };
+
+        let output = grpc_generate_request_skeleton(input).await;
+
+        assert!(!output.success, "应失败");
+        assert!(output.error.is_some(), "应返回错误信息");
+        assert!(output.skeleton.is_none(), "不应返回骨架");
+    }
+
+    /// 测试无效方法名
+    #[tokio::test]
+    async fn test_grpc_generate_skeleton_invalid_method() {
+        let input = GrpcGenerateRequestSkeletonInput {
+            proto_files: vec![("test.proto".to_string(), TEST_PROTO.to_string())],
+            service_name: "test.TestService".to_string(),
+            method_name: "NonExistent".to_string(),
+        };
+
+        let output = grpc_generate_request_skeleton(input).await;
+
+        assert!(!output.success, "应失败");
+        assert!(output.error.is_some(), "应返回错误信息");
+    }
+
+    /// 测试无效 proto 文件
+    #[tokio::test]
+    async fn test_grpc_generate_skeleton_invalid_proto() {
+        let input = GrpcGenerateRequestSkeletonInput {
+            proto_files: vec![("bad.proto".to_string(), "invalid proto !!!".to_string())],
+            service_name: "test.TestService".to_string(),
+            method_name: "GetUser".to_string(),
+        };
+
+        let output = grpc_generate_request_skeleton(input).await;
+
+        assert!(!output.success, "应失败");
+        assert!(output.error.is_some(), "应返回错误信息");
+    }
+}
+
+// ============================================================================
 // MCP 工具发现命令
 // ============================================================================
 

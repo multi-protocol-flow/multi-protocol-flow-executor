@@ -4,7 +4,7 @@
  * 包含心跳超时检测、命令超时检测和状态回滚机制
  */
 import { create } from 'zustand';
-import type { DebugStatus, PauseReason, ExecutionStackEntry, DebugEvent } from '@/types/debug';
+import type { DebugStatus, PauseReason, ExecutionStackEntry, DebugEvent, GrpcConnectionInfo, GrpcMethodCallRecord, McpConnectionInfo, McpOperationRecord } from '@/types/debug';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types/report';
 import { DEBUG_HEALTH_CONFIG } from '@/types/debug';
 import { startDebug, sendDebugCommand, endDebug as endDebugService, saveFlowReport } from '@/services/tauri';
@@ -55,6 +55,18 @@ interface DebugState {
   /** 调试数据是否为只读模式（调试结束后保留数据但禁止编辑） */
   isDebugDataReadOnly: boolean;
 
+  // ===== gRPC 调试数据 =====
+  /** gRPC 通道连接信息 (connection_id → 连接信息) */
+  grpcConnections: Record<string, GrpcConnectionInfo>;
+  /** gRPC 方法调用记录 (connection_id → 调用记录列表) */
+  grpcMethodCalls: Record<string, GrpcMethodCallRecord[]>;
+
+  // ===== MCP 调试数据 =====
+  /** MCP 连接信息 (connection_id → 连接信息) */
+  mcpConnections: Record<string, McpConnectionInfo>;
+  /** MCP 操作记录 (connection_id → 操作记录列表) */
+  mcpOperations: Record<string, McpOperationRecord[]>;
+
   // ===== Actions =====
   /** 启动调试会话 */
   startDebugSession: (flow: Flow, breakpoints: string[]) => Promise<void>;
@@ -102,6 +114,10 @@ const initialState = {
   previousStatus: null,
   lastDebugReport: null,
   isDebugDataReadOnly: false,
+  grpcConnections: {},
+  grpcMethodCalls: {},
+  mcpConnections: {},
+  mcpOperations: {},
 };
 
 // ============================================================================
@@ -595,11 +611,75 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         set({ currentNodeUuid: current_node_uuid });
       }
     } else if ('WsStreamCreated' in event || 'WsMessageReceived' in event ||
-               'WsMessageSent' in event || 'WsSegmentStarted' in event ||
-               'WsSegmentEnded' in event || 'WsStreamOwnerChanged' in event ||
-               'WsStreamClosed' in event) {
+                'WsMessageSent' in event || 'WsSegmentStarted' in event ||
+                'WsSegmentEnded' in event || 'WsStreamOwnerChanged' in event ||
+                'WsStreamClosed' in event) {
       // 所有 WS 流事件委托到 wsStreamStore 处理
       useWsStreamStore.getState().handleWsEvent(event);
+    } else if ('GrpcChannelCreated' in event) {
+      const { connection_id, url, service_count } = event.GrpcChannelCreated;
+      set((state) => ({
+        grpcConnections: {
+          ...state.grpcConnections,
+          [connection_id]: { url, service_count },
+        },
+      }));
+    } else if ('GrpcMethodCalled' in event) {
+      const { connection_id, node_uuid, service, method, pattern, duration_ms } = event.GrpcMethodCalled;
+      set((state) => ({
+        grpcMethodCalls: {
+          ...state.grpcMethodCalls,
+          [connection_id]: [
+            ...(state.grpcMethodCalls[connection_id] || []),
+            { node_uuid, service, method, pattern, duration_ms },
+          ],
+        },
+      }));
+    } else if ('GrpcChannelClosed' in event) {
+      // gRPC 通道关闭 — 保留连接信息用于查看，不删除
+    } else if ('McpConnectionCreated' in event) {
+      const { connection_id, url, server_name } = event.McpConnectionCreated;
+      set((state) => ({
+        mcpConnections: {
+          ...state.mcpConnections,
+          [connection_id]: { url, server_name },
+        },
+      }));
+    } else if ('McpToolCalled' in event) {
+      const { connection_id, node_uuid, tool_name, duration_ms } = event.McpToolCalled;
+      set((state) => ({
+        mcpOperations: {
+          ...state.mcpOperations,
+          [connection_id]: [
+            ...(state.mcpOperations[connection_id] || []),
+            { node_uuid, operation_type: 'tool_call', name: tool_name, duration_ms },
+          ],
+        },
+      }));
+    } else if ('McpResourceRead' in event) {
+      const { connection_id, node_uuid, uri, duration_ms } = event.McpResourceRead;
+      set((state) => ({
+        mcpOperations: {
+          ...state.mcpOperations,
+          [connection_id]: [
+            ...(state.mcpOperations[connection_id] || []),
+            { node_uuid, operation_type: 'resource_read', name: uri, duration_ms },
+          ],
+        },
+      }));
+    } else if ('McpPromptGet' in event) {
+      const { connection_id, node_uuid, prompt_name, duration_ms } = event.McpPromptGet;
+      set((state) => ({
+        mcpOperations: {
+          ...state.mcpOperations,
+          [connection_id]: [
+            ...(state.mcpOperations[connection_id] || []),
+            { node_uuid, operation_type: 'prompt_get', name: prompt_name, duration_ms },
+          ],
+        },
+      }));
+    } else if ('McpConnectionClosed' in event) {
+      // MCP 连接关闭 — 保留连接信息用于查看，不删除
     }
   },
 

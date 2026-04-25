@@ -169,7 +169,12 @@ export type {
   ExecutionStackEntry,
   DebugEvent,
   DebugSessionState,
+  GrpcConnectionInfo,
+  GrpcMethodCallRecord,
+  McpConnectionInfo,
+  McpOperationRecord,
 } from './debug';
+export { DEBUG_HEALTH_CONFIG } from './debug';
 
 // WebSocket 流类型
 export type {

@@ -15,7 +15,7 @@ components/
 │   ├── CanvasToolbar.tsx # 工具栏
 │   ├── DebugToolbar.tsx  # 调试工具栏 (继续/单步/跳过/结束)
 │   ├── BreakpointMarker.tsx # 断点标记
-│   ├── nodes/            # 17 种节点: Entry, Http, Conditional, Script, Assertion, Ws*, Db*, Grpc* + DynamicPluginNode
+│   ├── nodes/            # 29 种节点: Entry, Http, Conditional, Script, Assertion, Ws*, Db*, Grpc*, Mcp*, Tcp*, Udp* + DynamicPluginNode
 │   ├── edges/CustomEdge.tsx
 │   └── utils.ts          # Flow ↔ ReactFlow 转换
 ├── panels/               # 节点配置面板 (~22 文件)
@@ -26,6 +26,9 @@ components/
 │   ├── DbConnectConfig.tsx / DbQueryConfig.tsx / DbBeginConfig.tsx
 │   ├── DbCommitConfig.tsx / DbRollbackConfig.tsx / DbCloseConfig.tsx
 │   ├── GrpcConnectConfig.tsx / GrpcCallConfig.tsx / GrpcCloseConfig.tsx
+│   ├── McpConnectConfig.tsx / McpCallToolConfig.tsx / McpReadResourceConfig.tsx / McpGetPromptConfig.tsx / McpCloseConfig.tsx
+│   ├── TcpConnectConfig.tsx / TcpSendConfig.tsx / TcpCloseConfig.tsx
+│   ├── UdpBindConfig.tsx / UdpSendToConfig.tsx / UdpRecvFromConfig.tsx / UdpCloseConfig.tsx
 │   ├── SchemaConfigPanel.tsx # Schema 配置面板
 │   ├── FlowNodeList.tsx      # 流程节点列表
 │   ├── VariablePanel.tsx     # 变量面板
@@ -43,7 +46,7 @@ components/
 │   ├── WsMessageTimeline.tsx # WebSocket 消息时间线
 │   ├── StressTestHistory.tsx # 压测历史
 │   ├── NodeListItem.tsx      # 节点列表项
-│   └── viewers/              # 节点执行结果查看器 (10 文件: HttpNodeViewer, ConditionalViewer, GenericViewer, WsConnectViewer, WsSendCollectViewer, WsCloseViewer, GrpcViewer, RawJsonViewer, VariableChangesCard, +1)
+│   └── viewers/              # 节点执行结果查看器 (12 文件: HttpNodeViewer, ConditionalViewer, GenericViewer, WsConnectViewer, WsSendCollectViewer, WsCloseViewer, GrpcViewer, McpViewer, TcpUdpViewer, RawJsonViewer, VariableChangesCard, +1)
 ├── sidebar/              # FlowListPanel, NodeLibrary, ConnectionsPanel
 ├── dialogs/              # NewFlowDialog, ConfirmDialog, DebugNodeConfigDialog, SkipNodeDialog, ConnectionDialog, ScriptHelpDialog
 ├── panels/SettingsPanel.tsx  # 全局设置 (报告/日志目录)
@@ -61,6 +64,11 @@ components/
 | 节点配置表单 | `panels/*Config.tsx` |
 | gRPC 节点配置 | `panels/GrpcConnectConfig.tsx`, `panels/GrpcCallConfig.tsx`, `panels/GrpcCloseConfig.tsx` |
 | gRPC 执行结果 | `execution/viewers/GrpcViewer.tsx` |
+| MCP 节点配置 | `panels/McpConnectConfig.tsx`, `panels/McpCallToolConfig.tsx`, `panels/McpReadResourceConfig.tsx`, `panels/McpGetPromptConfig.tsx`, `panels/McpCloseConfig.tsx` |
+| MCP 执行结果 | `execution/viewers/McpViewer.tsx` |
+| TCP 节点配置 | `panels/TcpConnectConfig.tsx`, `panels/TcpSendConfig.tsx`, `panels/TcpCloseConfig.tsx` |
+| UDP 节点配置 | `panels/UdpBindConfig.tsx`, `panels/UdpSendToConfig.tsx`, `panels/UdpRecvFromConfig.tsx`, `panels/UdpCloseConfig.tsx` |
+| TCP/UDP 执行结果 | `execution/viewers/TcpUdpViewer.tsx` |
 | 变量输入组件 | `ui/VariableInput.tsx`, `ui/VariableSelector.tsx` |
 | SQL 编辑器 | `ui/SqlEditor.tsx` |
 | 数据库结果预览 | `ui/DbResultPreview.tsx` |
@@ -80,7 +88,7 @@ components/
 - **节点注册**: `FlowCanvas.tsx` 中 `nodeTypes` 对象
 - **断点**: 通过 `useFlowStore().toggleBreakpoint()` 管理，`BreakpointMarker` 组件渲染
 
-## 节点类型 (17 种)
+## 节点类型 (29 种)
 
 | 类型 | 组件 | 配置面板 | 颜色 |
 |------|------|----------|------|
@@ -90,7 +98,7 @@ components/
 | Script | ScriptNode.tsx | ScriptConfig.tsx | 紫色 |
 | Assertion | AssertionNode.tsx | AssertionConfig.tsx | 红色 |
 | WsConnect | WsConnectNode.tsx | WsConnectConfig.tsx | 琥珀色 |
-| WsSendWait | WsSendWaitNode.tsx | WsSendWaitConfig.tsx | 青色 |
+| WsSendCollect | WsSendCollectNode.tsx | WsSendCollectConfig.tsx | 青色 |
 | WsClose | WsCloseNode.tsx | WsCloseConfig.tsx | 玫红色 |
 | DbConnect | DbConnectNode.tsx | DbConnectConfig.tsx | 靛蓝色 |
 | DbQuery | DbQueryNode.tsx | DbQueryConfig.tsx | 靛蓝色 |
@@ -101,6 +109,18 @@ components/
 | GrpcConnect | GrpcConnectNode.tsx | GrpcConnectConfig.tsx | 紫色 |
 | GrpcCall | GrpcCallNode.tsx | GrpcCallConfig.tsx | 紫色 |
 | GrpcClose | GrpcCloseNode.tsx | GrpcCloseConfig.tsx | 紫色 |
+| McpConnect | McpConnectNode.tsx | McpConnectConfig.tsx | 青绿色 |
+| McpCallTool | McpCallToolNode.tsx | McpCallToolConfig.tsx | 青绿色 |
+| McpReadResource | McpReadResourceNode.tsx | McpReadResourceConfig.tsx | 青绿色 |
+| McpGetPrompt | McpGetPromptNode.tsx | McpGetPromptConfig.tsx | 青绿色 |
+| McpClose | McpCloseNode.tsx | McpCloseConfig.tsx | 青绿色 |
+| TcpConnect | TcpConnectNode.tsx | TcpConnectConfig.tsx | 棕色 |
+| TcpSend | TcpSendNode.tsx | TcpSendConfig.tsx | 棕色 |
+| TcpClose | TcpCloseNode.tsx | TcpCloseConfig.tsx | 棕色 |
+| UdpBind | UdpBindNode.tsx | UdpBindConfig.tsx | 橄榄色 |
+| UdpSendTo | UdpSendToNode.tsx | UdpSendToConfig.tsx | 橄榄色 |
+| UdpRecvFrom | UdpRecvFromNode.tsx | UdpRecvFromConfig.tsx | 橄榄色 |
+| UdpClose | UdpCloseNode.tsx | UdpCloseConfig.tsx | 橄榄色 |
 
 ## 注意事项
 
@@ -110,4 +130,4 @@ components/
 4. **变量引用**: 使用 `{{path.to.value}}` 语法，`VariableInput` 组件提供自动补全
 5. **调试状态**: `useDebugStore()` 管理断点、暂停、当前节点等状态
 6. **压力测试**: `useStressTestStore()` 管理压测配置和状态
-7. **gRPC 服务层缺失**: GrpcConnectConfig.tsx 直接调用 Tauri invoke，无独立 service 抽象
+7. **gRPC 服务层**: gRPC IPC 调用已通过 `src/services/tauri/grpc.ts` 抽象，MCP 通过 `src/services/tauri/mcp.ts` 抽象
