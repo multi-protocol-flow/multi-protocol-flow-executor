@@ -12,6 +12,7 @@ members = [
     "crates/flow-engine-executor",
     "crates/flow-engine-grpc",
     "crates/flow-engine-mcp",
+    "crates/flow-engine-tcp",
 ]
 resolver = "2"
 

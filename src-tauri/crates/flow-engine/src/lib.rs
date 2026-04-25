@@ -52,6 +52,17 @@ pub use flow_engine_grpc::grpc_close_executor;
 pub use flow_engine_grpc::grpc_connect_executor;
 pub use flow_engine_grpc::grpc_connection_manager;
 pub use flow_engine_grpc::grpc_call_executor;
+// TCP (flow-engine-tcp)
+pub use flow_engine_tcp::tcp_close_executor;
+pub use flow_engine_tcp::tcp_connect_executor;
+pub use flow_engine_tcp::tcp_connection_manager;
+pub use flow_engine_tcp::tcp_send_executor;
+// UDP (flow-engine-tcp)
+pub use flow_engine_tcp::udp_bind_executor;
+pub use flow_engine_tcp::udp_close_executor;
+pub use flow_engine_tcp::udp_recv_from_executor;
+pub use flow_engine_tcp::udp_send_to_executor;
+pub use flow_engine_tcp::udp_socket_manager;
 // MCP (flow-engine-mcp)
 pub use flow_engine_mcp;
 // Wave 4: 调试模块
