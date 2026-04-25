@@ -161,6 +161,12 @@ impl DebuggableFlowExecutor {
         // 初始化数据库连接池管理器
         let db_manager = Arc::new(DatabaseConnectionManager::new());
 
+        // 初始化 gRPC 连接管理器（流程级别的单例）
+        let grpc_manager = Arc::new(flow_engine_grpc::grpc_connection_manager::GrpcConnectionManager::new());
+
+        // 初始化 MCP 连接管理器（流程级别的单例）
+        let mcp_manager = Arc::new(flow_engine_mcp::McpConnectionManager::new());
+
         let mut context = ExecutionContext {
             flow_uuid: flow.uuid.clone(),
             current_node_uuid: None,
@@ -176,8 +182,10 @@ impl DebuggableFlowExecutor {
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             db_manager: Some(db_manager),
-            grpc_manager: None,
-            mcp_manager: None,
+            grpc_manager: Some(grpc_manager),
+            mcp_manager: Some(mcp_manager),
+            tcp_manager: Some(Arc::new(flow_engine_tcp::tcp_connection_manager::TcpConnectionManager::new())),
+            udp_manager: Some(Arc::new(flow_engine_tcp::udp_socket_manager::UdpSocketManager::new())),
             last_node_output: None,
             debug_event_sender: Some(Arc::new(crate::debug_event_adapter::MpscDebugEventSender::new(event_sender.clone()))),
             execution_event_sender: None,

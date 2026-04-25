@@ -270,6 +270,8 @@ mod tests {
             db_manager: None,
             grpc_manager: None,
             mcp_manager: None,
+            tcp_manager: None,
+            udp_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,

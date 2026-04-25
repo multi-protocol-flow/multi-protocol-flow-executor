@@ -522,8 +522,10 @@ fn create_test_context(flow_id: &str) -> flow_engine_core::context::ExecutionCon
         cancel_receiver: None,
             grpc_manager: None,
             providers: HashMap::new(),
-            mcp_manager: None,
-        }
+        mcp_manager: None,
+        tcp_manager: None,
+        udp_manager: None,
+    }
 }
 
 #[tokio::test]

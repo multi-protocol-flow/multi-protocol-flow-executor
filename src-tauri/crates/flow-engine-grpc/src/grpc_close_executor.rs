@@ -231,6 +231,8 @@ mod tests {
             grpc_manager: None,
             providers: HashMap::new(),
             mcp_manager: None,
+            tcp_manager: None,
+            udp_manager: None,
         }
     }
 
