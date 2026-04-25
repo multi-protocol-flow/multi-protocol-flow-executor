@@ -53,6 +53,9 @@ async fn execute_run(
         ramp_up_seconds: ramp_up,
         duration_seconds: duration,
         flow_uuid: flow.uuid.clone(),
+        dataset_path: None,
+        dataset_encoding: None,
+        dataset_strategy: None,
     };
 
     // 创建事件通道

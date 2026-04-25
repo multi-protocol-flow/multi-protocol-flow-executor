@@ -561,7 +561,7 @@ use flow_engine::stress_test::{
 // ============================================================================
 
 use flow_engine::dataset_executor::{
-    DatasetEvent, DatasetExecutionConfig, DatasetSessionManager,
+    DatasetEvent, DatasetExecutionConfig,
 };
 use flow_engine::csv_parser;
 

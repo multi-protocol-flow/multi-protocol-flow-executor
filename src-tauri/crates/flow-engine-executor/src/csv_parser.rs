@@ -21,7 +21,7 @@ pub struct CsvInfo {
 
 /// CSV 行迭代器，支持流式逐行读取
 pub struct CsvReader {
-    reader: csv::Reader<Box<dyn std::io::Read>>,
+    reader: csv::Reader<Box<dyn std::io::Read + Send>>,
     headers: csv::StringRecord,
     finished: bool,
 }
@@ -185,7 +185,7 @@ pub fn parse_csv(
 
     let delim = delimiter.unwrap_or(',') as u8;
 
-    let boxed: Box<dyn std::io::Read> = Box::new(std::io::Cursor::new(content));
+    let boxed: Box<dyn std::io::Read + Send> = Box::new(std::io::Cursor::new(content));
     let mut reader = csv::ReaderBuilder::new()
         .delimiter(delim)
         .has_headers(true)
@@ -251,7 +251,7 @@ pub fn validate(
 
     let delim = delimiter.unwrap_or(',') as u8;
 
-    let boxed: Box<dyn std::io::Read> = Box::new(std::io::Cursor::new(content));
+    let boxed: Box<dyn std::io::Read + Send> = Box::new(std::io::Cursor::new(content));
     let mut reader = csv::ReaderBuilder::new()
         .delimiter(delim)
         .has_headers(true)
