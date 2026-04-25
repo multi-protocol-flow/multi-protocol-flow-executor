@@ -6,9 +6,9 @@
 
 ## 概述
 
-多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 工具。支持 HTTP、WebSocket、数据库（PostgreSQL/MySQL/SQLite/Redis）、gRPC、MCP、TCP/UDP 协议，具备调试模式和压力测试功能。
+多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 工具。支持 HTTP、WebSocket、数据库（PostgreSQL/MySQL/SQLite/Redis）、gRPC、MCP、TCP/UDP、MQTT 协议，具备调试模式和压力测试功能。
 - **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + React Flow
-- **后端:** Rust Workspace (12 crates) + Tauri 2.x
+- **后端:** Rust Workspace (13 crates) + Tauri 2.x
 
 ## 结构
 
@@ -18,7 +18,7 @@ multi-protocol-flow-executor/
 │   ├── components/         # UI 组件 (~111 文件)
 │   ├── stores/             # Zustand 状态管理 (10 stores)
 │   ├── services/           # Tauri IPC 服务 + Mock + Storage
-│   ├── types/              # TypeScript 类型 (29 种节点)
+│   ├── types/              # TypeScript 类型 (36 种节点)
 │   ├── hooks/              # 自定义 React Hooks (3 个)
 │   ├── layouts/            # 布局组件 (MainLayout)
 │   ├── lib/                # 工具函数 + 注册表 (7 个模块)
@@ -26,8 +26,8 @@ multi-protocol-flow-executor/
 │   ├── test-utils/         # 测试工厂函数
 │   └── __tests__/          # Vitest 单元测试 (~76 文件)
 ├── src-tauri/              # Rust 后端 (Workspace)
-│   ├── src/                # Tauri 适配层 + IPC 命令 (48 命令)
-│   ├── crates/             # 12 个子 crate
+│   ├── src/                # Tauri 适配层 + IPC 命令 (49 命令)
+│   ├── crates/             # 13 个子 crate
 │   │   ├── flow-engine/    # 门面 crate (re-export)
 │   │   ├── flow-engine-core/       # 基础类型、traits、插件注册
 │   │   ├── flow-engine-crypto/     # AES-256-GCM 加密 + OS Keychain
@@ -39,6 +39,7 @@ multi-protocol-flow-executor/
 │   │   ├── flow-engine-grpc/       # gRPC 客户端 (tonic) + 3 个执行器
 │   │   ├── flow-engine-mcp/        # MCP 客户端 + 5 个执行器
 │   │   ├── flow-engine-tcp/        # TCP/UDP 客户端 + 3 TCP + 4 UDP 执行器
+│   │   ├── flow-engine-mqtt/        # MQTT 5.0 客户端 (rumqttc-next) + 7 个执行器
 │   │   └── flow-engine-executor/   # 主执行器、调试模式、压力测试、插件注册
 │   └── bin/mpe/            # CLI 工具 (6 子命令, mpe run/validate/debug/stress/flow/report)
 ├── tests/                  # CLI 测试数据 + fixtures
@@ -51,7 +52,8 @@ multi-protocol-flow-executor/
 Layer 0 (叶子):  flow-engine-core, flow-engine-crypto
 Layer 1:         flow-engine-http, flow-engine-ws, flow-engine-db,
                  flow-engine-script, flow-engine-assertion,
-                 flow-engine-grpc, flow-engine-mcp, flow-engine-tcp  (→ core)
+                 flow-engine-grpc, flow-engine-mcp, flow-engine-tcp,
+                 flow-engine-mqtt  (→ core)
 Layer 2:         flow-engine-executor                                (→ core + 全部 Layer 1 + crypto)
 Layer 3:         flow-engine                                         (门面，re-export 全部)
 Layer 4:         app (src-tauri/)                                    (→ flow-engine)
@@ -78,11 +80,12 @@ Layer 4:         app (src-tauri/)                                    (→ flow-e
 | gRPC 服务发现 | `src-tauri/crates/flow-engine-grpc/src/proto_parser.rs` + `grpc_connection_manager.rs` |
 | MCP 节点 | `src-tauri/crates/flow-engine-mcp/` (详见该 crate 的 AGENTS.md) |
 | TCP/UDP 节点 | `src-tauri/crates/flow-engine-tcp/` (详见该 crate 的 AGENTS.md) |
+| MQTT 节点 | `src-tauri/crates/flow-engine-mqtt/` (详见该 crate 的 AGENTS.md) |
 | 插件注册表 | `src-tauri/crates/flow-engine-core/src/registry.rs` + `plugin.rs` |
 | 前端注册表 | `src/lib/NodeRegistry.ts` + `configPanelRegistry.ts` + `viewerRegistry.tsx` |
 | 调试模式 | `src-tauri/crates/flow-engine-executor/src/debug/` + `src/stores/debug.ts` |
 | 压力测试 | `src-tauri/crates/flow-engine-executor/src/stress_test/` + `src/stores/stressTest.ts` |
-| IPC 命令 | `src-tauri/src/tauri_commands.rs` (48 命令) |
+| IPC 命令 | `src-tauri/src/tauri_commands.rs` (49 命令) |
 | 加密模块 | `src-tauri/crates/flow-engine-crypto/` |
 | 节点类型定义 | `src-tauri/crates/flow-engine-core/src/node.rs` + `node_config.rs` |
 | 执行上下文/变量 | `src-tauri/crates/flow-engine-core/src/context.rs` + `variable.rs` |
@@ -142,7 +145,7 @@ cargo clippy -p flow-engine-grpc         # 只检查 gRPC crate
 |-------------|-----------|--------|
 | `flow-engine-core` | 全部 crate (级联) | **全量** |
 | `flow-engine-crypto` | executor → flow-engine → app | ~3 crate |
-| `flow-engine-http/ws/db/script/assertion/grpc/mcp/tcp` | executor → flow-engine → app | ~3 crate |
+| `flow-engine-http/ws/db/script/assertion/grpc/mcp/tcp/mqtt` | executor → flow-engine → app | ~3 crate |
 | `flow-engine-executor` | flow-engine → app | ~2 crate |
 | `flow-engine` (门面) | app | ~1 crate |
 | `src-tauri/src/*` (Tauri 层) | app | ~1 crate |
@@ -284,7 +287,7 @@ npm run tauri dev    # 开发模式
 npm run tauri build  # 构建安装包
 ```
 
-## IPC 命令 (48)
+## IPC 命令 (49)
 
 | 分类 | 命令 |
 |------|------|
@@ -301,6 +304,7 @@ npm run tauri build  # 构建安装包
 | Folders (6) | list/create/delete/rename_folder, move_flow_to_folder, move_folder |
 | Registry (3) | get_registered_node_types, get_node_config_schema, list_registered_plugins |
 | Dataset (6) | validate_dataset_csv, execute_flow_with_dataset, cancel_dataset_execution, list/load/delete_dataset_report, load_dataset_row_detail |
+| MQTT (1) | mqtt_test_connection |
 
 ## 注意事项
 
@@ -347,6 +351,8 @@ npm run tauri build  # 构建安装包
 
 20. **TCP/UDP 支持**: 三种 TCP 节点 - `tcp_connect` (连接)、`tcp_send` (发送)、`tcp_close` (关闭)，四种 UDP 节点 - `udp_bind` (绑定)、`udp_send_to` (发送)、`udp_recv_from` (接收)、`udp_close` (关闭)。支持 TLS、编解码配置、帧协议、消息录制
 
+21. **MQTT 支持**: 七种节点类型 - `mqtt_connect` (连接)、`mqtt_publish` (发布)、`mqtt_subscribe` (订阅)、`mqtt_unsubscribe` (取消订阅)、`mqtt_disconnect` (断开)、`mqtt_wait_message` (等待消息)、`mqtt_request` (请求/响应)。支持 MQTT 5.0 协议，QoS 0/1/2，Retain 消息，遗嘱消息(LWT)，TLS，WebSocket 传输
+
 ## 子目录知识库
 
 - [src/components/AGENTS.md](./src/components/AGENTS.md) - 前端组件架构
@@ -363,6 +369,7 @@ npm run tauri build  # 构建安装包
 - [src-tauri/crates/flow-engine-grpc/src/AGENTS.md](./src-tauri/crates/flow-engine-grpc/src/AGENTS.md) - gRPC crate
 - [src-tauri/crates/flow-engine-mcp/src/AGENTS.md](./src-tauri/crates/flow-engine-mcp/src/AGENTS.md) - MCP crate
 - [src-tauri/crates/flow-engine-tcp/src/AGENTS.md](./src-tauri/crates/flow-engine-tcp/src/AGENTS.md) - TCP/UDP crate
+- [src-tauri/crates/flow-engine-mqtt/src/AGENTS.md](./src-tauri/crates/flow-engine-mqtt/src/AGENTS.md) - MQTT crate
 - [src/stores/AGENTS.md](./src/stores/AGENTS.md) - Zustand 状态管理
 - [src/services/AGENTS.md](./src/services/AGENTS.md) - Tauri IPC 服务
 - [src/types/AGENTS.md](./src/types/AGENTS.md) - TypeScript 类型定义
