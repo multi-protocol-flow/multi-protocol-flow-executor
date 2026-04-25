@@ -29,3 +29,7 @@ pub mod default_registry;
 pub mod csv_parser;
 /// 数据驱动执行模块，逐行读取 CSV 注入 runtime_variables 执行流程
 pub mod dataset_executor;
+/// 变量提取节点执行器
+pub mod variable_extractor_executor;
+/// 变量提取节点插件
+pub mod plugin_variable_extractor;

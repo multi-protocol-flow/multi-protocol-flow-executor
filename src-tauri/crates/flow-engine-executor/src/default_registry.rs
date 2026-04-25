@@ -80,6 +80,11 @@ pub fn default_registry() -> NodeRegistry {
     // MQTT (flow-engine-mqtt) — 批量注册 7 个插件
     flow_engine_mqtt::plugin::MqttPluginGroup::register_all(&mut registry);
 
+    // Variable Extractor (flow-engine-executor 内置)
+    registry.register(std::sync::Arc::new(
+        crate::plugin_variable_extractor::VariableExtractorPlugin,
+    ));
+
     registry
 }
 
@@ -90,10 +95,10 @@ mod tests {
     #[test]
     fn test_default_registry_has_17_plugins() {
         let registry = default_registry();
-        assert_eq!(registry.len(), 36);
+        assert_eq!(registry.len(), 37);
 
         let metadata = registry.all_metadata();
-        assert_eq!(metadata.len(), 36);
+        assert_eq!(metadata.len(), 37);
 
         // 验证每个 type_id 都已注册
         let type_ids: Vec<&str> = metadata.iter().map(|m| m.type_id.as_str()).collect();
@@ -134,6 +139,7 @@ mod tests {
             "mqtt_disconnect",
             "mqtt_wait_message",
             "mqtt_request",
+            "variable_extractor",
         ];
 
         for exp in &expected {
