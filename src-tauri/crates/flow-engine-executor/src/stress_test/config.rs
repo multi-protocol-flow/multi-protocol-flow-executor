@@ -43,6 +43,9 @@ impl StressTestConfig {
             ramp_up_seconds: 10,
             duration_seconds: 60,
             flow_uuid: flow_uuid.into(),
+            dataset_path: None,
+            dataset_encoding: None,
+            dataset_strategy: None,
         }
     }
 }
@@ -58,6 +61,7 @@ mod tests {
             ramp_up_seconds: 10,
             duration_seconds: 60,
             flow_uuid: "test-flow".to_string(),
+            ..Default::default()
         };
         assert!(config.validate().is_ok());
     }
@@ -75,6 +79,7 @@ mod tests {
             ramp_up_seconds: 10,
             duration_seconds: 60,
             flow_uuid: "test-flow".to_string(),
+            ..Default::default()
         };
         let result = config.validate();
         assert!(result.is_err());
@@ -90,6 +95,7 @@ mod tests {
             ramp_up_seconds: 120,
             duration_seconds: 60,
             flow_uuid: "test-flow".to_string(),
+            ..Default::default()
         };
         let result = config.validate();
         assert!(result.is_err());
@@ -105,6 +111,7 @@ mod tests {
             ramp_up_seconds: 60,
             duration_seconds: 60,
             flow_uuid: "test-flow".to_string(),
+            ..Default::default()
         };
         assert!(config.validate().is_ok());
     }
@@ -117,6 +124,7 @@ mod tests {
             ramp_up_seconds: 0,
             duration_seconds: 60,
             flow_uuid: "test-flow".to_string(),
+            ..Default::default()
         };
         assert!(config.validate().is_ok());
     }
@@ -129,6 +137,7 @@ mod tests {
             ramp_up_seconds: 0,
             duration_seconds: 0,
             flow_uuid: "test-flow".to_string(),
+            ..Default::default()
         };
         assert!(config.validate().is_ok());
     }
@@ -141,6 +150,7 @@ mod tests {
             ramp_up_seconds: 10,
             duration_seconds: 0,
             flow_uuid: "test-flow".to_string(),
+            ..Default::default()
         };
         let result = config.validate();
         assert!(result.is_err());
@@ -156,6 +166,7 @@ mod tests {
             ramp_up_seconds: 60,
             duration_seconds: 300,
             flow_uuid: "test-flow".to_string(),
+            ..Default::default()
         };
         assert!(config.validate().is_ok());
     }
@@ -168,6 +179,7 @@ mod tests {
             ramp_up_seconds: 0,
             duration_seconds: 60,
             flow_uuid: "test-flow".to_string(),
+            ..Default::default()
         };
         assert!(config.validate().is_ok());
     }

@@ -1,0 +1,22 @@
+services:
+  protocol-test-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mpe-test-server
+    ports:
+      - "9001:9001"   # TCP Echo
+      - "9002:9002"   # TCP Line Protocol
+      - "9003:9003"   # TCP LengthPrefix
+      - "9004:9004"   # TCP TLS Echo
+      - "9101:9101/udp"   # UDP Echo
+      - "9102:9102/udp"   # UDP Responder
+    environment:
+      - RUST_LOG=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "echo test | nc -w 1 localhost 9001 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

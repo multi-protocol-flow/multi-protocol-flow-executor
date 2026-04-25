@@ -1552,6 +1552,9 @@ mod tests {
                 ramp_up_seconds: 10,
                 duration_seconds: 60,
                 flow_uuid: "flow-001".to_string(),
+                dataset_path: None,
+                dataset_encoding: None,
+                dataset_strategy: None,
             },
             statistics: StressTestStatistics {
                 total_iterations: 100,

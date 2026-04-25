@@ -1,5 +1,6 @@
 // 压力测试类型定义
 
+use flow_engine_core::dataset::DataPickStrategy;
 use serde::{Deserialize, Serialize};
 
 /// 压力测试状态
@@ -29,6 +30,15 @@ pub struct StressTestConfig {
     pub duration_seconds: u32,
     /// 流程 UUID
     pub flow_uuid: String,
+    /// CSV 数据源路径（可选，设置后启用数据驱动模式）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dataset_path: Option<String>,
+    /// CSV 编码（None = 自动检测）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dataset_encoding: Option<String>,
+    /// 数据取行策略
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dataset_strategy: Option<DataPickStrategy>,
 }
 
 impl Default for StressTestConfig {
@@ -38,6 +48,9 @@ impl Default for StressTestConfig {
             ramp_up_seconds: 10,
             duration_seconds: 60,
             flow_uuid: String::new(),
+            dataset_path: None,
+            dataset_encoding: None,
+            dataset_strategy: None,
         }
     }
 }
@@ -402,6 +415,7 @@ mod tests {
                 ramp_up_seconds: 5,
                 duration_seconds: 30,
                 flow_uuid: "flow-001".to_string(),
+                ..Default::default()
             },
             statistics: StressTestStatistics {
                 total_iterations: 100,

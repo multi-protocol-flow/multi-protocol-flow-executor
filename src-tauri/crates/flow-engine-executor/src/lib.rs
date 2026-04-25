@@ -27,3 +27,5 @@ pub mod plugin_conditional;
 pub mod default_registry;
 /// CSV 解析模块，支持多编码流式解析
 pub mod csv_parser;
+/// 数据驱动执行模块，逐行读取 CSV 注入 runtime_variables 执行流程
+pub mod dataset_executor;

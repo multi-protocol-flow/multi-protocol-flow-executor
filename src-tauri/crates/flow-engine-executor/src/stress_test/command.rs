@@ -277,6 +277,7 @@ mod tests {
             ramp_up_seconds: 5,
             duration_seconds: 30,
             flow_uuid: "flow-001".to_string(),
+            ..Default::default()
         };
         let input = StartStressTestInput { flow, config };
 
@@ -359,6 +360,7 @@ mod tests {
             ramp_up_seconds: 10,
             duration_seconds: 60,
             flow_uuid: "flow-001".to_string(),
+            ..Default::default()
         };
         let event = StressTestEvent::Started {
             flow_uuid: "flow-001".to_string(),
@@ -508,6 +510,7 @@ mod tests {
             ramp_up_seconds: 5,
             duration_seconds: 30,
             flow_uuid: flow.uuid.clone(),
+            ..Default::default()
         };
 
         let input = StartStressTestInput { flow, config };
@@ -534,6 +537,7 @@ mod tests {
             ramp_up_seconds: 5,
             duration_seconds: 30,
             flow_uuid: flow1.uuid.clone(),
+            ..Default::default()
         };
         let input1 = StartStressTestInput {
             flow: flow1,
@@ -564,6 +568,7 @@ mod tests {
             ramp_up_seconds: 10,
             duration_seconds: 60,
             flow_uuid: flow2.uuid.clone(),
+            ..Default::default()
         };
         let input2 = StartStressTestInput {
             flow: flow2,
@@ -591,6 +596,7 @@ mod tests {
             ramp_up_seconds: 5,
             duration_seconds: 30,
             flow_uuid: flow.uuid.clone(),
+            ..Default::default()
         };
 
         let input = StartStressTestInput { flow, config };
@@ -615,6 +621,7 @@ mod tests {
             ramp_up_seconds: 5,
             duration_seconds: 30,
             flow_uuid: flow.uuid.clone(),
+            ..Default::default()
         };
         let input = StartStressTestInput { flow, config };
         let _ = handle_start_stress_test(input, event_sender, manager.clone()).await;
@@ -641,6 +648,7 @@ mod tests {
             ramp_up_seconds: 5,
             duration_seconds: 30,
             flow_uuid: flow.uuid.clone(),
+            ..Default::default()
         };
         let input = StartStressTestInput { flow, config };
         let _ = handle_start_stress_test(input, event_sender, manager.clone()).await;
@@ -686,6 +694,7 @@ mod tests {
             ramp_up_seconds: 10,
             duration_seconds: 60,
             flow_uuid: flow.uuid.clone(),
+            ..Default::default()
         };
 
         manager
@@ -721,6 +730,7 @@ mod tests {
             ramp_up_seconds: 5,
             duration_seconds: 30,
             flow_uuid: flow2.uuid.clone(),
+            ..Default::default()
         };
 
         let result = manager.start(flow2, config2, event_sender2).await;
@@ -752,6 +762,7 @@ mod tests {
                 ramp_up_seconds: 0,
                 duration_seconds: 10,
                 flow_uuid: flow.uuid.clone(),
+            ..Default::default()
             };
 
             let handle = tokio::spawn(async move {

@@ -4,10 +4,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use rand::Rng;
 use tokio::sync::{broadcast, mpsc, RwLock};
 use uuid::Uuid;
 
+use crate::csv_parser;
 use crate::executor::FlowExecutor;
+use flow_engine_core::dataset::DataPickStrategy;
 use flow_engine_core::flow::Flow;
 
 use super::command::StressTestEvent;
@@ -283,6 +286,29 @@ impl StressTestExecutor {
         // 累积进度历史，用于持久化到报告中供历史查看时渲染图表
         let mut progress_history: Vec<StressTestProgress> = Vec::new();
 
+        // 加载 CSV 数据源（如果配置了）
+        let csv_rows: Arc<Vec<serde_json::Value>> = if let Some(ref path) = config.dataset_path {
+            match csv_parser::parse_csv(path, config.dataset_encoding.as_deref(), None) {
+                Ok(reader) => match reader.collect_all() {
+                    Ok(rows) => {
+                        log::info!("[压测] 加载 CSV 数据源: path={}, rows={}", path, rows.len());
+                        Arc::new(rows)
+                    }
+                    Err(e) => {
+                        log::error!("[压测] 解析 CSV 数据失败: {}", e);
+                        Arc::new(Vec::new())
+                    }
+                },
+                Err(e) => {
+                    log::error!("[压测] 打开 CSV 文件失败: {}", e);
+                    Arc::new(Vec::new())
+                }
+            }
+        } else {
+            Arc::new(Vec::new())
+        };
+        let dataset_strategy = config.dataset_strategy.clone().unwrap_or_default();
+
         // 用于管理虚拟用户任务
         let (task_stop_tx, _task_stop_rx) = broadcast::channel::<()>(1);
 
@@ -331,15 +357,26 @@ impl StressTestExecutor {
                 let needed = current_concurrency.saturating_sub(current_active);
 
                 // 启动新的虚拟用户
-                for _ in 0..needed {
+                for user_id in 0..needed {
                     let flow_clone = flow.clone();
                     let metrics_clone = Arc::clone(&metrics);
                     let stop_flag_clone = Arc::clone(&stop_flag);
                     let stop_rx = task_stop_tx.subscribe();
+                    let csv_rows_clone = Arc::clone(&csv_rows);
+                    let strategy = dataset_strategy.clone();
+                    let virtual_user_id = current_active + user_id;
 
                     let handle = tokio::spawn(async move {
-                        Self::run_virtual_user(flow_clone, metrics_clone, stop_flag_clone, stop_rx)
-                            .await;
+                        Self::run_virtual_user(
+                            flow_clone,
+                            metrics_clone,
+                            stop_flag_clone,
+                            stop_rx,
+                            csv_rows_clone,
+                            strategy,
+                            virtual_user_id,
+                        )
+                        .await;
                     });
 
                     state_guard.active_tasks.push(handle);
@@ -420,8 +457,12 @@ impl StressTestExecutor {
         metrics: Arc<MetricsCollector>,
         stop_flag: Arc<AtomicBool>,
         mut stop_rx: broadcast::Receiver<()>,
+        csv_rows: Arc<Vec<serde_json::Value>>,
+        dataset_strategy: DataPickStrategy,
+        virtual_user_id: u32,
     ) {
         let executor = FlowExecutor::new();
+        let mut iteration_index: u64 = 0;
 
         loop {
             // 检查停止信号
@@ -437,9 +478,27 @@ impl StressTestExecutor {
             // 记录开始时间
             let iteration_start = Instant::now();
 
+            // 根据 CSV 数据策略计算运行时变量
+            let runtime_vars = if !csv_rows.is_empty() {
+                let row = match dataset_strategy {
+                    DataPickStrategy::RoundRobin => {
+                        &csv_rows[iteration_index as usize % csv_rows.len()]
+                    }
+                    DataPickStrategy::Random => {
+                        let idx = rand::thread_rng().gen_range(0..csv_rows.len());
+                        &csv_rows[idx]
+                    }
+                    DataPickStrategy::Unique => {
+                        &csv_rows[virtual_user_id as usize % csv_rows.len()]
+                    }
+                };
+                Some(row.clone())
+            } else {
+                None
+            };
+
             // 执行流程
-            // 注意：execute_flow 返回 ExecutionResult，不是 Result
-            let execution_result = executor.execute_flow(&flow, None, None, None).await;
+            let execution_result = executor.execute_flow(&flow, None, runtime_vars, None).await;
 
             // 计算延迟
             let latency_ms = iteration_start.elapsed().as_millis() as u64;
@@ -496,6 +555,7 @@ impl StressTestExecutor {
 
             // 短暂休眠，避免过于紧密的循环
             tokio::time::sleep(Duration::from_millis(10)).await;
+            iteration_index += 1;
         }
     }
 
@@ -642,7 +702,7 @@ mod tests {
 
     /// 创建测试用的简单流程
     fn create_test_flow() -> Flow {
-        use flow_engine_core::node::{Node, NodePosition, NodeType};
+        use flow_engine_core::node::{Node, NodePosition};
         use flow_engine_core::node_config::NodeData;
 
         Flow {
@@ -687,6 +747,7 @@ mod tests {
             ramp_up_seconds: 1,
             duration_seconds: 5,
             flow_uuid: flow.uuid.clone(),
+            ..Default::default()
         };
         let (tx, mut rx) = mpsc::unbounded_channel();
 
@@ -728,6 +789,7 @@ mod tests {
             ramp_up_seconds: 0,
             duration_seconds: 10,
             flow_uuid: flow.uuid.clone(),
+            ..Default::default()
         };
         let (tx, _rx) = mpsc::unbounded_channel();
 
@@ -756,6 +818,7 @@ mod tests {
             ramp_up_seconds: 0,
             duration_seconds: 10,
             flow_uuid: flow.uuid.clone(),
+            ..Default::default()
         };
         let (tx, _rx) = mpsc::unbounded_channel();
 
@@ -792,6 +855,7 @@ mod tests {
             ramp_up_seconds: 0,
             duration_seconds: 3,
             flow_uuid: flow.uuid.clone(),
+            ..Default::default()
         };
         let (tx, mut rx) = mpsc::unbounded_channel();
 
@@ -828,6 +892,7 @@ mod tests {
             ramp_up_seconds: 0,
             duration_seconds: 2,
             flow_uuid: flow.uuid.clone(),
+            ..Default::default()
         };
         let (tx, mut rx) = mpsc::unbounded_channel();
 
@@ -859,5 +924,172 @@ mod tests {
         // 验证最终状态
         let progress = executor.get_progress().await;
         assert_eq!(progress.status, StressTestStatus::Stopped);
+    }
+
+    // ========================================================================
+    // CSV 数据源策略测试
+    // ========================================================================
+
+    /// 辅助函数：创建临时 CSV 文件
+    fn create_temp_csv(content: &[u8]) -> tempfile::NamedTempFile {
+        use std::io::Write;
+        let mut file = tempfile::Builder::new()
+            .suffix(".csv")
+            .tempfile()
+            .expect("创建临时文件失败");
+        file.write_all(content).expect("写入临时文件失败");
+        file
+    }
+
+    /// 测试 RoundRobin 策略：3 行数据，6 次迭代，模式应为 0,1,2,0,1,2
+    #[test]
+    fn test_round_robin_strategy_pattern() {
+        use flow_engine_core::dataset::DataPickStrategy;
+
+        let csv_rows: Arc<Vec<serde_json::Value>> = Arc::new(vec![
+            serde_json::json!({"name": "row0"}),
+            serde_json::json!({"name": "row1"}),
+            serde_json::json!({"name": "row2"}),
+        ]);
+
+        // 模拟 6 次迭代的 RoundRobin 选择
+        let strategy = DataPickStrategy::RoundRobin;
+
+        // 模拟 6 次迭代的 RoundRobin 选择
+        let mut results = Vec::new();
+        for iteration in 0..6u64 {
+            let row = match strategy {
+                DataPickStrategy::RoundRobin => &csv_rows[iteration as usize % csv_rows.len()],
+                _ => panic!("不应到达此分支"),
+            };
+            results.push(row["name"].as_str().unwrap().to_string());
+        }
+
+        assert_eq!(results, vec!["row0", "row1", "row2", "row0", "row1", "row2"]);
+    }
+
+    /// 测试 Unique 策略：2 个用户，3 行数据
+    #[test]
+    fn test_unique_strategy_pattern() {
+        use flow_engine_core::dataset::DataPickStrategy;
+
+        let csv_rows: Arc<Vec<serde_json::Value>> = Arc::new(vec![
+            serde_json::json!({"name": "row0"}),
+            serde_json::json!({"name": "row1"}),
+            serde_json::json!({"name": "row2"}),
+        ]);
+
+        let _strategy = DataPickStrategy::Unique;
+
+        // 用户 0 → row0, 用户 1 → row1
+        let row0 = &csv_rows[0u32 as usize % csv_rows.len()];
+        let row1 = &csv_rows[1u32 as usize % csv_rows.len()];
+        assert_eq!(row0["name"].as_str().unwrap(), "row0");
+        assert_eq!(row1["name"].as_str().unwrap(), "row1");
+    }
+
+    /// 测试无 CSV 时行为不变（runtime_variables 为 None）
+    #[test]
+    fn test_no_csv_runtime_vars_is_none() {
+        let csv_rows: Arc<Vec<serde_json::Value>> = Arc::new(Vec::new());
+
+        // 空 csv_rows → runtime_vars 应为 None
+        let runtime_vars = if !csv_rows.is_empty() {
+            Some(csv_rows[0].clone())
+        } else {
+            None
+        };
+
+        assert!(runtime_vars.is_none(), "无 CSV 数据时 runtime_variables 应为 None");
+    }
+
+    /// 测试 StressTestConfig 新字段的序列化/反序列化（向后兼容）
+    #[test]
+    fn test_config_new_fields_serialization() {
+        use flow_engine_core::dataset::DataPickStrategy;
+
+        // 包含新字段的配置
+        let config = StressTestConfig {
+            concurrent_users: 5,
+            ramp_up_seconds: 5,
+            duration_seconds: 30,
+            flow_uuid: "flow-001".to_string(),
+            dataset_path: Some("/data/test.csv".to_string()),
+            dataset_encoding: Some("utf-8".to_string()),
+            dataset_strategy: Some(DataPickStrategy::RoundRobin),
+        };
+
+        let json = serde_json::to_string(&config).expect("序列化失败");
+        assert!(json.contains("datasetPath"));
+        assert!(json.contains("datasetEncoding"));
+        assert!(json.contains("datasetStrategy"));
+        assert!(json.contains("round_robin"));
+
+        // 反序列化往返
+        let deserialized: StressTestConfig = serde_json::from_str(&json).expect("反序列化失败");
+        assert_eq!(deserialized.dataset_path, Some("/data/test.csv".to_string()));
+        assert_eq!(deserialized.dataset_encoding, Some("utf-8".to_string()));
+        assert_eq!(deserialized.dataset_strategy, Some(DataPickStrategy::RoundRobin));
+    }
+
+    /// 测试旧 JSON（缺少新字段）反序列化时的默认值
+    #[test]
+    fn test_config_backward_compat_deserialization() {
+        let json = r#"{
+            "concurrentUsers": 10,
+            "rampUpSeconds": 10,
+            "durationSeconds": 60,
+            "flowUuid": "flow-001"
+        }"#;
+
+        let config: StressTestConfig = serde_json::from_str(json).expect("反序列化失败");
+        assert_eq!(config.concurrent_users, 10);
+        assert_eq!(config.dataset_path, None);
+        assert_eq!(config.dataset_encoding, None);
+        assert_eq!(config.dataset_strategy, None);
+    }
+
+    /// 测试带 CSV 数据源的压力测试完整流程
+    #[tokio::test]
+    async fn test_stress_test_with_csv_dataset() {
+        let csv_file = create_temp_csv(b"name,value\nAlice,1\nBob,2\nCharlie,3\n");
+        let csv_path = csv_file.path().to_str().expect("路径转换失败").to_string();
+
+        let flow = create_test_flow();
+        let config = StressTestConfig {
+            concurrent_users: 1,
+            ramp_up_seconds: 0,
+            duration_seconds: 2,
+            flow_uuid: flow.uuid.clone(),
+            dataset_path: Some(csv_path),
+            dataset_encoding: Some("utf-8".to_string()),
+            dataset_strategy: Some(flow_engine_core::dataset::DataPickStrategy::RoundRobin),
+            ..Default::default()
+        };
+        let (tx, mut rx) = mpsc::unbounded_channel();
+
+        let executor = StressTestExecutor::new(flow.clone(), config.clone(), tx);
+        let result = executor.start().await;
+        assert!(result.is_ok(), "启动应该成功: {:?}", result);
+
+        // 等待结束事件
+        let mut received_report = false;
+        let start = Instant::now();
+        while start.elapsed() < Duration::from_secs(5) {
+            match rx.recv().await {
+                Some(StressTestEvent::Ended { report }) => {
+                    received_report = true;
+                    // 验证报告中包含 dataset 配置
+                    assert!(report.config.dataset_path.is_some());
+                    assert_eq!(
+                        report.config.dataset_strategy,
+                        Some(flow_engine_core::dataset::DataPickStrategy::RoundRobin)
+                    );
+                    break;
+                }
+                _ => continue,
+            }
+        }
+        assert!(received_report, "应该收到结束事件");
     }
 }

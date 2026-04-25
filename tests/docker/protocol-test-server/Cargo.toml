@@ -1,0 +1,13 @@
+[package]
+name = "protocol-test-server"
+version = "0.1.0"
+edition = "2021"
+description = "TCP/UDP protocol test server for flow-engine integration testing"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+tokio-rustls = "0.26"
+rustls-pemfile = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"

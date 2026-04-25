@@ -329,6 +329,7 @@ mod tests {
             ramp_up_seconds: 30,
             duration_seconds: 120,
             flow_uuid: flow.uuid.clone(),
+            ..Default::default()
         };
         let metrics = MetricsCollector::new();
 
