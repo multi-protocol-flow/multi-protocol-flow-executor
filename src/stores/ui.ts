@@ -11,6 +11,17 @@ export type ConfigPanelMode = 'node' | 'settings' | 'debug';
 /** 底部面板 Tab 类型 */
 export type BottomPanelTab = 'history' | 'console' | 'running';
 
+/** 页面导航类型 */
+export type PageType = 'canvas' | 'dataset-reports';
+
+/** 数据集报告子页面状态 */
+export interface DatasetReportPageState {
+  /** 当前报告 ID（查看详情时设置） */
+  reportId: string | null;
+  /** 当前行索引（查看行详情时设置） */
+  rowIndex: number | null;
+}
+
 /** 确认对话框配置 */
 export interface ConfirmDialogConfig {
   /** 对话框标题 */
@@ -66,6 +77,8 @@ interface UIState {
   configPanelMode: ConfigPanelMode;
   /** 是否显示压力测试配置对话框 */
   showStressTestConfigDialog: boolean;
+  /** 是否显示数据驱动执行面板 */
+  showDatasetExecutionPanel: boolean;
 
   // ===== 连接对话框状态 =====
   /** 是否显示数据库连接对话框 */
@@ -81,6 +94,10 @@ interface UIState {
   /** 确认对话框配置 */
   confirmDialogConfig: ConfirmDialogConfig | null;
   // ===== 其他 UI 状态 =====
+  /** 当前页面 */
+  currentPage: PageType;
+  /** 数据集报告页面状态 */
+  datasetReportPage: DatasetReportPageState;
   /** 侧边栏宽度（像素） */
   sidebarWidth: number;
   /** 配置面板宽度（像素） */
@@ -129,6 +146,10 @@ interface UIState {
   openStressTestConfigDialog: () => void;
   /** 关闭压力测试配置对话框 */
   closeStressTestConfigDialog: () => void;
+  /** 打开数据驱动执行面板 */
+  openDatasetExecutionPanel: () => void;
+  /** 关闭数据驱动执行面板 */
+  closeDatasetExecutionPanel: () => void;
 
   // ===== 连接对话框 Actions =====
   /** 打开连接对话框（新建模式） */
@@ -168,6 +189,18 @@ interface UIState {
   // ===== 工具方法 =====
   /** 重置所有面板状态 */
   resetPanels: () => void;
+
+  // ===== 页面导航 Actions =====
+  /** 导航到指定页面 */
+  navigateTo: (page: PageType) => void;
+  /** 导航到数据集报告列表 */
+  navigateToDatasetReports: () => void;
+  /** 导航到数据集报告详情 */
+  navigateToDatasetReportDetail: (reportId: string) => void;
+  /** 导航到数据集行详情 */
+  navigateToDatasetRowDetail: (reportId: string, rowIndex: number) => void;
+  /** 返回画布 */
+  navigateToCanvas: () => void;
 }
 
 const MIN_SIDEBAR_WIDTH = 200;
@@ -202,6 +235,7 @@ const initialState = {
   showSettingsDialog: false,
   configPanelMode: 'node' as ConfigPanelMode,
   showStressTestConfigDialog: false,
+  showDatasetExecutionPanel: false,
 
   // 连接对话框状态
   showConnectionDialog: false,
@@ -211,6 +245,12 @@ const initialState = {
   // 通用确认对话框状态
   showConfirmDialog: false,
   confirmDialogConfig: null,
+  // 页面导航状态
+  currentPage: 'canvas' as PageType,
+  datasetReportPage: {
+    reportId: null,
+    rowIndex: null,
+  },
   sidebarWidth: 280,
   configPanelWidth: 320,
   bottomPanelHeight: 208,
@@ -290,6 +330,9 @@ export const useUIStore = create<UIState>((set) => ({
 
   closeStressTestConfigDialog: () => set({ showStressTestConfigDialog: false }),
 
+  openDatasetExecutionPanel: () => set({ showDatasetExecutionPanel: true }),
+  closeDatasetExecutionPanel: () => set({ showDatasetExecutionPanel: false }),
+
   // ===== 连接对话框 Actions =====
   openConnectionDialog: () =>
     set({
@@ -359,6 +402,33 @@ export const useUIStore = create<UIState>((set) => ({
       showMinimap: !state.showMinimap,
     })),
 
+  // ===== 页面导航 Actions =====
+  navigateTo: (page: PageType) => set({ currentPage: page }),
+
+  navigateToDatasetReports: () =>
+    set({
+      currentPage: 'dataset-reports',
+      datasetReportPage: { reportId: null, rowIndex: null },
+    }),
+
+  navigateToDatasetReportDetail: (reportId: string) =>
+    set({
+      currentPage: 'dataset-reports',
+      datasetReportPage: { reportId, rowIndex: null },
+    }),
+
+  navigateToDatasetRowDetail: (reportId: string, rowIndex: number) =>
+    set({
+      currentPage: 'dataset-reports',
+      datasetReportPage: { reportId, rowIndex },
+    }),
+
+  navigateToCanvas: () =>
+    set({
+      currentPage: 'canvas',
+      datasetReportPage: { reportId: null, rowIndex: null },
+    }),
+
   // ===== 工具方法 =====
   resetPanels: () =>
     set({
@@ -369,7 +439,7 @@ export const useUIStore = create<UIState>((set) => ({
       bottomPanelTab: 'history' as BottomPanelTab,
       isFlowListCollapsed: false,
       isVariableDrawerOpen: false,
-  showMinimap: false,
+      showMinimap: false,
     }),
 }));
 

@@ -177,6 +177,10 @@ export type InitialVariableFormData = z.infer<typeof initialVariableSchema>;
 export const entryConfigSchema = z.object({
   type: z.literal('entry'),
   initial_variables: z.array(initialVariableSchema).optional(),
+  /** 关联的 CSV 文件路径 */
+  dataset_path: z.string().optional(),
+  /** CSV 编码（不设置=自动检测） */
+  dataset_encoding: z.string().optional(),
 }).refine(
   (data) => {
     if (!data.initial_variables) return true;

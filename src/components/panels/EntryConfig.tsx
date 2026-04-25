@@ -1,16 +1,26 @@
 /**
  * Entry 节点配置组件
- * 支持初始变量配置
+ * 支持初始变量配置 + CSV 数据集关联
  */
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { entryConfigSchema, type EntryConfigFormData } from './schemas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { PlayCircle, Plus, Trash2, Variable } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { PlayCircle, Plus, Trash2, Variable, FileText, AlertTriangle, Table } from 'lucide-react';
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import { datasetService } from '@/services/dataset';
 import type { EntryConfig as EntryConfigType } from '@/types';
+import type { CsvInfo } from '@/types/dataset';
 
 interface EntryConfigProps {
   /** 当前节点数据 */
@@ -26,6 +36,8 @@ function toFormData(data: EntryConfigType): EntryConfigFormData {
   return {
     type: 'entry',
     initial_variables: data.initial_variables || [],
+    dataset_path: data.dataset_path,
+    dataset_encoding: data.dataset_encoding,
   };
 }
 
@@ -33,12 +45,15 @@ function toFormData(data: EntryConfigType): EntryConfigFormData {
  * 将表单数据转换为 EntryConfigType
  */
 function fromFormData(formData: EntryConfigFormData): EntryConfigType {
-  return {
+  const result: EntryConfigType = {
     type: 'entry',
     initial_variables: formData.initial_variables && formData.initial_variables.length > 0
       ? formData.initial_variables
       : undefined,
+    dataset_path: formData.dataset_path || undefined,
+    dataset_encoding: formData.dataset_encoding || undefined,
   };
+  return result;
 }
 
 /**
@@ -310,7 +325,278 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
         )}
       </div>
 
-
+      {/* 关联数据集 */}
+      <DatasetAssociationSection
+        datasetPath={data.dataset_path}
+        datasetEncoding={data.dataset_encoding}
+        onConfigChange={(path, encoding) => {
+          const formData = getValues();
+          const updatedConfig = fromFormData({
+            ...formData,
+            dataset_path: path,
+            dataset_encoding: encoding,
+          });
+          onSave(updatedConfig);
+        }}
+      />
     </form>
+  );
+}
+
+// ============================================================================
+// 数据集关联子组件
+// ============================================================================
+
+/** CSV 预览行数 */
+const PREVIEW_ROW_COUNT = 5;
+
+/** 编码选项 */
+const ENCODING_OPTIONS = [
+  { value: 'auto', label: '自动检测' },
+  { value: 'utf-8', label: 'UTF-8' },
+  { value: 'gbk', label: 'GBK' },
+  { value: 'gb2312', label: 'GB2312' },
+  { value: 'big5', label: 'Big5' },
+] as const;
+
+interface DatasetAssociationProps {
+  /** 当前关联的 CSV 路径 */
+  datasetPath?: string;
+  /** 当前编码设置 */
+  datasetEncoding?: string;
+  /** 配置变更回调 */
+  onConfigChange: (path: string | undefined, encoding: string | undefined) => void;
+}
+
+/**
+ * 数据集关联区块
+ * 独立于 react-hook-form 管理，通过 onConfigChange 直接同步到父组件
+ */
+function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChange }: DatasetAssociationProps) {
+  const [csvInfo, setCsvInfo] = useState<CsvInfo | null>(null);
+  const [fileExists, setFileExists] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [previewRows, setPreviewRows] = useState<string[][]>([]);
+
+  /** 当前选中的编码值（UI 状态） */
+  const encoding = datasetEncoding || 'auto';
+
+  /** 从路径中提取文件名 */
+  const datasetName = datasetPath
+    ? datasetPath.replace(/\\/g, '/').split('/').pop() || datasetPath
+    : '';
+
+  /**
+   * 加载 CSV 元信息并生成预览
+   */
+  const loadCsvInfo = useCallback(async (path: string, enc?: string) => {
+    setIsLoading(true);
+    try {
+      const info = await datasetService.validateCsv(path, enc === 'auto' ? undefined : enc);
+      setCsvInfo(info);
+      setFileExists(true);
+
+      // 从 validateCsv 返回的 column_names 构建模拟预览
+      // 真正的行数据需要后端提供 preview 接口，这里先显示列信息
+      setPreviewRows([]);
+    } catch {
+      // 文件不存在或解析失败
+      setCsvInfo(null);
+      setFileExists(false);
+      setPreviewRows([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // 初始加载：已有 dataset_path 时验证文件
+  useEffect(() => {
+    if (datasetPath) {
+      loadCsvInfo(datasetPath, datasetEncoding);
+    }
+    // 仅在挂载和路径变化时触发
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datasetPath]);
+
+  /**
+   * 打开文件选择对话框
+   */
+  const handleSelectFile = useCallback(async () => {
+    try {
+      const selected = await openDialog({
+        filters: [{ name: 'CSV', extensions: ['csv'] }],
+        multiple: false,
+      });
+      if (selected) {
+        const enc = encoding === 'auto' ? undefined : encoding;
+        await loadCsvInfo(selected, enc);
+        onConfigChange(selected, enc);
+      }
+    } catch (error) {
+      console.error('选择 CSV 文件失败:', error);
+    }
+  }, [encoding, loadCsvInfo, onConfigChange]);
+
+  /**
+   * 切换编码
+   */
+  const handleEncodingChange = useCallback(async (newEncoding: string) => {
+    const enc = newEncoding === 'auto' ? undefined : newEncoding;
+    if (datasetPath) {
+      await loadCsvInfo(datasetPath, enc);
+    }
+    onConfigChange(datasetPath, enc);
+  }, [datasetPath, loadCsvInfo, onConfigChange]);
+
+  /**
+   * 移除关联
+   */
+  const handleRemoveAssociation = useCallback(() => {
+    setCsvInfo(null);
+    setFileExists(true);
+    setPreviewRows([]);
+    onConfigChange(undefined, undefined);
+  }, [onConfigChange]);
+
+  return (
+    <div className="space-y-3 pt-4 border-t">
+      <div className="flex items-center gap-2">
+        <Table className="h-4 w-4 text-muted-foreground" />
+        <Label className="text-sm font-medium text-foreground">关联数据集</Label>
+      </div>
+
+      {!datasetPath ? (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleSelectFile}
+          className="w-full h-9 gap-2 text-sm"
+        >
+          <FileText className="h-4 w-4" />
+          选择 CSV 文件
+        </Button>
+      ) : (
+        <div className="space-y-2">
+          {/* 文件路径展示 + 删除按钮 */}
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm truncate flex-1" title={datasetPath}>
+              {datasetName}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleRemoveAssociation}
+              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-rose-500"
+              title="移除关联"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          {/* 编码选择器 */}
+          <Select value={encoding} onValueChange={handleEncodingChange}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="自动检测" />
+            </SelectTrigger>
+            <SelectContent>
+              {ENCODING_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* 加载中状态 */}
+          {isLoading && (
+            <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-3 text-center">
+              <p className="text-xs text-muted-foreground">正在读取文件...</p>
+            </div>
+          )}
+
+          {/* 文件不存在警告 */}
+          {!isLoading && !fileExists && (
+            <div className="rounded-md border border-amber-200/50 bg-amber-50/50 p-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+                <span className="text-sm text-amber-700 flex-1">关联文件已移除或重命名</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectFile}
+                  className="h-7 gap-1.5 text-xs shrink-0"
+                >
+                  重新选择
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* 文件信息 + 预览 */}
+          {!isLoading && fileExists && csvInfo && (
+            <div className="rounded-md border bg-muted/20 p-3 space-y-2">
+              <p className="text-xs text-muted-foreground">
+                {csvInfo.row_count} 行 × {csvInfo.column_names.length} 列
+                {csvInfo.detected_encoding && (
+                  <span className="ml-2 text-muted-foreground/60">
+                    检测编码: {csvInfo.detected_encoding}
+                  </span>
+                )}
+              </p>
+
+              {/* 列名预览 */}
+              <div className="overflow-x-auto">
+                <div className="flex gap-1 flex-wrap">
+                  {csvInfo.column_names.slice(0, PREVIEW_ROW_COUNT).map((col, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center rounded bg-background border px-1.5 py-0.5 font-mono text-xs text-foreground"
+                    >
+                      {col}
+                    </span>
+                  ))}
+                  {csvInfo.column_names.length > PREVIEW_ROW_COUNT && (
+                    <span className="inline-flex items-center text-xs text-muted-foreground">
+                      +{csvInfo.column_names.length - PREVIEW_ROW_COUNT} 列
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* 预览表格 */}
+              {previewRows.length > 0 && (
+                <div className="overflow-x-auto rounded border">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        {csvInfo.column_names.map((col) => (
+                          <th key={col} className="px-2 py-1 text-left font-medium text-muted-foreground whitespace-nowrap">
+                            {col}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewRows.map((row, ri) => (
+                        <tr key={ri} className={ri > 0 ? 'border-t' : ''}>
+                          {row.map((cell, ci) => (
+                            <td key={ci} className="px-2 py-1 font-mono whitespace-nowrap max-w-[200px] truncate">
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

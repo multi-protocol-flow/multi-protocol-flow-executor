@@ -54,7 +54,7 @@ export {
 } from './ui';
 
 // UI types
-export type { PanelType, BottomPanelTab } from './ui';
+export type { PanelType, BottomPanelTab, PageType, DatasetReportPageState } from './ui';
 
 // Debug store selectors
 export {

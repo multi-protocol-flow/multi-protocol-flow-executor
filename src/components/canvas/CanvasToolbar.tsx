@@ -3,7 +3,7 @@
  * 位于画布顶部居中，包含撤销/重做、执行按钮、节点分组、变量按钮
  */
 import { useState, useMemo, useEffect } from 'react';
-import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Undo2, Redo2 } from 'lucide-react';
+import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Undo2, Redo2, Database } from 'lucide-react';
 import { toast } from 'sonner';
 import * as Popover from '@radix-ui/react-popover';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging, selectCanUndo, selectCanRedo } from '@/stores';
@@ -21,6 +21,8 @@ import { getNodeMetadata } from '@/lib/NodeRegistry';
 import { DebugToolbar } from './DebugToolbar';
 import { StressTestConfigDialog } from '@/components/stress-test/StressTestConfigDialog';
 import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
+import { DatasetExecutionPanel } from '@/components/execution/DatasetExecutionPanel';
+import { useDatasetExecutionStore } from '@/stores/datasetExecution';
 import {
   buildGroupsFromMetadata,
   type NodeItem,
@@ -53,6 +55,12 @@ export function CanvasToolbar() {
   const openStressTestConfigDialog = useUIStore((state) => state.openStressTestConfigDialog);
   const closeStressTestConfigDialog = useUIStore((state) => state.closeStressTestConfigDialog);
 
+  // 数据驱动执行状态
+  const showDatasetExecutionPanel = useUIStore((state) => state.showDatasetExecutionPanel);
+  const openDatasetExecutionPanel = useUIStore((state) => state.openDatasetExecutionPanel);
+  const closeDatasetExecutionPanel = useUIStore((state) => state.closeDatasetExecutionPanel);
+  const isDatasetExecuting = useDatasetExecutionStore((s) => s.isExecuting);
+
   // 节点分组逻辑
   const setPendingAddNodeType = useFlowStore((s) => s.setPendingAddNodeType);
   const [metadata, setMetadata] = useState<NodeMetadata[]>([]);
@@ -76,8 +84,8 @@ export function CanvasToolbar() {
     setPendingAddNodeType(type);
   };
 
-  // 是否有活跃的执行/调试/压测
-  const isAnyActive = isExecuting || isDebugging || isStressTestRunning;
+  // 是否有活跃的执行/调试/压测/数据驱动
+  const isAnyActive = isExecuting || isDebugging || isStressTestRunning || isDatasetExecuting;
 
   const handleExecute = async () => {
     if (!flow || isExecuting) return;
@@ -177,13 +185,15 @@ export function CanvasToolbar() {
   const hasValidFlow = flow && flow.nodes.length > 0;
   const hasEntryNode = flow?.nodes.some((n) => n.type === 'entry');
   // 压测运行时禁用执行和调试
-  const isDisabled = !hasValidFlow || !hasEntryNode || isExecuting || isStressTestRunning;
+  const isDisabled = !hasValidFlow || !hasEntryNode || isExecuting || isStressTestRunning || isDatasetExecuting;
 
   // 调试按钮不再依赖用户手动设置断点（入口节点默认作为断点）
   // 压测运行时禁用调试按钮
-  const canStartDebug = hasValidFlow && hasEntryNode && !isExecuting && !isDebugging && !isStressTestRunning;
+  const canStartDebug = hasValidFlow && hasEntryNode && !isExecuting && !isDebugging && !isStressTestRunning && !isDatasetExecuting;
   // 执行或调试时禁用压测按钮
-  const canStartStressTest = hasValidFlow && hasEntryNode && !isExecuting && !isDebugging && !isStressTestRunning;
+  const canStartStressTest = hasValidFlow && hasEntryNode && !isExecuting && !isDebugging && !isStressTestRunning && !isDatasetExecuting;
+  // 数据驱动按钮：执行/调试/压测时禁用
+  const canStartDatasetExecution = hasValidFlow && hasEntryNode && !isExecuting && !isDebugging && !isStressTestRunning && !isDatasetExecuting;
 
   // 变量抽屉状态
   const isVariableDrawerOpen = useUIStore((s) => s.isVariableDrawerOpen);
@@ -325,6 +335,40 @@ export function CanvasToolbar() {
           )}
         >
           <Activity className="w-6 h-6" />
+        </button>
+
+        {/* 数据驱动按钮 */}
+        <button
+          type="button"
+          onClick={isDatasetExecuting ? undefined : openDatasetExecutionPanel}
+          disabled={!canStartDatasetExecution && !isDatasetExecuting}
+          title={
+            isExecuting
+              ? '数据驱动（执行中不可用）'
+              : isDebugging
+              ? '数据驱动（调试中不可用）'
+              : isStressTestRunning
+              ? '数据驱动（压测中不可用）'
+              : isDatasetExecuting
+              ? '数据驱动（执行中）'
+              : '数据驱动'
+          }
+          className={cn(
+            'flex items-center justify-center',
+            'transition-all duration-150',
+            (canStartDatasetExecution || isDatasetExecuting) && [
+              isDatasetExecuting
+                ? 'text-violet-500 animate-pulse'
+                : 'text-violet-500 hover:text-violet-600',
+              'hover:scale-110',
+              'cursor-pointer',
+            ],
+            !canStartDatasetExecution && !isDatasetExecuting && [
+              'text-muted-foreground cursor-not-allowed',
+            ]
+          )}
+        >
+          <Database className="w-6 h-6" />
         </button>
 
         {/* 节点分组按钮（执行/调试/压测时隐藏） */}
@@ -529,6 +573,12 @@ export function CanvasToolbar() {
       
       {/* 压力测试监控面板（仅在运行时显示） */}
       <StressTestMonitor />
+
+      {/* 数据驱动执行面板 */}
+      <DatasetExecutionPanel
+        open={showDatasetExecutionPanel}
+        onOpenChange={(open) => !open && closeDatasetExecutionPanel()}
+      />
     </>
   );
 }

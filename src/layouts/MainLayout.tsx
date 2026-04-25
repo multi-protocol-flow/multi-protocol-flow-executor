@@ -13,13 +13,18 @@ import { StressTestResult } from '@/components/stress-test/StressTestResult';
 import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
+import {
+  DatasetReportList,
+  DatasetReportDetail,
+  DatasetRowDetail,
+} from '@/components/reports';
 
 import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
 import { useSettingsStore } from '@/stores/settings';
 import type { BottomPanelTab } from '@/stores/ui';
 import { useConsoleStore } from '@/stores/console';
 import { useZoomStore } from '@/stores/zoom';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, Settings, GripVertical, GripHorizontal, ZoomIn, ZoomOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, Settings, GripVertical, GripHorizontal, ZoomIn, ZoomOut, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -81,6 +86,13 @@ export function MainLayout() {
   const setSidebarWidth = useUIStore((state) => state.setSidebarWidth);
   const openSettingsDialog = useUIStore((state) => state.openSettingsDialog);
   const showConfirm = useUIStore((state) => state.showConfirm);
+
+  // 页面导航
+  const currentPage = useUIStore((state) => state.currentPage);
+  const datasetReportPage = useUIStore((state) => state.datasetReportPage);
+  const navigateToDatasetReports = useUIStore((state) => state.navigateToDatasetReports);
+  const navigateToDatasetReportDetail = useUIStore((state) => state.navigateToDatasetReportDetail);
+  const navigateToDatasetRowDetail = useUIStore((state) => state.navigateToDatasetRowDetail);
 
   // 缩放状态
   const zoom = useZoomStore((state) => state.zoom);
@@ -361,7 +373,20 @@ export function MainLayout() {
         {/* 右侧：操作按钮 */}
         <div className="flex items-center gap-2">
 
+          {/* 数据驱动报告导航 */}
+          <Button
+            variant={currentPage === 'dataset-reports' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={navigateToDatasetReports}
+            className="h-7 text-xs gap-1.5"
+            title="数据驱动报告"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            报告
+          </Button>
+
           {/* 缩放控件 */}
+          {currentPage === 'canvas' && (
           <div className="flex items-center gap-0.5 border border-border rounded-md px-1">
             <Button
               variant="ghost"
@@ -391,6 +416,7 @@ export function MainLayout() {
               <ZoomIn className="h-4 w-4" />
             </Button>
           </div>
+          )}
 
           {/* 设置按钮 */}
           <Button
@@ -406,6 +432,30 @@ export function MainLayout() {
       </header>
 
       {/* ===== 主内容区 ===== */}
+      {currentPage === 'dataset-reports' ? (
+        /* 数据集报告页面 */
+        <div className="flex-1 overflow-hidden">
+          {!datasetReportPage.reportId ? (
+            <DatasetReportList
+              onViewReport={(reportId) => navigateToDatasetReportDetail(reportId)}
+            />
+          ) : datasetReportPage.rowIndex != null ? (
+            <DatasetRowDetail
+              reportId={datasetReportPage.reportId}
+              rowIndex={datasetReportPage.rowIndex}
+              onBack={() => navigateToDatasetReportDetail(datasetReportPage.reportId!)}
+            />
+          ) : (
+            <DatasetReportDetail
+              reportId={datasetReportPage.reportId}
+              onBack={() => navigateToDatasetReports()}
+              onViewRowDetail={(reportId, rowIndex) =>
+                navigateToDatasetRowDetail(reportId, rowIndex)
+              }
+            />
+          )}
+        </div>
+      ) : (
       <div className="flex-1 flex overflow-hidden relative">
         {/* ===== 左侧栏 ===== */}
         <aside
@@ -660,6 +710,7 @@ export function MainLayout() {
         </Button>
 
       </div>
+      )}
 
       {/* ===== 执行报告弹窗 ===== */}
       <ExecutionReport />
