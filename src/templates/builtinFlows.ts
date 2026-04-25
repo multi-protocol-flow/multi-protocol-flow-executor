@@ -288,3 +288,208 @@ export const GRPC_DEMO_FLOW: Flow = {
     isBuiltin: true,
   },
 } as Flow & { _meta?: { version: number; isBuiltin: boolean } };
+
+/**
+ * MQTT 基础连接测试流程
+ * 演示 MQTT 连接、订阅、发布和断开的基本工作流
+ */
+export const MQTT_BASIC_FLOW: Flow = {
+  uuid: 'demo-mqtt-basic',
+  name: 'MQTT 基础连接测试',
+  description: '演示 MQTT 连接、订阅、发布和断开的基本工作流',
+  initial_variables: { "timestamp": "" },
+  nodes: [
+    // 节点 1: Entry 节点
+    {
+      uuid: 'entry-mqtt-basic-001',
+      type: 'entry',
+      name: '入口',
+      position: { x: 0, y: 0 },
+      data: { type: 'entry' }
+    },
+    // 节点 2: MQTT Connect 节点
+    {
+      uuid: 'mqtt-connect-basic-001',
+      type: 'mqtt_connect',
+      name: '连接 Broker',
+      position: { x: 250, y: 0 },
+      data: {
+        type: 'mqtt_connect',
+        url: 'mqtt://broker.emqx.io:1883',
+        mqtt_version: '5.0',
+        clean_session: true,
+        keep_alive_secs: 60
+      }
+    },
+    // 节点 3: MQTT Subscribe 节点
+    {
+      uuid: 'mqtt-subscribe-basic-001',
+      type: 'mqtt_subscribe',
+      name: '订阅主题',
+      position: { x: 500, y: 0 },
+      data: {
+        type: 'mqtt_subscribe',
+        connection_id: 'mqtt-connect-basic-001',
+        topic: 'test/multi-protocolflow/#',
+        qos: 0,
+        max_messages: 1,
+        collect_timeout_ms: 5000,
+        output_mode: 'first'
+      }
+    },
+    // 节点 4: MQTT Publish 节点
+    {
+      uuid: 'mqtt-publish-basic-001',
+      type: 'mqtt_publish',
+      name: '发布测试消息',
+      position: { x: 750, y: 0 },
+      data: {
+        type: 'mqtt_publish',
+        connection_id: 'mqtt-connect-basic-001',
+        topic: 'test/multi-protocolflow/hello',
+        payload: '{"message":"Hello from Multi-Protocol Flow Executor","timestamp":"{{initial_variables.timestamp}}"}',
+        qos: 0,
+        payload_format: 'json'
+      }
+    },
+    // 节点 5: MQTT Disconnect 节点
+    {
+      uuid: 'mqtt-disconnect-basic-001',
+      type: 'mqtt_disconnect',
+      name: '断开连接',
+      position: { x: 1000, y: 0 },
+      data: {
+        type: 'mqtt_disconnect',
+        connection_id: 'mqtt-connect-basic-001'
+      }
+    }
+  ],
+  connections: [
+    // Entry → MQTT Connect
+    {
+      id: 'conn-mqtt-basic-1',
+      source_node_uuid: 'entry-mqtt-basic-001',
+      target_node_uuid: 'mqtt-connect-basic-001',
+      source_port_id: 'out',
+      target_port_id: 'in'
+    },
+    // MQTT Connect → MQTT Subscribe
+    {
+      id: 'conn-mqtt-basic-2',
+      source_node_uuid: 'mqtt-connect-basic-001',
+      target_node_uuid: 'mqtt-subscribe-basic-001',
+      source_port_id: 'true',
+      target_port_id: 'in'
+    },
+    // MQTT Subscribe → MQTT Publish
+    {
+      id: 'conn-mqtt-basic-3',
+      source_node_uuid: 'mqtt-subscribe-basic-001',
+      target_node_uuid: 'mqtt-publish-basic-001',
+      source_port_id: 'true',
+      target_port_id: 'in'
+    },
+    // MQTT Publish → MQTT Disconnect
+    {
+      id: 'conn-mqtt-basic-4',
+      source_node_uuid: 'mqtt-publish-basic-001',
+      target_node_uuid: 'mqtt-disconnect-basic-001',
+      source_port_id: 'true',
+      target_port_id: 'in'
+    }
+  ],
+  _meta: {
+    version: BUILTIN_FLOW_VERSION,
+    isBuiltin: true,
+  },
+} as Flow & { _meta?: { version: number; isBuiltin: boolean } };
+
+/**
+ * MQTT 请求/响应模式流程
+ * 演示 MQTT 5.0 请求/响应模式，使用 correlation_data 自动匹配
+ */
+export const MQTT_REQUEST_RESPONSE_FLOW: Flow = {
+  uuid: 'demo-mqtt-request-response',
+  name: 'MQTT 请求/响应模式',
+  description: '演示 MQTT 5.0 请求/响应模式，使用 correlation_data 自动匹配',
+  initial_variables: {},
+  nodes: [
+    // 节点 1: Entry 节点
+    {
+      uuid: 'entry-mqtt-rpc-001',
+      type: 'entry',
+      name: '入口',
+      position: { x: 0, y: 0 },
+      data: { type: 'entry' }
+    },
+    // 节点 2: MQTT Connect 节点
+    {
+      uuid: 'mqtt-connect-rpc-001',
+      type: 'mqtt_connect',
+      name: '连接 Broker',
+      position: { x: 250, y: 0 },
+      data: {
+        type: 'mqtt_connect',
+        url: 'mqtt://broker.emqx.io:1883',
+        mqtt_version: '5.0'
+      }
+    },
+    // 节点 3: MQTT Request 节点
+    {
+      uuid: 'mqtt-request-rpc-001',
+      type: 'mqtt_request',
+      name: '发送请求',
+      position: { x: 500, y: 0 },
+      data: {
+        type: 'mqtt_request',
+        connection_id: 'mqtt-connect-rpc-001',
+        request_topic: 'test/rpc/request',
+        response_topic: 'test/rpc/response',
+        payload: '{"action":"ping","id":"1"}',
+        qos: 1,
+        timeout_ms: 10000
+      }
+    },
+    // 节点 4: MQTT Disconnect 节点
+    {
+      uuid: 'mqtt-disconnect-rpc-001',
+      type: 'mqtt_disconnect',
+      name: '断开连接',
+      position: { x: 750, y: 0 },
+      data: {
+        type: 'mqtt_disconnect',
+        connection_id: 'mqtt-connect-rpc-001'
+      }
+    }
+  ],
+  connections: [
+    // Entry → MQTT Connect
+    {
+      id: 'conn-mqtt-rpc-1',
+      source_node_uuid: 'entry-mqtt-rpc-001',
+      target_node_uuid: 'mqtt-connect-rpc-001',
+      source_port_id: 'out',
+      target_port_id: 'in'
+    },
+    // MQTT Connect → MQTT Request
+    {
+      id: 'conn-mqtt-rpc-2',
+      source_node_uuid: 'mqtt-connect-rpc-001',
+      target_node_uuid: 'mqtt-request-rpc-001',
+      source_port_id: 'true',
+      target_port_id: 'in'
+    },
+    // MQTT Request → MQTT Disconnect
+    {
+      id: 'conn-mqtt-rpc-3',
+      source_node_uuid: 'mqtt-request-rpc-001',
+      target_node_uuid: 'mqtt-disconnect-rpc-001',
+      source_port_id: 'true',
+      target_port_id: 'in'
+    }
+  ],
+  _meta: {
+    version: BUILTIN_FLOW_VERSION,
+    isBuiltin: true,
+  },
+} as Flow & { _meta?: { version: number; isBuiltin: boolean } };

@@ -293,6 +293,35 @@ export async function discoverMcpTools(
 }
 
 // ============================================================================
+// MQTT 命令
+// ============================================================================
+
+export type {
+  MqttTestConnectionInput,
+  MqttBrokerInfo,
+  MqttTestConnectionOutput,
+} from './mqtt';
+
+/**
+ * 测试 MQTT Broker 连接
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @param input - 测试连接请求参数
+ * @returns 测试连接结果
+ */
+export async function testMqttConnection(
+  input: import('./mqtt').MqttTestConnectionInput
+): Promise<import('./mqtt').MqttTestConnectionOutput> {
+  if (isTauriEnv()) {
+    const { testMqttConnection: testMqttConnectionImpl } = await import('./mqtt');
+    return testMqttConnectionImpl(input);
+  } else {
+    const { testMqttConnection: testMqttConnectionImpl } = await import('./mock');
+    return testMqttConnectionImpl(input);
+  }
+}
+
+// ============================================================================
 // 压力测试命令
 // ============================================================================
 

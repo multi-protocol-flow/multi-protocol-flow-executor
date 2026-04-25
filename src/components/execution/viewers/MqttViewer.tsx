@@ -1,0 +1,945 @@
+/**
+ * MqttViewer - MQTT 节点执行详情查看器
+ * 结构化展示 MQTT Connect/Publish/Subscribe/Unsubscribe/Disconnect/WaitMessage/Request 七种节点的执行结果
+ * Connect: 连接状态、Broker 信息、耗时
+ * Publish: 发布配置、发布状态、耗时
+ * Subscribe: 订阅配置、消息列表、耗时
+ * Unsubscribe: 取消订阅状态
+ * Disconnect: 断开连接状态
+ * WaitMessage: 等待消息配置、匹配消息列表、耗时
+ * Request: 请求-响应配置、响应消息、耗时
+ */
+import { useState } from 'react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Cable,
+  Send,
+  Inbox,
+  X,
+  Unplug,
+  Clock,
+  Globe,
+  MessageSquare,
+  Radio,
+} from 'lucide-react';
+import type { NodeExecutionReport } from '@/types';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { VariableChangesCard } from './VariableChangesCard';
+
+interface MqttViewerProps {
+  /** 节点执行报告 */
+  report: NodeExecutionReport;
+}
+
+/**
+ * 折叠面板组件
+ */
+interface CollapsibleSectionProps {
+  title: string;
+  icon: React.ReactNode;
+  defaultOpen?: boolean;
+  extra?: React.ReactNode;
+  children: React.ReactNode;
+}
+
+function CollapsibleSection({ title, icon, defaultOpen = false, extra, children }: CollapsibleSectionProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center gap-2 p-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+        aria-expanded={isOpen}
+      >
+        <div className="text-muted-foreground">
+          {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </div>
+        <div className="text-muted-foreground">{icon}</div>
+        <span className="font-medium text-foreground text-sm">{title}</span>
+        {extra && <div className="ml-auto">{extra}</div>}
+      </button>
+      {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
+    </div>
+  );
+}
+
+// ============================================================================
+// 公共组件
+// ============================================================================
+
+/** MQTT 协议标签 */
+function MqttBadge() {
+  return (
+    <Badge
+      variant="outline"
+      className="font-mono text-xs text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/50 border-0 shrink-0"
+    >
+      MQTT
+    </Badge>
+  );
+}
+
+/** 状态 Badge */
+function StatusBadge({ isSuccess, successText, failText }: { isSuccess: boolean; successText: string; failText: string }) {
+  return (
+    <Badge
+      className={cn(
+        'font-mono text-xs px-2 py-0.5',
+        isSuccess
+          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
+          : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
+      )}
+    >
+      {isSuccess ? successText : failText}
+    </Badge>
+  );
+}
+
+/** 错误信息展示 */
+function ErrorBlock({ error }: { error?: string }) {
+  if (!error) return null;
+  return (
+    <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded p-2">
+      <p className="text-sm text-red-700 dark:text-red-300 break-all">{error}</p>
+    </div>
+  );
+}
+
+/** 耗时指标卡片 */
+function TimingMetric({ label, value }: { label: string; value: number | undefined }) {
+  if (value === undefined) return null;
+  return (
+    <div className="flex justify-between items-center p-2 bg-muted rounded">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-mono text-foreground">{value}ms</span>
+    </div>
+  );
+}
+
+// ============================================================================
+// MQTT 输出数据类型
+// ============================================================================
+
+/** MQTT Connect 输出数据 */
+interface MqttConnectOutput {
+  success?: boolean;
+  connection_id?: string | null;
+  broker_info?: {
+    version?: string;
+    session_present?: boolean;
+    client_id?: string;
+    keep_alive?: number;
+  };
+  timing?: {
+    connect_ms?: number;
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+/** MQTT Publish 输出数据 */
+interface MqttPublishOutput {
+  success?: boolean;
+  topic?: string;
+  qos?: number;
+  retain?: boolean;
+  payload_size?: number;
+  reason_code?: string;
+  timing?: {
+    publish_ms?: number;
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+/** MQTT 单条消息 */
+interface MqttMessage {
+  topic?: string;
+  payload?: string;
+  qos?: number;
+  retain?: boolean;
+  timestamp?: number;
+}
+
+/** MQTT Subscribe 输出数据 */
+interface MqttSubscribeOutput {
+  success?: boolean;
+  topic?: string;
+  qos?: number;
+  messages?: MqttMessage[];
+  message_count?: number;
+  timing?: {
+    subscribe_ms?: number;
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+/** MQTT Unsubscribe 输出数据 */
+interface MqttUnsubscribeOutput {
+  success?: boolean;
+  topic?: string;
+  error?: string;
+}
+
+/** MQTT Disconnect 输出数据 */
+interface MqttDisconnectOutput {
+  success?: boolean;
+  reason?: string;
+  timing?: {
+    disconnect_ms?: number;
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+/** MQTT WaitMessage 输出数据 */
+interface MqttWaitMessageOutput {
+  success?: boolean;
+  topic_filter?: string;
+  matched_messages?: MqttMessage[];
+  matched_count?: number;
+  timeout_ms?: number;
+  timing?: {
+    wait_ms?: number;
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+/** MQTT Request 输出数据 */
+interface MqttRequestOutput {
+  success?: boolean;
+  request_topic?: string;
+  response_topic?: string;
+  correlation_data?: string;
+  responses?: MqttMessage[];
+  response_count?: number;
+  timing?: {
+    request_ms?: number;
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+// ============================================================================
+// 消息卡片组件
+// ============================================================================
+
+function MqttMessageCard({ message, index }: { message: MqttMessage; index: number }) {
+  const payload = message.payload ?? '';
+  const truncatedPayload = payload.length > 200 ? payload.slice(0, 200) + '...' : payload;
+
+  return (
+    <div className="border border-border rounded-lg p-2.5">
+      {/* 消息头部 */}
+      <div className="flex items-center gap-2 mb-1.5">
+        <Badge variant="outline" className="text-[10px] px-1 py-0 font-mono">
+          #{index + 1}
+        </Badge>
+        {message.topic && (
+          <code className="text-xs font-mono text-foreground break-all">
+            {message.topic}
+          </code>
+        )}
+        {message.qos !== undefined && (
+          <Badge variant="outline" className="text-[10px] px-1 py-0 font-mono">
+            QoS {message.qos}
+          </Badge>
+        )}
+        {message.retain && (
+          <Badge variant="outline" className="text-[10px] px-1 py-0 font-mono text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+            Retain
+          </Badge>
+        )}
+        {message.timestamp !== undefined && (
+          <span className="text-[10px] text-muted-foreground font-mono ml-auto">
+            {message.timestamp}ms
+          </span>
+        )}
+      </div>
+
+      {/* Payload 预览 */}
+      {payload && (
+        <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-40 overflow-auto bg-muted rounded p-2">
+          {truncatedPayload}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// 主组件
+// ============================================================================
+
+export function MqttViewer({ report }: MqttViewerProps) {
+  const nodeType = report.node_type;
+
+  switch (nodeType) {
+    case 'mqtt_connect':
+      return <MqttConnectView report={report} />;
+    case 'mqtt_publish':
+      return <MqttPublishView report={report} />;
+    case 'mqtt_subscribe':
+      return <MqttSubscribeView report={report} />;
+    case 'mqtt_unsubscribe':
+      return <MqttUnsubscribeView report={report} />;
+    case 'mqtt_disconnect':
+      return <MqttDisconnectView report={report} />;
+    case 'mqtt_wait_message':
+      return <MqttWaitMessageView report={report} />;
+    case 'mqtt_request':
+      return <MqttRequestView report={report} />;
+    default:
+      return (
+        <div className="p-4 text-sm text-muted-foreground italic">
+          未知的 MQTT 节点类型: {nodeType}
+        </div>
+      );
+  }
+}
+
+// ============================================================================
+// MQTT Connect 查看器
+// ============================================================================
+
+function MqttConnectView({ report }: { report: NodeExecutionReport }) {
+  const output = report.output_data as MqttConnectOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const brokerInfo = output?.broker_info;
+  const connectDuration = output?.timing?.connect_ms;
+  const totalDuration = output?.timing?.total_ms;
+
+  return (
+    <div className="space-y-3">
+      {/* 连接状态 */}
+      <CollapsibleSection
+        title="连接状态"
+        icon={<Cable className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="已连接" failText="连接失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? 'MQTT 连接建立成功'
+                : output?.error ?? '无法建立 MQTT 连接'}
+            </span>
+          </div>
+
+          {/* 连接 ID */}
+          {output?.connection_id && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">连接 ID:</span>
+              <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                {output.connection_id}
+              </code>
+            </div>
+          )}
+
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* Broker 信息 */}
+      {isSuccess && brokerInfo && (
+        <CollapsibleSection
+          title="Broker 信息"
+          icon={<Globe className="w-4 h-4" />}
+          defaultOpen={true}
+        >
+          <div className="flex flex-wrap gap-2">
+            {brokerInfo.version && (
+              <Badge variant="outline" className="font-mono text-xs">
+                版本: {brokerInfo.version}
+              </Badge>
+            )}
+            {brokerInfo.session_present !== undefined && (
+              <Badge variant="outline" className="font-mono text-xs">
+                会话恢复: {brokerInfo.session_present ? '是' : '否'}
+              </Badge>
+            )}
+            {brokerInfo.client_id && (
+              <Badge variant="outline" className="font-mono text-xs">
+                Client ID: {brokerInfo.client_id}
+              </Badge>
+            )}
+            {brokerInfo.keep_alive !== undefined && (
+              <Badge variant="secondary" className="font-mono text-xs">
+                Keep Alive: {brokerInfo.keep_alive}s
+              </Badge>
+            )}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 耗时分解 */}
+      {(connectDuration !== undefined || totalDuration !== undefined) && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={totalDuration !== undefined && (
+            <span className="text-xs font-mono text-teal-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          )}
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <TimingMetric label="连接耗时" value={connectDuration} />
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+    </div>
+  );
+}
+
+// ============================================================================
+// MQTT Publish 查看器
+// ============================================================================
+
+function MqttPublishView({ report }: { report: NodeExecutionReport }) {
+  const output = report.output_data as MqttPublishOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const publishDuration = output?.timing?.publish_ms;
+  const totalDuration = output?.timing?.total_ms;
+
+  return (
+    <div className="space-y-3">
+      {/* 发布配置 */}
+      <CollapsibleSection
+        title="发布配置"
+        icon={<Send className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-3">
+          {/* Topic */}
+          <div className="flex items-center gap-2">
+            <MqttBadge />
+            <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
+              {output?.topic || <span className="text-muted-foreground italic">未配置 Topic</span>}
+            </code>
+          </div>
+
+          {/* QoS / Retain / Payload Size */}
+          <div className="flex flex-wrap gap-2">
+            {output?.qos !== undefined && (
+              <Badge variant="outline" className="font-mono text-xs">
+                QoS: {output.qos}
+              </Badge>
+            )}
+            {output?.retain !== undefined && (
+              <Badge variant="outline" className="font-mono text-xs">
+                Retain: {output.retain ? '是' : '否'}
+              </Badge>
+            )}
+            {output?.payload_size !== undefined && (
+              <Badge variant="secondary" className="font-mono text-xs">
+                载荷大小: {output.payload_size} 字节
+              </Badge>
+            )}
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* 发布状态 */}
+      <CollapsibleSection
+        title="发布状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="已发布" failText="发布失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? `消息已成功发布到 ${output?.topic ?? 'topic'}`
+                : output?.error ?? '消息发布失败'}
+            </span>
+          </div>
+
+          {/* Reason Code */}
+          {isSuccess && output?.reason_code && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Reason Code:</span>
+              <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                {output.reason_code}
+              </code>
+            </div>
+          )}
+
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 耗时分解 */}
+      {(publishDuration !== undefined || totalDuration !== undefined) && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={totalDuration !== undefined && (
+            <span className="text-xs font-mono text-teal-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          )}
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <TimingMetric label="发布耗时" value={publishDuration} />
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+    </div>
+  );
+}
+
+// ============================================================================
+// MQTT Subscribe 查看器
+// ============================================================================
+
+function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
+  const output = report.output_data as MqttSubscribeOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const messages = output?.messages ?? [];
+  const messageCount = output?.message_count ?? messages.length;
+  const subscribeDuration = output?.timing?.subscribe_ms;
+  const totalDuration = output?.timing?.total_ms;
+
+  return (
+    <div className="space-y-3">
+      {/* 订阅配置 */}
+      <CollapsibleSection
+        title="订阅配置"
+        icon={<Inbox className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-3">
+          {/* Topic */}
+          <div className="flex items-center gap-2">
+            <MqttBadge />
+            <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
+              {output?.topic || <span className="text-muted-foreground italic">未配置 Topic</span>}
+            </code>
+          </div>
+
+          {output?.qos !== undefined && (
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="font-mono text-xs">
+                QoS: {output.qos}
+              </Badge>
+            </div>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      {/* 订阅状态 */}
+      <CollapsibleSection
+        title="订阅状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="已订阅" failText="订阅失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? `订阅成功，收到 ${messageCount} 条消息`
+                : output?.error ?? '订阅失败'}
+            </span>
+          </div>
+
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 消息列表 */}
+      {messages.length > 0 && (
+        <CollapsibleSection
+          title="消息列表"
+          icon={<MessageSquare className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={
+            <Badge variant="outline" className="font-mono text-xs">
+              {messageCount} 条消息
+            </Badge>
+          }
+        >
+          <div className="space-y-2">
+            {messages.map((msg, idx) => (
+              <MqttMessageCard key={idx} message={msg} index={idx} />
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 耗时分解 */}
+      {(subscribeDuration !== undefined || totalDuration !== undefined) && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={totalDuration !== undefined && (
+            <span className="text-xs font-mono text-teal-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          )}
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <TimingMetric label="订阅耗时" value={subscribeDuration} />
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+    </div>
+  );
+}
+
+// ============================================================================
+// MQTT Unsubscribe 查看器
+// ============================================================================
+
+function MqttUnsubscribeView({ report }: { report: NodeExecutionReport }) {
+  const output = report.output_data as MqttUnsubscribeOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+
+  return (
+    <div className="space-y-3">
+      {/* 取消订阅配置 */}
+      <CollapsibleSection
+        title="取消订阅配置"
+        icon={<X className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="flex items-center gap-2">
+          <MqttBadge />
+          <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
+            {output?.topic || <span className="text-muted-foreground italic">未配置 Topic</span>}
+          </code>
+        </div>
+      </CollapsibleSection>
+
+      {/* 取消订阅状态 */}
+      <CollapsibleSection
+        title="取消订阅状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="已取消订阅" failText="取消订阅失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? `已成功取消订阅 ${output?.topic ?? 'topic'}`
+                : output?.error ?? '取消订阅失败'}
+            </span>
+          </div>
+
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+    </div>
+  );
+}
+
+// ============================================================================
+// MQTT Disconnect 查看器
+// ============================================================================
+
+function MqttDisconnectView({ report }: { report: NodeExecutionReport }) {
+  const output = report.output_data as MqttDisconnectOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const disconnectDuration = output?.timing?.disconnect_ms;
+  const totalDuration = output?.timing?.total_ms;
+
+  return (
+    <div className="space-y-3">
+      {/* 断开状态 */}
+      <CollapsibleSection
+        title="断开状态"
+        icon={<Unplug className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="已断开" failText="断开失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? output?.reason
+                  ? `已断开连接: ${output.reason}`
+                  : 'MQTT 连接已成功断开'
+                : output?.error ?? '断开连接失败'}
+            </span>
+          </div>
+
+          {/* 断开原因 */}
+          {isSuccess && output?.reason && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">原因:</span>
+              <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                {output.reason}
+              </code>
+            </div>
+          )}
+
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 耗时分解 */}
+      {(disconnectDuration !== undefined || totalDuration !== undefined) && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={totalDuration !== undefined && (
+            <span className="text-xs font-mono text-teal-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          )}
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <TimingMetric label="断开耗时" value={disconnectDuration} />
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+    </div>
+  );
+}
+
+// ============================================================================
+// MQTT WaitMessage 查看器
+// ============================================================================
+
+function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
+  const output = report.output_data as MqttWaitMessageOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const matchedMessages = output?.matched_messages ?? [];
+  const matchedCount = output?.matched_count ?? matchedMessages.length;
+  const waitDuration = output?.timing?.wait_ms;
+  const totalDuration = output?.timing?.total_ms;
+
+  return (
+    <div className="space-y-3">
+      {/* 等待配置 */}
+      <CollapsibleSection
+        title="等待配置"
+        icon={<Radio className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-3">
+          {/* Topic Filter */}
+          <div className="flex items-center gap-2">
+            <MqttBadge />
+            <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
+              {output?.topic_filter || <span className="text-muted-foreground italic">未配置 Topic Filter</span>}
+            </code>
+          </div>
+
+          {output?.timeout_ms !== undefined && (
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="font-mono text-xs">
+                超时: {output.timeout_ms}ms
+              </Badge>
+            </div>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      {/* 等待状态 */}
+      <CollapsibleSection
+        title="等待状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="已匹配" failText="等待失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? `匹配到 ${matchedCount} 条消息`
+                : output?.error ?? '等待消息失败'}
+            </span>
+          </div>
+
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 匹配消息列表 */}
+      {matchedMessages.length > 0 && (
+        <CollapsibleSection
+          title="匹配消息"
+          icon={<MessageSquare className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={
+            <Badge variant="outline" className="font-mono text-xs">
+              {matchedCount} 条消息
+            </Badge>
+          }
+        >
+          <div className="space-y-2">
+            {matchedMessages.map((msg, idx) => (
+              <MqttMessageCard key={idx} message={msg} index={idx} />
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 耗时分解 */}
+      {(waitDuration !== undefined || totalDuration !== undefined) && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={totalDuration !== undefined && (
+            <span className="text-xs font-mono text-teal-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          )}
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <TimingMetric label="等待耗时" value={waitDuration} />
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+    </div>
+  );
+}
+
+// ============================================================================
+// MQTT Request 查看器
+// ============================================================================
+
+function MqttRequestView({ report }: { report: NodeExecutionReport }) {
+  const output = report.output_data as MqttRequestOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const responses = output?.responses ?? [];
+  const responseCount = output?.response_count ?? responses.length;
+  const requestDuration = output?.timing?.request_ms;
+  const totalDuration = output?.timing?.total_ms;
+
+  return (
+    <div className="space-y-3">
+      {/* 请求配置 */}
+      <CollapsibleSection
+        title="请求配置"
+        icon={<Send className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-3">
+          {/* Request Topic */}
+          <div className="flex items-center gap-2">
+            <MqttBadge />
+            <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
+              {output?.request_topic || <span className="text-muted-foreground italic">未配置请求 Topic</span>}
+            </code>
+          </div>
+
+          {/* Response Topic / Correlation Data */}
+          <div className="flex flex-wrap gap-2">
+            {output?.response_topic && (
+              <Badge variant="outline" className="font-mono text-xs">
+                响应 Topic: {output.response_topic}
+              </Badge>
+            )}
+            {output?.correlation_data && (
+              <Badge variant="outline" className="font-mono text-xs">
+                Correlation: {output.correlation_data}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* 请求状态 */}
+      <CollapsibleSection
+        title="请求状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="请求成功" failText="请求失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? `请求-响应完成，收到 ${responseCount} 条响应`
+                : output?.error ?? '请求失败'}
+            </span>
+          </div>
+
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 响应消息列表 */}
+      {responses.length > 0 && (
+        <CollapsibleSection
+          title="响应消息"
+          icon={<MessageSquare className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={
+            <Badge variant="outline" className="font-mono text-xs">
+              {responseCount} 条响应
+            </Badge>
+          }
+        >
+          <div className="space-y-2">
+            {responses.map((msg, idx) => (
+              <MqttMessageCard key={idx} message={msg} index={idx} />
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 耗时分解 */}
+      {(requestDuration !== undefined || totalDuration !== undefined) && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={totalDuration !== undefined && (
+            <span className="text-xs font-mono text-teal-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          )}
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <TimingMetric label="请求耗时" value={requestDuration} />
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+    </div>
+  );
+}
