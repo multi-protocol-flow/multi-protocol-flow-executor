@@ -31,3 +31,33 @@ pub const DB_COMMIT: &str = "db_commit";
 pub const DB_ROLLBACK: &str = "db_rollback";
 /// 数据库关闭节点
 pub const DB_CLOSE: &str = "db_close";
+/// gRPC 连接节点
+pub const GRPC_CONNECT: &str = "grpc_connect";
+/// gRPC 调用节点
+pub const GRPC_CALL: &str = "grpc_call";
+/// gRPC 关闭节点
+pub const GRPC_CLOSE: &str = "grpc_close";
+/// MCP 连接节点
+pub const MCP_CONNECT: &str = "mcp_connect";
+/// MCP 调用工具节点
+pub const MCP_CALL_TOOL: &str = "mcp_call_tool";
+/// MCP 读取资源节点
+pub const MCP_READ_RESOURCE: &str = "mcp_read_resource";
+/// MCP 关闭连接节点
+pub const MCP_CLOSE: &str = "mcp_close";
+/// MCP 获取提示词节点
+pub const MCP_GET_PROMPT: &str = "mcp_get_prompt";
+/// TCP 连接节点
+pub const TCP_CONNECT: &str = "tcp_connect";
+/// TCP 发送节点
+pub const TCP_SEND: &str = "tcp_send";
+/// TCP 关闭节点
+pub const TCP_CLOSE: &str = "tcp_close";
+/// UDP 绑定节点
+pub const UDP_BIND: &str = "udp_bind";
+/// UDP 发送节点
+pub const UDP_SEND_TO: &str = "udp_send_to";
+/// UDP 接收节点
+pub const UDP_RECV_FROM: &str = "udp_recv_from";
+/// UDP 关闭节点
+pub const UDP_CLOSE: &str = "udp_close";

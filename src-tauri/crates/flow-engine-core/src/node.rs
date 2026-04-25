@@ -43,7 +43,53 @@ pub enum NodeType {
     #[serde(rename = "db_close")]
     DbClose,
     /// 脚本节点
+    #[serde(rename = "script")]
     Script,
+    /// gRPC 连接节点
+    #[serde(rename = "grpc_connect")]
+    GrpcConnect,
+    /// gRPC 调用节点
+    #[serde(rename = "grpc_call")]
+    GrpcCall,
+    /// gRPC 关闭节点
+    #[serde(rename = "grpc_close")]
+    GrpcClose,
+    /// MCP 连接节点
+    #[serde(rename = "mcp_connect")]
+    McpConnect,
+    /// MCP 调用工具节点
+    #[serde(rename = "mcp_call_tool")]
+    McpCallTool,
+    /// MCP 读取资源节点
+    #[serde(rename = "mcp_read_resource")]
+    McpReadResource,
+    /// MCP 关闭连接节点
+    #[serde(rename = "mcp_close")]
+    McpClose,
+    /// MCP 获取提示词节点
+    #[serde(rename = "mcp_get_prompt")]
+    McpGetPrompt,
+    /// TCP 连接节点
+    #[serde(rename = "tcp_connect")]
+    TcpConnect,
+    /// TCP 发送节点
+    #[serde(rename = "tcp_send")]
+    TcpSend,
+    /// TCP 关闭节点
+    #[serde(rename = "tcp_close")]
+    TcpClose,
+    /// UDP 绑定节点
+    #[serde(rename = "udp_bind")]
+    UdpBind,
+    /// UDP 发送节点
+    #[serde(rename = "udp_send_to")]
+    UdpSendTo,
+    /// UDP 接收节点
+    #[serde(rename = "udp_recv_from")]
+    UdpRecvFrom,
+    /// UDP 关闭节点
+    #[serde(rename = "udp_close")]
+    UdpClose,
 }
 
 /// 节点位置结构体
