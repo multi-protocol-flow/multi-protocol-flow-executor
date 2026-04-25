@@ -525,6 +525,7 @@ fn create_test_context(flow_id: &str) -> flow_engine_core::context::ExecutionCon
         mcp_manager: None,
         tcp_manager: None,
         udp_manager: None,
+        mqtt_manager: None,
     }
 }
 

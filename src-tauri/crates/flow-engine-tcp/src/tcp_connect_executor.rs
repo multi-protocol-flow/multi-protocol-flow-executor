@@ -353,6 +353,7 @@ mod tests {
             mcp_manager: None,
             tcp_manager: None,
             udp_manager: None,
+            mqtt_manager: None,
         }
     }
 

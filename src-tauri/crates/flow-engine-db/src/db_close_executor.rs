@@ -290,6 +290,7 @@ mod tests {
             mcp_manager: None,
             tcp_manager: None,
             udp_manager: None,
+            mqtt_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
