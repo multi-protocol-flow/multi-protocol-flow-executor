@@ -7,7 +7,7 @@ import { Search, ChevronDown, ChevronRight, Variable as VariableIcon } from 'luc
 import { Input } from '@/components/ui/input';
 import type { Flow, Node } from '@/types';
 import type { Variable } from '@/types/variable';
-import { isEntryConfig, isHttpConfig, isWsConnectConfig, isWsSendCollectConfig } from '@/types/node';
+import { isEntryConfig, isHttpConfig, isWsConnectConfig, isWsSendCollectConfig, isDbQueryConfig, isVariableExtractorConfig } from '@/types/node';
 
 interface VariablePanelProps {
   /** 当前流程 */
@@ -83,6 +83,30 @@ export function extractVariableGroups(flow: Flow): VariableGroup[] {
         variables.push({
           name: om.target,
           value: `{{${om.source}}}`, // 显示引用路径
+          sourceNodeUuid: node.uuid,
+          description: om.description,
+        });
+      });
+    }
+
+    // Database Query 节点：提取 output_mappings
+    if (isDbQueryConfig(node.data) && node.data.output_mappings) {
+      node.data.output_mappings.forEach(om => {
+        variables.push({
+          name: om.target,
+          value: `{{${om.source}}}`,
+          sourceNodeUuid: node.uuid,
+          description: om.description,
+        });
+      });
+    }
+
+    // 变量提取节点：提取 output_mappings
+    if (isVariableExtractorConfig(node.data) && node.data.output_mappings) {
+      node.data.output_mappings.forEach(om => {
+        variables.push({
+          name: om.target,
+          value: `{{${om.source}}}`,
           sourceNodeUuid: node.uuid,
           description: om.description,
         });
