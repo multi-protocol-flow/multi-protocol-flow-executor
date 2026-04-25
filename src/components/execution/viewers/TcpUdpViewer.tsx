@@ -1,0 +1,1012 @@
+/**
+ * TcpUdpViewer - TCP/UDP 节点执行详情查看器
+ * 结构化展示 TCP Connect/Send/Close 和 UDP Bind/SendTo/RecvFrom/Close 七种节点的执行结果
+ *
+ * TCP Connect: 连接配置、连接状态、耗时
+ * TCP Send: 发送数据、接收数据（含 hex 预览）、耗时
+ * TCP Close: 关闭配置、关闭状态、耗时
+ * UDP Bind: 绑定配置、绑定状态、耗时
+ * UDP SendTo: 发送数据、目标地址、耗时
+ * UDP RecvFrom: 接收数据（含 hex 预览）、来源地址、耗时
+ * UDP Close: 关闭配置、关闭状态、耗时
+ */
+import { useState } from 'react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Cable,
+  Unplug,
+  Clock,
+  Globe,
+  ArrowUpFromLine,
+  ArrowDownToLine,
+  Router,
+  CircleDot,
+} from 'lucide-react';
+import type { NodeExecutionReport, TcpUdpRecording } from '@/types';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { VariableChangesCard } from './VariableChangesCard';
+import { HexViewer, dataToBytes } from '@/components/common/HexViewer';
+import { RecordingViewer } from './RecordingViewer';
+
+interface TcpUdpViewerProps {
+  /** 节点执行报告 */
+  report: NodeExecutionReport;
+  /** 关联的 TCP/UDP 录制数据（可选） */
+  recording?: TcpUdpRecording;
+}
+
+/**
+ * 折叠面板组件
+ */
+interface CollapsibleSectionProps {
+  title: string;
+  icon: React.ReactNode;
+  defaultOpen?: boolean;
+  extra?: React.ReactNode;
+  children: React.ReactNode;
+}
+
+function CollapsibleSection({ title, icon, defaultOpen = false, extra, children }: CollapsibleSectionProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center gap-2 p-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+        aria-expanded={isOpen}
+      >
+        <div className="text-muted-foreground">
+          {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </div>
+        <div className="text-muted-foreground">{icon}</div>
+        <span className="font-medium text-foreground text-sm">{title}</span>
+        {extra && <div className="ml-auto">{extra}</div>}
+      </button>
+      {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
+    </div>
+  );
+}
+
+// ============================================================================
+// TCP/UDP 输出数据类型
+// ============================================================================
+
+/**
+ * TCP Connect 输出数据
+ */
+interface TcpConnectOutput {
+  success?: boolean;
+  connection_id?: string | null;
+  host?: string;
+  port?: number;
+  use_tls?: boolean;
+  timing?: {
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+/**
+ * TCP Send 输出数据
+ */
+interface TcpSendOutput {
+  success?: boolean;
+  connection_id?: string;
+  sent?: {
+    data?: string;
+    encoding?: string;
+    size?: number;
+    framing?: string;
+  };
+  received?: {
+    data?: string;
+    encoding?: string;
+    size?: number;
+    text_preview?: string;
+  };
+  timing?: {
+    send_ms?: number;
+    receive_ms?: number;
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+/**
+ * TCP Close 输出数据
+ */
+interface TcpCloseOutput {
+  success?: boolean;
+  connection_id?: string;
+  timing?: {
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+/**
+ * UDP Bind 输出数据
+ */
+interface UdpBindOutput {
+  success?: boolean;
+  connection_id?: string;
+  local_addr?: string;
+  local_port?: number;
+  timing?: {
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+/**
+ * UDP SendTo 输出数据
+ */
+interface UdpSendToOutput {
+  success?: boolean;
+  connection_id?: string;
+  sent?: {
+    data?: string;
+    encoding?: string;
+    size?: number;
+    target?: string;
+  };
+  timing?: {
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+/**
+ * UDP RecvFrom 输出数据
+ */
+interface UdpRecvFromOutput {
+  success?: boolean;
+  connection_id?: string;
+  received?: {
+    data?: string;
+    encoding?: string;
+    size?: number;
+    source_addr?: string;
+    source_port?: number;
+  };
+  timing?: {
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+/**
+ * UDP Close 输出数据
+ */
+interface UdpCloseOutput {
+  success?: boolean;
+  connection_id?: string;
+  timing?: {
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+// ============================================================================
+// Hex 预览工具 — 已迁移至 HexViewer 组件
+// ============================================================================
+
+/**
+ * 状态 Badge 组件
+ */
+function StatusBadge({ isSuccess, successText, failText }: { isSuccess: boolean; successText: string; failText: string }) {
+  return (
+    <Badge
+      className={cn(
+        'font-mono text-xs px-2 py-0.5',
+        isSuccess
+          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
+          : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
+      )}
+    >
+      {isSuccess ? successText : failText}
+    </Badge>
+  );
+}
+
+/**
+ * 错误信息展示
+ */
+function ErrorBlock({ error }: { error?: string }) {
+  if (!error) return null;
+  return (
+    <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded p-2">
+      <p className="text-sm text-red-700 dark:text-red-300 break-all">{error}</p>
+    </div>
+  );
+}
+
+/**
+ * 耗时指标卡片
+ */
+function TimingMetric({ label, value }: { label: string; value: number | undefined }) {
+  if (value === undefined) return null;
+  return (
+    <div className="flex justify-between items-center p-2 bg-muted rounded">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-mono text-foreground">{value}ms</span>
+    </div>
+  );
+}
+
+/**
+ * 协议标签颜色映射
+ */
+function ProtocolBadge({ protocol }: { protocol: 'TCP' | 'UDP' }) {
+  const colorClass = protocol === 'TCP'
+    ? 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/50 border-0'
+    : 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50 border-0';
+  return (
+    <Badge variant="outline" className={cn('font-mono text-xs shrink-0', colorClass)}>
+      {protocol}
+    </Badge>
+  );
+}
+
+export function TcpUdpViewer({ report, recording }: TcpUdpViewerProps) {
+  const nodeType = report.node_type;
+
+  switch (nodeType) {
+    case 'tcp_connect':
+      return <TcpConnectSection report={report} />;
+    case 'tcp_send':
+      return <TcpSendSection report={report} recording={recording} />;
+    case 'tcp_close':
+      return <TcpCloseSection report={report} />;
+    case 'udp_bind':
+      return <UdpBindSection report={report} />;
+    case 'udp_send_to':
+      return <UdpSendToSection report={report} />;
+    case 'udp_recv_from':
+      return <UdpRecvFromSection report={report} />;
+    case 'udp_close':
+      return <UdpCloseSection report={report} />;
+    default:
+      return (
+        <div className="p-4 text-sm text-muted-foreground italic">
+          未知的 TCP/UDP 节点类型: {nodeType}
+        </div>
+      );
+  }
+}
+
+// ============================================================================
+// TCP Connect 查看器
+// ============================================================================
+
+function TcpConnectSection({ report }: { report: NodeExecutionReport }) {
+  const output = report.output_data as TcpConnectOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const totalDuration = output?.timing?.total_ms;
+
+  return (
+    <div className="space-y-3">
+      {/* 连接配置 */}
+      <CollapsibleSection
+        title="连接配置"
+        icon={<Cable className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-3">
+          {/* 主机地址 */}
+          <div className="flex items-center gap-2">
+            <ProtocolBadge protocol="TCP" />
+            <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
+              {output?.host
+                ? `${output.host}:${output?.port ?? ''}`
+                : <span className="text-muted-foreground italic">未配置地址</span>}
+            </code>
+          </div>
+
+          {/* TLS / 连接信息 */}
+          <div className="flex flex-wrap gap-2">
+            {output?.use_tls !== undefined && (
+              <Badge variant="outline" className="font-mono text-xs">
+                TLS: {output.use_tls ? '启用' : '关闭'}
+              </Badge>
+            )}
+            {output?.connection_id && (
+              <Badge variant="outline" className="font-mono text-xs">
+                连接 ID: {output.connection_id}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* 连接状态 */}
+      <CollapsibleSection
+        title="连接状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="已连接" failText="连接失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? `TCP 连接建立成功`
+                : output?.error ?? '无法建立 TCP 连接'}
+            </span>
+          </div>
+
+          {/* 连接 ID */}
+          {output?.connection_id && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">连接 ID:</span>
+              <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                {output.connection_id}
+              </code>
+            </div>
+          )}
+
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 耗时 */}
+      {totalDuration !== undefined && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={
+            <span className="text-xs font-mono text-teal-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          }
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+    </div>
+  );
+}
+
+// ============================================================================
+// TCP Send 查看器
+// ============================================================================
+
+function TcpSendSection({ report, recording }: { report: NodeExecutionReport; recording?: TcpUdpRecording }) {
+  const [showRecording, setShowRecording] = useState(false);
+  const output = report.output_data as TcpSendOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const sentData = output?.sent;
+  const receivedData = output?.received;
+  const sendDuration = output?.timing?.send_ms;
+  const receiveDuration = output?.timing?.receive_ms;
+  const totalDuration = output?.timing?.total_ms;
+
+  return (
+    <div className="space-y-3">
+      {/* 发送数据 */}
+      <CollapsibleSection
+        title="发送数据"
+        icon={<ArrowUpFromLine className="w-4 h-4" />}
+        defaultOpen={true}
+        extra={sentData?.size !== undefined && (
+          <Badge variant="outline" className="font-mono text-xs">
+            {sentData.size} bytes
+          </Badge>
+        )}
+      >
+        <div className="space-y-2">
+          {/* 编码 / 分帧信息 */}
+          <div className="flex flex-wrap gap-2">
+            {sentData?.encoding && (
+              <Badge variant="outline" className="font-mono text-xs">
+                编码: {sentData.encoding}
+              </Badge>
+            )}
+            {sentData?.framing && (
+              <Badge variant="outline" className="font-mono text-xs">
+                分帧: {sentData.framing}
+              </Badge>
+            )}
+            {output?.connection_id && (
+              <Badge variant="outline" className="font-mono text-xs">
+                连接: {output.connection_id}
+              </Badge>
+            )}
+          </div>
+
+          {/* 发送内容 */}
+          {sentData?.data && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">数据内容</div>
+              <div className="bg-muted rounded p-2">
+                <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-60 overflow-auto">
+                  {sentData.data}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      {/* 接收数据 */}
+      {receivedData && (
+        <CollapsibleSection
+          title="接收数据"
+          icon={<ArrowDownToLine className="w-4 h-4" />}
+          defaultOpen={true}
+          extra={receivedData.size !== undefined && (
+            <Badge variant="outline" className="font-mono text-xs">
+              {receivedData.size} bytes
+            </Badge>
+          )}
+        >
+          <div className="space-y-2">
+            {/* 编码信息 */}
+            <div className="flex flex-wrap gap-2">
+              {receivedData.encoding && (
+                <Badge variant="outline" className="font-mono text-xs">
+                  编码: {receivedData.encoding}
+                </Badge>
+              )}
+            </div>
+
+            {/* 文本预览 */}
+            {receivedData.text_preview && (
+              <div>
+                <div className="text-xs font-medium text-muted-foreground mb-1.5">文本预览</div>
+                <div className="bg-muted rounded p-2">
+                  <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-60 overflow-auto">
+                    {receivedData.text_preview}
+                  </pre>
+                </div>
+              </div>
+            )}
+
+            {/* Hex 预览 */}
+            {receivedData.data && (
+              <div>
+                <div className="text-xs font-medium text-muted-foreground mb-1.5">Hex 预览</div>
+                <HexViewer data={dataToBytes(receivedData.data)} height={300} />
+              </div>
+            )}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 执行状态 */}
+      <CollapsibleSection
+        title="执行状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="发送成功" failText="发送失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? `数据发送${receivedData ? '并接收' : ''}完成`
+                : output?.error ?? '发送失败'}
+            </span>
+          </div>
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 耗时分解 */}
+      {(sendDuration !== undefined || receiveDuration !== undefined || totalDuration !== undefined) && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={totalDuration !== undefined && (
+            <span className="text-xs font-mono text-teal-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          )}
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <TimingMetric label="发送耗时" value={sendDuration} />
+            <TimingMetric label="接收耗时" value={receiveDuration} />
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+
+      {/* 录制查看 */}
+      {recording && (
+        <CollapsibleSection
+          title="查看录制"
+          icon={<CircleDot className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowRecording(!showRecording); }}
+              className="text-xs text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300"
+            >
+              {showRecording ? '折叠' : '展开'}
+            </button>
+          }
+        >
+          {showRecording ? (
+            <RecordingViewer recording={recording} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              共 {recording.entries.length} 条录制，时长 {recording.duration_ms}ms
+            </p>
+          )}
+        </CollapsibleSection>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// TCP Close 查看器
+// ============================================================================
+
+function TcpCloseSection({ report }: { report: NodeExecutionReport }) {
+  const output = report.output_data as TcpCloseOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const totalDuration = output?.timing?.total_ms;
+
+  return (
+    <div className="space-y-3">
+      {/* 关闭配置 */}
+      <CollapsibleSection
+        title="关闭配置"
+        icon={<Unplug className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <ProtocolBadge protocol="TCP" />
+            <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
+              {output?.connection_id
+                ? output.connection_id
+                : <span className="text-muted-foreground italic">未指定连接 ID</span>}
+            </code>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* 关闭状态 */}
+      <CollapsibleSection
+        title="关闭状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="已关闭" failText="关闭失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? 'TCP 连接已成功关闭'
+                : output?.error ?? '连接关闭失败'}
+            </span>
+          </div>
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 耗时 */}
+      {totalDuration !== undefined && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={
+            <span className="text-xs font-mono text-teal-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          }
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+    </div>
+  );
+}
+
+// ============================================================================
+// UDP Bind 查看器
+// ============================================================================
+
+function UdpBindSection({ report }: { report: NodeExecutionReport }) {
+  const output = report.output_data as UdpBindOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const totalDuration = output?.timing?.total_ms;
+
+  return (
+    <div className="space-y-3">
+      {/* 绑定配置 */}
+      <CollapsibleSection
+        title="绑定配置"
+        icon={<Router className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-3">
+          {/* 本地地址 */}
+          <div className="flex items-center gap-2">
+            <ProtocolBadge protocol="UDP" />
+            <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
+              {output?.local_addr
+                ? `${output.local_addr}:${output?.local_port ?? ''}`
+                : <span className="text-muted-foreground italic">未配置地址</span>}
+            </code>
+          </div>
+
+          {/* 连接 ID */}
+          {output?.connection_id && (
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="font-mono text-xs">
+                连接 ID: {output.connection_id}
+              </Badge>
+            </div>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      {/* 绑定状态 */}
+      <CollapsibleSection
+        title="绑定状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="已绑定" failText="绑定失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? `UDP 绑定成功 (${output?.local_addr ?? ''}:${output?.local_port ?? ''})`
+                : output?.error ?? '无法绑定 UDP 端口'}
+            </span>
+          </div>
+
+          {/* 连接 ID */}
+          {output?.connection_id && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">连接 ID:</span>
+              <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
+                {output.connection_id}
+              </code>
+            </div>
+          )}
+
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 耗时 */}
+      {totalDuration !== undefined && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={
+            <span className="text-xs font-mono text-orange-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          }
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+    </div>
+  );
+}
+
+// ============================================================================
+// UDP SendTo 查看器
+// ============================================================================
+
+function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
+  const output = report.output_data as UdpSendToOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const sentData = output?.sent;
+  const totalDuration = output?.timing?.total_ms;
+
+  return (
+    <div className="space-y-3">
+      {/* 发送数据 */}
+      <CollapsibleSection
+        title="发送数据"
+        icon={<ArrowUpFromLine className="w-4 h-4" />}
+        defaultOpen={true}
+        extra={sentData?.size !== undefined && (
+          <Badge variant="outline" className="font-mono text-xs">
+            {sentData.size} bytes
+          </Badge>
+        )}
+      >
+        <div className="space-y-2">
+          {/* 目标地址 */}
+          <div className="flex items-center gap-2">
+            <ProtocolBadge protocol="UDP" />
+            {sentData?.target ? (
+              <code className="text-sm font-mono text-foreground bg-muted px-2 py-1 rounded">
+                → {sentData.target}
+              </code>
+            ) : (
+              <span className="text-sm text-muted-foreground italic">未指定目标地址</span>
+            )}
+          </div>
+
+          {/* 编码信息 */}
+          <div className="flex flex-wrap gap-2">
+            {sentData?.encoding && (
+              <Badge variant="outline" className="font-mono text-xs">
+                编码: {sentData.encoding}
+              </Badge>
+            )}
+            {output?.connection_id && (
+              <Badge variant="outline" className="font-mono text-xs">
+                连接: {output.connection_id}
+              </Badge>
+            )}
+          </div>
+
+          {/* 发送内容 */}
+          {sentData?.data && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">数据内容</div>
+              <div className="bg-muted rounded p-2">
+                <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-60 overflow-auto">
+                  {sentData.data}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      {/* 执行状态 */}
+      <CollapsibleSection
+        title="执行状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="发送成功" failText="发送失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? `UDP 数据包已发送${sentData?.target ? `至 ${sentData.target}` : ''}`
+                : output?.error ?? '发送失败'}
+            </span>
+          </div>
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 耗时 */}
+      {totalDuration !== undefined && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={
+            <span className="text-xs font-mono text-orange-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          }
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+    </div>
+  );
+}
+
+// ============================================================================
+// UDP RecvFrom 查看器
+// ============================================================================
+
+function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
+  const output = report.output_data as UdpRecvFromOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const receivedData = output?.received;
+  const totalDuration = output?.timing?.total_ms;
+
+  // 来源地址
+  const sourceAddr = receivedData?.source_addr
+    ? `${receivedData.source_addr}:${receivedData?.source_port ?? ''}`
+    : null;
+
+  return (
+    <div className="space-y-3">
+      {/* 接收数据 */}
+      <CollapsibleSection
+        title="接收数据"
+        icon={<ArrowDownToLine className="w-4 h-4" />}
+        defaultOpen={true}
+        extra={receivedData?.size !== undefined && (
+          <Badge variant="outline" className="font-mono text-xs">
+            {receivedData.size} bytes
+          </Badge>
+        )}
+      >
+        <div className="space-y-2">
+          {/* 来源地址 */}
+          <div className="flex items-center gap-2">
+            <ProtocolBadge protocol="UDP" />
+            {sourceAddr ? (
+              <code className="text-sm font-mono text-foreground bg-muted px-2 py-1 rounded">
+                ← {sourceAddr}
+              </code>
+            ) : (
+              <span className="text-sm text-muted-foreground italic">未知来源</span>
+            )}
+          </div>
+
+          {/* 编码信息 */}
+          <div className="flex flex-wrap gap-2">
+            {receivedData?.encoding && (
+              <Badge variant="outline" className="font-mono text-xs">
+                编码: {receivedData.encoding}
+              </Badge>
+            )}
+            {output?.connection_id && (
+              <Badge variant="outline" className="font-mono text-xs">
+                连接: {output.connection_id}
+              </Badge>
+            )}
+          </div>
+
+          {/* Hex 预览 */}
+          {receivedData?.data && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">Hex 预览</div>
+              <HexViewer data={dataToBytes(receivedData.data)} height={300} />
+            </div>
+          )}
+
+          {/* 无数据提示 */}
+          {(!receivedData?.data) && (
+            <p className="text-sm text-muted-foreground italic">无接收数据</p>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      {/* 执行状态 */}
+      <CollapsibleSection
+        title="执行状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="接收成功" failText="接收失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? `UDP 数据包接收成功${sourceAddr ? ` (来自 ${sourceAddr})` : ''}`
+                : output?.error ?? '接收失败'}
+            </span>
+          </div>
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 耗时 */}
+      {totalDuration !== undefined && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={
+            <span className="text-xs font-mono text-orange-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          }
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+    </div>
+  );
+}
+
+// ============================================================================
+// UDP Close 查看器
+// ============================================================================
+
+function UdpCloseSection({ report }: { report: NodeExecutionReport }) {
+  const output = report.output_data as UdpCloseOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const totalDuration = output?.timing?.total_ms;
+
+  return (
+    <div className="space-y-3">
+      {/* 关闭配置 */}
+      <CollapsibleSection
+        title="关闭配置"
+        icon={<Unplug className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <ProtocolBadge protocol="UDP" />
+            <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
+              {output?.connection_id
+                ? output.connection_id
+                : <span className="text-muted-foreground italic">未指定连接 ID</span>}
+            </code>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* 关闭状态 */}
+      <CollapsibleSection
+        title="关闭状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="已关闭" failText="关闭失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? 'UDP 连接已成功关闭'
+                : output?.error ?? '连接关闭失败'}
+            </span>
+          </div>
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 耗时 */}
+      {totalDuration !== undefined && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={
+            <span className="text-xs font-mono text-orange-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          }
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+    </div>
+  );
+}
