@@ -3,7 +3,7 @@
 use crate::log_event::LogEvent;
 use crate::report::NodeExecutionReport;
 use crate::variable::Variable;
-use crate::traits::{LogSender, DebugEventSender, ExecutionEventSender, WsProvider, DbProvider, GrpcProvider, McpProvider};
+use crate::traits::{LogSender, DebugEventSender, ExecutionEventSender, WsProvider, DbProvider, GrpcProvider, McpProvider, TcpProvider, UdpProvider};
 use crate::execution_event::ExecutionEvent;
 use crate::ws_stream::{WsConnectionStream, WsMessage};
 use serde::{Deserialize, Serialize};
@@ -81,6 +81,18 @@ pub struct ExecutionContext {
     #[serde(skip)]
     pub mcp_manager: Option<Arc<dyn McpProvider>>,
 
+    /// TCP 连接管理器（通过 `TcpProvider` trait 解耦）
+    /// 用于管理 TCP 连接的生命周期（连接、发送、接收、关闭）
+    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `TcpProvider` 不支持序列化
+    #[serde(skip)]
+    pub tcp_manager: Option<Arc<dyn TcpProvider>>,
+
+    /// UDP Socket 管理器（通过 `UdpProvider` trait 解耦）
+    /// 用于管理 UDP Socket 的生命周期（绑定、发送、接收、关闭）
+    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `UdpProvider` 不支持序列化
+    #[serde(skip)]
+    pub udp_manager: Option<Arc<dyn UdpProvider>>,
+
     /// 最近一个协议节点的输出数据
     /// 协议节点（HTTP、WebSocket）执行后更新此字段
     /// 工具节点（Conditional、Entry、WsClose）不更新，延续上游数据
@@ -138,6 +150,8 @@ impl ExecutionContext {
             db_manager: None,
             grpc_manager: None,
             mcp_manager: None,
+            tcp_manager: None,
+            udp_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -220,6 +234,18 @@ impl ExecutionContext {
     /// 设置 MCP 连接管理器
     pub fn with_mcp_manager(mut self, mcp_manager: Arc<dyn McpProvider>) -> Self {
         self.mcp_manager = Some(mcp_manager);
+        self
+    }
+
+    /// 设置 TCP 连接管理器
+    pub fn with_tcp_manager(mut self, tcp_manager: Arc<dyn TcpProvider>) -> Self {
+        self.tcp_manager = Some(tcp_manager);
+        self
+    }
+
+    /// 设置 UDP Socket 管理器
+    pub fn with_udp_manager(mut self, udp_manager: Arc<dyn UdpProvider>) -> Self {
+        self.udp_manager = Some(udp_manager);
         self
     }
 

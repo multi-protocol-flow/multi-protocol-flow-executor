@@ -183,6 +183,28 @@ pub enum ErrorKind {
     /// 用户调用 `fn.flow.abort()`
     ScriptAbort,
 
+    // ===== TCP 错误（容错模式，继续执行） =====
+    /// TCP 连接失败
+    TcpConnection,
+    /// TCP 操作超时
+    TcpTimeout,
+    /// TCP 发送数据失败
+    TcpSend,
+    /// TCP 接收数据失败
+    TcpReceive,
+    /// TCP 连接关闭错误
+    TcpClose,
+
+    // ===== UDP 错误（容错模式，继续执行） =====
+    /// UDP 绑定失败
+    UdpBind,
+    /// UDP 发送数据失败
+    UdpSend,
+    /// UDP 接收数据失败
+    UdpReceive,
+    /// UDP 连接关闭错误
+    UdpClose,
+
     // ===== 取消错误（容错模式，继续执行） =====
     /// 执行被取消
     Cancelled,
@@ -272,6 +294,16 @@ mod tests {
         assert!(!ErrorKind::ScriptTimeout.is_fatal());
         assert!(!ErrorKind::ScriptAssertion.is_fatal());
         assert!(!ErrorKind::ScriptAbort.is_fatal());
+        // TCP/UDP 错误非致命
+        assert!(!ErrorKind::TcpConnection.is_fatal());
+        assert!(!ErrorKind::TcpTimeout.is_fatal());
+        assert!(!ErrorKind::TcpSend.is_fatal());
+        assert!(!ErrorKind::TcpReceive.is_fatal());
+        assert!(!ErrorKind::TcpClose.is_fatal());
+        assert!(!ErrorKind::UdpBind.is_fatal());
+        assert!(!ErrorKind::UdpSend.is_fatal());
+        assert!(!ErrorKind::UdpReceive.is_fatal());
+        assert!(!ErrorKind::UdpClose.is_fatal());
     }
 
     #[test]
@@ -297,6 +329,16 @@ mod tests {
             ErrorKind::ScriptTimeout,
             ErrorKind::ScriptAssertion,
             ErrorKind::ScriptAbort,
+            // TCP/UDP 错误类型
+            ErrorKind::TcpConnection,
+            ErrorKind::TcpTimeout,
+            ErrorKind::TcpSend,
+            ErrorKind::TcpReceive,
+            ErrorKind::TcpClose,
+            ErrorKind::UdpBind,
+            ErrorKind::UdpSend,
+            ErrorKind::UdpReceive,
+            ErrorKind::UdpClose,
         ];
 
         for kind in kinds {
@@ -342,6 +384,18 @@ mod tests {
             ErrorKind::ScriptTimeout,
             ErrorKind::ScriptAssertion,
             ErrorKind::ScriptAbort,
+            // TCP/UDP 错误类型
+            ErrorKind::TcpConnection,
+            ErrorKind::TcpTimeout,
+            ErrorKind::TcpSend,
+            ErrorKind::TcpReceive,
+            ErrorKind::TcpClose,
+            ErrorKind::UdpBind,
+            ErrorKind::UdpSend,
+            ErrorKind::UdpReceive,
+            ErrorKind::UdpClose,
+            // 取消
+            ErrorKind::Cancelled,
         ];
 
         for kind in kinds {
@@ -432,5 +486,41 @@ mod tests {
 
         let deserialized: ErrorDetail = serde_json::from_str(&json).expect("反序列化失败");
         assert_eq!(error.error_kind, deserialized.error_kind);
+    }
+
+    #[test]
+    fn test_tcp_udp_error_kinds() {
+        // 测试 TCP/UDP 错误类型的创建和序列化
+        let tcp_udp_errors = vec![
+            (ErrorKind::TcpConnection, "TCP 连接失败"),
+            (ErrorKind::TcpTimeout, "TCP 操作超时"),
+            (ErrorKind::TcpSend, "TCP 发送数据失败"),
+            (ErrorKind::TcpReceive, "TCP 接收数据失败"),
+            (ErrorKind::TcpClose, "TCP 连接关闭错误"),
+            (ErrorKind::UdpBind, "UDP 绑定失败"),
+            (ErrorKind::UdpSend, "UDP 发送数据失败"),
+            (ErrorKind::UdpReceive, "UDP 接收数据失败"),
+            (ErrorKind::UdpClose, "UDP 连接关闭错误"),
+        ];
+
+        for (kind, msg) in tcp_udp_errors {
+            let error = ErrorDetail::new(kind.clone(), msg.to_string());
+
+            // 验证非致命
+            assert!(!error.is_fatal(), "{:?} 不应为致命错误", kind);
+
+            // 验证序列化和反序列化
+            let json = serde_json::to_string(&error).expect("序列化失败");
+            let deserialized: ErrorDetail = serde_json::from_str(&json).expect("反序列化失败");
+
+            assert_eq!(error.error_kind, deserialized.error_kind);
+            assert_eq!(error.message, deserialized.message);
+
+            // 验证 JSON 中使用小写形式
+            assert!(
+                json.contains(&format!("{:?}", kind).to_lowercase()),
+                "JSON 应包含小写形式的错误类型"
+            );
+        }
     }
 }

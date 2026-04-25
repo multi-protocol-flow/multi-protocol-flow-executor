@@ -11,6 +11,8 @@ mod log_sender;
 mod ws_provider;
 mod grpc_provider;
 mod mcp_provider;
+mod tcp_provider;
+mod udp_provider;
 
 pub use app_dir::{AppDirProvider, DefaultAppDirProvider};
 pub use db_provider::{
@@ -30,4 +32,6 @@ pub use mcp_provider::{
 pub use log_sender::{
     ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
 };
+pub use tcp_provider::{FramingConfig, TcpConnectionInfo, TcpFramingMode, TcpProvider};
+pub use udp_provider::{UdpProvider, UdpSocketInfo};
 pub use ws_provider::WsProvider;

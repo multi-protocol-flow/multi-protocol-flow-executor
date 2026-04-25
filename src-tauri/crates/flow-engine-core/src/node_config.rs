@@ -1,6 +1,6 @@
 // 节点配置模块 - 强类型节点配置定义
 
-use crate::traits::GrpcServiceInfo;
+use crate::traits::{FramingConfig, GrpcServiceInfo, TcpFramingMode};
 use crate::variable::{InitialVariable, OutputMapping};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -1054,6 +1054,222 @@ impl Default for McpGetPromptConfig {
 }
 
 // ============================================================================
+// TCP 节点配置
+// ============================================================================
+
+/// TCP Connect 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TcpConnectConfig {
+    /// 目标主机地址
+    pub host: String,
+    /// 目标端口
+    pub port: u16,
+    /// 是否使用 TLS
+    #[serde(default)]
+    pub use_tls: bool,
+    /// 是否跳过 TLS 证书验证
+    #[serde(default)]
+    pub tls_skip_verify: bool,
+    /// 连接超时（毫秒）
+    #[serde(default = "default_tcp_connect_timeout")]
+    pub connect_timeout_ms: u64,
+    /// 帧定界模式
+    #[serde(default)]
+    pub framing_mode: TcpFramingMode,
+    /// 帧配置
+    #[serde(default)]
+    pub framing_config: FramingConfig,
+}
+
+fn default_tcp_connect_timeout() -> u64 {
+    30000
+}
+
+impl Default for TcpConnectConfig {
+    fn default() -> Self {
+        Self {
+            host: String::new(),
+            port: 0,
+            use_tls: false,
+            tls_skip_verify: false,
+            connect_timeout_ms: default_tcp_connect_timeout(),
+            framing_mode: TcpFramingMode::LengthPrefix { prefix_bytes: 4 },
+            framing_config: FramingConfig::default(),
+        }
+    }
+}
+
+/// TCP Send 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TcpSendConfig {
+    /// 连接 ID（引用 tcp_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 要发送的数据
+    pub data: String,
+    /// 数据编码方式："text" | "hex" | "base64"
+    #[serde(default = "default_data_encoding")]
+    pub data_encoding: String,
+    /// 帧定界模式
+    #[serde(default)]
+    pub framing_mode: TcpFramingMode,
+    /// 帧配置
+    #[serde(default)]
+    pub framing_config: FramingConfig,
+    /// 发送超时（毫秒）
+    #[serde(default = "default_tcp_send_timeout")]
+    pub send_timeout_ms: u64,
+}
+
+fn default_data_encoding() -> String {
+    "text".to_string()
+}
+
+fn default_tcp_send_timeout() -> u64 {
+    30000
+}
+
+impl Default for TcpSendConfig {
+    fn default() -> Self {
+        Self {
+            connection_id: String::new(),
+            data: String::new(),
+            data_encoding: default_data_encoding(),
+            framing_mode: TcpFramingMode::LengthPrefix { prefix_bytes: 4 },
+            framing_config: FramingConfig::default(),
+            send_timeout_ms: default_tcp_send_timeout(),
+        }
+    }
+}
+
+/// TCP Close 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TcpCloseConfig {
+    /// 连接 ID（引用 tcp_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 关闭超时（毫秒）
+    #[serde(default = "default_tcp_close_timeout")]
+    pub close_timeout_ms: u64,
+}
+
+fn default_tcp_close_timeout() -> u64 {
+    5000
+}
+
+impl Default for TcpCloseConfig {
+    fn default() -> Self {
+        Self {
+            connection_id: String::new(),
+            close_timeout_ms: default_tcp_close_timeout(),
+        }
+    }
+}
+
+// ============================================================================
+// UDP 节点配置
+// ============================================================================
+
+/// UDP Bind 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UdpBindConfig {
+    /// 本地绑定地址
+    #[serde(default = "default_udp_local_addr")]
+    pub local_addr: String,
+    /// 本地绑定端口
+    pub local_port: u16,
+    /// 是否允许地址复用
+    #[serde(default = "default_true")]
+    pub reuse_addr: bool,
+}
+
+fn default_udp_local_addr() -> String {
+    "0.0.0.0".to_string()
+}
+
+impl Default for UdpBindConfig {
+    fn default() -> Self {
+        Self {
+            local_addr: default_udp_local_addr(),
+            local_port: 0,
+            reuse_addr: true,
+        }
+    }
+}
+
+/// UDP SendTo 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UdpSendToConfig {
+    /// 连接 ID（引用 udp_bind 节点的 UUID）
+    pub connection_id: String,
+    /// 要发送的数据
+    pub data: String,
+    /// 数据编码方式："text" | "hex" | "base64"
+    #[serde(default = "default_data_encoding")]
+    pub data_encoding: String,
+    /// 目标地址
+    pub target_addr: String,
+    /// 目标端口
+    pub target_port: u16,
+    /// 发送超时（毫秒）
+    #[serde(default = "default_udp_send_timeout")]
+    pub send_timeout_ms: u64,
+}
+
+fn default_udp_send_timeout() -> u64 {
+    30000
+}
+
+impl Default for UdpSendToConfig {
+    fn default() -> Self {
+        Self {
+            connection_id: String::new(),
+            data: String::new(),
+            data_encoding: default_data_encoding(),
+            target_addr: String::new(),
+            target_port: 0,
+            send_timeout_ms: default_udp_send_timeout(),
+        }
+    }
+}
+
+/// UDP RecvFrom 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UdpRecvFromConfig {
+    /// 连接 ID（引用 udp_bind 节点的 UUID）
+    pub connection_id: String,
+    /// 接收超时（毫秒）
+    #[serde(default = "default_udp_recv_timeout")]
+    pub receive_timeout_ms: u64,
+    /// 最大接收大小（字节）
+    #[serde(default = "default_udp_max_size")]
+    pub max_size: usize,
+}
+
+fn default_udp_recv_timeout() -> u64 {
+    5000
+}
+
+fn default_udp_max_size() -> usize {
+    65536
+}
+
+impl Default for UdpRecvFromConfig {
+    fn default() -> Self {
+        Self {
+            connection_id: String::new(),
+            receive_timeout_ms: default_udp_recv_timeout(),
+            max_size: default_udp_max_size(),
+        }
+    }
+}
+
+/// UDP Close 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct UdpCloseConfig {
+    /// 连接 ID（引用 udp_bind 节点的 UUID）
+    pub connection_id: String,
+}
+
+// ============================================================================
 // 节点数据配置统一枚举
 // ============================================================================
 
@@ -1127,6 +1343,27 @@ pub enum NodeData {
     /// MCP 获取提示词节点配置
     #[serde(rename = "mcp_get_prompt")]
     McpGetPrompt(McpGetPromptConfig),
+    /// TCP 连接节点配置
+    #[serde(rename = "tcp_connect")]
+    TcpConnect(TcpConnectConfig),
+    /// TCP 发送节点配置
+    #[serde(rename = "tcp_send")]
+    TcpSend(TcpSendConfig),
+    /// TCP 关闭节点配置
+    #[serde(rename = "tcp_close")]
+    TcpClose(TcpCloseConfig),
+    /// UDP 绑定节点配置
+    #[serde(rename = "udp_bind")]
+    UdpBind(UdpBindConfig),
+    /// UDP 发送节点配置
+    #[serde(rename = "udp_send_to")]
+    UdpSendTo(UdpSendToConfig),
+    /// UDP 接收节点配置
+    #[serde(rename = "udp_recv_from")]
+    UdpRecvFrom(UdpRecvFromConfig),
+    /// UDP 关闭节点配置
+    #[serde(rename = "udp_close")]
+    UdpClose(UdpCloseConfig),
     /// 插件节点配置（未知类型的兜底捕获）
     ///
     /// 当反序列化遇到不认识的 `type` 值时，整个 JSON 对象会被保留在此变体中。
@@ -1216,6 +1453,27 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "mcp_get_prompt" => serde_json::from_value::<McpGetPromptConfig>(value.clone())
                 .map(NodeData::McpGetPrompt)
                 .map_err(serde::de::Error::custom),
+            "tcp_connect" => serde_json::from_value::<TcpConnectConfig>(value.clone())
+                .map(NodeData::TcpConnect)
+                .map_err(serde::de::Error::custom),
+            "tcp_send" => serde_json::from_value::<TcpSendConfig>(value.clone())
+                .map(NodeData::TcpSend)
+                .map_err(serde::de::Error::custom),
+            "tcp_close" => serde_json::from_value::<TcpCloseConfig>(value.clone())
+                .map(NodeData::TcpClose)
+                .map_err(serde::de::Error::custom),
+            "udp_bind" => serde_json::from_value::<UdpBindConfig>(value.clone())
+                .map(NodeData::UdpBind)
+                .map_err(serde::de::Error::custom),
+            "udp_send_to" => serde_json::from_value::<UdpSendToConfig>(value.clone())
+                .map(NodeData::UdpSendTo)
+                .map_err(serde::de::Error::custom),
+            "udp_recv_from" => serde_json::from_value::<UdpRecvFromConfig>(value.clone())
+                .map(NodeData::UdpRecvFrom)
+                .map_err(serde::de::Error::custom),
+            "udp_close" => serde_json::from_value::<UdpCloseConfig>(value.clone())
+                .map(NodeData::UdpClose)
+                .map_err(serde::de::Error::custom),
             // 未知 type → 兜底到 Plugin
             _ => Ok(NodeData::Plugin(value)),
         }
@@ -1248,6 +1506,13 @@ impl NodeData {
             NodeData::McpReadResource(_) => "mcp_read_resource".to_string(),
             NodeData::McpClose(_) => "mcp_close".to_string(),
             NodeData::McpGetPrompt(_) => "mcp_get_prompt".to_string(),
+            NodeData::TcpConnect(_) => "tcp_connect".to_string(),
+            NodeData::TcpSend(_) => "tcp_send".to_string(),
+            NodeData::TcpClose(_) => "tcp_close".to_string(),
+            NodeData::UdpBind(_) => "udp_bind".to_string(),
+            NodeData::UdpSendTo(_) => "udp_send_to".to_string(),
+            NodeData::UdpRecvFrom(_) => "udp_recv_from".to_string(),
+            NodeData::UdpClose(_) => "udp_close".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
                 .and_then(|v| v.as_str())
@@ -2122,5 +2387,249 @@ mod tests {
         let back: Node = serde_json::from_str(&json).unwrap();
         assert_eq!(back.node_type, "http");
         assert_eq!(back.uuid, "test-http");
+    }
+
+    // ========================================================================
+    // TCP/UDP 节点 serde 往返测试
+    // ========================================================================
+
+    #[test]
+    fn test_tcp_connect_config_serde_roundtrip() {
+        let config = TcpConnectConfig {
+            host: "127.0.0.1".to_string(),
+            port: 8080,
+            use_tls: true,
+            tls_skip_verify: false,
+            connect_timeout_ms: 15000,
+            framing_mode: TcpFramingMode::Delimiter {
+                delimiter: "\n".to_string(),
+            },
+            framing_config: FramingConfig::default(),
+        };
+        let json = serde_json::to_string(&config).unwrap();
+        let back: TcpConnectConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.host, "127.0.0.1");
+        assert_eq!(back.port, 8080);
+        assert!(back.use_tls);
+        assert_eq!(back.connect_timeout_ms, 15000);
+    }
+
+    #[test]
+    fn test_tcp_send_config_serde_roundtrip() {
+        let config = TcpSendConfig {
+            connection_id: "conn-1".to_string(),
+            data: "hello".to_string(),
+            data_encoding: "text".to_string(),
+            framing_mode: TcpFramingMode::Manual,
+            framing_config: FramingConfig::default(),
+            send_timeout_ms: 5000,
+        };
+        let json = serde_json::to_string(&config).unwrap();
+        let back: TcpSendConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.connection_id, "conn-1");
+        assert_eq!(back.data, "hello");
+        assert_eq!(back.send_timeout_ms, 5000);
+    }
+
+    #[test]
+    fn test_tcp_close_config_serde_roundtrip() {
+        let config = TcpCloseConfig {
+            connection_id: "conn-1".to_string(),
+            close_timeout_ms: 3000,
+        };
+        let json = serde_json::to_string(&config).unwrap();
+        let back: TcpCloseConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.connection_id, "conn-1");
+        assert_eq!(back.close_timeout_ms, 3000);
+    }
+
+    #[test]
+    fn test_udp_bind_config_serde_roundtrip() {
+        let config = UdpBindConfig {
+            local_addr: "0.0.0.0".to_string(),
+            local_port: 9090,
+            reuse_addr: true,
+        };
+        let json = serde_json::to_string(&config).unwrap();
+        let back: UdpBindConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.local_addr, "0.0.0.0");
+        assert_eq!(back.local_port, 9090);
+        assert!(back.reuse_addr);
+    }
+
+    #[test]
+    fn test_udp_send_to_config_serde_roundtrip() {
+        let config = UdpSendToConfig {
+            connection_id: "conn-1".to_string(),
+            data: "ping".to_string(),
+            data_encoding: "hex".to_string(),
+            target_addr: "192.168.1.1".to_string(),
+            target_port: 5000,
+            send_timeout_ms: 10000,
+        };
+        let json = serde_json::to_string(&config).unwrap();
+        let back: UdpSendToConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.connection_id, "conn-1");
+        assert_eq!(back.data_encoding, "hex");
+        assert_eq!(back.target_addr, "192.168.1.1");
+        assert_eq!(back.target_port, 5000);
+    }
+
+    #[test]
+    fn test_udp_recv_from_config_serde_roundtrip() {
+        let config = UdpRecvFromConfig {
+            connection_id: "conn-1".to_string(),
+            receive_timeout_ms: 8000,
+            max_size: 32768,
+        };
+        let json = serde_json::to_string(&config).unwrap();
+        let back: UdpRecvFromConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.connection_id, "conn-1");
+        assert_eq!(back.receive_timeout_ms, 8000);
+        assert_eq!(back.max_size, 32768);
+    }
+
+    #[test]
+    fn test_udp_close_config_serde_roundtrip() {
+        let config = UdpCloseConfig {
+            connection_id: "conn-1".to_string(),
+        };
+        let json = serde_json::to_string(&config).unwrap();
+        let back: UdpCloseConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.connection_id, "conn-1");
+    }
+
+    #[test]
+    fn test_node_data_tcp_connect_roundtrip() {
+        let json = r#"{"type":"tcp_connect","host":"127.0.0.1","port":8080,"use_tls":false,"tls_skip_verify":false,"connect_timeout_ms":30000,"framing_mode":{"length_prefix":{"prefix_bytes":4}},"framing_config":{"mode":{"length_prefix":{"prefix_bytes":4}},"max_frame_size":1048576,"include_framing_in_data":false}}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        assert_eq!(data.type_name(), "tcp_connect");
+        match &data {
+            NodeData::TcpConnect(cfg) => {
+                assert_eq!(cfg.host, "127.0.0.1");
+                assert_eq!(cfg.port, 8080);
+            }
+            _ => panic!("Expected TcpConnect variant"),
+        }
+        // 往返验证
+        let serialized = serde_json::to_string(&data).unwrap();
+        let back: NodeData = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(back.type_name(), "tcp_connect");
+    }
+
+    #[test]
+    fn test_node_data_tcp_send_roundtrip() {
+        let json = r#"{"type":"tcp_send","connection_id":"c1","data":"hello","data_encoding":"text","send_timeout_ms":30000}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        assert_eq!(data.type_name(), "tcp_send");
+        match &data {
+            NodeData::TcpSend(cfg) => {
+                assert_eq!(cfg.connection_id, "c1");
+                assert_eq!(cfg.data, "hello");
+            }
+            _ => panic!("Expected TcpSend variant"),
+        }
+    }
+
+    #[test]
+    fn test_node_data_tcp_close_roundtrip() {
+        let json = r#"{"type":"tcp_close","connection_id":"c1","close_timeout_ms":5000}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        assert_eq!(data.type_name(), "tcp_close");
+        match &data {
+            NodeData::TcpClose(cfg) => {
+                assert_eq!(cfg.connection_id, "c1");
+            }
+            _ => panic!("Expected TcpClose variant"),
+        }
+    }
+
+    #[test]
+    fn test_node_data_udp_bind_roundtrip() {
+        let json = r#"{"type":"udp_bind","local_addr":"0.0.0.0","local_port":9090,"reuse_addr":true}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        assert_eq!(data.type_name(), "udp_bind");
+        match &data {
+            NodeData::UdpBind(cfg) => {
+                assert_eq!(cfg.local_port, 9090);
+            }
+            _ => panic!("Expected UdpBind variant"),
+        }
+    }
+
+    #[test]
+    fn test_node_data_udp_send_to_roundtrip() {
+        let json = r#"{"type":"udp_send_to","connection_id":"c1","data":"ping","target_addr":"10.0.0.1","target_port":5000,"send_timeout_ms":30000}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        assert_eq!(data.type_name(), "udp_send_to");
+        match &data {
+            NodeData::UdpSendTo(cfg) => {
+                assert_eq!(cfg.target_addr, "10.0.0.1");
+                assert_eq!(cfg.target_port, 5000);
+            }
+            _ => panic!("Expected UdpSendTo variant"),
+        }
+    }
+
+    #[test]
+    fn test_node_data_udp_recv_from_roundtrip() {
+        let json = r#"{"type":"udp_recv_from","connection_id":"c1","receive_timeout_ms":5000,"max_size":65536}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        assert_eq!(data.type_name(), "udp_recv_from");
+        match &data {
+            NodeData::UdpRecvFrom(cfg) => {
+                assert_eq!(cfg.receive_timeout_ms, 5000);
+                assert_eq!(cfg.max_size, 65536);
+            }
+            _ => panic!("Expected UdpRecvFrom variant"),
+        }
+    }
+
+    #[test]
+    fn test_node_data_udp_close_roundtrip() {
+        let json = r#"{"type":"udp_close","connection_id":"c1"}"#;
+        let data: NodeData = serde_json::from_str(json).unwrap();
+        assert_eq!(data.type_name(), "udp_close");
+        match &data {
+            NodeData::UdpClose(cfg) => {
+                assert_eq!(cfg.connection_id, "c1");
+            }
+            _ => panic!("Expected UdpClose variant"),
+        }
+    }
+
+    #[test]
+    fn test_tcp_udp_defaults() {
+        // TCP Connect 默认值
+        let cfg = TcpConnectConfig::default();
+        assert_eq!(cfg.connect_timeout_ms, 30000);
+        assert!(!cfg.use_tls);
+
+        // TCP Send 默认值
+        let cfg = TcpSendConfig::default();
+        assert_eq!(cfg.data_encoding, "text");
+        assert_eq!(cfg.send_timeout_ms, 30000);
+
+        // TCP Close 默认值
+        let cfg = TcpCloseConfig::default();
+        assert_eq!(cfg.close_timeout_ms, 5000);
+
+        // UDP Bind 默认值
+        let cfg = UdpBindConfig::default();
+        assert_eq!(cfg.local_addr, "0.0.0.0");
+        assert!(cfg.reuse_addr);
+
+        // UDP SendTo 默认值
+        let cfg = UdpSendToConfig::default();
+        assert_eq!(cfg.send_timeout_ms, 30000);
+
+        // UDP RecvFrom 默认值
+        let cfg = UdpRecvFromConfig::default();
+        assert_eq!(cfg.receive_timeout_ms, 5000);
+        assert_eq!(cfg.max_size, 65536);
+
+        // UDP Close 默认值
+        let cfg = UdpCloseConfig::default();
+        assert!(cfg.connection_id.is_empty());
     }
 }
