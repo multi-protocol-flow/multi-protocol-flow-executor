@@ -63,6 +63,7 @@ export type {
   MqttDisconnectConfig,
   MqttWaitMessageConfig,
   MqttRequestConfig,
+  VariableExtractorConfig,
   ProtoFile,
   GrpcMetadataEntry,
   GrpcMethodInfo,
@@ -125,6 +126,7 @@ export {
   isDbRollbackConfig,
   isDbCloseConfig,
   isScriptConfig,
+  isVariableExtractorConfig,
 } from './node';
 
 // 连接类型

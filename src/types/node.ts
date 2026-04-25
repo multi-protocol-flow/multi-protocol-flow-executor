@@ -52,7 +52,8 @@ export type NodeType =
   | 'mqtt_unsubscribe'
   | 'mqtt_disconnect'
   | 'mqtt_wait_message'
-  | 'mqtt_request';
+  | 'mqtt_request'
+  | 'variable_extractor';
 
 /**
  * 节点位置结构体
@@ -963,6 +964,17 @@ export interface MqttRequestConfig {
   timeout_ms?: number;
 }
 
+/**
+ * 变量提取节点配置
+ */
+export interface VariableExtractorConfig {
+  type: 'variable_extractor';
+  /** 输出变量映射列表 */
+  output_mappings?: OutputMapping[];
+  /** 可选，指定读取特定上游节点的输出（UUID）。为 undefined 时读取 last_node_output */
+  source_node_id?: string;
+}
+
 // ============================================================================
 // TCP/UDP 录制类型定义
 // ============================================================================
@@ -1242,7 +1254,8 @@ export type NodeData =
   | DbCommitConfig
   | DbRollbackConfig
   | DbCloseConfig
-  | ScriptNodeConfig;
+  | ScriptNodeConfig
+  | VariableExtractorConfig;
 
 // ============================================================================
 // 节点结构体
@@ -1522,4 +1535,11 @@ export function isMqttWaitMessageConfig(data: NodeData): data is MqttWaitMessage
  */
 export function isMqttRequestConfig(data: NodeData): data is MqttRequestConfig {
   return data.type === 'mqtt_request';
+}
+
+/**
+ * 判断是否为 VariableExtractorConfig
+ */
+export function isVariableExtractorConfig(data: NodeData): data is VariableExtractorConfig {
+  return data.type === 'variable_extractor';
 }

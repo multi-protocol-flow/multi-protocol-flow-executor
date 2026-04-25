@@ -143,10 +143,11 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   db_rollback: 4,
   db_close: 5,
 
-  // 工具: 条件判断 → 脚本 → 断言
+  // 工具: 条件判断 → 脚本 → 断言 → 变量提取
   conditional: 0,
   script: 1,
   assertion: 2,
+  variable_extractor: 3,
 };
 
 /**
@@ -189,6 +190,7 @@ export function getBadgeClassForType(typeId: string): string {
     mqtt_disconnect: 'bg-cyan-100 text-cyan-700',
     mqtt_wait_message: 'bg-cyan-100 text-cyan-700',
     mqtt_request: 'bg-cyan-100 text-cyan-700',
+    variable_extractor: 'bg-amber-100 text-amber-700',
     tcp_connect: 'bg-emerald-100 text-emerald-700',
     tcp_send: 'bg-emerald-100 text-emerald-700',
     tcp_close: 'bg-emerald-100 text-emerald-700',
