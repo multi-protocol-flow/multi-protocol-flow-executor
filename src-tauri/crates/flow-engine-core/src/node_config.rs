@@ -1276,6 +1276,405 @@ pub struct UdpCloseConfig {
 }
 
 // ============================================================================
+// MQTT 节点配置
+// ============================================================================
+
+/// MQTT Connect 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MqttConnectConfig {
+    /// 节点类型标识
+    #[serde(default = "default_mqtt_connect_type")]
+    pub r#type: String,
+    /// MQTT Broker 地址
+    #[serde(default = "default_mqtt_url")]
+    pub url: String,
+    /// 客户端 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<String>,
+    /// 用户名
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    /// 密码
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+    /// MQTT 协议版本："3.1.1" 或 "5.0"
+    #[serde(default = "default_mqtt_version")]
+    pub mqtt_version: Option<String>,
+    /// 清除会话
+    #[serde(default = "default_mqtt_clean_session")]
+    pub clean_session: Option<bool>,
+    /// 心跳保活间隔（秒）
+    #[serde(default = "default_keep_alive_secs")]
+    pub keep_alive_secs: Option<u16>,
+    /// 连接超时（毫秒）
+    #[serde(default = "default_mqtt_connect_timeout")]
+    pub connect_timeout_ms: Option<u64>,
+    /// 遗嘱主题
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub will_topic: Option<String>,
+    /// 遗嘱载荷
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub will_payload: Option<String>,
+    /// 遗嘱 QoS
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub will_qos: Option<u8>,
+    /// 遗嘱保留标志
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub will_retain: Option<bool>,
+    /// 是否使用 TLS
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub use_tls: Option<bool>,
+    /// 是否跳过 TLS 证书验证
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls_skip_verify: Option<bool>,
+    /// 会话过期间隔（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_expiry_interval: Option<u32>,
+    /// 遗嘱延迟间隔（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub will_delay_interval: Option<u32>,
+    /// 接收最大值（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub receive_maximum: Option<u16>,
+    /// 主题别名最大值（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub topic_alias_maximum: Option<u16>,
+    /// 最大报文大小（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_packet_size: Option<u32>,
+    /// 用户属性（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_properties: Option<Vec<(String, String)>>,
+}
+
+fn default_mqtt_connect_type() -> String {
+    "mqtt_connect".to_string()
+}
+fn default_mqtt_url() -> String {
+    "mqtt://localhost:1883".to_string()
+}
+fn default_mqtt_version() -> Option<String> {
+    Some("5.0".to_string())
+}
+fn default_keep_alive_secs() -> Option<u16> {
+    Some(60)
+}
+fn default_mqtt_connect_timeout() -> Option<u64> {
+    Some(5000)
+}
+fn default_mqtt_clean_session() -> Option<bool> {
+    Some(true)
+}
+
+impl Default for MqttConnectConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_mqtt_connect_type(),
+            url: default_mqtt_url(),
+            client_id: None,
+            username: None,
+            password: None,
+            mqtt_version: default_mqtt_version(),
+            clean_session: Some(true),
+            keep_alive_secs: default_keep_alive_secs(),
+            connect_timeout_ms: default_mqtt_connect_timeout(),
+            will_topic: None,
+            will_payload: None,
+            will_qos: None,
+            will_retain: None,
+            use_tls: None,
+            tls_skip_verify: None,
+            session_expiry_interval: None,
+            will_delay_interval: None,
+            receive_maximum: None,
+            topic_alias_maximum: None,
+            max_packet_size: None,
+            user_properties: None,
+        }
+    }
+}
+
+/// MQTT Publish 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MqttPublishConfig {
+    /// 节点类型标识
+    #[serde(default = "default_mqtt_publish_type")]
+    pub r#type: String,
+    /// 连接 ID（引用 mqtt_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 发布主题
+    pub topic: String,
+    /// 发布载荷
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payload: Option<String>,
+    /// QoS 等级
+    #[serde(default = "default_mqtt_qos")]
+    pub qos: Option<u8>,
+    /// 保留标志
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retain: Option<bool>,
+    /// 载荷格式："text" | "json" | "hex" | "base64"
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payload_format: Option<String>,
+    /// 内容类型（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
+    /// 消息过期间隔（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message_expiry_interval: Option<u32>,
+    /// 响应主题（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub response_topic: Option<String>,
+    /// 关联数据（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub correlation_data: Option<String>,
+    /// 主题别名（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub topic_alias: Option<u16>,
+    /// 用户属性（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_properties: Option<Vec<(String, String)>>,
+}
+
+fn default_mqtt_publish_type() -> String {
+    "mqtt_publish".to_string()
+}
+fn default_mqtt_qos() -> Option<u8> {
+    Some(0)
+}
+
+impl Default for MqttPublishConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_mqtt_publish_type(),
+            connection_id: String::new(),
+            topic: String::new(),
+            payload: None,
+            qos: default_mqtt_qos(),
+            retain: None,
+            payload_format: None,
+            content_type: None,
+            message_expiry_interval: None,
+            response_topic: None,
+            correlation_data: None,
+            topic_alias: None,
+            user_properties: None,
+        }
+    }
+}
+
+/// MQTT Subscribe 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MqttSubscribeConfig {
+    /// 节点类型标识
+    #[serde(default = "default_mqtt_subscribe_type")]
+    pub r#type: String,
+    /// 连接 ID（引用 mqtt_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 订阅主题
+    pub topic: String,
+    /// QoS 等级
+    #[serde(default = "default_mqtt_qos")]
+    pub qos: Option<u8>,
+    /// 最大接收消息数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_messages: Option<usize>,
+    /// 采集超时（毫秒）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub collect_timeout_ms: Option<u64>,
+    /// 输出模式："first" | "all"
+    #[serde(default = "default_mqtt_output_mode")]
+    pub output_mode: Option<String>,
+    /// 不转发自身发布的消息（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub no_local: Option<bool>,
+    /// 保留消息按原样发布（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retain_as_published: Option<bool>,
+    /// 保留消息处理策略（MQTT 5.0: 0, 1, 2）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retain_handling: Option<u8>,
+    /// 订阅标识符（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscription_identifier: Option<u32>,
+    /// 共享订阅组名
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub share_group: Option<String>,
+}
+
+fn default_mqtt_subscribe_type() -> String {
+    "mqtt_subscribe".to_string()
+}
+fn default_mqtt_output_mode() -> Option<String> {
+    Some("first".to_string())
+}
+
+impl Default for MqttSubscribeConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_mqtt_subscribe_type(),
+            connection_id: String::new(),
+            topic: String::new(),
+            qos: default_mqtt_qos(),
+            max_messages: None,
+            collect_timeout_ms: None,
+            output_mode: default_mqtt_output_mode(),
+            no_local: None,
+            retain_as_published: None,
+            retain_handling: None,
+            subscription_identifier: None,
+            share_group: None,
+        }
+    }
+}
+
+/// MQTT Unsubscribe 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MqttUnsubscribeConfig {
+    /// 节点类型标识
+    #[serde(default = "default_mqtt_unsubscribe_type")]
+    pub r#type: String,
+    /// 连接 ID（引用 mqtt_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 取消订阅主题
+    pub topic: String,
+}
+
+fn default_mqtt_unsubscribe_type() -> String {
+    "mqtt_unsubscribe".to_string()
+}
+
+impl Default for MqttUnsubscribeConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_mqtt_unsubscribe_type(),
+            connection_id: String::new(),
+            topic: String::new(),
+        }
+    }
+}
+
+/// MQTT Disconnect 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MqttDisconnectConfig {
+    /// 节点类型标识
+    #[serde(default = "default_mqtt_disconnect_type")]
+    pub r#type: String,
+    /// 连接 ID（引用 mqtt_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 断开原因码
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason_code: Option<u8>,
+    /// 会话过期间隔（MQTT 5.0）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_expiry_interval: Option<u32>,
+}
+
+fn default_mqtt_disconnect_type() -> String {
+    "mqtt_disconnect".to_string()
+}
+
+impl Default for MqttDisconnectConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_mqtt_disconnect_type(),
+            connection_id: String::new(),
+            reason_code: None,
+            session_expiry_interval: None,
+        }
+    }
+}
+
+/// MQTT WaitMessage 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MqttWaitMessageConfig {
+    /// 节点类型标识
+    #[serde(default = "default_mqtt_wait_message_type")]
+    pub r#type: String,
+    /// 连接 ID（引用 mqtt_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 等待主题
+    pub topic: String,
+    /// 匹配条件（包含 match_type + expression）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub match_condition: Option<serde_json::Value>,
+    /// 等待超时（毫秒）
+    #[serde(default = "default_mqtt_wait_timeout")]
+    pub timeout_ms: Option<u64>,
+    /// 最大等待消息数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_messages: Option<usize>,
+}
+
+fn default_mqtt_wait_message_type() -> String {
+    "mqtt_wait_message".to_string()
+}
+fn default_mqtt_wait_timeout() -> Option<u64> {
+    Some(30000)
+}
+
+impl Default for MqttWaitMessageConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_mqtt_wait_message_type(),
+            connection_id: String::new(),
+            topic: String::new(),
+            match_condition: None,
+            timeout_ms: default_mqtt_wait_timeout(),
+            max_messages: None,
+        }
+    }
+}
+
+/// MQTT Request 节点配置（请求-响应模式）
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MqttRequestConfig {
+    /// 节点类型标识
+    #[serde(default = "default_mqtt_request_type")]
+    pub r#type: String,
+    /// 连接 ID（引用 mqtt_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 请求主题
+    pub request_topic: String,
+    /// 响应主题
+    pub response_topic: String,
+    /// 请求载荷
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payload: Option<String>,
+    /// QoS 等级
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub qos: Option<u8>,
+    /// 关联数据
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub correlation_data: Option<String>,
+    /// 响应等待超时（毫秒）
+    #[serde(default = "default_mqtt_request_timeout")]
+    pub timeout_ms: Option<u64>,
+}
+
+fn default_mqtt_request_type() -> String {
+    "mqtt_request".to_string()
+}
+fn default_mqtt_request_timeout() -> Option<u64> {
+    Some(30000)
+}
+
+impl Default for MqttRequestConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_mqtt_request_type(),
+            connection_id: String::new(),
+            request_topic: String::new(),
+            response_topic: String::new(),
+            payload: None,
+            qos: None,
+            correlation_data: None,
+            timeout_ms: default_mqtt_request_timeout(),
+        }
+    }
+}
+
+// ============================================================================
 // 节点数据配置统一枚举
 // ============================================================================
 
@@ -1370,6 +1769,27 @@ pub enum NodeData {
     /// UDP 关闭节点配置
     #[serde(rename = "udp_close")]
     UdpClose(UdpCloseConfig),
+    /// MQTT 连接节点配置
+    #[serde(rename = "mqtt_connect")]
+    MqttConnect(MqttConnectConfig),
+    /// MQTT 发布节点配置
+    #[serde(rename = "mqtt_publish")]
+    MqttPublish(MqttPublishConfig),
+    /// MQTT 订阅节点配置
+    #[serde(rename = "mqtt_subscribe")]
+    MqttSubscribe(MqttSubscribeConfig),
+    /// MQTT 取消订阅节点配置
+    #[serde(rename = "mqtt_unsubscribe")]
+    MqttUnsubscribe(MqttUnsubscribeConfig),
+    /// MQTT 断开连接节点配置
+    #[serde(rename = "mqtt_disconnect")]
+    MqttDisconnect(MqttDisconnectConfig),
+    /// MQTT 等待消息节点配置
+    #[serde(rename = "mqtt_wait_message")]
+    MqttWaitMessage(MqttWaitMessageConfig),
+    /// MQTT 请求-响应节点配置
+    #[serde(rename = "mqtt_request")]
+    MqttRequest(MqttRequestConfig),
     /// 插件节点配置（未知类型的兜底捕获）
     ///
     /// 当反序列化遇到不认识的 `type` 值时，整个 JSON 对象会被保留在此变体中。
@@ -1480,6 +1900,27 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "udp_close" => serde_json::from_value::<UdpCloseConfig>(value.clone())
                 .map(NodeData::UdpClose)
                 .map_err(serde::de::Error::custom),
+            "mqtt_connect" => serde_json::from_value::<MqttConnectConfig>(value.clone())
+                .map(NodeData::MqttConnect)
+                .map_err(serde::de::Error::custom),
+            "mqtt_publish" => serde_json::from_value::<MqttPublishConfig>(value.clone())
+                .map(NodeData::MqttPublish)
+                .map_err(serde::de::Error::custom),
+            "mqtt_subscribe" => serde_json::from_value::<MqttSubscribeConfig>(value.clone())
+                .map(NodeData::MqttSubscribe)
+                .map_err(serde::de::Error::custom),
+            "mqtt_unsubscribe" => serde_json::from_value::<MqttUnsubscribeConfig>(value.clone())
+                .map(NodeData::MqttUnsubscribe)
+                .map_err(serde::de::Error::custom),
+            "mqtt_disconnect" => serde_json::from_value::<MqttDisconnectConfig>(value.clone())
+                .map(NodeData::MqttDisconnect)
+                .map_err(serde::de::Error::custom),
+            "mqtt_wait_message" => serde_json::from_value::<MqttWaitMessageConfig>(value.clone())
+                .map(NodeData::MqttWaitMessage)
+                .map_err(serde::de::Error::custom),
+            "mqtt_request" => serde_json::from_value::<MqttRequestConfig>(value.clone())
+                .map(NodeData::MqttRequest)
+                .map_err(serde::de::Error::custom),
             // 未知 type → 兜底到 Plugin
             _ => Ok(NodeData::Plugin(value)),
         }
@@ -1519,6 +1960,13 @@ impl NodeData {
             NodeData::UdpSendTo(_) => "udp_send_to".to_string(),
             NodeData::UdpRecvFrom(_) => "udp_recv_from".to_string(),
             NodeData::UdpClose(_) => "udp_close".to_string(),
+            NodeData::MqttConnect(_) => "mqtt_connect".to_string(),
+            NodeData::MqttPublish(_) => "mqtt_publish".to_string(),
+            NodeData::MqttSubscribe(_) => "mqtt_subscribe".to_string(),
+            NodeData::MqttUnsubscribe(_) => "mqtt_unsubscribe".to_string(),
+            NodeData::MqttDisconnect(_) => "mqtt_disconnect".to_string(),
+            NodeData::MqttWaitMessage(_) => "mqtt_wait_message".to_string(),
+            NodeData::MqttRequest(_) => "mqtt_request".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
                 .and_then(|v| v.as_str())

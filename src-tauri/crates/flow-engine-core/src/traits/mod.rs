@@ -11,6 +11,7 @@ mod log_sender;
 mod ws_provider;
 mod grpc_provider;
 mod mcp_provider;
+mod mqtt_provider;
 mod tcp_provider;
 mod udp_provider;
 
@@ -28,6 +29,10 @@ pub use grpc_provider::{
 pub use mcp_provider::{
     McpConnectionInfo, McpProvider, McpPromptArgumentInfo, McpPromptInfo, McpPromptResult,
     McpResourceInfo, McpResourceReadResult, McpServerInfo, McpToolCallResult, McpToolInfo,
+};
+pub use mqtt_provider::{
+    MqttBrokerInfo, MqttConnectOutput, MqttConnectionInfo, MqttMessageOutput, MqttProvider,
+    MqttPublishOutput, MqttReceivedMessage, MqttSubscribeOutput, MqttTimingInfo,
 };
 pub use log_sender::{
     ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
