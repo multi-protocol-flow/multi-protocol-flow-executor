@@ -19,6 +19,7 @@ import {
   isDbRollbackConfig,
   isDbCloseConfig,
   isScriptConfig,
+  isVariableExtractorConfig,
 } from '../../types/node';
 import type { NodeData } from '../../types/node';
 
@@ -110,6 +111,8 @@ function createNodeData(type: NodeData['type']): NodeData {
       return { type: 'mqtt_wait_message', connection_id: 'mqtt-conn-1', topic: 'test/topic' };
     case 'mqtt_request':
       return { type: 'mqtt_request', connection_id: 'mqtt-conn-1', request_topic: 'test/req', response_topic: 'test/resp' };
+    case 'variable_extractor':
+      return { type: 'variable_extractor' };
   }
 }
 
@@ -399,5 +402,18 @@ describe('类型守卫类型缩窄', () => {
       expect(data.collect_response).toBe(true);
       expect(data.message).toBe('test message');
     }
+  });
+
+  it('isVariableExtractorConfig 应该正确缩窄类型', () => {
+    const data: NodeData = createNodeData('variable_extractor');
+    expect(isVariableExtractorConfig(data)).toBe(true);
+    if (isVariableExtractorConfig(data)) {
+      expect(data.type).toBe('variable_extractor');
+      expect(data.output_mappings).toBeUndefined();
+      expect(data.source_node_id).toBeUndefined();
+    }
+    // 非 variable_extractor 类型应返回 false
+    const httpData: NodeData = createNodeData('http');
+    expect(isVariableExtractorConfig(httpData)).toBe(false);
   });
 });
