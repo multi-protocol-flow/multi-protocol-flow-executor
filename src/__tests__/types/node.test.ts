@@ -96,6 +96,20 @@ function createNodeData(type: NodeData['type']): NodeData {
       return { type: 'udp_recv_from', connection_id: 'udp-conn-1' };
     case 'udp_close':
       return { type: 'udp_close', connection_id: 'udp-conn-1' };
+    case 'mqtt_connect':
+      return { type: 'mqtt_connect', url: 'mqtt://localhost:1883' };
+    case 'mqtt_publish':
+      return { type: 'mqtt_publish', connection_id: 'mqtt-conn-1', topic: 'test/topic' };
+    case 'mqtt_subscribe':
+      return { type: 'mqtt_subscribe', connection_id: 'mqtt-conn-1', topic: 'test/topic' };
+    case 'mqtt_unsubscribe':
+      return { type: 'mqtt_unsubscribe', connection_id: 'mqtt-conn-1', topic: 'test/topic' };
+    case 'mqtt_disconnect':
+      return { type: 'mqtt_disconnect', connection_id: 'mqtt-conn-1' };
+    case 'mqtt_wait_message':
+      return { type: 'mqtt_wait_message', connection_id: 'mqtt-conn-1', topic: 'test/topic' };
+    case 'mqtt_request':
+      return { type: 'mqtt_request', connection_id: 'mqtt-conn-1', request_topic: 'test/req', response_topic: 'test/resp' };
   }
 }
 

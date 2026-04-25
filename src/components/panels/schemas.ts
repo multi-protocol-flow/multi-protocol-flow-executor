@@ -793,6 +793,163 @@ export const udpCloseConfigSchema = z.object({
 export type UdpCloseConfigFormData = z.infer<typeof udpCloseConfigSchema>;
 
 // ============================================================================
+// MQTT 配置 Schema
+// ============================================================================
+
+/**
+ * MQTT 协议版本枚举
+ */
+export const mqttVersionSchema = z.enum(['3.1.1', '5.0']);
+export type MqttVersionFormData = z.infer<typeof mqttVersionSchema>;
+
+/**
+ * MQTT QoS 等级枚举
+ */
+export const mqttQosSchema = z.union([z.literal(0), z.literal(1), z.literal(2)]);
+export type MqttQoSFormData = z.infer<typeof mqttQosSchema>;
+
+/**
+ * MQTT 载荷格式枚举
+ */
+export const mqttPayloadFormatSchema = z.enum(['text', 'json', 'hex', 'base64']);
+export type MqttPayloadFormatFormData = z.infer<typeof mqttPayloadFormatSchema>;
+
+/**
+ * MQTT 保留消息处理策略枚举
+ */
+export const mqttRetainHandlingSchema = z.union([z.literal(0), z.literal(1), z.literal(2)]);
+export type MqttRetainHandlingFormData = z.infer<typeof mqttRetainHandlingSchema>;
+
+/**
+ * MQTT 输出模式枚举
+ */
+export const mqttOutputModeSchema = z.enum(['first', 'all']);
+export type MqttOutputModeFormData = z.infer<typeof mqttOutputModeSchema>;
+
+/**
+ * MQTT Connect 配置表单 Schema
+ */
+export const mqttConnectConfigSchema = z.object({
+  type: z.literal('mqtt_connect'),
+  url: z.string().optional(),
+  client_id: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+  mqtt_version: mqttVersionSchema.optional(),
+  clean_session: z.boolean().optional(),
+  keep_alive_secs: z.number().int().positive().optional(),
+  connect_timeout_ms: z.number().int().positive().optional(),
+  will_topic: z.string().optional(),
+  will_payload: z.string().optional(),
+  will_qos: z.number().int().min(0).max(2).optional(),
+  will_retain: z.boolean().optional(),
+  use_tls: z.boolean().optional(),
+  tls_skip_verify: z.boolean().optional(),
+  session_expiry_interval: z.number().int().positive().optional(),
+  will_delay_interval: z.number().int().positive().optional(),
+  receive_maximum: z.number().int().positive().optional(),
+  topic_alias_maximum: z.number().int().positive().optional(),
+  max_packet_size: z.number().int().positive().optional(),
+  user_properties: z.array(z.tuple([z.string(), z.string()])).optional(),
+});
+
+export type MqttConnectConfigFormData = z.infer<typeof mqttConnectConfigSchema>;
+
+/**
+ * MQTT Publish 配置表单 Schema
+ */
+export const mqttPublishConfigSchema = z.object({
+  type: z.literal('mqtt_publish'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  topic: z.string().min(1, '主题不能为空'),
+  payload: z.string().optional(),
+  qos: z.number().int().min(0).max(2).optional(),
+  retain: z.boolean().optional(),
+  payload_format: mqttPayloadFormatSchema.optional(),
+  content_type: z.string().optional(),
+  message_expiry_interval: z.number().int().positive().optional(),
+  response_topic: z.string().optional(),
+  correlation_data: z.string().optional(),
+  topic_alias: z.number().int().positive().optional(),
+  user_properties: z.array(z.tuple([z.string(), z.string()])).optional(),
+});
+
+export type MqttPublishConfigFormData = z.infer<typeof mqttPublishConfigSchema>;
+
+/**
+ * MQTT Subscribe 配置表单 Schema
+ */
+export const mqttSubscribeConfigSchema = z.object({
+  type: z.literal('mqtt_subscribe'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  topic: z.string().min(1, '主题不能为空'),
+  qos: z.number().int().min(0).max(2).optional(),
+  max_messages: z.number().int().positive().optional(),
+  collect_timeout_ms: z.number().int().positive().optional(),
+  output_mode: mqttOutputModeSchema.optional(),
+  no_local: z.boolean().optional(),
+  retain_as_published: z.boolean().optional(),
+  retain_handling: mqttRetainHandlingSchema.optional(),
+  subscription_identifier: z.number().int().positive().optional(),
+  share_group: z.string().optional(),
+});
+
+export type MqttSubscribeConfigFormData = z.infer<typeof mqttSubscribeConfigSchema>;
+
+/**
+ * MQTT Unsubscribe 配置表单 Schema
+ */
+export const mqttUnsubscribeConfigSchema = z.object({
+  type: z.literal('mqtt_unsubscribe'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  topic: z.string().min(1, '主题不能为空'),
+});
+
+export type MqttUnsubscribeConfigFormData = z.infer<typeof mqttUnsubscribeConfigSchema>;
+
+/**
+ * MQTT Disconnect 配置表单 Schema
+ */
+export const mqttDisconnectConfigSchema = z.object({
+  type: z.literal('mqtt_disconnect'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  reason_code: z.number().int().optional(),
+  session_expiry_interval: z.number().int().positive().optional(),
+});
+
+export type MqttDisconnectConfigFormData = z.infer<typeof mqttDisconnectConfigSchema>;
+
+/**
+ * MQTT WaitMessage 配置表单 Schema
+ */
+export const mqttWaitMessageConfigSchema = z.object({
+  type: z.literal('mqtt_wait_message'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  topic: z.string().min(1, '主题不能为空'),
+  match_condition: z.any().optional(),
+  timeout_ms: z.number().int().positive().optional(),
+  max_messages: z.number().int().positive().optional(),
+});
+
+export type MqttWaitMessageConfigFormData = z.infer<typeof mqttWaitMessageConfigSchema>;
+
+/**
+ * MQTT Request 配置表单 Schema
+ */
+export const mqttRequestConfigSchema = z.object({
+  type: z.literal('mqtt_request'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  request_topic: z.string().min(1, '请求主题不能为空'),
+  response_topic: z.string().min(1, '响应主题不能为空'),
+  payload: z.string().optional(),
+  qos: z.number().int().min(0).max(2).optional(),
+  correlation_data: z.string().optional(),
+  timeout_ms: z.number().int().positive().optional(),
+});
+
+export type MqttRequestConfigFormData = z.infer<typeof mqttRequestConfigSchema>;
+
+// ============================================================================
 // 未知节点类型 Fallback Schema
 // ============================================================================
 

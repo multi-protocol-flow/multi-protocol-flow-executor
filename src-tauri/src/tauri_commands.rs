@@ -723,6 +723,108 @@ pub async fn mcp_discover_tools(
 }
 
 // ============================================================================
+// MQTT 连接测试命令
+// ============================================================================
+
+use flow_engine::mqtt_connection_manager::MqttConnectionManager;
+use flow_engine::traits::MqttProvider;
+use flow_engine::node_config::MqttConnectConfig;
+
+/// MQTT 连接测试请求参数
+#[derive(Debug, serde::Deserialize)]
+pub struct MqttTestConnectionInput {
+    /// MQTT Broker 地址
+    pub url: String,
+    /// 客户端 ID
+    pub client_id: Option<String>,
+    /// 用户名
+    pub username: Option<String>,
+    /// 密码
+    pub password: Option<String>,
+    /// 是否使用 TLS
+    pub use_tls: Option<bool>,
+    /// 是否跳过 TLS 证书验证
+    pub tls_skip_verify: Option<bool>,
+    /// 连接超时（毫秒）
+    pub connect_timeout_ms: Option<u64>,
+}
+
+/// MQTT 连接测试响应
+#[derive(Debug, serde::Serialize)]
+pub struct MqttTestConnectionOutput {
+    /// 是否成功
+    pub success: bool,
+    /// Broker 信息
+    pub broker_info: Option<flow_engine::traits::MqttBrokerInfo>,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// 测试 MQTT 连接
+///
+/// 设计时调用：创建临时 MQTT 连接验证 Broker 可达性，测试后立即断开。
+#[tauri::command]
+pub async fn mqtt_test_connection(
+    input: MqttTestConnectionInput,
+) -> MqttTestConnectionOutput {
+    log::info!(
+        "[MQTT] 测试连接: url={}, client_id={}",
+        input.url,
+        input.client_id.as_deref().unwrap_or("auto-generated")
+    );
+
+    // 构造连接配置
+    let config = MqttConnectConfig {
+        url: input.url,
+        client_id: input.client_id.or_else(|| {
+            Some(format!("mpe-test-{}", uuid::Uuid::new_v4()))
+        }),
+        username: input.username,
+        password: input.password,
+        use_tls: input.use_tls,
+        tls_skip_verify: input.tls_skip_verify,
+        connect_timeout_ms: input.connect_timeout_ms,
+        ..Default::default()
+    };
+
+    // 创建临时连接管理器
+    let manager = MqttConnectionManager::new();
+
+    // 尝试连接
+    let result = manager.connect("test", &config).await;
+
+    match result {
+        Ok(output) => {
+            // 测试完成后立即断开
+            let disconnect_config = flow_engine::node_config::MqttDisconnectConfig {
+                connection_id: "test".to_string(),
+                ..Default::default()
+            };
+            let _ = manager.disconnect("test", &disconnect_config).await;
+
+            log::info!(
+                "[MQTT] 连接测试{}",
+                if output.success { "成功" } else { "失败" }
+            );
+
+            MqttTestConnectionOutput {
+                success: output.success,
+                broker_info: output.broker_info,
+                error: output.error,
+            }
+        }
+        Err(e) => {
+            log::error!("[MQTT] 连接测试失败: {}", e);
+            MqttTestConnectionOutput {
+                success: false,
+                broker_info: None,
+                error: Some(e),
+            }
+        }
+    }
+}
+
+// ============================================================================
 // 应用设置命令
 // ============================================================================
 

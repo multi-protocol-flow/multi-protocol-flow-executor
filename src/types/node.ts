@@ -38,7 +38,21 @@ export type NodeType =
   | 'mcp_call_tool'
   | 'mcp_read_resource'
   | 'mcp_get_prompt'
-  | 'mcp_close';
+  | 'mcp_close'
+  | 'tcp_connect'
+  | 'tcp_send'
+  | 'tcp_close'
+  | 'udp_bind'
+  | 'udp_send_to'
+  | 'udp_recv_from'
+  | 'udp_close'
+  | 'mqtt_connect'
+  | 'mqtt_publish'
+  | 'mqtt_subscribe'
+  | 'mqtt_unsubscribe'
+  | 'mqtt_disconnect'
+  | 'mqtt_wait_message'
+  | 'mqtt_request';
 
 /**
  * 节点位置结构体
@@ -752,6 +766,204 @@ export interface UdpCloseConfig {
 }
 
 // ============================================================================
+// MQTT 节点类型定义
+// ============================================================================
+
+/**
+ * MQTT 协议版本
+ */
+export type MqttVersion = '3.1.1' | '5.0';
+
+/**
+ * MQTT QoS 等级
+ */
+export type MqttQoS = 0 | 1 | 2;
+
+/**
+ * MQTT 载荷格式
+ */
+export type MqttPayloadFormat = 'text' | 'json' | 'hex' | 'base64';
+
+/**
+ * MQTT 保留消息处理策略（MQTT 5.0）
+ */
+export type MqttRetainHandling = 0 | 1 | 2;
+
+/**
+ * MQTT 输出模式
+ */
+export type MqttOutputMode = 'first' | 'all';
+
+/**
+ * MQTT Connect 节点配置
+ */
+export interface MqttConnectConfig {
+  type: 'mqtt_connect';
+  /** MQTT Broker 地址 */
+  url?: string;
+  /** 客户端 ID */
+  client_id?: string;
+  /** 用户名 */
+  username?: string;
+  /** 密码 */
+  password?: string;
+  /** MQTT 协议版本（默认 5.0） */
+  mqtt_version?: MqttVersion;
+  /** 清除会话（默认 true） */
+  clean_session?: boolean;
+  /** 心跳保活间隔（秒，默认 60） */
+  keep_alive_secs?: number;
+  /** 连接超时（毫秒，默认 5000） */
+  connect_timeout_ms?: number;
+  /** 遗嘱主题 */
+  will_topic?: string;
+  /** 遗嘱载荷 */
+  will_payload?: string;
+  /** 遗嘱 QoS */
+  will_qos?: number;
+  /** 遗嘱保留标志 */
+  will_retain?: boolean;
+  /** 是否使用 TLS */
+  use_tls?: boolean;
+  /** 是否跳过 TLS 证书验证 */
+  tls_skip_verify?: boolean;
+  /** 会话过期间隔（MQTT 5.0） */
+  session_expiry_interval?: number;
+  /** 遗嘱延迟间隔（MQTT 5.0） */
+  will_delay_interval?: number;
+  /** 接收最大值（MQTT 5.0） */
+  receive_maximum?: number;
+  /** 主题别名最大值（MQTT 5.0） */
+  topic_alias_maximum?: number;
+  /** 最大报文大小（MQTT 5.0） */
+  max_packet_size?: number;
+  /** 用户属性（MQTT 5.0） */
+  user_properties?: [string, string][];
+}
+
+/**
+ * MQTT Publish 节点配置
+ */
+export interface MqttPublishConfig {
+  type: 'mqtt_publish';
+  /** 连接 ID（引用 mqtt_connect 节点的 UUID） */
+  connection_id: string;
+  /** 发布主题 */
+  topic: string;
+  /** 发布载荷 */
+  payload?: string;
+  /** QoS 等级（默认 0） */
+  qos?: number;
+  /** 保留标志 */
+  retain?: boolean;
+  /** 载荷格式 */
+  payload_format?: MqttPayloadFormat;
+  /** 内容类型（MQTT 5.0） */
+  content_type?: string;
+  /** 消息过期间隔（MQTT 5.0） */
+  message_expiry_interval?: number;
+  /** 响应主题（MQTT 5.0） */
+  response_topic?: string;
+  /** 关联数据（MQTT 5.0） */
+  correlation_data?: string;
+  /** 主题别名（MQTT 5.0） */
+  topic_alias?: number;
+  /** 用户属性（MQTT 5.0） */
+  user_properties?: [string, string][];
+}
+
+/**
+ * MQTT Subscribe 节点配置
+ */
+export interface MqttSubscribeConfig {
+  type: 'mqtt_subscribe';
+  /** 连接 ID（引用 mqtt_connect 节点的 UUID） */
+  connection_id: string;
+  /** 订阅主题 */
+  topic: string;
+  /** QoS 等级（默认 0） */
+  qos?: number;
+  /** 最大接收消息数 */
+  max_messages?: number;
+  /** 采集超时（毫秒） */
+  collect_timeout_ms?: number;
+  /** 输出模式（默认 first） */
+  output_mode?: MqttOutputMode;
+  /** 不转发自身发布的消息（MQTT 5.0） */
+  no_local?: boolean;
+  /** 保留消息按原样发布（MQTT 5.0） */
+  retain_as_published?: boolean;
+  /** 保留消息处理策略（MQTT 5.0: 0=发送, 1=仅新, 2=不发送） */
+  retain_handling?: MqttRetainHandling;
+  /** 订阅标识符（MQTT 5.0） */
+  subscription_identifier?: number;
+  /** 共享订阅组名 */
+  share_group?: string;
+}
+
+/**
+ * MQTT Unsubscribe 节点配置
+ */
+export interface MqttUnsubscribeConfig {
+  type: 'mqtt_unsubscribe';
+  /** 连接 ID（引用 mqtt_connect 节点的 UUID） */
+  connection_id: string;
+  /** 取消订阅主题 */
+  topic: string;
+}
+
+/**
+ * MQTT Disconnect 节点配置
+ */
+export interface MqttDisconnectConfig {
+  type: 'mqtt_disconnect';
+  /** 连接 ID（引用 mqtt_connect 节点的 UUID） */
+  connection_id: string;
+  /** 断开原因码 */
+  reason_code?: number;
+  /** 会话过期间隔（MQTT 5.0） */
+  session_expiry_interval?: number;
+}
+
+/**
+ * MQTT WaitMessage 节点配置
+ */
+export interface MqttWaitMessageConfig {
+  type: 'mqtt_wait_message';
+  /** 连接 ID（引用 mqtt_connect 节点的 UUID） */
+  connection_id: string;
+  /** 等待主题 */
+  topic: string;
+  /** 匹配条件 */
+  match_condition?: Record<string, unknown>;
+  /** 等待超时（毫秒，默认 30000） */
+  timeout_ms?: number;
+  /** 最大等待消息数 */
+  max_messages?: number;
+}
+
+/**
+ * MQTT Request 节点配置（请求-响应模式）
+ */
+export interface MqttRequestConfig {
+  type: 'mqtt_request';
+  /** 连接 ID（引用 mqtt_connect 节点的 UUID） */
+  connection_id: string;
+  /** 请求主题 */
+  request_topic: string;
+  /** 响应主题 */
+  response_topic: string;
+  /** 请求载荷 */
+  payload?: string;
+  /** QoS 等级 */
+  qos?: number;
+  /** 关联数据 */
+  correlation_data?: string;
+  /** 响应等待超时（毫秒，默认 30000） */
+  timeout_ms?: number;
+}
+
+// ============================================================================
 // TCP/UDP 录制类型定义
 // ============================================================================
 
@@ -1017,6 +1229,13 @@ export type NodeData =
   | UdpSendToConfig
   | UdpRecvFromConfig
   | UdpCloseConfig
+  | MqttConnectConfig
+  | MqttPublishConfig
+  | MqttSubscribeConfig
+  | MqttUnsubscribeConfig
+  | MqttDisconnectConfig
+  | MqttWaitMessageConfig
+  | MqttRequestConfig
   | DbConnectConfig
   | DbQueryConfig
   | DbBeginConfig
@@ -1254,4 +1473,53 @@ export function isUdpRecvFromConfig(data: NodeData): data is UdpRecvFromConfig {
  */
 export function isUdpCloseConfig(data: NodeData): data is UdpCloseConfig {
   return data.type === 'udp_close';
+}
+
+/**
+ * 判断是否为 MqttConnectConfig
+ */
+export function isMqttConnectConfig(data: NodeData): data is MqttConnectConfig {
+  return data.type === 'mqtt_connect';
+}
+
+/**
+ * 判断是否为 MqttPublishConfig
+ */
+export function isMqttPublishConfig(data: NodeData): data is MqttPublishConfig {
+  return data.type === 'mqtt_publish';
+}
+
+/**
+ * 判断是否为 MqttSubscribeConfig
+ */
+export function isMqttSubscribeConfig(data: NodeData): data is MqttSubscribeConfig {
+  return data.type === 'mqtt_subscribe';
+}
+
+/**
+ * 判断是否为 MqttUnsubscribeConfig
+ */
+export function isMqttUnsubscribeConfig(data: NodeData): data is MqttUnsubscribeConfig {
+  return data.type === 'mqtt_unsubscribe';
+}
+
+/**
+ * 判断是否为 MqttDisconnectConfig
+ */
+export function isMqttDisconnectConfig(data: NodeData): data is MqttDisconnectConfig {
+  return data.type === 'mqtt_disconnect';
+}
+
+/**
+ * 判断是否为 MqttWaitMessageConfig
+ */
+export function isMqttWaitMessageConfig(data: NodeData): data is MqttWaitMessageConfig {
+  return data.type === 'mqtt_wait_message';
+}
+
+/**
+ * 判断是否为 MqttRequestConfig
+ */
+export function isMqttRequestConfig(data: NodeData): data is MqttRequestConfig {
+  return data.type === 'mqtt_request';
 }

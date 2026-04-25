@@ -57,6 +57,8 @@ pub use tauri_commands::{
     grpc_generate_request_skeleton,
     // MCP 工具发现命令
     mcp_discover_tools,
+    // MQTT 连接测试命令
+    mqtt_test_connection,
     // 执行会话管理
     cancel_flow,
     // 流程文件存储命令
@@ -191,6 +193,8 @@ pub fn run() {
     grpc_generate_request_skeleton,
     // MCP 工具发现命令
     mcp_discover_tools,
+    // MQTT 连接测试命令
+    mqtt_test_connection,
     // 执行会话管理
     cancel_flow,
     // 流程文件存储命令
