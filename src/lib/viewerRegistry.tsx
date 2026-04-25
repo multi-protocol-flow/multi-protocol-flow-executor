@@ -12,6 +12,7 @@ import { ConditionalViewer } from '@/components/execution/viewers/ConditionalVie
 import { AssertionViewer } from '@/components/execution/viewers/AssertionViewer';
 import { GenericViewer } from '@/components/execution/viewers/GenericViewer';
 import { GrpcViewer } from '@/components/execution/viewers/GrpcViewer';
+import { TcpUdpViewer } from '@/components/execution/viewers/TcpUdpViewer';
 
 interface ViewerProps {
   report: NodeExecutionReport;
@@ -36,6 +37,13 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   mcp_read_resource: GenericViewer,
   mcp_get_prompt: GenericViewer,
   mcp_close: GenericViewer,
+  tcp_connect: TcpUdpViewer,
+  tcp_send: TcpUdpViewer,
+  tcp_close: TcpUdpViewer,
+  udp_bind: TcpUdpViewer,
+  udp_send_to: TcpUdpViewer,
+  udp_recv_from: TcpUdpViewer,
+  udp_close: TcpUdpViewer,
 };
 
 /**

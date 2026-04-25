@@ -1,0 +1,443 @@
+/**
+ * TCP Connect 节点配置组件
+ * 支持主机地址、端口、TLS、成帧配置、连接超时
+ */
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  tcpConnectConfigSchema,
+  type TcpConnectConfigFormData,
+} from './schemas';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Cable, Info, AlertTriangle } from 'lucide-react';
+import type { TcpConnectConfig as TcpConnectConfigType, TcpFramingMode } from '@/types';
+
+interface TcpConnectConfigProps {
+  /** 当前节点数据 */
+  data: TcpConnectConfigType;
+  /** 保存回调 */
+  onSave: (data: TcpConnectConfigType) => void;
+}
+
+/**
+ * 成帧模式选项
+ */
+const FRAMING_MODE_OPTIONS = [
+  { value: 'length_prefix', label: '长度前缀 (Length Prefix)' },
+  { value: 'delimiter', label: '分隔符 (Delimiter)' },
+  { value: 'fixed_length', label: '固定长度 (Fixed Length)' },
+  { value: 'timeout', label: '超时读取 (Timeout)' },
+  { value: 'manual', label: '手动控制 (Manual)' },
+] as const;
+
+/**
+ * 将 TcpConnectConfigType 转换为表单数据
+ */
+function toFormData(data: TcpConnectConfigType): TcpConnectConfigFormData {
+  return {
+    type: 'tcp_connect',
+    host: data.host || '',
+    port: data.port ?? 0,
+    use_tls: data.use_tls ?? false,
+    tls_skip_verify: data.tls_skip_verify ?? false,
+    connect_timeout_ms: data.connect_timeout_ms ?? 30000,
+    framing_mode: data.framing_mode,
+    framing_config: data.framing_config,
+  };
+}
+
+/**
+ * 将表单数据转换为 TcpConnectConfigType
+ */
+function fromFormData(formData: TcpConnectConfigFormData): TcpConnectConfigType {
+  return {
+    type: 'tcp_connect',
+    host: formData.host,
+    port: formData.port,
+    use_tls: formData.use_tls,
+    tls_skip_verify: formData.tls_skip_verify,
+    connect_timeout_ms: formData.connect_timeout_ms,
+    framing_mode: formData.framing_mode,
+    framing_config: formData.framing_config,
+  };
+}
+
+/**
+ * 获取成帧模式的显示名称
+ */
+function getFramingModeLabel(mode: TcpFramingMode | undefined): string {
+  if (!mode) return '未设置';
+  return FRAMING_MODE_OPTIONS.find(o => o.value === mode.type)?.label ?? mode.type;
+}
+
+export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    getValues,
+    formState: { errors, isDirty },
+  } = useForm<TcpConnectConfigFormData>({
+    resolver: zodResolver(tcpConnectConfigSchema),
+    defaultValues: toFormData(data),
+    mode: 'onBlur',
+  });
+
+  // 监听表单值变化
+  const useTls = watch('use_tls');
+  const currentFramingMode = watch('framing_mode');
+
+  // 成帧模式选择状态（UI 层面选择 basic mode type）
+  const [selectedFramingType, setSelectedFramingType] = useState<string>(
+    currentFramingMode?.type ?? 'none'
+  );
+
+  // 追踪待执行的 setTimeout，组件卸载时清除
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  // 追踪表单实际修改状态
+  const isActuallyDirtyRef = useRef(false);
+  useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
+
+  // 组件卸载时同步保存
+  useEffect(() => {
+    return () => {
+      if (!isActuallyDirtyRef.current) return;
+      try {
+        const formData = getValues();
+        const config = fromFormData(formData);
+        onSave(config);
+      } catch {
+        // 静默处理卸载时的保存错误
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
+
+  // 当外部数据变化时，重置表单
+  useEffect(() => {
+    reset(toFormData(data));
+    setSelectedFramingType(data.framing_mode?.type ?? 'none');
+  }, [data, reset]);
+
+  /**
+   * 保存表单数据
+   */
+  const saveData = useCallback(() => {
+    handleSubmit((formData) => {
+      try {
+        const config = fromFormData(formData);
+        onSave(config);
+      } catch (error) {
+        console.error('保存 TCP Connect 配置失败:', error);
+      }
+    })();
+  }, [handleSubmit, onSave]);
+
+  /**
+   * 处理失焦事件
+   */
+  const handleBlur = useCallback(() => {
+    safeSetTimeout(() => {
+      if (!isActuallyDirtyRef.current) return;
+      saveData();
+    }, 100);
+  }, [safeSetTimeout, saveData]);
+
+  // 监听 Ctrl+S 刷新事件
+  useEffect(() => {
+    const handleFlush = () => { saveData(); };
+    window.addEventListener('flush-config-panel', handleFlush);
+    return () => { window.removeEventListener('flush-config-panel', handleFlush); };
+  }, [saveData]);
+
+  /**
+   * 处理成帧模式类型切换
+   */
+  const handleFramingTypeChange = useCallback((type: string) => {
+    setSelectedFramingType(type);
+    let newMode: TcpFramingMode | undefined;
+    switch (type) {
+      case 'length_prefix':
+        newMode = { type: 'length_prefix', prefix_bytes: 4 };
+        break;
+      case 'delimiter':
+        newMode = { type: 'delimiter', delimiter: '\n' };
+        break;
+      case 'fixed_length':
+        newMode = { type: 'fixed_length', length: 1024 };
+        break;
+      case 'timeout':
+        newMode = { type: 'timeout', timeout_ms: 5000 };
+        break;
+      case 'manual':
+        newMode = { type: 'manual' };
+        break;
+      case 'none':
+        newMode = undefined;
+        break;
+      default:
+        newMode = undefined;
+    }
+    setValue('framing_mode', newMode as TcpFramingMode, { shouldDirty: true });
+    safeSetTimeout(saveData, 100);
+  }, [setValue, safeSetTimeout, saveData]);
+
+  /**
+   * 更新成帧子字段（length_prefix 的 prefix_bytes 等）
+   */
+  const updateFramingSubField = useCallback((field: string, value: number | string) => {
+    const currentMode = getValues('framing_mode');
+    if (!currentMode) return;
+    const updated = { ...currentMode, [field]: value } as TcpFramingMode;
+    setValue('framing_mode', updated, { shouldDirty: true });
+    safeSetTimeout(saveData, 100);
+  }, [getValues, setValue, safeSetTimeout, saveData]);
+
+  return (
+    <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
+      {/* 主说明卡片 */}
+      <div className="rounded-lg border border-emerald-200/50 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 p-4 overflow-hidden">
+        <div className="space-y-2">
+          <h4 className="text-sm font-semibold text-emerald-900 flex items-center gap-2">
+            <Cable className="h-4 w-4" />
+            TCP 连接节点
+          </h4>
+          <p className="text-sm leading-relaxed text-emerald-700/90 whitespace-normal break-words">
+            建立 TCP 连接，支持 TLS 加密、自定义成帧协议。
+          </p>
+        </div>
+      </div>
+
+      {/* 主机地址 */}
+      <div className="space-y-2">
+        <Label htmlFor="host" className="text-sm font-medium text-foreground">
+          主机地址 <span className="text-rose-500">*</span>
+        </Label>
+        <div className="relative">
+          <Cable className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
+          <Input
+            id="host"
+            {...register('host')}
+            placeholder="127.0.0.1 或 example.com"
+            className="pl-9 font-mono text-sm"
+          />
+        </div>
+        {errors.host && (
+          <p className="text-xs text-rose-500">{errors.host.message}</p>
+        )}
+      </div>
+
+      {/* 端口 */}
+      <div className="space-y-2">
+        <Label htmlFor="port" className="text-sm font-medium text-foreground">
+          端口 <span className="text-rose-500">*</span>
+        </Label>
+        <Input
+          id="port"
+          type="number"
+          min={1}
+          max={65535}
+          {...register('port', { valueAsNumber: true })}
+          className="font-mono text-sm"
+        />
+        {errors.port && (
+          <p className="text-xs text-rose-500">{errors.port.message}</p>
+        )}
+        <p className="text-xs text-muted-foreground">范围 1-65535</p>
+      </div>
+
+      {/* TLS 配置 */}
+      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="use_tls"
+            checked={useTls || false}
+            onCheckedChange={(checked) => {
+              setValue('use_tls', checked, { shouldDirty: true });
+              if (!checked) {
+                setValue('tls_skip_verify', false, { shouldDirty: true });
+              }
+              saveData();
+            }}
+          />
+          <Label htmlFor="use_tls" className="text-sm font-medium text-foreground cursor-pointer">
+            启用 TLS
+          </Label>
+        </div>
+
+        {useTls && (
+          <>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="tls_skip_verify"
+                checked={watch('tls_skip_verify') || false}
+                onCheckedChange={(checked) => {
+                  setValue('tls_skip_verify', checked, { shouldDirty: true });
+                  saveData();
+                }}
+              />
+              <Label htmlFor="tls_skip_verify" className="text-sm font-medium text-foreground cursor-pointer">
+                跳过证书验证
+              </Label>
+            </div>
+            {watch('tls_skip_verify') && (
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-800/60 dark:bg-amber-950/30">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-400">
+                  跳过证书验证会使连接面临中间人攻击风险，数据仍会加密传输，但无法确认服务端身份。仅建议在开发/测试环境使用。
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* 连接超时 */}
+      <div className="space-y-2">
+        <Label htmlFor="connect_timeout_ms" className="text-sm font-medium text-foreground">
+          连接超时
+        </Label>
+        <Input
+          id="connect_timeout_ms"
+          type="number"
+          min={1000}
+          max={300000}
+          {...register('connect_timeout_ms', { valueAsNumber: true })}
+          className="font-mono text-sm"
+        />
+        <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+      </div>
+
+      {/* 成帧配置 */}
+      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+        <Label className="text-sm font-medium text-foreground">成帧配置（可选）</Label>
+        <p className="text-xs text-muted-foreground">
+          定义 TCP 数据流的帧定界方式，用于正确解析接收到的数据
+        </p>
+
+        {/* 成帧模式选择 */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Select
+              value={selectedFramingType}
+              onValueChange={handleFramingTypeChange}
+            >
+              <SelectTrigger className="font-mono text-sm">
+                <SelectValue placeholder="不使用成帧" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">不使用成帧</SelectItem>
+                {FRAMING_MODE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* 成帧子字段：根据选中模式动态显示 */}
+        {selectedFramingType === 'length_prefix' && (
+          <div className="space-y-2 pl-2">
+            <Label className="text-xs text-muted-foreground">前缀字节数</Label>
+            <Select
+              value={String(currentFramingMode?.type === 'length_prefix' ? (currentFramingMode as { type: 'length_prefix'; prefix_bytes: number }).prefix_bytes : 4)}
+              onValueChange={(val) => updateFramingSubField('prefix_bytes', Number(val))}
+            >
+              <SelectTrigger className="h-8 font-mono text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 4, 8].map((n) => (
+                  <SelectItem key={n} value={String(n)}>{n} 字节</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">用于表示消息长度的字节数</p>
+          </div>
+        )}
+
+        {selectedFramingType === 'delimiter' && (
+          <div className="space-y-2 pl-2">
+            <Label className="text-xs text-muted-foreground">分隔符</Label>
+            <Input
+              value={currentFramingMode?.type === 'delimiter' ? (currentFramingMode as { type: 'delimiter'; delimiter: string }).delimiter : '\n'}
+              onChange={(e) => updateFramingSubField('delimiter', e.target.value)}
+              className="h-8 font-mono text-xs"
+              placeholder="\n"
+            />
+            <p className="text-xs text-muted-foreground">遇到此分隔符时视为一帧结束</p>
+          </div>
+        )}
+
+        {selectedFramingType === 'fixed_length' && (
+          <div className="space-y-2 pl-2">
+            <Label className="text-xs text-muted-foreground">固定帧长度</Label>
+            <Input
+              type="number"
+              min={1}
+              value={currentFramingMode?.type === 'fixed_length' ? (currentFramingMode as { type: 'fixed_length'; length: number }).length : 1024}
+              onChange={(e) => updateFramingSubField('length', Number(e.target.value))}
+              className="h-8 font-mono text-xs"
+            />
+            <p className="text-xs text-muted-foreground">每次读取的固定字节数</p>
+          </div>
+        )}
+
+        {selectedFramingType === 'timeout' && (
+          <div className="space-y-2 pl-2">
+            <Label className="text-xs text-muted-foreground">读取超时 (ms)</Label>
+            <Input
+              type="number"
+              min={100}
+              value={currentFramingMode?.type === 'timeout' ? (currentFramingMode as { type: 'timeout'; timeout_ms: number }).timeout_ms : 5000}
+              onChange={(e) => updateFramingSubField('timeout_ms', Number(e.target.value))}
+              className="h-8 font-mono text-xs"
+            />
+            <p className="text-xs text-muted-foreground">超时后视为一帧结束</p>
+          </div>
+        )}
+
+        {selectedFramingType === 'manual' && (
+          <p className="text-xs text-muted-foreground pl-2">
+            手动模式下，连接建立后不会自动读取数据，需由 Send 节点控制读写
+          </p>
+        )}
+      </div>
+
+      {/* 提示信息 */}
+      <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p className="font-medium text-foreground">连接说明：</p>
+          <p>建立原始 TCP 连接，支持可选的 TLS 加密</p>
+          <p>成帧配置决定了如何从 TCP 流中切分出完整的消息帧</p>
+          <p>当前成帧: <code className="rounded bg-muted px-1">{getFramingModeLabel(currentFramingMode)}</code></p>
+        </div>
+      </div>
+    </form>
+  );
+}

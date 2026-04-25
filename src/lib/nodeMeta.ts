@@ -28,6 +28,9 @@ import {
   FileSearch,
   MessageSquare,
   Unplug,
+  Radio,
+  ArrowUpRight,
+  ArrowDownLeft,
 } from 'lucide-react';
 import { getCachedDisplayName } from '@/lib/NodeRegistry';
 
@@ -69,6 +72,13 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
   mcp_read_resource: { icon: FileSearch, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
   mcp_get_prompt: { icon: MessageSquare, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
   mcp_close: { icon: Unplug, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
+  tcp_connect: { icon: Cable, iconBg: 'bg-emerald-100', labelColor: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700' },
+  tcp_send: { icon: Send, iconBg: 'bg-emerald-100', labelColor: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700' },
+  tcp_close: { icon: Unplug, iconBg: 'bg-emerald-100', labelColor: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700' },
+  udp_bind: { icon: Radio, iconBg: 'bg-orange-100', labelColor: 'text-orange-700', badge: 'bg-orange-100 text-orange-700' },
+  udp_send_to: { icon: ArrowUpRight, iconBg: 'bg-orange-100', labelColor: 'text-orange-700', badge: 'bg-orange-100 text-orange-700' },
+  udp_recv_from: { icon: ArrowDownLeft, iconBg: 'bg-orange-100', labelColor: 'text-orange-700', badge: 'bg-orange-100 text-orange-700' },
+  udp_close: { icon: Unplug, iconBg: 'bg-orange-100', labelColor: 'text-orange-700', badge: 'bg-orange-100 text-orange-700' },
 };
 
 /** 静态显示名称兜底映射 */
@@ -95,6 +105,13 @@ const STATIC_DISPLAY_NAMES: Record<string, string> = {
   mcp_read_resource: 'MCP-读取资源',
   mcp_get_prompt: 'MCP-获取提示词',
   mcp_close: 'MCP-关闭',
+  tcp_connect: 'TCP 连接',
+  tcp_send: 'TCP 发送',
+  tcp_close: 'TCP 关闭',
+  udp_bind: 'UDP 绑定',
+  udp_send_to: 'UDP 发送',
+  udp_recv_from: 'UDP 接收',
+  udp_close: 'UDP 关闭',
 };
 
 /**

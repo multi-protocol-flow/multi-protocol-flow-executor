@@ -648,6 +648,151 @@ export interface McpGetPromptConfig {
 }
 
 // ============================================================================
+// TCP/UDP 节点类型定义
+// ============================================================================
+
+/**
+ * TCP 帧定界模式
+ */
+export type TcpFramingMode =
+  | { type: 'length_prefix'; prefix_bytes: number }
+  | { type: 'delimiter'; delimiter: string }
+  | { type: 'fixed_length'; length: number }
+  | { type: 'timeout'; timeout_ms: number }
+  | { type: 'manual' };
+
+/**
+ * TCP 帧配置
+ */
+export interface FramingConfig {
+  mode: TcpFramingMode;
+  max_frame_size?: number;
+  include_framing_in_data?: boolean;
+}
+
+/**
+ * TCP Connect 节点配置
+ */
+export interface TcpConnectConfig {
+  type: 'tcp_connect';
+  host: string;
+  port: number;
+  use_tls?: boolean;
+  tls_skip_verify?: boolean;
+  connect_timeout_ms?: number;
+  framing_mode?: TcpFramingMode;
+  framing_config?: FramingConfig;
+}
+
+/**
+ * TCP Send 节点配置
+ */
+export interface TcpSendConfig {
+  type: 'tcp_send';
+  connection_id: string;
+  data: string;
+  data_encoding?: string;
+  framing_mode?: TcpFramingMode;
+  framing_config?: FramingConfig;
+  send_timeout_ms?: number;
+}
+
+/**
+ * TCP Close 节点配置
+ */
+export interface TcpCloseConfig {
+  type: 'tcp_close';
+  connection_id: string;
+  close_timeout_ms?: number;
+}
+
+/**
+ * UDP Bind 节点配置
+ */
+export interface UdpBindConfig {
+  type: 'udp_bind';
+  local_addr?: string;
+  local_port: number;
+  reuse_addr?: boolean;
+}
+
+/**
+ * UDP SendTo 节点配置
+ */
+export interface UdpSendToConfig {
+  type: 'udp_send_to';
+  connection_id: string;
+  data: string;
+  data_encoding?: string;
+  target_addr: string;
+  target_port: number;
+  send_timeout_ms?: number;
+}
+
+/**
+ * UDP RecvFrom 节点配置
+ */
+export interface UdpRecvFromConfig {
+  type: 'udp_recv_from';
+  connection_id: string;
+  receive_timeout_ms?: number;
+  max_size?: number;
+}
+
+/**
+ * UDP Close 节点配置
+ */
+export interface UdpCloseConfig {
+  type: 'udp_close';
+  connection_id: string;
+}
+
+// ============================================================================
+// TCP/UDP 录制类型定义
+// ============================================================================
+
+/**
+ * TCP/UDP 录制条目方向
+ */
+export type RecordingDirection = 'send' | 'receive';
+
+/**
+ * TCP/UDP 录制条目
+ */
+export interface RecordingEntry {
+  /** 时间戳（毫秒，相对录制开始时间） */
+  timestamp_ms: number;
+  /** 方向（发送/接收） */
+  direction: RecordingDirection;
+  /** 连接 ID */
+  connection_id: string;
+  /** 数据（Base64 编码） */
+  data_base64: string;
+  /** 数据大小（字节） */
+  data_size: number;
+  /** 附加元数据 */
+  metadata: Record<string, unknown>;
+  /** 外部 .bin 文件路径（大数据模式），内嵌时为 undefined */
+  external_bin_path?: string;
+}
+
+/**
+ * TCP/UDP 完整录制
+ */
+export interface TcpUdpRecording {
+  /** 录制唯一标识 */
+  id: string;
+  /** 录制名称 */
+  name: string;
+  /** 创建时间（Unix 时间戳，毫秒） */
+  created_at: number;
+  /** 录制条目列表 */
+  entries: RecordingEntry[];
+  /** 录制总时长（毫秒） */
+  duration_ms: number;
+}
+
+// ============================================================================
 // 数据库节点类型定义
 // ============================================================================
 
@@ -861,6 +1006,13 @@ export type NodeData =
   | McpReadResourceConfig
   | McpGetPromptConfig
   | McpCloseConfig
+  | TcpConnectConfig
+  | TcpSendConfig
+  | TcpCloseConfig
+  | UdpBindConfig
+  | UdpSendToConfig
+  | UdpRecvFromConfig
+  | UdpCloseConfig
   | DbConnectConfig
   | DbQueryConfig
   | DbBeginConfig
@@ -1049,4 +1201,53 @@ export function isDbCloseConfig(data: NodeData): data is DbCloseConfig {
  */
 export function isScriptConfig(data: NodeData): data is ScriptNodeConfig {
   return data.type === 'script';
+}
+
+/**
+ * 判断是否为 TcpConnectConfig
+ */
+export function isTcpConnectConfig(data: NodeData): data is TcpConnectConfig {
+  return data.type === 'tcp_connect';
+}
+
+/**
+ * 判断是否为 TcpSendConfig
+ */
+export function isTcpSendConfig(data: NodeData): data is TcpSendConfig {
+  return data.type === 'tcp_send';
+}
+
+/**
+ * 判断是否为 TcpCloseConfig
+ */
+export function isTcpCloseConfig(data: NodeData): data is TcpCloseConfig {
+  return data.type === 'tcp_close';
+}
+
+/**
+ * 判断是否为 UdpBindConfig
+ */
+export function isUdpBindConfig(data: NodeData): data is UdpBindConfig {
+  return data.type === 'udp_bind';
+}
+
+/**
+ * 判断是否为 UdpSendToConfig
+ */
+export function isUdpSendToConfig(data: NodeData): data is UdpSendToConfig {
+  return data.type === 'udp_send_to';
+}
+
+/**
+ * 判断是否为 UdpRecvFromConfig
+ */
+export function isUdpRecvFromConfig(data: NodeData): data is UdpRecvFromConfig {
+  return data.type === 'udp_recv_from';
+}
+
+/**
+ * 判断是否为 UdpCloseConfig
+ */
+export function isUdpCloseConfig(data: NodeData): data is UdpCloseConfig {
+  return data.type === 'udp_close';
 }

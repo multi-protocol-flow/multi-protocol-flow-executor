@@ -22,7 +22,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { CanvasToolbar } from './CanvasToolbar';
 import { NodeContextMenu } from './NodeContextMenu';
@@ -99,6 +99,13 @@ const nodeTypes = {
   grpc_connect: GrpcConnectNode,
   grpc_call: GrpcCallNode,
   grpc_close: GrpcCloseNode,
+  tcp_connect: TcpConnectNode,
+  tcp_send: TcpSendNode,
+  tcp_close: TcpCloseNode,
+  udp_bind: UdpBindNode,
+  udp_send_to: UdpSendToNode,
+  udp_recv_from: UdpRecvFromNode,
+  udp_close: UdpCloseNode,
   mcp_connect: McpConnectNode,
   mcp_call_tool: McpCallToolNode,
   mcp_read_resource: McpReadResourceNode,
@@ -131,6 +138,13 @@ const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
   grpc_connect: '#8b5cf6',
   grpc_call: '#8b5cf6',
   grpc_close: '#8b5cf6',
+  tcp_connect: '#10b981',
+  tcp_send: '#10b981',
+  tcp_close: '#10b981',
+  udp_bind: '#f97316',
+  udp_send_to: '#f97316',
+  udp_recv_from: '#f97316',
+  udp_close: '#f97316',
   mcp_connect: '#f59e0b',
   mcp_call_tool: '#f59e0b',
   mcp_read_resource: '#f59e0b',

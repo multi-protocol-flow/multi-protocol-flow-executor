@@ -82,6 +82,20 @@ function createNodeData(type: NodeData['type']): NodeData {
       return { type: 'mcp_get_prompt', connection_id: 'mcp-conn-1', prompt_name: 'test_prompt' };
     case 'mcp_close':
       return { type: 'mcp_close', connection_id: 'mcp-conn-1' };
+    case 'tcp_connect':
+      return { type: 'tcp_connect', host: '127.0.0.1', port: 8080 };
+    case 'tcp_send':
+      return { type: 'tcp_send', connection_id: 'tcp-conn-1', data: 'hello' };
+    case 'tcp_close':
+      return { type: 'tcp_close', connection_id: 'tcp-conn-1' };
+    case 'udp_bind':
+      return { type: 'udp_bind', local_port: 9090 };
+    case 'udp_send_to':
+      return { type: 'udp_send_to', connection_id: 'udp-conn-1', data: 'hello', target_addr: '127.0.0.1', target_port: 9090 };
+    case 'udp_recv_from':
+      return { type: 'udp_recv_from', connection_id: 'udp-conn-1' };
+    case 'udp_close':
+      return { type: 'udp_close', connection_id: 'udp-conn-1' };
   }
 }
 

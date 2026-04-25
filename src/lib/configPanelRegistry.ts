@@ -27,6 +27,13 @@ import { McpCallToolConfig } from '@/components/panels/McpCallToolConfig';
 import { McpReadResourceConfig } from '@/components/panels/McpReadResourceConfig';
 import { McpCloseConfig } from '@/components/panels/McpCloseConfig';
 import { McpGetPromptConfig } from '@/components/panels/McpGetPromptConfig';
+import { TcpConnectConfig } from '@/components/panels/TcpConnectConfig';
+import { TcpSendConfig } from '@/components/panels/TcpSendConfig';
+import { TcpCloseConfig } from '@/components/panels/TcpCloseConfig';
+import { UdpBindConfig } from '@/components/panels/UdpBindConfig';
+import { UdpSendToConfig } from '@/components/panels/UdpSendToConfig';
+import { UdpRecvFromConfig } from '@/components/panels/UdpRecvFromConfig';
+import { UdpCloseConfig } from '@/components/panels/UdpCloseConfig';
 
 export const configPanelRegistry: Record<string, ComponentType<any>> = {
   entry: EntryConfig,
@@ -51,6 +58,13 @@ export const configPanelRegistry: Record<string, ComponentType<any>> = {
   mcp_read_resource: McpReadResourceConfig,
   mcp_close: McpCloseConfig,
   mcp_get_prompt: McpGetPromptConfig,
+  tcp_connect: TcpConnectConfig,
+  tcp_send: TcpSendConfig,
+  tcp_close: TcpCloseConfig,
+  udp_bind: UdpBindConfig,
+  udp_send_to: UdpSendToConfig,
+  udp_recv_from: UdpRecvFromConfig,
+  udp_close: UdpCloseConfig,
 };
 
 /** 根据节点类型获取对应的配置面板组件 */

@@ -677,6 +677,118 @@ export const mcpGetPromptConfigSchema = z.object({
 export type McpGetPromptConfigFormData = z.infer<typeof mcpGetPromptConfigSchema>;
 
 // ============================================================================
+// TCP/UDP 配置 Schema
+// ============================================================================
+
+/**
+ * TCP/UDP 成帧配置 Schema
+ */
+export const tcpFramingConfigSchema = z.object({
+  mode: z.discriminatedUnion('type', [
+    z.object({ type: z.literal('length_prefix'), prefix_bytes: z.number().int().min(1).max(8) }),
+    z.object({ type: z.literal('delimiter'), delimiter: z.string().min(1) }),
+    z.object({ type: z.literal('fixed_length'), length: z.number().int().positive() }),
+    z.object({ type: z.literal('timeout'), timeout_ms: z.number().int().positive() }),
+    z.object({ type: z.literal('manual') }),
+  ]),
+  max_frame_size: z.number().int().positive().optional(),
+  include_framing_in_data: z.boolean().optional(),
+});
+
+export type TcpFramingConfigFormData = z.infer<typeof tcpFramingConfigSchema>;
+
+/**
+ * TCP Connect 配置表单 Schema
+ */
+export const tcpConnectConfigSchema = z.object({
+  type: z.literal('tcp_connect'),
+  host: z.string().min(1, '请输入主机地址'),
+  port: z.number().int().min(1).max(65535, '端口范围 1-65535'),
+  use_tls: z.boolean().optional(),
+  tls_skip_verify: z.boolean().optional(),
+  connect_timeout_ms: z.number().int().positive().optional(),
+  framing_mode: tcpFramingConfigSchema.shape.mode.optional(),
+  framing_config: tcpFramingConfigSchema.optional(),
+});
+
+export type TcpConnectConfigFormData = z.infer<typeof tcpConnectConfigSchema>;
+
+/**
+ * TCP Send 配置表单 Schema
+ */
+export const tcpSendConfigSchema = z.object({
+  type: z.literal('tcp_send'),
+  connection_id: z.string().min(1, '请选择连接'),
+  data: z.string(),
+  data_encoding: z.enum(['text', 'hex', 'base64']).optional(),
+  framing_mode: tcpFramingConfigSchema.shape.mode.optional(),
+  framing_config: tcpFramingConfigSchema.optional(),
+  send_timeout_ms: z.number().int().positive().optional(),
+});
+
+export type TcpSendConfigFormData = z.infer<typeof tcpSendConfigSchema>;
+
+/**
+ * TCP Close 配置表单 Schema
+ */
+export const tcpCloseConfigSchema = z.object({
+  type: z.literal('tcp_close'),
+  connection_id: z.string().min(1, '请选择连接'),
+  close_timeout_ms: z.number().int().positive().optional(),
+});
+
+export type TcpCloseConfigFormData = z.infer<typeof tcpCloseConfigSchema>;
+
+/**
+ * UDP Bind 配置表单 Schema
+ */
+export const udpBindConfigSchema = z.object({
+  type: z.literal('udp_bind'),
+  local_addr: z.string().optional(),
+  local_port: z.number().int().min(0).max(65535),
+  reuse_addr: z.boolean().optional(),
+});
+
+export type UdpBindConfigFormData = z.infer<typeof udpBindConfigSchema>;
+
+/**
+ * UDP SendTo 配置表单 Schema
+ */
+export const udpSendToConfigSchema = z.object({
+  type: z.literal('udp_send_to'),
+  connection_id: z.string().min(1, '请选择连接'),
+  data: z.string(),
+  data_encoding: z.enum(['text', 'hex', 'base64']).optional(),
+  target_addr: z.string().min(1, '请输入目标地址'),
+  target_port: z.number().int().min(1).max(65535, '端口范围 1-65535'),
+  send_timeout_ms: z.number().int().positive().optional(),
+});
+
+export type UdpSendToConfigFormData = z.infer<typeof udpSendToConfigSchema>;
+
+/**
+ * UDP RecvFrom 配置表单 Schema
+ */
+export const udpRecvFromConfigSchema = z.object({
+  type: z.literal('udp_recv_from'),
+  connection_id: z.string().min(1, '请选择连接'),
+  receive_timeout_ms: z.number().int().positive().optional(),
+  max_size: z.number().int().positive().optional(),
+});
+
+export type UdpRecvFromConfigFormData = z.infer<typeof udpRecvFromConfigSchema>;
+
+/**
+ * UDP Close 配置表单 Schema
+ */
+export const udpCloseConfigSchema = z.object({
+  type: z.literal('udp_close'),
+  connection_id: z.string().min(1, '请选择连接'),
+});
+
+export type UdpCloseConfigFormData = z.infer<typeof udpCloseConfigSchema>;
+
+// ============================================================================
 // 未知节点类型 Fallback Schema
 // ============================================================================
 

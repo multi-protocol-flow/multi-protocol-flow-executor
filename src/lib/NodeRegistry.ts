@@ -65,6 +65,8 @@ export const CATEGORY_NAMES: Record<string, string> = {
   assertion: '断言',
   grpc: 'gRPC',
   mcp: 'MCP',
+  tcp: 'TCP',
+  udp: 'UDP',
 };
 
 /**
@@ -76,10 +78,12 @@ export const CATEGORY_ORDER: Record<string, number> = {
   websocket: 1,
   grpc: 2,
   mcp: 3,
-  database: 4,
-  tools: 5,
-  script: 6,
-  assertion: 7,
+  tcp: 4,
+  udp: 5,
+  database: 6,
+  tools: 7,
+  script: 8,
+  assertion: 9,
 };
 
 /**
@@ -108,6 +112,17 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   mcp_read_resource: 2,
   mcp_get_prompt: 3,
   mcp_close: 4,
+
+  // TCP: 连接 → 发送 → 关闭
+  tcp_connect: 0,
+  tcp_send: 1,
+  tcp_close: 2,
+
+  // UDP: 绑定 → 发送 → 接收 → 关闭
+  udp_bind: 0,
+  udp_send_to: 1,
+  udp_recv_from: 2,
+  udp_close: 3,
 
   // 数据库: 连接 → 开启事务 → 查询 → 提交 → 回滚 → 关闭
   db_connect: 0,
@@ -156,6 +171,13 @@ export function getBadgeClassForType(typeId: string): string {
     mcp_read_resource: 'bg-amber-100 text-amber-700',
     mcp_get_prompt: 'bg-amber-100 text-amber-700',
     mcp_close: 'bg-amber-100 text-amber-700',
+    tcp_connect: 'bg-emerald-100 text-emerald-700',
+    tcp_send: 'bg-emerald-100 text-emerald-700',
+    tcp_close: 'bg-emerald-100 text-emerald-700',
+    udp_bind: 'bg-orange-100 text-orange-700',
+    udp_send_to: 'bg-orange-100 text-orange-700',
+    udp_recv_from: 'bg-orange-100 text-orange-700',
+    udp_close: 'bg-orange-100 text-orange-700',
   };
   return badgeMap[typeId] ?? 'bg-slate-100 text-slate-700';
 }

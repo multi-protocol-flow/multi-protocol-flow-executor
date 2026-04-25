@@ -172,7 +172,7 @@ describe('CanvasToolbar', () => {
       expect(toolbar).toBeInTheDocument();
 
       const children = toolbar?.children;
-      expect(children).toHaveLength(6);
+      expect(children).toHaveLength(8);
 
       // 前两个是撤销/重做按钮
       expect(children?.[0]).toHaveAttribute('title', '撤销 (Ctrl+Z)');
@@ -185,6 +185,10 @@ describe('CanvasToolbar', () => {
       expect(children?.[4]).toHaveAttribute('title', '开始调试');
       // 第六个是压测按钮
       expect(children?.[5]).toHaveAttribute('title', '压力测试');
+      // 第七个是节点分组前的分隔线
+      expect(children?.[6]).toHaveClass('bg-border');
+      // 第八个是节点分组容器
+      expect(children?.[7]).toHaveClass('flex');
     });
   });
 
