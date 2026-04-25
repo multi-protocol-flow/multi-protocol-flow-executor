@@ -90,6 +90,27 @@ pub enum NodeType {
     /// UDP 关闭节点
     #[serde(rename = "udp_close")]
     UdpClose,
+    /// MQTT 连接节点
+    #[serde(rename = "mqtt_connect")]
+    MqttConnect,
+    /// MQTT 发布节点
+    #[serde(rename = "mqtt_publish")]
+    MqttPublish,
+    /// MQTT 订阅节点
+    #[serde(rename = "mqtt_subscribe")]
+    MqttSubscribe,
+    /// MQTT 取消订阅节点
+    #[serde(rename = "mqtt_unsubscribe")]
+    MqttUnsubscribe,
+    /// MQTT 断开连接节点
+    #[serde(rename = "mqtt_disconnect")]
+    MqttDisconnect,
+    /// MQTT 等待消息节点
+    #[serde(rename = "mqtt_wait_message")]
+    MqttWaitMessage,
+    /// MQTT 请求-响应节点
+    #[serde(rename = "mqtt_request")]
+    MqttRequest,
 }
 
 /// 节点位置结构体

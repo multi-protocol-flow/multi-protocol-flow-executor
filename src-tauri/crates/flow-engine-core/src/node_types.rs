@@ -61,3 +61,17 @@ pub const UDP_SEND_TO: &str = "udp_send_to";
 pub const UDP_RECV_FROM: &str = "udp_recv_from";
 /// UDP 关闭节点
 pub const UDP_CLOSE: &str = "udp_close";
+/// MQTT 连接节点
+pub const MQTT_CONNECT: &str = "mqtt_connect";
+/// MQTT 发布节点
+pub const MQTT_PUBLISH: &str = "mqtt_publish";
+/// MQTT 订阅节点
+pub const MQTT_SUBSCRIBE: &str = "mqtt_subscribe";
+/// MQTT 取消订阅节点
+pub const MQTT_UNSUBSCRIBE: &str = "mqtt_unsubscribe";
+/// MQTT 断开连接节点
+pub const MQTT_DISCONNECT: &str = "mqtt_disconnect";
+/// MQTT 等待消息节点
+pub const MQTT_WAIT_MESSAGE: &str = "mqtt_wait_message";
+/// MQTT 请求-响应节点
+pub const MQTT_REQUEST: &str = "mqtt_request";
