@@ -1675,6 +1675,29 @@ impl Default for MqttRequestConfig {
 }
 
 // ============================================================================
+// 变量提取节点配置
+// ============================================================================
+
+/// 变量提取节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct VariableExtractorConfig {
+    /// 节点类型标识
+    #[serde(default = "default_variable_extractor_type")]
+    pub r#type: String,
+    /// 输出变量映射列表
+    #[serde(default)]
+    pub output_mappings: Vec<crate::variable::OutputMapping>,
+    /// 可选，指定读取特定上游节点的输出（UUID）。
+    /// 为 None 时读取 `last_node_output`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_node_id: Option<String>,
+}
+
+fn default_variable_extractor_type() -> String {
+    "variable_extractor".to_string()
+}
+
+// ============================================================================
 // 节点数据配置统一枚举
 // ============================================================================
 
@@ -1790,6 +1813,9 @@ pub enum NodeData {
     /// MQTT 请求-响应节点配置
     #[serde(rename = "mqtt_request")]
     MqttRequest(MqttRequestConfig),
+    /// 变量提取节点配置
+    #[serde(rename = "variable_extractor")]
+    VariableExtractor(VariableExtractorConfig),
     /// 插件节点配置（未知类型的兜底捕获）
     ///
     /// 当反序列化遇到不认识的 `type` 值时，整个 JSON 对象会被保留在此变体中。
@@ -1921,6 +1947,9 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "mqtt_request" => serde_json::from_value::<MqttRequestConfig>(value.clone())
                 .map(NodeData::MqttRequest)
                 .map_err(serde::de::Error::custom),
+            "variable_extractor" => serde_json::from_value::<VariableExtractorConfig>(value.clone())
+                .map(NodeData::VariableExtractor)
+                .map_err(serde::de::Error::custom),
             // 未知 type → 兜底到 Plugin
             _ => Ok(NodeData::Plugin(value)),
         }
@@ -1967,6 +1996,7 @@ impl NodeData {
             NodeData::MqttDisconnect(_) => "mqtt_disconnect".to_string(),
             NodeData::MqttWaitMessage(_) => "mqtt_wait_message".to_string(),
             NodeData::MqttRequest(_) => "mqtt_request".to_string(),
+            NodeData::VariableExtractor(_) => "variable_extractor".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
                 .and_then(|v| v.as_str())
@@ -2173,6 +2203,11 @@ impl NodeData {
             script: script.into(),
             ..Default::default()
         })
+    }
+
+    /// 创建 `VariableExtractor` 节点配置
+    pub fn variable_extractor() -> Self {
+        Self::VariableExtractor(VariableExtractorConfig::default())
     }
 }
 

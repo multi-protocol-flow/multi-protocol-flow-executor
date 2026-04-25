@@ -75,3 +75,5 @@ pub const MQTT_DISCONNECT: &str = "mqtt_disconnect";
 pub const MQTT_WAIT_MESSAGE: &str = "mqtt_wait_message";
 /// MQTT 请求-响应节点
 pub const MQTT_REQUEST: &str = "mqtt_request";
+/// 变量提取节点
+pub const VARIABLE_EXTRACTOR: &str = "variable_extractor";

@@ -33,6 +33,42 @@ pub fn extract_value_by_path(value: &serde_json::Value, path: &str) -> Option<se
     }
 }
 
+/// 应用输出映射，从响应数据中提取变量写入执行上下文
+///
+/// 遍历 mappings，用 `JSONPath` 从 response 中提取值，
+/// 成功时通过 `context.variables.set_variable` 写入并记录 info 日志，
+/// 未找到值时记录 warn 日志。
+pub fn apply_output_mappings(
+    response: &serde_json::Value,
+    mappings: &[crate::variable::OutputMapping],
+    context: &mut crate::context::ExecutionContext,
+    node_uuid: &str,
+) {
+    for mapping in mappings {
+        if let Some(value) = extract_value_by_path(response, &mapping.source) {
+            log::info!(
+                "[流程 {}] [输出映射] 节点: {}, 路径: {} -> 变量: {}",
+                context.flow_uuid,
+                node_uuid,
+                mapping.source,
+                mapping.target
+            );
+            context.variables.set_variable(
+                mapping.target.clone(),
+                value,
+                node_uuid.to_string(),
+            );
+        } else {
+            log::warn!(
+                "[流程 {}] [输出映射] 节点: {}, 路径 '{}' 未找到值",
+                context.flow_uuid,
+                node_uuid,
+                mapping.source
+            );
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -136,5 +172,40 @@ mod tests {
         // 无效语法返回 None（不 panic）
         assert_eq!(extract_value_by_path(&data, "invalid["), None);
         assert_eq!(extract_value_by_path(&data, "$..[["), None);
+    }
+
+    #[test]
+    fn test_apply_output_mappings_basic() {
+        use crate::context::ExecutionContext;
+        use crate::variable::OutputMapping;
+
+        let response = serde_json::json!({
+            "status": 200,
+            "body": {"token": "abc"}
+        });
+
+        let mappings = vec![
+            OutputMapping {
+                source: "$.status".to_string(),
+                target: "status_code".to_string(),
+                description: None,
+            },
+            OutputMapping {
+                source: "$.body.token".to_string(),
+                target: "auth_token".to_string(),
+                description: None,
+            },
+        ];
+
+        let mut context = ExecutionContext::new("test-flow".to_string(), 0);
+        apply_output_mappings(&response, &mappings, &mut context, "node-001");
+
+        let status_var = context.variables.variables.iter().find(|v| v.name == "status_code");
+        assert!(status_var.is_some());
+        assert_eq!(status_var.unwrap().value, serde_json::json!(200));
+
+        let token_var = context.variables.variables.iter().find(|v| v.name == "auth_token");
+        assert!(token_var.is_some());
+        assert_eq!(token_var.unwrap().value, serde_json::json!("abc"));
     }
 }

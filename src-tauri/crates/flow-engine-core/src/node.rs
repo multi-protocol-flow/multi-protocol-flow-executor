@@ -111,6 +111,9 @@ pub enum NodeType {
     /// MQTT 请求-响应节点
     #[serde(rename = "mqtt_request")]
     MqttRequest,
+    /// 变量提取节点
+    #[serde(rename = "variable_extractor")]
+    VariableExtractor,
 }
 
 /// 节点位置结构体
