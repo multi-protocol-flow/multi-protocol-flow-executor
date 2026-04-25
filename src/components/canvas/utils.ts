@@ -195,6 +195,8 @@ export function createDefaultNodeData(type: NodeType): NodeData {
       return { type: 'mqtt_wait_message', connection_id: '', topic: '' };
     case 'mqtt_request':
       return { type: 'mqtt_request', connection_id: '', request_topic: '', response_topic: '' };
+    case 'variable_extractor':
+      return { type: 'variable_extractor', output_mappings: [], source_node_id: undefined };
     case 'entry':
       return { type: 'entry' };
   }
@@ -241,6 +243,7 @@ const STATIC_NODE_TYPE_LABELS: Record<NodeType, string> = {
   mqtt_disconnect: 'MQTT 断开',
   mqtt_wait_message: 'MQTT 等待消息',
   mqtt_request: 'MQTT 请求',
+  variable_extractor: '变量提取',
 };
 
 /**

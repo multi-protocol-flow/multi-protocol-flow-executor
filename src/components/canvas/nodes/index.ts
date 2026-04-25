@@ -37,4 +37,5 @@ export { MqttUnsubscribeNode, type MqttUnsubscribeNodeData } from './MqttUnsubsc
 export { MqttDisconnectNode, type MqttDisconnectNodeData } from './MqttDisconnectNode';
 export { MqttWaitMessageNode, type MqttWaitMessageNodeData } from './MqttWaitMessageNode';
 export { MqttRequestNode, type MqttRequestNodeData } from './MqttRequestNode';
+export { VariableExtractorNode, type VariableExtractorNodeData } from './VariableExtractorNode';
 export { default as DynamicPluginNode } from './DynamicPluginNode';
