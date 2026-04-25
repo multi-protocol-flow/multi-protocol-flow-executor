@@ -533,3 +533,201 @@ export async function loadTcpRecording(_path: string): Promise<import('@/types/n
 export async function listTcpRecordings(_dir?: string): Promise<string[]> {
   return [];
 }
+
+// ============================================================================
+// 数据集执行 Mock
+// ============================================================================
+
+import type {
+  DatasetExecutionConfig,
+  CsvInfo,
+  DatasetExecutionReport,
+  DatasetReportSummary,
+  DatasetEvent,
+} from '@/types/dataset';
+
+/**
+ * Mock 验证 CSV 文件
+ * 模拟后端 validate_dataset_csv 命令行为
+ *
+ * @param _path CSV 文件路径（Mock 中未使用）
+ * @param _encoding 编码（Mock 中未使用）
+ * @param _delimiter 分隔符（Mock 中未使用）
+ */
+export async function validateDatasetCsv(
+  _path: string,
+  _encoding?: string,
+  _delimiter?: string
+): Promise<CsvInfo> {
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  return {
+    row_count: 3,
+    column_names: ['name', 'email', 'age'],
+    detected_encoding: 'utf-8',
+  };
+}
+
+/**
+ * Mock 启动数据驱动执行
+ * 模拟发送 started → row_completed × 3 → progress × 3 → ended 事件序列
+ *
+ * @param _flow 流程对象（Mock 中未使用）
+ * @param _config 数据集执行配置（Mock 中未使用）
+ * @param onEvent 事件回调函数
+ */
+export async function executeFlowWithDataset(
+  _flow: import('@/types/flow').Flow,
+  _config: DatasetExecutionConfig,
+  onEvent: (event: DatasetEvent) => void
+): Promise<void> {
+  const totalRows = 3;
+  const datasetName = 'mock_data.csv';
+
+  // 发送 Started 事件
+  onEvent({ type: 'started', total_rows: totalRows, dataset_name: datasetName });
+
+  for (let i = 0; i < totalRows; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // 发送 RowCompleted 事件
+    onEvent({
+      type: 'row_completed',
+      row_index: i,
+      status: 'success',
+      duration_ms: 50 + Math.round(Math.random() * 50),
+    });
+
+    // 发送 Progress 事件
+    onEvent({
+      type: 'progress',
+      completed: i + 1,
+      total: totalRows,
+      success_count: i + 1,
+      fail_count: 0,
+      error_count: 0,
+      elapsed_ms: (i + 1) * 80,
+      estimated_remaining_ms: (totalRows - i - 1) * 80,
+    });
+  }
+
+  // 发送 Ended 事件
+  const now = Date.now();
+  onEvent({
+    type: 'ended',
+    report: {
+      uuid: `mock-report-${now}`,
+      flow_uuid: 'mock-flow-uuid',
+      flow_name: 'Mock 测试流程',
+      dataset_path: '/mock/data.csv',
+      dataset_name: datasetName,
+      encoding: 'utf-8',
+      executed_at: now,
+      total_duration_ms: totalRows * 80,
+      total_rows: totalRows,
+      success_count: totalRows,
+      fail_count: 0,
+      error_count: 0,
+      avg_duration_ms: 75,
+      p50_duration_ms: 70,
+      p95_duration_ms: 100,
+      p99_duration_ms: 100,
+      row_summaries: Array.from({ length: totalRows }, (_, i) => ({
+        row_index: i,
+        input_data: { name: `user_${i}`, email: `user${i}@test.com`, age: String(20 + i) },
+        status: 'success' as const,
+        duration_ms: 50 + i * 10,
+        has_detail_report: false,
+      })),
+    },
+  });
+}
+
+/**
+ * Mock 取消数据驱动执行
+ */
+export async function cancelDatasetExecution(): Promise<void> {
+  // Mock 环境 - 无操作
+}
+
+/**
+ * Mock 列出数据集报告
+ */
+export async function listDatasetReports(
+  _reportsDir: string
+): Promise<DatasetReportSummary[]> {
+  return [
+    {
+      report_id: 'mock-report-001',
+      flow_name: '测试流程 1',
+      dataset_name: 'users.csv',
+      executed_at: Date.now() - 86400000,
+      total_rows: 100,
+      success_count: 95,
+      fail_count: 3,
+      error_count: 2,
+    },
+  ];
+}
+
+/**
+ * Mock 加载数据集报告
+ */
+export async function loadDatasetReport(
+  _reportId: string,
+  _reportsDir: string
+): Promise<DatasetExecutionReport> {
+  const now = Date.now();
+  return {
+    uuid: 'mock-report-001',
+    flow_uuid: 'mock-flow-001',
+    flow_name: '测试流程 1',
+    dataset_path: '/data/users.csv',
+    dataset_name: 'users.csv',
+    encoding: 'utf-8',
+    executed_at: now - 86400000,
+    total_duration_ms: 5000,
+    total_rows: 100,
+    success_count: 95,
+    fail_count: 3,
+    error_count: 2,
+    avg_duration_ms: 50,
+    p50_duration_ms: 45,
+    p95_duration_ms: 80,
+    p99_duration_ms: 95,
+    row_summaries: Array.from({ length: 5 }, (_, i) => ({
+      row_index: i,
+      input_data: { id: String(i + 1), name: `user_${i}` },
+      status: i < 4 ? ('success' as const) : ('fail' as const),
+      duration_ms: 40 + i * 5,
+      error_message: i >= 4 ? '断言失败' : undefined,
+      has_detail_report: i >= 4,
+    })),
+  };
+}
+
+/**
+ * Mock 加载失败行详情
+ */
+export async function loadDatasetRowDetail(
+  _reportId: string,
+  _rowIndex: number,
+  _reportsDir: string
+): Promise<unknown | null> {
+  return {
+    uuid: 'mock-flow-report-001',
+    flow_uuid: 'mock-flow-001',
+    flow_name: '测试流程 1',
+    status: 'failed',
+    error: '断言失败: 状态码期望 200，实际 500',
+  };
+}
+
+/**
+ * Mock 删除数据集报告
+ */
+export async function deleteDatasetReport(
+  _reportId: string,
+  _reportsDir: string
+): Promise<void> {
+  // Mock 环境 - 无操作
+}

@@ -74,8 +74,18 @@ pub use tauri_commands::{
     get_registered_node_types,
     get_node_config_schema,
     list_registered_plugins,
+    // 数据集执行命令
+    validate_dataset_csv,
+    execute_flow_with_dataset,
+    cancel_dataset_execution,
+    list_dataset_reports,
+    load_dataset_report,
+    load_dataset_row_detail,
+    delete_dataset_report,
+    // 会话管理
     DebugSessionManager,
     ExecutionSessionManager,
+    DatasetExecutionSessionManager,
 };
 
 // 导出适配器（供测试使用）
@@ -107,6 +117,9 @@ pub fn run() {
             
             // 注册执行会话管理器状态（用于取消流程执行）
             app.manage(ExecutionSessionManager::new());
+            
+            // 注册数据驱动执行会话管理器状态（用于取消数据驱动执行）
+            app.manage(DatasetExecutionSessionManager::new());
             
             // 从 store 读取日志目录配置
             let log_dir = match app.store("store/settings.bin") {
@@ -193,6 +206,14 @@ pub fn run() {
     get_registered_node_types,
     get_node_config_schema,
     list_registered_plugins,
+    // 数据集执行命令
+    validate_dataset_csv,
+    execute_flow_with_dataset,
+    cancel_dataset_execution,
+    list_dataset_reports,
+    load_dataset_report,
+    load_dataset_row_detail,
+    delete_dataset_report,
 ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

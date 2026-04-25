@@ -556,6 +556,48 @@ use flow_engine::stress_test::{
     StressTestSessionManager,
 };
 
+// ============================================================================
+// 数据集执行命令
+// ============================================================================
+
+use flow_engine::dataset_executor::{
+    DatasetEvent, DatasetExecutionConfig, DatasetSessionManager,
+};
+use flow_engine::csv_parser;
+
+/// 数据驱动执行会话管理器
+///
+/// 管理数据驱动执行的取消信号发送端。
+/// 使用 `Arc<Mutex<>>` 保护，因为锁持有时间极短，且需要在 spawn 中共享。
+pub struct DatasetExecutionSessionManager {
+    /// 取消信号发送端（watch channel）
+    cancel_sender: std::sync::Arc<std::sync::Mutex<Option<tokio::sync::watch::Sender<bool>>>>,
+}
+
+impl DatasetExecutionSessionManager {
+    /// 创建新的数据驱动执行会话管理器
+    pub fn new() -> Self {
+        Self {
+            cancel_sender: std::sync::Arc::new(std::sync::Mutex::new(None)),
+        }
+    }
+}
+
+impl Default for DatasetExecutionSessionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// 数据驱动执行请求参数
+#[derive(serde::Deserialize)]
+pub struct ExecuteDatasetInput {
+    /// 流程定义
+    pub flow: Flow,
+    /// 执行配置
+    pub config: DatasetExecutionConfig,
+}
+
 /// 调试会话管理器状态
 #[derive(Default)]
 pub struct DebugSessionManager {
@@ -918,6 +960,239 @@ pub fn get_node_config_schema(type_id: String) -> Option<serde_json::Value> {
 pub fn list_registered_plugins() -> Vec<NodeMetadata> {
     let registry = flow_engine::default_registry::default_registry();
     registry.all_metadata()
+}
+
+// ============================================================================
+// 数据集执行命令
+// ============================================================================
+
+/// 验证 CSV 文件元信息
+///
+/// 读取 CSV 文件并返回行数、列名和检测到的编码信息。
+#[tauri::command]
+pub fn validate_dataset_csv(
+    path: String,
+    encoding: Option<String>,
+    delimiter: Option<char>,
+) -> Result<serde_json::Value, String> {
+    let info = csv_parser::validate(&path, encoding.as_deref(), delimiter)?;
+    Ok(serde_json::json!({
+        "row_count": info.row_count,
+        "column_names": info.column_names,
+        "detected_encoding": info.detected_encoding,
+    }))
+}
+
+/// 启动数据驱动执行
+///
+/// 从 CSV 文件逐行读取数据，每行注入为 runtime_variables 执行流程。
+/// 通过 Channel 实时向前端发送执行事件。
+#[tauri::command]
+pub async fn execute_flow_with_dataset(
+    input: ExecuteDatasetInput,
+    on_dataset_event: Channel<serde_json::Value>,
+    state: State<'_, DatasetExecutionSessionManager>,
+) -> Result<(), String> {
+    // 创建取消信号通道
+    let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
+
+    // 存储 sender 到会话管理器
+    {
+        let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
+        *guard = Some(cancel_tx);
+    }
+
+    // 创建事件通道（mpsc → Channel 转发）
+    let (event_sender, mut event_receiver) = mpsc::unbounded_channel::<DatasetEvent>();
+
+    // 启动事件转发任务：mpsc → Tauri Channel
+    let on_dataset_event_for_spawn = on_dataset_event;
+    tokio::spawn(async move {
+        while let Some(event) = event_receiver.recv().await {
+            let json = match serde_json::to_value(&event) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let _ = on_dataset_event_for_spawn.send(json);
+        }
+    });
+
+    // 克隆必要数据用于后台任务
+    let flow = input.flow;
+    let config = input.config;
+    let state_cancel = state.cancel_sender.clone();
+
+    // 在后台启动执行
+    tokio::spawn(async move {
+        let registry = std::sync::Arc::new(flow_engine::default_registry::default_registry());
+        let executor = flow_engine::dataset_executor::DatasetExecutor::new(registry);
+        let _ = executor
+            .execute(&config, &flow, Some(cancel_rx), Some(event_sender))
+            .await;
+
+        // 执行完成后清理 cancel sender
+        if let Ok(mut guard) = state_cancel.lock() {
+            *guard = None;
+        }
+    });
+
+    Ok(())
+}
+
+/// 取消数据驱动执行
+///
+/// 向当前正在运行的数据驱动执行发送取消信号。
+/// 幂等操作：第二次调用返回"没有活跃的执行会话"错误。
+#[tauri::command]
+pub fn cancel_dataset_execution(
+    state: State<'_, DatasetExecutionSessionManager>,
+) -> Result<(), String> {
+    let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
+    match guard.take() {
+        Some(tx) => {
+            let _ = tx.send(true);
+            Ok(())
+        }
+        None => Err("没有活跃的数据驱动执行会话".to_string()),
+    }
+}
+
+/// 列出数据集报告
+///
+/// 扫描报告目录中所有 dataset_* 子目录，读取 summary.json 返回摘要列表。
+#[tauri::command]
+pub fn list_dataset_reports(
+    reports_dir: String,
+) -> Result<Vec<serde_json::Value>, String> {
+    let reports_path = std::path::Path::new(&reports_dir);
+    if !reports_path.exists() {
+        return Ok(vec![]);
+    }
+
+    let mut summaries: Vec<serde_json::Value> = Vec::new();
+
+    let entries = std::fs::read_dir(reports_path)
+        .map_err(|e| format!("读取报告目录失败: {}", e))?;
+
+    for entry in entries {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+
+        let dir_name = match path.file_name().and_then(|n| n.to_str()) {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
+
+        // 只处理 dataset_* 目录
+        if !dir_name.starts_with("dataset_") {
+            continue;
+        }
+
+        let summary_path = path.join("summary.json");
+        if !summary_path.exists() {
+            continue;
+        }
+
+        let content = match std::fs::read_to_string(&summary_path) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+
+        let report: serde_json::Value = match serde_json::from_str(&content) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+
+        // 提取摘要字段
+        let report_id = dir_name.strip_prefix("dataset_").unwrap_or(&dir_name);
+        summaries.push(serde_json::json!({
+            "report_id": report_id,
+            "flow_name": report["flow_name"].as_str().unwrap_or(""),
+            "dataset_name": report["dataset_name"].as_str().unwrap_or(""),
+            "executed_at": report["executed_at"].as_u64().unwrap_or(0),
+            "total_rows": report["total_rows"].as_u64().unwrap_or(0),
+            "success_count": report["success_count"].as_u64().unwrap_or(0),
+            "fail_count": report["fail_count"].as_u64().unwrap_or(0),
+            "error_count": report["error_count"].as_u64().unwrap_or(0),
+        }));
+    }
+
+    Ok(summaries)
+}
+
+/// 加载数据集报告
+///
+/// 读取指定报告 ID 的 summary.json 文件。
+#[tauri::command]
+pub fn load_dataset_report(
+    report_id: String,
+    reports_dir: String,
+) -> Result<serde_json::Value, String> {
+    let summary_path = std::path::Path::new(&reports_dir)
+        .join(format!("dataset_{}", report_id))
+        .join("summary.json");
+
+    if !summary_path.exists() {
+        return Err(format!("报告不存在: {}", report_id));
+    }
+
+    let content = std::fs::read_to_string(&summary_path)
+        .map_err(|e| format!("读取报告失败: {}", e))?;
+
+    serde_json::from_str(&content).map_err(|e| format!("解析报告失败: {}", e))
+}
+
+/// 加载失败行详情
+///
+/// 读取失败行的详细执行报告。
+#[tauri::command]
+pub fn load_dataset_row_detail(
+    report_id: String,
+    row_index: u32,
+    reports_dir: String,
+) -> Result<Option<serde_json::Value>, String> {
+    let row_path = std::path::Path::new(&reports_dir)
+        .join(format!("dataset_{}", report_id))
+        .join("failed")
+        .join(format!("row_{}.json", row_index));
+
+    if !row_path.exists() {
+        return Ok(None);
+    }
+
+    let content = std::fs::read_to_string(&row_path)
+        .map_err(|e| format!("读取行详情失败: {}", e))?;
+
+    let value: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| format!("解析行详情失败: {}", e))?;
+
+    Ok(Some(value))
+}
+
+/// 删除数据集报告
+///
+/// 删除指定报告 ID 的整个目录。
+#[tauri::command]
+pub fn delete_dataset_report(
+    report_id: String,
+    reports_dir: String,
+) -> Result<(), String> {
+    let report_dir = std::path::Path::new(&reports_dir)
+        .join(format!("dataset_{}", report_id));
+
+    if !report_dir.exists() {
+        return Err(format!("报告不存在: {}", report_id));
+    }
+
+    std::fs::remove_dir_all(&report_dir)
+        .map_err(|e| format!("删除报告失败: {}", e))
 }
 
 // ============================================================================

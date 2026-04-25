@@ -193,3 +193,15 @@ export type {
   StressTestStatistics,
   StressTestReport,
 } from './stressTest';
+
+// 数据集执行类型
+export type {
+  FailureStrategy,
+  DatasetExecutionConfig,
+  CsvInfo,
+  RowStatus,
+  RowSummary,
+  DatasetExecutionReport,
+  DatasetEvent,
+  DatasetReportSummary,
+} from './dataset';

@@ -417,3 +417,127 @@ export async function listTcpRecordings(dir?: string): Promise<string[]> {
     return listTcpRecordingsImpl(dir);
   }
 }
+
+// ============================================================================
+// 数据集执行命令
+// ============================================================================
+
+import type {
+  DatasetExecutionConfig,
+  CsvInfo,
+  DatasetExecutionReport,
+  DatasetReportSummary,
+  DatasetEvent,
+} from '@/types/dataset';
+
+/**
+ * 验证 CSV 文件元信息
+ */
+export async function validateDatasetCsv(
+  path: string,
+  encoding?: string,
+  delimiter?: string
+): Promise<CsvInfo> {
+  if (isTauriEnv()) {
+    const { datasetService } = await import('../dataset');
+    return datasetService.validateCsv(path, encoding, delimiter);
+  } else {
+    const { validateDatasetCsv: validateDatasetCsvImpl } = await import('./mock');
+    return validateDatasetCsvImpl(path, encoding, delimiter);
+  }
+}
+
+/**
+ * 启动数据驱动执行
+ * @param flow 流程对象
+ * @param config 数据集执行配置
+ * @param onEvent 事件回调函数
+ */
+export async function executeFlowWithDataset(
+  flow: import('@/types/flow').Flow,
+  config: DatasetExecutionConfig,
+  onEvent: (event: DatasetEvent) => void
+): Promise<void> {
+  if (isTauriEnv()) {
+    const { datasetService } = await import('../dataset');
+    return datasetService.executeWithDataset(flow, config, onEvent);
+  } else {
+    const { executeFlowWithDataset: executeFlowWithDatasetImpl } = await import('./mock');
+    return executeFlowWithDatasetImpl(flow, config, onEvent);
+  }
+}
+
+/**
+ * 取消数据驱动执行
+ */
+export async function cancelDatasetExecution(): Promise<void> {
+  if (isTauriEnv()) {
+    const { datasetService } = await import('../dataset');
+    return datasetService.cancelExecution();
+  } else {
+    const { cancelDatasetExecution: cancelDatasetExecutionImpl } = await import('./mock');
+    return cancelDatasetExecutionImpl();
+  }
+}
+
+/**
+ * 列出数据集报告
+ */
+export async function listDatasetReports(reportsDir: string): Promise<DatasetReportSummary[]> {
+  if (isTauriEnv()) {
+    const { datasetService } = await import('../dataset');
+    return datasetService.listReports(reportsDir);
+  } else {
+    const { listDatasetReports: listDatasetReportsImpl } = await import('./mock');
+    return listDatasetReportsImpl(reportsDir);
+  }
+}
+
+/**
+ * 加载数据集报告
+ */
+export async function loadDatasetReport(
+  reportId: string,
+  reportsDir: string
+): Promise<DatasetExecutionReport> {
+  if (isTauriEnv()) {
+    const { datasetService } = await import('../dataset');
+    return datasetService.loadReport(reportId, reportsDir);
+  } else {
+    const { loadDatasetReport: loadDatasetReportImpl } = await import('./mock');
+    return loadDatasetReportImpl(reportId, reportsDir);
+  }
+}
+
+/**
+ * 加载失败行详情
+ */
+export async function loadDatasetRowDetail(
+  reportId: string,
+  rowIndex: number,
+  reportsDir: string
+): Promise<unknown | null> {
+  if (isTauriEnv()) {
+    const { datasetService } = await import('../dataset');
+    return datasetService.loadRowDetail(reportId, rowIndex, reportsDir);
+  } else {
+    const { loadDatasetRowDetail: loadDatasetRowDetailImpl } = await import('./mock');
+    return loadDatasetRowDetailImpl(reportId, rowIndex, reportsDir);
+  }
+}
+
+/**
+ * 删除数据集报告
+ */
+export async function deleteDatasetReport(
+  reportId: string,
+  reportsDir: string
+): Promise<void> {
+  if (isTauriEnv()) {
+    const { datasetService } = await import('../dataset');
+    return datasetService.deleteReport(reportId, reportsDir);
+  } else {
+    const { deleteDatasetReport: deleteDatasetReportImpl } = await import('./mock');
+    return deleteDatasetReportImpl(reportId, reportsDir);
+  }
+}

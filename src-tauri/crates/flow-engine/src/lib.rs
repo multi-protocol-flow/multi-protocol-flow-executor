@@ -81,6 +81,10 @@ pub use flow_engine_executor::stress_test;
 // Wave 8: 节点注册表
 pub use flow_engine_executor::default_registry;
 
+// 数据集执行模块
+pub use flow_engine_executor::dataset_executor;
+pub use flow_engine_executor::csv_parser;
+
 // Re-exports
 pub use traits::{
     AppDirProvider, ConsoleLogSender, DefaultAppDirProvider, DirectoryOpener, ExecutionEventSender,
