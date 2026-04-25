@@ -146,7 +146,7 @@ async fn execute_simple(
     let executor = app_lib::FlowExecutor::new()
         .with_flow_file_path(path)
         .with_cancel_receiver(cancel_rx);
-    Ok(executor.execute_flow(flow, variables, None).await)
+    Ok(executor.execute_flow(flow, variables, None, None).await)
 }
 
 /// 流式执行 — 注册事件发送器，NDJSON 实时输出
@@ -168,7 +168,7 @@ async fn execute_with_streaming(
     // 在后台启动执行，同时消费事件流
     let flow = flow.clone();
     let handle = tokio::spawn(async move {
-        executor.execute_flow(&flow, variables, None).await
+        executor.execute_flow(&flow, variables, None, None).await
     });
 
     // 实时输出 NDJSON 事件

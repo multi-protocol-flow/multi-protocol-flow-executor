@@ -439,7 +439,7 @@ impl StressTestExecutor {
 
             // 执行流程
             // 注意：execute_flow 返回 ExecutionResult，不是 Result
-            let execution_result = executor.execute_flow(&flow, None, None).await;
+            let execution_result = executor.execute_flow(&flow, None, None, None).await;
 
             // 计算延迟
             let latency_ms = iteration_start.elapsed().as_millis() as u64;

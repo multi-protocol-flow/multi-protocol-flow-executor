@@ -64,7 +64,7 @@ pub async fn execute_flow(
         executor = executor.with_cancel_receiver(rx);
     }
     let result = executor
-        .execute_flow(&flow, input.variables, log_sender.clone())
+        .execute_flow(&flow, input.variables, None, log_sender.clone())
         .await;
 
     // 发送流程结束事件

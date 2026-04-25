@@ -128,6 +128,10 @@ export interface EntryConfig {
   type: 'entry';
   /** 初始变量列表 */
   initial_variables?: InitialVariable[];
+  /** 关联的 CSV 文件路径 */
+  dataset_path?: string;
+  /** CSV 编码（不设置=自动检测） */
+  dataset_encoding?: string;
 }
 
 export interface HttpConfig {

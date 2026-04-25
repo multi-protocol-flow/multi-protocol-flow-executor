@@ -5,6 +5,7 @@
 pub use flow_engine_executor::commands;
 
 // Re-exports from flow-engine-core
+pub use flow_engine_core::dataset;
 pub use flow_engine_core::connection;
 pub use flow_engine_core::plugin;
 pub use flow_engine_core::registry;

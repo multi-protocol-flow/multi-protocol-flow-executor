@@ -59,7 +59,7 @@ async fn test_variable_tracking_new_variable() {
     };
 
     let executor = FlowExecutor::new();
-    let result = executor.execute_flow(&flow, None, None).await;
+    let result = executor.execute_flow(&flow, None, None, None).await;
 
     // 验证执行成功
     assert!(result.success);
@@ -116,7 +116,7 @@ async fn test_execution_path_tracking() {
     };
 
     let executor = FlowExecutor::new();
-    let result = executor.execute_flow(&flow, None, None).await;
+    let result = executor.execute_flow(&flow, None, None, None).await;
 
     assert!(result.success);
     let flow_report = result.flow_report.unwrap();
@@ -176,7 +176,7 @@ async fn test_variable_snapshots() {
     });
 
     let executor = FlowExecutor::new();
-    let result = executor.execute_flow(&flow, Some(initial_vars.clone()), None).await;
+    let result = executor.execute_flow(&flow, Some(initial_vars.clone()), None, None).await;
 
     assert!(result.success);
     let flow_report = result.flow_report.unwrap();
@@ -219,7 +219,7 @@ async fn test_variable_snapshots_empty_initial() {
     };
 
     let executor = FlowExecutor::new();
-    let result = executor.execute_flow(&flow, None, None).await;
+    let result = executor.execute_flow(&flow, None, None, None).await;
 
     assert!(result.success);
     let flow_report = result.flow_report.unwrap();
@@ -259,7 +259,7 @@ async fn test_single_node_execution_path() {
     };
 
     let executor = FlowExecutor::new();
-    let result = executor.execute_flow(&flow, None, None).await;
+    let result = executor.execute_flow(&flow, None, None, None).await;
 
     assert!(result.success);
     let flow_report = result.flow_report.unwrap();
@@ -294,7 +294,7 @@ async fn test_skipped_nodes_default_empty() {
     };
 
     let executor = FlowExecutor::new();
-    let result = executor.execute_flow(&flow, None, None).await;
+    let result = executor.execute_flow(&flow, None, None, None).await;
 
     assert!(result.success);
     let flow_report = result.flow_report.unwrap();
@@ -344,7 +344,7 @@ async fn test_all_nodes_have_resolved_config() {
     };
 
     let executor = FlowExecutor::new();
-    let result = executor.execute_flow(&flow, None, None).await;
+    let result = executor.execute_flow(&flow, None, None, None).await;
 
     assert!(result.success);
     let flow_report = result.flow_report.unwrap();

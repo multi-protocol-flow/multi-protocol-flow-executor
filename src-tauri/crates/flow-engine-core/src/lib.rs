@@ -4,6 +4,8 @@
 //! 作为 workspace 的叶子 crate，不依赖任何其他 workspace crate，
 //! 也不包含具体的协议客户端实现（HTTP/WS/DB 客户端）。
 
+/// 数据集类型定义，包括 CSV 配置、行取策略和数据驱动执行报告
+pub mod dataset;
 /// 节点间的连接定义，描述数据流向
 pub mod connection;
 /// 流程执行上下文，管理变量存储与运行时状态

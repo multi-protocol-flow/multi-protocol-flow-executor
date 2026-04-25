@@ -1026,7 +1026,7 @@ mod tests {
 
         // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行成功
         assert!(result.success, "流程应该执行成功");
@@ -1063,7 +1063,7 @@ mod tests {
 
         // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 真实执行器认为没有连接是正常终止，不是错误
         assert!(result.success, "流程应该执行成功（Entry 节点无连接是正常终止）");
@@ -1093,7 +1093,7 @@ mod tests {
 
         // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行失败
         assert!(!result.success, "流程应该执行失败（无开始节点）");
@@ -1305,7 +1305,7 @@ mod tests {
 
         // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证使用 conn.source_node_uuid 检查连接
         assert!(result.success, "流程应该执行成功");

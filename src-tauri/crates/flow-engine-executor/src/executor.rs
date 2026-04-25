@@ -227,6 +227,7 @@ impl FlowExecutor {
         &self,
         flow: &Flow,
         variables: Option<serde_json::Value>,
+        runtime_variables: Option<serde_json::Value>,
         log_sender: Option<Arc<dyn LogSender>>,
     ) -> ExecutionResult {
         let start_time = tokio::time::Instant::now();
@@ -460,6 +461,18 @@ impl FlowExecutor {
 
                     // 追踪执行路径（Task 14）：记录成功执行的节点 UUID
                     execution_path.push(node.uuid.clone());
+
+                    // Phase 2.5: 注入 runtime_variables（在 Entry 节点执行后）
+                    // runtime_variables 用于数据驱动执行时注入 CSV 行数据，覆盖 Entry 节点的同名变量
+                    if node.node_type == node_types::ENTRY {
+                        if let Some(ref rt_vars) = runtime_variables {
+                            if let Some(obj) = rt_vars.as_object() {
+                                for (key, value) in obj {
+                                    context.variables.set_variable(key.clone(), value.clone(), String::new());
+                                }
+                            }
+                        }
+                    }
 
                     // 创建节点执行报告，使用构建的 input_data
                     let node_report = flow_engine_core::report::NodeExecutionReport {
@@ -1027,7 +1040,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行结果（单个 Entry 节点无连接是正常终止）
         assert!(result.success);
@@ -1076,7 +1089,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行结果
         assert!(result.success);
@@ -1112,7 +1125,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行失败
         assert!(!result.success);
@@ -1167,7 +1180,7 @@ mod tests {
         });
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, Some(variables), None).await;
+        let result = executor.execute_flow(&flow, Some(variables), None, None).await;
 
         // 验证执行成功
         assert!(result.success);
@@ -1218,7 +1231,7 @@ mod tests {
 
         let executor = FlowExecutor::new();
         let start_time = Instant::now();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
         let elapsed = start_time.elapsed();
 
         // 验证执行成功
@@ -1254,7 +1267,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证上下文中的 flow_uuid 使用了 flow.uuid（单个 Entry 节点无连接是正常终止）
         assert!(result.success);
@@ -1302,7 +1315,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行成功（节点映射通过 node.uuid 查找成功）
         assert!(result.success);
@@ -1350,7 +1363,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证连接映射成功使用了 source_node_uuid 和 target_node_uuid
         assert!(result.success);
@@ -1398,7 +1411,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行的第一个节点是 start_node.uuid
         assert!(result.success);
@@ -1437,7 +1450,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证错误消息包含 node.uuid
         assert!(!result.success);
@@ -1488,7 +1501,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行结果数据包含 flow.uuid
         assert!(result.success);
@@ -1556,7 +1569,7 @@ mod tests {
         };
 
         let executor = FlowExecutor::new();
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行成功，连接映射正确使用了 UUID
         assert!(result.success);
@@ -1829,7 +1842,7 @@ mod tests {
         let _ = tx.send(true);
 
         let executor = FlowExecutor::new().with_cancel_receiver(rx);
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证取消结果
         assert!(!result.success, "取消后不应该成功");
@@ -1868,7 +1881,7 @@ mod tests {
         let (_tx, rx) = tokio::sync::watch::channel(false);
 
         let executor = FlowExecutor::new().with_cancel_receiver(rx);
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证正常执行
         assert!(result.success, "无取消信号时应正常执行");
@@ -1902,12 +1915,117 @@ mod tests {
         let _ = tx.send(true);
 
         let executor = FlowExecutor::new().with_cancel_receiver(rx);
-        let result = executor.execute_flow(&flow, None, None).await;
+        let result = executor.execute_flow(&flow, None, None, None).await;
 
         assert!(!result.success);
         let report = result.flow_report.expect("应有报告");
         let error = report.flow_error.expect("取消时应有 flow_error");
         assert_eq!(error.error_kind, ErrorKind::Cancelled);
         assert!(!error.is_fatal(), "Cancelled 不应是致命错误");
+    }
+
+    /// 测试 runtime_variables 覆盖 Entry 节点的 initial_variables
+    ///
+    /// 验证 runtime_variables 在 Entry 节点执行后注入，覆盖同名变量
+    #[tokio::test]
+    async fn test_runtime_variables_override_entry() {
+        use flow_engine_core::node_config::EntryConfig;
+        use flow_engine_core::variable::InitialVariable;
+
+        let flow_id = Uuid::new_v4().to_string();
+
+        // 创建带 initial_variables 的 Entry 节点
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: "entry".to_string(),
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::Entry(EntryConfig {
+                initial_variables: vec![InitialVariable {
+                    name: "host".to_string(),
+                    value: json!("default.com"),
+                    description: None,
+                }],
+                dataset_path: None,
+                dataset_encoding: None,
+            }),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id,
+            initial_variables: None,
+            name: "runtime_variables 覆盖测试".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        let executor = FlowExecutor::new();
+        let runtime_vars = json!({
+            "host": "override.com",
+            "extra": "added"
+        });
+
+        let result = executor
+            .execute_flow(&flow, None, Some(runtime_vars), None)
+            .await;
+
+        assert!(result.success);
+        let report = result.flow_report.expect("应有报告");
+        let final_vars = report.final_variables.expect("应有 final_variables");
+
+        // runtime_variables 应覆盖 Entry 的 initial_variables
+        assert_eq!(final_vars["host"], json!("override.com"), "runtime_variables 应覆盖 Entry 节点的 host 变量");
+        // runtime_variables 新增的变量也应该存在
+        assert_eq!(final_vars["extra"], json!("added"), "runtime_variables 新增变量应存在");
+    }
+
+    /// 测试 runtime_variables=None 不改变行为
+    ///
+    /// 验证不传 runtime_variables 时，Entry 节点的 initial_variables 正常工作
+    #[tokio::test]
+    async fn test_runtime_variables_none_no_change() {
+        use flow_engine_core::node_config::EntryConfig;
+        use flow_engine_core::variable::InitialVariable;
+
+        let flow_id = Uuid::new_v4().to_string();
+
+        // 创建带 initial_variables 的 Entry 节点
+        let start_node = Node {
+            uuid: format!("start-{}", flow_id),
+            node_type: "entry".to_string(),
+            name: "开始".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::Entry(EntryConfig {
+                initial_variables: vec![InitialVariable {
+                    name: "host".to_string(),
+                    value: json!("default.com"),
+                    description: None,
+                }],
+                dataset_path: None,
+                dataset_encoding: None,
+            }),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: flow_id,
+            initial_variables: None,
+            name: "runtime_variables None 测试".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_flow(&flow, None, None, None).await;
+
+        assert!(result.success);
+        let report = result.flow_report.expect("应有报告");
+        let final_vars = report.final_variables.expect("应有 final_variables");
+
+        // 不传 runtime_variables 时，Entry 节点的 initial_variables 保持不变
+        assert_eq!(final_vars["host"], json!("default.com"), "不传 runtime_variables 时 host 应保持 Entry 节点的默认值");
     }
 }

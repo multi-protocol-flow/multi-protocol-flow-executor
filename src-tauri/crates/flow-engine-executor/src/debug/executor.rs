@@ -1441,14 +1441,16 @@ mod tests {
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(EntryConfig {
-                initial_variables: vec![
-                    InitialVariable {
-                        name: "test_var".to_string(),
-                        value: json!("initial_value"),
-                        description: None,
-                    },
-                ],
-            }),
+                            initial_variables: vec![
+                                InitialVariable {
+                                    name: "test_var".to_string(),
+                                    value: json!("initial_value"),
+                                    description: None,
+                                },
+                            ],
+                            dataset_path: None,
+                            dataset_encoding: None,
+                        }),
             ports: None,
             has_breakpoint: Some(true), // 设置断点，以便暂停
         };
@@ -1578,14 +1580,16 @@ mod tests {
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(EntryConfig {
-                initial_variables: vec![
-                    InitialVariable {
-                        name: "test_var".to_string(),
-                        value: json!("initial_value"),
-                        description: None,
-                    },
-                ],
-            }),
+                            initial_variables: vec![
+                                InitialVariable {
+                                    name: "test_var".to_string(),
+                                    value: json!("initial_value"),
+                                    description: None,
+                                },
+                            ],
+                            dataset_path: None,
+                            dataset_encoding: None,
+                        }),
             ports: None,
             has_breakpoint: Some(true), // 设置断点，以便暂停
         };
@@ -1724,14 +1728,16 @@ mod tests {
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(EntryConfig {
-                initial_variables: vec![
-                    InitialVariable {
-                        name: "test_var".to_string(),
-                        value: json!("initial_value"),
-                        description: None,
-                    },
-                ],
-            }),
+                            initial_variables: vec![
+                                InitialVariable {
+                                    name: "test_var".to_string(),
+                                    value: json!("initial_value"),
+                                    description: None,
+                                },
+                            ],
+                            dataset_path: None,
+                            dataset_encoding: None,
+                        }),
             ports: None,
             has_breakpoint: Some(true), // 设置断点，以便暂停
         };

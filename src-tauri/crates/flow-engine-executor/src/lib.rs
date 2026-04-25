@@ -25,3 +25,5 @@ pub mod plugin_entry;
 pub mod plugin_conditional;
 /// 默认节点注册表，注册全部 14 个内置插件
 pub mod default_registry;
+/// CSV 解析模块，支持多编码流式解析
+pub mod csv_parser;
