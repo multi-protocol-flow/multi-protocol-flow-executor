@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }
 async-trait = { workspace = true }
-tokio-tungstenite = { version = "0.28", features = ["native-tls"] }
+tokio-tungstenite = { version = "0.28", features = ["rustls-tls-webpki-roots"] }
 futures-util = "0.3"
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -18,6 +18,9 @@ chrono = { workspace = true }
 evalexpr = "11.0.0"
 regex = { workspace = true }
 serde_json_path = "0.7"
+# TLS 依赖（用于 tls_skip_verify 的自定义 ClientConfig）
+rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "tls12"] }
+webpki-roots = "0.26"
 
 [lints]
 workspace = true

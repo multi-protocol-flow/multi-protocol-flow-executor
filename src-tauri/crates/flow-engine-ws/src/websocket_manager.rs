@@ -22,6 +22,94 @@ use tokio_tungstenite::{connect_async_tls_with_config, MaybeTlsStream, WebSocket
 
 use flow_engine_core::node_config::{FormField, WsMatchType, WsCollectCondition};
 
+// ---------------------------------------------------------------------------
+// TLS 辅助
+// ---------------------------------------------------------------------------
+
+/// 不验证任何证书的 ServerCertVerifier（仅用于 `tls_skip_verify=true`）
+///
+/// **警告**: 仅用于开发/测试环境，切勿在生产环境使用。
+#[derive(Debug)]
+struct NoVerifier;
+
+impl rustls::client::danger::ServerCertVerifier for NoVerifier {
+    fn verify_server_cert(
+        &self,
+        _end_entity: &rustls::pki_types::CertificateDer<'_>,
+        _intermediates: &[rustls::pki_types::CertificateDer<'_>],
+        _server_name: &rustls::pki_types::ServerName<'_>,
+        _ocsp_response: &[u8],
+        _now: rustls::pki_types::UnixTime,
+    ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
+        Ok(rustls::client::danger::ServerCertVerified::assertion())
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        _message: &[u8],
+        _cert: &rustls::pki_types::CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        _message: &[u8],
+        _cert: &rustls::pki_types::CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+        vec![
+            rustls::SignatureScheme::RSA_PKCS1_SHA256,
+            rustls::SignatureScheme::RSA_PKCS1_SHA384,
+            rustls::SignatureScheme::RSA_PKCS1_SHA512,
+            rustls::SignatureScheme::ECDSA_NISTP256_SHA256,
+            rustls::SignatureScheme::ECDSA_NISTP384_SHA384,
+            rustls::SignatureScheme::ECDSA_NISTP521_SHA512,
+            rustls::SignatureScheme::RSA_PSS_SHA256,
+            rustls::SignatureScheme::RSA_PSS_SHA384,
+            rustls::SignatureScheme::RSA_PSS_SHA512,
+            rustls::SignatureScheme::ED25519,
+            rustls::SignatureScheme::ED448,
+        ]
+    }
+}
+
+/// 确保已安装 CryptoProvider（幂等，多次调用安全）
+fn ensure_crypto_provider() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
+/// 创建 TLS ClientConfig
+///
+/// # 参数
+/// - `skip_verify`: 是否跳过证书验证
+fn create_tls_client_config(skip_verify: bool) -> Result<Arc<rustls::ClientConfig>, String> {
+    ensure_crypto_provider();
+
+    let config = if skip_verify {
+        // 跳过验证：使用自定义 NoVerifier
+        rustls::ClientConfig::builder()
+            .dangerous()
+            .with_custom_certificate_verifier(Arc::new(NoVerifier))
+            .with_no_client_auth()
+    } else {
+        // 标准验证：使用 webpki-roots 根证书
+        let root_store = rustls::RootCertStore::from_iter(
+            webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
+        );
+        rustls::ClientConfig::builder()
+            .with_root_certificates(root_store)
+            .with_no_client_auth()
+    };
+
+    Ok(Arc::new(config))
+}
+
 /// WebSocket 流类型（支持 TLS）
 type WsStream = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
 
@@ -76,6 +164,11 @@ pub struct ActiveConnection {
     // WebSocket 连接（通过 Arc<Mutex> 实现线程安全共享）
     sender: Option<Arc<tokio::sync::Mutex<WsSender>>>,
     receiver: Option<Arc<tokio::sync::Mutex<WsReceiver>>>,
+
+    /// Ping 心跳后台任务句柄
+    ping_task_handle: Option<tokio::task::JoinHandle<()>>,
+    /// 最后一次收到 Pong 的时间
+    last_pong_received: Option<std::time::Instant>,
 }
 
 impl std::fmt::Debug for ActiveConnection {
@@ -92,6 +185,8 @@ impl std::fmt::Debug for ActiveConnection {
             .field("stream_segment_id", &self.stream_segment_id)
             .field("has_sender", &self.sender.is_some())
             .field("has_receiver", &self.receiver.is_some())
+            .field("ping_task_alive", &self.ping_task_handle.as_ref().is_some_and(|h| !h.is_finished()))
+            .field("last_pong_received", &self.last_pong_received.is_some())
             .finish()
     }
 }
@@ -118,13 +213,15 @@ impl ActiveConnection {
             message_buffer: VecDeque::new(),
             last_error: None,
             current_owner_node_uuid: None,
-            stream_segment_id: None,
-            sender: None,
-            receiver: None,
+                stream_segment_id: None,
+                sender: None,
+                receiver: None,
+                ping_task_handle: None,
+                last_pong_received: None,
+            }
         }
-    }
 
-    /// 更新连接状态
+        /// 更新连接状态
     pub fn set_status(&mut self, status: ConnectionStatus) {
         self.status = status;
     }
@@ -176,6 +273,10 @@ impl ActiveConnection {
 
     /// 清理 WebSocket 资源
     pub fn clear_stream(&mut self) {
+        // 中止 Ping 心跳后台任务
+        if let Some(handle) = self.ping_task_handle.take() {
+            handle.abort();
+        }
         self.sender = None;
         self.receiver = None;
     }
@@ -230,17 +331,25 @@ impl WebSocketConnectionManager {
     /// * `headers` - 自定义请求头
     /// * `subprotocols` - WebSocket 子协议列表
     /// * `connect_timeout_ms` - 连接超时（毫秒）
+    /// * `use_tls` - 是否使用 TLS 加密
+    /// * `tls_skip_verify` - 是否跳过 TLS 证书验证
     ///
     /// # 返回
     ///
     /// * `Ok(())` - 连接成功
     /// * `Err(msg)` - 连接失败，包含错误消息
     ///
+    /// # TLS 模式
+    ///
+    /// - `use_tls=false` → 明文连接（ws://）
+    /// - `use_tls=true, tls_skip_verify=false` → 标准 TLS（webpki-roots 验证）
+    /// - `use_tls=true, tls_skip_verify=true` → 跳过证书验证（仅开发/测试）
+    ///
     /// # 示例
     ///
     /// ```ignore
     /// let manager = WebSocketConnectionManager::new();
-    /// manager.connect("conn-1", "测试连接", "wss://echo.websocket.org", vec![], vec![], 30000).await?;
+    /// manager.connect("conn-1", "测试连接", "wss://echo.websocket.org", vec![], vec![], 30000, true, false).await?;
     /// ```
     pub async fn connect(
         &self,
@@ -250,6 +359,10 @@ impl WebSocketConnectionManager {
         headers: Vec<FormField>,
         subprotocols: Vec<String>,
         connect_timeout_ms: u64,
+        use_tls: bool,
+        tls_skip_verify: bool,
+        ping_interval_ms: Option<u64>,
+        _ping_timeout_ms: Option<u64>,
     ) -> Result<(), String> {
         // 1. 创建 ActiveConnection (status: Connecting)
         let mut connection = ActiveConnection::new(uuid.clone(), name, url.clone());
@@ -262,17 +375,49 @@ impl WebSocketConnectionManager {
             return Err(error_msg);
         }
 
-        // 3. 临时存储连接（状态为 Connecting）
+        // 3. 根据 use_tls 调整 URL scheme
+        let effective_url = if use_tls {
+            // TLS 模式：确保使用 wss://
+            if url.starts_with("ws://") {
+                format!("wss{}", &url[2..])
+            } else {
+                url.clone()
+            }
+        } else {
+            // 明文模式：确保使用 ws://
+            if url.starts_with("wss://") {
+                format!("ws{}", &url[3..])
+            } else {
+                url.clone()
+            }
+        };
+
+        // 4. 临时存储连接（状态为 Connecting）
         self.upsert_connection(connection);
 
-        // 4. 构建带 headers 的 WebSocket 请求
-        let request = self.build_ws_request(&url, &headers, &subprotocols)?;
+        // 5. 构建带 headers 的 WebSocket 请求
+        let request = self.build_ws_request(&effective_url, &headers, &subprotocols)?;
 
-        // 5. 使用 tokio::time::timeout 包装 connect_async_tls_with_config
+        // 6. 根据 TLS 配置进行 3-way 分发
         let connect_timeout = Duration::from_millis(connect_timeout_ms.clamp(1000, 60000));
+
+        let connector = if use_tls {
+            // TLS 模式：创建自定义 TLS 配置
+            match create_tls_client_config(tls_skip_verify) {
+                Ok(config) => Some(tokio_tungstenite::Connector::Rustls(config)),
+                Err(e) => {
+                    self.update_connection_error(&uuid, &e);
+                    return Err(e);
+                }
+            }
+        } else {
+            // 明文模式：使用 Plain 连接器
+            Some(tokio_tungstenite::Connector::Plain)
+        };
+
         let connect_result = timeout(
             connect_timeout,
-            connect_async_tls_with_config(request, None, false, None),
+            connect_async_tls_with_config(request, None, false, connector),
         )
         .await;
 
@@ -288,8 +433,27 @@ impl WebSocketConnectionManager {
 
                 if let Some(conn) = connections.get_mut(&uuid) {
                     conn.set_stream(sender, receiver);
+
+                    // Ping 心跳：如果配置了 ping_interval_ms，启动后台定期发送 Ping 的任务
+                    if let Some(interval) = ping_interval_ms {
+                        if let Some(sender) = conn.get_sender() {
+                            let ping_handle = tokio::spawn(async move {
+                                let mut ticker = tokio::time::interval(Duration::from_millis(interval));
+                                loop {
+                                    ticker.tick().await;
+                                    let mut guard = sender.lock().await;
+                                    if guard.send(WebSocketMessage::Ping(vec![].into())).await.is_err() {
+                                        break; // 连接已关闭
+                                    }
+                                }
+                            });
+                            conn.ping_task_handle = Some(ping_handle);
+                        }
+                    }
+
                     log::info!(
-                        "[WebSocket] 连接成功: uuid={}, url={}",
+                        "[WebSocket{}] 连接成功: uuid={}, url={}",
+                        if use_tls { "+TLS" } else { "" },
                         uuid,
                         url
                     );
@@ -659,8 +823,13 @@ impl WebSocketConnectionManager {
                             continue;
                         }
                         WebSocketMessage::Pong(_) => {
-                            // 静默丢弃 Pong（心跳回复），继续读取下一条消息
-                            log::debug!("[WebSocket] 收到 Pong，忽略: uuid={}", uuid);
+                            // 更新 last_pong_received 时间戳
+                            log::debug!("[WebSocket] 收到 Pong，更新时间戳: uuid={}", uuid);
+                            if let Ok(mut conns) = self.connections.lock() {
+                                if let Some(conn) = conns.get_mut(uuid) {
+                                    conn.last_pong_received = Some(std::time::Instant::now());
+                                }
+                            }
                             drop(receiver_guard);
                             continue;
                         }
@@ -788,11 +957,16 @@ impl WebSocketConnectionManager {
                             }
                         }
                         WebSocketMessage::Pong(_) => {
-                            // 静默丢弃 Pong
+                            // 更新 last_pong_received 时间戳
                             log::debug!(
-                                "[WebSocket] drain_pending_messages: 忽略 Pong uuid={}",
+                                "[WebSocket] drain_pending_messages: 收到 Pong，更新时间戳 uuid={}",
                                 uuid
                             );
+                            if let Ok(mut conns) = self.connections.lock() {
+                                if let Some(conn) = conns.get_mut(uuid) {
+                                    conn.last_pong_received = Some(std::time::Instant::now());
+                                }
+                            }
                         }
                         WebSocketMessage::Close(_) => {
                             // 收到 Close 帧，更新状态并退出
@@ -1164,8 +1338,12 @@ impl flow_engine_core::traits::WsProvider for WebSocketConnectionManager {
         headers: Vec<FormField>,
         subprotocols: Vec<String>,
         connect_timeout_ms: u64,
+        use_tls: bool,
+        tls_skip_verify: bool,
+        _ping_interval_ms: Option<u64>,
+        _ping_timeout_ms: Option<u64>,
     ) -> Result<(), String> {
-        WebSocketConnectionManager::connect(self, uuid, name, url, headers, subprotocols, connect_timeout_ms).await
+        WebSocketConnectionManager::connect(self, uuid, name, url, headers, subprotocols, connect_timeout_ms, use_tls, tls_skip_verify, _ping_interval_ms, _ping_timeout_ms).await
     }
 
     async fn send(
@@ -1255,6 +1433,8 @@ impl From<ActiveConnectionMeta> for ActiveConnection {
             stream_segment_id: meta.stream_segment_id,
             sender: None,
             receiver: None,
+            ping_task_handle: None,
+            last_pong_received: None,
         }
     }
 }
@@ -1855,6 +2035,10 @@ mod tests {
                 vec![],                           // headers
                 vec![],                           // subprotocols
                 5000,
+                false,   // use_tls
+                false,   // tls_skip_verify
+                None,    // ping_interval_ms
+                None,    // ping_timeout_ms
             )
             .await;
 
@@ -1880,6 +2064,10 @@ mod tests {
                 vec![],                            // headers
                 vec![],                            // subprotocols
                 2000,                              // 2 秒超时
+                false,   // use_tls
+                false,   // tls_skip_verify
+                None,    // ping_interval_ms
+                None,    // ping_timeout_ms
             )
             .await;
 
@@ -1937,6 +2125,10 @@ mod tests {
                 vec![], // headers
                 vec![], // subprotocols
                 30000,
+                false,   // use_tls
+                false,   // tls_skip_verify
+                None,    // ping_interval_ms
+                None,    // ping_timeout_ms
             )
             .await;
 
@@ -1991,6 +2183,10 @@ mod tests {
                 vec![], // headers
                 vec![], // subprotocols
                 30000,
+                false,   // use_tls
+                false,   // tls_skip_verify
+                None,    // ping_interval_ms
+                None,    // ping_timeout_ms
             )
             .await;
 
@@ -2033,6 +2229,10 @@ mod tests {
                 vec![], // headers
                 vec![], // subprotocols
                 30000,
+                false,   // use_tls
+                false,   // tls_skip_verify
+                None,    // ping_interval_ms
+                None,    // ping_timeout_ms
             )
             .await;
 

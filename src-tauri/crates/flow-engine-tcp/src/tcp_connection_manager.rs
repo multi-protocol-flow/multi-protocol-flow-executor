@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use flow_engine_core::traits::{FramingConfig, TcpConnectionInfo, TcpProvider};
+use flow_engine_core::node_config::TcpKeepaliveConfig;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time::{timeout, Duration};
@@ -212,10 +213,21 @@ impl ActiveTcpConnection {
 ///
 /// 管理所有活跃的 TCP 连接，提供线程安全的连接池操作。
 /// 使用 `Arc<Mutex<>>` 实现跨线程共享。
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct TcpConnectionManager {
     /// 连接池：UUID → `ActiveTcpConnection`
     connections: Arc<Mutex<HashMap<String, ActiveTcpConnection>>>,
+    /// 录制管理器（记录 send/receive 交互）
+    recording: Arc<tokio::sync::Mutex<crate::recording::RecordingManager>>,
+}
+
+impl std::fmt::Debug for TcpConnectionManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TcpConnectionManager")
+            .field("connections", &self.connections)
+            .field("recording", &"<RecordingManager>")
+            .finish()
+    }
 }
 
 impl TcpConnectionManager {
@@ -223,6 +235,9 @@ impl TcpConnectionManager {
     pub fn new() -> Self {
         Self {
             connections: Arc::new(Mutex::new(HashMap::new())),
+            recording: Arc::new(tokio::sync::Mutex::new(
+                crate::recording::RecordingManager::new(),
+            )),
         }
     }
 
@@ -238,6 +253,184 @@ impl TcpConnectionManager {
         if let Ok(mut conns) = self.connections.lock() {
             if let Some(conn) = conns.get_mut(uuid) {
                 conn.set_error(error.to_string());
+            }
+        }
+    }
+
+    /// 开始录制 TCP 交互
+    ///
+    /// 返回录制 ID。如果已有活跃录制，先停止旧录制并丢弃。
+    pub async fn start_recording(&self, name: &str) -> String {
+        let mut rec = self.recording.lock().await;
+        rec.start_recording(name)
+    }
+
+    /// 停止录制并返回结果
+    ///
+    /// 如果没有活跃录制，返回 None。
+    pub async fn stop_recording(&self) -> Option<crate::recording::TcpRecording> {
+        let mut rec = self.recording.lock().await;
+        rec.stop_recording()
+    }
+
+    /// 是否正在录制
+    pub async fn is_recording(&self) -> bool {
+        let rec = self.recording.lock().await;
+        rec.is_recording()
+    }
+
+    /// 建立 TCP 连接（支持 NoDelay / Keepalive / 自定义 CA 证书）
+    ///
+    /// 与 `TcpProvider::connect` 功能相同，但额外支持：
+    /// - `no_delay=true` → 禁用 Nagle 算法
+    /// - `keepalive=Some(...)` → 配置 TCP Keepalive
+    /// - `tls_ca_cert=Some(...)` → 自定义 CA 证书（PEM 格式，追加到系统根证书）
+    ///
+    /// Socket 选项在 TcpStream 创建后、TLS 握手前设置。
+    pub async fn connect_with_options(
+        &self,
+        uuid: String,
+        name: String,
+        host: String,
+        port: u16,
+        use_tls: bool,
+        tls_skip_verify: bool,
+        connect_timeout_ms: u64,
+        framing_config: FramingConfig,
+        no_delay: bool,
+        keepalive: Option<TcpKeepaliveConfig>,
+        tls_ca_cert: Option<String>,
+    ) -> Result<(), String> {
+        // 1. 创建 ActiveTcpConnection（状态为 Connecting）
+        let connection =
+            ActiveTcpConnection::new(uuid.clone(), name, host.clone(), port, use_tls, framing_config);
+
+        // 2. 临时存储连接（状态为 Connecting）
+        self.upsert_connection(connection);
+
+        // 3. 构建目标地址
+        let addr = format!("{}:{}", host, port);
+
+        // 4. 使用超时包装 TcpStream::connect
+        let connect_timeout = Duration::from_millis(connect_timeout_ms.clamp(1000, 120000));
+        let connect_result = timeout(connect_timeout, TcpStream::connect(&addr)).await;
+
+        match connect_result {
+            Ok(Ok(tcp_stream)) => {
+                // 5. 设置 socket 选项（必须在 TLS 握手之前）
+
+                // 设置 NoDelay（禁用 Nagle 算法）
+                if no_delay {
+                    tcp_stream.set_nodelay(true).map_err(|e| {
+                        let error_msg = format!("设置 NoDelay 失败: {}", e);
+                        self.update_connection_error(&uuid, &error_msg);
+                        error_msg
+                    })?;
+                }
+
+                // 设置 Keepalive
+                if let Some(ref ka) = keepalive {
+                    #[cfg(not(target_os = "windows"))]
+                    {
+                        let socket = socket2::SockRef::from(&tcp_stream);
+                        let keepalive_cfg = socket2::TcpKeepalive::new()
+                            .with_time(std::time::Duration::from_secs(ka.idle_secs))
+                            .with_interval(std::time::Duration::from_secs(ka.interval_secs))
+                            .with_retries(ka.probe_count);
+                        socket.set_keepalive(&keepalive_cfg).map_err(|e| {
+                            let error_msg = format!("设置 Keepalive 失败: {}", e);
+                            self.update_connection_error(&uuid, &error_msg);
+                            error_msg
+                        })?;
+                    }
+                    #[cfg(target_os = "windows")]
+                    {
+                        // Windows 通过 socket2 仅支持启用/禁用 keepalive
+                        let socket = socket2::SockRef::from(&tcp_stream);
+                        socket.set_keepalive(true).map_err(|e| {
+                            let error_msg = format!("设置 Keepalive 失败: {}", e);
+                            self.update_connection_error(&uuid, &error_msg);
+                            error_msg
+                        })?;
+                        // idle_secs / interval_secs / probe_count 在 Windows 上通过
+                        // setsockopt 实现，但 socket2 0.5 不直接暴露。
+                        // 保留配置以备将来使用。
+                        let _ = (ka.idle_secs, ka.interval_secs, ka.probe_count);
+                    }
+                }
+
+                // 6. 根据 TLS 配置处理流
+                let stream_result: Result<(BoxedReader, BoxedWriter), String> = if use_tls {
+                    let ca_bytes = tls_ca_cert.as_deref().map(|s| s.as_bytes());
+                    let connector = match crate::tls::create_tls_connector_with_ca(tls_skip_verify, ca_bytes) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            self.update_connection_error(&uuid, &e);
+                            return Err(e);
+                        }
+                    };
+
+                    let server_name = match rustls::pki_types::ServerName::try_from(host.clone()) {
+                        Ok(name) => name,
+                        Err(e) => {
+                            let error_msg = format!("无效的 TLS 服务器名 '{}': {}", host, e);
+                            self.update_connection_error(&uuid, &error_msg);
+                            return Err(error_msg);
+                        }
+                    };
+
+                    match connector.connect(server_name, tcp_stream).await {
+                        Ok(tls_stream) => {
+                            let (r, w) = tokio::io::split(tls_stream);
+                            Ok((Box::new(r) as BoxedReader, Box::new(w) as BoxedWriter))
+                        }
+                        Err(e) => {
+                            let error_msg = format!("TLS 握手失败: {}", e);
+                            self.update_connection_error(&uuid, &error_msg);
+                            Err(error_msg)
+                        }
+                    }
+                } else {
+                    let (r, w) = tokio::io::split(tcp_stream);
+                    Ok((Box::new(r) as BoxedReader, Box::new(w) as BoxedWriter))
+                };
+
+                match stream_result {
+                    Ok((read_half, write_half)) => {
+                        // 7. 更新连接状态
+                        let mut connections = self.connections.lock().map_err(|e| {
+                            format!("获取连接锁失败: {}", e)
+                        })?;
+
+                        if let Some(conn) = connections.get_mut(&uuid) {
+                            conn.set_stream(read_half, write_half);
+                            log::info!(
+                                "[TCP{}] 连接成功: uuid={}, addr={}, no_delay={}, keepalive={}, custom_ca={}",
+                                if use_tls { "+TLS" } else { "" },
+                                uuid,
+                                addr,
+                                no_delay,
+                                keepalive.is_some(),
+                                tls_ca_cert.is_some()
+                            );
+                        }
+                        Ok(())
+                    }
+                    Err(e) => Err(e),
+                }
+            }
+            Ok(Err(e)) => {
+                let error_msg = format!("TCP 连接失败 ({}): {}", addr, e);
+                self.update_connection_error(&uuid, &error_msg);
+                Err(error_msg)
+            }
+            Err(_) => {
+                let error_msg = format!(
+                    "TCP 连接超时 ({}ms): {}",
+                    connect_timeout_ms, addr
+                );
+                self.update_connection_error(&uuid, &error_msg);
+                Err(error_msg)
             }
         }
     }
@@ -397,6 +590,12 @@ impl TcpProvider for TcpConnectionManager {
 
         match send_result {
             Ok(Ok(_)) => {
+                // 记录发送数据（仅在录制状态下）
+                if let Ok(mut rec) = self.recording.try_lock() {
+                    if rec.is_recording() {
+                        rec.record_send(uuid, &data);
+                    }
+                }
                 log::debug!(
                     "[TCP] 发送成功: uuid={}, bytes={}",
                     uuid,
@@ -465,6 +664,12 @@ impl TcpProvider for TcpConnectionManager {
             Ok(Ok(n)) => {
                 // 成功读取 n 字节
                 buf.truncate(n);
+                // 记录接收数据（仅在录制状态下）
+                if let Ok(mut rec) = self.recording.try_lock() {
+                    if rec.is_recording() {
+                        rec.record_receive(uuid, &buf);
+                    }
+                }
                 log::debug!(
                     "[TCP] 接收成功: uuid={}, bytes={}",
                     uuid,

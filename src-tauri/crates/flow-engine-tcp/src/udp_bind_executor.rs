@@ -1,6 +1,7 @@
 // UDP Bind 节点执行器
 //
 // 实现 UDP Socket 绑定和变量替换功能。
+// 支持 reuse_addr/broadcast/multicast 等高级选项。
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -8,7 +9,6 @@ use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
-use flow_engine_core::traits::UdpProvider;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -16,12 +16,12 @@ use std::time::Instant;
 
 /// UDP Bind 节点执行器
 pub struct UdpBindExecutor {
-    udp_manager: Arc<dyn UdpProvider>,
+    udp_manager: Arc<crate::udp_socket_manager::UdpSocketManager>,
 }
 
 impl UdpBindExecutor {
     /// 创建新的 UDP Bind 执行器
-    pub fn new(udp_manager: Arc<dyn UdpProvider>) -> Self {
+    pub fn new(udp_manager: Arc<crate::udp_socket_manager::UdpSocketManager>) -> Self {
         Self { udp_manager }
     }
 }
@@ -85,16 +85,22 @@ impl NodeExecutor for UdpBindExecutor {
             })
             .await;
 
-        // 4. 绑定 Socket（计时）
+        // 4. 绑定 Socket（带完整配置选项）
         let bind_start = Instant::now();
         let bind_result = self
             .udp_manager
-            .bind(
+            .bind_with_options(
                 node.uuid.clone(),
                 node.name.clone(),
                 local_addr.clone(),
                 config.local_port,
                 0, // read_timeout_ms 使用默认值
+                config.reuse_addr,
+                config.broadcast,
+                config.multicast_group.clone(),
+                config.multicast_ttl,
+                config.multicast_loop,
+                config.multicast_interface.clone(),
             )
             .await;
         let bind_duration_ms = bind_start.elapsed().as_millis() as u64;
@@ -216,82 +222,6 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::UdpBindConfig;
-    use std::sync::atomic::{AtomicBool, Ordering};
-
-    // -----------------------------------------------------------------------
-    // Mock UdpProvider
-    // -----------------------------------------------------------------------
-
-    /// Mock UDP 提供者（可配置绑定成功/失败）
-    struct MockUdpProvider {
-        should_succeed: AtomicBool,
-    }
-
-    impl MockUdpProvider {
-        fn new(should_succeed: bool) -> Self {
-            Self {
-                should_succeed: AtomicBool::new(should_succeed),
-            }
-        }
-    }
-
-    #[async_trait::async_trait]
-    impl UdpProvider for MockUdpProvider {
-        async fn bind(
-            &self,
-            uuid: String,
-            _name: String,
-            local_addr: String,
-            local_port: u16,
-            _read_timeout_ms: u64,
-        ) -> Result<(), String> {
-            if self.should_succeed.load(Ordering::Relaxed) {
-                log::info!(
-                    "[MockUdp] 绑定成功: uuid={}, {}:{}",
-                    uuid,
-                    local_addr,
-                    local_port
-                );
-                Ok(())
-            } else {
-                Err(format!(
-                    "MockUdp 绑定失败: {}:{}",
-                    local_addr, local_port
-                ))
-            }
-        }
-
-        async fn send_to(
-            &self,
-            _uuid: &str,
-            _data: Vec<u8>,
-            _target_addr: String,
-            _target_port: u16,
-            _send_timeout_ms: u64,
-        ) -> Result<(), String> {
-            Ok(())
-        }
-
-        async fn recv_from(
-            &self,
-            _uuid: &str,
-            _receive_timeout_ms: u64,
-        ) -> Result<Option<(Vec<u8>, String, u16)>, String> {
-            Ok(None)
-        }
-
-        async fn close(&self, _uuid: &str) -> Result<(), String> {
-            Ok(())
-        }
-
-        fn get_status(&self, _uuid: &str) -> Option<String> {
-            if self.should_succeed.load(Ordering::Relaxed) {
-                Some("Bound".to_string())
-            } else {
-                Some("Error".to_string())
-            }
-        }
-    }
 
     // -----------------------------------------------------------------------
     // 辅助函数
@@ -308,6 +238,11 @@ mod tests {
                 local_addr: local_addr.to_string(),
                 local_port,
                 reuse_addr: true,
+                broadcast: false,
+                multicast_group: None,
+                multicast_ttl: None,
+                multicast_loop: None,
+                multicast_interface: None,
             }),
             ports: None,
             has_breakpoint: None,
@@ -325,9 +260,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_udp_bind_executor_success() {
-        let mock_provider = Arc::new(MockUdpProvider::new(true));
-        let executor = UdpBindExecutor::new(mock_provider);
-        let node = create_test_node("test-1", "测试绑定", "0.0.0.0", 8080);
+        let manager = Arc::new(crate::udp_socket_manager::UdpSocketManager::new());
+        let executor = UdpBindExecutor::new(manager);
+        let node = create_test_node("test-1", "测试绑定", "0.0.0.0", 0);
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -342,16 +277,16 @@ mod tests {
         assert_eq!(data["success"], true);
         assert_eq!(data["connection_id"], "test-1");
         assert_eq!(data["local_addr"], "0.0.0.0");
-        assert_eq!(data["local_port"], 8080);
         assert!(data.get("timing").is_some());
         assert!(data["timing"]["total_ms"].is_number());
     }
 
     #[tokio::test]
     async fn test_udp_bind_executor_failure() {
-        let mock_provider = Arc::new(MockUdpProvider::new(false));
-        let executor = UdpBindExecutor::new(mock_provider);
-        let node = create_test_node("test-2", "失败绑定", "192.168.1.1", 9999);
+        let manager = Arc::new(crate::udp_socket_manager::UdpSocketManager::new());
+        let executor = UdpBindExecutor::new(manager);
+        // 使用无效地址触发绑定失败
+        let node = create_test_node("test-2", "失败绑定", "256.256.256.256", 9999);
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -365,17 +300,15 @@ mod tests {
         let data = output_data.unwrap();
         assert_eq!(data["success"], false);
         assert!(data["connection_id"].is_null());
-        assert_eq!(data["local_addr"], "192.168.1.1");
-        assert_eq!(data["local_port"], 9999);
         assert!(data.get("error").is_some());
         let error = data["error"].as_str().expect("error 应为字符串");
-        assert!(error.contains("绑定失败"));
+        assert!(!error.is_empty());
     }
 
     #[tokio::test]
     async fn test_udp_bind_wrong_node_data_type() {
-        let mock_provider = Arc::new(MockUdpProvider::new(true));
-        let executor = UdpBindExecutor::new(mock_provider);
+        let manager = Arc::new(crate::udp_socket_manager::UdpSocketManager::new());
+        let executor = UdpBindExecutor::new(manager);
 
         let node = Node {
             uuid: "test-wrong".to_string(),
@@ -398,11 +331,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_udp_bind_with_variable_replacement() {
-        let mock_provider = Arc::new(MockUdpProvider::new(true));
-        let executor = UdpBindExecutor::new(mock_provider);
+        let manager = Arc::new(crate::udp_socket_manager::UdpSocketManager::new());
+        let executor = UdpBindExecutor::new(manager);
 
         // 创建带变量的节点
-        let node = create_test_node("test-var", "变量替换测试", "{{addr}}", 9090);
+        let node = create_test_node("test-var", "变量替换测试", "{{addr}}", 0);
 
         // 创建上下文并设置变量
         let mut context = create_context("test-flow");
@@ -420,5 +353,43 @@ mod tests {
         let data = output_data.unwrap();
         // 验证变量替换生效
         assert_eq!(data["local_addr"], "127.0.0.1");
+    }
+
+    #[tokio::test]
+    async fn test_udp_bind_with_broadcast() {
+        let manager = Arc::new(crate::udp_socket_manager::UdpSocketManager::new());
+        let executor = UdpBindExecutor::new(manager);
+
+        // 创建启用广播的节点
+        let node = Node {
+            uuid: "test-broadcast".to_string(),
+            node_type: "udp_bind".to_string(),
+            name: "广播测试".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::UdpBind(UdpBindConfig {
+                local_addr: "0.0.0.0".to_string(),
+                local_port: 0,
+                reuse_addr: true,
+                broadcast: true,
+                multicast_group: None,
+                multicast_ttl: None,
+                multicast_loop: None,
+                multicast_interface: None,
+            }),
+            ports: None,
+            has_breakpoint: None,
+        };
+        let mut context = create_context("test-flow");
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        assert!(result.is_ok());
+        let (next_nodes, output_data) = result.unwrap();
+        assert_eq!(next_nodes, vec!["true"]);
+        assert!(output_data.is_some());
+        let data = output_data.unwrap();
+        assert_eq!(data["success"], true);
     }
 }

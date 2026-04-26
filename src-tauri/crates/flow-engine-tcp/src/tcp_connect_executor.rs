@@ -86,6 +86,10 @@ impl NodeExecutor for TcpConnectExecutor {
             .await;
 
         // 4. 建立连接（计时）
+        // 注意：tls_ca_cert 配置已从 config 中获取，但 TcpProvider trait 的 connect 方法
+        // 不支持传递自定义 CA 证书。使用 plugin.rs 中的 connect_with_options 方法可支持
+        // 自定义 CA 证书。此处保留 tls_ca_cert 引用以便将来扩展。
+        let _tls_ca_cert = config.tls_ca_cert.as_ref();
         let connect_start = Instant::now();
         let connect_result = self
             .tcp_manager
@@ -221,7 +225,7 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::TcpConnectConfig;
-    use flow_engine_core::traits::FramingConfig;
+    use flow_engine_core::traits::{FramingConfig, KafkaProvider, SseProvider, GraphqlProvider, AmqpProvider};
     use std::sync::atomic::{AtomicBool, Ordering};
 
     // -----------------------------------------------------------------------
@@ -317,6 +321,9 @@ mod tests {
                 use_tls: false,
                 tls_skip_verify: false,
                 connect_timeout_ms: 30000,
+                no_delay: false,
+                keepalive: None,
+                tls_ca_cert: None,
                 framing_mode: flow_engine_core::traits::TcpFramingMode::LengthPrefix {
                     prefix_bytes: 4,
                 },
@@ -354,6 +361,10 @@ mod tests {
             tcp_manager: None,
             udp_manager: None,
             mqtt_manager: None,
+            kafka_manager: None,
+            sse_manager: None,
+            graphql_manager: None,
+            amqp_manager: None,
         }
     }
 

@@ -59,6 +59,9 @@ pub use flow_engine_tcp::tcp_close_executor;
 pub use flow_engine_tcp::tcp_connect_executor;
 pub use flow_engine_tcp::tcp_connection_manager;
 pub use flow_engine_tcp::tcp_send_executor;
+pub use flow_engine_tcp::templates;
+pub use flow_engine_tcp::parser;
+pub use flow_engine_tcp::recording;
 // UDP (flow-engine-tcp)
 pub use flow_engine_tcp::udp_bind_executor;
 pub use flow_engine_tcp::udp_close_executor;
@@ -129,6 +132,10 @@ pub use flow_engine_executor::default_registry;
 // 数据集执行模块
 pub use flow_engine_executor::dataset_executor;
 pub use flow_engine_executor::csv_parser;
+
+// 钩子执行器模块
+pub use flow_engine_core::hook;
+pub use flow_engine_executor::hook_runner;
 
 // Re-exports
 pub use traits::{

@@ -229,7 +229,6 @@ impl NodeExecutor for WsCloseExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::{NodePosition};
     use flow_engine_core::node_config::WsCloseConfig;
     use crate::websocket_manager::WebSocketConnectionManager;
@@ -255,32 +254,10 @@ mod tests {
 
     /// 创建执行上下文
     fn create_context(flow_id: &str) -> ExecutionContext {
-        ExecutionContext {
-            flow_uuid: flow_id.to_string(),
-            current_node_uuid: None,
-            variables: VariableStorage::new(),
-            node_reports: vec![],
-            flow_trigger_time: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
-                .as_millis() as u64,
-            log_sender: None,
-            flow_file_path: None,
-            ws_manager: None,
-            ws_connection_urls: std::collections::HashMap::new(),
-            ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            last_node_output: None,
-            debug_event_sender: None,
-            execution_event_sender: None,
-            cancel_receiver: None,
-            providers: std::collections::HashMap::new(),
-        }
+        ExecutionContext::new(flow_id.to_string(), std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("系统时间错误")
+            .as_millis() as u64)
     }
 
     #[tokio::test]
@@ -393,6 +370,10 @@ mod tests {
                 vec![],
                 vec![],
                 30000,
+                false,   // use_tls
+                false,   // tls_skip_verify
+                None,    // ping_interval_ms
+                None,    // ping_timeout_ms
             )
             .await;
 
@@ -447,6 +428,10 @@ mod tests {
                 vec![],
                 vec![],
                 30000,
+                false,   // use_tls
+                false,   // tls_skip_verify
+                None,    // ping_interval_ms
+                None,    // ping_timeout_ms
             )
             .await;
 

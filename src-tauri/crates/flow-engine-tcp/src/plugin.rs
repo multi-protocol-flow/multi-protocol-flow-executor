@@ -62,6 +62,9 @@ impl NodePlugin for TcpConnectPlugin {
             "use_tls": config.use_tls,
             "tls_skip_verify": config.tls_skip_verify,
             "connect_timeout_ms": config.connect_timeout_ms,
+            "no_delay": config.no_delay,
+            "keepalive": config.keepalive,
+            "tls_ca_cert": config.tls_ca_cert,
             "framing_mode": config.framing_mode,
             "framing_config": config.framing_config,
         })
@@ -90,12 +93,23 @@ impl NodePlugin for TcpConnectPlugin {
     }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
+        // tls_ca_cert 脱敏：不输出完整证书内容，仅显示是否存在
+        let tls_ca_cert_desensitized = config.get("tls_ca_cert").and_then(|v| v.as_str()).map(|s| {
+            if s.len() > 20 {
+                format!("{}...{}", &s[..8], &s[s.len()-8..])
+            } else if s.is_empty() {
+                String::new()
+            } else {
+                "***".to_string()
+            }
+        });
         Some(serde_json::json!({
             "host": config.get("host"),
             "port": config.get("port"),
             "use_tls": config.get("use_tls"),
             "tls_skip_verify": config.get("tls_skip_verify"),
             "connect_timeout_ms": config.get("connect_timeout_ms"),
+            "tls_ca_cert": tls_ca_cert_desensitized,
             "framing_mode": config.get("framing_mode"),
             "framing_config": config.get("framing_config"),
         }))
@@ -108,13 +122,105 @@ impl NodePlugin for TcpConnectPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let tcp_manager = context.tcp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new())
-        });
-        let executor = crate::tcp_connect_executor::TcpConnectExecutor::new(tcp_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
+        use flow_engine_core::executor::replace_variables;
+        use flow_engine_core::node_config::NodeData;
+
+        let _ = node_map; // 未使用，保留以匹配 trait 签名
+
+        // 1. 提取配置
+        let config = match &node.data {
+            NodeData::TcpConnect(cfg) => cfg.clone(),
+            _ => {
+                return Err(format!(
+                    "节点数据类型不是 TcpConnectConfig: {}",
+                    node.uuid
+                ))
+            }
+        };
+
+        // 2. 变量替换 host
+        let host = replace_variables(&config.host, context).map_err(|e| {
+            format!("Host 变量替换失败: {}", e)
+        })?;
+
+        // 3. 日志：开始连接
+        log::info!(
+            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: tcp_connect, 目标: {}:{}",
+            context.flow_uuid,
+            node.uuid,
+            node.name,
+            host,
+            config.port
+        );
+
+        // 4. 获取或创建 TcpConnectionManager（具体类型，支持 NoDelay/Keepalive）
+        let tcp_manager = crate::tcp_connection_manager::TcpConnectionManager::new();
+        let tcp_manager = Arc::new(tcp_manager);
+
+        // 5. 建立连接（使用 connect_with_options 支持 socket 选项和自定义 CA 证书）
+        let connect_result = tcp_manager
+            .connect_with_options(
+                node.uuid.clone(),
+                node.name.clone(),
+                host.clone(),
+                config.port,
+                config.use_tls,
+                config.tls_skip_verify,
+                config.connect_timeout_ms,
+                config.framing_config.clone(),
+                config.no_delay,
+                config.keepalive.clone(),
+                config.tls_ca_cert.clone(),
+            )
+            .await;
+
+        // 6. 更新 context.tcp_manager 供后续 TCP 节点使用
+        context.tcp_manager = Some(tcp_manager.clone() as Arc<dyn flow_engine_core::traits::TcpProvider>);
+
+        match connect_result {
+            Ok(()) => {
+                let output_data = serde_json::json!({
+                    "success": true,
+                    "connection_id": node.uuid,
+                    "host": host,
+                    "port": config.port,
+                    "use_tls": config.use_tls,
+                });
+
+                let next_node_ids = resolve_port_nodes(connections, &node.uuid, "true");
+                Ok((next_node_ids, Some(output_data)))
+            }
+            Err(e) => {
+                let output_data = serde_json::json!({
+                    "success": false,
+                    "connection_id": serde_json::Value::Null,
+                    "host": host,
+                    "port": config.port,
+                    "use_tls": config.use_tls,
+                    "error": e,
+                });
+
+                let next_node_ids = resolve_port_nodes(connections, &node.uuid, "false");
+                Ok((next_node_ids, Some(output_data)))
+            }
+        }
+    }
+}
+
+/// 解析指定端口的下游节点 ID 列表
+///
+/// 如果没有匹配的连接，返回端口名称本身（用于测试）。
+fn resolve_port_nodes(connections: &[Connection], node_uuid: &str, port_id: &str) -> Vec<String> {
+    let filtered: Vec<String> = connections
+        .iter()
+        .filter(|conn| conn.source_node_uuid == node_uuid && conn.source_port_id == port_id)
+        .map(|conn| conn.target_node_uuid.clone())
+        .collect();
+
+    if filtered.is_empty() {
+        vec![port_id.to_string()]
+    } else {
+        filtered
     }
 }
 
@@ -219,8 +325,106 @@ impl NodePlugin for TcpSendPlugin {
     }
 }
 
+#[async_trait::async_trait]
+impl NodePlugin for TcpReceivePlugin {
+    fn type_id(&self) -> &str {
+        "tcp_receive"
+    }
+
+    fn display_name(&self) -> &str {
+        "TCP 接收"
+    }
+
+    fn category(&self) -> &str {
+        "tcp"
+    }
+
+    fn icon(&self) -> &str {
+        "Download"
+    }
+
+    fn color(&self) -> &str {
+        "#10B981"
+    }
+
+    fn ports(&self) -> Vec<PortDef> {
+        vec![
+            PortDef {
+                id: "true".into(),
+                label: "接收成功".into(),
+                position: "right".into(),
+            },
+            PortDef {
+                id: "false".into(),
+                label: "接收失败".into(),
+                position: "bottom".into(),
+            },
+        ]
+    }
+
+    fn default_config(&self) -> serde_json::Value {
+        use flow_engine_core::node_config::TcpReceiveConfig;
+        let config = TcpReceiveConfig::default();
+        serde_json::json!({
+            "connection_id": config.connection_id,
+            "receive_timeout_ms": config.receive_timeout_ms,
+            "framing_mode": config.framing_mode,
+            "framing_config": config.framing_config,
+        })
+    }
+
+    /// TcpReceive 检查 $.success → "true" / "false"
+    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
+        match output {
+            Some(serde_json::Value::Object(map)) => {
+                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
+            }
+            _ => "false".to_string(),
+        }
+    }
+
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
+
+    fn supports_false_port(&self) -> bool {
+        true
+    }
+
+    fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
+        Some(serde_json::json!({
+            "connection_id": config.get("connection_id"),
+            "receive_timeout_ms": config.get("receive_timeout_ms"),
+            "framing_mode": config.get("framing_mode"),
+        }))
+    }
+
+    async fn execute(
+        &self,
+        node: &Node,
+        context: &mut ExecutionContext,
+        connections: &[Connection],
+        node_map: &HashMap<String, &Node>,
+    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+        let tcp_manager = context.tcp_manager.clone().unwrap_or_else(|| {
+            Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new())
+        });
+        let executor = crate::tcp_receive_executor::TcpReceiveExecutor::new(tcp_manager);
+        executor
+            .execute(node, context, connections, node_map)
+            .await
+    }
+}
+
 /// TCP Close 节点插件
 pub struct TcpClosePlugin;
+
+/// TCP Receive 独立节点插件
+pub struct TcpReceivePlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for TcpClosePlugin {
@@ -322,6 +526,7 @@ impl TcpPluginGroup {
     pub fn register_all(registry: &mut flow_engine_core::registry::NodeRegistry) {
         registry.register(Arc::new(TcpConnectPlugin));
         registry.register(Arc::new(TcpSendPlugin));
+        registry.register(Arc::new(TcpReceivePlugin));
         registry.register(Arc::new(TcpClosePlugin));
     }
 }
@@ -377,6 +582,11 @@ impl NodePlugin for UdpBindPlugin {
             "local_addr": config.local_addr,
             "local_port": config.local_port,
             "reuse_addr": config.reuse_addr,
+            "broadcast": config.broadcast,
+            "multicast_group": config.multicast_group,
+            "multicast_ttl": config.multicast_ttl,
+            "multicast_loop": config.multicast_loop,
+            "multicast_interface": config.multicast_interface,
         })
     }
 
@@ -407,6 +617,8 @@ impl NodePlugin for UdpBindPlugin {
             "local_addr": config.get("local_addr"),
             "local_port": config.get("local_port"),
             "reuse_addr": config.get("reuse_addr"),
+            "broadcast": config.get("broadcast"),
+            "multicast_group": config.get("multicast_group"),
         }))
     }
 
@@ -417,9 +629,16 @@ impl NodePlugin for UdpBindPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let udp_manager = context.udp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::udp_socket_manager::UdpSocketManager::new())
-        });
+        let udp_manager = context.udp_manager.clone()
+            .and_then(|_m| {
+                // UdpSocketManager 需要 Arc<UdpSocketManager> 具体类型，
+                // context.udp_manager 是 Arc<dyn UdpProvider>，无法直接向下转型，
+                // 因此始终创建新实例
+                None::<Arc<crate::udp_socket_manager::UdpSocketManager>>
+            })
+            .unwrap_or_else(|| {
+                Arc::new(crate::udp_socket_manager::UdpSocketManager::new())
+            });
         let executor = crate::udp_bind_executor::UdpBindExecutor::new(udp_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -822,9 +1041,10 @@ mod tests {
         assert!(registry.is_empty());
 
         TcpPluginGroup::register_all(&mut registry);
-        assert_eq!(registry.len(), 3);
+        assert_eq!(registry.len(), 4);
         assert!(registry.get("tcp_connect").is_some());
         assert!(registry.get("tcp_send").is_some());
+        assert!(registry.get("tcp_receive").is_some());
         assert!(registry.get("tcp_close").is_some());
     }
 
@@ -920,6 +1140,67 @@ mod tests {
             plugin.resolve_port(&Some(serde_json::json!([1, 2, 3]))),
             "false"
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // TcpReceivePlugin 测试
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_tcp_receive_plugin_metadata() {
+        let plugin = TcpReceivePlugin;
+        assert_eq!(plugin.type_id(), "tcp_receive");
+        assert_eq!(plugin.display_name(), "TCP 接收");
+        assert_eq!(plugin.category(), "tcp");
+        assert_eq!(plugin.icon(), "Download");
+        assert_eq!(plugin.color(), "#10B981");
+        assert!(plugin.is_protocol_node());
+        assert!(plugin.supports_false_port());
+
+        let ports = plugin.ports();
+        assert_eq!(ports.len(), 2);
+        assert_eq!(ports[0].id, "true");
+        assert_eq!(ports[0].label, "接收成功");
+        assert_eq!(ports[1].id, "false");
+        assert_eq!(ports[1].label, "接收失败");
+    }
+
+    #[test]
+    fn test_tcp_receive_resolve_port() {
+        let plugin = TcpReceivePlugin;
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": true}))),
+            "true"
+        );
+        assert_eq!(
+            plugin.resolve_port(&Some(serde_json::json!({"success": false}))),
+            "false"
+        );
+        assert_eq!(plugin.resolve_port(&None), "false");
+    }
+
+    #[test]
+    fn test_tcp_receive_default_config() {
+        let plugin = TcpReceivePlugin;
+        let config = plugin.default_config();
+        assert!(config.is_object());
+        assert!(config.get("connection_id").is_some());
+        assert!(config.get("receive_timeout_ms").is_some());
+        assert!(config.get("framing_mode").is_some());
+        assert!(config.get("framing_config").is_some());
+    }
+
+    #[test]
+    fn test_tcp_receive_build_report_input() {
+        let plugin = TcpReceivePlugin;
+        let config = serde_json::json!({
+            "connection_id": "conn-1",
+            "receive_timeout_ms": 5000,
+            "framing_mode": { "LengthPrefix": { "prefix_bytes": 4 } },
+        });
+        let report = plugin.build_report_input(&config).expect("报告应存在");
+        assert_eq!(report["connection_id"], "conn-1");
+        assert_eq!(report["receive_timeout_ms"], 5000);
     }
 
     // -----------------------------------------------------------------------
@@ -1037,6 +1318,11 @@ mod tests {
         assert!(config.get("local_addr").is_some());
         assert!(config.get("local_port").is_some());
         assert!(config.get("reuse_addr").is_some());
+        assert!(config.get("broadcast").is_some());
+        assert!(config.get("multicast_group").is_some());
+        assert!(config.get("multicast_ttl").is_some());
+        assert!(config.get("multicast_loop").is_some());
+        assert!(config.get("multicast_interface").is_some());
     }
 
     #[test]
@@ -1255,6 +1541,6 @@ mod tests {
         let mut registry = flow_engine_core::registry::NodeRegistry::new();
         TcpPluginGroup::register_all(&mut registry);
         UdpPluginGroup::register_all(&mut registry);
-        assert_eq!(registry.len(), 7);
+        assert_eq!(registry.len(), 8);
     }
 }

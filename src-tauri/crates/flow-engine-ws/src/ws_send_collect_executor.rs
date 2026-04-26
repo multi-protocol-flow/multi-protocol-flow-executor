@@ -1217,6 +1217,10 @@ mod tests {
                 vec![],
                 vec![],
                 30000,
+                false,   // use_tls
+                false,   // tls_skip_verify
+                None,    // ping_interval_ms
+                None,    // ping_timeout_ms
             )
             .await;
 
@@ -1273,6 +1277,10 @@ mod tests {
                 vec![],
                 vec![],
                 30000,
+                false,   // use_tls
+                false,   // tls_skip_verify
+                None,    // ping_interval_ms
+                None,    // ping_timeout_ms
             )
             .await;
 

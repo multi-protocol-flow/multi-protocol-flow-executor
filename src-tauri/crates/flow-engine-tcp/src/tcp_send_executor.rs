@@ -321,6 +321,32 @@ impl NodeExecutor for TcpSendExecutor {
                                 try_decode_text(&decoded)
                                     .map(serde_json::Value::String)
                                     .unwrap_or(serde_json::Value::Null);
+
+                            // 如果配置了解析器，尝试解析接收到的数据
+                            if let Some(ref parser_cfg_value) = config.parser_config {
+                                match serde_json::from_value::<crate::parser::ParserConfig>(parser_cfg_value.clone()) {
+                                    Ok(parser_cfg) => {
+                                        match crate::parser::create_parser(&parser_cfg) {
+                                            Ok(parser) => {
+                                                match parser.parse(&decoded) {
+                                                    Ok(parsed_msg) => {
+                                                        output_data["parsed"] = serde_json::to_value(&parsed_msg.fields).unwrap_or_default();
+                                                    }
+                                                    Err(e) => {
+                                                        output_data["parsed_error"] = serde_json::Value::String(format!("解析失败: {}", e));
+                                                    }
+                                                }
+                                            }
+                                            Err(e) => {
+                                                output_data["parsed_error"] = serde_json::Value::String(format!("创建解析器失败: {}", e));
+                                            }
+                                        }
+                                    }
+                                    Err(e) => {
+                                        output_data["parsed_error"] = serde_json::Value::String(format!("解析器配置无效: {}", e));
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -444,6 +470,7 @@ mod tests {
                 framing_mode,
                 framing_config: FramingConfig::default(),
                 send_timeout_ms: 5000,
+                parser_config: None,
             }),
             ports: None,
             has_breakpoint: None,
@@ -477,6 +504,10 @@ mod tests {
             tcp_manager: None,
             udp_manager: None,
             mqtt_manager: None,
+            kafka_manager: None,
+            sse_manager: None,
+            graphql_manager: None,
+            amqp_manager: None,
         }
     }
 
@@ -785,6 +816,7 @@ mod tests {
                 framing_mode: TcpFramingMode::Manual,
                 framing_config: FramingConfig::default(),
                 send_timeout_ms: 5000,
+                parser_config: None,
             }),
             ports: None,
             has_breakpoint: None,
@@ -838,6 +870,7 @@ mod tests {
                 framing_mode: TcpFramingMode::Manual,
                 framing_config: FramingConfig::default(),
                 send_timeout_ms: 5000,
+                parser_config: None,
             }),
             ports: None,
             has_breakpoint: None,

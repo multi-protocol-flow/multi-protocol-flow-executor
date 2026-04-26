@@ -130,6 +130,51 @@ fn create_standard_config() -> Result<ClientConfig, String> {
     Ok(config)
 }
 
+/// 创建 TLS 连接器（支持自定义 CA 证书）
+///
+/// 在 webpki-roots 系统根证书基础上，额外添加自定义 CA 证书。
+/// 自定义 CA 证书为 PEM 格式，解析后会追加到根证书存储中。
+///
+/// # 参数
+/// - `skip_verify`: 是否跳过证书验证（用于开发/测试环境）
+/// - `ca_cert_pem`: 自定义 CA 证书（PEM 格式），None 时仅使用系统根证书
+///
+/// # 返回
+/// 成功返回 `TlsConnector`，失败返回错误描述。
+pub fn create_tls_connector_with_ca(
+    skip_verify: bool,
+    ca_cert_pem: Option<&[u8]>,
+) -> Result<TlsConnector, String> {
+    ensure_crypto_provider();
+
+    if skip_verify {
+        // 跳过验证模式不需要 CA 证书
+        let config = create_skip_verify_config()?;
+        return Ok(TlsConnector::from(Arc::new(config)));
+    }
+
+    // 构建根证书存储：以 webpki-roots 为基础，追加自定义 CA 证书
+    let mut root_store = rustls::RootCertStore::from_iter(
+        webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
+    );
+
+    if let Some(pem_bytes) = ca_cert_pem {
+        let mut cursor = std::io::Cursor::new(pem_bytes);
+        let certs: Vec<_> = rustls_pemfile::certs(&mut cursor)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("解析 CA 证书 PEM 失败: {}", e))?;
+        for cert in certs {
+            root_store.add(cert).map_err(|e| format!("添加 CA 证书失败: {}", e))?;
+        }
+    }
+
+    let config = rustls::ClientConfig::builder()
+        .with_root_certificates(root_store)
+        .with_no_client_auth();
+
+    Ok(TlsConnector::from(Arc::new(config)))
+}
+
 // ---------------------------------------------------------------------------
 // 测试
 // ---------------------------------------------------------------------------
@@ -176,5 +221,53 @@ mod tests {
     fn test_tls_connector_clonable() {
         let connector = create_tls_connector(true).expect("创建应成功");
         let _cloned = connector.clone();
+    }
+
+    /// 测试 create_tls_connector_with_ca 跳过验证模式
+    #[test]
+    fn test_create_tls_connector_with_ca_skip_verify() {
+        let result = create_tls_connector_with_ca(true, None);
+        assert!(
+            result.is_ok(),
+            "跳过验证模式应成功: {:?}",
+            result.err()
+        );
+    }
+
+    /// 测试 create_tls_connector_with_ca 标准模式（无自定义 CA）
+    #[test]
+    fn test_create_tls_connector_with_ca_standard_no_ca() {
+        let result = create_tls_connector_with_ca(false, None);
+        assert!(
+            result.is_ok(),
+            "标准模式（无自定义 CA）应成功: {:?}",
+            result.err()
+        );
+    }
+
+    /// 测试 create_tls_connector_with_ca 无效 PEM 数据
+    #[test]
+    fn test_create_tls_connector_with_ca_invalid_pem() {
+        let invalid_pem = b"not a valid pem data";
+        let result = create_tls_connector_with_ca(false, Some(invalid_pem));
+        // 无效 PEM 不应包含有效证书，但不会报错（只是没有证书被添加）
+        // 或者解析为空证书列表
+        assert!(
+            result.is_ok(),
+            "无效 PEM 应被忽略（空证书列表）或报错: {:?}",
+            result.err()
+        );
+    }
+
+    /// 测试 create_tls_connector_with_ca 跳过验证时忽略 CA 证书
+    #[test]
+    fn test_create_tls_connector_with_ca_skip_verify_ignores_ca() {
+        let some_ca = b"-----BEGIN CERTIFICATE-----\ninvalid\n-----END CERTIFICATE-----";
+        let result = create_tls_connector_with_ca(true, Some(some_ca));
+        assert!(
+            result.is_ok(),
+            "跳过验证模式应忽略 CA 证书参数: {:?}",
+            result.err()
+        );
     }
 }

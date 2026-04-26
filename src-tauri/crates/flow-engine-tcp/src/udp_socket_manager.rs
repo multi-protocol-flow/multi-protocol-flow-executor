@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use flow_engine_core::traits::{UdpProvider, UdpSocketInfo};
+use socket2::{Domain, Protocol, Socket, Type};
 use tokio::net::UdpSocket;
 use tokio::time::{timeout, Duration};
 
@@ -182,62 +183,150 @@ impl Default for UdpSocketManager {
     }
 }
 
-#[async_trait]
-impl UdpProvider for UdpSocketManager {
-    /// 绑定 UDP Socket 到指定地址和端口
+impl UdpSocketManager {
+    /// 带完整配置的 UDP Socket 绑定
     ///
-    /// 使用 `UdpSocket::bind()` 绑定到指定地址，端口为 0 时自动分配。
+    /// 使用 `socket2` 创建 socket，支持 reuse_addr/broadcast/multicast 等选项。
     /// 绑定成功后存入 Socket 池。
-    async fn bind(
+    pub async fn bind_with_options(
         &self,
         uuid: String,
         name: String,
         local_addr: String,
         local_port: u16,
         _read_timeout_ms: u64,
+        reuse_addr: bool,
+        broadcast: bool,
+        multicast_group: Option<String>,
+        multicast_ttl: Option<u32>,
+        multicast_loop: Option<bool>,
+        multicast_interface: Option<String>,
     ) -> Result<(), String> {
-        // 1. 构建绑定地址
-        let addr = format!("{}:{}", local_addr, local_port);
+        // 1. 解析绑定地址
+        let addr: std::net::SocketAddr = format!("{}:{}", local_addr, local_port)
+            .parse()
+            .map_err(|e| format!("地址解析失败 ({}:{}): {}", local_addr, local_port, e))?;
 
-        // 2. 绑定 Socket
-        let bind_result = UdpSocket::bind(&addr).await;
+        // 2. 使用 socket2 创建 socket（支持 pre-bind 选项）
+        let domain = if addr.is_ipv6() {
+            Domain::IPV6
+        } else {
+            Domain::IPV4
+        };
+        let socket = Socket::new(domain, Type::DGRAM, Some(Protocol::UDP))
+            .map_err(|e| format!("创建 UDP Socket 失败: {}", e))?;
 
-        match bind_result {
-            Ok(socket) => {
-                // 3. 获取实际绑定的地址和端口（端口 0 时自动分配）
-                let actual_local_addr = socket
-                    .local_addr()
-                    .map(|sa| sa.ip().to_string())
-                    .unwrap_or(local_addr.clone());
-                let actual_local_port =
-                    socket.local_addr().map(|sa| sa.port()).unwrap_or(local_port);
-
-                // 4. 创建 ActiveUdpSocket 并存入池
-                let active_socket = ActiveUdpSocket::new(
-                    uuid.clone(),
-                    name,
-                    actual_local_addr,
-                    actual_local_port,
-                    socket,
-                );
-
-                if let Ok(mut sockets) = self.sockets.lock() {
-                    sockets.insert(uuid.clone(), active_socket);
-                }
-
-                log::info!(
-                    "[UDP] 绑定成功: uuid={}, addr={}",
-                    uuid,
-                    addr
-                );
-                Ok(())
-            }
-            Err(e) => {
-                let error_msg = format!("UDP 绑定失败 ({}): {}", addr, e);
-                log::error!("{}", error_msg);
-                Err(error_msg)
-            }
+        // 3. reuse_addr 在 bind 之前设置
+        if reuse_addr {
+            socket
+                .set_reuse_address(true)
+                .map_err(|e| format!("设置地址复用失败: {}", e))?;
         }
+
+        // 4. 绑定
+        socket
+            .bind(&addr.into())
+            .map_err(|e| format!("UDP 绑定失败 ({}): {}", addr, e))?;
+
+        // 5. 转换为 std::net::UdpSocket
+        let std_socket: std::net::UdpSocket = socket.into();
+
+        // 6. 设置 broadcast（bind 之后）
+        if broadcast {
+            std_socket
+                .set_broadcast(true)
+                .map_err(|e| format!("设置广播失败: {}", e))?;
+        }
+
+        // 7. 设置多播选项（bind 之后）
+        if let Some(ref group_str) = multicast_group {
+            let group: std::net::Ipv4Addr = group_str
+                .parse()
+                .map_err(|e| format!("多播组地址无效 '{}': {}", group_str, e))?;
+            let iface: std::net::Ipv4Addr = match &multicast_interface {
+                Some(ref iface_str) => iface_str
+                    .parse()
+                    .map_err(|e| format!("接口地址无效 '{}': {}", iface_str, e))?,
+                None => std::net::Ipv4Addr::UNSPECIFIED,
+            };
+            std_socket
+                .join_multicast_v4(&group, &iface)
+                .map_err(|e| format!("加入多播组失败 ({}): {}", group_str, e))?;
+        }
+        if let Some(ttl) = multicast_ttl {
+            std_socket
+                .set_multicast_ttl_v4(ttl)
+                .map_err(|e| format!("设置多播 TTL 失败: {}", e))?;
+        }
+        if let Some(loopback) = multicast_loop {
+            std_socket
+                .set_multicast_loop_v4(loopback)
+                .map_err(|e| format!("设置多播环回失败: {}", e))?;
+        }
+
+        // 8. 转换为 tokio::net::UdpSocket
+        let socket = UdpSocket::from_std(std_socket)
+            .map_err(|e| format!("转换 tokio UdpSocket 失败: {}", e))?;
+
+        // 9. 获取实际绑定的地址和端口（端口 0 时自动分配）
+        let actual_local_addr = socket
+            .local_addr()
+            .map(|sa| sa.ip().to_string())
+            .unwrap_or(local_addr.clone());
+        let actual_local_port = socket.local_addr().map(|sa| sa.port()).unwrap_or(local_port);
+
+        // 10. 创建 ActiveUdpSocket 并存入池
+        let active_socket = ActiveUdpSocket::new(
+            uuid.clone(),
+            name,
+            actual_local_addr,
+            actual_local_port,
+            socket,
+        );
+
+        if let Ok(mut sockets) = self.sockets.lock() {
+            sockets.insert(uuid.clone(), active_socket);
+        }
+
+        log::info!(
+            "[UDP] 绑定成功: uuid={}, addr={}, reuse_addr={}, broadcast={}, multicast_group={:?}",
+            uuid,
+            addr,
+            reuse_addr,
+            broadcast,
+            multicast_group,
+        );
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl UdpProvider for UdpSocketManager {
+    /// 绑定 UDP Socket 到指定地址和端口（使用默认配置）
+    ///
+    /// 通过 `bind_with_options` 实现，默认 reuse_addr=true，其余选项关闭。
+    async fn bind(
+        &self,
+        uuid: String,
+        name: String,
+        local_addr: String,
+        local_port: u16,
+        read_timeout_ms: u64,
+    ) -> Result<(), String> {
+        self.bind_with_options(
+            uuid,
+            name,
+            local_addr,
+            local_port,
+            read_timeout_ms,
+            true,  // reuse_addr 默认开启
+            false, // broadcast
+            None,  // multicast_group
+            None,  // multicast_ttl
+            None,  // multicast_loop
+            None,  // multicast_interface
+        )
+        .await
     }
 
     /// 发送数据到指定目标地址
@@ -736,7 +825,13 @@ mod tests {
             .await;
 
         assert!(result.is_err(), "绑定应失败");
-        assert!(result.unwrap_err().contains("绑定失败"));
+        let err_msg = result.unwrap_err();
+        // 无效地址可能在解析阶段失败，也可能在 bind 阶段失败
+        assert!(
+            err_msg.contains("绑定失败") || err_msg.contains("地址解析失败"),
+            "错误信息应包含失败原因，实际: {}",
+            err_msg
+        );
     }
 
     /// 测试 ActiveUdpSocket 创建和状态
