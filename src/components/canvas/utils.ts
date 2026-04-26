@@ -209,6 +209,60 @@ export function createDefaultNodeData(type: NodeType): NodeData {
       return { type: 'kafka_schema_registry', connection_id: '', operation: 'list_subjects' };
     case 'kafka_close':
       return { type: 'kafka_close', connection_id: '' };
+    case 'sse_connect':
+      return { type: 'sse_connect', url: '' };
+    case 'sse_listen':
+      return { type: 'sse_listen', connection_id: '' };
+    case 'sse_disconnect':
+      return { type: 'sse_disconnect', connection_id: '' };
+    case 'graphql_connect':
+      return { type: 'graphql_connect', endpoint: '' };
+    case 'graphql_query':
+      return { type: 'graphql_query', connection_id: '', query: '' };
+    case 'graphql_subscribe':
+      return { type: 'graphql_subscribe', connection_id: '', subscription: '' };
+    case 'graphql_unsubscribe':
+      return { type: 'graphql_unsubscribe', connection_id: '', subscription_id: '' };
+    case 'graphql_introspect':
+      return { type: 'graphql_introspect', connection_id: '' };
+    case 'graphql_disconnect':
+      return { type: 'graphql_disconnect', connection_id: '' };
+    case 'amqp_connect':
+      return { type: 'amqp_connect', url: '' };
+    case 'amqp_close':
+      return { type: 'amqp_close', connection_id: '' };
+    case 'amqp_exchange_declare':
+      return { type: 'amqp_exchange_declare', connection_id: '', exchange: '', exchange_type: 'direct' };
+    case 'amqp_exchange_delete':
+      return { type: 'amqp_exchange_delete', connection_id: '', exchange: '' };
+    case 'amqp_queue_declare':
+      return { type: 'amqp_queue_declare', connection_id: '', queue: '' };
+    case 'amqp_queue_delete':
+      return { type: 'amqp_queue_delete', connection_id: '', queue: '' };
+    case 'amqp_queue_bind':
+      return { type: 'amqp_queue_bind', connection_id: '', queue: '', exchange: '' };
+    case 'amqp_publish':
+      return { type: 'amqp_publish', connection_id: '', routing_key: '' };
+    case 'amqp_consume':
+      return { type: 'amqp_consume', connection_id: '', queue: '' };
+    case 'amqp_get':
+      return { type: 'amqp_get', connection_id: '', queue: '' };
+    case 'amqp_ack':
+      return { type: 'amqp_ack', connection_id: '', action: 'ack', delivery_tag: 0 };
+    case 'amqp_management':
+      return { type: 'amqp_management', management_url: '', action: 'overview', connection_id: '' };
+    case 'amqp10_connect':
+      return { type: 'amqp10_connect', url: '' };
+    case 'amqp10_send':
+      return { type: 'amqp10_send', connection_id: '', address: '' };
+    case 'amqp10_receive':
+      return { type: 'amqp10_receive', connection_id: '', address: '' };
+    case 'amqp10_accept':
+      return { type: 'amqp10_accept', connection_id: '', delivery_id: 0 };
+    case 'amqp10_reject':
+      return { type: 'amqp10_reject', connection_id: '', delivery_id: 0 };
+    case 'amqp10_disconnect':
+      return { type: 'amqp10_disconnect', connection_id: '' };
     case 'variable_extractor':
       return { type: 'variable_extractor', output_mappings: [], source_node_id: undefined };
     case 'entry':
@@ -264,6 +318,33 @@ const STATIC_NODE_TYPE_LABELS: Record<NodeType, string> = {
   kafka_admin: 'Kafka 管理',
   kafka_schema_registry: 'Kafka Schema',
   kafka_close: 'Kafka 关闭',
+  sse_connect: 'SSE 连接',
+  sse_listen: 'SSE 监听',
+  sse_disconnect: 'SSE 断开',
+  graphql_connect: 'GraphQL 连接',
+  graphql_query: 'GraphQL 查询',
+  graphql_subscribe: 'GraphQL 订阅',
+  graphql_unsubscribe: 'GraphQL 取消订阅',
+  graphql_introspect: 'GraphQL 内省',
+  graphql_disconnect: 'GraphQL 断开',
+  amqp_connect: 'AMQP 连接',
+  amqp_close: 'AMQP 关闭',
+  amqp_exchange_declare: 'AMQP 声明交换器',
+  amqp_exchange_delete: 'AMQP 删除交换器',
+  amqp_queue_declare: 'AMQP 声明队列',
+  amqp_queue_delete: 'AMQP 删除队列',
+  amqp_queue_bind: 'AMQP 绑定队列',
+  amqp_publish: 'AMQP 发布',
+  amqp_consume: 'AMQP 消费',
+  amqp_get: 'AMQP 获取',
+  amqp_ack: 'AMQP 确认',
+  amqp_management: 'AMQP 管理',
+  amqp10_connect: 'AMQP1.0 连接',
+  amqp10_send: 'AMQP1.0 发送',
+  amqp10_receive: 'AMQP1.0 接收',
+  amqp10_accept: 'AMQP1.0 确认',
+  amqp10_reject: 'AMQP1.0 拒绝',
+  amqp10_disconnect: 'AMQP1.0 断开',
   variable_extractor: '变量提取',
 };
 

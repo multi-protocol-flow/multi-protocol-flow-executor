@@ -60,6 +60,33 @@ export type NodeType =
   | 'kafka_admin'
   | 'kafka_schema_registry'
   | 'kafka_close'
+  | 'sse_connect'
+  | 'sse_listen'
+  | 'sse_disconnect'
+  | 'graphql_connect'
+  | 'graphql_query'
+  | 'graphql_subscribe'
+  | 'graphql_unsubscribe'
+  | 'graphql_introspect'
+  | 'graphql_disconnect'
+  | 'amqp_connect'
+  | 'amqp_close'
+  | 'amqp_exchange_declare'
+  | 'amqp_exchange_delete'
+  | 'amqp_queue_declare'
+  | 'amqp_queue_delete'
+  | 'amqp_queue_bind'
+  | 'amqp_publish'
+  | 'amqp_consume'
+  | 'amqp_get'
+  | 'amqp_ack'
+  | 'amqp_management'
+  | 'amqp10_connect'
+  | 'amqp10_send'
+  | 'amqp10_receive'
+  | 'amqp10_accept'
+  | 'amqp10_reject'
+  | 'amqp10_disconnect'
   | 'variable_extractor';
 
 /**
@@ -1206,6 +1233,516 @@ export interface KafkaCloseConfig {
   connection_id: string;
 }
 
+/** SSE 连接节点配置 */
+export interface SseConnectConfig {
+  type: 'sse_connect';
+  url: string;
+  headers?: Record<string, string>;
+  last_event_id?: string;
+  timeout_ms?: number;
+  connection_id?: string;
+  auto_reconnect?: boolean;
+  reconnect_interval_ms?: number;
+  max_reconnect_attempts?: number;
+  tls_mode?: 'none' | 'standard' | 'skip-verify';
+}
+
+/** SSE 监听节点配置 */
+export interface SseListenConfig {
+  type: 'sse_listen';
+  connection_id: string;
+  event_filter?: string;
+  max_events?: number;
+  timeout_ms?: number;
+  include_data?: boolean;
+  decode_json?: boolean;
+}
+
+/** SSE 断开连接节点配置 */
+export interface SseDisconnectConfig {
+  type: 'sse_disconnect';
+  connection_id: string;
+}
+
+// ============================================================================
+// GraphQL 节点配置
+// ============================================================================
+
+/** GraphQL 连接节点配置 */
+export interface GraphqlConnectConfig {
+  type: 'graphql_connect';
+  /** HTTP 端点 URL */
+  endpoint: string;
+  /** WebSocket 端点 URL（用于订阅） */
+  ws_endpoint?: string;
+  /** 请求头 */
+  headers?: Record<string, string>;
+  /** 连接超时（毫秒） */
+  connection_timeout_ms?: number;
+  /** 连接 ID */
+  connection_id?: string;
+}
+
+/** GraphQL 查询/变更节点配置 */
+export interface GraphqlQueryConfig {
+  type: 'graphql_query';
+  /** 连接 ID */
+  connection_id: string;
+  /** GraphQL 查询字符串 */
+  query: string;
+  /** 查询变量 */
+  variables?: Record<string, unknown>;
+  /** 操作名称 */
+  operation_name?: string;
+  /** 文件上传列表 */
+  files?: Array<{ field_name: string; file_path: string }>;
+  /** 超时（毫秒） */
+  timeout_ms?: number;
+}
+
+/** GraphQL 订阅节点配置 */
+export interface GraphqlSubscribeConfig {
+  type: 'graphql_subscribe';
+  /** 连接 ID */
+  connection_id: string;
+  /** GraphQL 订阅字符串 */
+  subscription: string;
+  /** 查询变量 */
+  variables?: Record<string, unknown>;
+  /** 操作名称 */
+  operation_name?: string;
+  /** 最大事件数 */
+  max_events?: number;
+  /** 超时（毫秒） */
+  timeout_ms?: number;
+}
+
+/** GraphQL 取消订阅节点配置 */
+export interface GraphqlUnsubscribeConfig {
+  type: 'graphql_unsubscribe';
+  /** 连接 ID */
+  connection_id: string;
+  /** 订阅 ID */
+  subscription_id: string;
+}
+
+/** GraphQL 内省节点配置 */
+export interface GraphqlIntrospectConfig {
+  type: 'graphql_introspect';
+  /** 连接 ID */
+  connection_id: string;
+  /** 超时（毫秒） */
+  timeout_ms?: number;
+}
+
+/** GraphQL 断开连接节点配置 */
+export interface GraphqlDisconnectConfig {
+  type: 'graphql_disconnect';
+  /** 连接 ID */
+  connection_id: string;
+}
+
+// ============================================================================
+// AMQP 0-9-1 节点类型定义
+// ============================================================================
+
+/**
+ * AMQP TLS 模式
+ */
+export type AmqpTlsMode = 'none' | 'standard' | 'skip-verify';
+
+/**
+ * AMQP 认证机制
+ */
+export type AmqpAuthMechanism = 'PLAIN' | 'AMQPLAIN' | 'EXTERNAL' | 'RABBIT-CR-DEMO';
+
+/**
+ * AMQP Exchange 类型
+ */
+export type AmqpExchangeType = 'direct' | 'fanout' | 'topic' | 'headers' | 'custom';
+
+/**
+ * AMQP Body 类型
+ */
+export type AmqpBodyType = 'text' | 'json' | 'binary';
+
+/**
+ * AMQP 确认模式
+ */
+export type AmqpConfirmMode = 'none' | 'publisher-confirms' | 'transaction';
+
+/**
+ * AMQP 消费确认模式
+ */
+export type AmqpAckMode = 'auto' | 'manual';
+
+/**
+ * AMQP Queue 操作类型
+ */
+export type AmqpQueueAction = 'delete' | 'purge';
+
+/**
+ * AMQP Ack 操作类型
+ */
+export type AmqpAckAction = 'ack' | 'nack' | 'reject';
+
+/**
+ * AMQP Management 操作类型
+ */
+export type AmqpManagementAction =
+  | 'overview'
+  | 'list-queues'
+  | 'list-connections'
+  | 'list-exchanges'
+  | 'list-channels';
+
+/** AMQP Connect 节点配置 */
+export interface AmqpConnectConfig {
+  type: 'amqp_connect';
+  /** AMQP Broker URL */
+  url?: string;
+  /** 连接 ID（留空自动生成） */
+  connection_id?: string;
+  /** 心跳间隔（秒） */
+  heartbeat?: number;
+  /** 最大通道数 */
+  channel_max?: number;
+  /** 最大帧大小 */
+  frame_max?: number;
+  /** 连接超时（毫秒） */
+  connection_timeout_ms?: number;
+  /** TLS 模式 */
+  tls_mode?: AmqpTlsMode;
+  /** 认证机制 */
+  auth_mechanism?: AmqpAuthMechanism;
+  /** 自动恢复 */
+  auto_recover?: boolean;
+  /** 最大重连次数 */
+  reconnect_max_retries?: number;
+}
+
+/** AMQP Close 节点配置 */
+export interface AmqpCloseConfig {
+  type: 'amqp_close';
+  /** 连接 ID */
+  connection_id: string;
+  /** 关闭回复码 */
+  reply_code?: number;
+  /** 关闭回复文本 */
+  reply_text?: string;
+}
+
+/** AMQP Exchange Declare 节点配置 */
+export interface AmqpExchangeDeclareConfig {
+  type: 'amqp_exchange_declare';
+  /** 连接 ID */
+  connection_id: string;
+  /** Exchange 名称 */
+  exchange: string;
+  /** Exchange 类型 */
+  exchange_type: AmqpExchangeType;
+  /** 自定义类型（exchange_type=custom 时使用） */
+  custom_type?: string;
+  /** 被动声明（仅检查是否存在） */
+  passive?: boolean;
+  /** 持久化 */
+  durable?: boolean;
+  /** 自动删除 */
+  auto_delete?: boolean;
+  /** 内部 Exchange */
+  internal?: boolean;
+  /** 额外参数 */
+  arguments?: Record<string, unknown>;
+}
+
+/** AMQP Exchange Delete 节点配置 */
+export interface AmqpExchangeDeleteConfig {
+  type: 'amqp_exchange_delete';
+  /** 连接 ID */
+  connection_id: string;
+  /** Exchange 名称 */
+  exchange: string;
+  /** 仅在未被使用时删除 */
+  if_unused?: boolean;
+}
+
+/** AMQP Queue Declare 节点配置 */
+export interface AmqpQueueDeclareConfig {
+  type: 'amqp_queue_declare';
+  /** 连接 ID */
+  connection_id: string;
+  /** 队列名称（留空自动生成） */
+  queue?: string;
+  /** 被动声明（仅检查是否存在） */
+  passive?: boolean;
+  /** 持久化 */
+  durable?: boolean;
+  /** 独占队列 */
+  exclusive?: boolean;
+  /** 自动删除 */
+  auto_delete?: boolean;
+  /** 额外参数 */
+  arguments?: Record<string, unknown>;
+}
+
+/** AMQP Queue Delete 节点配置 */
+export interface AmqpQueueDeleteConfig {
+  type: 'amqp_queue_delete';
+  /** 连接 ID */
+  connection_id: string;
+  /** 队列名称 */
+  queue: string;
+  /** 操作类型 */
+  action?: AmqpQueueAction;
+  /** 仅在未被使用时删除 */
+  if_unused?: boolean;
+  /** 仅在为空时删除 */
+  if_empty?: boolean;
+}
+
+/** AMQP Queue Bind 节点配置 */
+export interface AmqpQueueBindConfig {
+  type: 'amqp_queue_bind';
+  /** 连接 ID */
+  connection_id: string;
+  /** 队列名称 */
+  queue: string;
+  /** Exchange 名称 */
+  exchange: string;
+  /** 路由键 */
+  routing_key?: string;
+  /** 额外参数 */
+  arguments?: Record<string, unknown>;
+}
+
+/** AMQP Publish 节点配置 */
+export interface AmqpPublishConfig {
+  type: 'amqp_publish';
+  /** 连接 ID */
+  connection_id: string;
+  /** Exchange 名称 */
+  exchange?: string;
+  /** 路由键 */
+  routing_key?: string;
+  /** 消息体 */
+  body?: string;
+  /** 消息体类型 */
+  body_type?: AmqpBodyType;
+  /** Content-Type */
+  content_type?: string;
+  /** 内容编码 */
+  content_encoding?: string;
+  /** 投递模式（1=非持久化, 2=持久化） */
+  delivery_mode?: number;
+  /** 优先级（0-9） */
+  priority?: number;
+  /** 消息 ID */
+  message_id?: string;
+  /** 关联 ID */
+  correlation_id?: string;
+  /** 回复队列 */
+  reply_to?: string;
+  /** 过期时间 */
+  expiration?: string;
+  /** 时间戳 */
+  timestamp?: number;
+  /** 消息类型 */
+  message_type?: string;
+  /** 用户 ID */
+  user_id?: string;
+  /** 应用 ID */
+  app_id?: string;
+  /** 集群 ID */
+  cluster_id?: string;
+  /** 消息头 */
+  headers?: Record<string, unknown>;
+  /** Mandatory 标志 */
+  mandatory?: boolean;
+  /** 确认模式 */
+  confirm_mode?: AmqpConfirmMode;
+}
+
+/** AMQP Consume 节点配置 */
+export interface AmqpConsumeConfig {
+  type: 'amqp_consume';
+  /** 连接 ID */
+  connection_id: string;
+  /** 队列名称 */
+  queue: string;
+  /** 消费者标签 */
+  consumer_tag?: string;
+  /** 确认模式 */
+  ack_mode?: AmqpAckMode;
+  /** 独占消费 */
+  exclusive?: boolean;
+  /** 不接收自身发布的消息 */
+  no_local?: boolean;
+  /** 预取数量 */
+  prefetch_count?: number;
+  /** 最大消费消息数 */
+  max_messages?: number;
+  /** 超时（毫秒） */
+  timeout_ms?: number;
+  /** 成功时自动确认 */
+  auto_ack_on_success?: boolean;
+  /** 失败时自动拒绝 */
+  auto_reject_on_failure?: boolean;
+  /** 拒绝时重新入队 */
+  reject_requeue?: boolean;
+}
+
+/** AMQP Get 节点配置 */
+export interface AmqpGetConfig {
+  type: 'amqp_get';
+  /** 连接 ID */
+  connection_id: string;
+  /** 队列名称 */
+  queue: string;
+  /** 不确认模式 */
+  no_ack?: boolean;
+}
+
+/** AMQP Ack 节点配置 */
+export interface AmqpAckConfig {
+  type: 'amqp_ack';
+  /** 连接 ID */
+  connection_id: string;
+  /** 操作类型 */
+  action: AmqpAckAction;
+  /** 投递标签 */
+  delivery_tag: number;
+  /** 批量确认 */
+  multiple?: boolean;
+  /** 重新入队（nack/reject 时） */
+  requeue?: boolean;
+}
+
+/** AMQP Management 节点配置 */
+export interface AmqpManagementConfig {
+  type: 'amqp_management';
+  /** Management API URL */
+  management_url?: string;
+  /** 用户名 */
+  username?: string;
+  /** 密码 */
+  password?: string;
+  /** 操作类型 */
+  action: AmqpManagementAction;
+  /** VHost */
+  vhost?: string;
+  /** 队列名称（部分操作需要） */
+  queue_name?: string;
+  /** 连接名称（部分操作需要） */
+  connection_id?: string;
+}
+
+// ============================================================================
+// AMQP 1.0 节点类型定义
+// ============================================================================
+
+/**
+ * AMQP 1.0 认证机制
+ */
+export type Amqp10AuthMechanism = 'PLAIN' | 'ANONYMOUS' | 'EXTERNAL';
+
+/** AMQP 1.0 Connect 节点配置 */
+export interface Amqp10ConnectConfig {
+  type: 'amqp10_connect';
+  /** AMQP 1.0 服务器 URL */
+  url?: string;
+  /** 连接 ID（留空自动生成） */
+  connection_id?: string;
+  /** TLS 模式 */
+  tls_mode?: AmqpTlsMode;
+  /** 认证机制 */
+  auth_mechanism?: Amqp10AuthMechanism;
+  /** 容器 ID */
+  container_id?: string;
+}
+
+/** AMQP 1.0 消息属性 */
+export interface Amqp10MessageProperties {
+  /** 内容类型 */
+  content_type?: string;
+  /** 内容编码 */
+  content_encoding?: string;
+  /** 关联 ID */
+  correlation_id?: string;
+  /** 消息 ID */
+  message_id?: string;
+  /** 回复地址 */
+  reply_to?: string;
+  /** 主题 */
+  subject?: string;
+  /** 目标 */
+  to?: string;
+  /** 绝对过期时间（Unix 毫秒） */
+  absolute_expiry_time?: number;
+  /** 创建时间（Unix 毫秒） */
+  creation_time?: number;
+}
+
+/** AMQP 1.0 Send 节点配置 */
+export interface Amqp10SendConfig {
+  type: 'amqp10_send';
+  /** 连接 ID */
+  connection_id: string;
+  /** 目标地址 */
+  address: string;
+  /** 消息体 */
+  message_body?: string;
+  /** 消息属性 */
+  message_properties?: Amqp10MessageProperties;
+  /** 消息注解 */
+  message_annotations?: Record<string, unknown>;
+}
+
+/** AMQP 1.0 Receive 节点配置 */
+export interface Amqp10ReceiveConfig {
+  type: 'amqp10_receive';
+  /** 连接 ID */
+  connection_id: string;
+  /** 源地址 */
+  address: string;
+  /** 信用额度 */
+  credit?: number;
+  /** 最大接收消息数 */
+  max_messages?: number;
+  /** 超时（毫秒） */
+  timeout_ms?: number;
+  /** 自动接受 */
+  auto_accept?: boolean;
+}
+
+/** AMQP 1.0 Accept 节点配置 */
+export interface Amqp10AcceptConfig {
+  type: 'amqp10_accept';
+  /** 连接 ID */
+  connection_id: string;
+  /** 投递 ID */
+  delivery_id: number;
+}
+
+/** AMQP 1.0 Reject 节点配置 */
+export interface Amqp10RejectConfig {
+  type: 'amqp10_reject';
+  /** 连接 ID */
+  connection_id: string;
+  /** 投递 ID */
+  delivery_id: number;
+  /** 错误条件 */
+  error_condition?: string;
+  /** 错误描述 */
+  error_description?: string;
+}
+
+/** AMQP 1.0 Disconnect 节点配置 */
+export interface Amqp10DisconnectConfig {
+  type: 'amqp10_disconnect';
+  /** 连接 ID */
+  connection_id: string;
+}
+
 /**
  * 变量提取节点配置
  */
@@ -1504,6 +2041,33 @@ export type NodeData =
   | DbRollbackConfig
   | DbCloseConfig
   | ScriptNodeConfig
+  | SseConnectConfig
+  | SseListenConfig
+  | SseDisconnectConfig
+  | GraphqlConnectConfig
+  | GraphqlQueryConfig
+  | GraphqlSubscribeConfig
+  | GraphqlUnsubscribeConfig
+  | GraphqlIntrospectConfig
+  | GraphqlDisconnectConfig
+  | AmqpConnectConfig
+  | AmqpCloseConfig
+  | AmqpExchangeDeclareConfig
+  | AmqpExchangeDeleteConfig
+  | AmqpQueueDeclareConfig
+  | AmqpQueueDeleteConfig
+  | AmqpQueueBindConfig
+  | AmqpPublishConfig
+  | AmqpConsumeConfig
+  | AmqpGetConfig
+  | AmqpAckConfig
+  | AmqpManagementConfig
+  | Amqp10ConnectConfig
+  | Amqp10SendConfig
+  | Amqp10ReceiveConfig
+  | Amqp10AcceptConfig
+  | Amqp10RejectConfig
+  | Amqp10DisconnectConfig
   | VariableExtractorConfig;
 
 // ============================================================================
@@ -1807,6 +2371,61 @@ export function isKafkaSchemaRegistryConfig(data: NodeData): data is KafkaSchema
 export function isKafkaCloseConfig(data: NodeData): data is KafkaCloseConfig {
   return data.type === 'kafka_close';
 }
+
+export function isSseConnectConfig(data: NodeData): data is SseConnectConfig {
+  return data.type === 'sse_connect';
+}
+
+export function isSseListenConfig(data: NodeData): data is SseListenConfig {
+  return data.type === 'sse_listen';
+}
+
+export function isSseDisconnectConfig(data: NodeData): data is SseDisconnectConfig {
+  return data.type === 'sse_disconnect';
+}
+
+export function isGraphqlConnectConfig(data: NodeData): data is GraphqlConnectConfig {
+  return data.type === 'graphql_connect';
+}
+
+export function isGraphqlQueryConfig(data: NodeData): data is GraphqlQueryConfig {
+  return data.type === 'graphql_query';
+}
+
+export function isGraphqlSubscribeConfig(data: NodeData): data is GraphqlSubscribeConfig {
+  return data.type === 'graphql_subscribe';
+}
+
+export function isGraphqlUnsubscribeConfig(data: NodeData): data is GraphqlUnsubscribeConfig {
+  return data.type === 'graphql_unsubscribe';
+}
+
+export function isGraphqlIntrospectConfig(data: NodeData): data is GraphqlIntrospectConfig {
+  return data.type === 'graphql_introspect';
+}
+
+export function isGraphqlDisconnectConfig(data: NodeData): data is GraphqlDisconnectConfig {
+  return data.type === 'graphql_disconnect';
+}
+
+export function isAmqpConnectConfig(data: NodeData): data is AmqpConnectConfig { return data.type === 'amqp_connect'; }
+export function isAmqpCloseConfig(data: NodeData): data is AmqpCloseConfig { return data.type === 'amqp_close'; }
+export function isAmqpExchangeDeclareConfig(data: NodeData): data is AmqpExchangeDeclareConfig { return data.type === 'amqp_exchange_declare'; }
+export function isAmqpExchangeDeleteConfig(data: NodeData): data is AmqpExchangeDeleteConfig { return data.type === 'amqp_exchange_delete'; }
+export function isAmqpQueueDeclareConfig(data: NodeData): data is AmqpQueueDeclareConfig { return data.type === 'amqp_queue_declare'; }
+export function isAmqpQueueDeleteConfig(data: NodeData): data is AmqpQueueDeleteConfig { return data.type === 'amqp_queue_delete'; }
+export function isAmqpQueueBindConfig(data: NodeData): data is AmqpQueueBindConfig { return data.type === 'amqp_queue_bind'; }
+export function isAmqpPublishConfig(data: NodeData): data is AmqpPublishConfig { return data.type === 'amqp_publish'; }
+export function isAmqpConsumeConfig(data: NodeData): data is AmqpConsumeConfig { return data.type === 'amqp_consume'; }
+export function isAmqpGetConfig(data: NodeData): data is AmqpGetConfig { return data.type === 'amqp_get'; }
+export function isAmqpAckConfig(data: NodeData): data is AmqpAckConfig { return data.type === 'amqp_ack'; }
+export function isAmqpManagementConfig(data: NodeData): data is AmqpManagementConfig { return data.type === 'amqp_management'; }
+export function isAmqp10ConnectConfig(data: NodeData): data is Amqp10ConnectConfig { return data.type === 'amqp10_connect'; }
+export function isAmqp10SendConfig(data: NodeData): data is Amqp10SendConfig { return data.type === 'amqp10_send'; }
+export function isAmqp10ReceiveConfig(data: NodeData): data is Amqp10ReceiveConfig { return data.type === 'amqp10_receive'; }
+export function isAmqp10AcceptConfig(data: NodeData): data is Amqp10AcceptConfig { return data.type === 'amqp10_accept'; }
+export function isAmqp10RejectConfig(data: NodeData): data is Amqp10RejectConfig { return data.type === 'amqp10_reject'; }
+export function isAmqp10DisconnectConfig(data: NodeData): data is Amqp10DisconnectConfig { return data.type === 'amqp10_disconnect'; }
 
 /**
  * 判断是否为 VariableExtractorConfig
