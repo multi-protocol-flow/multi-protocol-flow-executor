@@ -1,7 +1,7 @@
-//! 默认节点注册表 — 注册全部 29 个内置节点插件
+//! 默认节点注册表 — 注册全部内置节点插件
 //!
 //! 此模块位于 `flow-engine-executor` crate 中，因为它需要依赖所有协议 crate
-//! （http、ws、db、script、assertion、grpc、mcp、tcp），而 `flow-engine-core` 作为叶子 crate
+//! （http、ws、db、script、assertion、grpc、mcp、tcp、mqtt、kafka、sse），而 `flow-engine-core` 作为叶子 crate
 //! 不能依赖它们。
 
 use flow_engine_core::registry::NodeRegistry;
@@ -37,6 +37,33 @@ use flow_engine_core::registry::NodeRegistry;
 /// | TCP | TcpConnectPlugin | `tcp_connect` |
 /// | TCP | TcpSendPlugin | `tcp_send` |
 /// | TCP | TcpClosePlugin | `tcp_close` |
+/// | UDP | UdpBindPlugin | `udp_bind` |
+/// | UDP | UdpSendToPlugin | `udp_send_to` |
+/// | UDP | UdpRecvFromPlugin | `udp_recv_from` |
+/// | UDP | UdpClosePlugin | `udp_close` |
+/// | MQTT | MqttConnectPlugin | `mqtt_connect` |
+/// | MQTT | MqttPublishPlugin | `mqtt_publish` |
+/// | MQTT | MqttSubscribePlugin | `mqtt_subscribe` |
+/// | MQTT | MqttUnsubscribePlugin | `mqtt_unsubscribe` |
+/// | MQTT | MqttDisconnectPlugin | `mqtt_disconnect` |
+/// | MQTT | MqttWaitMessagePlugin | `mqtt_wait_message` |
+/// | MQTT | MqttRequestPlugin | `mqtt_request` |
+/// | Kafka | KafkaConnectPlugin | `kafka_connect` |
+/// | Kafka | KafkaProducePlugin | `kafka_produce` |
+/// | Kafka | KafkaConsumePlugin | `kafka_consume` |
+/// | Kafka | KafkaConsumeBatchPlugin | `kafka_consume_batch` |
+/// | Kafka | KafkaAdminPlugin | `kafka_admin` |
+/// | Kafka | KafkaSchemaRegistryPlugin | `kafka_schema_registry` |
+/// | Kafka | KafkaClosePlugin | `kafka_close` |
+/// | SSE | SseConnectPlugin | `sse_connect` |
+/// | SSE | SseListenPlugin | `sse_listen` |
+/// | SSE | SseDisconnectPlugin | `sse_disconnect` |
+/// | GraphQL | GraphqlConnectPlugin | `graphql_connect` |
+/// | GraphQL | GraphqlQueryPlugin | `graphql_query` |
+/// | GraphQL | GraphqlSubscribePlugin | `graphql_subscribe` |
+/// | GraphQL | GraphqlUnsubscribePlugin | `graphql_unsubscribe` |
+/// | GraphQL | GraphqlIntrospectPlugin | `graphql_introspect` |
+/// | GraphQL | GraphqlDisconnectPlugin | `graphql_disconnect` |
 pub fn default_registry() -> NodeRegistry {
     let mut registry = NodeRegistry::new();
 
@@ -83,6 +110,15 @@ pub fn default_registry() -> NodeRegistry {
     // Kafka (flow-engine-kafka) — 批量注册 7 个插件
     flow_engine_kafka::plugin::KafkaPluginGroup::register_all(&mut registry);
 
+    // SSE (flow-engine-sse) — 批量注册 3 个插件
+    flow_engine_sse::plugin::SsePluginGroup::register_all(&mut registry);
+
+    // GraphQL (flow-engine-graphql) — 批量注册 6 个插件
+    flow_engine_graphql::plugin::GraphqlPluginGroup::register_all(&mut registry);
+
+    // AMQP (flow-engine-amqp) — 批量注册 17 个插件（11 AMQP 0-9-1 + 6 AMQP 1.0）
+    flow_engine_amqp::amqp091::plugin::AmqpPluginGroup::register_all(&mut registry);
+
     // Variable Extractor (flow-engine-executor 内置)
     registry.register(std::sync::Arc::new(
         crate::plugin_variable_extractor::VariableExtractorPlugin,
@@ -98,10 +134,10 @@ mod tests {
     #[test]
     fn test_default_registry_has_17_plugins() {
         let registry = default_registry();
-        assert_eq!(registry.len(), 44);
+        assert_eq!(registry.len(), 70);
 
         let metadata = registry.all_metadata();
-        assert_eq!(metadata.len(), 44);
+        assert_eq!(metadata.len(), 70);
 
         // 验证每个 type_id 都已注册
         let type_ids: Vec<&str> = metadata.iter().map(|m| m.type_id.as_str()).collect();
@@ -149,6 +185,32 @@ mod tests {
             "kafka_admin",
             "kafka_schema_registry",
             "kafka_close",
+            "sse_connect",
+            "sse_listen",
+            "sse_disconnect",
+            "graphql_connect",
+            "graphql_query",
+            "graphql_subscribe",
+            "graphql_unsubscribe",
+            "graphql_introspect",
+            "graphql_disconnect",
+            "amqp_connect",
+            "amqp_close",
+            "amqp_exchange_declare",
+            "amqp_exchange_delete",
+            "amqp_queue_declare",
+            "amqp_queue_delete",
+            "amqp_queue_bind",
+            "amqp_publish",
+            "amqp_consume",
+            "amqp_get",
+            "amqp_ack",
+            "amqp10_connect",
+            "amqp10_send",
+            "amqp10_receive",
+            "amqp10_accept",
+            "amqp10_reject",
+            "amqp10_disconnect",
             "variable_extractor",
         ];
 

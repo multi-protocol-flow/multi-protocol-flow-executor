@@ -12,6 +12,15 @@ use std::sync::Arc;
 use tempfile::NamedTempFile;
 use wiremock::{MockServer, Mock, ResponseTemplate};
 use wiremock::matchers::{method, path};
+
+// 安装 rustls CryptoProvider（测试进程启动时执行一次）
+static CRYPTO_PROVIDER_INSTALLED: std::sync::Once = std::sync::Once::new();
+fn ensure_crypto_provider() {
+    CRYPTO_PROVIDER_INSTALLED.call_once(|| {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+    });
+}
+
 // ============================================================================
 // 测试辅助函数
 // ============================================================================
@@ -38,6 +47,10 @@ fn create_context(flow_id: &str) -> ExecutionContext {
         tcp_manager: None,
         udp_manager: None,
         mqtt_manager: None,
+        kafka_manager: None,
+        sse_manager: None,
+        graphql_manager: None,
+        amqp_manager: None,
         last_node_output: None,
         debug_event_sender: None,
         execution_event_sender: None,
@@ -102,6 +115,7 @@ fn create_timeout_node(uuid: &str, url: &str, timeout_ms: u64) -> Node {
 /// 测试 form-data 文件上传成功场景
 /// 功能已实现: FormFieldType::File 处理已完成
 async fn test_form_data_file_upload_success() {
+    ensure_crypto_provider();
     // 创建测试文件
     let mut test_file = NamedTempFile::new().expect("无法创建临时文件");
     let file_content = b"Hello, this is test file content!";
@@ -198,6 +212,7 @@ async fn test_form_data_file_not_found() {
 /// 测试 MIME 类型自动检测
 /// 预期: 根据文件扩展名自动设置正确的 Content-Type
 async fn test_form_data_mime_type_detection() {
+    ensure_crypto_provider();
     // 创建不同类型的测试文件
     let mut json_file = NamedTempFile::with_suffix(".json").expect("无法创建临时文件");
     json_file.write_all(b"{\"test\": true}").expect("无法写入文件");
@@ -264,6 +279,7 @@ async fn test_form_data_mime_type_detection() {
 #[tokio::test(flavor = "multi_thread")]
 /// 测试混合文本和文件字段的 form-data 上传
 async fn test_form_data_mixed_fields() {
+    ensure_crypto_provider();
     // 创建测试文件
     let mut test_file = NamedTempFile::new().expect("无法创建临时文件");
     test_file.write_all(b"file content here").expect("无法写入文件");
@@ -333,6 +349,7 @@ async fn test_form_data_mixed_fields() {
 /// 功能已实现: 超时配置已从 HttpConfig.timeout_ms 读取
 /// 注意: 超时最小值被 clamp 到 1000ms
 async fn test_timeout_config_custom() {
+    ensure_crypto_provider();
     // 创建一个延迟响应的 wiremock 服务器
     let server = MockServer::start().await;
     Mock::given(method("GET"))
@@ -386,6 +403,7 @@ async fn test_timeout_config_custom() {
 #[tokio::test(flavor = "multi_thread")]
 /// 测试默认超时（不设置 timeout_ms 时使用默认值）
 async fn test_timeout_config_default() {
+    ensure_crypto_provider();
     // 创建快速响应的 mock 服务器
     let mut server = mockito::Server::new_async().await;
     let mock = server.mock("GET", "/fast")
@@ -438,6 +456,7 @@ async fn test_timeout_config_default() {
 /// 测试超时配置足够长时请求成功
 /// 注意: 超时最小值被 clamp 到 1000ms
 async fn test_timeout_config_sufficient() {
+    ensure_crypto_provider();
     // 创建一个轻微延迟的 wiremock 服务器（1100ms）
     let server = MockServer::start().await;
     Mock::given(method("GET"))
@@ -471,6 +490,7 @@ async fn test_timeout_config_sufficient() {
 #[tokio::test(flavor = "multi_thread")]
 /// 测试零超时配置（立即超时）
 async fn test_timeout_config_zero() {
+    ensure_crypto_provider();
     // 创建 mock 服务器
     let mut server = mockito::Server::new_async().await;
     let _mock = server.mock("GET", "/any")
@@ -518,6 +538,7 @@ async fn test_timeout_config_zero() {
 #[tokio::test(flavor = "multi_thread")]
 /// 测试文件路径中的变量替换
 async fn test_file_path_variable_replacement() {
+    ensure_crypto_provider();
     // 创建测试文件
     let mut test_file = NamedTempFile::new().expect("无法创建临时文件");
     test_file.write_all(b"variable test content").expect("无法写入文件");
@@ -571,6 +592,7 @@ async fn test_file_path_variable_replacement() {
 #[tokio::test(flavor = "multi_thread")]
 /// 测试大文件上传（> 1MB）
 async fn test_large_file_upload() {
+    ensure_crypto_provider();
     // 创建 2MB 的测试文件
     let mut large_file = NamedTempFile::new().expect("无法创建临时文件");
     let content = vec![0u8; 2 * 1024 * 1024]; // 2MB

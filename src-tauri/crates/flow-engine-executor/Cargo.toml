@@ -16,6 +16,9 @@ flow-engine-mcp = { path = "../flow-engine-mcp" }
 flow-engine-tcp = { path = "../flow-engine-tcp" }
 flow-engine-mqtt = { path = "../flow-engine-mqtt" }
 flow-engine-kafka = { path = "../flow-engine-kafka" }
+flow-engine-sse = { path = "../flow-engine-sse" }
+flow-engine-graphql = { path = "../flow-engine-graphql" }
+flow-engine-amqp = { path = "../flow-engine-amqp" }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

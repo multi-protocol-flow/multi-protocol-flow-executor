@@ -15,6 +15,9 @@ members = [
     "crates/flow-engine-mqtt",
     "crates/flow-engine-tcp",
     "crates/flow-engine-kafka",
+    "crates/flow-engine-sse",
+    "crates/flow-engine-graphql",
+    "crates/flow-engine-amqp",
 ]
 resolver = "2"
 
@@ -92,6 +95,9 @@ tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-store = "2"
+
+# HTTP 客户端（GraphQL 内省 IPC 命令）
+reqwest = { version = "0.12", features = ["json"] }
 
 # 通用依赖
 serde_json = "1.0"

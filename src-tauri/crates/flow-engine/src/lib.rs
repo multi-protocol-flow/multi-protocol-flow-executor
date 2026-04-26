@@ -85,6 +85,32 @@ pub use flow_engine_kafka::kafka_admin_executor;
 pub use flow_engine_kafka::kafka_schema_registry_executor;
 pub use flow_engine_kafka::kafka_close_executor;
 pub use flow_engine_kafka::kafka_connection_manager;
+// SSE (flow-engine-sse)
+pub use flow_engine_sse::sse_connect_executor;
+pub use flow_engine_sse::sse_listen_executor;
+pub use flow_engine_sse::sse_disconnect_executor;
+pub use flow_engine_sse::sse_connection_manager;
+// GraphQL (flow-engine-graphql)
+pub use flow_engine_graphql::graphql_connect_executor;
+pub use flow_engine_graphql::graphql_query_executor;
+pub use flow_engine_graphql::graphql_subscribe_executor;
+pub use flow_engine_graphql::graphql_unsubscribe_executor;
+pub use flow_engine_graphql::graphql_introspect_executor;
+pub use flow_engine_graphql::graphql_disconnect_executor;
+pub use flow_engine_graphql::graphql_connection_manager;
+// AMQP (flow-engine-amqp)
+pub use flow_engine_amqp::amqp091::amqp_connect_executor;
+pub use flow_engine_amqp::amqp091::amqp_close_executor;
+pub use flow_engine_amqp::amqp091::amqp_exchange_declare_executor;
+pub use flow_engine_amqp::amqp091::amqp_exchange_delete_executor;
+pub use flow_engine_amqp::amqp091::amqp_queue_declare_executor;
+pub use flow_engine_amqp::amqp091::amqp_queue_delete_executor;
+pub use flow_engine_amqp::amqp091::amqp_queue_bind_executor;
+pub use flow_engine_amqp::amqp091::amqp_publish_executor;
+pub use flow_engine_amqp::amqp091::amqp_consume_executor;
+pub use flow_engine_amqp::amqp091::amqp_get_executor;
+pub use flow_engine_amqp::amqp091::amqp_ack_executor;
+pub use flow_engine_amqp::AmqpConnectionManager;
 // Wave 4: 调试模块
 pub use flow_engine_executor::debug;
 // Wave 5: 断言模块

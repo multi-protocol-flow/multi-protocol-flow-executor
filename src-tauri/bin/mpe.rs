@@ -369,6 +369,10 @@ fn setup_logging() {
 fn main() {
     setup_logging();
 
+    // 安装 rustls CryptoProvider（HTTP/gRPC TLS 需要）
+    // 必须在任何 TLS 连接创建之前调用
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
 
     let result = rt.block_on(async_main());
