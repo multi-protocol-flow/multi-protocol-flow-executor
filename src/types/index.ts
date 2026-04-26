@@ -64,6 +64,12 @@ export type {
   MqttWaitMessageConfig,
   MqttRequestConfig,
   VariableExtractorConfig,
+  KafkaConnectConfig,
+  KafkaProduceConfig,
+  KafkaConsumeConfig,
+  KafkaAdminConfig,
+  KafkaSchemaRegistryConfig,
+  KafkaCloseConfig,
   ProtoFile,
   GrpcMetadataEntry,
   GrpcMethodInfo,
@@ -127,6 +133,12 @@ export {
   isDbCloseConfig,
   isScriptConfig,
   isVariableExtractorConfig,
+  isKafkaConnectConfig,
+  isKafkaProduceConfig,
+  isKafkaConsumeConfig,
+  isKafkaAdminConfig,
+  isKafkaSchemaRegistryConfig,
+  isKafkaCloseConfig,
 } from './node';
 
 // 连接类型

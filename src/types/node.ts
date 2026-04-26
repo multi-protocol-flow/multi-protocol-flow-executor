@@ -53,6 +53,13 @@ export type NodeType =
   | 'mqtt_disconnect'
   | 'mqtt_wait_message'
   | 'mqtt_request'
+  | 'kafka_connect'
+  | 'kafka_produce'
+  | 'kafka_consume'
+  | 'kafka_consume_batch'
+  | 'kafka_admin'
+  | 'kafka_schema_registry'
+  | 'kafka_close'
   | 'variable_extractor';
 
 /**
@@ -964,6 +971,241 @@ export interface MqttRequestConfig {
   timeout_ms?: number;
 }
 
+// ============================================================================
+// Kafka 节点类型定义
+// ============================================================================
+
+/**
+ * Kafka 安全协议
+ */
+export type KafkaSecurityProtocol = 'plaintext' | 'ssl' | 'sasl_plaintext' | 'sasl_ssl';
+
+/**
+ * Kafka 序列化格式
+ */
+export type KafkaSerializationFormat = 'raw' | 'json' | 'avro' | 'protobuf';
+
+/**
+ * Kafka 压缩算法
+ */
+export type KafkaCompressionType = 'none' | 'gzip' | 'snappy' | 'lz4' | 'zstd';
+
+/**
+ * Kafka Admin 操作类型
+ */
+export type KafkaAdminOperation =
+  | 'topic_create' | 'topic_delete' | 'topic_describe' | 'topic_list' | 'topic_alter_config'
+  | 'consumer_group_list' | 'consumer_group_describe' | 'consumer_group_reset_offset'
+  | 'broker_list' | 'broker_describe_config'
+  | 'acl_create' | 'acl_delete' | 'acl_list';
+
+/**
+ * Kafka Schema Registry 操作类型
+ */
+export type KafkaSchemaOperation =
+  | 'list_subjects' | 'get_subject_versions' | 'get_schema_by_version'
+  | 'check_compatibility' | 'register_schema';
+
+/**
+ * Kafka 批量消费策略
+ */
+export type KafkaBatchStrategy = 'count_timeout' | 'count_only' | 'timeout_only';
+
+/**
+ * Kafka Connect 节点配置
+ */
+export interface KafkaConnectConfig {
+  type: 'kafka_connect';
+  /** Kafka Bootstrap Servers（逗号分隔） */
+  bootstrap_servers?: string;
+  /** 客户端 ID */
+  client_id?: string;
+  /** 安全协议 */
+  security_protocol?: KafkaSecurityProtocol;
+  /** SASL 机制 */
+  sasl_mechanism?: string;
+  /** SASL 用户名 */
+  sasl_username?: string;
+  /** SASL 密码 */
+  sasl_password?: string;
+  /** SASL OAuth Token */
+  sasl_oauth_token?: string;
+  /** SSL CA 证书路径 */
+  ssl_ca_cert_path?: string;
+  /** SSL 客户端证书路径 */
+  ssl_client_cert_path?: string;
+  /** SSL 客户端密钥路径 */
+  ssl_client_key_path?: string;
+  /** 是否跳过 SSL 证书验证 */
+  ssl_skip_verify?: boolean;
+  /** Schema Registry URL */
+  schema_registry_url?: string;
+  /** Schema Registry 用户名 */
+  schema_registry_username?: string;
+  /** Schema Registry 密码 */
+  schema_registry_password?: string;
+  /** 连接超时（毫秒） */
+  connect_timeout_ms?: number;
+}
+
+/**
+ * Kafka Produce 节点配置
+ */
+export interface KafkaProduceConfig {
+  type: 'kafka_produce';
+  /** 连接 ID */
+  connection_id: string;
+  /** 目标主题 */
+  topic: string;
+  /** 消息键 */
+  key?: string;
+  /** 消息值 */
+  value?: string;
+  /** 消息头 */
+  headers?: [string, string][];
+  /** 目标分区 */
+  partition?: number;
+  /** 时间戳 */
+  timestamp?: number;
+  /** 序列化格式 */
+  serialization_format?: KafkaSerializationFormat;
+  /** Schema 主题 */
+  schema_subject?: string;
+  /** 确认超时（毫秒） */
+  ack_timeout_ms?: number;
+  /** 压缩算法 */
+  compression?: KafkaCompressionType;
+}
+
+/**
+ * Kafka Consume 节点配置
+ */
+export interface KafkaConsumeConfig {
+  type: 'kafka_consume';
+  /** 连接 ID */
+  connection_id: string;
+  /** 订阅主题 */
+  topic: string;
+  /** 指定分区 */
+  partition?: number;
+  /** 起始偏移量 */
+  offset?: number;
+  /** 偏移重置策略 */
+  offset_reset?: string;
+  /** 消费者组 ID */
+  group_id?: string;
+  /** 是否启用自动提交 */
+  enable_auto_commit?: boolean;
+  /** 最大消费消息数 */
+  max_messages?: number;
+  /** 拉取超时（毫秒） */
+  poll_timeout_ms?: number;
+  /** 反序列化格式 */
+  deserialization_format?: KafkaSerializationFormat;
+  /** Schema 主题 */
+  schema_subject?: string;
+  /** 最小拉取字节数 */
+  fetch_min_bytes?: number;
+  /** 最大拉取等待时间（毫秒） */
+  fetch_max_wait_ms?: number;
+}
+
+/**
+ * Kafka ConsumeBatch 节点配置
+ */
+export interface KafkaConsumeBatchConfig {
+  type: 'kafka_consume_batch';
+  /** 连接 ID */
+  connection_id: string;
+  /** 订阅主题 */
+  topic: string;
+  /** 指定分区 */
+  partition?: number;
+  /** 起始偏移量 */
+  offset?: number;
+  /** 偏移重置策略 */
+  offset_reset?: string;
+  /** 消费者组 ID */
+  group_id?: string;
+  /** 是否启用自动提交 */
+  enable_auto_commit?: boolean;
+  /** 最大消费消息数 */
+  max_messages?: number;
+  /** 拉取超时（毫秒） */
+  poll_timeout_ms?: number;
+  /** 反序列化格式 */
+  deserialization_format?: KafkaSerializationFormat;
+  /** Schema 主题 */
+  schema_subject?: string;
+  /** 批量策略 */
+  batch_strategy?: KafkaBatchStrategy;
+}
+
+/**
+ * Kafka Admin 节点配置
+ */
+export interface KafkaAdminConfig {
+  type: 'kafka_admin';
+  /** 连接 ID */
+  connection_id: string;
+  /** 管理操作 */
+  operation: KafkaAdminOperation;
+  /** 主题名称 */
+  topic_name?: string;
+  /** 分区数 */
+  partitions?: number;
+  /** 副本因子 */
+  replication_factor?: number;
+  /** 主题配置 */
+  topic_config?: Record<string, string>;
+  /** 消费者组 ID */
+  consumer_group_id?: string;
+  /** ACL 主体 */
+  acl_principal?: string;
+  /** ACL 主机 */
+  acl_host?: string;
+  /** ACL 操作 */
+  acl_operation?: string;
+  /** ACL 权限类型 */
+  acl_permission_type?: string;
+  /** ACL 资源类型 */
+  acl_resource_type?: string;
+  /** ACL 资源名称 */
+  acl_resource_name?: string;
+  /** 是否试运行 */
+  dry_run?: boolean;
+}
+
+/**
+ * Kafka Schema Registry 节点配置
+ */
+export interface KafkaSchemaRegistryConfig {
+  type: 'kafka_schema_registry';
+  /** 连接 ID */
+  connection_id: string;
+  /** 操作类型 */
+  operation: KafkaSchemaOperation;
+  /** Schema 主题 */
+  subject?: string;
+  /** 版本号 */
+  version?: number;
+  /** Schema 定义 */
+  schema_definition?: string;
+  /** Schema 类型 */
+  schema_type?: string;
+  /** 兼容性级别 */
+  compatibility_level?: string;
+}
+
+/**
+ * Kafka Close 节点配置
+ */
+export interface KafkaCloseConfig {
+  type: 'kafka_close';
+  /** 连接 ID */
+  connection_id: string;
+}
+
 /**
  * 变量提取节点配置
  */
@@ -1248,6 +1490,13 @@ export type NodeData =
   | MqttDisconnectConfig
   | MqttWaitMessageConfig
   | MqttRequestConfig
+  | KafkaConnectConfig
+  | KafkaProduceConfig
+  | KafkaConsumeConfig
+  | KafkaConsumeBatchConfig
+  | KafkaAdminConfig
+  | KafkaSchemaRegistryConfig
+  | KafkaCloseConfig
   | DbConnectConfig
   | DbQueryConfig
   | DbBeginConfig
@@ -1535,6 +1784,28 @@ export function isMqttWaitMessageConfig(data: NodeData): data is MqttWaitMessage
  */
 export function isMqttRequestConfig(data: NodeData): data is MqttRequestConfig {
   return data.type === 'mqtt_request';
+}
+
+export function isKafkaConnectConfig(data: NodeData): data is KafkaConnectConfig {
+  return data.type === 'kafka_connect';
+}
+export function isKafkaProduceConfig(data: NodeData): data is KafkaProduceConfig {
+  return data.type === 'kafka_produce';
+}
+export function isKafkaConsumeConfig(data: NodeData): data is KafkaConsumeConfig {
+  return data.type === 'kafka_consume';
+}
+export function isKafkaConsumeBatchConfig(data: NodeData): data is KafkaConsumeBatchConfig {
+  return data.type === 'kafka_consume_batch';
+}
+export function isKafkaAdminConfig(data: NodeData): data is KafkaAdminConfig {
+  return data.type === 'kafka_admin';
+}
+export function isKafkaSchemaRegistryConfig(data: NodeData): data is KafkaSchemaRegistryConfig {
+  return data.type === 'kafka_schema_registry';
+}
+export function isKafkaCloseConfig(data: NodeData): data is KafkaCloseConfig {
+  return data.type === 'kafka_close';
 }
 
 /**
