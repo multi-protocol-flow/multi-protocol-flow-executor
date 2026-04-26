@@ -248,25 +248,19 @@ mod tests {
     use crate::stress_test::{ResponseTimeDistribution, StressTestStatistics};
 
     fn create_test_flow() -> Flow {
-        Flow {
-            uuid: "flow-001".to_string(),
-            name: "Test Flow".to_string(),
-            nodes: vec![Node {
-                uuid: "node-001".to_string(),
-                node_type: "entry".to_string(),
-                name: "Entry".to_string(),
-                position: NodePosition { x: 0.0, y: 0.0 },
-                data: NodeData::entry(),
-                ports: Some(vec![Port {
-                    id: "out".to_string(),
-                    port_type: PortType::Output,
-                    label: Some("Output".to_string()),
-                }]),
-                has_breakpoint: None,
-            }],
-            connections: vec![],
-            initial_variables: None,
-        }
+        Flow { uuid: "flow-001".to_string(), name: "Test Flow".to_string(), nodes: vec![Node {
+            uuid: "node-001".to_string(),
+            node_type: "entry".to_string(),
+            name: "Entry".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: Some(vec![Port {
+                id: "out".to_string(),
+                port_type: PortType::Output,
+                label: Some("Output".to_string()),
+            }]),
+            has_breakpoint: None,
+        }], connections: vec![], initial_variables: None, hooks: None }
     }
 
     #[test]
@@ -548,21 +542,15 @@ mod tests {
         assert!(result1.is_ok(), "第一次启动应该成功");
 
         // 第二次启动应该失败
-        let flow2 = Flow {
-            uuid: "flow-002".to_string(),
-            name: "Test Flow 2".to_string(),
-            nodes: vec![Node {
-                uuid: "node-002".to_string(),
-                node_type: "entry".to_string(),
-                name: "Entry".to_string(),
-                position: NodePosition { x: 0.0, y: 0.0 },
-                data: NodeData::entry(),
-                ports: None,
-                has_breakpoint: None,
-            }],
-            connections: vec![],
-            initial_variables: None,
-        };
+        let flow2 = Flow { uuid: "flow-002".to_string(), name: "Test Flow 2".to_string(), nodes: vec![Node {
+            uuid: "node-002".to_string(),
+            node_type: "entry".to_string(),
+            name: "Entry".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        }], connections: vec![], initial_variables: None, hooks: None };
         let config2 = StressTestConfig {
             concurrent_users: 10,
             ramp_up_seconds: 10,
@@ -710,21 +698,15 @@ mod tests {
 
         // 验证可以重新启动
         let (event_sender2, _event_receiver2) = mpsc::unbounded_channel::<StressTestEvent>();
-        let flow2 = Flow {
-            uuid: "flow-002".to_string(),
-            name: "Test Flow 2".to_string(),
-            nodes: vec![Node {
-                uuid: "node-002".to_string(),
-                node_type: "entry".to_string(),
-                name: "Entry".to_string(),
-                position: NodePosition { x: 0.0, y: 0.0 },
-                data: NodeData::entry(),
-                ports: None,
-                has_breakpoint: None,
-            }],
-            connections: vec![],
-            initial_variables: None,
-        };
+        let flow2 = Flow { uuid: "flow-002".to_string(), name: "Test Flow 2".to_string(), nodes: vec![Node {
+            uuid: "node-002".to_string(),
+            node_type: "entry".to_string(),
+            name: "Entry".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        }], connections: vec![], initial_variables: None, hooks: None };
         let config2 = StressTestConfig {
             concurrent_users: 5,
             ramp_up_seconds: 5,

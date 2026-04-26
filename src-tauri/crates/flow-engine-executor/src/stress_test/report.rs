@@ -117,21 +117,15 @@ mod tests {
         use flow_engine_core::node::{Node, NodePosition};
         use flow_engine_core::node_config::NodeData;
 
-        Flow {
-            uuid: "test-flow-001".to_string(),
-            name: "Test Flow".to_string(),
-            nodes: vec![Node {
-                uuid: "entry-001".to_string(),
-                node_type: "entry".to_string(),
-                name: "Entry".to_string(),
-                position: NodePosition { x: 0.0, y: 0.0 },
-                data: NodeData::entry(),
-                ports: None,
-                has_breakpoint: None,
-            }],
-            connections: vec![],
-            initial_variables: None,
-        }
+        Flow { uuid: "test-flow-001".to_string(), name: "Test Flow".to_string(), nodes: vec![Node {
+            uuid: "entry-001".to_string(),
+            node_type: "entry".to_string(),
+            name: "Entry".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        }], connections: vec![], initial_variables: None, hooks: None }
     }
 
     /// 测试生成空报告（无数据）

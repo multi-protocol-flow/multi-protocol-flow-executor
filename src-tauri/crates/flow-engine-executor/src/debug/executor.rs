@@ -1131,13 +1131,7 @@ mod tests {
             has_breakpoint: None,
         };
 
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            initial_variables: None,
-            name: "测试流程".to_string(),
-            nodes: vec![start_node],
-            connections: vec![],
-        };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
 
         let (event_sender, _event_receiver) = mpsc::unbounded_channel();
         let (_command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -1164,13 +1158,7 @@ mod tests {
             has_breakpoint: Some(true),
         };
 
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            initial_variables: None,
-            name: "测试流程".to_string(),
-            nodes: vec![start_node.clone()],
-            connections: vec![],
-        };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![start_node.clone()], connections: vec![], hooks: None };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -1241,13 +1229,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            initial_variables: None,
-            name: "测试单步执行".to_string(),
-            nodes: vec![start_node.clone(), second_node.clone()],
-            connections: vec![connection],
-        };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试单步执行".to_string(), nodes: vec![start_node.clone(), second_node.clone()], connections: vec![connection], hooks: None };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -1368,13 +1350,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            initial_variables: None,
-            name: "测试跳过节点堆栈".to_string(),
-            nodes: vec![start_node.clone(), second_node.clone()],
-            connections: vec![connection],
-        };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试跳过节点堆栈".to_string(), nodes: vec![start_node.clone(), second_node.clone()], connections: vec![connection], hooks: None };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -1460,17 +1436,13 @@ mod tests {
             node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::Entry(EntryConfig {
-                            initial_variables: vec![
-                                InitialVariable {
-                                    name: "test_var".to_string(),
-                                    value: json!("initial_value"),
-                                    description: None,
-                                },
-                            ],
-                            dataset_path: None,
-                            dataset_encoding: None,
-                        }),
+            data: NodeData::Entry(EntryConfig { initial_variables: vec![
+                InitialVariable {
+                    name: "test_var".to_string(),
+                    value: json!("initial_value"),
+                    description: None,
+                },
+            ], dataset_path: None, dataset_encoding: None, hooks: None }),
             ports: None,
             has_breakpoint: Some(true), // 设置断点，以便暂停
         };
@@ -1493,13 +1465,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            initial_variables: None,
-            name: "测试执行入口节点".to_string(),
-            nodes: vec![start_node.clone(), second_node.clone()],
-            connections: vec![connection],
-        };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试执行入口节点".to_string(), nodes: vec![start_node.clone(), second_node.clone()], connections: vec![connection], hooks: None };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -1599,17 +1565,13 @@ mod tests {
             node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::Entry(EntryConfig {
-                            initial_variables: vec![
-                                InitialVariable {
-                                    name: "test_var".to_string(),
-                                    value: json!("initial_value"),
-                                    description: None,
-                                },
-                            ],
-                            dataset_path: None,
-                            dataset_encoding: None,
-                        }),
+            data: NodeData::Entry(EntryConfig { initial_variables: vec![
+                InitialVariable {
+                    name: "test_var".to_string(),
+                    value: json!("initial_value"),
+                    description: None,
+                },
+            ], dataset_path: None, dataset_encoding: None, hooks: None }),
             ports: None,
             has_breakpoint: Some(true), // 设置断点，以便暂停
         };
@@ -1632,13 +1594,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            initial_variables: None,
-            name: "测试跳过入口节点".to_string(),
-            nodes: vec![start_node.clone(), second_node.clone()],
-            connections: vec![connection],
-        };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试跳过入口节点".to_string(), nodes: vec![start_node.clone(), second_node.clone()], connections: vec![connection], hooks: None };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -1747,17 +1703,13 @@ mod tests {
             node_type: "entry".to_string(),
             name: "开始".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::Entry(EntryConfig {
-                            initial_variables: vec![
-                                InitialVariable {
-                                    name: "test_var".to_string(),
-                                    value: json!("initial_value"),
-                                    description: None,
-                                },
-                            ],
-                            dataset_path: None,
-                            dataset_encoding: None,
-                        }),
+            data: NodeData::Entry(EntryConfig { initial_variables: vec![
+                InitialVariable {
+                    name: "test_var".to_string(),
+                    value: json!("initial_value"),
+                    description: None,
+                },
+            ], dataset_path: None, dataset_encoding: None, hooks: None }),
             ports: None,
             has_breakpoint: Some(true), // 设置断点，以便暂停
         };
@@ -1768,6 +1720,7 @@ mod tests {
             name: "测试跳过没有后续节点的入口节点".to_string(),
             nodes: vec![start_node.clone()],
             connections: vec![], // 没有连接
+            hooks: None,
         };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
@@ -1900,13 +1853,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            initial_variables: None,
-            name: "测试动态断点".to_string(),
-            nodes: vec![start_node.clone(), second_node.clone(), third_node.clone()],
-            connections: vec![connection1, connection2],
-        };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试动态断点".to_string(), nodes: vec![start_node.clone(), second_node.clone(), third_node.clone()], connections: vec![connection1, connection2], hooks: None };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
@@ -2020,13 +1967,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow {
-            uuid: flow_id.clone(),
-            initial_variables: None,
-            name: "测试动态移除断点".to_string(),
-            nodes: vec![start_node.clone(), second_node.clone()],
-            connections: vec![connection],
-        };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试动态移除断点".to_string(), nodes: vec![start_node.clone(), second_node.clone()], connections: vec![connection], hooks: None };
 
         let (event_sender, mut event_receiver) = mpsc::unbounded_channel();
         let (command_sender, command_receiver) = mpsc::unbounded_channel();
