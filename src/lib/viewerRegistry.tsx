@@ -16,6 +16,9 @@ import { TcpUdpViewer } from '@/components/execution/viewers/TcpUdpViewer';
 import { McpViewer } from '@/components/execution/viewers/McpViewer';
 import { MqttViewer } from '@/components/execution/viewers/MqttViewer';
 import { KafkaViewer } from '@/components/execution/viewers/KafkaViewer';
+import { SseViewer } from '@/components/execution/viewers/SseViewer';
+import { GraphqlViewer } from '@/components/execution/viewers/GraphqlViewer';
+import { AmqpViewer } from '@/components/execution/viewers/AmqpViewer';
 
 interface ViewerProps {
   report: NodeExecutionReport;
@@ -61,6 +64,33 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   kafka_admin: KafkaViewer,
   kafka_schema_registry: KafkaViewer,
   kafka_close: KafkaViewer,
+  sse_connect: SseViewer,
+  sse_listen: SseViewer,
+  sse_disconnect: SseViewer,
+  graphql_connect: GraphqlViewer,
+  graphql_query: GraphqlViewer,
+  graphql_subscribe: GraphqlViewer,
+  graphql_unsubscribe: GraphqlViewer,
+  graphql_introspect: GraphqlViewer,
+  graphql_disconnect: GraphqlViewer,
+  amqp_connect: AmqpViewer,
+  amqp_close: AmqpViewer,
+  amqp_exchange_declare: AmqpViewer,
+  amqp_exchange_delete: AmqpViewer,
+  amqp_queue_declare: AmqpViewer,
+  amqp_queue_delete: AmqpViewer,
+  amqp_queue_bind: AmqpViewer,
+  amqp_publish: AmqpViewer,
+  amqp_consume: AmqpViewer,
+  amqp_get: AmqpViewer,
+  amqp_ack: AmqpViewer,
+  amqp_management: AmqpViewer,
+  amqp10_connect: AmqpViewer,
+  amqp10_send: AmqpViewer,
+  amqp10_receive: AmqpViewer,
+  amqp10_accept: AmqpViewer,
+  amqp10_reject: AmqpViewer,
+  amqp10_disconnect: AmqpViewer,
   variable_extractor: GenericViewer,
 };
 

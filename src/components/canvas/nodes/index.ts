@@ -45,4 +45,13 @@ export { KafkaConsumeBatchNode, type KafkaConsumeBatchNodeData } from './KafkaCo
 export { KafkaAdminNode, type KafkaAdminNodeData } from './KafkaAdminNode';
 export { KafkaSchemaRegistryNode, type KafkaSchemaRegistryNodeData } from './KafkaSchemaRegistryNode';
 export { KafkaCloseNode, type KafkaCloseNodeData } from './KafkaCloseNode';
+export { SseConnectNode, type SseConnectNodeData } from './SseConnectNode';
+export { SseListenNode, type SseListenNodeData } from './SseListenNode';
+export { SseDisconnectNode, type SseDisconnectNodeData } from './SseDisconnectNode';
+export { GraphqlConnectNode, type GraphqlConnectNodeData } from './GraphqlConnectNode';
+export { GraphqlQueryNode, type GraphqlQueryNodeData } from './GraphqlQueryNode';
+export { GraphqlSubscribeNode, type GraphqlSubscribeNodeData } from './GraphqlSubscribeNode';
+export { GraphqlUnsubscribeNode, type GraphqlUnsubscribeNodeData } from './GraphqlUnsubscribeNode';
+export { GraphqlIntrospectNode, type GraphqlIntrospectNodeData } from './GraphqlIntrospectNode';
+export { GraphqlDisconnectNode, type GraphqlDisconnectNodeData } from './GraphqlDisconnectNode';
 export { default as DynamicPluginNode } from './DynamicPluginNode';

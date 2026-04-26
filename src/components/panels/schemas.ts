@@ -950,6 +950,135 @@ export const mqttRequestConfigSchema = z.object({
 export type MqttRequestConfigFormData = z.infer<typeof mqttRequestConfigSchema>;
 
 // ============================================================================
+// SSE 配置 Schema
+// ============================================================================
+
+/**
+ * SSE Connect 配置表单 Schema
+ */
+export const sseConnectConfigSchema = z.object({
+  type: z.literal('sse_connect'),
+  url: z.string().min(1, 'URL 不能为空'),
+  headers: z.record(z.string(), z.string()).optional(),
+  last_event_id: z.string().optional(),
+  timeout_ms: z.number().min(1000).max(300000).optional(),
+  auto_reconnect: z.boolean().optional(),
+  reconnect_interval_ms: z.number().optional(),
+  max_reconnect_attempts: z.number().optional(),
+  tls_mode: z.enum(['none', 'standard', 'skip-verify']).optional(),
+});
+
+export type SseConnectConfigFormData = z.infer<typeof sseConnectConfigSchema>;
+
+/**
+ * SSE Listen 配置表单 Schema
+ */
+export const sseListenConfigSchema = z.object({
+  type: z.literal('sse_listen'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  event_filter: z.string().optional(),
+  max_events: z.number().min(0).optional(),
+  timeout_ms: z.number().min(0).optional(),
+  include_data: z.boolean().optional(),
+  decode_json: z.boolean().optional(),
+});
+
+export type SseListenConfigFormData = z.infer<typeof sseListenConfigSchema>;
+
+/**
+ * SSE Disconnect 配置表单 Schema
+ */
+export const sseDisconnectConfigSchema = z.object({
+  type: z.literal('sse_disconnect'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+});
+
+export type SseDisconnectConfigFormData = z.infer<typeof sseDisconnectConfigSchema>;
+
+// ============================================================================
+// GraphQL 配置 Schema
+// ============================================================================
+
+/**
+ * GraphQL Connect 配置表单 Schema
+ */
+export const graphqlConnectConfigSchema = z.object({
+  type: z.literal('graphql_connect'),
+  endpoint: z.string().min(1, '端点 URL 不能为空'),
+  ws_endpoint: z.string().optional(),
+  headers: z.record(z.string(), z.string()).optional(),
+  connection_timeout_ms: z.number().min(1000).max(300000).optional(),
+  connection_id: z.string().optional(),
+});
+
+export type GraphqlConnectConfigFormData = z.infer<typeof graphqlConnectConfigSchema>;
+
+/**
+ * GraphQL Query 配置表单 Schema
+ */
+export const graphqlQueryConfigSchema = z.object({
+  type: z.literal('graphql_query'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  query: z.string().min(1, '查询不能为空'),
+  variables: z.string().optional(),
+  operation_name: z.string().optional(),
+  files: z.array(z.object({
+    field_name: z.string(),
+    file_path: z.string(),
+  })).optional(),
+  timeout_ms: z.number().min(1000).max(300000).optional(),
+});
+
+export type GraphqlQueryConfigFormData = z.infer<typeof graphqlQueryConfigSchema>;
+
+/**
+ * GraphQL Subscribe 配置表单 Schema
+ */
+export const graphqlSubscribeConfigSchema = z.object({
+  type: z.literal('graphql_subscribe'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  subscription: z.string().min(1, '订阅不能为空'),
+  variables: z.string().optional(),
+  operation_name: z.string().optional(),
+  max_events: z.number().min(0).optional(),
+  timeout_ms: z.number().min(0).optional(),
+});
+
+export type GraphqlSubscribeConfigFormData = z.infer<typeof graphqlSubscribeConfigSchema>;
+
+/**
+ * GraphQL Unsubscribe 配置表单 Schema
+ */
+export const graphqlUnsubscribeConfigSchema = z.object({
+  type: z.literal('graphql_unsubscribe'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  subscription_id: z.string().min(1, '订阅 ID 不能为空'),
+});
+
+export type GraphqlUnsubscribeConfigFormData = z.infer<typeof graphqlUnsubscribeConfigSchema>;
+
+/**
+ * GraphQL Introspect 配置表单 Schema
+ */
+export const graphqlIntrospectConfigSchema = z.object({
+  type: z.literal('graphql_introspect'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  timeout_ms: z.number().min(1000).max(300000).optional(),
+});
+
+export type GraphqlIntrospectConfigFormData = z.infer<typeof graphqlIntrospectConfigSchema>;
+
+/**
+ * GraphQL Disconnect 配置表单 Schema
+ */
+export const graphqlDisconnectConfigSchema = z.object({
+  type: z.literal('graphql_disconnect'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+});
+
+export type GraphqlDisconnectConfigFormData = z.infer<typeof graphqlDisconnectConfigSchema>;
+
+// ============================================================================
 // Variable Extractor 配置 Schema
 // ============================================================================
 
@@ -966,6 +1095,372 @@ export const variableExtractorConfigSchema = z.object({
 }, { message: '变量名不能重复', path: ['output_mappings'] });
 
 export type VariableExtractorConfigFormData = z.infer<typeof variableExtractorConfigSchema>;
+
+// ============================================================================
+// AMQP 0-9-1 配置 Schema
+// ============================================================================
+
+/**
+ * AMQP TLS 模式枚举
+ */
+export const amqpTlsModeSchema = z.enum(['none', 'standard', 'skip-verify']);
+export type AmqpTlsModeFormData = z.infer<typeof amqpTlsModeSchema>;
+
+/**
+ * AMQP 认证机制枚举
+ */
+export const amqpAuthMechanismSchema = z.enum(['PLAIN', 'AMQPLAIN', 'EXTERNAL', 'RABBIT-CR-DEMO']);
+export type AmqpAuthMechanismFormData = z.infer<typeof amqpAuthMechanismSchema>;
+
+/**
+ * AMQP Exchange 类型枚举
+ */
+export const amqpExchangeTypeSchema = z.enum(['direct', 'fanout', 'topic', 'headers', 'custom']);
+export type AmqpExchangeTypeFormData = z.infer<typeof amqpExchangeTypeSchema>;
+
+/**
+ * AMQP Body 类型枚举
+ */
+export const amqpBodyTypeSchema = z.enum(['text', 'json', 'binary']);
+export type AmqpBodyTypeFormData = z.infer<typeof amqpBodyTypeSchema>;
+
+/**
+ * AMQP 确认模式枚举
+ */
+export const amqpConfirmModeSchema = z.enum(['none', 'publisher-confirms', 'transaction']);
+export type AmqpConfirmModeFormData = z.infer<typeof amqpConfirmModeSchema>;
+
+/**
+ * AMQP 消费确认模式枚举
+ */
+export const amqpAckModeSchema = z.enum(['auto', 'manual']);
+export type AmqpAckModeFormData = z.infer<typeof amqpAckModeSchema>;
+
+/**
+ * AMQP Queue 操作枚举
+ */
+export const amqpQueueActionSchema = z.enum(['delete', 'purge']);
+export type AmqpQueueActionFormData = z.infer<typeof amqpQueueActionSchema>;
+
+/**
+ * AMQP Ack 操作枚举
+ */
+export const amqpAckActionSchema = z.enum(['ack', 'nack', 'reject']);
+export type AmqpAckActionFormData = z.infer<typeof amqpAckActionSchema>;
+
+/**
+ * AMQP Management 操作枚举
+ */
+export const amqpManagementActionSchema = z.enum([
+  'overview',
+  'list-queues',
+  'list-connections',
+  'list-exchanges',
+  'list-channels',
+]);
+export type AmqpManagementActionFormData = z.infer<typeof amqpManagementActionSchema>;
+
+/**
+ * AMQP Connect 配置表单 Schema
+ */
+export const amqpConnectConfigSchema = z.object({
+  type: z.literal('amqp_connect'),
+  url: z.string().optional(),
+  connection_id: z.string().optional(),
+  heartbeat: z.number().int().positive().optional(),
+  channel_max: z.number().int().positive().optional(),
+  frame_max: z.number().int().positive().optional(),
+  connection_timeout_ms: z.number().int().positive().optional(),
+  tls_mode: amqpTlsModeSchema.optional(),
+  auth_mechanism: amqpAuthMechanismSchema.optional(),
+  auto_recover: z.boolean().optional(),
+  reconnect_max_retries: z.number().int().positive().optional(),
+});
+
+export type AmqpConnectConfigFormData = z.infer<typeof amqpConnectConfigSchema>;
+
+/**
+ * AMQP Close 配置表单 Schema
+ */
+export const amqpCloseConfigSchema = z.object({
+  type: z.literal('amqp_close'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  reply_code: z.number().int().optional(),
+  reply_text: z.string().optional(),
+});
+
+export type AmqpCloseConfigFormData = z.infer<typeof amqpCloseConfigSchema>;
+
+/**
+ * AMQP Exchange Declare 配置表单 Schema
+ */
+export const amqpExchangeDeclareConfigSchema = z.object({
+  type: z.literal('amqp_exchange_declare'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  exchange: z.string().min(1, 'Exchange 名称不能为空'),
+  exchange_type: amqpExchangeTypeSchema,
+  custom_type: z.string().optional(),
+  passive: z.boolean().optional(),
+  durable: z.boolean().optional(),
+  auto_delete: z.boolean().optional(),
+  internal: z.boolean().optional(),
+  arguments: z.string().optional(),
+});
+
+export type AmqpExchangeDeclareConfigFormData = z.infer<typeof amqpExchangeDeclareConfigSchema>;
+
+/**
+ * AMQP Exchange Delete 配置表单 Schema
+ */
+export const amqpExchangeDeleteConfigSchema = z.object({
+  type: z.literal('amqp_exchange_delete'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  exchange: z.string().min(1, 'Exchange 名称不能为空'),
+  if_unused: z.boolean().optional(),
+});
+
+export type AmqpExchangeDeleteConfigFormData = z.infer<typeof amqpExchangeDeleteConfigSchema>;
+
+/**
+ * AMQP Queue Declare 配置表单 Schema
+ */
+export const amqpQueueDeclareConfigSchema = z.object({
+  type: z.literal('amqp_queue_declare'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  queue: z.string().optional(),
+  passive: z.boolean().optional(),
+  durable: z.boolean().optional(),
+  exclusive: z.boolean().optional(),
+  auto_delete: z.boolean().optional(),
+  arguments: z.string().optional(),
+});
+
+export type AmqpQueueDeclareConfigFormData = z.infer<typeof amqpQueueDeclareConfigSchema>;
+
+/**
+ * AMQP Queue Delete 配置表单 Schema
+ */
+export const amqpQueueDeleteConfigSchema = z.object({
+  type: z.literal('amqp_queue_delete'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  queue: z.string().min(1, '队列名称不能为空'),
+  action: amqpQueueActionSchema.optional(),
+  if_unused: z.boolean().optional(),
+  if_empty: z.boolean().optional(),
+});
+
+export type AmqpQueueDeleteConfigFormData = z.infer<typeof amqpQueueDeleteConfigSchema>;
+
+/**
+ * AMQP Queue Bind 配置表单 Schema
+ */
+export const amqpQueueBindConfigSchema = z.object({
+  type: z.literal('amqp_queue_bind'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  queue: z.string().min(1, '队列名称不能为空'),
+  exchange: z.string().min(1, 'Exchange 名称不能为空'),
+  routing_key: z.string().optional(),
+  arguments: z.string().optional(),
+});
+
+export type AmqpQueueBindConfigFormData = z.infer<typeof amqpQueueBindConfigSchema>;
+
+/**
+ * AMQP Publish 配置表单 Schema
+ */
+export const amqpPublishConfigSchema = z.object({
+  type: z.literal('amqp_publish'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  exchange: z.string().optional(),
+  routing_key: z.string().optional(),
+  body: z.string().optional(),
+  body_type: amqpBodyTypeSchema.optional(),
+  content_type: z.string().optional(),
+  content_encoding: z.string().optional(),
+  delivery_mode: z.number().int().min(1).max(2).optional(),
+  priority: z.number().int().min(0).max(9).optional(),
+  message_id: z.string().optional(),
+  correlation_id: z.string().optional(),
+  reply_to: z.string().optional(),
+  expiration: z.string().optional(),
+  timestamp: z.number().int().positive().optional(),
+  message_type: z.string().optional(),
+  user_id: z.string().optional(),
+  app_id: z.string().optional(),
+  cluster_id: z.string().optional(),
+  headers: z.string().optional(),
+  mandatory: z.boolean().optional(),
+  confirm_mode: amqpConfirmModeSchema.optional(),
+});
+
+export type AmqpPublishConfigFormData = z.infer<typeof amqpPublishConfigSchema>;
+
+/**
+ * AMQP Consume 配置表单 Schema
+ */
+export const amqpConsumeConfigSchema = z.object({
+  type: z.literal('amqp_consume'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  queue: z.string().min(1, '队列名称不能为空'),
+  consumer_tag: z.string().optional(),
+  ack_mode: amqpAckModeSchema.optional(),
+  exclusive: z.boolean().optional(),
+  no_local: z.boolean().optional(),
+  prefetch_count: z.number().int().positive().optional(),
+  max_messages: z.number().int().positive().optional(),
+  timeout_ms: z.number().int().positive().optional(),
+  auto_ack_on_success: z.boolean().optional(),
+  auto_reject_on_failure: z.boolean().optional(),
+  reject_requeue: z.boolean().optional(),
+});
+
+export type AmqpConsumeConfigFormData = z.infer<typeof amqpConsumeConfigSchema>;
+
+/**
+ * AMQP Get 配置表单 Schema
+ */
+export const amqpGetConfigSchema = z.object({
+  type: z.literal('amqp_get'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  queue: z.string().min(1, '队列名称不能为空'),
+  no_ack: z.boolean().optional(),
+});
+
+export type AmqpGetConfigFormData = z.infer<typeof amqpGetConfigSchema>;
+
+/**
+ * AMQP Ack 配置表单 Schema
+ */
+export const amqpAckConfigSchema = z.object({
+  type: z.literal('amqp_ack'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  action: amqpAckActionSchema,
+  delivery_tag: z.number().int().positive(),
+  multiple: z.boolean().optional(),
+  requeue: z.boolean().optional(),
+});
+
+export type AmqpAckConfigFormData = z.infer<typeof amqpAckConfigSchema>;
+
+/**
+ * AMQP Management 配置表单 Schema
+ */
+export const amqpManagementConfigSchema = z.object({
+  type: z.literal('amqp_management'),
+  management_url: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+  action: amqpManagementActionSchema,
+  vhost: z.string().optional(),
+  queue_name: z.string().optional(),
+  connection_id: z.string().optional(),
+});
+
+export type AmqpManagementConfigFormData = z.infer<typeof amqpManagementConfigSchema>;
+
+// ============================================================================
+// AMQP 1.0 配置 Schema
+// ============================================================================
+
+/**
+ * AMQP 1.0 认证机制枚举
+ */
+export const amqp10AuthMechanismSchema = z.enum(['PLAIN', 'ANONYMOUS', 'EXTERNAL']);
+export type Amqp10AuthMechanismFormData = z.infer<typeof amqp10AuthMechanismSchema>;
+
+/**
+ * AMQP 1.0 消息属性 Schema
+ */
+export const amqp10MessagePropertiesSchema = z.object({
+  content_type: z.string().optional(),
+  content_encoding: z.string().optional(),
+  correlation_id: z.string().optional(),
+  message_id: z.string().optional(),
+  reply_to: z.string().optional(),
+  subject: z.string().optional(),
+  to: z.string().optional(),
+  absolute_expiry_time: z.number().int().positive().optional(),
+  creation_time: z.number().int().positive().optional(),
+});
+
+export type Amqp10MessagePropertiesFormData = z.infer<typeof amqp10MessagePropertiesSchema>;
+
+/**
+ * AMQP 1.0 Connect 配置表单 Schema
+ */
+export const amqp10ConnectConfigSchema = z.object({
+  type: z.literal('amqp10_connect'),
+  url: z.string().optional(),
+  connection_id: z.string().optional(),
+  tls_mode: amqpTlsModeSchema.optional(),
+  auth_mechanism: amqp10AuthMechanismSchema.optional(),
+  container_id: z.string().optional(),
+});
+
+export type Amqp10ConnectConfigFormData = z.infer<typeof amqp10ConnectConfigSchema>;
+
+/**
+ * AMQP 1.0 Send 配置表单 Schema
+ */
+export const amqp10SendConfigSchema = z.object({
+  type: z.literal('amqp10_send'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  address: z.string().min(1, '目标地址不能为空'),
+  message_body: z.string().optional(),
+  message_properties: amqp10MessagePropertiesSchema.optional(),
+  message_annotations: z.string().optional(),
+});
+
+export type Amqp10SendConfigFormData = z.infer<typeof amqp10SendConfigSchema>;
+
+/**
+ * AMQP 1.0 Receive 配置表单 Schema
+ */
+export const amqp10ReceiveConfigSchema = z.object({
+  type: z.literal('amqp10_receive'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  address: z.string().min(1, '源地址不能为空'),
+  credit: z.number().int().positive().optional(),
+  max_messages: z.number().int().positive().optional(),
+  timeout_ms: z.number().int().positive().optional(),
+  auto_accept: z.boolean().optional(),
+});
+
+export type Amqp10ReceiveConfigFormData = z.infer<typeof amqp10ReceiveConfigSchema>;
+
+/**
+ * AMQP 1.0 Accept 配置表单 Schema
+ */
+export const amqp10AcceptConfigSchema = z.object({
+  type: z.literal('amqp10_accept'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  delivery_id: z.number().int().positive(),
+});
+
+export type Amqp10AcceptConfigFormData = z.infer<typeof amqp10AcceptConfigSchema>;
+
+/**
+ * AMQP 1.0 Reject 配置表单 Schema
+ */
+export const amqp10RejectConfigSchema = z.object({
+  type: z.literal('amqp10_reject'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  delivery_id: z.number().int().positive(),
+  error_condition: z.string().optional(),
+  error_description: z.string().optional(),
+});
+
+export type Amqp10RejectConfigFormData = z.infer<typeof amqp10RejectConfigSchema>;
+
+/**
+ * AMQP 1.0 Disconnect 配置表单 Schema
+ */
+export const amqp10DisconnectConfigSchema = z.object({
+  type: z.literal('amqp10_disconnect'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+});
+
+export type Amqp10DisconnectConfigFormData = z.infer<typeof amqp10DisconnectConfigSchema>;
 
 // ============================================================================
 // 未知节点类型 Fallback Schema

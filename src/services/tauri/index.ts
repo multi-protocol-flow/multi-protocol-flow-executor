@@ -322,6 +322,81 @@ export async function testMqttConnection(
 }
 
 // ============================================================================
+// SSE 命令
+// ============================================================================
+
+export type { SseTestConnectionInput } from './sse';
+
+/**
+ * 测试 SSE 端点连接
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @param input - 测试连接请求参数
+ * @returns true 如果 URL 格式有效
+ */
+export async function testSseConnection(
+  input: import('./sse').SseTestConnectionInput
+): Promise<boolean> {
+  if (isTauriEnv()) {
+    const { testSseConnection: testSseConnectionImpl } = await import('./sse');
+    return testSseConnectionImpl(input);
+  } else {
+    const { testSseConnection: testSseConnectionImpl } = await import('./mock');
+    return testSseConnectionImpl(input);
+  }
+}
+
+// ============================================================================
+// AMQP 命令
+// ============================================================================
+
+export type { AmqpTestConnectionInput } from './amqp';
+
+/**
+ * 测试 AMQP Broker 连接
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @param input - 测试连接请求参数
+ * @returns true 如果 URL 格式有效
+ */
+export async function testAmqpConnection(
+  input: import('./amqp').AmqpTestConnectionInput
+): Promise<boolean> {
+  if (isTauriEnv()) {
+    const { testAmqpConnection: testAmqpConnectionImpl } = await import('./amqp');
+    return testAmqpConnectionImpl(input);
+  } else {
+    const { testAmqpConnection: testAmqpConnectionImpl } = await import('./mock');
+    return testAmqpConnectionImpl(input);
+  }
+}
+
+// ============================================================================
+// GraphQL 命令
+// ============================================================================
+
+export type { GraphqlIntrospectInput, GraphqlIntrospectOutput } from './graphql';
+
+/**
+ * GraphQL Schema 内省
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @param input - 内省请求参数
+ * @returns 内省结果
+ */
+export async function introspectSchema(
+  input: import('./graphql').GraphqlIntrospectInput
+): Promise<import('./graphql').GraphqlIntrospectOutput> {
+  if (isTauriEnv()) {
+    const { introspectSchema: introspectSchemaImpl } = await import('./graphql');
+    return introspectSchemaImpl(input);
+  } else {
+    const { introspectSchema: introspectSchemaImpl } = await import('./mock');
+    return introspectSchemaImpl(input);
+  }
+}
+
+// ============================================================================
 // 压力测试命令
 // ============================================================================
 

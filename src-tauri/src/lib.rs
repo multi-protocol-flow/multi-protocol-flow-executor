@@ -59,6 +59,12 @@ pub use tauri_commands::{
     mcp_discover_tools,
     // MQTT 连接测试命令
     mqtt_test_connection,
+    // SSE 连接测试命令
+    sse_test_connection,
+    // AMQP 连接测试命令
+    amqp_test_connection,
+    // GraphQL 内省命令
+    graphql_introspect_schema,
     // Kafka 命令
     kafka_test_connection,
     kafka_list_topics,
@@ -200,6 +206,12 @@ pub fn run() {
     mcp_discover_tools,
     // MQTT 连接测试命令
     mqtt_test_connection,
+    // SSE 连接测试命令
+    sse_test_connection,
+    // AMQP 连接测试命令
+    amqp_test_connection,
+    // GraphQL 内省命令
+    graphql_introspect_schema,
     // Kafka 命令
     kafka_test_connection,
     kafka_list_topics,

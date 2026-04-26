@@ -22,7 +22,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode, MqttConnectNode, MqttPublishNode, MqttSubscribeNode, MqttUnsubscribeNode, MqttDisconnectNode, MqttWaitMessageNode, MqttRequestNode, VariableExtractorNode, KafkaConnectNode, KafkaProduceNode, KafkaConsumeNode, KafkaConsumeBatchNode, KafkaAdminNode, KafkaSchemaRegistryNode, KafkaCloseNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode, MqttConnectNode, MqttPublishNode, MqttSubscribeNode, MqttUnsubscribeNode, MqttDisconnectNode, MqttWaitMessageNode, MqttRequestNode, VariableExtractorNode, KafkaConnectNode, KafkaProduceNode, KafkaConsumeNode, KafkaConsumeBatchNode, KafkaAdminNode, KafkaSchemaRegistryNode, KafkaCloseNode, SseConnectNode, SseListenNode, SseDisconnectNode, GraphqlConnectNode, GraphqlQueryNode, GraphqlSubscribeNode, GraphqlUnsubscribeNode, GraphqlIntrospectNode, GraphqlDisconnectNode } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { CanvasToolbar } from './CanvasToolbar';
 import { NodeContextMenu } from './NodeContextMenu';
@@ -126,6 +126,15 @@ const nodeTypes = {
   kafka_admin: KafkaAdminNode,
   kafka_schema_registry: KafkaSchemaRegistryNode,
   kafka_close: KafkaCloseNode,
+  sse_connect: SseConnectNode,
+  sse_listen: SseListenNode,
+  sse_disconnect: SseDisconnectNode,
+  graphql_connect: GraphqlConnectNode,
+  graphql_query: GraphqlQueryNode,
+  graphql_subscribe: GraphqlSubscribeNode,
+  graphql_unsubscribe: GraphqlUnsubscribeNode,
+  graphql_introspect: GraphqlIntrospectNode,
+  graphql_disconnect: GraphqlDisconnectNode,
   default: DynamicPluginNode,
 };
 
@@ -178,6 +187,15 @@ const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
   kafka_admin: '#f43f5e',
   kafka_schema_registry: '#f43f5e',
   kafka_close: '#f43f5e',
+  sse_connect: '#f43f5e',
+  sse_listen: '#f43f5e',
+  sse_disconnect: '#f43f5e',
+  graphql_connect: '#6366f1',
+  graphql_query: '#6366f1',
+  graphql_subscribe: '#6366f1',
+  graphql_unsubscribe: '#6366f1',
+  graphql_introspect: '#6366f1',
+  graphql_disconnect: '#6366f1',
 };
 
 /**

@@ -504,6 +504,102 @@ export async function testMqttConnection(
 }
 
 // ============================================================================
+// SSE Mock
+// ============================================================================
+
+/**
+ * Mock 测试 SSE 连接
+ * 模拟后端 sse_test_connection 命令行为
+ *
+ * @param _input - SSE 测试连接请求参数（Mock 中未使用）
+ * @returns 模拟的连接测试结果
+ */
+export async function testSseConnection(
+  _input: import('./sse').SseTestConnectionInput
+): Promise<boolean> {
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  return true;
+}
+
+// ============================================================================
+// AMQP Mock
+// ============================================================================
+
+/**
+ * Mock 测试 AMQP 连接
+ * 模拟后端 amqp_test_connection 命令行为
+ *
+ * @param _input - AMQP 测试连接请求参数（Mock 中未使用）
+ * @returns 模拟的连接测试结果
+ */
+export async function testAmqpConnection(
+  _input: import('./amqp').AmqpTestConnectionInput
+): Promise<boolean> {
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  return true;
+}
+
+// ============================================================================
+// GraphQL Mock
+// ============================================================================
+
+/**
+ * Mock GraphQL Schema 内省
+ * 模拟后端 graphql_introspect_schema 命令行为
+ *
+ * @param _input - 内省请求参数（Mock 中未使用）
+ * @returns 模拟的内省结果
+ */
+export async function introspectSchema(
+  _input: import('./graphql').GraphqlIntrospectInput
+): Promise<import('./graphql').GraphqlIntrospectOutput> {
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  return {
+    success: true,
+    schema: {
+      __schema: {
+        queryType: { name: 'Query' },
+        mutationType: { name: 'Mutation' },
+        subscriptionType: { name: 'Subscription' },
+        types: [
+          {
+            kind: 'OBJECT',
+            name: 'Query',
+            description: '根查询类型',
+            fields: [
+              {
+                name: 'user',
+                description: '获取用户信息',
+                type: { kind: 'OBJECT', name: 'User', ofType: null },
+                args: [
+                  { name: 'id', description: '用户 ID', type: { kind: 'NON_NULL', name: null, ofType: { kind: 'SCALAR', name: 'ID' } }, defaultValue: null },
+                ],
+              },
+            ],
+            inputFields: null,
+            enumValues: null,
+          },
+          {
+            kind: 'OBJECT',
+            name: 'User',
+            description: '用户类型',
+            fields: [
+              { name: 'id', description: '用户 ID', type: { kind: 'NON_NULL', name: null, ofType: { kind: 'SCALAR', name: 'ID' } }, args: [] },
+              { name: 'name', description: '用户名', type: { kind: 'SCALAR', name: 'String', ofType: null }, args: [] },
+              { name: 'email', description: '邮箱', type: { kind: 'SCALAR', name: 'String', ofType: null }, args: [] },
+            ],
+            inputFields: null,
+            enumValues: null,
+          },
+        ],
+      },
+    },
+    error: null,
+  };
+}
+
+// ============================================================================
 // TCP/UDP 录制 Mock
 // ============================================================================
 

@@ -825,6 +825,183 @@ pub async fn mqtt_test_connection(
 }
 
 // ============================================================================
+// SSE 连接测试命令
+// ============================================================================
+
+/// 测试 SSE 连接
+///
+/// 设计时调用：验证 SSE 端点 URL 格式有效性。
+#[tauri::command]
+pub async fn sse_test_connection(url: String) -> Result<bool, String> {
+    // URL 格式验证
+    if url.is_empty() {
+        return Err("URL 不能为空".to_string());
+    }
+    // 基本 URL 格式验证
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return Err("URL 必须以 http:// 或 https:// 开头".to_string());
+    }
+    Ok(true)
+}
+
+// ============================================================================
+// AMQP 连接测试命令
+// ============================================================================
+
+/// 测试 AMQP 连接
+///
+/// 设计时调用：验证 AMQP Broker URL 格式有效性。
+#[tauri::command]
+pub async fn amqp_test_connection(url: String) -> Result<bool, String> {
+    // URL 格式验证
+    if url.is_empty() {
+        return Err("URL 不能为空".to_string());
+    }
+    // 基本 URL 格式验证（支持 amqp:// 和 amqps://）
+    if !url.starts_with("amqp://") && !url.starts_with("amqps://") {
+        return Err("URL 必须以 amqp:// 或 amqps:// 开头".to_string());
+    }
+    Ok(true)
+}
+
+// ============================================================================
+// GraphQL IPC 命令
+// ============================================================================
+
+/// GraphQL 内省请求参数
+#[derive(Debug, serde::Deserialize)]
+pub struct GraphqlIntrospectInput {
+    /// GraphQL 端点 URL
+    pub endpoint: String,
+    /// 请求头
+    pub headers: Option<std::collections::HashMap<String, String>>,
+}
+
+/// GraphQL 内省响应
+#[derive(Debug, serde::Serialize)]
+pub struct GraphqlIntrospectOutput {
+    /// 是否成功
+    pub success: bool,
+    /// Schema JSON 字符串
+    pub schema: Option<serde_json::Value>,
+    /// 错误信息
+    pub error: Option<String>,
+}
+
+/// GraphQL Schema 内省
+///
+/// 设计时调用：向 GraphQL 端点发送内省查询，返回完整的 Schema 信息。
+#[tauri::command]
+pub async fn graphql_introspect_schema(
+    input: GraphqlIntrospectInput,
+) -> GraphqlIntrospectOutput {
+    log::info!("[GraphQL] 内省请求: endpoint={}", input.endpoint);
+
+    // URL 格式验证
+    if input.endpoint.is_empty() {
+        return GraphqlIntrospectOutput {
+            success: false,
+            schema: None,
+            error: Some("端点 URL 不能为空".to_string()),
+        };
+    }
+    if !input.endpoint.starts_with("http://") && !input.endpoint.starts_with("https://") {
+        return GraphqlIntrospectOutput {
+            success: false,
+            schema: None,
+            error: Some("端点 URL 必须以 http:// 或 https:// 开头".to_string()),
+        };
+    }
+
+    // GraphQL 内省查询
+    let introspection_query = serde_json::json!({
+        "query": r#"{
+          __schema {
+            queryType { name }
+            mutationType { name }
+            subscriptionType { name }
+            types {
+              kind name description
+              fields(includeDeprecated: true) {
+                name description
+                type { ...TypeRef }
+                args {
+                  name description
+                  type { ...TypeRef }
+                  defaultValue
+                }
+              }
+              inputFields {
+                name description
+                type { ...TypeRef }
+                defaultValue
+              }
+              enumValues(includeDeprecated: true) { name description }
+            }
+          }
+        }
+        fragment TypeRef on __Type {
+          kind name
+          ofType { kind name ofType { kind name ofType { kind name ofType { kind name } } } }
+        }"#
+    });
+
+    // 构建请求
+    let mut req = reqwest::Client::new()
+        .post(&input.endpoint)
+        .header("Content-Type", "application/json")
+        .timeout(std::time::Duration::from_secs(10));
+
+    if let Some(headers) = input.headers {
+        for (key, value) in headers {
+            req = req.header(&key, &value);
+        }
+    }
+
+    match req.json(&introspection_query).send().await {
+        Ok(resp) => {
+            let status = resp.status();
+            match resp.json::<serde_json::Value>().await {
+                Ok(body) => {
+                    if status.is_success() {
+                        // 检查是否有 GraphQL 错误
+                        if let Some(errors) = body.get("errors") {
+                            GraphqlIntrospectOutput {
+                                success: false,
+                                schema: None,
+                                error: Some(format!("GraphQL 错误: {}", errors)),
+                            }
+                        } else {
+                            GraphqlIntrospectOutput {
+                                success: true,
+                                schema: Some(body.get("data").cloned().unwrap_or(body)),
+                                error: None,
+                            }
+                        }
+                    } else {
+                        GraphqlIntrospectOutput {
+                            success: false,
+                            schema: None,
+                            error: Some(format!("HTTP 错误: {}", status)),
+                        }
+                    }
+                }
+                Err(e) => GraphqlIntrospectOutput {
+                    success: false,
+                    schema: None,
+                    error: Some(format!("解析响应失败: {}", e)),
+                },
+            }
+        }
+        Err(e) => GraphqlIntrospectOutput {
+            success: false,
+            schema: None,
+            error: Some(format!("请求失败: {}", e)),
+        },
+    }
+}
+
+// ============================================================================
 // Kafka IPC 命令
 // ============================================================================
 

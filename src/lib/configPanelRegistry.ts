@@ -48,6 +48,33 @@ import { KafkaConsumeBatchConfig } from '@/components/panels/KafkaConsumeBatchCo
 import { KafkaCloseConfig } from '@/components/panels/KafkaCloseConfig';
 import { KafkaAdminConfig } from '@/components/panels/KafkaAdminConfig';
 import { KafkaSchemaRegistryConfig } from '@/components/panels/KafkaSchemaRegistryConfig';
+import { SseConnectConfig } from '@/components/panels/SseConnectConfig';
+import { SseListenConfig } from '@/components/panels/SseListenConfig';
+import { SseDisconnectConfig } from '@/components/panels/SseDisconnectConfig';
+import { GraphqlConnectConfig } from '@/components/panels/GraphqlConnectConfig';
+import { GraphqlQueryConfig } from '@/components/panels/GraphqlQueryConfig';
+import { GraphqlSubscribeConfig } from '@/components/panels/GraphqlSubscribeConfig';
+import { GraphqlUnsubscribeConfig } from '@/components/panels/GraphqlUnsubscribeConfig';
+import { GraphqlIntrospectConfig } from '@/components/panels/GraphqlIntrospectConfig';
+import { GraphqlDisconnectConfig } from '@/components/panels/GraphqlDisconnectConfig';
+import { AmqpConnectConfigPanel as AmqpConnectConfig } from '@/components/panels/AmqpConnectConfigPanel';
+import { AmqpCloseConfigPanel as AmqpCloseConfig } from '@/components/panels/AmqpCloseConfigPanel';
+import { AmqpExchangeDeclareConfigPanel as AmqpExchangeDeclareConfig } from '@/components/panels/AmqpExchangeDeclareConfigPanel';
+import { AmqpExchangeDeleteConfigPanel as AmqpExchangeDeleteConfig } from '@/components/panels/AmqpExchangeDeleteConfigPanel';
+import { AmqpQueueDeclareConfigPanel as AmqpQueueDeclareConfig } from '@/components/panels/AmqpQueueDeclareConfigPanel';
+import { AmqpQueueDeleteConfigPanel as AmqpQueueDeleteConfig } from '@/components/panels/AmqpQueueDeleteConfigPanel';
+import { AmqpQueueBindConfigPanel as AmqpQueueBindConfig } from '@/components/panels/AmqpQueueBindConfigPanel';
+import { AmqpPublishConfigPanel as AmqpPublishConfig } from '@/components/panels/AmqpPublishConfigPanel';
+import { AmqpConsumeConfigPanel as AmqpConsumeConfig } from '@/components/panels/AmqpConsumeConfigPanel';
+import { AmqpGetConfigPanel as AmqpGetConfig } from '@/components/panels/AmqpGetConfigPanel';
+import { AmqpAckConfigPanel as AmqpAckConfig } from '@/components/panels/AmqpAckConfigPanel';
+import { AmqpManagementConfigPanel as AmqpManagementConfig } from '@/components/panels/AmqpManagementConfigPanel';
+import { Amqp10ConnectConfigPanel as Amqp10ConnectConfig } from '@/components/panels/Amqp10ConnectConfigPanel';
+import { Amqp10SendConfigPanel as Amqp10SendConfig } from '@/components/panels/Amqp10SendConfigPanel';
+import { Amqp10ReceiveConfigPanel as Amqp10ReceiveConfig } from '@/components/panels/Amqp10ReceiveConfigPanel';
+import { Amqp10AcceptConfigPanel as Amqp10AcceptConfig } from '@/components/panels/Amqp10AcceptConfigPanel';
+import { Amqp10RejectConfigPanel as Amqp10RejectConfig } from '@/components/panels/Amqp10RejectConfigPanel';
+import { Amqp10DisconnectConfigPanel as Amqp10DisconnectConfig } from '@/components/panels/Amqp10DisconnectConfigPanel';
 import { VariableExtractorConfig as VariableExtractorConfigPanel } from '@/components/panels/VariableExtractorConfig';
 
 export const configPanelRegistry: Record<string, ComponentType<any>> = {
@@ -94,6 +121,33 @@ export const configPanelRegistry: Record<string, ComponentType<any>> = {
   kafka_close: KafkaCloseConfig,
   kafka_admin: KafkaAdminConfig,
   kafka_schema_registry: KafkaSchemaRegistryConfig,
+  sse_connect: SseConnectConfig,
+  sse_listen: SseListenConfig,
+  sse_disconnect: SseDisconnectConfig,
+  graphql_connect: GraphqlConnectConfig,
+  graphql_query: GraphqlQueryConfig,
+  graphql_subscribe: GraphqlSubscribeConfig,
+  graphql_unsubscribe: GraphqlUnsubscribeConfig,
+  graphql_introspect: GraphqlIntrospectConfig,
+  graphql_disconnect: GraphqlDisconnectConfig,
+  amqp_connect: AmqpConnectConfig,
+  amqp_close: AmqpCloseConfig,
+  amqp_exchange_declare: AmqpExchangeDeclareConfig,
+  amqp_exchange_delete: AmqpExchangeDeleteConfig,
+  amqp_queue_declare: AmqpQueueDeclareConfig,
+  amqp_queue_delete: AmqpQueueDeleteConfig,
+  amqp_queue_bind: AmqpQueueBindConfig,
+  amqp_publish: AmqpPublishConfig,
+  amqp_consume: AmqpConsumeConfig,
+  amqp_get: AmqpGetConfig,
+  amqp_ack: AmqpAckConfig,
+  amqp_management: AmqpManagementConfig,
+  amqp10_connect: Amqp10ConnectConfig,
+  amqp10_send: Amqp10SendConfig,
+  amqp10_receive: Amqp10ReceiveConfig,
+  amqp10_accept: Amqp10AcceptConfig,
+  amqp10_reject: Amqp10RejectConfig,
+  amqp10_disconnect: Amqp10DisconnectConfig,
   variable_extractor: VariableExtractorConfigPanel,
 };
 
