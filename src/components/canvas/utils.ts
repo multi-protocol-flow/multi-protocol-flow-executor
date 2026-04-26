@@ -195,6 +195,20 @@ export function createDefaultNodeData(type: NodeType): NodeData {
       return { type: 'mqtt_wait_message', connection_id: '', topic: '' };
     case 'mqtt_request':
       return { type: 'mqtt_request', connection_id: '', request_topic: '', response_topic: '' };
+    case 'kafka_connect':
+      return { type: 'kafka_connect', bootstrap_servers: 'localhost:9092' };
+    case 'kafka_produce':
+      return { type: 'kafka_produce', connection_id: '', topic: '' };
+    case 'kafka_consume':
+      return { type: 'kafka_consume', connection_id: '', topic: '' };
+    case 'kafka_consume_batch':
+      return { type: 'kafka_consume_batch', connection_id: '', topic: '' };
+    case 'kafka_admin':
+      return { type: 'kafka_admin', connection_id: '', operation: 'topic_list' };
+    case 'kafka_schema_registry':
+      return { type: 'kafka_schema_registry', connection_id: '', operation: 'list_subjects' };
+    case 'kafka_close':
+      return { type: 'kafka_close', connection_id: '' };
     case 'variable_extractor':
       return { type: 'variable_extractor', output_mappings: [], source_node_id: undefined };
     case 'entry':
@@ -243,6 +257,13 @@ const STATIC_NODE_TYPE_LABELS: Record<NodeType, string> = {
   mqtt_disconnect: 'MQTT 断开',
   mqtt_wait_message: 'MQTT 等待消息',
   mqtt_request: 'MQTT 请求',
+  kafka_connect: 'Kafka 连接',
+  kafka_produce: 'Kafka 生产',
+  kafka_consume: 'Kafka 消费',
+  kafka_consume_batch: 'Kafka 批量消费',
+  kafka_admin: 'Kafka 管理',
+  kafka_schema_registry: 'Kafka Schema',
+  kafka_close: 'Kafka 关闭',
   variable_extractor: '变量提取',
 };
 

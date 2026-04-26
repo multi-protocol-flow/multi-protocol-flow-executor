@@ -22,7 +22,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode, MqttConnectNode, MqttPublishNode, MqttSubscribeNode, MqttUnsubscribeNode, MqttDisconnectNode, MqttWaitMessageNode, MqttRequestNode, VariableExtractorNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode, MqttConnectNode, MqttPublishNode, MqttSubscribeNode, MqttUnsubscribeNode, MqttDisconnectNode, MqttWaitMessageNode, MqttRequestNode, VariableExtractorNode, KafkaConnectNode, KafkaProduceNode, KafkaConsumeNode, KafkaConsumeBatchNode, KafkaAdminNode, KafkaSchemaRegistryNode, KafkaCloseNode } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { CanvasToolbar } from './CanvasToolbar';
 import { NodeContextMenu } from './NodeContextMenu';
@@ -119,6 +119,13 @@ const nodeTypes = {
   mqtt_wait_message: MqttWaitMessageNode,
   mqtt_request: MqttRequestNode,
   variable_extractor: VariableExtractorNode,
+  kafka_connect: KafkaConnectNode,
+  kafka_produce: KafkaProduceNode,
+  kafka_consume: KafkaConsumeNode,
+  kafka_consume_batch: KafkaConsumeBatchNode,
+  kafka_admin: KafkaAdminNode,
+  kafka_schema_registry: KafkaSchemaRegistryNode,
+  kafka_close: KafkaCloseNode,
   default: DynamicPluginNode,
 };
 
@@ -164,6 +171,13 @@ const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
   mqtt_disconnect: '#06b6d4',
   mqtt_wait_message: '#06b6d4',
   mqtt_request: '#06b6d4',
+  kafka_connect: '#f43f5e',
+  kafka_produce: '#f43f5e',
+  kafka_consume: '#f43f5e',
+  kafka_consume_batch: '#f43f5e',
+  kafka_admin: '#f43f5e',
+  kafka_schema_registry: '#f43f5e',
+  kafka_close: '#f43f5e',
 };
 
 /**

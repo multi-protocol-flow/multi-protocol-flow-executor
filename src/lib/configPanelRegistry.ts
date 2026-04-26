@@ -41,6 +41,13 @@ import { MqttUnsubscribeConfig } from '@/components/panels/MqttUnsubscribeConfig
 import { MqttDisconnectConfig } from '@/components/panels/MqttDisconnectConfig';
 import { MqttWaitMessageConfig } from '@/components/panels/MqttWaitMessageConfig';
 import { MqttRequestConfig } from '@/components/panels/MqttRequestConfig';
+import { KafkaConnectConfig } from '@/components/panels/KafkaConnectConfig';
+import { KafkaProduceConfig } from '@/components/panels/KafkaProduceConfig';
+import { KafkaConsumeConfig } from '@/components/panels/KafkaConsumeConfig';
+import { KafkaConsumeBatchConfig } from '@/components/panels/KafkaConsumeBatchConfig';
+import { KafkaCloseConfig } from '@/components/panels/KafkaCloseConfig';
+import { KafkaAdminConfig } from '@/components/panels/KafkaAdminConfig';
+import { KafkaSchemaRegistryConfig } from '@/components/panels/KafkaSchemaRegistryConfig';
 import { VariableExtractorConfig as VariableExtractorConfigPanel } from '@/components/panels/VariableExtractorConfig';
 
 export const configPanelRegistry: Record<string, ComponentType<any>> = {
@@ -80,6 +87,13 @@ export const configPanelRegistry: Record<string, ComponentType<any>> = {
   mqtt_disconnect: MqttDisconnectConfig,
   mqtt_wait_message: MqttWaitMessageConfig,
   mqtt_request: MqttRequestConfig,
+  kafka_connect: KafkaConnectConfig,
+  kafka_produce: KafkaProduceConfig,
+  kafka_consume: KafkaConsumeConfig,
+  kafka_consume_batch: KafkaConsumeBatchConfig,
+  kafka_close: KafkaCloseConfig,
+  kafka_admin: KafkaAdminConfig,
+  kafka_schema_registry: KafkaSchemaRegistryConfig,
   variable_extractor: VariableExtractorConfigPanel,
 };
 

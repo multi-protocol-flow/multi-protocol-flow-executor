@@ -38,4 +38,11 @@ export { MqttDisconnectNode, type MqttDisconnectNodeData } from './MqttDisconnec
 export { MqttWaitMessageNode, type MqttWaitMessageNodeData } from './MqttWaitMessageNode';
 export { MqttRequestNode, type MqttRequestNodeData } from './MqttRequestNode';
 export { VariableExtractorNode, type VariableExtractorNodeData } from './VariableExtractorNode';
+export { KafkaConnectNode, type KafkaConnectNodeData } from './KafkaConnectNode';
+export { KafkaProduceNode, type KafkaProduceNodeData } from './KafkaProduceNode';
+export { KafkaConsumeNode, type KafkaConsumeNodeData } from './KafkaConsumeNode';
+export { KafkaConsumeBatchNode, type KafkaConsumeBatchNodeData } from './KafkaConsumeBatchNode';
+export { KafkaAdminNode, type KafkaAdminNodeData } from './KafkaAdminNode';
+export { KafkaSchemaRegistryNode, type KafkaSchemaRegistryNodeData } from './KafkaSchemaRegistryNode';
+export { KafkaCloseNode, type KafkaCloseNodeData } from './KafkaCloseNode';
 export { default as DynamicPluginNode } from './DynamicPluginNode';

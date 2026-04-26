@@ -66,6 +66,7 @@ export const CATEGORY_NAMES: Record<string, string> = {
   grpc: 'gRPC',
   mcp: 'MCP',
   mqtt: 'MQTT',
+  kafka: 'Kafka',
   tcp: 'TCP',
   udp: 'UDP',
 };
@@ -80,12 +81,13 @@ export const CATEGORY_ORDER: Record<string, number> = {
   grpc: 2,
   mcp: 3,
   mqtt: 4,
-  tcp: 5,
-  udp: 6,
-  database: 7,
-  tools: 8,
-  script: 9,
-  assertion: 10,
+  kafka: 5,
+  tcp: 6,
+  udp: 7,
+  database: 8,
+  tools: 9,
+  script: 10,
+  assertion: 11,
 };
 
 /**
@@ -123,6 +125,15 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   mqtt_disconnect: 4,
   mqtt_wait_message: 5,
   mqtt_request: 6,
+
+  // Kafka: 连接 → 生产 → 消费 → 批量消费 → 管理 → Schema Registry → 关闭
+  kafka_connect: 0,
+  kafka_produce: 1,
+  kafka_consume: 2,
+  kafka_consume_batch: 3,
+  kafka_admin: 4,
+  kafka_schema_registry: 5,
+  kafka_close: 6,
 
   // TCP: 连接 → 发送 → 关闭
   tcp_connect: 0,
@@ -190,6 +201,13 @@ export function getBadgeClassForType(typeId: string): string {
     mqtt_disconnect: 'bg-cyan-100 text-cyan-700',
     mqtt_wait_message: 'bg-cyan-100 text-cyan-700',
     mqtt_request: 'bg-cyan-100 text-cyan-700',
+    kafka_connect: 'bg-rose-100 text-rose-700',
+    kafka_produce: 'bg-rose-100 text-rose-700',
+    kafka_consume: 'bg-rose-100 text-rose-700',
+    kafka_consume_batch: 'bg-rose-100 text-rose-700',
+    kafka_admin: 'bg-rose-100 text-rose-700',
+    kafka_schema_registry: 'bg-rose-100 text-rose-700',
+    kafka_close: 'bg-rose-100 text-rose-700',
     variable_extractor: 'bg-amber-100 text-amber-700',
     tcp_connect: 'bg-emerald-100 text-emerald-700',
     tcp_send: 'bg-emerald-100 text-emerald-700',

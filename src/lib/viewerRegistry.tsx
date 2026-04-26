@@ -15,6 +15,7 @@ import { GrpcViewer } from '@/components/execution/viewers/GrpcViewer';
 import { TcpUdpViewer } from '@/components/execution/viewers/TcpUdpViewer';
 import { McpViewer } from '@/components/execution/viewers/McpViewer';
 import { MqttViewer } from '@/components/execution/viewers/MqttViewer';
+import { KafkaViewer } from '@/components/execution/viewers/KafkaViewer';
 
 interface ViewerProps {
   report: NodeExecutionReport;
@@ -53,6 +54,13 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   mqtt_disconnect: MqttViewer,
   mqtt_wait_message: MqttViewer,
   mqtt_request: MqttViewer,
+  kafka_connect: KafkaViewer,
+  kafka_produce: KafkaViewer,
+  kafka_consume: KafkaViewer,
+  kafka_consume_batch: KafkaViewer,
+  kafka_admin: KafkaViewer,
+  kafka_schema_registry: KafkaViewer,
+  kafka_close: KafkaViewer,
   variable_extractor: GenericViewer,
 };
 
