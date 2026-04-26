@@ -59,6 +59,11 @@ pub use tauri_commands::{
     mcp_discover_tools,
     // MQTT 连接测试命令
     mqtt_test_connection,
+    // Kafka 命令
+    kafka_test_connection,
+    kafka_list_topics,
+    kafka_list_consumer_groups,
+    kafka_discover_schema,
     // 执行会话管理
     cancel_flow,
     // 流程文件存储命令
@@ -195,6 +200,11 @@ pub fn run() {
     mcp_discover_tools,
     // MQTT 连接测试命令
     mqtt_test_connection,
+    // Kafka 命令
+    kafka_test_connection,
+    kafka_list_topics,
+    kafka_list_consumer_groups,
+    kafka_discover_schema,
     // 执行会话管理
     cancel_flow,
     // 流程文件存储命令

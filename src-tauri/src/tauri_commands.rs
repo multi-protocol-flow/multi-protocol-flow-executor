@@ -825,6 +825,437 @@ pub async fn mqtt_test_connection(
 }
 
 // ============================================================================
+// Kafka IPC 命令
+// ============================================================================
+
+use flow_engine::kafka_connection_manager::KafkaConnectionManager;
+use flow_engine::traits::KafkaProvider;
+use flow_engine::node_config::KafkaConnectConfig;
+
+/// Kafka 连接测试请求
+#[derive(Debug, serde::Deserialize)]
+pub struct KafkaTestConnectionInput {
+    /// Kafka Bootstrap Servers（逗号分隔）
+    pub bootstrap_servers: String,
+    /// 客户端 ID
+    pub client_id: Option<String>,
+    /// 安全协议："plaintext"/"ssl"/"sasl_plaintext"/"sasl_ssl"
+    pub security_protocol: Option<String>,
+    /// SASL 机制："PLAIN"/"SCRAM-SHA-256"/"SCRAM-SHA-512"/"OAUTHBEARER"
+    pub sasl_mechanism: Option<String>,
+    /// SASL 用户名
+    pub sasl_username: Option<String>,
+    /// SASL 密码
+    pub sasl_password: Option<String>,
+    /// SASL OAuth Token
+    pub sasl_oauth_token: Option<String>,
+    /// 连接超时（毫秒）
+    pub connect_timeout_ms: Option<u64>,
+}
+
+/// Kafka 连接测试响应
+#[derive(Debug, serde::Serialize)]
+pub struct KafkaTestConnectionOutput {
+    /// 是否成功
+    pub success: bool,
+    /// Broker 信息列表
+    pub broker_info: Option<Vec<flow_engine::traits::KafkaBrokerInfo>>,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// Kafka 列出 Topic 请求
+#[derive(Debug, serde::Deserialize)]
+pub struct KafkaListTopicsInput {
+    /// Kafka Bootstrap Servers
+    pub bootstrap_servers: String,
+    /// 安全协议
+    pub security_protocol: Option<String>,
+    /// SASL 机制
+    pub sasl_mechanism: Option<String>,
+    /// SASL 用户名
+    pub sasl_username: Option<String>,
+    /// SASL 密码
+    pub sasl_password: Option<String>,
+    /// 连接超时（毫秒）
+    pub connect_timeout_ms: Option<u64>,
+}
+
+/// Kafka 列出 Topic 响应
+#[derive(Debug, serde::Serialize)]
+pub struct KafkaListTopicsOutput {
+    /// 是否成功
+    pub success: bool,
+    /// Topic 列表
+    pub topics: Option<Vec<flow_engine::traits::KafkaTopicInfo>>,
+    /// 错误信息
+    pub error: Option<String>,
+}
+
+/// Kafka 列出 Consumer Group 请求
+#[derive(Debug, serde::Deserialize)]
+pub struct KafkaListConsumerGroupsInput {
+    /// Kafka Bootstrap Servers
+    pub bootstrap_servers: String,
+    /// 安全协议
+    pub security_protocol: Option<String>,
+    /// SASL 机制
+    pub sasl_mechanism: Option<String>,
+    /// SASL 用户名
+    pub sasl_username: Option<String>,
+    /// SASL 密码
+    pub sasl_password: Option<String>,
+    /// 连接超时（毫秒）
+    pub connect_timeout_ms: Option<u64>,
+}
+
+/// Kafka 列出 Consumer Group 响应
+#[derive(Debug, serde::Serialize)]
+pub struct KafkaListConsumerGroupsOutput {
+    /// 是否成功
+    pub success: bool,
+    /// Consumer Group 列表
+    pub consumer_groups: Option<Vec<flow_engine::traits::KafkaConsumerGroupInfo>>,
+    /// 错误信息
+    pub error: Option<String>,
+}
+
+/// Kafka Schema 发现请求
+#[derive(Debug, serde::Deserialize)]
+pub struct KafkaDiscoverSchemaInput {
+    /// Schema Registry URL
+    pub schema_registry_url: String,
+    /// Kafka Bootstrap Servers（用于建立连接）
+    pub bootstrap_servers: Option<String>,
+    /// 用户名（Basic Auth）
+    pub username: Option<String>,
+    /// 密码（Basic Auth）
+    pub password: Option<String>,
+}
+
+/// Kafka Schema 发现响应
+#[derive(Debug, serde::Serialize)]
+pub struct KafkaDiscoverSchemaOutput {
+    /// 是否成功
+    pub success: bool,
+    /// Schema Subject 列表
+    pub subjects: Option<Vec<String>>,
+    /// 错误信息
+    pub error: Option<String>,
+}
+
+/// 测试 Kafka 连接
+///
+/// 设计时调用：创建临时 Kafka 连接，获取 Broker 信息后立即断开。
+#[tauri::command]
+pub async fn kafka_test_connection(
+    input: KafkaTestConnectionInput,
+) -> KafkaTestConnectionOutput {
+    log::info!(
+        "[Kafka] 测试连接: bootstrap_servers={}",
+        input.bootstrap_servers
+    );
+
+    // 构造连接配置
+    let config = KafkaConnectConfig {
+        bootstrap_servers: input.bootstrap_servers,
+        client_id: input
+            .client_id
+            .or_else(|| Some(format!("mpe-test-{}", uuid::Uuid::new_v4()))),
+        security_protocol: input.security_protocol,
+        sasl_mechanism: input.sasl_mechanism,
+        sasl_username: input.sasl_username,
+        sasl_password: input.sasl_password,
+        sasl_oauth_token: input.sasl_oauth_token,
+        connect_timeout_ms: input.connect_timeout_ms,
+        ..Default::default()
+    };
+
+    let manager = KafkaConnectionManager::new();
+
+    // 尝试连接
+    let result = manager.connect("test", &config).await;
+
+    match result {
+        Ok(_output) => {
+            // 连接成功后获取 Broker 信息
+            let admin_config = flow_engine::node_config::KafkaAdminConfig {
+                operation: "broker_list".to_string(),
+                ..Default::default()
+            };
+            let admin_result = manager.admin("test", &admin_config).await;
+
+            // 关闭连接
+            let close_config = flow_engine::node_config::KafkaCloseConfig {
+                ..Default::default()
+            };
+            let _ = manager.close("test", &close_config).await;
+
+            match admin_result {
+                Ok(admin_output) => {
+                    log::info!(
+                        "[Kafka] 连接测试成功，获取到 {} 个 Broker",
+                        admin_output.brokers.len()
+                    );
+                    KafkaTestConnectionOutput {
+                        success: true,
+                        broker_info: Some(admin_output.brokers),
+                        error: None,
+                    }
+                }
+                Err(e) => {
+                    log::warn!("[Kafka] 连接成功但获取 Broker 信息失败: {}", e);
+                    KafkaTestConnectionOutput {
+                        success: true,
+                        broker_info: None,
+                        error: Some(format!("连接成功但获取 Broker 信息失败: {}", e)),
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            log::error!("[Kafka] 连接测试失败: {}", e);
+            KafkaTestConnectionOutput {
+                success: false,
+                broker_info: None,
+                error: Some(e),
+            }
+        }
+    }
+}
+
+/// 列出 Kafka Topic
+///
+/// 设计时调用：创建临时连接，列出所有 Topic 后立即断开。
+#[tauri::command]
+pub async fn kafka_list_topics(
+    input: KafkaListTopicsInput,
+) -> KafkaListTopicsOutput {
+    log::info!(
+        "[Kafka] 列出 Topic: bootstrap_servers={}",
+        input.bootstrap_servers
+    );
+
+    // 构造连接配置
+    let config = KafkaConnectConfig {
+        bootstrap_servers: input.bootstrap_servers,
+        client_id: Some(format!("mpe-topics-{}", uuid::Uuid::new_v4())),
+        security_protocol: input.security_protocol,
+        sasl_mechanism: input.sasl_mechanism,
+        sasl_username: input.sasl_username,
+        sasl_password: input.sasl_password,
+        connect_timeout_ms: input.connect_timeout_ms,
+        ..Default::default()
+    };
+
+    let manager = KafkaConnectionManager::new();
+
+    // 连接
+    let result = manager.connect("test", &config).await;
+
+    match result {
+        Ok(_output) => {
+            // 列出 Topic
+            let admin_config = flow_engine::node_config::KafkaAdminConfig {
+                operation: "topic_list".to_string(),
+                ..Default::default()
+            };
+            let admin_result = manager.admin("test", &admin_config).await;
+
+            // 关闭连接
+            let close_config = flow_engine::node_config::KafkaCloseConfig {
+                ..Default::default()
+            };
+            let _ = manager.close("test", &close_config).await;
+
+            match admin_result {
+                Ok(admin_output) => {
+                    log::info!(
+                        "[Kafka] 列出 Topic 成功，共 {} 个",
+                        admin_output.topics.len()
+                    );
+                    KafkaListTopicsOutput {
+                        success: true,
+                        topics: Some(admin_output.topics),
+                        error: None,
+                    }
+                }
+                Err(e) => {
+                    log::error!("[Kafka] 列出 Topic 失败: {}", e);
+                    KafkaListTopicsOutput {
+                        success: false,
+                        topics: None,
+                        error: Some(e),
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            log::error!("[Kafka] 连接失败: {}", e);
+            KafkaListTopicsOutput {
+                success: false,
+                topics: None,
+                error: Some(e),
+            }
+        }
+    }
+}
+
+/// 列出 Kafka Consumer Group
+///
+/// 设计时调用：创建临时连接，列出所有 Consumer Group 后立即断开。
+#[tauri::command]
+pub async fn kafka_list_consumer_groups(
+    input: KafkaListConsumerGroupsInput,
+) -> KafkaListConsumerGroupsOutput {
+    log::info!(
+        "[Kafka] 列出 Consumer Group: bootstrap_servers={}",
+        input.bootstrap_servers
+    );
+
+    // 构造连接配置
+    let config = KafkaConnectConfig {
+        bootstrap_servers: input.bootstrap_servers,
+        client_id: Some(format!("mpe-groups-{}", uuid::Uuid::new_v4())),
+        security_protocol: input.security_protocol,
+        sasl_mechanism: input.sasl_mechanism,
+        sasl_username: input.sasl_username,
+        sasl_password: input.sasl_password,
+        connect_timeout_ms: input.connect_timeout_ms,
+        ..Default::default()
+    };
+
+    let manager = KafkaConnectionManager::new();
+
+    // 连接
+    let result = manager.connect("test", &config).await;
+
+    match result {
+        Ok(_output) => {
+            // 列出 Consumer Group
+            let admin_config = flow_engine::node_config::KafkaAdminConfig {
+                operation: "consumer_group_list".to_string(),
+                ..Default::default()
+            };
+            let admin_result = manager.admin("test", &admin_config).await;
+
+            // 关闭连接
+            let close_config = flow_engine::node_config::KafkaCloseConfig {
+                ..Default::default()
+            };
+            let _ = manager.close("test", &close_config).await;
+
+            match admin_result {
+                Ok(admin_output) => {
+                    log::info!(
+                        "[Kafka] 列出 Consumer Group 成功，共 {} 个",
+                        admin_output.consumer_groups.len()
+                    );
+                    KafkaListConsumerGroupsOutput {
+                        success: true,
+                        consumer_groups: Some(admin_output.consumer_groups),
+                        error: None,
+                    }
+                }
+                Err(e) => {
+                    log::error!("[Kafka] 列出 Consumer Group 失败: {}", e);
+                    KafkaListConsumerGroupsOutput {
+                        success: false,
+                        consumer_groups: None,
+                        error: Some(e),
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            log::error!("[Kafka] 连接失败: {}", e);
+            KafkaListConsumerGroupsOutput {
+                success: false,
+                consumer_groups: None,
+                error: Some(e),
+            }
+        }
+    }
+}
+
+/// 发现 Kafka Schema Registry 中的 Subject
+///
+/// 设计时调用：创建临时连接，列出所有 Schema Subject 后立即断开。
+#[tauri::command]
+pub async fn kafka_discover_schema(
+    input: KafkaDiscoverSchemaInput,
+) -> KafkaDiscoverSchemaOutput {
+    log::info!(
+        "[Kafka] 发现 Schema: schema_registry_url={}",
+        input.schema_registry_url
+    );
+
+    // 构造连接配置（包含 Schema Registry 信息）
+    let config = KafkaConnectConfig {
+        bootstrap_servers: input
+            .bootstrap_servers
+            .unwrap_or_else(|| "localhost:9092".to_string()),
+        client_id: Some(format!("mpe-schema-{}", uuid::Uuid::new_v4())),
+        schema_registry_url: Some(input.schema_registry_url),
+        schema_registry_username: input.username,
+        schema_registry_password: input.password,
+        ..Default::default()
+    };
+
+    let manager = KafkaConnectionManager::new();
+
+    // 连接
+    let result = manager.connect("test", &config).await;
+
+    match result {
+        Ok(_output) => {
+            // 列出 Subject
+            let sr_config = flow_engine::node_config::KafkaSchemaRegistryConfig {
+                operation: "list_subjects".to_string(),
+                ..Default::default()
+            };
+            let sr_result = manager.schema_registry("test", &sr_config).await;
+
+            // 关闭连接
+            let close_config = flow_engine::node_config::KafkaCloseConfig {
+                ..Default::default()
+            };
+            let _ = manager.close("test", &close_config).await;
+
+            match sr_result {
+                Ok(sr_output) => {
+                    log::info!(
+                        "[Kafka] 发现 Schema 成功，共 {} 个 Subject",
+                        sr_output.subjects.len()
+                    );
+                    KafkaDiscoverSchemaOutput {
+                        success: true,
+                        subjects: Some(sr_output.subjects),
+                        error: None,
+                    }
+                }
+                Err(e) => {
+                    log::error!("[Kafka] 发现 Schema 失败: {}", e);
+                    KafkaDiscoverSchemaOutput {
+                        success: false,
+                        subjects: None,
+                        error: Some(e),
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            log::error!("[Kafka] 连接失败: {}", e);
+            KafkaDiscoverSchemaOutput {
+                success: false,
+                subjects: None,
+                error: Some(e),
+            }
+        }
+    }
+}
+
+// ============================================================================
 // 应用设置命令
 // ============================================================================
 
