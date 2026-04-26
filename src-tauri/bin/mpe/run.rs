@@ -145,6 +145,7 @@ async fn execute_simple(
 ) -> Result<app_lib::ExecutionResult, CliError> {
     let executor = app_lib::FlowExecutor::new()
         .with_flow_file_path(path)
+        .with_hook_executor(Arc::new(app_lib::hook_runner::DefaultHookExecutor::new()))
         .with_cancel_receiver(cancel_rx);
     Ok(executor.execute_flow(flow, variables, None, None).await)
 }
@@ -163,6 +164,7 @@ async fn execute_with_streaming(
     let executor = app_lib::FlowExecutor::new()
         .with_flow_file_path(path)
         .with_execution_event_sender(sender)
+        .with_hook_executor(Arc::new(app_lib::hook_runner::DefaultHookExecutor::new()))
         .with_cancel_receiver(cancel_rx);
 
     // 在后台启动执行，同时消费事件流

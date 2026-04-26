@@ -299,6 +299,7 @@ const STATIC_NODE_TYPE_LABELS: Record<NodeType, string> = {
   mcp_close: 'MCP 关闭',
   tcp_connect: 'TCP 连接',
   tcp_send: 'TCP 发送',
+  tcp_receive: 'TCP 接收',
   tcp_close: 'TCP 关闭',
   udp_bind: 'UDP 绑定',
   udp_send_to: 'UDP 发送',

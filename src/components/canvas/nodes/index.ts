@@ -25,6 +25,7 @@ export { McpGetPromptNode, type McpGetPromptNodeData } from './McpGetPromptNode'
 export { McpCloseNode, type McpCloseNodeData } from './McpCloseNode';
 export { TcpConnectNode, type TcpConnectNodeData } from './TcpConnectNode';
 export { TcpSendNode, type TcpSendNodeData } from './TcpSendNode';
+export { TcpReceiveNode, type TcpReceiveNodeData } from './TcpReceiveNode';
 export { TcpCloseNode, type TcpCloseNodeData } from './TcpCloseNode';
 export { UdpBindNode, type UdpBindNodeData } from './UdpBindNode';
 export { UdpSendToNode, type UdpSendToNodeData } from './UdpSendToNode';

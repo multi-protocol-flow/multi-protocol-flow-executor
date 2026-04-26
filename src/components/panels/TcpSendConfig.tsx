@@ -20,44 +20,57 @@ import { isTcpConnectConfig } from '@/types/node';
 
 /**
  * 协议模板预设
+ * 包含成帧配置和解析器配置，与后端 templates.rs 保持同步
  */
 interface ProtocolTemplate {
   id: string;
   name: string;
   description: string;
+  category: string;
   framingMode?: TcpFramingMode;
+  parserConfig?: Record<string, unknown>;
 }
 
 const PROTOCOL_TEMPLATES: ProtocolTemplate[] = [
   {
     id: 'redis_resp',
     name: 'Redis RESP',
-    description: 'Redis 序列化协议 (CRLF 分隔)',
+    description: 'Redis 序列化协议',
+    category: 'cache',
     framingMode: { type: 'delimiter', delimiter: '\r\n' },
+    parserConfig: { type: 'delimiter', delimiter_hex: '0d0a', keep_delimiter: false },
   },
   {
     id: 'custom_tlv',
     name: 'Custom TLV',
-    description: '自定义 TLV 协议 (4字节长度前缀)',
+    description: '自定义 Tag-Length-Value 协议',
+    category: 'binary',
     framingMode: { type: 'length_prefix', prefix_bytes: 4 },
+    parserConfig: { type: 'tlv', tag_bytes: 1, length_bytes: 2, byte_order: 'big' },
   },
   {
     id: 'fixed_header',
     name: 'Fixed Header',
-    description: '固定头部长度协议 (4字节前缀)',
+    description: '固定头部长度协议',
+    category: 'binary',
     framingMode: { type: 'length_prefix', prefix_bytes: 4 },
+    parserConfig: { type: 'length_prefix', prefix_bytes: 4, byte_order: 'big', includes_self: false },
   },
   {
     id: 'http_like',
     name: 'HTTP-like',
-    description: '类 HTTP 协议 (双 CRLF 分隔)',
+    description: '类 HTTP 头部结束协议',
+    category: 'text',
     framingMode: { type: 'delimiter', delimiter: '\r\n\r\n' },
+    parserConfig: { type: 'delimiter', delimiter_hex: '0d0a', keep_delimiter: false },
   },
   {
     id: 'blank',
     name: 'Blank',
-    description: '空模板 (手动配置)',
+    description: '空白模板',
+    category: 'custom',
     framingMode: undefined,
+    parserConfig: undefined,
   },
 ];
 
@@ -100,6 +113,7 @@ function toFormData(data: TcpSendConfigType): TcpSendConfigFormData {
     framing_mode: data.framing_mode,
     framing_config: data.framing_config,
     send_timeout_ms: data.send_timeout_ms ?? 30000,
+    parser_config: data.parser_config,
   };
 }
 
@@ -115,6 +129,7 @@ function fromFormData(formData: TcpSendConfigFormData): TcpSendConfigType {
     framing_mode: formData.framing_mode,
     framing_config: formData.framing_config,
     send_timeout_ms: formData.send_timeout_ms,
+    parser_config: formData.parser_config,
   };
 }
 
@@ -172,6 +187,11 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
   // 协议模板选择状态
   const [selectedTemplate, setSelectedTemplate] = useState<string>('custom');
 
+  // 解析器类型选择状态
+  const [selectedParserType, setSelectedParserType] = useState<string>(
+    data.parser_config?.type ? String(data.parser_config.type) : 'none'
+  );
+
   // 追踪待执行的 setTimeout，组件卸载时清除
   const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
@@ -213,6 +233,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
   useEffect(() => {
     reset(toFormData(data));
     setSelectedFramingType(data.framing_mode?.type ?? 'none');
+    setSelectedParserType(data.parser_config?.type ? String(data.parser_config.type) : 'none');
   }, [data, reset]);
 
   /**
@@ -282,19 +303,27 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
 
   /**
    * 处理协议模板选择
+   * 自动填充成帧配置和解析器配置
    */
   const handleTemplateChange = useCallback((templateId: string) => {
     setSelectedTemplate(templateId);
-    if (templateId === 'custom') return;
     const template = PROTOCOL_TEMPLATES.find(t => t.id === templateId);
     if (!template) return;
+    // 填充成帧配置
     if (template.framingMode) {
       setSelectedFramingType(template.framingMode.type);
       setValue('framing_mode', template.framingMode, { shouldDirty: true });
     } else {
-      // blank 模板：清空成帧配置
       setSelectedFramingType('');
       setValue('framing_mode', undefined as unknown as TcpFramingMode, { shouldDirty: true });
+    }
+    // 填充解析器配置
+    if (template.parserConfig) {
+      setSelectedParserType(String(template.parserConfig.type));
+      setValue('parser_config', template.parserConfig, { shouldDirty: true });
+    } else {
+      setSelectedParserType('none');
+      setValue('parser_config', undefined, { shouldDirty: true });
     }
     safeSetTimeout(saveData, 100);
   }, [setValue, safeSetTimeout, saveData]);
@@ -307,6 +336,42 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
     if (!currentMode) return;
     const updated = { ...currentMode, [field]: value } as TcpFramingMode;
     setValue('framing_mode', updated, { shouldDirty: true });
+    safeSetTimeout(saveData, 100);
+  }, [getValues, setValue, safeSetTimeout, saveData]);
+
+  /**
+   * 处理解析器类型切换
+   */
+  const handleParserTypeChange = useCallback((type: string) => {
+    setSelectedParserType(type);
+    let newConfig: Record<string, unknown> | undefined;
+    switch (type) {
+      case 'length_prefix':
+        newConfig = { type: 'length_prefix', prefix_bytes: 2 };
+        break;
+      case 'delimiter':
+        newConfig = { type: 'delimiter', delimiter: '\r\n' };
+        break;
+      case 'tlv':
+        newConfig = { type: 'tlv', tag_bytes: 1, length_bytes: 2, byte_order: 'big' };
+        break;
+      case 'none':
+      default:
+        newConfig = undefined;
+        break;
+    }
+    setValue('parser_config', newConfig, { shouldDirty: true });
+    safeSetTimeout(saveData, 100);
+  }, [setValue, safeSetTimeout, saveData]);
+
+  /**
+   * 更新解析器子字段
+   */
+  const updateParserSubField = useCallback((field: string, value: number | string) => {
+    const current = getValues('parser_config');
+    if (!current) return;
+    const updated = { ...current, [field]: value };
+    setValue('parser_config', updated, { shouldDirty: true });
     safeSetTimeout(saveData, 100);
   }, [getValues, setValue, safeSetTimeout, saveData]);
 
@@ -428,28 +493,42 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
         </p>
       </div>
 
-      {/* 协议模板选择 */}
+      {/* 协议模板选择 - 卡片网格 */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground flex items-center gap-1.5">
           <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
           协议模板
         </Label>
-        <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
-          <SelectTrigger className="font-mono text-sm">
-            <SelectValue placeholder="选择协议模板..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="custom">自定义 (Custom)</SelectItem>
-            {PROTOCOL_TEMPLATES.map((tpl) => (
-              <SelectItem key={tpl.id} value={tpl.id}>
-                <span>{tpl.name}</span>
-                <span className="ml-2 text-xs text-muted-foreground">— {tpl.description}</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-2 gap-2">
+          {PROTOCOL_TEMPLATES.map((tpl) => {
+            const isSelected = selectedTemplate === tpl.id;
+            return (
+              <button
+                key={tpl.id}
+                type="button"
+                onClick={() => handleTemplateChange(tpl.id)}
+                className={`group flex flex-col items-start gap-1 rounded-md border px-3 py-2.5 text-left transition-colors ${
+                  isSelected
+                    ? 'border-emerald-500 bg-emerald-50/80 text-emerald-900 shadow-sm'
+                    : 'border-border bg-card hover:border-emerald-300 hover:bg-emerald-50/40 text-foreground'
+                }`}
+              >
+                <span className={`text-xs font-semibold leading-tight ${
+                  isSelected ? 'text-emerald-800' : 'text-foreground'
+                }`}>
+                  {tpl.name}
+                </span>
+                <span className={`text-[11px] leading-snug ${
+                  isSelected ? 'text-emerald-600' : 'text-muted-foreground'
+                }`}>
+                  {tpl.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
         <p className="text-xs text-muted-foreground">
-          选择预设模板快速配置成帧参数，也可手动调整
+          选择预设模板快速配置成帧与解析参数，也可手动调整
         </p>
       </div>
 
@@ -561,6 +640,109 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+      </div>
+
+      {/* 协议解析配置 */}
+      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+        <Label className="text-sm font-medium text-foreground">协议解析</Label>
+        <p className="text-xs text-muted-foreground">
+          配置接收数据的解析方式，将原始字节流解析为结构化消息
+        </p>
+
+        {/* 解析器类型选择 */}
+        <div className="space-y-2">
+          <Select
+            value={selectedParserType}
+            onValueChange={handleParserTypeChange}
+          >
+            <SelectTrigger className="font-mono text-sm">
+              <SelectValue placeholder="无解析" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">无</SelectItem>
+              <SelectItem value="length_prefix">长度前缀</SelectItem>
+              <SelectItem value="delimiter">分隔符</SelectItem>
+              <SelectItem value="tlv">TLV</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* 长度前缀子字段 */}
+        {selectedParserType === 'length_prefix' && (
+          <div className="space-y-2 pl-2">
+            <Label className="text-xs text-muted-foreground">前缀字节数</Label>
+            <Select
+              value={String(watch('parser_config')?.prefix_bytes ?? 2)}
+              onValueChange={(val) => updateParserSubField('prefix_bytes', Number(val))}
+            >
+              <SelectTrigger className="h-8 font-mono text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2">2 字节</SelectItem>
+                <SelectItem value="4">4 字节</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">用于表示消息长度的字节数</p>
+          </div>
+        )}
+
+        {/* 分隔符子字段 */}
+        {selectedParserType === 'delimiter' && (
+          <div className="space-y-2 pl-2">
+            <Label className="text-xs text-muted-foreground">分隔符</Label>
+            <Input
+              value={String(watch('parser_config')?.delimiter ?? '\r\n')}
+              onChange={(e) => updateParserSubField('delimiter', e.target.value)}
+              className="h-8 font-mono text-xs"
+              placeholder="\r\n"
+            />
+            <p className="text-xs text-muted-foreground">遇到此分隔符时视为一条消息结束</p>
+          </div>
+        )}
+
+        {/* TLV 子字段 */}
+        {selectedParserType === 'tlv' && (
+          <div className="space-y-3 pl-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Tag 字节数</Label>
+              <Input
+                type="number"
+                min={1}
+                max={8}
+                value={Number(watch('parser_config')?.tag_bytes ?? 1)}
+                onChange={(e) => updateParserSubField('tag_bytes', Number(e.target.value) || 1)}
+                className="h-8 font-mono text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Length 字节数</Label>
+              <Input
+                type="number"
+                min={1}
+                max={8}
+                value={Number(watch('parser_config')?.length_bytes ?? 2)}
+                onChange={(e) => updateParserSubField('length_bytes', Number(e.target.value) || 2)}
+                className="h-8 font-mono text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">字节序</Label>
+              <Select
+                value={String(watch('parser_config')?.byte_order ?? 'big')}
+                onValueChange={(val) => updateParserSubField('byte_order', val)}
+              >
+                <SelectTrigger className="h-8 font-mono text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="big">大端序 (Big Endian)</SelectItem>
+                  <SelectItem value="little">小端序 (Little Endian)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 提示信息 */}

@@ -9,6 +9,8 @@ import type { Port } from './port';
 
 import type { DbFetchMode, DbIsolationLevel } from './database';
 
+import type { FlowHook } from './hook';
+
 // ============================================================================
 // 节点类型枚举
 // ============================================================================
@@ -41,6 +43,7 @@ export type NodeType =
   | 'mcp_close'
   | 'tcp_connect'
   | 'tcp_send'
+  | 'tcp_receive'
   | 'tcp_close'
   | 'udp_bind'
   | 'udp_send_to'
@@ -181,6 +184,8 @@ export interface EntryConfig {
   dataset_path?: string;
   /** CSV 编码（不设置=自动检测） */
   dataset_encoding?: string;
+  /** 流程钩子列表（入口节点配置中可编辑） */
+  hooks?: FlowHook[];
 }
 
 export interface HttpConfig {
@@ -383,6 +388,14 @@ export interface WsConnectConfig {
   collect_timeout_ms?: number;
   /** 输出变量映射 */
   output_mappings?: OutputMapping[];
+  /** 是否使用 TLS */
+  use_tls?: boolean;
+  /** 是否跳过 TLS 证书验证 */
+  tls_skip_verify?: boolean;
+  /** Ping 间隔（毫秒） */
+  ping_interval_ms?: number;
+  /** Ping 超时（毫秒） */
+  ping_timeout_ms?: number;
 }
 
 /**
@@ -735,6 +748,12 @@ export interface TcpConnectConfig {
   connect_timeout_ms?: number;
   framing_mode?: TcpFramingMode;
   framing_config?: FramingConfig;
+  /** 是否禁用 Nagle 算法 */
+  no_delay?: boolean;
+  /** TCP Keepalive 配置 */
+  keepalive?: { idle_secs: number; interval_secs: number; probe_count: number };
+  /** TLS CA 证书路径 */
+  tls_ca_cert?: string;
 }
 
 /**
@@ -748,6 +767,23 @@ export interface TcpSendConfig {
   framing_mode?: TcpFramingMode;
   framing_config?: FramingConfig;
   send_timeout_ms?: number;
+  /** 解析器配置（透传 JSON） */
+  parser_config?: Record<string, unknown>;
+}
+
+/**
+ * TCP Receive 节点配置
+ */
+export interface TcpReceiveConfig {
+  type: 'tcp_receive';
+  /** 连接 ID */
+  connection_id: string;
+  /** 接收超时（毫秒） */
+  receive_timeout_ms: number;
+  /** 帧定界模式 */
+  framing_mode: string;
+  /** 帧配置 */
+  framing_config: Record<string, unknown>;
 }
 
 /**
@@ -767,6 +803,16 @@ export interface UdpBindConfig {
   local_addr?: string;
   local_port: number;
   reuse_addr?: boolean;
+  /** 是否启用广播 */
+  broadcast?: boolean;
+  /** 多播组地址 */
+  multicast_group?: string;
+  /** 多播 TTL */
+  multicast_ttl?: number;
+  /** 是否启用多播环回 */
+  multicast_loop?: boolean;
+  /** 多播网络接口 */
+  multicast_interface?: string;
 }
 
 /**
@@ -1755,6 +1801,50 @@ export interface VariableExtractorConfig {
 }
 
 // ============================================================================
+// 协议模板与解析类型定义
+// ============================================================================
+
+/**
+ * 协议模板
+ */
+export interface ProtocolTemplate {
+  /** 模板 ID */
+  id: string;
+  /** 模板名称 */
+  name: string;
+  /** 模板描述 */
+  description: string;
+  /** 解析器配置 */
+  parser_config: Record<string, unknown>;
+}
+
+/**
+ * 解析后的消息
+ */
+export interface ParsedMessage {
+  /** 原始数据 */
+  raw_data: string;
+  /** 解析字段列表 */
+  fields: ParsedField[];
+  /** 解析时间（ISO 格式） */
+  parsed_at: string;
+}
+
+/**
+ * 解析后的字段
+ */
+export interface ParsedField {
+  /** 字段名称 */
+  name: string;
+  /** 字段值 */
+  value: string;
+  /** 数据偏移量 */
+  offset: number;
+  /** 数据长度 */
+  length: number;
+}
+
+// ============================================================================
 // TCP/UDP 录制类型定义
 // ============================================================================
 
@@ -2015,6 +2105,7 @@ export type NodeData =
   | McpCloseConfig
   | TcpConnectConfig
   | TcpSendConfig
+  | TcpReceiveConfig
   | TcpCloseConfig
   | UdpBindConfig
   | UdpSendToConfig
@@ -2264,6 +2355,13 @@ export function isTcpConnectConfig(data: NodeData): data is TcpConnectConfig {
  */
 export function isTcpSendConfig(data: NodeData): data is TcpSendConfig {
   return data.type === 'tcp_send';
+}
+
+/**
+ * 判断是否为 TcpReceiveConfig
+ */
+export function isTcpReceiveConfig(data: NodeData): data is TcpReceiveConfig {
+  return data.type === 'tcp_receive';
 }
 
 /**

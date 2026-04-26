@@ -45,6 +45,7 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   mcp_close: McpViewer,
   tcp_connect: TcpUdpViewer,
   tcp_send: TcpUdpViewer,
+  tcp_receive: TcpUdpViewer,
   tcp_close: TcpUdpViewer,
   udp_bind: TcpUdpViewer,
   udp_send_to: TcpUdpViewer,

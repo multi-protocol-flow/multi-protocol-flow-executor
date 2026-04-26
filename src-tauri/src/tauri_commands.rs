@@ -865,6 +865,26 @@ pub async fn amqp_test_connection(url: String) -> Result<bool, String> {
 }
 
 // ============================================================================
+// TCP 协议模板命令
+// ============================================================================
+
+/// 获取所有 TCP 协议内置模板
+///
+/// 返回所有预置的协议模板（Redis RESP、TLV、固定头部等）。
+#[tauri::command]
+pub fn tcp_list_templates() -> Vec<flow_engine::templates::ProtocolTemplate> {
+    flow_engine::templates::builtin_templates()
+}
+
+/// 根据 ID 获取指定 TCP 协议模板
+///
+/// 返回与 ID 匹配的模板，不存在则返回 null。
+#[tauri::command]
+pub fn tcp_get_template(id: String) -> Option<flow_engine::templates::ProtocolTemplate> {
+    flow_engine::templates::get_template(&id)
+}
+
+// ============================================================================
 // GraphQL IPC 命令
 // ============================================================================
 

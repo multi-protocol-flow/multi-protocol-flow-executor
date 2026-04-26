@@ -29,6 +29,7 @@ import { McpCloseConfig } from '@/components/panels/McpCloseConfig';
 import { McpGetPromptConfig } from '@/components/panels/McpGetPromptConfig';
 import { TcpConnectConfig } from '@/components/panels/TcpConnectConfig';
 import { TcpSendConfig } from '@/components/panels/TcpSendConfig';
+import { TcpReceiveConfig } from '@/components/panels/TcpReceiveConfig';
 import { TcpCloseConfig } from '@/components/panels/TcpCloseConfig';
 import { UdpBindConfig } from '@/components/panels/UdpBindConfig';
 import { UdpSendToConfig } from '@/components/panels/UdpSendToConfig';
@@ -102,6 +103,7 @@ export const configPanelRegistry: Record<string, ComponentType<any>> = {
   mcp_get_prompt: McpGetPromptConfig,
   tcp_connect: TcpConnectConfig,
   tcp_send: TcpSendConfig,
+  tcp_receive: TcpReceiveConfig,
   tcp_close: TcpCloseConfig,
   udp_bind: UdpBindConfig,
   udp_send_to: UdpSendToConfig,

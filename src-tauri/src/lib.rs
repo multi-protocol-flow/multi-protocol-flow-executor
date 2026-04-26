@@ -63,6 +63,9 @@ pub use tauri_commands::{
     sse_test_connection,
     // AMQP 连接测试命令
     amqp_test_connection,
+    // TCP 协议模板命令
+    tcp_list_templates,
+    tcp_get_template,
     // GraphQL 内省命令
     graphql_introspect_schema,
     // Kafka 命令
@@ -210,6 +213,9 @@ pub fn run() {
     sse_test_connection,
     // AMQP 连接测试命令
     amqp_test_connection,
+    // TCP 协议模板命令
+    tcp_list_templates,
+    tcp_get_template,
     // GraphQL 内省命令
     graphql_introspect_schema,
     // Kafka 命令

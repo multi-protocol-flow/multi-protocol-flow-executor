@@ -9,6 +9,8 @@ import { entryConfigSchema, type EntryConfigFormData } from './schemas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -16,10 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PlayCircle, Plus, Trash2, Variable, FileText, AlertTriangle, Table } from 'lucide-react';
+import { PlayCircle, Plus, Trash2, Variable, FileText, AlertTriangle, Table, Bell } from 'lucide-react';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { datasetService } from '@/services/dataset';
 import type { EntryConfig as EntryConfigType } from '@/types';
+import type { FlowHook } from '@/types';
 import type { CsvInfo } from '@/types/dataset';
 
 interface EntryConfigProps {
@@ -325,6 +328,17 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
         )}
       </div>
 
+      {/* 流程钩子配置 */}
+      <HookConfigSection
+        hooks={data.hooks}
+        onHooksChange={(hooks) => {
+          const formData = getValues();
+          const updatedConfig = fromFormData(formData);
+          updatedConfig.hooks = hooks.length > 0 ? hooks : undefined;
+          onSave(updatedConfig);
+        }}
+      />
+
       {/* 关联数据集 */}
       <DatasetAssociationSection
         datasetPath={data.dataset_path}
@@ -595,6 +609,245 @@ function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChang
               )}
             </div>
           )}
+        </div>
+      )}
+     </div>
+   );
+ }
+
+// ============================================================================
+// 钩子配置子组件
+// ============================================================================
+
+interface HookConfigProps {
+  hooks?: FlowHook[];
+  onHooksChange: (hooks: FlowHook[]) => void;
+}
+
+/** 触发条件选项 */
+const TRIGGER_OPTIONS = [
+  { value: 'on_success', label: '执行成功时' },
+  { value: 'on_failure', label: '执行失败时' },
+  { value: 'on_cancel', label: '执行取消时' },
+  { value: 'on_complete', label: '执行完成时（任意结果）' },
+] as const;
+
+/** 动作类型选项 */
+const ACTION_TYPE_OPTIONS = [
+  { value: 'notify', label: '系统通知' },
+  { value: 'webhook', label: 'Webhook 回调' },
+  { value: 'script', label: '脚本执行' },
+] as const;
+
+/**
+ * 钩子配置区块
+ * 独立于 react-hook-form 管理，通过 onHooksChange 直接同步到父组件
+ */
+function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
+  const localHooks = hooks || [];
+
+  /** 添加新钩子 */
+  const handleAddHook = useCallback(() => {
+    const newHook: FlowHook = {
+      uuid: `hook-${Date.now()}`,
+      name: '',
+      enabled: true,
+      trigger: 'on_complete',
+      action: { type: 'notify', title_template: '', message_template: '' },
+    };
+    onHooksChange([...localHooks, newHook]);
+  }, [localHooks, onHooksChange]);
+
+  /** 删除钩子 */
+  const handleRemoveHook = useCallback((index: number) => {
+    const updated = localHooks.filter((_, i) => i !== index);
+    onHooksChange(updated);
+  }, [localHooks, onHooksChange]);
+
+  /** 更新钩子字段 */
+  const handleUpdateHook = useCallback((index: number, updates: Partial<FlowHook>) => {
+    const updated = localHooks.map((h, i) => (i === index ? { ...h, ...updates } : h));
+    onHooksChange(updated);
+  }, [localHooks, onHooksChange]);
+
+  /** 更新动作字段 */
+  const handleUpdateAction = useCallback((index: number, actionUpdates: Record<string, unknown>) => {
+    const updated = localHooks.map((h, i) =>
+      i === index ? { ...h, action: { ...h.action, ...actionUpdates } as FlowHook['action'] } : h
+    );
+    onHooksChange(updated);
+  }, [localHooks, onHooksChange]);
+
+  /** 切换动作类型（需要重置动作字段） */
+  const handleActionTypeChange = useCallback((index: number, newType: string) => {
+    let newAction: FlowHook['action'];
+    switch (newType) {
+      case 'webhook':
+        newAction = { type: 'webhook', url: '', method: 'POST', headers: {} };
+        break;
+      case 'script':
+        newAction = { type: 'script', code: '' };
+        break;
+      case 'notify':
+      default:
+        newAction = { type: 'notify', title_template: '', message_template: '' };
+        break;
+    }
+    const updated = localHooks.map((h, i) => (i === index ? { ...h, action: newAction } : h));
+    onHooksChange(updated);
+  }, [localHooks, onHooksChange]);
+
+  return (
+    <div className="space-y-3 pt-4 border-t">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Bell className="h-4 w-4 text-muted-foreground" />
+          <Label className="text-sm font-medium text-foreground">流程钩子</Label>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleAddHook}
+          className="h-7 gap-1.5 text-xs"
+          disabled={localHooks.length >= 10}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          添加 Hook
+        </Button>
+      </div>
+
+      {localHooks.length === 0 ? (
+        <div className="rounded-md bg-muted/30 p-3">
+          <p className="text-xs text-muted-foreground">
+            配置流程完成后自动触发的动作
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {localHooks.map((hook, index) => (
+            <div key={hook.uuid} className="rounded-md border bg-muted/10 p-3 space-y-2">
+              {/* 第一行：启用开关 + 名称 + 删除 */}
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={hook.enabled}
+                  onCheckedChange={(checked) => handleUpdateHook(index, { enabled: checked })}
+                />
+                <Input
+                  value={hook.name}
+                  onChange={(e) => handleUpdateHook(index, { name: e.target.value })}
+                  placeholder="Hook 名称"
+                  className="h-7 text-xs flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveHook(index)}
+                  className="h-7 w-7 shrink-0 text-muted-foreground hover:text-rose-500"
+                  title="删除 Hook"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+
+              {/* 第二行：触发条件 + 动作类型 */}
+              <div className="flex gap-2">
+                <Select
+                  value={hook.trigger}
+                  onValueChange={(v) => handleUpdateHook(index, { trigger: v as FlowHook['trigger'] })}
+                >
+                  <SelectTrigger className="h-7 text-xs flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRIGGER_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={hook.action.type}
+                  onValueChange={(v) => handleActionTypeChange(index, v)}
+                >
+                  <SelectTrigger className="h-7 text-xs flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACTION_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* 动作配置（根据类型显示不同字段） */}
+              {hook.action.type === 'webhook' && (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Select
+                      value={hook.action.method}
+                      onValueChange={(v) => handleUpdateAction(index, { method: v })}
+                    >
+                      <SelectTrigger className="h-7 text-xs w-24 shrink-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map((m) => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      value={hook.action.url}
+                      onChange={(e) => handleUpdateAction(index, { url: e.target.value })}
+                      placeholder="https://example.com/hook"
+                      className="h-7 text-xs flex-1 font-mono"
+                    />
+                  </div>
+                  <Textarea
+                    value={hook.action.body_template || ''}
+                    onChange={(e) => handleUpdateAction(index, { body_template: e.target.value || undefined })}
+                    placeholder={'请求体模板（可选，支持 {{status}} {{flow_name}} 等）'}
+                    className="text-xs font-mono min-h-[48px] resize-y"
+                    rows={2}
+                  />
+                </div>
+              )}
+
+              {hook.action.type === 'script' && (
+                <Textarea
+                  value={hook.action.code}
+                  onChange={(e) => handleUpdateAction(index, { code: e.target.value })}
+                  placeholder={'// QuickJS 脚本代码\nfn.log("流程完成: " + status)'}
+                  className="text-xs font-mono min-h-[48px] resize-y"
+                  rows={3}
+                />
+              )}
+
+              {hook.action.type === 'notify' && (
+                <div className="space-y-2">
+                  <Input
+                    value={hook.action.title_template}
+                    onChange={(e) => handleUpdateAction(index, { title_template: e.target.value })}
+                    placeholder="通知标题（支持 {{flow_name}} {{status}}）"
+                    className="h-7 text-xs"
+                  />
+                  <Input
+                    value={hook.action.message_template}
+                    onChange={(e) => handleUpdateAction(index, { message_template: e.target.value })}
+                    placeholder="通知内容（支持 {{status}} {{duration_ms}} {{error}}）"
+                    className="h-7 text-xs"
+                  />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>

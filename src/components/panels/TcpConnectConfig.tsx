@@ -13,7 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Cable, Info, AlertTriangle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Cable, Info, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import type { TcpConnectConfig as TcpConnectConfigType, TcpFramingMode } from '@/types';
 
 interface TcpConnectConfigProps {
@@ -47,6 +48,9 @@ function toFormData(data: TcpConnectConfigType): TcpConnectConfigFormData {
     connect_timeout_ms: data.connect_timeout_ms ?? 30000,
     framing_mode: data.framing_mode,
     framing_config: data.framing_config,
+    no_delay: data.no_delay ?? false,
+    keepalive: data.keepalive,
+    tls_ca_cert: data.tls_ca_cert ?? '',
   };
 }
 
@@ -54,7 +58,7 @@ function toFormData(data: TcpConnectConfigType): TcpConnectConfigFormData {
  * 将表单数据转换为 TcpConnectConfigType
  */
 function fromFormData(formData: TcpConnectConfigFormData): TcpConnectConfigType {
-  return {
+  const result: TcpConnectConfigType = {
     type: 'tcp_connect',
     host: formData.host,
     port: formData.port,
@@ -63,7 +67,14 @@ function fromFormData(formData: TcpConnectConfigFormData): TcpConnectConfigType 
     connect_timeout_ms: formData.connect_timeout_ms,
     framing_mode: formData.framing_mode,
     framing_config: formData.framing_config,
+    no_delay: formData.no_delay,
+    tls_ca_cert: formData.tls_ca_cert || undefined,
   };
+  // 仅在 keepalive 有值时才添加
+  if (formData.keepalive) {
+    result.keepalive = formData.keepalive;
+  }
+  return result;
 }
 
 /**
@@ -96,6 +107,11 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
   // 成帧模式选择状态（UI 层面选择 basic mode type）
   const [selectedFramingType, setSelectedFramingType] = useState<string>(
     currentFramingMode?.type ?? 'none'
+  );
+
+  // Keepalive 配置展开状态
+  const [keepaliveExpanded, setKeepaliveExpanded] = useState<boolean>(
+    !!data.keepalive
   );
 
   // 追踪待执行的 setTimeout，组件卸载时清除
@@ -139,6 +155,7 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
   useEffect(() => {
     reset(toFormData(data));
     setSelectedFramingType(data.framing_mode?.type ?? 'none');
+    setKeepaliveExpanded(!!data.keepalive);
   }, [data, reset]);
 
   /**
@@ -328,6 +345,121 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+      </div>
+
+      {/* 高级选项 */}
+      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+        <Label className="text-sm font-medium text-foreground">高级选项</Label>
+
+        {/* NoDelay 开关 */}
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="no_delay"
+            checked={watch('no_delay') || false}
+            onCheckedChange={(checked) => {
+              setValue('no_delay', checked, { shouldDirty: true });
+              saveData();
+            }}
+          />
+          <Label htmlFor="no_delay" className="text-sm font-medium text-foreground cursor-pointer">
+            禁用 Nagle 算法 (NoDelay)
+          </Label>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          启用后立即发送小包，降低延迟，适用于实时交互场景
+        </p>
+
+        {/* Keepalive 配置 */}
+        <div className="space-y-2">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
+            onClick={() => {
+              const expanded = !keepaliveExpanded;
+              setKeepaliveExpanded(expanded);
+              if (expanded && !getValues('keepalive')) {
+                setValue('keepalive', { idle_secs: 60, interval_secs: 10, probe_count: 3 }, { shouldDirty: true });
+                saveData();
+              } else if (!expanded) {
+                setValue('keepalive', undefined as unknown as { idle_secs: number; interval_secs: number; probe_count: number }, { shouldDirty: true });
+                saveData();
+              }
+            }}
+          >
+            {keepaliveExpanded ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5" />
+            )}
+            Keepalive 配置
+          </button>
+
+          {keepaliveExpanded && (
+            <div className="space-y-3 pl-2 border-l-2 border-muted">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">空闲时间 (秒)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={watch('keepalive')?.idle_secs ?? 60}
+                  onChange={(e) => {
+                    const current = getValues('keepalive') ?? { idle_secs: 60, interval_secs: 10, probe_count: 3 };
+                    setValue('keepalive', { ...current, idle_secs: Number(e.target.value) || 60 }, { shouldDirty: true });
+                    safeSetTimeout(saveData, 100);
+                  }}
+                  className="h-8 font-mono text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">探测间隔 (秒)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={watch('keepalive')?.interval_secs ?? 10}
+                  onChange={(e) => {
+                    const current = getValues('keepalive') ?? { idle_secs: 60, interval_secs: 10, probe_count: 3 };
+                    setValue('keepalive', { ...current, interval_secs: Number(e.target.value) || 10 }, { shouldDirty: true });
+                    safeSetTimeout(saveData, 100);
+                  }}
+                  className="h-8 font-mono text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">探测次数</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={watch('keepalive')?.probe_count ?? 3}
+                  onChange={(e) => {
+                    const current = getValues('keepalive') ?? { idle_secs: 60, interval_secs: 10, probe_count: 3 };
+                    setValue('keepalive', { ...current, probe_count: Number(e.target.value) || 3 }, { shouldDirty: true });
+                    safeSetTimeout(saveData, 100);
+                  }}
+                  className="h-8 font-mono text-xs"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* CA 证书（仅 TLS 启用时显示） */}
+        {useTls && (
+          <div className="space-y-2">
+            <Label htmlFor="tls_ca_cert" className="text-sm font-medium text-foreground">
+              自定义 CA 证书 (PEM)
+            </Label>
+            <Textarea
+              id="tls_ca_cert"
+              {...register('tls_ca_cert')}
+              placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"
+              className="min-h-[100px] resize-y font-mono text-xs"
+              rows={5}
+            />
+            <p className="text-xs text-muted-foreground">
+              粘贴 PEM 格式的 CA 证书内容，用于验证服务端证书链
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 成帧配置 */}

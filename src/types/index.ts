@@ -43,6 +43,7 @@ export type {
   FramingConfig,
   TcpConnectConfig,
   TcpSendConfig,
+  TcpReceiveConfig,
   TcpCloseConfig,
   UdpBindConfig,
   UdpSendToConfig,
@@ -140,6 +141,7 @@ export {
   isMcpCloseConfig,
   isTcpConnectConfig,
   isTcpSendConfig,
+  isTcpReceiveConfig,
   isTcpCloseConfig,
   isUdpBindConfig,
   isUdpSendToConfig,
@@ -298,3 +300,13 @@ export type {
   DatasetEvent,
   DatasetReportSummary,
 } from './dataset';
+
+// 钩子类型
+export type {
+  HookTrigger,
+  WebhookHookAction,
+  ScriptHookAction,
+  NotifyHookAction,
+  HookAction,
+  FlowHook,
+} from './hook';

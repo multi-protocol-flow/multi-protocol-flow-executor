@@ -4,7 +4,7 @@
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   udpBindConfigSchema,
   type UdpBindConfigFormData,
@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Radio, Info } from 'lucide-react';
+import { Radio, Info, ChevronDown, ChevronRight, Wifi } from 'lucide-react';
 import type { UdpBindConfig as UdpBindConfigType } from '@/types';
 
 interface UdpBindConfigProps {
@@ -31,6 +31,11 @@ function toFormData(data: UdpBindConfigType): UdpBindConfigFormData {
     local_addr: data.local_addr ?? '0.0.0.0',
     local_port: data.local_port ?? 0,
     reuse_addr: data.reuse_addr ?? true,
+    broadcast: data.broadcast ?? false,
+    multicast_group: data.multicast_group ?? '',
+    multicast_ttl: data.multicast_ttl ?? 1,
+    multicast_loop: data.multicast_loop ?? false,
+    multicast_interface: data.multicast_interface ?? '',
   };
 }
 
@@ -43,6 +48,11 @@ function fromFormData(formData: UdpBindConfigFormData): UdpBindConfigType {
     local_addr: formData.local_addr,
     local_port: formData.local_port,
     reuse_addr: formData.reuse_addr,
+    broadcast: formData.broadcast,
+    multicast_group: formData.multicast_group || undefined,
+    multicast_ttl: formData.multicast_ttl,
+    multicast_loop: formData.multicast_loop,
+    multicast_interface: formData.multicast_interface || undefined,
   };
 }
 
@@ -63,6 +73,11 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
 
   // 监听表单值变化
   const reuseAddr = watch('reuse_addr');
+  const broadcast = watch('broadcast');
+  const multicastLoop = watch('multicast_loop');
+
+  // 多播配置折叠状态
+  const [multicastOpen, setMulticastOpen] = useState(false);
 
   // 追踪待执行的 setTimeout，组件卸载时清除
   const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
@@ -209,6 +224,124 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
         <p className="text-xs text-muted-foreground">
           启用后允许绑定处于 TIME_WAIT 状态的地址和端口
         </p>
+       </div>
+
+      {/* 网络选项 */}
+      <div className="space-y-3">
+        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Wifi className="h-4 w-4" />
+          网络选项
+        </h4>
+
+        {/* 广播开关 */}
+        <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="broadcast"
+              checked={broadcast ?? false}
+              onCheckedChange={(checked) => {
+                setValue('broadcast', checked, { shouldDirty: true });
+                saveData();
+              }}
+            />
+            <Label htmlFor="broadcast" className="text-sm font-medium text-foreground cursor-pointer">
+              启用广播 (SO_BROADCAST)
+            </Label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            启用后允许发送广播消息到 255.255.255.255 或特定子网
+          </p>
+        </div>
+
+        {/* 多播配置（可折叠） */}
+        <div className="rounded-md border bg-muted/30">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between p-3 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+            onClick={() => setMulticastOpen(!multicastOpen)}
+          >
+            <span className="flex items-center gap-2">
+              {multicastOpen ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+              多播配置
+            </span>
+          </button>
+
+          {multicastOpen && (
+            <div className="space-y-3 border-t px-3 pb-3 pt-3">
+              {/* 多播组地址 */}
+              <div className="space-y-2">
+                <Label htmlFor="multicast_group" className="text-sm font-medium text-foreground">
+                  多播组地址
+                </Label>
+                <Input
+                  id="multicast_group"
+                  {...register('multicast_group')}
+                  placeholder="239.1.1.1"
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  IPv4 多播地址范围 224.0.0.0 ~ 239.255.255.255
+                </p>
+              </div>
+
+              {/* 多播 TTL */}
+              <div className="space-y-2">
+                <Label htmlFor="multicast_ttl" className="text-sm font-medium text-foreground">
+                  多播 TTL
+                </Label>
+                <Input
+                  id="multicast_ttl"
+                  type="number"
+                  min={0}
+                  max={255}
+                  {...register('multicast_ttl', { valueAsNumber: true })}
+                  className="font-mono text-sm"
+                />
+                {errors.multicast_ttl && (
+                  <p className="text-xs text-rose-500">{errors.multicast_ttl.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  生存时间，控制多播数据包传播范围（0-255，默认 1）
+                </p>
+              </div>
+
+              {/* 多播环回 */}
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="multicast_loop"
+                  checked={multicastLoop ?? false}
+                  onCheckedChange={(checked) => {
+                    setValue('multicast_loop', checked, { shouldDirty: true });
+                    saveData();
+                  }}
+                />
+                <Label htmlFor="multicast_loop" className="text-sm font-medium text-foreground cursor-pointer">
+                  多播环回 (IP_MULTICAST_LOOP)
+                </Label>
+              </div>
+
+              {/* 绑定接口 */}
+              <div className="space-y-2">
+                <Label htmlFor="multicast_interface" className="text-sm font-medium text-foreground">
+                  绑定接口
+                </Label>
+                <Input
+                  id="multicast_interface"
+                  {...register('multicast_interface')}
+                  placeholder="0.0.0.0"
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  多播数据包出口网络接口，留空使用默认接口
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 提示信息 */}

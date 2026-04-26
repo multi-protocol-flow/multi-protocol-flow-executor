@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Wifi, Info, ArrowRightFromLine } from 'lucide-react';
+import { Plus, Trash2, Wifi, Info, ArrowRightFromLine, AlertTriangle } from 'lucide-react';
 import type { WsConnectConfig as WsConnectConfigType, FormField } from '@/types';
 import type { Variable } from '@/types/variable';
 import { useFlowStore } from '@/stores';
@@ -49,6 +49,10 @@ function toFormData(data: WsConnectConfigType): WsConnectConfigFormData {
     collect_condition: data.collect_condition,
     collect_timeout_ms: data.collect_timeout_ms ?? 30000,
     output_mappings: data.output_mappings || [],
+    use_tls: data.use_tls,
+    tls_skip_verify: data.tls_skip_verify,
+    ping_interval_ms: data.ping_interval_ms,
+    ping_timeout_ms: data.ping_timeout_ms,
   };
 }
 
@@ -70,6 +74,10 @@ function fromFormData(formData: WsConnectConfigFormData): WsConnectConfigType {
     collect_condition: formData.collect_message && formData.collect_mode === 'condition_match' ? formData.collect_condition : undefined,
     collect_timeout_ms: formData.collect_message ? formData.collect_timeout_ms : undefined,
     output_mappings: formData.output_mappings && formData.output_mappings.length > 0 ? formData.output_mappings : undefined,
+    use_tls: formData.use_tls || undefined,
+    tls_skip_verify: formData.use_tls ? (formData.tls_skip_verify || undefined) : undefined,
+    ping_interval_ms: formData.ping_interval_ms || undefined,
+    ping_timeout_ms: formData.ping_timeout_ms || undefined,
   };
 }
 
@@ -199,6 +207,9 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
   // 监听表单值变化
   const collectMessage = watch('collect_message');
   const collectMode = watch('collect_mode');
+  const useTls = watch('use_tls');
+  const pingIntervalMs = watch('ping_interval_ms');
+  const pingTimeoutMs = watch('ping_timeout_ms');
 
   // 当外部数据变化时，重置表单（确保所有字段同步）
   useEffect(() => {
@@ -397,6 +408,108 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
           {...register('connect_timeout_ms', { valueAsNumber: true })}
         />
         <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+      </div>
+
+      {/* TLS 配置 */}
+      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="use_tls"
+            checked={useTls || false}
+            onCheckedChange={(checked) => {
+              setValue('use_tls', checked, { shouldDirty: true });
+              if (!checked) {
+                setValue('tls_skip_verify', false, { shouldDirty: true });
+              }
+              saveData();
+            }}
+          />
+          <Label htmlFor="use_tls" className="text-sm font-medium text-foreground cursor-pointer">
+            启用 TLS
+          </Label>
+        </div>
+
+        {useTls && (
+          <>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="tls_skip_verify"
+                checked={watch('tls_skip_verify') || false}
+                onCheckedChange={(checked) => {
+                  setValue('tls_skip_verify', checked, { shouldDirty: true });
+                  saveData();
+                }}
+              />
+              <Label htmlFor="tls_skip_verify" className="text-sm font-medium text-foreground cursor-pointer">
+                跳过证书验证
+              </Label>
+            </div>
+            {watch('tls_skip_verify') && (
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-800/60 dark:bg-amber-950/30">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-400">
+                  跳过证书验证仅用于开发/测试环境，生产环境请使用有效证书。
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* 心跳配置 */}
+      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="ping_enabled"
+              checked={!!(pingIntervalMs || pingTimeoutMs)}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  setValue('ping_interval_ms', 30000, { shouldDirty: true });
+                  setValue('ping_timeout_ms', 10000, { shouldDirty: true });
+                } else {
+                  setValue('ping_interval_ms', undefined as unknown as number, { shouldDirty: true });
+                  setValue('ping_timeout_ms', undefined as unknown as number, { shouldDirty: true });
+                }
+                saveData();
+              }}
+            />
+            <Label htmlFor="ping_enabled" className="text-sm font-medium text-foreground cursor-pointer">
+              启用心跳
+            </Label>
+          </div>
+
+          {(pingIntervalMs || pingTimeoutMs) && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="ping_interval_ms" className="text-sm font-medium text-foreground">
+                  Ping 间隔 (ms)
+                </Label>
+                <Input
+                  id="ping_interval_ms"
+                  type="number"
+                  min={1000}
+                  max={300000}
+                  {...register('ping_interval_ms', { valueAsNumber: true })}
+                />
+                <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ping_timeout_ms" className="text-sm font-medium text-foreground">
+                  Ping 超时 (ms)
+                </Label>
+                <Input
+                  id="ping_timeout_ms"
+                  type="number"
+                  min={1000}
+                  max={300000}
+                  {...register('ping_timeout_ms', { valueAsNumber: true })}
+                />
+                <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* 采集消息开关 */}

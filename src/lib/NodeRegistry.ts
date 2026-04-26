@@ -174,10 +174,11 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   amqp10_reject: 16,
   amqp10_disconnect: 17,
 
-  // TCP: 连接 → 发送 → 关闭
+  // TCP: 连接 → 发送 → 接收 → 关闭
   tcp_connect: 0,
   tcp_send: 1,
-  tcp_close: 2,
+  tcp_receive: 2,
+  tcp_close: 3,
 
   // UDP: 绑定 → 发送 → 接收 → 关闭
   udp_bind: 0,
@@ -250,6 +251,7 @@ export function getBadgeClassForType(typeId: string): string {
     variable_extractor: 'bg-amber-100 text-amber-700',
     tcp_connect: 'bg-emerald-100 text-emerald-700',
     tcp_send: 'bg-emerald-100 text-emerald-700',
+    tcp_receive: 'bg-emerald-100 text-emerald-700',
     tcp_close: 'bg-emerald-100 text-emerald-700',
     udp_bind: 'bg-orange-100 text-orange-700',
     udp_send_to: 'bg-orange-100 text-orange-700',

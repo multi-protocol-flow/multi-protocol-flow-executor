@@ -171,6 +171,56 @@ export const initialVariableSchema = z.object({
 
 export type InitialVariableFormData = z.infer<typeof initialVariableSchema>;
 
+// ============================================================================
+// Hook 钩子 Schema
+// ============================================================================
+
+/** 钩子触发条件 schema */
+const hookTriggerSchema = z.enum(['on_success', 'on_failure', 'on_cancel', 'on_complete']);
+
+/** Webhook 动作 schema */
+const webhookHookActionSchema = z.object({
+  type: z.literal('webhook'),
+  url: z.string().min(1, 'URL 不能为空'),
+  method: z.string().min(1, '方法不能为空'),
+  headers: z.record(z.string(), z.string()),
+  body_template: z.string().optional(),
+  timeout_ms: z.number().min(1000).max(300000).optional(),
+});
+
+/** Script 动作 schema */
+const scriptHookActionSchema = z.object({
+  type: z.literal('script'),
+  code: z.string().min(1, '代码不能为空'),
+  timeout_ms: z.number().min(1000).max(300000).optional(),
+});
+
+/** Notify 动作 schema */
+const notifyHookActionSchema = z.object({
+  type: z.literal('notify'),
+  title_template: z.string().min(1, '标题模板不能为空'),
+  message_template: z.string().min(1, '消息模板不能为空'),
+});
+
+/** 钩子动作 discriminated union */
+const hookActionSchema = z.discriminatedUnion('type', [
+  webhookHookActionSchema,
+  scriptHookActionSchema,
+  notifyHookActionSchema,
+]);
+
+/** 单个钩子 schema */
+const flowHookSchema = z.object({
+  uuid: z.string(),
+  name: z.string().min(1, '名称不能为空'),
+  enabled: z.boolean(),
+  trigger: hookTriggerSchema,
+  action: hookActionSchema,
+});
+
+/** 钩子列表 schema */
+const hooksSchema = z.array(flowHookSchema).max(10, '最多 10 个钩子').optional();
+
 /**
  * Entry 配置表单 Schema
  */
@@ -181,6 +231,8 @@ export const entryConfigSchema = z.object({
   dataset_path: z.string().optional(),
   /** CSV 编码（不设置=自动检测） */
   dataset_encoding: z.string().optional(),
+  /** 流程钩子配置 */
+  hooks: hooksSchema,
 }).refine(
   (data) => {
     if (!data.initial_variables) return true;
@@ -242,6 +294,14 @@ export const wsConnectConfigSchema = z.object({
   collect_condition: wsCollectConditionSchema.optional(),
   collect_timeout_ms: z.number().min(1000).max(300000).optional(),
   output_mappings: z.array(outputMappingSchema).optional(),
+  /** 是否使用 TLS */
+  use_tls: z.boolean().optional(),
+  /** 是否跳过 TLS 证书验证 */
+  tls_skip_verify: z.boolean().optional(),
+  /** Ping 间隔（毫秒） */
+  ping_interval_ms: z.number().optional(),
+  /** Ping 超时（毫秒） */
+  ping_timeout_ms: z.number().optional(),
   // 注意：collect_mode 和 collect_condition 在 collect_message=false 时的处理
   // 由 WsConnectConfig 的 fromFormData 函数负责，这里不做额外验证
 });
@@ -713,6 +773,16 @@ export const tcpConnectConfigSchema = z.object({
   connect_timeout_ms: z.number().int().positive().optional(),
   framing_mode: tcpFramingConfigSchema.shape.mode.optional(),
   framing_config: tcpFramingConfigSchema.optional(),
+  /** 是否禁用 Nagle 算法 */
+  no_delay: z.boolean().optional(),
+  /** TCP Keepalive 配置 */
+  keepalive: z.object({
+    idle_secs: z.number(),
+    interval_secs: z.number(),
+    probe_count: z.number(),
+  }).optional(),
+  /** TLS CA 证书路径 */
+  tls_ca_cert: z.string().optional(),
 });
 
 export type TcpConnectConfigFormData = z.infer<typeof tcpConnectConfigSchema>;
@@ -728,6 +798,8 @@ export const tcpSendConfigSchema = z.object({
   framing_mode: tcpFramingConfigSchema.shape.mode.optional(),
   framing_config: tcpFramingConfigSchema.optional(),
   send_timeout_ms: z.number().int().positive().optional(),
+  /** 解析器配置（透传 JSON） */
+  parser_config: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type TcpSendConfigFormData = z.infer<typeof tcpSendConfigSchema>;
@@ -744,6 +816,19 @@ export const tcpCloseConfigSchema = z.object({
 export type TcpCloseConfigFormData = z.infer<typeof tcpCloseConfigSchema>;
 
 /**
+ * TCP Receive 配置表单 Schema
+ */
+export const tcpReceiveConfigSchema = z.object({
+  type: z.literal('tcp_receive'),
+  connection_id: z.string().min(1, '请选择连接'),
+  receive_timeout_ms: z.number().int().positive(),
+  framing_mode: tcpFramingConfigSchema.shape.mode.optional(),
+  framing_config: tcpFramingConfigSchema.optional(),
+});
+
+export type TcpReceiveConfigFormData = z.infer<typeof tcpReceiveConfigSchema>;
+
+/**
  * UDP Bind 配置表单 Schema
  */
 export const udpBindConfigSchema = z.object({
@@ -751,6 +836,16 @@ export const udpBindConfigSchema = z.object({
   local_addr: z.string().optional(),
   local_port: z.number().int().min(0).max(65535),
   reuse_addr: z.boolean().optional(),
+  /** 是否启用广播 */
+  broadcast: z.boolean().optional(),
+  /** 多播组地址 */
+  multicast_group: z.string().optional(),
+  /** 多播 TTL */
+  multicast_ttl: z.number().optional(),
+  /** 是否启用多播环回 */
+  multicast_loop: z.boolean().optional(),
+  /** 多播网络接口 */
+  multicast_interface: z.string().optional(),
 });
 
 export type UdpBindConfigFormData = z.infer<typeof udpBindConfigSchema>;

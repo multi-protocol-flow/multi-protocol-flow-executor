@@ -5,6 +5,7 @@
 
 import type { Node } from './node';
 import type { Connection } from './connection';
+import type { FlowHook } from './hook';
 
 /**
  * 流程数据结构
@@ -20,4 +21,6 @@ export interface Flow {
   nodes: Node[];
   /** 流程中的连接列表 */
   connections: Connection[];
+  /** 流程钩子列表（流程完成时自动触发） */
+  hooks?: FlowHook[];
 }
