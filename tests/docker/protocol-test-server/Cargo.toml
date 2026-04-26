@@ -2,12 +2,46 @@
 name = "protocol-test-server"
 version = "0.1.0"
 edition = "2021"
-description = "TCP/UDP protocol test server for flow-engine integration testing"
+description = "Multi-protocol test server for flow-engine integration testing (TCP/UDP/HTTP/WS/gRPC/MCP/SSE/GraphQL)"
+
+[[bin]]
+name = "mcp-stdio-server"
+path = "src/bin/mcp_stdio.rs"
 
 [dependencies]
+# 异步运行时
 tokio = { version = "1", features = ["full"] }
+
+# TLS
 tokio-rustls = "0.26"
 rustls-pemfile = "2"
+
+# 日志
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# 错误处理
 anyhow = "1"
+
+# HTTP 服务器 (REST + SSE + MCP Streamable HTTP)
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+http = "1"
+
+# 序列化
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# WebSocket
+tokio-tungstenite = "0.26"
+
+# gRPC
+tonic = "0.12"
+prost = "0.13"
+
+# Stream 工具 (WS SinkExt/StreamExt)
+futures-util = "0.3"
+
+[build-dependencies]
+tonic-build = "0.12"

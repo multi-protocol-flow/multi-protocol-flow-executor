@@ -1,0 +1,102 @@
+{
+  "_version": 1,
+  "flow": {
+    "uuid": "websocket-test",
+    "name": "WebSocket 全场景测�?,
+    "initial_variables": {},
+    "nodes": [
+      {
+        "uuid": "entry-001",
+        "type": "entry",
+        "name": "入口",
+        "position": { "x": 0, "y": 0 },
+        "data": { "type": "entry" }
+      },
+      {
+        "uuid": "ws-conn",
+        "type": "ws_connect",
+        "name": "WebSocket 连接",
+        "position": { "x": 250, "y": 0 },
+        "data": {
+          "type": "ws_connect",
+          "url": "ws://127.0.0.1:9091",
+          "headers": [],
+          "subprotocols": [],
+          "connect_timeout_ms": 5000,
+          "collect_message": true,
+          "collect_mode": "first_match",
+          "collect_timeout_ms": 5000
+        }
+      },
+      {
+        "uuid": "ws-echo",
+        "type": "ws_send_collect",
+        "name": "Echo 文本回显",
+        "position": { "x": 500, "y": 0 },
+        "data": {
+          "type": "ws_send_collect",
+          "connection_id": "ws-conn",
+          "message": "Hello WebSocket!",
+          "message_type": "text",
+          "send_timeout_ms": 5000,
+          "collect_response": true,
+          "collect_mode": "first_match",
+          "collect_timeout_ms": 5000
+        }
+      },
+      {
+        "uuid": "ws-cmd",
+        "type": "ws_send_collect",
+        "name": "JSON 命令 Ping",
+        "position": { "x": 750, "y": 0 },
+        "data": {
+          "type": "ws_send_collect",
+          "connection_id": "ws-conn",
+          "message": "{\"cmd\": \"ping\"}",
+          "message_type": "text",
+          "send_timeout_ms": 5000,
+          "collect_response": true,
+          "collect_mode": "first_match",
+          "collect_timeout_ms": 5000
+        }
+      },
+      {
+        "uuid": "ws-upper",
+        "type": "ws_send_collect",
+        "name": "JSON 命令 Upper",
+        "position": { "x": 1000, "y": 0 },
+        "data": {
+          "type": "ws_send_collect",
+          "connection_id": "ws-conn",
+          "message": "{\"cmd\": \"upper\", \"data\": \"hello world\"}",
+          "message_type": "text",
+          "send_timeout_ms": 5000,
+          "collect_response": true,
+          "collect_mode": "first_match",
+          "collect_timeout_ms": 5000
+        }
+      },
+      {
+        "uuid": "ws-close",
+        "type": "ws_close",
+        "name": "关闭连接",
+        "position": { "x": 1250, "y": 0 },
+        "data": {
+          "type": "ws_close",
+          "connection_id": "ws-conn",
+          "close_code": 1000,
+          "close_reason": "测试完成",
+          "close_timeout_ms": 5000
+        }
+      }
+    ],
+    "connections": [
+      { "id": "c1", "source_node_uuid": "entry-001", "target_node_uuid": "ws-conn", "source_port_id": "out", "target_port_id": "in" },
+      { "id": "c2", "source_node_uuid": "ws-conn", "target_node_uuid": "ws-echo", "source_port_id": "out", "target_port_id": "in" },
+      { "id": "c3", "source_node_uuid": "ws-echo", "target_node_uuid": "ws-cmd", "source_port_id": "out", "target_port_id": "in" },
+      { "id": "c4", "source_node_uuid": "ws-cmd", "target_node_uuid": "ws-upper", "source_port_id": "out", "target_port_id": "in" },
+      { "id": "c5", "source_node_uuid": "ws-upper", "target_node_uuid": "ws-close", "source_port_id": "out", "target_port_id": "in" }
+    ]
+  },
+  "_meta": null
+}

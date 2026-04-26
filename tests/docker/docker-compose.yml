@@ -1,22 +1,75 @@
 services:
+  # ============================================================
+  # 主协议测试服务器 (Rust: TCP/UDP/HTTP/WS/gRPC/MCP/SSE/GraphQL)
+  # ============================================================
   protocol-test-server:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: mpe-test-server
     ports:
+      # TCP 服务
       - "9001:9001"   # TCP Echo
       - "9002:9002"   # TCP Line Protocol
       - "9003:9003"   # TCP LengthPrefix
       - "9004:9004"   # TCP TLS Echo
+      # UDP 服务
       - "9101:9101/udp"   # UDP Echo
       - "9102:9102/udp"   # UDP Responder
+      # HTTP/GraphQL/SSE 服务
+      - "9090:8080"   # HTTP REST + SSE + GraphQL (内部 8080)
+      # WebSocket 服务
+      - "9091:8081"   # WebSocket (内部 8081)
+      # gRPC 服务
+      - "50051:50051" # gRPC TestService
+      # MCP Streamable HTTP
+      - "9085:8085"   # MCP Server (内部 8085, 映射到主机 9085)
     environment:
       - RUST_LOG=info
+      - CONN_TIMEOUT_SECS=120
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "echo test | nc -w 1 localhost 9001 || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ============================================================
+  # MQTT Broker — Eclipse Mosquitto
+  # ============================================================
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mpe-mosquitto
+    ports:
+      - "11883:1883"   # MQTT TCP (内部 1883)
+      - "9086:8086"    # MQTT over WebSocket (内部 8086)
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_pub -h localhost -t health -m ok || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 5s
+
+  # ============================================================
+  # AMQP Broker — RabbitMQ (with Management UI)
+  # ============================================================
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: mpe-rabbitmq
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Management UI (guest/guest)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q check_running || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s

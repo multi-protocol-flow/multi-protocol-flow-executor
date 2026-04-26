@@ -1,0 +1,60 @@
+{
+  "_version": 1,
+  "flow": {
+    "uuid": "graphql-test",
+    "name": "GraphQL 查询测试",
+    "initial_variables": {},
+    "nodes": [
+      {
+        "uuid": "entry-001",
+        "type": "entry",
+        "name": "入口",
+        "position": { "x": 0, "y": 0 },
+        "data": { "type": "entry" }
+      },
+      {
+        "uuid": "gql-query",
+        "type": "http",
+        "name": "GraphQL 查询 Todos",
+        "position": { "x": 300, "y": 0 },
+        "data": {
+          "type": "http",
+          "url": "http://127.0.0.1:9090/graphql",
+          "method": "post",
+          "headers": { "Content-Type": "application/json" },
+          "body_type": "body",
+          "content_type": "json",
+          "timeout_ms": 5000,
+          "body": "{\"query\": \"{ todos { id title completed } }\"}",
+          "form_fields": null,
+          "file_path": null,
+          "output_mappings": []
+        }
+      },
+      {
+        "uuid": "gql-mutation",
+        "type": "http",
+        "name": "GraphQL 创建 Todo",
+        "position": { "x": 600, "y": 0 },
+        "data": {
+          "type": "http",
+          "url": "http://127.0.0.1:9090/graphql",
+          "method": "post",
+          "headers": { "Content-Type": "application/json" },
+          "body_type": "body",
+          "content_type": "json",
+          "timeout_ms": 5000,
+          "body": "{\"query\": \"mutation { createTodo(title: \\\"GraphQL 测试\\\") { id title } }\", \"variables\": {}}",
+          "form_fields": null,
+          "file_path": null,
+          "output_mappings": []
+        }
+      }
+    ],
+    "connections": [
+      { "id": "c1", "source_node_uuid": "entry-001", "target_node_uuid": "gql-query", "source_port_id": "out", "target_port_id": "in" },
+      { "id": "c2", "source_node_uuid": "gql-query", "target_node_uuid": "gql-mutation", "source_port_id": "out", "target_port_id": "in" }
+    ]
+  },
+  "_meta": null
+}

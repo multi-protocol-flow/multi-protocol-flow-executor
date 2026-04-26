@@ -1,7 +1,13 @@
-//! TCP/UDP 协议测试服务器
+//! 多协议测试服务器
 //!
-//! 为 flow-engine 的 TCP/UDP 节点提供集成测试目标服务。
-//! 包含 4 个 TCP 服务和 2 个 UDP 服务，全部并发运行。
+//! 为 flow-engine 提供全协议集成测试目标服务。
+//! 包含 TCP/UDP/HTTP/WebSocket/gRPC/MCP/SSE/GraphQL 服务，全部并发运行。
+
+// 外部模块
+mod grpc_server;
+mod http_server;
+mod mcp_server;
+mod ws_server;
 
 use std::env;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -683,32 +689,48 @@ fn print_banner(
     tcp_tls: u16,
     udp_echo: u16,
     udp_responder: u16,
+    http_port: u16,
+    ws_port: u16,
+    grpc_port: u16,
+    mcp_port: u16,
     tls_available: bool,
 ) {
     eprintln!();
-    eprintln!("╔══════════════════════════════════════════════════════════════╗");
-    eprintln!("║          Protocol Test Server - 协议测试服务器              ║");
-    eprintln!("╠══════════════════════════════════════════════════════════════╣");
-    eprintln!("║  TCP Services:                                              ║");
-    eprintln!("║    Echo         → 0.0.0.0:{:<5}  (Manual/Timeout framing) ║", tcp_echo);
-    eprintln!("║    Line Proto   → 0.0.0.0:{:<5}  (Delimiter framing)      ║", tcp_line);
-    eprintln!("║    LengthPrefix → 0.0.0.0:{:<5}  (LengthPrefix framing)   ║", tcp_prefix);
+    eprintln!("╔══════════════════════════════════════════════════════════════════╗");
+    eprintln!("║          Multi-Protocol Test Server - 多协议测试服务器          ║");
+    eprintln!("╠══════════════════════════════════════════════════════════════════╣");
+    eprintln!("║  TCP Services:                                                  ║");
+    eprintln!("║    Echo         → 0.0.0.0:{:<5}  (Manual/Timeout framing)     ║", tcp_echo);
+    eprintln!("║    Line Proto   → 0.0.0.0:{:<5}  (Delimiter framing)          ║", tcp_line);
+    eprintln!("║    LengthPrefix → 0.0.0.0:{:<5}  (LengthPrefix framing)       ║", tcp_prefix);
     if tls_available {
-        eprintln!("║    TLS Echo     → 0.0.0.0:{:<5}  (TLS + Manual framing)  ║", tcp_tls);
+        eprintln!("║    TLS Echo     → 0.0.0.0:{:<5}  (TLS + Manual framing)      ║", tcp_tls);
     } else {
-        eprintln!("║    TLS Echo     → DISABLED (证书未找到)                    ║");
+        eprintln!("║    TLS Echo     → DISABLED (证书未找到)                        ║");
     }
-    eprintln!("║                                                              ║");
-    eprintln!("║  UDP Services:                                              ║");
-    eprintln!("║    Echo         → 0.0.0.0:{:<5}  (原样回显)              ║", udp_echo);
-    eprintln!("║    Responder    → 0.0.0.0:{:<5}  (结构化响应)            ║", udp_responder);
-    eprintln!("╠══════════════════════════════════════════════════════════════╣");
-    eprintln!("║  环境变量覆盖:                                              ║");
-    eprintln!("║    TCP_ECHO_PORT / TCP_LINE_PORT / TCP_PREFIX_PORT          ║");
-    eprintln!("║    TCP_TLS_PORT / UDP_ECHO_PORT / UDP_RESPONDER_PORT        ║");
-    eprintln!("║    TLS_CERT_PATH / TLS_KEY_PATH / CONN_TIMEOUT_SECS         ║");
-    eprintln!("║    RUST_LOG (默认: info)                                     ║");
-    eprintln!("╚══════════════════════════════════════════════════════════════╝");
+    eprintln!("║                                                                  ║");
+    eprintln!("║  UDP Services:                                                  ║");
+    eprintln!("║    Echo         → 0.0.0.0:{:<5}  (原样回显)                   ║", udp_echo);
+    eprintln!("║    Responder    → 0.0.0.0:{:<5}  (结构化响应)                 ║", udp_responder);
+    eprintln!("║                                                                  ║");
+    eprintln!("║  HTTP Services:                                                 ║");
+    eprintln!("║    REST+SSE+GQL → 0.0.0.0:{:<5}  (/api/* /sse /graphql)       ║", http_port);
+    eprintln!("║    WebSocket    → 0.0.0.0:{:<5}  (Echo/JSON Cmd/Broadcast)    ║", ws_port);
+    eprintln!("║    gRPC         → 0.0.0.0:{:<5}  (Unary/SS/CS/Bidi)           ║", grpc_port);
+    eprintln!("║    MCP HTTP     → 0.0.0.0:{:<5}  (Streamable HTTP /mcp)       ║", mcp_port);
+    eprintln!("╠══════════════════════════════════════════════════════════════════╣");
+    eprintln!("║  外部服务 (docker-compose):                                     ║");
+    eprintln!("║    MQTT         → localhost:1883    (mosquitto)                 ║");
+    eprintln!("║    AMQP         → localhost:5672    (rabbitmq)                  ║");
+    eprintln!("║    RabbitMQ UI  → localhost:15672   (guest/guest)               ║");
+    eprintln!("╠══════════════════════════════════════════════════════════════════╣");
+    eprintln!("║  环境变量覆盖:                                                  ║");
+    eprintln!("║    TCP_ECHO_PORT / TCP_LINE_PORT / TCP_PREFIX_PORT              ║");
+    eprintln!("║    TCP_TLS_PORT / UDP_ECHO_PORT / UDP_RESPONDER_PORT            ║");
+    eprintln!("║    HTTP_PORT / WS_PORT / GRPC_PORT / MCP_PORT                   ║");
+    eprintln!("║    TLS_CERT_PATH / TLS_KEY_PATH / CONN_TIMEOUT_SECS             ║");
+    eprintln!("║    RUST_LOG (默认: info)                                         ║");
+    eprintln!("╚══════════════════════════════════════════════════════════════════╝");
     eprintln!();
 }
 
@@ -733,6 +755,10 @@ async fn main() -> Result<()> {
     let tcp_tls_port = env_port("TCP_TLS_PORT", 9004);
     let udp_echo_port = env_port("UDP_ECHO_PORT", 9101);
     let udp_responder_port = env_port("UDP_RESPONDER_PORT", 9102);
+    let http_port = env_port("HTTP_PORT", 8080);
+    let ws_port = env_port("WS_PORT", 8081);
+    let grpc_port = env_port("GRPC_PORT", 50051);
+    let mcp_port = env_port("MCP_PORT", 8085);
 
     // 检查 TLS 证书是否可用（用于横幅显示）
     let cert_path = env::var("TLS_CERT_PATH").unwrap_or_else(|_| "/app/certs/server.crt".to_string());
@@ -749,6 +775,10 @@ async fn main() -> Result<()> {
         tcp_tls_port,
         udp_echo_port,
         udp_responder_port,
+        http_port,
+        ws_port,
+        grpc_port,
+        mcp_port,
         tls_available,
     );
 
@@ -789,6 +819,30 @@ async fn main() -> Result<()> {
         }
     });
 
+    let http_task = tokio::spawn(async move {
+        if let Err(e) = http_server::run(http_port).await {
+            error!("HTTP/SSE/GraphQL 服务异常退出: {}", e);
+        }
+    });
+
+    let ws_task = tokio::spawn(async move {
+        if let Err(e) = ws_server::run(ws_port).await {
+            error!("WebSocket 服务异常退出: {}", e);
+        }
+    });
+
+    let grpc_task = tokio::spawn(async move {
+        if let Err(e) = grpc_server::run(grpc_port).await {
+            error!("gRPC 服务异常退出: {}", e);
+        }
+    });
+
+    let mcp_task = tokio::spawn(async move {
+        if let Err(e) = mcp_server::run(mcp_port).await {
+            error!("MCP 服务异常退出: {}", e);
+        }
+    });
+
     info!("所有服务已启动，等待 CTRL+C 信号以关闭...");
 
     // 等待 CTRL+C 信号
@@ -802,6 +856,10 @@ async fn main() -> Result<()> {
     tcp_tls_task.abort();
     udp_echo_task.abort();
     udp_responder_task.abort();
+    http_task.abort();
+    ws_task.abort();
+    grpc_task.abort();
+    mcp_task.abort();
 
     info!("所有服务已关闭。");
     Ok(())

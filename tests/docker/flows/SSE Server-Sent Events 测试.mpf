@@ -1,0 +1,64 @@
+{
+  "_version": 1,
+  "flow": {
+    "uuid": "sse-test",
+    "name": "SSE Server-Sent Events 测试",
+    "initial_variables": {},
+    "nodes": [
+      {
+        "uuid": "entry-001",
+        "type": "entry",
+        "name": "入口",
+        "position": { "x": 0, "y": 0 },
+        "data": { "type": "entry" }
+      },
+      {
+        "uuid": "sse-conn",
+        "type": "sse_connect",
+        "name": "SSE 连接",
+        "position": { "x": 250, "y": 0 },
+        "data": {
+          "type": "sse_connect",
+          "url": "http://127.0.0.1:9090/sse",
+          "headers": {},
+          "last_event_id": null,
+          "timeout_ms": 15000,
+          "auto_reconnect": false,
+          "reconnect_interval_ms": 3000,
+          "max_reconnect_attempts": 3
+        }
+      },
+      {
+        "uuid": "sse-listen",
+        "type": "sse_listen",
+        "name": "监听 SSE 事件",
+        "position": { "x": 500, "y": 0 },
+        "data": {
+          "type": "sse_listen",
+          "connection_id": "sse-conn",
+          "event_filter": null,
+          "max_events": 5,
+          "timeout_ms": 12000,
+          "include_data": true,
+          "decode_json": true
+        }
+      },
+      {
+        "uuid": "sse-disc",
+        "type": "sse_disconnect",
+        "name": "断开 SSE",
+        "position": { "x": 750, "y": 0 },
+        "data": {
+          "type": "sse_disconnect",
+          "connection_id": "sse-conn"
+        }
+      }
+    ],
+    "connections": [
+      { "id": "c1", "source_node_uuid": "entry-001", "target_node_uuid": "sse-conn", "source_port_id": "out", "target_port_id": "in" },
+      { "id": "c2", "source_node_uuid": "sse-conn", "target_node_uuid": "sse-listen", "source_port_id": "out", "target_port_id": "in" },
+      { "id": "c3", "source_node_uuid": "sse-listen", "target_node_uuid": "sse-disc", "source_port_id": "out", "target_port_id": "in" }
+    ]
+  },
+  "_meta": null
+}
