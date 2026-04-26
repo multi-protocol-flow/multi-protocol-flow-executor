@@ -76,6 +76,15 @@ pub use flow_engine_mqtt::mqtt_disconnect_executor;
 pub use flow_engine_mqtt::mqtt_wait_message_executor;
 pub use flow_engine_mqtt::mqtt_request_executor;
 pub use flow_engine_mqtt::mqtt_connection_manager;
+// Kafka (flow-engine-kafka)
+pub use flow_engine_kafka::kafka_connect_executor;
+pub use flow_engine_kafka::kafka_produce_executor;
+pub use flow_engine_kafka::kafka_consume_executor;
+pub use flow_engine_kafka::kafka_consume_batch_executor;
+pub use flow_engine_kafka::kafka_admin_executor;
+pub use flow_engine_kafka::kafka_schema_registry_executor;
+pub use flow_engine_kafka::kafka_close_executor;
+pub use flow_engine_kafka::kafka_connection_manager;
 // Wave 4: 调试模块
 pub use flow_engine_executor::debug;
 // Wave 5: 断言模块

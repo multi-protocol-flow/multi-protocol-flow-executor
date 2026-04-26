@@ -170,6 +170,9 @@ impl DebuggableFlowExecutor {
         // 初始化 MQTT 连接管理器（流程级别的单例）
         let mqtt_manager = Arc::new(flow_engine_mqtt::mqtt_connection_manager::MqttConnectionManager::new());
 
+        // 初始化 Kafka 连接管理器（流程级别的单例）
+        let kafka_manager = Arc::new(flow_engine_kafka::kafka_connection_manager::KafkaConnectionManager::new());
+
         let mut context = ExecutionContext {
             flow_uuid: flow.uuid.clone(),
             current_node_uuid: None,
@@ -190,6 +193,7 @@ impl DebuggableFlowExecutor {
             tcp_manager: Some(Arc::new(flow_engine_tcp::tcp_connection_manager::TcpConnectionManager::new())),
             udp_manager: Some(Arc::new(flow_engine_tcp::udp_socket_manager::UdpSocketManager::new())),
             mqtt_manager: Some(mqtt_manager),
+            kafka_manager: Some(kafka_manager),
             last_node_output: None,
             debug_event_sender: Some(Arc::new(crate::debug_event_adapter::MpscDebugEventSender::new(event_sender.clone()))),
             execution_event_sender: None,
