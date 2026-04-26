@@ -7,6 +7,7 @@ mod db_provider;
 mod debug_event_sender;
 mod execution_event_sender;
 mod directory_opener;
+mod kafka_provider;
 mod log_sender;
 mod ws_provider;
 mod grpc_provider;
@@ -25,6 +26,12 @@ pub use directory_opener::{DirectoryOpener, NoopDirectoryOpener};
 pub use grpc_provider::{
     GrpcConnectionInfo, GrpcMethodInfo, GrpcPattern, GrpcProvider, GrpcServiceInfo,
     GrpcStreamingResult, GrpcTimingInfo,
+};
+pub use kafka_provider::{
+    KafkaAdminOutput, KafkaBrokerInfo, KafkaCloseOutput, KafkaConnectOutput, KafkaConnectionInfo,
+    KafkaConsumerGroupInfo, KafkaConsumeBatchOutput, KafkaConsumeOutput, KafkaMessageOutput,
+    KafkaPartitionInfo, KafkaProduceOutput, KafkaProvider, KafkaSchemaInfo,
+    KafkaSchemaRegistryOutput, KafkaTimingInfo, KafkaTopicInfo,
 };
 pub use mcp_provider::{
     McpConnectionInfo, McpProvider, McpPromptArgumentInfo, McpPromptInfo, McpPromptResult,

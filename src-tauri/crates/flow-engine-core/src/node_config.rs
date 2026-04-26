@@ -1675,6 +1675,482 @@ impl Default for MqttRequestConfig {
 }
 
 // ============================================================================
+// Kafka 节点配置
+// ============================================================================
+
+/// Kafka Connect 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct KafkaConnectConfig {
+    /// 节点类型标识
+    #[serde(default = "default_kafka_connect_type")]
+    pub r#type: String,
+    /// Kafka Broker 地址列表（逗号分隔）
+    #[serde(default = "default_kafka_bootstrap_servers")]
+    pub bootstrap_servers: String,
+    /// 客户端 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<String>,
+    /// 安全协议："plaintext"/"ssl"/"sasl_plaintext"/"sasl_ssl"
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub security_protocol: Option<String>,
+    /// SASL 认证机制："PLAIN"/"SCRAM-SHA-256"/"SCRAM-SHA-512"/"OAUTHBEARER"
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sasl_mechanism: Option<String>,
+    /// SASL 用户名
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sasl_username: Option<String>,
+    /// SASL 密码
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sasl_password: Option<String>,
+    /// SASL OAuth Token
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sasl_oauth_token: Option<String>,
+    /// SSL CA 证书路径
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ssl_ca_cert_path: Option<String>,
+    /// SSL 客户端证书路径
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ssl_client_cert_path: Option<String>,
+    /// SSL 客户端密钥路径
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ssl_client_key_path: Option<String>,
+    /// 是否跳过 SSL 证书验证
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ssl_skip_verify: Option<bool>,
+    /// Schema Registry URL
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema_registry_url: Option<String>,
+    /// Schema Registry 用户名
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema_registry_username: Option<String>,
+    /// Schema Registry 密码
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema_registry_password: Option<String>,
+    /// 连接超时（毫秒）
+    #[serde(default = "default_kafka_connect_timeout")]
+    pub connect_timeout_ms: Option<u64>,
+}
+
+fn default_kafka_connect_type() -> String {
+    "kafka_connect".to_string()
+}
+fn default_kafka_bootstrap_servers() -> String {
+    "localhost:9092".to_string()
+}
+fn default_kafka_connect_timeout() -> Option<u64> {
+    Some(5000)
+}
+
+impl Default for KafkaConnectConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_kafka_connect_type(),
+            bootstrap_servers: default_kafka_bootstrap_servers(),
+            client_id: None,
+            security_protocol: None,
+            sasl_mechanism: None,
+            sasl_username: None,
+            sasl_password: None,
+            sasl_oauth_token: None,
+            ssl_ca_cert_path: None,
+            ssl_client_cert_path: None,
+            ssl_client_key_path: None,
+            ssl_skip_verify: None,
+            schema_registry_url: None,
+            schema_registry_username: None,
+            schema_registry_password: None,
+            connect_timeout_ms: default_kafka_connect_timeout(),
+        }
+    }
+}
+
+/// Kafka Produce 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct KafkaProduceConfig {
+    /// 节点类型标识
+    #[serde(default = "default_kafka_produce_type")]
+    pub r#type: String,
+    /// 连接 ID（引用 kafka_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 目标主题
+    pub topic: String,
+    /// 消息键
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    /// 消息值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    /// 消息头
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub headers: Option<Vec<(String, String)>>,
+    /// 目标分区
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partition: Option<i32>,
+    /// 时间戳
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<i64>,
+    /// 序列化格式："json"/"avro"/"protobuf"/"raw"
+    #[serde(default = "default_kafka_serialization_format")]
+    pub serialization_format: Option<String>,
+    /// Schema 主题
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema_subject: Option<String>,
+    /// 确认超时（毫秒）
+    #[serde(default = "default_kafka_ack_timeout")]
+    pub ack_timeout_ms: Option<u64>,
+    /// 压缩算法："none"/"gzip"/"snappy"/"lz4"/"zstd"
+    #[serde(default = "default_kafka_compression")]
+    pub compression: Option<String>,
+}
+
+fn default_kafka_produce_type() -> String {
+    "kafka_produce".to_string()
+}
+fn default_kafka_serialization_format() -> Option<String> {
+    Some("json".to_string())
+}
+fn default_kafka_ack_timeout() -> Option<u64> {
+    Some(5000)
+}
+fn default_kafka_compression() -> Option<String> {
+    Some("none".to_string())
+}
+
+impl Default for KafkaProduceConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_kafka_produce_type(),
+            connection_id: String::new(),
+            topic: String::new(),
+            key: None,
+            value: None,
+            headers: None,
+            partition: None,
+            timestamp: None,
+            serialization_format: default_kafka_serialization_format(),
+            schema_subject: None,
+            ack_timeout_ms: default_kafka_ack_timeout(),
+            compression: default_kafka_compression(),
+        }
+    }
+}
+
+/// Kafka Consume 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct KafkaConsumeConfig {
+    /// 节点类型标识
+    #[serde(default = "default_kafka_consume_type")]
+    pub r#type: String,
+    /// 连接 ID（引用 kafka_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 订阅主题
+    pub topic: String,
+    /// 指定分区
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partition: Option<i32>,
+    /// 起始偏移量
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<i64>,
+    /// 偏移重置策略："earliest"/"latest"
+    #[serde(default = "default_kafka_offset_reset")]
+    pub offset_reset: Option<String>,
+    /// 消费者组 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group_id: Option<String>,
+    /// 是否启用自动提交
+    #[serde(default = "default_kafka_auto_commit")]
+    pub enable_auto_commit: Option<bool>,
+    /// 最大消费消息数
+    #[serde(default = "default_kafka_max_messages")]
+    pub max_messages: Option<u32>,
+    /// 拉取超时（毫秒）
+    #[serde(default = "default_kafka_poll_timeout")]
+    pub poll_timeout_ms: Option<u64>,
+    /// 反序列化格式："json"/"avro"/"protobuf"/"raw"
+    #[serde(default = "default_kafka_deserialization_format")]
+    pub deserialization_format: Option<String>,
+    /// Schema 主题
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema_subject: Option<String>,
+    /// 最小拉取字节数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fetch_min_bytes: Option<u32>,
+    /// 最大拉取等待时间（毫秒）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fetch_max_wait_ms: Option<u32>,
+}
+
+fn default_kafka_consume_type() -> String {
+    "kafka_consume".to_string()
+}
+fn default_kafka_offset_reset() -> Option<String> {
+    Some("latest".to_string())
+}
+fn default_kafka_auto_commit() -> Option<bool> {
+    Some(false)
+}
+fn default_kafka_max_messages() -> Option<u32> {
+    Some(1)
+}
+fn default_kafka_poll_timeout() -> Option<u64> {
+    Some(5000)
+}
+fn default_kafka_deserialization_format() -> Option<String> {
+    Some("raw".to_string())
+}
+
+impl Default for KafkaConsumeConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_kafka_consume_type(),
+            connection_id: String::new(),
+            topic: String::new(),
+            partition: None,
+            offset: None,
+            offset_reset: default_kafka_offset_reset(),
+            group_id: None,
+            enable_auto_commit: default_kafka_auto_commit(),
+            max_messages: default_kafka_max_messages(),
+            poll_timeout_ms: default_kafka_poll_timeout(),
+            deserialization_format: default_kafka_deserialization_format(),
+            schema_subject: None,
+            fetch_min_bytes: None,
+            fetch_max_wait_ms: None,
+        }
+    }
+}
+
+/// Kafka ConsumeBatch 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct KafkaConsumeBatchConfig {
+    /// 节点类型标识
+    #[serde(default = "default_kafka_consume_batch_type")]
+    pub r#type: String,
+    /// 连接 ID（引用 kafka_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 订阅主题
+    pub topic: String,
+    /// 指定分区
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partition: Option<i32>,
+    /// 起始偏移量
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<i64>,
+    /// 偏移重置策略："earliest"/"latest"
+    #[serde(default = "default_kafka_batch_offset_reset")]
+    pub offset_reset: Option<String>,
+    /// 消费者组 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group_id: Option<String>,
+    /// 是否启用自动提交
+    #[serde(default = "default_kafka_batch_auto_commit")]
+    pub enable_auto_commit: Option<bool>,
+    /// 最大消费消息数
+    #[serde(default = "default_kafka_batch_max_messages")]
+    pub max_messages: Option<u32>,
+    /// 拉取超时（毫秒）
+    #[serde(default = "default_kafka_batch_poll_timeout")]
+    pub poll_timeout_ms: Option<u64>,
+    /// 反序列化格式
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deserialization_format: Option<String>,
+    /// Schema 主题
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema_subject: Option<String>,
+    /// 批量策略："count_timeout"/"count_only"/"timeout_only"
+    #[serde(default = "default_kafka_batch_strategy")]
+    pub batch_strategy: Option<String>,
+}
+
+fn default_kafka_consume_batch_type() -> String {
+    "kafka_consume_batch".to_string()
+}
+fn default_kafka_batch_offset_reset() -> Option<String> {
+    Some("latest".to_string())
+}
+fn default_kafka_batch_auto_commit() -> Option<bool> {
+    Some(false)
+}
+fn default_kafka_batch_max_messages() -> Option<u32> {
+    Some(10)
+}
+fn default_kafka_batch_poll_timeout() -> Option<u64> {
+    Some(10000)
+}
+fn default_kafka_batch_strategy() -> Option<String> {
+    Some("count_timeout".to_string())
+}
+
+impl Default for KafkaConsumeBatchConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_kafka_consume_batch_type(),
+            connection_id: String::new(),
+            topic: String::new(),
+            partition: None,
+            offset: None,
+            offset_reset: default_kafka_batch_offset_reset(),
+            group_id: None,
+            enable_auto_commit: default_kafka_batch_auto_commit(),
+            max_messages: default_kafka_batch_max_messages(),
+            poll_timeout_ms: default_kafka_batch_poll_timeout(),
+            deserialization_format: None,
+            schema_subject: None,
+            batch_strategy: default_kafka_batch_strategy(),
+        }
+    }
+}
+
+/// Kafka Admin 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct KafkaAdminConfig {
+    /// 节点类型标识
+    #[serde(default = "default_kafka_admin_type")]
+    pub r#type: String,
+    /// 连接 ID（引用 kafka_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 管理操作："topic_create"/"topic_delete"/"topic_describe"/"topic_list"/"topic_alter_config"/
+    /// "consumer_group_list"/"consumer_group_describe"/"consumer_group_reset_offset"/
+    /// "broker_list"/"broker_describe_config"/"acl_create"/"acl_delete"/"acl_list"
+    pub operation: String,
+    /// 主题名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub topic_name: Option<String>,
+    /// 分区数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partitions: Option<i32>,
+    /// 副本因子
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub replication_factor: Option<i32>,
+    /// 主题配置
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub topic_config: Option<HashMap<String, String>>,
+    /// 消费者组 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consumer_group_id: Option<String>,
+    /// ACL 主体
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub acl_principal: Option<String>,
+    /// ACL 主机
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub acl_host: Option<String>,
+    /// ACL 操作
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub acl_operation: Option<String>,
+    /// ACL 权限类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub acl_permission_type: Option<String>,
+    /// ACL 资源类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub acl_resource_type: Option<String>,
+    /// ACL 资源名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub acl_resource_name: Option<String>,
+    /// 是否试运行
+    #[serde(default = "default_kafka_dry_run")]
+    pub dry_run: Option<bool>,
+}
+
+fn default_kafka_admin_type() -> String {
+    "kafka_admin".to_string()
+}
+fn default_kafka_dry_run() -> Option<bool> {
+    Some(false)
+}
+
+impl Default for KafkaAdminConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_kafka_admin_type(),
+            connection_id: String::new(),
+            operation: String::new(),
+            topic_name: None,
+            partitions: None,
+            replication_factor: None,
+            topic_config: None,
+            consumer_group_id: None,
+            acl_principal: None,
+            acl_host: None,
+            acl_operation: None,
+            acl_permission_type: None,
+            acl_resource_type: None,
+            acl_resource_name: None,
+            dry_run: default_kafka_dry_run(),
+        }
+    }
+}
+
+/// Kafka Schema Registry 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct KafkaSchemaRegistryConfig {
+    /// 节点类型标识
+    #[serde(default = "default_kafka_schema_registry_type")]
+    pub r#type: String,
+    /// 连接 ID（引用 kafka_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 操作类型："list_subjects"/"get_subject_versions"/"get_schema_by_version"/
+    /// "check_compatibility"/"register_schema"
+    pub operation: String,
+    /// Schema 主题
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subject: Option<String>,
+    /// 版本号
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<i32>,
+    /// Schema 定义
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema_definition: Option<String>,
+    /// Schema 类型："avro"/"protobuf"/"json_schema"
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema_type: Option<String>,
+    /// 兼容性级别
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compatibility_level: Option<String>,
+}
+
+fn default_kafka_schema_registry_type() -> String {
+    "kafka_schema_registry".to_string()
+}
+
+impl Default for KafkaSchemaRegistryConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_kafka_schema_registry_type(),
+            connection_id: String::new(),
+            operation: String::new(),
+            subject: None,
+            version: None,
+            schema_definition: None,
+            schema_type: None,
+            compatibility_level: None,
+        }
+    }
+}
+
+/// Kafka Close 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct KafkaCloseConfig {
+    /// 节点类型标识
+    #[serde(default = "default_kafka_close_type")]
+    pub r#type: String,
+    /// 连接 ID（引用 kafka_connect 节点的 UUID）
+    pub connection_id: String,
+}
+
+fn default_kafka_close_type() -> String {
+    "kafka_close".to_string()
+}
+
+impl Default for KafkaCloseConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_kafka_close_type(),
+            connection_id: String::new(),
+        }
+    }
+}
+
+// ============================================================================
 // 变量提取节点配置
 // ============================================================================
 
@@ -1813,6 +2289,27 @@ pub enum NodeData {
     /// MQTT 请求-响应节点配置
     #[serde(rename = "mqtt_request")]
     MqttRequest(MqttRequestConfig),
+    /// Kafka 连接节点配置
+    #[serde(rename = "kafka_connect")]
+    KafkaConnect(KafkaConnectConfig),
+    /// Kafka 生产消息节点配置
+    #[serde(rename = "kafka_produce")]
+    KafkaProduce(KafkaProduceConfig),
+    /// Kafka 消费消息节点配置
+    #[serde(rename = "kafka_consume")]
+    KafkaConsume(KafkaConsumeConfig),
+    /// Kafka 批量消费消息节点配置
+    #[serde(rename = "kafka_consume_batch")]
+    KafkaConsumeBatch(KafkaConsumeBatchConfig),
+    /// Kafka 管理操作节点配置
+    #[serde(rename = "kafka_admin")]
+    KafkaAdmin(KafkaAdminConfig),
+    /// Kafka Schema Registry 节点配置
+    #[serde(rename = "kafka_schema_registry")]
+    KafkaSchemaRegistry(KafkaSchemaRegistryConfig),
+    /// Kafka 关闭连接节点配置
+    #[serde(rename = "kafka_close")]
+    KafkaClose(KafkaCloseConfig),
     /// 变量提取节点配置
     #[serde(rename = "variable_extractor")]
     VariableExtractor(VariableExtractorConfig),
@@ -1947,6 +2444,27 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "mqtt_request" => serde_json::from_value::<MqttRequestConfig>(value.clone())
                 .map(NodeData::MqttRequest)
                 .map_err(serde::de::Error::custom),
+            "kafka_connect" => serde_json::from_value::<KafkaConnectConfig>(value.clone())
+                .map(NodeData::KafkaConnect)
+                .map_err(serde::de::Error::custom),
+            "kafka_produce" => serde_json::from_value::<KafkaProduceConfig>(value.clone())
+                .map(NodeData::KafkaProduce)
+                .map_err(serde::de::Error::custom),
+            "kafka_consume" => serde_json::from_value::<KafkaConsumeConfig>(value.clone())
+                .map(NodeData::KafkaConsume)
+                .map_err(serde::de::Error::custom),
+            "kafka_consume_batch" => serde_json::from_value::<KafkaConsumeBatchConfig>(value.clone())
+                .map(NodeData::KafkaConsumeBatch)
+                .map_err(serde::de::Error::custom),
+            "kafka_admin" => serde_json::from_value::<KafkaAdminConfig>(value.clone())
+                .map(NodeData::KafkaAdmin)
+                .map_err(serde::de::Error::custom),
+            "kafka_schema_registry" => serde_json::from_value::<KafkaSchemaRegistryConfig>(value.clone())
+                .map(NodeData::KafkaSchemaRegistry)
+                .map_err(serde::de::Error::custom),
+            "kafka_close" => serde_json::from_value::<KafkaCloseConfig>(value.clone())
+                .map(NodeData::KafkaClose)
+                .map_err(serde::de::Error::custom),
             "variable_extractor" => serde_json::from_value::<VariableExtractorConfig>(value.clone())
                 .map(NodeData::VariableExtractor)
                 .map_err(serde::de::Error::custom),
@@ -1996,6 +2514,13 @@ impl NodeData {
             NodeData::MqttDisconnect(_) => "mqtt_disconnect".to_string(),
             NodeData::MqttWaitMessage(_) => "mqtt_wait_message".to_string(),
             NodeData::MqttRequest(_) => "mqtt_request".to_string(),
+            NodeData::KafkaConnect(_) => "kafka_connect".to_string(),
+            NodeData::KafkaProduce(_) => "kafka_produce".to_string(),
+            NodeData::KafkaConsume(_) => "kafka_consume".to_string(),
+            NodeData::KafkaConsumeBatch(_) => "kafka_consume_batch".to_string(),
+            NodeData::KafkaAdmin(_) => "kafka_admin".to_string(),
+            NodeData::KafkaSchemaRegistry(_) => "kafka_schema_registry".to_string(),
+            NodeData::KafkaClose(_) => "kafka_close".to_string(),
             NodeData::VariableExtractor(_) => "variable_extractor".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")

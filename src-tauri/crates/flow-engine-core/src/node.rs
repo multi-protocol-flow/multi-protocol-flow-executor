@@ -111,6 +111,27 @@ pub enum NodeType {
     /// MQTT 请求-响应节点
     #[serde(rename = "mqtt_request")]
     MqttRequest,
+    /// Kafka 连接节点
+    #[serde(rename = "kafka_connect")]
+    KafkaConnect,
+    /// Kafka 生产消息节点
+    #[serde(rename = "kafka_produce")]
+    KafkaProduce,
+    /// Kafka 消费消息节点
+    #[serde(rename = "kafka_consume")]
+    KafkaConsume,
+    /// Kafka 批量消费消息节点
+    #[serde(rename = "kafka_consume_batch")]
+    KafkaConsumeBatch,
+    /// Kafka 管理操作节点
+    #[serde(rename = "kafka_admin")]
+    KafkaAdmin,
+    /// Kafka Schema Registry 节点
+    #[serde(rename = "kafka_schema_registry")]
+    KafkaSchemaRegistry,
+    /// Kafka 关闭连接节点
+    #[serde(rename = "kafka_close")]
+    KafkaClose,
     /// 变量提取节点
     #[serde(rename = "variable_extractor")]
     VariableExtractor,
