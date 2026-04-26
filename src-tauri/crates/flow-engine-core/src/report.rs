@@ -511,6 +511,7 @@ mod tests {
             initial_variables: None,
             nodes: vec![],
             connections: vec![],
+            hooks: None,
         };
 
         let report = FlowExecutionReport {

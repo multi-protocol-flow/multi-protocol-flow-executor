@@ -9,6 +9,11 @@ use crate::node_config::{FormField, WsCollectCondition};
 #[async_trait]
 pub trait WsProvider: Send + Sync {
     /// 建立 WebSocket 连接
+    ///
+    /// # 参数
+    ///
+    /// * `use_tls` - 是否使用 TLS 加密
+    /// * `tls_skip_verify` - 是否跳过 TLS 证书验证
     async fn connect(
         &self,
         uuid: String,
@@ -17,6 +22,10 @@ pub trait WsProvider: Send + Sync {
         headers: Vec<FormField>,
         subprotocols: Vec<String>,
         connect_timeout_ms: u64,
+        use_tls: bool,
+        tls_skip_verify: bool,
+        ping_interval_ms: Option<u64>,
+        ping_timeout_ms: Option<u64>,
     ) -> Result<(), String>;
 
     /// 发送消息

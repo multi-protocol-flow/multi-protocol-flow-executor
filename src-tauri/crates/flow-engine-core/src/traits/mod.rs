@@ -9,6 +9,7 @@ mod debug_event_sender;
 mod execution_event_sender;
 mod directory_opener;
 mod graphql_provider;
+mod hook_executor;
 mod kafka_provider;
 mod log_sender;
 mod sse_provider;
@@ -37,6 +38,7 @@ pub use graphql_provider::{
     GraphqlQueryOutput, GraphqlQueryTemplate, GraphqlSubscribeOutput, GraphqlSubscriptionEvent,
     GraphqlTimingInfo,
 };
+pub use hook_executor::{HookExecutor, NoopHookExecutor};
 pub use grpc_provider::{
     GrpcConnectionInfo, GrpcMethodInfo, GrpcPattern, GrpcProvider, GrpcServiceInfo,
     GrpcStreamingResult, GrpcTimingInfo,

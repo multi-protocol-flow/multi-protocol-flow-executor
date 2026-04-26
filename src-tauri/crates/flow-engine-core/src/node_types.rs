@@ -51,6 +51,8 @@ pub const MCP_GET_PROMPT: &str = "mcp_get_prompt";
 pub const TCP_CONNECT: &str = "tcp_connect";
 /// TCP 发送节点
 pub const TCP_SEND: &str = "tcp_send";
+/// TCP 接收节点
+pub const TCP_RECEIVE: &str = "tcp_receive";
 /// TCP 关闭节点
 pub const TCP_CLOSE: &str = "tcp_close";
 /// UDP 绑定节点

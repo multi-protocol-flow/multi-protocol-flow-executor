@@ -22,6 +22,9 @@ pub struct EntryConfig {
     /// CSV 编码（None=自动检测）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dataset_encoding: Option<String>,
+    /// 流程钩子列表（入口节点配置中可编辑）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hooks: Option<Vec<crate::hook::FlowHook>>,
 }
 
 // ============================================================================
@@ -317,6 +320,18 @@ pub struct WsConnectConfig {
     /// 采集超时（毫秒）
     #[serde(default = "default_message_timeout")]
     pub collect_timeout_ms: u64,
+    /// 是否使用 TLS
+    #[serde(default)]
+    pub use_tls: bool,
+    /// 是否跳过 TLS 证书验证
+    #[serde(default)]
+    pub tls_skip_verify: bool,
+    /// Ping 间隔（毫秒），None 表示不发 Ping
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ping_interval_ms: Option<u64>,
+    /// Ping 超时（毫秒），None 表示不检查超时
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ping_timeout_ms: Option<u64>,
     /// 输出变量映射
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub output_mappings: Vec<OutputMapping>,
@@ -333,6 +348,10 @@ impl Default for WsConnectConfig {
             collect_mode: WsCollectMode::default(),
             collect_condition: None,
             collect_timeout_ms: default_message_timeout(),
+            use_tls: false,
+            tls_skip_verify: false,
+            ping_interval_ms: None,
+            ping_timeout_ms: None,
             output_mappings: Vec::new(),
         }
     }
@@ -1063,6 +1082,17 @@ impl Default for McpGetPromptConfig {
 // TCP 节点配置
 // ============================================================================
 
+/// TCP Keepalive 配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TcpKeepaliveConfig {
+    /// 空闲时间（秒）
+    pub idle_secs: u64,
+    /// 探测间隔（秒）
+    pub interval_secs: u64,
+    /// 探测次数
+    pub probe_count: u32,
+}
+
 /// TCP Connect 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TcpConnectConfig {
@@ -1079,6 +1109,15 @@ pub struct TcpConnectConfig {
     /// 连接超时（毫秒）
     #[serde(default = "default_tcp_connect_timeout")]
     pub connect_timeout_ms: u64,
+    /// 是否禁用 Nagle 算法
+    #[serde(default)]
+    pub no_delay: bool,
+    /// Keepalive 配置
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub keepalive: Option<TcpKeepaliveConfig>,
+    /// 自定义 CA 证书（PEM 格式内容）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls_ca_cert: Option<String>,
     /// 帧定界模式
     #[serde(default)]
     pub framing_mode: TcpFramingMode,
@@ -1099,6 +1138,9 @@ impl Default for TcpConnectConfig {
             use_tls: false,
             tls_skip_verify: false,
             connect_timeout_ms: default_tcp_connect_timeout(),
+            no_delay: false,
+            keepalive: None,
+            tls_ca_cert: None,
             framing_mode: TcpFramingMode::LengthPrefix { prefix_bytes: 4 },
             framing_config: FramingConfig::default(),
         }
@@ -1124,6 +1166,9 @@ pub struct TcpSendConfig {
     /// 发送超时（毫秒）
     #[serde(default = "default_tcp_send_timeout")]
     pub send_timeout_ms: u64,
+    /// 协议解析器配置（JSON 序列化的 ParserConfig）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parser_config: Option<serde_json::Value>,
 }
 
 fn default_data_encoding() -> String {
@@ -1143,6 +1188,7 @@ impl Default for TcpSendConfig {
             framing_mode: TcpFramingMode::LengthPrefix { prefix_bytes: 4 },
             framing_config: FramingConfig::default(),
             send_timeout_ms: default_tcp_send_timeout(),
+            parser_config: None,
         }
     }
 }
@@ -1170,6 +1216,37 @@ impl Default for TcpCloseConfig {
     }
 }
 
+/// TCP Receive 节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TcpReceiveConfig {
+    /// 连接 ID（引用 tcp_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 接收超时（毫秒）
+    #[serde(default = "default_tcp_receive_timeout")]
+    pub receive_timeout_ms: u64,
+    /// 帧定界模式
+    #[serde(default)]
+    pub framing_mode: TcpFramingMode,
+    /// 帧配置
+    #[serde(default)]
+    pub framing_config: FramingConfig,
+}
+
+fn default_tcp_receive_timeout() -> u64 {
+    5000
+}
+
+impl Default for TcpReceiveConfig {
+    fn default() -> Self {
+        Self {
+            connection_id: String::new(),
+            receive_timeout_ms: default_tcp_receive_timeout(),
+            framing_mode: TcpFramingMode::LengthPrefix { prefix_bytes: 4 },
+            framing_config: FramingConfig::default(),
+        }
+    }
+}
+
 // ============================================================================
 // UDP 节点配置
 // ============================================================================
@@ -1185,6 +1262,21 @@ pub struct UdpBindConfig {
     /// 是否允许地址复用
     #[serde(default = "default_true")]
     pub reuse_addr: bool,
+    /// 是否启用广播
+    #[serde(default)]
+    pub broadcast: bool,
+    /// 多播组地址
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub multicast_group: Option<String>,
+    /// 多播 TTL
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub multicast_ttl: Option<u32>,
+    /// 多播环回
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub multicast_loop: Option<bool>,
+    /// 多播绑定接口
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub multicast_interface: Option<String>,
 }
 
 fn default_udp_local_addr() -> String {
@@ -1197,6 +1289,11 @@ impl Default for UdpBindConfig {
             local_addr: default_udp_local_addr(),
             local_port: 0,
             reuse_addr: true,
+            broadcast: false,
+            multicast_group: None,
+            multicast_ttl: None,
+            multicast_loop: None,
+            multicast_interface: None,
         }
     }
 }
@@ -2861,6 +2958,9 @@ pub enum NodeData {
     /// TCP 发送节点配置
     #[serde(rename = "tcp_send")]
     TcpSend(TcpSendConfig),
+    /// TCP 接收节点配置
+    #[serde(rename = "tcp_receive")]
+    TcpReceive(TcpReceiveConfig),
     /// TCP 关闭节点配置
     #[serde(rename = "tcp_close")]
     TcpClose(TcpCloseConfig),
@@ -3101,6 +3201,9 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "tcp_send" => serde_json::from_value::<TcpSendConfig>(value.clone())
                 .map(NodeData::TcpSend)
                 .map_err(serde::de::Error::custom),
+            "tcp_receive" => serde_json::from_value::<TcpReceiveConfig>(value.clone())
+                .map(NodeData::TcpReceive)
+                .map_err(serde::de::Error::custom),
             "tcp_close" => serde_json::from_value::<TcpCloseConfig>(value.clone())
                 .map(NodeData::TcpClose)
                 .map_err(serde::de::Error::custom),
@@ -3280,6 +3383,7 @@ impl NodeData {
             NodeData::McpGetPrompt(_) => "mcp_get_prompt".to_string(),
             NodeData::TcpConnect(_) => "tcp_connect".to_string(),
             NodeData::TcpSend(_) => "tcp_send".to_string(),
+            NodeData::TcpReceive(_) => "tcp_receive".to_string(),
             NodeData::TcpClose(_) => "tcp_close".to_string(),
             NodeData::UdpBind(_) => "udp_bind".to_string(),
             NodeData::UdpSendTo(_) => "udp_send_to".to_string(),
@@ -3804,6 +3908,10 @@ mod tests {
             collect_mode: WsCollectMode::FirstMatch,
             collect_condition: None,
             collect_timeout_ms: 15000,
+            use_tls: false,
+            tls_skip_verify: false,
+            ping_interval_ms: None,
+            ping_timeout_ms: None,
             output_mappings: vec![],
         };
 
@@ -4224,6 +4332,9 @@ mod tests {
             use_tls: true,
             tls_skip_verify: false,
             connect_timeout_ms: 15000,
+            no_delay: false,
+            keepalive: None,
+            tls_ca_cert: None,
             framing_mode: TcpFramingMode::Delimiter {
                 delimiter: "\n".to_string(),
             },
@@ -4246,6 +4357,7 @@ mod tests {
             framing_mode: TcpFramingMode::Manual,
             framing_config: FramingConfig::default(),
             send_timeout_ms: 5000,
+            parser_config: None,
         };
         let json = serde_json::to_string(&config).unwrap();
         let back: TcpSendConfig = serde_json::from_str(&json).unwrap();
@@ -4272,6 +4384,11 @@ mod tests {
             local_addr: "0.0.0.0".to_string(),
             local_port: 9090,
             reuse_addr: true,
+            broadcast: false,
+            multicast_group: None,
+            multicast_ttl: None,
+            multicast_loop: None,
+            multicast_interface: None,
         };
         let json = serde_json::to_string(&config).unwrap();
         let back: UdpBindConfig = serde_json::from_str(&json).unwrap();
@@ -4496,6 +4613,7 @@ mod tests {
             initial_variables: vec![],
             dataset_path: None,
             dataset_encoding: None,
+            hooks: None,
         };
         let json = serde_json::to_string(&config).unwrap();
         assert!(!json.contains("dataset_path"));
@@ -4509,6 +4627,7 @@ mod tests {
             initial_variables: vec![],
             dataset_path: Some("/data/test.csv".to_string()),
             dataset_encoding: Some("gbk".to_string()),
+            hooks: None,
         };
         let json = serde_json::to_string(&config).unwrap();
         assert!(json.contains("dataset_path"));

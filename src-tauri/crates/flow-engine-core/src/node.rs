@@ -78,6 +78,9 @@ pub enum NodeType {
     /// TCP 关闭节点
     #[serde(rename = "tcp_close")]
     TcpClose,
+    /// TCP 接收节点
+    #[serde(rename = "tcp_receive")]
+    TcpReceive,
     /// UDP 绑定节点
     #[serde(rename = "udp_bind")]
     UdpBind,

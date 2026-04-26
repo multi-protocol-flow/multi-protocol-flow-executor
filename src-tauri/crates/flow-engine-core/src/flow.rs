@@ -1,6 +1,7 @@
 // 流程模块 - 完整结构体实现
 
 use crate::connection::Connection;
+use crate::hook::FlowHook;
 use crate::node::Node;
 use std::collections::HashMap;
 
@@ -18,6 +19,9 @@ pub struct Flow {
     pub nodes: Vec<Node>,
     /// 流程中的连接列表
     pub connections: Vec<Connection>,
+    /// 流程钩子列表（流程完成时自动触发）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hooks: Option<Vec<FlowHook>>,
 }
 
 #[cfg(test)]
@@ -33,6 +37,7 @@ mod tests {
             initial_variables: None,
             nodes: vec![],
             connections: vec![],
+            hooks: None,
         };
 
         assert_eq!(flow.uuid, "test-uuid-123");
@@ -40,6 +45,7 @@ mod tests {
         assert!(flow.initial_variables.is_none());
         assert!(flow.nodes.is_empty());
         assert!(flow.connections.is_empty());
+        assert!(flow.hooks.is_none());
     }
 
     #[test]
@@ -54,6 +60,7 @@ mod tests {
             initial_variables: Some(vars),
             nodes: vec![],
             connections: vec![],
+            hooks: None,
         };
 
         assert_eq!(flow.uuid, "test-uuid-456");
@@ -72,6 +79,7 @@ mod tests {
             initial_variables: None,
             nodes: vec![],
             connections: vec![],
+            hooks: None,
         };
 
         let json = serde_json::to_string(&flow).unwrap();
@@ -90,6 +98,7 @@ mod tests {
             initial_variables: Some(vars),
             nodes: vec![],
             connections: vec![],
+            hooks: None,
         };
 
         let json = serde_json::to_string(&flow).unwrap();
@@ -118,6 +127,7 @@ mod tests {
         assert_eq!(flow.uuid, "test-uuid-deser");
         assert_eq!(flow.name, "Deserialization Test");
         assert!(flow.initial_variables.is_none());
+        assert!(flow.hooks.is_none());
     }
 
     #[test]
@@ -134,5 +144,6 @@ mod tests {
         assert_eq!(flow.uuid, "test-uuid-default");
         // 如果 JSON 中没有 initial_variables 字段，serde default 应该使其为 None
         assert!(flow.initial_variables.is_none());
+        assert!(flow.hooks.is_none());
     }
 }
