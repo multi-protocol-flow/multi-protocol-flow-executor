@@ -1,0 +1,23 @@
+[package]
+name = "flow-engine-kafka"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+flow-engine-core = { path = "../flow-engine-core" }
+rdkafka = { version = "0.39", features = ["cmake-build"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+log = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+mockito = "1"
+
+[lints]
+workspace = true

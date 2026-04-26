@@ -14,6 +14,7 @@ members = [
     "crates/flow-engine-mcp",
     "crates/flow-engine-mqtt",
     "crates/flow-engine-tcp",
+    "crates/flow-engine-kafka",
 ]
 resolver = "2"
 
