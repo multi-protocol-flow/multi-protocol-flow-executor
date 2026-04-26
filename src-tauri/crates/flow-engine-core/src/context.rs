@@ -3,7 +3,7 @@
 use crate::log_event::LogEvent;
 use crate::report::NodeExecutionReport;
 use crate::variable::Variable;
-use crate::traits::{LogSender, DebugEventSender, ExecutionEventSender, WsProvider, DbProvider, GrpcProvider, McpProvider, MqttProvider, TcpProvider, UdpProvider, KafkaProvider};
+use crate::traits::{LogSender, DebugEventSender, ExecutionEventSender, WsProvider, DbProvider, GrpcProvider, McpProvider, MqttProvider, TcpProvider, UdpProvider, KafkaProvider, SseProvider, GraphqlProvider, AmqpProvider};
 use crate::execution_event::ExecutionEvent;
 use crate::ws_stream::{WsConnectionStream, WsMessage};
 use serde::{Deserialize, Serialize};
@@ -105,6 +105,24 @@ pub struct ExecutionContext {
     #[serde(skip)]
     pub kafka_manager: Option<Arc<dyn KafkaProvider>>,
 
+    /// SSE 连接管理器（通过 `SseProvider` trait 解耦）
+    /// 用于管理 SSE 连接的生命周期（连接、监听、断开）
+    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `SseProvider` 不支持序列化
+    #[serde(skip)]
+    pub sse_manager: Option<Arc<dyn SseProvider>>,
+
+    /// GraphQL 连接管理器（通过 `GraphqlProvider` trait 解耦）
+    /// 用于管理 GraphQL 连接的生命周期（连接、查询、订阅、探索、断开）
+    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `GraphqlProvider` 不支持序列化
+    #[serde(skip)]
+    pub graphql_manager: Option<Arc<dyn GraphqlProvider>>,
+
+    /// AMQP 连接管理器（通过 `AmqpProvider` trait 解耦）
+    /// 用于管理 AMQP 连接的生命周期（连接、发布、消费、管理、断开）
+    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `AmqpProvider` 不支持序列化
+    #[serde(skip)]
+    pub amqp_manager: Option<Arc<dyn AmqpProvider>>,
+
     /// 最近一个协议节点的输出数据
     /// 协议节点（HTTP、WebSocket）执行后更新此字段
     /// 工具节点（Conditional、Entry、WsClose）不更新，延续上游数据
@@ -166,6 +184,9 @@ impl ExecutionContext {
             udp_manager: None,
             mqtt_manager: None,
             kafka_manager: None,
+            sse_manager: None,
+            graphql_manager: None,
+            amqp_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -272,6 +293,24 @@ impl ExecutionContext {
     /// 设置 Kafka 连接管理器
     pub fn with_kafka_manager(mut self, kafka_manager: Arc<dyn KafkaProvider>) -> Self {
         self.kafka_manager = Some(kafka_manager);
+        self
+    }
+
+    /// 设置 SSE 连接管理器
+    pub fn with_sse_manager(mut self, sse_manager: Arc<dyn SseProvider>) -> Self {
+        self.sse_manager = Some(sse_manager);
+        self
+    }
+
+    /// 设置 GraphQL 连接管理器
+    pub fn with_graphql_manager(mut self, graphql_manager: Arc<dyn GraphqlProvider>) -> Self {
+        self.graphql_manager = Some(graphql_manager);
+        self
+    }
+
+    /// 设置 AMQP 连接管理器
+    pub fn with_amqp_manager(mut self, amqp_manager: Arc<dyn AmqpProvider>) -> Self {
+        self.amqp_manager = Some(amqp_manager);
         self
     }
 

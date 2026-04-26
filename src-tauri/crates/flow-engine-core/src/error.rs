@@ -205,6 +205,46 @@ pub enum ErrorKind {
     /// UDP 连接关闭错误
     UdpClose,
 
+    // ===== SSE 错误（容错模式，继续执行） =====
+    /// SSE 连接失败
+    SseConnection,
+    /// SSE 超时
+    SseTimeout,
+    /// SSE 事件错误
+    SseEvent,
+
+    // ===== GraphQL 错误（容错模式，继续执行） =====
+    /// GraphQL 连接失败
+    GraphqlConnection,
+    /// GraphQL 查询错误
+    GraphqlQuery,
+    /// GraphQL 订阅错误
+    GraphqlSubscription,
+    /// GraphQL Schema 探索错误
+    GraphqlIntrospection,
+    /// GraphQL 关闭错误
+    GraphqlClose,
+
+    // ===== AMQP 错误（容错模式，继续执行） =====
+    /// AMQP 连接失败
+    AmqpConnection,
+    /// AMQP 通道错误
+    AmqpChannel,
+    /// AMQP 发布错误
+    AmqpPublish,
+    /// AMQP 消费错误
+    AmqpConsume,
+    /// AMQP 队列操作错误
+    AmqpQueue,
+    /// AMQP 交换器操作错误
+    AmqpExchange,
+    /// AMQP 确认错误
+    AmqpAck,
+    /// AMQP 管理操作错误
+    AmqpManagement,
+    /// AMQP 协议错误
+    AmqpProtocol,
+
     // ===== 取消错误（容错模式，继续执行） =====
     /// 执行被取消
     Cancelled,
@@ -304,6 +344,26 @@ mod tests {
         assert!(!ErrorKind::UdpSend.is_fatal());
         assert!(!ErrorKind::UdpReceive.is_fatal());
         assert!(!ErrorKind::UdpClose.is_fatal());
+        // SSE 错误非致命
+        assert!(!ErrorKind::SseConnection.is_fatal());
+        assert!(!ErrorKind::SseTimeout.is_fatal());
+        assert!(!ErrorKind::SseEvent.is_fatal());
+        // GraphQL 错误非致命
+        assert!(!ErrorKind::GraphqlConnection.is_fatal());
+        assert!(!ErrorKind::GraphqlQuery.is_fatal());
+        assert!(!ErrorKind::GraphqlSubscription.is_fatal());
+        assert!(!ErrorKind::GraphqlIntrospection.is_fatal());
+        assert!(!ErrorKind::GraphqlClose.is_fatal());
+        // AMQP 错误非致命
+        assert!(!ErrorKind::AmqpConnection.is_fatal());
+        assert!(!ErrorKind::AmqpChannel.is_fatal());
+        assert!(!ErrorKind::AmqpPublish.is_fatal());
+        assert!(!ErrorKind::AmqpConsume.is_fatal());
+        assert!(!ErrorKind::AmqpQueue.is_fatal());
+        assert!(!ErrorKind::AmqpExchange.is_fatal());
+        assert!(!ErrorKind::AmqpAck.is_fatal());
+        assert!(!ErrorKind::AmqpManagement.is_fatal());
+        assert!(!ErrorKind::AmqpProtocol.is_fatal());
     }
 
     #[test]
@@ -339,6 +399,26 @@ mod tests {
             ErrorKind::UdpSend,
             ErrorKind::UdpReceive,
             ErrorKind::UdpClose,
+            // SSE 错误类型
+            ErrorKind::SseConnection,
+            ErrorKind::SseTimeout,
+            ErrorKind::SseEvent,
+            // GraphQL 错误类型
+            ErrorKind::GraphqlConnection,
+            ErrorKind::GraphqlQuery,
+            ErrorKind::GraphqlSubscription,
+            ErrorKind::GraphqlIntrospection,
+            ErrorKind::GraphqlClose,
+            // AMQP 错误类型
+            ErrorKind::AmqpConnection,
+            ErrorKind::AmqpChannel,
+            ErrorKind::AmqpPublish,
+            ErrorKind::AmqpConsume,
+            ErrorKind::AmqpQueue,
+            ErrorKind::AmqpExchange,
+            ErrorKind::AmqpAck,
+            ErrorKind::AmqpManagement,
+            ErrorKind::AmqpProtocol,
         ];
 
         for kind in kinds {
@@ -394,6 +474,26 @@ mod tests {
             ErrorKind::UdpSend,
             ErrorKind::UdpReceive,
             ErrorKind::UdpClose,
+            // SSE 错误类型
+            ErrorKind::SseConnection,
+            ErrorKind::SseTimeout,
+            ErrorKind::SseEvent,
+            // GraphQL 错误类型
+            ErrorKind::GraphqlConnection,
+            ErrorKind::GraphqlQuery,
+            ErrorKind::GraphqlSubscription,
+            ErrorKind::GraphqlIntrospection,
+            ErrorKind::GraphqlClose,
+            // AMQP 错误类型
+            ErrorKind::AmqpConnection,
+            ErrorKind::AmqpChannel,
+            ErrorKind::AmqpPublish,
+            ErrorKind::AmqpConsume,
+            ErrorKind::AmqpQueue,
+            ErrorKind::AmqpExchange,
+            ErrorKind::AmqpAck,
+            ErrorKind::AmqpManagement,
+            ErrorKind::AmqpProtocol,
             // 取消
             ErrorKind::Cancelled,
         ];

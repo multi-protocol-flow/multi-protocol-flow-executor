@@ -132,6 +132,87 @@ pub enum NodeType {
     /// Kafka 关闭连接节点
     #[serde(rename = "kafka_close")]
     KafkaClose,
+    /// SSE 连接节点
+    #[serde(rename = "sse_connect")]
+    SseConnect,
+    /// SSE 监听事件节点
+    #[serde(rename = "sse_listen")]
+    SseListen,
+    /// SSE 断开连接节点
+    #[serde(rename = "sse_disconnect")]
+    SseDisconnect,
+    /// GraphQL 连接节点
+    #[serde(rename = "graphql_connect")]
+    GraphqlConnect,
+    /// GraphQL 查询节点 (Query + Mutation)
+    #[serde(rename = "graphql_query")]
+    GraphqlQuery,
+    /// GraphQL 订阅节点
+    #[serde(rename = "graphql_subscribe")]
+    GraphqlSubscribe,
+    /// GraphQL 取消订阅节点
+    #[serde(rename = "graphql_unsubscribe")]
+    GraphqlUnsubscribe,
+    /// GraphQL Schema 探索节点
+    #[serde(rename = "graphql_introspect")]
+    GraphqlIntrospect,
+    /// GraphQL 断开连接节点
+    #[serde(rename = "graphql_disconnect")]
+    GraphqlDisconnect,
+    /// AMQP 连接节点
+    #[serde(rename = "amqp_connect")]
+    AmqpConnect,
+    /// AMQP 关闭连接节点
+    #[serde(rename = "amqp_close")]
+    AmqpClose,
+    /// AMQP 声明交换器节点
+    #[serde(rename = "amqp_exchange_declare")]
+    AmqpExchangeDeclare,
+    /// AMQP 删除交换器节点
+    #[serde(rename = "amqp_exchange_delete")]
+    AmqpExchangeDelete,
+    /// AMQP 声明队列节点
+    #[serde(rename = "amqp_queue_declare")]
+    AmqpQueueDeclare,
+    /// AMQP 删除队列节点
+    #[serde(rename = "amqp_queue_delete")]
+    AmqpQueueDelete,
+    /// AMQP 绑定队列节点
+    #[serde(rename = "amqp_queue_bind")]
+    AmqpQueueBind,
+    /// AMQP 发布消息节点
+    #[serde(rename = "amqp_publish")]
+    AmqpPublish,
+    /// AMQP 消费消息节点
+    #[serde(rename = "amqp_consume")]
+    AmqpConsume,
+    /// AMQP 获取消息节点
+    #[serde(rename = "amqp_get")]
+    AmqpGet,
+    /// AMQP 确认消息节点
+    #[serde(rename = "amqp_ack")]
+    AmqpAck,
+    /// AMQP 管理节点 (可选 feature)
+    #[serde(rename = "amqp_management")]
+    AmqpManagement,
+    /// AMQP 1.0 连接节点
+    #[serde(rename = "amqp10_connect")]
+    Amqp10Connect,
+    /// AMQP 1.0 发送消息节点
+    #[serde(rename = "amqp10_send")]
+    Amqp10Send,
+    /// AMQP 1.0 接收消息节点
+    #[serde(rename = "amqp10_receive")]
+    Amqp10Receive,
+    /// AMQP 1.0 确认消息节点
+    #[serde(rename = "amqp10_accept")]
+    Amqp10Accept,
+    /// AMQP 1.0 拒绝消息节点
+    #[serde(rename = "amqp10_reject")]
+    Amqp10Reject,
+    /// AMQP 1.0 断开连接节点
+    #[serde(rename = "amqp10_disconnect")]
+    Amqp10Disconnect,
     /// 变量提取节点
     #[serde(rename = "variable_extractor")]
     VariableExtractor,

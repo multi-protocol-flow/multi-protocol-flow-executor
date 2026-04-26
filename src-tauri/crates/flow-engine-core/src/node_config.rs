@@ -2151,6 +2151,614 @@ impl Default for KafkaCloseConfig {
 }
 
 // ============================================================================
+// SSE 节点配置
+// ============================================================================
+
+/// SSE 连接节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct SseConnectConfig {
+    /// SSE 端点 URL
+    pub url: String,
+    /// 请求头
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub headers: Option<HashMap<String, String>>,
+    /// Last-Event-ID（断线续传）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_event_id: Option<String>,
+    /// 连接超时（毫秒）
+    #[serde(default)]
+    pub timeout_ms: u64,
+    /// 连接 ID（用于后续节点引用）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connection_id: Option<String>,
+    /// 是否自动重连
+    #[serde(default)]
+    pub auto_reconnect: bool,
+    /// 重连间隔（毫秒）
+    #[serde(default)]
+    pub reconnect_interval_ms: u64,
+    /// 最大重连次数
+    #[serde(default)]
+    pub max_reconnect_attempts: u32,
+    /// TLS 模式
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls_mode: Option<String>,
+}
+
+/// SSE 监听事件节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct SseListenConfig {
+    /// 连接 ID（引用 sse_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 事件过滤（仅接收匹配的事件名）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub event_filter: Option<String>,
+    /// 最大接收事件数
+    #[serde(default)]
+    pub max_events: u32,
+    /// 监听超时（毫秒）
+    #[serde(default)]
+    pub timeout_ms: u64,
+    /// 是否包含原始数据
+    #[serde(default)]
+    pub include_data: bool,
+    /// 是否尝试 JSON 解码 data 字段
+    #[serde(default)]
+    pub decode_json: bool,
+}
+
+/// SSE 断开连接节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct SseDisconnectConfig {
+    /// 连接 ID（引用 sse_connect 节点的 UUID）
+    pub connection_id: String,
+}
+
+// ============================================================================
+// GraphQL 节点配置
+// ============================================================================
+
+/// GraphQL 连接节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct GraphqlConnectConfig {
+    /// GraphQL HTTP 端点 URL
+    pub endpoint: String,
+    /// GraphQL WebSocket 端点 URL（用于订阅）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ws_endpoint: Option<String>,
+    /// 请求头
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub headers: Option<HashMap<String, String>>,
+    /// 连接超时（毫秒）
+    #[serde(default)]
+    pub connection_timeout_ms: u64,
+    /// 连接 ID（用于后续节点引用）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connection_id: Option<String>,
+}
+
+/// GraphQL 文件上传描述
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct GraphqlFileUpload {
+    /// 文件名
+    pub name: String,
+    /// 文件路径
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    /// 文件 MIME 类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
+}
+
+/// GraphQL 查询节点配置（Query + Mutation）
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct GraphqlQueryConfig {
+    /// 连接 ID（引用 graphql_connect 节点的 UUID）
+    pub connection_id: String,
+    /// GraphQL 查询/变更语句
+    pub query: String,
+    /// 查询变量
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variables: Option<serde_json::Value>,
+    /// 操作名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation_name: Option<String>,
+    /// 查询超时（毫秒）
+    #[serde(default)]
+    pub timeout_ms: u64,
+    /// 文件上传列表（用于 multipart 请求）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub files: Option<Vec<GraphqlFileUpload>>,
+}
+
+/// GraphQL 订阅节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct GraphqlSubscribeConfig {
+    /// 连接 ID（引用 graphql_connect 节点的 UUID）
+    pub connection_id: String,
+    /// GraphQL 订阅语句
+    pub subscription: String,
+    /// 订阅变量
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variables: Option<serde_json::Value>,
+    /// 操作名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation_name: Option<String>,
+    /// 最大接收事件数
+    #[serde(default)]
+    pub max_events: u32,
+    /// 订阅超时（毫秒）
+    #[serde(default)]
+    pub timeout_ms: u64,
+}
+
+/// GraphQL 取消订阅节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct GraphqlUnsubscribeConfig {
+    /// 连接 ID（引用 graphql_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 订阅 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscription_id: Option<String>,
+}
+
+/// GraphQL Schema 探索节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct GraphqlIntrospectConfig {
+    /// 连接 ID（引用 graphql_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 探索超时（毫秒）
+    #[serde(default)]
+    pub timeout_ms: u64,
+}
+
+/// GraphQL 断开连接节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct GraphqlDisconnectConfig {
+    /// 连接 ID（引用 graphql_connect 节点的 UUID）
+    pub connection_id: String,
+}
+
+// ============================================================================
+// AMQP 0-9-1 节点配置
+// ============================================================================
+
+/// AMQP 连接节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AmqpConnectConfig {
+    /// AMQP Broker URL
+    pub url: String,
+    /// 连接 ID（用于后续节点引用）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connection_id: Option<String>,
+    /// 心跳间隔（秒）
+    #[serde(default)]
+    pub heartbeat: u16,
+    /// 最大通道数
+    #[serde(default)]
+    pub channel_max: u16,
+    /// 最大帧大小
+    #[serde(default)]
+    pub frame_max: u32,
+    /// 连接超时（毫秒）
+    #[serde(default)]
+    pub connection_timeout_ms: u64,
+    /// TLS 模式
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls_mode: Option<String>,
+    /// 认证机制
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auth_mechanism: Option<String>,
+    /// 是否启用自动恢复
+    #[serde(default)]
+    pub auto_recover: bool,
+    /// 最大重连重试次数
+    #[serde(default)]
+    pub reconnect_max_retries: u32,
+}
+
+/// AMQP 关闭连接节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AmqpCloseConfig {
+    /// 连接 ID（引用 amqp_connect 节点的 UUID）
+    pub connection_id: String,
+    /// 关闭回复码
+    #[serde(default)]
+    pub reply_code: u16,
+    /// 关闭回复文本
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reply_text: Option<String>,
+}
+
+/// AMQP 声明交换器节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AmqpExchangeDeclareConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 交换器名称
+    pub exchange: String,
+    /// 交换器类型："direct"/"fanout"/"topic"/"headers"/"custom"
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exchange_type: Option<String>,
+    /// 自定义交换器类型（当 exchange_type 为 "custom" 时使用）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub custom_type: Option<String>,
+    /// 是否被动声明（仅检查是否存在）
+    #[serde(default)]
+    pub passive: bool,
+    /// 是否持久化
+    #[serde(default)]
+    pub durable: bool,
+    /// 是否自动删除
+    #[serde(default)]
+    pub auto_delete: bool,
+    /// 是否为内部交换器
+    #[serde(default)]
+    pub internal: bool,
+    /// 额外参数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arguments: Option<HashMap<String, serde_json::Value>>,
+}
+
+/// AMQP 删除交换器节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AmqpExchangeDeleteConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 交换器名称
+    pub exchange: String,
+    /// 是否仅在不使用时删除
+    #[serde(default)]
+    pub if_unused: bool,
+}
+
+/// AMQP 声明队列节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AmqpQueueDeclareConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 队列名称（空字符串表示自动生成）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub queue: Option<String>,
+    /// 是否被动声明
+    #[serde(default)]
+    pub passive: bool,
+    /// 是否持久化
+    #[serde(default)]
+    pub durable: bool,
+    /// 是否排他
+    #[serde(default)]
+    pub exclusive: bool,
+    /// 是否自动删除
+    #[serde(default)]
+    pub auto_delete: bool,
+    /// 额外参数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arguments: Option<HashMap<String, serde_json::Value>>,
+}
+
+/// AMQP 删除队列节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AmqpQueueDeleteConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 队列名称
+    pub queue: String,
+    /// 操作类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action: Option<String>,
+    /// 是否仅在不使用时删除
+    #[serde(default)]
+    pub if_unused: bool,
+    /// 是否仅在队列为空时删除
+    #[serde(default)]
+    pub if_empty: bool,
+}
+
+/// AMQP 绑定队列节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AmqpQueueBindConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 队列名称
+    pub queue: String,
+    /// 交换器名称
+    pub exchange: String,
+    /// 路由键
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub routing_key: Option<String>,
+    /// 额外参数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arguments: Option<HashMap<String, serde_json::Value>>,
+}
+
+/// AMQP 发布消息节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AmqpPublishConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 目标交换器
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exchange: Option<String>,
+    /// 路由键
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub routing_key: Option<String>,
+    /// 消息体
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body: Option<String>,
+    /// 消息体类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body_type: Option<String>,
+    /// Content-Type
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
+    /// Content-Encoding
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_encoding: Option<String>,
+    /// 投递模式（1=非持久化，2=持久化）
+    #[serde(default)]
+    pub delivery_mode: u8,
+    /// 优先级
+    #[serde(default)]
+    pub priority: u8,
+    /// 消息 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message_id: Option<String>,
+    /// 关联 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub correlation_id: Option<String>,
+    /// 回复队列
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reply_to: Option<String>,
+    /// 过期时间
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expiration: Option<String>,
+    /// 时间戳
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<u64>,
+    /// 消息类型
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message_type: Option<String>,
+    /// 用户 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// 应用 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_id: Option<String>,
+    /// 集群 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cluster_id: Option<String>,
+    /// 消息头
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub headers: Option<HashMap<String, serde_json::Value>>,
+    /// 是否强制路由
+    #[serde(default)]
+    pub mandatory: bool,
+    /// 确认模式
+    #[serde(default)]
+    pub confirm_mode: String,
+}
+
+/// AMQP 消费消息节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AmqpConsumeConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 队列名称
+    pub queue: String,
+    /// 消费者标签
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub consumer_tag: Option<String>,
+    /// 确认模式
+    #[serde(default)]
+    pub ack_mode: String,
+    /// 是否排他消费
+    #[serde(default)]
+    pub exclusive: bool,
+    /// 不接收自身发布的消息
+    #[serde(default)]
+    pub no_local: bool,
+    /// 预取数量
+    #[serde(default)]
+    pub prefetch_count: u16,
+    /// 最大接收消息数
+    #[serde(default)]
+    pub max_messages: u32,
+    /// 消费超时（毫秒）
+    #[serde(default)]
+    pub timeout_ms: u64,
+    /// 成功时自动确认
+    #[serde(default)]
+    pub auto_ack_on_success: bool,
+    /// 失败时自动拒绝
+    #[serde(default)]
+    pub auto_reject_on_failure: bool,
+    /// 拒绝后是否重新入队
+    #[serde(default)]
+    pub reject_requeue: bool,
+}
+
+/// AMQP 获取消息节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AmqpGetConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 队列名称
+    pub queue: String,
+    /// 是否自动确认
+    #[serde(default)]
+    pub no_ack: bool,
+}
+
+/// AMQP 确认消息节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AmqpAckConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 操作类型："ack"/"nack"/"reject"
+    pub action: String,
+    /// 投递标签
+    #[serde(default)]
+    pub delivery_tag: u64,
+    /// 是否批量确认
+    #[serde(default)]
+    pub multiple: bool,
+    /// 拒绝后是否重新入队
+    #[serde(default)]
+    pub requeue: bool,
+}
+
+/// AMQP 管理节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct AmqpManagementConfig {
+    /// 管理 API URL
+    pub management_url: String,
+    /// 用户名
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    /// 密码
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+    /// 管理操作
+    pub action: String,
+    /// 虚拟主机
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub vhost: Option<String>,
+    /// 队列名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub queue_name: Option<String>,
+    /// 连接 ID
+    pub connection_id: String,
+}
+
+// ============================================================================
+// AMQP 1.0 节点配置
+// ============================================================================
+
+/// AMQP 1.0 连接节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Amqp10ConnectConfig {
+    /// AMQP 1.0 节点 URL
+    pub url: String,
+    /// 连接 ID（用于后续节点引用）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connection_id: Option<String>,
+    /// TLS 模式
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls_mode: Option<String>,
+    /// 认证机制
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auth_mechanism: Option<String>,
+    /// 容器 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub container_id: Option<String>,
+}
+
+/// AMQP 1.0 消息属性
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Amqp10MessageProperties {
+    /// Content-Type
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
+    /// Content-Encoding
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_encoding: Option<String>,
+    /// 关联 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub correlation_id: Option<String>,
+    /// 消息 ID
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message_id: Option<String>,
+    /// 回复地址
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reply_to: Option<String>,
+    /// 主题
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subject: Option<String>,
+    /// 目标地址
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub to: Option<String>,
+    /// 绝对过期时间（Unix 时间戳毫秒）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub absolute_expiry_time: Option<u64>,
+    /// 创建时间（Unix 时间戳毫秒）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub creation_time: Option<u64>,
+}
+
+/// AMQP 1.0 发送消息节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Amqp10SendConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 目标地址
+    pub address: String,
+    /// 消息体
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message_body: Option<String>,
+    /// 消息属性
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message_properties: Option<Amqp10MessageProperties>,
+    /// 消息注解
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message_annotations: Option<HashMap<String, serde_json::Value>>,
+}
+
+/// AMQP 1.0 接收消息节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Amqp10ReceiveConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 源地址
+    pub address: String,
+    /// 信用额度
+    #[serde(default)]
+    pub credit: u32,
+    /// 最大接收消息数
+    #[serde(default)]
+    pub max_messages: u32,
+    /// 接收超时（毫秒）
+    #[serde(default)]
+    pub timeout_ms: u64,
+    /// 是否自动接受
+    #[serde(default)]
+    pub auto_accept: bool,
+}
+
+/// AMQP 1.0 确认消息节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Amqp10AcceptConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 投递 ID
+    #[serde(default)]
+    pub delivery_id: u64,
+}
+
+/// AMQP 1.0 拒绝消息节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Amqp10RejectConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 投递 ID
+    #[serde(default)]
+    pub delivery_id: u64,
+    /// 错误条件
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_condition: Option<String>,
+    /// 错误描述
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_description: Option<String>,
+}
+
+/// AMQP 1.0 断开连接节点配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct Amqp10DisconnectConfig {
+    /// 连接 ID
+    pub connection_id: String,
+}
+
+// ============================================================================
 // 变量提取节点配置
 // ============================================================================
 
@@ -2310,6 +2918,91 @@ pub enum NodeData {
     /// Kafka 关闭连接节点配置
     #[serde(rename = "kafka_close")]
     KafkaClose(KafkaCloseConfig),
+    // SSE 节点
+    /// SSE 连接节点配置
+    #[serde(rename = "sse_connect")]
+    SseConnect(SseConnectConfig),
+    /// SSE 监听事件节点配置
+    #[serde(rename = "sse_listen")]
+    SseListen(SseListenConfig),
+    /// SSE 断开连接节点配置
+    #[serde(rename = "sse_disconnect")]
+    SseDisconnect(SseDisconnectConfig),
+    // GraphQL 节点
+    /// GraphQL 连接节点配置
+    #[serde(rename = "graphql_connect")]
+    GraphqlConnect(GraphqlConnectConfig),
+    /// GraphQL 查询节点配置
+    #[serde(rename = "graphql_query")]
+    GraphqlQuery(GraphqlQueryConfig),
+    /// GraphQL 订阅节点配置
+    #[serde(rename = "graphql_subscribe")]
+    GraphqlSubscribe(GraphqlSubscribeConfig),
+    /// GraphQL 取消订阅节点配置
+    #[serde(rename = "graphql_unsubscribe")]
+    GraphqlUnsubscribe(GraphqlUnsubscribeConfig),
+    /// GraphQL Schema 探索节点配置
+    #[serde(rename = "graphql_introspect")]
+    GraphqlIntrospect(GraphqlIntrospectConfig),
+    /// GraphQL 断开连接节点配置
+    #[serde(rename = "graphql_disconnect")]
+    GraphqlDisconnect(GraphqlDisconnectConfig),
+    // AMQP 0-9-1 节点
+    /// AMQP 连接节点配置
+    #[serde(rename = "amqp_connect")]
+    AmqpConnect(AmqpConnectConfig),
+    /// AMQP 关闭连接节点配置
+    #[serde(rename = "amqp_close")]
+    AmqpClose(AmqpCloseConfig),
+    /// AMQP 声明交换器节点配置
+    #[serde(rename = "amqp_exchange_declare")]
+    AmqpExchangeDeclare(AmqpExchangeDeclareConfig),
+    /// AMQP 删除交换器节点配置
+    #[serde(rename = "amqp_exchange_delete")]
+    AmqpExchangeDelete(AmqpExchangeDeleteConfig),
+    /// AMQP 声明队列节点配置
+    #[serde(rename = "amqp_queue_declare")]
+    AmqpQueueDeclare(AmqpQueueDeclareConfig),
+    /// AMQP 删除队列节点配置
+    #[serde(rename = "amqp_queue_delete")]
+    AmqpQueueDelete(AmqpQueueDeleteConfig),
+    /// AMQP 绑定队列节点配置
+    #[serde(rename = "amqp_queue_bind")]
+    AmqpQueueBind(AmqpQueueBindConfig),
+    /// AMQP 发布消息节点配置
+    #[serde(rename = "amqp_publish")]
+    AmqpPublish(AmqpPublishConfig),
+    /// AMQP 消费消息节点配置
+    #[serde(rename = "amqp_consume")]
+    AmqpConsume(AmqpConsumeConfig),
+    /// AMQP 获取消息节点配置
+    #[serde(rename = "amqp_get")]
+    AmqpGet(AmqpGetConfig),
+    /// AMQP 确认消息节点配置
+    #[serde(rename = "amqp_ack")]
+    AmqpAck(AmqpAckConfig),
+    /// AMQP 管理节点配置
+    #[serde(rename = "amqp_management")]
+    AmqpManagement(AmqpManagementConfig),
+    // AMQP 1.0 节点
+    /// AMQP 1.0 连接节点配置
+    #[serde(rename = "amqp10_connect")]
+    Amqp10Connect(Amqp10ConnectConfig),
+    /// AMQP 1.0 发送消息节点配置
+    #[serde(rename = "amqp10_send")]
+    Amqp10Send(Amqp10SendConfig),
+    /// AMQP 1.0 接收消息节点配置
+    #[serde(rename = "amqp10_receive")]
+    Amqp10Receive(Amqp10ReceiveConfig),
+    /// AMQP 1.0 确认消息节点配置
+    #[serde(rename = "amqp10_accept")]
+    Amqp10Accept(Amqp10AcceptConfig),
+    /// AMQP 1.0 拒绝消息节点配置
+    #[serde(rename = "amqp10_reject")]
+    Amqp10Reject(Amqp10RejectConfig),
+    /// AMQP 1.0 断开连接节点配置
+    #[serde(rename = "amqp10_disconnect")]
+    Amqp10Disconnect(Amqp10DisconnectConfig),
     /// 变量提取节点配置
     #[serde(rename = "variable_extractor")]
     VariableExtractor(VariableExtractorConfig),
@@ -2465,6 +3158,91 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "kafka_close" => serde_json::from_value::<KafkaCloseConfig>(value.clone())
                 .map(NodeData::KafkaClose)
                 .map_err(serde::de::Error::custom),
+            // SSE 节点
+            "sse_connect" => serde_json::from_value::<SseConnectConfig>(value.clone())
+                .map(NodeData::SseConnect)
+                .map_err(serde::de::Error::custom),
+            "sse_listen" => serde_json::from_value::<SseListenConfig>(value.clone())
+                .map(NodeData::SseListen)
+                .map_err(serde::de::Error::custom),
+            "sse_disconnect" => serde_json::from_value::<SseDisconnectConfig>(value.clone())
+                .map(NodeData::SseDisconnect)
+                .map_err(serde::de::Error::custom),
+            // GraphQL 节点
+            "graphql_connect" => serde_json::from_value::<GraphqlConnectConfig>(value.clone())
+                .map(NodeData::GraphqlConnect)
+                .map_err(serde::de::Error::custom),
+            "graphql_query" => serde_json::from_value::<GraphqlQueryConfig>(value.clone())
+                .map(NodeData::GraphqlQuery)
+                .map_err(serde::de::Error::custom),
+            "graphql_subscribe" => serde_json::from_value::<GraphqlSubscribeConfig>(value.clone())
+                .map(NodeData::GraphqlSubscribe)
+                .map_err(serde::de::Error::custom),
+            "graphql_unsubscribe" => serde_json::from_value::<GraphqlUnsubscribeConfig>(value.clone())
+                .map(NodeData::GraphqlUnsubscribe)
+                .map_err(serde::de::Error::custom),
+            "graphql_introspect" => serde_json::from_value::<GraphqlIntrospectConfig>(value.clone())
+                .map(NodeData::GraphqlIntrospect)
+                .map_err(serde::de::Error::custom),
+            "graphql_disconnect" => serde_json::from_value::<GraphqlDisconnectConfig>(value.clone())
+                .map(NodeData::GraphqlDisconnect)
+                .map_err(serde::de::Error::custom),
+            // AMQP 0-9-1 节点
+            "amqp_connect" => serde_json::from_value::<AmqpConnectConfig>(value.clone())
+                .map(NodeData::AmqpConnect)
+                .map_err(serde::de::Error::custom),
+            "amqp_close" => serde_json::from_value::<AmqpCloseConfig>(value.clone())
+                .map(NodeData::AmqpClose)
+                .map_err(serde::de::Error::custom),
+            "amqp_exchange_declare" => serde_json::from_value::<AmqpExchangeDeclareConfig>(value.clone())
+                .map(NodeData::AmqpExchangeDeclare)
+                .map_err(serde::de::Error::custom),
+            "amqp_exchange_delete" => serde_json::from_value::<AmqpExchangeDeleteConfig>(value.clone())
+                .map(NodeData::AmqpExchangeDelete)
+                .map_err(serde::de::Error::custom),
+            "amqp_queue_declare" => serde_json::from_value::<AmqpQueueDeclareConfig>(value.clone())
+                .map(NodeData::AmqpQueueDeclare)
+                .map_err(serde::de::Error::custom),
+            "amqp_queue_delete" => serde_json::from_value::<AmqpQueueDeleteConfig>(value.clone())
+                .map(NodeData::AmqpQueueDelete)
+                .map_err(serde::de::Error::custom),
+            "amqp_queue_bind" => serde_json::from_value::<AmqpQueueBindConfig>(value.clone())
+                .map(NodeData::AmqpQueueBind)
+                .map_err(serde::de::Error::custom),
+            "amqp_publish" => serde_json::from_value::<AmqpPublishConfig>(value.clone())
+                .map(NodeData::AmqpPublish)
+                .map_err(serde::de::Error::custom),
+            "amqp_consume" => serde_json::from_value::<AmqpConsumeConfig>(value.clone())
+                .map(NodeData::AmqpConsume)
+                .map_err(serde::de::Error::custom),
+            "amqp_get" => serde_json::from_value::<AmqpGetConfig>(value.clone())
+                .map(NodeData::AmqpGet)
+                .map_err(serde::de::Error::custom),
+            "amqp_ack" => serde_json::from_value::<AmqpAckConfig>(value.clone())
+                .map(NodeData::AmqpAck)
+                .map_err(serde::de::Error::custom),
+            "amqp_management" => serde_json::from_value::<AmqpManagementConfig>(value.clone())
+                .map(NodeData::AmqpManagement)
+                .map_err(serde::de::Error::custom),
+            // AMQP 1.0 节点
+            "amqp10_connect" => serde_json::from_value::<Amqp10ConnectConfig>(value.clone())
+                .map(NodeData::Amqp10Connect)
+                .map_err(serde::de::Error::custom),
+            "amqp10_send" => serde_json::from_value::<Amqp10SendConfig>(value.clone())
+                .map(NodeData::Amqp10Send)
+                .map_err(serde::de::Error::custom),
+            "amqp10_receive" => serde_json::from_value::<Amqp10ReceiveConfig>(value.clone())
+                .map(NodeData::Amqp10Receive)
+                .map_err(serde::de::Error::custom),
+            "amqp10_accept" => serde_json::from_value::<Amqp10AcceptConfig>(value.clone())
+                .map(NodeData::Amqp10Accept)
+                .map_err(serde::de::Error::custom),
+            "amqp10_reject" => serde_json::from_value::<Amqp10RejectConfig>(value.clone())
+                .map(NodeData::Amqp10Reject)
+                .map_err(serde::de::Error::custom),
+            "amqp10_disconnect" => serde_json::from_value::<Amqp10DisconnectConfig>(value.clone())
+                .map(NodeData::Amqp10Disconnect)
+                .map_err(serde::de::Error::custom),
             "variable_extractor" => serde_json::from_value::<VariableExtractorConfig>(value.clone())
                 .map(NodeData::VariableExtractor)
                 .map_err(serde::de::Error::custom),
@@ -2521,6 +3299,37 @@ impl NodeData {
             NodeData::KafkaAdmin(_) => "kafka_admin".to_string(),
             NodeData::KafkaSchemaRegistry(_) => "kafka_schema_registry".to_string(),
             NodeData::KafkaClose(_) => "kafka_close".to_string(),
+            // SSE 节点
+            NodeData::SseConnect(_) => "sse_connect".to_string(),
+            NodeData::SseListen(_) => "sse_listen".to_string(),
+            NodeData::SseDisconnect(_) => "sse_disconnect".to_string(),
+            // GraphQL 节点
+            NodeData::GraphqlConnect(_) => "graphql_connect".to_string(),
+            NodeData::GraphqlQuery(_) => "graphql_query".to_string(),
+            NodeData::GraphqlSubscribe(_) => "graphql_subscribe".to_string(),
+            NodeData::GraphqlUnsubscribe(_) => "graphql_unsubscribe".to_string(),
+            NodeData::GraphqlIntrospect(_) => "graphql_introspect".to_string(),
+            NodeData::GraphqlDisconnect(_) => "graphql_disconnect".to_string(),
+            // AMQP 0-9-1 节点
+            NodeData::AmqpConnect(_) => "amqp_connect".to_string(),
+            NodeData::AmqpClose(_) => "amqp_close".to_string(),
+            NodeData::AmqpExchangeDeclare(_) => "amqp_exchange_declare".to_string(),
+            NodeData::AmqpExchangeDelete(_) => "amqp_exchange_delete".to_string(),
+            NodeData::AmqpQueueDeclare(_) => "amqp_queue_declare".to_string(),
+            NodeData::AmqpQueueDelete(_) => "amqp_queue_delete".to_string(),
+            NodeData::AmqpQueueBind(_) => "amqp_queue_bind".to_string(),
+            NodeData::AmqpPublish(_) => "amqp_publish".to_string(),
+            NodeData::AmqpConsume(_) => "amqp_consume".to_string(),
+            NodeData::AmqpGet(_) => "amqp_get".to_string(),
+            NodeData::AmqpAck(_) => "amqp_ack".to_string(),
+            NodeData::AmqpManagement(_) => "amqp_management".to_string(),
+            // AMQP 1.0 节点
+            NodeData::Amqp10Connect(_) => "amqp10_connect".to_string(),
+            NodeData::Amqp10Send(_) => "amqp10_send".to_string(),
+            NodeData::Amqp10Receive(_) => "amqp10_receive".to_string(),
+            NodeData::Amqp10Accept(_) => "amqp10_accept".to_string(),
+            NodeData::Amqp10Reject(_) => "amqp10_reject".to_string(),
+            NodeData::Amqp10Disconnect(_) => "amqp10_disconnect".to_string(),
             NodeData::VariableExtractor(_) => "variable_extractor".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
