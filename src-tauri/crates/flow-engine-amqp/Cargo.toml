@@ -1,0 +1,29 @@
+[package]
+name = "flow-engine-amqp"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+management = ["reqwest"]
+
+[dependencies]
+flow-engine-core = { path = "../flow-engine-core" }
+# AMQP 0-9-1 客户端（lapin 默认使用 rustls）
+lapin = "4.5"
+# AMQP 1.0 客户端
+fe2o3-amqp = { version = "0.14", features = ["rustls"] }
+# Stream 迭代器（Consumer 的 next() 方法）
+tokio-stream = "0.1"
+# Workspace 共享依赖
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+log = { workspace = true }
+chrono = { workspace = true }
+# Management HTTP API 客户端（可选 feature）
+reqwest = { version = "0.12", features = ["json"], optional = true }
+
+[lints]
+workspace = true
