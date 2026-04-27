@@ -206,6 +206,10 @@ impl DebuggableFlowExecutor {
             sse_manager: Some(sse_manager),
             graphql_manager: Some(graphql_manager),
             amqp_manager: Some(amqp_manager),
+            // 初始化 SMTP 连接管理器（流程级别的单例）
+            smtp_manager: Some(Arc::new(flow_engine_smtp::SmtpConnectionManager::new())),
+            // 初始化 IMAP 连接管理器（流程级别的单例）
+            imap_manager: Some(Arc::new(flow_engine_imap::ImapConnectionManager::new())),
             last_node_output: None,
             debug_event_sender: Some(Arc::new(crate::debug_event_adapter::MpscDebugEventSender::new(event_sender.clone()))),
             execution_event_sender: None,

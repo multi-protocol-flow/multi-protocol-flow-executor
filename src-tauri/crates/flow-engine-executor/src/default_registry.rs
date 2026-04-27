@@ -119,6 +119,12 @@ pub fn default_registry() -> NodeRegistry {
     // AMQP (flow-engine-amqp) — 批量注册 17 个插件（11 AMQP 0-9-1 + 6 AMQP 1.0）
     flow_engine_amqp::amqp091::plugin::AmqpPluginGroup::register_all(&mut registry);
 
+    // SMTP (flow-engine-smtp) — 批量注册 3 个插件
+    flow_engine_smtp::plugin::SmtpPluginGroup::register_all(&mut registry);
+
+    // IMAP (flow-engine-imap) — 批量注册 13 个插件
+    flow_engine_imap::plugin::ImapPluginGroup::register_all(&mut registry);
+
     // Variable Extractor (flow-engine-executor 内置)
     registry.register(std::sync::Arc::new(
         crate::plugin_variable_extractor::VariableExtractorPlugin,
@@ -134,10 +140,10 @@ mod tests {
     #[test]
     fn test_default_registry_has_17_plugins() {
         let registry = default_registry();
-        assert_eq!(registry.len(), 70);
+        assert_eq!(registry.len(), 87);
 
         let metadata = registry.all_metadata();
-        assert_eq!(metadata.len(), 70);
+        assert_eq!(metadata.len(), 87);
 
         // 验证每个 type_id 都已注册
         let type_ids: Vec<&str> = metadata.iter().map(|m| m.type_id.as_str()).collect();

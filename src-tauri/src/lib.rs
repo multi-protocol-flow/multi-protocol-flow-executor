@@ -63,6 +63,14 @@ pub use tauri_commands::{
     sse_test_connection,
     // AMQP 连接测试命令
     amqp_test_connection,
+    // SMTP 连接测试命令
+    test_smtp_connection,
+    // IMAP 连接测试命令
+    test_imap_connection,
+    // Email OAuth2 命令
+    email_oauth2_authorize,
+    email_oauth2_refresh,
+    email_oauth2_revoke,
     // TCP 协议模板命令
     tcp_list_templates,
     tcp_get_template,
@@ -213,6 +221,14 @@ pub fn run() {
     sse_test_connection,
     // AMQP 连接测试命令
     amqp_test_connection,
+    // SMTP 连接测试命令
+    test_smtp_connection,
+    // IMAP 连接测试命令
+    test_imap_connection,
+    // Email OAuth2 命令
+    email_oauth2_authorize,
+    email_oauth2_refresh,
+    email_oauth2_revoke,
     // TCP 协议模板命令
     tcp_list_templates,
     tcp_get_template,

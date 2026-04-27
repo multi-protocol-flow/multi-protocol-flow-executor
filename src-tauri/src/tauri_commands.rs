@@ -727,6 +727,8 @@ pub async fn mcp_discover_tools(
 // ============================================================================
 
 use flow_engine::mqtt_connection_manager::MqttConnectionManager;
+use flow_engine::traits::SmtpProvider;
+use flow_engine::traits::ImapProvider;
 use flow_engine::traits::MqttProvider;
 use flow_engine::node_config::MqttConnectConfig;
 
@@ -862,6 +864,380 @@ pub async fn amqp_test_connection(url: String) -> Result<bool, String> {
         return Err("URL 必须以 amqp:// 或 amqps:// 开头".to_string());
     }
     Ok(true)
+}
+
+// ============================================================================
+// Email 连接测试命令
+// ============================================================================
+
+/// SMTP 连接测试输入
+#[derive(Debug, serde::Deserialize)]
+pub struct SmtpTestConnectionInput {
+    /// SMTP 服务器地址
+    pub host: String,
+    /// 端口号
+    pub port: u16,
+    /// TLS 模式: "none", "starttls", "implicit"
+    pub tls_mode: String,
+    /// 用户名（可选）
+    pub username: Option<String>,
+    /// 密码（明文，会被自动加密）
+    pub password: Option<String>,
+}
+
+/// SMTP 连接测试输出
+#[derive(Debug, serde::Serialize)]
+pub struct SmtpTestConnectionOutput {
+    /// 是否成功
+    pub success: bool,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// 测试 SMTP 连接
+///
+/// 设计时调用：创建临时 SMTP 连接验证服务器可达性，测试后不保留连接。
+#[tauri::command]
+pub async fn test_smtp_connection(
+    input: SmtpTestConnectionInput,
+) -> SmtpTestConnectionOutput {
+    use flow_engine::email_types::{SmtpConfig, TlsMode, EmailAuthConfig};
+
+    log::info!("[SMTP] 测试连接: {}:{}", input.host, input.port);
+
+    let tls_mode = match input.tls_mode.as_str() {
+        "starttls" => TlsMode::StartTls,
+        "implicit" => TlsMode::Implicit,
+        _ => TlsMode::None,
+    };
+
+    let auth = match (input.username, input.password) {
+        (Some(u), Some(p)) => {
+            match flow_engine::encryption::encrypt(&p) {
+                Ok(encrypted) => Some(EmailAuthConfig::Plain {
+                    username: u,
+                    encrypted_password: encrypted,
+                }),
+                Err(e) => {
+                    return SmtpTestConnectionOutput {
+                        success: false,
+                        error: Some(format!("加密密码失败: {}", e)),
+                    };
+                }
+            }
+        }
+        _ => None,
+    };
+
+    let config = SmtpConfig {
+        host: input.host,
+        port: input.port,
+        tls_mode,
+        auth,
+    };
+
+    let manager = flow_engine::smtp_connection_manager::SmtpConnectionManager::new();
+    match manager.test_connection(&config).await {
+        Ok(true) => {
+            log::info!("[SMTP] 连接测试成功");
+            SmtpTestConnectionOutput {
+                success: true,
+                error: None,
+            }
+        }
+        Ok(false) => {
+            log::warn!("[SMTP] 连接测试失败");
+            SmtpTestConnectionOutput {
+                success: false,
+                error: Some("连接测试失败".to_string()),
+            }
+        }
+        Err(e) => {
+            log::error!("[SMTP] 连接测试失败: {}", e);
+            SmtpTestConnectionOutput {
+                success: false,
+                error: Some(e),
+            }
+        }
+    }
+}
+
+/// IMAP 连接测试输入
+#[derive(Debug, serde::Deserialize)]
+pub struct ImapTestConnectionInput {
+    /// IMAP 服务器地址
+    pub host: String,
+    /// 端口号
+    pub port: u16,
+    /// TLS 模式: "none", "starttls", "implicit"
+    pub tls_mode: String,
+    /// 用户名（可选）
+    pub username: Option<String>,
+    /// 密码（明文，会被自动加密）
+    pub password: Option<String>,
+}
+
+/// IMAP 连接测试输出
+#[derive(Debug, serde::Serialize)]
+pub struct ImapTestConnectionOutput {
+    /// 是否成功
+    pub success: bool,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// 测试 IMAP 连接
+///
+/// 设计时调用：创建临时 IMAP 连接验证服务器可达性，测试后立即断开。
+#[tauri::command]
+pub async fn test_imap_connection(
+    input: ImapTestConnectionInput,
+) -> ImapTestConnectionOutput {
+    use flow_engine::email_types::{ImapConfig, TlsMode, EmailAuthConfig};
+
+    log::info!("[IMAP] 测试连接: {}:{}", input.host, input.port);
+
+    let tls_mode = match input.tls_mode.as_str() {
+        "starttls" => TlsMode::StartTls,
+        "implicit" => TlsMode::Implicit,
+        _ => TlsMode::None,
+    };
+
+    let auth = match (input.username, input.password) {
+        (Some(u), Some(p)) => {
+            match flow_engine::encryption::encrypt(&p) {
+                Ok(encrypted) => Some(EmailAuthConfig::Plain {
+                    username: u,
+                    encrypted_password: encrypted,
+                }),
+                Err(e) => {
+                    return ImapTestConnectionOutput {
+                        success: false,
+                        error: Some(format!("加密密码失败: {}", e)),
+                    };
+                }
+            }
+        }
+        _ => None,
+    };
+
+    let config = ImapConfig {
+        host: input.host,
+        port: input.port,
+        tls_mode,
+        auth,
+    };
+
+    let manager = flow_engine::imap_connection_manager::ImapConnectionManager::new();
+    match manager.test_connection(&config).await {
+        Ok(true) => {
+            log::info!("[IMAP] 连接测试成功");
+            ImapTestConnectionOutput {
+                success: true,
+                error: None,
+            }
+        }
+        Ok(false) => {
+            log::warn!("[IMAP] 连接测试失败");
+            ImapTestConnectionOutput {
+                success: false,
+                error: Some("连接测试失败".to_string()),
+            }
+        }
+        Err(e) => {
+            log::error!("[IMAP] 连接测试失败: {}", e);
+            ImapTestConnectionOutput {
+                success: false,
+                error: Some(e),
+            }
+        }
+    }
+}
+
+// ============================================================================
+// Email OAuth2 命令
+// ============================================================================
+
+/// OAuth2 授权输入
+#[derive(serde::Deserialize)]
+pub struct EmailOAuth2AuthorizeInput {
+    /// 邮件服务商: "gmail" | "outlook" | "yahoo" | "custom"
+    pub provider: String,
+    /// OAuth2 客户端 ID
+    pub client_id: String,
+    /// OAuth2 客户端密钥（可选，PKCE 流程不需要）
+    pub client_secret: Option<String>,
+    /// 本地回调监听端口
+    pub redirect_port: Option<u16>,
+}
+
+/// OAuth2 授权输出
+#[derive(serde::Serialize)]
+pub struct EmailOAuth2AuthorizeOutput {
+    /// 是否成功
+    pub success: bool,
+    /// 加密后的 Token（格式: `base64(nonce):base64(ciphertext)`）
+    pub encrypted_tokens: Option<String>,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// 触发 OAuth2 授权流程
+///
+/// 在浏览器中打开 OAuth2 授权页面，等待用户授权后获取 Token。
+/// 使用 PKCE 流程，无需 client_secret。
+/// Token 获取后自动加密存储并返回密文。
+#[tauri::command]
+pub async fn email_oauth2_authorize(
+    input: EmailOAuth2AuthorizeInput,
+) -> EmailOAuth2AuthorizeOutput {
+    log::info!(
+        "[OAuth2] 开始授权流程: provider={}, client_id={}",
+        input.provider,
+        input.client_id
+    );
+
+    // 解析 provider
+    let _provider = match input.provider.as_str() {
+        "gmail" => flow_engine::email_types::EmailProvider::Gmail,
+        "outlook" => flow_engine::email_types::EmailProvider::Outlook,
+        "yahoo" => flow_engine::email_types::EmailProvider::Yahoo,
+        _ => {
+            return EmailOAuth2AuthorizeOutput {
+                success: false,
+                encrypted_tokens: None,
+                error: Some(format!("不支持的服务商: {}", input.provider)),
+            };
+        }
+    };
+
+    // TODO: 完整 OAuth2 PKCE 流程集成
+    // 1. oauth2::oauth2_config_from_provider(&provider, &input.client_id, None, port)
+    // 2. oauth2::build_pkce_auth_url(&config) → 获取授权 URL
+    // 3. 打开浏览器（需要 tauri shell 插件）
+    // 4. oauth2::start_callback_listener(port) → 等待回调
+    // 5. oauth2::exchange_code(&config, &code, &verifier) → 换取 Token
+    // 6. oauth2::store_tokens_encrypted(&tokens) → 加密存储
+
+    EmailOAuth2AuthorizeOutput {
+        success: false,
+        encrypted_tokens: None,
+        error: Some("OAuth2 授权流程尚未完成集成".to_string()),
+    }
+}
+
+/// OAuth2 刷新输入
+#[derive(serde::Deserialize)]
+pub struct EmailOAuth2RefreshInput {
+    /// 邮件服务商: "gmail" | "outlook" | "yahoo" | "custom"
+    pub provider: String,
+    /// OAuth2 客户端 ID
+    pub client_id: String,
+    /// OAuth2 客户端密钥（可选）
+    pub client_secret: Option<String>,
+    /// 加密后的 Token 密文
+    pub encrypted_tokens: String,
+}
+
+/// OAuth2 刷新输出
+#[derive(serde::Serialize)]
+pub struct EmailOAuth2RefreshOutput {
+    /// 是否成功
+    pub success: bool,
+    /// 加密后的新 Token
+    pub encrypted_tokens: Option<String>,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// 刷新 OAuth2 Token
+///
+/// 解密现有 Token，使用 refresh_token 获取新的 access_token，
+/// 加密后返回。
+#[tauri::command]
+pub async fn email_oauth2_refresh(
+    input: EmailOAuth2RefreshInput,
+) -> EmailOAuth2RefreshOutput {
+    log::info!("[OAuth2] 刷新 token: provider={}", input.provider);
+
+    // 解析 provider
+    let _provider = match input.provider.as_str() {
+        "gmail" => flow_engine::email_types::EmailProvider::Gmail,
+        "outlook" => flow_engine::email_types::EmailProvider::Outlook,
+        "yahoo" => flow_engine::email_types::EmailProvider::Yahoo,
+        _ => {
+            return EmailOAuth2RefreshOutput {
+                success: false,
+                encrypted_tokens: None,
+                error: Some(format!("不支持的服务商: {}", input.provider)),
+            };
+        }
+    };
+
+    // TODO: 完整 Token 刷新集成
+    // 1. oauth2::load_tokens_decrypted(&input.encrypted_tokens) → 解密
+    // 2. oauth2::oauth2_config_from_provider(&provider, &input.client_id, ..., 0)
+    // 3. oauth2::refresh_token(&config, &tokens.refresh_token) → 刷新
+    // 4. oauth2::store_tokens_encrypted(&new_tokens) → 加密返回
+
+    EmailOAuth2RefreshOutput {
+        success: false,
+        encrypted_tokens: None,
+        error: Some("OAuth2 token 刷新尚未完成集成".to_string()),
+    }
+}
+
+/// OAuth2 撤销输入
+#[derive(serde::Deserialize)]
+pub struct EmailOAuth2RevokeInput {
+    /// 邮件服务商: "gmail" | "outlook" | "yahoo" | "custom"
+    pub provider: String,
+    /// 加密后的 Token 密文
+    pub encrypted_tokens: String,
+}
+
+/// OAuth2 撤销输出
+#[derive(serde::Serialize)]
+pub struct EmailOAuth2RevokeOutput {
+    /// 是否成功
+    pub success: bool,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// 撤销 OAuth2 授权
+///
+/// 解密 Token 并向服务商发送撤销请求，使 Token 失效。
+#[tauri::command]
+pub async fn email_oauth2_revoke(
+    input: EmailOAuth2RevokeInput,
+) -> EmailOAuth2RevokeOutput {
+    log::info!("[OAuth2] 撤销授权: provider={}", input.provider);
+
+    // 解析 provider
+    let _provider = match input.provider.as_str() {
+        "gmail" => flow_engine::email_types::EmailProvider::Gmail,
+        "outlook" => flow_engine::email_types::EmailProvider::Outlook,
+        "yahoo" => flow_engine::email_types::EmailProvider::Yahoo,
+        _ => {
+            return EmailOAuth2RevokeOutput {
+                success: false,
+                error: Some(format!("不支持的服务商: {}", input.provider)),
+            };
+        }
+    };
+
+    // TODO: 完整 Token 撤销集成
+    // 1. oauth2::load_tokens_decrypted(&input.encrypted_tokens) → 解密
+    // 2. 向服务商撤销端点发送 POST 请求
+    //    - Google: https://oauth2.googleapis.com/revoke?token={access_token}
+    //    - Microsoft: 无标准撤销端点，需通过账户页面撤销
+    //    - Yahoo: https://api.login.yahoo.com/oauth2/revoke?token={access_token}
+
+    EmailOAuth2RevokeOutput {
+        success: false,
+        error: Some("OAuth2 授权撤销尚未完成集成".to_string()),
+    }
 }
 
 // ============================================================================

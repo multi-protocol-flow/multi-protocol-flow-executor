@@ -6,6 +6,8 @@ pub use flow_engine_executor::commands;
 
 // Re-exports from flow-engine-core
 pub use flow_engine_core::dataset;
+pub use flow_engine_core::email_types;
+pub use flow_engine_core::email_auth;
 pub use flow_engine_core::connection;
 pub use flow_engine_core::plugin;
 pub use flow_engine_core::registry;
@@ -114,6 +116,28 @@ pub use flow_engine_amqp::amqp091::amqp_consume_executor;
 pub use flow_engine_amqp::amqp091::amqp_get_executor;
 pub use flow_engine_amqp::amqp091::amqp_ack_executor;
 pub use flow_engine_amqp::AmqpConnectionManager;
+// SMTP (flow-engine-smtp)
+pub use flow_engine_smtp::smtp_connection_manager;
+pub use flow_engine_smtp::smtp_connect_executor;
+pub use flow_engine_smtp::smtp_send_executor;
+pub use flow_engine_smtp::smtp_disconnect_executor;
+pub use flow_engine_smtp::plugin as smtp_plugin;
+// IMAP (flow-engine-imap)
+pub use flow_engine_imap::imap_connection_manager;
+pub use flow_engine_imap::imap_connect_executor;
+pub use flow_engine_imap::imap_select_executor;
+pub use flow_engine_imap::imap_search_executor;
+pub use flow_engine_imap::imap_fetch_executor;
+pub use flow_engine_imap::imap_store_flags_executor;
+pub use flow_engine_imap::imap_copy_executor;
+pub use flow_engine_imap::imap_move_executor;
+pub use flow_engine_imap::imap_expunge_executor;
+pub use flow_engine_imap::imap_list_executor;
+pub use flow_engine_imap::imap_folder_create_executor;
+pub use flow_engine_imap::imap_folder_delete_executor;
+pub use flow_engine_imap::imap_idle_executor;
+pub use flow_engine_imap::imap_close_executor;
+pub use flow_engine_imap::plugin as imap_plugin;
 // Wave 4: 调试模块
 pub use flow_engine_executor::debug;
 // Wave 5: 断言模块
@@ -194,6 +218,10 @@ pub mod test_utils {
                 collect_mode: WsCollectMode::FirstMatch,
                 collect_condition: None,
                 collect_timeout_ms: 10000,
+                use_tls: false,
+                tls_skip_verify: false,
+                ping_interval_ms: None,
+                ping_timeout_ms: None,
                 output_mappings: vec![],
             }),
             ports: None,
