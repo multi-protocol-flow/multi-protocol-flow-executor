@@ -3027,10 +3027,17 @@ pub fn validate_dataset_csv(
 /// 通过 Channel 实时向前端发送执行事件。
 #[tauri::command]
 pub async fn execute_flow_with_dataset(
+    app: tauri::AppHandle,
     input: ExecuteDatasetInput,
     on_dataset_event: Channel<serde_json::Value>,
     state: State<'_, DatasetExecutionSessionManager>,
 ) -> Result<(), String> {
+    // 获取应用数据目录（用于保存失败行详情）
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+
     // 创建取消信号通道
     let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
 
@@ -3064,9 +3071,26 @@ pub async fn execute_flow_with_dataset(
     tokio::spawn(async move {
         let registry = std::sync::Arc::new(flow_engine::default_registry::default_registry());
         let executor = flow_engine::dataset_executor::DatasetExecutor::new(registry);
-        let _ = executor
+        let result = executor
             .execute(&config, &flow, Some(cancel_rx), Some(event_sender))
             .await;
+
+        // 保存失败行详情到磁盘
+        if let Ok((_summaries, failed_details, report_uuid)) = result {
+            if !failed_details.is_empty() {
+                // 使用 executor 返回的 report UUID 直接定位目录
+                let report_dir = app_data_dir.join("reports").join(format!("dataset_{}", report_uuid));
+                let failed_dir = report_dir.join("failed");
+                if let Ok(()) = std::fs::create_dir_all(&failed_dir) {
+                    for (row_index, flow_report) in &failed_details {
+                        let row_path = failed_dir.join(format!("row_{}.json", row_index));
+                        if let Ok(row_json) = serde_json::to_string_pretty(flow_report) {
+                            let _ = std::fs::write(&row_path, row_json);
+                        }
+                    }
+                }
+            }
+        }
 
         // 执行完成后清理 cancel sender
         if let Ok(mut guard) = state_cancel.lock() {
@@ -3231,6 +3255,33 @@ pub fn delete_dataset_report(
 
     std::fs::remove_dir_all(&report_dir)
         .map_err(|e| format!("删除报告失败: {}", e))
+}
+
+/// 保存数据集报告
+///
+/// 将数据驱动执行报告保存到磁盘。
+/// 注意: `reports_dir` 是报告目录 (如 `{appDataDir}/reports/`)，
+/// `save_report` 内部会拼接 `reports/`，所以需要传入父目录。
+#[tauri::command]
+pub fn save_dataset_report(
+    report: serde_json::Value,
+    reports_dir: String,
+) -> Result<String, String> {
+    use flow_engine::dataset::DatasetExecutionReport;
+    use std::collections::HashMap;
+    use flow_engine::report::FlowExecutionReport;
+
+    let parsed_report: DatasetExecutionReport =
+        serde_json::from_value(report).map_err(|e| format!("解析报告失败: {}", e))?;
+
+    // save_report expects app_data_dir (parent of reports/)，所以去掉末尾的 "reports" 组件
+    let reports_path = std::path::Path::new(&reports_dir);
+    let app_data_dir = reports_path
+        .parent()
+        .ok_or_else(|| "无法获取报告目录的父目录".to_string())?;
+
+    let failed_details: HashMap<u32, FlowExecutionReport> = HashMap::new();
+    flow_engine::dataset_executor::save_report(&parsed_report, app_data_dir, &failed_details)
 }
 
 // ============================================================================

@@ -3,6 +3,7 @@
 //! 逐行读取 CSV 数据，将每行作为 `runtime_variables` 注入流程执行。
 //! 支持顺序执行和并发执行（Semaphore），以及 Continue/StopOnFirst 失败策略。
 
+use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Instant;
@@ -14,6 +15,7 @@ use crate::csv_parser;
 use crate::executor::FlowExecutor;
 use flow_engine_core::dataset::{RowStatus, RowSummary};
 use flow_engine_core::flow::Flow;
+use flow_engine_core::report::FlowExecutionReport;
 
 use super::events::{self, DatasetEvent};
 use super::types::{DatasetExecutionConfig, FailureStrategy};
@@ -43,14 +45,14 @@ impl DatasetExecutor {
     /// - `event_sender`: 事件发送器（None 表示不发送事件）
     ///
     /// # 返回
-    /// 每行的执行摘要，按 `row_index` 排序
+    /// (每行的执行摘要, 失败行的详细报告, 生成的报告 UUID)
     pub async fn execute(
         &self,
         config: &DatasetExecutionConfig,
         flow: &Flow,
         cancel_rx: Option<watch::Receiver<bool>>,
         event_sender: Option<tokio::sync::mpsc::UnboundedSender<DatasetEvent>>,
-    ) -> Result<Vec<RowSummary>, String> {
+    ) -> Result<(Vec<RowSummary>, HashMap<u32, FlowExecutionReport>, String), String> {
         // 从文件路径提取数据集名称
         let dataset_name = Path::new(&config.dataset_path)
             .file_name()
@@ -67,7 +69,8 @@ impl DatasetExecutor {
         let total_rows = info.row_count;
 
         if total_rows == 0 {
-            return Ok(Vec::new());
+            let empty_uuid = uuid::Uuid::new_v4().to_string();
+            return Ok((Vec::new(), HashMap::new(), empty_uuid));
         }
 
         // 发送 Started 事件
@@ -105,7 +108,7 @@ impl DatasetExecutor {
         };
 
         match result {
-            Ok((summaries, cancelled)) => {
+            Ok((summaries, failed_details, cancelled)) => {
                 let elapsed_ms = start.elapsed().as_millis() as u64;
                 let encoding = config
                     .dataset_encoding
@@ -123,6 +126,8 @@ impl DatasetExecutor {
                     elapsed_ms,
                 );
 
+                let report_uuid = report.uuid.clone();
+
                 if cancelled {
                     events::send_event(
                         &event_sender,
@@ -139,7 +144,7 @@ impl DatasetExecutor {
                     );
                 }
 
-                Ok(summaries)
+                Ok((summaries, failed_details, report_uuid))
             }
             Err(e) => Err(e),
         }
@@ -147,7 +152,7 @@ impl DatasetExecutor {
 
     /// 顺序执行（concurrency = 1）
     ///
-    /// 返回 (summaries, `was_cancelled`)
+    /// 返回 (summaries, failed_details, `was_cancelled`)
     async fn execute_sequential(
         &self,
         config: &DatasetExecutionConfig,
@@ -157,7 +162,7 @@ impl DatasetExecutor {
         total_rows: u32,
         event_sender: &Option<tokio::sync::mpsc::UnboundedSender<DatasetEvent>>,
         start_time: Instant,
-    ) -> Result<(Vec<RowSummary>, bool), String> {
+    ) -> Result<(Vec<RowSummary>, HashMap<u32, FlowExecutionReport>, bool), String> {
         let mut csv_reader = csv_parser::parse_csv(
             &config.dataset_path,
             config.dataset_encoding.as_deref(),
@@ -165,6 +170,7 @@ impl DatasetExecutor {
         )?;
 
         let mut results: Vec<RowSummary> = Vec::new();
+        let mut failed_details: HashMap<u32, FlowExecutionReport> = HashMap::new();
         let mut row_index: u32 = 0;
         let executor = FlowExecutor::new();
         let mut cancelled = false;
@@ -220,13 +226,22 @@ impl DatasetExecutor {
                 }
             }
 
+            // 收集失败行的详细报告
+            let mut has_detail = false;
+            if !execution_result.success {
+                if let Some(ref flow_report) = execution_result.flow_report {
+                    failed_details.insert(row_index, flow_report.clone());
+                    has_detail = true;
+                }
+            }
+
             let summary = RowSummary {
                 row_index,
                 input_data: csv_row,
                 status: status.clone(),
                 duration_ms,
                 error_message,
-                has_detail_report: false,
+                has_detail_report: has_detail,
             };
 
             results.push(summary);
@@ -278,12 +293,12 @@ impl DatasetExecutor {
             row_index += 1;
         }
 
-        Ok((results, cancelled))
+        Ok((results, failed_details, cancelled))
     }
 
     /// 并发执行（concurrency > 1，使用 Semaphore 控制并发数）
     ///
-    /// 返回 (summaries, `was_cancelled`)
+    /// 返回 (summaries, failed_details, `was_cancelled`)
     async fn execute_concurrent(
         &self,
         config: &DatasetExecutionConfig,
@@ -292,7 +307,7 @@ impl DatasetExecutor {
         dataset_name: &str,
         total_rows: u32,
         event_sender: &Option<tokio::sync::mpsc::UnboundedSender<DatasetEvent>>,
-    ) -> Result<(Vec<RowSummary>, bool), String> {
+    ) -> Result<(Vec<RowSummary>, HashMap<u32, FlowExecutionReport>, bool), String> {
         let mut csv_reader = csv_parser::parse_csv(
             &config.dataset_path,
             config.dataset_encoding.as_deref(),
@@ -325,6 +340,10 @@ impl DatasetExecutor {
         let success_count = Arc::new(std::sync::atomic::AtomicU32::new(0));
         let fail_count = Arc::new(std::sync::atomic::AtomicU32::new(0));
         let error_count = Arc::new(std::sync::atomic::AtomicU32::new(0));
+
+        // 失败行详细报告（线程安全共享）
+        let failed_details: Arc<std::sync::Mutex<HashMap<u32, FlowExecutionReport>>> =
+            Arc::new(std::sync::Mutex::new(HashMap::new()));
 
         // 共享开始时间戳（毫秒），用于计算进度事件的 elapsed_ms
         let start_time_ms = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(
@@ -370,6 +389,7 @@ impl DatasetExecutor {
             let fail_count = Arc::clone(&fail_count);
             let error_count = Arc::clone(&error_count);
             let start_time_ms = Arc::clone(&start_time_ms);
+            let failed_details = Arc::clone(&failed_details);
 
             let handle = tokio::spawn(async move {
                 let _permit = permit; // 持有信号量直到任务完成
@@ -425,13 +445,24 @@ impl DatasetExecutor {
                     }
                 }
 
+                // 收集失败行的详细报告
+                let mut has_detail = false;
+                if !execution_result.success {
+                    if let Some(ref flow_report) = execution_result.flow_report {
+                        if let Ok(mut guard) = failed_details.lock() {
+                            guard.insert(row_index, flow_report.clone());
+                        }
+                        has_detail = true;
+                    }
+                }
+
                 let summary = RowSummary {
                     row_index,
                     input_data: csv_row,
                     status: status.clone(),
                     duration_ms,
                     error_message,
-                    has_detail_report: false,
+                    has_detail_report: has_detail,
                 };
 
                 let _ = tx.send(summary).await;
@@ -507,7 +538,13 @@ impl DatasetExecutor {
         // 按 row_index 排序以保证顺序
         results.sort_by_key(|r| r.row_index);
 
-        Ok((results, cancelled))
+        // 提取失败行详情
+        let failed = failed_details
+            .lock()
+            .map(|guard| guard.clone())
+            .unwrap_or_default();
+
+        Ok((results, failed, cancelled))
     }
 
     /// 构建运行时变量：CSV 行数据 + 内置变量
@@ -585,7 +622,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let results = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
 
         assert_eq!(results.len(), 3);
         assert_eq!(results[0].row_index, 0);
@@ -621,7 +658,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let results = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
 
         assert_eq!(results.len(), 5);
 
@@ -653,7 +690,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let results = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
         assert_eq!(results.len(), 3, "Continue 策略应执行全部行");
     }
 
@@ -674,7 +711,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let results = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
         assert!(results.is_empty(), "空 CSV 应返回空结果");
     }
 
@@ -698,7 +735,7 @@ mod tests {
         // 创建已触发的取消信号
         let (tx, rx) = watch::channel(true);
 
-        let results = executor.execute(&config, &flow, Some(rx), None).await.expect("执行失败");
+        let (results, _failed) = executor.execute(&config, &flow, Some(rx), None).await.expect("执行失败");
         // 取消信号已触发，不应执行任何行
         assert!(results.is_empty(), "已取消时应返回空结果");
 
@@ -744,7 +781,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let results = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].input_data["name"], json!("Alice"));
         assert_eq!(results[0].input_data["age"], json!("30"));
@@ -789,7 +826,7 @@ mod tests {
 
         let (event_sender, mut event_rx) = tokio::sync::mpsc::unbounded_channel::<super::events::DatasetEvent>();
 
-        let results = executor.execute(&config, &flow, None, Some(event_sender)).await.expect("执行失败");
+        let (results, _failed) = executor.execute(&config, &flow, None, Some(event_sender)).await.expect("执行失败");
         assert_eq!(results.len(), 3);
 
         // 收集所有事件
