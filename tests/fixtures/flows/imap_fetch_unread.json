@@ -1,0 +1,118 @@
+{
+  "uuid": "imap-fetch-unread-001",
+  "name": "IMAP 获取未读邮件测试",
+  "initial_variables": null,
+  "nodes": [
+    {
+      "uuid": "entry-imap",
+      "type": "entry",
+      "name": "入口",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": { "type": "entry" },
+      "ports": null
+    },
+    {
+      "uuid": "imap-connect-001",
+      "type": "imap_connect",
+      "name": "IMAP 连接",
+      "position": { "x": 200.0, "y": 0.0 },
+      "data": {
+        "type": "imap_connect",
+        "host": "imap.example.com",
+        "port": 993,
+        "tls_mode": "implicit",
+        "connect_timeout_ms": 30000
+      },
+      "ports": null
+    },
+    {
+      "uuid": "imap-select-001",
+      "type": "imap_select",
+      "name": "选择收件箱",
+      "position": { "x": 400.0, "y": 0.0 },
+      "data": {
+        "type": "imap_select",
+        "connection_id": "imap-connect-001",
+        "mailbox": "INBOX",
+        "readonly": true
+      },
+      "ports": null
+    },
+    {
+      "uuid": "imap-search-001",
+      "type": "imap_search",
+      "name": "搜索未读邮件",
+      "position": { "x": 600.0, "y": 0.0 },
+      "data": {
+        "type": "imap_search",
+        "connection_id": "imap-connect-001",
+        "criteria": "UNSEEN",
+        "max_results": 10
+      },
+      "ports": null
+    },
+    {
+      "uuid": "imap-fetch-001",
+      "type": "imap_fetch",
+      "name": "获取邮件内容",
+      "position": { "x": 800.0, "y": 0.0 },
+      "data": {
+        "type": "imap_fetch",
+        "connection_id": "imap-connect-001",
+        "uids": "1:*",
+        "fetch_items": "(ENVELOPE BODY.PEEK[] FLAGS)",
+        "max_fetch_count": 10,
+        "max_size_bytes": 5242880
+      },
+      "ports": null
+    },
+    {
+      "uuid": "imap-close-001",
+      "type": "imap_close",
+      "name": "IMAP 关闭",
+      "position": { "x": 1000.0, "y": 0.0 },
+      "data": {
+        "type": "imap_close",
+        "connection_id": "imap-connect-001"
+      },
+      "ports": null
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-entry-to-imap-connect",
+      "source_node_uuid": "entry-imap",
+      "target_node_uuid": "imap-connect-001",
+      "source_port_id": "output",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-imap-connect-to-select",
+      "source_node_uuid": "imap-connect-001",
+      "target_node_uuid": "imap-select-001",
+      "source_port_id": "true",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-imap-select-to-search",
+      "source_node_uuid": "imap-select-001",
+      "target_node_uuid": "imap-search-001",
+      "source_port_id": "true",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-imap-search-to-fetch",
+      "source_node_uuid": "imap-search-001",
+      "target_node_uuid": "imap-fetch-001",
+      "source_port_id": "true",
+      "target_port_id": "input"
+    },
+    {
+      "id": "conn-imap-fetch-to-close",
+      "source_node_uuid": "imap-fetch-001",
+      "target_node_uuid": "imap-close-001",
+      "source_port_id": "true",
+      "target_port_id": "input"
+    }
+  ]
+}
