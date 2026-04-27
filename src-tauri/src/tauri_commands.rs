@@ -3075,15 +3075,15 @@ pub async fn execute_flow_with_dataset(
             .execute(&config, &flow, Some(cancel_rx), Some(event_sender))
             .await;
 
-        // 保存失败行详情到磁盘
-        if let Ok((_summaries, failed_details, report_uuid)) = result {
-            if !failed_details.is_empty() {
+        // 保存所有行详情到磁盘
+        if let Ok((_summaries, row_details, report_uuid)) = result {
+            if !row_details.is_empty() {
                 // 使用 executor 返回的 report UUID 直接定位目录
                 let report_dir = app_data_dir.join("reports").join(format!("dataset_{}", report_uuid));
-                let failed_dir = report_dir.join("failed");
-                if let Ok(()) = std::fs::create_dir_all(&failed_dir) {
-                    for (row_index, flow_report) in &failed_details {
-                        let row_path = failed_dir.join(format!("row_{}.json", row_index));
+                let rows_dir = report_dir.join("rows");
+                if let Ok(()) = std::fs::create_dir_all(&rows_dir) {
+                    for (row_index, flow_report) in &row_details {
+                        let row_path = rows_dir.join(format!("row_{}.json", row_index));
                         if let Ok(row_json) = serde_json::to_string_pretty(flow_report) {
                             let _ = std::fs::write(&row_path, row_json);
                         }
@@ -3213,7 +3213,7 @@ pub fn load_dataset_report(
 
 /// 加载失败行详情
 ///
-/// 读取失败行的详细执行报告。
+/// 读取行的详细执行报告。
 #[tauri::command]
 pub fn load_dataset_row_detail(
     report_id: String,
@@ -3222,7 +3222,7 @@ pub fn load_dataset_row_detail(
 ) -> Result<Option<serde_json::Value>, String> {
     let row_path = std::path::Path::new(&reports_dir)
         .join(format!("dataset_{}", report_id))
-        .join("failed")
+        .join("rows")
         .join(format!("row_{}.json", row_index));
 
     if !row_path.exists() {

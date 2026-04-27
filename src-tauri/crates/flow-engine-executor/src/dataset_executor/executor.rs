@@ -226,13 +226,11 @@ impl DatasetExecutor {
                 }
             }
 
-            // 收集失败行的详细报告
+            // 收集所有行的详细报告
             let mut has_detail = false;
-            if !execution_result.success {
-                if let Some(ref flow_report) = execution_result.flow_report {
-                    failed_details.insert(row_index, flow_report.clone());
-                    has_detail = true;
-                }
+            if let Some(ref flow_report) = execution_result.flow_report {
+                failed_details.insert(row_index, flow_report.clone());
+                has_detail = true;
             }
 
             let summary = RowSummary {
@@ -445,15 +443,13 @@ impl DatasetExecutor {
                     }
                 }
 
-                // 收集失败行的详细报告
+                // 收集所有行的详细报告
                 let mut has_detail = false;
-                if !execution_result.success {
-                    if let Some(ref flow_report) = execution_result.flow_report {
-                        if let Ok(mut guard) = failed_details.lock() {
-                            guard.insert(row_index, flow_report.clone());
-                        }
-                        has_detail = true;
+                if let Some(ref flow_report) = execution_result.flow_report {
+                    if let Ok(mut guard) = failed_details.lock() {
+                        guard.insert(row_index, flow_report.clone());
                     }
+                    has_detail = true;
                 }
 
                 let summary = RowSummary {

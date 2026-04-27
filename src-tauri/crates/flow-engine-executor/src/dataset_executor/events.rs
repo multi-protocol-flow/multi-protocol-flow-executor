@@ -194,22 +194,23 @@ pub fn generate_report(
 /// ```text
 /// {app_data_dir}/reports/dataset_{uuid}/
 /// ├── summary.json                # 报告摘要
-/// └── failed/
-///     ├── row_0.json              # 失败行详细报告
+/// └── rows/
+///     ├── row_0.json              # 行详细报告
+///     ├── row_1.json
 ///     └── row_3.json
 /// ```
 ///
 /// # 参数
 /// - `report`: 数据驱动执行报告
 /// - `app_data_dir`: 应用数据目录
-/// - `failed_row_details`: 失败行的详细 FlowExecutionReport（key 为 [`row_index`]）
+/// - `row_details`: 所有行的详细 FlowExecutionReport（key 为 [`row_index`]）
 ///
 /// # 返回
 /// 报告目录路径
 pub fn save_report(
     report: &DatasetExecutionReport,
     app_data_dir: &Path,
-    failed_row_details: &HashMap<u32, FlowExecutionReport>,
+    row_details: &HashMap<u32, FlowExecutionReport>,
 ) -> Result<String, String> {
     // 创建报告目录
     let report_dir = app_data_dir
@@ -232,25 +233,25 @@ pub fn save_report(
         .persist(&summary_path)
         .map_err(|e| format!("保存报告文件失败: {}", e))?;
 
-    // 保存失败行详情
-    if !failed_row_details.is_empty() {
-        let failed_dir = report_dir.join("failed");
-        std::fs::create_dir_all(&failed_dir)
-            .map_err(|e| format!("创建失败行目录失败: {}", e))?;
+    // 保存行详情
+    if !row_details.is_empty() {
+        let rows_dir = report_dir.join("rows");
+        std::fs::create_dir_all(&rows_dir)
+            .map_err(|e| format!("创建行详情目录失败: {}", e))?;
 
-        for (row_index, flow_report) in failed_row_details {
-            let row_path = failed_dir.join(format!("row_{}.json", row_index));
+        for (row_index, flow_report) in row_details {
+            let row_path = rows_dir.join(format!("row_{}.json", row_index));
             let row_json = serde_json::to_string_pretty(flow_report)
-                .map_err(|e| format!("序列化失败行报告失败: {}", e))?;
+                .map_err(|e| format!("序列化行报告失败: {}", e))?;
 
-            let mut row_temp = tempfile::NamedTempFile::new_in(&failed_dir)
-                .map_err(|e| format!("创建失败行临时文件失败: {}", e))?;
+            let mut row_temp = tempfile::NamedTempFile::new_in(&rows_dir)
+                .map_err(|e| format!("创建行临时文件失败: {}", e))?;
             row_temp
                 .write_all(row_json.as_bytes())
-                .map_err(|e| format!("写入失败行临时文件失败: {}", e))?;
+                .map_err(|e| format!("写入行临时文件失败: {}", e))?;
             row_temp
                 .persist(&row_path)
-                .map_err(|e| format!("保存失败行报告失败: {}", e))?;
+                .map_err(|e| format!("保存行报告失败: {}", e))?;
         }
     }
 
@@ -530,9 +531,9 @@ mod tests {
         let temp_dir = TempDir::new().expect("创建临时目录失败");
 
         let report = create_test_report(3, 2, 1, 0);
-        let failed_details = HashMap::new();
+        let row_details = HashMap::new();
 
-        let result = save_report(&report, temp_dir.path(), &failed_details);
+        let result = save_report(&report, temp_dir.path(), &row_details);
         assert!(result.is_ok(), "保存报告应成功: {:?}", result.err());
 
         // 验证 summary.json 存在
@@ -551,10 +552,10 @@ mod tests {
         assert_eq!(loaded.uuid, report.uuid);
         assert_eq!(loaded.total_rows, 3);
 
-        // 无 failed 目录
+        // 无 rows 目录（空 map）
         assert!(
-            !report_dir.join("failed").exists(),
-            "无失败行时不应创建 failed 目录"
+            !report_dir.join("rows").exists(),
+            "无行详情时不应创建 rows 目录"
         );
     }
 
@@ -564,53 +565,53 @@ mod tests {
 
         let report = create_test_report(5, 3, 1, 1);
 
-        // 构造失败行详情
-        let mut failed_details = HashMap::new();
-        failed_details.insert(
+        // 构造行详情
+        let mut row_details = HashMap::new();
+        row_details.insert(
             2,
             create_flow_report("flow-001", "Test Flow"),
         );
-        failed_details.insert(
+        row_details.insert(
             4,
             create_flow_report("flow-001", "Test Flow"),
         );
 
-        let result = save_report(&report, temp_dir.path(), &failed_details);
+        let result = save_report(&report, temp_dir.path(), &row_details);
         assert!(result.is_ok(), "保存报告应成功");
 
         let report_dir = temp_dir.path().join("reports").join(format!("dataset_{}", report.uuid));
 
-        // 验证 failed 目录和文件存在
-        let failed_dir = report_dir.join("failed");
-        assert!(failed_dir.exists(), "failed 目录应存在");
+        // 验证 rows 目录和文件存在
+        let rows_dir = report_dir.join("rows");
+        assert!(rows_dir.exists(), "rows 目录应存在");
         assert!(
-            failed_dir.join("row_2.json").exists(),
+            rows_dir.join("row_2.json").exists(),
             "row_2.json 应存在"
         );
         assert!(
-            failed_dir.join("row_4.json").exists(),
+            rows_dir.join("row_4.json").exists(),
             "row_4.json 应存在"
         );
 
-        // 验证失败行文件可反序列化
+        // 验证行详情文件可反序列化
         let content =
-            std::fs::read_to_string(failed_dir.join("row_2.json")).expect("读取失败");
+            std::fs::read_to_string(rows_dir.join("row_2.json")).expect("读取失败");
         let flow_report: FlowExecutionReport =
             serde_json::from_str(&content).expect("反序列化失败");
         assert_eq!(flow_report.flow_uuid, "flow-001");
     }
 
     #[test]
-    fn test_save_report_no_failed_dir_when_empty_map() {
+    fn test_save_report_no_rows_dir_when_empty_map() {
         let temp_dir = TempDir::new().expect("创建临时目录失败");
 
         let report = create_test_report(3, 3, 0, 0);
-        let failed_details = HashMap::new();
+        let row_details = HashMap::new();
 
-        save_report(&report, temp_dir.path(), &failed_details).expect("保存失败");
+        save_report(&report, temp_dir.path(), &row_details).expect("保存失败");
 
         let report_dir = temp_dir.path().join("reports").join(format!("dataset_{}", report.uuid));
-        assert!(!report_dir.join("failed").exists());
+        assert!(!report_dir.join("rows").exists());
     }
 
     // ===== 事件序列测试 =====
