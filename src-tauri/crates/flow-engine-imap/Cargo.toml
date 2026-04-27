@@ -1,0 +1,30 @@
+[package]
+name = "flow-engine-imap"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+flow-engine-core = { path = "../flow-engine-core" }
+flow-engine-crypto = { path = "../flow-engine-crypto" }
+# IMAP 客户端（runtime-tokio 特性）
+async-imap = { version = "0.11", default-features = false, features = ["runtime-tokio"] }
+# MIME 解析（IMAP fetch 结果解析）
+mail-parser = "0.11"
+# TLS 依赖（自定义 TLS 配置，支持 skip_verify）
+rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "tls12"] }
+webpki-roots = "0.26"
+tokio-rustls = "0.26"
+# Workspace 共享依赖
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+log = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+base64 = "0.22"
+futures-util = "0.3"
+
+[lints]
+workspace = true
