@@ -42,6 +42,8 @@ fn create_context(flow_id: &str) -> ExecutionContext {
         sse_manager: None,
         graphql_manager: None,
         amqp_manager: None,
+        smtp_manager: None,
+        imap_manager: None,
         last_node_output: None,
         debug_event_sender: None,
         execution_event_sender: None,

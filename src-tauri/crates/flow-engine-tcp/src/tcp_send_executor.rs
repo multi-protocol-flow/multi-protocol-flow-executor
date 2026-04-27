@@ -508,6 +508,8 @@ mod tests {
             sse_manager: None,
             graphql_manager: None,
             amqp_manager: None,
+            smtp_manager: None,
+            imap_manager: None,
         }
     }
 
