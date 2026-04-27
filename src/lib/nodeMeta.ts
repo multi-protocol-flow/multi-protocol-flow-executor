@@ -31,6 +31,27 @@ import {
   Radio,
   ArrowUpRight,
   ArrowDownLeft,
+  Download,
+  Timer,
+  Eye,
+  EyeOff,
+  Search,
+  Mail,
+  Layers,
+  Settings,
+  FileText,
+  Ear,
+  RadioTower,
+  Shuffle,
+  Trash2,
+  List,
+  Trash,
+  Link2,
+  Inbox,
+  XCircle,
+  Braces,
+  Copy,
+  FolderPlus,
 } from 'lucide-react';
 import { getCachedDisplayName } from '@/lib/NodeRegistry';
 
@@ -79,6 +100,85 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
   udp_send_to: { icon: ArrowUpRight, iconBg: 'bg-orange-100', labelColor: 'text-orange-700', badge: 'bg-orange-100 text-orange-700' },
   udp_recv_from: { icon: ArrowDownLeft, iconBg: 'bg-orange-100', labelColor: 'text-orange-700', badge: 'bg-orange-100 text-orange-700' },
   udp_close: { icon: Unplug, iconBg: 'bg-orange-100', labelColor: 'text-orange-700', badge: 'bg-orange-100 text-orange-700' },
+
+  // TCP (补充)
+  tcp_receive: { icon: Download, iconBg: 'bg-emerald-100', labelColor: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700' },
+
+  // MQTT (7个) — cyan 色
+  mqtt_connect: { icon: Radio, iconBg: 'bg-cyan-500', labelColor: 'text-cyan-600', badge: 'bg-cyan-100 text-cyan-700' },
+  mqtt_publish: { icon: Send, iconBg: 'bg-cyan-500', labelColor: 'text-cyan-600', badge: 'bg-cyan-100 text-cyan-700' },
+  mqtt_subscribe: { icon: ArrowDownLeft, iconBg: 'bg-cyan-500', labelColor: 'text-cyan-600', badge: 'bg-cyan-100 text-cyan-700' },
+  mqtt_unsubscribe: { icon: XCircle, iconBg: 'bg-cyan-500', labelColor: 'text-cyan-600', badge: 'bg-cyan-100 text-cyan-700' },
+  mqtt_disconnect: { icon: Unplug, iconBg: 'bg-cyan-500', labelColor: 'text-cyan-600', badge: 'bg-cyan-100 text-cyan-700' },
+  mqtt_wait_message: { icon: Timer, iconBg: 'bg-cyan-500', labelColor: 'text-cyan-600', badge: 'bg-cyan-100 text-cyan-700' },
+  mqtt_request: { icon: MessageSquare, iconBg: 'bg-cyan-500', labelColor: 'text-cyan-600', badge: 'bg-cyan-100 text-cyan-700' },
+
+  // Kafka (7个) — rose 色
+  kafka_connect: { icon: Radio, iconBg: 'bg-rose-500', labelColor: 'text-rose-600', badge: 'bg-rose-100 text-rose-700' },
+  kafka_produce: { icon: Send, iconBg: 'bg-rose-500', labelColor: 'text-rose-600', badge: 'bg-rose-100 text-rose-700' },
+  kafka_consume: { icon: Download, iconBg: 'bg-rose-500', labelColor: 'text-rose-600', badge: 'bg-rose-100 text-rose-700' },
+  kafka_consume_batch: { icon: Layers, iconBg: 'bg-rose-500', labelColor: 'text-rose-600', badge: 'bg-rose-100 text-rose-700' },
+  kafka_admin: { icon: Settings, iconBg: 'bg-rose-500', labelColor: 'text-rose-600', badge: 'bg-rose-100 text-rose-700' },
+  kafka_schema_registry: { icon: FileText, iconBg: 'bg-rose-500', labelColor: 'text-rose-600', badge: 'bg-rose-100 text-rose-700' },
+  kafka_close: { icon: XCircle, iconBg: 'bg-rose-500', labelColor: 'text-rose-600', badge: 'bg-rose-100 text-rose-700' },
+
+  // SSE (3个) — rose 色
+  sse_connect: { icon: RadioTower, iconBg: 'bg-rose-500', labelColor: 'text-rose-600', badge: 'bg-rose-100 text-rose-700' },
+  sse_listen: { icon: Ear, iconBg: 'bg-rose-500', labelColor: 'text-rose-600', badge: 'bg-rose-100 text-rose-700' },
+  sse_disconnect: { icon: Unplug, iconBg: 'bg-rose-500', labelColor: 'text-rose-600', badge: 'bg-rose-100 text-rose-700' },
+
+  // GraphQL (6个) — indigo 色
+  graphql_connect: { icon: Plug, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
+  graphql_query: { icon: Search, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
+  graphql_subscribe: { icon: Eye, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
+  graphql_unsubscribe: { icon: EyeOff, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
+  graphql_introspect: { icon: FileSearch, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
+  graphql_disconnect: { icon: Unplug, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
+
+  // AMQP 0-9-1 (12个) — violet 色
+  amqp_connect: { icon: RadioTower, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+  amqp_exchange_declare: { icon: Shuffle, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+  amqp_exchange_delete: { icon: Trash2, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+  amqp_queue_declare: { icon: List, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+  amqp_queue_delete: { icon: Trash, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+  amqp_queue_bind: { icon: Link2, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+  amqp_publish: { icon: Send, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+  amqp_consume: { icon: Inbox, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+  amqp_get: { icon: Download, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+  amqp_ack: { icon: CheckCircle, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+  amqp_management: { icon: Settings, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+  amqp_close: { icon: Unplug, iconBg: 'bg-violet-500', labelColor: 'text-violet-600', badge: 'bg-violet-100 text-violet-700' },
+
+  // AMQP 1.0 (6个) — purple 色
+  amqp10_connect: { icon: RadioTower, iconBg: 'bg-purple-500', labelColor: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
+  amqp10_send: { icon: Send, iconBg: 'bg-purple-500', labelColor: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
+  amqp10_receive: { icon: Inbox, iconBg: 'bg-purple-500', labelColor: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
+  amqp10_accept: { icon: CheckCircle, iconBg: 'bg-purple-500', labelColor: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
+  amqp10_reject: { icon: XCircle, iconBg: 'bg-purple-500', labelColor: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
+  amqp10_disconnect: { icon: Unplug, iconBg: 'bg-purple-500', labelColor: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
+
+  // SMTP (3个) — orange 色
+  smtp_connect: { icon: Mail, iconBg: 'bg-orange-500', labelColor: 'text-orange-600', badge: 'bg-orange-100 text-orange-700' },
+  smtp_send: { icon: Send, iconBg: 'bg-orange-500', labelColor: 'text-orange-600', badge: 'bg-orange-100 text-orange-700' },
+  smtp_disconnect: { icon: Mail, iconBg: 'bg-orange-500', labelColor: 'text-orange-600', badge: 'bg-orange-100 text-orange-700' },
+
+  // IMAP (13个) — blue 色
+  imap_connect: { icon: Mail, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  imap_select: { icon: Mail, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  imap_search: { icon: Search, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  imap_fetch: { icon: Download, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  imap_store_flags: { icon: CheckCircle, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  imap_copy: { icon: Copy, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  imap_move: { icon: ArrowUpRight, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  imap_expunge: { icon: Trash2, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  imap_list: { icon: List, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  imap_folder_create: { icon: FolderPlus, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  imap_folder_delete: { icon: Trash, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  imap_idle: { icon: Timer, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  imap_close: { icon: Mail, iconBg: 'bg-blue-500', labelColor: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' },
+
+  // 工具
+  variable_extractor: { icon: Braces, iconBg: 'bg-amber-500', labelColor: 'text-amber-600', badge: 'bg-amber-100 text-amber-700' },
 };
 
 /** 静态显示名称兜底映射 */
@@ -112,6 +212,75 @@ const STATIC_DISPLAY_NAMES: Record<string, string> = {
   udp_send_to: 'UDP 发送',
   udp_recv_from: 'UDP 接收',
   udp_close: 'UDP 关闭',
+  // TCP
+  tcp_receive: 'TCP 接收',
+  // MQTT
+  mqtt_connect: 'MQTT 连接',
+  mqtt_publish: 'MQTT 发布',
+  mqtt_subscribe: 'MQTT 订阅',
+  mqtt_unsubscribe: 'MQTT 取消订阅',
+  mqtt_disconnect: 'MQTT 断开',
+  mqtt_wait_message: 'MQTT 等待消息',
+  mqtt_request: 'MQTT 请求',
+  // Kafka
+  kafka_connect: 'Kafka 连接',
+  kafka_produce: 'Kafka 生产',
+  kafka_consume: 'Kafka 消费',
+  kafka_consume_batch: 'Kafka 批量消费',
+  kafka_admin: 'Kafka 管理',
+  kafka_schema_registry: 'Kafka Schema',
+  kafka_close: 'Kafka 关闭',
+  // SSE
+  sse_connect: 'SSE 连接',
+  sse_listen: 'SSE 监听',
+  sse_disconnect: 'SSE 断开',
+  // GraphQL
+  graphql_connect: 'GraphQL 连接',
+  graphql_query: 'GraphQL 查询',
+  graphql_subscribe: 'GraphQL 订阅',
+  graphql_unsubscribe: 'GraphQL 取消订阅',
+  graphql_introspect: 'GraphQL 内省',
+  graphql_disconnect: 'GraphQL 断开',
+  // AMQP 0-9-1
+  amqp_connect: 'AMQP 连接',
+  amqp_exchange_declare: 'AMQP 声明交换器',
+  amqp_exchange_delete: 'AMQP 删除交换器',
+  amqp_queue_declare: 'AMQP 声明队列',
+  amqp_queue_delete: 'AMQP 删除队列',
+  amqp_queue_bind: 'AMQP 队列绑定',
+  amqp_publish: 'AMQP 发布',
+  amqp_consume: 'AMQP 消费',
+  amqp_get: 'AMQP 获取',
+  amqp_ack: 'AMQP 确认',
+  amqp_management: 'AMQP 管理',
+  amqp_close: 'AMQP 关闭',
+  // AMQP 1.0
+  amqp10_connect: 'AMQP1.0 连接',
+  amqp10_send: 'AMQP1.0 发送',
+  amqp10_receive: 'AMQP1.0 接收',
+  amqp10_accept: 'AMQP1.0 接受',
+  amqp10_reject: 'AMQP1.0 拒绝',
+  amqp10_disconnect: 'AMQP1.0 断开',
+  // SMTP
+  smtp_connect: 'SMTP 连接',
+  smtp_send: 'SMTP 发送',
+  smtp_disconnect: 'SMTP 断开',
+  // IMAP
+  imap_connect: 'IMAP 连接',
+  imap_select: 'IMAP 选择',
+  imap_search: 'IMAP 搜索',
+  imap_fetch: 'IMAP 获取',
+  imap_store_flags: 'IMAP 标记',
+  imap_copy: 'IMAP 复制',
+  imap_move: 'IMAP 移动',
+  imap_expunge: 'IMAP 清理',
+  imap_list: 'IMAP 列表',
+  imap_folder_create: 'IMAP 创建文件夹',
+  imap_folder_delete: 'IMAP 删除文件夹',
+  imap_idle: 'IMAP 等待',
+  imap_close: 'IMAP 关闭',
+  // 工具
+  variable_extractor: '变量提取',
 };
 
 /**
