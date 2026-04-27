@@ -18,6 +18,7 @@ pub struct ImapExpungeExecutor {
 }
 
 impl ImapExpungeExecutor {
+    /// 创建新的 IMAP 永久删除已标记邮件执行器
     pub fn new(imap_manager: Arc<dyn ImapProvider>) -> Self { Self { imap_manager } }
 
     fn resolve_next_nodes(node_uuid: &str, port: &str, connections: &[Connection]) -> Vec<String> {

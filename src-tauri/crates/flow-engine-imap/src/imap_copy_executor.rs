@@ -18,6 +18,7 @@ pub struct ImapCopyExecutor {
 }
 
 impl ImapCopyExecutor {
+    /// 创建新的 IMAP 复制邮件执行器
     pub fn new(imap_manager: Arc<dyn ImapProvider>) -> Self {
         Self { imap_manager }
     }

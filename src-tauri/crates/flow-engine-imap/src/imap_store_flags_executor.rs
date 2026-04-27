@@ -18,6 +18,7 @@ pub struct ImapStoreFlagsExecutor {
 }
 
 impl ImapStoreFlagsExecutor {
+    /// 创建新的 IMAP 设置邮件标志执行器
     pub fn new(imap_manager: Arc<dyn ImapProvider>) -> Self {
         Self { imap_manager }
     }

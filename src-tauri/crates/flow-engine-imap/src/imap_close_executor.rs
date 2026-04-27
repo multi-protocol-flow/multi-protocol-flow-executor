@@ -20,6 +20,7 @@ pub struct ImapCloseExecutor {
 }
 
 impl ImapCloseExecutor {
+    /// 创建新的 IMAP 关闭连接执行器
     pub fn new(imap_manager: Arc<dyn ImapProvider>) -> Self { Self { imap_manager } }
 
     fn ts() -> u64 {

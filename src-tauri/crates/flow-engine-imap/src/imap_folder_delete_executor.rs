@@ -18,6 +18,7 @@ pub struct ImapFolderDeleteExecutor {
 }
 
 impl ImapFolderDeleteExecutor {
+    /// 创建新的 IMAP 删除文件夹执行器
     pub fn new(imap_manager: Arc<dyn ImapProvider>) -> Self { Self { imap_manager } }
 
     fn resolve_next_nodes(node_uuid: &str, port: &str, connections: &[Connection]) -> Vec<String> {

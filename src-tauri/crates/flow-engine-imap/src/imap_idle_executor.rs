@@ -18,6 +18,7 @@ pub struct ImapIdleExecutor {
 }
 
 impl ImapIdleExecutor {
+    /// 创建新的 IMAP IDLE 监听执行器
     pub fn new(imap_manager: Arc<dyn ImapProvider>) -> Self { Self { imap_manager } }
 
     fn resolve_next_nodes(node_uuid: &str, port: &str, connections: &[Connection]) -> Vec<String> {

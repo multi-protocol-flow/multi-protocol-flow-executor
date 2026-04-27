@@ -59,6 +59,7 @@ fn resolve_success_port(output: &Option<serde_json::Value>) -> String {
 // ImapConnectPlugin
 // ---------------------------------------------------------------------------
 
+/// IMAP 连接节点插件
 pub struct ImapConnectPlugin;
 
 #[async_trait::async_trait]
@@ -101,6 +102,7 @@ impl NodePlugin for ImapConnectPlugin {
 // ImapSelectPlugin
 // ---------------------------------------------------------------------------
 
+/// IMAP 选择邮箱节点插件
 pub struct ImapSelectPlugin;
 
 #[async_trait::async_trait]
@@ -134,6 +136,7 @@ impl NodePlugin for ImapSelectPlugin {
 // ImapSearchPlugin
 // ---------------------------------------------------------------------------
 
+/// IMAP 搜索邮件节点插件
 pub struct ImapSearchPlugin;
 
 #[async_trait::async_trait]
@@ -166,6 +169,7 @@ impl NodePlugin for ImapSearchPlugin {
 // ImapFetchPlugin
 // ---------------------------------------------------------------------------
 
+/// IMAP 获取邮件节点插件
 pub struct ImapFetchPlugin;
 
 #[async_trait::async_trait]
@@ -198,6 +202,7 @@ impl NodePlugin for ImapFetchPlugin {
 // ImapStoreFlagsPlugin
 // ---------------------------------------------------------------------------
 
+/// IMAP 设置邮件标志节点插件
 pub struct ImapStoreFlagsPlugin;
 
 #[async_trait::async_trait]
@@ -230,6 +235,7 @@ impl NodePlugin for ImapStoreFlagsPlugin {
 // ImapCopyPlugin
 // ---------------------------------------------------------------------------
 
+/// IMAP 复制邮件节点插件
 pub struct ImapCopyPlugin;
 
 #[async_trait::async_trait]
@@ -262,6 +268,7 @@ impl NodePlugin for ImapCopyPlugin {
 // ImapMovePlugin
 // ---------------------------------------------------------------------------
 
+/// IMAP 移动邮件节点插件
 pub struct ImapMovePlugin;
 
 #[async_trait::async_trait]
@@ -294,6 +301,7 @@ impl NodePlugin for ImapMovePlugin {
 // ImapExpungePlugin
 // ---------------------------------------------------------------------------
 
+/// IMAP 永久删除已标记邮件节点插件
 pub struct ImapExpungePlugin;
 
 #[async_trait::async_trait]
@@ -326,6 +334,7 @@ impl NodePlugin for ImapExpungePlugin {
 // ImapListPlugin
 // ---------------------------------------------------------------------------
 
+/// IMAP 列出邮箱节点插件
 pub struct ImapListPlugin;
 
 #[async_trait::async_trait]
@@ -358,6 +367,7 @@ impl NodePlugin for ImapListPlugin {
 // ImapFolderCreatePlugin
 // ---------------------------------------------------------------------------
 
+/// IMAP 创建文件夹节点插件
 pub struct ImapFolderCreatePlugin;
 
 #[async_trait::async_trait]
@@ -390,6 +400,7 @@ impl NodePlugin for ImapFolderCreatePlugin {
 // ImapFolderDeletePlugin
 // ---------------------------------------------------------------------------
 
+/// IMAP 删除文件夹节点插件
 pub struct ImapFolderDeletePlugin;
 
 #[async_trait::async_trait]
@@ -422,6 +433,7 @@ impl NodePlugin for ImapFolderDeletePlugin {
 // ImapIdlePlugin
 // ---------------------------------------------------------------------------
 
+/// IMAP IDLE 监听节点插件
 pub struct ImapIdlePlugin;
 
 #[async_trait::async_trait]
@@ -454,6 +466,7 @@ impl NodePlugin for ImapIdlePlugin {
 // ImapClosePlugin
 // ---------------------------------------------------------------------------
 
+/// IMAP 关闭连接节点插件
 pub struct ImapClosePlugin;
 
 #[async_trait::async_trait]

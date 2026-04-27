@@ -18,6 +18,7 @@ pub struct ImapSearchExecutor {
 }
 
 impl ImapSearchExecutor {
+    /// 创建新的 IMAP 搜索邮件执行器
     pub fn new(imap_manager: Arc<dyn ImapProvider>) -> Self {
         Self { imap_manager }
     }
