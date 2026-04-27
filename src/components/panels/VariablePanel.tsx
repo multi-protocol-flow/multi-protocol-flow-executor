@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import type { Flow, Node } from '@/types';
 import type { Variable } from '@/types/variable';
 import { isEntryConfig, isHttpConfig, isWsConnectConfig, isWsSendCollectConfig, isDbQueryConfig, isVariableExtractorConfig } from '@/types/node';
+import { getActiveVariables } from '@/types/flow';
 
 interface VariablePanelProps {
   /** 当前流程 */
@@ -124,7 +125,41 @@ export function extractVariableGroups(flow: Flow): VariableGroup[] {
     }
   });
 
-  return groups;
+    // 流程级别的 initial_variables
+    if (flow.initial_variables && Object.keys(flow.initial_variables).length > 0) {
+      const flowVars: Variable[] = Object.entries(flow.initial_variables).map(([key, value]) => ({
+        name: key,
+        value,
+        sourceNodeUuid: '__flow__',
+        description: '流程初始变量',
+      }));
+      groups.push({
+        nodeUuid: '__flow__',
+        nodeName: '流程变量',
+        nodeType: 'flow',
+        variables: flowVars,
+      });
+    }
+
+    // 激活环境的变量
+    const activeEnvVars = getActiveVariables(flow);
+    if (activeEnvVars && Object.keys(activeEnvVars).length > 0) {
+      const envName = flow.active_environment || '';
+      const envVars: Variable[] = Object.entries(activeEnvVars).map(([key, value]) => ({
+        name: key,
+        value,
+        sourceNodeUuid: '__environment__',
+        description: `环境变量 (${envName})`,
+      }));
+      groups.push({
+        nodeUuid: '__environment__',
+        nodeName: `环境变量 (${envName})`,
+        nodeType: 'environment',
+        variables: envVars,
+      });
+    }
+
+    return groups;
 }
 
 
