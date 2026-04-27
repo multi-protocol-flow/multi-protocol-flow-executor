@@ -1,9 +1,10 @@
 /**
  * TcpUdpViewer - TCP/UDP 节点执行详情查看器
- * 结构化展示 TCP Connect/Send/Close 和 UDP Bind/SendTo/RecvFrom/Close 七种节点的执行结果
+ * 结构化展示 TCP Connect/Send/Receive/Close 和 UDP Bind/SendTo/RecvFrom/Close 八种节点的执行结果
  *
  * TCP Connect: 连接配置、连接状态、耗时
  * TCP Send: 发送数据、接收数据（含 hex 预览）、耗时
+ * TCP Receive: 接收数据（含 hex 预览）、耗时
  * TCP Close: 关闭配置、关闭状态、耗时
  * UDP Bind: 绑定配置、绑定状态、耗时
  * UDP SendTo: 发送数据、目标地址、耗时
@@ -110,6 +111,25 @@ interface TcpSendOutput {
   };
   timing?: {
     send_ms?: number;
+    receive_ms?: number;
+    total_ms?: number;
+  };
+  error?: string;
+}
+
+/**
+ * TCP Receive 输出数据
+ */
+interface TcpReceiveOutput {
+  success?: boolean;
+  connection_id?: string;
+  received?: {
+    data?: string;
+    encoding?: string;
+    size?: number;
+  } | null;
+  received_text_preview?: string | null;
+  timing?: {
     receive_ms?: number;
     total_ms?: number;
   };
@@ -260,6 +280,8 @@ export function TcpUdpViewer({ report, recording }: TcpUdpViewerProps) {
       return <TcpConnectSection report={report} />;
     case 'tcp_send':
       return <TcpSendSection report={report} recording={recording} />;
+    case 'tcp_receive':
+      return <TcpReceiveSection report={report} recording={recording} />;
     case 'tcp_close':
       return <TcpCloseSection report={report} />;
     case 'udp_bind':
@@ -516,6 +538,147 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
             <TimingMetric label="发送耗时" value={sendDuration} />
+            <TimingMetric label="接收耗时" value={receiveDuration} />
+            <TimingMetric label="总耗时" value={totalDuration} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* 变量变更 */}
+      <VariableChangesCard changes={report.variable_changes} />
+
+      {/* 录制查看 */}
+      {recording && (
+        <CollapsibleSection
+          title="查看录制"
+          icon={<CircleDot className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowRecording(!showRecording); }}
+              className="text-xs text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300"
+            >
+              {showRecording ? '折叠' : '展开'}
+            </button>
+          }
+        >
+          {showRecording ? (
+            <RecordingViewer recording={recording} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              共 {recording.entries.length} 条录制，时长 {recording.duration_ms}ms
+            </p>
+          )}
+        </CollapsibleSection>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// TCP Receive 查看器
+// ============================================================================
+
+function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport; recording?: TcpUdpRecording }) {
+  const [showRecording, setShowRecording] = useState(false);
+  const output = report.output_data as TcpReceiveOutput | undefined;
+  const isSuccess = output?.success ?? report.status === 'success';
+  const receivedData = output?.received;
+  const textPreview = output?.received_text_preview;
+  const receiveDuration = output?.timing?.receive_ms;
+  const totalDuration = output?.timing?.total_ms;
+
+  return (
+    <div className="space-y-3">
+      {/* 接收数据 */}
+      <CollapsibleSection
+        title="接收数据"
+        icon={<ArrowDownToLine className="w-4 h-4" />}
+        defaultOpen={true}
+        extra={receivedData?.size !== undefined && (
+          <Badge variant="outline" className="font-mono text-xs">
+            {receivedData.size} bytes
+          </Badge>
+        )}
+      >
+        <div className="space-y-2">
+          {/* 编码 / 连接信息 */}
+          <div className="flex flex-wrap gap-2">
+            <ProtocolBadge protocol="TCP" />
+            {receivedData?.encoding && (
+              <Badge variant="outline" className="font-mono text-xs">
+                编码: {receivedData.encoding}
+              </Badge>
+            )}
+            {output?.connection_id && (
+              <Badge variant="outline" className="font-mono text-xs">
+                连接: {output.connection_id}
+              </Badge>
+            )}
+          </div>
+
+          {/* 文本预览 */}
+          {textPreview && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">文本预览</div>
+              <div className="bg-muted rounded p-2">
+                <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-60 overflow-auto">
+                  {textPreview}
+                </pre>
+              </div>
+            </div>
+          )}
+
+          {/* Hex 预览 */}
+          {receivedData?.data && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">Hex 预览</div>
+              <HexViewer data={dataToBytes(receivedData.data)} height={300} />
+            </div>
+          )}
+
+          {/* 无数据提示（超时等场景） */}
+          {(!receivedData?.data && !textPreview) && (
+            <p className="text-sm text-muted-foreground italic">无接收数据</p>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      {/* 执行状态 */}
+      <CollapsibleSection
+        title="执行状态"
+        icon={<Globe className="w-4 h-4" />}
+        defaultOpen={true}
+      >
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge isSuccess={isSuccess} successText="接收成功" failText="接收失败" />
+            <span className="text-sm text-muted-foreground">
+              {isSuccess
+                ? receivedData
+                  ? `TCP 数据接收成功 (${receivedData.size ?? 0} bytes)`
+                  : 'TCP 接收完成（超时无数据）'
+                : output?.error ?? '接收失败'}
+            </span>
+          </div>
+          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
+        </div>
+      </CollapsibleSection>
+
+      {/* 耗时分解 */}
+      {(receiveDuration !== undefined || totalDuration !== undefined) && (
+        <CollapsibleSection
+          title="耗时分解"
+          icon={<Clock className="w-4 h-4" />}
+          defaultOpen={false}
+          extra={totalDuration !== undefined && (
+            <span className="text-xs font-mono text-teal-600 font-medium">
+              总计 {totalDuration}ms
+            </span>
+          )}
+        >
+          <div className="grid grid-cols-2 gap-2 text-sm">
             <TimingMetric label="接收耗时" value={receiveDuration} />
             <TimingMetric label="总耗时" value={totalDuration} />
           </div>
