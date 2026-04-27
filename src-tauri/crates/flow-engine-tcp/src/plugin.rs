@@ -31,7 +31,7 @@ impl NodePlugin for TcpConnectPlugin {
     }
 
     fn icon(&self) -> &str {
-        "Cable"
+        "cable"
     }
 
     fn color(&self) -> &str {
@@ -242,7 +242,7 @@ impl NodePlugin for TcpSendPlugin {
     }
 
     fn icon(&self) -> &str {
-        "Send"
+        "send"
     }
 
     fn color(&self) -> &str {
@@ -340,7 +340,7 @@ impl NodePlugin for TcpReceivePlugin {
     }
 
     fn icon(&self) -> &str {
-        "Download"
+        "download"
     }
 
     fn color(&self) -> &str {
@@ -441,7 +441,7 @@ impl NodePlugin for TcpClosePlugin {
     }
 
     fn icon(&self) -> &str {
-        "Unplug"
+        "unplug"
     }
 
     fn color(&self) -> &str {
@@ -553,7 +553,7 @@ impl NodePlugin for UdpBindPlugin {
     }
 
     fn icon(&self) -> &str {
-        "Radio"
+        "radio"
     }
 
     fn color(&self) -> &str {
@@ -664,7 +664,7 @@ impl NodePlugin for UdpSendToPlugin {
     }
 
     fn icon(&self) -> &str {
-        "ArrowUpRight"
+        "arrow-up-right"
     }
 
     fn color(&self) -> &str {
@@ -766,7 +766,7 @@ impl NodePlugin for UdpRecvFromPlugin {
     }
 
     fn icon(&self) -> &str {
-        "ArrowDownLeft"
+        "arrow-down-left"
     }
 
     fn color(&self) -> &str {
@@ -863,7 +863,7 @@ impl NodePlugin for UdpClosePlugin {
     }
 
     fn icon(&self) -> &str {
-        "Unplug"
+        "unplug"
     }
 
     fn color(&self) -> &str {
@@ -965,7 +965,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "tcp_connect");
         assert_eq!(plugin.display_name(), "TCP 连接");
         assert_eq!(plugin.category(), "tcp");
-        assert_eq!(plugin.icon(), "Cable");
+        assert_eq!(plugin.icon(), "cable");
         assert_eq!(plugin.color(), "#10B981");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -1058,7 +1058,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "tcp_send");
         assert_eq!(plugin.display_name(), "TCP 发送");
         assert_eq!(plugin.category(), "tcp");
-        assert_eq!(plugin.icon(), "Send");
+        assert_eq!(plugin.icon(), "send");
         assert_eq!(plugin.color(), "#10B981");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -1152,7 +1152,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "tcp_receive");
         assert_eq!(plugin.display_name(), "TCP 接收");
         assert_eq!(plugin.category(), "tcp");
-        assert_eq!(plugin.icon(), "Download");
+        assert_eq!(plugin.icon(), "download");
         assert_eq!(plugin.color(), "#10B981");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -1213,7 +1213,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "tcp_close");
         assert_eq!(plugin.display_name(), "TCP 关闭");
         assert_eq!(plugin.category(), "tcp");
-        assert_eq!(plugin.icon(), "Unplug");
+        assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#10B981");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -1283,7 +1283,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "udp_bind");
         assert_eq!(plugin.display_name(), "UDP 绑定");
         assert_eq!(plugin.category(), "udp");
-        assert_eq!(plugin.icon(), "Radio");
+        assert_eq!(plugin.icon(), "radio");
         assert_eq!(plugin.color(), "#F97316");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -1348,7 +1348,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "udp_send_to");
         assert_eq!(plugin.display_name(), "UDP 发送");
         assert_eq!(plugin.category(), "udp");
-        assert_eq!(plugin.icon(), "ArrowUpRight");
+        assert_eq!(plugin.icon(), "arrow-up-right");
         assert_eq!(plugin.color(), "#F97316");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -1414,7 +1414,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "udp_recv_from");
         assert_eq!(plugin.display_name(), "UDP 接收");
         assert_eq!(plugin.category(), "udp");
-        assert_eq!(plugin.icon(), "ArrowDownLeft");
+        assert_eq!(plugin.icon(), "arrow-down-left");
         assert_eq!(plugin.color(), "#F97316");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -1474,7 +1474,7 @@ mod tests {
         assert_eq!(plugin.type_id(), "udp_close");
         assert_eq!(plugin.display_name(), "UDP 关闭");
         assert_eq!(plugin.category(), "udp");
-        assert_eq!(plugin.icon(), "Unplug");
+        assert_eq!(plugin.icon(), "unplug");
         assert_eq!(plugin.color(), "#F97316");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
