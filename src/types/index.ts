@@ -196,7 +196,62 @@ export {
   isAmqp10AcceptConfig,
   isAmqp10RejectConfig,
   isAmqp10DisconnectConfig,
+  isSmtpConnectConfig,
+  isSmtpSendConfig,
+  isSmtpDisconnectConfig,
+  isImapConnectConfig,
+  isImapSelectConfig,
+  isImapSearchConfig,
+  isImapFetchConfig,
+  isImapStoreFlagsConfig,
+  isImapCopyConfig,
+  isImapMoveConfig,
+  isImapExpungeConfig,
+  isImapListConfig,
+  isImapFolderCreateConfig,
+  isImapFolderDeleteConfig,
+  isImapIdleConfig,
+  isImapCloseConfig,
 } from './node';
+
+// SMTP 类型
+export type {
+  EmailProvider,
+  OAuth2Tokens,
+  EmailAuthConfig,
+  EmailAttachment,
+  SmtpConnectConfig,
+  SmtpSendConfig,
+  SmtpDisconnectConfig,
+  SmtpConnectResult,
+  SmtpSendResult,
+  SmtpDisconnectResult,
+} from './smtp';
+
+// IMAP 类型
+export type {
+  ImapConnectConfig,
+  ImapSelectConfig,
+  ImapSearchConfig,
+  ImapFetchConfig,
+  ImapStoreFlagsConfig,
+  ImapCopyConfig,
+  ImapMoveConfig,
+  ImapExpungeConfig,
+  ImapListConfig,
+  ImapFolderCreateConfig,
+  ImapFolderDeleteConfig,
+  ImapIdleConfig,
+  ImapCloseConfig,
+  ImapConnectResult,
+  ImapSearchResult,
+  ImapAttachment,
+  ImapMessage,
+  ImapFetchResult,
+  ImapFolder,
+  ImapListResult,
+  ImapGenericResult,
+} from './imap';
 
 // 连接类型
 export type { Connection } from './connection';

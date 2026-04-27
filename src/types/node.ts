@@ -11,6 +11,24 @@ import type { DbFetchMode, DbIsolationLevel } from './database';
 
 import type { FlowHook } from './hook';
 
+import type { SmtpConnectConfig, SmtpSendConfig, SmtpDisconnectConfig } from './smtp';
+
+import type {
+  ImapConnectConfig,
+  ImapSelectConfig,
+  ImapSearchConfig,
+  ImapFetchConfig,
+  ImapStoreFlagsConfig,
+  ImapCopyConfig,
+  ImapMoveConfig,
+  ImapExpungeConfig,
+  ImapListConfig,
+  ImapFolderCreateConfig,
+  ImapFolderDeleteConfig,
+  ImapIdleConfig,
+  ImapCloseConfig,
+} from './imap';
+
 // ============================================================================
 // 节点类型枚举
 // ============================================================================
@@ -90,6 +108,22 @@ export type NodeType =
   | 'amqp10_accept'
   | 'amqp10_reject'
   | 'amqp10_disconnect'
+  | 'smtp_connect'
+  | 'smtp_send'
+  | 'smtp_disconnect'
+  | 'imap_connect'
+  | 'imap_select'
+  | 'imap_search'
+  | 'imap_fetch'
+  | 'imap_store_flags'
+  | 'imap_copy'
+  | 'imap_move'
+  | 'imap_expunge'
+  | 'imap_list'
+  | 'imap_folder_create'
+  | 'imap_folder_delete'
+  | 'imap_idle'
+  | 'imap_close'
   | 'variable_extractor';
 
 /**
@@ -2159,6 +2193,22 @@ export type NodeData =
   | Amqp10AcceptConfig
   | Amqp10RejectConfig
   | Amqp10DisconnectConfig
+  | SmtpConnectConfig
+  | SmtpSendConfig
+  | SmtpDisconnectConfig
+  | ImapConnectConfig
+  | ImapSelectConfig
+  | ImapSearchConfig
+  | ImapFetchConfig
+  | ImapStoreFlagsConfig
+  | ImapCopyConfig
+  | ImapMoveConfig
+  | ImapExpungeConfig
+  | ImapListConfig
+  | ImapFolderCreateConfig
+  | ImapFolderDeleteConfig
+  | ImapIdleConfig
+  | ImapCloseConfig
   | VariableExtractorConfig;
 
 // ============================================================================
@@ -2524,6 +2574,23 @@ export function isAmqp10ReceiveConfig(data: NodeData): data is Amqp10ReceiveConf
 export function isAmqp10AcceptConfig(data: NodeData): data is Amqp10AcceptConfig { return data.type === 'amqp10_accept'; }
 export function isAmqp10RejectConfig(data: NodeData): data is Amqp10RejectConfig { return data.type === 'amqp10_reject'; }
 export function isAmqp10DisconnectConfig(data: NodeData): data is Amqp10DisconnectConfig { return data.type === 'amqp10_disconnect'; }
+
+export function isSmtpConnectConfig(data: NodeData): data is SmtpConnectConfig { return data.type === 'smtp_connect'; }
+export function isSmtpSendConfig(data: NodeData): data is SmtpSendConfig { return data.type === 'smtp_send'; }
+export function isSmtpDisconnectConfig(data: NodeData): data is SmtpDisconnectConfig { return data.type === 'smtp_disconnect'; }
+export function isImapConnectConfig(data: NodeData): data is ImapConnectConfig { return data.type === 'imap_connect'; }
+export function isImapSelectConfig(data: NodeData): data is ImapSelectConfig { return data.type === 'imap_select'; }
+export function isImapSearchConfig(data: NodeData): data is ImapSearchConfig { return data.type === 'imap_search'; }
+export function isImapFetchConfig(data: NodeData): data is ImapFetchConfig { return data.type === 'imap_fetch'; }
+export function isImapStoreFlagsConfig(data: NodeData): data is ImapStoreFlagsConfig { return data.type === 'imap_store_flags'; }
+export function isImapCopyConfig(data: NodeData): data is ImapCopyConfig { return data.type === 'imap_copy'; }
+export function isImapMoveConfig(data: NodeData): data is ImapMoveConfig { return data.type === 'imap_move'; }
+export function isImapExpungeConfig(data: NodeData): data is ImapExpungeConfig { return data.type === 'imap_expunge'; }
+export function isImapListConfig(data: NodeData): data is ImapListConfig { return data.type === 'imap_list'; }
+export function isImapFolderCreateConfig(data: NodeData): data is ImapFolderCreateConfig { return data.type === 'imap_folder_create'; }
+export function isImapFolderDeleteConfig(data: NodeData): data is ImapFolderDeleteConfig { return data.type === 'imap_folder_delete'; }
+export function isImapIdleConfig(data: NodeData): data is ImapIdleConfig { return data.type === 'imap_idle'; }
+export function isImapCloseConfig(data: NodeData): data is ImapCloseConfig { return data.type === 'imap_close'; }
 
 /**
  * 判断是否为 VariableExtractorConfig
