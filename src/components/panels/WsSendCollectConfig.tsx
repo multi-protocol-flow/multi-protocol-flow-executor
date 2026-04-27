@@ -22,9 +22,9 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2, Send, Info, ArrowRightFromLine } from 'lucide-react';
 import type { WsSendCollectConfig as WsSendCollectConfigType } from '@/types';
-import type { Variable } from '@/types/variable';
+import { useFlowVariables } from '@/hooks';
 import { useFlowStore } from '@/stores';
-import { isEntryConfig, isHttpConfig, isWsConnectConfig, isWsSendCollectConfig } from '@/types/node';
+import { isWsConnectConfig } from '@/types/node';
 
 interface WsSendCollectConfigProps {
   /** 当前节点数据 */
@@ -94,61 +94,11 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
     name: 'output_mappings' as never,
   });
 
-  // 获取 flow 并提取变量
-  const flow = useFlowStore((state) => state.flow);
+  // 获取流程变量
+  const { variables, availableVariableNames, nodeLabels } = useFlowVariables();
 
-  // 提取变量列表
-  const variables: Variable[] = useMemo(() => {
-    if (!flow) return [];
-    const vars: Variable[] = [];
-    flow.nodes.forEach(node => {
-      // Entry 节点：提取 initial_variables
-      if (isEntryConfig(node.data) && node.data.initial_variables) {
-        node.data.initial_variables.forEach(iv => {
-          vars.push({
-            name: iv.name,
-            value: iv.value,
-            sourceNodeUuid: node.uuid,
-            description: iv.description,
-          });
-        });
-      }
-      // HTTP 节点：提取 output_mappings
-      if (isHttpConfig(node.data) && node.data.output_mappings) {
-        node.data.output_mappings.forEach(om => {
-          vars.push({
-            name: om.target,
-            value: `{{${om.source}}}`,
-            sourceNodeUuid: node.uuid,
-            description: om.description,
-          });
-        });
-      }
-      // WS Connect 节点：提取 output_mappings
-      if (isWsConnectConfig(node.data) && node.data.output_mappings) {
-        node.data.output_mappings.forEach(om => {
-          vars.push({
-            name: om.target,
-            value: `{{${om.source}}}`,
-            sourceNodeUuid: node.uuid,
-            description: om.description,
-          });
-        });
-      }
-      // WS Send+Collect 节点：提取 output_mappings
-      if (isWsSendCollectConfig(node.data) && node.data.output_mappings) {
-        node.data.output_mappings.forEach(om => {
-          vars.push({
-            name: om.target,
-            value: `{{${om.source}}}`,
-            sourceNodeUuid: node.uuid,
-            description: om.description,
-          });
-        });
-      }
-    });
-    return vars;
-  }, [flow]);
+  // 获取 flow 用于连接提取
+  const flow = useFlowStore((state) => state.flow);
 
   // 提取可用的 WebSocket 连接（从 ws_connect 节点）
   const availableConnectionIds = useMemo(() => {
@@ -163,21 +113,6 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
       }
     });
     return connectionIds;
-  }, [flow]);
-
-  // 提取可用变量名列表（用于验证）
-  const availableVariableNames = useMemo(() => {
-    return variables.map(v => v.name);
-  }, [variables]);
-
-  // 节点标签映射
-  const nodeLabels = useMemo(() => {
-    if (!flow) return {};
-    const labels: Record<string, string> = {};
-    flow.nodes.forEach(node => {
-      labels[node.uuid] = node.name;
-    });
-    return labels;
   }, [flow]);
 
   // 监听表单值变化

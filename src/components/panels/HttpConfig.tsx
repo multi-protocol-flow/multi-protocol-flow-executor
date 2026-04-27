@@ -4,7 +4,7 @@
  */
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { httpConfigSchema, type HttpConfigFormData, type HeaderEntry, type HttpBodyType } from './schemas';
 import { open } from '@tauri-apps/plugin-dialog';
 import { Input } from '@/components/ui/input';
@@ -17,9 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2, Globe, X, ArrowRightFromLine, Info, Terminal, ChevronDown, ChevronRight, Shield, Settings2 } from 'lucide-react';
 import type { HttpConfig as HttpConfigType } from '@/types';
-import type { Variable } from '@/types/variable';
-import { useFlowStore } from '@/stores';
-import { isEntryConfig, isHttpConfig } from '@/types/node';
+import { useFlowVariables } from '@/hooks';
 import {
   Dialog,
   DialogContent,
@@ -210,54 +208,8 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   const [proxyOpen, setProxyOpen] = useState(false);
   const [retryOpen, setRetryOpen] = useState(false);
 
-  // 获取 flow 并提取变量
-  const flow = useFlowStore((state) => state.flow);
-
-  // 提取变量列表 (参考 VariablePanel 的 extractVariableGroups 逻辑)
-  const variables: Variable[] = useMemo(() => {
-    if (!flow) return [];
-    const vars: Variable[] = [];
-    flow.nodes.forEach(node => {
-      // Entry 节点：提取 initial_variables
-      if (isEntryConfig(node.data) && node.data.initial_variables) {
-        node.data.initial_variables.forEach(iv => {
-          vars.push({
-            name: iv.name,
-            value: iv.value,
-            sourceNodeUuid: node.uuid,
-            description: iv.description,
-          });
-        });
-      }
-      // HTTP 节点：提取 output_mappings
-      if (isHttpConfig(node.data) && node.data.output_mappings) {
-        node.data.output_mappings.forEach(om => {
-          vars.push({
-            name: om.target,
-            value: `{{${om.source}}}`,
-            sourceNodeUuid: node.uuid,
-            description: om.description,
-          });
-        });
-      }
-    });
-    return vars;
-  }, [flow]);
-
-  // 提取可用变量名列表（用于验证）
-  const availableVariableNames = useMemo(() => {
-    return variables.map(v => v.name);
-  }, [variables]);
-
-  // 节点标签映射
-  const nodeLabels = useMemo(() => {
-    if (!flow) return {};
-    const labels: Record<string, string> = {};
-    flow.nodes.forEach(node => {
-      labels[node.uuid] = node.name;
-    });
-    return labels;
-  }, [flow]);
+  // 获取流程变量
+  const { variables, availableVariableNames, nodeLabels } = useFlowVariables();
   // 监听 body_type 变化
   const watchedBodyType = watch('body_type');
 
