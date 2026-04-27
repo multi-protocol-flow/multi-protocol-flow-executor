@@ -5,7 +5,7 @@
  * 支持最大化/还原，支持查看失败行详情。
  */
 import { useState } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { useDatasetExecutionStore } from '@/stores/datasetExecution';
@@ -33,6 +33,9 @@ export function DatasetReportDialog() {
         hideCloseButton
         className={`${isMaximized ? 'w-screen h-screen max-w-none' : 'max-w-5xl w-[90vw]'} max-h-[90vh] flex flex-col p-0 gap-0 ${isMaximized ? 'rounded-none' : ''}`}
       >
+        <DialogTitle className="sr-only">
+          {viewingRowIndex !== null ? `第 ${viewingRowIndex + 1} 行详情` : '数据驱动报告'}
+        </DialogTitle>
         {/* 头部：标题 + 最大化/还原/关闭按钮 */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
