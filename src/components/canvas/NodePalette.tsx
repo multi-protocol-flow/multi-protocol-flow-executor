@@ -272,19 +272,25 @@ interface SuperCategory {
   categories: string[];
 }
 
-/** 将 16 个二级分类映射到 4 个一级分类 */
+/** 将二级分类映射到 5 个一级分类 */
 const SUPER_CATEGORIES: SuperCategory[] = [
   {
-    key: 'protocol',
-    label: '协议',
+    key: 'network',
+    label: '网络',
     icon: Globe,
-    categories: ['http', 'websocket', 'grpc', 'mcp', 'mqtt', 'kafka', 'sse', 'graphql', 'tcp', 'udp'],
+    categories: ['http', 'websocket', 'sse', 'graphql'],
   },
   {
-    key: 'data',
-    label: '数据',
-    icon: Database,
-    categories: ['database', 'amqp'],
+    key: 'service',
+    label: '服务',
+    icon: Network,
+    categories: ['grpc', 'mcp'],
+  },
+  {
+    key: 'messaging',
+    label: '消息',
+    icon: Send,
+    categories: ['mqtt', 'kafka', 'amqp'],
   },
   {
     key: 'tools',
@@ -293,10 +299,10 @@ const SUPER_CATEGORIES: SuperCategory[] = [
     categories: ['tools', 'script', 'assertion'],
   },
   {
-    key: 'email',
-    label: '邮件',
-    icon: Mail,
-    categories: ['email'],
+    key: 'other',
+    label: '其他',
+    icon: Layers,
+    categories: ['database', 'email', 'tcp', 'udp'],
   },
 ];
 

@@ -77,25 +77,31 @@ export const CATEGORY_NAMES: Record<string, string> = {
 
 /**
  * 分类排序顺序（越小越靠前）
- * http → ws → grpc → mcp → db → tool
+ * 按一级分类分组，组内间隔 10 方便后续插入
+ *
+ * 网络: http(0), websocket(1), sse(2), graphql(3)
+ * 服务: grpc(10), mcp(11)
+ * 消息: mqtt(20), kafka(21), amqp(22)
+ * 工具: tools(30), script(31), assertion(32)
+ * 其他: database(40), email(41), tcp(42), udp(43)
  */
 export const CATEGORY_ORDER: Record<string, number> = {
   http: 0,
   websocket: 1,
-  grpc: 2,
-  mcp: 3,
-  mqtt: 4,
-  kafka: 5,
-  sse: 6,
-  graphql: 7,
-  amqp: 8,
-  tcp: 9,
-  udp: 10,
-  email: 11,
-  database: 12,
-  tools: 13,
-  script: 14,
-  assertion: 15,
+  sse: 2,
+  graphql: 3,
+  grpc: 10,
+  mcp: 11,
+  mqtt: 20,
+  kafka: 21,
+  amqp: 22,
+  tools: 30,
+  script: 31,
+  assertion: 32,
+  database: 40,
+  email: 41,
+  tcp: 42,
+  udp: 43,
 };
 
 /**
