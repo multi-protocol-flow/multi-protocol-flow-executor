@@ -77,6 +77,22 @@ import { Amqp10AcceptConfigPanel as Amqp10AcceptConfig } from '@/components/pane
 import { Amqp10RejectConfigPanel as Amqp10RejectConfig } from '@/components/panels/Amqp10RejectConfigPanel';
 import { Amqp10DisconnectConfigPanel as Amqp10DisconnectConfig } from '@/components/panels/Amqp10DisconnectConfigPanel';
 import { VariableExtractorConfig as VariableExtractorConfigPanel } from '@/components/panels/VariableExtractorConfig';
+import { ImapConnectPanel } from '@/components/panels/ImapConnectPanel';
+import { ImapSelectPanel } from '@/components/panels/ImapSelectPanel';
+import { ImapSearchPanel } from '@/components/panels/ImapSearchPanel';
+import { ImapFetchPanel } from '@/components/panels/ImapFetchPanel';
+import { ImapStoreFlagsPanel } from '@/components/panels/ImapStoreFlagsPanel';
+import { ImapCopyPanel } from '@/components/panels/ImapCopyPanel';
+import { ImapMovePanel } from '@/components/panels/ImapMovePanel';
+import { ImapExpungePanel } from '@/components/panels/ImapExpungePanel';
+import { ImapListPanel } from '@/components/panels/ImapListPanel';
+import { ImapFolderCreatePanel } from '@/components/panels/ImapFolderCreatePanel';
+import { ImapFolderDeletePanel } from '@/components/panels/ImapFolderDeletePanel';
+import { ImapIdlePanel } from '@/components/panels/ImapIdlePanel';
+import { ImapClosePanel } from '@/components/panels/ImapClosePanel';
+import { SmtpConnectConfig } from '@/components/panels/SmtpConnectPanel';
+import { SmtpSendConfig as SmtpSendPanel } from '@/components/panels/SmtpSendPanel';
+import { SmtpDisconnectConfig as SmtpDisconnectPanel } from '@/components/panels/SmtpDisconnectPanel';
 
 export const configPanelRegistry: Record<string, ComponentType<any>> = {
   entry: EntryConfig,
@@ -151,6 +167,24 @@ export const configPanelRegistry: Record<string, ComponentType<any>> = {
   amqp10_reject: Amqp10RejectConfig,
   amqp10_disconnect: Amqp10DisconnectConfig,
   variable_extractor: VariableExtractorConfigPanel,
+  // SMTP 节点
+  smtp_connect: SmtpConnectConfig,
+  smtp_send: SmtpSendPanel,
+  smtp_disconnect: SmtpDisconnectPanel,
+  // IMAP 节点
+  imap_connect: ImapConnectPanel,
+  imap_select: ImapSelectPanel,
+  imap_search: ImapSearchPanel,
+  imap_fetch: ImapFetchPanel,
+  imap_store_flags: ImapStoreFlagsPanel,
+  imap_copy: ImapCopyPanel,
+  imap_move: ImapMovePanel,
+  imap_expunge: ImapExpungePanel,
+  imap_list: ImapListPanel,
+  imap_folder_create: ImapFolderCreatePanel,
+  imap_folder_delete: ImapFolderDeletePanel,
+  imap_idle: ImapIdlePanel,
+  imap_close: ImapClosePanel,
 };
 
 /** 根据节点类型获取对应的配置面板组件 */

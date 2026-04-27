@@ -19,6 +19,7 @@ import { KafkaViewer } from '@/components/execution/viewers/KafkaViewer';
 import { SseViewer } from '@/components/execution/viewers/SseViewer';
 import { GraphqlViewer } from '@/components/execution/viewers/GraphqlViewer';
 import { AmqpViewer } from '@/components/execution/viewers/AmqpViewer';
+import { EmailViewer } from '@/components/execution/viewers/EmailViewer';
 
 interface ViewerProps {
   report: NodeExecutionReport;
@@ -93,6 +94,24 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   amqp10_reject: AmqpViewer,
   amqp10_disconnect: AmqpViewer,
   variable_extractor: GenericViewer,
+  // SMTP 节点
+  smtp_connect: GenericViewer,
+  smtp_send: GenericViewer,
+  smtp_disconnect: GenericViewer,
+  // IMAP 节点
+  imap_connect: EmailViewer,
+  imap_select: EmailViewer,
+  imap_search: EmailViewer,
+  imap_fetch: EmailViewer,
+  imap_store_flags: EmailViewer,
+  imap_copy: EmailViewer,
+  imap_move: EmailViewer,
+  imap_expunge: EmailViewer,
+  imap_list: EmailViewer,
+  imap_folder_create: EmailViewer,
+  imap_folder_delete: EmailViewer,
+  imap_idle: EmailViewer,
+  imap_close: EmailViewer,
 };
 
 /**

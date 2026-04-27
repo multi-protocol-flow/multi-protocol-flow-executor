@@ -72,6 +72,7 @@ export const CATEGORY_NAMES: Record<string, string> = {
   amqp: 'AMQP',
   tcp: 'TCP',
   udp: 'UDP',
+  email: 'Email',
 };
 
 /**
@@ -90,10 +91,11 @@ export const CATEGORY_ORDER: Record<string, number> = {
   amqp: 8,
   tcp: 9,
   udp: 10,
-  database: 11,
-  tools: 12,
-  script: 13,
-  assertion: 14,
+  email: 11,
+  database: 12,
+  tools: 13,
+  script: 14,
+  assertion: 15,
 };
 
 /**
@@ -185,6 +187,26 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   udp_send_to: 1,
   udp_recv_from: 2,
   udp_close: 3,
+
+  // Email - SMTP: 连接 → 发送 → 断开
+  smtp_connect: 0,
+  smtp_send: 1,
+  smtp_disconnect: 2,
+
+  // Email - IMAP: 连接 → 选择 → 搜索 → 获取 → 标记 → 复制 → 移动 → 清理 → 列表 → 创建文件夹 → 删除文件夹 → 等待 → 关闭
+  imap_connect: 0,
+  imap_select: 1,
+  imap_search: 2,
+  imap_fetch: 3,
+  imap_store_flags: 4,
+  imap_copy: 5,
+  imap_move: 6,
+  imap_expunge: 7,
+  imap_list: 8,
+  imap_folder_create: 9,
+  imap_folder_delete: 10,
+  imap_idle: 11,
+  imap_close: 12,
 
   // 数据库: 连接 → 开启事务 → 查询 → 提交 → 回滚 → 关闭
   db_connect: 0,
@@ -284,6 +306,24 @@ export function getBadgeClassForType(typeId: string): string {
     amqp10_accept: 'bg-purple-100 text-purple-700',
     amqp10_reject: 'bg-purple-100 text-purple-700',
     amqp10_disconnect: 'bg-purple-100 text-purple-700',
+    // Email - SMTP (橙色)
+    smtp_connect: 'bg-orange-100 text-orange-700',
+    smtp_send: 'bg-orange-100 text-orange-700',
+    smtp_disconnect: 'bg-orange-100 text-orange-700',
+    // Email - IMAP (蓝色)
+    imap_connect: 'bg-blue-100 text-blue-700',
+    imap_select: 'bg-blue-100 text-blue-700',
+    imap_search: 'bg-blue-100 text-blue-700',
+    imap_fetch: 'bg-blue-100 text-blue-700',
+    imap_store_flags: 'bg-blue-100 text-blue-700',
+    imap_copy: 'bg-blue-100 text-blue-700',
+    imap_move: 'bg-blue-100 text-blue-700',
+    imap_expunge: 'bg-blue-100 text-blue-700',
+    imap_list: 'bg-blue-100 text-blue-700',
+    imap_folder_create: 'bg-blue-100 text-blue-700',
+    imap_folder_delete: 'bg-blue-100 text-blue-700',
+    imap_idle: 'bg-blue-100 text-blue-700',
+    imap_close: 'bg-blue-100 text-blue-700',
   };
   return badgeMap[typeId] ?? 'bg-slate-100 text-slate-700';
 }

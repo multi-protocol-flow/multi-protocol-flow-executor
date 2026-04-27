@@ -263,6 +263,38 @@ export function createDefaultNodeData(type: NodeType): NodeData {
       return { type: 'amqp10_reject', connection_id: '', delivery_id: 0 };
     case 'amqp10_disconnect':
       return { type: 'amqp10_disconnect', connection_id: '' };
+    case 'smtp_connect':
+      return { type: 'smtp_connect', host: '', port: 25, tls_mode: 'none' };
+    case 'smtp_send':
+      return { type: 'smtp_send', connection_id: '', from: '', to: [], subject: '', body: '', body_type: 'text' };
+    case 'smtp_disconnect':
+      return { type: 'smtp_disconnect', connection_id: '' };
+    case 'imap_connect':
+      return { type: 'imap_connect', host: '', port: 143, tls_mode: 'none' };
+    case 'imap_select':
+      return { type: 'imap_select', connection_id: '', mailbox: 'INBOX' };
+    case 'imap_search':
+      return { type: 'imap_search', connection_id: '', criteria: 'ALL' };
+    case 'imap_fetch':
+      return { type: 'imap_fetch', connection_id: '', uid_set: '', items: '(ENVELOPE)' };
+    case 'imap_store_flags':
+      return { type: 'imap_store_flags', connection_id: '', uid_set: '', operation: 'add', flags: [] };
+    case 'imap_copy':
+      return { type: 'imap_copy', connection_id: '', uid_set: '', destination_mailbox: '' };
+    case 'imap_move':
+      return { type: 'imap_move', connection_id: '', uid_set: '', destination_mailbox: '' };
+    case 'imap_expunge':
+      return { type: 'imap_expunge', connection_id: '' };
+    case 'imap_list':
+      return { type: 'imap_list', connection_id: '' };
+    case 'imap_folder_create':
+      return { type: 'imap_folder_create', connection_id: '', folder_name: '' };
+    case 'imap_folder_delete':
+      return { type: 'imap_folder_delete', connection_id: '', folder_name: '' };
+    case 'imap_idle':
+      return { type: 'imap_idle', connection_id: '', mailbox: 'INBOX' };
+    case 'imap_close':
+      return { type: 'imap_close', connection_id: '' };
     case 'variable_extractor':
       return { type: 'variable_extractor', output_mappings: [], source_node_id: undefined };
     case 'entry':
@@ -346,6 +378,22 @@ const STATIC_NODE_TYPE_LABELS: Record<NodeType, string> = {
   amqp10_accept: 'AMQP1.0 确认',
   amqp10_reject: 'AMQP1.0 拒绝',
   amqp10_disconnect: 'AMQP1.0 断开',
+  smtp_connect: 'SMTP 连接',
+  smtp_send: 'SMTP 发送',
+  smtp_disconnect: 'SMTP 断开',
+  imap_connect: 'IMAP 连接',
+  imap_select: 'IMAP 选择邮箱',
+  imap_search: 'IMAP 搜索',
+  imap_fetch: 'IMAP 获取',
+  imap_store_flags: 'IMAP 设置标志',
+  imap_copy: 'IMAP 复制',
+  imap_move: 'IMAP 移动',
+  imap_expunge: 'IMAP 清除',
+  imap_list: 'IMAP 列表',
+  imap_folder_create: 'IMAP 创建文件夹',
+  imap_folder_delete: 'IMAP 删除文件夹',
+  imap_idle: 'IMAP 空闲等待',
+  imap_close: 'IMAP 关闭',
   variable_extractor: '变量提取',
 };
 

@@ -1558,6 +1558,60 @@ export const amqp10DisconnectConfigSchema = z.object({
 export type Amqp10DisconnectConfigFormData = z.infer<typeof amqp10DisconnectConfigSchema>;
 
 // ============================================================================
+// SMTP 配置 Schema
+// ============================================================================
+
+/**
+ * SMTP Connect 配置表单 Schema
+ */
+export const smtpConnectConfigSchema = z.object({
+  type: z.literal('smtp_connect'),
+  connection_id: z.string().optional(),
+  host: z.string().min(1, '服务器地址不能为空'),
+  port: z.number().int().min(1).max(65535),
+  tls_mode: z.enum(['none', 'starttls', 'implicit']),
+  auth_type: z.enum(['none', 'plain', 'login', 'xoauth2']).optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+  oauth2_access_token: z.string().optional(),
+  oauth2_refresh_token: z.string().optional(),
+  oauth2_expires_at: z.string().optional(),
+  oauth2_provider: z.string().optional(),
+});
+
+export type SmtpConnectConfigFormData = z.infer<typeof smtpConnectConfigSchema>;
+
+/**
+ * SMTP Send 配置表单 Schema
+ */
+export const smtpSendConfigSchema = z.object({
+  type: z.literal('smtp_send'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  from: z.string().min(1, '发件人不能为空'),
+  to: z.string(), // 逗号分隔的邮箱地址，解析为数组
+  cc: z.string().optional(),
+  bcc: z.string().optional(),
+  subject: z.string().min(1, '主题不能为空'),
+  body: z.string(),
+  body_type: z.enum(['text', 'html']),
+  reply_to: z.string().optional(),
+  attachments_json: z.string().optional(), // JSON 字符串
+  headers_json: z.string().optional(), // JSON 字符串
+});
+
+export type SmtpSendConfigFormData = z.infer<typeof smtpSendConfigSchema>;
+
+/**
+ * SMTP Disconnect 配置表单 Schema
+ */
+export const smtpDisconnectConfigSchema = z.object({
+  type: z.literal('smtp_disconnect'),
+  connection_id: z.string().min(1, '连接 ID 不能为空'),
+});
+
+export type SmtpDisconnectConfigFormData = z.infer<typeof smtpDisconnectConfigSchema>;
+
+// ============================================================================
 // 未知节点类型 Fallback Schema
 // ============================================================================
 
