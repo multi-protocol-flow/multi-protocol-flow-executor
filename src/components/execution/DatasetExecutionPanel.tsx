@@ -18,6 +18,7 @@ import {
   Download,
 } from 'lucide-react';
 import { open } from '@tauri-apps/plugin-dialog';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,19 +89,16 @@ function generateCsvTemplate(flow: {
   return [header, ...rows].join('\n');
 }
 
-/** 触发浏览器下载 CSV 文件 */
-function downloadCsv(content: string, filename: string): void {
-  // 使用 UTF-8 BOM 确保 Excel 正确识别中文编码
-  const bom = '\uFEFF';
-  const blob = new Blob([bom + content], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+/** 触发 CSV 模板下载（通过 Tauri 后端写入文件） */
+async function downloadCsvTemplate(content: string, filename: string): Promise<string> {
+  // 动态检测环境，选择对应的 saveCsvTemplate 实现
+  const isTauriEnv = typeof window !== 'undefined' && '__TAURI__' in window;
+  if (isTauriEnv) {
+    const { saveCsvTemplate } = await import('@/services/tauri/settings');
+    return saveCsvTemplate(filename, content);
+  }
+  const { saveCsvTemplate } = await import('@/services/tauri/settings.mock');
+  return saveCsvTemplate(filename, content);
 }
 
 /** 格式化毫秒为可读时间 */
@@ -449,11 +447,38 @@ export function DatasetExecutionPanel({
   );
 
   // 下载 CSV 模板
-  const handleDownloadTemplate = useCallback(() => {
+  const handleDownloadTemplate = useCallback(async () => {
     if (!flow) return;
-    const content = generateCsvTemplate(flow);
-    const flowName = flow.name.replace(/[/\\?%*:|"<>]/g, '_');
-    downloadCsv(content, `${flowName}_数据模板.csv`);
+    try {
+      const content = generateCsvTemplate(flow);
+      const flowName = flow.name.replace(/[/\\?%*:|"<>]/g, '_');
+      const filename = `${flowName}_数据模板.csv`;
+      const savedPath = await downloadCsvTemplate(content, filename);
+      // 获取目录路径（去掉文件名）
+      const dirPath = savedPath.replace(/[/\\][^/\\]+$/, '');
+      toast.success('CSV 模板已下载', {
+        description: filename,
+        duration: 8000,
+        action: {
+          label: '打开目录',
+          onClick: async () => {
+            try {
+              const isTauriEnv = typeof window !== 'undefined' && '__TAURI__' in window;
+              if (isTauriEnv) {
+                const { openDirectory } = await import('@/services/tauri/settings');
+                await openDirectory(dirPath);
+              }
+            } catch {
+              toast.error('打开目录失败');
+            }
+          },
+        },
+      });
+    } catch (err) {
+      toast.error('下载模板失败', {
+        description: (err as Error).message,
+      });
+    }
   }, [flow]);
 
   // 变量匹配计算

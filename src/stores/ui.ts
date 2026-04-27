@@ -79,6 +79,8 @@ interface UIState {
   showStressTestConfigDialog: boolean;
   /** 是否显示数据驱动执行面板 */
   showDatasetExecutionPanel: boolean;
+  /** 是否显示环境管理对话框 */
+  showEnvironmentManagerDialog: boolean;
 
   // ===== 连接对话框状态 =====
   /** 是否显示数据库连接对话框 */
@@ -150,6 +152,10 @@ interface UIState {
   openDatasetExecutionPanel: () => void;
   /** 关闭数据驱动执行面板 */
   closeDatasetExecutionPanel: () => void;
+  /** 打开环境管理对话框 */
+  openEnvironmentManagerDialog: () => void;
+  /** 关闭环境管理对话框 */
+  closeEnvironmentManagerDialog: () => void;
 
   // ===== 连接对话框 Actions =====
   /** 打开连接对话框（新建模式） */
@@ -236,6 +242,7 @@ const initialState = {
   configPanelMode: 'node' as ConfigPanelMode,
   showStressTestConfigDialog: false,
   showDatasetExecutionPanel: false,
+  showEnvironmentManagerDialog: false,
 
   // 连接对话框状态
   showConnectionDialog: false,
@@ -332,6 +339,9 @@ export const useUIStore = create<UIState>((set) => ({
 
   openDatasetExecutionPanel: () => set({ showDatasetExecutionPanel: true }),
   closeDatasetExecutionPanel: () => set({ showDatasetExecutionPanel: false }),
+
+  openEnvironmentManagerDialog: () => set({ showEnvironmentManagerDialog: true }),
+  closeEnvironmentManagerDialog: () => set({ showEnvironmentManagerDialog: false }),
 
   // ===== 连接对话框 Actions =====
   openConnectionDialog: () =>

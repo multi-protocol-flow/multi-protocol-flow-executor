@@ -72,3 +72,11 @@ export async function getConfigPath(): Promise<string> {
 export async function getAppDataDir(): Promise<string> {
   return '浏览器环境';
 }
+
+/**
+ * 保存 CSV 模板文件（Mock: 模拟成功，返回文件名）
+ */
+export async function saveCsvTemplate(filename: string, _content: string): Promise<string> {
+  // Mock 环境下无法真正写入文件，直接返回文件名
+  return filename;
+}

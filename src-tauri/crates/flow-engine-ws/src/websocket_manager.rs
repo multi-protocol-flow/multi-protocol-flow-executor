@@ -341,7 +341,8 @@ impl WebSocketConnectionManager {
     ///
     /// # TLS 模式
     ///
-    /// - `use_tls=false` → 明文连接（ws://）
+    /// - `wss://` URL 自动启用 TLS（无论 `use_tls` 参数值如何）
+    /// - `use_tls=false` + `ws://` → 明文连接
     /// - `use_tls=true, tls_skip_verify=false` → 标准 TLS（webpki-roots 验证）
     /// - `use_tls=true, tls_skip_verify=true` → 跳过证书验证（仅开发/测试）
     ///
@@ -375,7 +376,10 @@ impl WebSocketConnectionManager {
             return Err(error_msg);
         }
 
-        // 3. 根据 use_tls 调整 URL scheme
+        // 3. 自动检测 TLS：wss:// URL 自动启用 TLS（避免 use_tls=false 导致 wss:// 降级为明文）
+        let use_tls = use_tls || url.starts_with("wss://");
+
+        // 4. 根据 use_tls 调整 URL scheme
         let effective_url = if use_tls {
             // TLS 模式：确保使用 wss://
             if url.starts_with("ws://") {
@@ -385,20 +389,16 @@ impl WebSocketConnectionManager {
             }
         } else {
             // 明文模式：确保使用 ws://
-            if url.starts_with("wss://") {
-                format!("ws{}", &url[3..])
-            } else {
-                url.clone()
-            }
+            url.clone()
         };
 
-        // 4. 临时存储连接（状态为 Connecting）
+        // 5. 临时存储连接（状态为 Connecting）
         self.upsert_connection(connection);
 
-        // 5. 构建带 headers 的 WebSocket 请求
+        // 6. 构建带 headers 的 WebSocket 请求
         let request = self.build_ws_request(&effective_url, &headers, &subprotocols)?;
 
-        // 6. 根据 TLS 配置进行 3-way 分发
+        // 7. 根据 TLS 配置进行 3-way 分发
         let connect_timeout = Duration::from_millis(connect_timeout_ms.clamp(1000, 60000));
 
         let connector = if use_tls {
@@ -423,10 +423,10 @@ impl WebSocketConnectionManager {
 
         match connect_result {
             Ok(Ok((ws_stream, _response))) => {
-                // 6. 连接成功，分割流
+                // 8. 连接成功，分割流
                 let (sender, receiver) = ws_stream.split();
 
-                // 7. 更新连接状态
+                // 9. 更新连接状态
                 let mut connections = self.connections.lock().map_err(|e| {
                     format!("获取连接锁失败: {}", e)
                 })?;

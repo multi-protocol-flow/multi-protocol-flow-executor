@@ -9,6 +9,7 @@
 import { useCallback, useState } from 'react';
 import { Globe, Plus, Trash2, Pencil, Check, X, Settings2 } from 'lucide-react';
 import { useFlowStore } from '@/stores';
+import { useUIStore } from '@/stores/ui';
 import { cn } from '@/lib/utils';
 import type { EnvironmentSet } from '@/types';
 
@@ -18,7 +19,7 @@ import type { EnvironmentSet } from '@/types';
 export function EnvironmentSelector() {
   const flow = useFlowStore((s) => s.flow);
   const setActiveEnvironment = useFlowStore((s) => s.setActiveEnvironment);
-  const [showManager, setShowManager] = useState(false);
+  const openEnvironmentManagerDialog = useUIStore((s) => s.openEnvironmentManagerDialog);
   const [showDropdown, setShowDropdown] = useState(false);
 
   const environments = flow?.environments ?? [];
@@ -103,7 +104,7 @@ export function EnvironmentSelector() {
               <div className="border-t border-border/50 mt-1 pt-1">
                 <button
                   type="button"
-                  onClick={() => { setShowDropdown(false); setShowManager(true); }}
+                  onClick={() => { setShowDropdown(false); openEnvironmentManagerDialog(); }}
                   className="w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer flex items-center gap-1.5"
                 >
                   <Settings2 className="w-3 h-3" />
@@ -114,11 +115,6 @@ export function EnvironmentSelector() {
           </>
         )}
       </div>
-
-      {/* 环境管理对话框 */}
-      {showManager && (
-        <EnvironmentManagerDialog onClose={() => setShowManager(false)} />
-      )}
     </>
   );
 }
@@ -126,11 +122,12 @@ export function EnvironmentSelector() {
 /**
  * 环境管理对话框
  */
-function EnvironmentManagerDialog({ onClose }: { onClose: () => void }) {
+export function EnvironmentManagerDialog() {
   const flow = useFlowStore((s) => s.flow);
   const addEnvironment = useFlowStore((s) => s.addEnvironment);
   const updateEnvironment = useFlowStore((s) => s.updateEnvironment);
   const removeEnvironment = useFlowStore((s) => s.removeEnvironment);
+  const closeEnvironmentManagerDialog = useUIStore((s) => s.closeEnvironmentManagerDialog);
 
   const environments = flow?.environments ?? [];
   const [editingEnv, setEditingEnv] = useState<string | null>(null);
@@ -152,7 +149,7 @@ function EnvironmentManagerDialog({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* 遮罩 */}
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40" onClick={closeEnvironmentManagerDialog} />
 
       {/* 对话框 */}
       <div
@@ -170,7 +167,7 @@ function EnvironmentManagerDialog({ onClose }: { onClose: () => void }) {
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={closeEnvironmentManagerDialog}
             className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />

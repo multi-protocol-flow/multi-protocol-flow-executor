@@ -95,3 +95,11 @@ export async function getConfigPath(): Promise<string> {
 export async function getAppDataDir(): Promise<string> {
   return invoke<string>('get_app_data_dir');
 }
+
+/**
+ * 保存 CSV 模板文件到应用数据目录
+ * @returns 写入的文件绝对路径
+ */
+export async function saveCsvTemplate(filename: string, content: string): Promise<string> {
+  return invoke<string>('save_csv_template', { filename, content });
+}

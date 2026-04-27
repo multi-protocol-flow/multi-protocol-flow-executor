@@ -13,6 +13,7 @@ import { StressTestResult } from '@/components/stress-test/StressTestResult';
 import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
+import { EnvironmentManagerDialog } from '@/components/panels/EnvironmentManager';
 import {
   DatasetReportList,
   DatasetReportDetail,
@@ -86,6 +87,7 @@ export function MainLayout() {
   const setSidebarWidth = useUIStore((state) => state.setSidebarWidth);
   const openSettingsDialog = useUIStore((state) => state.openSettingsDialog);
   const showConfirm = useUIStore((state) => state.showConfirm);
+  const showEnvironmentManagerDialog = useUIStore((state) => state.showEnvironmentManagerDialog);
 
   // 页面导航
   const currentPage = useUIStore((state) => state.currentPage);
@@ -511,7 +513,7 @@ export function MainLayout() {
         </Button>
 
         {/* ===== 中间画布区 ===== */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
           {/* 画布 */}
           <div className="flex-1 relative">
             <FlowCanvas />
@@ -738,6 +740,9 @@ export function MainLayout() {
 
       {/* ===== Toast 提示 ===== */}
       <Toaster />
+
+      {/* ===== 环境管理对话框（必须在 ReactFlow 外部渲染） ===== */}
+      {showEnvironmentManagerDialog && <EnvironmentManagerDialog />}
 
       {/* ===== 通用确认对话框 ===== */}
       <ConfirmDialogHandler />

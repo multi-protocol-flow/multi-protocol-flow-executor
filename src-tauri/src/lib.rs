@@ -36,6 +36,7 @@ pub use tauri_commands::{
     delete_flow_report,
     get_app_data_dir,
     open_directory,
+    save_csv_template,
     start_debug,
     send_debug_command,
     end_debug,
@@ -126,6 +127,7 @@ pub use tauri_commands::{
     DebugSessionManager,
     ExecutionSessionManager,
     DatasetExecutionSessionManager,
+    GrpcCancelSessionManager,
 };
 
 // 导出适配器（供测试使用）
@@ -160,6 +162,9 @@ pub fn run() {
             
             // 注册数据驱动执行会话管理器状态（用于取消数据驱动执行）
             app.manage(DatasetExecutionSessionManager::new());
+            
+            // 注册 gRPC 取消会话管理器状态（用于取消流式调用和 Channelz 内省）
+            app.manage(GrpcCancelSessionManager::new());
             
             // 从 store 读取日志目录配置
             let log_dir = match app.store("store/settings.bin") {
@@ -286,6 +291,8 @@ pub fn run() {
     get_registered_node_types,
     get_node_config_schema,
     list_registered_plugins,
+    // CSV 模板命令
+    save_csv_template,
     // 数据集执行命令
     validate_dataset_csv,
     execute_flow_with_dataset,

@@ -2552,6 +2552,30 @@ pub async fn open_directory(app: tauri::AppHandle, path: String) -> Result<(), S
         .map_err(|e| format!("打开目录失败: {}", e))
 }
 
+/// 保存 CSV 模板文件到应用数据目录下的 templates 子目录
+/// 返回写入的文件路径
+#[tauri::command]
+pub fn save_csv_template(
+    app: tauri::AppHandle,
+    filename: String,
+    content: String,
+) -> Result<String, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("获取应用数据目录失败: {}", e))?;
+    let templates_dir = app_data_dir.join("templates");
+    std::fs::create_dir_all(&templates_dir)
+        .map_err(|e| format!("创建模板目录失败: {}", e))?;
+    let file_path = templates_dir.join(&filename);
+    // 写入 UTF-8 BOM + 内容，确保 Excel 正确识别中文编码
+    let bom = "\u{FEFF}";
+    let bytes = format!("{}{}", bom, content);
+    std::fs::write(&file_path, bytes.as_bytes())
+        .map_err(|e| format!("写入模板文件失败: {}", e))?;
+    Ok(file_path.to_string_lossy().to_string())
+}
+
 // ============================================================================
 // 调试命令
 // ============================================================================

@@ -7,6 +7,7 @@ import {
   saveSettings,
   selectDirectory,
   openDirectory,
+  saveCsvTemplate,
 } from '@/services/tauri/settings.mock';
 
 // Mock localStorage
@@ -123,6 +124,13 @@ describe('Settings Mock Service', () => {
   describe('openDirectory', () => {
     it('不抛出错误', async () => {
       await expect(openDirectory('/some/path/')).resolves.not.toThrow();
+    });
+  });
+
+  describe('saveCsvTemplate', () => {
+    it('返回文件名（Mock 环境）', async () => {
+      const result = await saveCsvTemplate('test.csv', 'name,value\nfoo,bar');
+      expect(result).toBe('test.csv');
     });
   });
 });

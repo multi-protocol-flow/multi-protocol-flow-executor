@@ -25,6 +25,7 @@ import '@xyflow/react/dist/style.css';
 import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpReceiveNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode, MqttConnectNode, MqttPublishNode, MqttSubscribeNode, MqttUnsubscribeNode, MqttDisconnectNode, MqttWaitMessageNode, MqttRequestNode, VariableExtractorNode, KafkaConnectNode, KafkaProduceNode, KafkaConsumeNode, KafkaConsumeBatchNode, KafkaAdminNode, KafkaSchemaRegistryNode, KafkaCloseNode, SseConnectNode, SseListenNode, SseDisconnectNode, GraphqlConnectNode, GraphqlQueryNode, GraphqlSubscribeNode, GraphqlUnsubscribeNode, GraphqlIntrospectNode, GraphqlDisconnectNode, ImapConnectNode, ImapSelectNode, ImapSearchNode, ImapFetchNode, ImapStoreFlagsNode, ImapCopyNode, ImapMoveNode, ImapExpungeNode, ImapListNode, ImapFolderCreateNode, ImapFolderDeleteNode, ImapIdleNode, ImapCloseNode, SmtpConnectNode, SmtpSendNode, SmtpDisconnectNode } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { CanvasToolbar } from './CanvasToolbar';
+import { NodePalette } from './NodePalette';
 import { NodeContextMenu } from './NodeContextMenu';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
@@ -779,6 +780,9 @@ function FlowCanvasInner() {
 
       {/* 画布悬浮工具栏 */}
       <CanvasToolbar />
+
+      {/* 画布底部节点选择工具条 */}
+      <NodePalette />
       
       <ReactFlow
         nodes={nodes}
