@@ -2856,6 +2856,281 @@ pub struct Amqp10DisconnectConfig {
 }
 
 // ============================================================================
+// SMTP 节点配置
+// ============================================================================
+
+/// SMTP Connect 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct SmtpConnectConfig {
+    /// SMTP 服务器地址
+    pub host: String,
+    /// 端口号
+    pub port: u16,
+    /// TLS 模式 ("implicit" | "starttls" | "none")
+    #[serde(default)]
+    pub tls_mode: String,
+    /// 认证配置
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auth: Option<serde_json::Value>,
+    /// 连接超时（毫秒）
+    #[serde(default = "default_smtp_connect_timeout")]
+    pub connect_timeout_ms: u64,
+}
+
+fn default_smtp_connect_timeout() -> u64 {
+    30000
+}
+
+/// SMTP Send 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct SmtpSendConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 发件人
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from: Option<String>,
+    /// 收件人列表
+    #[serde(default)]
+    pub to: Vec<String>,
+    /// 抄送列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cc: Option<Vec<String>>,
+    /// 密送列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bcc: Option<Vec<String>>,
+    /// 主题
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subject: Option<String>,
+    /// 正文类型 ("`plain_text`" | "html" | "both")
+    #[serde(default)]
+    pub body_type: String,
+    /// 纯文本正文
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body: Option<String>,
+    /// HTML 正文
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub html_body: Option<String>,
+    /// 附件列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attachments: Option<Vec<serde_json::Value>>,
+    /// 发送超时（毫秒）
+    #[serde(default = "default_smtp_send_timeout")]
+    pub timeout_ms: u64,
+}
+
+fn default_smtp_send_timeout() -> u64 {
+    30000
+}
+
+/// SMTP Disconnect 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct SmtpDisconnectConfig {
+    /// 连接 ID
+    pub connection_id: String,
+}
+
+// ============================================================================
+// IMAP 节点配置
+// ============================================================================
+
+/// IMAP Connect 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ImapConnectConfig {
+    /// IMAP 服务器地址
+    pub host: String,
+    /// 端口号
+    pub port: u16,
+    /// TLS 模式 ("implicit" | "starttls" | "none")
+    #[serde(default)]
+    pub tls_mode: String,
+    /// 认证配置
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auth: Option<serde_json::Value>,
+    /// 连接超时（毫秒）
+    #[serde(default = "default_imap_connect_timeout")]
+    pub connect_timeout_ms: u64,
+}
+
+fn default_imap_connect_timeout() -> u64 {
+    30000
+}
+
+/// IMAP Select 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ImapSelectConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 邮箱名称
+    #[serde(default = "default_imap_mailbox")]
+    pub mailbox: String,
+    /// 是否只读模式
+    #[serde(default)]
+    pub readonly: bool,
+}
+
+fn default_imap_mailbox() -> String {
+    "INBOX".to_string()
+}
+
+/// IMAP Search 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ImapSearchConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 邮箱名称（可选，不指定则使用当前已选择的邮箱）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mailbox: Option<String>,
+    /// 搜索条件
+    #[serde(default)]
+    pub criteria: String,
+    /// 最大返回结果数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_results: Option<usize>,
+}
+
+/// IMAP Fetch 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ImapFetchConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// UID 范围 ("1:5" or "101,102,105")
+    #[serde(default)]
+    pub uids: String,
+    /// 获取项目 ("(ENVELOPE BODY.PEEK[] FLAGS)")
+    #[serde(default = "default_imap_fetch_items")]
+    pub fetch_items: String,
+    /// 最大获取数量
+    #[serde(default = "default_imap_max_fetch")]
+    pub max_fetch_count: usize,
+    /// 最大邮件大小（字节）
+    #[serde(default = "default_imap_max_size")]
+    pub max_size_bytes: usize,
+}
+
+fn default_imap_fetch_items() -> String {
+    "(ENVELOPE BODY.PEEK[] FLAGS)".to_string()
+}
+fn default_imap_max_fetch() -> usize {
+    50
+}
+fn default_imap_max_size() -> usize {
+    5 * 1024 * 1024
+}
+
+/// IMAP Store Flags 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ImapStoreFlagsConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// UID 范围
+    #[serde(default)]
+    pub uids: String,
+    /// 操作类型 ("set" | "add" | "remove")
+    #[serde(default = "default_imap_store_operation")]
+    pub operation: String,
+    /// 标志列表
+    #[serde(default)]
+    pub flags: Vec<String>,
+}
+
+fn default_imap_store_operation() -> String {
+    "add".to_string()
+}
+
+/// IMAP Copy 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ImapCopyConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// UID 范围
+    #[serde(default)]
+    pub uids: String,
+    /// 目标邮箱
+    pub target_mailbox: String,
+}
+
+/// IMAP Move 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ImapMoveConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// UID 范围
+    #[serde(default)]
+    pub uids: String,
+    /// 目标邮箱
+    pub target_mailbox: String,
+}
+
+/// IMAP Expunge 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ImapExpungeConfig {
+    /// 连接 ID
+    pub connection_id: String,
+}
+
+/// IMAP List 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ImapListConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 引用名称
+    #[serde(default = "default_imap_list_reference")]
+    pub reference_name: String,
+    /// 匹配模式
+    #[serde(default = "default_imap_list_pattern")]
+    pub pattern: String,
+}
+
+fn default_imap_list_reference() -> String {
+    String::new()
+}
+fn default_imap_list_pattern() -> String {
+    "*".to_string()
+}
+
+/// IMAP Folder Create 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ImapFolderCreateConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 文件夹名称
+    pub folder_name: String,
+}
+
+/// IMAP Folder Delete 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ImapFolderDeleteConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 文件夹名称
+    pub folder_name: String,
+}
+
+/// IMAP IDLE 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ImapIdleConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// 邮箱名称（可选）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mailbox: Option<String>,
+    /// 超时时间（秒）
+    #[serde(default = "default_imap_idle_timeout")]
+    pub timeout_seconds: u64,
+}
+
+fn default_imap_idle_timeout() -> u64 {
+    300
+}
+
+/// IMAP Close 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct ImapCloseConfig {
+    /// 连接 ID
+    pub connection_id: String,
+}
+
+// ============================================================================
 // 变量提取节点配置
 // ============================================================================
 
@@ -3103,6 +3378,56 @@ pub enum NodeData {
     /// AMQP 1.0 断开连接节点配置
     #[serde(rename = "amqp10_disconnect")]
     Amqp10Disconnect(Amqp10DisconnectConfig),
+    // SMTP 节点
+    /// SMTP 连接节点配置
+    #[serde(rename = "smtp_connect")]
+    SmtpConnect(SmtpConnectConfig),
+    /// SMTP 发送邮件节点配置
+    #[serde(rename = "smtp_send")]
+    SmtpSend(SmtpSendConfig),
+    /// SMTP 断开连接节点配置
+    #[serde(rename = "smtp_disconnect")]
+    SmtpDisconnect(SmtpDisconnectConfig),
+    // IMAP 节点
+    /// IMAP 连接节点配置
+    #[serde(rename = "imap_connect")]
+    ImapConnect(ImapConnectConfig),
+    /// IMAP 选择邮箱节点配置
+    #[serde(rename = "imap_select")]
+    ImapSelect(ImapSelectConfig),
+    /// IMAP 搜索邮件节点配置
+    #[serde(rename = "imap_search")]
+    ImapSearch(ImapSearchConfig),
+    /// IMAP 获取邮件节点配置
+    #[serde(rename = "imap_fetch")]
+    ImapFetch(ImapFetchConfig),
+    /// IMAP 设置标志节点配置
+    #[serde(rename = "imap_store_flags")]
+    ImapStoreFlags(ImapStoreFlagsConfig),
+    /// IMAP 复制邮件节点配置
+    #[serde(rename = "imap_copy")]
+    ImapCopy(ImapCopyConfig),
+    /// IMAP 移动邮件节点配置
+    #[serde(rename = "imap_move")]
+    ImapMove(ImapMoveConfig),
+    /// IMAP 永久删除节点配置
+    #[serde(rename = "imap_expunge")]
+    ImapExpunge(ImapExpungeConfig),
+    /// IMAP 列出邮箱节点配置
+    #[serde(rename = "imap_list")]
+    ImapList(ImapListConfig),
+    /// IMAP 创建文件夹节点配置
+    #[serde(rename = "imap_folder_create")]
+    ImapFolderCreate(ImapFolderCreateConfig),
+    /// IMAP 删除文件夹节点配置
+    #[serde(rename = "imap_folder_delete")]
+    ImapFolderDelete(ImapFolderDeleteConfig),
+    /// IMAP IDLE 监听节点配置
+    #[serde(rename = "imap_idle")]
+    ImapIdle(ImapIdleConfig),
+    /// IMAP 关闭连接节点配置
+    #[serde(rename = "imap_close")]
+    ImapClose(ImapCloseConfig),
     /// 变量提取节点配置
     #[serde(rename = "variable_extractor")]
     VariableExtractor(VariableExtractorConfig),
@@ -3346,6 +3671,56 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "amqp10_disconnect" => serde_json::from_value::<Amqp10DisconnectConfig>(value.clone())
                 .map(NodeData::Amqp10Disconnect)
                 .map_err(serde::de::Error::custom),
+            // SMTP 节点
+            "smtp_connect" => serde_json::from_value::<SmtpConnectConfig>(value.clone())
+                .map(NodeData::SmtpConnect)
+                .map_err(serde::de::Error::custom),
+            "smtp_send" => serde_json::from_value::<SmtpSendConfig>(value.clone())
+                .map(NodeData::SmtpSend)
+                .map_err(serde::de::Error::custom),
+            "smtp_disconnect" => serde_json::from_value::<SmtpDisconnectConfig>(value.clone())
+                .map(NodeData::SmtpDisconnect)
+                .map_err(serde::de::Error::custom),
+            // IMAP 节点
+            "imap_connect" => serde_json::from_value::<ImapConnectConfig>(value.clone())
+                .map(NodeData::ImapConnect)
+                .map_err(serde::de::Error::custom),
+            "imap_select" => serde_json::from_value::<ImapSelectConfig>(value.clone())
+                .map(NodeData::ImapSelect)
+                .map_err(serde::de::Error::custom),
+            "imap_search" => serde_json::from_value::<ImapSearchConfig>(value.clone())
+                .map(NodeData::ImapSearch)
+                .map_err(serde::de::Error::custom),
+            "imap_fetch" => serde_json::from_value::<ImapFetchConfig>(value.clone())
+                .map(NodeData::ImapFetch)
+                .map_err(serde::de::Error::custom),
+            "imap_store_flags" => serde_json::from_value::<ImapStoreFlagsConfig>(value.clone())
+                .map(NodeData::ImapStoreFlags)
+                .map_err(serde::de::Error::custom),
+            "imap_copy" => serde_json::from_value::<ImapCopyConfig>(value.clone())
+                .map(NodeData::ImapCopy)
+                .map_err(serde::de::Error::custom),
+            "imap_move" => serde_json::from_value::<ImapMoveConfig>(value.clone())
+                .map(NodeData::ImapMove)
+                .map_err(serde::de::Error::custom),
+            "imap_expunge" => serde_json::from_value::<ImapExpungeConfig>(value.clone())
+                .map(NodeData::ImapExpunge)
+                .map_err(serde::de::Error::custom),
+            "imap_list" => serde_json::from_value::<ImapListConfig>(value.clone())
+                .map(NodeData::ImapList)
+                .map_err(serde::de::Error::custom),
+            "imap_folder_create" => serde_json::from_value::<ImapFolderCreateConfig>(value.clone())
+                .map(NodeData::ImapFolderCreate)
+                .map_err(serde::de::Error::custom),
+            "imap_folder_delete" => serde_json::from_value::<ImapFolderDeleteConfig>(value.clone())
+                .map(NodeData::ImapFolderDelete)
+                .map_err(serde::de::Error::custom),
+            "imap_idle" => serde_json::from_value::<ImapIdleConfig>(value.clone())
+                .map(NodeData::ImapIdle)
+                .map_err(serde::de::Error::custom),
+            "imap_close" => serde_json::from_value::<ImapCloseConfig>(value.clone())
+                .map(NodeData::ImapClose)
+                .map_err(serde::de::Error::custom),
             "variable_extractor" => serde_json::from_value::<VariableExtractorConfig>(value.clone())
                 .map(NodeData::VariableExtractor)
                 .map_err(serde::de::Error::custom),
@@ -3434,6 +3809,24 @@ impl NodeData {
             NodeData::Amqp10Accept(_) => "amqp10_accept".to_string(),
             NodeData::Amqp10Reject(_) => "amqp10_reject".to_string(),
             NodeData::Amqp10Disconnect(_) => "amqp10_disconnect".to_string(),
+            // SMTP 节点
+            NodeData::SmtpConnect(_) => "smtp_connect".to_string(),
+            NodeData::SmtpSend(_) => "smtp_send".to_string(),
+            NodeData::SmtpDisconnect(_) => "smtp_disconnect".to_string(),
+            // IMAP 节点
+            NodeData::ImapConnect(_) => "imap_connect".to_string(),
+            NodeData::ImapSelect(_) => "imap_select".to_string(),
+            NodeData::ImapSearch(_) => "imap_search".to_string(),
+            NodeData::ImapFetch(_) => "imap_fetch".to_string(),
+            NodeData::ImapStoreFlags(_) => "imap_store_flags".to_string(),
+            NodeData::ImapCopy(_) => "imap_copy".to_string(),
+            NodeData::ImapMove(_) => "imap_move".to_string(),
+            NodeData::ImapExpunge(_) => "imap_expunge".to_string(),
+            NodeData::ImapList(_) => "imap_list".to_string(),
+            NodeData::ImapFolderCreate(_) => "imap_folder_create".to_string(),
+            NodeData::ImapFolderDelete(_) => "imap_folder_delete".to_string(),
+            NodeData::ImapIdle(_) => "imap_idle".to_string(),
+            NodeData::ImapClose(_) => "imap_close".to_string(),
             NodeData::VariableExtractor(_) => "variable_extractor".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
@@ -4644,5 +5037,243 @@ mod tests {
         assert_eq!(config.dataset_path, Some("/path/data.csv".to_string()));
         assert_eq!(config.dataset_encoding, None);
         assert!(config.initial_variables.is_empty());
+    }
+
+    // ========================================================================
+    // SMTP/IMAP 节点配置序列化往返测试
+    // ========================================================================
+
+    #[test]
+    fn test_smtp_connect_roundtrip() {
+        let data = NodeData::SmtpConnect(SmtpConnectConfig {
+            host: "smtp.gmail.com".to_string(),
+            port: 465,
+            tls_mode: "implicit".to_string(),
+            auth: None,
+            connect_timeout_ms: 30000,
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"smtp_connect\""));
+        assert!(json.contains("smtp.gmail.com"));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "smtp_connect");
+    }
+
+    #[test]
+    fn test_smtp_send_roundtrip() {
+        let data = NodeData::SmtpSend(SmtpSendConfig {
+            connection_id: "conn-1".to_string(),
+            from: Some("sender@example.com".to_string()),
+            to: vec!["recipient@example.com".to_string()],
+            cc: None,
+            bcc: None,
+            subject: Some("Test Subject".to_string()),
+            body_type: "plain_text".to_string(),
+            body: Some("Hello World".to_string()),
+            html_body: None,
+            attachments: None,
+            timeout_ms: 30000,
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"smtp_send\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "smtp_send");
+    }
+
+    #[test]
+    fn test_smtp_disconnect_roundtrip() {
+        let data = NodeData::SmtpDisconnect(SmtpDisconnectConfig {
+            connection_id: "conn-1".to_string(),
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"smtp_disconnect\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "smtp_disconnect");
+    }
+
+    #[test]
+    fn test_imap_connect_roundtrip() {
+        let data = NodeData::ImapConnect(ImapConnectConfig {
+            host: "imap.gmail.com".to_string(),
+            port: 993,
+            tls_mode: "implicit".to_string(),
+            auth: None,
+            connect_timeout_ms: 30000,
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"imap_connect\""));
+        assert!(json.contains("imap.gmail.com"));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "imap_connect");
+    }
+
+    #[test]
+    fn test_imap_select_roundtrip() {
+        let data = NodeData::ImapSelect(ImapSelectConfig {
+            connection_id: "conn-1".to_string(),
+            mailbox: "INBOX".to_string(),
+            readonly: false,
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"imap_select\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "imap_select");
+    }
+
+    #[test]
+    fn test_imap_search_roundtrip() {
+        let data = NodeData::ImapSearch(ImapSearchConfig {
+            connection_id: "conn-1".to_string(),
+            mailbox: Some("INBOX".to_string()),
+            criteria: "UNSEEN".to_string(),
+            max_results: Some(10),
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"imap_search\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "imap_search");
+    }
+
+    #[test]
+    fn test_imap_fetch_roundtrip() {
+        let data = NodeData::ImapFetch(ImapFetchConfig {
+            connection_id: "conn-1".to_string(),
+            uids: "1:10".to_string(),
+            fetch_items: "(ENVELOPE BODY.PEEK[] FLAGS)".to_string(),
+            max_fetch_count: 50,
+            max_size_bytes: 5 * 1024 * 1024,
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"imap_fetch\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "imap_fetch");
+    }
+
+    #[test]
+    fn test_imap_store_flags_roundtrip() {
+        let data = NodeData::ImapStoreFlags(ImapStoreFlagsConfig {
+            connection_id: "conn-1".to_string(),
+            uids: "1,2,3".to_string(),
+            operation: "add".to_string(),
+            flags: vec!["\\Seen".to_string(), "\\Flagged".to_string()],
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"imap_store_flags\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "imap_store_flags");
+    }
+
+    #[test]
+    fn test_imap_copy_roundtrip() {
+        let data = NodeData::ImapCopy(ImapCopyConfig {
+            connection_id: "conn-1".to_string(),
+            uids: "1:5".to_string(),
+            target_mailbox: "Archive".to_string(),
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"imap_copy\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "imap_copy");
+    }
+
+    #[test]
+    fn test_imap_move_roundtrip() {
+        let data = NodeData::ImapMove(ImapMoveConfig {
+            connection_id: "conn-1".to_string(),
+            uids: "1:3".to_string(),
+            target_mailbox: "Trash".to_string(),
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"imap_move\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "imap_move");
+    }
+
+    #[test]
+    fn test_imap_expunge_roundtrip() {
+        let data = NodeData::ImapExpunge(ImapExpungeConfig {
+            connection_id: "conn-1".to_string(),
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"imap_expunge\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "imap_expunge");
+    }
+
+    #[test]
+    fn test_imap_list_roundtrip() {
+        let data = NodeData::ImapList(ImapListConfig {
+            connection_id: "conn-1".to_string(),
+            reference_name: String::new(),
+            pattern: "*".to_string(),
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"imap_list\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "imap_list");
+    }
+
+    #[test]
+    fn test_imap_folder_create_roundtrip() {
+        let data = NodeData::ImapFolderCreate(ImapFolderCreateConfig {
+            connection_id: "conn-1".to_string(),
+            folder_name: "NewFolder".to_string(),
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"imap_folder_create\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "imap_folder_create");
+    }
+
+    #[test]
+    fn test_imap_folder_delete_roundtrip() {
+        let data = NodeData::ImapFolderDelete(ImapFolderDeleteConfig {
+            connection_id: "conn-1".to_string(),
+            folder_name: "OldFolder".to_string(),
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"imap_folder_delete\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "imap_folder_delete");
+    }
+
+    #[test]
+    fn test_imap_idle_roundtrip() {
+        let data = NodeData::ImapIdle(ImapIdleConfig {
+            connection_id: "conn-1".to_string(),
+            mailbox: Some("INBOX".to_string()),
+            timeout_seconds: 300,
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"imap_idle\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "imap_idle");
+    }
+
+    #[test]
+    fn test_imap_close_roundtrip() {
+        let data = NodeData::ImapClose(ImapCloseConfig {
+            connection_id: "conn-1".to_string(),
+        });
+        let json = serde_json::to_string(&data).unwrap();
+        assert!(json.contains("\"type\":\"imap_close\""));
+
+        let deserialized: NodeData = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.type_name(), "imap_close");
     }
 }

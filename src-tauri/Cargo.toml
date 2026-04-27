@@ -11,10 +11,12 @@ members = [
     "crates/flow-engine-crypto",
     "crates/flow-engine-executor",
     "crates/flow-engine-grpc",
+    "crates/flow-engine-imap",
     "crates/flow-engine-mcp",
     "crates/flow-engine-mqtt",
     "crates/flow-engine-tcp",
     "crates/flow-engine-kafka",
+    "crates/flow-engine-smtp",
     "crates/flow-engine-sse",
     "crates/flow-engine-graphql",
     "crates/flow-engine-amqp",
@@ -33,6 +35,9 @@ log = "0.4"
 regex = "1.10"
 thiserror = "1.0"
 anyhow = "1.0"
+lettre = { version = "0.11", default-features = false, features = ["tokio1", "tokio1-rustls", "ring", "webpki-roots", "smtp-transport", "builder", "pool", "hostname"] }
+async-imap = { version = "0.11", default-features = false, features = ["runtime-tokio"] }
+mail-parser = "0.11"
 
 # Workspace Lint 配置
 [workspace.lints.rust]

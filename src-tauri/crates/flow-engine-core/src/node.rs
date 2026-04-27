@@ -219,6 +219,56 @@ pub enum NodeType {
     /// 变量提取节点
     #[serde(rename = "variable_extractor")]
     VariableExtractor,
+    // SMTP 节点
+    /// SMTP 连接节点
+    #[serde(rename = "smtp_connect")]
+    SmtpConnect,
+    /// SMTP 发送邮件节点
+    #[serde(rename = "smtp_send")]
+    SmtpSend,
+    /// SMTP 断开连接节点
+    #[serde(rename = "smtp_disconnect")]
+    SmtpDisconnect,
+    // IMAP 节点
+    /// IMAP 连接节点
+    #[serde(rename = "imap_connect")]
+    ImapConnect,
+    /// IMAP 选择邮箱节点
+    #[serde(rename = "imap_select")]
+    ImapSelect,
+    /// IMAP 搜索邮件节点
+    #[serde(rename = "imap_search")]
+    ImapSearch,
+    /// IMAP 获取邮件节点
+    #[serde(rename = "imap_fetch")]
+    ImapFetch,
+    /// IMAP 设置标志节点
+    #[serde(rename = "imap_store_flags")]
+    ImapStoreFlags,
+    /// IMAP 复制邮件节点
+    #[serde(rename = "imap_copy")]
+    ImapCopy,
+    /// IMAP 移动邮件节点
+    #[serde(rename = "imap_move")]
+    ImapMove,
+    /// IMAP 永久删除节点
+    #[serde(rename = "imap_expunge")]
+    ImapExpunge,
+    /// IMAP 列出邮箱节点
+    #[serde(rename = "imap_list")]
+    ImapList,
+    /// IMAP 创建文件夹节点
+    #[serde(rename = "imap_folder_create")]
+    ImapFolderCreate,
+    /// IMAP 删除文件夹节点
+    #[serde(rename = "imap_folder_delete")]
+    ImapFolderDelete,
+    /// IMAP IDLE 监听节点
+    #[serde(rename = "imap_idle")]
+    ImapIdle,
+    /// IMAP 关闭连接节点
+    #[serde(rename = "imap_close")]
+    ImapClose,
 }
 
 /// 节点位置结构体

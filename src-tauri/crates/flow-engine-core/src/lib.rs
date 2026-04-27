@@ -14,6 +14,10 @@ pub mod context;
 pub mod db_types;
 /// 调试模式相关类型，支持断点、单步执行和执行栈追踪
 pub mod debug_types;
+/// 邮件协议共享类型定义（SMTP/IMAP 通用）
+pub mod email_types;
+/// OAuth2 + SASL 认证工具模块（服务商预设配置、SASL 字符串构建）
+pub mod email_auth;
 /// 错误类型定义，区分致命错误和可恢复错误
 pub mod error;
 /// 正常执行模式的事件类型，用于实时推送节点和流程完成状态到前端
@@ -84,3 +88,12 @@ pub use hook::{FlowHook, HookAction, HookContext, HookTrigger};
 
 // Re-export hook executor trait
 pub use traits::{HookExecutor, NoopHookExecutor};
+
+// Re-export email types
+pub use email_types::{
+    EmailAddress, EmailAttachment, EmailAuthConfig, EmailBodyType, EmailOAuthTokens,
+    EmailProvider, ImapConfig, OAuth2Method, SmtpConfig, TlsMode,
+};
+
+// Re-export email auth
+pub use email_auth::{EmailProviderPreset, get_provider_preset, xoauth2_string, plain_string, login_strings};

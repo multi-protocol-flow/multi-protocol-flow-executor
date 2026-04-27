@@ -10,8 +10,10 @@ mod execution_event_sender;
 mod directory_opener;
 mod graphql_provider;
 mod hook_executor;
+mod imap_provider;
 mod kafka_provider;
 mod log_sender;
+mod smtp_provider;
 mod sse_provider;
 mod ws_provider;
 mod grpc_provider;
@@ -43,6 +45,12 @@ pub use grpc_provider::{
     GrpcConnectionInfo, GrpcMethodInfo, GrpcPattern, GrpcProvider, GrpcServiceInfo,
     GrpcStreamingResult, GrpcTimingInfo,
 };
+pub use imap_provider::{
+    ImapCloseOutput, ImapConnectOutput, ImapConnectionInfo, ImapCopyOutput, ImapExpungeOutput,
+    ImapFetchOutput, ImapFolderCreateOutput, ImapFolderDeleteOutput, ImapIdleOutput,
+    ImapListOutput, ImapMailboxInfo, ImapMessageInfo, ImapMoveOutput, ImapProvider,
+    ImapSearchOutput, ImapSelectOutput, ImapStoreFlagsOutput,
+};
 pub use kafka_provider::{
     KafkaAdminOutput, KafkaBrokerInfo, KafkaCloseOutput, KafkaConnectOutput, KafkaConnectionInfo,
     KafkaConsumerGroupInfo, KafkaConsumeBatchOutput, KafkaConsumeOutput, KafkaMessageOutput,
@@ -62,6 +70,9 @@ pub use log_sender::{
 };
 pub use sse_provider::{
     SseConnectOutput, SseConnectionInfo, SseEventItem, SseListenOutput, SseProvider,
+};
+pub use smtp_provider::{
+    SmtpConnectOutput, SmtpConnectionInfo, SmtpDisconnectOutput, SmtpProvider, SmtpSendOutput,
 };
 pub use tcp_provider::{FramingConfig, TcpConnectionInfo, TcpFramingMode, TcpProvider};
 pub use udp_provider::{UdpProvider, UdpSocketInfo};
