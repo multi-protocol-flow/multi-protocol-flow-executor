@@ -622,7 +622,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
 
         assert_eq!(results.len(), 3);
         assert_eq!(results[0].row_index, 0);
@@ -658,7 +658,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
 
         assert_eq!(results.len(), 5);
 
@@ -690,7 +690,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
         assert_eq!(results.len(), 3, "Continue 策略应执行全部行");
     }
 
@@ -711,7 +711,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
         assert!(results.is_empty(), "空 CSV 应返回空结果");
     }
 
@@ -735,7 +735,7 @@ mod tests {
         // 创建已触发的取消信号
         let (tx, rx) = watch::channel(true);
 
-        let (results, _failed) = executor.execute(&config, &flow, Some(rx), None).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, Some(rx), None).await.expect("执行失败");
         // 取消信号已触发，不应执行任何行
         assert!(results.is_empty(), "已取消时应返回空结果");
 
@@ -781,7 +781,7 @@ mod tests {
             failure_strategy: FailureStrategy::Continue,
         };
 
-        let (results, _failed) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, None).await.expect("执行失败");
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].input_data["name"], json!("Alice"));
         assert_eq!(results[0].input_data["age"], json!("30"));
@@ -826,7 +826,7 @@ mod tests {
 
         let (event_sender, mut event_rx) = tokio::sync::mpsc::unbounded_channel::<super::events::DatasetEvent>();
 
-        let (results, _failed) = executor.execute(&config, &flow, None, Some(event_sender)).await.expect("执行失败");
+        let (results, _failed, _report_uuid) = executor.execute(&config, &flow, None, Some(event_sender)).await.expect("执行失败");
         assert_eq!(results.len(), 3);
 
         // 收集所有事件
