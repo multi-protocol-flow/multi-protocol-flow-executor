@@ -787,3 +787,16 @@ export async function deleteDatasetReport(
     return deleteDatasetReportImpl(reportId, reportsDir);
   }
 }
+
+/**
+ * 保存数据集报告到磁盘
+ */
+export async function saveDatasetReport(report: DatasetExecutionReport, reportsDir: string): Promise<string> {
+  if (isTauriEnv()) {
+    const { datasetService } = await import('../dataset');
+    return datasetService.saveReport(report, reportsDir);
+  } else {
+    const { saveDatasetReport: saveDatasetReportImpl } = await import('./mock');
+    return saveDatasetReportImpl(report, reportsDir);
+  }
+}

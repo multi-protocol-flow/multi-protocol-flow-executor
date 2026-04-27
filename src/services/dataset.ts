@@ -89,4 +89,12 @@ export const datasetService = {
    */
   deleteReport: (reportId: string, reportsDir: string): Promise<void> =>
     invoke<void>('delete_dataset_report', { reportId, reportsDir }),
+
+  /**
+   * 保存数据集报告到磁盘
+   * @param report 数据集执行报告
+   * @param reportsDir 报告存储目录
+   */
+  saveReport: (report: DatasetExecutionReport, reportsDir: string): Promise<string> =>
+    invoke<string>('save_dataset_report', { report, reportsDir }),
 };

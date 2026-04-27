@@ -896,3 +896,13 @@ export async function deleteDatasetReport(
 ): Promise<void> {
   // Mock 环境 - 无操作
 }
+
+/**
+ * Mock 保存数据集报告
+ */
+export async function saveDatasetReport(
+  _report: DatasetExecutionReport,
+  _reportsDir: string
+): Promise<string> {
+  return '';
+}

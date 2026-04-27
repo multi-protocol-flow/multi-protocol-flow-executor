@@ -51,6 +51,8 @@ interface DatasetExecutionState {
   isLoadingHistory: boolean;
   /** 报告详情 Dialog 是否打开 */
   isReportDialogOpen: boolean;
+  /** 当前选中的报告 ID（Dialog 用） */
+  selectedReportId: string | null;
 
   // ===== 操作 =====
   /** 启动数据驱动执行 */
@@ -62,7 +64,7 @@ interface DatasetExecutionState {
   /** 加载报告历史列表 */
   loadHistory: () => Promise<void>;
   /** 打开报告 Dialog */
-  openReportDialog: () => void;
+  openReportDialog: (reportId?: string) => void;
   /** 关闭报告 Dialog（不清除报告数据） */
   closeReportDialog: () => void;
   /** 重置状态 */
@@ -87,6 +89,7 @@ const initialState = {
   history: [] as DatasetReportSummary[],
   isLoadingHistory: false,
   isReportDialogOpen: false,
+  selectedReportId: null as string | null,
 };
 
 // ============================================================================
@@ -163,10 +166,22 @@ export const useDatasetExecutionStore = create<DatasetExecutionState>((set, get)
           isExecuting: false,
           currentReport: event.report,
         });
+        // 保存报告到磁盘（异步，不阻塞通知）
+        (async () => {
+          try {
+            const reportsDir = useSettingsStore.getState().reportDir;
+            if (reportsDir) {
+              const { saveDatasetReport } = await import('@/services/tauri');
+              await saveDatasetReport(event.report, reportsDir);
+            }
+          } catch (err) {
+            console.error('保存数据集报告失败:', err);
+          }
+        })();
         // 显示完成通知
         toast.success('数据集执行完成', {
           description: `${event.report.total_rows} 行 · 成功 ${event.report.success_count} · 失败 ${event.report.fail_count + event.report.error_count}`,
-          action: { label: '查看报告', onClick: () => get().openReportDialog() },
+          action: { label: '查看报告', onClick: () => get().openReportDialog(event.report.uuid) },
           duration: 10000,
         });
         break;
@@ -195,8 +210,14 @@ export const useDatasetExecutionStore = create<DatasetExecutionState>((set, get)
     }
   },
 
-  openReportDialog: () => set({ isReportDialogOpen: true }),
-  closeReportDialog: () => set({ isReportDialogOpen: false }),
+  openReportDialog: (reportId?: string) => set({
+    isReportDialogOpen: true,
+    selectedReportId: reportId ?? null,
+  }),
+  closeReportDialog: () => set({
+    isReportDialogOpen: false,
+    selectedReportId: null,
+  }),
 
   reset: () => set(initialState),
 }));
