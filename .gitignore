@@ -38,6 +38,7 @@ node_modules
 dist/
 qa-screenshots/
 /reports/
+src-tauri/reports/
 nul
 $null
 
