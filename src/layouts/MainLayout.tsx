@@ -18,6 +18,7 @@ import {
   DatasetReportList,
   DatasetReportDetail,
   DatasetRowDetail,
+  DatasetReportDialog,
 } from '@/components/reports';
 
 import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
@@ -25,7 +26,7 @@ import { useSettingsStore } from '@/stores/settings';
 import type { BottomPanelTab } from '@/stores/ui';
 import { useConsoleStore } from '@/stores/console';
 import { useZoomStore } from '@/stores/zoom';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, Settings, GripVertical, GripHorizontal, ZoomIn, ZoomOut, FileSpreadsheet } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, Settings, GripVertical, GripHorizontal, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -375,18 +376,6 @@ export function MainLayout() {
         {/* 右侧：操作按钮 */}
         <div className="flex items-center gap-2">
 
-          {/* 数据驱动报告导航 */}
-          <Button
-            variant={currentPage === 'dataset-reports' ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={navigateToDatasetReports}
-            className="h-7 text-xs gap-1.5"
-            title="数据驱动报告"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            报告
-          </Button>
-
           {/* 缩放控件 */}
           {currentPage === 'canvas' && (
           <div className="flex items-center gap-0.5 border border-border rounded-md px-1">
@@ -450,7 +439,6 @@ export function MainLayout() {
           ) : (
             <DatasetReportDetail
               reportId={datasetReportPage.reportId}
-              onBack={() => navigateToDatasetReports()}
               onViewRowDetail={(reportId, rowIndex) =>
                 navigateToDatasetRowDetail(reportId, rowIndex)
               }
@@ -719,6 +707,9 @@ export function MainLayout() {
 
       {/* ===== 压测报告弹窗 ===== */}
       <StressTestResult />
+
+      {/* ===== 数据集报告弹窗 ===== */}
+      <DatasetReportDialog />
 
       {/* ===== 压测实时监控面板 ===== */}
       <StressTestMonitor />

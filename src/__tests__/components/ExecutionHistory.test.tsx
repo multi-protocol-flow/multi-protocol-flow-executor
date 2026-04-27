@@ -9,6 +9,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useExecutionStore } from '@/stores/execution';
 import { useUIStore } from '@/stores';
 import { useStressTestStore } from '@/stores/stressTest';
+import { useDatasetExecutionStore } from '@/stores/datasetExecution';
 import type { ReportMetadata } from '@/types/ipc';
 import type { StressTestReportMetadata } from '@/types/stressTest';
 
@@ -27,6 +28,10 @@ vi.mock('@/stores', () => ({
 
 vi.mock('@/stores/stressTest', () => ({
   useStressTestStore: vi.fn(),
+}));
+
+vi.mock('@/stores/datasetExecution', () => ({
+  useDatasetExecutionStore: vi.fn(),
 }));
 
 // Mock reportStorage
@@ -83,9 +88,16 @@ vi.mock('sonner', () => ({
   },
 }));
 
+// Mock tauri service (dataset reports)
+vi.mock('@/services/tauri', () => ({
+  listDatasetReports: vi.fn(),
+  deleteDatasetReport: vi.fn(),
+}));
+
 // 导入 mock 后的函数
 import { listReports, loadReport, deleteReport } from '@/services/storage/reportStorage';
 import { stressTestStorage } from '@/services/storage/stressTestStorage';
+import { listDatasetReports, deleteDatasetReport } from '@/services/tauri';
 
 // 共享 mockShowConfirm
 let mockShowConfirm: ReturnType<typeof vi.fn>;
@@ -168,12 +180,21 @@ describe('ExecutionHistory', () => {
     (stressTestStorage.loadReport as ReturnType<typeof vi.fn>).mockResolvedValue({});
     (stressTestStorage.deleteReport as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 
-    // Mock useUIStore with showConfirm
+    // Default dataset API mocks
+    (listDatasetReports as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (deleteDatasetReport as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+    // Mock useUIStore with showConfirm and getState
     mockShowConfirm = vi.fn();
     (useUIStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: { showConfirm: typeof mockShowConfirm }) => unknown) =>
         selector({ showConfirm: mockShowConfirm })
     );
+
+    // Mock useDatasetExecutionStore with getState
+    (useDatasetExecutionStore as unknown as { getState: ReturnType<typeof vi.fn> }).getState = vi.fn(() => ({
+      openReportDialog: vi.fn(),
+    }));
   });
 
   describe('加载状态', () => {

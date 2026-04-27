@@ -4,7 +4,7 @@
  */
 import { toast } from 'sonner';
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircle2, XCircle, GitCompare, Clock, History, Loader2, Trash2, Bug, BarChart3 } from 'lucide-react';
+import { CheckCircle2, XCircle, GitCompare, Clock, History, Loader2, Trash2, Bug, BarChart3, Database } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,10 +12,13 @@ import { loadReport, listReports, deleteReport } from '@/services/storage/report
 import { stressTestStorage } from '@/services/storage/stressTestStorage';
 import type { ReportMetadata } from '@/types/ipc';
 import type { StressTestReportMetadata, StressTestReport } from '@/types/stressTest';
+import type { DatasetReportSummary } from '@/types/dataset';
 import { useExecutionStore } from '@/stores/execution';
 import { useStressTestStore } from '@/stores/stressTest';
 import { useSettingsStore } from '@/stores/settings';
 import { useUIStore } from '@/stores';
+import { useDatasetExecutionStore } from '@/stores/datasetExecution';
+import { listDatasetReports, deleteDatasetReport } from '@/services/tauri';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -23,10 +26,10 @@ import { cn } from '@/lib/utils';
 // ============================================================================
 
 /** 历史记录类型 */
-type HistoryItemType = 'normal' | 'debug' | 'stress_test';
+type HistoryItemType = 'normal' | 'debug' | 'stress_test' | 'dataset';
 
 /** 过滤类型 */
-type FilterType = 'all' | 'normal' | 'debug' | 'stress_test';
+type FilterType = 'all' | 'normal' | 'debug' | 'stress_test' | 'dataset';
 
 /** 统一历史记录项 */
 interface UnifiedHistoryItem {
@@ -46,6 +49,8 @@ interface UnifiedHistoryItem {
   reportMetadata?: ReportMetadata;
   /** 压测报告元数据引用 */
   stressMetadata?: StressTestReportMetadata;
+  /** 数据驱动报告元数据引用 */
+  datasetMetadata?: DatasetReportSummary;
 }
 
 // ============================================================================
@@ -88,6 +93,7 @@ function getFilterLabel(filter: FilterType): string {
     case 'normal': return '普通';
     case 'debug': return '调试';
     case 'stress_test': return '压测';
+    case 'dataset': return '数据驱动';
   }
 }
 
@@ -125,10 +131,11 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
     const loadAllHistory = async () => {
       setLoading(true);
       try {
-        // 并行加载普通报告和压测报告
-        const [reports, stressReports] = await Promise.all([
+        // 并行加载普通报告、压测报告和数据驱动报告
+        const [reports, stressReports, datasetReports] = await Promise.all([
           listReports(reportDir),
           stressTestStorage.listReports(reportDir),
+          listDatasetReports(reportDir),
         ]);
 
         if (cancelled) return;
@@ -155,8 +162,19 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
           stressMetadata: s,
         }));
 
+        // 映射数据驱动报告
+        const datasetItems: UnifiedHistoryItem[] = datasetReports.map((d: DatasetReportSummary) => ({
+          uuid: d.report_id,
+          flowName: d.flow_name,
+          timestamp: d.executed_at,
+          durationMs: 0,
+          status: (d.fail_count + d.error_count === 0 ? 'success' : 'failed') as 'success' | 'failed',
+          type: 'dataset' as const,
+          datasetMetadata: d,
+        }));
+
         // 合并并按时间戳降序排序（最新在前）
-        const merged = [...normalItems, ...stressItems].sort(
+        const merged = [...normalItems, ...stressItems, ...datasetItems].sort(
           (a, b) => b.timestamp - a.timestamp
         );
 
@@ -198,6 +216,9 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
           progressHistory: (report as StressTestReport).progressHistory ?? [],
         });
         useStressTestStore.getState().openReportDialog();
+      } else if (item.type === 'dataset') {
+        // 数据驱动报告：打开报告弹窗
+        useDatasetExecutionStore.getState().openReportDialog(item.uuid);
       } else {
         // 普通/调试报告
         const report = await loadReport(item.uuid, reportDir);
@@ -222,6 +243,8 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
         try {
           if (item.type === 'stress_test' && item.stressMetadata) {
             await stressTestStorage.deleteReport(item.stressMetadata.filePath);
+          } else if (item.type === 'dataset') {
+            await deleteDatasetReport(item.uuid, reportDir);
           } else {
             await deleteReport(item.uuid, reportDir);
           }
@@ -286,17 +309,29 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
             await Promise.all(
               debugItems.map((item) => deleteReport(item.uuid, reportDir))
             );
+          } else if (filter === 'dataset') {
+            // 仅删除数据驱动报告
+            const datasetItems = filteredHistory.filter(
+              (item) => item.type === 'dataset'
+            );
+            await Promise.all(
+              datasetItems.map((item) => deleteDatasetReport(item.uuid, reportDir))
+            );
           } else {
-            // 全部清空：同时删除普通报告和压测报告
+            // 全部清空：同时删除普通报告、压测报告和数据驱动报告
             const allFlowItems = filteredHistory.filter((item) => item.reportMetadata);
             const allStressItems = filteredHistory.filter(
               (item) => item.type === 'stress_test' && item.stressMetadata
+            );
+            const allDatasetItems = filteredHistory.filter(
+              (item) => item.type === 'dataset'
             );
             await Promise.all([
               ...allFlowItems.map((item) => deleteReport(item.uuid, reportDir)),
               ...allStressItems.map((item) =>
                 stressTestStorage.deleteReport(item.stressMetadata!.filePath)
               ),
+              ...allDatasetItems.map((item) => deleteDatasetReport(item.uuid, reportDir)),
             ]);
           }
           // 重新加载全部历史
@@ -340,6 +375,7 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
       normal: { title: '暂无普通执行历史', subtitle: '' },
       debug: { title: '暂无调试执行历史', subtitle: '' },
       stress_test: { title: '暂无压测执行历史', subtitle: '执行压力测试后记录将显示在这里' },
+      dataset: { title: '暂无数据驱动执行历史', subtitle: '执行数据驱动测试后记录将显示在这里' },
     };
     const { title, subtitle } = emptyTextMap[filter];
 
@@ -352,11 +388,12 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
               <SelectTrigger className="w-20 h-7 text-xs">
                 <SelectValue placeholder="全部" />
               </SelectTrigger>
-              <SelectContent>
+                <SelectContent>
                 <SelectItem value="all">全部</SelectItem>
                 <SelectItem value="normal">普通</SelectItem>
                 <SelectItem value="debug">调试</SelectItem>
                 <SelectItem value="stress_test">压测</SelectItem>
+                <SelectItem value="dataset">数据驱动</SelectItem>
               </SelectContent>
             </Select>
             <span className="text-xs text-muted-foreground">共 0 条记录</span>
@@ -386,6 +423,7 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
               <SelectItem value="normal">普通</SelectItem>
               <SelectItem value="debug">调试</SelectItem>
               <SelectItem value="stress_test">压测</SelectItem>
+              <SelectItem value="dataset">数据驱动</SelectItem>
             </SelectContent>
           </Select>
           <span className="text-xs text-muted-foreground">
@@ -407,6 +445,7 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
         <div className="space-y-1 p-2">
           {filteredHistory.map((item) => {
             const isStress = item.type === 'stress_test';
+            const isDataset = item.type === 'dataset';
             const isSuccess = item.status === 'success' || item.status === 'completed';
             return (
               <div
@@ -467,12 +506,19 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
                           压测
                         </span>
                       )}
+                      {/* 数据驱动标识 */}
+                      {item.type === 'dataset' && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-teal-100 text-teal-700">
+                          <Database className="w-3 h-3" />
+                          数据驱动
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                       <Clock className="w-3 h-3" />
                       <span>{formatTimestamp(item.timestamp)}</span>
-                      {/* 压测不显示时长 */}
-                      {!isStress && item.durationMs > 0 && (
+                      {/* 压测和数据驱动不显示时长 */}
+                      {!isStress && !isDataset && item.durationMs > 0 && (
                         <>
                           <span className="opacity-50">·</span>
                           <span>{formatDuration(item.durationMs)}</span>

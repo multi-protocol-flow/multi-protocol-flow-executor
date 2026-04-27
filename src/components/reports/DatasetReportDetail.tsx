@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
-  ArrowLeft,
   Clock,
   BarChart3,
   Timer,
@@ -99,15 +98,12 @@ function getStatusStyle(status: RowStatus) {
 interface DatasetReportDetailProps {
   /** 报告 ID */
   reportId: string;
-  /** 返回列表回调 */
-  onBack: () => void;
   /** 查看行详情回调 */
   onViewRowDetail: (reportId: string, rowIndex: number) => void;
 }
 
 export function DatasetReportDetail({
   reportId,
-  onBack,
   onViewRowDetail,
 }: DatasetReportDetailProps) {
   const [report, setReport] = useState<DatasetExecutionReport | null>(null);
@@ -185,22 +181,14 @@ export function DatasetReportDetail({
     return (
       <div className="flex flex-col items-center justify-center h-full py-16 text-muted-foreground">
         <p className="text-sm">报告不存在或加载失败</p>
-        <Button variant="outline" size="sm" className="mt-4" onClick={onBack}>
-          返回列表
-        </Button>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full">
-      {/* 顶部导航栏 */}
+      {/* 顶部信息栏 */}
       <div className="flex items-center gap-3 px-6 py-3 border-b border-border shrink-0">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4 mr-1" />
-          返回列表
-        </Button>
-        <div className="h-4 w-px bg-border" />
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-foreground truncate">
             {report.flow_name}
