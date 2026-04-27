@@ -46,6 +46,10 @@ pub enum HttpMethod {
     Delete,
     /// PATCH 请求
     Patch,
+    /// HEAD 请求
+    Head,
+    /// OPTIONS 请求
+    Options,
 }
 
 /// HTTP 请求体类型
@@ -139,6 +143,56 @@ pub struct HttpConfig {
     /// 输出变量映射
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub output_mappings: Vec<OutputMapping>,
+    // === 新增字段 ===
+    // 认证配置
+    /// 认证配置
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auth: Option<HttpAuthConfig>,
+    // 重定向配置
+    /// 是否跟随重定向
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub follow_redirects: Option<bool>,
+    /// 最大重定向次数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_redirects: Option<u32>,
+    // TLS 配置
+    /// 是否跳过 TLS 证书验证
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls_skip_verify: Option<bool>,
+    /// TLS CA 证书路径
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls_ca_cert_path: Option<String>,
+    /// TLS 客户端证书路径
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls_client_cert_path: Option<String>,
+    /// TLS 客户端私钥路径
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls_client_key_path: Option<String>,
+    // 压缩配置
+    /// 是否接受压缩编码
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub accept_encoding: Option<bool>,
+    // Cookie 配置
+    /// 是否启用 Cookie
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enable_cookies: Option<bool>,
+    /// Cookie 列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cookie_jar: Option<Vec<CookieEntry>>,
+    // 代理配置
+    /// 代理配置
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proxy: Option<HttpProxyConfig>,
+    // 重试配置
+    /// 重试次数
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retry_count: Option<u32>,
+    /// 重试延迟（毫秒）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retry_delay_ms: Option<u64>,
+    /// 触发重试的 HTTP 状态码列表
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retry_on_status: Option<Vec<u16>>,
 }
 
 impl Default for HttpConfig {
@@ -154,8 +208,109 @@ impl Default for HttpConfig {
             body: None,
             timeout_ms: None,
             output_mappings: Vec::new(),
+            auth: None,
+            follow_redirects: None,
+            max_redirects: None,
+            tls_skip_verify: None,
+            tls_ca_cert_path: None,
+            tls_client_cert_path: None,
+            tls_client_key_path: None,
+            accept_encoding: None,
+            enable_cookies: None,
+            cookie_jar: None,
+            proxy: None,
+            retry_count: None,
+            retry_delay_ms: None,
+            retry_on_status: None,
         }
     }
+}
+
+/// HTTP 认证类型
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum HttpAuthType {
+    /// 无认证
+    #[default]
+    None,
+    /// HTTP Basic 认证
+    Basic,
+    /// Bearer Token 认证
+    Bearer,
+    /// API Key 放在请求头
+    ApiKeyHeader,
+    /// API Key 放在查询参数
+    ApiKeyQuery,
+    /// HTTP Digest 认证
+    Digest,
+}
+
+/// HTTP 认证配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct HttpAuthConfig {
+    /// 认证类型
+    #[serde(default)]
+    pub auth_type: HttpAuthType,
+    /// 用户名（Basic/Digest 认证）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    /// 密码（Basic/Digest 认证）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+    /// Token（Bearer 认证）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
+    /// API Key 名称
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_key_name: Option<String>,
+    /// API Key 值
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_key_value: Option<String>,
+}
+
+/// HTTP 代理类型
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum HttpProxyType {
+    /// 不使用代理
+    #[default]
+    None,
+    /// HTTP 代理
+    Http,
+    /// SOCKS5 代理
+    Socks5,
+}
+
+/// HTTP 代理配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct HttpProxyConfig {
+    /// 代理类型
+    #[serde(default)]
+    pub proxy_type: HttpProxyType,
+    /// 代理服务器地址
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proxy_url: Option<String>,
+    /// 代理用户名
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proxy_username: Option<String>,
+    /// 代理密码
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proxy_password: Option<String>,
+}
+
+/// Cookie 条目
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CookieEntry {
+    /// Cookie 名称
+    pub name: String,
+    /// Cookie 值
+    pub value: String,
+    /// Cookie 域名
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub domain: Option<String>,
+    /// Cookie 路径
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
 }
 
 // ============================================================================

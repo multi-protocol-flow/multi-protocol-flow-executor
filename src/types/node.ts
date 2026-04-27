@@ -143,7 +143,7 @@ export interface NodePosition {
 /**
  * HTTP 方法枚举
  */
-export type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch';
+export type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch' | 'head' | 'options';
 
 /**
  * HTTP 请求体类型
@@ -172,6 +172,66 @@ export interface FormField {
   type?: FormFieldType;
   /** 文件路径（仅 file 类型使用） */
   file_path?: string;
+}
+
+// ============================================================================
+// HTTP 认证类型定义
+// ============================================================================
+
+/**
+ * HTTP 认证类型
+ */
+export type HttpAuthType = 'none' | 'basic' | 'bearer' | 'api_key_header' | 'api_key_query' | 'digest';
+
+/**
+ * HTTP 认证配置
+ */
+export interface HttpAuthConfig {
+  /** 认证类型（默认 none） */
+  auth_type?: HttpAuthType;
+  /** 用户名（Basic 认证） */
+  username?: string;
+  /** 密码（Basic 认证） */
+  password?: string;
+  /** Token（Bearer 认证） */
+  token?: string;
+  /** API Key 名称（API Key 模式） */
+  api_key_name?: string;
+  /** API Key 值（API Key 模式） */
+  api_key_value?: string;
+}
+
+/**
+ * HTTP 代理类型
+ */
+export type HttpProxyType = 'none' | 'http' | 'socks5';
+
+/**
+ * HTTP 代理配置
+ */
+export interface HttpProxyConfig {
+  /** 代理类型（默认 none） */
+  proxy_type?: HttpProxyType;
+  /** 代理地址（如 http://proxy:8080 或 socks5://proxy:1080） */
+  proxy_url?: string;
+  /** 代理用户名 */
+  proxy_username?: string;
+  /** 代理密码 */
+  proxy_password?: string;
+}
+
+/**
+ * Cookie 条目
+ */
+export interface CookieEntry {
+  /** Cookie 名称 */
+  name: string;
+  /** Cookie 值 */
+  value: string;
+  /** 域名 */
+  domain?: string;
+  /** 路径 */
+  path?: string;
 }
 
 // ============================================================================
@@ -245,6 +305,35 @@ export interface HttpConfig {
   timeout_ms?: number;
   /** 输出变量映射 */
   output_mappings?: OutputMapping[];
+  // === 新增字段 ===
+  /** 认证配置 */
+  auth?: HttpAuthConfig;
+  /** 是否跟随重定向（默认 true） */
+  follow_redirects?: boolean;
+  /** 最大重定向次数（默认 10） */
+  max_redirects?: number;
+  /** 是否跳过 TLS 证书验证 */
+  tls_skip_verify?: boolean;
+  /** TLS CA 证书路径 */
+  tls_ca_cert_path?: string;
+  /** TLS 客户端证书路径 */
+  tls_client_cert_path?: string;
+  /** TLS 客户端密钥路径 */
+  tls_client_key_path?: string;
+  /** 是否接受压缩响应（默认 true） */
+  accept_encoding?: boolean;
+  /** 是否启用 Cookie 管理（默认 false） */
+  enable_cookies?: boolean;
+  /** 初始 Cookie 列表 */
+  cookie_jar?: CookieEntry[];
+  /** 代理配置 */
+  proxy?: HttpProxyConfig;
+  /** 重试次数（默认 0） */
+  retry_count?: number;
+  /** 重试延迟（毫秒，默认 1000） */
+  retry_delay_ms?: number;
+  /** 触发重试的状态码列表（如 [429, 502, 503, 504]） */
+  retry_on_status?: number[];
 }
 
 /**

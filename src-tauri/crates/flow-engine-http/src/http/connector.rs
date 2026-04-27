@@ -88,6 +88,142 @@ impl Write for TimedStream {
     }
 }
 
+/// TLS 配置选项
+pub struct TlsOptions {
+    /// 是否跳过证书验证
+    pub skip_verify: bool,
+    /// 自定义 CA 证书 PEM 文件路径
+    pub ca_cert_path: Option<String>,
+    /// 客户端证书 PEM 文件路径
+    pub client_cert_path: Option<String>,
+    /// 客户端私钥 PEM 文件路径
+    pub client_key_path: Option<String>,
+}
+
+/// 确保 CryptoProvider 已安装
+fn ensure_crypto_provider() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
+/// 证书验证跳过器
+#[derive(Debug)]
+struct NoVerifier;
+
+impl rustls::client::danger::ServerCertVerifier for NoVerifier {
+    fn verify_server_cert(
+        &self,
+        _end_entity: &rustls::pki_types::CertificateDer<'_>,
+        _intermediates: &[rustls::pki_types::CertificateDer<'_>],
+        _server_name: &rustls::pki_types::ServerName<'_>,
+        _ocsp_response: &[u8],
+        _now: rustls::pki_types::UnixTime,
+    ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
+        Ok(rustls::client::danger::ServerCertVerified::assertion())
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        _message: &[u8],
+        _cert: &rustls::pki_types::CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        _message: &[u8],
+        _cert: &rustls::pki_types::CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+        vec![
+            rustls::SignatureScheme::RSA_PKCS1_SHA256,
+            rustls::SignatureScheme::RSA_PKCS1_SHA384,
+            rustls::SignatureScheme::RSA_PKCS1_SHA512,
+            rustls::SignatureScheme::ECDSA_NISTP256_SHA256,
+            rustls::SignatureScheme::ECDSA_NISTP384_SHA384,
+            rustls::SignatureScheme::ECDSA_NISTP521_SHA512,
+            rustls::SignatureScheme::RSA_PSS_SHA256,
+            rustls::SignatureScheme::RSA_PSS_SHA384,
+            rustls::SignatureScheme::RSA_PSS_SHA512,
+            rustls::SignatureScheme::ED25519,
+            rustls::SignatureScheme::ED448,
+        ]
+    }
+}
+
+/// 构建标准 TLS 配置
+fn build_standard_tls_config() -> rustls::ClientConfig {
+    ensure_crypto_provider();
+    let root_store = rustls::RootCertStore::from_iter(
+        webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
+    );
+    rustls::ClientConfig::builder()
+        .with_root_certificates(root_store)
+        .with_no_client_auth()
+}
+
+/// 构建自定义 TLS 配置
+fn build_custom_tls_config(options: &TlsOptions) -> Result<rustls::ClientConfig, String> {
+    ensure_crypto_provider();
+
+    if options.skip_verify {
+        let config = rustls::ClientConfig::builder()
+            .dangerous()
+            .with_custom_certificate_verifier(Arc::new(NoVerifier))
+            .with_no_client_auth();
+        return Ok(config);
+    }
+
+    let mut root_store = rustls::RootCertStore::from_iter(
+        webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
+    );
+
+    if let Some(ca_path) = &options.ca_cert_path {
+        let ca_bytes = std::fs::read(ca_path)
+            .map_err(|e| format!("读取 CA 证书失败 ({}): {}", ca_path, e))?;
+        let mut cursor = std::io::Cursor::new(&ca_bytes[..]);
+        let certs: Vec<_> = rustls_pemfile::certs(&mut cursor)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("解析 CA 证书 PEM 失败: {}", e))?;
+        for cert in certs {
+            root_store.add(cert).map_err(|e| format!("添加 CA 证书失败: {}", e))?;
+        }
+    }
+
+    let has_client_cert = options.client_cert_path.is_some() && options.client_key_path.is_some();
+    if has_client_cert {
+        let cert_path = options.client_cert_path.as_ref().ok_or("客户端证书路径未设置")?;
+        let key_path = options.client_key_path.as_ref().ok_or("客户端私钥路径未设置")?;
+        let cert_bytes = std::fs::read(cert_path)
+            .map_err(|e| format!("读取客户端证书失败 ({}): {}", cert_path, e))?;
+        let mut cert_cursor = std::io::Cursor::new(&cert_bytes[..]);
+        let client_certs: Vec<_> = rustls_pemfile::certs(&mut cert_cursor)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("解析客户端证书 PEM 失败: {}", e))?;
+        let key_bytes = std::fs::read(key_path)
+            .map_err(|e| format!("读取客户端私钥失败 ({}): {}", key_path, e))?;
+        let mut key_cursor = std::io::Cursor::new(&key_bytes[..]);
+        let client_key = rustls_pemfile::private_key(&mut key_cursor)
+            .map_err(|e| format!("解析客户端私钥 PEM 失败: {}", e))?
+            .ok_or_else(|| "客户端私钥文件为空".to_string())?;
+        let config = rustls::ClientConfig::builder()
+            .with_root_certificates(root_store)
+            .with_client_auth_cert(client_certs, client_key)
+            .map_err(|e| format!("配置客户端证书失败: {}", e))?;
+        Ok(config)
+    } else {
+        let config = rustls::ClientConfig::builder()
+            .with_root_certificates(root_store)
+            .with_no_client_auth();
+        Ok(config)
+    }
+}
+
 /// 自定义连接器，支持计时和 HTTP/2 ALPN 协商
 #[derive(Clone)]
 pub struct TimingConnector {
@@ -103,20 +239,18 @@ impl TimingConnector {
     /// - `timeout_ms`: 各阶段超时时间（毫秒）
     /// - `timing`: 计时上下文（Arc<Mutex> 包装以便在 Service 中使用）
     pub fn new(timeout_ms: u64, timing: Arc<std::sync::Mutex<TimingContext>>) -> Self {
-        // 构建根证书存储
-        let root_store =
-            rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+        let config = build_standard_tls_config();
+        Self { tls_config: Arc::new(config), timeout_ms, timing }
+    }
 
-        // 构建 TLS 配置，支持 ALPN HTTP/2 协商
-        let config = rustls::ClientConfig::builder()
-            .with_root_certificates(root_store)
-            .with_no_client_auth();
-
-        Self {
-            tls_config: Arc::new(config),
-            timeout_ms,
-            timing,
-        }
+    /// 创建带自定义 TLS 配置的计时连接器
+    pub fn new_with_tls(
+        timeout_ms: u64,
+        timing: Arc<std::sync::Mutex<TimingContext>>,
+        tls_options: &TlsOptions,
+    ) -> Result<Self, String> {
+        let config = build_custom_tls_config(tls_options)?;
+        Ok(Self { tls_config: Arc::new(config), timeout_ms, timing })
     }
 }
 

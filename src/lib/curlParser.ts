@@ -69,7 +69,7 @@ export function parseCurlToFormData(curlString: string): HttpConfigFormData | nu
     // 方法映射（大写转小写）
     const methodMap: Record<string, string> = {
       GET: 'get', POST: 'post', PUT: 'put', DELETE: 'delete', PATCH: 'patch',
-      HEAD: 'get', OPTIONS: 'get', // 降级处理
+      HEAD: 'head', OPTIONS: 'options',
     };
     const method = methodMap[result.method?.toUpperCase() ?? 'GET'] ?? 'get';
 

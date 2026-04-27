@@ -255,11 +255,17 @@ interface HttpOutputData {
   timing?: {
     dns_ms?: number;
     connect_ms?: number;
-    tls_ms?: number;
+    tls_ms?: number | null;
     ttfb_ms?: number;
     download_ms?: number;
     total_ms?: number;
   };
+  /** 重定向历史 */
+  redirect_history?: Array<{ status: number; location: string }>;
+  /** 响应 Cookie */
+  cookies_received?: Array<{ name: string; value: string; domain?: string; path?: string }>;
+  /** 重试次数 */
+  retry_count?: number;
 }
 
 export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
@@ -366,6 +372,16 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
               )}
             </div>
           )}
+
+          {/* 重试信息 */}
+          {outputData?.retry_count != null && outputData.retry_count > 0 && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">重试:</span>
+              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                {outputData.retry_count} 次
+              </Badge>
+            </div>
+          )}
         </div>
       </CollapsibleSection>
 
@@ -394,6 +410,29 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
         </div>
       </CollapsibleSection>
 
+      {/* 重定向历史 */}
+      {outputData?.redirect_history && outputData.redirect_history.length > 0 && (
+        <CollapsibleSection
+          title={`重定向链 (${outputData.redirect_history.length} 次)`}
+          icon={<Globe className="w-4 h-4" />}
+          defaultOpen={false}
+        >
+          <div className="space-y-1.5">
+            {outputData.redirect_history.map((redirect, index) => (
+              <div key={index} className="flex items-center gap-2 text-sm">
+                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 shrink-0">
+                  {redirect.status}
+                </Badge>
+                <span className="text-muted-foreground shrink-0">→</span>
+                <code className="text-xs bg-muted px-1.5 py-0.5 rounded break-all">
+                  {redirect.location}
+                </code>
+              </div>
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
+
       {/* 响应头 */}
       <CollapsibleSection
         title="响应头"
@@ -402,6 +441,32 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
       >
         <KeyValueList data={headers} />
       </CollapsibleSection>
+
+      {/* 响应 Cookie */}
+      {outputData?.cookies_received && outputData.cookies_received.length > 0 && (
+        <CollapsibleSection
+          title={`响应 Cookie (${outputData.cookies_received.length})`}
+          icon={<ArrowDownToLine className="w-4 h-4" />}
+          defaultOpen={false}
+        >
+          <div className="border border-border rounded overflow-hidden text-sm">
+            <div className="grid grid-cols-[1fr_1.5fr_0.8fr_0.5fr] bg-muted/50">
+              <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground">名称</div>
+              <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground">值</div>
+              <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground">域名</div>
+              <div className="px-2.5 py-1.5 font-medium border-b border-border text-xs text-muted-foreground">路径</div>
+            </div>
+            {outputData.cookies_received.map((cookie, index) => (
+              <div key={index} className="grid grid-cols-[1fr_1.5fr_0.8fr_0.5fr]">
+                <div className="px-2.5 py-1.5 border-r border-b border-border font-mono text-foreground break-all">{cookie.name}</div>
+                <div className="px-2.5 py-1.5 border-r border-b border-border font-mono text-muted-foreground break-all">{cookie.value}</div>
+                <div className="px-2.5 py-1.5 border-r border-b border-border text-muted-foreground">{cookie.domain ?? '-'}</div>
+                <div className="px-2.5 py-1.5 border-b border-border text-muted-foreground">{cookie.path ?? '-'}</div>
+              </div>
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
 
       {/* 响应体 */}
       {body !== undefined && (

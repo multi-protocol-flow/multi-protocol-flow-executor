@@ -4,6 +4,7 @@ use flow_engine_core::executor::NodeExecutor;
 use crate::http::{BodyType, HttpClient, HttpRequestConfig, MultipartBody};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
+use base64::Engine;
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -82,7 +83,7 @@ impl NodeExecutor for HttpNodeExecutor {
         };
 
         // 使用replace_variables替换URL
-        let url = flow_engine_core::executor::replace_variables(&http_config.url, context)
+        let mut url = flow_engine_core::executor::replace_variables(&http_config.url, context)
             .map_err(|e| {
                 let error_msg = format!("URL变量替换失败: {}", e);
                 log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
@@ -110,7 +111,29 @@ impl NodeExecutor for HttpNodeExecutor {
         let timeout_ms = http_config.timeout_ms
             .map(|t| t.clamp(1000, 300000))
             .unwrap_or(30000);
-        let client = HttpClient::new(timeout_ms);
+        let client = match (
+            http_config.tls_skip_verify.unwrap_or(false),
+            &http_config.tls_ca_cert_path,
+            &http_config.tls_client_cert_path,
+            &http_config.tls_client_key_path,
+        ) {
+            (true, None, None, None) => {
+                use crate::http::connector::TlsOptions;
+                HttpClient::with_tls(timeout_ms, TlsOptions {
+                    skip_verify: true, ca_cert_path: None, client_cert_path: None, client_key_path: None,
+                })
+            }
+            (_, Some(_), _, _) | (_, _, Some(_), _) | (_, _, _, Some(_)) => {
+                use crate::http::connector::TlsOptions;
+                HttpClient::with_tls(timeout_ms, TlsOptions {
+                    skip_verify: http_config.tls_skip_verify.unwrap_or(false),
+                    ca_cert_path: http_config.tls_ca_cert_path.clone(),
+                    client_cert_path: http_config.tls_client_cert_path.clone(),
+                    client_key_path: http_config.tls_client_key_path.clone(),
+                })
+            }
+            _ => HttpClient::new(timeout_ms),
+        };
 
         // 记录发送的请求头
         let mut sent_headers: HashMap<String, String> = HashMap::new();
@@ -138,6 +161,56 @@ impl NodeExecutor for HttpNodeExecutor {
                     })?;
                 headers.insert(replaced_key.clone(), replaced_value.clone());
                 sent_headers.insert(replaced_key, replaced_value);
+            }
+        }
+
+        // 应用认证配置
+        if let Some(auth) = &http_config.auth {
+            match &auth.auth_type {
+                flow_engine_core::node_config::HttpAuthType::None => {}
+                flow_engine_core::node_config::HttpAuthType::Basic => {
+                    if let (Some(username), Some(password)) = (&auth.username, &auth.password) {
+                        let replaced_user = flow_engine_core::executor::replace_variables(username, context)
+                            .map_err(|e| format!("认证用户名变量替换失败: {}", e))?;
+                        let replaced_pass = flow_engine_core::executor::replace_variables(password, context)
+                            .map_err(|e| format!("认证密码变量替换失败: {}", e))?;
+                        let credentials = base64::engine::general_purpose::STANDARD
+                            .encode(format!("{}:{}", replaced_user, replaced_pass));
+                        headers.insert("Authorization".to_string(), format!("Basic {}", credentials));
+                        sent_headers.insert("Authorization".to_string(), "[Basic Auth]".to_string());
+                    }
+                }
+                flow_engine_core::node_config::HttpAuthType::Bearer => {
+                    if let Some(token) = &auth.token {
+                        let replaced = flow_engine_core::executor::replace_variables(token, context)
+                            .map_err(|e| format!("Bearer Token 变量替换失败: {}", e))?;
+                        headers.insert("Authorization".to_string(), format!("Bearer {}", replaced));
+                        sent_headers.insert("Authorization".to_string(), "[Bearer Token]".to_string());
+                    }
+                }
+                flow_engine_core::node_config::HttpAuthType::ApiKeyHeader => {
+                    if let (Some(name), Some(value)) = (&auth.api_key_name, &auth.api_key_value) {
+                        let rn = flow_engine_core::executor::replace_variables(name, context)
+                            .map_err(|e| format!("API Key 名称变量替换失败: {}", e))?;
+                        let rv = flow_engine_core::executor::replace_variables(value, context)
+                            .map_err(|e| format!("API Key 值变量替换失败: {}", e))?;
+                        headers.insert(rn.clone(), rv);
+                        sent_headers.insert(rn, "[API Key]".to_string());
+                    }
+                }
+                flow_engine_core::node_config::HttpAuthType::ApiKeyQuery => {
+                    if let (Some(name), Some(value)) = (&auth.api_key_name, &auth.api_key_value) {
+                        let rn = flow_engine_core::executor::replace_variables(name, context)
+                            .map_err(|e| format!("API Key 名称变量替换失败: {}", e))?;
+                        let rv = flow_engine_core::executor::replace_variables(value, context)
+                            .map_err(|e| format!("API Key 值变量替换失败: {}", e))?;
+                        let sep = if url.contains('?') { "&" } else { "?" };
+                        url = format!("{}{}{}={}", url, sep, rn, rv);
+                    }
+                }
+                flow_engine_core::node_config::HttpAuthType::Digest => {
+                    log::warn!("[流程 {}] [HTTP] Digest 认证暂不支持", context.flow_uuid);
+                }
             }
         }
 
@@ -366,6 +439,21 @@ impl NodeExecutor for HttpNodeExecutor {
             }
         };
 
+        // Cookie 管理：从初始 cookie_jar 创建 CookieJar 并注入请求头
+        let cookie_jar = if http_config.enable_cookies.unwrap_or(false) {
+            let jar = crate::http::cookie::CookieJar::from_initial(
+                http_config.cookie_jar.as_deref().unwrap_or(&[]),
+            );
+            if !jar.is_empty() {
+                let header = jar.cookie_header(&url);
+                headers.insert("Cookie".to_string(), header.clone());
+                sent_headers.insert("Cookie".to_string(), header);
+            }
+            Some(jar)
+        } else {
+            None
+        };
+
         // 构建请求配置
         let config = HttpRequestConfig {
             url: url.clone(),
@@ -373,29 +461,77 @@ impl NodeExecutor for HttpNodeExecutor {
             headers,
             body,
             multipart_boundary: None,
+            accept_encoding: http_config.accept_encoding.unwrap_or(true),
+            follow_redirects: http_config.follow_redirects.unwrap_or(true),
+            max_redirects: http_config.max_redirects.unwrap_or(10),
         };
 
         // 记录HTTP请求开始时间
         let http_start_time = Instant::now();
 
-        // 发送请求并获取响应（使用整体超时包装）
-        let result = tokio::time::timeout(
-            std::time::Duration::from_millis(timeout_ms),
-            client.execute(&config)
-        ).await;
+        // 重试配置
+        let retry_max = http_config.retry_count.unwrap_or(0) as usize;
+        let retry_delay = http_config.retry_delay_ms.unwrap_or(1000);
+        let retry_statuses: Vec<u16> = http_config.retry_on_status.clone().unwrap_or_default();
+        let mut actual_retry_count: usize = 0;
+
+        // 带重试的请求执行循环
+        let http_result: Result<crate::http::HttpResult, String> = loop {
+            let result = tokio::time::timeout(
+                std::time::Duration::from_millis(timeout_ms),
+                client.execute(&config)
+            ).await;
+
+            match result {
+                Ok(Ok(res)) => {
+                    let status = res.response.status;
+                    if retry_statuses.contains(&status) && actual_retry_count < retry_max {
+                        actual_retry_count += 1;
+                        log::info!("[流程 {}] [HTTP] 重试 {}/{}, 状态码: {}",
+                            context.flow_uuid, actual_retry_count, retry_max, status);
+                        if retry_delay > 0 {
+                            tokio::time::sleep(std::time::Duration::from_millis(retry_delay)).await;
+                        }
+                        continue;
+                    }
+                    break Ok(res);
+                }
+                Ok(Err(e)) => {
+                    if actual_retry_count < retry_max {
+                        actual_retry_count += 1;
+                        log::info!("[流程 {}] [HTTP] 网络错误重试 {}/{}: {}",
+                            context.flow_uuid, actual_retry_count, retry_max, e);
+                        if retry_delay > 0 {
+                            tokio::time::sleep(std::time::Duration::from_millis(retry_delay)).await;
+                        }
+                        continue;
+                    }
+                    break Err(format!("HTTP请求失败: {}", e));
+                }
+                Err(_elapsed) => {
+                    if actual_retry_count < retry_max {
+                        actual_retry_count += 1;
+                        log::info!("[流程 {}] [HTTP] 超时重试 {}/{}",
+                            context.flow_uuid, actual_retry_count, retry_max);
+                        if retry_delay > 0 {
+                            tokio::time::sleep(std::time::Duration::from_millis(retry_delay)).await;
+                        }
+                        continue;
+                    }
+                    break Err(format!("HTTP请求超时 ({}ms)", timeout_ms));
+                }
+            }
+        };
         
         // 处理超时和网络错误 - 走 false 端口
-        let http_result = match result {
-            // 整体请求未超时，检查 HTTP 客户端结果
-            Ok(Ok(res)) => res,
-            // 整体请求超时
-            Err(_elapsed) => {
-                let error_msg = format!("HTTP请求超时 ({}ms)", timeout_ms);
+        let http_result = match http_result {
+            Ok(res) => res,
+            Err(error_msg) => {
                 log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
-                // 发送超时日志到前端
+                // 发送错误日志到前端
                 context.emit_log(LogEvent {
                     level: LogLevel::Error,
-                    message: format!("HTTP 请求超时 ({}ms)", timeout_ms),
+                    message: error_msg.clone(),
                     timestamp: std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .expect("系统时间错误")
@@ -405,7 +541,7 @@ impl NodeExecutor for HttpNodeExecutor {
                     flow_uuid: context.flow_uuid.clone(),
                 }).await;
                 
-                // 超时错误：构建失败输出，走 false 端口
+                // 错误：构建失败输出，走 false 端口
                 let output_data = serde_json::json!({
                     "success": false,
                     "status": serde_json::Value::Null,
@@ -419,50 +555,8 @@ impl NodeExecutor for HttpNodeExecutor {
                         "body": request_body_json,
                         "body_type": body_type_str
                     },
-                    "timing": HttpTiming::default()
-                });
-                
-                // 根据端口过滤连接
-                let next_node_ids: Vec<String> = connections
-                    .iter()
-                    .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == "false")
-                    .map(|conn| conn.target_node_uuid.clone())
-                    .collect();
-                
-                return Ok((next_node_ids, Some(output_data)));
-            }
-            // HTTP 客户端错误（DNS、连接等）
-            Ok(Err(e)) => {
-                let error_msg = format!("HTTP请求失败: {}", e);
-                log::error!("[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}", context.flow_uuid, node.uuid, node.name, error_msg);
-                // 发送请求失败日志到前端
-                context.emit_log(LogEvent {
-                    level: LogLevel::Error,
-                    message: format!("HTTP 请求失败: {}", e),
-                    timestamp: std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .expect("系统时间错误")
-                        .as_millis() as u64,
-                    node_uuid: Some(node.uuid.clone()),
-                    node_name: Some(node.name.clone()),
-                    flow_uuid: context.flow_uuid.clone(),
-                }).await;
-                
-                // 网络错误：构建失败输出，走 false 端口
-                let output_data = serde_json::json!({
-                    "success": false,
-                    "status": serde_json::Value::Null,
-                    "body": serde_json::Value::Null,
-                    "headers": serde_json::Value::Null,
-                    "error": error_msg,
-                    "request": {
-                        "url": url,
-                        "method": method_str,
-                        "headers": sent_headers,
-                        "body": request_body_json,
-                        "body_type": body_type_str
-                    },
-                    "timing": HttpTiming::default()
+                    "timing": HttpTiming::default(),
+                    "retry_count": actual_retry_count
                 });
                 
                 // 根据端口过滤连接
@@ -502,6 +596,26 @@ impl NodeExecutor for HttpNodeExecutor {
 
         // 获取响应头
         let headers_map = http_result.response.headers.clone();
+
+        // 处理响应 Cookie：从 Set-Cookie 头解析并存储
+        let cookies_received = if let Some(mut jar) = cookie_jar {
+            jar.store_from_response(&headers_map);
+            let cookies: Vec<serde_json::Value> = jar
+                .all_cookies()
+                .iter()
+                .map(|c| {
+                    serde_json::json!({
+                        "name": c.name,
+                        "value": c.value,
+                        "domain": c.domain,
+                        "path": c.path,
+                    })
+                })
+                .collect();
+            Some(cookies)
+        } else {
+            None
+        };
 
         // 检查Content-Type
         let is_json = headers_map
@@ -558,6 +672,9 @@ impl NodeExecutor for HttpNodeExecutor {
             "status": status_code,
             "headers": headers_map,
             "body": body_json,
+            "cookies_received": cookies_received,
+            "redirect_history": &http_result.redirect_history,
+            "retry_count": actual_retry_count,
             "request": {
                 "url": url,
                 "method": method_str,

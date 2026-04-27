@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Globe, X, ArrowRightFromLine, Info, Terminal } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Trash2, Globe, X, ArrowRightFromLine, Info, Terminal, ChevronDown, ChevronRight, Shield, Settings2 } from 'lucide-react';
 import type { HttpConfig as HttpConfigType } from '@/types';
 import type { Variable } from '@/types/variable';
 import { useFlowStore } from '@/stores';
@@ -70,6 +71,20 @@ function toFormData(data: HttpConfigType): HttpConfigFormData {
     file_path: data.file_path || undefined,
     timeout_ms: data.timeout_ms ?? 30000,
     output_mappings: data.output_mappings || [],
+    auth: data.auth ?? { auth_type: 'none' },
+    follow_redirects: data.follow_redirects ?? true,
+    max_redirects: data.max_redirects ?? 10,
+    tls_skip_verify: data.tls_skip_verify ?? false,
+    tls_ca_cert_path: data.tls_ca_cert_path ?? '',
+    tls_client_cert_path: data.tls_client_cert_path ?? '',
+    tls_client_key_path: data.tls_client_key_path ?? '',
+    accept_encoding: data.accept_encoding ?? true,
+    enable_cookies: data.enable_cookies ?? false,
+    cookie_jar: data.cookie_jar ?? [],
+    proxy: data.proxy ?? { proxy_type: 'none' },
+    retry_count: data.retry_count ?? 0,
+    retry_delay_ms: data.retry_delay_ms ?? 1000,
+    retry_on_status: data.retry_on_status ?? [],
   };
 }
 
@@ -104,6 +119,20 @@ function fromFormData(formData: HttpConfigFormData): HttpConfigType {
     file_path: formData.file_path || undefined,
     timeout_ms: formData.timeout_ms,
     output_mappings: formData.output_mappings && formData.output_mappings.length > 0 ? formData.output_mappings : undefined,
+    auth: formData.auth?.auth_type !== 'none' ? formData.auth : undefined,
+    follow_redirects: formData.follow_redirects === false ? false : undefined,
+    max_redirects: formData.max_redirects !== 10 ? formData.max_redirects : undefined,
+    tls_skip_verify: formData.tls_skip_verify || undefined,
+    tls_ca_cert_path: formData.tls_ca_cert_path || undefined,
+    tls_client_cert_path: formData.tls_client_cert_path || undefined,
+    tls_client_key_path: formData.tls_client_key_path || undefined,
+    accept_encoding: formData.accept_encoding === false ? false : undefined,
+    enable_cookies: formData.enable_cookies || undefined,
+    cookie_jar: formData.enable_cookies && formData.cookie_jar?.length ? formData.cookie_jar : undefined,
+    proxy: formData.proxy?.proxy_type !== 'none' ? formData.proxy : undefined,
+    retry_count: formData.retry_count || undefined,
+    retry_delay_ms: formData.retry_delay_ms !== 1000 ? formData.retry_delay_ms : undefined,
+    retry_on_status: formData.retry_on_status?.length ? formData.retry_on_status : undefined,
   };
 }
 
@@ -113,6 +142,8 @@ const HTTP_METHODS = [
   { value: 'put', label: 'PUT', color: 'text-amber-600' },
   { value: 'delete', label: 'DELETE', color: 'text-rose-600' },
   { value: 'patch', label: 'PATCH', color: 'text-violet-600' },
+  { value: 'head', label: 'HEAD', color: 'text-cyan-600' },
+  { value: 'options', label: 'OPTIONS', color: 'text-gray-500' },
 ] as const;
 
 /** 根据 Content-Type 返回对应的 Body 标签和占位提示 */
@@ -158,6 +189,26 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     control,
     name: 'output_mappings' as never,
   });
+
+  const cookieJar = useFieldArray({
+    control,
+    name: 'cookie_jar' as never,
+  });
+
+  const retryOnStatus = useFieldArray({
+    control,
+    name: 'retry_on_status' as never,
+  });
+
+  // 高级设置各子区域的折叠状态
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [redirectOpen, setRedirectOpen] = useState(false);
+  const [tlsOpen, setTlsOpen] = useState(false);
+  const [compressionOpen, setCompressionOpen] = useState(false);
+  const [cookieOpen, setCookieOpen] = useState(false);
+  const [proxyOpen, setProxyOpen] = useState(false);
+  const [retryOpen, setRetryOpen] = useState(false);
 
   // 获取 flow 并提取变量
   const flow = useFlowStore((state) => state.flow);
@@ -215,6 +266,13 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
 
   // 监听表单值变化
   const watchedMethod = watch('method');
+
+  // 高级设置监听
+  const watchedAuthType = watch('auth.auth_type');
+  const watchedFollowRedirects = watch('follow_redirects');
+  const watchedEnableCookies = watch('enable_cookies');
+  const watchedProxyType = watch('proxy.proxy_type');
+  const watchedRetryCount = watch('retry_count');
 
   // 当外部数据变化时，完整重置表单（防止节点切换时残留旧数据）
   useEffect(() => {
@@ -335,6 +393,36 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     outputMappings.remove(index);
     safeSetTimeout(saveData, 100);
   }, [outputMappings, saveData]);
+
+  /**
+   * 添加 Cookie
+   */
+  const handleAddCookie = useCallback(() => {
+    cookieJar.append({ name: '', value: '', domain: '', path: '' });
+  }, [cookieJar]);
+
+  /**
+   * 删除 Cookie
+   */
+  const handleRemoveCookie = useCallback((index: number) => {
+    cookieJar.remove(index);
+    safeSetTimeout(saveData, 100);
+  }, [cookieJar, saveData]);
+
+  /**
+   * 添加重试状态码
+   */
+  const handleAddRetryStatus = useCallback((status?: number) => {
+    retryOnStatus.append(status ?? 0);
+  }, [retryOnStatus]);
+
+  /**
+   * 删除重试状态码
+   */
+  const handleRemoveRetryStatus = useCallback((index: number) => {
+    retryOnStatus.remove(index);
+    safeSetTimeout(saveData, 100);
+  }, [retryOnStatus, saveData]);
   /** 隐藏的文件输入框 ref (用于非 Tauri 环境) */
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -984,6 +1072,567 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
               <p><code className="rounded bg-muted px-1">$.body.items[0]</code> 数组索引</p>
               <p><code className="rounded bg-muted px-1">$.headers.content-type</code> 响应头</p>
               <p className="text-muted-foreground/70 mt-1">变量名：字母、数字、下划线，1-64 字符</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ==================== 高级设置 ==================== */}
+      <div className="space-y-1">
+        <button
+          type="button"
+          onClick={() => setAdvancedOpen(!advancedOpen)}
+          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+        >
+          {advancedOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+          <Settings2 className="h-4 w-4 text-muted-foreground" />
+          高级设置
+        </button>
+
+        {advancedOpen && (
+          <div className="space-y-1 pl-2 border-l-2 border-muted">
+            {/* 认证配置 */}
+            <div className="space-y-0">
+              <button
+                type="button"
+                onClick={() => setAuthOpen(!authOpen)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+              >
+                {authOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                认证配置
+                {watchedAuthType && watchedAuthType !== 'none' && (
+                  <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                    {watchedAuthType}
+                  </span>
+                )}
+              </button>
+
+              {authOpen && (
+                <div className="space-y-3 px-2 pb-3">
+                  {/* 认证类型 */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">认证类型</Label>
+                    <Select
+                      value={watchedAuthType || 'none'}
+                      onValueChange={(value) => {
+                        setValue('auth.auth_type', value as 'none' | 'basic' | 'bearer' | 'api_key_header' | 'api_key_query' | 'digest', { shouldDirty: true });
+                        safeSetTimeout(saveData, 100);
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">无认证</SelectItem>
+                        <SelectItem value="basic">Basic Auth</SelectItem>
+                        <SelectItem value="bearer">Bearer Token</SelectItem>
+                        <SelectItem value="api_key_header">API Key (Header)</SelectItem>
+                        <SelectItem value="api_key_query">API Key (Query)</SelectItem>
+                        <SelectItem value="digest">Digest</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Basic Auth */}
+                  {watchedAuthType === 'basic' && (
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">用户名</Label>
+                        <VariableInput
+                          variables={variables}
+                          nodeLabels={nodeLabels}
+                          value={watch('auth.username') || ''}
+                          onValueChange={(v) => { setValue('auth.username', v, { shouldDirty: true }); }}
+                          placeholder="username"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">密码</Label>
+                        <Input
+                          type="password"
+                          {...register('auth.password')}
+                          placeholder="password"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bearer Token */}
+                  {watchedAuthType === 'bearer' && (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Token</Label>
+                      <VariableInput
+                        variables={variables}
+                        nodeLabels={nodeLabels}
+                        value={watch('auth.token') || ''}
+                        onValueChange={(v) => { setValue('auth.token', v, { shouldDirty: true }); }}
+                        placeholder="Bearer token"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  )}
+
+                  {/* API Key Header */}
+                  {watchedAuthType === 'api_key_header' && (
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Header 名称</Label>
+                        <Input
+                          {...register('auth.api_key_name')}
+                          placeholder="X-API-Key"
+                          className="h-8 text-xs font-mono"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">值</Label>
+                        <VariableInput
+                          variables={variables}
+                          nodeLabels={nodeLabels}
+                          value={watch('auth.api_key_value') || ''}
+                          onValueChange={(v) => { setValue('auth.api_key_value', v, { shouldDirty: true }); }}
+                          placeholder="API key value"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* API Key Query */}
+                  {watchedAuthType === 'api_key_query' && (
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">参数名称</Label>
+                        <Input
+                          {...register('auth.api_key_name')}
+                          placeholder="api_key"
+                          className="h-8 text-xs font-mono"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">值</Label>
+                        <VariableInput
+                          variables={variables}
+                          nodeLabels={nodeLabels}
+                          value={watch('auth.api_key_value') || ''}
+                          onValueChange={(v) => { setValue('auth.api_key_value', v, { shouldDirty: true }); }}
+                          placeholder="API key value"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Digest */}
+                  {watchedAuthType === 'digest' && (
+                    <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-3 text-center">
+                      <p className="text-xs text-muted-foreground">Digest 认证暂不支持</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 重定向配置 */}
+            <div className="space-y-0">
+              <button
+                type="button"
+                onClick={() => setRedirectOpen(!redirectOpen)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+              >
+                {redirectOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                重定向配置
+                {watchedFollowRedirects === false && (
+                  <span className="ml-auto rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-600">已禁用</span>
+                )}
+              </button>
+
+              {redirectOpen && (
+                <div className="space-y-3 px-2 pb-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">跟随重定向</Label>
+                    <Switch
+                      checked={watch('follow_redirects') ?? true}
+                      onCheckedChange={(checked) => {
+                        setValue('follow_redirects', checked, { shouldDirty: true });
+                        safeSetTimeout(saveData, 100);
+                      }}
+                    />
+                  </div>
+                  {(watchedFollowRedirects !== false) && (
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">最大重定向次数</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={20}
+                        {...register('max_redirects', { valueAsNumber: true })}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* TLS 配置 */}
+            <div className="space-y-0">
+              <button
+                type="button"
+                onClick={() => setTlsOpen(!tlsOpen)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+              >
+                {tlsOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                TLS 配置
+                {watch('tls_skip_verify') && (
+                  <span className="ml-auto rounded-full bg-rose-500/10 px-2 py-0.5 text-xs text-rose-500">跳过验证</span>
+                )}
+              </button>
+
+              {tlsOpen && (
+                <div className="space-y-3 px-2 pb-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">跳过证书验证</Label>
+                    <Switch
+                      checked={watch('tls_skip_verify') ?? false}
+                      onCheckedChange={(checked) => {
+                        setValue('tls_skip_verify', checked, { shouldDirty: true });
+                        safeSetTimeout(saveData, 100);
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">CA 证书路径</Label>
+                    <Input
+                      {...register('tls_ca_cert_path')}
+                      placeholder="/path/to/ca-cert.pem"
+                      className="h-8 text-xs font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">客户端证书路径</Label>
+                    <Input
+                      {...register('tls_client_cert_path')}
+                      placeholder="/path/to/client-cert.pem"
+                      className="h-8 text-xs font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">客户端密钥路径</Label>
+                    <Input
+                      {...register('tls_client_key_path')}
+                      placeholder="/path/to/client-key.pem"
+                      className="h-8 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 压缩配置 */}
+            <div className="space-y-0">
+              <button
+                type="button"
+                onClick={() => setCompressionOpen(!compressionOpen)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+              >
+                {compressionOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                压缩配置
+              </button>
+
+              {compressionOpen && (
+                <div className="space-y-3 px-2 pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">自动处理压缩响应</Label>
+                      <p className="text-xs text-muted-foreground/60 mt-0.5">gzip / deflate / brotli</p>
+                    </div>
+                    <Switch
+                      checked={watch('accept_encoding') ?? true}
+                      onCheckedChange={(checked) => {
+                        setValue('accept_encoding', checked, { shouldDirty: true });
+                        safeSetTimeout(saveData, 100);
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Cookie 配置 */}
+            <div className="space-y-0">
+              <button
+                type="button"
+                onClick={() => setCookieOpen(!cookieOpen)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+              >
+                {cookieOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                Cookie 配置
+                {watchedEnableCookies && (
+                  <span className="ml-auto rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-600">
+                    {cookieJar.fields.length} 条
+                  </span>
+                )}
+              </button>
+
+              {cookieOpen && (
+                <div className="space-y-3 px-2 pb-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">启用 Cookie 管理</Label>
+                    <Switch
+                      checked={watchedEnableCookies ?? false}
+                      onCheckedChange={(checked) => {
+                        setValue('enable_cookies', checked, { shouldDirty: true });
+                        safeSetTimeout(saveData, 100);
+                      }}
+                    />
+                  </div>
+
+                  {watchedEnableCookies && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-muted-foreground">初始 Cookie</Label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleAddCookie}
+                          className="h-6 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <Plus className="h-3 w-3" />
+                          添加
+                        </Button>
+                      </div>
+                      {cookieJar.fields.length === 0 ? (
+                        <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-3 text-center">
+                          <p className="text-xs text-muted-foreground">暂无 Cookie</p>
+                        </div>
+                      ) : (
+                        cookieJar.fields.map((field, index) => (
+                          <div key={field.id} className="space-y-2 p-2.5 rounded-md border bg-muted/30">
+                            <div className="flex items-center gap-2">
+                              <Input
+                                {...register(`cookie_jar.${index}.name`)}
+                                placeholder="名称"
+                                className="h-7 flex-1 font-mono text-xs"
+                              />
+                              <Input
+                                {...register(`cookie_jar.${index}.value`)}
+                                placeholder="值"
+                                className="h-7 flex-1 font-mono text-xs"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveCookie(index)}
+                                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-rose-500"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                {...register(`cookie_jar.${index}.domain`)}
+                                placeholder="域名（可选）"
+                                className="h-7 flex-1 text-xs"
+                              />
+                              <Input
+                                {...register(`cookie_jar.${index}.path`)}
+                                placeholder="路径（可选）"
+                                className="h-7 flex-1 text-xs"
+                              />
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 代理配置 */}
+            <div className="space-y-0">
+              <button
+                type="button"
+                onClick={() => setProxyOpen(!proxyOpen)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+              >
+                {proxyOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                代理配置
+                {watchedProxyType && watchedProxyType !== 'none' && (
+                  <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                    {watchedProxyType.toUpperCase()}
+                  </span>
+                )}
+              </button>
+
+              {proxyOpen && (
+                <div className="space-y-3 px-2 pb-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">代理类型</Label>
+                    <Select
+                      value={watchedProxyType || 'none'}
+                      onValueChange={(value) => {
+                        setValue('proxy.proxy_type', value as 'none' | 'http' | 'socks5', { shouldDirty: true });
+                        safeSetTimeout(saveData, 100);
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">无代理</SelectItem>
+                        <SelectItem value="http">HTTP 代理</SelectItem>
+                        <SelectItem value="socks5">SOCKS5 代理</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {watchedProxyType && watchedProxyType !== 'none' && (
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">代理地址</Label>
+                        <Input
+                          {...register('proxy.proxy_url')}
+                          placeholder={watchedProxyType === 'socks5' ? 'socks5://proxy:1080' : 'http://proxy:8080'}
+                          className="h-8 text-xs font-mono"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">用户名（可选）</Label>
+                        <Input
+                          {...register('proxy.proxy_username')}
+                          placeholder="username"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">密码（可选）</Label>
+                        <Input
+                          type="password"
+                          {...register('proxy.proxy_password')}
+                          placeholder="password"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 重试配置 */}
+            <div className="space-y-0">
+              <button
+                type="button"
+                onClick={() => setRetryOpen(!retryOpen)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+              >
+                {retryOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                重试配置
+                {watchedRetryCount && watchedRetryCount > 0 && (
+                  <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                    {watchedRetryCount} 次
+                  </span>
+                )}
+              </button>
+
+              {retryOpen && (
+                <div className="space-y-3 px-2 pb-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">重试次数</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={10}
+                      {...register('retry_count', { valueAsNumber: true })}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+
+                  {(watchedRetryCount ?? 0) > 0 && (
+                    <>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">重试延迟 (ms)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          {...register('retry_delay_ms', { valueAsNumber: true })}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs text-muted-foreground">触发重试的状态码</Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleAddRetryStatus()}
+                            className="h-6 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <Plus className="h-3 w-3" />
+                            添加
+                          </Button>
+                        </div>
+
+                        {/* 快捷状态码标签 */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {[429, 502, 503, 504].map((status) => {
+                            const existing = (watch('retry_on_status') || []) as number[];
+                            const alreadyAdded = existing.includes(status);
+                            return (
+                              <button
+                                key={status}
+                                type="button"
+                                disabled={alreadyAdded}
+                                onClick={() => handleAddRetryStatus(status)}
+                                className={`rounded-md px-2 py-0.5 text-xs font-mono transition-colors ${
+                                  alreadyAdded
+                                    ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed'
+                                    : 'bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary cursor-pointer'
+                                }`}
+                              >
+                                {status}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {retryOnStatus.fields.length > 0 && (
+                          <div className="space-y-1.5">
+                            {retryOnStatus.fields.map((field, index) => (
+                              <div key={field.id} className="flex items-center gap-2">
+                                <Input
+                                  type="number"
+                                  min={100}
+                                  max={599}
+                                  {...register(`retry_on_status.${index}` as never, { valueAsNumber: true })}
+                                  className="h-7 w-24 text-xs font-mono"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRemoveRetryStatus(index)}
+                                  className="h-7 w-7 shrink-0 text-muted-foreground hover:text-rose-500"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

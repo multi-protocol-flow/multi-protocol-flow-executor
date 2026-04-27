@@ -32,8 +32,17 @@ fn empty() -> BoxBody {
         .boxed()
 }
 
+/// 重定向记录
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct RedirectEntry {
+    /// HTTP 状态码
+    pub status: u16,
+    /// 重定向目标 URL
+    pub location: String,
+}
+
 /// HTTP 请求配置
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct HttpRequestConfig {
     /// 请求 URL
     pub url: String,
@@ -45,6 +54,27 @@ pub struct HttpRequestConfig {
     pub body: BodyType,
     /// Multipart boundary（仅当 body 为 Multipart 时需要）
     pub multipart_boundary: Option<String>,
+    /// 是否接受压缩编码
+    pub accept_encoding: bool,
+    /// 是否跟随重定向
+    pub follow_redirects: bool,
+    /// 最大重定向次数
+    pub max_redirects: u32,
+}
+
+impl Default for HttpRequestConfig {
+    fn default() -> Self {
+        Self {
+            url: String::new(),
+            method: String::new(),
+            headers: HashMap::new(),
+            body: BodyType::None,
+            multipart_boundary: None,
+            accept_encoding: true,
+            follow_redirects: true,
+            max_redirects: 10,
+        }
+    }
 }
 
 /// HTTP 客户端执行结果
@@ -54,6 +84,8 @@ pub struct HttpResult {
     pub response: HttpResponse,
     /// 计时数据
     pub timing: HttpTiming,
+    /// 重定向历史记录
+    pub redirect_history: Vec<RedirectEntry>,
 }
 
 /// HTTP 响应
@@ -94,6 +126,7 @@ impl HttpResponse {
 /// HTTP 客户端（使用 hyper 1.x，支持 HTTP/1.1 + HTTP/2）
 pub struct HttpClient {
     timeout_ms: u64,
+    tls_options: Option<crate::http::connector::TlsOptions>,
 }
 
 impl HttpClient {
@@ -102,9 +135,43 @@ impl HttpClient {
     /// # 参数
     /// - `timeout_ms`: 各阶段超时时间（毫秒）
     pub fn new(timeout_ms: u64) -> Self {
-        Self { timeout_ms }
+        Self { timeout_ms, tls_options: None }
     }
 
+    /// 创建带自定义 TLS 配置的 HTTP 客户端
+    pub fn with_tls(timeout_ms: u64, tls_options: crate::http::connector::TlsOptions) -> Self {
+        Self { timeout_ms, tls_options: Some(tls_options) }
+    }
+}
+
+/// 解压缩响应体
+fn decompress_body(body: &[u8], content_encoding: Option<&str>) -> Vec<u8> {
+    match content_encoding {
+        Some("gzip") => {
+            use std::io::Read;
+            let mut decoder = flate2::read::GzDecoder::new(body);
+            let mut decompressed = Vec::new();
+            if decoder.read_to_end(&mut decompressed).is_ok() {
+                decompressed
+            } else {
+                body.to_vec()
+            }
+        }
+        Some("deflate") => {
+            use std::io::Read;
+            let mut decoder = flate2::read::DeflateDecoder::new(body);
+            let mut decompressed = Vec::new();
+            if decoder.read_to_end(&mut decompressed).is_ok() {
+                decompressed
+            } else {
+                body.to_vec()
+            }
+        }
+        _ => body.to_vec(),
+    }
+}
+
+impl HttpClient {
     /// 执行 HTTP 请求
     ///
     /// # 参数
@@ -116,170 +183,233 @@ impl HttpClient {
         // 创建计时上下文
         let timing = Arc::new(std::sync::Mutex::new(TimingContext::new()));
 
-        // 创建自定义连接器
-        let connector = TimingConnector::new(self.timeout_ms, timing.clone());
+        // 创建自定义连接器（支持 TLS 配置）
+        let connector = match &self.tls_options {
+            Some(opts) => TimingConnector::new_with_tls(self.timeout_ms, timing.clone(), opts)
+                .map_err(HttpError::TlsFailed)?,
+            None => TimingConnector::new(self.timeout_ms, timing.clone()),
+        };
 
         // 创建 hyper 客户端
         let client: Client<TimingConnector, BoxBody> =
             Client::builder(TokioExecutor::new()).build(connector);
 
-        // 构建 hyper 请求
-        let method = match config.method.to_uppercase().as_str() {
-            "GET" => Method::GET,
-            "POST" => Method::POST,
-            "PUT" => Method::PUT,
-            "DELETE" => Method::DELETE,
-            "PATCH" => Method::PATCH,
-            "HEAD" => Method::HEAD,
-            "OPTIONS" => Method::OPTIONS,
-            _ => return Err(HttpError::UnsupportedMethod(config.method.clone())),
-        };
+        // 重定向跟踪状态
+        let mut current_url = config.url.clone();
+        let mut current_method = config.method.clone();
+        let mut current_body = config.body.clone();
+        let mut redirect_history: Vec<RedirectEntry> = Vec::new();
+        let max_redirects = if config.follow_redirects { config.max_redirects } else { 0 };
+        let mut redirect_count: u32 = 0;
 
-        // 解析并规范化 URL（自动编码特殊字符）
-        let parsed_url = url::Url::parse(&config.url)
-            .map_err(|e| HttpError::InvalidUrl(format!("无效的 URL: {}", e)))?;
-        let normalized_url = parsed_url.to_string();
+        loop {
+            let method = match current_method.to_uppercase().as_str() {
+                "GET" => Method::GET,
+                "POST" => Method::POST,
+                "PUT" => Method::PUT,
+                "DELETE" => Method::DELETE,
+                "PATCH" => Method::PATCH,
+                "HEAD" => Method::HEAD,
+                "OPTIONS" => Method::OPTIONS,
+                _ => return Err(HttpError::UnsupportedMethod(current_method.clone())),
+            };
 
-        let uri: http::Uri = normalized_url
-            .parse()
-            .map_err(|e| HttpError::InvalidUrl(format!("无效的 URI: {}", e)))?;
+            // 解析并规范化 URL（自动编码特殊字符）
+            let parsed_url = url::Url::parse(&current_url)
+                .map_err(|e| HttpError::InvalidUrl(format!("无效的 URL: {}", e)))?;
+            let normalized_url = parsed_url.to_string();
 
-        let mut builder = Request::builder().method(method).uri(uri.clone());
+            let uri: http::Uri = normalized_url
+                .parse()
+                .map_err(|e| HttpError::InvalidUrl(format!("无效的 URI: {}", e)))?;
 
-        // 添加请求头（不包含 Content-Type，由 body 类型决定）
-        for (key, value) in &config.headers {
-            // 跳过 Content-Type，由 body 类型自动设置
-            if key.to_lowercase() != "content-type" {
-                builder = builder.header(key, value);
+            let mut builder = Request::builder().method(method).uri(uri);
+
+            // 添加请求头（不包含 Content-Type，由 body 类型决定）
+            let mut has_accept_encoding = false;
+            for (key, value) in &config.headers {
+                if key.to_lowercase() != "content-type" {
+                    builder = builder.header(key, value);
+                }
+                if key.to_lowercase() == "accept-encoding" {
+                    has_accept_encoding = true;
+                }
             }
-        }
 
-        // 根据请求体类型构建请求
-        let request = match &config.body {
-            BodyType::None => {
-                builder
-                    .body(empty())
-                    .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
+            // 如果启用压缩且用户未手动设置 Accept-Encoding
+            if config.accept_encoding && !has_accept_encoding {
+                builder = builder.header("Accept-Encoding", "gzip, deflate");
             }
-            BodyType::Raw(data) => {
-                // 如果用户没有设置 Content-Type，不自动设置（由调用者控制）
-                builder
-                    .body(full(Bytes::copy_from_slice(data)))
-                    .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
-            }
-            BodyType::Urlencoded(fields) => {
-                // 自动设置 Content-Type
-                builder = builder.header("Content-Type", "application/x-www-form-urlencoded");
-                let encoded = UrlEncoder::encode(fields);
-                builder
-                    .body(full(encoded.into_bytes()))
-                    .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
-            }
-            BodyType::Multipart(multipart) => {
-                // 使用提供的 boundary 或生成新的
-                let boundary = config
-                    .multipart_boundary
-                    .clone()
-                    .unwrap_or_else(MultipartBody::generate_boundary);
-                builder = builder.header(
-                    "Content-Type",
-                    format!("multipart/form-data; boundary={}", boundary),
-                );
-                let encoded = multipart.encode(&boundary);
-                builder
-                    .body(full(encoded))
-                    .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
-            }
-        };
 
-        log::debug!("发送请求: {} {}", config.method, config.url);
+            // 根据请求体类型构建请求
+            let request = match &current_body {
+                BodyType::None => {
+                    builder
+                        .body(empty())
+                        .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
+                }
+                BodyType::Raw(data) => {
+                    builder
+                        .body(full(Bytes::copy_from_slice(data)))
+                        .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
+                }
+                BodyType::Urlencoded(fields) => {
+                    builder = builder.header("Content-Type", "application/x-www-form-urlencoded");
+                    let encoded = UrlEncoder::encode(fields);
+                    builder
+                        .body(full(encoded.into_bytes()))
+                        .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
+                }
+                BodyType::Multipart(multipart) => {
+                    let boundary = config
+                        .multipart_boundary
+                        .clone()
+                        .unwrap_or_else(MultipartBody::generate_boundary);
+                    builder = builder.header(
+                        "Content-Type",
+                        format!("multipart/form-data; boundary={}", boundary),
+                    );
+                    let encoded = multipart.encode(&boundary);
+                    builder
+                        .body(full(encoded))
+                        .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
+                }
+            };
 
-        // 发送请求
-        let response = client.request(request).await.map_err(|e| {
-            // 根据错误类型返回更具体的错误
-            let error_msg = e.to_string().to_lowercase();
-            if error_msg.contains("dns") || error_msg.contains("resolve") {
-                HttpError::DnsFailed(error_msg)
-            } else if error_msg.contains("connect") {
-                // "Connect" 错误通常表示 DNS 解析或 TCP 连接失败
-                // 由于 DNS 是连接的第一步，将其归类为 DNS 错误
-                HttpError::DnsFailed(error_msg)
-            } else if error_msg.contains("tcp") {
-                HttpError::TcpFailed(error_msg)
-            } else if error_msg.contains("tls")
-                || error_msg.contains("ssl")
-                || error_msg.contains("certificate")
+            log::debug!("发送请求: {} {}", current_method, current_url);
+
+            // 发送请求
+            let response = client.request(request).await.map_err(|e| {
+                let error_msg = e.to_string().to_lowercase();
+                if error_msg.contains("dns") || error_msg.contains("resolve")
+                    || error_msg.contains("connect")
+                {
+                    HttpError::DnsFailed(error_msg)
+                } else if error_msg.contains("tcp") {
+                    HttpError::TcpFailed(error_msg)
+                } else if error_msg.contains("tls")
+                    || error_msg.contains("ssl")
+                    || error_msg.contains("certificate")
+                {
+                    HttpError::TlsFailed(error_msg)
+                } else if error_msg.contains("timeout") || error_msg.contains("timed out") {
+                    HttpError::TcpTimeout
+                } else {
+                    HttpError::WriteFailed(error_msg)
+                }
+            })?;
+
+            // 标记首字节时间
             {
-                HttpError::TlsFailed(error_msg)
-            } else if error_msg.contains("timeout") || error_msg.contains("timed out") {
-                HttpError::TcpTimeout
-            } else {
-                HttpError::WriteFailed(error_msg)
+                let mut t = timing
+                    .lock()
+                    .map_err(|_| HttpError::ReadFailed("计时锁获取失败".into()))?;
+                t.mark_first_byte();
             }
-        })?;
 
-        // 标记首字节时间
-        {
-            let mut t = timing
-                .lock()
-                .map_err(|_| HttpError::ReadFailed("计时锁获取失败".into()))?;
-            t.mark_first_byte();
+            // 提取状态码和响应头
+            let status = response.status().as_u16();
+            let headers: HashMap<String, String> = response
+                .headers()
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
+                .collect();
+
+            log::debug!("响应状态: {}", status);
+
+            // 收集响应体
+            let body_bytes = response
+                .collect()
+                .await
+                .map_err(|e| HttpError::ReadFailed(e.to_string()))?
+                .to_bytes();
+
+            // 标记下载完成
+            {
+                let mut t = timing
+                    .lock()
+                    .map_err(|_| HttpError::ReadFailed("计时锁获取失败".into()))?;
+                t.mark_download_complete();
+            }
+
+            // 检查是否需要重定向
+            if (status == 301 || status == 302 || status == 303 || status == 307 || status == 308)
+                && redirect_count < max_redirects
+            {
+                let location = headers.get("Location")
+                    .or_else(|| headers.get("location"));
+
+                if let Some(location) = location {
+                    redirect_count += 1;
+
+                    // 解析重定向 URL（相对或绝对）
+                    let resolved_url = if location.starts_with("http://") || location.starts_with("https://") {
+                        location.clone()
+                    } else {
+                        let base = url::Url::parse(&current_url)
+                            .map_err(|e| HttpError::InvalidUrl(format!("重定向 URL 解析失败: {}", e)))?;
+                        base.join(location)
+                            .map(|u| u.to_string())
+                            .unwrap_or_else(|_| location.clone())
+                    };
+
+                    log::debug!("重定向 ({}) -> {}", status, resolved_url);
+
+                    redirect_history.push(RedirectEntry {
+                        status,
+                        location: resolved_url.clone(),
+                    });
+
+                    // 301/302/303: 非 GET/HEAD 方法改为 GET，丢弃请求体
+                    if (status == 301 || status == 302 || status == 303)
+                        && current_method != "GET" && current_method != "HEAD"
+                    {
+                        current_method = "GET".to_string();
+                        current_body = BodyType::None;
+                    }
+                    // 307/308: 保持原方法和请求体
+
+                    current_url = resolved_url;
+                    continue;
+                }
+            }
+
+            // 解压缩响应体
+            let content_encoding = headers
+                .get("Content-Encoding")
+                .or_else(|| headers.get("content-encoding"))
+                .map(|s| s.as_str());
+            let body = decompress_body(&body_bytes, content_encoding);
+
+            log::debug!("响应体大小: {} bytes (解压后)", body.len());
+
+            // 计算计时数据
+            let timing_data = {
+                let t = timing
+                    .lock()
+                    .map_err(|_| HttpError::ReadFailed("计时锁获取失败".into()))?;
+                t.calculate()
+            };
+
+            log::debug!(
+                "计时: DNS={:?}ms, TCP={:?}ms, TLS={:?}ms, TTFB={:?}ms, Download={:?}ms",
+                timing_data.dns_ms,
+                timing_data.connect_ms,
+                timing_data.tls_ms,
+                timing_data.ttfb_ms,
+                timing_data.download_ms
+            );
+
+            return Ok(HttpResult {
+                response: HttpResponse {
+                    status,
+                    headers,
+                    body,
+                },
+                timing: timing_data,
+                redirect_history,
+            });
         }
-
-        // 提取状态码和响应头
-        let status = response.status().as_u16();
-        let headers: HashMap<String, String> = response
-            .headers()
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
-            .collect();
-
-        log::debug!("响应状态: {}", status);
-
-        // 收集响应体
-        let body_bytes = response
-            .collect()
-            .await
-            .map_err(|e| HttpError::ReadFailed(e.to_string()))?
-            .to_bytes();
-
-        let body = body_bytes.to_vec();
-
-        // 标记下载完成
-        {
-            let mut t = timing
-                .lock()
-                .map_err(|_| HttpError::ReadFailed("计时锁获取失败".into()))?;
-            t.mark_download_complete();
-        }
-
-        log::debug!("响应体大小: {} bytes", body.len());
-
-        // 计算计时数据
-        let timing_data = {
-            let t = timing
-                .lock()
-                .map_err(|_| HttpError::ReadFailed("计时锁获取失败".into()))?;
-            t.calculate()
-        };
-
-        log::debug!(
-            "计时: DNS={:?}ms, TCP={:?}ms, TLS={:?}ms, TTFB={:?}ms, Download={:?}ms",
-            timing_data.dns_ms,
-            timing_data.connect_ms,
-            timing_data.tls_ms,
-            timing_data.ttfb_ms,
-            timing_data.download_ms
-        );
-
-        Ok(HttpResult {
-            response: HttpResponse {
-                status,
-                headers,
-                body,
-            },
-            timing: timing_data,
-        })
     }
 }
 
@@ -420,6 +550,9 @@ mod tests {
             headers: HashMap::new(),
             body: BodyType::None,
             multipart_boundary: None,
+            accept_encoding: true,
+            follow_redirects: true,
+            max_redirects: 10,
         };
 
         let result = client.execute(&config).await;
@@ -446,6 +579,9 @@ mod tests {
             headers: HashMap::new(),
             body: BodyType::None,
             multipart_boundary: None,
+            accept_encoding: true,
+            follow_redirects: true,
+            max_redirects: 10,
         };
 
         let result = client.execute(&config).await;
@@ -475,6 +611,9 @@ mod tests {
             headers,
             body: BodyType::raw(br#"{"test":"value"}"#.to_vec()),
             multipart_boundary: None,
+            accept_encoding: true,
+            follow_redirects: true,
+            max_redirects: 10,
         };
 
         let result = client.execute(&config).await;
@@ -498,6 +637,9 @@ mod tests {
             headers: HashMap::new(),
             body: BodyType::None,
             multipart_boundary: None,
+            accept_encoding: true,
+            follow_redirects: true,
+            max_redirects: 10,
         };
 
         let result = client.execute(&config).await;
@@ -517,6 +659,9 @@ mod tests {
             headers: HashMap::new(),
             body: BodyType::None,
             multipart_boundary: None,
+            accept_encoding: true,
+            follow_redirects: true,
+            max_redirects: 10,
         };
 
         let result = client.execute(&config).await;
@@ -538,6 +683,9 @@ mod tests {
             headers: HashMap::new(),
             body: BodyType::None,
             multipart_boundary: None,
+            accept_encoding: true,
+            follow_redirects: true,
+            max_redirects: 10,
         };
 
         let result = client.execute(&config).await;
@@ -564,6 +712,9 @@ mod tests {
                 headers: HashMap::new(),
                 body: BodyType::None,
                 multipart_boundary: None,
+                accept_encoding: true,
+                follow_redirects: true,
+                max_redirects: 10,
             };
 
             let result = client.execute(&config).await;

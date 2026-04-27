@@ -40,8 +40,12 @@
 pub mod body;
 pub mod client;
 pub mod connector;
+/// Cookie 管理模块，提供 Cookie Jar 实现
+pub mod cookie;
 /// HTTP 错误类型定义，涵盖 DNS/TCP/TLS/HTTP 协议各阶段的错误
 pub mod error;
+/// HTTP 代理模块，支持通过 HTTP 代理发送请求
+pub mod proxy;
 /// HTTP 请求构建器，负责将请求配置序列化为原始 HTTP 字节流
 pub mod request;
 /// HTTP 响应解析器，从原始字节流中解析状态码、响应头和响应体
@@ -52,7 +56,7 @@ pub mod timing;
 // Re-export 公共类型
 pub use body::{BodyType, MultipartBody, MultipartField, UrlEncoder};
 pub use client::{HttpClient, HttpRequestConfig, HttpResponse, HttpResult};
-pub use connector::{Connection, HttpConnector, LegacyConnection, TimedStream, TimingConnector};
+pub use connector::{Connection, HttpConnector, LegacyConnection, TimedStream, TimingConnector, TlsOptions};
 pub use error::HttpError;
 pub use request::RequestBuilder;
 pub use response::HttpResponse as LegacyHttpResponse;

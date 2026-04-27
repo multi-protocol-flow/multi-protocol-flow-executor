@@ -2249,7 +2249,9 @@ name = "flow-engine-http"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "base64 0.22.1",
  "bytes",
+ "flate2",
  "flow-engine-core",
  "http 1.4.0",
  "http-body-util",
@@ -2258,6 +2260,7 @@ dependencies = [
  "log",
  "mime_guess",
  "rustls 0.23.36",
+ "rustls-pemfile 2.2.0",
  "rustls-pki-types",
  "serde",
  "serde_json",

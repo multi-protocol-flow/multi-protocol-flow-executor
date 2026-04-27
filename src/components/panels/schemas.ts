@@ -10,7 +10,7 @@ import { z } from 'zod';
 /**
  * HTTP 方法枚举
  */
-export const httpMethodSchema = z.enum(['get', 'post', 'put', 'delete', 'patch']);
+export const httpMethodSchema = z.enum(['get', 'post', 'put', 'delete', 'patch', 'head', 'options']);
 
 /**
  * HTTP Body 类型枚举
@@ -61,6 +61,36 @@ export const headerEntrySchema = z.object({
   value: z.string(),
 });
 
+// HTTP 认证 Schema
+export const httpAuthTypeSchema = z.enum(['none', 'basic', 'bearer', 'api_key_header', 'api_key_query', 'digest']);
+
+export const httpAuthConfigSchema = z.object({
+  auth_type: httpAuthTypeSchema.optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+  token: z.string().optional(),
+  api_key_name: z.string().optional(),
+  api_key_value: z.string().optional(),
+});
+
+// HTTP 代理 Schema
+export const httpProxyTypeSchema = z.enum(['none', 'http', 'socks5']);
+
+export const httpProxyConfigSchema = z.object({
+  proxy_type: httpProxyTypeSchema.optional(),
+  proxy_url: z.string().optional(),
+  proxy_username: z.string().optional(),
+  proxy_password: z.string().optional(),
+});
+
+// Cookie Schema
+export const cookieEntrySchema = z.object({
+  name: z.string().min(1),
+  value: z.string(),
+  domain: z.string().optional(),
+  path: z.string().optional(),
+});
+
 export const httpConfigSchema = z.object({
   url: z.string().url('请输入有效的 URL').min(1, 'URL 不能为空'),
   method: httpMethodSchema,
@@ -72,6 +102,20 @@ export const httpConfigSchema = z.object({
   body: z.string().optional(),
   timeout_ms: z.number().optional(),
   output_mappings: z.array(outputMappingSchema).optional(),
+  auth: httpAuthConfigSchema.optional(),
+  follow_redirects: z.boolean().optional(),
+  max_redirects: z.number().min(1).max(20).optional(),
+  tls_skip_verify: z.boolean().optional(),
+  tls_ca_cert_path: z.string().optional(),
+  tls_client_cert_path: z.string().optional(),
+  tls_client_key_path: z.string().optional(),
+  accept_encoding: z.boolean().optional(),
+  enable_cookies: z.boolean().optional(),
+  cookie_jar: z.array(cookieEntrySchema).optional(),
+  proxy: httpProxyConfigSchema.optional(),
+  retry_count: z.number().min(0).max(10).optional(),
+  retry_delay_ms: z.number().min(0).optional(),
+  retry_on_status: z.array(z.number().min(100).max(599)).optional(),
 }).refine(
   (data) => {
     if (!data.output_mappings) return true;
