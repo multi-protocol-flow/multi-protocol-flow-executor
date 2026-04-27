@@ -147,7 +147,10 @@ impl DebuggableFlowExecutor {
         }
 
         // 初始化执行上下文
-        let initial_variables = variables.unwrap_or_else(|| json!({}));
+        // 优先使用调用方传入的变量，否则从流程的激活环境中解析
+        let initial_variables = variables
+            .or_else(|| flow.get_active_variables().map(|v| json!(v)))
+            .unwrap_or_else(|| json!({}));
         let mut var_storage = VariableStorage::new();
         if let Some(obj) = initial_variables.as_object() {
             for (key, value) in obj {
@@ -1010,6 +1013,32 @@ impl DebuggableFlowExecutor {
             .unwrap()
             .as_millis() as u64;
 
+        // 将临时节点配置合并到 flow 副本中，使 flow_snapshot 反映运行时实际配置
+        let mut flow_snapshot = flow.clone();
+        if !debug_state.temp_node_configs.is_empty() {
+            for node in &mut flow_snapshot.nodes {
+                if let Some(temp_config) = debug_state.get_temp_node_config(&node.uuid) {
+                    match serde_json::from_value::<flow_engine_core::node_config::NodeData>(temp_config.clone()) {
+                        Ok(new_data) => {
+                            log::info!(
+                                "[调试] flow_snapshot: 合并临时配置到节点 {} ({})",
+                                node.name,
+                                node.uuid
+                            );
+                            node.data = new_data;
+                        }
+                        Err(e) => {
+                            log::warn!(
+                                "[调试] flow_snapshot: 临时配置反序列化失败，跳过节点 {} ({})",
+                                node.name,
+                                e
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
         // 将 execution_stack 转换为 NodeExecutionReport
         let node_reports: Vec<NodeExecutionReport> = debug_state
             .execution_stack
@@ -1100,7 +1129,7 @@ impl DebuggableFlowExecutor {
                 let streams = context.ws_streams.read().await;
                 streams.values().cloned().collect()
             },
-            flow_snapshot: Some(flow.clone()),
+            flow_snapshot: Some(flow_snapshot),
         }
     }
 }

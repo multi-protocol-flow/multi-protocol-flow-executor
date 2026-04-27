@@ -251,7 +251,10 @@ impl FlowExecutor {
         let start_time = tokio::time::Instant::now();
         let mut executed_count = 0u32;
         let mut node_reports = Vec::new();
-        let initial_variables = variables.unwrap_or_else(|| json!({}));
+        // 优先使用调用方传入的变量，否则从流程的激活环境中解析
+        let initial_variables = variables
+            .or_else(|| flow.get_active_variables().map(|v| json!(v)))
+            .unwrap_or_else(|| json!({}));
         let mut var_storage = VariableStorage::new();
         if let Some(obj) = initial_variables.as_object() {
             for (key, value) in obj {
@@ -936,6 +939,9 @@ impl FlowExecutor {
             flow_engine_core::report::ExecutionStatus::Success
         };
 
+        // 在 flow_status 被 move 到 FlowExecutionReport 之前判断是否成功
+        let flow_succeeded = !matches!(flow_status, flow_engine_core::report::ExecutionStatus::Failed);
+
         let flow_error = if is_cancelled {
             Some(ErrorDetail::new(ErrorKind::Cancelled, "流程执行被用户取消".to_string()))
         } else {
@@ -1014,13 +1020,17 @@ impl FlowExecutor {
             }
         } else {
             ExecutionResult {
-                success: true,
-                data: Some(json!({
-                    "flow_id": flow.uuid,
-                    "executed_count": executed_count,
-                    "execution_time": start_time_ms,
-                })),
-                error: None,
+                success: flow_succeeded,
+                data: if flow_succeeded {
+                    Some(json!({
+                        "flow_id": flow.uuid,
+                        "executed_count": executed_count,
+                        "execution_time": start_time_ms,
+                    }))
+                } else {
+                    None
+                },
+                error: if flow_succeeded { None } else { Some("流程执行失败".to_string()) },
                 executed_count,
                 node_reports,
                 flow_report: Some(flow_report),
