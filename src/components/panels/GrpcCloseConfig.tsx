@@ -124,8 +124,8 @@ export function GrpcCloseConfig({ data, onSave }: GrpcCloseConfigProps) {
       try {
         const config = fromFormData(formData);
         onSave(config);
-      } catch (error) {
-        console.error('保存 gRPC Close 配置失败:', error);
+      } catch {
+        // 保存失败时静默处理
       }
     })();
   }, [handleSubmit, onSave]);

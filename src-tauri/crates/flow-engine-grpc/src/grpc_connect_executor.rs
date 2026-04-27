@@ -92,6 +92,16 @@ impl NodeExecutor for GrpcConnectExecutor {
             .iter()
             .map(|m| (m.key.clone(), m.value.clone()))
             .collect();
+        let reflection_metadata: Vec<(String, String)> = config
+            .reflection_metadata
+            .as_ref()
+            .map(|entries| {
+                entries
+                    .iter()
+                    .map(|m| (m.key.clone(), m.value.clone()))
+                    .collect()
+            })
+            .unwrap_or_default();
 
         let connect_result = self
             .grpc_manager
@@ -104,6 +114,16 @@ impl NodeExecutor for GrpcConnectExecutor {
                 proto_files,
                 metadata,
                 config.connect_timeout_ms,
+                config.tls_ca_cert.clone(),
+                config.tls_client_cert.clone(),
+                config.tls_client_key.clone(),
+                config.tls_server_name_override.clone(),
+                reflection_metadata,
+                config.compression_encoding.clone(),
+                config.keepalive_time_ms,
+                config.keepalive_timeout_ms,
+                config.keepalive_permit_without_streams,
+                config.endpoints.clone(),
             )
             .await;
         let connect_duration_ms = connect_start.elapsed().as_millis() as u64;
@@ -317,16 +337,14 @@ mod tests {
             node_type: "grpc_connect".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcConnect(GrpcConnectConfig {
-                url: url.to_string(),
-                use_tls: false,
-                tls_skip_verify: false,
-                enable_reflection: false,
-                proto_files: vec![],
-                default_metadata: vec![],
-                connect_timeout_ms: 30000,
-                discovered_services: vec![],
-            }),
+            data: NodeData::GrpcConnect(GrpcConnectConfig { url: url.to_string(),
+            use_tls: false,
+            tls_skip_verify: false,
+            enable_reflection: false,
+            proto_files: vec![],
+            default_metadata: vec![],
+            connect_timeout_ms: 30000,
+            discovered_services: vec![], ..Default::default() }),
             ports: None,
             has_breakpoint: None,
         }
@@ -468,19 +486,17 @@ message GetUserResponse {
             node_type: "grpc_connect".to_string(),
             name: "Proto 测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcConnect(GrpcConnectConfig {
-                url: "http://192.0.2.1:50051".to_string(), // 不可路由地址
-                use_tls: false,
-                tls_skip_verify: false,
-                enable_reflection: false,
-                proto_files: vec![ProtoFile {
-                    path: "test.proto".to_string(),
-                    content: proto_content.to_string(),
-                }],
-                default_metadata: vec![],
-                connect_timeout_ms: 2000, // 2 秒超时
-                discovered_services: vec![],
-            }),
+            data: NodeData::GrpcConnect(GrpcConnectConfig { url: "http://192.0.2.1:50051".to_string(), // 不可路由地址
+            use_tls: false,
+            tls_skip_verify: false,
+            enable_reflection: false,
+            proto_files: vec![ProtoFile {
+                path: "test.proto".to_string(),
+                content: proto_content.to_string(),
+            }],
+            default_metadata: vec![],
+            connect_timeout_ms: 2000, // 2 秒超时
+            discovered_services: vec![], ..Default::default() }),
             ports: None,
             has_breakpoint: None,
         };

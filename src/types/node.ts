@@ -629,6 +629,40 @@ export interface GrpcStreamingResult {
 }
 
 /**
+ * gRPC 流式消息（用于实时流式传递）
+ */
+export interface GrpcStreamMessage {
+  /** 消息序号（从 1 开始） */
+  index: number;
+  /** 消息数据 */
+  data: unknown;
+  /** 接收时间戳（毫秒） */
+  received_at_ms: number;
+  /** 消息大小（字节） */
+  size_bytes: number;
+}
+
+/**
+ * gRPC 健康检查响应
+ */
+export interface HealthCheckResponse {
+  /** 服务状态："UNKNOWN", "SERVING", "NOT_SERVING", "NOT_IMPLEMENTED" */
+  status: string;
+}
+
+/**
+ * gRPC 错误详情
+ */
+export interface GrpcErrorDetail {
+  /** 错误详情类型 URL */
+  type_url: string;
+  /** 解码后的错误详情 */
+  decoded?: unknown;
+  /** 原始十六进制数据 */
+  raw_hex?: string;
+}
+
+/**
  * gRPC 方法信息（从 Server Reflection 或 Proto 解析得到）
  */
 export interface GrpcMethodInfo {
@@ -675,6 +709,43 @@ export interface GrpcConnectConfig {
   connect_timeout_ms?: number;
   /** 通过 Server Reflection 或 Proto 解析发现的服务列表（设计时缓存） */
   discovered_services?: GrpcServiceInfo[];
+  // === TLS 增强字段 ===
+  /** TLS CA 证书（PEM 格式内容） */
+  tls_ca_cert?: string;
+  /** TLS 客户端证书（PEM 格式内容） */
+  tls_client_cert?: string;
+  /** TLS 客户端私钥（PEM 格式内容） */
+  tls_client_key?: string;
+  /** TLS 服务器名称覆盖 */
+  tls_server_name_override?: string;
+  // === 压缩配置 ===
+  /** 压缩编码："gzip" 或 "none" */
+  compression_encoding?: string;
+  // === Keepalive 配置 ===
+  /** Keepalive 间隔（毫秒） */
+  keepalive_time_ms?: number;
+  /** Keepalive 超时（毫秒） */
+  keepalive_timeout_ms?: number;
+  /** 是否允许无流时发送 Keepalive */
+  keepalive_permit_without_streams?: boolean;
+  // === Reflection 增强配置 ===
+  /** Reflection 请求附加 metadata */
+  reflection_metadata?: GrpcMetadataEntry[];
+  // === 健康检查配置 ===
+  /** 健康检查服务名称 */
+  health_check_service?: string;
+  // === 负载均衡配置 ===
+  /** 多端点列表（用于负载均衡） */
+  endpoints?: string[];
+  // === 重试配置 ===
+  /** 最大重试次数 */
+  max_retries?: number;
+  /** 初始退避时间（毫秒） */
+  initial_backoff_ms?: number;
+  /** 最大退避时间（毫秒） */
+  max_backoff_ms?: number;
+  /** 可重试的 gRPC 状态码列表 */
+  retryable_status_codes?: string[];
 }
 
 /**
@@ -696,6 +767,19 @@ export interface GrpcCallConfig {
   metadata?: GrpcMetadataEntry[];
   /** 流式消息列表（Client/Bidi Streaming 模式） */
   request_messages?: StreamMessage[];
+  // === 压缩覆盖配置 ===
+  /** 调用级压缩编码（覆盖连接级配置）："gzip" 或 "none" */
+  compression_encoding?: string;
+  // === 消息大小限制 ===
+  /** 最大接收消息大小（字节） */
+  max_receive_message_size?: number;
+  /** 最大发送消息大小（字节） */
+  max_send_message_size?: number;
+  // === 重试配置（调用级覆盖，None 时使用连接级默认值）===
+  /** 最大重试次数（0 = 不重试，覆盖连接级配置） */
+  max_retries?: number;
+  /** 初始退避时间（毫秒，覆盖连接级配置） */
+  initial_backoff_ms?: number;
 }
 
 /**

@@ -371,6 +371,36 @@ pub enum DebugEvent {
         /// gRPC 服务器 URL
         url: String,
     },
+    /// gRPC 流式消息已接收（实时推送，supplementary）
+    GrpcStreamMessage {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 连接 ID
+        connection_id: String,
+        /// 调用 ID（用于区分同一连接的多次调用）
+        call_id: String,
+        /// 消息序号（从 1 开始）
+        index: u32,
+        /// 消息数据（JSON 字符串）
+        data: String,
+        /// 接收时间戳（相对于调用开始的毫秒数）
+        received_at_ms: u64,
+        /// 消息大小（字节）
+        size_bytes: u64,
+        /// 是否为最后一条消息
+        is_last: bool,
+    },
+    /// gRPC 流式错误（实时推送，supplementary）
+    GrpcStreamError {
+        /// 节点 UUID
+        node_uuid: String,
+        /// 连接 ID
+        connection_id: String,
+        /// 调用 ID
+        call_id: String,
+        /// 错误信息
+        message: String,
+    },
     // ===== MCP 调试事件 =====
     /// MCP 连接已创建
     McpConnectionCreated {
@@ -767,6 +797,78 @@ mod tests {
 
         let json = serde_json::to_string(&event).expect("序列化应成功");
         assert!(json.contains("McpConnectionClosed"), "应包含变体名");
+
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).expect("反序列化应成功");
+        assert_eq!(event, deserialized, "序列化往返应保持一致");
+    }
+
+    // ===== gRPC 流式调试事件序列化测试 =====
+
+    #[test]
+    fn test_grpc_stream_message_event() {
+        let event = DebugEvent::GrpcStreamMessage {
+            node_uuid: "node-020".to_string(),
+            connection_id: "conn-grpc-1".to_string(),
+            call_id: "call-001".to_string(),
+            index: 1,
+            data: r#"{"user_id": "abc"}"#.to_string(),
+            received_at_ms: 50,
+            size_bytes: 128,
+            is_last: false,
+        };
+
+        let json = serde_json::to_string(&event).expect("序列化应成功");
+        assert!(json.contains("GrpcStreamMessage"), "应包含变体名");
+        assert!(json.contains("call-001"));
+        assert!(json.contains("conn-grpc-1"));
+
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).expect("反序列化应成功");
+        assert_eq!(event, deserialized, "序列化往返应保持一致");
+    }
+
+    #[test]
+    fn test_grpc_stream_message_last_event() {
+        let event = DebugEvent::GrpcStreamMessage {
+            node_uuid: "node-020".to_string(),
+            connection_id: "conn-grpc-1".to_string(),
+            call_id: "call-001".to_string(),
+            index: 5,
+            data: r#"{"done": true}"#.to_string(),
+            received_at_ms: 250,
+            size_bytes: 64,
+            is_last: true,
+        };
+
+        let json = serde_json::to_string(&event).expect("序列化应成功");
+        assert!(json.contains("GrpcStreamMessage"));
+
+        let deserialized: DebugEvent =
+            serde_json::from_str(&json).expect("反序列化应成功");
+        assert_eq!(event, deserialized, "序列化往返应保持一致");
+
+        if let DebugEvent::GrpcStreamMessage { is_last, index, .. } = &deserialized {
+            assert!(*is_last);
+            assert_eq!(*index, 5);
+        } else {
+            panic!("反序列化后应为 GrpcStreamMessage 变体");
+        }
+    }
+
+    #[test]
+    fn test_grpc_stream_error_event() {
+        let event = DebugEvent::GrpcStreamError {
+            node_uuid: "node-021".to_string(),
+            connection_id: "conn-grpc-2".to_string(),
+            call_id: "call-002".to_string(),
+            message: "流式响应错误: internal (INTERNAL)".to_string(),
+        };
+
+        let json = serde_json::to_string(&event).expect("序列化应成功");
+        assert!(json.contains("GrpcStreamError"), "应包含变体名");
+        assert!(json.contains("call-002"));
+        assert!(json.contains("internal"));
 
         let deserialized: DebugEvent =
             serde_json::from_str(&json).expect("反序列化应成功");

@@ -35,7 +35,7 @@ mod tests {
 
     /// 创建测试用的流程
     fn create_test_flow() -> Flow {
-        Flow { uuid: "test-flow-uuid".to_string(), name: "测试流程".to_string(), initial_variables: None, nodes: vec![], connections: vec![], hooks: None }
+        Flow { uuid: "test-flow-uuid".to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None }
     }
 
     /// 创建带有节点的测试流程
@@ -49,7 +49,7 @@ mod tests {
             ports: None,
             has_breakpoint: None,
         };
-        Flow { uuid: "test-flow-uuid".to_string(), name: "测试流程".to_string(), initial_variables: None, nodes: vec![node], connections: vec![], hooks: None }
+        Flow { uuid: "test-flow-uuid".to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![node], connections: vec![], hooks: None }
     }
 
     /// 测试：更新节点配置 - 桩实现返回错误

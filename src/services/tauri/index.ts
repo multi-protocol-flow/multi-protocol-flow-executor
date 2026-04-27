@@ -227,6 +227,13 @@ export type {
   GrpcDiscoverServicesOutput,
   GrpcGenerateRequestSkeletonInput,
   GrpcGenerateRequestSkeletonOutput,
+  GrpcScanProtoDirectoryOutput,
+  GrpcParseDescriptorSetOutput,
+  GrpcReadProtoFilesOutput,
+  ProtoFileOutput,
+  ValidationError,
+  ValidationResult,
+  GrpcValidateRequestOutput,
 } from './grpc';
 
 /**
@@ -264,6 +271,120 @@ export async function generateGrpcRequestSkeleton(
   } else {
     const { generateGrpcRequestSkeleton: generateGrpcRequestSkeletonImpl } = await import('./mock');
     return generateGrpcRequestSkeletonImpl(input);
+  }
+}
+
+/**
+ * 通过 Server Reflection 生成 gRPC 请求消息的 JSON 骨架
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @param input - Reflection 骨架生成请求参数
+ * @returns 骨架生成结果
+ */
+export async function generateGrpcRequestSkeletonFromReflection(
+  input: import('./grpc').GrpcGenerateRequestSkeletonFromReflectionInput
+): Promise<import('./grpc').GrpcGenerateRequestSkeletonOutput> {
+  if (isTauriEnv()) {
+    const { generateGrpcRequestSkeletonFromReflection: impl } = await import('./grpc');
+    return impl(input);
+  } else {
+    const { generateGrpcRequestSkeletonFromReflection: impl } = await import('./mock');
+    return impl(input);
+  }
+}
+
+/**
+ * 扫描目录，发现所有 .proto 文件
+ * 仅在 Tauri 环境中可用
+ *
+ * @param dirPath - 目录路径
+ * @returns 扫描结果（文件列表和 import 路径）
+ */
+export async function scanProtoDirectory(
+  dirPath: string
+): Promise<import('./grpc').GrpcScanProtoDirectoryOutput> {
+  if (isTauriEnv()) {
+    const { scanProtoDirectory: scanProtoDirectoryImpl } = await import('./grpc');
+    return scanProtoDirectoryImpl(dirPath);
+  } else {
+    // Mock 环境返回空结果
+    return { success: false, files: [], import_path: null, error: 'Mock 环境不支持目录扫描' };
+  }
+}
+
+/**
+ * 读取多个 .proto 文件的内容
+ * 仅在 Tauri 环境中可用
+ *
+ * @param filePaths - 文件路径列表
+ * @returns 文件列表（路径和内容）
+ */
+export async function readProtoFiles(
+  filePaths: string[]
+): Promise<import('./grpc').GrpcReadProtoFilesOutput> {
+  if (isTauriEnv()) {
+    const { readProtoFiles: readProtoFilesImpl } = await import('./grpc');
+    return readProtoFilesImpl(filePaths);
+  } else {
+    return { success: false, files: [], error: 'Mock 环境不支持文件读取' };
+  }
+}
+
+/**
+ * 解析 FileDescriptorSet 二进制文件
+ * 仅在 Tauri 环境中可用
+ *
+ * @param filePath - 文件路径
+ * @returns 服务发现结果
+ */
+export async function parseDescriptorSet(
+  filePath: string
+): Promise<import('./grpc').GrpcParseDescriptorSetOutput> {
+  if (isTauriEnv()) {
+    const { parseDescriptorSet: parseDescriptorSetImpl } = await import('./grpc');
+    return parseDescriptorSetImpl(filePath);
+  } else {
+    // Mock 环境返回空结果
+    return { success: false, services: [], error: 'Mock 环境不支持 Descriptor Set 解析' };
+  }
+}
+
+/**
+ * 验证请求 JSON 是否符合 proto 消息定义
+ * 仅在 Tauri 环境中可用
+ *
+ * @param json - 待验证的 JSON 字符串
+ * @param messageName - 消息全名
+ * @param protoFiles - Proto 文件列表
+ * @returns 验证结果
+ */
+export async function validateGrpcRequest(
+  json: string,
+  messageName: string,
+  protoFiles?: [string, string][]
+): Promise<import('./grpc').GrpcValidateRequestOutput> {
+  if (isTauriEnv()) {
+    const { validateGrpcRequest: validateGrpcRequestImpl } = await import('./grpc');
+    return validateGrpcRequestImpl(json, messageName, protoFiles);
+  } else {
+    // Mock 环境 — 仅做 JSON 语法检查
+    try {
+      const parsed = JSON.parse(json);
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        return {
+          success: true,
+          result: { valid: false, errors: [{ path: '', message: '期望 JSON 对象' }] },
+          error: null,
+        };
+      }
+      return { success: true, result: { valid: true, errors: [] }, error: null };
+    } catch (e) {
+      return {
+        success: true,
+        result: { valid: false, errors: [{ path: '', message: `JSON 语法错误: ${e}` }] },
+        error: null,
+      };
+    }
   }
 }
 

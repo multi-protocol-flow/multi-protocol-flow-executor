@@ -51,12 +51,15 @@ async fn test_variable_tracking_new_variable() {
     };
 
     let flow = Flow {
-        uuid: flow_id.clone(),
-        initial_variables: None,
-        name: "测试流程".to_string(),
-        nodes: vec![start_node, end_node],
-        connections: vec![connection],
-    };
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "测试流程".to_string(),
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
     let executor = FlowExecutor::new();
     let result = executor.execute_flow(&flow, None, None, None).await;
@@ -108,12 +111,15 @@ async fn test_execution_path_tracking() {
     };
 
     let flow = Flow {
-        uuid: flow_id.clone(),
-        initial_variables: None,
-        name: "执行路径测试".to_string(),
-        nodes: vec![start_node.clone(), end_node.clone()],
-        connections: vec![connection],
-    };
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "执行路径测试".to_string(),
+            nodes: vec![start_node.clone(), end_node.clone()],
+            connections: vec![connection],
+            hooks: None,
+        };
 
     let executor = FlowExecutor::new();
     let result = executor.execute_flow(&flow, None, None, None).await;
@@ -162,12 +168,15 @@ async fn test_variable_snapshots() {
     };
 
     let flow = Flow {
-        uuid: flow_id.clone(),
-        initial_variables: None,
-        name: "变量快照测试".to_string(),
-        nodes: vec![start_node, end_node],
-        connections: vec![connection],
-    };
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "变量快照测试".to_string(),
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
     // 提供初始变量
     let initial_vars = json!({
@@ -211,12 +220,15 @@ async fn test_variable_snapshots_empty_initial() {
     };
 
     let flow = Flow {
-        uuid: flow_id.clone(),
-        initial_variables: None,
-        name: "空变量测试".to_string(),
-        nodes: vec![start_node],
-        connections: vec![],
-    };
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "空变量测试".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+            hooks: None,
+        };
 
     let executor = FlowExecutor::new();
     let result = executor.execute_flow(&flow, None, None, None).await;
@@ -251,12 +263,15 @@ async fn test_single_node_execution_path() {
     };
 
     let flow = Flow {
-        uuid: flow_id.clone(),
-        initial_variables: None,
-        name: "单节点流程".to_string(),
-        nodes: vec![start_node.clone()],
-        connections: vec![],
-    };
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "单节点流程".to_string(),
+            nodes: vec![start_node.clone()],
+            connections: vec![],
+            hooks: None,
+        };
 
     let executor = FlowExecutor::new();
     let result = executor.execute_flow(&flow, None, None, None).await;
@@ -286,12 +301,15 @@ async fn test_skipped_nodes_default_empty() {
     };
 
     let flow = Flow {
-        uuid: flow_id.clone(),
-        initial_variables: None,
-        name: "跳过节点测试".to_string(),
-        nodes: vec![start_node],
-        connections: vec![],
-    };
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "跳过节点测试".to_string(),
+            nodes: vec![start_node],
+            connections: vec![],
+            hooks: None,
+        };
 
     let executor = FlowExecutor::new();
     let result = executor.execute_flow(&flow, None, None, None).await;
@@ -336,12 +354,15 @@ async fn test_all_nodes_have_resolved_config() {
     };
 
     let flow = Flow {
-        uuid: flow_id.clone(),
-        initial_variables: None,
-        name: "resolved_config 测试".to_string(),
-        nodes: vec![start_node, end_node],
-        connections: vec![connection],
-    };
+            uuid: flow_id.clone(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            name: "resolved_config 测试".to_string(),
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
 
     let executor = FlowExecutor::new();
     let result = executor.execute_flow(&flow, None, None, None).await;

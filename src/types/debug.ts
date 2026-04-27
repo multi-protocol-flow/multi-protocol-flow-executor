@@ -198,6 +198,27 @@ export type DebugEvent =
         url: string;
       };
     }
+  // ===== gRPC 流式实时事件 =====
+  | {
+      GrpcStreamMessage: {
+        node_uuid: string;
+        connection_id: string;
+        call_id: string;
+        index: number;
+        data: string;
+        received_at_ms: number;
+        size_bytes: number;
+        is_last: boolean;
+      };
+    }
+  | {
+      GrpcStreamError: {
+        node_uuid: string;
+        connection_id: string;
+        call_id: string;
+        message: string;
+      };
+    }
   // ===== MCP 调试事件 =====
   | {
       McpConnectionCreated: {
@@ -256,6 +277,26 @@ export interface GrpcMethodCallRecord {
   method: string;
   pattern: string;
   duration_ms: number;
+}
+
+/** gRPC 实时流式消息（来自 GrpcStreamMessage 调试事件） */
+export interface GrpcRealtimeStreamMessage {
+  node_uuid: string;
+  connection_id: string;
+  call_id: string;
+  index: number;
+  data: string;
+  received_at_ms: number;
+  size_bytes: number;
+  is_last: boolean;
+}
+
+/** gRPC 实时流式错误（来自 GrpcStreamError 调试事件） */
+export interface GrpcRealtimeStreamError {
+  node_uuid: string;
+  connection_id: string;
+  call_id: string;
+  message: string;
 }
 
 // ============================================================================

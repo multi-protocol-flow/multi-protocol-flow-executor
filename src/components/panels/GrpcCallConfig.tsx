@@ -14,11 +14,16 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Radio, Info, FileJson } from 'lucide-react';
+import { Plus, Trash2, Radio, Info, FileJson, CheckCircle2, XCircle, Loader2, FileText, Braces, Terminal, Copy, Check } from 'lucide-react';
 import type { GrpcCallConfig as GrpcCallConfigType, GrpcServiceInfo, GrpcMethodInfo } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isGrpcConnectConfig } from '@/types/node';
-import { generateGrpcRequestSkeleton } from '@/services/tauri';
+import { generateGrpcRequestSkeleton, generateGrpcRequestSkeletonFromReflection, validateGrpcRequest } from '@/services/tauri';
+import type { ValidationError } from '@/services/tauri';
+import { GrpcFormEditor } from './GrpcFormEditor';
+import { parseProtoFiles, findMessageDescriptor } from '@/lib/protoFieldParser';
+import type { ProtoParseResult } from '@/lib/protoFieldParser';
+import { generateGrpcurlCommand, extractGrpcurlParamsFromConnectConfig } from '@/lib/grpcurlGenerator';
 
 interface GrpcCallConfigProps {
   /** 当前节点数据 */
@@ -40,6 +45,9 @@ function toFormData(data: GrpcCallConfigType): GrpcCallConfigFormData {
     timeout_ms: data.timeout_ms ?? 30000,
     metadata: data.metadata || [],
     request_messages: data.request_messages || [],
+    compression_encoding: data.compression_encoding,
+    max_retries: data.max_retries,
+    initial_backoff_ms: data.initial_backoff_ms,
   };
 }
 
@@ -59,6 +67,9 @@ function fromFormData(formData: GrpcCallConfigFormData): GrpcCallConfigType {
     metadata: metadata && metadata.length > 0 ? metadata : undefined,
     request_messages: formData.request_messages && formData.request_messages.length > 0
       ? formData.request_messages : undefined,
+    compression_encoding: formData.compression_encoding || undefined,
+    max_retries: formData.max_retries,
+    initial_backoff_ms: formData.initial_backoff_ms,
   };
 }
 
@@ -127,6 +138,44 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
     return files.map(f => [f.path, f.content] as [string, string]);
   }, [flow, currentConnectionId]);
 
+  // 判断连接是否使用 Reflection 模式（无 proto_files 且 enable_reflection=true）
+  const isReflectionMode = useMemo((): boolean => {
+    if (!flow || !currentConnectionId) return false;
+    const connectNode = flow.nodes.find(n => n.uuid === currentConnectionId);
+    if (!connectNode || !isGrpcConnectConfig(connectNode.data)) return false;
+    const data = connectNode.data;
+    return !!data.enable_reflection && (!data.proto_files || data.proto_files.length === 0);
+  }, [flow, currentConnectionId]);
+
+  // 从选中连接获取 Reflection 相关配置
+  const reflectionConfig = useMemo((): {
+    url?: string;
+    use_tls?: boolean;
+    tls_skip_verify?: boolean;
+    connect_timeout_ms?: number;
+    tls_ca_cert?: string;
+    tls_client_cert?: string;
+    tls_client_key?: string;
+    tls_server_name_override?: string;
+    reflection_metadata?: [string, string][];
+  } | null => {
+    if (!flow || !currentConnectionId || !isReflectionMode) return null;
+    const connectNode = flow.nodes.find(n => n.uuid === currentConnectionId);
+    if (!connectNode || !isGrpcConnectConfig(connectNode.data)) return null;
+    const data = connectNode.data;
+    return {
+      url: data.url,
+      use_tls: data.use_tls,
+      tls_skip_verify: data.tls_skip_verify,
+      connect_timeout_ms: data.connect_timeout_ms,
+      tls_ca_cert: data.tls_ca_cert,
+      tls_client_cert: data.tls_client_cert,
+      tls_client_key: data.tls_client_key,
+      tls_server_name_override: data.tls_server_name_override,
+      reflection_metadata: data.reflection_metadata?.map(m => [m.key, m.value] as [string, string]),
+    };
+  }, [flow, currentConnectionId, isReflectionMode]);
+
   // 当前选中的 service_name
   const currentServiceName = watch('service_name');
 
@@ -147,16 +196,43 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
 
   const isClientStreaming = selectedMethod?.is_client_streaming ?? false;
 
+  // 编辑模式：JSON（默认）| 表单
+  const [editMode, setEditMode] = useState<'json' | 'form'>('json');
+  // JSON ↔ 表单 切换时的解析错误
+  const [modeSwitchError, setModeSwitchError] = useState<string | null>(null);
+
+  // 解析 proto 文件获取 schema（用于表单模式）
+  const protoParseResult = useMemo((): ProtoParseResult | null => {
+    if (protoFiles.length === 0) return null;
+    try {
+      const files = protoFiles.map(([path, content]) => ({ path, content }));
+      return parseProtoFiles(files);
+    } catch {
+      return null;
+    }
+  }, [protoFiles]);
+
+  // grpcurl 导出状态
+  const [grpcurlCommand, setGrpcurlCommand] = useState<string | null>(null);
+  const [grpcurlCopied, setGrpcurlCopied] = useState(false);
+
   // 骨架生成加载状态
   const [isGeneratingSkeleton, setIsGeneratingSkeleton] = useState(false);
 
-  // 判断骨架按钮是否可用（service + method 都已选择，且有 proto_files）
+  // 验证状态
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationValid, setValidationValid] = useState<boolean | null>(null);
+  const validationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 判断骨架按钮是否可用（service + method 都已选择，且有 proto_files 或 reflection 模式）
   const canGenerateSkeleton = useMemo(() => {
+    const methodName = getValues('method_name');
     return currentServiceName.length > 0
-      && watch('method_name').length > 0
-      && protoFiles.length > 0;
+      && methodName.length > 0
+      && (protoFiles.length > 0 || isReflectionMode);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentServiceName, watch('method_name'), protoFiles]);
+  }, [currentServiceName, protoFiles, isReflectionMode, watch('method_name')]);
 
   // 当 connection_id 变化时，检查已选服务是否仍有效
   useEffect(() => {
@@ -222,20 +298,56 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
       try {
         const config = fromFormData(formData);
         onSave(config);
-      } catch (error) {
-        console.error('保存 gRPC Call 配置失败:', error);
+      } catch {
+        // 保存失败时静默处理
       }
     })();
   }, [handleSubmit, onSave]);
 
   /**
    * 生成请求 JSON 骨架
+   * 
+   * 双路径：
+   * - proto_files 模式：解析 proto 文件生成骨架
+   * - reflection 模式：通过 Server Reflection 获取类型信息生成骨架
    */
   const handleGenerateSkeleton = useCallback(async () => {
     const serviceName = getValues('service_name');
     const methodName = getValues('method_name');
-    if (!serviceName || !methodName || protoFiles.length === 0) return;
+    if (!serviceName || !methodName) return;
 
+    // Reflection 模式：通过缓存的连接配置使用 Server Reflection
+    if (isReflectionMode && reflectionConfig) {
+      if (!reflectionConfig.url) return;
+      setIsGeneratingSkeleton(true);
+      try {
+        const result = await generateGrpcRequestSkeletonFromReflection({
+          url: reflectionConfig.url,
+          use_tls: reflectionConfig.use_tls,
+          tls_skip_verify: reflectionConfig.tls_skip_verify,
+          connect_timeout_ms: reflectionConfig.connect_timeout_ms,
+          tls_ca_cert: reflectionConfig.tls_ca_cert,
+          tls_client_cert: reflectionConfig.tls_client_cert,
+          tls_client_key: reflectionConfig.tls_client_key,
+          tls_server_name_override: reflectionConfig.tls_server_name_override,
+          reflection_metadata: reflectionConfig.reflection_metadata,
+          service_name: serviceName,
+          method_name: methodName,
+        });
+        if (result.success && result.skeleton) {
+          setValue('request_json', result.skeleton, { shouldDirty: true });
+          safeSetTimeout(saveData, 100);
+        }
+      } catch {
+        // Reflection 骨架生成失败，静默处理
+      } finally {
+        setIsGeneratingSkeleton(false);
+      }
+      return;
+    }
+
+    // proto_files 模式：解析 proto 文件生成骨架
+    if (protoFiles.length === 0) return;
     setIsGeneratingSkeleton(true);
     try {
       const result = await generateGrpcRequestSkeleton({
@@ -247,12 +359,121 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
         setValue('request_json', result.skeleton, { shouldDirty: true });
         safeSetTimeout(saveData, 100);
       }
-    } catch (error) {
-      console.error('生成 gRPC 请求骨架失败:', error);
+    } catch {
+      // 骨架生成失败，静默处理
     } finally {
       setIsGeneratingSkeleton(false);
     }
-  }, [protoFiles, getValues, setValue, saveData, safeSetTimeout]);
+  }, [isReflectionMode, reflectionConfig, protoFiles, getValues, setValue, saveData, safeSetTimeout]);
+
+  /**
+   * 导出 grpcurl 命令
+   */
+  const handleExportGrpcurl = useCallback(() => {
+    const serviceName = getValues('service_name');
+    const methodName = getValues('method_name');
+    const connectionId = getValues('connection_id');
+
+    if (!serviceName || !methodName || !connectionId) return;
+
+    // 从 flow 中找到 grpc_connect 节点
+    const connectNode = flow?.nodes.find(n => n.uuid === connectionId);
+    if (!connectNode || !isGrpcConnectConfig(connectNode.data)) return;
+
+    const connectParams = extractGrpcurlParamsFromConnectConfig(connectNode.data);
+    const requestJson = getValues('request_json');
+    const callMetadata = getValues('metadata');
+
+    const command = generateGrpcurlCommand({
+      ...connectParams,
+      serviceName,
+      methodName,
+      requestJson,
+      callMetadata,
+    });
+
+    setGrpcurlCommand(command);
+    setGrpcurlCopied(false);
+  }, [flow, getValues]);
+
+  /**
+   * 复制 grpcurl 命令到剪贴板
+   */
+  const handleCopyGrpcurl = useCallback(async () => {
+    if (!grpcurlCommand) return;
+    try {
+      await navigator.clipboard.writeText(grpcurlCommand);
+      setGrpcurlCopied(true);
+      setTimeout(() => setGrpcurlCopied(false), 2000);
+    } catch {
+      // 剪贴板写入失败，忽略
+    }
+  }, [grpcurlCommand]);
+
+  // 获取当前选中的方法的 input_type（用于验证）
+  const selectedMethodInputType = useMemo((): string | null => {
+    if (!selectedMethod) return null;
+    return selectedMethod.input_type;
+  }, [selectedMethod]);
+
+  // 当前方法的 input message 是否有可用的 schema（用于表单模式）
+  const hasSchemaForForm = useMemo((): boolean => {
+    if (!protoParseResult || !selectedMethodInputType) return false;
+    return findMessageDescriptor(protoParseResult, selectedMethodInputType) !== null;
+  }, [protoParseResult, selectedMethodInputType]);
+
+  // 防抖验证请求 JSON
+  useEffect(() => {
+    // 清除之前的定时器
+    if (validationTimerRef.current) {
+      clearTimeout(validationTimerRef.current);
+      validationTimerRef.current = null;
+    }
+
+    // 前置条件检查
+    const requestJson = getValues('request_json');
+    if (!requestJson || !selectedMethodInputType || protoFiles.length === 0) {
+      setValidationValid(null);
+      setValidationErrors([]);
+      setIsValidating(false);
+      return;
+    }
+
+    // 空对象不验证
+    if (requestJson.trim() === '{}') {
+      setValidationValid(null);
+      setValidationErrors([]);
+      return;
+    }
+
+    setIsValidating(true);
+
+    // 300ms 防抖
+    const timerId = setTimeout(async () => {
+      try {
+        const result = await validateGrpcRequest(requestJson, selectedMethodInputType, protoFiles);
+        if (result.success && result.result) {
+          setValidationValid(result.result.valid);
+          setValidationErrors(result.result.errors);
+        } else {
+          // 验证执行失败（如 proto 解析失败），不显示验证结果
+          setValidationValid(null);
+          setValidationErrors([]);
+        }
+      } catch {
+        setValidationValid(null);
+        setValidationErrors([]);
+      } finally {
+        setIsValidating(false);
+      }
+    }, 300);
+    validationTimerRef.current = timerId;
+
+    return () => {
+      clearTimeout(timerId);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watch('request_json'), selectedMethodInputType, protoFiles, safeSetTimeout]);
 
   // 消息列表字段数组（Client/Bidi Streaming 模式）
   const messageFields = useFieldArray({
@@ -543,6 +764,61 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
         )}
       </div>
 
+      {/* 导出 grpcurl 命令 */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!currentServiceName || !watch('method_name') || !currentConnectionId}
+            onClick={handleExportGrpcurl}
+            className="h-7 gap-1.5 text-xs"
+          >
+            <Terminal className="h-3 w-3" />
+            导出 grpcurl
+          </Button>
+        </div>
+
+        {/* grpcurl 命令展示 */}
+        {grpcurlCommand && (
+          <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">grpcurl 命令</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleCopyGrpcurl}
+                className="h-6 gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                {grpcurlCopied ? (
+                  <>
+                    <Check className="h-3 w-3 text-emerald-500" />
+                    已复制
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" />
+                    复制到剪贴板
+                  </>
+                )}
+              </Button>
+            </div>
+            <pre className="max-h-[200px] overflow-auto rounded bg-zinc-900 p-3 text-xs text-emerald-400 whitespace-pre-wrap break-all font-mono">
+              {grpcurlCommand}
+            </pre>
+            <button
+              type="button"
+              onClick={() => setGrpcurlCommand(null)}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              关闭
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* 消息列表（Client/Bidi Streaming 模式） */}
       {isClientStreaming && (
         <div className="space-y-2">
@@ -608,33 +884,150 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="request_json" className="text-sm font-medium text-foreground">
-              请求 JSON
+              请求编辑
             </Label>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={!canGenerateSkeleton || isGeneratingSkeleton}
-              onClick={handleGenerateSkeleton}
-              className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-            >
-              <FileJson className="h-3 w-3" />
-              {isGeneratingSkeleton ? '生成中...' : '生成骨架'}
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* 编辑模式切换 */}
+              <div className="inline-flex items-center rounded-lg bg-muted p-0.5">
+                <button
+                  type="button"
+                  onClick={() => { setEditMode('json'); setModeSwitchError(null); }}
+                  className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                    editMode === 'json'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Braces className="h-3 w-3" />
+                  JSON
+                </button>
+                <button
+                  type="button"
+                  disabled={!hasSchemaForForm}
+                  onClick={() => {
+                    if (!hasSchemaForForm) return;
+                    // 切换到表单模式前验证 JSON
+                    const currentJson = getValues('request_json');
+                    if (currentJson && currentJson.trim() !== '{}') {
+                      try {
+                        JSON.parse(currentJson);
+                      } catch {
+                        setModeSwitchError('JSON 格式错误，无法切换到表单模式');
+                        return;
+                      }
+                    }
+                    setModeSwitchError(null);
+                    setEditMode('form');
+                  }}
+                  className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                    editMode === 'form'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : hasSchemaForForm
+                        ? 'text-muted-foreground hover:text-foreground'
+                        : 'text-muted-foreground/40 cursor-not-allowed'
+                  }`}
+                >
+                  <FileText className="h-3 w-3" />
+                  表单
+                </button>
+              </div>
+              {/* 生成骨架按钮（仅 JSON 模式显示） */}
+              {editMode === 'json' && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={!canGenerateSkeleton || isGeneratingSkeleton}
+                  onClick={handleGenerateSkeleton}
+                  className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                >
+                  <FileJson className="h-3 w-3" />
+                  {isGeneratingSkeleton ? '生成中...' : '生成骨架'}
+                </Button>
+              )}
+            </div>
           </div>
-          <Textarea
-            id="request_json"
-            {...register('request_json')}
-            placeholder='{"field": "value"}'
-            className="min-h-[120px] resize-y font-mono text-sm"
-            rows={5}
-          />
-          {errors.request_json && (
-            <p className="text-xs text-rose-500">{errors.request_json.message}</p>
+
+          {/* 模式切换错误提示 */}
+          {modeSwitchError && (
+            <div className="flex items-center gap-1.5 rounded border border-rose-200 bg-rose-50/50 px-2.5 py-1.5 text-xs text-rose-600">
+              <XCircle className="h-3 w-3 shrink-0" />
+              <span>{modeSwitchError}</span>
+            </div>
           )}
-          <p className="text-xs text-muted-foreground">
-            请求消息的 JSON 格式，将自动序列化发送
-          </p>
+
+          {/* JSON 编辑模式 */}
+          {editMode === 'json' && (
+            <>
+              <Textarea
+                id="request_json"
+                {...register('request_json')}
+                placeholder='{"field": "value"}'
+                className="min-h-[120px] resize-y font-mono text-sm"
+                rows={5}
+              />
+              {errors.request_json && (
+                <p className="text-xs text-rose-500">{errors.request_json.message}</p>
+              )}
+              {/* 验证状态指示器 */}
+              {isValidating && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>验证中...</span>
+                </div>
+              )}
+              {!isValidating && validationValid === true && (
+                <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                  <CheckCircle2 className="h-3 w-3" />
+                  <span>JSON 与 proto schema 匹配</span>
+                </div>
+              )}
+              {!isValidating && validationValid === false && validationErrors.length > 0 && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs text-amber-600">
+                    <XCircle className="h-3 w-3" />
+                    <span>发现 {validationErrors.length} 个问题（不影响发送）</span>
+                  </div>
+                  <div className="max-h-[120px] overflow-y-auto rounded border border-amber-200 bg-amber-50/50 p-2">
+                    {validationErrors.map((err, idx) => (
+                      <div key={idx} className="flex items-start gap-1 text-xs text-amber-700">
+                        <span className="shrink-0 font-mono text-amber-900">{err.path || '(root)'}</span>
+                        <span className="text-amber-500">—</span>
+                        <span>{err.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                请求消息的 JSON 格式，将自动序列化发送
+              </p>
+            </>
+          )}
+
+          {/* 表单编辑模式 */}
+          {editMode === 'form' && (
+            <>
+              <div className="rounded-md border bg-background p-3">
+                <GrpcFormEditor
+                  value={watch('request_json') || '{}'}
+                  onChange={(json: string) => {
+                    setValue('request_json', json, { shouldDirty: true });
+                  }}
+                  parseResult={protoParseResult}
+                  inputType={selectedMethodInputType}
+                  onBlur={handleBlur}
+                />
+              </div>
+              {!hasSchemaForForm && (
+                <p className="text-xs text-muted-foreground">
+                  {protoFiles.length === 0
+                    ? '无 proto 文件，表单模式不可用。请切换到 JSON 模式或添加 proto 文件。'
+                    : '未找到匹配的消息定义，请切换到 JSON 模式。'}
+                </p>
+              )}
+            </>
+          )}
         </div>
       )}
 
@@ -702,6 +1095,74 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
           {...register('timeout_ms', { valueAsNumber: true })}
         />
         <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+      </div>
+
+      {/* 压缩编码 */}
+      <div className="space-y-2">
+        <Label htmlFor="call_compression_encoding" className="text-sm font-medium text-foreground">
+          压缩编码
+        </Label>
+        <Select
+          value={watch('compression_encoding') || 'inherit'}
+          onValueChange={(value) => {
+            setValue('compression_encoding', value === 'inherit' ? undefined : value, { shouldDirty: true });
+            saveData();
+          }}
+        >
+          <SelectTrigger id="call_compression_encoding" className="font-mono text-sm">
+            <SelectValue placeholder="继承默认" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="inherit">继承默认</SelectItem>
+            <SelectItem value="none">无</SelectItem>
+            <SelectItem value="gzip">Gzip</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          "继承默认" 使用连接节点的压缩配置
+        </p>
+      </div>
+
+      {/* 重试配置 */}
+      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+        <p className="text-xs font-medium text-muted-foreground">重试配置（EXPERIMENTAL）</p>
+        <div className="space-y-2">
+          <Label htmlFor="max_retries" className="text-xs text-muted-foreground">
+            最大重试次数
+          </Label>
+          <Input
+            id="max_retries"
+            type="number"
+            min={0}
+            max={10}
+            placeholder="继承默认"
+            {...register('max_retries', { valueAsNumber: true })}
+            className="h-8 font-mono text-xs"
+          />
+          <p className="text-[11px] text-muted-foreground/70">
+            0 = 不重试，留空使用连接级默认值
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="call_initial_backoff_ms" className="text-xs text-muted-foreground">
+            初始退避时间 (ms)
+          </Label>
+          <Input
+            id="call_initial_backoff_ms"
+            type="number"
+            min={100}
+            max={30000}
+            placeholder="继承默认"
+            {...register('initial_backoff_ms', { valueAsNumber: true })}
+            className="h-8 font-mono text-xs"
+          />
+          <p className="text-[11px] text-muted-foreground/70">
+            范围 100-30000ms，留空使用连接级默认值
+          </p>
+        </div>
+        <p className="text-[11px] text-muted-foreground/70">
+          仅对 Unary 和 Server Streaming 调用生效
+        </p>
       </div>
 
       {/* 提示信息 */}

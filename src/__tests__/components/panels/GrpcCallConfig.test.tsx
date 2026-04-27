@@ -161,7 +161,7 @@ describe('GrpcCallConfig', () => {
       const config = createBaseConfig({ method_name: 'SayHello' });
       render(<GrpcCallConfig data={config} onSave={mockOnSave} />);
 
-      expect(screen.getByText('请求 JSON')).toBeDefined();
+      expect(screen.getByText('请求编辑')).toBeDefined();
     });
 
     it('不显示消息列表', () => {
@@ -190,7 +190,7 @@ describe('GrpcCallConfig', () => {
       const config = createBaseConfig({ method_name: 'StreamGreetings' });
       render(<GrpcCallConfig data={config} onSave={mockOnSave} />);
 
-      expect(screen.getByText('请求 JSON')).toBeDefined();
+      expect(screen.getByText('请求编辑')).toBeDefined();
     });
   });
 
@@ -212,7 +212,7 @@ describe('GrpcCallConfig', () => {
 
       expect(screen.getByText('消息列表')).toBeDefined();
       // 不显示单一请求 JSON 编辑器
-      expect(screen.queryByText('请求 JSON')).toBeNull();
+      expect(screen.queryByText('请求编辑')).toBeNull();
     });
   });
 
@@ -234,7 +234,7 @@ describe('GrpcCallConfig', () => {
 
       expect(screen.getByText('消息列表')).toBeDefined();
       // 不显示单一请求 JSON 编辑器
-      expect(screen.queryByText('请求 JSON')).toBeNull();
+      expect(screen.queryByText('请求编辑')).toBeNull();
     });
   });
 

@@ -4,557 +4,86 @@
 //! 使用 tonic Channel 进行 gRPC 通信，
 //! 使用 prost-reflect DynamicMessage 进行动态消息编解码。
 
-use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, RwLock};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, RwLock};
 
-        use async_trait::async_trait;
-use flow_engine_core::traits::{GrpcMethodInfo, GrpcProvider, GrpcServiceInfo, GrpcStreamingResult, GrpcTimingInfo};
-use http::uri::PathAndQuery;
-use prost_reflect::{DynamicMessage, MethodDescriptor};
-use serde_json::de::Deserializer;
-use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
+use async_trait::async_trait;
+use flow_engine_core::debug_types::DebugEvent;
+use flow_engine_core::traits::{DebugEventSender, GrpcMethodInfo, GrpcProvider, GrpcServiceInfo, GrpcStreamMessage, GrpcStreamingResult, GrpcTimingInfo};
+use prost::Message;
+use tokio_util::sync::CancellationToken;
 use tonic::metadata::{MetadataKey, MetadataValue};
+use tower::ServiceExt;
 
+use crate::codec::DynamicCodec;
+use crate::error_detail::format_grpc_error;
+use crate::helpers::{build_method_path, dynamic_message_to_json, json_to_dynamic_message, merge_metadata};
 use crate::proto_parser;
+use crate::reflection::reflect_services;
+use crate::tls::create_channel;
+use crate::tls::create_balanced_channel;
 
-// ---------------------------------------------------------------------------
-// TLS 辅助函数
-// ---------------------------------------------------------------------------
+// 重新导出公共函数，保持外部 API 兼容
+pub use crate::reflection::{discover_services_via_reflection, discover_services_via_proto};
 
-/// 不验证任何证书的 ServerCertVerifier（仅用于 `tls_skip_verify=true`）
-///
-/// **警告**: 仅用于开发/测试环境，切勿在生产环境使用。
-#[derive(Debug)]
-struct NoVerifier;
-
-impl rustls::client::danger::ServerCertVerifier for NoVerifier {
-    fn verify_server_cert(
-        &self,
-        _end_entity: &rustls::pki_types::CertificateDer<'_>,
-        _intermediates: &[rustls::pki_types::CertificateDer<'_>],
-        _server_name: &rustls::pki_types::ServerName<'_>,
-        _ocsp_response: &[u8],
-        _now: rustls::pki_types::UnixTime,
-    ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
-        Ok(rustls::client::danger::ServerCertVerified::assertion())
-    }
-
-    fn verify_tls12_signature(
-        &self,
-        _message: &[u8],
-        _cert: &rustls::pki_types::CertificateDer<'_>,
-        _dss: &rustls::DigitallySignedStruct,
-    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
-        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
-    }
-
-    fn verify_tls13_signature(
-        &self,
-        _message: &[u8],
-        _cert: &rustls::pki_types::CertificateDer<'_>,
-        _dss: &rustls::DigitallySignedStruct,
-    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
-        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
-    }
-
-    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
-        vec![
-            rustls::SignatureScheme::RSA_PKCS1_SHA256,
-            rustls::SignatureScheme::RSA_PKCS1_SHA384,
-            rustls::SignatureScheme::RSA_PKCS1_SHA512,
-            rustls::SignatureScheme::ECDSA_NISTP256_SHA256,
-            rustls::SignatureScheme::ECDSA_NISTP384_SHA384,
-            rustls::SignatureScheme::ECDSA_NISTP521_SHA512,
-            rustls::SignatureScheme::RSA_PSS_SHA256,
-            rustls::SignatureScheme::RSA_PSS_SHA384,
-            rustls::SignatureScheme::RSA_PSS_SHA512,
-            rustls::SignatureScheme::ED25519,
-            rustls::SignatureScheme::ED448,
-        ]
-    }
-}
-
-/// 确保已安装 CryptoProvider（幂等，多次调用安全）
-fn ensure_crypto_provider() {
-    // install_default 只在首次调用时安装，后续调用返回 Err 但不影响程序
-    let _ = rustls::crypto::ring::default_provider().install_default();
-}
-
-/// 配置端点的 TLS（标准验证模式）
-///
-/// 使用 tonic 内置的 webpki-roots + 系统原生证书信任链。
-fn apply_standard_tls(
-    endpoint: tonic::transport::Endpoint,
-) -> Result<tonic::transport::Endpoint, String> {
-    let tls_config = tonic::transport::ClientTlsConfig::new()
-        .with_webpki_roots()
-        .with_native_roots();
-    endpoint
-        .tls_config(tls_config)
-        .map_err(|e| format!("TLS 配置失败: {}", e))
-}
-
-/// 构建 gRPC channel（跳过证书验证模式）
-///
-/// 使用自定义 rustls `ClientConfig` + dangerous verifier，
-/// 通过 `connect_with_connector_lazy()` 注入自定义 TLS 连接器。
-fn build_skip_verify_channel(
-    url_with_scheme: &str,
-    connect_timeout_ms: u64,
-) -> Result<tonic::transport::Channel, String> {
-    ensure_crypto_provider();
-
-    // 解析原始 URL 获取 host（用于 TLS SNI）
-    let original_uri: http::Uri = url_with_scheme
-        .parse()
-        .map_err(|e| format!("解析 URL 失败: {}", e))?;
-    let host = original_uri
-        .host()
-        .ok_or_else(|| format!("URL 缺少 host: {}", url_with_scheme))?
-        .to_string();
-    let port = original_uri.port_u16().unwrap_or(443);
-
-    // 构建 dangerous verifier 的 rustls ClientConfig
-    let client_config = {
-        let mut cfg = rustls::ClientConfig::builder()
-            .dangerous()
-            .with_custom_certificate_verifier(Arc::new(NoVerifier))
-            .with_no_client_auth();
-        cfg.alpn_protocols = vec![b"h2".to_vec()];
-        Arc::new(cfg)
-    };
-
-    // TLS SNI 名称
-    let server_name = rustls::pki_types::ServerName::try_from(host.clone())
-        .map_err(|e| format!("无效的 TLS 服务器名 '{}': {}", host, e))?
-        .to_owned();
-
-    // 使用 http:// 方案创建端点（绕过 tonic 的内置 TLS）
-    let http_url = format!("http://{}:{}", host, port);
-    let mut endpoint = tonic::transport::Endpoint::from_shared(http_url)
-        .map_err(|e| format!("创建 gRPC 端点失败: {}", e))?;
-
-    if connect_timeout_ms > 0 {
-        endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
-    }
-
-    // 构建自定义连接器: TCP 连接 + TLS 握手
-    let tls_connector = tokio_rustls::TlsConnector::from(client_config);
-
-    let connector = tower::service_fn(move |uri: http::Uri| {
-        let tls = tls_connector.clone();
-        let sni = server_name.clone();
-
-        async move {
-            let host = uri.host().ok_or_else(|| {
-                std::io::Error::new(std::io::ErrorKind::InvalidInput, "URI 缺少 host")
-            })?;
-            let port = uri.port_u16().unwrap_or(443);
-            let addr = format!("{}:{}", host, port);
-
-            let tcp_stream = tokio::net::TcpStream::connect(&addr).await?;
-            tcp_stream.set_nodelay(true)?;
-
-            let tls_stream = tls.connect(sni.to_owned(), tcp_stream).await?;
-            Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(tls_stream))
-        }
-    });
-
-    Ok(endpoint.connect_with_connector_lazy(connector))
-}
-
-/// 根据 TLS 配置创建 tonic channel
-///
-/// - `tls_skip_verify=true`: 跳过证书验证
-/// - `tls_skip_verify=false`: 标准验证（webpki-roots + 系统原生证书）
-fn create_channel(
-    url_with_scheme: &str,
-    use_tls: bool,
-    tls_skip_verify: bool,
-    connect_timeout_ms: u64,
-) -> Result<tonic::transport::Channel, String> {
-    let mut endpoint = tonic::transport::Endpoint::from_shared(url_with_scheme.to_string())
-        .map_err(|e| format!("创建 gRPC 端点失败: {}", e))?;
-
-    if use_tls && tls_skip_verify {
-        // 跳过证书验证: 使用自定义 TLS 连接器
-        return build_skip_verify_channel(url_with_scheme, connect_timeout_ms);
-    }
-
-    if use_tls {
-        // 标准验证: webpki-roots + 系统原生证书
-        endpoint = apply_standard_tls(endpoint)?;
-    }
-
-    if connect_timeout_ms > 0 {
-        endpoint = endpoint.connect_timeout(std::time::Duration::from_millis(connect_timeout_ms));
-    }
-
-    Ok(endpoint.connect_lazy())
-}
-
-/// 通过 Server Reflection 协议发现 gRPC 服务
-///
-/// 连接到 gRPC 服务器后，使用 v1alpha 反射协议:
-/// 1. 发送 `ListServices` 获取所有服务名
-/// 2. 对每个服务发送 `FileContainingSymbol` 获取文件描述符
-/// 3. 递归获取所有传递依赖（通过 `FileByFilename`）
-/// 4. 构建 `DescriptorPool` 用于后续动态调用
-///
-/// 所有网络操作均带超时，避免无限挂起。
-async fn reflect_services(
-    channel: tonic::transport::Channel,
-) -> Result<prost_reflect::DescriptorPool, String> {
-    use tonic_reflection::pb::v1alpha::{
-        server_reflection_client::ServerReflectionClient,
-        server_reflection_request,
-        server_reflection_response,
-        ServerReflectionRequest,
-    };
-
-    // 单次反射请求的超时时间（秒）
-    const REFLECTION_TIMEOUT_SECS: u64 = 15;
-
-    log::info!("[gRPC Reflection] 创建反射客户端...");
-
-    // 创建反射客户端和双向流的请求通道
-    let mut client = ServerReflectionClient::new(channel);
-    let (tx, rx) = tokio::sync::mpsc::channel(16);
-    let request_stream = tokio_stream::wrappers::ReceiverStream::new(rx);
-
-    // === 关键: 先发送 ListServices 请求到 mpsc 通道，再发起双向流 ===
-    // 使用 connect_lazy() 时，TCP+HTTP/2 连接在第一个 RPC 调用时才建立。
-    // 如果先调用 server_reflection_info() 再发请求，流是空的，不会触发连接。
-    // 必须先往 mpsc 通道里放入请求，这样 server_reflection_info() 消费
-    // request_stream 时会立即发送数据，触发实际连接。
-    log::info!("[gRPC Reflection] 预发送 ListServices 请求...");
-    tx.send(ServerReflectionRequest {
-        host: String::new(),
-        message_request: Some(
-            server_reflection_request::MessageRequest::ListServices(String::new()),
-        ),
-    })
-    .await
-    .map_err(|e| format!("发送 ListServices 请求失败: {}", e))?;
-
-    // 发起双向流调用（带超时）
-    // 此时 request_stream 中已有 ListServices 请求，
-    // server_reflection_info 会消费它并触发 TCP+HTTP/2 连接
-    log::info!("[gRPC Reflection] 发起双向流调用...");
-    let response = tokio::time::timeout(
-        std::time::Duration::from_secs(REFLECTION_TIMEOUT_SECS),
-        client.server_reflection_info(request_stream),
-    )
-    .await
-    .map_err(|_| {
-        log::error!("[gRPC Reflection] 双向流连接超时");
-        "Server Reflection 连接超时（服务器可能不支持 Reflection）".to_string()
-    })?
-    .map_err(|e| {
-        log::error!("[gRPC Reflection] 双向流连接失败: {}", e);
-        format!("Server Reflection 连接失败: {}（服务器可能不支持 Reflection）", e)
-    })?;
-    let mut stream = response.into_inner();
-    log::info!("[gRPC Reflection] 双向流已建立，等待 ListServices 响应...");
-
-    // 等待 ListServices 响应
-    let list_resp = tokio::time::timeout(
-        std::time::Duration::from_secs(REFLECTION_TIMEOUT_SECS),
-        stream.message(),
-    )
-    .await
-    .map_err(|_| {
-        log::error!("[gRPC Reflection] ListServices 响应超时");
-        "ListServices 响应超时（服务器可能不支持 Reflection）".to_string()
-    })?
-    .map_err(|e| {
-        log::error!("[gRPC Reflection] 读取 ListServices 响应失败: {}", e);
-        format!("读取 ListServices 响应失败: {}", e)
-    })?
-    .ok_or_else(|| {
-        log::error!("[gRPC Reflection] 服务器关闭了流，未返回服务列表");
-        "Server Reflection 未返回服务列表响应".to_string()
-    })?;
-
-    let services = match list_resp.message_response {
-        Some(server_reflection_response::MessageResponse::ListServicesResponse(resp)) => {
-            resp.service
-        }
-        Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
-            return Err(format!("Server Reflection 错误: {}", err.error_message));
-        }
-        _ => return Err("Server Reflection 返回了意外的响应类型".to_string()),
-    };
-
-    // 过滤掉反射服务自身（v1 和 v1alpha）
-    let service_names: Vec<String> = services
-        .into_iter()
-        .map(|s| s.name)
-        .filter(|name| !is_reflection_service(name))
-        .collect();
-
-    if service_names.is_empty() {
-        return Err("服务器没有暴露任何业务 gRPC 服务（仅发现反射服务）".to_string());
-    }
-
-    log::info!("Server Reflection 发现 {} 个服务: {:?}", service_names.len(), service_names);
-
-    // === 第二步: 获取每个服务对应的文件描述符 ===
-    let mut all_fds: Vec<prost_types::FileDescriptorProto> = Vec::new();
-    let mut seen_files: HashSet<String> = HashSet::new();
-
-    for service_name in &service_names {
-        tx.send(ServerReflectionRequest {
-            host: String::new(),
-            message_request: Some(
-                server_reflection_request::MessageRequest::FileContainingSymbol(
-                    service_name.clone(),
-                ),
-            ),
-        })
-        .await
-        .map_err(|e| format!("发送 FileContainingSymbol 请求失败: {}", e))?;
-
-        let resp = tokio::time::timeout(
-            std::time::Duration::from_secs(REFLECTION_TIMEOUT_SECS),
-            stream.message(),
-        )
-        .await
-        .map_err(|_| format!("查询服务 '{}' 的文件描述符超时", service_name))?
-        .map_err(|e| format!("查询服务 '{}' 的文件描述符失败: {}", service_name, e))?
-        .ok_or_else(|| format!("Server Reflection 在查询服务 '{}' 时关闭了流", service_name))?;
-
-        match resp.message_response {
-            Some(server_reflection_response::MessageResponse::FileDescriptorResponse(fdr)) => {
-                for fd_bytes in &fdr.file_descriptor_proto {
-                    let fd: prost_types::FileDescriptorProto = prost::Message::decode(
-                        fd_bytes.as_slice(),
-                    )
-                    .map_err(|e| format!("解码 FileDescriptorProto 失败: {}", e))?;
-
-                    if let Some(name) = &fd.name {
-                        if seen_files.insert(name.clone()) {
-                            log::debug!("从反射获取到文件描述符: {}", name);
-                            all_fds.push(fd);
-                        }
-                    }
+/// 从 tonic MetadataMap 提取 ASCII 键值对
+/// 跳过 binary headers（key 以 -bin 后缀标识）
+fn extract_metadata(metadata: &tonic::metadata::MetadataMap) -> Vec<(String, String)> {
+    let mut result = Vec::new();
+    for kv in metadata.iter() {
+        match kv {
+            tonic::metadata::KeyAndValueRef::Ascii(key, value) => {
+                match value.to_str() {
+                    Ok(v) => result.push((key.to_string(), v.to_string())),
+                    Err(_) => result.push((key.to_string(), format!("<non-utf8: {} bytes>", value.len()))),
                 }
             }
-            Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
-                log::warn!(
-                    "查询服务 '{}' 的文件描述符时收到错误: {}",
-                    service_name,
-                    err.error_message
-                );
-                continue;
-            }
-            _ => {
-                log::warn!("查询服务 '{}' 时收到意外响应", service_name);
-                continue;
+            tonic::metadata::KeyAndValueRef::Binary(_, _) => {
+                // 跳过 binary metadata（key 以 -bin 后缀标识）
             }
         }
     }
-
-    // === 第三步: 递归解析传递依赖 ===
-    // 检查所有已收集文件的 dependency 字段，获取尚未加载的依赖文件
-    let mut max_iterations = 50; // 防止无限循环
-    loop {
-        max_iterations -= 1;
-        if max_iterations <= 0 {
-            log::warn!("依赖解析达到最大迭代次数限制，可能有未解析的依赖");
-            break;
-        }
-
-        // 收集尚未获取的依赖文件名
-        let missing_deps: Vec<String> = all_fds
-            .iter()
-            .flat_map(|fd| fd.dependency.iter().cloned())
-            .filter(|dep| !seen_files.contains(dep))
-            .collect();
-
-        if missing_deps.is_empty() {
-            break;
-        }
-
-        log::debug!("发现 {} 个未解析的传递依赖", missing_deps.len());
-
-        for dep_name in &missing_deps {
-            tx.send(ServerReflectionRequest {
-                host: String::new(),
-                message_request: Some(
-                    server_reflection_request::MessageRequest::FileByFilename(
-                        dep_name.clone(),
-                    ),
-                ),
-            })
-            .await
-            .map_err(|e| format!("发送 FileByFilename 请求失败: {}", e))?;
-
-            let resp = tokio::time::timeout(
-                std::time::Duration::from_secs(REFLECTION_TIMEOUT_SECS),
-                stream.message(),
-            )
-            .await
-            .map_err(|_| format!("查询依赖文件 '{}' 超时", dep_name))?;
-
-            let resp = match resp {
-                Ok(Some(resp)) => resp,
-                Ok(None) => {
-                    log::warn!("查询依赖文件 '{}' 时流已关闭", dep_name);
-                    seen_files.insert(dep_name.clone());
-                    continue;
-                }
-                Err(e) => {
-                    log::warn!("查询依赖文件 '{}' 失败: {}", dep_name, e);
-                    seen_files.insert(dep_name.clone());
-                    continue;
-                }
-            };
-
-            match resp.message_response {
-                Some(server_reflection_response::MessageResponse::FileDescriptorResponse(
-                    fdr,
-                )) => {
-                    for fd_bytes in &fdr.file_descriptor_proto {
-                        let fd: prost_types::FileDescriptorProto =
-                            prost::Message::decode(fd_bytes.as_slice()).map_err(|e| {
-                                format!("解码依赖 FileDescriptorProto 失败: {}", e)
-                            })?;
-                        if let Some(name) = &fd.name {
-                            if seen_files.insert(name.clone()) {
-                                log::debug!("从反射获取到依赖文件: {}", name);
-                                all_fds.push(fd);
-                            }
-                        }
-                    }
-                }
-                Some(server_reflection_response::MessageResponse::ErrorResponse(err)) => {
-                    log::warn!(
-                        "查询依赖文件 '{}' 时收到错误: {}",
-                        dep_name,
-                        err.error_message
-                    );
-                    seen_files.insert(dep_name.clone());
-                }
-                _ => {
-                    seen_files.insert(dep_name.clone());
-                }
-            }
-        }
-    }
-
-    // 关闭请求流
-    drop(tx);
-
-    if all_fds.is_empty() {
-        return Err("Server Reflection 未返回任何文件描述符".to_string());
-    }
-
-    // === 第四步: 构建 DescriptorPool ===
-    let fds = prost_types::FileDescriptorSet { file: all_fds };
-    prost_reflect::DescriptorPool::from_file_descriptor_set(fds)
-        .map_err(|e| format!("从反射数据构建 DescriptorPool 失败: {}", e))
+    result
 }
 
-/// 判断是否为 gRPC 反射服务（应从结果中过滤）
-fn is_reflection_service(name: &str) -> bool {
-    matches!(
-        name,
-        "grpc.reflection.v1.ServerReflection"
-            | "grpc.reflection.v1alpha.ServerReflection"
-    )
-}
-
-/// 通过 Server Reflection 协议发现 gRPC 服务（不创建持久连接）
+/// 解析压缩编码字符串为 tonic CompressionEncoding
 ///
-/// 用于设计时预发现服务，仅创建临时连接进行反射查询，
-/// 返回服务列表但不将连接存入连接池。
-pub async fn discover_services_via_reflection(
-    url: &str,
-    use_tls: bool,
-    tls_skip_verify: bool,
-    connect_timeout_ms: u64,
-) -> Result<Vec<GrpcServiceInfo>, String> {
-    // 1. 构造 URL
-    let url_with_scheme = if url.starts_with("http://") || url.starts_with("https://") {
-        url.to_string()
-    } else if use_tls {
-        format!("https://{}", url)
-    } else {
-        format!("http://{}", url)
-    };
-
-    log::info!(
-        "[gRPC] 开始反射发现: url={}, use_tls={}, tls_skip_verify={}, timeout={}ms",
-        url_with_scheme,
-        use_tls,
-        tls_skip_verify,
-        connect_timeout_ms
-    );
-
-    // 2. 创建 channel（含 TLS 配置）
-    let channel = create_channel(&url_with_scheme, use_tls, tls_skip_verify, connect_timeout_ms)?;
-
-    // 3. 通过反射发现服务
-    let pool = reflect_services(channel).await?;
-
-    // 4. 提取服务信息
-    let services = proto_parser::list_services(&pool);
-    Ok(services
-        .iter()
-        .map(|s| GrpcServiceInfo {
-            service_name: s.service_name.clone(),
-            methods: s
-                .methods
-                .iter()
-                .map(|m| GrpcMethodInfo {
-                    method_name: m.method_name.clone(),
-                    input_type: m.input_type.clone(),
-                    output_type: m.output_type.clone(),
-                    is_server_streaming: m.is_server_streaming,
-                    is_client_streaming: m.is_client_streaming,
-                })
-                .collect(),
-        })
-        .collect())
+/// 仅支持 "gzip"，其他值返回 None
+fn parse_compression(encoding: &str) -> Option<tonic::codec::CompressionEncoding> {
+    match encoding.to_lowercase().as_str() {
+        "gzip" => Some(tonic::codec::CompressionEncoding::Gzip),
+        _ => None,
+    }
 }
 
-/// 通过解析 Proto 文件发现 gRPC 服务（不需要连接服务器）
+/// 解析调用级压缩配置，覆盖连接级默认值
 ///
-/// 用于设计时预发现服务，解析用户提供的 .proto 文件，
-/// 返回服务列表。
-pub fn discover_services_via_proto(
-    proto_files: &[(String, String)],
-) -> Result<Vec<GrpcServiceInfo>, String> {
-    let files: Vec<proto_parser::ProtoFile> = proto_files
-        .iter()
-        .map(|(path, content)| proto_parser::ProtoFile {
-            path: path.clone(),
-            content: content.clone(),
-        })
-        .collect();
+/// 调用级 "none" 明确禁用压缩；其他值尝试解析为压缩编码；
+/// None 表示使用连接级默认
+fn resolve_compression(
+    call_level: Option<&str>,
+    connect_level: Option<&str>,
+) -> Option<tonic::codec::CompressionEncoding> {
+    match call_level {
+        Some("none") => None, // 明确禁用
+        Some(enc) => parse_compression(enc),
+        None => connect_level.and_then(parse_compression),
+    }
+}
 
-    let pool = proto_parser::parse_proto_files(&files)
-        .map_err(|e| format!("解析 proto 文件失败: {}", e))?;
-
-    let services = proto_parser::list_services(&pool);
-    Ok(services
-        .iter()
-        .map(|s| GrpcServiceInfo {
-            service_name: s.service_name.clone(),
-            methods: s
-                .methods
-                .iter()
-                .map(|m| GrpcMethodInfo {
-                    method_name: m.method_name.clone(),
-                    input_type: m.input_type.clone(),
-                    output_type: m.output_type.clone(),
-                    is_server_streaming: m.is_server_streaming,
-                    is_client_streaming: m.is_client_streaming,
-                })
-                .collect(),
-        })
-        .collect())
+/// Channelz 内省信息（轻量级，非完整 Channelz 协议）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ChannelzInfo {
+    /// 连接状态: "READY", "IDLE", "CONNECTING", "TRANSIENT_FAILURE", "SHUTDOWN"
+    pub state: String,
+    /// 连接建立时间（ISO 8601）
+    pub connected_at: String,
+    /// 连接运行时长（秒）
+    pub uptime_secs: u64,
+    /// 活跃调用数
+    pub active_calls: usize,
+    /// 最后错误（如果有）
+    pub last_error: Option<String>,
 }
 
 /// 活跃的 gRPC 连接
@@ -568,70 +97,16 @@ struct GrpcConnection {
     #[allow(dead_code)]
     /// 连接 URL（预留用于后续功能）
     url: String,
-    #[allow(dead_code)]
-    /// 创建时间（预留用于连接超时管理）
+    /// 创建时间（用于连接 uptime 计算）
     created_at: chrono::DateTime<chrono::Utc>,
     /// 连接级默认 metadata（由 `grpc_connect` 节点配置）
     default_metadata: Vec<(String, String)>,
-}
-
-/// 动态 gRPC 编解码器
-///
-/// 使用 prost-reflect 的 `DynamicMessage` 实现 tonic 的 Codec trait，
-/// 从而支持对任意 protobuf 消息类型的动态编解码。
-#[derive(Clone)]
-struct DynamicCodec {
-    /// 方法描述符（包含输入输出类型信息）
-    method: MethodDescriptor,
-}
-
-impl DynamicCodec {
-    /// 创建新的动态编解码器
-    fn new(method: MethodDescriptor) -> Self {
-        Self { method }
-    }
-}
-
-impl Codec for DynamicCodec {
-    type Encode = DynamicMessage;
-    type Decode = DynamicMessage;
-    type Encoder = Self;
-    type Decoder = Self;
-
-    fn encoder(&mut self) -> Self::Encoder {
-        self.clone()
-    }
-
-    fn decoder(&mut self) -> Self::Decoder {
-        self.clone()
-    }
-}
-
-impl Encoder for DynamicCodec {
-    type Item = DynamicMessage;
-    type Error = tonic::Status;
-
-    fn encode(
-        &mut self,
-        item: Self::Item,
-        dst: &mut EncodeBuf<'_>,
-    ) -> Result<(), Self::Error> {
-        prost::Message::encode(&item, dst)
-            .map_err(|e| tonic::Status::internal(format!("编码消息失败: {}", e)))?;
-        Ok(())
-    }
-}
-
-impl Decoder for DynamicCodec {
-    type Item = DynamicMessage;
-    type Error = tonic::Status;
-
-    fn decode(&mut self, src: &mut DecodeBuf<'_>) -> Result<Option<Self::Item>, Self::Error> {
-        let mut msg = DynamicMessage::new(self.method.output());
-        prost::Message::merge(&mut msg, src)
-            .map_err(|e| tonic::Status::internal(format!("解码消息失败: {}", e)))?;
-        Ok(Some(msg))
-    }
+    /// 连接级默认压缩编码（由 `grpc_connect` 节点配置）
+    compression_encoding: Option<String>,
+    /// 活跃的流式调用: call_id → CancellationToken
+    active_calls: Arc<Mutex<HashMap<String, CancellationToken>>>,
+    /// 最后一次错误信息（用于 Channelz 内省）
+    last_error: Option<String>,
 }
 
 /// gRPC 连接管理器
@@ -650,60 +125,86 @@ impl GrpcConnectionManager {
             connections: Arc::new(RwLock::new(HashMap::new())),
         }
     }
+
+    /// 获取指定连接的 DescriptorPool 克隆
+    ///
+    /// 用于在设计时（如生成请求骨架）访问连接缓存的类型描述信息。
+    /// 返回 `None` 表示连接不存在。
+    pub fn get_descriptor_pool(&self, connection_id: &str) -> Option<prost_reflect::DescriptorPool> {
+        let conns = self.connections.read().ok()?;
+        let conn = conns.get(connection_id)?;
+        Some((*conn.descriptor_pool).clone())
+    }
+
+    /// 获取连接的 Channelz 内省信息（EXPERIMENTAL）
+    ///
+    /// 返回连接状态、运行时长、活跃调用数等轻量级诊断信息。
+    /// 注意：这不是完整的 gRPC Channelz 协议实现。
+    ///
+    /// # 状态映射
+    /// - "READY" — 连接可用
+    /// - "IDLE" — 连接空闲（tonic Channel 可能在此状态）
+    /// - "CONNECTING" — 正在建立连接
+    /// - "TRANSIENT_FAILURE" — 暂时性故障
+    /// - "CLOSED" — 连接已关闭或不存在
+    pub async fn get_channelz_info(&self, connection_id: &str) -> Result<ChannelzInfo, String> {
+        // 获取连接信息（克隆后释放锁）
+        let (mut channel, created_at, active_calls, last_error) = {
+            let conns = self
+                .connections
+                .read()
+                .map_err(|e| format!("获取连接池读锁失败: {}", e))?;
+            let conn = conns
+                .get(connection_id)
+                .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
+            (
+                conn.channel.clone(),
+                conn.created_at,
+                Arc::clone(&conn.active_calls),
+                conn.last_error.clone(),
+            )
+        }; // 读锁在此释放
+
+        // 检测 tonic Channel 连接状态
+        // tonic 0.12 的 Channel 不直接暴露 connectivity state enum，
+        // 我们通过 ready() 检测来推断状态
+        let state = match tokio::time::timeout(
+            std::time::Duration::from_secs(3),
+            channel.ready(),
+        )
+        .await
+        {
+            Ok(Ok(_)) => "READY".to_string(),
+            Ok(Err(_)) => "TRANSIENT_FAILURE".to_string(),
+            Err(_) => "CONNECTING".to_string(), // 超时，可能正在连接
+        };
+
+        // 计算运行时长
+        let uptime_secs = created_at
+            .signed_duration_since(chrono::Utc::now())
+            .num_seconds()
+            .unsigned_abs();
+
+        // 获取活跃调用数
+        let active_call_count = active_calls
+            .lock()
+            .map(|calls| calls.len())
+            .unwrap_or(0);
+
+        Ok(ChannelzInfo {
+            state,
+            connected_at: created_at.to_rfc3339(),
+            uptime_secs,
+            active_calls: active_call_count,
+            last_error,
+        })
+    }
 }
 
 impl Default for GrpcConnectionManager {
     fn default() -> Self {
         Self::new()
     }
-}
-
-/// 构建 gRPC 方法路径
-///
-/// gRPC 路径格式为 `/{package.Service}/{Method}`
-fn build_method_path(service_name: &str, method_name: &str) -> Result<PathAndQuery, String> {
-    let path = format!("/{}/{}", service_name, method_name);
-    path.parse()
-        .map_err(|e| format!("无效的 gRPC 路径 '{}': {}", path, e))
-}
-
-/// 将 JSON 字符串反序列化为 `DynamicMessage`
-fn json_to_dynamic_message(
-    request_json: &str,
-    descriptor: prost_reflect::MessageDescriptor,
-) -> Result<DynamicMessage, String> {
-    let mut deserializer = Deserializer::from_str(request_json);
-    let msg = DynamicMessage::deserialize(descriptor, &mut deserializer)
-        .map_err(|e| format!("反序列化请求消息失败: {}", e))?;
-    deserializer
-        .end()
-        .map_err(|e| format!("请求 JSON 包含多余数据: {}", e))?;
-    Ok(msg)
-}
-
-/// 将 `DynamicMessage` 序列化为 JSON Value
-fn dynamic_message_to_json(msg: &DynamicMessage) -> Result<serde_json::Value, String> {
-    let options = prost_reflect::SerializeOptions::new().skip_default_fields(false);
-    let mut buf = Vec::new();
-    let mut ser = serde_json::Serializer::new(&mut buf);
-    msg.serialize_with_options(&mut ser, &options)
-        .map_err(|e| format!("序列化响应消息失败: {}", e))?;
-    serde_json::from_slice(&buf).map_err(|e| format!("解析响应 JSON 失败: {}", e))
-}
-
-/// 合并连接级默认 metadata 与调用级 metadata
-///
-/// 调用级 metadata 同名 key 覆盖连接级（后者优先）。
-fn merge_metadata(
-    default_metadata: &[(String, String)],
-    call_metadata: Vec<(String, String)>,
-) -> Vec<(String, String)> {
-    default_metadata
-        .iter()
-        .filter(|(k, _)| !call_metadata.iter().any(|(mk, _)| mk == k))
-        .chain(call_metadata.iter())
-        .cloned()
-        .collect()
 }
 
 #[async_trait]
@@ -725,6 +226,16 @@ impl GrpcProvider for GrpcConnectionManager {
         proto_files: Vec<(String, String)>,
         metadata: Vec<(String, String)>,
         connect_timeout_ms: u64,
+        tls_ca_cert: Option<String>,
+        tls_client_cert: Option<String>,
+        tls_client_key: Option<String>,
+        tls_server_name_override: Option<String>,
+        reflection_metadata: Vec<(String, String)>,
+        compression_encoding: Option<String>,
+        keepalive_time_ms: Option<u64>,
+        keepalive_timeout_ms: Option<u64>,
+        keepalive_permit_without_streams: Option<bool>,
+        endpoints: Option<Vec<String>>,
     ) -> Result<Vec<GrpcServiceInfo>, String> {
         // 1. 构造 URL（确保包含 scheme）
         let url_with_scheme = if url.starts_with("http://") || url.starts_with("https://") {
@@ -735,13 +246,49 @@ impl GrpcProvider for GrpcConnectionManager {
             format!("http://{}", url)
         };
 
-        // 2. 创建 channel（含 TLS 配置）
-        let channel = create_channel(&url_with_scheme, use_tls, tls_skip_verify, connect_timeout_ms)?;
+        // 2. 创建 channel（含 TLS + Keepalive 配置 + 负载均衡）
+        let additional: Vec<String> = endpoints
+            .as_ref()
+            .map(|eps| eps.iter().filter(|ep| !ep.trim().is_empty()).cloned().collect())
+            .unwrap_or_default();
+
+        let channel = if additional.is_empty() {
+            // 单端点模式（现有行为）
+            create_channel(
+                &url_with_scheme,
+                use_tls,
+                tls_skip_verify,
+                connect_timeout_ms,
+                tls_ca_cert.as_deref(),
+                tls_client_cert.as_deref(),
+                tls_client_key.as_deref(),
+                tls_server_name_override.as_deref(),
+                keepalive_time_ms,
+                keepalive_timeout_ms,
+                keepalive_permit_without_streams,
+            )?
+        } else {
+            // 多端点模式（轮询负载均衡）
+            create_balanced_channel(
+                &url_with_scheme,
+                &additional,
+                use_tls,
+                tls_skip_verify,
+                connect_timeout_ms,
+                tls_ca_cert.as_deref(),
+                tls_client_cert.as_deref(),
+                tls_client_key.as_deref(),
+                tls_server_name_override.as_deref(),
+                keepalive_time_ms,
+                keepalive_timeout_ms,
+                keepalive_permit_without_streams,
+            )?
+        };
 
         // 3. 获取 DescriptorPool（反射或解析 proto 文件）
         let pool = if enable_reflection && proto_files.is_empty() {
-            // 通过 Server Reflection 发现服务
-            reflect_services(channel.clone()).await?
+            // 通过 Server Reflection 发现服务（传递 reflection_metadata）
+            reflect_services(channel.clone(), reflection_metadata).await?
         } else if proto_files.is_empty() {
             return Err(
                 "未提供 proto 文件且未启用 Server Reflection，无法发现服务".to_string()
@@ -784,6 +331,9 @@ impl GrpcProvider for GrpcConnectionManager {
             status: "connected".to_string(),
             created_at: chrono::Utc::now(),
             default_metadata: metadata,
+            compression_encoding: compression_encoding.clone(),
+            active_calls: Arc::new(Mutex::new(HashMap::new())),
+            last_error: None,
         };
 
         {
@@ -809,9 +359,13 @@ impl GrpcProvider for GrpcConnectionManager {
         request_json: &str,
         metadata: Vec<(String, String)>,
         timeout_ms: u64,
-    ) -> Result<serde_json::Value, String> {
+        compression_encoding: Option<String>,
+        debug_sender: Option<Arc<dyn DebugEventSender>>,
+        node_uuid: &str,
+        call_id: &str,
+    ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
         // 1. 从连接池获取连接信息（克隆后释放锁）
-        let (channel, pool, default_metadata) = {
+        let (channel, pool, default_metadata, default_compression) = {
             let conns = self
                 .connections
                 .read()
@@ -819,7 +373,7 @@ impl GrpcProvider for GrpcConnectionManager {
             let conn = conns
                 .get(connection_id)
                 .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
-            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone())
+            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone(), conn.compression_encoding.clone())
         }; // 读锁在此释放
 
         // 2. 合并 metadata（调用级覆盖连接级同名 key）
@@ -855,7 +409,13 @@ impl GrpcProvider for GrpcConnectionManager {
         // 6. 发起 Unary 调用
         let path = build_method_path(service_name, method_name)?;
         let codec = DynamicCodec::new(method);
-        let mut client = tonic::client::Grpc::new(channel);
+        let mut client = tonic::client::Grpc::new(channel)
+            .accept_compressed(tonic::codec::CompressionEncoding::Gzip);
+        // 设置压缩编码（调用级覆盖连接级默认）
+        let compression = resolve_compression(compression_encoding.as_deref(), default_compression.as_deref());
+        if let Some(enc) = compression {
+            client = client.send_compressed(enc);
+        }
         client
             .ready()
             .await
@@ -864,11 +424,30 @@ impl GrpcProvider for GrpcConnectionManager {
         let response = client
             .unary(request, path, codec)
             .await
-            .map_err(|e| format!("gRPC Unary 调用失败: {} ({})", e.message(), e.code()))?;
+            .map_err(|e| format_grpc_error("gRPC Unary 调用失败", &e, &pool))?;
 
-        // 7. 序列化响应为 JSON
+        // 7. 提取响应 metadata 并序列化响应为 JSON
+        let response_metadata = extract_metadata(response.metadata());
         let response_msg = response.into_inner();
-        dynamic_message_to_json(&response_msg)
+        let json_val = dynamic_message_to_json(&response_msg)?;
+
+        // 8. 发送调试事件（supplementary）
+        if let Some(sender) = &debug_sender {
+            let data_str = serde_json::to_string(&json_val).unwrap_or_default();
+            let size_bytes = data_str.len() as u64;
+            let _ = sender.send_event(DebugEvent::GrpcStreamMessage {
+                node_uuid: node_uuid.to_string(),
+                connection_id: connection_id.to_string(),
+                call_id: call_id.to_string(),
+                index: 1,
+                data: data_str,
+                received_at_ms: 0,
+                size_bytes,
+                is_last: true,
+            });
+        }
+
+        Ok((json_val, response_metadata))
     }
 
     /// gRPC Server Streaming 调用
@@ -883,9 +462,13 @@ impl GrpcProvider for GrpcConnectionManager {
         request_json: &str,
         metadata: Vec<(String, String)>,
         timeout_ms: u64,
-    ) -> Result<Vec<serde_json::Value>, String> {
+        compression_encoding: Option<String>,
+        debug_sender: Option<Arc<dyn DebugEventSender>>,
+        node_uuid: &str,
+        call_id: &str,
+    ) -> Result<(Vec<serde_json::Value>, Vec<(String, String)>), String> {
         // 1. 从连接池获取连接信息（克隆后释放锁）
-        let (channel, pool, default_metadata) = {
+        let (channel, pool, default_metadata, default_compression, active_calls) = {
             let conns = self
                 .connections
                 .read()
@@ -893,8 +476,15 @@ impl GrpcProvider for GrpcConnectionManager {
             let conn = conns
                 .get(connection_id)
                 .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
-            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone())
+            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone(), conn.compression_encoding.clone(), Arc::clone(&conn.active_calls))
         }; // 读锁在此释放
+
+        // 2. 注册 CancellationToken
+        let cancel_token = CancellationToken::new();
+        {
+            let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁失败: {}", e))?;
+            calls.insert(call_id.to_string(), cancel_token.clone());
+        }
 
         // 2. 合并 metadata（调用级覆盖连接级同名 key）
         let merged_metadata = merge_metadata(&default_metadata, metadata);
@@ -923,7 +513,13 @@ impl GrpcProvider for GrpcConnectionManager {
         // 6. 发起 Server Streaming 调用（不设 request deadline，避免过早终止流式响应）
         let path = build_method_path(service_name, method_name)?;
         let codec = DynamicCodec::new(method);
-        let mut client = tonic::client::Grpc::new(channel);
+        let mut client = tonic::client::Grpc::new(channel)
+            .accept_compressed(tonic::codec::CompressionEncoding::Gzip);
+        // 设置压缩编码（调用级覆盖连接级默认）
+        let compression = resolve_compression(compression_encoding.as_deref(), default_compression.as_deref());
+        if let Some(enc) = compression {
+            client = client.send_compressed(enc);
+        }
         client
             .ready()
             .await
@@ -933,33 +529,77 @@ impl GrpcProvider for GrpcConnectionManager {
             .server_streaming(request, path, codec)
             .await
             .map_err(|e| {
-                format!(
-                    "gRPC Server Streaming 调用失败: {} ({})",
-                    e.message(),
-                    e.code()
-                )
+                format_grpc_error("gRPC Server Streaming 调用失败", &e, &pool)
             })?;
 
-        // 6. 采集响应流（带超时）
+        // 6. 提取响应 Initial Metadata 并采集响应流（带超时 + 取消支持）
+        let response_metadata = extract_metadata(response.metadata());
         let mut stream = response.into_inner();
         let mut results = Vec::new();
+        let collect_start = std::time::Instant::now();
 
         let collect_result = tokio::time::timeout(
             std::time::Duration::from_millis(timeout_ms),
             async {
                 loop {
-                    match stream.message().await {
-                        Ok(Some(msg)) => {
-                            let json_val = dynamic_message_to_json(&msg)?;
-                            results.push(json_val);
+                    tokio::select! {
+                        msg = stream.message() => {
+                            match msg {
+                                Ok(Some(msg)) => {
+                                    let size_bytes = msg.encoded_len();
+                                    let json_val = dynamic_message_to_json(&msg)?;
+                                    let msg_index = results.len() + 1;
+                                    let received_at = collect_start.elapsed().as_millis() as u64;
+                                    let data_str = serde_json::to_string(&json_val).unwrap_or_default();
+
+                                    // 发送调试事件（supplementary，实时推送）
+                                    if let Some(sender) = &debug_sender {
+                                        let _ = sender.send_event(DebugEvent::GrpcStreamMessage {
+                                            node_uuid: node_uuid.to_string(),
+                                            connection_id: connection_id.to_string(),
+                                            call_id: call_id.to_string(),
+                                            index: msg_index as u32,
+                                            data: data_str.clone(),
+                                            received_at_ms: received_at,
+                                            size_bytes: size_bytes as u64,
+                                            is_last: false, // 暂不确定是否最后一条，后续会更新
+                                        });
+                                    }
+
+                                    let stream_msg = GrpcStreamMessage {
+                                        index: msg_index,
+                                        data: json_val,
+                                        received_at_ms: received_at,
+                                        size_bytes,
+                                    };
+                                    results.push(serde_json::to_value(&stream_msg).unwrap_or_default());
+                                }
+                                Ok(None) => break,
+                                Err(e) => {
+                                    // 发送调试错误事件
+                                    if let Some(sender) = &debug_sender {
+                                        let _ = sender.send_event(DebugEvent::GrpcStreamError {
+                                            node_uuid: node_uuid.to_string(),
+                                            connection_id: connection_id.to_string(),
+                                            call_id: call_id.to_string(),
+                                            message: format!("流式响应错误: {} ({})", e.message(), e.code()),
+                                        });
+                                    }
+                                    return Err(format!(
+                                        "流式响应错误: {} ({})",
+                                        e.message(),
+                                        e.code()
+                                    ));
+                                }
+                            }
                         }
-                        Ok(None) => break,
-                        Err(e) => {
-                            return Err(format!(
-                                "流式响应错误: {} ({})",
-                                e.message(),
-                                e.code()
-                            ));
+                        _ = cancel_token.cancelled() => {
+                            log::info!(
+                                "[gRPC Server Streaming] 调用被取消 (call_id={})，已收集 {} 条响应",
+                                call_id,
+                                results.len()
+                            );
+                            break;
                         }
                     }
                 }
@@ -967,6 +607,12 @@ impl GrpcProvider for GrpcConnectionManager {
             },
         )
         .await;
+
+        // 清理 CancellationToken
+        {
+            let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁失败: {}", e))?;
+            calls.remove(call_id);
+        }
 
         match collect_result {
             Ok(Ok(_)) => {}
@@ -980,7 +626,7 @@ impl GrpcProvider for GrpcConnectionManager {
             }
         }
 
-        Ok(results)
+        Ok((results, response_metadata))
     }
 
     /// gRPC Client Streaming 调用
@@ -992,12 +638,16 @@ impl GrpcProvider for GrpcConnectionManager {
         request_messages: Vec<String>,
         metadata: Vec<(String, String)>,
         timeout_ms: u64,
-    ) -> Result<serde_json::Value, String> {
+        compression_encoding: Option<String>,
+        debug_sender: Option<Arc<dyn DebugEventSender>>,
+        node_uuid: &str,
+        call_id: &str,
+    ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
         // 1. 从连接池获取连接信息
-        let (channel, pool, default_metadata) = {
+        let (channel, pool, default_metadata, default_compression) = {
             let conns = self.connections.read().map_err(|e| format!("获取连接池读锁失败: {}", e))?;
             let conn = conns.get(connection_id).ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
-            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone())
+            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone(), conn.compression_encoding.clone())
         };
 
         // 2. 合并 metadata（调用级覆盖连接级同名 key）
@@ -1011,7 +661,7 @@ impl GrpcProvider for GrpcConnectionManager {
             .ok_or_else(|| format!("方法 '{}' 在服务 '{}' 中不存在", method_name, service_name))?;
 
         // 4. 将所有 request_messages 解码为 DynamicMessage
-        let messages: Vec<DynamicMessage> = request_messages.iter()
+        let messages: Vec<prost_reflect::DynamicMessage> = request_messages.iter()
             .map(|json| json_to_dynamic_message(json, method.input()))
             .collect::<Result<Vec<_>, _>>()?;
 
@@ -1034,15 +684,40 @@ impl GrpcProvider for GrpcConnectionManager {
         // 6. 发起 Client Streaming 调用
         let path = build_method_path(service_name, method_name)?;
         let codec = DynamicCodec::new(method);
-        let mut client = tonic::client::Grpc::new(channel);
+        let mut client = tonic::client::Grpc::new(channel)
+            .accept_compressed(tonic::codec::CompressionEncoding::Gzip);
+        // 设置压缩编码（调用级覆盖连接级默认）
+        let compression = resolve_compression(compression_encoding.as_deref(), default_compression.as_deref());
+        if let Some(enc) = compression {
+            client = client.send_compressed(enc);
+        }
         client.ready().await.map_err(|e| format!("gRPC 客户端未就绪: {}", e))?;
 
         let response = client.client_streaming(request, path, codec).await
-            .map_err(|e| format!("gRPC Client Streaming 调用失败: {} ({})", e.message(), e.code()))?;
+            .map_err(|e| format_grpc_error("gRPC Client Streaming 调用失败", &e, &pool))?;
 
-        // 7. 序列化单个响应为 JSON
+        // 7. 提取响应 metadata 并序列化响应为 JSON
+        let response_metadata = extract_metadata(response.metadata());
         let response_msg = response.into_inner();
-        dynamic_message_to_json(&response_msg)
+        let json_val = dynamic_message_to_json(&response_msg)?;
+
+        // 8. 发送调试事件（supplementary）
+        if let Some(sender) = &debug_sender {
+            let data_str = serde_json::to_string(&json_val).unwrap_or_default();
+            let size_bytes = data_str.len() as u64;
+            let _ = sender.send_event(DebugEvent::GrpcStreamMessage {
+                node_uuid: node_uuid.to_string(),
+                connection_id: connection_id.to_string(),
+                call_id: call_id.to_string(),
+                index: 1,
+                data: data_str,
+                received_at_ms: 0,
+                size_bytes,
+                is_last: true,
+            });
+        }
+
+        Ok((json_val, response_metadata))
     }
 
     /// gRPC Bidi Streaming 调用
@@ -1054,19 +729,30 @@ impl GrpcProvider for GrpcConnectionManager {
         request_messages: Vec<String>,
         metadata: Vec<(String, String)>,
         timeout_ms: u64,
+        compression_encoding: Option<String>,
+        debug_sender: Option<Arc<dyn DebugEventSender>>,
+        node_uuid: &str,
+        call_id: &str,
     ) -> Result<GrpcStreamingResult, String> {
         use std::time::Instant;
 
         let start = Instant::now();
 
         // 1. 从连接池获取连接信息
-        let (channel, pool, default_metadata) = {
+        let (channel, pool, default_metadata, default_compression, active_calls) = {
             let conns = self.connections.read().map_err(|e| format!("获取连接池读锁失败: {}", e))?;
             let conn = conns.get(connection_id).ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
-            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone())
+            (conn.channel.clone(), Arc::clone(&conn.descriptor_pool), conn.default_metadata.clone(), conn.compression_encoding.clone(), Arc::clone(&conn.active_calls))
         };
 
-        // 2. 合并 metadata（调用级覆盖连接级同名 key）
+        // 2. 注册 CancellationToken
+        let cancel_token = CancellationToken::new();
+        {
+            let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁失败: {}", e))?;
+            calls.insert(call_id.to_string(), cancel_token.clone());
+        }
+
+        // 3. 合并 metadata（调用级覆盖连接级同名 key）
         let merged_metadata = merge_metadata(&default_metadata, metadata);
 
         // 3. 查找方法描述符
@@ -1077,7 +763,7 @@ impl GrpcProvider for GrpcConnectionManager {
             .ok_or_else(|| format!("方法 '{}' 在服务 '{}' 中不存在", method_name, service_name))?;
 
         // 4. 将所有 request_messages 解码为 DynamicMessage
-        let messages: Vec<DynamicMessage> = request_messages.iter()
+        let messages: Vec<prost_reflect::DynamicMessage> = request_messages.iter()
             .map(|json| json_to_dynamic_message(json, method.input()))
             .collect::<Result<Vec<_>, _>>()?;
         let sent_count = messages.len();
@@ -1098,38 +784,99 @@ impl GrpcProvider for GrpcConnectionManager {
         // 7. 发起 Bidi Streaming 调用（不设 request deadline，避免过早终止流式响应）
         let path = build_method_path(service_name, method_name)?;
         let codec = DynamicCodec::new(method);
-        let mut client = tonic::client::Grpc::new(channel);
+        let mut client = tonic::client::Grpc::new(channel)
+            .accept_compressed(tonic::codec::CompressionEncoding::Gzip);
+        // 设置压缩编码（调用级覆盖连接级默认）
+        let compression = resolve_compression(compression_encoding.as_deref(), default_compression.as_deref());
+        if let Some(enc) = compression {
+            client = client.send_compressed(enc);
+        }
         client.ready().await.map_err(|e| format!("gRPC 客户端未就绪: {}", e))?;
 
         let response = client.streaming(request, path, codec).await
-            .map_err(|e| format!("gRPC Bidi Streaming 调用失败: {} ({})", e.message(), e.code()))?;
+            .map_err(|e| format_grpc_error("gRPC Bidi Streaming 调用失败", &e, &pool))?;
 
-        // 7. 采集响应流（带超时）
+        // 8. 提取响应 Initial Metadata 并采集响应流（带超时 + 取消支持）
+        let response_metadata = extract_metadata(response.metadata());
         let mut stream = response.into_inner();
         let mut responses = Vec::new();
         let mut first_response_ms: Option<u64> = None;
+        let mut was_cancelled = false;
 
         let collect_result = tokio::time::timeout(
             std::time::Duration::from_millis(timeout_ms),
             async {
                 loop {
-                    match stream.message().await {
-                        Ok(Some(msg)) => {
-                            if first_response_ms.is_none() {
-                                first_response_ms = Some(start.elapsed().as_millis() as u64);
+                    tokio::select! {
+                        msg = stream.message() => {
+                            match msg {
+                                Ok(Some(msg)) => {
+                                    if first_response_ms.is_none() {
+                                        first_response_ms = Some(start.elapsed().as_millis() as u64);
+                                    }
+                                    let size_bytes = msg.encoded_len();
+                                    let json_val = dynamic_message_to_json(&msg)?;
+                                    let msg_index = responses.len() + 1;
+                                    let received_at = start.elapsed().as_millis() as u64;
+                                    let data_str = serde_json::to_string(&json_val).unwrap_or_default();
+
+                                    // 发送调试事件（supplementary，实时推送）
+                                    if let Some(sender) = &debug_sender {
+                                        let _ = sender.send_event(DebugEvent::GrpcStreamMessage {
+                                            node_uuid: node_uuid.to_string(),
+                                            connection_id: connection_id.to_string(),
+                                            call_id: call_id.to_string(),
+                                            index: msg_index as u32,
+                                            data: data_str,
+                                            received_at_ms: received_at,
+                                            size_bytes: size_bytes as u64,
+                                            is_last: false,
+                                        });
+                                    }
+
+                                    let stream_msg = GrpcStreamMessage {
+                                        index: msg_index,
+                                        data: json_val,
+                                        received_at_ms: received_at,
+                                        size_bytes,
+                                    };
+                                    responses.push(serde_json::to_value(&stream_msg).unwrap_or_default());
+                                }
+                                Ok(None) => break,
+                                Err(e) => {
+                                    // 发送调试错误事件
+                                    if let Some(sender) = &debug_sender {
+                                        let _ = sender.send_event(DebugEvent::GrpcStreamError {
+                                            node_uuid: node_uuid.to_string(),
+                                            connection_id: connection_id.to_string(),
+                                            call_id: call_id.to_string(),
+                                            message: format!("Bidi 流式响应错误: {} ({})", e.message(), e.code()),
+                                        });
+                                    }
+                                    return Err(format!("Bidi 流式响应错误: {} ({})", e.message(), e.code()));
+                                }
                             }
-                            let json_val = dynamic_message_to_json(&msg)?;
-                            responses.push(json_val);
                         }
-                        Ok(None) => break,
-                        Err(e) => {
-                            return Err(format!("Bidi 流式响应错误: {} ({})", e.message(), e.code()));
+                        _ = cancel_token.cancelled() => {
+                            log::info!(
+                                "[gRPC Bidi] 调用被取消 (call_id={})，已收集 {} 条响应",
+                                call_id,
+                                responses.len()
+                            );
+                            was_cancelled = true;
+                            break;
                         }
                     }
                 }
                 Ok(())
             },
         ).await;
+
+        // 清理 CancellationToken
+        {
+            let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁失败: {}", e))?;
+            calls.remove(call_id);
+        }
 
         match collect_result {
             Ok(Ok(_)) => {},
@@ -1148,11 +895,13 @@ impl GrpcProvider for GrpcConnectionManager {
             responses,
             sent_count,
             received_count,
+            response_metadata,
             trailers: std::collections::HashMap::new(),
             timing: GrpcTimingInfo {
                 total_ms,
                 first_response_ms,
             },
+            cancelled: was_cancelled,
         })
     }
 
@@ -1200,6 +949,84 @@ impl GrpcProvider for GrpcConnectionManager {
                 })
                 .collect(),
         )
+    }
+
+    /// 健康检查（gRPC Health Checking Protocol unary Check）
+    ///
+    /// 使用 `tonic_health::pb::health_client::HealthClient` 发送 unary Check 请求。
+    /// - UNIMPLEMENTED → 返回 "NOT_IMPLEMENTED"
+    /// - 其他错误 → 返回错误字符串
+    /// - 成功 → 返回 ServingStatus 字符串
+    async fn health_check(
+        &self,
+        connection_id: &str,
+        service: &str,
+    ) -> Result<flow_engine_core::traits::HealthCheckResponse, String> {
+        use tonic_health::pb::health_client::HealthClient;
+        use tonic_health::pb::HealthCheckRequest;
+
+        // 1. 从连接池获取 channel（克隆后释放锁）
+        let channel = {
+            let conns = self
+                .connections
+                .read()
+                .map_err(|e| format!("获取连接池读锁失败: {}", e))?;
+            let conn = conns
+                .get(connection_id)
+                .ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
+            conn.channel.clone()
+        }; // 读锁在此释放
+
+        // 2. 创建 Health 客户端并发送 Check 请求
+        let mut client = HealthClient::new(channel);
+        let request = tonic::Request::new(HealthCheckRequest {
+            service: service.to_string(),
+        });
+
+        match client.check(request).await {
+            Ok(response) => {
+                let status = response.into_inner().status();
+                let status_str = match status {
+                    tonic_health::pb::health_check_response::ServingStatus::Serving => "SERVING",
+                    tonic_health::pb::health_check_response::ServingStatus::NotServing => "NOT_SERVING",
+                    tonic_health::pb::health_check_response::ServingStatus::ServiceUnknown => "SERVICE_UNKNOWN",
+                    _ => "UNKNOWN",
+                };
+                Ok(flow_engine_core::traits::HealthCheckResponse {
+                    status: status_str.to_string(),
+                })
+            }
+            Err(status) => {
+                // UNIMPLEMENTED 表示服务端未实现健康检查协议
+                if status.code() == tonic::Code::Unimplemented {
+                    Ok(flow_engine_core::traits::HealthCheckResponse {
+                        status: "NOT_IMPLEMENTED".to_string(),
+                    })
+                } else {
+                    Err(format!("健康检查失败: {} ({})", status.message(), status.code()))
+                }
+            }
+        }
+    }
+
+    fn cancel_stream(&self, connection_id: &str, call_id: &str) -> Result<(), String> {
+        // 从连接池获取 active_calls
+        let active_calls = {
+            let conns = self.connections.read().map_err(|e| format!("获取连接池读锁失败: {}", e))?;
+            let conn = conns.get(connection_id).ok_or_else(|| format!("连接 '{}' 不存在", connection_id))?;
+            Arc::clone(&conn.active_calls)
+        };
+
+        let mut calls = active_calls.lock().map_err(|e| format!("获取活跃调用锁失败: {}", e))?;
+        match calls.get(call_id) {
+            Some(token) => {
+                log::info!("[gRPC] 取消流式调用: connection_id={}, call_id={}", connection_id, call_id);
+                token.cancel();
+                calls.remove(call_id);
+                Ok(())
+            }
+            None => Err(format!("调用 '{}' 不存在或已完成", call_id)),
+        }
     }
 }
 
@@ -1259,7 +1086,7 @@ message TestMessage {
             .expect("应能找到 TestMessage");
 
         // 创建 DynamicMessage 并设置字段
-        let mut msg = DynamicMessage::new(msg_desc);
+        let mut msg = prost_reflect::DynamicMessage::new(msg_desc);
         msg.set_field_by_name("name", prost_reflect::Value::String("hello".to_string()));
         msg.set_field_by_name("value", prost_reflect::Value::I32(42));
 
@@ -1327,7 +1154,7 @@ message TestResponse {
             .get_message_by_name("test.TestResponse")
             .expect("应能找到 TestResponse");
 
-        let mut msg = DynamicMessage::new(msg_desc);
+        let mut msg = prost_reflect::DynamicMessage::new(msg_desc);
         msg.set_field_by_name("name", prost_reflect::Value::String("Alice".to_string()));
         msg.set_field_by_name("age", prost_reflect::Value::I32(30));
 
@@ -1397,5 +1224,41 @@ message TestResponse {
         assert_eq!(merged.len(), 1);
         assert_eq!(merged[0].0, "auth");
         assert_eq!(merged[0].1, "bearer");
+    }
+
+    // ===== ChannelzInfo 序列化测试 =====
+
+    #[test]
+    fn test_channelz_info_serialization() {
+        let info = ChannelzInfo {
+            state: "READY".to_string(),
+            connected_at: "2026-04-27T12:00:00+00:00".to_string(),
+            uptime_secs: 3600,
+            active_calls: 3,
+            last_error: None,
+        };
+        let json = serde_json::to_string(&info).expect("序列化应成功");
+        let deserialized: ChannelzInfo =
+            serde_json::from_str(&json).expect("反序列化应成功");
+        assert_eq!(deserialized.state, "READY");
+        assert_eq!(deserialized.uptime_secs, 3600);
+        assert_eq!(deserialized.active_calls, 3);
+        assert!(deserialized.last_error.is_none());
+    }
+
+    #[test]
+    fn test_channelz_info_with_error() {
+        let info = ChannelzInfo {
+            state: "TRANSIENT_FAILURE".to_string(),
+            connected_at: "2026-04-27T12:00:00+00:00".to_string(),
+            uptime_secs: 120,
+            active_calls: 0,
+            last_error: Some("connection refused".to_string()),
+        };
+        let json = serde_json::to_string(&info).expect("序列化应成功");
+        let deserialized: ChannelzInfo =
+            serde_json::from_str(&json).expect("反序列化应成功");
+        assert_eq!(deserialized.state, "TRANSIENT_FAILURE");
+        assert_eq!(deserialized.last_error, Some("connection refused".to_string()));
     }
 }

@@ -651,6 +651,30 @@ export const grpcConnectConfigSchema = z.object({
   default_metadata: z.array(grpcMetadataEntrySchema).optional(),
   connect_timeout_ms: z.number().min(1000).max(300000).optional(),
   discovered_services: z.array(grpcServiceInfoSchema).optional(),
+  // TLS 增强字段
+  tls_ca_cert: z.string().optional(),
+  tls_client_cert: z.string().optional(),
+  tls_client_key: z.string().optional(),
+  tls_server_name_override: z.string().optional(),
+  // 压缩配置
+  compression_encoding: z.string().optional(),
+  // Keepalive 配置
+  keepalive_time_ms: z.number().optional(),
+  keepalive_timeout_ms: z.number().optional(),
+  keepalive_permit_without_streams: z.boolean().optional(),
+  // Reflection 增强配置
+  reflection_metadata: z.array(grpcMetadataEntrySchema).optional(),
+  // 健康检查配置
+  health_check_service: z.string().optional(),
+  // 负载均衡配置
+  endpoints: z.array(z.string()).optional(),
+  // 重试配置
+  max_retries: z.number().optional(),
+  initial_backoff_ms: z.number().optional(),
+  max_backoff_ms: z.number().optional(),
+  retryable_status_codes: z.array(z.string()).optional(),
+  // Channelz 内省（EXPERIMENTAL）— 仅前端 UI 状态，不保存到节点数据
+  channelz_connection_id: z.string().optional(),
 });
 
 export type GrpcConnectConfigFormData = z.infer<typeof grpcConnectConfigSchema>;
@@ -677,6 +701,14 @@ export const grpcCallConfigSchema = z.object({
   timeout_ms: z.number().min(1000).max(300000).optional(),
   metadata: z.array(grpcMetadataEntrySchema).optional(),
   request_messages: z.array(streamMessageSchema).optional(),
+  // 压缩覆盖配置
+  compression_encoding: z.string().optional(),
+  // 消息大小限制
+  max_receive_message_size: z.number().optional(),
+  max_send_message_size: z.number().optional(),
+  // 重试配置（调用级覆盖）
+  max_retries: z.number().min(0).max(10).optional(),
+  initial_backoff_ms: z.number().min(100).max(30000).optional(),
 });
 
 export type GrpcCallConfigFormData = z.infer<typeof grpcCallConfigSchema>;

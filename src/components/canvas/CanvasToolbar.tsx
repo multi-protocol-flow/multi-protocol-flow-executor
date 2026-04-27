@@ -20,6 +20,7 @@ import { StressTestConfigDialog } from '@/components/stress-test/StressTestConfi
 import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
 import { DatasetExecutionPanel } from '@/components/execution/DatasetExecutionPanel';
 import { useDatasetExecutionStore } from '@/stores/datasetExecution';
+import { EnvironmentSelector } from '@/components/panels/EnvironmentManager';
 
 import { VariablePanel, extractVariableGroups } from '@/components/panels/VariablePanel';
 
@@ -185,6 +186,14 @@ export function CanvasToolbar() {
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
       {/* 主工具栏 */}
       <div className="flex items-center gap-3 bg-background/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-lg border border-border/50 dark:border-white/20">
+        {/* 环境选择器 */}
+        {!isAnyActive && <EnvironmentSelector />}
+
+        {/* 分隔线 */}
+        {!isAnyActive && flow?.environments && flow.environments.length > 0 && (
+          <div className="w-px h-5 bg-border" />
+        )}
+
         {/* 撤销/重做按钮 */}
         <button
           type="button"

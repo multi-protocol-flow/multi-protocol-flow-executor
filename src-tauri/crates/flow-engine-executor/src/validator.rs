@@ -258,7 +258,7 @@ mod tests {
     #[test]
     fn test_validator_no_start_node() {
         // 创建没有开始节点的流程
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, nodes: vec![create_end_node()], connections: vec![], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![create_end_node()], connections: vec![], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -279,7 +279,7 @@ mod tests {
         let start_node1 = create_entry_node();
         let start_node2 = create_entry_node();
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, nodes: vec![start_node1, start_node2], connections: vec![], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node1, start_node2], connections: vec![], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -301,7 +301,7 @@ mod tests {
             has_breakpoint: None,
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, nodes: vec![http_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node], connections: vec![], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -320,7 +320,7 @@ mod tests {
         let end_node = create_end_node();
         let connection = create_connection(&start_node.uuid, &end_node.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -353,7 +353,7 @@ mod tests {
             has_breakpoint: None,
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, nodes: vec![http_node1, http_node2], connections: vec![], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node1, http_node2], connections: vec![], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -371,7 +371,7 @@ mod tests {
         let end_node = create_end_node();
         let connection = create_connection(&start_node.uuid, &end_node.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.execute(&flow);
@@ -383,7 +383,7 @@ mod tests {
     #[test]
     fn test_validator_empty_flow() {
         // 创建空流程
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "空流程".to_string(), initial_variables: None, nodes: vec![], connections: vec![], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "空流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![], connections: vec![], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -413,7 +413,7 @@ mod tests {
         let connection1 = create_connection(&start_node.uuid, &http_node.uuid);
         let connection2 = create_connection(&http_node.uuid, &end_node.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "复杂测试流程".to_string(), initial_variables: None, nodes: vec![start_node, http_node, end_node], connections: vec![connection1, connection2], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "复杂测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, http_node, end_node], connections: vec![connection1, connection2], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -442,7 +442,7 @@ mod tests {
         // 只从 HTTP 节点发出连接
         let connection = create_connection(&http_node.uuid, &end_node.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, nodes: vec![start_node, http_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, http_node, end_node], connections: vec![connection], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -466,7 +466,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, nodes: vec![start_node.clone(), end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node.clone(), end_node], connections: vec![connection], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -510,7 +510,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, nodes: vec![start_node, other_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, other_node, end_node], connections: vec![connection], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -545,7 +545,7 @@ mod tests {
             has_breakpoint: None,
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "错误测试流程".to_string(), initial_variables: None, nodes: vec![http_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "错误测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node], connections: vec![], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -568,7 +568,7 @@ mod tests {
         let connection_1 = create_connection(&start_node.uuid, &end_node_1.uuid);
         let connection_2 = create_connection(&start_node.uuid, &end_node_2.uuid);
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, nodes: vec![start_node, end_node_1, end_node_2], connections: vec![connection_1, connection_2], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node_1, end_node_2], connections: vec![connection_1, connection_2], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
@@ -610,7 +610,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);

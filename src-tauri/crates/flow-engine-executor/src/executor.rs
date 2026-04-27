@@ -154,6 +154,8 @@ pub struct FlowExecutor {
     registry: Arc<NodeRegistry>,
     /// 钩子执行器（流程完成时触发）
     hook_executor: Option<Arc<dyn flow_engine_core::traits::HookExecutor>>,
+    /// 外部注入的 gRPC manager（用于 IPC cancel_stream）
+    grpc_manager: Option<Arc<dyn flow_engine_core::traits::GrpcProvider>>,
 }
 
 impl Default for FlowExecutor {
@@ -172,6 +174,7 @@ impl FlowExecutor {
             cancel_receiver: None,
             registry: Arc::new(crate::default_registry::default_registry()),
             hook_executor: None,
+            grpc_manager: None,
         }
     }
 
@@ -221,6 +224,12 @@ impl FlowExecutor {
         self
     }
 
+    /// 设置外部注入的 gRPC manager（用于 IPC cancel_stream 等外部操作）
+    pub fn with_grpc_manager(mut self, manager: Arc<dyn flow_engine_core::traits::GrpcProvider>) -> Self {
+        self.grpc_manager = Some(manager);
+        self
+    }
+
 /// 执行流程
     ///
     /// 从开始节点开始，按连接顺序遍历节点
@@ -257,7 +266,10 @@ impl FlowExecutor {
         let db_manager = Arc::new(flow_engine_db::db::pool::DatabaseConnectionManager::new());
 
         // 初始化 gRPC 连接管理器（流程级别的单例）
-        let grpc_manager = Arc::new(flow_engine_grpc::grpc_connection_manager::GrpcConnectionManager::new());
+        let grpc_manager: Arc<dyn flow_engine_core::traits::GrpcProvider> =
+            self.grpc_manager.clone().unwrap_or_else(|| {
+                Arc::new(flow_engine_grpc::grpc_connection_manager::GrpcConnectionManager::new())
+            });
 
         // 初始化 MCP 连接管理器（流程级别的单例）
         let mcp_manager = Arc::new(flow_engine_mcp::McpConnectionManager::new());
@@ -1088,7 +1100,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1131,7 +1143,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1161,7 +1173,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![http_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![http_node], connections: vec![], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1205,7 +1217,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let variables = json!({
             "test_var": "test_value",
@@ -1254,7 +1266,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let start_time = Instant::now();
@@ -1285,7 +1297,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1327,7 +1339,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1369,7 +1381,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1411,7 +1423,7 @@ mod tests {
             target_port_id: "in".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1444,7 +1456,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![start_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1489,7 +1501,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1551,7 +1563,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node_1, end_node_2], connections: vec![connection_1, connection_2], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node, end_node_1, end_node_2], connections: vec![connection_1, connection_2], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;
@@ -1842,7 +1854,7 @@ mod tests {
             target_port_id: "input".to_string(),
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "取消测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "取消测试流程".to_string(), nodes: vec![start_node, end_node], connections: vec![connection], hooks: None };
 
         // 创建取消通道并立即发送取消信号
         let (tx, rx) = tokio::sync::watch::channel(false);
@@ -1876,7 +1888,7 @@ mod tests {
             has_breakpoint: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "正常执行测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "正常执行测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
 
         // 创建取消通道但不发送信号
         let (_tx, rx) = tokio::sync::watch::channel(false);
@@ -1904,7 +1916,7 @@ mod tests {
             has_breakpoint: None,
         };
 
-        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, name: "取消错误测试".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "取消错误测试".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
 
         let (tx, rx) = tokio::sync::watch::channel(false);
         let _ = tx.send(true);
@@ -1944,7 +1956,7 @@ mod tests {
             has_breakpoint: None,
         };
 
-        let flow = Flow { uuid: flow_id, initial_variables: None, name: "runtime_variables 覆盖测试".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id, initial_variables: None, environments: vec![], active_environment: None, name: "runtime_variables 覆盖测试".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
 
         let executor = FlowExecutor::new();
         let runtime_vars = json!({
@@ -1991,7 +2003,7 @@ mod tests {
             has_breakpoint: None,
         };
 
-        let flow = Flow { uuid: flow_id, initial_variables: None, name: "runtime_variables None 测试".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
+        let flow = Flow { uuid: flow_id, initial_variables: None, environments: vec![], active_environment: None, name: "runtime_variables None 测试".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
 
         let executor = FlowExecutor::new();
         let result = executor.execute_flow(&flow, None, None, None).await;

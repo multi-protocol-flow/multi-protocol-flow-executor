@@ -55,6 +55,20 @@ pub use tauri_commands::{
     grpc_discover_services,
     // gRPC 请求骨架生成命令
     grpc_generate_request_skeleton,
+    // gRPC 请求骨架生成命令（Reflection 模式）
+    grpc_generate_request_skeleton_from_reflection,
+    // gRPC 请求 JSON 预验证命令
+    grpc_validate_request,
+    // gRPC Proto 目录扫描命令
+    grpc_scan_proto_directory,
+    // gRPC 读取 Proto 文件命令
+    grpc_read_proto_files,
+    // gRPC Descriptor Set 解析命令
+    grpc_parse_descriptor_set,
+    // gRPC 健康检查命令
+    grpc_health_check,
+    // gRPC Channelz 内省命令（EXPERIMENTAL）
+    grpc_channelz_info,
     // MCP 工具发现命令
     mcp_discover_tools,
     // MQTT 连接测试命令
@@ -213,6 +227,20 @@ pub fn run() {
     grpc_discover_services,
     // gRPC 请求骨架生成命令
     grpc_generate_request_skeleton,
+    // gRPC 请求骨架生成命令（Reflection 模式）
+    grpc_generate_request_skeleton_from_reflection,
+    // gRPC 请求 JSON 预验证命令
+    grpc_validate_request,
+    // gRPC Proto 目录扫描命令
+    grpc_scan_proto_directory,
+    // gRPC 读取 Proto 文件命令
+    grpc_read_proto_files,
+    // gRPC Descriptor Set 解析命令
+    grpc_parse_descriptor_set,
+    // gRPC 健康检查命令
+    grpc_health_check,
+    // gRPC Channelz 内省命令（EXPERIMENTAL）
+    grpc_channelz_info,
     // MCP 工具发现命令
     mcp_discover_tools,
     // MQTT 连接测试命令

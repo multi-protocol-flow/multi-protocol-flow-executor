@@ -4,7 +4,7 @@
  * 包含心跳超时检测、命令超时检测和状态回滚机制
  */
 import { create } from 'zustand';
-import type { DebugStatus, PauseReason, ExecutionStackEntry, DebugEvent, GrpcConnectionInfo, GrpcMethodCallRecord, McpConnectionInfo, McpOperationRecord } from '@/types/debug';
+import type { DebugStatus, PauseReason, ExecutionStackEntry, DebugEvent, GrpcConnectionInfo, GrpcMethodCallRecord, McpConnectionInfo, McpOperationRecord, GrpcRealtimeStreamMessage, GrpcRealtimeStreamError } from '@/types/debug';
 import type { FlowExecutionReport, NodeExecutionReport } from '@/types/report';
 import { DEBUG_HEALTH_CONFIG } from '@/types/debug';
 import { startDebug, sendDebugCommand, endDebug as endDebugService, saveFlowReport } from '@/services/tauri';
@@ -67,6 +67,12 @@ interface DebugState {
   /** MCP 操作记录 (connection_id → 操作记录列表) */
   mcpOperations: Record<string, McpOperationRecord[]>;
 
+  // ===== gRPC 实时流式数据 =====
+  /** gRPC 实时流式消息 (call_id → 消息列表) */
+  grpcStreamMessages: Record<string, GrpcRealtimeStreamMessage[]>;
+  /** gRPC 实时流式错误 (call_id → 错误) */
+  grpcStreamErrors: Record<string, GrpcRealtimeStreamError>;
+
   // ===== Actions =====
   /** 启动调试会话 */
   startDebugSession: (flow: Flow, breakpoints: string[]) => Promise<void>;
@@ -118,6 +124,8 @@ const initialState = {
   grpcMethodCalls: {},
   mcpConnections: {},
   mcpOperations: {},
+  grpcStreamMessages: {},
+  grpcStreamErrors: {},
 };
 
 // ============================================================================
@@ -637,6 +645,27 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       }));
     } else if ('GrpcChannelClosed' in event) {
       // gRPC 通道关闭 — 保留连接信息用于查看，不删除
+    } else if ('GrpcStreamMessage' in event) {
+      // gRPC 实时流式消息
+      const msg = event.GrpcStreamMessage;
+      set((state) => ({
+        grpcStreamMessages: {
+          ...state.grpcStreamMessages,
+          [msg.call_id]: [
+            ...(state.grpcStreamMessages[msg.call_id] || []),
+            msg,
+          ],
+        },
+      }));
+    } else if ('GrpcStreamError' in event) {
+      // gRPC 实时流式错误
+      const err = event.GrpcStreamError;
+      set((state) => ({
+        grpcStreamErrors: {
+          ...state.grpcStreamErrors,
+          [err.call_id]: err,
+        },
+      }));
     } else if ('McpConnectionCreated' in event) {
       const { connection_id, url, server_name } = event.McpConnectionCreated;
       set((state) => ({

@@ -207,9 +207,9 @@ describe('GrpcViewer', () => {
       expect(screen.getByText('响应消息 (2 条)')).toBeDefined();
 
       await expandSection(user, '响应消息');
-      // 检查时间线显示
-      expect(screen.getByText('10ms')).toBeDefined();
-      expect(screen.getByText('25ms')).toBeDefined();
+      // 检查时间线显示（格式: +Nms）
+      expect(screen.getByText('+10ms')).toBeDefined();
+      expect(screen.getByText('+25ms')).toBeDefined();
     });
   });
 
@@ -290,7 +290,7 @@ describe('GrpcViewer', () => {
       // 响应消息
       expect(screen.getByText('响应消息 (2 条)')).toBeDefined();
       await expandSection(user, '响应消息');
-      expect(screen.getByText('10ms')).toBeDefined();
+      expect(screen.getByText('+10ms')).toBeDefined();
     });
 
     it('显示 Trailers', async () => {

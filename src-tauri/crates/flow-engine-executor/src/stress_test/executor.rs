@@ -713,7 +713,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
-        }], connections: vec![], initial_variables: None, hooks: None }
+        }], connections: vec![], initial_variables: None, environments: vec![], active_environment: None, hooks: None }
     }
 
     /// 测试 StressTestExecutor 创建

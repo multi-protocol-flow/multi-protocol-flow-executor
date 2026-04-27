@@ -56,6 +56,7 @@ pub use flow_engine_grpc::grpc_connect_executor;
 pub use flow_engine_grpc::grpc_connection_manager;
 pub use flow_engine_grpc::grpc_call_executor;
 pub use flow_engine_grpc::proto_parser;
+pub use flow_engine_grpc::reflection;
 // TCP (flow-engine-tcp)
 pub use flow_engine_tcp::tcp_close_executor;
 pub use flow_engine_tcp::tcp_connect_executor;

@@ -1,7 +1,7 @@
 // gRPC 调用节点执行器
 //
 // 实现 gRPC 调用（Unary/Server Streaming/Client Streaming/Bidi Streaming）、
-// 变量替换和统一输出映射功能。
+// 变量替换、统一输出映射和重试功能。
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -9,12 +9,71 @@ use flow_engine_core::debug_types::DebugEvent;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
-use flow_engine_core::node_config::NodeData;
+use flow_engine_core::node_config::{GrpcCallConfig, NodeData};
 use flow_engine_core::traits::{GrpcPattern, GrpcProvider};
+use rand::Rng;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
+
+/// 最大退避时间上限（30 秒）
+const MAX_BACKOFF_CAP_MS: u64 = 30_000;
+
+/// 检查 gRPC 错误是否可重试
+///
+/// 可重试的状态码：UNAVAILABLE、DEADLINE_EXCEEDED
+/// 这些 code 出现在 tonic Status 的字符串表示中，格式为 "message (CODE)"
+fn is_retryable_error(error: &str) -> bool {
+    error.contains("(UNAVAILABLE)") || error.contains("(DEADLINE_EXCEEDED)")
+}
+
+/// 计算指数退避时间（带随机抖动）
+///
+/// - `initial_backoff_ms` — 初始退避时间（毫秒）
+/// - `attempt` — 当前重试次数（从 0 开始）
+/// - 返回等待时间，上限 30 秒，加 0-50% 随机抖动
+fn calculate_backoff_ms(initial_backoff_ms: u64, attempt: u32) -> u64 {
+    let base_ms = initial_backoff_ms.saturating_mul(2u64.saturating_pow(attempt));
+    let capped_ms = base_ms.min(MAX_BACKOFF_CAP_MS);
+    // 添加 0-50% 随机抖动
+    let jitter_ms = if capped_ms > 0 {
+        let mut rng = rand::thread_rng();
+        rng.gen_range(0..=capped_ms / 2)
+    } else {
+        0
+    };
+    capped_ms + jitter_ms
+}
+
+/// 从 call config 和 connect config 解析有效的重试参数
+///
+/// Call 级配置覆盖 connect 级默认值
+fn resolve_retry_config(
+    call_config: &GrpcCallConfig,
+    node_map: &HashMap<String, &Node>,
+) -> (u32, u64) {
+    // 尝试从连接节点获取默认值
+    let (default_max_retries, default_initial_backoff_ms) = node_map
+        .get(&call_config.connection_id)
+        .and_then(|connect_node| {
+            if let NodeData::GrpcConnect(connect_config) = &connect_node.data {
+                Some((
+                    connect_config.max_retries.unwrap_or(0),
+                    connect_config.initial_backoff_ms.unwrap_or(1000),
+                ))
+            } else {
+                None
+            }
+        })
+        .unwrap_or((0, 1000));
+
+    // Call 级覆盖 Connect 级
+    let max_retries = call_config.max_retries.unwrap_or(default_max_retries);
+    let initial_backoff_ms = call_config.initial_backoff_ms.unwrap_or(default_initial_backoff_ms);
+
+    (max_retries, initial_backoff_ms)
+}
 
 /// gRPC 调用节点执行器
 pub struct GrpcCallExecutor {
@@ -35,7 +94,7 @@ impl NodeExecutor for GrpcCallExecutor {
         node: &Node,
         context: &mut ExecutionContext,
         connections: &[Connection],
-        _node_map: &HashMap<String, &Node>,
+        node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         let start_time = Instant::now();
 
@@ -103,7 +162,13 @@ impl NodeExecutor for GrpcCallExecutor {
 
         let pattern_str = format!("{:?}", pattern).to_lowercase(); // "unary", "server_streaming" 等
 
-        // 6. 日志：开始调用
+        // 6. 生成调用 ID（用于区分同一连接的多次调用）
+        let call_id = format!("{}-{}", node.uuid, start_time.elapsed().as_millis());
+
+        // 6.5 获取调试事件发送器（如果可用）
+        let debug_sender = context.debug_event_sender.clone();
+
+        // 7. 日志：开始调用
         log::info!(
             "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: grpc_call, 模式: {}, 连接ID: {}, 服务: {}/{}",
             context.flow_uuid,
@@ -132,77 +197,177 @@ impl NodeExecutor for GrpcCallExecutor {
             })
             .await;
 
-        // 7. 根据模式路由到正确的 gRPC 调用方法
+        // 7. 解析重试配置
+        let (max_retries, initial_backoff_ms) = resolve_retry_config(&config, node_map);
+
+        // 8. 根据模式路由到正确的 gRPC 调用方法
         let call_start = Instant::now();
-        let call_result: Result<
-            (
-                &str,
-                serde_json::Value,
-                Vec<serde_json::Value>,
-                usize,
-                usize,
-                std::collections::HashMap<String, String>,
-                Option<flow_engine_core::traits::GrpcTimingInfo>,
-            ),
-            String,
-        > = match pattern {
-            GrpcPattern::Unary => self
-                .grpc_manager
-                .call_unary(
-                    &connection_id,
-                    &config.service_name,
-                    &config.method_name,
-                    &request_json,
-                    metadata,
-                    config.timeout_ms,
-                )
-                .await
-                .map(|v| {
-                    (
-                        "unary",
-                        v,
-                        vec![] as Vec<serde_json::Value>,
-                        0usize,
-                        0usize,
-                        std::collections::HashMap::new(),
-                        None as Option<flow_engine_core::traits::GrpcTimingInfo>,
-                    )
-                }),
-            GrpcPattern::ServerStreaming => self
-                .grpc_manager
-                .call_server_streaming(
-                    &connection_id,
-                    &config.service_name,
-                    &config.method_name,
-                    &request_json,
-                    metadata,
-                    config.timeout_ms,
-                )
-                .await
-                .map(|responses| {
-                    let received = responses.len();
-                    // 包装为前端期望的 { index, data } 格式
-                    let wrapped: Vec<serde_json::Value> = responses
-                        .into_iter()
-                        .enumerate()
-                        .map(|(i, r)| {
-                            json!({
-                                "index": i + 1,
-                                "data": r,
-                            })
-                        })
-                        .collect();
-                    (
-                        "server_streaming",
-                        serde_json::Value::Null,
-                        wrapped,
-                        1usize,
-                        received,
-                        std::collections::HashMap::new(),
-                        None as Option<flow_engine_core::traits::GrpcTimingInfo>,
-                    )
-                }),
+
+        // 辅助类型别名
+        type CallOutput = (
+            &'static str,
+            serde_json::Value,
+            Vec<serde_json::Value>,
+            usize,
+            usize,
+            std::collections::HashMap<String, String>,
+            Option<flow_engine_core::traits::GrpcTimingInfo>,
+            Vec<(String, String)>,
+            bool, // cancelled
+        );
+
+        let call_result: Result<CallOutput, String> = match pattern {
+            GrpcPattern::Unary => {
+                let mut attempt: u32 = 0;
+
+                loop {
+                    let result = self
+                        .grpc_manager
+                        .call_unary(
+                            &connection_id,
+                            &config.service_name,
+                            &config.method_name,
+                            &request_json,
+                            metadata.clone(),
+                            config.timeout_ms,
+                            config.compression_encoding.clone(),
+                            debug_sender.clone(),
+                            &node.uuid,
+                            &call_id,
+                        )
+                        .await
+                        .map(|(v, meta)| {
+                            (
+                                "unary",
+                                v,
+                                vec![] as Vec<serde_json::Value>,
+                                0usize,
+                                0usize,
+                                std::collections::HashMap::new(),
+                                None as Option<flow_engine_core::traits::GrpcTimingInfo>,
+                                meta,
+                                false, // unary 不支持取消
+                            )
+                        });
+
+                    match result {
+                        Ok(output) => break Ok(output),
+                        Err(e) => {
+                            // 检查是否可重试
+                            if attempt < max_retries && is_retryable_error(&e) {
+                                let backoff_ms = calculate_backoff_ms(initial_backoff_ms, attempt);
+                                log::warn!(
+                                    "[gRPC] Unary 调用失败（可重试），第 {} 次重试，等待 {}ms: {}",
+                                    attempt + 1,
+                                    backoff_ms,
+                                    e
+                                );
+                                context
+                                    .emit_log(LogEvent {
+                                        level: LogLevel::Warn,
+                                        message: format!(
+                                            "gRPC 调用失败，第 {} 次重试（等待 {}ms）",
+                                            attempt + 1,
+                                            backoff_ms
+                                        ),
+                                        timestamp: std::time::SystemTime::now()
+                                            .duration_since(std::time::UNIX_EPOCH)
+                                            .expect("系统时间错误")
+                                            .as_millis() as u64,
+                                        node_uuid: Some(node.uuid.clone()),
+                                        node_name: Some(node.name.clone()),
+                                        flow_uuid: context.flow_uuid.clone(),
+                                    })
+                                    .await;
+                                tokio::time::sleep(Duration::from_millis(backoff_ms)).await;
+                                attempt += 1;
+                            } else {
+                                break Err(e);
+                            }
+                        }
+                    }
+                }
+            }
+            GrpcPattern::ServerStreaming => {
+                let mut attempt: u32 = 0;
+
+                loop {
+                    let result = self
+                        .grpc_manager
+                        .call_server_streaming(
+                            &connection_id,
+                            &config.service_name,
+                            &config.method_name,
+                            &request_json,
+                            metadata.clone(),
+                            config.timeout_ms,
+                            config.compression_encoding.clone(),
+                            debug_sender.clone(),
+                            &node.uuid,
+                            &call_id,
+                        )
+                        .await
+                        .map(|(responses, meta)| {
+                            let received = responses.len();
+                            (
+                                "server_streaming",
+                                serde_json::Value::Null,
+                                responses,
+                                1usize,
+                                received,
+                                std::collections::HashMap::new(),
+                                None as Option<flow_engine_core::traits::GrpcTimingInfo>,
+                                meta,
+                                false, // server_streaming 取消状态由前端跟踪
+                            )
+                        });
+
+                    match result {
+                        Ok(output) => break Ok(output),
+                        Err(e) => {
+                            // 检查是否可重试
+                            if attempt < max_retries && is_retryable_error(&e) {
+                                let backoff_ms = calculate_backoff_ms(initial_backoff_ms, attempt);
+                                log::warn!(
+                                    "[gRPC] Server Streaming 调用失败（可重试），第 {} 次重试，等待 {}ms: {}",
+                                    attempt + 1,
+                                    backoff_ms,
+                                    e
+                                );
+                                context
+                                    .emit_log(LogEvent {
+                                        level: LogLevel::Warn,
+                                        message: format!(
+                                            "gRPC 调用失败，第 {} 次重试（等待 {}ms）",
+                                            attempt + 1,
+                                            backoff_ms
+                                        ),
+                                        timestamp: std::time::SystemTime::now()
+                                            .duration_since(std::time::UNIX_EPOCH)
+                                            .expect("系统时间错误")
+                                            .as_millis() as u64,
+                                        node_uuid: Some(node.uuid.clone()),
+                                        node_name: Some(node.name.clone()),
+                                        flow_uuid: context.flow_uuid.clone(),
+                                    })
+                                    .await;
+                                tokio::time::sleep(Duration::from_millis(backoff_ms)).await;
+                                attempt += 1;
+                            } else {
+                                break Err(e);
+                            }
+                        }
+                    }
+                }
+            }
             GrpcPattern::ClientStreaming => {
+                // Client Streaming 不支持重试（复杂状态）
+                if max_retries > 0 {
+                    log::warn!(
+                        "[gRPC] Client Streaming 模式不支持重试，忽略重试配置 (max_retries={})",
+                        max_retries
+                    );
+                }
                 // 过滤启用的消息并提取内容
                 let messages: Vec<String> = config
                     .request_messages
@@ -219,9 +384,13 @@ impl NodeExecutor for GrpcCallExecutor {
                         messages,
                         metadata,
                         config.timeout_ms,
+                        config.compression_encoding.clone(),
+                        debug_sender.clone(),
+                        &node.uuid,
+                        &call_id,
                     )
                     .await
-                    .map(|response| {
+                    .map(|(response, meta)| {
                         (
                             "client_streaming",
                             response,
@@ -230,10 +399,19 @@ impl NodeExecutor for GrpcCallExecutor {
                             1usize,
                             std::collections::HashMap::new(),
                             None as Option<flow_engine_core::traits::GrpcTimingInfo>,
+                            meta,
+                            false, // client_streaming 不支持取消
                         )
                     })
             }
             GrpcPattern::BidiStreaming => {
+                // Bidi Streaming 不支持重试（复杂状态）
+                if max_retries > 0 {
+                    log::warn!(
+                        "[gRPC] Bidi Streaming 模式不支持重试，忽略重试配置 (max_retries={})",
+                        max_retries
+                    );
+                }
                 let messages: Vec<String> = config
                     .request_messages
                     .iter()
@@ -249,31 +427,27 @@ impl NodeExecutor for GrpcCallExecutor {
                         messages,
                         metadata,
                         config.timeout_ms,
+                        config.compression_encoding.clone(),
+                        debug_sender.clone(),
+                        &node.uuid,
+                        &call_id,
                     )
                     .await
                     .map(|result| {
                         let received = result.received_count;
                         let timing = Some(result.timing);
-                        // 包装为前端期望的 { index, data } 格式
-                        let wrapped: Vec<serde_json::Value> = result
-                            .responses
-                            .into_iter()
-                            .enumerate()
-                            .map(|(i, r)| {
-                                json!({
-                                    "index": i + 1,
-                                    "data": r,
-                                })
-                            })
-                            .collect();
+                        let meta = result.response_metadata;
+                        let cancelled = result.cancelled;
                         (
                             "bidi_streaming",
                             serde_json::Value::Null,
-                            wrapped,
+                            result.responses,
                             sent,
                             received,
                             result.trailers,
                             timing,
+                            meta,
+                            cancelled,
                         )
                     })
             }
@@ -281,7 +455,7 @@ impl NodeExecutor for GrpcCallExecutor {
         let call_duration_ms = call_start.elapsed().as_millis() as u64;
 
         match call_result {
-            Ok((pattern_str, response_data, responses, sent_count, received_count, trailers, streaming_timing)) => {
+            Ok((pattern_str, response_data, responses, sent_count, received_count, trailers, streaming_timing, response_metadata, cancelled)) => {
                 log::info!(
                     "[gRPC] 调用成功: connection_id={}, service={}, method={}, 模式={}, 耗时={}ms",
                     connection_id,
@@ -326,8 +500,19 @@ impl NodeExecutor for GrpcCallExecutor {
                 if !trailers.is_empty() {
                     output_data["trailers"] = json!(trailers);
                 }
+                // 添加响应 Initial Metadata
+                let meta_map: std::collections::HashMap<String, String> = response_metadata.into_iter().collect();
+                if !meta_map.is_empty() {
+                    output_data["response_metadata"] = json!(meta_map);
+                }
                 if let Some(ref t) = streaming_timing {
                     output_data["streaming_timing"] = json!(t);
+                }
+                // 添加取消标记
+                if cancelled {
+                    output_data["cancelled"] = json!(true);
+                    output_data["status"] = json!("cancelled");
+                    output_data["status_message"] = json!("用户取消");
                 }
 
                 // Unary/Client: 单个响应在 response_data
@@ -389,13 +574,17 @@ impl NodeExecutor for GrpcCallExecutor {
                 Ok((next_node_ids, Some(output_data)))
             }
             Err(e) => {
+                // 解析错误消息和结构化错误详情
+                let (error_message, error_details) =
+                    crate::error_detail::parse_error_details(&e);
+
                 log::error!(
                     "[gRPC] 调用失败: connection_id={}, service={}, method={}, 模式={}, error={}",
                     connection_id,
                     config.service_name,
                     config.method_name,
                     pattern_str,
-                    e
+                    error_message
                 );
 
                 // 日志：调用失败
@@ -404,7 +593,7 @@ impl NodeExecutor for GrpcCallExecutor {
                         level: LogLevel::Error,
                         message: format!(
                             "gRPC 调用失败: {}/{} ({}) - {}",
-                            config.service_name, config.method_name, pattern_str, e
+                            config.service_name, config.method_name, pattern_str, error_message
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
@@ -416,9 +605,9 @@ impl NodeExecutor for GrpcCallExecutor {
                     })
                     .await;
 
-                // 构建错误输出数据（包含 pattern 字段）
+                // 构建错误输出数据（包含 pattern 字段和结构化错误详情）
                 let duration = start_time.elapsed();
-                let error_output = json!({
+                let mut error_output = json!({
                     "success": false,
                     "pattern": pattern_str,
                     "connection_id": connection_id,
@@ -438,9 +627,14 @@ impl NodeExecutor for GrpcCallExecutor {
                     },
                     "data": serde_json::Value::Null,
                     "status": "error",
-                    "status_message": &e,
-                    "error": &e,
+                    "status_message": error_message,
+                    "error": error_message,
                 });
+
+                // 添加结构化错误详情（来自 google.rpc.Status 的 google.protobuf.Any）
+                if !error_details.is_empty() {
+                    error_output["error_details"] = json!(error_details);
+                }
 
                 // 返回 false 端口
                 let next_node_ids: Vec<String> = {
@@ -480,15 +674,13 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: name.to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig {
-                connection_id: connection_id.to_string(),
-                service_name: "test.TestService".to_string(),
-                method_name: "GetUser".to_string(),
-                request_json: r#"{"user_id": "1"}"#.to_string(),
-                timeout_ms: 30000,
-                metadata: vec![],
-                request_messages: vec![],
-            }),
+            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: connection_id.to_string(),
+            service_name: "test.TestService".to_string(),
+            method_name: "GetUser".to_string(),
+            request_json: r#"{"user_id": "1"}"#.to_string(),
+            timeout_ms: 30000,
+            metadata: vec![],
+            request_messages: vec![], ..Default::default() }),
             ports: None,
             has_breakpoint: None,
         }
@@ -563,15 +755,13 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: "变量替换测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig {
-                connection_id: "{{conn_id}}".to_string(),
-                service_name: "test.TestService".to_string(),
-                method_name: "GetUser".to_string(),
-                request_json: r#"{"user_id": "{{uid}}"}"#.to_string(),
-                timeout_ms: 30000,
-                metadata: vec![],
-                request_messages: vec![],
-            }),
+            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: "{{conn_id}}".to_string(),
+            service_name: "test.TestService".to_string(),
+            method_name: "GetUser".to_string(),
+            request_json: r#"{"user_id": "{{uid}}"}"#.to_string(),
+            timeout_ms: 30000,
+            metadata: vec![],
+            request_messages: vec![], ..Default::default() }),
             ports: None,
             has_breakpoint: None,
         };
@@ -613,18 +803,16 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: "Metadata 替换测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig {
-                connection_id: "test-conn".to_string(),
-                service_name: "test.TestService".to_string(),
-                method_name: "GetUser".to_string(),
-                request_json: "{}".to_string(),
-                timeout_ms: 30000,
-                metadata: vec![GrpcMetadataEntry {
-                    key: "authorization".to_string(),
-                    value: "Bearer {{token}}".to_string(),
-                }],
-                request_messages: vec![],
-            }),
+            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: "test-conn".to_string(),
+            service_name: "test.TestService".to_string(),
+            method_name: "GetUser".to_string(),
+            request_json: "{}".to_string(),
+            timeout_ms: 30000,
+            metadata: vec![GrpcMetadataEntry {
+                key: "authorization".to_string(),
+                value: "Bearer {{token}}".to_string(),
+            }],
+            request_messages: vec![], ..Default::default() }),
             ports: None,
             has_breakpoint: None,
         };
@@ -678,7 +866,7 @@ mod tests {
     // ========================================================================
 
     use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
-    use flow_engine_core::traits::{GrpcMethodInfo, GrpcServiceInfo, GrpcStreamingResult, GrpcTimingInfo};
+    use flow_engine_core::traits::{GrpcMethodInfo, GrpcServiceInfo, GrpcStreamingResult, GrpcTimingInfo, HealthCheckResponse};
 
     /// 记录 MockGrpcProvider 各方法的调用次数和参数
     struct MockCallLog {
@@ -726,20 +914,22 @@ mod tests {
                 services,
                 unary_response: Ok(serde_json::json!({"result": "ok"})),
                 server_streaming_response: Ok(vec![
-                    serde_json::json!({"chunk": 1}),
-                    serde_json::json!({"chunk": 2}),
+                    serde_json::json!({"index": 1, "data": {"chunk": 1}, "received_at_ms": 0, "size_bytes": 0}),
+                    serde_json::json!({"index": 2, "data": {"chunk": 2}, "received_at_ms": 0, "size_bytes": 0}),
                 ]),
                 client_streaming_response: Ok(serde_json::json!({"aggregated": true})),
                 bidi_streaming_response: Ok(GrpcStreamingResult {
                     status: 0,
-                    responses: vec![serde_json::json!({"resp": "bidi1"})],
+                    responses: vec![serde_json::json!({"index": 1, "data": {"resp": "bidi1"}, "received_at_ms": 50, "size_bytes": 10})],
                     sent_count: 2,
                     received_count: 1,
                     trailers: std::collections::HashMap::new(),
+                    response_metadata: vec![],
                     timing: GrpcTimingInfo {
                         total_ms: 100,
                         first_response_ms: Some(50),
                     },
+                    cancelled: false,
                 }),
                 call_log: MockCallLog::new(),
             }
@@ -764,6 +954,14 @@ mod tests {
             &self, _uuid: String, _url: String, _use_tls: bool, _tls_skip_verify: bool,
             _enable_reflection: bool, _proto_files: Vec<(String, String)>,
             _metadata: Vec<(String, String)>, _connect_timeout_ms: u64,
+            _tls_ca_cert: Option<String>, _tls_client_cert: Option<String>,
+            _tls_client_key: Option<String>, _tls_server_name_override: Option<String>,
+            _reflection_metadata: Vec<(String, String)>,
+            _compression_encoding: Option<String>,
+            _keepalive_time_ms: Option<u64>,
+            _keepalive_timeout_ms: Option<u64>,
+            _keepalive_permit_without_streams: Option<bool>,
+            _endpoints: Option<Vec<String>>,
         ) -> Result<Vec<GrpcServiceInfo>, String> {
             Err("MockGrpcProvider::connect 不应被调用".to_string())
         }
@@ -771,32 +969,47 @@ mod tests {
         async fn call_unary(
             &self, _connection_id: &str, _service_name: &str, _method_name: &str,
             _request_json: &str, _metadata: Vec<(String, String)>, _timeout_ms: u64,
-        ) -> Result<serde_json::Value, String> {
+            _compression_encoding: Option<String>,
+            _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+            _node_uuid: &str,
+            _call_id: &str,
+        ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
             self.call_log.call_unary_count.fetch_add(1, AtomicOrdering::SeqCst);
-            self.unary_response.clone()
+            self.unary_response.clone().map(|v| (v, vec![]))
         }
 
         async fn call_server_streaming(
             &self, _connection_id: &str, _service_name: &str, _method_name: &str,
             _request_json: &str, _metadata: Vec<(String, String)>, _timeout_ms: u64,
-        ) -> Result<Vec<serde_json::Value>, String> {
+            _compression_encoding: Option<String>,
+            _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+            _node_uuid: &str,
+            _call_id: &str,
+        ) -> Result<(Vec<serde_json::Value>, Vec<(String, String)>), String> {
             self.call_log.call_server_streaming_count.fetch_add(1, AtomicOrdering::SeqCst);
-            self.server_streaming_response.clone()
+            self.server_streaming_response.clone().map(|v| (v, vec![]))
         }
 
         async fn call_client_streaming(
             &self, _connection_id: &str, _service_name: &str, _method_name: &str,
             request_messages: Vec<String>, _metadata: Vec<(String, String)>, _timeout_ms: u64,
-        ) -> Result<serde_json::Value, String> {
+            _compression_encoding: Option<String>,
+            _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+            _node_uuid: &str,
+            _call_id: &str,
+        ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
             self.call_log.call_client_streaming_count.fetch_add(1, AtomicOrdering::SeqCst);
             *self.call_log.last_client_messages.lock().expect("锁不应失败") = request_messages;
-            self.client_streaming_response.clone()
+            self.client_streaming_response.clone().map(|v| (v, vec![]))
         }
 
         async fn call_bidi_streaming(
             &self, _connection_id: &str, _service_name: &str, _method_name: &str,
             request_messages: Vec<String>, _metadata: Vec<(String, String)>,
-            _timeout_ms: u64,
+            _timeout_ms: u64, _compression_encoding: Option<String>,
+            _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+            _node_uuid: &str,
+            _call_id: &str,
         ) -> Result<GrpcStreamingResult, String> {
             self.call_log.call_bidi_streaming_count.fetch_add(1, AtomicOrdering::SeqCst);
             *self.call_log.last_bidi_messages.lock().expect("锁不应失败") = request_messages;
@@ -813,6 +1026,20 @@ mod tests {
 
         fn list_services(&self, _connection_id: &str) -> Option<Vec<GrpcServiceInfo>> {
             Some(self.services.clone())
+        }
+
+        async fn health_check(
+            &self,
+            _connection_id: &str,
+            _service: &str,
+        ) -> Result<HealthCheckResponse, String> {
+            Ok(HealthCheckResponse {
+                status: "SERVING".to_string(),
+            })
+        }
+
+        fn cancel_stream(&self, _connection_id: &str, _call_id: &str) -> Result<(), String> {
+            Ok(())
         }
     }
 
@@ -893,15 +1120,13 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: "Server Streaming 调用".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig {
-                connection_id: "conn-1".to_string(),
-                service_name: "test.TestService".to_string(),
-                method_name: "ListItems".to_string(),
-                request_json: "{}".to_string(),
-                timeout_ms: 30000,
-                metadata: vec![],
-                request_messages: vec![],
-            }),
+            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: "conn-1".to_string(),
+            service_name: "test.TestService".to_string(),
+            method_name: "ListItems".to_string(),
+            request_json: "{}".to_string(),
+            timeout_ms: 30000,
+            metadata: vec![],
+            request_messages: vec![], ..Default::default() }),
             ports: None,
             has_breakpoint: None,
         };
@@ -951,28 +1176,26 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: "Client Streaming 调用".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig {
-                connection_id: "conn-1".to_string(),
-                service_name: "test.TestService".to_string(),
-                method_name: "UploadItems".to_string(),
-                request_json: "{}".to_string(),
-                timeout_ms: 30000,
-                metadata: vec![],
-                request_messages: vec![
-                    flow_engine_core::node_config::StreamMessage {
-                        enabled: true,
-                        content: r#"{"item": 1}"#.to_string(),
-                    },
-                    flow_engine_core::node_config::StreamMessage {
-                        enabled: false,
-                        content: r#"{"item": 2}"#.to_string(),
-                    },
-                    flow_engine_core::node_config::StreamMessage {
-                        enabled: true,
-                        content: r#"{"item": 3}"#.to_string(),
-                    },
-                ],
-            }),
+            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: "conn-1".to_string(),
+            service_name: "test.TestService".to_string(),
+            method_name: "UploadItems".to_string(),
+            request_json: "{}".to_string(),
+            timeout_ms: 30000,
+            metadata: vec![],
+            request_messages: vec![
+                flow_engine_core::node_config::StreamMessage {
+                    enabled: true,
+                    content: r#"{"item": 1}"#.to_string(),
+                },
+                flow_engine_core::node_config::StreamMessage {
+                    enabled: false,
+                    content: r#"{"item": 2}"#.to_string(),
+                },
+                flow_engine_core::node_config::StreamMessage {
+                    enabled: true,
+                    content: r#"{"item": 3}"#.to_string(),
+                },
+            ], ..Default::default() }),
             ports: None,
             has_breakpoint: None,
         };
@@ -1014,20 +1237,18 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: "Bidi Streaming 调用".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig {
-                connection_id: "conn-1".to_string(),
-                service_name: "test.TestService".to_string(),
-                method_name: "Chat".to_string(),
-                request_json: "{}".to_string(),
-                timeout_ms: 5000,
-                metadata: vec![],
-                request_messages: vec![
-                    flow_engine_core::node_config::StreamMessage {
-                        enabled: true,
-                        content: r#"{"msg": "hello"}"#.to_string(),
-                    },
-                ],
-            }),
+            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: "conn-1".to_string(),
+            service_name: "test.TestService".to_string(),
+            method_name: "Chat".to_string(),
+            request_json: "{}".to_string(),
+            timeout_ms: 5000,
+            metadata: vec![],
+            request_messages: vec![
+                flow_engine_core::node_config::StreamMessage {
+                    enabled: true,
+                    content: r#"{"msg": "hello"}"#.to_string(),
+                },
+            ], ..Default::default() }),
             ports: None,
             has_breakpoint: None,
         };
@@ -1071,28 +1292,26 @@ mod tests {
             node_type: "grpc_call".to_string(),
             name: "消息过滤测试".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::GrpcCall(GrpcCallConfig {
-                connection_id: "conn-1".to_string(),
-                service_name: "test.TestService".to_string(),
-                method_name: "Upload".to_string(),
-                request_json: "{}".to_string(),
-                timeout_ms: 30000,
-                metadata: vec![],
-                request_messages: vec![
-                    flow_engine_core::node_config::StreamMessage {
-                        enabled: false,
-                        content: r#"{"skip": 1}"#.to_string(),
-                    },
-                    flow_engine_core::node_config::StreamMessage {
-                        enabled: true,
-                        content: r#"{"keep": 2}"#.to_string(),
-                    },
-                    flow_engine_core::node_config::StreamMessage {
-                        enabled: false,
-                        content: r#"{"skip": 3}"#.to_string(),
-                    },
-                ],
-            }),
+            data: NodeData::GrpcCall(GrpcCallConfig { connection_id: "conn-1".to_string(),
+            service_name: "test.TestService".to_string(),
+            method_name: "Upload".to_string(),
+            request_json: "{}".to_string(),
+            timeout_ms: 30000,
+            metadata: vec![],
+            request_messages: vec![
+                flow_engine_core::node_config::StreamMessage {
+                    enabled: false,
+                    content: r#"{"skip": 1}"#.to_string(),
+                },
+                flow_engine_core::node_config::StreamMessage {
+                    enabled: true,
+                    content: r#"{"keep": 2}"#.to_string(),
+                },
+                flow_engine_core::node_config::StreamMessage {
+                    enabled: false,
+                    content: r#"{"skip": 3}"#.to_string(),
+                },
+            ], ..Default::default() }),
             ports: None,
             has_breakpoint: None,
         };
@@ -1342,6 +1561,484 @@ mod tests {
         // 失败时不应发送 GrpcMethodCalled 事件
         let events = debug_sender.events();
         assert_eq!(events.len(), 0, "失败时不应发送调试事件");
+    }
+
+    // ========================================================================
+    // 重试逻辑测试
+    // ========================================================================
+
+    #[test]
+    fn test_is_retryable_error_unavailable() {
+        assert!(is_retryable_error("gRPC Unary 调用失败: service unavailable (UNAVAILABLE)"));
+    }
+
+    #[test]
+    fn test_is_retryable_error_deadline_exceeded() {
+        assert!(is_retryable_error("gRPC Unary 调用失败: timeout (DEADLINE_EXCEEDED)"));
+    }
+
+    #[test]
+    fn test_is_retryable_error_not_retryable() {
+        assert!(!is_retryable_error("gRPC Unary 调用失败: not found (NOT_FOUND)"));
+        assert!(!is_retryable_error("gRPC Unary 调用失败: permission denied (PERMISSION_DENIED)"));
+        assert!(!is_retryable_error("连接 'xxx' 不存在"));
+    }
+
+    #[test]
+    fn test_calculate_backoff_exponential() {
+        // initial_backoff_ms=1000, attempt=0 → 1000 + jitter(0-500)
+        let backoff = calculate_backoff_ms(1000, 0);
+        assert!(backoff >= 1000 && backoff <= 1500, "attempt 0: {} should be in [1000, 1500]", backoff);
+
+        // attempt=1 → 2000 + jitter(0-1000)
+        let backoff = calculate_backoff_ms(1000, 1);
+        assert!(backoff >= 2000 && backoff <= 3000, "attempt 1: {} should be in [2000, 3000]", backoff);
+
+        // attempt=2 → 4000 + jitter(0-2000)
+        let backoff = calculate_backoff_ms(1000, 2);
+        assert!(backoff >= 4000 && backoff <= 6000, "attempt 2: {} should be in [4000, 6000]", backoff);
+    }
+
+    #[test]
+    fn test_calculate_backoff_capped_at_30s() {
+        // initial_backoff_ms=1000, attempt=10 → 1000*1024 > 30000, cap at 30000
+        let backoff = calculate_backoff_ms(1000, 10);
+        assert!(backoff >= 30000 && backoff <= 45000, "should be capped at 30000 + jitter");
+    }
+
+    #[test]
+    fn test_resolve_retry_config_call_overrides_connect() {
+        let call_config = GrpcCallConfig {
+            connection_id: "conn-1".to_string(),
+            service_name: "test.Service".to_string(),
+            method_name: "Get".to_string(),
+            request_json: "{}".to_string(),
+            timeout_ms: 30000,
+            metadata: vec![],
+            request_messages: vec![],
+            compression_encoding: None,
+            max_retries: Some(5),
+            initial_backoff_ms: Some(2000),
+            max_receive_message_size: None,
+            max_send_message_size: None,
+        };
+
+        let connect_node = Node {
+            uuid: "conn-1".to_string(),
+            node_type: "grpc_connect".to_string(),
+            name: "gRPC 连接".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::GrpcConnect(flow_engine_core::node_config::GrpcConnectConfig {
+                url: "http://localhost:50051".to_string(),
+                max_retries: Some(3),
+                initial_backoff_ms: Some(500),
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let mut node_map = HashMap::new();
+        node_map.insert("conn-1".to_string(), &connect_node);
+
+        let (max_retries, initial_backoff_ms) = resolve_retry_config(&call_config, &node_map);
+        assert_eq!(max_retries, 5, "call config should override");
+        assert_eq!(initial_backoff_ms, 2000, "call config should override");
+    }
+
+    #[test]
+    fn test_resolve_retry_config_fallback_to_connect() {
+        let call_config = GrpcCallConfig {
+            connection_id: "conn-1".to_string(),
+            service_name: "test.Service".to_string(),
+            method_name: "Get".to_string(),
+            request_json: "{}".to_string(),
+            timeout_ms: 30000,
+            metadata: vec![],
+            request_messages: vec![],
+            compression_encoding: None,
+            max_retries: None,
+            initial_backoff_ms: None,
+            max_receive_message_size: None,
+            max_send_message_size: None,
+        };
+
+        let connect_node = Node {
+            uuid: "conn-1".to_string(),
+            node_type: "grpc_connect".to_string(),
+            name: "gRPC 连接".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::GrpcConnect(flow_engine_core::node_config::GrpcConnectConfig {
+                url: "http://localhost:50051".to_string(),
+                max_retries: Some(3),
+                initial_backoff_ms: Some(500),
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let mut node_map = HashMap::new();
+        node_map.insert("conn-1".to_string(), &connect_node);
+
+        let (max_retries, initial_backoff_ms) = resolve_retry_config(&call_config, &node_map);
+        assert_eq!(max_retries, 3, "should use connect default");
+        assert_eq!(initial_backoff_ms, 500, "should use connect default");
+    }
+
+    #[test]
+    fn test_resolve_retry_config_no_connect_defaults() {
+        let call_config = GrpcCallConfig {
+            connection_id: "conn-1".to_string(),
+            service_name: "test.Service".to_string(),
+            method_name: "Get".to_string(),
+            request_json: "{}".to_string(),
+            timeout_ms: 30000,
+            metadata: vec![],
+            request_messages: vec![],
+            compression_encoding: None,
+            max_retries: None,
+            initial_backoff_ms: None,
+            max_receive_message_size: None,
+            max_send_message_size: None,
+        };
+
+        // 连接节点不在 node_map 中
+        let node_map = HashMap::new();
+        let (max_retries, initial_backoff_ms) = resolve_retry_config(&call_config, &node_map);
+        assert_eq!(max_retries, 0, "no connect → default 0");
+        assert_eq!(initial_backoff_ms, 1000, "no connect → default 1000ms");
+    }
+
+    // ========================================================================
+    // 重试集成测试（使用 Mock）
+    // ========================================================================
+
+    /// Mock: 第一次返回 UNAVAILABLE 错误，第二次成功
+    struct RetryThenSuccessMock {
+        fail_count: AtomicUsize,
+        services: Vec<GrpcServiceInfo>,
+    }
+
+    #[async_trait::async_trait]
+    impl GrpcProvider for RetryThenSuccessMock {
+        async fn connect(
+            &self, _uuid: String, _url: String, _use_tls: bool, _tls_skip_verify: bool,
+            _enable_reflection: bool, _proto_files: Vec<(String, String)>,
+            _metadata: Vec<(String, String)>, _connect_timeout_ms: u64,
+            _tls_ca_cert: Option<String>, _tls_client_cert: Option<String>,
+            _tls_client_key: Option<String>, _tls_server_name_override: Option<String>,
+            _reflection_metadata: Vec<(String, String)>,
+            _compression_encoding: Option<String>,
+            _keepalive_time_ms: Option<u64>,
+            _keepalive_timeout_ms: Option<u64>,
+            _keepalive_permit_without_streams: Option<bool>,
+            _endpoints: Option<Vec<String>>,
+        ) -> Result<Vec<GrpcServiceInfo>, String> {
+            Err("不应被调用".to_string())
+        }
+
+        async fn call_unary(
+            &self, _connection_id: &str, _service_name: &str, _method_name: &str,
+            _request_json: &str, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+            _compression_encoding: Option<String>,
+            _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+            _node_uuid: &str,
+            _call_id: &str,
+        ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
+            let count = self.fail_count.fetch_add(1, AtomicOrdering::SeqCst);
+            if count == 0 {
+                Err("gRPC Unary 调用失败: service unavailable (UNAVAILABLE)".to_string())
+            } else {
+                Ok((serde_json::json!({"success": true}), vec![]))
+            }
+        }
+
+        async fn call_server_streaming(
+            &self, _connection_id: &str, _service_name: &str, _method_name: &str,
+            _request_json: &str, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+            _compression_encoding: Option<String>,
+            _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+            _node_uuid: &str,
+            _call_id: &str,
+        ) -> Result<(Vec<serde_json::Value>, Vec<(String, String)>), String> {
+            Err("不应被调用".to_string())
+        }
+
+        async fn call_client_streaming(
+            &self, _connection_id: &str, _service_name: &str, _method_name: &str,
+            _request_messages: Vec<String>, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+            _compression_encoding: Option<String>,
+            _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+            _node_uuid: &str,
+            _call_id: &str,
+        ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
+            Err("不应被调用".to_string())
+        }
+
+        async fn call_bidi_streaming(
+            &self, _connection_id: &str, _service_name: &str, _method_name: &str,
+            _request_messages: Vec<String>, _metadata: Vec<(String, String)>,
+            _timeout_ms: u64, _compression_encoding: Option<String>,
+            _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+            _node_uuid: &str,
+            _call_id: &str,
+        ) -> Result<GrpcStreamingResult, String> {
+            Err("不应被调用".to_string())
+        }
+
+        async fn close(&self, _connection_id: &str) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn get_status(&self, _connection_id: &str) -> Option<String> {
+            Some("connected".to_string())
+        }
+
+        fn list_services(&self, _connection_id: &str) -> Option<Vec<GrpcServiceInfo>> {
+            Some(self.services.clone())
+        }
+
+        async fn health_check(
+            &self, _connection_id: &str, _service: &str,
+        ) -> Result<HealthCheckResponse, String> {
+            Ok(HealthCheckResponse { status: "SERVING".to_string() })
+        }
+
+        fn cancel_stream(&self, _connection_id: &str, _call_id: &str) -> Result<(), String> {
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn test_unary_retries_on_unavailable_then_succeeds() {
+        let services = make_services("test.TestService", "GetUser", false, false);
+        let mock = Arc::new(RetryThenSuccessMock {
+            fail_count: AtomicUsize::new(0),
+            services,
+        });
+        let executor = GrpcCallExecutor::new(mock.clone());
+
+        // 创建节点，配置 max_retries=3
+        let node = Node {
+            uuid: "node-retry".to_string(),
+            node_type: "grpc_call".to_string(),
+            name: "重试测试".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::GrpcCall(GrpcCallConfig {
+                connection_id: "conn-1".to_string(),
+                service_name: "test.TestService".to_string(),
+                method_name: "GetUser".to_string(),
+                request_json: "{}".to_string(),
+                timeout_ms: 30000,
+                metadata: vec![],
+                request_messages: vec![],
+                max_retries: Some(3),
+                initial_backoff_ms: Some(100), // 快速重试
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+        };
+        let mut context = create_context_with_grpc("flow-retry", mock.clone());
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        assert!(result.is_ok());
+        let (next_nodes, output_data) = result.expect("执行应成功");
+        assert_eq!(next_nodes, vec!["true"]); // 成功走 true 端口
+        let data = output_data.expect("应有输出数据");
+        assert_eq!(data["success"], true);
+        assert_eq!(data["data"]["success"], true);
+        // 验证重试了 1 次后成功（第一次失败，第二次成功）
+        assert_eq!(mock.fail_count.load(AtomicOrdering::SeqCst), 2);
+    }
+
+    #[tokio::test]
+    async fn test_unary_no_retry_on_non_retryable_error() {
+        let services = make_services("test.TestService", "GetUser", false, false);
+        let mock = Arc::new(MockGrpcProvider::new_error(services));
+        let executor = GrpcCallExecutor::new(mock.clone());
+
+        let node = Node {
+            uuid: "node-no-retry".to_string(),
+            node_type: "grpc_call".to_string(),
+            name: "不可重试错误".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::GrpcCall(GrpcCallConfig {
+                connection_id: "conn-1".to_string(),
+                service_name: "test.TestService".to_string(),
+                method_name: "GetUser".to_string(),
+                request_json: "{}".to_string(),
+                timeout_ms: 30000,
+                metadata: vec![],
+                request_messages: vec![],
+                max_retries: Some(3),
+                initial_backoff_ms: Some(100),
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+        };
+        let mut context = create_context_with_grpc("flow-no-retry", mock.clone());
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        assert!(result.is_ok());
+        let (next_nodes, output_data) = result.expect("执行应成功");
+        assert_eq!(next_nodes, vec!["false"]); // 失败走 false 端口
+        let data = output_data.expect("应有输出数据");
+        assert_eq!(data["success"], false);
+        // 验证只调用了一次（没有重试）
+        assert_eq!(
+            mock.call_log.call_unary_count.load(AtomicOrdering::SeqCst),
+            1,
+            "不可重试错误应只调用一次"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_unary_retries_exhausted() {
+        // Mock: 始终返回 UNAVAILABLE
+        struct AlwaysUnavailableMock {
+            services: Vec<GrpcServiceInfo>,
+            call_count: AtomicUsize,
+        }
+
+        #[async_trait::async_trait]
+        impl GrpcProvider for AlwaysUnavailableMock {
+            async fn connect(
+                &self, _uuid: String, _url: String, _use_tls: bool, _tls_skip_verify: bool,
+                _enable_reflection: bool, _proto_files: Vec<(String, String)>,
+                _metadata: Vec<(String, String)>, _connect_timeout_ms: u64,
+                _tls_ca_cert: Option<String>, _tls_client_cert: Option<String>,
+                _tls_client_key: Option<String>, _tls_server_name_override: Option<String>,
+                _reflection_metadata: Vec<(String, String)>,
+                _compression_encoding: Option<String>,
+                _keepalive_time_ms: Option<u64>,
+                _keepalive_timeout_ms: Option<u64>,
+                _keepalive_permit_without_streams: Option<bool>,
+                _endpoints: Option<Vec<String>>,
+            ) -> Result<Vec<GrpcServiceInfo>, String> {
+                Err("不应被调用".to_string())
+            }
+
+            async fn call_unary(
+                &self, _connection_id: &str, _service_name: &str, _method_name: &str,
+                _request_json: &str, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+                _compression_encoding: Option<String>,
+                _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+                _node_uuid: &str,
+                _call_id: &str,
+            ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
+                self.call_count.fetch_add(1, AtomicOrdering::SeqCst);
+                Err("gRPC Unary 调用失败: service unavailable (UNAVAILABLE)".to_string())
+            }
+
+            async fn call_server_streaming(
+                &self, _connection_id: &str, _service_name: &str, _method_name: &str,
+                _request_json: &str, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+                _compression_encoding: Option<String>,
+                _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+                _node_uuid: &str,
+                _call_id: &str,
+            ) -> Result<(Vec<serde_json::Value>, Vec<(String, String)>), String> {
+                Err("不应被调用".to_string())
+            }
+
+            async fn call_client_streaming(
+                &self, _connection_id: &str, _service_name: &str, _method_name: &str,
+                _request_messages: Vec<String>, _metadata: Vec<(String, String)>, _timeout_ms: u64,
+                _compression_encoding: Option<String>,
+                _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+                _node_uuid: &str,
+                _call_id: &str,
+            ) -> Result<(serde_json::Value, Vec<(String, String)>), String> {
+                Err("不应被调用".to_string())
+            }
+
+            async fn call_bidi_streaming(
+                &self, _connection_id: &str, _service_name: &str, _method_name: &str,
+                _request_messages: Vec<String>, _metadata: Vec<(String, String)>,
+                _timeout_ms: u64, _compression_encoding: Option<String>,
+                _debug_sender: Option<std::sync::Arc<dyn flow_engine_core::traits::DebugEventSender>>,
+                _node_uuid: &str,
+                _call_id: &str,
+            ) -> Result<GrpcStreamingResult, String> {
+                Err("不应被调用".to_string())
+            }
+
+            async fn close(&self, _connection_id: &str) -> Result<(), String> {
+                Ok(())
+            }
+
+            fn get_status(&self, _connection_id: &str) -> Option<String> {
+                Some("connected".to_string())
+            }
+
+            fn list_services(&self, _connection_id: &str) -> Option<Vec<GrpcServiceInfo>> {
+                Some(self.services.clone())
+            }
+
+            async fn health_check(
+                &self,
+                _connection_id: &str,
+                _service: &str,
+            ) -> Result<HealthCheckResponse, String> {
+                Ok(HealthCheckResponse { status: "SERVING".to_string() })
+            }
+
+            fn cancel_stream(&self, _connection_id: &str, _call_id: &str) -> Result<(), String> {
+                Ok(())
+            }
+        }
+
+        let services = make_services("test.TestService", "GetUser", false, false);
+        let mock = Arc::new(AlwaysUnavailableMock {
+            services,
+            call_count: AtomicUsize::new(0),
+        });
+        let executor = GrpcCallExecutor::new(mock.clone());
+
+        let node = Node {
+            uuid: "node-exhaust".to_string(),
+            node_type: "grpc_call".to_string(),
+            name: "重试耗尽".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::GrpcCall(GrpcCallConfig {
+                connection_id: "conn-1".to_string(),
+                service_name: "test.TestService".to_string(),
+                method_name: "GetUser".to_string(),
+                request_json: "{}".to_string(),
+                timeout_ms: 30000,
+                metadata: vec![],
+                request_messages: vec![],
+                max_retries: Some(2),
+                initial_backoff_ms: Some(50), // 快速重试
+                ..Default::default()
+            }),
+            ports: None,
+            has_breakpoint: None,
+        };
+        let mut context = create_context_with_grpc("flow-exhaust", mock.clone());
+
+        let result = executor
+            .execute(&node, &mut context, &[], &HashMap::new())
+            .await;
+
+        assert!(result.is_ok());
+        let (next_nodes, _) = result.expect("执行应成功");
+        assert_eq!(next_nodes, vec!["false"]); // 全部重试失败，走 false 端口
+        // 验证调用了 3 次（初始 1 次 + 2 次重试）
+        assert_eq!(
+            mock.call_count.load(AtomicOrdering::SeqCst),
+            3,
+            "应调用 3 次（1 初始 + 2 重试）"
+        );
     }
 }
 

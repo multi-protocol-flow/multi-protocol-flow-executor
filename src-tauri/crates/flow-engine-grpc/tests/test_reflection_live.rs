@@ -11,9 +11,14 @@ async fn test_reflection_grpcb_in_plaintext() {
 
     let result = grpc_connection_manager::discover_services_via_reflection(
         "grpcb.in:9000",
-        false, // use_tls
-        false, // tls_skip_verify
-        15000, // connect_timeout_ms
+        false,  // use_tls
+        false,  // tls_skip_verify
+        15000,  // connect_timeout_ms
+        None,   // tls_ca_cert
+        None,   // tls_client_cert
+        None,   // tls_client_key
+        None,   // tls_server_name_override
+        vec![], // reflection_metadata
     )
     .await;
 
@@ -47,8 +52,7 @@ async fn test_reflection_grpcb_in_plaintext() {
 #[ignore]
 async fn test_raw_tonic_reflection_grpcb_in() {
     use tonic_reflection::pb::v1alpha::{
-        server_reflection_client::ServerReflectionClient,
-        server_reflection_request,
+        server_reflection_client::ServerReflectionClient, server_reflection_request,
         ServerReflectionRequest,
     };
 
@@ -64,13 +68,10 @@ async fn test_raw_tonic_reflection_grpcb_in() {
         .keep_alive_timeout(std::time::Duration::from_secs(10));
 
     println!("[2] 连接中...");
-    let channel = tokio::time::timeout(
-        std::time::Duration::from_secs(15),
-        endpoint.connect(),
-    )
-    .await
-    .expect("TCP 连接超时")
-    .expect("TCP 连接失败");
+    let channel = tokio::time::timeout(std::time::Duration::from_secs(15), endpoint.connect())
+        .await
+        .expect("TCP 连接超时")
+        .expect("TCP 连接失败");
 
     println!("[3] TCP 连接成功! 创建反射客户端...");
 
@@ -95,19 +96,16 @@ async fn test_raw_tonic_reflection_grpcb_in() {
             println!("[6] 发送 ListServices...");
             tx.send(ServerReflectionRequest {
                 host: String::new(),
-                message_request: Some(
-                    server_reflection_request::MessageRequest::ListServices(String::new()),
-                ),
+                message_request: Some(server_reflection_request::MessageRequest::ListServices(
+                    String::new(),
+                )),
             })
             .await
             .expect("发送失败");
 
             println!("[7] 等待响应...");
-            let list_resp = tokio::time::timeout(
-                std::time::Duration::from_secs(15),
-                stream.message(),
-            )
-            .await;
+            let list_resp =
+                tokio::time::timeout(std::time::Duration::from_secs(15), stream.message()).await;
 
             match list_resp {
                 Ok(Ok(Some(resp))) => {
@@ -117,8 +115,12 @@ async fn test_raw_tonic_reflection_grpcb_in() {
                     println!("[8] 服务器关闭了流 (返回 None)");
                 }
                 Ok(Err(e)) => {
-                    println!("[8] 读取响应错误: {} (code={:?}, message={})",
-                        e, e.code(), e.message());
+                    println!(
+                        "[8] 读取响应错误: {} (code={:?}, message={})",
+                        e,
+                        e.code(),
+                        e.message()
+                    );
                 }
                 Err(_) => {
                     println!("[8] 等待响应超时 (15s)");
@@ -126,8 +128,12 @@ async fn test_raw_tonic_reflection_grpcb_in() {
             }
         }
         Ok(Err(e)) => {
-            println!("[5] 双向流建立失败: {} (code={:?}, message={})",
-                e, e.code(), e.message());
+            println!(
+                "[5] 双向流建立失败: {} (code={:?}, message={})",
+                e,
+                e.code(),
+                e.message()
+            );
             println!("    details: {:?}", e.details());
         }
         Err(_) => {
@@ -141,8 +147,7 @@ async fn test_raw_tonic_reflection_grpcb_in() {
 #[ignore]
 async fn test_lazy_connect_reflection() {
     use tonic_reflection::pb::v1alpha::{
-        server_reflection_client::ServerReflectionClient,
-        server_reflection_request,
+        server_reflection_client::ServerReflectionClient, server_reflection_request,
         ServerReflectionRequest,
     };
 
@@ -163,9 +168,9 @@ async fn test_lazy_connect_reflection() {
     // 先发送 ListServices，再发起流
     tx.send(ServerReflectionRequest {
         host: String::new(),
-        message_request: Some(
-            server_reflection_request::MessageRequest::ListServices(String::new()),
-        ),
+        message_request: Some(server_reflection_request::MessageRequest::ListServices(
+            String::new(),
+        )),
     })
     .await
     .expect("发送失败");
@@ -183,11 +188,8 @@ async fn test_lazy_connect_reflection() {
             println!("[3] 双向流建立成功!");
             let mut stream = response.into_inner();
 
-            let list_resp = tokio::time::timeout(
-                std::time::Duration::from_secs(15),
-                stream.message(),
-            )
-            .await;
+            let list_resp =
+                tokio::time::timeout(std::time::Duration::from_secs(15), stream.message()).await;
 
             match list_resp {
                 Ok(Ok(Some(resp))) => {

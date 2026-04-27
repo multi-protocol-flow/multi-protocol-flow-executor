@@ -11,7 +11,9 @@ use flow_engine_core::node_config::{
 };
 use flow_engine_core::plugin::NodePlugin;
 use flow_engine_core::registry::NodeRegistry;
-use flow_engine_grpc::plugin::{GrpcCallPlugin, GrpcClosePlugin, GrpcConnectPlugin, GrpcPluginGroup};
+use flow_engine_grpc::plugin::{
+    GrpcCallPlugin, GrpcClosePlugin, GrpcConnectPlugin, GrpcPluginGroup,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -36,12 +38,12 @@ fn test_grpc_connect_config_serde_roundtrip() {
             value: "Bearer token123".to_string(),
         }],
         connect_timeout_ms: 60000,
+        ..Default::default()
     };
 
     // 序列化 → JSON → 反序列化
     let json = serde_json::to_string(&config).expect("序列化应成功");
-    let deserialized: GrpcConnectConfig =
-        serde_json::from_str(&json).expect("反序列化应成功");
+    let deserialized: GrpcConnectConfig = serde_json::from_str(&json).expect("反序列化应成功");
 
     assert_eq!(deserialized, config);
 }
@@ -72,12 +74,12 @@ fn test_grpc_connect_config_via_node_data_roundtrip() {
         proto_files: vec![],
         default_metadata: vec![],
         connect_timeout_ms: 10000,
+        ..Default::default()
     };
     let node_data = NodeData::GrpcConnect(config.clone());
 
     let json = serde_json::to_string(&node_data).expect("序列化 NodeData 应成功");
-    let deserialized: NodeData =
-        serde_json::from_str(&json).expect("反序列化 NodeData 应成功");
+    let deserialized: NodeData = serde_json::from_str(&json).expect("反序列化 NodeData 应成功");
 
     assert_eq!(deserialized, node_data);
     assert_eq!(deserialized.type_name(), "grpc_connect");
@@ -91,18 +93,16 @@ fn test_grpc_call_config_serde_roundtrip() {
         method_name: "GetUser".to_string(),
         request_json: r#"{"user_id":"123"}"#.to_string(),
         timeout_ms: 15000,
-        metadata: vec![
-            GrpcMetadataEntry {
-                key: "x-request-id".to_string(),
-                value: "abc-456".to_string(),
-            },
-        ],
+        metadata: vec![GrpcMetadataEntry {
+            key: "x-request-id".to_string(),
+            value: "abc-456".to_string(),
+        }],
         request_messages: vec![],
+        ..Default::default()
     };
 
     let json = serde_json::to_string(&config).expect("序列化应成功");
-    let deserialized: GrpcCallConfig =
-        serde_json::from_str(&json).expect("反序列化应成功");
+    let deserialized: GrpcCallConfig = serde_json::from_str(&json).expect("反序列化应成功");
 
     assert_eq!(deserialized, config);
 }
@@ -117,12 +117,12 @@ fn test_grpc_call_config_via_node_data_roundtrip() {
         timeout_ms: 5000,
         metadata: vec![],
         request_messages: vec![],
+        ..Default::default()
     };
     let node_data = NodeData::GrpcCall(config.clone());
 
     let json = serde_json::to_string(&node_data).expect("序列化应成功");
-    let deserialized: NodeData =
-        serde_json::from_str(&json).expect("反序列化应成功");
+    let deserialized: NodeData = serde_json::from_str(&json).expect("反序列化应成功");
 
     assert_eq!(deserialized, node_data);
     assert_eq!(deserialized.type_name(), "grpc_call");
@@ -135,8 +135,7 @@ fn test_grpc_close_config_serde_roundtrip() {
     };
 
     let json = serde_json::to_string(&config).expect("序列化应成功");
-    let deserialized: GrpcCloseConfig =
-        serde_json::from_str(&json).expect("反序列化应成功");
+    let deserialized: GrpcCloseConfig = serde_json::from_str(&json).expect("反序列化应成功");
 
     assert_eq!(deserialized, config);
 }
@@ -149,8 +148,7 @@ fn test_grpc_close_config_via_node_data_roundtrip() {
     let node_data = NodeData::GrpcClose(config.clone());
 
     let json = serde_json::to_string(&node_data).expect("序列化应成功");
-    let deserialized: NodeData =
-        serde_json::from_str(&json).expect("反序列化应成功");
+    let deserialized: NodeData = serde_json::from_str(&json).expect("反序列化应成功");
 
     assert_eq!(deserialized, node_data);
     assert_eq!(deserialized.type_name(), "grpc_close");
@@ -164,8 +162,7 @@ fn test_grpc_metadata_entry_serde() {
     };
 
     let json = serde_json::to_string(&entry).expect("序列化应成功");
-    let deserialized: GrpcMetadataEntry =
-        serde_json::from_str(&json).expect("反序列化应成功");
+    let deserialized: GrpcMetadataEntry = serde_json::from_str(&json).expect("反序列化应成功");
 
     assert_eq!(deserialized, entry);
 }
@@ -178,8 +175,7 @@ fn test_proto_file_serde() {
     };
 
     let json = serde_json::to_string(&proto).expect("序列化应成功");
-    let deserialized: ProtoFile =
-        serde_json::from_str(&json).expect("反序列化应成功");
+    let deserialized: ProtoFile = serde_json::from_str(&json).expect("反序列化应成功");
 
     assert_eq!(deserialized, proto);
 }
@@ -196,11 +192,11 @@ fn test_connect_config_skip_empty_vectors() {
         proto_files: vec![],
         default_metadata: vec![],
         connect_timeout_ms: 30000,
+        ..Default::default()
     };
 
     let json = serde_json::to_string(&config).expect("序列化应成功");
-    let json_obj: serde_json::Value =
-        serde_json::from_str(&json).expect("JSON 解析应成功");
+    let json_obj: serde_json::Value = serde_json::from_str(&json).expect("JSON 解析应成功");
 
     // 空 vec 应被跳过
     assert!(json_obj.get("proto_files").is_none());
@@ -215,8 +211,7 @@ fn test_connect_config_skip_empty_vectors() {
         ..config
     };
     let json2 = serde_json::to_string(&config_with_files).expect("序列化应成功");
-    let json_obj2: serde_json::Value =
-        serde_json::from_str(&json2).expect("JSON 解析应成功");
+    let json_obj2: serde_json::Value = serde_json::from_str(&json2).expect("JSON 解析应成功");
     assert!(json_obj2.get("proto_files").is_some());
 }
 
@@ -238,14 +233,8 @@ fn test_plugin_group_registers_all_three_types() {
         registry.get("grpc_connect").is_some(),
         "grpc_connect 应被注册"
     );
-    assert!(
-        registry.get("grpc_call").is_some(),
-        "grpc_call 应被注册"
-    );
-    assert!(
-        registry.get("grpc_close").is_some(),
-        "grpc_close 应被注册"
-    );
+    assert!(registry.get("grpc_call").is_some(), "grpc_call 应被注册");
+    assert!(registry.get("grpc_close").is_some(), "grpc_close 应被注册");
 }
 
 #[test]
@@ -389,10 +378,7 @@ fn test_connect_plugin_resolve_port() {
     // None
     assert_eq!(plugin.resolve_port(&None), "false");
     // 空对象
-    assert_eq!(
-        plugin.resolve_port(&Some(serde_json::json!({}))),
-        "false"
-    );
+    assert_eq!(plugin.resolve_port(&Some(serde_json::json!({}))), "false");
 }
 
 #[test]
@@ -520,8 +506,8 @@ fn create_test_context(flow_id: &str) -> flow_engine_core::context::ExecutionCon
         debug_event_sender: None,
         execution_event_sender: None,
         cancel_receiver: None,
-            grpc_manager: None,
-            providers: HashMap::new(),
+        grpc_manager: None,
+        providers: HashMap::new(),
         mcp_manager: None,
         tcp_manager: None,
         udp_manager: None,
@@ -565,6 +551,7 @@ async fn test_connect_call_close_flow_wiring() {
             proto_files: vec![],
             default_metadata: vec![],
             connect_timeout_ms: 2000,
+            ..Default::default()
         }),
         ports: None,
         has_breakpoint: None,
@@ -598,6 +585,7 @@ async fn test_connect_call_close_flow_wiring() {
             timeout_ms: 5000,
             metadata: vec![],
             request_messages: vec![],
+            ..Default::default()
         }),
         ports: None,
         has_breakpoint: None,
@@ -679,6 +667,7 @@ message PongResponse { string message = 1; }
             }],
             default_metadata: vec![],
             connect_timeout_ms: 2000,
+            ..Default::default()
         }),
         ports: None,
         has_breakpoint: None,
@@ -723,6 +712,7 @@ async fn test_plugin_execute_delegates_to_executor() {
             proto_files: vec![],
             default_metadata: vec![],
             connect_timeout_ms: 1000,
+            ..Default::default()
         }),
         ports: None,
         has_breakpoint: None,
@@ -761,6 +751,7 @@ async fn test_call_and_close_plugins_delegate() {
             timeout_ms: 1000,
             metadata: vec![],
             request_messages: vec![],
+            ..Default::default()
         }),
         ports: None,
         has_breakpoint: None,

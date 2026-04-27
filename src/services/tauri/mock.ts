@@ -442,6 +442,24 @@ export async function generateGrpcRequestSkeleton(
   };
 }
 
+/**
+ * Mock: 通过 Server Reflection 生成 gRPC 请求骨架
+ * @param _input - Reflection 骨架生成请求参数
+ * @returns 模拟的骨架生成结果
+ */
+export async function generateGrpcRequestSkeletonFromReflection(
+  _input: import('./grpc').GrpcGenerateRequestSkeletonFromReflectionInput
+): Promise<import('./grpc').GrpcGenerateRequestSkeletonOutput> {
+  // 模拟网络延迟
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  return {
+    success: true,
+    skeleton: JSON.stringify({ field: '' }, null, 2),
+    error: null,
+  };
+}
+
 export async function discoverMcpTools(
   _input: import('./mcp').McpDiscoverToolsInput
 ): Promise<import('./mcp').McpDiscoverToolsOutput> {

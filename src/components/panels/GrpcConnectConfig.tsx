@@ -14,9 +14,11 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Cable, FileText, Info, Search, Loader2, ChevronDown, AlertTriangle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Trash2, Cable, FileText, Info, Search, Loader2, ChevronDown, AlertTriangle, FolderOpen, Upload, FileUp, HeartPulse, Activity, RefreshCw } from 'lucide-react';
 import type { GrpcConnectConfig as GrpcConnectConfigType, GrpcServiceInfo } from '@/types';
-import { discoverGrpcServices } from '@/services/tauri';
+import { discoverGrpcServices, scanProtoDirectory, parseDescriptorSet, readProtoFiles } from '@/services/tauri';
+import { grpcHealthCheck, grpcChannelzInfo, type ChannelzInfo } from '@/services/tauri/grpc';
 import { cn } from '@/lib/utils';
 
 interface GrpcConnectConfigProps {
@@ -40,6 +42,16 @@ function toFormData(data: GrpcConnectConfigType): GrpcConnectConfigFormData {
     default_metadata: data.default_metadata || [],
     connect_timeout_ms: data.connect_timeout_ms ?? 30000,
     discovered_services: data.discovered_services,
+    tls_ca_cert: data.tls_ca_cert,
+    tls_client_cert: data.tls_client_cert,
+    tls_client_key: data.tls_client_key,
+    tls_server_name_override: data.tls_server_name_override,
+    reflection_metadata: data.reflection_metadata || [],
+    compression_encoding: data.compression_encoding,
+    keepalive_time_ms: data.keepalive_time_ms,
+    keepalive_timeout_ms: data.keepalive_timeout_ms,
+    keepalive_permit_without_streams: data.keepalive_permit_without_streams,
+    endpoints: data.endpoints || [],
   };
 }
 
@@ -49,6 +61,8 @@ function toFormData(data: GrpcConnectConfigType): GrpcConnectConfigFormData {
 function fromFormData(formData: GrpcConnectConfigFormData): GrpcConnectConfigType {
   const protoFiles = formData.proto_files?.filter(f => f.path.trim() && f.content.trim());
   const metadata = formData.default_metadata?.filter(m => m.key.trim());
+  const reflectionMetadata = formData.reflection_metadata?.filter(m => m.key.trim());
+  const endpoints = formData.endpoints?.filter(ep => ep.trim());
 
   return {
     type: 'grpc_connect',
@@ -60,6 +74,16 @@ function fromFormData(formData: GrpcConnectConfigFormData): GrpcConnectConfigTyp
     default_metadata: metadata && metadata.length > 0 ? metadata : undefined,
     connect_timeout_ms: formData.connect_timeout_ms,
     discovered_services: formData.discovered_services,
+    tls_ca_cert: formData.tls_ca_cert?.trim() || undefined,
+    tls_client_cert: formData.tls_client_cert?.trim() || undefined,
+    tls_client_key: formData.tls_client_key?.trim() || undefined,
+    tls_server_name_override: formData.tls_server_name_override?.trim() || undefined,
+    reflection_metadata: reflectionMetadata && reflectionMetadata.length > 0 ? reflectionMetadata : undefined,
+    compression_encoding: formData.compression_encoding || undefined,
+    keepalive_time_ms: formData.keepalive_time_ms || undefined,
+    keepalive_timeout_ms: formData.keepalive_timeout_ms || undefined,
+    keepalive_permit_without_streams: formData.keepalive_permit_without_streams || undefined,
+    endpoints: endpoints && endpoints.length > 0 ? endpoints : undefined,
   };
 }
 
@@ -87,6 +111,11 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
   const metadataFields = useFieldArray({
     control,
     name: 'default_metadata' as never,
+  });
+
+  const reflectionMetadataFields = useFieldArray({
+    control,
+    name: 'reflection_metadata' as never,
   });
 
   // 监听表单值变化
@@ -143,8 +172,8 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
       try {
         const config = fromFormData(formData);
         onSave(config);
-      } catch (error) {
-        console.error('保存 gRPC Connect 配置失败:', error);
+      } catch {
+        // 保存失败时静默处理
       }
     })();
   }, [handleSubmit, onSave]);
@@ -196,11 +225,60 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
     safeSetTimeout(saveData, 100);
   }, [metadataFields, saveData, safeSetTimeout]);
 
+  /**
+   * 添加 Reflection Metadata 条目
+   */
+  const handleAddReflectionMetadata = useCallback(() => {
+    reflectionMetadataFields.append({ key: '', value: '' });
+  }, [reflectionMetadataFields]);
+
+  /**
+   * 删除 Reflection Metadata 条目
+   */
+  const handleRemoveReflectionMetadata = useCallback((index: number) => {
+    reflectionMetadataFields.remove(index);
+    safeSetTimeout(saveData, 100);
+  }, [reflectionMetadataFields, saveData, safeSetTimeout]);
+
+  /**
+   * 添加额外端点（负载均衡）
+   */
+  const handleAddEndpoint = useCallback(() => {
+    const current = getValues('endpoints') ?? [];
+    setValue('endpoints', [...current, ''], { shouldDirty: true });
+    saveData();
+  }, [getValues, setValue, saveData]);
+
+  /**
+   * 删除额外端点
+   */
+  const handleRemoveEndpoint = useCallback((index: number) => {
+    const current = getValues('endpoints') ?? [];
+    setValue('endpoints', current.filter((_: string, i: number) => i !== index), { shouldDirty: true });
+    safeSetTimeout(saveData, 100);
+  }, [getValues, setValue, saveData, safeSetTimeout]);
+
   // 服务发现状态
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveryResult, setDiscoveryResult] = useState<{
     success: boolean;
     services: GrpcServiceInfo[];
+    error: string | null;
+  } | null>(null);
+
+  // 健康检查状态
+  const [isHealthChecking, setIsHealthChecking] = useState(false);
+  const [healthCheckResult, setHealthCheckResult] = useState<{
+    success: boolean;
+    status: string | null;
+    error: string | null;
+  } | null>(null);
+
+  // Channelz 内省状态（EXPERIMENTAL）
+  const [isChannelzLoading, setIsChannelzLoading] = useState(false);
+  const [channelzResult, setChannelzResult] = useState<{
+    success: boolean;
+    info: ChannelzInfo | null;
     error: string | null;
   } | null>(null);
 
@@ -247,12 +325,6 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
     setDiscoveryResult(null);
 
     try {
-      console.log('[gRPC] 开始发现服务:', {
-        url,
-        enable_reflection: formData.enable_reflection,
-        use_tls: formData.use_tls,
-      });
-
       const result = await discoverGrpcServices({
         url,
         use_tls: formData.use_tls ?? false,
@@ -262,9 +334,15 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
           ?.filter(f => f.path.trim() && f.content.trim())
           .map(f => [f.path, f.content] as [string, string]),
         connect_timeout_ms: formData.connect_timeout_ms ?? 30000,
+        tls_ca_cert: formData.tls_ca_cert?.trim() || undefined,
+        tls_client_cert: formData.tls_client_cert?.trim() || undefined,
+        tls_client_key: formData.tls_client_key?.trim() || undefined,
+        tls_server_name_override: formData.tls_server_name_override?.trim() || undefined,
+        reflection_metadata: formData.reflection_metadata
+          ?.filter(m => m.key.trim())
+          .map(m => [m.key, m.value] as [string, string]),
       });
 
-      console.log('[gRPC] 发现服务结果:', result);
       setDiscoveryResult(result);
 
       if (result.success && result.services.length > 0) {
@@ -274,7 +352,6 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
         onSave(config);
       }
     } catch (error) {
-      console.error('[gRPC] 发现服务失败:', error);
       setDiscoveryResult({
         success: false,
         services: [],
@@ -364,6 +441,131 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                 </p>
               </div>
             )}
+
+            {/* TLS 高级配置 */}
+            {!watch('tls_skip_verify') && (
+              <div className="space-y-2 pl-2 border-l-2 border-violet-200 dark:border-violet-800/60">
+                <p className="text-xs font-medium text-muted-foreground">TLS 高级配置</p>
+
+                {/* CA 证书 */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">CA 证书</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      {...register('tls_ca_cert')}
+                      placeholder="CA 证书文件路径（PEM）"
+                      className="h-8 flex-1 font-mono text-xs"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-muted-foreground"
+                      onClick={async () => {
+                        try {
+                          const { open } = await import('@tauri-apps/plugin-dialog');
+                          const selected = await open({
+                            multiple: false,
+                            filters: [{ name: 'PEM 证书', extensions: ['pem', 'crt', 'cer', 'ca'] }],
+                          });
+                          if (selected) {
+                            setValue('tls_ca_cert', selected, { shouldDirty: true });
+                            saveData();
+                          }
+                        } catch {
+                          // 非 Tauri 环境或用户取消
+                        }
+                      }}
+                    >
+                      <FolderOpen className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 客户端证书 */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">客户端证书（mTLS）</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      {...register('tls_client_cert')}
+                      placeholder="客户端证书文件路径（PEM）"
+                      className="h-8 flex-1 font-mono text-xs"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-muted-foreground"
+                      onClick={async () => {
+                        try {
+                          const { open } = await import('@tauri-apps/plugin-dialog');
+                          const selected = await open({
+                            multiple: false,
+                            filters: [{ name: 'PEM 证书', extensions: ['pem', 'crt', 'cer'] }],
+                          });
+                          if (selected) {
+                            setValue('tls_client_cert', selected, { shouldDirty: true });
+                            saveData();
+                          }
+                        } catch {
+                          // 非 Tauri 环境或用户取消
+                        }
+                      }}
+                    >
+                      <FolderOpen className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 客户端私钥 */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">客户端私钥（mTLS）</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      {...register('tls_client_key')}
+                      placeholder="客户端私钥文件路径（PEM）"
+                      className="h-8 flex-1 font-mono text-xs"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-muted-foreground"
+                      onClick={async () => {
+                        try {
+                          const { open } = await import('@tauri-apps/plugin-dialog');
+                          const selected = await open({
+                            multiple: false,
+                            filters: [{ name: 'PEM 私钥', extensions: ['pem', 'key'] }],
+                          });
+                          if (selected) {
+                            setValue('tls_client_key', selected, { shouldDirty: true });
+                            saveData();
+                          }
+                        } catch {
+                          // 非 Tauri 环境或用户取消
+                        }
+                      }}
+                    >
+                      <FolderOpen className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* SNI 覆盖 */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">SNI 覆盖</Label>
+                  <Input
+                    {...register('tls_server_name_override')}
+                    placeholder="自定义 TLS 服务器名称（留空使用 URL host）"
+                    className="h-8 font-mono text-xs"
+                  />
+                  <p className="text-[11px] text-muted-foreground/70">
+                    当证书域名与实际连接地址不一致时使用
+                  </p>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -390,6 +592,59 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
               ? '从 gRPC 服务器自动获取服务和方法定义'
               : '手动上传 .proto 文件定义服务和方法'}
           </p>
+
+          {/* Reflection 认证 Metadata（仅 Reflection 模式显示） */}
+          {enableReflection && (
+            <div className="space-y-2 pl-2 border-l-2 border-violet-200 dark:border-violet-800/60">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">认证 Metadata（可选）</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAddReflectionMetadata}
+                  className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Plus className="h-3 w-3" />
+                  添加
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground/70">
+                用于需要认证的 gRPC 反射服务（与连接级 Metadata 独立）
+              </p>
+              <div className="space-y-2">
+                {reflectionMetadataFields.fields.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-3 text-center">
+                    <p className="text-xs text-muted-foreground">暂无认证 Metadata</p>
+                  </div>
+                ) : (
+                  reflectionMetadataFields.fields.map((field, index) => (
+                    <div key={field.id} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30">
+                      <Input
+                        {...register(`reflection_metadata.${index}.key`)}
+                        placeholder="Key"
+                        className="h-8 flex-1 font-mono text-xs"
+                      />
+                      <Input
+                        {...register(`reflection_metadata.${index}.value`)}
+                        placeholder="Value"
+                        className="h-8 flex-1 font-mono text-xs"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveReflectionMetadata(index)}
+                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 手动 Proto 文件管理（仅非 Reflection 模式显示） */}
@@ -397,17 +652,145 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs text-muted-foreground">Proto 文件列表</Label>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAddProtoFile}
+                  className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Plus className="h-3 w-3" />
+                  添加文件
+                </Button>
+              </div>
+            </div>
+
+            {/* 文件选择器按钮组 */}
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                onClick={handleAddProtoFile}
-                className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                className="h-8 gap-1.5 text-xs"
+                onClick={async () => {
+                  try {
+                    const { open } = await import('@tauri-apps/plugin-dialog');
+                    const selected = await open({
+                      multiple: true,
+                      filters: [{ name: 'Proto 文件', extensions: ['proto'] }],
+                    });
+                    if (selected) {
+                      const paths = Array.isArray(selected) ? selected : [selected];
+                      const result = await readProtoFiles(paths);
+                      if (result.success) {
+                        for (const file of result.files) {
+                          const existingFiles = getValues('proto_files') ?? [];
+                          const existingIndex = existingFiles.findIndex(
+                            (f: { path: string; content: string }) => f.path === file.path
+                          );
+                          if (existingIndex >= 0) {
+                            protoFiles.update(existingIndex, { path: file.path, content: file.content });
+                          } else {
+                            protoFiles.append({ path: file.path, content: file.content });
+                          }
+                        }
+                        safeSetTimeout(saveData, 100);
+                      }
+                    }
+                  } catch {
+                    // 非 Tauri 环境或用户取消
+                  }
+                }}
               >
-                <Plus className="h-3 w-3" />
-                添加文件
+                <FileUp className="h-3.5 w-3.5" />
+                选择 .proto 文件
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                onClick={async () => {
+                  try {
+                    const { open } = await import('@tauri-apps/plugin-dialog');
+                    const selected = await open({
+                      directory: true,
+                    });
+                    if (selected && typeof selected === 'string') {
+                      const result = await scanProtoDirectory(selected);
+                      if (result.success && result.files.length > 0) {
+                        for (const file of result.files) {
+                          const existingFiles = getValues('proto_files') ?? [];
+                          const existingIndex = existingFiles.findIndex(
+                            (f: { path: string; content: string }) => f.path === file.path
+                          );
+                          if (existingIndex >= 0) {
+                            protoFiles.update(existingIndex, { path: file.path, content: file.content });
+                          } else {
+                            protoFiles.append({ path: file.path, content: file.content });
+                          }
+                        }
+                        safeSetTimeout(saveData, 100);
+                      } else if (result.error) {
+                          // 目录扫描失败，静默处理
+                        }
+                    }
+                  } catch {
+                    // 非 Tauri 环境或用户取消
+                  }
+                }}
+              >
+                <FolderOpen className="h-3.5 w-3.5" />
+                选择目录
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                onClick={async () => {
+                  try {
+                    const { open } = await import('@tauri-apps/plugin-dialog');
+                    const selected = await open({
+                      multiple: false,
+                      filters: [{ name: 'Descriptor Set', extensions: ['pb', 'fdset', 'desc'] }],
+                    });
+                    if (selected && typeof selected === 'string') {
+                      const result = await parseDescriptorSet(selected);
+                      if (result.success && result.services.length > 0) {
+                        // 将发现的服务缓存到节点数据中
+                        const formData = getValues();
+                        const config = fromFormData(formData);
+                        const existingServices = config.discovered_services ?? [];
+                        // 合并服务（去重）
+                        const mergedServices = [...existingServices];
+                        for (const svc of result.services) {
+                          if (!mergedServices.some(s => s.service_name === svc.service_name)) {
+                            mergedServices.push(svc);
+                          }
+                        }
+                        config.discovered_services = mergedServices;
+                        onSave(config);
+                        setDiscoveryResult({
+                          success: true,
+                          services: mergedServices,
+                          error: null,
+                        });
+                       } else if (result.error) {
+                        // Descriptor Set 解析失败，静默处理
+                      }
+                    }
+                  } catch {
+                    // 非 Tauri 环境或用户取消
+                  }
+                }}
+              >
+                <Upload className="h-3.5 w-3.5" />
+                导入 Descriptor Set
               </Button>
             </div>
+
             <div className="space-y-2">
               {protoFiles.fields.length === 0 ? (
                 <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
@@ -619,6 +1002,388 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
           {...register('connect_timeout_ms', { valueAsNumber: true })}
         />
         <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+      </div>
+
+      {/* 压缩编码 */}
+      <div className="space-y-2">
+        <Label htmlFor="compression_encoding" className="text-sm font-medium text-foreground">
+          压缩编码
+        </Label>
+        <Select
+          value={watch('compression_encoding') || 'none'}
+          onValueChange={(value) => {
+            setValue('compression_encoding', value === 'none' ? undefined : value, { shouldDirty: true });
+            saveData();
+          }}
+        >
+          <SelectTrigger id="compression_encoding" className="font-mono text-sm">
+            <SelectValue placeholder="无" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">无</SelectItem>
+            <SelectItem value="gzip">Gzip</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          连接级默认压缩，gRPC Call 节点可单独覆盖
+        </p>
+      </div>
+
+      {/* Keepalive 配置 */}
+      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+        <div className="flex items-center gap-2">
+          <Cable className="h-3.5 w-3.5 text-muted-foreground" />
+          <Label className="text-sm font-medium text-foreground">连接设置</Label>
+        </div>
+
+        <div className="space-y-2 pl-2">
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">PING 间隔 (ms)</Label>
+            <Input
+              type="number"
+              min={1000}
+              max={300000}
+              placeholder="默认不发送 PING"
+              {...register('keepalive_time_ms', { valueAsNumber: true })}
+              className="h-8 font-mono text-xs"
+            />
+            <p className="text-[11px] text-muted-foreground/70">
+              HTTP/2 PING 帧发送间隔，范围 1000-300000
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">PING 超时 (ms)</Label>
+            <Input
+              type="number"
+              min={1000}
+              max={60000}
+              placeholder="默认 20000"
+              {...register('keepalive_timeout_ms', { valueAsNumber: true })}
+              className="h-8 font-mono text-xs"
+            />
+            <p className="text-[11px] text-muted-foreground/70">
+              等待 PING ACK 的超时时间，范围 1000-60000
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="keepalive_permit_without_streams"
+              checked={watch('keepalive_permit_without_streams') || false}
+              onCheckedChange={(checked) => {
+                setValue('keepalive_permit_without_streams', checked || undefined, { shouldDirty: true });
+                saveData();
+              }}
+            />
+            <Label htmlFor="keepalive_permit_without_streams" className="text-xs text-foreground cursor-pointer">
+              无流时允许 PING
+            </Label>
+          </div>
+          <p className="text-[11px] text-muted-foreground/70">
+            没有活跃 RPC 调用时也保持连接存活
+          </p>
+        </div>
+      </div>
+
+      {/* 健康检查 */}
+      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+        <div className="flex items-center gap-2">
+          <HeartPulse className="h-3.5 w-3.5 text-muted-foreground" />
+          <Label className="text-sm font-medium text-foreground">健康检查</Label>
+        </div>
+
+        <div className="space-y-2 pl-2">
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">服务名称（可选）</Label>
+            <Input
+              type="text"
+              placeholder="留空检查整体健康状态"
+              {...register('health_check_service')}
+              className="h-8 font-mono text-xs"
+            />
+            <p className="text-[11px] text-muted-foreground/70">
+              指定要检查的服务全名（如 "package.ServiceName"）
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full gap-2"
+            disabled={!watch('url')?.trim() || isHealthChecking}
+            onClick={async () => {
+              const formData = getValues();
+              const url = formData.url?.trim();
+              if (!url) return;
+
+              setIsHealthChecking(true);
+              setHealthCheckResult(null);
+
+              try {
+                const result = await grpcHealthCheck(url, {
+                  useTls: formData.use_tls ?? false,
+                  tlsSkipVerify: formData.tls_skip_verify ?? false,
+                  connectTimeoutMs: formData.connect_timeout_ms ?? 10000,
+                  tlsCaCert: formData.tls_ca_cert?.trim() || undefined,
+                  tlsClientCert: formData.tls_client_cert?.trim() || undefined,
+                  tlsClientKey: formData.tls_client_key?.trim() || undefined,
+                  tlsServerNameOverride: formData.tls_server_name_override?.trim() || undefined,
+                  serviceName: formData.health_check_service?.trim() || undefined,
+                });
+                setHealthCheckResult(result);
+              } catch (error) {
+                setHealthCheckResult({
+                  success: false,
+                  status: null,
+                  error: typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)),
+                });
+              } finally {
+                setIsHealthChecking(false);
+              }
+            }}
+          >
+            {isHealthChecking ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <HeartPulse className="h-4 w-4" />
+            )}
+            {isHealthChecking ? '正在检查...' : '检查健康状态'}
+          </Button>
+
+          {/* 健康检查结果 */}
+          {healthCheckResult && (
+            <div className={`rounded-md border px-3 py-2 text-xs ${
+              healthCheckResult.success
+                ? 'border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/30'
+                : 'border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30'
+            }`}>
+              {healthCheckResult.success && healthCheckResult.status ? (
+                <div className="flex items-center gap-2">
+                  {healthCheckResult.status === 'SERVING' && <span className="text-emerald-600 dark:text-emerald-400">✅ SERVING</span>}
+                  {healthCheckResult.status === 'NOT_SERVING' && <span className="text-rose-600 dark:text-rose-400">❌ NOT_SERVING</span>}
+                  {healthCheckResult.status === 'UNKNOWN' && <span className="text-amber-600 dark:text-amber-400">❓ UNKNOWN</span>}
+                  {healthCheckResult.status === 'SERVICE_UNKNOWN' && <span className="text-amber-600 dark:text-amber-400">❓ SERVICE_UNKNOWN</span>}
+                  {healthCheckResult.status === 'NOT_IMPLEMENTED' && <span className="text-amber-600 dark:text-amber-400">⚠️ NOT_IMPLEMENTED</span>}
+                </div>
+              ) : (
+                <p className="text-rose-500 dark:text-rose-400">{healthCheckResult.error}</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Channelz 内省（EXPERIMENTAL） */}
+      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+        <div className="flex items-center gap-2">
+          <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+          <Label className="text-sm font-medium text-foreground">Channelz 内省</Label>
+          <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Experimental</span>
+        </div>
+
+        <div className="space-y-2 pl-2">
+          <p className="text-xs text-muted-foreground">
+            查询活跃 gRPC 连接的实时状态信息（连接状态、运行时长、活跃调用数）。
+            需要在流程执行期间查询，输入连接 ID（通常为 grpc_connect 节点的 UUID）。
+          </p>
+
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">连接 ID</Label>
+            <Input
+              type="text"
+              placeholder="输入连接 ID（如节点 UUID）"
+              {...register('channelz_connection_id')}
+              className="h-8 font-mono text-xs"
+            />
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full gap-2"
+            disabled={isChannelzLoading}
+            onClick={async () => {
+              const formData = getValues();
+              const connectionId = formData.channelz_connection_id?.trim();
+              if (!connectionId) return;
+
+              setIsChannelzLoading(true);
+              setChannelzResult(null);
+              try {
+                const result = await grpcChannelzInfo(connectionId);
+                setChannelzResult(result);
+              } catch (error) {
+                setChannelzResult({
+                  success: false,
+                  info: null,
+                  error: typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)),
+                });
+              } finally {
+                setIsChannelzLoading(false);
+              }
+            }}
+          >
+            {isChannelzLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            {isChannelzLoading ? '正在查询...' : '查询连接状态'}
+          </Button>
+
+          {/* Channelz 结果 */}
+          {channelzResult && (
+            <div className={`rounded-md border px-3 py-2 text-xs ${
+              channelzResult.success
+                ? 'border-violet-200 dark:border-violet-800/60 bg-violet-50 dark:bg-violet-950/30'
+                : 'border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30'
+            }`}>
+              {channelzResult.success && channelzResult.info ? (
+                <div className="space-y-1.5">
+                  {/* 状态指示 */}
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      'inline-block h-2 w-2 rounded-full',
+                      channelzResult.info.state === 'READY' && 'bg-emerald-500',
+                      channelzResult.info.state === 'IDLE' && 'bg-amber-500',
+                      channelzResult.info.state === 'CONNECTING' && 'bg-blue-500 animate-pulse',
+                      channelzResult.info.state === 'TRANSIENT_FAILURE' && 'bg-rose-500',
+                    )} />
+                    <span className={cn(
+                      'font-mono font-medium',
+                      channelzResult.info.state === 'READY' && 'text-emerald-600 dark:text-emerald-400',
+                      channelzResult.info.state === 'IDLE' && 'text-amber-600 dark:text-amber-400',
+                      channelzResult.info.state === 'CONNECTING' && 'text-blue-600 dark:text-blue-400',
+                      channelzResult.info.state === 'TRANSIENT_FAILURE' && 'text-rose-600 dark:text-rose-400',
+                    )}>
+                      {channelzResult.info.state}
+                    </span>
+                  </div>
+                  {/* 详细信息 */}
+                  <div className="grid grid-cols-2 gap-1 text-muted-foreground">
+                    <span>运行时长:</span>
+                    <span className="font-mono text-foreground">
+                      {channelzResult.info.uptime_secs < 60
+                        ? `${channelzResult.info.uptime_secs}s`
+                        : channelzResult.info.uptime_secs < 3600
+                          ? `${Math.floor(channelzResult.info.uptime_secs / 60)}m ${channelzResult.info.uptime_secs % 60}s`
+                          : `${Math.floor(channelzResult.info.uptime_secs / 3600)}h ${Math.floor((channelzResult.info.uptime_secs % 3600) / 60)}m`
+                      }
+                    </span>
+                    <span>活跃调用:</span>
+                    <span className="font-mono text-foreground">{channelzResult.info.active_calls}</span>
+                    <span>连接时间:</span>
+                    <span className="font-mono text-foreground text-[11px]">
+                      {new Date(channelzResult.info.connected_at).toLocaleTimeString()}
+                    </span>
+                  </div>
+                  {channelzResult.info.last_error && (
+                    <div className="mt-1 text-rose-500 dark:text-rose-400 text-[11px]">
+                      最后错误: {channelzResult.info.last_error}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-rose-500 dark:text-rose-400">{channelzResult.error}</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 默认重试配置 */}
+      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+        <p className="text-xs font-medium text-muted-foreground">默认重试配置（EXPERIMENTAL）</p>
+        <div className="space-y-2">
+          <Label htmlFor="default_max_retries" className="text-xs text-muted-foreground">
+            默认最大重试次数
+          </Label>
+          <Input
+            id="default_max_retries"
+            type="number"
+            min={0}
+            max={10}
+            placeholder="0（不重试）"
+            {...register('max_retries', { valueAsNumber: true })}
+            className="h-8 font-mono text-xs"
+          />
+          <p className="text-[11px] text-muted-foreground/70">
+            0 = 不重试，Call 节点可单独覆盖
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="default_initial_backoff_ms" className="text-xs text-muted-foreground">
+            默认初始退避时间 (ms)
+          </Label>
+          <Input
+            id="default_initial_backoff_ms"
+            type="number"
+            min={100}
+            max={30000}
+            placeholder="1000"
+            {...register('initial_backoff_ms', { valueAsNumber: true })}
+            className="h-8 font-mono text-xs"
+          />
+          <p className="text-[11px] text-muted-foreground/70">
+            范围 100-30000ms，指数退避（上限 30s）+ 随机抖动
+          </p>
+        </div>
+      </div>
+
+      {/* 负载均衡配置 */}
+      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Cable className="h-3.5 w-3.5 text-muted-foreground" />
+            <Label className="text-sm font-medium text-foreground">负载均衡（EXPERIMENTAL）</Label>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleAddEndpoint}
+            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Plus className="h-3 w-3" />
+            添加端点
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          主端点 + 额外端点将使用轮询负载均衡
+        </p>
+        <div className="space-y-2">
+          {(() => {
+            const eps = watch('endpoints') ?? [];
+            if (eps.length === 0) {
+              return (
+                <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-3 text-center">
+                  <p className="text-xs text-muted-foreground">暂无额外端点</p>
+                </div>
+              );
+            }
+            return eps.map((_: string, index: number) => (
+              <div key={index} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30">
+                <Input
+                  {...register(`endpoints.${index}`)}
+                  placeholder="http://host:port"
+                  className="h-8 flex-1 font-mono text-xs"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveEndpoint(index)}
+                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ));
+          })()}
+        </div>
       </div>
 
       {/* 提示信息 */}

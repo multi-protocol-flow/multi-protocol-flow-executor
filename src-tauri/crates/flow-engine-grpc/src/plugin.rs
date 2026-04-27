@@ -108,8 +108,13 @@ impl NodePlugin for GrpcConnectPlugin {
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         let grpc_manager = context.grpc_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::grpc_connection_manager::GrpcConnectionManager::new())
+            let mgr: Arc<dyn flow_engine_core::traits::GrpcProvider> = Arc::new(crate::grpc_connection_manager::GrpcConnectionManager::new());
+            mgr
         });
+        // 确保后续插件使用同一个 manager
+        if context.grpc_manager.is_none() {
+            context.grpc_manager = Some(grpc_manager.clone());
+        }
         let executor = crate::grpc_connect_executor::GrpcConnectExecutor::new(grpc_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -211,8 +216,13 @@ impl NodePlugin for GrpcCallPlugin {
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         let grpc_manager = context.grpc_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::grpc_connection_manager::GrpcConnectionManager::new())
+            let mgr: Arc<dyn flow_engine_core::traits::GrpcProvider> = Arc::new(crate::grpc_connection_manager::GrpcConnectionManager::new());
+            mgr
         });
+        // 确保后续插件使用同一个 manager
+        if context.grpc_manager.is_none() {
+            context.grpc_manager = Some(grpc_manager.clone());
+        }
         let executor = crate::grpc_call_executor::GrpcCallExecutor::new(grpc_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -291,8 +301,13 @@ impl NodePlugin for GrpcClosePlugin {
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
         let grpc_manager = context.grpc_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::grpc_connection_manager::GrpcConnectionManager::new())
+            let mgr: Arc<dyn flow_engine_core::traits::GrpcProvider> = Arc::new(crate::grpc_connection_manager::GrpcConnectionManager::new());
+            mgr
         });
+        // 确保后续插件使用同一个 manager
+        if context.grpc_manager.is_none() {
+            context.grpc_manager = Some(grpc_manager.clone());
+        }
         let executor = crate::grpc_close_executor::GrpcCloseExecutor::new(grpc_manager);
         executor
             .execute(node, context, connections, node_map)

@@ -50,6 +50,66 @@ impl Default for ExecutionSessionManager {
     }
 }
 
+/// gRPC 取消会话管理器
+///
+/// 管理当前流程执行中的 gRPC 连接管理器引用，
+/// 允许前端通过 `grpc_cancel_stream` 命令取消进行中的流式调用，
+/// 并通过 `grpc_channelz_info` 命令查询连接状态。
+pub struct GrpcCancelSessionManager {
+    grpc_manager: std::sync::Mutex<Option<Arc<dyn GrpcProvider>>>,
+    /// 具体类型的 GrpcConnectionManager（用于 Channelz 内省）
+    channelz_manager: std::sync::Mutex<Option<Arc<flow_engine::grpc_connection_manager::GrpcConnectionManager>>>,
+}
+
+impl GrpcCancelSessionManager {
+    /// 创建新的 gRPC 取消会话管理器
+    pub fn new() -> Self {
+        Self {
+            grpc_manager: std::sync::Mutex::new(None),
+            channelz_manager: std::sync::Mutex::new(None),
+        }
+    }
+
+    /// 设置当前活跃的 gRPC manager
+    pub fn set_manager(&self, manager: Arc<dyn GrpcProvider>) {
+        let mut guard = self.grpc_manager.lock().expect("锁不应失败");
+        *guard = Some(manager);
+    }
+
+    /// 设置当前活跃的具体类型 GrpcConnectionManager（用于 Channelz）
+    pub fn set_channelz_manager(&self, manager: Arc<flow_engine::grpc_connection_manager::GrpcConnectionManager>) {
+        let mut guard = self.channelz_manager.lock().expect("锁不应失败");
+        *guard = Some(manager);
+    }
+
+    /// 清除当前活跃的 gRPC manager（执行结束时清理）
+    pub fn clear(&self) {
+        {
+            let mut guard = self.grpc_manager.lock().expect("锁不应失败");
+            *guard = None;
+        }
+        {
+            let mut guard = self.channelz_manager.lock().expect("锁不应失败");
+            *guard = None;
+        }
+    }
+
+    /// 取消指定调用
+    pub fn cancel_stream(&self, connection_id: &str, call_id: &str) -> Result<(), String> {
+        let guard = self.grpc_manager.lock().map_err(|e| e.to_string())?;
+        match guard.as_ref() {
+            Some(manager) => manager.cancel_stream(connection_id, call_id),
+            None => Err("没有活跃的执行会话".to_string()),
+        }
+    }
+}
+
+impl Default for GrpcCancelSessionManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 
 
 // ============================================================================
@@ -86,6 +146,7 @@ pub async fn execute_flow(
     on_execution_event: Channel<ExecutionEvent>,
     on_ws_event: Channel<DebugEvent>,
     state: State<'_, ExecutionSessionManager>,
+    grpc_state: State<'_, GrpcCancelSessionManager>,
 ) -> Result<ExecuteFlowCommandOutput, String> {
     // 创建取消信号通道
     let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
@@ -95,6 +156,15 @@ pub async fn execute_flow(
         let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
         *guard = Some(cancel_tx);
     }
+
+    // 创建共享的 gRPC manager 并注册到取消会话管理器
+    let concrete_grpc_manager = Arc::new(
+        flow_engine::grpc_connection_manager::GrpcConnectionManager::new()
+    );
+    let grpc_manager: Arc<dyn GrpcProvider> = concrete_grpc_manager.clone();
+    grpc_state.set_manager(grpc_manager.clone());
+    // 注册具体类型引用（用于 Channelz 内省，共享同一个连接池）
+    grpc_state.set_channelz_manager(concrete_grpc_manager);
 
     // 创建队列日志发送器（调试模式同步，发布模式异步）
     let (log_sender, log_worker) = create_log_sender(on_event);
@@ -112,18 +182,52 @@ pub async fn execute_flow(
         Arc::new(TauriDebugEventSender::new(on_ws_event))
     );
 
-    // 执行流程（传入取消信号 receiver）
-    let result = flow_engine::commands::execute_flow(
-        input, flow, Some(log_sender), execution_event_sender, debug_event_sender, Some(cancel_rx),
-    ).await;
+    // 执行流程（传入取消信号 receiver + 共享的 grpc_manager）
+    let flow_uuid = flow.uuid.clone();
+    let flow_name = flow.name.clone();
+    let input_variables = input.variables.clone();
+
+    let mut executor = flow_engine::executor::FlowExecutor::new()
+        .with_grpc_manager(grpc_manager);
+    if let Some(sender) = execution_event_sender {
+        executor = executor.with_execution_event_sender(sender);
+    }
+    if let Some(sender) = debug_event_sender {
+        executor = executor.with_debug_event_sender(sender);
+    }
+    if let Some(rx) = Some(cancel_rx) {
+        executor = executor.with_cancel_receiver(rx);
+    }
+    executor = executor.with_hook_executor(std::sync::Arc::new(
+        flow_engine::hook_runner::DefaultHookExecutor::new()
+    ));
+
+    let result = executor
+        .execute_flow(&flow, input_variables, None, Some(log_sender))
+        .await;
+
+    // 发送流程结束日志
+    let _ = (flow_uuid, flow_name);
+
+    // 先计算 execution_time，避免 move 后借用
+    let execution_time = result.flow_report.as_ref().map(|r| r.duration_ms).unwrap_or(0);
+    let output = flow_engine::command::ExecuteFlowCommandOutput {
+        success: result.success,
+        data: result.data,
+        flow_report: result.flow_report,
+        error: result.error,
+        execution_time,
+    };
 
     // 执行完成后清理会话（take sender 使其 drop，后续 cancel_flow 调用将返回"没有活跃的执行会话"）
     {
         let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
         *guard = None;
     }
+    // 清理 gRPC 取消会话
+    grpc_state.clear();
 
-    Ok(result)
+    Ok(output)
 }
 
 /// 取消流程执行
@@ -231,7 +335,7 @@ pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionRes
 // ============================================================================
 
 use flow_engine::grpc_connection_manager;
-use flow_engine::traits::GrpcServiceInfo;
+use flow_engine::traits::{GrpcMethodInfo, GrpcProvider, GrpcServiceInfo};
 
 /// gRPC 服务发现请求参数
 #[derive(serde::Deserialize)]
@@ -248,6 +352,16 @@ pub struct GrpcDiscoverServicesInput {
     pub proto_files: Option<Vec<(String, String)>>,
     /// 连接超时（毫秒）
     pub connect_timeout_ms: Option<u64>,
+    /// TLS CA 证书文件路径
+    pub tls_ca_cert: Option<String>,
+    /// TLS 客户端证书文件路径
+    pub tls_client_cert: Option<String>,
+    /// TLS 客户端私钥文件路径
+    pub tls_client_key: Option<String>,
+    /// TLS SNI 覆盖
+    pub tls_server_name_override: Option<String>,
+    /// Reflection 请求附加 metadata（用于认证的反射服务）
+    pub reflection_metadata: Option<Vec<(String, String)>>,
 }
 
 /// gRPC 服务发现响应
@@ -274,21 +388,32 @@ pub async fn grpc_discover_services(
     let use_tls = input.use_tls.unwrap_or(false);
     let tls_skip_verify = input.tls_skip_verify.unwrap_or(false);
     let proto_files = input.proto_files.unwrap_or_default();
+    let tls_ca_cert = input.tls_ca_cert.as_deref();
+    let tls_client_cert = input.tls_client_cert.as_deref();
+    let tls_client_key = input.tls_client_key.as_deref();
+    let tls_server_name_override = input.tls_server_name_override.as_deref();
+    let reflection_metadata = input.reflection_metadata.unwrap_or_default();
 
     log::info!(
-        "[gRPC] 发现服务: url={}, reflection={}, proto_files={}",
+        "[gRPC] 发现服务: url={}, reflection={}, proto_files={}, metadata_count={}",
         input.url,
         enable_reflection,
-        proto_files.len()
+        proto_files.len(),
+        reflection_metadata.len()
     );
 
     let result = if enable_reflection {
-        // 通过 Server Reflection 发现
+        // 通过 Server Reflection 发现（v1 优先，自动回退到 v1alpha）
         grpc_connection_manager::discover_services_via_reflection(
             &input.url,
             use_tls,
             tls_skip_verify,
             connect_timeout_ms,
+            tls_ca_cert,
+            tls_client_cert,
+            tls_client_key,
+            tls_server_name_override,
+            reflection_metadata,
         )
         .await
     } else if !proto_files.is_empty() {
@@ -324,6 +449,394 @@ pub async fn grpc_discover_services(
 
 use flow_engine::proto_parser;
 
+// ============================================================================
+// gRPC Proto 目录扫描和 Descriptor Set 命令
+// ============================================================================
+
+/// Proto 文件信息（IPC 输出）
+#[derive(Debug, serde::Serialize)]
+pub struct ProtoFileOutput {
+    /// 文件名（相对路径）
+    pub path: String,
+    /// 文件内容
+    pub content: String,
+}
+
+/// 扫描 Proto 目录响应
+#[derive(Debug, serde::Serialize)]
+pub struct GrpcScanProtoDirectoryOutput {
+    /// 是否成功
+    pub success: bool,
+    /// 发现的 proto 文件列表
+    pub files: Vec<ProtoFileOutput>,
+    /// 目录根路径（用作 proto 编译的 include 路径）
+    pub import_path: Option<String>,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// 扫描目录，发现所有 .proto 文件
+///
+/// 递归遍历指定目录及其子目录，收集所有 `.proto` 文件。
+/// 跳过以 `.` 开头的隐藏目录。
+#[tauri::command]
+pub async fn grpc_scan_proto_directory(
+    dir_path: String,
+) -> GrpcScanProtoDirectoryOutput {
+    log::info!("[gRPC] 扫描 Proto 目录: {}", dir_path);
+
+    match proto_parser::discover_proto_files_in_dir(&dir_path) {
+        Ok((files, import_path)) => {
+            log::info!("[gRPC] 扫描完成: 发现 {} 个 proto 文件", files.len());
+            GrpcScanProtoDirectoryOutput {
+                success: true,
+                files: files
+                    .into_iter()
+                    .map(|(path, content)| ProtoFileOutput { path, content })
+                    .collect(),
+                import_path: Some(import_path),
+                error: None,
+            }
+        }
+        Err(e) => {
+            log::error!("[gRPC] 扫描目录失败: {}", e);
+            GrpcScanProtoDirectoryOutput {
+                success: false,
+                files: vec![],
+                import_path: None,
+                error: Some(format!("{}", e)),
+            }
+        }
+    }
+}
+
+/// 读取 Proto 文件列表响应
+#[derive(Debug, serde::Serialize)]
+pub struct GrpcReadProtoFilesOutput {
+    /// 是否成功
+    pub success: bool,
+    /// 文件列表 (filename, content)
+    pub files: Vec<ProtoFileOutput>,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// 读取多个 .proto 文件的内容
+///
+/// 接收文件路径列表，读取每个文件的内容并返回。
+/// 用于文件选择器选择 .proto 文件后批量读取内容。
+#[tauri::command]
+pub async fn grpc_read_proto_files(
+    file_paths: Vec<String>,
+) -> GrpcReadProtoFilesOutput {
+    log::info!("[gRPC] 读取 {} 个 Proto 文件", file_paths.len());
+
+    let mut files = Vec::new();
+    for file_path in &file_paths {
+        match std::fs::read_to_string(file_path) {
+            Ok(content) => {
+                // 提取文件名
+                let file_name = std::path::Path::new(file_path)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| file_path.clone());
+                files.push(ProtoFileOutput {
+                    path: file_name,
+                    content,
+                });
+            }
+            Err(e) => {
+                log::error!("[gRPC] 读取文件失败: {} - {}", file_path, e);
+                return GrpcReadProtoFilesOutput {
+                    success: false,
+                    files: vec![],
+                    error: Some(format!("读取文件 {} 失败: {}", file_path, e)),
+                };
+            }
+        }
+    }
+
+    log::info!("[gRPC] 成功读取 {} 个 Proto 文件", files.len());
+    GrpcReadProtoFilesOutput {
+        success: true,
+        files,
+        error: None,
+    }
+}
+
+/// 解析 Descriptor Set 响应
+#[derive(Debug, serde::Serialize)]
+pub struct GrpcParseDescriptorSetOutput {
+    /// 是否成功
+    pub success: bool,
+    /// 发现的服务列表
+    pub services: Vec<GrpcServiceInfo>,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// 解析 FileDescriptorSet 二进制文件
+///
+/// 读取 `.pb` / `.fdset` / `.desc` 格式的 FileDescriptorSet 文件，
+/// 解析并返回其中的服务和方法信息。
+#[tauri::command]
+pub async fn grpc_parse_descriptor_set(
+    file_path: String,
+) -> GrpcParseDescriptorSetOutput {
+    log::info!("[gRPC] 解析 Descriptor Set 文件: {}", file_path);
+
+    // 读取文件内容
+    let data = match std::fs::read(&file_path) {
+        Ok(data) => data,
+        Err(e) => {
+            let err_msg = format!("读取文件失败: {}", e);
+            log::error!("[gRPC] {}", err_msg);
+            return GrpcParseDescriptorSetOutput {
+                success: false,
+                services: vec![],
+                error: Some(err_msg),
+            };
+        }
+    };
+
+    // 解析 FileDescriptorSet
+    let pool = match proto_parser::parse_descriptor_set(&data) {
+        Ok(pool) => pool,
+        Err(e) => {
+            let err_msg = format!("{}", e);
+            log::error!("[gRPC] {}", err_msg);
+            return GrpcParseDescriptorSetOutput {
+                success: false,
+                services: vec![],
+                error: Some(err_msg),
+            };
+        }
+    };
+
+    // 提取服务信息
+    let services = proto_parser::list_services(&pool);
+    let grpc_services: Vec<GrpcServiceInfo> = services
+        .iter()
+        .map(|s| GrpcServiceInfo {
+            service_name: s.service_name.clone(),
+            methods: s
+                .methods
+                .iter()
+                .map(|m| GrpcMethodInfo {
+                    method_name: m.method_name.clone(),
+                    input_type: m.input_type.clone(),
+                    output_type: m.output_type.clone(),
+                    is_server_streaming: m.is_server_streaming,
+                    is_client_streaming: m.is_client_streaming,
+                })
+                .collect(),
+        })
+        .collect();
+
+    log::info!(
+        "[gRPC] Descriptor Set 解析成功: 发现 {} 个服务",
+        grpc_services.len()
+    );
+
+    GrpcParseDescriptorSetOutput {
+        success: true,
+        services: grpc_services,
+        error: None,
+    }
+}
+
+// ============================================================================
+// gRPC 健康检查命令
+// ============================================================================
+
+/// gRPC 健康检查响应
+#[derive(Debug, serde::Serialize)]
+pub struct GrpcHealthCheckOutput {
+    /// 是否成功执行检查
+    pub success: bool,
+    /// 服务状态："UNKNOWN", "SERVING", "NOT_SERVING", "SERVICE_UNKNOWN", "NOT_IMPLEMENTED"
+    pub status: Option<String>,
+    /// 错误信息（执行失败时）
+    pub error: Option<String>,
+}
+
+/// 执行 gRPC 健康检查（unary Check）
+///
+/// 设计时调用：向 gRPC 服务器发送 Health.Check 请求。
+/// 创建临时连接执行健康检查，检查后立即关闭。
+#[tauri::command]
+pub async fn grpc_health_check(
+    url: String,
+    use_tls: Option<bool>,
+    tls_skip_verify: Option<bool>,
+    connect_timeout_ms: Option<u64>,
+    tls_ca_cert: Option<String>,
+    tls_client_cert: Option<String>,
+    tls_client_key: Option<String>,
+    tls_server_name_override: Option<String>,
+    service_name: Option<String>,
+) -> GrpcHealthCheckOutput {
+    use flow_engine::grpc_connection_manager::GrpcConnectionManager;
+    use flow_engine::traits::GrpcProvider;
+
+    log::info!(
+        "[gRPC] 健康检查: url={}, service={}",
+        url,
+        service_name.as_deref().unwrap_or("")
+    );
+
+    let manager = GrpcConnectionManager::new();
+    let conn_id = format!("health-check-{}", uuid::Uuid::new_v4());
+    let _use_tls = use_tls.unwrap_or(false);
+    let _tls_skip_verify = tls_skip_verify.unwrap_or(false);
+    let _connect_timeout_ms = connect_timeout_ms.unwrap_or(10000);
+    let _service = service_name.unwrap_or_default();
+
+    // 创建临时连接
+    let connect_result = manager.connect(
+        conn_id.clone(),
+        url.clone(),
+        _use_tls,
+        _tls_skip_verify,
+        false,  // enable_reflection
+        vec![],  // proto_files
+        vec![],  // metadata
+        _connect_timeout_ms,
+        tls_ca_cert,
+        tls_client_cert,
+        tls_client_key,
+        tls_server_name_override,
+        vec![],  // reflection_metadata
+        None,    // compression_encoding
+        None,    // keepalive_time_ms
+        None,    // keepalive_timeout_ms
+        None,    // keepalive_permit_without_streams
+        None,    // endpoints
+    ).await;
+
+    match connect_result {
+        Ok(_) => {
+            // 执行健康检查
+            let result = manager.health_check(&conn_id, &_service).await;
+            // 关闭连接
+            let _ = manager.close(&conn_id).await;
+
+            match result {
+                Ok(response) => {
+                    log::info!("[gRPC] 健康检查结果: status={}", response.status);
+                    GrpcHealthCheckOutput {
+                        success: true,
+                        status: Some(response.status),
+                        error: None,
+                    }
+                }
+                Err(e) => {
+                    log::error!("[gRPC] 健康检查失败: {}", e);
+                    GrpcHealthCheckOutput {
+                        success: false,
+                        status: None,
+                        error: Some(e),
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            log::error!("[gRPC] 健康检查连接失败: {}", e);
+            GrpcHealthCheckOutput {
+                success: false,
+                status: None,
+                error: Some(format!("连接失败: {}", e)),
+            }
+        }
+    }
+}
+
+// ============================================================================
+// gRPC Channelz 内省命令
+// ============================================================================
+
+/// gRPC Channelz 内省响应（EXPERIMENTAL）
+#[derive(Debug, serde::Serialize)]
+pub struct GrpcChannelzOutput {
+    /// 是否成功
+    pub success: bool,
+    /// Channelz 信息（成功时返回）
+    pub info: Option<flow_engine::grpc_connection_manager::ChannelzInfo>,
+    /// 错误信息（失败时）
+    pub error: Option<String>,
+}
+
+/// 获取 gRPC 连接的 Channelz 内省信息（EXPERIMENTAL）
+///
+/// 运行时调用：获取活跃 gRPC 连接的轻量级诊断信息。
+/// 包括连接状态、运行时长、活跃调用数等。
+#[tauri::command]
+pub async fn grpc_channelz_info(
+    connection_id: String,
+    grpc_state: State<'_, GrpcCancelSessionManager>,
+) -> Result<GrpcChannelzOutput, String> {
+    log::info!("[gRPC Channelz] 查询连接状态: connection_id={}", connection_id);
+
+    // 从取消会话管理器获取 channelz_manager（克隆 Arc 以避免跨 await 持有锁）
+    let channelz_manager = {
+        let guard = grpc_state.channelz_manager.lock().map_err(|e| e.to_string())?;
+        guard.clone()
+    };
+
+    match channelz_manager {
+        Some(m) => {
+            // 先检查连接是否存在
+            let grpc_manager = {
+                let guard = grpc_state.grpc_manager.lock().map_err(|e| e.to_string())?;
+                guard.clone()
+            };
+            if let Some(gm) = grpc_manager.as_ref() {
+                let status = gm.get_status(&connection_id);
+                if status.is_none() {
+                    return Ok(GrpcChannelzOutput {
+                        success: false,
+                        info: None,
+                        error: Some(format!("连接 '{}' 不存在（可能尚未执行流程）", connection_id)),
+                    });
+                }
+            }
+
+            match m.get_channelz_info(&connection_id).await {
+                Ok(info) => {
+                    log::info!(
+                        "[gRPC Channelz] 连接状态: state={}, uptime={}s, active_calls={}",
+                        info.state,
+                        info.uptime_secs,
+                        info.active_calls
+                    );
+                    Ok(GrpcChannelzOutput {
+                        success: true,
+                        info: Some(info),
+                        error: None,
+                    })
+                }
+                Err(e) => {
+                    log::error!("[gRPC Channelz] 查询失败: {}", e);
+                    Ok(GrpcChannelzOutput {
+                        success: false,
+                        info: None,
+                        error: Some(e),
+                    })
+                }
+            }
+        }
+        None => Ok(GrpcChannelzOutput {
+            success: false,
+            info: None,
+            error: Some("没有活跃的执行会话".to_string()),
+        }),
+    }
+}
+
+// ============================================================================
+// gRPC 请求骨架生成命令（原有）
+// ============================================================================
+
 /// gRPC 请求骨架生成请求参数
 #[derive(serde::Deserialize)]
 pub struct GrpcGenerateRequestSkeletonInput {
@@ -346,6 +859,106 @@ pub struct GrpcGenerateRequestSkeletonOutput {
     pub error: Option<String>,
 }
 
+// ============================================================================
+// gRPC 请求 JSON 预验证命令
+// ============================================================================
+
+use flow_engine::proto_parser::ValidationResult;
+
+/// gRPC 请求 JSON 验证响应
+#[derive(Debug, serde::Serialize)]
+pub struct GrpcValidateRequestOutput {
+    /// 是否成功执行验证（不代表验证通过）
+    pub success: bool,
+    /// 验证结果（成功执行时返回）
+    pub result: Option<ValidationResult>,
+    /// 错误信息（执行失败时）
+    pub error: Option<String>,
+}
+
+/// gRPC 请求 JSON 验证请求参数
+#[derive(serde::Deserialize)]
+pub struct GrpcValidateRequestInput {
+    /// 待验证的 JSON 字符串
+    pub json: String,
+    /// 消息全名（如 "test.GetUserRequest"）
+    pub message_name: String,
+    /// Proto 文件列表 (path, content)，可选（用于从 proto 文件解析 schema）
+    pub proto_files: Option<Vec<(String, String)>>,
+}
+
+/// 验证请求 JSON 是否符合 proto 消息定义
+///
+/// 解析 proto 文件获取消息 schema，检查 JSON 字段名和类型是否匹配。
+/// 仅做建议性检查，不阻止发送。
+#[tauri::command]
+pub async fn grpc_validate_request(
+    input: GrpcValidateRequestInput,
+) -> GrpcValidateRequestOutput {
+    log::info!(
+        "[gRPC] 验证请求 JSON: message_name={}, proto_files={}",
+        input.message_name,
+        input.proto_files.as_ref().map(|f| f.len()).unwrap_or(0)
+    );
+
+    let proto_files = match input.proto_files {
+        Some(files) if !files.is_empty() => files,
+        _ => {
+            return GrpcValidateRequestOutput {
+                success: false,
+                result: None,
+                error: Some("未提供 proto 文件，无法验证".to_string()),
+            };
+        }
+    };
+
+    // 解析 proto 文件
+    let files: Vec<proto_parser::ProtoFile> = proto_files
+        .iter()
+        .map(|(path, content)| proto_parser::ProtoFile {
+            path: path.clone(),
+            content: content.clone(),
+        })
+        .collect();
+
+    let pool = match proto_parser::parse_proto_files(&files) {
+        Ok(pool) => pool,
+        Err(e) => {
+            let err_msg = format!("解析 proto 文件失败: {}", e);
+            log::error!("[gRPC] {}", err_msg);
+            return GrpcValidateRequestOutput {
+                success: false,
+                result: None,
+                error: Some(err_msg),
+            };
+        }
+    };
+
+    // 执行验证
+    match proto_parser::validate_request_json(&pool, &input.message_name, &input.json) {
+        Ok(result) => {
+            log::info!(
+                "[gRPC] 验证完成: valid={}, errors={}",
+                result.valid,
+                result.errors.len()
+            );
+            GrpcValidateRequestOutput {
+                success: true,
+                result: Some(result),
+                error: None,
+            }
+        }
+        Err(e) => {
+            log::error!("[gRPC] 验证失败: {}", e);
+            GrpcValidateRequestOutput {
+                success: false,
+                result: None,
+                error: Some(e),
+            }
+        }
+    }
+}
+
 /// 生成 gRPC 请求消息的 JSON 骨架
 ///
 /// 根据指定服务和方法的 Input Type，解析 proto 文件并生成占位 JSON。
@@ -353,8 +966,7 @@ pub struct GrpcGenerateRequestSkeletonOutput {
 #[tauri::command]
 pub async fn grpc_generate_request_skeleton(
     input: GrpcGenerateRequestSkeletonInput,
-) -> GrpcGenerateRequestSkeletonOutput {
-    log::info!(
+) -> GrpcGenerateRequestSkeletonOutput {    log::info!(
         "[gRPC] 生成请求骨架: service={}, method={}, proto_files={}",
         input.service_name,
         input.method_name,
@@ -429,6 +1041,96 @@ pub async fn grpc_generate_request_skeleton(
         success: true,
         skeleton: Some(skeleton_str),
         error: None,
+    }
+}
+
+// ============================================================================
+// gRPC 请求骨架生成命令（Reflection 模式）
+// ============================================================================
+
+/// gRPC Reflection 模式骨架生成请求参数
+#[derive(serde::Deserialize)]
+pub struct GrpcGenerateRequestSkeletonFromReflectionInput {
+    /// gRPC 服务器地址
+    pub url: String,
+    /// 是否使用 TLS
+    pub use_tls: Option<bool>,
+    /// 是否跳过 TLS 证书验证
+    pub tls_skip_verify: Option<bool>,
+    /// 连接超时（毫秒）
+    pub connect_timeout_ms: Option<u64>,
+    /// TLS CA 证书文件路径
+    pub tls_ca_cert: Option<String>,
+    /// TLS 客户端证书文件路径
+    pub tls_client_cert: Option<String>,
+    /// TLS 客户端私钥文件路径
+    pub tls_client_key: Option<String>,
+    /// TLS SNI 覆盖
+    pub tls_server_name_override: Option<String>,
+    /// Reflection 请求附加 metadata
+    pub reflection_metadata: Option<Vec<(String, String)>>,
+    /// 服务全名（如 "package.ServiceName"）
+    pub service_name: String,
+    /// 方法名
+    pub method_name: String,
+}
+
+/// 通过 Server Reflection 生成 gRPC 请求消息的 JSON 骨架
+///
+/// 创建临时连接，通过 Server Reflection 获取类型信息，
+/// 生成指定服务和方法的输入消息骨架。
+/// 适用于未提供 proto 文件的 Reflection 场景。
+#[tauri::command]
+pub async fn grpc_generate_request_skeleton_from_reflection(
+    input: GrpcGenerateRequestSkeletonFromReflectionInput,
+) -> GrpcGenerateRequestSkeletonOutput {
+    let use_tls = input.use_tls.unwrap_or(false);
+    let tls_skip_verify = input.tls_skip_verify.unwrap_or(false);
+    let connect_timeout_ms = input.connect_timeout_ms.unwrap_or(30000);
+    let reflection_metadata = input.reflection_metadata.unwrap_or_default();
+
+    log::info!(
+        "[gRPC] 通过 Reflection 生成请求骨架: url={}, service={}, method={}",
+        input.url,
+        input.service_name,
+        input.method_name
+    );
+
+    let result = flow_engine::reflection::generate_skeleton_via_reflection(
+        &input.url,
+        use_tls,
+        tls_skip_verify,
+        connect_timeout_ms,
+        input.tls_ca_cert.as_deref(),
+        input.tls_client_cert.as_deref(),
+        input.tls_client_key.as_deref(),
+        input.tls_server_name_override.as_deref(),
+        reflection_metadata,
+        &input.service_name,
+        &input.method_name,
+    )
+    .await;
+
+    match result {
+        Ok(skeleton) => {
+            log::info!(
+                "[gRPC] Reflection 骨架生成成功: {}",
+                skeleton.chars().take(100).collect::<String>()
+            );
+            GrpcGenerateRequestSkeletonOutput {
+                success: true,
+                skeleton: Some(skeleton),
+                error: None,
+            }
+        }
+        Err(e) => {
+            log::error!("[gRPC] Reflection 骨架生成失败: {}", e);
+            GrpcGenerateRequestSkeletonOutput {
+                success: false,
+                skeleton: None,
+                error: Some(e),
+            }
+        }
     }
 }
 

@@ -508,6 +508,8 @@ mod tests {
             uuid: "flow-snap-001".to_string(),
             name: "Snapshot Flow".to_string(),
             initial_variables: None,
+            environments: vec![],
+            active_environment: None,
             nodes: vec![],
             connections: vec![],
             hooks: None,

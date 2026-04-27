@@ -2,7 +2,7 @@
  * 当前编辑流程状态管理
  */
 import { create } from 'zustand';
-import type { Flow, Node, Connection, NodeType } from '@/types';
+import type { Flow, Node, Connection, NodeType, EnvironmentSet } from '@/types';
 
 /** 深度比较两个值是否相等（属性顺序无关，undefined 值视为缺失） */
 function deepEqual(a: unknown, b: unknown): boolean {
@@ -30,6 +30,8 @@ function deepEqual(a: unknown, b: unknown): boolean {
 function isFlowEqual(a: Flow, b: Flow): boolean {
   if (a.uuid !== b.uuid || a.name !== b.name) return false;
   if (!deepEqual(a.initial_variables, b.initial_variables)) return false;
+  if (!deepEqual(a.environments, b.environments)) return false;
+  if (a.active_environment !== b.active_environment) return false;
   if (a.nodes.length !== b.nodes.length) return false;
   if (a.connections.length !== b.connections.length) return false;
   for (let i = 0; i < a.nodes.length; i++) {
@@ -73,6 +75,16 @@ interface FlowState {
   updateFlowName: (name: string) => void;
   /** 更新流程初始变量 */
   updateInitialVariables: (variables: Record<string, unknown>) => void;
+  /** 设置环境列表 */
+  setEnvironments: (environments: EnvironmentSet[]) => void;
+  /** 设置激活的环境名称 */
+  setActiveEnvironment: (name: string | null) => void;
+  /** 添加环境 */
+  addEnvironment: (env: EnvironmentSet) => void;
+  /** 更新环境 */
+  updateEnvironment: (name: string, env: EnvironmentSet) => void;
+  /** 删除环境 */
+  removeEnvironment: (name: string) => void;
   /** 添加节点 */
   addNode: (node: Node) => void;
   /** 更新节点 */
@@ -179,6 +191,61 @@ export const useFlowStore = create<FlowState>((set, get) => {
       set((state) => {
         if (!state.flow) return state;
         const newFlow = { ...state.flow, initial_variables: variables };
+        const history = pushHistory(state, newFlow);
+        if (!history) return { flow: newFlow, isDirty: true };
+        return { ...history, flow: newFlow, isDirty: true };
+      }),
+
+    setEnvironments: (environments) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const newFlow = { ...state.flow, environments };
+        const history = pushHistory(state, newFlow);
+        if (!history) return { flow: newFlow, isDirty: true };
+        return { ...history, flow: newFlow, isDirty: true };
+      }),
+
+    setActiveEnvironment: (name) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const newFlow = { ...state.flow, active_environment: name ?? undefined };
+        const history = pushHistory(state, newFlow);
+        if (!history) return { flow: newFlow, isDirty: true };
+        return { ...history, flow: newFlow, isDirty: true };
+      }),
+
+    addEnvironment: (env) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const environments = [...(state.flow.environments ?? []), env];
+        const newFlow = { ...state.flow, environments };
+        const history = pushHistory(state, newFlow);
+        if (!history) return { flow: newFlow, isDirty: true };
+        return { ...history, flow: newFlow, isDirty: true };
+      }),
+
+    updateEnvironment: (name, env) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const environments = (state.flow.environments ?? []).map((e) =>
+          e.name === name ? env : e
+        );
+        // 如果改名了，也要更新 active_environment
+        const active_environment =
+          state.flow.active_environment === name ? env.name : state.flow.active_environment;
+        const newFlow = { ...state.flow, environments, active_environment };
+        const history = pushHistory(state, newFlow);
+        if (!history) return { flow: newFlow, isDirty: true };
+        return { ...history, flow: newFlow, isDirty: true };
+      }),
+
+    removeEnvironment: (name) =>
+      set((state) => {
+        if (!state.flow) return state;
+        const environments = (state.flow.environments ?? []).filter((e) => e.name !== name);
+        const active_environment =
+          state.flow.active_environment === name ? undefined : state.flow.active_environment;
+        const newFlow = { ...state.flow, environments, active_environment };
         const history = pushHistory(state, newFlow);
         if (!history) return { flow: newFlow, isDirty: true };
         return { ...history, flow: newFlow, isDirty: true };

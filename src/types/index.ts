@@ -257,7 +257,8 @@ export type {
 export type { Connection } from './connection';
 
 // 流程类型
-export type { Flow } from './flow';
+export type { Flow, EnvironmentSet } from './flow';
+export { getActiveVariables } from './flow';
 
 // 错误类型
 export type { ErrorKind, ErrorDetail } from './error';

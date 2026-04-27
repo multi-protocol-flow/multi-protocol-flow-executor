@@ -2,10 +2,10 @@
  * GrpcViewer - gRPC 节点执行详情查看器
  * 结构化展示 gRPC Connect/Call/Close 三种节点的执行结果
  * Connect: 连接配置、服务发现、耗时
- * Call: 调用配置、响应状态、响应数据、耗时
+ * Call: 调用配置、响应状态、响应数据、耗时、实时流式消息
  * Close: 关闭配置、耗时
  */
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -15,12 +15,15 @@ import {
   Clock,
   Globe,
   Server,
+  AlertTriangle,
+  Activity,
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
+import { useDebugStore } from '@/stores/debug';
 
 interface GrpcViewerProps {
   /** 节点执行报告 */
@@ -88,6 +91,19 @@ function KeyValueList({ data }: KeyValueListProps) {
 }
 
 // ============================================================================
+// 工具函数
+// ============================================================================
+
+/**
+ * 格式化字节数为人类可读字符串
+ */
+function formatSizeBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// ============================================================================
 // gRPC 输出数据类型
 // ============================================================================
 
@@ -118,6 +134,7 @@ interface GrpcConnectOutput {
       input_type: string;
       output_type: string;
       is_server_streaming: boolean;
+      is_client_streaming?: boolean;
     }>;
   }>;
   service_count?: number;
@@ -149,7 +166,7 @@ interface GrpcCallOutput {
   /** Response data (Unary/Client Streaming: single object) */
   data?: unknown;
   /** Responses array (Server/Bidi Streaming: multiple responses) */
-  responses?: Array<{ index?: number; data?: unknown; received_at_ms?: number }>;
+  responses?: Array<{ index?: number; data?: unknown; received_at_ms?: number; size_bytes?: number }>;
   /** Number of messages sent (Client/Bidi Streaming) */
   sent_count?: number;
   /** Number of messages received (Server/Bidi Streaming) */
@@ -170,6 +187,20 @@ interface GrpcCallOutput {
     first_response_ms?: number;
   };
   error?: string;
+  /** 结构化 gRPC 错误详情（来自 google.rpc.Status 的 google.protobuf.Any） */
+  error_details?: GrpcErrorDetail[];
+}
+
+/**
+ * gRPC 错误详情（对应后端 GrpcErrorDetail 类型）
+ */
+interface GrpcErrorDetail {
+  /** 错误详情类型 URL */
+  type_url: string;
+  /** 解码后的 JSON 数据 */
+  decoded?: Record<string, unknown> | null;
+  /** 原始十六进制数据 */
+  raw_hex?: string | null;
 }
 
 /**
@@ -430,8 +461,130 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
 }
 
 // ============================================================================
+// gRPC 实时流式消息项
+// ============================================================================
+
+interface GrpcRealtimeMessageItemProps {
+  message: {
+    call_id: string;
+    index: number;
+    data: string;
+    received_at_ms: number;
+    size_bytes: number;
+    is_last: boolean;
+  };
+}
+
+function GrpcRealtimeMessageItem({ message }: GrpcRealtimeMessageItemProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // 解析 JSON 数据用于格式化显示
+  let parsedData: unknown;
+  try {
+    parsedData = JSON.parse(message.data);
+  } catch {
+    parsedData = message.data;
+  }
+
+  return (
+    <div className="border border-border rounded p-2">
+      <div className="flex items-center gap-2 mb-1">
+        <Badge variant="outline" className="text-[10px] px-1 py-0 font-mono">
+          #{message.index}
+        </Badge>
+        <span className="text-[10px] text-muted-foreground font-mono">
+          +{message.received_at_ms}ms
+        </span>
+        <span className="text-[10px] text-muted-foreground font-mono">
+          {formatSizeBytes(message.size_bytes)}
+        </span>
+        {message.is_last && (
+          <Badge variant="outline" className="text-[10px] px-1 py-0 font-mono text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+            最后一条
+          </Badge>
+        )}
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="ml-auto text-muted-foreground hover:text-foreground"
+        >
+          {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+        </button>
+      </div>
+      {isOpen && (
+        <div className="bg-muted rounded p-1.5 mt-1">
+          <RawJsonViewer data={parsedData} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
 // gRPC Call 查看器
 // ============================================================================
+
+/**
+ * 从 type_url 中提取短类型名
+ * `type.googleapis.com/google.rpc.RetryInfo` → `RetryInfo`
+ */
+function formatTypeUrl(typeUrl: string): { shortName: string; fullName: string } {
+  const fullName = typeUrl.split('/').pop() ?? typeUrl;
+  const parts = fullName.split('.');
+  const shortName = parts.length > 0 ? parts[parts.length - 1] : fullName;
+  return { shortName, fullName };
+}
+
+/**
+ * gRPC 错误详情卡片
+ */
+function GrpcErrorDetailsCard({ details }: { details: GrpcErrorDetail[] }) {
+  if (details.length === 0) return null;
+
+  return (
+    <CollapsibleSection
+      title={`错误详情 (${details.length})`}
+      icon={<AlertTriangle className="w-4 h-4" />}
+      defaultOpen={true}
+    >
+      <div className="space-y-2">
+        {details.map((detail, idx) => {
+          const { shortName, fullName } = formatTypeUrl(detail.type_url);
+          return (
+            <div key={idx} className="border border-border rounded-lg overflow-hidden">
+              {/* 类型标题栏 */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-950/30">
+                <Badge variant="outline" className="font-mono text-[10px] px-1 py-0 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700">
+                  {shortName}
+                </Badge>
+                <code className="text-xs text-muted-foreground font-mono truncate">{fullName}</code>
+              </div>
+              {/* 解码内容或原始十六进制 */}
+              <div className="p-2">
+                {detail.decoded ? (
+                  <div className="bg-muted rounded p-2">
+                    <RawJsonViewer data={detail.decoded} />
+                  </div>
+                ) : detail.raw_hex ? (
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">原始数据 (hex)</div>
+                    <code className="text-xs font-mono text-foreground break-all bg-muted rounded p-2 block">
+                      {detail.raw_hex.length > 512
+                        ? `${detail.raw_hex.slice(0, 512)}...`
+                        : detail.raw_hex}
+                    </code>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">空消息体</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </CollapsibleSection>
+  );
+}
 
 function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
   const output = report.output_data as GrpcCallOutput | undefined;
@@ -452,6 +605,39 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
   // Streaming responses (new unified format)
   const streamingResponses = output?.responses ?? [];
   const hasStreamingResponses = streamingResponses.length > 0;
+
+  // 实时流式消息：从 debug store 获取与当前节点相关的消息
+  const nodeUuid = report.node_uuid;
+  const grpcStreamMessages = useDebugStore((s) => s.grpcStreamMessages);
+  const grpcStreamErrors = useDebugStore((s) => s.grpcStreamErrors);
+
+  // 找到与当前节点相关的所有 call_id 的实时消息
+  const realtimeMessages = useMemo(() => {
+    const messages: Array<{ call_id: string; index: number; data: string; received_at_ms: number; size_bytes: number; is_last: boolean }> = [];
+    for (const [callId, msgs] of Object.entries(grpcStreamMessages)) {
+      const nodeMsgs = msgs.filter((m) => m.node_uuid === nodeUuid);
+      if (nodeMsgs.length > 0) {
+        for (const m of nodeMsgs) {
+          messages.push({ ...m, call_id: callId });
+        }
+      }
+    }
+    // 按 index 排序
+    messages.sort((a, b) => a.index - b.index);
+    return messages;
+  }, [grpcStreamMessages, nodeUuid]);
+
+  // 实时错误
+  const realtimeError = useMemo(() => {
+    for (const err of Object.values(grpcStreamErrors)) {
+      if (err.node_uuid === nodeUuid) return err;
+    }
+    return null;
+  }, [grpcStreamErrors, nodeUuid]);
+
+  // 是否显示实时流式消息面板（仅在调试模式、有实时消息、且非最终结果时）
+  const showRealtimeMessages = realtimeMessages.length > 0;
+  const hasFinalResults = hasStreamingResponses; // 最终结果已收集
 
   // Determine pattern label and color
   const patternLabel = (() => {
@@ -554,6 +740,11 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
         </div>
       </CollapsibleSection>
 
+      {/* 错误详情（google.rpc.Status 结构化详情） */}
+      {!isSuccess && output?.error_details && output.error_details.length > 0 && (
+        <GrpcErrorDetailsCard details={output.error_details} />
+      )}
+
       {/* Streaming Statistics */}
       {(output?.sent_count !== undefined || output?.received_count !== undefined) && (
         <CollapsibleSection
@@ -590,6 +781,35 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
         </CollapsibleSection>
       )}
 
+      {/* 实时流式消息（来自 DebugEvent 通道） */}
+      {showRealtimeMessages && !hasFinalResults && (
+        <CollapsibleSection
+          title={`实时消息 (${realtimeMessages.length} 条)`}
+          icon={<Activity className="w-4 h-4" />}
+          defaultOpen={true}
+          extra={
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-emerald-600 animate-pulse">实时</span>
+              <Badge variant="outline" className="font-mono text-xs">
+                {realtimeMessages.length} 条
+              </Badge>
+            </div>
+          }
+        >
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {realtimeMessages.map((msg) => (
+              <GrpcRealtimeMessageItem key={`${msg.call_id}-${msg.index}`} message={msg} />
+            ))}
+          </div>
+          {/* 实时错误 */}
+          {realtimeError && (
+            <div className="mt-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded p-2">
+              <p className="text-sm text-red-700 dark:text-red-300 break-all">{realtimeError.message}</p>
+            </div>
+          )}
+        </CollapsibleSection>
+      )}
+
       {/* Response Data - Single Response (Unary/Client Streaming) */}
       {responseData !== undefined && responseData !== null && !hasStreamingResponses && (
         <CollapsibleSection
@@ -619,7 +839,12 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
                   </Badge>
                   {resp.received_at_ms !== undefined && (
                     <span className="text-[10px] text-muted-foreground font-mono">
-                      {resp.received_at_ms}ms
+                      +{resp.received_at_ms}ms
+                    </span>
+                  )}
+                  {resp.size_bytes !== undefined && (
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {formatSizeBytes(resp.size_bytes)}
                     </span>
                   )}
                 </div>

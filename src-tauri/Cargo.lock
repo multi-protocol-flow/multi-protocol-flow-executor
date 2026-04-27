@@ -2229,8 +2229,10 @@ dependencies = [
  "prost-reflect",
  "prost-types",
  "protox",
+ "rand 0.8.5",
  "rustls 0.23.36",
  "rustls-native-certs",
+ "rustls-pemfile 2.2.0",
  "serde",
  "serde_json",
  "tempfile",
@@ -2238,7 +2240,9 @@ dependencies = [
  "tokio",
  "tokio-rustls 0.26.4",
  "tokio-stream",
+ "tokio-util",
  "tonic",
+ "tonic-health",
  "tonic-reflection",
  "tower 0.4.13",
  "webpki-roots 0.26.11",
@@ -8340,6 +8344,7 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "bytes",
+ "flate2",
  "h2 0.4.13",
  "http 1.4.0",
  "http-body 1.0.1",
@@ -8361,6 +8366,19 @@ dependencies = [
  "tower-service",
  "tracing",
  "webpki-roots 0.26.11",
+]
+
+[[package]]
+name = "tonic-health"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1eaf34ddb812120f5c601162d5429933c9b527d901ab0e7f930d3147e33a09b2"
+dependencies = [
+ "async-stream",
+ "prost",
+ "tokio",
+ "tokio-stream",
+ "tonic",
 ]
 
 [[package]]
