@@ -9,6 +9,7 @@ use crate::debug::{
     PauseReason,
 };
 use flow_engine_core::flow::Flow;
+use flow_engine_core::report::{ExecutionStatus, NodeExecutionReport};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
@@ -550,12 +551,54 @@ impl DebuggableFlowExecutor {
                 (*node).clone()
             };
 
+            // 同步 execution_stack 到 context.node_reports（供 VariableExtractor 等节点查找上游输出）
+            context.node_reports = debug_state.execution_stack.iter()
+                .filter(|entry| entry.ended_at.is_some())
+                .map(|entry| {
+                    let status = if entry.success {
+                        ExecutionStatus::Success
+                    } else {
+                        ExecutionStatus::Failed
+                    };
+                    let error_detail = entry.error.as_ref().map(|e| {
+                        flow_engine_core::error::ErrorDetail::new(
+                            flow_engine_core::error::ErrorKind::Execution,
+                            e.clone(),
+                        )
+                    });
+                    NodeExecutionReport {
+                        node_uuid: entry.node_uuid.clone(),
+                        node_type: entry.node_type.clone(),
+                        node_name: entry.node_name.clone(),
+                        start_time: entry.started_at,
+                        end_time: entry.ended_at.unwrap_or(entry.started_at),
+                        duration_ms: entry.ended_at.map(|e| e - entry.started_at).unwrap_or(0),
+                        status,
+                        input_data: entry.input.clone(),
+                        output_data: entry.output.clone(),
+                        used_port_id: entry.used_port_id.clone(),
+                        error: error_detail,
+                        resolved_config: entry.resolved_config.clone(),
+                        variable_changes: entry.variable_changes.clone(),
+                        skip_reason: entry.skip_reason.clone(),
+                        wait_duration_ms: None,
+                    }
+                })
+                .collect();
+
+            // 快照执行前的变量状态，用于计算节点执行期间的变量变更
+            let variables_before = context.variables.get_merged_variables();
+
             // 执行节点
             match self
                 .execute_node(&effective_node, context, &flow.connections, node_map)
                 .await
             {
                 Ok((next_node_ids, output_data)) => {
+                    // 计算变量变更
+                    let variables_after = context.variables.get_merged_variables();
+                    let variable_changes = compute_variable_changes(&variables_before, &variables_after);
+
                     // 更新堆栈条目
                     let node_end_ms = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
@@ -578,7 +621,7 @@ impl DebuggableFlowExecutor {
                         None,
                         used_port_id,
                         effective_resolved_config,
-                        None, // variable_changes 在 update 时更新
+                        if variable_changes.is_empty() { None } else { Some(variable_changes.clone()) },
                         None, // skip_reason 仅跳过节点时设置
                     );
 
@@ -622,6 +665,10 @@ impl DebuggableFlowExecutor {
                     }
                 }
                 Err(error) => {
+                    // 计算变量变更（节点可能部分修改了变量才出错）
+                    let variables_after = context.variables.get_merged_variables();
+                    let variable_changes = compute_variable_changes(&variables_before, &variables_after);
+
                     // 更新堆栈条目
                     let node_end_ms = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
@@ -663,7 +710,7 @@ impl DebuggableFlowExecutor {
                         Some(error.clone()),
                         used_port_id,
                         effective_resolved_config,
-                        None, // variable_changes
+                        if variable_changes.is_empty() { None } else { Some(variable_changes.clone()) },
                         None, // skip_reason
                     );
 
@@ -1132,6 +1179,31 @@ impl DebuggableFlowExecutor {
             flow_snapshot: Some(flow_snapshot),
         }
     }
+}
+
+/// 计算变量变更列表
+///
+/// 对比变量快照前后的差异，生成 `VariableChange` 列表
+fn compute_variable_changes(
+    variables_before: &std::collections::HashMap<String, serde_json::Value>,
+    variables_after: &std::collections::HashMap<String, serde_json::Value>,
+) -> Vec<flow_engine_core::report::VariableChange> {
+    let mut changes = Vec::new();
+
+    // 检测新增和修改的变量
+    for (key, new_value) in variables_after {
+        let old_value = variables_before.get(key).cloned();
+        // 只有值真正变化时才记录
+        if old_value.as_ref() != Some(new_value) {
+            changes.push(flow_engine_core::report::VariableChange {
+                key: key.clone(),
+                old_value,
+                new_value: new_value.clone(),
+            });
+        }
+    }
+
+    changes
 }
 
 #[cfg(test)]
