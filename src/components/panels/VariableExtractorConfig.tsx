@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { variableExtractorConfigSchema, type VariableExtractorConfigFormData } from './schemas';
 import { Label } from '@/components/ui/label';
 import { OutputMappingsEditor } from '@/components/panels/shared/OutputMappingsEditor';
-import type { VariableExtractorConfig as VariableExtractorConfigType } from '@/types';
+import type { VariableExtractorConfig as VariableExtractorConfigType, NodeType } from '@/types';
 import { useFlowStore } from '@/stores';
 
 interface VariableExtractorConfigProps {
@@ -17,6 +17,12 @@ interface VariableExtractorConfigProps {
   /** 保存回调 */
   onSave: (data: VariableExtractorConfigType) => void;
 }
+
+/** 不应出现在数据来源下拉中的节点类型（无输出数据或无意义） */
+const EXCLUDED_SOURCE_TYPES: Set<string> = new Set([
+  'entry',
+  'variable_extractor',
+]);
 
 /** JSONPath 预设列表 */
 const jsonPathPresets = [
@@ -76,8 +82,14 @@ export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfi
   const isActuallyDirtyRef = useRef(false);
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
 
-  // 获取当前流程节点列表
+  // 获取当前流程节点列表和当前选中节点
   const flow = useFlowStore((state) => state.flow);
+  const selectedNodeId = useFlowStore((state) => state.selectedNodeId);
+
+  // 可选的来源节点：排除自身和无输出节点类型
+  const sourceNodes = flow?.nodes.filter(
+    (node) => node.uuid !== selectedNodeId && !EXCLUDED_SOURCE_TYPES.has(node.type)
+  ) ?? [];
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
@@ -141,10 +153,10 @@ export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfi
           id="source_node_id"
           value={watch('source_node_id') || ''}
           onChange={handleSourceNodeChange}
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
-          <option value="">自动（最近协议节点输出）</option>
-          {flow?.nodes.map((node) => (
+          <option value="">自动（最近上游节点输出）</option>
+          {sourceNodes.map((node) => (
             <option key={node.uuid} value={node.uuid}>
               {node.name} ({node.type})
             </option>
