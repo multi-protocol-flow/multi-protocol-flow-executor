@@ -541,7 +541,8 @@ impl FlowExecutor {
                         skip_reason: None,
                         wait_duration_ms: None,
                     };
-                    node_reports.push(node_report);
+                    node_reports.push(node_report.clone());
+                    context.node_reports.push(node_report);
 
                     // 发送节点完成事件
                     context.emit_execution_event(ExecutionEvent::NodeCompleted {
@@ -664,7 +665,8 @@ impl FlowExecutor {
                             skip_reason: None,
                             wait_duration_ms: None,
                         };
-                        node_reports.push(node_report);
+                        node_reports.push(node_report.clone());
+                        context.node_reports.push(node_report);
 
                         // 发送节点完成事件
                         context.emit_execution_event(ExecutionEvent::NodeCompleted {
@@ -707,7 +709,8 @@ impl FlowExecutor {
                             skip_reason: None,
                             wait_duration_ms: None,
                         };
-                        node_reports.push(node_report);
+                        node_reports.push(node_report.clone());
+                        context.node_reports.push(node_report);
 
                         // 发送节点完成事件
                         context.emit_execution_event(ExecutionEvent::NodeCompleted {
@@ -774,7 +777,8 @@ impl FlowExecutor {
                         skip_reason: None,
                         wait_duration_ms: None,
                     };
-                    node_reports.push(node_report);
+                    node_reports.push(node_report.clone());
+                    context.node_reports.push(node_report);
 
                     // 发送节点完成事件
                     context.emit_execution_event(ExecutionEvent::NodeCompleted {
