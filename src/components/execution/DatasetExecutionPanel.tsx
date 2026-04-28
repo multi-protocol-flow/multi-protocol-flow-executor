@@ -641,49 +641,6 @@ export function DatasetExecutionPanel({
               <VariableMatchOverview matches={variableMatches} />
             )}
 
-            {/* 执行选项 */}
-            {!isExecuting && !isCompleted && csvInfo && (
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="ds-concurrency" className="text-sm font-medium">
-                    并发数
-                  </Label>
-                  <Input
-                    id="ds-concurrency"
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={concurrency}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      if (!isNaN(val) && val >= 1 && val <= 100) {
-                        setConcurrency(val);
-                      }
-                    }}
-                    className="h-8"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    1 = 顺序执行，最大 100
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">失败策略</Label>
-                  <Select
-                    value={failureStrategy}
-                    onValueChange={(v) => setFailureStrategy(v as FailureStrategy)}
-                  >
-                    <SelectTrigger className="h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="continue">继续执行</SelectItem>
-                      <SelectItem value="stop_on_first">遇失败停止</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
             {/* 执行进度 */}
             {(isExecuting || isCompleted) && <ExecutionProgress />}
 
@@ -711,6 +668,51 @@ export function DatasetExecutionPanel({
             )}
           </div>
         </ScrollArea>
+
+        {/* 执行选项 - 固定在滚动区域外，始终可见 */}
+        {!isExecuting && !isCompleted && csvInfo && (
+          <div className="shrink-0 space-y-3 pt-3 border-t border-border mt-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="ds-concurrency" className="text-sm font-medium">
+                  并发数
+                </Label>
+                <Input
+                  id="ds-concurrency"
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={concurrency}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val) && val >= 1 && val <= 100) {
+                      setConcurrency(val);
+                    }
+                  }}
+                  className="h-8"
+                />
+                <p className="text-xs text-muted-foreground">
+                  1 = 顺序执行，最大 100
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">失败策略</Label>
+                <Select
+                  value={failureStrategy}
+                  onValueChange={(v) => setFailureStrategy(v as FailureStrategy)}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="continue">继续执行</SelectItem>
+                    <SelectItem value="stop_on_first">遇失败停止</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 底部按钮 */}
         <div className="flex justify-end gap-2 shrink-0 pt-3 border-t border-border mt-3">
