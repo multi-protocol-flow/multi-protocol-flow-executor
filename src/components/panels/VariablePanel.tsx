@@ -7,7 +7,7 @@ import { Search, ChevronDown, ChevronRight, Variable as VariableIcon } from 'luc
 import { Input } from '@/components/ui/input';
 import type { Flow, Node } from '@/types';
 import type { Variable } from '@/types/variable';
-import { isEntryConfig, isHttpConfig, isWsConnectConfig, isWsSendCollectConfig, isDbQueryConfig, isVariableExtractorConfig } from '@/types/node';
+import { isEntryConfig, isVariableExtractorConfig } from '@/types/node';
 import { getActiveVariables } from '@/types/flow';
 
 interface VariablePanelProps {
@@ -50,54 +50,6 @@ export function extractVariableGroups(flow: Flow): VariableGroup[] {
           value: iv.value,
           sourceNodeUuid: node.uuid,
           description: iv.description,
-        });
-      });
-    }
-
-    // HTTP 节点：提取 output_mappings（模拟已执行的变量）
-    if (isHttpConfig(node.data) && node.data.output_mappings) {
-      node.data.output_mappings.forEach(om => {
-        variables.push({
-          name: om.target,
-          value: `{{${om.source}}}`, // 显示引用路径
-          sourceNodeUuid: node.uuid,
-          description: om.description,
-        });
-      });
-    }
-
-    // WebSocket Connect 节点：提取 output_mappings
-    if (isWsConnectConfig(node.data) && node.data.output_mappings) {
-      node.data.output_mappings.forEach(om => {
-        variables.push({
-          name: om.target,
-          value: `{{${om.source}}}`, // 显示引用路径
-          sourceNodeUuid: node.uuid,
-          description: om.description,
-        });
-      });
-    }
-
-    // WebSocket Send+Collect 节点：提取 output_mappings
-    if (isWsSendCollectConfig(node.data) && node.data.output_mappings) {
-      node.data.output_mappings.forEach(om => {
-        variables.push({
-          name: om.target,
-          value: `{{${om.source}}}`, // 显示引用路径
-          sourceNodeUuid: node.uuid,
-          description: om.description,
-        });
-      });
-    }
-
-    // Database Query 节点：提取 output_mappings
-    if (isDbQueryConfig(node.data) && node.data.output_mappings) {
-      node.data.output_mappings.forEach(om => {
-        variables.push({
-          name: om.target,
-          value: `{{${om.source}}}`,
-          sourceNodeUuid: node.uuid,
-          description: om.description,
         });
       });
     }

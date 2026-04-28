@@ -73,16 +73,6 @@ export const httpAuthConfigSchema = z.object({
   api_key_value: z.string().optional(),
 });
 
-// HTTP 代理 Schema
-export const httpProxyTypeSchema = z.enum(['none', 'http', 'socks5']);
-
-export const httpProxyConfigSchema = z.object({
-  proxy_type: httpProxyTypeSchema.optional(),
-  proxy_url: z.string().optional(),
-  proxy_username: z.string().optional(),
-  proxy_password: z.string().optional(),
-});
-
 // Cookie Schema
 export const cookieEntrySchema = z.object({
   name: z.string().min(1),
@@ -101,7 +91,6 @@ export const httpConfigSchema = z.object({
   file_path: z.string().optional(),
   body: z.string().optional(),
   timeout_ms: z.number().optional(),
-  output_mappings: z.array(outputMappingSchema).optional(),
   auth: httpAuthConfigSchema.optional(),
   follow_redirects: z.boolean().optional(),
   max_redirects: z.number().min(1).max(20).optional(),
@@ -112,22 +101,10 @@ export const httpConfigSchema = z.object({
   accept_encoding: z.boolean().optional(),
   enable_cookies: z.boolean().optional(),
   cookie_jar: z.array(cookieEntrySchema).optional(),
-  proxy: httpProxyConfigSchema.optional(),
   retry_count: z.number().min(0).max(10).optional(),
   retry_delay_ms: z.number().min(0).optional(),
   retry_on_status: z.array(z.number().min(100).max(599)).optional(),
-}).refine(
-  (data) => {
-    if (!data.output_mappings) return true;
-    const targets = data.output_mappings.map(m => m.target);
-    const uniqueTargets = new Set(targets);
-    return targets.length === uniqueTargets.size;
-  },
-  {
-    message: '变量名必须唯一',
-    path: ['output_mappings'],
-  }
-);
+});
 
 export type HttpConfigFormData = z.infer<typeof httpConfigSchema>;
 export type HeaderEntry = z.infer<typeof headerEntrySchema>;
@@ -176,6 +153,7 @@ export const conditionalConfigSchema = z.object({
   expected_value: z.string().optional(),
   advanced_expression: z.string().optional(),
   expected_value_type: expectedValueTypeSchema.optional(),
+  source_node_id: z.string().optional(),
 });
 
 export type ConditionalConfigFormData = z.infer<typeof conditionalConfigSchema>;
@@ -337,7 +315,6 @@ export const wsConnectConfigSchema = z.object({
   collect_mode: wsCollectModeSchema.optional(),
   collect_condition: wsCollectConditionSchema.optional(),
   collect_timeout_ms: z.number().min(1000).max(300000).optional(),
-  output_mappings: z.array(outputMappingSchema).optional(),
   /** 是否使用 TLS */
   use_tls: z.boolean().optional(),
   /** 是否跳过 TLS 证书验证 */
@@ -365,7 +342,6 @@ export const wsSendCollectConfigSchema = z.object({
   collect_mode: wsCollectModeSchema.optional(),
   collect_condition: wsCollectConditionSchema.optional(),
   collect_timeout_ms: z.number().min(1000).max(300000).optional(),
-  output_mappings: z.array(outputMappingSchema).optional(),
   // 注意：collect_mode 和 collect_condition 在 collect_response=false 时的处理
   // 由 fromFormData 函数负责，这里不做额外验证
 });
@@ -507,7 +483,6 @@ export const dbQueryConfigSchema = z.object({
   redis_ttl: z.number().min(0).optional(),
   fetch_mode: dbFetchModeSchema.optional(),
   result_to: z.string().optional(),
-  output_mappings: z.array(outputMappingSchema).optional(),
   timeout_ms: z.number().min(1000).max(300000).optional(),
 });
 

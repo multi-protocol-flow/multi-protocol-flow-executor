@@ -238,7 +238,6 @@ impl NodePlugin for DbQueryPlugin {
             "redis_ttl": null,
             "fetch_mode": "all",
             "result_to": null,
-            "output_mappings": [],
             "timeout_ms": null,
         })
     }
@@ -267,7 +266,6 @@ impl NodePlugin for DbQueryPlugin {
             "redis_ttl": config.get("redis_ttl"),
             "fetch_mode": config.get("fetch_mode"),
             "result_to": config.get("result_to"),
-            "output_mappings": config.get("output_mappings"),
             "timeout_ms": config.get("timeout_ms"),
         }))
     }

@@ -30,9 +30,6 @@ describe('VariablePanel', () => {
         type: 'http',
         url: '{{api_base}}/users',
         method: 'get',
-        output_mappings: [
-          { source: 'status', target: 'user_status', description: '状态码' },
-        ],
       },
     },
   ];
@@ -234,10 +231,6 @@ describe('VariablePanel', () => {
             type: 'http',
             url: 'https://example.com',
             method: 'get',
-            output_mappings: [
-              { source: 'status', target: 'status_var' },
-              { source: 'body', target: 'body_var' },
-            ],
           },
         },
       ],

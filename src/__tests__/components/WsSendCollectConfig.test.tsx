@@ -405,53 +405,7 @@ describe('WsSendCollectConfig - 字段同步测试', () => {
       await waitFor(() => {
         expect(screen.queryByLabelText(/匹配类型/)).toBeNull();
         expect(screen.queryByLabelText(/匹配表达式/)).toBeNull();
-      });
-    });
   });
-
-  describe('输出变量映射测试', () => {
-    it('[核心修复] 输出变量的说明字段应该正确保存', async () => {
-      const config: WsSendCollectConfigType = {
-        type: 'ws_send_collect',
-        connection_id: 'ws-connect-1',
-        message: 'test',
-        collect_response: true,
-        output_mappings: [
-          {
-            source: '$.response',
-            target: 'ws_response',
-            description: 'WebSocket 响应数据',
-          },
-        ],
-      };
-
-      const { rerender } = render(
-        <WsSendCollectConfigPanel data={config} onSave={mockOnSave} />
-      );
-
-      // 验证说明字段显示
-      const descriptionInput = screen.getByPlaceholderText(/说明（可选）/) as HTMLInputElement;
-      expect(descriptionInput.value).toBe('WebSocket 响应数据');
-
-      // 更新外部数据，修改说明
-      const updatedConfig: WsSendCollectConfigType = {
-        ...config,
-        output_mappings: [
-          {
-            source: '$.response',
-            target: 'ws_response',
-            description: '更新后的说明',
-          },
-        ],
-      };
-
-      rerender(<WsSendCollectConfigPanel data={updatedConfig} onSave={mockOnSave} />);
-
-      // 验证说明字段已更新
-      await waitFor(() => {
-        const updatedDescriptionInput = screen.getByPlaceholderText(/说明（可选）/) as HTMLInputElement;
-        expect(updatedDescriptionInput.value).toBe('更新后的说明');
-      });
-    });
+});
   });
 });

@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Database, Info, AlertTriangle, ArrowRightFromLine, Plus, Trash2 } from 'lucide-react';
+import { Database, Info, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 import type { DbQueryConfig as DbQueryConfigType, DbConnectConfig as DbConnectConfigType } from '@/types/node';
 import { useFlowStore } from '@/stores/flow';
 
@@ -61,7 +61,6 @@ function toFormData(data: DbQueryConfigType): DbQueryConfigFormData {
     params: data.params || [],
     fetch_mode: data.fetch_mode || 'all',
     result_to: data.result_to || '',
-    output_mappings: data.output_mappings || [],
     timeout_ms: data.timeout_ms ?? 30000,
     // Redis 字段不在此任务中实现，但需要保留
     redis_command: data.redis_command,
@@ -82,7 +81,6 @@ function fromFormData(formData: DbQueryConfigFormData): DbQueryConfigType {
     params: formData.params && formData.params.length > 0 ? formData.params : undefined,
     fetch_mode: formData.fetch_mode,
     result_to: formData.result_to && formData.result_to.trim() ? formData.result_to.trim() : undefined,
-    output_mappings: formData.output_mappings && formData.output_mappings.length > 0 ? formData.output_mappings : undefined,
     timeout_ms: formData.timeout_ms,
     // Redis 字段保留
     redis_command: formData.redis_command,
@@ -154,12 +152,6 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
   const paramsFieldArray = useFieldArray({
     control,
     name: 'params' as never,
-  });
-
-  // output_mappings 的 useFieldArray
-  const outputMappingsFieldArray = useFieldArray({
-    control,
-    name: 'output_mappings' as never,
   });
 
   // 当前选中的连接 UUID
@@ -279,21 +271,6 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
     paramsFieldArray.remove(index);
     setTimeout(saveData, 100);
   }, [paramsFieldArray, saveData]);
-
-  /**
-   * 添加输出映射
-   */
-  const handleAddOutputMapping = useCallback(() => {
-    outputMappingsFieldArray.append({ source: '', target: '', description: '' });
-  }, [outputMappingsFieldArray]);
-
-  /**
-   * 删除输出映射
-   */
-  const handleRemoveOutputMapping = useCallback((index: number) => {
-    outputMappingsFieldArray.remove(index);
-    setTimeout(saveData, 100);
-  }, [outputMappingsFieldArray, saveData]);
 
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
@@ -519,129 +496,6 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
         )}
       </div>
 
-      {/* 输出变量映射 */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ArrowRightFromLine className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm font-medium text-foreground">输出变量映射（可选）</Label>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleAddOutputMapping}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <Plus className="h-3 w-3" />
-            添加映射
-          </Button>
-        </div>
-
-        {/* 映射列表 */}
-        <div className="space-y-2">
-          {outputMappingsFieldArray.fields.length === 0 ? (
-            <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无输出映射</p>
-              <p className="mt-1 text-xs text-muted-foreground/60">
-                点击「添加映射」从节点执行结果的 output_data 中提取变量
-              </p>
-            </div>
-          ) : (
-            outputMappingsFieldArray.fields.map((field, index) => {
-              const targetError = errors.output_mappings?.[index]?.target;
-              const sourceError = errors.output_mappings?.[index]?.source;
-
-              // 检查变量名是否重复
-              const outputMappingsList = watch('output_mappings') || [];
-              const currentTarget = outputMappingsList[index]?.target || '';
-              const duplicateTargets = outputMappingsList
-                .map((m, i) => (m.target && i !== index && m.target === currentTarget ? i : -1))
-                .filter(i => i !== -1);
-              const hasDuplicate = duplicateTargets.length > 0 && currentTarget.trim() !== '';
-
-              // JSONPath 常用预设
-              const jsonPathPresets = [
-                { value: '$.rows', label: '所有行' },
-                { value: '$.rows[0]', label: '第一行' },
-                { value: '$.rows[0].id', label: '第一行ID' },
-                { value: '$.affected', label: '影响行数' },
-              ];
-
-              return (
-                <div key={field.id} className="space-y-2 p-3 rounded-md border bg-muted/30">
-                  {/* 第一行：变量名 + 删除按钮 */}
-                  <div className="flex items-center gap-2">
-                    <Input
-                      {...register(`output_mappings.${index}.target`)}
-                      placeholder="变量名（字母、数字、下划线）"
-                      className={`h-8 flex-1 font-mono text-xs ${targetError || hasDuplicate ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveOutputMapping(index)}
-                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-
-                  {/* 第二行：源字段 */}
-                  <div className="relative">
-                    <Input
-                      {...register(`output_mappings.${index}.source`)}
-                      placeholder="源字段（如 $.rows[0].name）"
-                      className={`h-8 w-full font-mono text-xs ${sourceError ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
-                      list={`jsonpath-presets-dbquery-${index}`}
-                    />
-                    <datalist id={`jsonpath-presets-dbquery-${index}`}>
-                      {jsonPathPresets.map((preset) => (
-                        <option key={preset.value} value={preset.value} />
-                      ))}
-                    </datalist>
-                  </div>
-
-                  {/* 错误提示 */}
-                  {sourceError && (
-                    <p className="text-xs text-rose-500">{sourceError.message}</p>
-                  )}
-                  {targetError && (
-                    <p className="text-xs text-rose-500">{targetError.message}</p>
-                  )}
-                  {hasDuplicate && !targetError && (
-                    <p className="text-xs text-rose-500">变量名已存在</p>
-                  )}
-
-                  {/* 第三行：说明 */}
-                  <Input
-                    {...register(`output_mappings.${index}.description`)}
-                    placeholder="说明（可选）"
-                    className="h-8 w-full text-xs"
-                  />
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* 提示信息 */}
-        {outputMappingsFieldArray.fields.length > 0 && (
-          <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p className="font-medium text-foreground">JSONPath 语法（从节点执行结果的 <code className="rounded bg-muted px-1">output_data</code> 中提取）：</p>
-              <p><code className="rounded bg-muted px-1">$.rows</code> 所有行</p>
-              <p><code className="rounded bg-muted px-1">$.rows[0]</code> 第一行</p>
-              <p><code className="rounded bg-muted px-1">$.rows[0].id</code> 第一行的 id 字段</p>
-              <p><code className="rounded bg-muted px-1">$.affected</code> 影响的行数</p>
-              <p className="text-muted-foreground/70 mt-1">变量名：字母、数字、下划线，1-64 字符</p>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* 提示信息 */}
       <div className="flex items-start gap-2 rounded-md bg-sky-50/60 dark:bg-sky-950/40 border border-sky-200/50 dark:border-sky-700/40 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500 dark:text-sky-400" />
@@ -651,9 +505,6 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
           <p>2. 编写 SQL 查询语句，支持 ? 占位符</p>
           <p>3. 可选配置参数化查询和结果映射</p>
           <p>4. 查询结果可存储到变量供后续节点使用</p>
-          <p className="text-sky-600/70 dark:text-sky-400 mt-2">
-            提示：使用 output_mappings 可精确提取查询结果中的特定字段
-          </p>
         </div>
       </div>
     </form>

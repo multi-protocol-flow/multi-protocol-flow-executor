@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Wifi, Info, ArrowRightFromLine, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Wifi, Info, AlertTriangle } from 'lucide-react';
 import type { WsConnectConfig as WsConnectConfigType, FormField } from '@/types';
 import { useFlowVariables } from '@/hooks';
 
@@ -46,7 +46,6 @@ function toFormData(data: WsConnectConfigType): WsConnectConfigFormData {
     collect_mode: data.collect_mode || 'first_match',
     collect_condition: data.collect_condition,
     collect_timeout_ms: data.collect_timeout_ms ?? 30000,
-    output_mappings: data.output_mappings || [],
     use_tls: data.use_tls,
     tls_skip_verify: data.tls_skip_verify,
     ping_interval_ms: data.ping_interval_ms,
@@ -71,7 +70,6 @@ function fromFormData(formData: WsConnectConfigFormData): WsConnectConfigType {
     collect_mode: formData.collect_message ? formData.collect_mode : undefined,
     collect_condition: formData.collect_message && formData.collect_mode === 'condition_match' ? formData.collect_condition : undefined,
     collect_timeout_ms: formData.collect_message ? formData.collect_timeout_ms : undefined,
-    output_mappings: formData.output_mappings && formData.output_mappings.length > 0 ? formData.output_mappings : undefined,
     use_tls: formData.use_tls || undefined,
     tls_skip_verify: formData.use_tls ? (formData.tls_skip_verify || undefined) : undefined,
     ping_interval_ms: formData.ping_interval_ms || undefined,
@@ -98,11 +96,6 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'headers' as never,
-  });
-
-  const outputMappings = useFieldArray({
-    control,
-    name: 'output_mappings' as never,
   });
 
   // 获取流程变量
@@ -202,21 +195,6 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
     remove(index);
     safeSetTimeout(saveData, 100);
   }, [remove, saveData, safeSetTimeout]);
-
-  /**
-   * 添加输出映射
-   */
-  const handleAddOutputMapping = useCallback(() => {
-    outputMappings.append({ source: '$.message', target: '', description: '' });
-  }, [outputMappings]);
-
-  /**
-   * 删除输出映射
-   */
-  const handleRemoveOutputMapping = useCallback((index: number) => {
-    outputMappings.remove(index);
-    safeSetTimeout(saveData, 100);
-  }, [outputMappings, saveData, safeSetTimeout]);
 
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
@@ -621,132 +599,6 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
           </div>
         </>
       )}
-
-      {/* 输出变量映射 */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ArrowRightFromLine className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm font-medium text-foreground">输出变量映射</Label>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleAddOutputMapping}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <Plus className="h-3 w-3" />
-            添加映射
-          </Button>
-        </div>
-
-        {/* 映射列表 */}
-        <div className="space-y-2">
-          {outputMappings.fields.length === 0 ? (
-            <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无输出映射</p>
-              <p className="mt-1 text-xs text-muted-foreground/60">
-                点击「添加映射」从节点执行结果的 output_data 中提取变量
-              </p>
-            </div>
-          ) : (
-            outputMappings.fields.map((field, index) => {
-              const targetError = errors.output_mappings?.[index]?.target;
-              const sourceError = errors.output_mappings?.[index]?.source;
-
-              // 检查变量名是否重复
-              const outputMappingsList = watch('output_mappings') || [];
-              const currentTarget = outputMappingsList[index]?.target || '';
-              const duplicateTargets = outputMappingsList
-                .map((m, i) => (m.target && i !== index && m.target === currentTarget ? i : -1))
-                .filter(i => i !== -1);
-              const hasDuplicate = duplicateTargets.length > 0 && currentTarget.trim() !== '';
-
-              // JSONPath 常用预设（根据 collect_message 状态动态变化）
-              const jsonPathPresets = collectMessage
-                ? [
-                    { value: '$.message', label: '消息内容' },
-                    { value: '$.connection_id', label: '连接 ID' },
-                    { value: '$.data', label: 'data 字段' },
-                    { value: '$.type', label: '消息类型' },
-                  ]
-                : [
-                    { value: '$.connection_id', label: '连接 ID' },
-                  ];
-
-              return (
-                <div key={field.id} className="space-y-2 p-3 rounded-md border bg-muted/30">
-                  {/* 第一行：变量名 + 删除按钮 */}
-                  <div className="flex items-center gap-2">
-                    <Input
-                      {...register(`output_mappings.${index}.target`)}
-                      placeholder="变量名（字母、数字、下划线）"
-                      className={`h-8 flex-1 font-mono text-xs ${targetError || hasDuplicate ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveOutputMapping(index)}
-                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-
-                  {/* 第二行：源字段 */}
-                  <div className="relative">
-                    <Input
-                      {...register(`output_mappings.${index}.source`)}
-                      placeholder="源字段（如 $.message、$.connection_id）"
-                      className={`h-8 w-full font-mono text-xs ${sourceError ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
-                      list={`jsonpath-presets-wsconn-${index}`}
-                    />
-                    <datalist id={`jsonpath-presets-wsconn-${index}`}>
-                      {jsonPathPresets.map((preset) => (
-                        <option key={preset.value} value={preset.value} />
-                      ))}
-                    </datalist>
-                  </div>
-
-                  {/* 错误提示 */}
-                  {sourceError && (
-                    <p className="text-xs text-rose-500">{sourceError.message}</p>
-                  )}
-                  {targetError && (
-                    <p className="text-xs text-rose-500">{targetError.message}</p>
-                  )}
-                  {hasDuplicate && !targetError && (
-                    <p className="text-xs text-rose-500">变量名已存在</p>
-                  )}
-
-                  {/* 第三行：说明 */}
-                  <Input
-                    {...register(`output_mappings.${index}.description`)}
-                    placeholder="说明（可选）"
-                    className="h-8 w-full text-xs"
-                  />
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* 提示信息 */}
-        {outputMappings.fields.length > 0 && (
-          <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p className="font-medium text-foreground">JSONPath 语法（从节点执行结果的 <code className="rounded bg-muted px-1">output_data</code> 中提取）：</p>
-              <p><code className="rounded bg-muted px-1">$.message</code> 消息内容</p>
-              <p><code className="rounded bg-muted px-1">$.connection_id</code> 连接 ID</p>
-              <p><code className="rounded bg-muted px-1">$.data.status</code> 嵌套字段</p>
-              <p className="text-muted-foreground/70 mt-1">变量名：字母、数字、下划线，1-64 字符</p>
-            </div>
-          </div>
-        )}
-      </div>
     </form>
   );
 }

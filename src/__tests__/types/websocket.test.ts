@@ -95,9 +95,6 @@ describe('WebSocket Types', () => {
           expression: '$.ready',
         },
         collect_timeout_ms: 10000,
-        output_mappings: [
-          { source: 'message', target: 'ws_response' },
-        ],
       };
       expect(config.url).toBe('wss://api.example.com/stream');
       expect(config.headers).toHaveLength(1);
@@ -107,7 +104,6 @@ describe('WebSocket Types', () => {
       expect(config.collect_mode).toBe('condition_match');
       expect(config.collect_condition?.match_type).toBe('json_path');
       expect(config.collect_timeout_ms).toBe(10000);
-      expect(config.output_mappings).toHaveLength(1);
     });
   });
 
@@ -138,9 +134,6 @@ describe('WebSocket Types', () => {
           expression: 'success',
         },
         collect_timeout_ms: 8000,
-        output_mappings: [
-          { source: 'response', target: 'ws_result' },
-        ],
       };
       expect(config.connection_id).toBe('conn-456');
       expect(config.message_type).toBe('binary');
@@ -149,7 +142,6 @@ describe('WebSocket Types', () => {
       expect(config.collect_mode).toBe('first_match');
       expect(config.collect_condition?.expression).toBe('success');
       expect(config.collect_timeout_ms).toBe(8000);
-      expect(config.output_mappings).toHaveLength(1);
     });
   });
 

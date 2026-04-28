@@ -164,10 +164,6 @@ impl NodeExecutor for WsSendCollectExecutor {
 
         // 如果有错误数据，直接返回 false 端口
         if let Some(output_data) = error_data {
-            // 应用输出变量映射
-            if let Some(ref data) = output_data {
-                self.apply_output_mappings(&config, data, context);
-            }
 
             // 返回 false 端口
             let filtered: Vec<String> = connections
@@ -394,12 +390,7 @@ impl NodeExecutor for WsSendCollectExecutor {
             }
         };
 
-        // 9. 应用输出变量映射
-        if let Some(ref data) = output_data {
-            self.apply_output_mappings(&config, data, context);
-        }
-
-        // 10. 返回下一个节点（根据端口过滤）
+        // 9. 返回下一个节点（根据端口过滤）
         let filtered: Vec<String> = connections
             .iter()
             .filter(|conn| {
@@ -867,39 +858,6 @@ impl WsSendCollectExecutor {
         }))
     }
 
-    /// 应用输出变量映射
-    fn apply_output_mappings(
-        &self,
-        config: &WsSendCollectConfig,
-        output_data: &serde_json::Value,
-        context: &mut ExecutionContext,
-    ) {
-        if !config.output_mappings.is_empty() {
-            for mapping in &config.output_mappings {
-                if let Some(value) =
-                    flow_engine_core::utils::extract_value_by_path(output_data, &mapping.source)
-                {
-                    log::info!(
-                        "[流程 {}] [输出映射] 路径: {} -> 变量: {}",
-                        context.flow_uuid,
-                        mapping.source,
-                        mapping.target
-                    );
-                    context.variables.set_variable(
-                        mapping.target.clone(),
-                        value.clone(),
-                        String::new(),
-                    );
-                } else {
-                    log::warn!(
-                        "[流程 {}] [输出映射] 路径 '{}' 未找到值",
-                        context.flow_uuid,
-                        mapping.source
-                    );
-                }
-            }
-        }
-    }
 }
 
 #[cfg(test)]
@@ -908,7 +866,6 @@ mod tests {
     use flow_engine_core::context::ExecutionContext;
     use flow_engine_core::node::{NodePosition};
     use flow_engine_core::node_config::{WsMatchType, WsSendCollectConfig, WsCollectCondition, WsCollectMode};
-    use flow_engine_core::variable::OutputMapping;
     use crate::websocket_manager::WebSocketConnectionManager;
     use serde_json::json;
     use std::sync::Arc;
@@ -929,7 +886,6 @@ mod tests {
                 collect_mode: WsCollectMode::FirstMatch,
                 collect_condition: None,
                 collect_timeout_ms: 10000,
-                output_mappings: vec![],
             }),
             ports: None,
             has_breakpoint: None,
@@ -1016,7 +972,6 @@ mod tests {
                 collect_mode: WsCollectMode::FirstMatch,
                 collect_condition: None,
                 collect_timeout_ms: 5000,
-                output_mappings: vec![],
             }),
             ports: None,
         has_breakpoint: None,
@@ -1059,7 +1014,6 @@ mod tests {
                     expression: "$.type".to_string(),
                 }),
                 collect_timeout_ms: 5000,
-                output_mappings: vec![],
             }),
             ports: None,
         has_breakpoint: None,
@@ -1099,51 +1053,6 @@ mod tests {
                 collect_mode: WsCollectMode::DurationCollect,
                 collect_condition: None,
                 collect_timeout_ms: 2000, // 2 秒
-                output_mappings: vec![],
-            }),
-            ports: None,
-        has_breakpoint: None,
-        };
-        let mut context = create_context("test-flow");
-
-        // 注意：这个测试会返回错误数据，因为没有真实的 WebSocket 连接
-        let result = executor
-            .execute(&node, &mut context, &[], &HashMap::new())
-            .await;
-
-        // 应该返回 Ok，但包含错误数据（连接不存在）
-        assert!(result.is_ok());
-        let (next_nodes, output_data) = result.unwrap();
-        assert_eq!(next_nodes, vec!["false".to_string()]);
-        assert!(output_data.is_some());
-        let data = output_data.unwrap();
-        assert!(data["error"].as_str().unwrap().contains("连接不存在"));
-    }
-    #[tokio::test]
-    async fn test_send_wait_output_mappings() {
-        let ws_manager = Arc::new(WebSocketConnectionManager::new());
-        let executor = WsSendCollectExecutor::new(ws_manager);
-
-        // 创建带输出映射的节点
-        let node = Node {
-            uuid: "test-mappings".to_string(),
-            node_type: "ws_send_collect".to_string(),
-            name: "输出映射测试".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::WsSendCollect(WsSendCollectConfig {
-                connection_id: "test-conn".to_string(),
-                message: "Test".to_string(),
-                message_type: WsMessageType::Text,
-                send_timeout_ms: 10000,
-                collect_response: false,
-                collect_mode: WsCollectMode::FirstMatch,
-                collect_condition: None,
-                collect_timeout_ms: 10000,
-                output_mappings: vec![OutputMapping {
-                    source: "$.connection_id".to_string(),
-                    target: "ws_conn_id".to_string(),
-                    description: None,
-                }],
             }),
             ports: None,
         has_breakpoint: None,
@@ -1183,7 +1092,6 @@ mod tests {
                 collect_mode: WsCollectMode::FirstMatch,
                 collect_condition: None,
                 collect_timeout_ms: 10000,
-                output_mappings: vec![],
             }),
             ports: None,
         has_breakpoint: None,
@@ -1303,10 +1211,9 @@ mod tests {
                     collect_response: true,
                     collect_mode: WsCollectMode::FirstMatch,
                     collect_condition: None,
-                    collect_timeout_ms: 10000,
-                    output_mappings: vec![],
-                }),
-                ports: None,
+                collect_timeout_ms: 10000,
+            }),
+            ports: None,
             has_breakpoint: None,
             };
             let mut context = create_context("test-flow");
@@ -1538,44 +1445,5 @@ mod tests {
         let matched = flow_engine_core::utils::extract_value_by_path(&output_data, "$.matched_message.data");
         assert!(matched.is_some());
         assert_eq!(matched.expect("值不存在"), r#"{"status":"done"}"#);
-
-        // 模拟 apply_output_mappings 行为
-        let mut context = create_context("test-flow");
-        let config = WsSendCollectConfig {
-            connection_id: "conn-5".to_string(),
-            message: "ping".to_string(),
-            message_type: WsMessageType::Text,
-            send_timeout_ms: 10000,
-            collect_response: true,
-            collect_mode: WsCollectMode::ConditionMatch,
-            collect_condition: None,
-            collect_timeout_ms: 10000,
-            output_mappings: vec![
-                OutputMapping {
-                    source: "$.collected_messages[0].data".to_string(),
-                    target: "first_msg".to_string(),
-                    description: None,
-                },
-                OutputMapping {
-                    source: "$.message_count".to_string(),
-                    target: "msg_count".to_string(),
-                    description: None,
-                },
-            ],
-        };
-
-        executor.apply_output_mappings(&config, &output_data, &mut context);
-
-        // 验证变量映射成功
-        assert_eq!(
-            context.variables.get_variable("first_msg"),
-            Some(&json!(r#"{"status":"ok"}"#)),
-            "output_mapping 应该能通过 $.collected_messages[0].data 提取并设置变量"
-        );
-        assert_eq!(
-            context.variables.get_variable("msg_count"),
-            Some(&json!(2)),
-            "output_mapping 应该能通过 $.message_count 提取并设置变量"
-        );
     }
 }

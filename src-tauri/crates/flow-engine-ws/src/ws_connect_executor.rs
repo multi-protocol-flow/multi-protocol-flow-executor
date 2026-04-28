@@ -183,10 +183,7 @@ impl NodeExecutor for WsConnectExecutor {
                     &config,
                 );
 
-                // 7. 应用变量映射
-                self.apply_output_mappings_new(&config, &output_data, context)?;
-
-                // 8. 日志：连接完成
+                // 7. 日志：连接完成
                 let duration = start_time.elapsed();
                 context
                     .emit_log(LogEvent {
@@ -647,40 +644,6 @@ impl WsConnectExecutor {
         output
     }
 
-    /// 应用输出变量映射
-    fn apply_output_mappings_new(
-        &self,
-        config: &WsConnectConfig,
-        output_data: &serde_json::Value,
-        context: &mut ExecutionContext,
-    ) -> Result<(), String> {
-        if !config.output_mappings.is_empty() {
-            for mapping in &config.output_mappings {
-                if let Some(value) =
-                    flow_engine_core::utils::extract_value_by_path(output_data, &mapping.source)
-                {
-                    log::info!(
-                        "[流程 {}] [输出映射] 路径: {} -> 变量: {}",
-                        context.flow_uuid,
-                        mapping.source,
-                        mapping.target
-                    );
-                    context.variables.set_variable(
-                        mapping.target.clone(),
-                        value.clone(),
-                        String::new(),
-                    );
-                } else {
-                    log::warn!(
-                        "[流程 {}] [输出映射] 路径 '{}' 未找到值",
-                        context.flow_uuid,
-                        mapping.source
-                    );
-                }
-            }
-        }
-        Ok(())
-    }
 }
 
 #[cfg(test)]
@@ -712,7 +675,6 @@ mod tests {
                 tls_skip_verify: false,
                 ping_interval_ms: None,
                 ping_timeout_ms: None,
-                output_mappings: vec![],
             }),
             ports: None,
         has_breakpoint: None,
@@ -911,39 +873,6 @@ mod tests {
         assert!(output_data.is_some());
         let data = output_data.unwrap();
         assert_eq!(data["connected"], false);
-    }
-
-    #[tokio::test]
-    async fn test_output_mappings() {
-        let ws_manager = Arc::new(WebSocketConnectionManager::new());
-        let executor = WsConnectExecutor::new(ws_manager);
-
-        let node = Node {
-            uuid: "test-mappings".to_string(),
-            node_type: "ws_connect".to_string(),
-            name: "输出映射测试".to_string(),
-            position: NodePosition { x: 0.0, y: 0.0 },
-            data: NodeData::WsConnect(WsConnectConfig {
-                url: "wss://example.com/ws".to_string(),
-                output_mappings: vec![OutputMapping {
-                    source: "$.connection_id".to_string(),
-                    target: "ws_conn_id".to_string(),
-                    description: None,
-                }],
-                ..Default::default()
-            }),
-            ports: None,
-        has_breakpoint: None,
-        };
-        let mut context = create_context("test-flow");
-
-        let result = executor
-            .execute(&node, &mut context, &[], &HashMap::new())
-            .await;
-
-        assert!(result.is_ok());
-        let (next_nodes, _) = result.unwrap();
-        assert_eq!(next_nodes, vec!["false"]);
     }
 
     #[tokio::test]

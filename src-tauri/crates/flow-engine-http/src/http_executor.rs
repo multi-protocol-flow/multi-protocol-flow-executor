@@ -705,9 +705,6 @@ impl NodeExecutor for HttpNodeExecutor {
             "timing": timing
         });
 
-        // 应用输出映射，从响应中提取变量
-        apply_output_mappings(&output_data, &http_config.output_mappings, context, &node.uuid);
-
         // 计算总执行时间
         let _duration_ms = start_time.elapsed().as_millis();
 
@@ -738,37 +735,6 @@ impl NodeExecutor for HttpNodeExecutor {
     }
 }
 
-/// 应用输出映射，从响应中提取变量
-fn apply_output_mappings(
-    response: &serde_json::Value,
-    mappings: &[flow_engine_core::variable::OutputMapping],
-    context: &mut ExecutionContext,
-    node_uuid: &str,
-) {
-    for mapping in mappings {
-        if let Some(value) = extract_value_by_path(response, &mapping.source) {
-            log::info!(
-                "[流程 {}] [输出映射] 节点: {}, 路径: {} -> 变量: {}",
-                context.flow_uuid,
-                node_uuid,
-                mapping.source,
-                mapping.target
-            );
-            context.variables.set_variable(
-                mapping.target.clone(),
-                value,
-                node_uuid.to_string(),
-            );
-        } else {
-            log::warn!(
-                "[流程 {}] [输出映射] 节点: {}, 路径 '{}' 未找到值",
-                context.flow_uuid,
-                node_uuid,
-                mapping.source
-            );
-        }
-    }
-}
 
 // Re-export extract_value_by_path from core utils
 pub use flow_engine_core::utils::extract_value_by_path;
@@ -818,7 +784,7 @@ mod tests {
                 file_path: None,
                 body,
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,
@@ -1668,7 +1634,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,
@@ -1715,7 +1681,7 @@ mod tests {
                 file_path: None,
                 body: Some(r#"{"test_key":"test_value"}"#.to_string()),
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,
@@ -1753,7 +1719,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,
@@ -1792,7 +1758,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,
@@ -1830,7 +1796,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,
@@ -1873,7 +1839,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,
@@ -1925,7 +1891,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,
@@ -1980,7 +1946,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,
@@ -2021,7 +1987,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,
@@ -2066,7 +2032,7 @@ mod tests {
                 file_path: None,
                 body: Some(r#"{"test":"put_data"}"#.to_string()),
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,
@@ -2104,7 +2070,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,
@@ -2146,7 +2112,7 @@ mod tests {
                 file_path: None,
                 body: Some(r#"{"test":"patch_data"}"#.to_string()),
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,
@@ -2184,7 +2150,7 @@ mod tests {
                 file_path: None,
                 body: None,
                 timeout_ms: None,
-                output_mappings: Vec::new(),
+                ..Default::default()
             }),
             ports: None,
         has_breakpoint: None,

@@ -1,7 +1,7 @@
 // 节点配置模块 - 强类型节点配置定义
 
 use crate::traits::{FramingConfig, GrpcServiceInfo, TcpFramingMode};
-use crate::variable::{InitialVariable, OutputMapping};
+use crate::variable::InitialVariable;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -140,9 +140,6 @@ pub struct HttpConfig {
     /// 超时时间（毫秒）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timeout_ms: Option<u64>,
-    /// 输出变量映射
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub output_mappings: Vec<OutputMapping>,
     // === 新增字段 ===
     // 认证配置
     /// 认证配置
@@ -179,10 +176,6 @@ pub struct HttpConfig {
     /// Cookie 列表
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cookie_jar: Option<Vec<CookieEntry>>,
-    // 代理配置
-    /// 代理配置
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub proxy: Option<HttpProxyConfig>,
     // 重试配置
     /// 重试次数
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -207,7 +200,6 @@ impl Default for HttpConfig {
             file_path: None,
             body: None,
             timeout_ms: None,
-            output_mappings: Vec::new(),
             auth: None,
             follow_redirects: None,
             max_redirects: None,
@@ -218,7 +210,6 @@ impl Default for HttpConfig {
             accept_encoding: None,
             enable_cookies: None,
             cookie_jar: None,
-            proxy: None,
             retry_count: None,
             retry_delay_ms: None,
             retry_on_status: None,
@@ -266,36 +257,6 @@ pub struct HttpAuthConfig {
     /// API Key 值
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub api_key_value: Option<String>,
-}
-
-/// HTTP 代理类型
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub enum HttpProxyType {
-    /// 不使用代理
-    #[default]
-    None,
-    /// HTTP 代理
-    Http,
-    /// SOCKS5 代理
-    Socks5,
-}
-
-/// HTTP 代理配置
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct HttpProxyConfig {
-    /// 代理类型
-    #[serde(default)]
-    pub proxy_type: HttpProxyType,
-    /// 代理服务器地址
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub proxy_url: Option<String>,
-    /// 代理用户名
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub proxy_username: Option<String>,
-    /// 代理密码
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub proxy_password: Option<String>,
 }
 
 /// Cookie 条目
@@ -391,6 +352,10 @@ pub struct ConditionalConfig {
     /// 期望值类型选择器
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expected_value_type: Option<serde_json::Value>,
+    /// 可选，指定读取特定上游节点的输出（UUID）。
+    /// 为 None 时读取 `last_node_output`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_node_id: Option<String>,
 }
 
 // ============================================================================
@@ -487,9 +452,6 @@ pub struct WsConnectConfig {
     /// Ping 超时（毫秒），None 表示不检查超时
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ping_timeout_ms: Option<u64>,
-    /// 输出变量映射
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub output_mappings: Vec<OutputMapping>,
 }
 
 impl Default for WsConnectConfig {
@@ -507,7 +469,6 @@ impl Default for WsConnectConfig {
             tls_skip_verify: false,
             ping_interval_ms: None,
             ping_timeout_ms: None,
-            output_mappings: Vec::new(),
         }
     }
 }
@@ -537,9 +498,6 @@ pub struct WsSendCollectConfig {
     /// 采集超时（毫秒）
     #[serde(default = "default_message_timeout")]
     pub collect_timeout_ms: u64,
-    /// 输出变量映射
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub output_mappings: Vec<OutputMapping>,
 }
 
 impl Default for WsSendCollectConfig {
@@ -553,7 +511,6 @@ impl Default for WsSendCollectConfig {
             collect_mode: WsCollectMode::default(),
             collect_condition: None,
             collect_timeout_ms: default_message_timeout(),
-            output_mappings: Vec::new(),
         }
     }
 }
@@ -1053,9 +1010,6 @@ pub struct DbQueryConfig {
     /// 结果存储变量名
     #[serde(skip_serializing_if = "Option::is_none")]
     pub result_to: Option<String>,
-    /// 输出变量映射
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub output_mappings: Vec<OutputMapping>,
     /// 查询超时（毫秒）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timeout_ms: Option<u64>,
@@ -4167,6 +4121,7 @@ impl NodeData {
             expected_value: Some(expected_value),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         })
     }
 
@@ -4179,6 +4134,7 @@ impl NodeData {
             expected_value: None,
             advanced_expression: Some(expression.into()),
             expected_value_type: None,
+            source_node_id: None,
         })
     }
 
@@ -4444,6 +4400,7 @@ mod tests {
             expected_value: Some(json!(200)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();
@@ -4464,6 +4421,7 @@ mod tests {
                 "http_response.status >= 200 && http_response.status < 300".to_string(),
             ),
             expected_value_type: None,
+            source_node_id: None,
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();
@@ -4592,7 +4550,6 @@ mod tests {
         assert_eq!(config.collect_mode, WsCollectMode::FirstMatch);
         assert!(config.collect_condition.is_none());
         assert_eq!(config.collect_timeout_ms, 10000);
-        assert!(config.output_mappings.is_empty());
     }
 
     #[test]
@@ -4615,7 +4572,6 @@ mod tests {
             tls_skip_verify: false,
             ping_interval_ms: None,
             ping_timeout_ms: None,
-            output_mappings: vec![],
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();
@@ -4657,7 +4613,6 @@ mod tests {
                 expression: "$.type == 'pong'".to_string(),
             }),
             collect_timeout_ms: 8000,
-            output_mappings: vec![],
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();

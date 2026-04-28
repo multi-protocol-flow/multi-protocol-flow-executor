@@ -134,6 +134,18 @@ impl NodeExecutor for ConditionalNodeExecutor {
             }
         };
 
+        // 解析数据来源：若指定了 source_node_id，从该节点的执行报告中读取输出；
+        // 否则使用 last_node_output（最近上游节点输出）
+        let resolved_output: Option<serde_json::Value> = if let Some(ref source_node_id) = conditional_config.source_node_id {
+            context
+                .node_reports
+                .iter()
+                .find(|r| r.node_uuid == *source_node_id)
+                .and_then(|r| r.output_data.clone())
+        } else {
+            context.last_node_output.clone()
+        };
+
         // 用于存储输出信息的结构
         struct ConditionOutput {
             result: bool,
@@ -177,8 +189,8 @@ impl NodeExecutor for ConditionalNodeExecutor {
                     error.message
                 })?;
 
-                // 提取字段值（传入 last_node_output 用于 jsonpath 提取）
-                let actual_value = self.extract_field_value(&variables, context.last_node_output.as_ref(), field_path)?;
+                // 提取字段值（使用解析后的数据源用于 jsonpath 提取）
+                let actual_value = self.extract_field_value(&variables, resolved_output.as_ref(), field_path)?;
 
                 // 格式化期望值用于显示（直接使用原始值）
                 let expected_value_display = conditional_config.expected_value.as_ref()
@@ -223,11 +235,11 @@ impl NodeExecutor for ConditionalNodeExecutor {
                     expected_value_display
                 );
 
-                // 评估条件（传入 last_node_output 用于 jsonpath 提取）
+                // 评估条件（使用解析后的数据源替代 last_node_output）
                 let result = self.evaluate_simple_condition(
                     &conditional_config,
                     &variables,
-                    context.last_node_output.as_ref(),
+                    resolved_output.as_ref(),
                 )?;
                 log::info!("[流程 {}] [条件判断] 条件类型: Simple, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
 
@@ -270,7 +282,7 @@ impl NodeExecutor for ConditionalNodeExecutor {
                 let result = self.evaluate_advanced_condition(
                     &conditional_config,
                     &json!(context.variables.get_merged_variables()),
-                    context.last_node_output.as_ref(),
+                    resolved_output.as_ref(),
                 )?;
                 log::info!("[流程 {}] [条件判断] 条件类型: Advanced, 表达式: {}, 结果: {}", context.flow_uuid, expression, result);
 
@@ -920,6 +932,7 @@ mod tests {
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -940,6 +953,7 @@ mod tests {
             expected_value: Some(serde_json::json!(30)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -960,6 +974,7 @@ mod tests {
             expected_value: Some(serde_json::json!(20)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -980,6 +995,7 @@ mod tests {
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1000,6 +1016,7 @@ mod tests {
             expected_value: Some(serde_json::json!(30)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1020,6 +1037,7 @@ mod tests {
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1040,6 +1058,7 @@ mod tests {
             expected_value: Some(serde_json::json!("John")),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1060,6 +1079,7 @@ mod tests {
             expected_value: Some(serde_json::json!("John")),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1080,6 +1100,7 @@ mod tests {
             expected_value: Some(serde_json::json!("Doe")),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1100,6 +1121,7 @@ mod tests {
             expected_value: None,
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1120,6 +1142,7 @@ mod tests {
             expected_value: Some(serde_json::json!(30)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1146,6 +1169,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some("age > 20 && name == \"John\"".to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1167,6 +1191,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some("age > 30 || name == \"John\"".to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1188,6 +1213,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some("age > 30 && name == \"Jane\"".to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1215,6 +1241,7 @@ mod tests {
             expected_value: Some(serde_json::json!("active")),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1249,6 +1276,7 @@ mod tests {
             expected_value: Some(serde_json::json!("")),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1269,6 +1297,7 @@ mod tests {
             expected_value: Some(serde_json::Value::Null),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1289,6 +1318,7 @@ mod tests {
             expected_value: None,
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1314,6 +1344,7 @@ mod tests {
             expected_value: Some(serde_json::json!(20)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1335,6 +1366,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some("age > 20 &&& name".to_string()), // 语法错误: 多余的 &
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1357,6 +1389,7 @@ mod tests {
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1378,6 +1411,7 @@ mod tests {
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1399,6 +1433,7 @@ mod tests {
             expected_value: None,
             advanced_expression: None, // 缺少advanced_expression
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1420,6 +1455,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some("!(age > 30)".to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1440,6 +1476,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some("status == \"active\" && count > 0".to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1461,6 +1498,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some("(age * 2) > 40 && (age + 5) < 60".to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1481,6 +1519,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some("name != \"\" && name == \"John\"".to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1716,6 +1755,7 @@ mod tests {
             expected_value: Some(serde_json::json!("abc123")),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1743,6 +1783,7 @@ mod tests {
             expected_value: Some(serde_json::json!("value")),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({}));
@@ -1763,6 +1804,7 @@ mod tests {
             expected_value: Some(serde_json::json!("secret")),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1792,6 +1834,7 @@ mod tests {
             expected_value: Some(serde_json::json!(1)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1822,6 +1865,7 @@ mod tests {
             expected_value: Some(serde_json::json!(25)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1845,6 +1889,7 @@ mod tests {
             expected_value: Some(serde_json::json!("value")),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({}));
@@ -1866,6 +1911,7 @@ mod tests {
             expected_value: Some(serde_json::json!("active")),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1907,6 +1953,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some(r#"body.data.token == "abc123""#.to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1934,6 +1981,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some(r#"body.data.token == "abc123""#.to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context_with_output(
@@ -1965,6 +2013,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some("status == 200".to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         // 变量池中 status = 404，但 last_node_output 中 status = 200
@@ -1990,6 +2039,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some(r#"code == 0 && data.stepKey == "intent_unsupported""#.to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -2017,6 +2067,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some(r#"data.result.title == "意图消息""#.to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -2045,6 +2096,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some("data.taskID > 100000 && data.taskID < 200000".to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -2070,6 +2122,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some(r#"status >= 200 && status < 300 && body.success == true"#.to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -2096,6 +2149,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some(r#"data.stepKey == "wrong_value""#.to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -2199,6 +2253,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some("$.status == 200".to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context_with_output(
@@ -2223,6 +2278,7 @@ mod tests {
             expected_value: None,
             advanced_expression: Some(r#"$.body.data.token == "abc123""#.to_string()),
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context_with_output(
@@ -2251,6 +2307,7 @@ mod tests {
             expected_value: Some(serde_json::json!(200)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context_with_output(
@@ -2275,6 +2332,7 @@ mod tests {
             expected_value: Some(serde_json::json!(404)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context_with_output(
@@ -2299,6 +2357,7 @@ mod tests {
             expected_value: Some(serde_json::json!(200)),
             advanced_expression: None,
             expected_value_type: None,
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context_with_output(

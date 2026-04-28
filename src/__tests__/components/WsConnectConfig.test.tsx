@@ -319,48 +319,4 @@ describe('WsConnectConfig - 字段同步测试', () => {
       });
     });
   });
-
-  describe('输出变量映射测试', () => {
-    it('[核心修复] 输出变量的说明字段应该正确保存', async () => {
-      const config: WsConnectConfigType = {
-        type: 'ws_connect',
-        url: 'wss://example.com/socket',
-        output_mappings: [
-          {
-            source: '$.connection_id',
-            target: 'ws_conn_id',
-            description: 'WebSocket 连接 ID',
-          },
-        ],
-      };
-
-      const { rerender } = render(
-        <WsConnectConfig data={config} onSave={mockOnSave} />
-      );
-
-      // 验证说明字段显示
-      const descriptionInput = screen.getByPlaceholderText(/说明（可选）/) as HTMLInputElement;
-      expect(descriptionInput.value).toBe('WebSocket 连接 ID');
-
-      // 更新外部数据，修改说明
-      const updatedConfig: WsConnectConfigType = {
-        ...config,
-        output_mappings: [
-          {
-            source: '$.connection_id',
-            target: 'ws_conn_id',
-            description: '更新后的说明',
-          },
-        ],
-      };
-
-      rerender(<WsConnectConfig data={updatedConfig} onSave={mockOnSave} />);
-
-      // 验证说明字段已更新
-      await waitFor(() => {
-        const updatedDescriptionInput = screen.getByPlaceholderText(/说明（可选）/) as HTMLInputElement;
-        expect(updatedDescriptionInput.value).toBe('更新后的说明');
-      });
-    });
-  });
 });

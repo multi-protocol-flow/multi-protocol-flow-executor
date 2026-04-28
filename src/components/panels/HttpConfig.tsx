@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, Globe, X, ArrowRightFromLine, Info, Terminal, ChevronDown, ChevronRight, Shield, Settings2 } from 'lucide-react';
+import { Plus, Trash2, Globe, X, Terminal, ChevronDown, ChevronRight, Shield, Settings2 } from 'lucide-react';
 import type { HttpConfig as HttpConfigType } from '@/types';
 import { useFlowVariables } from '@/hooks';
 import {
@@ -68,7 +68,6 @@ function toFormData(data: HttpConfigType): HttpConfigFormData {
     form_fields: data.form_fields || [],
     file_path: data.file_path || undefined,
     timeout_ms: data.timeout_ms ?? 30000,
-    output_mappings: data.output_mappings || [],
     auth: data.auth ?? { auth_type: 'none' },
     follow_redirects: data.follow_redirects ?? true,
     max_redirects: data.max_redirects ?? 10,
@@ -79,7 +78,6 @@ function toFormData(data: HttpConfigType): HttpConfigFormData {
     accept_encoding: data.accept_encoding ?? true,
     enable_cookies: data.enable_cookies ?? false,
     cookie_jar: data.cookie_jar ?? [],
-    proxy: data.proxy ?? { proxy_type: 'none' },
     retry_count: data.retry_count ?? 0,
     retry_delay_ms: data.retry_delay_ms ?? 1000,
     retry_on_status: data.retry_on_status ?? [],
@@ -116,7 +114,6 @@ function fromFormData(formData: HttpConfigFormData): HttpConfigType {
     form_fields: formFields && formFields.length > 0 ? formFields : undefined,
     file_path: formData.file_path || undefined,
     timeout_ms: formData.timeout_ms,
-    output_mappings: formData.output_mappings && formData.output_mappings.length > 0 ? formData.output_mappings : undefined,
     auth: formData.auth?.auth_type !== 'none' ? formData.auth : undefined,
     follow_redirects: formData.follow_redirects === false ? false : undefined,
     max_redirects: formData.max_redirects !== 10 ? formData.max_redirects : undefined,
@@ -127,7 +124,6 @@ function fromFormData(formData: HttpConfigFormData): HttpConfigType {
     accept_encoding: formData.accept_encoding === false ? false : undefined,
     enable_cookies: formData.enable_cookies || undefined,
     cookie_jar: formData.enable_cookies && formData.cookie_jar?.length ? formData.cookie_jar : undefined,
-    proxy: formData.proxy?.proxy_type !== 'none' ? formData.proxy : undefined,
     retry_count: formData.retry_count || undefined,
     retry_delay_ms: formData.retry_delay_ms !== 1000 ? formData.retry_delay_ms : undefined,
     retry_on_status: formData.retry_on_status?.length ? formData.retry_on_status : undefined,
@@ -183,11 +179,6 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     name: 'form_fields' as never,
   });
 
-  const outputMappings = useFieldArray({
-    control,
-    name: 'output_mappings' as never,
-  });
-
   const cookieJar = useFieldArray({
     control,
     name: 'cookie_jar' as never,
@@ -205,7 +196,6 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   const [tlsOpen, setTlsOpen] = useState(false);
   const [compressionOpen, setCompressionOpen] = useState(false);
   const [cookieOpen, setCookieOpen] = useState(false);
-  const [proxyOpen, setProxyOpen] = useState(false);
   const [retryOpen, setRetryOpen] = useState(false);
 
   // 获取流程变量
@@ -223,7 +213,6 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   const watchedAuthType = watch('auth.auth_type');
   const watchedFollowRedirects = watch('follow_redirects');
   const watchedEnableCookies = watch('enable_cookies');
-  const watchedProxyType = watch('proxy.proxy_type');
   const watchedRetryCount = watch('retry_count');
 
   // 当外部数据变化时，完整重置表单（防止节点切换时残留旧数据）
@@ -332,21 +321,6 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   }, [remove, saveData]);
 
   /**
-   * 添加输出映射
-   */
-  const handleAddOutputMapping = useCallback(() => {
-    outputMappings.append({ source: '$.status', target: '', description: '' });
-  }, [outputMappings]);
-
-  /**
-   * 删除输出映射
-   */
-  const handleRemoveOutputMapping = useCallback((index: number) => {
-    outputMappings.remove(index);
-    safeSetTimeout(saveData, 100);
-  }, [outputMappings, saveData]);
-
-  /**
    * 添加 Cookie
    */
   const handleAddCookie = useCallback(() => {
@@ -396,12 +370,8 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       return;
     }
 
-    // 用解析结果填充表单（保留 output_mappings 不变）
-    const currentValues = getValues();
-    reset({
-      ...formData,
-      output_mappings: currentValues.output_mappings || [],
-    });
+    // 用解析结果填充表单
+    reset(formData);
 
     toast.success('cURL 命令已导入');
     setCurlText('');
@@ -902,133 +872,6 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         </div>
       )}
 
-      {/* 输出变量映射 */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ArrowRightFromLine className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm font-medium text-foreground">输出变量映射</Label>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleAddOutputMapping}
-            className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <Plus className="h-3 w-3" />
-            添加映射
-          </Button>
-        </div>
-
-        {/* 映射列表 */}
-        <div className="space-y-2">
-          {outputMappings.fields.length === 0 ? (
-            <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无输出映射</p>
-              <p className="mt-1 text-xs text-muted-foreground/60">
-                点击「添加映射」从节点执行结果的 output_data 中提取变量
-              </p>
-            </div>
-          ) : (
-            outputMappings.fields.map((field, index) => {
-              const targetError = errors.output_mappings?.[index]?.target;
-              const sourceError = errors.output_mappings?.[index]?.source;
-              
-              // 检查变量名是否重复
-              const outputMappingsList = watch('output_mappings') || [];
-              const currentTarget = outputMappingsList[index]?.target || '';
-              const duplicateTargets = outputMappingsList
-                .map((m, i) => (m.target && i !== index && m.target === currentTarget ? i : -1))
-                .filter(i => i !== -1);
-              const hasDuplicate = duplicateTargets.length > 0 && currentTarget.trim() !== '';
-
-              // JSONPath 常用预设
-              const jsonPathPresets = [
-                { value: '$.status', label: '状态码' },
-                { value: '$.body', label: '响应体' },
-                { value: '$.headers', label: '响应头' },
-                { value: '$.request', label: '请求信息' },
-                { value: '$.body.data', label: 'body.data' },
-                { value: '$.body.data.token', label: 'body.data.token' },
-                { value: '$.body.items[0]', label: 'body.items[0]' },
-                { value: '$.headers.content-type', label: 'headers.content-type' },
-              ];
-
-              return (
-                <div key={field.id} className="space-y-2 p-3 rounded-md border bg-muted/30">
-                  {/* 第一行：变量名 + 删除按钮 */}
-                  <div className="flex items-center gap-2">
-                    <Input
-                      {...register(`output_mappings.${index}.target`)}
-                      placeholder="变量名（字母、数字、下划线）"
-                      className={`h-8 flex-1 font-mono text-xs ${targetError || hasDuplicate ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveOutputMapping(index)}
-                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-
-                  {/* 第二行：源字段 */}
-                  <div className="relative">
-                    <Input
-                      {...register(`output_mappings.${index}.source`)}
-                      placeholder="源字段（如 $.status、$.body.data.token）"
-                      className={`h-8 w-full font-mono text-xs ${sourceError ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
-                      list={`jsonpath-presets-${index}`}
-                    />
-                    <datalist id={`jsonpath-presets-${index}`}>
-                      {jsonPathPresets.map((preset) => (
-                        <option key={preset.value} value={preset.value} />
-                      ))}
-                    </datalist>
-                  </div>
-
-                  {/* 错误提示 */}
-                  {sourceError && (
-                    <p className="text-xs text-rose-500">{sourceError.message}</p>
-                  )}
-                  {targetError && (
-                    <p className="text-xs text-rose-500">{targetError.message}</p>
-                  )}
-                  {hasDuplicate && !targetError && (
-                    <p className="text-xs text-rose-500">变量名已存在</p>
-                  )}
-
-                  {/* 第三行：说明 */}
-                  <Input
-                    {...register(`output_mappings.${index}.description`)}
-                    placeholder="说明（可选）"
-                    className="h-8 w-full text-xs"
-                  />
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* 提示信息 - JSONPath 语法说明 */}
-        {outputMappings.fields.length > 0 && (
-          <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p className="font-medium text-foreground">JSONPath 语法（从节点执行结果的 <code className="rounded bg-muted px-1">output_data</code> 中提取）：</p>
-              <p><code className="rounded bg-muted px-1">$.status</code> 状态码</p>
-              <p><code className="rounded bg-muted px-1">$.body.data.token</code> 嵌套字段</p>
-              <p><code className="rounded bg-muted px-1">$.body.items[0]</code> 数组索引</p>
-              <p><code className="rounded bg-muted px-1">$.headers.content-type</code> 响应头</p>
-              <p className="text-muted-foreground/70 mt-1">变量名：字母、数字、下划线，1-64 字符</p>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* ==================== 高级设置 ==================== */}
       <div className="space-y-1">
         <button
@@ -1400,77 +1243,6 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                           </div>
                         ))
                       )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* 代理配置 */}
-            <div className="space-y-0">
-              <button
-                type="button"
-                onClick={() => setProxyOpen(!proxyOpen)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
-              >
-                {proxyOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                代理配置
-                {watchedProxyType && watchedProxyType !== 'none' && (
-                  <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                    {watchedProxyType.toUpperCase()}
-                  </span>
-                )}
-              </button>
-
-              {proxyOpen && (
-                <div className="space-y-3 px-2 pb-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">代理类型</Label>
-                    <Select
-                      value={watchedProxyType || 'none'}
-                      onValueChange={(value) => {
-                        setValue('proxy.proxy_type', value as 'none' | 'http' | 'socks5', { shouldDirty: true });
-                        safeSetTimeout(saveData, 100);
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">无代理</SelectItem>
-                        <SelectItem value="http">HTTP 代理</SelectItem>
-                        <SelectItem value="socks5">SOCKS5 代理</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {watchedProxyType && watchedProxyType !== 'none' && (
-                    <div className="space-y-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">代理地址</Label>
-                        <Input
-                          {...register('proxy.proxy_url')}
-                          placeholder={watchedProxyType === 'socks5' ? 'socks5://proxy:1080' : 'http://proxy:8080'}
-                          className="h-8 text-xs font-mono"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">用户名（可选）</Label>
-                        <Input
-                          {...register('proxy.proxy_username')}
-                          placeholder="username"
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">密码（可选）</Label>
-                        <Input
-                          type="password"
-                          {...register('proxy.proxy_password')}
-                          placeholder="password"
-                          className="h-8 text-xs"
-                        />
-                      </div>
                     </div>
                   )}
                 </div>

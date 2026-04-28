@@ -7,10 +7,6 @@ import { useFlowStore } from '@/stores';
 import type { Variable } from '@/types/variable';
 import {
   isEntryConfig,
-  isHttpConfig,
-  isWsConnectConfig,
-  isWsSendCollectConfig,
-  isDbQueryConfig,
   isVariableExtractorConfig,
 } from '@/types/node';
 /** 流程变量提取结果 */
@@ -56,16 +52,10 @@ export function useFlowVariables(): FlowVariablesResult {
       }
     });
 
-    // 2. 协议节点的 output_mappings
+    // 2. 变量提取节点的 output_mappings
     flow.nodes.forEach((node) => {
       const data = node.data;
-      const mappings =
-        (isHttpConfig(data) && data.output_mappings) ||
-        (isWsConnectConfig(data) && data.output_mappings) ||
-        (isWsSendCollectConfig(data) && data.output_mappings) ||
-        (isDbQueryConfig(data) && data.output_mappings) ||
-        (isVariableExtractorConfig(data) && data.output_mappings) ||
-        null;
+      const mappings = isVariableExtractorConfig(data) ? data.output_mappings : null;
 
       if (mappings) {
         mappings.forEach((om) => {

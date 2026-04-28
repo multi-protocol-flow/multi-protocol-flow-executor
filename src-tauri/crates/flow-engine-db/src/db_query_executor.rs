@@ -10,7 +10,6 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::DbProvider;
-use flow_engine_core::utils::extract_value_by_path;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
@@ -417,9 +416,6 @@ impl NodeExecutor for DbQueryNodeExecutor {
             })
         };
 
-        // 应用输出映射
-        apply_output_mappings(&output_data, &db_config.output_mappings, context, &node.uuid);
-
         // 记录完成日志
         log::info!(
             "[流程 {}] [完成] 节点UUID: {}, 耗时: {}ms, 返回行数: {}",
@@ -483,38 +479,6 @@ fn get_false_port_nodes(node: &Node, connections: &[Connection]) -> Vec<String> 
         .collect()
 }
 
-/// 应用输出映射
-fn apply_output_mappings(
-    output: &serde_json::Value,
-    mappings: &[flow_engine_core::variable::OutputMapping],
-    context: &mut ExecutionContext,
-    node_uuid: &str,
-) {
-    for mapping in mappings {
-        if let Some(value) = extract_value_by_path(output, &mapping.source) {
-            log::info!(
-                "[流程 {}] [输出映射] 节点: {}, 路径: {} -> 变量: {}",
-                context.flow_uuid,
-                node_uuid,
-                mapping.source,
-                mapping.target
-            );
-            context.variables.set_variable(
-                mapping.target.clone(),
-                value,
-                node_uuid.to_string(),
-            );
-        } else {
-            log::warn!(
-                "[流程 {}] [输出映射] 节点: {}, 路径 '{}' 未找到值",
-                context.flow_uuid,
-                node_uuid,
-                mapping.source
-            );
-        }
-    }
-}
-
 // ============================================================================
 // 单元测试
 // ============================================================================
@@ -526,8 +490,8 @@ mod tests {
     use crate::db::{DatabaseConnectionManager, MockPool};
     use flow_engine_core::node::{Node, NodePosition};
     use flow_engine_core::node_config::{DbQueryConfig, NodeData};
-    use flow_engine_core::variable::OutputMapping;
     use serde_json::json;
+    use flow_engine_core::utils::extract_value_by_path;
     use std::sync::Arc;
 
     /// 创建测试用数据库查询节点
@@ -538,7 +502,6 @@ mod tests {
         sql: &str,
         params: Option<Vec<String>>,
         fetch_mode: Option<&str>,
-        output_mappings: Vec<OutputMapping>,
     ) -> Node {
         Node {
             uuid: uuid.to_string(),
@@ -555,7 +518,6 @@ mod tests {
                 redis_ttl: None,
                 fetch_mode: fetch_mode.map(|s| s.to_string()),
                 result_to: None,
-                output_mappings,
                 timeout_ms: None,
             }),
             ports: None,
@@ -629,7 +591,6 @@ mod tests {
             "SELECT * FROM users",
             None,
             Some("all"),
-            vec![],
         );
 
         let mut context = create_context("test-flow", json!({}));
@@ -658,7 +619,6 @@ mod tests {
             "SELECT * FROM users",
             None,
             Some("all"),
-            vec![],
         );
 
         let mut context = create_context("test-flow", json!({}));
@@ -692,7 +652,6 @@ mod tests {
                 redis_ttl: None,
                 fetch_mode: None,
                 result_to: None,
-                output_mappings: vec![],
                 timeout_ms: None,
             }),
             ports: None,
@@ -735,7 +694,6 @@ mod tests {
             "SELECT * FROM users WHERE id = $1",
             Some(vec!["123".to_string()]),
             Some("all"),
-            vec![],
         );
 
         let mut context = create_context("test-flow", json!({}));
@@ -773,7 +731,6 @@ mod tests {
             "SELECT * FROM users LIMIT 1",
             None,
             Some("one"),
-            vec![],
         );
 
         let mut context = create_context("test-flow", json!({}));
@@ -813,7 +770,6 @@ mod tests {
             "SELECT COUNT(*) FROM users",
             None,
             Some("scalar"),
-            vec![],
         );
 
         let mut context = create_context("test-flow", json!({}));
@@ -852,7 +808,6 @@ mod tests {
             "SELECT * FROM users WHERE name = '{{user_name}}'",
             None,
             Some("all"),
-            vec![],
         );
 
         let variables = json!({
@@ -873,52 +828,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_db_query_with_output_mapping() {
-        let db_manager = Arc::new(DatabaseConnectionManager::new());
-        let mock_pool = Arc::new(MockPool::new("test-pool".to_string()));
-
-        db_manager
-            .create_pool(
-                "conn-001".to_string(),
-                "Test Connection".to_string(),
-                "postgres".to_string(),
-                mock_pool,
-            )
-            .await
-            .unwrap();
-
-        let output_mappings = vec![OutputMapping {
-            source: "$.rows[0].mock".to_string(),
-            target: "result_mock".to_string(),
-            description: None,
-        }];
-
-        let node = create_db_query_node(
-            "query-001",
-            "Test Query",
-            "conn-001",
-            "SELECT * FROM users",
-            None,
-            Some("all"),
-            output_mappings,
-        );
-
-        let mut context = create_context("test-flow", json!({}));
-        let executor = DbQueryNodeExecutor::with_db_manager(db_manager);
-
-        let result = executor
-            .execute(&node, &mut context, &[], &HashMap::new())
-            .await;
-
-        assert!(result.is_ok());
-
-        // 验证输出映射
-        let var_value = context.variables.get_variable("result_mock");
-        // MockPool 返回 {"mock": true}
-        assert_eq!(var_value, Some(&json!(true)));
-    }
-
-    #[tokio::test]
     async fn test_db_query_connection_not_found() {
         let node = create_db_query_node(
             "query-001",
@@ -927,7 +836,6 @@ mod tests {
             "SELECT * FROM users",
             None,
             Some("all"),
-            vec![],
         );
 
         let db_manager = Arc::new(DatabaseConnectionManager::new());
@@ -954,7 +862,6 @@ mod tests {
             "SELECT * FROM users",
             None,
             Some("all"),
-            vec![],
         );
 
         // 创建连接：query-001 -> error-handler (false 端口)
@@ -1005,7 +912,6 @@ mod tests {
             "SELECT * FROM users",
             None,
             Some("all"),
-            vec![],
         );
 
         // 创建连接：query-001 -> success-handler (true 端口)
@@ -1056,7 +962,6 @@ mod tests {
             "SELECT * FROM users",
             None,
             Some("all"),
-            vec![],
         );
 
         let mut context = create_context("test-flow", json!({}));

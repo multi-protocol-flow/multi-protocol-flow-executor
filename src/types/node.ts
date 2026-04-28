@@ -203,25 +203,6 @@ export interface HttpAuthConfig {
 }
 
 /**
- * HTTP 代理类型
- */
-export type HttpProxyType = 'none' | 'http' | 'socks5';
-
-/**
- * HTTP 代理配置
- */
-export interface HttpProxyConfig {
-  /** 代理类型（默认 none） */
-  proxy_type?: HttpProxyType;
-  /** 代理地址（如 http://proxy:8080 或 socks5://proxy:1080） */
-  proxy_url?: string;
-  /** 代理用户名 */
-  proxy_username?: string;
-  /** 代理密码 */
-  proxy_password?: string;
-}
-
-/**
  * Cookie 条目
  */
 export interface CookieEntry {
@@ -304,8 +285,6 @@ export interface HttpConfig {
   body?: string;
   /** 请求超时时间（毫秒） */
   timeout_ms?: number;
-  /** 输出变量映射 */
-  output_mappings?: OutputMapping[];
   // === 新增字段 ===
   /** 认证配置 */
   auth?: HttpAuthConfig;
@@ -327,8 +306,6 @@ export interface HttpConfig {
   enable_cookies?: boolean;
   /** 初始 Cookie 列表 */
   cookie_jar?: CookieEntry[];
-  /** 代理配置 */
-  proxy?: HttpProxyConfig;
   /** 重试次数（默认 0） */
   retry_count?: number;
   /** 重试延迟（毫秒，默认 1000） */
@@ -354,6 +331,9 @@ export interface ConditionalConfig {
   advanced_expression?: string;
   /** 期望值类型选择器 */
   expected_value_type?: ExpectedValueType;
+  /** 可选，指定读取特定上游节点的输出进行条件判断（UUID）。
+   * 为 undefined 时读取 last_node_output（即最近上游节点输出） */
+  source_node_id?: string;
 }
 
 // ============================================================================
@@ -510,8 +490,6 @@ export interface WsConnectConfig {
   collect_condition?: WsCollectCondition;
   /** 收集超时（毫秒） */
   collect_timeout_ms?: number;
-  /** 输出变量映射 */
-  output_mappings?: OutputMapping[];
   /** 是否使用 TLS */
   use_tls?: boolean;
   /** 是否跳过 TLS 证书验证 */
@@ -543,8 +521,6 @@ export interface WsSendCollectConfig {
   collect_condition?: WsCollectCondition;
   /** 收集超时（毫秒） */
   collect_timeout_ms?: number;
-  /** 输出变量映射 */
-  output_mappings?: OutputMapping[];
 }
 
 /**
@@ -2173,8 +2149,6 @@ export interface DbQueryConfig {
   fetch_mode?: DbFetchMode;
   /** 结果存储变量名 */
   result_to?: string;
-  /** 输出变量映射 */
-  output_mappings?: OutputMapping[];
   /** 查询超时（毫秒） */
   timeout_ms?: number;
 }

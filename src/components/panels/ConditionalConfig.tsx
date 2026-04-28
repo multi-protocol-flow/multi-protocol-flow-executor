@@ -18,6 +18,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Code2, Split } from 'lucide-react';
 import type { ConditionalConfig as ConditionalConfigType, ConditionOperator } from '@/types';
 import { useFlowVariables } from '@/hooks';
+import { useFlowStore } from '@/stores';
+
+/** 不应出现在数据来源下拉中的节点类型（无输出数据或无意义） */
+const EXCLUDED_SOURCE_TYPES: Set<string> = new Set([
+  'entry',
+  'conditional',
+  'variable_extractor',
+]);
 
 interface ConditionalConfigProps {
   /** 当前节点数据 */
@@ -50,6 +58,7 @@ function toFormData(data: ConditionalConfigType): ConditionalConfigFormData {
     expected_value: expectedValue || undefined,
     advanced_expression: data.advanced_expression || '',
     expected_value_type: data.expected_value_type,
+    source_node_id: data.source_node_id || undefined,
   };
 }
 
@@ -78,6 +87,7 @@ function fromFormData(formData: ConditionalConfigFormData): ConditionalConfigTyp
     // 保留高级表达式数据，即使当前是简单模式
     advanced_expression: formData.advanced_expression || undefined,
     expected_value_type: formData.expected_value_type || undefined,
+    source_node_id: formData.source_node_id || undefined,
   };
 }
 
@@ -101,6 +111,15 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
 
   // 获取流程变量
   const { variables, availableVariableNames, nodeLabels } = useFlowVariables();
+
+  // 获取当前流程节点列表和当前选中节点（用于数据来源选择）
+  const flow = useFlowStore((state) => state.flow);
+  const selectedNodeId = useFlowStore((state) => state.selectedNodeId);
+
+  // 可选的数据来源节点（排除自身和无输出节点类型）
+  const sourceNodes = flow?.nodes.filter(
+    (node) => node.uuid !== selectedNodeId && !EXCLUDED_SOURCE_TYPES.has(node.type)
+  ) ?? [];
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
@@ -186,8 +205,40 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
     saveData();
   }, [setValue, saveData]);
 
+  /**
+   * 处理数据来源选择变更
+   */
+  const handleSourceNodeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setValue('source_node_id', value || undefined, { shouldDirty: true });
+    setTimeout(saveData, 100);
+  }, [setValue, saveData]);
+
   return (
     <form onBlur={handleBlur} className="w-full space-y-5">
+      {/* 数据来源选择 */}
+      <div className="space-y-2">
+        <Label htmlFor="source_node_id" className="text-sm font-medium text-foreground">
+          数据来源
+        </Label>
+        <select
+          id="source_node_id"
+          value={watch('source_node_id') || ''}
+          onChange={handleSourceNodeChange}
+          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          <option value="">自动（最近上游节点输出）</option>
+          {sourceNodes.map((node) => (
+            <option key={node.uuid} value={node.uuid}>
+              {node.name} ({node.type})
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">
+          选择条件判断的数据来源节点，默认使用最近的上游节点输出。指定节点后条件中的变量引用将从该节点的输出中读取。
+        </p>
+      </div>
+
       {/* 条件类型选择 */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">条件类型</Label>

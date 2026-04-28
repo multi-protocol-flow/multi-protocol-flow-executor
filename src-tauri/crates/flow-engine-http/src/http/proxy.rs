@@ -5,48 +5,9 @@
 
 use base64::Engine;
 use flow_engine_core::context::ProxyState;
-use flow_engine_core::node_config::{HttpProxyConfig, ProxyMode};
+use flow_engine_core::node_config::ProxyMode;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-
-/// 代理连接结果（旧版 HttpProxyConfig 解析用）
-#[derive(Debug)]
-pub struct ProxyResult {
-    /// 代理目标地址
-    pub target_host: String,
-    /// 代理目标端口
-    pub target_port: u16,
-    /// 是否需要代理认证头
-    pub proxy_auth_header: Option<String>,
-}
-
-/// 解析代理配置，返回代理连接信息（旧版 HttpProxyConfig 接口，保留向后兼容）
-pub fn resolve_proxy_config(proxy_config: &HttpProxyConfig) -> Option<ProxyResult> {
-    if proxy_config.proxy_type == flow_engine_core::node_config::HttpProxyType::None {
-        return None;
-    }
-
-    let proxy_url = proxy_config.proxy_url.as_deref()?;
-    let parsed = url::Url::parse(proxy_url).ok()?;
-
-    let target_host = parsed.host_str()?.to_string();
-    let target_port = parsed.port_or_known_default().unwrap_or(8080);
-
-    let proxy_auth_header = match (&proxy_config.proxy_username, &proxy_config.proxy_password) {
-        (Some(user), Some(pass)) if !user.is_empty() => {
-            let credentials = base64::engine::general_purpose::STANDARD
-                .encode(format!("{}:{}", user, pass));
-            Some(format!("Basic {}", credentials))
-        }
-        _ => None,
-    };
-
-    Some(ProxyResult {
-        target_host,
-        target_port,
-        proxy_auth_header,
-    })
-}
 
 /// 构建 HTTP CONNECT 请求（用于 HTTPS 通过代理）
 pub fn build_connect_request(host: &str, port: u16, auth_header: Option<&str>) -> Vec<u8> {
@@ -295,28 +256,6 @@ async fn connect_socks5(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_resolve_proxy_config_none() {
-        let config = HttpProxyConfig::default();
-        assert!(resolve_proxy_config(&config).is_none());
-    }
-
-    #[test]
-    fn test_resolve_proxy_config_http() {
-        let config = HttpProxyConfig {
-            proxy_type: flow_engine_core::node_config::HttpProxyType::Http,
-            proxy_url: Some("http://proxy.example.com:8080".to_string()),
-            proxy_username: Some("user".to_string()),
-            proxy_password: Some("pass".to_string()),
-        };
-        let result = resolve_proxy_config(&config);
-        assert!(result.is_some());
-        let r = result.unwrap();
-        assert_eq!(r.target_host, "proxy.example.com");
-        assert_eq!(r.target_port, 8080);
-        assert!(r.proxy_auth_header.is_some());
-    }
 
     #[test]
     fn test_build_connect_request() {
