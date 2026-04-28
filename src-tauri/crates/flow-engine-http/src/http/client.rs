@@ -225,6 +225,11 @@ impl HttpClient {
 
             let mut builder = Request::builder().method(method).uri(uri);
 
+            // 提取用户设置的 Content-Type（供 Raw body 类型使用）
+            let user_content_type = config.headers.iter()
+                .find(|(k, _)| k.to_lowercase() == "content-type")
+                .map(|(_, v)| v.clone());
+
             // 添加请求头（不包含 Content-Type，由 body 类型决定）
             let mut has_accept_encoding = false;
             for (key, value) in &config.headers {
@@ -249,6 +254,10 @@ impl HttpClient {
                         .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
                 }
                 BodyType::Raw(data) => {
+                    // Raw body 使用用户设置的 Content-Type（来自 http_executor 自动设置或手动配置）
+                    if let Some(ct) = &user_content_type {
+                        builder = builder.header("Content-Type", ct);
+                    }
                     builder
                         .body(full(Bytes::copy_from_slice(data)))
                         .map_err(|e| HttpError::BodyBuildFailed(e.to_string()))?
