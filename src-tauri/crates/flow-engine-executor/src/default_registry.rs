@@ -130,6 +130,9 @@ pub fn default_registry() -> NodeRegistry {
         crate::plugin_variable_extractor::VariableExtractorPlugin,
     ));
 
+    // Proxy (flow-engine-executor 内置)
+    registry.register(std::sync::Arc::new(crate::plugin_proxy::ProxyPlugin));
+
     registry
 }
 
@@ -138,12 +141,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_default_registry_has_17_plugins() {
+    fn test_default_registry_has_18_plugins() {
         let registry = default_registry();
-        assert_eq!(registry.len(), 87);
+        assert_eq!(registry.len(), 88);
 
         let metadata = registry.all_metadata();
-        assert_eq!(metadata.len(), 87);
+        assert_eq!(metadata.len(), 88);
 
         // 验证每个 type_id 都已注册
         let type_ids: Vec<&str> = metadata.iter().map(|m| m.type_id.as_str()).collect();
@@ -218,6 +221,7 @@ mod tests {
             "amqp10_reject",
             "amqp10_disconnect",
             "variable_extractor",
+            "proxy",
         ];
 
         for exp in &expected {

@@ -33,5 +33,7 @@ pub mod dataset_executor;
 pub mod variable_extractor_executor;
 /// 变量提取节点插件
 pub mod plugin_variable_extractor;
+/// 代理设置节点插件
+pub mod plugin_proxy;
 /// 默认钩子执行器，提供 Webhook/Script/Notify 三种动作的日志执行
 pub mod hook_runner;
