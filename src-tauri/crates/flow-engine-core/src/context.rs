@@ -1,6 +1,7 @@
 // 上下文模块 - 执行上下文和变量存储
 
 use crate::log_event::LogEvent;
+use crate::node_config::ProxyMode;
 use crate::report::NodeExecutionReport;
 use crate::variable::Variable;
 use crate::traits::{LogSender, DebugEventSender, ExecutionEventSender, WsProvider, DbProvider, GrpcProvider, McpProvider, MqttProvider, TcpProvider, UdpProvider, KafkaProvider, SseProvider, GraphqlProvider, AmqpProvider, SmtpProvider, ImapProvider};
@@ -13,6 +14,24 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+
+/// 代理状态（运行时，通过 context.providers["proxy_state"] 存取）
+///
+/// 代理节点设置时写入 providers，清除代理时从 providers 移除。
+/// 协议执行器通过 `context.get_provider::<ProxyState>("proxy_state")` 读取。
+#[derive(Debug, Clone)]
+pub struct ProxyState {
+    /// 代理模式
+    pub mode: ProxyMode,
+    /// 代理服务器地址（host:port 格式）
+    pub host: String,
+    /// 代理服务器端口
+    pub port: u16,
+    /// 代理用户名
+    pub username: Option<String>,
+    /// 代理密码
+    pub password: Option<String>,
+}
 
 /// 执行上下文
 ///
@@ -422,6 +441,18 @@ impl ExecutionContext {
     /// * `provider` - 包装在 Arc 中的 provider 实例
     pub fn set_provider(&mut self, name: impl Into<String>, provider: Arc<dyn Any + Send + Sync>) {
         self.providers.insert(name.into(), provider);
+    }
+
+    /// 移除通用 provider
+    ///
+    /// 从 providers 注册表中移除指定名称的 provider。
+    /// 用于代理节点清除代理状态。
+    ///
+    /// # 参数
+    ///
+    /// * `name` - provider 名称（如 "proxy_state"）
+    pub fn remove_provider(&mut self, name: &str) {
+        self.providers.remove(name);
     }
 
     /// Resolve file path (supports relative paths)

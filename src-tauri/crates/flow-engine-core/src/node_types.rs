@@ -137,3 +137,5 @@ pub const AMQP10_REJECT: &str = "amqp10_reject";
 pub const AMQP10_DISCONNECT: &str = "amqp10_disconnect";
 /// 变量提取节点
 pub const VARIABLE_EXTRACTOR: &str = "variable_extractor";
+/// 代理设置节点
+pub const PROXY: &str = "proxy";

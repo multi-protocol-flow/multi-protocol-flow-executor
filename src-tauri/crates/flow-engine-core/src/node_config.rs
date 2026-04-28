@@ -3376,6 +3376,59 @@ pub struct ImapCloseConfig {
 }
 
 // ============================================================================
+// 代理设置节点配置
+// ============================================================================
+
+/// 代理模式
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProxyMode {
+    /// 清除代理（恢复直连）
+    #[default]
+    Clear,
+    /// HTTP 代理（CONNECT 隧道）
+    Http,
+    /// SOCKS5 代理
+    Socks5,
+}
+
+/// 代理设置节点配置
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProxyConfig {
+    /// 节点类型标识
+    #[serde(default = "default_proxy_type")]
+    pub r#type: String,
+    /// 代理模式
+    #[serde(default)]
+    pub mode: ProxyMode,
+    /// 代理服务器地址（仅 http/socks5 模式需要）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proxy_url: Option<String>,
+    /// 代理用户名
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    /// 代理密码
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+}
+
+fn default_proxy_type() -> String {
+    "proxy".to_string()
+}
+
+impl Default for ProxyConfig {
+    fn default() -> Self {
+        Self {
+            r#type: default_proxy_type(),
+            mode: ProxyMode::Clear,
+            proxy_url: None,
+            username: None,
+            password: None,
+        }
+    }
+}
+
+// ============================================================================
 // 变量提取节点配置
 // ============================================================================
 
@@ -3673,6 +3726,9 @@ pub enum NodeData {
     /// IMAP 关闭连接节点配置
     #[serde(rename = "imap_close")]
     ImapClose(ImapCloseConfig),
+    /// 代理设置节点配置
+    #[serde(rename = "proxy")]
+    Proxy(ProxyConfig),
     /// 变量提取节点配置
     #[serde(rename = "variable_extractor")]
     VariableExtractor(VariableExtractorConfig),
@@ -3966,6 +4022,9 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "imap_close" => serde_json::from_value::<ImapCloseConfig>(value.clone())
                 .map(NodeData::ImapClose)
                 .map_err(serde::de::Error::custom),
+            "proxy" => serde_json::from_value::<ProxyConfig>(value.clone())
+                .map(NodeData::Proxy)
+                .map_err(serde::de::Error::custom),
             "variable_extractor" => serde_json::from_value::<VariableExtractorConfig>(value.clone())
                 .map(NodeData::VariableExtractor)
                 .map_err(serde::de::Error::custom),
@@ -4072,6 +4131,7 @@ impl NodeData {
             NodeData::ImapFolderDelete(_) => "imap_folder_delete".to_string(),
             NodeData::ImapIdle(_) => "imap_idle".to_string(),
             NodeData::ImapClose(_) => "imap_close".to_string(),
+            NodeData::Proxy(_) => "proxy".to_string(),
             NodeData::VariableExtractor(_) => "variable_extractor".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
@@ -4284,6 +4344,11 @@ impl NodeData {
     /// 创建 `VariableExtractor` 节点配置
     pub fn variable_extractor() -> Self {
         Self::VariableExtractor(VariableExtractorConfig::default())
+    }
+
+    /// 创建 `Proxy` 节点配置
+    pub fn proxy() -> Self {
+        Self::Proxy(ProxyConfig::default())
     }
 }
 

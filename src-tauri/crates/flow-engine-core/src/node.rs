@@ -219,6 +219,9 @@ pub enum NodeType {
     /// 变量提取节点
     #[serde(rename = "variable_extractor")]
     VariableExtractor,
+    /// 代理设置节点
+    #[serde(rename = "proxy")]
+    Proxy,
     // SMTP 节点
     /// SMTP 连接节点
     #[serde(rename = "smtp_connect")]
