@@ -167,6 +167,16 @@
     --breathing-color-end: rgba(168, 85, 247, 0);
     animation: debug-breathing 1.5s ease-in-out infinite;
   }
+  .debug-breathing-violet {
+    --breathing-color: rgba(139, 92, 246, 0.9);
+    --breathing-color-end: rgba(139, 92, 246, 0);
+    animation: debug-breathing 1.5s ease-in-out infinite;
+  }
+  .debug-breathing-orange {
+    --breathing-color: rgba(249, 115, 22, 0.9);
+    --breathing-color-end: rgba(249, 115, 22, 0);
+    animation: debug-breathing 1.5s ease-in-out infinite;
+  }
 
   .scrollbar-thin {
     scrollbar-width: thin;
