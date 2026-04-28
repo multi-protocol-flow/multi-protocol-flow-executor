@@ -112,6 +112,7 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   imap_folder_delete: EmailViewer,
   imap_idle: EmailViewer,
   imap_close: EmailViewer,
+  proxy: GenericViewer,
 };
 
 /**

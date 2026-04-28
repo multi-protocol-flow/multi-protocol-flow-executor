@@ -52,6 +52,7 @@ import {
   Braces,
   Copy,
   FolderPlus,
+  Shield,
 } from 'lucide-react';
 import { getCachedDisplayName } from '@/lib/NodeRegistry';
 
@@ -179,6 +180,7 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
 
   // 工具
   variable_extractor: { icon: Braces, iconBg: 'bg-amber-500', labelColor: 'text-amber-600', badge: 'bg-amber-100 text-amber-700' },
+  proxy: { icon: Shield, iconBg: 'bg-lime-500', labelColor: 'text-lime-600', badge: 'bg-lime-100 text-lime-700' },
 };
 
 /** 静态显示名称兜底映射 */
@@ -281,6 +283,7 @@ const STATIC_DISPLAY_NAMES: Record<string, string> = {
   imap_close: 'IMAP 关闭',
   // 工具
   variable_extractor: '变量提取',
+  proxy: '代理设置',
 };
 
 /**

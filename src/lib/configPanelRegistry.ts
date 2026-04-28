@@ -93,6 +93,7 @@ import { ImapClosePanel } from '@/components/panels/ImapClosePanel';
 import { SmtpConnectConfig } from '@/components/panels/SmtpConnectPanel';
 import { SmtpSendConfig as SmtpSendPanel } from '@/components/panels/SmtpSendPanel';
 import { SmtpDisconnectConfig as SmtpDisconnectPanel } from '@/components/panels/SmtpDisconnectPanel';
+import { ProxyConfig as ProxyConfigPanel } from '@/components/panels/ProxyConfig';
 
 export const configPanelRegistry: Record<string, ComponentType<any>> = {
   entry: EntryConfig,
@@ -185,6 +186,7 @@ export const configPanelRegistry: Record<string, ComponentType<any>> = {
   imap_folder_delete: ImapFolderDeletePanel,
   imap_idle: ImapIdlePanel,
   imap_close: ImapClosePanel,
+  proxy: ProxyConfigPanel,
 };
 
 /** 根据节点类型获取对应的配置面板组件 */
