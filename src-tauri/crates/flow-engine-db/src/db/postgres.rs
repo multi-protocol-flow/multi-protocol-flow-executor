@@ -6,8 +6,9 @@
 use async_trait::async_trait;
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use sqlx::Column;
+use std::ops::DerefMut;
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 
 use super::traits::{DatabasePool, QueryResult};
 
@@ -32,6 +33,8 @@ pub struct PostgresConnection {
     connection_string_safe: String,
     /// 活跃连接数
     active_connections: Arc<RwLock<usize>>,
+    /// 事务专用连接（钉扎到特定连接，确保事务内所有操作在同一连接上执行）
+    tx_conn: Arc<Mutex<Option<sqlx::pool::PoolConnection<sqlx::postgres::Postgres>>>>,
 }
 
 impl PostgresConnection {
@@ -95,6 +98,7 @@ impl PostgresConnection {
             name,
             connection_string_safe,
             active_connections: Arc::new(RwLock::new(0)),
+            tx_conn: Arc::new(Mutex::new(None)),
         })
     }
 
@@ -220,8 +224,16 @@ impl DatabasePool for PostgresConnection {
             *active += 1;
         }
 
-        // 执行查询
-        let result = self.execute_internal(sql, params).await;
+        // 事务期间路由到专用连接，否则使用连接池
+        let result = {
+            let mut guard = self.tx_conn.lock().await;
+            if let Some(ref mut conn) = *guard {
+                self.execute_on_connection(conn, sql, params).await
+            } else {
+                drop(guard);
+                self.execute_internal(sql, params).await
+            }
+        };
 
         // 减少活跃连接计数
         {
@@ -265,8 +277,139 @@ impl DatabasePool for PostgresConnection {
     /// 释放所有连接资源。
     async fn close(&self) {
         log::info!("[PostgreSQL] 关闭连接池: name={}", self.name);
+
+        // 释放事务专用连接
+        {
+            let mut guard = self.tx_conn.lock().await;
+            if guard.is_some() {
+                log::warn!(
+                    "[PostgreSQL] 关闭连接池时存在未提交的事务，自动回滚: name={}",
+                    self.name
+                );
+                *guard = None;
+            }
+        }
+
         self.pool.close().await;
         log::info!("[PostgreSQL] 连接池已关闭: name={}", self.name);
+    }
+
+    /// 开始数据库事务
+    ///
+    /// 从连接池获取一个专用连接，执行 BEGIN 语句。
+    /// 事务内的后续所有查询将通过此专用连接执行（连接钉扎）。
+    ///
+    /// # 参数
+    ///
+    /// * `isolation_level` - 可选的事务隔离级别（如 "READ COMMITTED"、"SERIALIZABLE"）
+    async fn begin_db_transaction(&self, isolation_level: Option<&str>) -> Result<(), String> {
+        log::info!(
+            "[PostgreSQL] 开始事务: name={}, isolation_level={:?}",
+            self.name,
+            isolation_level
+        );
+
+        let mut guard = self.tx_conn.lock().await;
+
+        // 检查是否已有活跃事务
+        if guard.is_some() {
+            return Err(format!(
+                "PostgreSQL 事务已存在: name={}，请先提交或回滚当前事务",
+                self.name
+            ));
+        }
+
+        // 从连接池获取专用连接
+        let mut conn = self
+            .pool
+            .acquire()
+            .await
+            .map_err(|e| format!("PostgreSQL 获取事务连接失败: {}", e))?;
+
+        // 如果指定了隔离级别，先设置隔离级别
+        if let Some(level) = isolation_level {
+            let set_isolation_sql = format!("SET TRANSACTION ISOLATION LEVEL {}", level);
+            sqlx::query(&set_isolation_sql)
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| {
+                    format!(
+                        "PostgreSQL 设置事务隔离级别失败 ({}): {}",
+                        level, e
+                    )
+                })?;
+            log::info!(
+                "[PostgreSQL] 设置事务隔离级别: name={}, level={}",
+                self.name,
+                level
+            );
+        }
+
+        // 执行 BEGIN
+        sqlx::query("BEGIN")
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| format!("PostgreSQL BEGIN 失败: {}", e))?;
+
+        // 存入专用连接
+        *guard = Some(conn);
+
+        log::info!("[PostgreSQL] 事务已开始: name={}", self.name);
+        Ok(())
+    }
+
+    /// 提交数据库事务
+    ///
+    /// 向数据库发送 COMMIT 命令，然后释放专用连接归还连接池。
+    async fn commit_db_transaction(&self) -> Result<(), String> {
+        log::info!("[PostgreSQL] 提交事务: name={}", self.name);
+
+        let mut guard = self.tx_conn.lock().await;
+
+        // 取出专用连接
+        let mut conn = guard
+            .take()
+            .ok_or_else(|| format!("PostgreSQL 无活跃事务: name={}", self.name))?;
+
+        // 执行 COMMIT
+        sqlx::query("COMMIT")
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| format!("PostgreSQL COMMIT 失败: {}", e))?;
+
+        // 连接 drop 后自动归还连接池
+        drop(conn);
+        drop(guard);
+
+        log::info!("[PostgreSQL] 事务已提交: name={}", self.name);
+        Ok(())
+    }
+
+    /// 回滚数据库事务
+    ///
+    /// 向数据库发送 ROLLBACK 命令，然后释放专用连接归还连接池。
+    async fn rollback_db_transaction(&self) -> Result<(), String> {
+        log::info!("[PostgreSQL] 回滚事务: name={}", self.name);
+
+        let mut guard = self.tx_conn.lock().await;
+
+        // 取出专用连接
+        let mut conn = guard
+            .take()
+            .ok_or_else(|| format!("PostgreSQL 无活跃事务: name={}", self.name))?;
+
+        // 执行 ROLLBACK
+        sqlx::query("ROLLBACK")
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| format!("PostgreSQL ROLLBACK 失败: {}", e))?;
+
+        // 连接 drop 后自动归还连接池
+        drop(conn);
+        drop(guard);
+
+        log::info!("[PostgreSQL] 事务已回滚: name={}", self.name);
+        Ok(())
     }
 
     /// 获取连接池状态信息
@@ -361,6 +504,92 @@ impl PostgresConnection {
                 .execute(&self.pool)
                 .await
                 .map_err(|e| format!("PostgreSQL 执行失败: {}", e))?;
+
+            Ok(QueryResult::with_affected_rows(result.rows_affected()))
+        }
+    }
+
+    /// 在指定连接上执行查询（事务期间使用）
+    ///
+    /// 与 `execute_internal` 逻辑完全一致，但使用事务专用连接替代连接池。
+    async fn execute_on_connection(
+        &self,
+        conn: &mut sqlx::pool::PoolConnection<sqlx::postgres::Postgres>,
+        sql: &str,
+        params: Vec<serde_json::Value>,
+    ) -> Result<QueryResult, String> {
+        use sqlx::Row;
+
+        // 判断是否是查询语句（SELECT、SHOW、EXPLAIN 等）
+        let sql_upper = sql.trim().to_uppercase();
+        let is_query = sql_upper.starts_with("SELECT")
+            || sql_upper.starts_with("SHOW")
+            || sql_upper.starts_with("EXPLAIN")
+            || sql_upper.starts_with("WITH")
+            || sql_upper.starts_with("RETURNING");
+
+        if is_query || sql_upper.contains("RETURNING") {
+            // 执行查询
+            let query = sqlx::query(sql);
+
+            // 绑定参数
+            let query = self.bind_params(query, params);
+
+            // 在事务专用连接上执行查询（通过 DerefMut 获取 &mut PgConnection）
+            let pg_conn = conn.deref_mut();
+            let rows = query
+                .fetch_all(pg_conn)
+                .await
+                .map_err(|e| format!("PostgreSQL 事务查询执行失败: {}", e))?;
+
+            // 处理结果
+            if rows.is_empty() {
+                return Ok(QueryResult::empty());
+            }
+
+            // 获取列名
+            let columns: Vec<String> = rows[0]
+                .columns()
+                .iter()
+                .map(|col| col.name().to_string())
+                .collect();
+
+            // 转换行数据为 JSON
+            let mut json_rows = Vec::new();
+            for row in rows {
+                let mut json_row = serde_json::Map::new();
+                for col in row.columns() {
+                    let col_name = col.name();
+                    let value = Self::column_to_json(&row, col_name);
+                    json_row.insert(col_name.to_string(), value);
+                }
+                json_rows.push(serde_json::Value::Object(json_row));
+            }
+
+            let row_count = json_rows.len();
+            let truncated = row_count > 10000;
+
+            let result = if truncated {
+                QueryResult::with_rows(json_rows.into_iter().take(10000).collect(), columns)
+                    .mark_truncated()
+            } else {
+                QueryResult::with_rows(json_rows, columns)
+            };
+
+            Ok(result)
+        } else {
+            // 执行非查询语句（INSERT/UPDATE/DELETE）
+            let query = sqlx::query(sql);
+
+            // 绑定参数
+            let query = self.bind_params(query, params);
+
+            // 在事务专用连接上执行（通过 DerefMut 获取 &mut PgConnection）
+            let pg_conn = conn.deref_mut();
+            let result = query
+                .execute(pg_conn)
+                .await
+                .map_err(|e| format!("PostgreSQL 事务执行失败: {}", e))?;
 
             Ok(QueryResult::with_affected_rows(result.rows_affected()))
         }

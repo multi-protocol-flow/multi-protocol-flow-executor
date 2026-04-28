@@ -226,22 +226,35 @@ impl DatabaseConnectionManager {
     }
 
     /// 开始事务
+    ///
+    /// 向数据库发送真实的 BEGIN 命令，并在内存中记录事务状态。
+    /// 事务期间所有查询将路由到专用连接，确保在同一连接上执行。
     pub async fn begin_transaction(
         &self,
         connection_uuid: &str,
         isolation_level: Option<String>,
     ) -> Result<(), String> {
-        let mut transactions = self.transactions.write().await;
-
-        if let Some(info) = transactions.get(connection_uuid) {
-            if info.state == TransactionState::Active {
-                return Err(format!(
-                    "连接 {} 已有活跃事务，请先提交或回滚",
-                    connection_uuid
-                ));
+        // 1. 检查内存中的事务状态
+        {
+            let transactions = self.transactions.read().await;
+            if let Some(info) = transactions.get(connection_uuid) {
+                if info.state == TransactionState::Active {
+                    return Err(format!(
+                        "连接 {} 已有活跃事务，请先提交或回滚",
+                        connection_uuid
+                    ));
+                }
             }
         }
 
+        // 2. 获取连接池，向数据库发送 BEGIN
+        let pool = self.get_pool(connection_uuid).await
+            .ok_or_else(|| format!("连接 {} 不存在，无法开始事务", connection_uuid))?;
+
+        pool.begin_db_transaction(isolation_level.as_deref()).await?;
+
+        // 3. 内存状态记录
+        let mut transactions = self.transactions.write().await;
         let info = TransactionInfo::new(connection_uuid.to_string(), isolation_level);
         transactions.insert(connection_uuid.to_string(), info);
 
@@ -250,43 +263,73 @@ impl DatabaseConnectionManager {
     }
 
     /// 提交事务
+    ///
+    /// 向数据库发送真实的 COMMIT 命令，并更新内存中的事务状态。
     pub async fn commit_transaction(&self, connection_uuid: &str) -> Result<(), String> {
-        let mut transactions = self.transactions.write().await;
-
-        if let Some(info) = transactions.get_mut(connection_uuid) {
-            if info.state != TransactionState::Active {
-                return Err(format!(
-                    "连接 {} 没有活跃事务（当前状态: {:?}）",
-                    connection_uuid, info.state
-                ));
+        // 1. 检查内存中的事务状态
+        {
+            let transactions = self.transactions.read().await;
+            if let Some(info) = transactions.get(connection_uuid) {
+                if info.state != TransactionState::Active {
+                    return Err(format!(
+                        "连接 {} 没有活跃事务（当前状态: {:?}）",
+                        connection_uuid, info.state
+                    ));
+                }
+            } else {
+                return Err(format!("连接 {} 没有活跃事务", connection_uuid));
             }
-
-            info.state = TransactionState::Committed;
-            log::info!("[Database] 事务已提交: uuid={}", connection_uuid);
-            Ok(())
-        } else {
-            Err(format!("连接 {} 没有活跃事务", connection_uuid))
         }
+
+        // 2. 获取连接池，向数据库发送 COMMIT
+        let pool = self.get_pool(connection_uuid).await
+            .ok_or_else(|| format!("连接 {} 不存在，无法提交事务", connection_uuid))?;
+
+        pool.commit_db_transaction().await?;
+
+        // 3. 更新内存状态
+        let mut transactions = self.transactions.write().await;
+        if let Some(info) = transactions.get_mut(connection_uuid) {
+            info.state = TransactionState::Committed;
+        }
+
+        log::info!("[Database] 事务已提交: uuid={}", connection_uuid);
+        Ok(())
     }
 
     /// 回滚事务
+    ///
+    /// 向数据库发送真实的 ROLLBACK 命令，并更新内存中的事务状态。
     pub async fn rollback_transaction(&self, connection_uuid: &str) -> Result<(), String> {
-        let mut transactions = self.transactions.write().await;
-
-        if let Some(info) = transactions.get_mut(connection_uuid) {
-            if info.state != TransactionState::Active {
-                return Err(format!(
-                    "连接 {} 没有活跃事务（当前状态: {:?}）",
-                    connection_uuid, info.state
-                ));
+        // 1. 检查内存中的事务状态
+        {
+            let transactions = self.transactions.read().await;
+            if let Some(info) = transactions.get(connection_uuid) {
+                if info.state != TransactionState::Active {
+                    return Err(format!(
+                        "连接 {} 没有活跃事务（当前状态: {:?}）",
+                        connection_uuid, info.state
+                    ));
+                }
+            } else {
+                return Err(format!("连接 {} 没有活跃事务", connection_uuid));
             }
-
-            info.state = TransactionState::RolledBack;
-            log::info!("[Database] 事务已回滚: uuid={}", connection_uuid);
-            Ok(())
-        } else {
-            Err(format!("连接 {} 没有活跃事务", connection_uuid))
         }
+
+        // 2. 获取连接池，向数据库发送 ROLLBACK
+        let pool = self.get_pool(connection_uuid).await
+            .ok_or_else(|| format!("连接 {} 不存在，无法回滚事务", connection_uuid))?;
+
+        pool.rollback_db_transaction().await?;
+
+        // 3. 更新内存状态
+        let mut transactions = self.transactions.write().await;
+        if let Some(info) = transactions.get_mut(connection_uuid) {
+            info.state = TransactionState::RolledBack;
+        }
+
+        log::info!("[Database] 事务已回滚: uuid={}", connection_uuid);
+        Ok(())
     }
 
     /// 获取事务状态
@@ -620,9 +663,43 @@ mod tests {
         assert!(result.unwrap_err().contains("不存在"));
     }
 
+    /// 创建带 MockPool 的管理器（用于事务测试）
+    async fn create_manager_with_mock_pool() -> DatabaseConnectionManager {
+        let manager = DatabaseConnectionManager::new();
+        let pool = Arc::new(MockPool::new("test-pool".to_string()));
+        manager
+            .create_pool(
+                "conn-001".to_string(),
+                "Test Connection".to_string(),
+                "mock".to_string(),
+                pool,
+            )
+            .await
+            .unwrap();
+        manager
+    }
+
+    /// 创建带多个 MockPool 的管理器（用于多连接事务测试）
+    async fn create_manager_with_multiple_mock_pools() -> DatabaseConnectionManager {
+        let manager = DatabaseConnectionManager::new();
+        for uuid in &["conn-001", "conn-002", "conn-003", "conn-004"] {
+            let pool = Arc::new(MockPool::new(format!("pool-{}", uuid).to_string()));
+            manager
+                .create_pool(
+                    uuid.to_string(),
+                    format!("Connection {}", uuid),
+                    "mock".to_string(),
+                    pool,
+                )
+                .await
+                .unwrap();
+        }
+        manager
+    }
+
     #[tokio::test]
     async fn test_begin_transaction_success() {
-        let manager = DatabaseConnectionManager::new();
+        let manager = create_manager_with_mock_pool().await;
 
         let result = manager.begin_transaction("conn-001", None).await;
         assert!(result.is_ok());
@@ -633,7 +710,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_begin_transaction_duplicate() {
-        let manager = DatabaseConnectionManager::new();
+        let manager = create_manager_with_mock_pool().await;
 
         manager.begin_transaction("conn-001", None).await.unwrap();
 
@@ -644,7 +721,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_commit_transaction_success() {
-        let manager = DatabaseConnectionManager::new();
+        let manager = create_manager_with_mock_pool().await;
 
         manager.begin_transaction("conn-001", None).await.unwrap();
 
@@ -657,7 +734,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_commit_transaction_no_active() {
-        let manager = DatabaseConnectionManager::new();
+        let manager = create_manager_with_mock_pool().await;
 
         let result = manager.commit_transaction("conn-001").await;
         assert!(result.is_err());
@@ -666,7 +743,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_rollback_transaction_success() {
-        let manager = DatabaseConnectionManager::new();
+        let manager = create_manager_with_mock_pool().await;
 
         manager.begin_transaction("conn-001", None).await.unwrap();
 
@@ -679,7 +756,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_rollback_transaction_no_active() {
-        let manager = DatabaseConnectionManager::new();
+        let manager = create_manager_with_mock_pool().await;
 
         let result = manager.rollback_transaction("conn-001").await;
         assert!(result.is_err());
@@ -688,7 +765,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_cleanup_transactions() {
-        let manager = DatabaseConnectionManager::new();
+        let manager = create_manager_with_multiple_mock_pools().await;
 
         manager.begin_transaction("conn-001", None).await.unwrap();
         manager.begin_transaction("conn-002", None).await.unwrap();

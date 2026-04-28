@@ -6,8 +6,9 @@
 use async_trait::async_trait;
 use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
 use sqlx::Column;
+use std::ops::DerefMut;
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 
 use super::traits::{DatabasePool, QueryResult};
 
@@ -24,6 +25,8 @@ pub struct SqliteConnection {
     connection_string: String,
     /// 活跃连接数
     active_connections: Arc<RwLock<usize>>,
+    /// 事务专用连接（钉扎到单个连接，确保事务内所有操作在同一连接上执行）
+    tx_conn: Arc<Mutex<Option<sqlx::pool::PoolConnection<sqlx::sqlite::Sqlite>>>>,
 }
 
 impl SqliteConnection {
@@ -82,6 +85,7 @@ impl SqliteConnection {
             name,
             connection_string,
             active_connections: Arc::new(RwLock::new(0)),
+            tx_conn: Arc::new(Mutex::new(None)),
         })
     }
 
@@ -149,8 +153,18 @@ impl DatabasePool for SqliteConnection {
             *active += 1;
         }
 
-        // 执行查询
-        let result = self.execute_internal(sql, params).await;
+        // 事务期间路由到专用连接，否则使用连接池
+        let result = {
+            let mut guard = self.tx_conn.lock().await;
+            if let Some(ref mut pool_conn) = *guard {
+                // 通过 DerefMut 获取底层 SqliteConnection
+                let conn: &mut sqlx::sqlite::SqliteConnection = pool_conn.deref_mut();
+                self.execute_on_connection(conn, sql, params).await
+            } else {
+                drop(guard);
+                self.execute_internal(sql, params).await
+            }
+        };
 
         // 减少活跃连接计数
         {
@@ -159,6 +173,86 @@ impl DatabasePool for SqliteConnection {
         }
 
         result
+    }
+
+    /// 开始事务
+    ///
+    /// 从连接池获取专用连接并执行 `BEGIN`。
+    /// `SQLite` 不支持隔离级别设置，`isolation_level` 参数将被忽略。
+    async fn begin_db_transaction(&self, _isolation_level: Option<&str>) -> Result<(), String> {
+        let mut guard = self.tx_conn.lock().await;
+        if guard.is_some() {
+            return Err("SQLite 事务已在进行中，不支持嵌套事务".to_string());
+        }
+
+        log::info!("[SQLite] 开始事务: name={}", self.name);
+
+        // 获取专用连接
+        let mut conn = self
+            .pool
+            .acquire()
+            .await
+            .map_err(|e| format!("SQLite 获取事务连接失败: {}", e))?;
+
+        // 执行 BEGIN
+        sqlx::query("BEGIN")
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| format!("SQLite BEGIN 失败: {}", e))?;
+
+        *guard = Some(conn);
+        log::info!("[SQLite] 事务已开始: name={}", self.name);
+        Ok(())
+    }
+
+    /// 提交事务
+    ///
+    /// 执行 `COMMIT` 并释放专用连接归还连接池。
+    async fn commit_db_transaction(&self) -> Result<(), String> {
+        let mut guard = self.tx_conn.lock().await;
+        let mut conn = guard
+            .take()
+            .ok_or_else(|| "SQLite 没有进行中的事务，无法提交".to_string())?;
+
+        log::info!("[SQLite] 提交事务: name={}", self.name);
+
+        // 执行 COMMIT
+        sqlx::query("COMMIT")
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| format!("SQLite COMMIT 失败: {}", e))?;
+
+        // conn drop 后自动归还连接池
+        drop(conn);
+        drop(guard);
+
+        log::info!("[SQLite] 事务已提交: name={}", self.name);
+        Ok(())
+    }
+
+    /// 回滚事务
+    ///
+    /// 执行 `ROLLBACK` 并释放专用连接归还连接池。
+    async fn rollback_db_transaction(&self) -> Result<(), String> {
+        let mut guard = self.tx_conn.lock().await;
+        let mut conn = guard
+            .take()
+            .ok_or_else(|| "SQLite 没有进行中的事务，无法回滚".to_string())?;
+
+        log::info!("[SQLite] 回滚事务: name={}", self.name);
+
+        // 执行 ROLLBACK
+        sqlx::query("ROLLBACK")
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| format!("SQLite ROLLBACK 失败: {}", e))?;
+
+        // conn drop 后自动归还连接池
+        drop(conn);
+        drop(guard);
+
+        log::info!("[SQLite] 事务已回滚: name={}", self.name);
+        Ok(())
     }
 
     /// 测试连接是否正常
@@ -279,6 +373,73 @@ impl SqliteConnection {
             // 执行
             let result = query
                 .execute(&self.pool)
+                .await
+                .map_err(|e| format!("SQLite 执行失败: {}", e))?;
+
+            Ok(QueryResult::with_affected_rows(result.rows_affected()))
+        }
+    }
+
+    /// 在事务专用连接上执行查询
+    ///
+    /// 逻辑与 `execute_internal` 完全一致，但使用 `&mut SqliteConnection` 替代 `&self.pool`。
+    async fn execute_on_connection(
+        &self,
+        conn: &mut sqlx::sqlite::SqliteConnection,
+        sql: &str,
+        params: Vec<serde_json::Value>,
+    ) -> Result<QueryResult, String> {
+        use sqlx::Row;
+
+        let is_query = sql.trim().to_uppercase().starts_with("SELECT");
+
+        if is_query {
+            let query = sqlx::query(sql);
+            let query = self.bind_params(query, params);
+
+            let rows = query
+                .fetch_all(conn)
+                .await
+                .map_err(|e| format!("SQLite 查询执行失败: {}", e))?;
+
+            if rows.is_empty() {
+                return Ok(QueryResult::empty());
+            }
+
+            let columns: Vec<String> = rows[0]
+                .columns()
+                .iter()
+                .map(|col| col.name().to_string())
+                .collect();
+
+            let mut json_rows = Vec::new();
+            for row in rows {
+                let mut json_row = serde_json::Map::new();
+                for col in row.columns() {
+                    let col_name = col.name();
+                    let value = Self::column_to_json(&row, col_name);
+                    json_row.insert(col_name.to_string(), value);
+                }
+                json_rows.push(serde_json::Value::Object(json_row));
+            }
+
+            let row_count = json_rows.len();
+            let truncated = row_count > 10000;
+
+            let result = if truncated {
+                QueryResult::with_rows(json_rows.into_iter().take(10000).collect(), columns)
+                    .mark_truncated()
+            } else {
+                QueryResult::with_rows(json_rows, columns)
+            };
+
+            Ok(result)
+        } else {
+            let query = sqlx::query(sql);
+            let query = self.bind_params(query, params);
+
+            let result = query
+                .execute(conn)
                 .await
                 .map_err(|e| format!("SQLite 执行失败: {}", e))?;
 
@@ -699,5 +860,153 @@ mod tests {
         assert!(row.get("float_val").is_some());
         assert_eq!(row.get("str_val"), Some(&serde_json::json!("hello")));
         assert_eq!(row.get("null_val"), Some(&serde_json::Value::Null));
+    }
+
+    #[tokio::test]
+    async fn test_sqlite_transaction_commit() {
+        let conn = SqliteConnection::new(
+            "test-tx-commit".to_string(),
+            ":memory:".to_string(),
+            1,
+            5,
+        )
+        .await
+        .unwrap();
+
+        // 创建表
+        conn.execute(
+            "CREATE TABLE tx_test (id INTEGER PRIMARY KEY, value TEXT)",
+            vec![],
+        )
+        .await
+        .unwrap();
+
+        // 开始事务
+        conn.begin_db_transaction(None).await.unwrap();
+
+        // 在事务中插入数据
+        conn.execute(
+            "INSERT INTO tx_test (value) VALUES (?)",
+            vec![serde_json::json!("tx_data")],
+        )
+        .await
+        .unwrap();
+
+        // 事务内查询可以看到数据
+        let result = conn
+            .execute("SELECT * FROM tx_test", vec![])
+            .await
+            .unwrap();
+        assert_eq!(result.rows.len(), 1);
+
+        // 提交事务
+        conn.commit_db_transaction().await.unwrap();
+
+        // 提交后数据仍然可见
+        let result = conn
+            .execute("SELECT * FROM tx_test", vec![])
+            .await
+            .unwrap();
+        assert_eq!(result.rows.len(), 1);
+        let row = &result.rows[0];
+        assert_eq!(row.get("value"), Some(&serde_json::json!("tx_data")));
+    }
+
+    #[tokio::test]
+    async fn test_sqlite_transaction_rollback() {
+        let conn = SqliteConnection::new(
+            "test-tx-rollback".to_string(),
+            ":memory:".to_string(),
+            1,
+            5,
+        )
+        .await
+        .unwrap();
+
+        // 创建表
+        conn.execute(
+            "CREATE TABLE tx_rollback (id INTEGER PRIMARY KEY, value TEXT)",
+            vec![],
+        )
+        .await
+        .unwrap();
+
+        // 开始事务
+        conn.begin_db_transaction(None).await.unwrap();
+
+        // 在事务中插入数据
+        conn.execute(
+            "INSERT INTO tx_rollback (value) VALUES (?)",
+            vec![serde_json::json!("will_be_rolled_back")],
+        )
+        .await
+        .unwrap();
+
+        // 回滚事务
+        conn.rollback_db_transaction().await.unwrap();
+
+        // 回滚后数据不可见
+        let result = conn
+            .execute("SELECT * FROM tx_rollback", vec![])
+            .await
+            .unwrap();
+        assert_eq!(result.rows.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_sqlite_transaction_no_double_begin() {
+        let conn = SqliteConnection::new(
+            "test-tx-nested".to_string(),
+            ":memory:".to_string(),
+            1,
+            5,
+        )
+        .await
+        .unwrap();
+
+        // 开始事务
+        conn.begin_db_transaction(None).await.unwrap();
+
+        // 重复开始应报错
+        let result = conn.begin_db_transaction(None).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("已在进行中"));
+
+        // 清理：回滚
+        conn.rollback_db_transaction().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_sqlite_transaction_commit_without_begin() {
+        let conn = SqliteConnection::new(
+            "test-tx-no-begin".to_string(),
+            ":memory:".to_string(),
+            1,
+            5,
+        )
+        .await
+        .unwrap();
+
+        // 未开始事务直接提交应报错
+        let result = conn.commit_db_transaction().await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("没有进行中的事务"));
+    }
+
+    #[tokio::test]
+    async fn test_sqlite_transaction_rollback_without_begin() {
+        let conn = SqliteConnection::new(
+            "test-tx-no-begin-rollback".to_string(),
+            ":memory:".to_string(),
+            1,
+            5,
+        )
+        .await
+        .unwrap();
+
+        // 未开始事务直接回滚应报错
+        let result = conn.rollback_db_transaction().await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("没有进行中的事务"));
     }
 }

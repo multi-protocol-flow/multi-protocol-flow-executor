@@ -77,6 +77,24 @@ pub trait DatabasePool: Send + Sync {
 
     /// 获取连接池状态信息（用于调试）
     fn status_info(&self) -> String;
+
+    /// 开始数据库事务（获取专用连接并发送 BEGIN）
+    ///
+    /// 默认实现为空操作，不支持事务的数据库（如 Redis）无需覆写。
+    /// MySQL/PostgreSQL/SQLite 需要覆写此方法。
+    async fn begin_db_transaction(&self, _isolation_level: Option<&str>) -> Result<(), String> {
+        Ok(())
+    }
+
+    /// 提交数据库事务（发送 COMMIT 并释放专用连接）
+    async fn commit_db_transaction(&self) -> Result<(), String> {
+        Ok(())
+    }
+
+    /// 回滚数据库事务（发送 ROLLBACK 并释放专用连接）
+    async fn rollback_db_transaction(&self) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 /// 事务状态
