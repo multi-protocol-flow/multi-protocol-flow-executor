@@ -127,6 +127,7 @@ impl HttpResponse {
 pub struct HttpClient {
     timeout_ms: u64,
     tls_options: Option<crate::http::connector::TlsOptions>,
+    proxy_state: Option<Arc<flow_engine_core::context::ProxyState>>,
 }
 
 impl HttpClient {
@@ -135,12 +136,21 @@ impl HttpClient {
     /// # 参数
     /// - `timeout_ms`: 各阶段超时时间（毫秒）
     pub fn new(timeout_ms: u64) -> Self {
-        Self { timeout_ms, tls_options: None }
+        Self { timeout_ms, tls_options: None, proxy_state: None }
     }
 
     /// 创建带自定义 TLS 配置的 HTTP 客户端
     pub fn with_tls(timeout_ms: u64, tls_options: crate::http::connector::TlsOptions) -> Self {
-        Self { timeout_ms, tls_options: Some(tls_options) }
+        Self { timeout_ms, tls_options: Some(tls_options), proxy_state: None }
+    }
+
+    /// 设置代理状态（链式调用）
+    ///
+    /// 设置后，HTTP 请求将通过指定的代理服务器路由。
+    /// 支持 HTTP 代理（CONNECT 隧道）和 SOCKS5 代理。
+    pub fn with_proxy(mut self, proxy_state: Arc<flow_engine_core::context::ProxyState>) -> Self {
+        self.proxy_state = Some(proxy_state);
+        self
     }
 }
 
@@ -183,17 +193,28 @@ impl HttpClient {
         // 创建计时上下文
         let timing = Arc::new(std::sync::Mutex::new(TimingContext::new()));
 
-        // 创建自定义连接器（支持 TLS 配置）
+        // 创建连接器（支持 TLS 配置和可选代理）
         let connector = match &self.tls_options {
-            Some(opts) => TimingConnector::new_with_tls(self.timeout_ms, timing.clone(), opts)
-                .map_err(HttpError::TlsFailed)?,
-            None => TimingConnector::new(self.timeout_ms, timing.clone()),
+            Some(opts) => {
+                let c = TimingConnector::new_with_tls(self.timeout_ms, timing.clone(), opts)
+                    .map_err(HttpError::TlsFailed)?;
+                match &self.proxy_state {
+                    Some(ps) => c.with_proxy(ps.clone()),
+                    None => c,
+                }
+            }
+            None => {
+                let c = TimingConnector::new(self.timeout_ms, timing.clone());
+                match &self.proxy_state {
+                    Some(ps) => c.with_proxy(ps.clone()),
+                    None => c,
+                }
+            }
         };
 
         // 创建 hyper 客户端
         let client: Client<TimingConnector, BoxBody> =
             Client::builder(TokioExecutor::new()).build(connector);
-
         // 重定向跟踪状态
         let mut current_url = config.url.clone();
         let mut current_method = config.method.clone();

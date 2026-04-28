@@ -224,12 +224,13 @@ fn build_custom_tls_config(options: &TlsOptions) -> Result<rustls::ClientConfig,
     }
 }
 
-/// 自定义连接器，支持计时和 HTTP/2 ALPN 协商
+/// 自定义连接器，支持计时、HTTP/2 ALPN 协商和代理
 #[derive(Clone)]
 pub struct TimingConnector {
     tls_config: Arc<rustls::ClientConfig>,
     timeout_ms: u64,
     timing: Arc<std::sync::Mutex<TimingContext>>,
+    proxy_state: Option<Arc<flow_engine_core::context::ProxyState>>,
 }
 
 impl TimingConnector {
@@ -240,7 +241,7 @@ impl TimingConnector {
     /// - `timing`: 计时上下文（Arc<Mutex> 包装以便在 Service 中使用）
     pub fn new(timeout_ms: u64, timing: Arc<std::sync::Mutex<TimingContext>>) -> Self {
         let config = build_standard_tls_config();
-        Self { tls_config: Arc::new(config), timeout_ms, timing }
+        Self { tls_config: Arc::new(config), timeout_ms, timing, proxy_state: None }
     }
 
     /// 创建带自定义 TLS 配置的计时连接器
@@ -250,7 +251,15 @@ impl TimingConnector {
         tls_options: &TlsOptions,
     ) -> Result<Self, String> {
         let config = build_custom_tls_config(tls_options)?;
-        Ok(Self { tls_config: Arc::new(config), timeout_ms, timing })
+        Ok(Self { tls_config: Arc::new(config), timeout_ms, timing, proxy_state: None })
+    }
+
+    /// 设置代理状态（链式调用）
+    ///
+    /// 设置后，连接器将通过代理服务器建立隧道。
+    pub fn with_proxy(mut self, proxy_state: Arc<flow_engine_core::context::ProxyState>) -> Self {
+        self.proxy_state = Some(proxy_state);
+        self
     }
 }
 
@@ -267,6 +276,7 @@ impl Service<Uri> for TimingConnector {
         let tls_config = self.tls_config.clone();
         let timeout_ms = self.timeout_ms;
         let timing = self.timing.clone();
+        let proxy_state = self.proxy_state.clone();
 
         Box::pin(async move {
             // 提取主机和端口
@@ -282,39 +292,50 @@ impl Service<Uri> for TimingConnector {
             let is_https = uri.scheme_str() == Some("https");
 
             log::debug!(
-                "开始建立连接: {}://{}:{}",
+                "开始建立连接: {}://{}:{}{}",
                 if is_https { "https" } else { "http" },
                 host,
-                port
+                port,
+                if proxy_state.is_some() { " (via proxy)" } else { "" }
             );
 
-            // DNS 解析
-            let addr = tokio::time::timeout(
-                std::time::Duration::from_millis(timeout_ms),
-                tokio::net::lookup_host((host.as_str(), port)),
-            )
-            .await
-            .map_err(|_| HttpError::DnsTimeout)?
-            .map_err(|e| HttpError::DnsFailed(e.to_string()))?
-            .next()
-            .ok_or(HttpError::DnsNoAddress)?;
+            // 获取 TCP 连接：直连或通过代理隧道
+            let tcp_stream = if let Some(ref ps) = proxy_state {
+                // 通过代理建立隧道
+                crate::http::proxy::connect_via_proxy(ps, &host, port, timeout_ms)
+                    .await
+                    .map_err(HttpError::ProxyFailed)?
+            } else {
+                // 直连：DNS 解析
+                let addr = tokio::time::timeout(
+                    std::time::Duration::from_millis(timeout_ms),
+                    tokio::net::lookup_host((host.as_str(), port)),
+                )
+                .await
+                .map_err(|_| HttpError::DnsTimeout)?
+                .map_err(|e| HttpError::DnsFailed(e.to_string()))?
+                .next()
+                .ok_or(HttpError::DnsNoAddress)?;
 
-            {
-                let mut timing = timing
-                    .lock()
-                    .map_err(|_| HttpError::DnsFailed("计时锁获取失败".into()))?;
-                timing.mark_dns_resolved();
-            }
-            log::debug!("DNS 解析完成: {}", addr);
+                {
+                    let mut timing = timing
+                        .lock()
+                        .map_err(|_| HttpError::DnsFailed("计时锁获取失败".into()))?;
+                    timing.mark_dns_resolved();
+                }
+                log::debug!("DNS 解析完成: {}", addr);
 
-            // TCP 连接
-            let tcp_stream = tokio::time::timeout(
-                std::time::Duration::from_millis(timeout_ms),
-                TcpStream::connect(&addr),
-            )
-            .await
-            .map_err(|_| HttpError::TcpTimeout)?
-            .map_err(|e| HttpError::TcpFailed(e.to_string()))?;
+                // 直连：TCP 连接
+                let stream = tokio::time::timeout(
+                    std::time::Duration::from_millis(timeout_ms),
+                    TcpStream::connect(&addr),
+                )
+                .await
+                .map_err(|_| HttpError::TcpTimeout)?
+                .map_err(|e| HttpError::TcpFailed(e.to_string()))?;
+
+                stream
+            };
 
             {
                 let mut timing = timing

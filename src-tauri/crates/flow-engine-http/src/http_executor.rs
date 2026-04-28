@@ -6,6 +6,7 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use base64::Engine;
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Instant;
 
 // Re-export HttpTiming for external use
@@ -111,6 +112,11 @@ impl NodeExecutor for HttpNodeExecutor {
         let timeout_ms = http_config.timeout_ms
             .map(|t| t.clamp(1000, 300000))
             .unwrap_or(30000);
+
+        // 检查是否有代理状态（从 context.providers["proxy_state"] 读取）
+        let proxy_state: Option<Arc<flow_engine_core::context::ProxyState>> =
+            context.get_provider("proxy_state");
+
         let client = match (
             http_config.tls_skip_verify.unwrap_or(false),
             &http_config.tls_ca_cert_path,
@@ -119,20 +125,34 @@ impl NodeExecutor for HttpNodeExecutor {
         ) {
             (true, None, None, None) => {
                 use crate::http::connector::TlsOptions;
-                HttpClient::with_tls(timeout_ms, TlsOptions {
+                let c = HttpClient::with_tls(timeout_ms, TlsOptions {
                     skip_verify: true, ca_cert_path: None, client_cert_path: None, client_key_path: None,
-                })
+                });
+                match proxy_state {
+                    Some(ps) => c.with_proxy(ps),
+                    None => c,
+                }
             }
             (_, Some(_), _, _) | (_, _, Some(_), _) | (_, _, _, Some(_)) => {
                 use crate::http::connector::TlsOptions;
-                HttpClient::with_tls(timeout_ms, TlsOptions {
+                let c = HttpClient::with_tls(timeout_ms, TlsOptions {
                     skip_verify: http_config.tls_skip_verify.unwrap_or(false),
                     ca_cert_path: http_config.tls_ca_cert_path.clone(),
                     client_cert_path: http_config.tls_client_cert_path.clone(),
                     client_key_path: http_config.tls_client_key_path.clone(),
-                })
+                });
+                match proxy_state {
+                    Some(ps) => c.with_proxy(ps),
+                    None => c,
+                }
             }
-            _ => HttpClient::new(timeout_ms),
+            _ => {
+                let c = HttpClient::new(timeout_ms);
+                match proxy_state {
+                    Some(ps) => c.with_proxy(ps),
+                    None => c,
+                }
+            }
         };
 
         // 记录发送的请求头

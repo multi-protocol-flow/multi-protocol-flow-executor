@@ -67,6 +67,11 @@ pub enum HttpError {
     /// 构建请求体时失败（如序列化 JSON 或编码 multipart 数据出错）
     #[error("请求体构建失败: {0}")]
     BodyBuildFailed(String),
+
+    // 代理错误
+    /// 代理连接失败（HTTP CONNECT 或 SOCKS5 握手失败）
+    #[error("代理连接失败: {0}")]
+    ProxyFailed(String),
 }
 
 #[cfg(test)]
