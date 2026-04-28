@@ -297,6 +297,8 @@ export function createDefaultNodeData(type: NodeType): NodeData {
       return { type: 'imap_close', connection_id: '' };
     case 'variable_extractor':
       return { type: 'variable_extractor', output_mappings: [], source_node_id: undefined };
+    case 'proxy':
+      return { type: 'proxy', mode: 'clear' };
     case 'entry':
       return { type: 'entry' };
   }
@@ -395,6 +397,7 @@ const STATIC_NODE_TYPE_LABELS: Record<NodeType, string> = {
   imap_idle: 'IMAP 空闲等待',
   imap_close: 'IMAP 关闭',
   variable_extractor: '变量提取',
+  proxy: '代理设置',
 };
 
 /**

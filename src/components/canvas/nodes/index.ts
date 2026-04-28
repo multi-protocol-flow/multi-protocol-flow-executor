@@ -71,4 +71,5 @@ export { ImapCloseNode, type ImapCloseNodeData } from './ImapCloseNode';
 export { SmtpConnectNode, type SmtpConnectNodeData } from './SmtpConnectNode';
 export { SmtpSendNode, type SmtpSendNodeData } from './SmtpSendNode';
 export { SmtpDisconnectNode, type SmtpDisconnectNodeData } from './SmtpDisconnectNode';
+export { ProxyNode, type ProxyNodeData } from './ProxyNode';
 export { default as DynamicPluginNode } from './DynamicPluginNode';

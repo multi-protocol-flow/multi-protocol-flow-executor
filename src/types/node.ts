@@ -124,7 +124,8 @@ export type NodeType =
   | 'imap_folder_delete'
   | 'imap_idle'
   | 'imap_close'
-  | 'variable_extractor';
+  | 'variable_extractor'
+  | 'proxy';
 
 /**
  * 节点位置结构体
@@ -2008,6 +2009,26 @@ export interface VariableExtractorConfig {
 }
 
 // ============================================================================
+// 代理节点类型定义
+// ============================================================================
+
+/** 代理模式 */
+export type ProxyMode = 'clear' | 'http' | 'socks5';
+
+/** 代理设置节点配置 */
+export interface ProxyConfig {
+  type: 'proxy';
+  /** 代理模式 */
+  mode: ProxyMode;
+  /** 代理地址（仅 http/socks5 模式） */
+  proxy_url?: string;
+  /** 代理用户名 */
+  username?: string;
+  /** 代理密码 */
+  password?: string;
+}
+
+// ============================================================================
 // 协议模板与解析类型定义
 // ============================================================================
 
@@ -2382,7 +2403,8 @@ export type NodeData =
   | ImapFolderDeleteConfig
   | ImapIdleConfig
   | ImapCloseConfig
-  | VariableExtractorConfig;
+  | VariableExtractorConfig
+  | ProxyConfig;
 
 // ============================================================================
 // 节点结构体
@@ -2770,4 +2792,11 @@ export function isImapCloseConfig(data: NodeData): data is ImapCloseConfig { ret
  */
 export function isVariableExtractorConfig(data: NodeData): data is VariableExtractorConfig {
   return data.type === 'variable_extractor';
+}
+
+/**
+ * 判断是否为 ProxyConfig
+ */
+export function isProxyConfig(data: NodeData): data is ProxyConfig {
+  return data.type === 'proxy';
 }

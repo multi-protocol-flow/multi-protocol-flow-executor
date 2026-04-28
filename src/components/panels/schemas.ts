@@ -1268,6 +1268,29 @@ export const variableExtractorConfigSchema = z.object({
 export type VariableExtractorConfigFormData = z.infer<typeof variableExtractorConfigSchema>;
 
 // ============================================================================
+// Proxy 配置 Schema
+// ============================================================================
+
+/**
+ * 代理模式枚举
+ */
+export const proxyModeSchema = z.enum(['clear', 'http', 'socks5']);
+export type ProxyModeFormData = z.infer<typeof proxyModeSchema>;
+
+/**
+ * Proxy 配置表单 Schema
+ */
+export const proxyConfigSchema = z.object({
+  type: z.literal('proxy'),
+  mode: proxyModeSchema,
+  proxy_url: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+});
+
+export type ProxyConfigFormData = z.infer<typeof proxyConfigSchema>;
+
+// ============================================================================
 // AMQP 0-9-1 配置 Schema
 // ============================================================================
 
