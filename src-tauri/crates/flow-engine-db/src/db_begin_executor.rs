@@ -303,6 +303,7 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::{NodePosition};
     use crate::db::pool::DatabaseConnectionManager;
+    use crate::db::pool::MockPool;
     /// 创建测试节点
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
         Node {
@@ -376,9 +377,27 @@ mod tests {
         }
     }
 
+    /// 创建带 MockPool 的数据库管理器，并注册指定连接 UUID
+    async fn create_manager_with_pools(uuids: &[&str]) -> Arc<DatabaseConnectionManager> {
+        let manager = Arc::new(DatabaseConnectionManager::new());
+        for uuid in uuids {
+            let pool = Arc::new(MockPool::new(format!("pool-{}", uuid)));
+            manager
+                .create_pool(
+                    uuid.to_string(),
+                    format!("Test {}", uuid),
+                    "mock".to_string(),
+                    pool,
+                )
+                .await
+                .unwrap();
+        }
+        manager
+    }
+
     #[tokio::test]
     async fn test_begin_success() {
-        let db_manager = Arc::new(DatabaseConnectionManager::new());
+        let db_manager = create_manager_with_pools(&["conn-001"]).await;
         let executor = DbBeginExecutor::new(db_manager);
         let node = create_test_node("test-1", "测试事务开始", "conn-001");
         let mut context = create_context("test-flow");
@@ -400,7 +419,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_begin_with_isolation_level() {
-        let db_manager = Arc::new(DatabaseConnectionManager::new());
+        let db_manager = create_manager_with_pools(&["conn-002"]).await;
         let executor = DbBeginExecutor::new(db_manager);
         let node = create_test_node_with_isolation("test-2", "带隔离级别", "conn-002", "READ COMMITTED");
         let mut context = create_context("test-flow");
@@ -466,7 +485,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_begin_duplicate_transaction() {
-        let db_manager = Arc::new(DatabaseConnectionManager::new());
+        let db_manager = create_manager_with_pools(&["conn-005"]).await;
         let executor = DbBeginExecutor::new(db_manager.clone());
 
         // 第一次开始事务
@@ -574,7 +593,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_begin_all_isolation_levels() {
-        let db_manager = Arc::new(DatabaseConnectionManager::new());
+        let db_manager = create_manager_with_pools(&["conn-iso-0", "conn-iso-1", "conn-iso-2", "conn-iso-3"]).await;
         let executor = DbBeginExecutor::new(db_manager);
 
         let isolation_levels = vec![

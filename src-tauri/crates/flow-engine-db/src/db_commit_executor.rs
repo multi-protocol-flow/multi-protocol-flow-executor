@@ -252,6 +252,7 @@ mod tests {
     use flow_engine_core::context::VariableStorage;
     use flow_engine_core::node::{NodePosition};
     use crate::db::pool::DatabaseConnectionManager;
+    use crate::db::pool::MockPool;
     /// 创建测试节点
     fn create_test_node(uuid: &str, name: &str, connection_uuid: &str) -> Node {
         Node {
@@ -306,6 +307,11 @@ mod tests {
     #[tokio::test]
     async fn test_commit_success() {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
+        let pool = Arc::new(MockPool::new("test-pool".to_string()));
+        db_manager
+            .create_pool("conn-001".to_string(), "Test".to_string(), "mock".to_string(), pool)
+            .await
+            .unwrap();
         
         // 先开始一个事务
         db_manager
@@ -387,6 +393,11 @@ mod tests {
     #[tokio::test]
     async fn test_commit_with_output_port_routing() {
         let db_manager = Arc::new(DatabaseConnectionManager::new());
+        let pool = Arc::new(MockPool::new("test-pool".to_string()));
+        db_manager
+            .create_pool("conn-004".to_string(), "Test".to_string(), "mock".to_string(), pool)
+            .await
+            .unwrap();
         
         // 先开始一个事务
         db_manager
