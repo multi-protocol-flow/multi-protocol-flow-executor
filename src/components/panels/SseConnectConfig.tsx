@@ -14,9 +14,10 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Radio, Plus, Trash2, ChevronDown, Shield, Info } from 'lucide-react';
+import { Radio, Plus, Trash2, ChevronDown, Shield, Info, Loader2 } from 'lucide-react';
 import type { SseConnectConfig as SseConnectConfigType } from '@/types';
 import { cn } from '@/lib/utils';
+import { testSseConnection } from '@/services/tauri/sse';
 
 interface SseConnectConfigProps {
   data: SseConnectConfigType;
@@ -191,6 +192,32 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
   }, []);
 
   const currentAutoReconnect = watch('auto_reconnect') ?? false;
+
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleTestConnection = useCallback(async () => {
+    const url = watch('url')?.trim();
+    if (!url) return;
+
+    setIsTesting(true);
+    setTestResult(null);
+
+    try {
+      const result = await testSseConnection({ url });
+      setTestResult({
+        success: result,
+        message: result ? '连接成功：SSE 端点 URL 格式有效' : '连接失败：URL 格式无效',
+      });
+    } catch (error) {
+      setTestResult({
+        success: false,
+        message: typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)),
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  }, [watch]);
 
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
@@ -387,6 +414,36 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* 测试连接 */}
+      <div className="space-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full gap-2"
+          disabled={isTesting || !watch('url')?.trim()}
+          onClick={handleTestConnection}
+        >
+          {isTesting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Radio className="h-4 w-4" />
+          )}
+          {isTesting ? '正在测试连接...' : '测试连接'}
+        </Button>
+
+        {testResult && (
+          <div className={cn(
+            "rounded-md border px-3 py-2 text-xs",
+            testResult.success
+              ? "border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
+              : "border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400"
+          )}>
+            {testResult.message}
           </div>
         )}
       </div>

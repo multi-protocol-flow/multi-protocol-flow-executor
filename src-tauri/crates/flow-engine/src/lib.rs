@@ -118,6 +118,7 @@ pub use flow_engine_amqp::amqp091::amqp_get_executor;
 pub use flow_engine_amqp::amqp091::amqp_ack_executor;
 pub use flow_engine_amqp::AmqpConnectionManager;
 // SMTP (flow-engine-smtp)
+pub use flow_engine_smtp::oauth2;
 pub use flow_engine_smtp::smtp_connection_manager;
 pub use flow_engine_smtp::smtp_connect_executor;
 pub use flow_engine_smtp::smtp_send_executor;

@@ -1800,7 +1800,7 @@ pub async fn email_oauth2_authorize(
     );
 
     // 解析 provider
-    let _provider = match input.provider.as_str() {
+    let provider = match input.provider.as_str() {
         "gmail" => flow_engine::email_types::EmailProvider::Gmail,
         "outlook" => flow_engine::email_types::EmailProvider::Outlook,
         "yahoo" => flow_engine::email_types::EmailProvider::Yahoo,
@@ -1813,18 +1813,94 @@ pub async fn email_oauth2_authorize(
         }
     };
 
-    // TODO: 完整 OAuth2 PKCE 流程集成
-    // 1. oauth2::oauth2_config_from_provider(&provider, &input.client_id, None, port)
-    // 2. oauth2::build_pkce_auth_url(&config) → 获取授权 URL
-    // 3. 打开浏览器（需要 tauri shell 插件）
-    // 4. oauth2::start_callback_listener(port) → 等待回调
-    // 5. oauth2::exchange_code(&config, &code, &verifier) → 换取 Token
-    // 6. oauth2::store_tokens_encrypted(&tokens) → 加密存储
+    let redirect_port = input.redirect_port.unwrap_or(8080);
+
+    // 1. 创建 OAuth2 配置
+    let config = match flow_engine::oauth2::oauth2_config_from_provider(
+        &provider,
+        &input.client_id,
+        input.client_secret.as_deref(),
+        redirect_port,
+    ) {
+        Ok(c) => c,
+        Err(e) => {
+            return EmailOAuth2AuthorizeOutput {
+                success: false,
+                encrypted_tokens: None,
+                error: Some(e),
+            };
+        }
+    };
+
+    // 2. 构建 PKCE 授权 URL
+    let (auth_url, pkce_verifier, _csrf_state) = match flow_engine::oauth2::build_pkce_auth_url(&config) {
+        Ok(result) => result,
+        Err(e) => {
+            return EmailOAuth2AuthorizeOutput {
+                success: false,
+                encrypted_tokens: None,
+                error: Some(e),
+            };
+        }
+    };
+
+    // 3. 在后台启动回调监听器，同时打开浏览器
+    let listener_handle = tokio::spawn(async move {
+        flow_engine::oauth2::start_callback_listener(redirect_port).await
+    });
+
+    // 使用 tauri-plugin-opener 打开浏览器
+    if let Err(e) = tauri_plugin_opener::open_url(&auth_url, None::<&str>) {
+        log::warn!("[OAuth2] 打开浏览器失败: {}，请手动打开以下链接:\n{}", e, auth_url);
+    }
+
+    // 4. 等待回调
+    let (code, _state) = match listener_handle.await {
+        Ok(Ok(result)) => result,
+        Ok(Err(e)) => {
+            return EmailOAuth2AuthorizeOutput {
+                success: false,
+                encrypted_tokens: None,
+                error: Some(e),
+            };
+        }
+        Err(e) => {
+            return EmailOAuth2AuthorizeOutput {
+                success: false,
+                encrypted_tokens: None,
+                error: Some(format!("监听任务失败: {}", e)),
+            };
+        }
+    };
+
+    // 5. 用授权码换取 Token
+    let tokens = match flow_engine::oauth2::exchange_code(&config, &code, &pkce_verifier).await {
+        Ok(t) => t,
+        Err(e) => {
+            return EmailOAuth2AuthorizeOutput {
+                success: false,
+                encrypted_tokens: None,
+                error: Some(e),
+            };
+        }
+    };
+
+    // 6. 加密存储 Token
+    let encrypted = match flow_engine::oauth2::store_tokens_encrypted(&tokens) {
+        Ok(e) => e,
+        Err(e) => {
+            return EmailOAuth2AuthorizeOutput {
+                success: false,
+                encrypted_tokens: None,
+                error: Some(e),
+            };
+        }
+    };
 
     EmailOAuth2AuthorizeOutput {
-        success: false,
-        encrypted_tokens: None,
-        error: Some("OAuth2 授权流程尚未完成集成".to_string()),
+        success: true,
+        encrypted_tokens: Some(encrypted),
+        error: None,
     }
 }
 
@@ -1862,8 +1938,7 @@ pub async fn email_oauth2_refresh(
 ) -> EmailOAuth2RefreshOutput {
     log::info!("[OAuth2] 刷新 token: provider={}", input.provider);
 
-    // 解析 provider
-    let _provider = match input.provider.as_str() {
+    let provider = match input.provider.as_str() {
         "gmail" => flow_engine::email_types::EmailProvider::Gmail,
         "outlook" => flow_engine::email_types::EmailProvider::Outlook,
         "yahoo" => flow_engine::email_types::EmailProvider::Yahoo,
@@ -1876,16 +1951,86 @@ pub async fn email_oauth2_refresh(
         }
     };
 
-    // TODO: 完整 Token 刷新集成
-    // 1. oauth2::load_tokens_decrypted(&input.encrypted_tokens) → 解密
-    // 2. oauth2::oauth2_config_from_provider(&provider, &input.client_id, ..., 0)
-    // 3. oauth2::refresh_token(&config, &tokens.refresh_token) → 刷新
-    // 4. oauth2::store_tokens_encrypted(&new_tokens) → 加密返回
+    // 1. 解密现有 Token
+    let mut tokens = match flow_engine::oauth2::load_tokens_decrypted(&input.encrypted_tokens) {
+        Ok(t) => t,
+        Err(e) => {
+            return EmailOAuth2RefreshOutput {
+                success: false,
+                encrypted_tokens: None,
+                error: Some(e),
+            };
+        }
+    };
+
+    // 2. 检查是否有 refresh_token
+    let refresh_token = match tokens.refresh_token {
+        Some(ref t) if !t.is_empty() => t.clone(),
+        _ => {
+            return EmailOAuth2RefreshOutput {
+                success: false,
+                encrypted_tokens: None,
+                error: Some("没有 refresh_token，无法刷新。请重新授权。".to_string()),
+            };
+        }
+    };
+
+    // 3. 创建 OAuth2 配置
+    let config = match flow_engine::oauth2::oauth2_config_from_provider(
+        &provider,
+        &input.client_id,
+        input.client_secret.as_deref(),
+        0,
+    ) {
+        Ok(c) => c,
+        Err(e) => {
+            return EmailOAuth2RefreshOutput {
+                success: false,
+                encrypted_tokens: None,
+                error: Some(e),
+            };
+        }
+    };
+
+    // 4. 刷新 Token
+    let new_tokens = match flow_engine::oauth2::refresh_token(&config, &refresh_token).await {
+        Ok(t) => t,
+        Err(e) => {
+            return EmailOAuth2RefreshOutput {
+                success: false,
+                encrypted_tokens: None,
+                error: Some(e),
+            };
+        }
+    };
+
+    // 如果响应中没有 refresh_token，保留原有的
+    let has_refresh = new_tokens.refresh_token.is_some();
+    let tokens_to_store = if has_refresh {
+        new_tokens
+    } else {
+        tokens.access_token = new_tokens.access_token;
+        tokens.expires_at = new_tokens.expires_at;
+        tokens.scope = new_tokens.scope;
+        tokens
+    };
+
+    // 5. 加密返回
+    let encrypted = match flow_engine::oauth2::store_tokens_encrypted(&tokens_to_store) {
+        Ok(e) => e,
+        Err(e) => {
+            return EmailOAuth2RefreshOutput {
+                success: false,
+                encrypted_tokens: None,
+                error: Some(e),
+            };
+        }
+    };
 
     EmailOAuth2RefreshOutput {
-        success: false,
-        encrypted_tokens: None,
-        error: Some("OAuth2 token 刷新尚未完成集成".to_string()),
+        success: true,
+        encrypted_tokens: Some(encrypted),
+        error: None,
     }
 }
 
@@ -1916,29 +2061,45 @@ pub async fn email_oauth2_revoke(
 ) -> EmailOAuth2RevokeOutput {
     log::info!("[OAuth2] 撤销授权: provider={}", input.provider);
 
-    // 解析 provider
-    let _provider = match input.provider.as_str() {
-        "gmail" => flow_engine::email_types::EmailProvider::Gmail,
-        "outlook" => flow_engine::email_types::EmailProvider::Outlook,
-        "yahoo" => flow_engine::email_types::EmailProvider::Yahoo,
-        _ => {
+    // 解密 Token 获取 access_token
+    let tokens = match flow_engine::oauth2::load_tokens_decrypted(&input.encrypted_tokens) {
+        Ok(t) => t,
+        Err(e) => {
             return EmailOAuth2RevokeOutput {
                 success: false,
-                error: Some(format!("不支持的服务商: {}", input.provider)),
+                error: Some(e),
             };
         }
     };
 
-    // TODO: 完整 Token 撤销集成
-    // 1. oauth2::load_tokens_decrypted(&input.encrypted_tokens) → 解密
-    // 2. 向服务商撤销端点发送 POST 请求
-    //    - Google: https://oauth2.googleapis.com/revoke?token={access_token}
-    //    - Microsoft: 无标准撤销端点，需通过账户页面撤销
-    //    - Yahoo: https://api.login.yahoo.com/oauth2/revoke?token={access_token}
+    // 确定撤销端点
+    let revoke_url = match input.provider.as_str() {
+        "gmail" => Some("https://oauth2.googleapis.com/revoke"),
+        "yahoo" => Some("https://api.login.yahoo.com/oauth2/revoke"),
+        _ => None, // Outlook/Microsoft 无标准 OAuth2 撤销端点
+    };
+
+    if let Some(url) = revoke_url {
+        let client = reqwest::Client::new();
+        match client.post(url).form(&[("token", tokens.access_token.as_str())]).send().await {
+            Ok(resp) if resp.status().is_success() => {
+                log::info!("[OAuth2] Token 撤销成功");
+            }
+            Ok(resp) => {
+                log::warn!("[OAuth2] 撤销请求返回非成功状态: {}", resp.status());
+                // 不阻塞——即使撤销请求失败，Token 也会从本地移除
+            }
+            Err(e) => {
+                log::warn!("[OAuth2] 撤销请求失败: {}", e);
+            }
+        }
+    } else {
+        log::info!("[OAuth2] {} 无标准撤销端点，仅清除本地 Token", input.provider);
+    }
 
     EmailOAuth2RevokeOutput {
-        success: false,
-        error: Some("OAuth2 授权撤销尚未完成集成".to_string()),
+        success: true,
+        error: None,
     }
 }
 

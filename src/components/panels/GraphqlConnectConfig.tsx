@@ -12,8 +12,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Plug, Plus, Trash2, Info } from 'lucide-react';
+import { Plug, Plus, Trash2, Info, Loader2, FileJson } from 'lucide-react';
 import type { GraphqlConnectConfig as GraphqlConnectConfigType } from '@/types';
+import { cn } from '@/lib/utils';
+import { introspectSchema } from '@/services/tauri/graphql';
 
 interface GraphqlConnectConfigProps {
   data: GraphqlConnectConfigType;
@@ -57,6 +59,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
     reset,
     getValues,
     setValue,
+    watch,
     formState: { errors, isDirty },
   } = useForm<GraphqlConnectConfigFormData>({
     resolver: zodResolver(graphqlConnectConfigSchema),
@@ -97,6 +100,43 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
     }, ms);
     pendingTimersRef.current.add(id);
   }, []);
+
+  const [isIntrospecting, setIsIntrospecting] = useState(false);
+  const [introspectResult, setIntrospectResult] = useState<{ success: boolean; message: string; schema?: Record<string, unknown> } | null>(null);
+
+  const handleIntrospectSchema = useCallback(async () => {
+    const endpoint = watch('endpoint')?.trim();
+    if (!endpoint) return;
+
+    setIsIntrospecting(true);
+    setIntrospectResult(null);
+
+    try {
+      const headers = watch('headers');
+      const result = await introspectSchema({ endpoint, headers: headers || undefined });
+
+      if (result.success) {
+        const typeCount = result.schema ? Object.keys(result.schema).length : 0;
+        setIntrospectResult({
+          success: true,
+          message: `Schema 内省成功（${typeCount} 个类型）`,
+          schema: result.schema || undefined,
+        });
+      } else {
+        setIntrospectResult({
+          success: false,
+          message: result.error || 'Schema 内省失败',
+        });
+      }
+    } catch (error) {
+      setIntrospectResult({
+        success: false,
+        message: typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)),
+      });
+    } finally {
+      setIsIntrospecting(false);
+    }
+  }, [watch]);
 
   useEffect(() => {
     reset(toFormData(data));
@@ -297,6 +337,36 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
         <p className="text-xs text-muted-foreground">
           留空将自动生成连接 ID
         </p>
+      </div>
+
+      {/* 内省 Schema */}
+      <div className="space-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full gap-2"
+          disabled={isIntrospecting || !watch('endpoint')?.trim()}
+          onClick={handleIntrospectSchema}
+        >
+          {isIntrospecting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <FileJson className="h-4 w-4" />
+          )}
+          {isIntrospecting ? '正在内省 Schema...' : '内省 Schema'}
+        </Button>
+
+        {introspectResult && (
+          <div className={cn(
+            "rounded-md border px-3 py-2 text-xs",
+            introspectResult.success
+              ? "border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
+              : "border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400"
+          )}>
+            {introspectResult.message}
+          </div>
+        )}
       </div>
 
       {/* 提示信息 */}

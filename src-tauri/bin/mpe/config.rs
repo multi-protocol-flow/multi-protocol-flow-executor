@@ -1,7 +1,7 @@
 //! CLI 配置模块 - 多层级配置加载
 //!
 //! 配置优先级（从高到低）:
-//! 1. 环境变量 (`MPE_FLOWS_DIR`, `MPE_REPORTS_DIR`, `MPE_LOGS_DIR`)
+//! 1. 环境变量 (`MPE_FLOWS_DIR`, `MPE_REPORTS_DIR`)
 //! 2. 配置文件 (`<data_dir>/config.toml` 或 `$MPE_CONFIG`)
 //! 3. 引擎默认值 (`app_lib::get_flows_dir()` 等)
 //!
@@ -10,7 +10,6 @@
 //! [storage]
 //! flows_dir = "/path/to/flows"
 //! reports_dir = "/path/to/reports"
-//! logs_dir = "/path/to/logs"
 //! ```
 
 use std::path::PathBuf;
@@ -38,9 +37,6 @@ struct StorageConfig {
     /// 报告存储目录
     #[serde(default)]
     reports_dir: Option<PathBuf>,
-    /// 日志存储目录
-    #[serde(default)]
-    logs_dir: Option<PathBuf>,
 }
 
 // ── 解析后的配置 ──────────────────────────────────────────────────
@@ -52,9 +48,6 @@ pub struct AppConfig {
     pub flows_dir: PathBuf,
     /// 报告存储目录
     pub reports_dir: PathBuf,
-    /// 日志存储目录
-    #[allow(dead_code)]
-    pub logs_dir: PathBuf,
 }
 
 impl AppConfig {
@@ -86,18 +79,9 @@ impl AppConfig {
             &app_lib::get_reports_dir,
         )?;
 
-        let logs_dir = Self::resolve_path(
-            "MPE_LOGS_DIR",
-            config_file
-                .as_ref()
-                .and_then(|c| c.storage.logs_dir.clone()),
-            &|| app_lib::get_data_dir().map(|d| d.join("logs")),
-        )?;
-
         Ok(AppConfig {
             flows_dir,
             reports_dir,
-            logs_dir,
         })
     }
 
@@ -177,7 +161,6 @@ mod tests {
         std::env::remove_var("MPE_CONFIG");
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
-        std::env::remove_var("MPE_LOGS_DIR");
 
         // 在无配置文件的情况下应成功加载默认值
         let config = AppConfig::load();
@@ -186,7 +169,6 @@ mod tests {
         let config = config.expect("已确认 is_ok，不应失败");
         assert!(config.flows_dir.to_string_lossy().contains("flows"));
         assert!(config.reports_dir.to_string_lossy().contains("reports"));
-        assert!(config.logs_dir.to_string_lossy().contains("logs"));
     }
 
     #[test]
@@ -197,24 +179,20 @@ mod tests {
         std::env::remove_var("MPE_CONFIG");
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
-        std::env::remove_var("MPE_LOGS_DIR");
 
         let temp = std::env::temp_dir();
 
         std::env::set_var("MPE_FLOWS_DIR", temp.to_string_lossy().as_ref());
         std::env::set_var("MPE_REPORTS_DIR", temp.to_string_lossy().as_ref());
-        std::env::set_var("MPE_LOGS_DIR", temp.to_string_lossy().as_ref());
 
         let config = AppConfig::load().expect("应成功加载");
 
         assert_eq!(config.flows_dir, temp);
         assert_eq!(config.reports_dir, temp);
-        assert_eq!(config.logs_dir, temp);
 
         // 清理
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
-        std::env::remove_var("MPE_LOGS_DIR");
     }
 
     #[test]
@@ -225,7 +203,6 @@ mod tests {
         std::env::remove_var("MPE_CONFIG");
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
-        std::env::remove_var("MPE_LOGS_DIR");
 
         std::env::set_var("MPE_FLOWS_DIR", "relative/path");
 
@@ -245,31 +222,26 @@ mod tests {
 
         let flows = temp_dir.path().join("my_flows");
         let reports = temp_dir.path().join("my_reports");
-        let logs = temp_dir.path().join("my_logs");
 
         // 创建目录以使用绝对路径
         std::fs::create_dir_all(&flows).expect("创建目录失败");
         std::fs::create_dir_all(&reports).expect("创建目录失败");
-        std::fs::create_dir_all(&logs).expect("创建目录失败");
 
         let toml_content = format!(
-            "[storage]\nflows_dir = \"{}\"\nreports_dir = \"{}\"\nlogs_dir = \"{}\"\n",
+            "[storage]\nflows_dir = \"{}\"\nreports_dir = \"{}\"\n",
             flows.to_string_lossy().replace('\\', "\\\\"),
-            reports.to_string_lossy().replace('\\', "\\\\"),
-            logs.to_string_lossy().replace('\\', "\\\\")
+            reports.to_string_lossy().replace('\\', "\\\\")
         );
         std::fs::write(&config_path, toml_content).expect("写入配置文件失败");
 
         // 清除环境变量，使用配置文件
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
-        std::env::remove_var("MPE_LOGS_DIR");
         std::env::set_var("MPE_CONFIG", config_path.to_string_lossy().as_ref());
 
         let config = AppConfig::load().expect("应成功加载配置文件");
         assert_eq!(config.flows_dir, flows);
         assert_eq!(config.reports_dir, reports);
-        assert_eq!(config.logs_dir, logs);
 
         // 清理
         std::env::remove_var("MPE_CONFIG");

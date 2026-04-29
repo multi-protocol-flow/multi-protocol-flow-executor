@@ -3,8 +3,6 @@
  */
 export { useKeyboardShortcuts } from './useKeyboardShortcuts';
 
-export { useFullscreen } from './useFullscreen';
-
 export { useTheme, applyTheme, getSystemTheme } from './useTheme';
 
 export { useFlowVariables } from './useFlowVariables';
