@@ -508,10 +508,16 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       const nodeReport = stackEntryToReport(entry);
       const currentMap = useExecutionStore.getState().nodeReportsMap;
       const newMap = { ...currentMap, [entry.node_uuid]: nodeReport };
+
+      // RunToEnd 模式：不清空 currentNodeUuid，由 Heartbeat handler 管理，避免闪烁
+      // Step/暂停模式：清空，由下一个 PausedAtNode 设置
+      const { status: debugStatus, pauseReason } = get();
+      const isRunToEnd = debugStatus === 'running' && pauseReason === null;
+
       useExecutionStore.setState({
         nodeReportsMap: newMap,
         completedNodeCount: Object.keys(newMap).length,
-        currentNodeUuid: null, // 节点已完成，等待下一个节点开始（通过心跳或下一个 NodeExecuted 更新）
+        ...(isRunToEnd ? {} : { currentNodeUuid: null }),
       });
     } else if ('SessionEnded' in event) {
       // 会话结束，清理定时器
@@ -617,6 +623,12 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       // 更新当前节点 UUID（如果后端有值且状态一致）
       if (current_node_uuid !== undefined && get().status === backendStatus) {
         set({ currentNodeUuid: current_node_uuid });
+
+        // 后端为 running（RunToEnd 或 Step 间过渡）时，同步到 executionStore
+        // 确保底部面板和画布高亮能实时反映当前执行节点
+        if (backendStatus === 'running' && current_node_uuid) {
+          useExecutionStore.setState({ currentNodeUuid: current_node_uuid });
+        }
       }
     } else if ('WsStreamCreated' in event || 'WsMessageReceived' in event ||
                 'WsMessageSent' in event || 'WsSegmentStarted' in event ||

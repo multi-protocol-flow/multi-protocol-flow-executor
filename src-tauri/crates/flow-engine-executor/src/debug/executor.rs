@@ -342,6 +342,19 @@ impl DebuggableFlowExecutor {
             let should_pause = !debug_state.skip_breakpoints
                 && (debug_state.has_breakpoint(&current_node_id) || debug_state.is_stepping);
 
+            // 非暂停模式（RunToEnd）：立即发送心跳，让前端知道当前执行的节点
+            if !should_pause {
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis() as u64;
+                let _ = event_sender.send(DebugEvent::Heartbeat {
+                    status: DebugStatus::Running,
+                    current_node_uuid: Some(current_node_id.clone()),
+                    timestamp: now,
+                });
+            }
+
             if should_pause {
                 // 确定暂停原因：单步模式优先于断点
                 let pause_reason = if debug_state.is_stepping && !debug_state.skip_breakpoints {

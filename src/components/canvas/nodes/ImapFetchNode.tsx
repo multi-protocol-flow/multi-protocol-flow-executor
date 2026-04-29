@@ -6,7 +6,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ImapFetchConfig } from '@/types';
-import { useFlowStore, useDebugStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
+import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 
 /** ImapFetch 节点数据类型 */
@@ -21,7 +21,8 @@ export function ImapFetchNode({ id, data, selected }: NodeProps) {
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
   const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
   const isPaused = useDebugStore(selectIsPaused);
-  const isDebugPausedAtThisNode = isPaused && currentNodeUuid === id;
+  const isExecuting = useExecutionStore(s => s.isExecuting);
+  const isDebugPausedAtThisNode = (isPaused || isExecuting) && currentNodeUuid === id;
   const isDebugging = useDebugStore(selectIsDebugging);
 
   return (
