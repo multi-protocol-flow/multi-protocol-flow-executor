@@ -242,7 +242,7 @@ pub fn save_flow_file_with_meta(
         serde_json::to_string_pretty(&flow_file).map_err(|e| format!("序列化流程失败: {}", e))?;
 
     // 检查是否已存在同 UUID 的文件（更新场景）
-    let mut existing_path = None;
+    let mut existing_path: Option<PathBuf> = None;
     let mut mpf_files = Vec::new();
     let _ = collect_mpf_files(flows_dir, &mut mpf_files);
     for path in &mpf_files {
@@ -259,38 +259,35 @@ pub fn save_flow_file_with_meta(
         }
     }
 
-    // 如果找到同 UUID 文件，直接覆盖
-    if let Some(ref path) = existing_path {
-        let mut temp_file =
-            NamedTempFile::new_in(flows_dir).map_err(|e| format!("创建临时文件失败: {}", e))?;
-        temp_file
-            .write_all(json_string.as_bytes())
-            .map_err(|e| format!("写入临时文件失败: {}", e))?;
-        temp_file
-            .persist(path)
-            .map_err(|e| format!("保存流程文件失败: {}", e))?;
-        return Ok(());
+    // 确定目标目录：保持原有文件夹位置，否则使用根目录
+    let target_dir = existing_path
+        .as_ref()
+        .and_then(|p| p.parent().map(|parent| parent.to_path_buf()))
+        .unwrap_or_else(|| flows_dir.to_path_buf());
+
+    // 确保目标目录存在
+    if target_dir != flows_dir {
+        fs::create_dir_all(&target_dir)
+            .map_err(|e| format!("创建目标目录失败: {}", e))?;
     }
 
-    // 新建文件：生成文件名，处理冲突
+    // 生成文件名，处理冲突
     let safe_name = sanitize_filename(&flow.name);
     let mut filename = format!("{}.mpf", safe_name);
     let mut counter = 2u32;
 
-    // 文件名冲突时追加递增数字
     loop {
-        let target_path = flows_dir.join(&filename);
-        if !target_path
-            .try_exists()
-            .map_err(|e| format!("检查文件失败: {}", e))?
-        {
+        let candidate_path = target_dir.join(&filename);
+        // 如果目标路径就是旧文件路径（名称未变），直接跳出
+        let is_old_path = existing_path.as_ref() == Some(&candidate_path);
+        if is_old_path || !candidate_path.try_exists().map_err(|e| format!("检查文件失败: {}", e))? {
             break;
         }
         filename = format!("{}_{}.mpf", safe_name, counter);
         counter += 1;
     }
 
-    let target_path = flows_dir.join(&filename);
+    let target_path = target_dir.join(&filename);
 
     // 原子写入：先写临时文件，再重命名
     let mut temp_file =
@@ -303,6 +300,13 @@ pub fn save_flow_file_with_meta(
     temp_file
         .persist(&target_path)
         .map_err(|e| format!("保存流程文件失败: {}", e))?;
+
+    // 如果文件名/位置变更，删除旧文件
+    if let Some(ref old_path) = existing_path {
+        if *old_path != target_path {
+            let _ = fs::remove_file(old_path);
+        }
+    }
 
     Ok(())
 }
