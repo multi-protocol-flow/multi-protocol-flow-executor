@@ -80,6 +80,18 @@ export function GrpcConnectNode({ id, data, selected }: NodeProps) {
               {nodeData.config.url}
             </span>
           )}
+          {(() => {
+            const services = nodeData.config?.discovered_services;
+            const count = services?.length || 0;
+            if (count === 0) return null;
+            return (
+              <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                <span className="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0 text-[9px] font-medium text-violet-700">
+                  🏛{count}
+                </span>
+              </div>
+            );
+          })()}
         </div>
       </div>
       
