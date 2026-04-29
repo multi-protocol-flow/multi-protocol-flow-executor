@@ -6,6 +6,7 @@
 //! - 为请求生成 Cookie 头
 
 use std::collections::HashMap;
+use url::Url;
 
 /// Cookie 条目
 #[derive(Debug, Clone)]
@@ -56,21 +57,65 @@ impl CookieJar {
         jar
     }
 
-    /// 为指定 URL 生成 Cookie 头值
-    pub fn cookie_header(&self, _url: &str) -> String {
-        // 简化实现：返回所有 cookie（不检查 domain/path 匹配）
+    /// 为指定 URL 生成 Cookie 头值（按 domain 后缀匹配过滤）
+    pub fn cookie_header(&self, url: &str) -> String {
+        let request_host = Url::parse(url)
+            .ok()
+            .and_then(|u| u.host_str().map(|h| h.to_lowercase()));
+
         self.cookies
             .values()
+            .filter(|c| {
+                match (&c.domain, &request_host) {
+                    // 无 domain 限制 → 总是发送（向后兼容手动配置）
+                    (None, _) => true,
+                    // 有 domain → 后缀匹配
+                    (Some(cookie_domain), Some(host)) => {
+                        let cookie_domain = cookie_domain.to_lowercase();
+                        // 去掉前导点（.example.com → example.com）
+                        let cookie_domain = cookie_domain.strip_prefix('.').unwrap_or(&cookie_domain);
+                        host == cookie_domain || host.ends_with(&format!(".{}", cookie_domain))
+                    }
+                    // 有 domain 但无法解析 host → 不发送
+                    (Some(_), None) => false,
+                }
+            })
             .map(|c| format!("{}={}", c.name, c.value))
             .collect::<Vec<_>>()
             .join("; ")
     }
 
-    /// 从响应头解析 Set-Cookie 并存储
+    /// 从响应头解析 Set-Cookie 并存储（不记录来源域，仅用于测试/手动设置）
     pub fn store_from_response(&mut self, headers: &HashMap<String, String>) {
         for (key, value) in headers {
             if key.to_lowercase() == "set-cookie" {
                 if let Some(cookie) = Self::parse_set_cookie(value) {
+                    self.cookies.insert(cookie.name.clone(), cookie);
+                }
+            }
+        }
+    }
+
+    /// 从响应头解析 Set-Cookie 并存储，同时记录来源 URL 用于 domain 匹配
+    ///
+    /// 如果 Set-Cookie 没有显式 `Domain` 属性，则自动使用请求主机名作为 domain（host-only cookie）。
+    /// 这确保了不同域名的 Cookie 不会相互串用。
+    pub fn store_from_response_with_url(
+        &mut self,
+        headers: &HashMap<String, String>,
+        request_url: &str,
+    ) {
+        let request_host = Url::parse(request_url)
+            .ok()
+            .and_then(|u| u.host_str().map(|h| h.to_string()));
+
+        for (key, value) in headers {
+            if key.to_lowercase() == "set-cookie" {
+                if let Some(mut cookie) = Self::parse_set_cookie(value) {
+                    // host-only cookie（无 Domain 属性）→ 用请求主机名作为 domain
+                    if cookie.domain.is_none() {
+                        cookie.domain = request_host.clone();
+                    }
                     self.cookies.insert(cookie.name.clone(), cookie);
                 }
             }

@@ -5,6 +5,7 @@ use crate::http::{BodyType, HttpClient, HttpRequestConfig, MultipartBody};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use base64::Engine;
+use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
@@ -117,41 +118,71 @@ impl NodeExecutor for HttpNodeExecutor {
         let proxy_state: Option<Arc<flow_engine_core::context::ProxyState>> =
             context.get_provider("proxy_state");
 
-        let client = match (
-            http_config.tls_skip_verify.unwrap_or(false),
-            &http_config.tls_ca_cert_path,
-            &http_config.tls_client_cert_path,
-            &http_config.tls_client_key_path,
-        ) {
-            (true, None, None, None) => {
-                use crate::http::connector::TlsOptions;
-                let c = HttpClient::with_tls(timeout_ms, TlsOptions {
-                    skip_verify: true, ca_cert_path: None, client_cert_path: None, client_key_path: None,
-                });
-                match proxy_state {
-                    Some(ps) => c.with_proxy(ps),
-                    None => c,
+        // Cookie 管理：使用跨节点共享的 CookieJar
+        // 同一流程内多个 HTTP 节点共享一个 Jar，自动传递 Set-Cookie
+        let cookie_jar_arc: Option<Arc<std::sync::Mutex<crate::http::cookie::CookieJar>>> =
+            if http_config.enable_cookies.unwrap_or(false) {
+                let shared_jar = context
+                    .get_provider::<std::sync::Mutex<crate::http::cookie::CookieJar>>("http_cookie_jar")
+                    .unwrap_or_else(|| {
+                        let new_jar = Arc::new(std::sync::Mutex::new(
+                            crate::http::cookie::CookieJar::from_initial(
+                                http_config.cookie_jar.as_deref().unwrap_or(&[]),
+                            )
+                        ));
+                        context.providers.insert(
+                            "http_cookie_jar".to_string(),
+                            new_jar.clone() as Arc<dyn Any + Send + Sync>,
+                        );
+                        new_jar
+                    });
+                Some(shared_jar)
+            } else {
+                None
+            };
+
+        let client = {
+            let base_client = match (
+                http_config.tls_skip_verify.unwrap_or(false),
+                &http_config.tls_ca_cert_path,
+                &http_config.tls_client_cert_path,
+                &http_config.tls_client_key_path,
+            ) {
+                (true, None, None, None) => {
+                    use crate::http::connector::TlsOptions;
+                    let c = HttpClient::with_tls(timeout_ms, TlsOptions {
+                        skip_verify: true, ca_cert_path: None, client_cert_path: None, client_key_path: None,
+                    });
+                    match proxy_state {
+                        Some(ps) => c.with_proxy(ps),
+                        None => c,
+                    }
                 }
-            }
-            (_, Some(_), _, _) | (_, _, Some(_), _) | (_, _, _, Some(_)) => {
-                use crate::http::connector::TlsOptions;
-                let c = HttpClient::with_tls(timeout_ms, TlsOptions {
-                    skip_verify: http_config.tls_skip_verify.unwrap_or(false),
-                    ca_cert_path: http_config.tls_ca_cert_path.clone(),
-                    client_cert_path: http_config.tls_client_cert_path.clone(),
-                    client_key_path: http_config.tls_client_key_path.clone(),
-                });
-                match proxy_state {
-                    Some(ps) => c.with_proxy(ps),
-                    None => c,
+                (_, Some(_), _, _) | (_, _, Some(_), _) | (_, _, _, Some(_)) => {
+                    use crate::http::connector::TlsOptions;
+                    let c = HttpClient::with_tls(timeout_ms, TlsOptions {
+                        skip_verify: http_config.tls_skip_verify.unwrap_or(false),
+                        ca_cert_path: http_config.tls_ca_cert_path.clone(),
+                        client_cert_path: http_config.tls_client_cert_path.clone(),
+                        client_key_path: http_config.tls_client_key_path.clone(),
+                    });
+                    match proxy_state {
+                        Some(ps) => c.with_proxy(ps),
+                        None => c,
+                    }
                 }
-            }
-            _ => {
-                let c = HttpClient::new(timeout_ms);
-                match proxy_state {
-                    Some(ps) => c.with_proxy(ps),
-                    None => c,
+                _ => {
+                    let c = HttpClient::new(timeout_ms);
+                    match proxy_state {
+                        Some(ps) => c.with_proxy(ps),
+                        None => c,
+                    }
                 }
+            };
+            // 附加 Cookie Jar（跨节点共享）
+            match &cookie_jar_arc {
+                Some(jar) => base_client.with_cookie_jar(Arc::clone(jar)),
+                None => base_client,
             }
         };
 
@@ -459,20 +490,15 @@ impl NodeExecutor for HttpNodeExecutor {
             }
         };
 
-        // Cookie 管理：从初始 cookie_jar 创建 CookieJar 并注入请求头
-        let cookie_jar = if http_config.enable_cookies.unwrap_or(false) {
-            let jar = crate::http::cookie::CookieJar::from_initial(
-                http_config.cookie_jar.as_deref().unwrap_or(&[]),
-            );
-            if !jar.is_empty() {
-                let header = jar.cookie_header(&url);
-                headers.insert("Cookie".to_string(), header.clone());
-                sent_headers.insert("Cookie".to_string(), header);
+        // 将当前 Cookie 注入到 sent_headers（仅用于输出展示，请求头由 HttpClient 自动注入）
+        if let Some(ref jar) = cookie_jar_arc {
+            if let Ok(guard) = jar.lock() {
+                if !guard.is_empty() {
+                    let header = guard.cookie_header(&url);
+                    sent_headers.insert("Cookie".to_string(), header);
+                }
             }
-            Some(jar)
-        } else {
-            None
-        };
+        }
 
         // 构建请求配置
         let config = HttpRequestConfig {
@@ -617,25 +643,19 @@ impl NodeExecutor for HttpNodeExecutor {
         // 获取响应头
         let headers_map = http_result.response.headers.clone();
 
-        // 处理响应 Cookie：从 Set-Cookie 头解析并存储
-        let cookies_received = if let Some(mut jar) = cookie_jar {
-            jar.store_from_response(&headers_map);
-            let cookies: Vec<serde_json::Value> = jar
-                .all_cookies()
-                .iter()
-                .map(|c| {
+        // 从共享 Cookie Jar 中提取所有 Cookie（已由 HttpClient 在重定向过程中自动处理）
+        let cookies_received = cookie_jar_arc.as_ref().and_then(|jar| {
+            jar.lock().ok().map(|guard| {
+                guard.all_cookies().iter().map(|c| {
                     serde_json::json!({
                         "name": c.name,
                         "value": c.value,
                         "domain": c.domain,
                         "path": c.path,
                     })
-                })
-                .collect();
-            Some(cookies)
-        } else {
-            None
-        };
+                }).collect::<Vec<_>>()
+            })
+        });
 
         // 检查Content-Type
         let is_json = headers_map

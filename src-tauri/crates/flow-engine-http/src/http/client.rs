@@ -7,6 +7,7 @@
 
 use crate::http::body::{BodyType, MultipartBody, UrlEncoder};
 use crate::http::connector::TimingConnector;
+use crate::http::cookie::CookieJar;
 use crate::http::error::HttpError;
 use crate::http::timing::{HttpTiming, TimingContext};
 use bytes::Bytes;
@@ -128,6 +129,8 @@ pub struct HttpClient {
     timeout_ms: u64,
     tls_options: Option<crate::http::connector::TlsOptions>,
     proxy_state: Option<Arc<flow_engine_core::context::ProxyState>>,
+    /// 共享 Cookie Jar（跨重定向、跨节点持久化）
+    cookie_jar: Option<Arc<std::sync::Mutex<CookieJar>>>,
 }
 
 impl HttpClient {
@@ -136,12 +139,12 @@ impl HttpClient {
     /// # 参数
     /// - `timeout_ms`: 各阶段超时时间（毫秒）
     pub fn new(timeout_ms: u64) -> Self {
-        Self { timeout_ms, tls_options: None, proxy_state: None }
+        Self { timeout_ms, tls_options: None, proxy_state: None, cookie_jar: None }
     }
 
     /// 创建带自定义 TLS 配置的 HTTP 客户端
     pub fn with_tls(timeout_ms: u64, tls_options: crate::http::connector::TlsOptions) -> Self {
-        Self { timeout_ms, tls_options: Some(tls_options), proxy_state: None }
+        Self { timeout_ms, tls_options: Some(tls_options), proxy_state: None, cookie_jar: None }
     }
 
     /// 设置代理状态（链式调用）
@@ -150,6 +153,15 @@ impl HttpClient {
     /// 支持 HTTP 代理（CONNECT 隧道）和 SOCKS5 代理。
     pub fn with_proxy(mut self, proxy_state: Arc<flow_engine_core::context::ProxyState>) -> Self {
         self.proxy_state = Some(proxy_state);
+        self
+    }
+
+    /// 设置共享 Cookie Jar（链式调用）
+    ///
+    /// Cookie Jar 会在重定向链路中自动处理 Set-Cookie，
+    /// 并将 Cookie 注入到后续请求中。多个 HTTP 节点共享同一个 Jar 实现跨节点 Cookie 持久化。
+    pub fn with_cookie_jar(mut self, jar: Arc<std::sync::Mutex<CookieJar>>) -> Self {
+        self.cookie_jar = Some(jar);
         self
     }
 }
@@ -267,6 +279,18 @@ impl HttpClient {
                 builder = builder.header("Accept-Encoding", "gzip, deflate");
             }
 
+            // 注入 Cookie 头（从共享 Jar 中读取，覆盖重定向前后的所有请求）
+            if let Some(ref jar) = self.cookie_jar {
+                if let Ok(guard) = jar.lock() {
+                    if !guard.is_empty() {
+                        let cookie_val = guard.cookie_header(&current_url);
+                        if !cookie_val.is_empty() {
+                            builder = builder.header("Cookie", &cookie_val);
+                        }
+                    }
+                }
+            }
+
             // 根据请求体类型构建请求
             let request = match &current_body {
                 BodyType::None => {
@@ -346,6 +370,13 @@ impl HttpClient {
                 .collect();
 
             log::debug!("响应状态: {}", status);
+
+            // 处理 Set-Cookie（所有响应包括重定向中间响应都捕获，记录来源域用于 domain 匹配）
+            if let Some(ref jar) = self.cookie_jar {
+                if let Ok(mut guard) = jar.lock() {
+                    guard.store_from_response_with_url(&headers, &current_url);
+                }
+            }
 
             // 收集响应体
             let body_bytes = response
