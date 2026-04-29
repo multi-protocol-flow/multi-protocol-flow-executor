@@ -1672,6 +1672,7 @@ mod tests {
             expected_value: Some(serde_json::json!("200")), // 字符串 "200"
             advanced_expression: None,
             expected_value_type: Some(serde_json::json!("number")), // 解析为数字
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1698,6 +1699,7 @@ mod tests {
             expected_value: Some(serde_json::json!("true")), // 字符串 "true"
             advanced_expression: None,
             expected_value_type: Some(serde_json::json!("boolean")), // 解析为布尔
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
@@ -1724,6 +1726,7 @@ mod tests {
             expected_value: Some(serde_json::json!(200)), // 数字 200
             advanced_expression: None,
             expected_value_type: Some(serde_json::json!("string")), // 解析为字符串 "200"
+            source_node_id: None,
         };
         let node = create_test_node(config);
         let mut context = create_test_context(serde_json::json!({
