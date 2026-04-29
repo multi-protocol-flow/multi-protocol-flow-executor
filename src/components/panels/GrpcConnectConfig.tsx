@@ -15,10 +15,10 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Cable, FileText, Info, Search, Loader2, ChevronDown, AlertTriangle, FolderOpen, Upload, FileUp, HeartPulse, Activity, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Cable, FileText, Info, Search, Loader2, ChevronDown, AlertTriangle, FolderOpen, Upload, FileUp, Activity, RefreshCw } from 'lucide-react';
 import type { GrpcConnectConfig as GrpcConnectConfigType, GrpcServiceInfo } from '@/types';
 import { discoverGrpcServices, scanProtoDirectory, parseDescriptorSet, readProtoFiles } from '@/services/tauri';
-import { grpcHealthCheck, grpcChannelzInfo, type ChannelzInfo } from '@/services/tauri/grpc';
+import { grpcChannelzInfo, type ChannelzInfo } from '@/services/tauri/grpc';
 import { cn } from '@/lib/utils';
 
 interface GrpcConnectConfigProps {
@@ -101,6 +101,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
     resolver: zodResolver(grpcConnectConfigSchema),
     defaultValues: toFormData(data),
     mode: 'onBlur',
+    shouldFocusError: false,
   });
 
   const protoFiles = useFieldArray({
@@ -263,14 +264,6 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
   const [discoveryResult, setDiscoveryResult] = useState<{
     success: boolean;
     services: GrpcServiceInfo[];
-    error: string | null;
-  } | null>(null);
-
-  // 健康检查状态
-  const [isHealthChecking, setIsHealthChecking] = useState(false);
-  const [healthCheckResult, setHealthCheckResult] = useState<{
-    success: boolean;
-    status: string | null;
     error: string | null;
   } | null>(null);
 
@@ -999,7 +992,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
           type="number"
           min={1000}
           max={300000}
-          {...register('connect_timeout_ms', { valueAsNumber: true })}
+          {...register('connect_timeout_ms', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
         />
         <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
       </div>
@@ -1044,7 +1037,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
               min={1000}
               max={300000}
               placeholder="默认不发送 PING"
-              {...register('keepalive_time_ms', { valueAsNumber: true })}
+              {...register('keepalive_time_ms', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
               className="h-8 font-mono text-xs"
             />
             <p className="text-[11px] text-muted-foreground/70">
@@ -1059,7 +1052,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
               min={1000}
               max={60000}
               placeholder="默认 20000"
-              {...register('keepalive_timeout_ms', { valueAsNumber: true })}
+              {...register('keepalive_timeout_ms', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
               className="h-8 font-mono text-xs"
             />
             <p className="text-[11px] text-muted-foreground/70">
@@ -1083,95 +1076,6 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
           <p className="text-[11px] text-muted-foreground/70">
             没有活跃 RPC 调用时也保持连接存活
           </p>
-        </div>
-      </div>
-
-      {/* 健康检查 */}
-      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
-        <div className="flex items-center gap-2">
-          <HeartPulse className="h-3.5 w-3.5 text-muted-foreground" />
-          <Label className="text-sm font-medium text-foreground">健康检查</Label>
-        </div>
-
-        <div className="space-y-2 pl-2">
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">服务名称（可选）</Label>
-            <Input
-              type="text"
-              placeholder="留空检查整体健康状态"
-              {...register('health_check_service')}
-              className="h-8 font-mono text-xs"
-            />
-            <p className="text-[11px] text-muted-foreground/70">
-              指定要检查的服务全名（如 "package.ServiceName"）
-            </p>
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-full gap-2"
-            disabled={!watch('url')?.trim() || isHealthChecking}
-            onClick={async () => {
-              const formData = getValues();
-              const url = formData.url?.trim();
-              if (!url) return;
-
-              setIsHealthChecking(true);
-              setHealthCheckResult(null);
-
-              try {
-                const result = await grpcHealthCheck(url, {
-                  useTls: formData.use_tls ?? false,
-                  tlsSkipVerify: formData.tls_skip_verify ?? false,
-                  connectTimeoutMs: formData.connect_timeout_ms ?? 10000,
-                  tlsCaCert: formData.tls_ca_cert?.trim() || undefined,
-                  tlsClientCert: formData.tls_client_cert?.trim() || undefined,
-                  tlsClientKey: formData.tls_client_key?.trim() || undefined,
-                  tlsServerNameOverride: formData.tls_server_name_override?.trim() || undefined,
-                  serviceName: formData.health_check_service?.trim() || undefined,
-                });
-                setHealthCheckResult(result);
-              } catch (error) {
-                setHealthCheckResult({
-                  success: false,
-                  status: null,
-                  error: typeof error === 'string' ? error : (error instanceof Error ? error.message : String(error)),
-                });
-              } finally {
-                setIsHealthChecking(false);
-              }
-            }}
-          >
-            {isHealthChecking ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <HeartPulse className="h-4 w-4" />
-            )}
-            {isHealthChecking ? '正在检查...' : '检查健康状态'}
-          </Button>
-
-          {/* 健康检查结果 */}
-          {healthCheckResult && (
-            <div className={`rounded-md border px-3 py-2 text-xs ${
-              healthCheckResult.success
-                ? 'border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/30'
-                : 'border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30'
-            }`}>
-              {healthCheckResult.success && healthCheckResult.status ? (
-                <div className="flex items-center gap-2">
-                  {healthCheckResult.status === 'SERVING' && <span className="text-emerald-600 dark:text-emerald-400">✅ SERVING</span>}
-                  {healthCheckResult.status === 'NOT_SERVING' && <span className="text-rose-600 dark:text-rose-400">❌ NOT_SERVING</span>}
-                  {healthCheckResult.status === 'UNKNOWN' && <span className="text-amber-600 dark:text-amber-400">❓ UNKNOWN</span>}
-                  {healthCheckResult.status === 'SERVICE_UNKNOWN' && <span className="text-amber-600 dark:text-amber-400">❓ SERVICE_UNKNOWN</span>}
-                  {healthCheckResult.status === 'NOT_IMPLEMENTED' && <span className="text-amber-600 dark:text-amber-400">⚠️ NOT_IMPLEMENTED</span>}
-                </div>
-              ) : (
-                <p className="text-rose-500 dark:text-rose-400">{healthCheckResult.error}</p>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
@@ -1307,7 +1211,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
             min={0}
             max={10}
             placeholder="0（不重试）"
-            {...register('max_retries', { valueAsNumber: true })}
+            {...register('max_retries', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
             className="h-8 font-mono text-xs"
           />
           <p className="text-[11px] text-muted-foreground/70">
@@ -1324,7 +1228,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
             min={100}
             max={30000}
             placeholder="1000"
-            {...register('initial_backoff_ms', { valueAsNumber: true })}
+            {...register('initial_backoff_ms', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
             className="h-8 font-mono text-xs"
           />
           <p className="text-[11px] text-muted-foreground/70">

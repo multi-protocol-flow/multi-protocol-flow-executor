@@ -54,6 +54,7 @@ export function GrpcCloseConfig({ data, onSave }: GrpcCloseConfigProps) {
     resolver: zodResolver(grpcCloseConfigSchema),
     defaultValues: toFormData(data),
     mode: 'onBlur',
+    shouldFocusError: false,
   });
 
   // 追踪表单实际修改状态

@@ -87,6 +87,7 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
     resolver: zodResolver(grpcCallConfigSchema),
     defaultValues: toFormData(data),
     mode: 'onBlur',
+    shouldFocusError: false,
   });
 
   const metadataFields = useFieldArray({
@@ -1092,7 +1093,7 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
           type="number"
           min={1000}
           max={300000}
-          {...register('timeout_ms', { valueAsNumber: true })}
+          {...register('timeout_ms', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
         />
         <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
       </div>
@@ -1136,7 +1137,7 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
             min={0}
             max={10}
             placeholder="继承默认"
-            {...register('max_retries', { valueAsNumber: true })}
+            {...register('max_retries', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
             className="h-8 font-mono text-xs"
           />
           <p className="text-[11px] text-muted-foreground/70">
@@ -1153,7 +1154,7 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
             min={100}
             max={30000}
             placeholder="继承默认"
-            {...register('initial_backoff_ms', { valueAsNumber: true })}
+            {...register('initial_backoff_ms', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
             className="h-8 font-mono text-xs"
           />
           <p className="text-[11px] text-muted-foreground/70">

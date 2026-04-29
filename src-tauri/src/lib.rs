@@ -66,8 +66,6 @@ pub use tauri_commands::{
     grpc_read_proto_files,
     // gRPC Descriptor Set 解析命令
     grpc_parse_descriptor_set,
-    // gRPC 健康检查命令
-    grpc_health_check,
     // gRPC Channelz 内省命令（EXPERIMENTAL）
     grpc_channelz_info,
     // MCP 工具发现命令
@@ -243,8 +241,6 @@ pub fn run() {
     grpc_read_proto_files,
     // gRPC Descriptor Set 解析命令
     grpc_parse_descriptor_set,
-    // gRPC 健康检查命令
-    grpc_health_check,
     // gRPC Channelz 内省命令（EXPERIMENTAL）
     grpc_channelz_info,
     // MCP 工具发现命令

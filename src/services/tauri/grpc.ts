@@ -162,16 +162,6 @@ export interface GrpcValidateRequestOutput {
   error: string | null;
 }
 
-/** gRPC 健康检查响应（对应 Rust GrpcHealthCheckOutput） */
-export interface GrpcHealthCheckOutput {
-  /** 是否成功执行检查 */
-  success: boolean;
-  /** 服务状态："UNKNOWN", "SERVING", "NOT_SERVING", "SERVICE_UNKNOWN", "NOT_IMPLEMENTED" */
-  status: string | null;
-  /** 错误信息（执行失败时） */
-  error: string | null;
-}
-
 /** gRPC Channelz 内省信息（对应 Rust ChannelzInfo，EXPERIMENTAL） */
 export interface ChannelzInfo {
   /** 连接状态: "READY", "IDLE", "CONNECTING", "TRANSIENT_FAILURE", "SHUTDOWN" */
@@ -361,47 +351,6 @@ export async function validateGrpcRequest(
     });
   } catch (error) {
     throw formatError(error, 'grpc_validate_request');
-  }
-}
-
-/**
- * 执行 gRPC 健康检查（unary Check）
- *
- * 创建临时连接向 gRPC 服务器发送 Health.Check 请求，检查后立即关闭。
- * 使用 gRPC Health Checking Protocol。
- *
- * @param url - gRPC 服务器地址
- * @param options - 可选配置
- * @returns 健康检查结果
- * @throws IpcError 如果调用失败
- */
-export async function grpcHealthCheck(
-  url: string,
-  options?: {
-    useTls?: boolean;
-    tlsSkipVerify?: boolean;
-    connectTimeoutMs?: number;
-    tlsCaCert?: string;
-    tlsClientCert?: string;
-    tlsClientKey?: string;
-    tlsServerNameOverride?: string;
-    serviceName?: string;
-  }
-): Promise<GrpcHealthCheckOutput> {
-  try {
-    return await invoke<GrpcHealthCheckOutput>('grpc_health_check', {
-      url,
-      useTls: options?.useTls,
-      tlsSkipVerify: options?.tlsSkipVerify,
-      connectTimeoutMs: options?.connectTimeoutMs,
-      tlsCaCert: options?.tlsCaCert,
-      tlsClientCert: options?.tlsClientCert,
-      tlsClientKey: options?.tlsClientKey,
-      tlsServerNameOverride: options?.tlsServerNameOverride,
-      serviceName: options?.serviceName,
-    });
-  } catch (error) {
-    throw formatError(error, 'grpc_health_check');
   }
 }
 

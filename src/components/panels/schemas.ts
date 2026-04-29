@@ -639,8 +639,6 @@ export const grpcConnectConfigSchema = z.object({
   keepalive_permit_without_streams: z.boolean().optional(),
   // Reflection 增强配置
   reflection_metadata: z.array(grpcMetadataEntrySchema).optional(),
-  // 健康检查配置
-  health_check_service: z.string().optional(),
   // 负载均衡配置
   endpoints: z.array(z.string()).optional(),
   // 重试配置
