@@ -336,6 +336,8 @@ impl DebuggableFlowExecutor {
             visited.insert(current_node_id.clone());
             context.current_node_uuid = Some(current_node_id.clone());
             debug_state.current_node_uuid = Some(current_node_id.clone());
+            // 同步到共享状态，使心跳任务能读取到当前执行节点
+            update_shared_state(debug_state);
 
             // 检查是否需要暂停（断点或单步模式）
             // 当 skip_breakpoints 为 true 时，不暂停（执行到底模式）
