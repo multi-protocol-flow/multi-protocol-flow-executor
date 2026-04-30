@@ -293,6 +293,15 @@ export const wsMessageTypeSchema = z.enum(['text', 'binary']);
 export type WsMessageType = z.infer<typeof wsMessageTypeSchema>;
 
 /**
+ * 二进制消息输入模式枚举
+ * hex    - 十六进制字符串（如 010203），直接传给后端
+ * base64 - Base64 编码字符串，前端转换为 hex 后传给后端
+ * text   - 普通文本，前端转换为 hex 后传给后端（每字节取 charCodeAt）
+ */
+export const wsBinaryInputModeSchema = z.enum(['hex', 'base64', 'text']);
+export type WsBinaryInputMode = z.infer<typeof wsBinaryInputModeSchema>;
+
+/**
  * WebSocket 收集条件 Schema
  */
 export const wsCollectConditionSchema = z.object({
@@ -337,6 +346,8 @@ export const wsSendCollectConfigSchema = z.object({
   connection_id: z.string().min(1, '连接 ID 不能为空'),
   message: z.string().min(1, '消息内容不能为空'),
   message_type: wsMessageTypeSchema.optional(),
+  /** 二进制消息输入模式，仅当 message_type === 'binary' 时生效 */
+  binary_input_mode: wsBinaryInputModeSchema,
   send_timeout_ms: z.number().min(1000).max(300000).optional(),
   collect_response: z.boolean(),
   collect_mode: wsCollectModeSchema.optional(),

@@ -511,6 +511,12 @@ export interface WsSendCollectConfig {
   message: string;
   /** 消息类型 */
   message_type?: WsMessageType;
+  /** 二进制消息输入模式（仅前端 UI 使用，不传给后端执行器）
+   *  hex    - 十六进制字符串，后端直接解析
+   *  base64 - Base64 字符串，前端转换为 hex
+   *  text   - 普通文本，前端转换为 hex（UTF-8 字节）
+   */
+  binary_input_mode?: 'hex' | 'base64' | 'text';
   /** 发送超时（毫秒） */
   send_timeout_ms?: number;
   /** 是否收集响应 */

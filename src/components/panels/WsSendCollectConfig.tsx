@@ -11,15 +11,17 @@ import {
   type WsCollectMode,
   type WsMatchType,
   type WsMessageType,
+  type WsBinaryInputMode,
 } from './schemas';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { VariableInput } from '@/components/ui/VariableInput';
 import { VariableValidationWarning } from '@/components/ui/VariableValidationWarning';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Info } from 'lucide-react';
+import { Send, Info, FolderOpen } from 'lucide-react';
 import type { WsSendCollectConfig as WsSendCollectConfigType } from '@/types';
 import { useFlowVariables } from '@/hooks';
 import { useFlowStore } from '@/stores';
@@ -41,6 +43,7 @@ function toFormData(data: WsSendCollectConfigType): WsSendCollectConfigFormData 
     connection_id: data.connection_id || '',
     message: data.message || '',
     message_type: data.message_type || 'text',
+    binary_input_mode: data.binary_input_mode || 'hex',
     send_timeout_ms: data.send_timeout_ms ?? 30000,
     collect_response: data.collect_response ?? true,
     collect_mode: data.collect_mode || 'first_match',
@@ -50,14 +53,52 @@ function toFormData(data: WsSendCollectConfigType): WsSendCollectConfigFormData 
 }
 
 /**
+ * 将普通文本转换为十六进制字符串（UTF-8 字节）
+ */
+function textToHex(text: string): string {
+  return Array.from(new TextEncoder().encode(text))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * 将 Base64 字符串转换为十六进制字符串
+ */
+function base64ToHex(base64: string): string {
+  try {
+    const binary = atob(base64.trim());
+    return Array.from(binary)
+      .map(c => c.charCodeAt(0).toString(16).padStart(2, '0'))
+      .join('');
+  } catch {
+    // Base64 无效，原样返回（让后端处理错误）
+    return base64;
+  }
+}
+
+/**
  * 将表单数据转换为 WsSendCollectConfigType
+ * 注意：binary_input_mode 为 'base64' 或 'text' 时，在此处将 message 转为 hex
  */
 function fromFormData(formData: WsSendCollectConfigFormData): WsSendCollectConfigType {
+  let message = formData.message;
+
+  // 二进制模式下，将非 hex 格式转换为 hex，确保后端统一接收 hex 字符串
+  if (formData.message_type === 'binary') {
+    if (formData.binary_input_mode === 'text') {
+      message = textToHex(message);
+    } else if (formData.binary_input_mode === 'base64') {
+      message = base64ToHex(message);
+    }
+    // hex 模式：直接使用，后端 hex_to_bytes 会解析
+  }
+
   return {
     type: 'ws_send_collect',
     connection_id: formData.connection_id,
-    message: formData.message,
+    message,
     message_type: formData.message_type,
+    binary_input_mode: formData.message_type === 'binary' ? (formData.binary_input_mode || 'hex') : undefined,
     send_timeout_ms: formData.send_timeout_ms,
     collect_response: formData.collect_response,
     collect_mode: formData.collect_response ? formData.collect_mode : undefined,
@@ -109,9 +150,14 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
   // 监听表单值变化
   const collectResponse = watch('collect_response');
   const collectMode = watch('collect_mode');
+  const messageType = watch('message_type');
+  const binaryInputMode = watch('binary_input_mode') || 'hex';
 
   // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
   const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  // 文件 input ref（用于非 Tauri 环境降级）
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     return () => {
@@ -171,6 +217,54 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
       saveData();
     }, 100);
   }, [safeSetTimeout, saveData]);
+
+  /**
+   * 将文件内容（ArrayBuffer）转换为十六进制字符串
+   */
+  const arrayBufferToHex = useCallback((buffer: ArrayBuffer): string => {
+    return Array.from(new Uint8Array(buffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  }, []);
+
+  /**
+   * 处理文件选择 — 隐藏 input[type=file] 触发系统文件选择器
+   * 使用浏览器原生 FileReader API（在 Tauri WebView 和浏览器中均可用）
+   */
+  const handleFileSelect = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  /**
+   * 处理文件 input 变更
+   */
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const buffer = await file.arrayBuffer();
+      const hex = arrayBufferToHex(buffer);
+      setValue('message', hex, { shouldDirty: true });
+      setValue('binary_input_mode', 'hex', { shouldDirty: true });
+      saveData();
+    } catch (err) {
+      console.error('读取文件失败:', err);
+    }
+    // 清空 input，允许重复选同一文件
+    e.target.value = '';
+  }, [arrayBufferToHex, setValue, saveData]);
+
+  /**
+   * 获取二进制输入模式的 placeholder
+   */
+  const binaryPlaceholder = useMemo(() => {
+    switch (binaryInputMode) {
+      case 'hex': return '输入十六进制字节 (如: 010203 或 0x48656c6c6f)';
+      case 'base64': return '输入 Base64 编码字符串 (如: SGVsbG8=)';
+      case 'text': return '输入文本，将按 UTF-8 字节编码后以二进制帧发送';
+      default: return '';
+    }
+  }, [binaryInputMode]);
 
   // 监听 Ctrl+S 刷新事件，将表单数据同步到 store
   useEffect(() => {
@@ -252,10 +346,53 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
         <Label htmlFor="message" className="text-sm font-medium text-foreground">
           消息内容 <span className="text-rose-500">*</span>
         </Label>
+
+        {/* 二进制模式工具栏：仅当 message_type === 'binary' 时显示 */}
+        {messageType === 'binary' && (
+          <div className="flex items-center gap-2 p-2.5 rounded-md border border-orange-200/60 bg-orange-50/60 dark:border-orange-800/40 dark:bg-orange-950/30">
+            <span className="text-xs text-orange-700 dark:text-orange-300 font-medium shrink-0">输入格式</span>
+            <Select
+              value={binaryInputMode}
+              onValueChange={(value) => {
+                setValue('binary_input_mode', value as WsBinaryInputMode, { shouldDirty: true });
+                saveData();
+              }}
+            >
+              <SelectTrigger className="h-7 text-xs font-mono flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hex">Hex 十六进制 (如: 010203)</SelectItem>
+                <SelectItem value="base64">Base64 编码 (如: SGVsbG8=)</SelectItem>
+                <SelectItem value="text">文本转二进制 (UTF-8 字节)</SelectItem>
+              </SelectContent>
+            </Select>
+            {/* 文件上传按钮 */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs shrink-0"
+              onClick={handleFileSelect}
+              title="从文件读取二进制内容（自动转换为 Hex）"
+            >
+              <FolderOpen className="h-3 w-3 mr-1" />
+              上传文件
+            </Button>
+            {/* 隐藏的浏览器文件 input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
+        )}
+
         <Textarea
           id="message"
           {...register('message')}
-          placeholder='{"type": "ping", "data": "hello"}'
+          placeholder={messageType === 'binary' ? binaryPlaceholder : '{"type": "ping", "data": "hello"}'}
           className="min-h-[100px] resize-y font-mono text-sm"
           rows={4}
         />
@@ -266,9 +403,16 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
           value={watch('message') || ''}
           availableVariables={availableVariableNames}
         />
-        <p className="text-xs text-muted-foreground">
-          支持使用 <code className="rounded bg-muted px-1">{'{{变量名}}'}</code> 引用变量
-        </p>
+        {messageType !== 'binary' && (
+          <p className="text-xs text-muted-foreground">
+            支持使用 <code className="rounded bg-muted px-1">{'{{变量名}}'}</code> 引用变量
+          </p>
+        )}
+        {messageType === 'binary' && binaryInputMode === 'text' && (
+          <p className="text-xs text-orange-600 dark:text-orange-400">
+            ⚠️ 文本转二进制模式：内容将按 UTF-8 字节编码，通过二进制帧（Binary Frame）发送
+          </p>
+        )}
       </div>
 
       {/* 消息类型 */}

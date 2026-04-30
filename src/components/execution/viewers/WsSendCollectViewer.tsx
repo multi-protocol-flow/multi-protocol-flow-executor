@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
+import { HexViewer, dataToBytes } from '@/components/common/HexViewer';
 
 interface WsSendCollectViewerProps {
   /** 节点执行报告 */
@@ -332,11 +333,23 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
           {sentData && (
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">发送内容</div>
-              <div className="bg-muted rounded p-2">
-                <pre className="text-xs text-foreground whitespace-pre-wrap break-all">
-                  {sentData.data}
-                </pre>
-              </div>
+              {sentData.type === 'binary' ? (
+                <div className="rounded-md border border-orange-200 dark:border-orange-800 overflow-hidden">
+                  <div className="px-2 py-1 bg-orange-50 dark:bg-orange-950/50 border-b border-orange-200 dark:border-orange-800 flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-medium text-orange-600 dark:text-orange-400">Binary Hex View</span>
+                    <span className="text-[10px] text-orange-500 dark:text-orange-500">
+                      {dataToBytes(sentData.data).length} bytes
+                    </span>
+                  </div>
+                  <HexViewer data={dataToBytes(sentData.data)} height={180} readOnly />
+                </div>
+              ) : (
+                <div className="bg-muted rounded p-2">
+                  <pre className="text-xs text-foreground whitespace-pre-wrap break-all">
+                    {sentData.data}
+                  </pre>
+                </div>
+              )}
             </div>
           )}
 
@@ -393,9 +406,19 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
                       </Badge>
                     )}
                   </div>
-                  <pre className="text-xs text-foreground whitespace-pre-wrap break-all">
-                    {msg.data}
-                  </pre>
+                  {msg.type === 'binary' ? (
+                    <div className="rounded border border-orange-200 dark:border-orange-800 overflow-hidden">
+                      <div className="px-2 py-0.5 bg-orange-50 dark:bg-orange-950/50 border-b border-orange-200 dark:border-orange-800 flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-orange-600 dark:text-orange-400">Binary Hex View</span>
+                        <span className="text-[10px] text-orange-500">{dataToBytes(msg.data).length} bytes</span>
+                      </div>
+                      <HexViewer data={dataToBytes(msg.data)} height={120} readOnly />
+                    </div>
+                  ) : (
+                    <pre className="text-xs text-foreground whitespace-pre-wrap break-all">
+                      {msg.data}
+                    </pre>
+                  )}
                   {msg.parsed !== null && msg.parsed !== undefined && (
                     <details className="mt-1">
                       <summary className="text-xs text-muted-foreground cursor-pointer">解析 JSON</summary>
@@ -432,11 +455,23 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
             {/* 原始数据 */}
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">原始数据</div>
-              <div className="bg-muted rounded p-2">
-                <pre className="text-xs text-foreground whitespace-pre-wrap break-all">
-                  {messageData.data}
-                </pre>
-              </div>
+              {messageData.type === 'binary' ? (
+                <div className="rounded-md border border-orange-200 dark:border-orange-800 overflow-hidden">
+                  <div className="px-2 py-1 bg-orange-50 dark:bg-orange-950/50 border-b border-orange-200 dark:border-orange-800 flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-medium text-orange-600 dark:text-orange-400">Binary Hex View</span>
+                    <span className="text-[10px] text-orange-500 dark:text-orange-500">
+                      {dataToBytes(messageData.data).length} bytes
+                    </span>
+                  </div>
+                  <HexViewer data={dataToBytes(messageData.data)} height={200} readOnly />
+                </div>
+              ) : (
+                <div className="bg-muted rounded p-2">
+                  <pre className="text-xs text-foreground whitespace-pre-wrap break-all">
+                    {messageData.data}
+                  </pre>
+                </div>
+              )}
             </div>
 
             {/* 解析后的 JSON */}
