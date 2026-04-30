@@ -93,7 +93,6 @@ export function MainLayout() {
   // 页面导航
   const currentPage = useUIStore((state) => state.currentPage);
   const datasetReportPage = useUIStore((state) => state.datasetReportPage);
-  const navigateToDatasetReports = useUIStore((state) => state.navigateToDatasetReports);
   const navigateToDatasetReportDetail = useUIStore((state) => state.navigateToDatasetReportDetail);
   const navigateToDatasetRowDetail = useUIStore((state) => state.navigateToDatasetRowDetail);
 

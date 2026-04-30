@@ -119,7 +119,6 @@ describe('GrpcConnectConfig', () => {
     });
 
     it('启用 TLS 后显示跳过证书验证开关', async () => {
-      const user = userEvent.setup();
       const config = createBaseConfig({ use_tls: true });
       render(<GrpcConnectConfig data={config} onSave={mockOnSave} />);
 

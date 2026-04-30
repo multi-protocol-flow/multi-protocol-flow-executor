@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { variableExtractorConfigSchema, type VariableExtractorConfigFormData } from './schemas';
 import { Label } from '@/components/ui/label';
 import { OutputMappingsEditor } from '@/components/panels/shared/OutputMappingsEditor';
-import type { VariableExtractorConfig as VariableExtractorConfigType, NodeType } from '@/types';
+import type { VariableExtractorConfig as VariableExtractorConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 
 interface VariableExtractorConfigProps {
