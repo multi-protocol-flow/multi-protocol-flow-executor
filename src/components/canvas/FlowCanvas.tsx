@@ -347,6 +347,30 @@ function FlowCanvasInner() {
     }
   }, [flow?.uuid, fitView]);
 
+  // 窗口大小变化时自动调整画布视图（应用缩放时触发 fitView）
+  useEffect(() => {
+    if (!flow) return;
+
+    const container = canvasRef.current;
+    if (!container) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout>;
+
+    const observer = new ResizeObserver(() => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fitView({ padding: 0.2, duration: 200 });
+      }, 200);
+    });
+
+    observer.observe(container);
+
+    return () => {
+      clearTimeout(debounceTimer);
+      observer.disconnect();
+    };
+  }, [flow, fitView]);
+
   // 自动防抖保存：当 isDirty 变为 true 时，延迟保存到文件存储
   useEffect(() => {
     if (!isDirty || !flow) return;

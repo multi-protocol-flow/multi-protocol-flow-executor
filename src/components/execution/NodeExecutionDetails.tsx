@@ -9,10 +9,13 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  Copy,
+  Check,
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { NODE_TYPE_NAMES, NODE_TYPE_COLORS } from './constants';
 import { RawJsonViewer } from './viewers/RawJsonViewer';
 import { getViewerComponent } from '@/lib/viewerRegistry';
@@ -42,6 +45,18 @@ function NodeViewerSelector({ report }: NodeExecutionDetailsProps) {
 export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<'structured' | 'raw'>('structured');
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyRawJson = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(report, null, 2));
+      setCopied(true);
+      toast.success('已复制到剪贴板');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('复制失败');
+    }
+  };
 
   const isSuccess = report.status === 'success';
   const nodeTypeLabel = NODE_TYPE_NAMES[report.node_type] || report.node_type;
@@ -141,8 +156,24 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
               <NodeViewerSelector report={report} />
             ) : (
               /* 原始 JSON 视图 */
-              <div className="min-w-0 overflow-x-auto">
-                <RawJsonViewer data={report} />
+              <div className="min-w-0">
+                <div className="flex items-center justify-end mb-2">
+                  <button
+                    type="button"
+                    onClick={handleCopyRawJson}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-border hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
+                  >
+                    {copied ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                    {copied ? '已复制' : '复制全部'}
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <RawJsonViewer data={report} />
+                </div>
               </div>
             )}
           </div>
