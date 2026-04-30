@@ -342,32 +342,29 @@ function FlowCanvasInner() {
       fittedFlowUuidRef.current = flow.uuid;
       // 使用 setTimeout 确保 ReactFlow 已完成节点渲染
       setTimeout(() => {
-        fitView({ padding: 0.2, duration: 300 });
+        fitView({ padding: 0.4, duration: 300 });
       }, 100);
     }
   }, [flow?.uuid, fitView]);
 
-  // 窗口大小变化时自动调整画布视图（应用缩放时触发 fitView）
+  // 应用窗口大小变化时自动调整画布视图
   useEffect(() => {
     if (!flow) return;
 
-    const container = canvasRef.current;
-    if (!container) return;
-
     let debounceTimer: ReturnType<typeof setTimeout>;
 
-    const observer = new ResizeObserver(() => {
+    const handleResize = () => {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        fitView({ padding: 0.2, duration: 200 });
+        fitView({ padding: 0.4, duration: 200 });
       }, 200);
-    });
+    };
 
-    observer.observe(container);
+    window.addEventListener('resize', handleResize);
 
     return () => {
       clearTimeout(debounceTimer);
-      observer.disconnect();
+      window.removeEventListener('resize', handleResize);
     };
   }, [flow, fitView]);
 
