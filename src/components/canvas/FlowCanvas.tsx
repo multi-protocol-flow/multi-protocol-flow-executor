@@ -506,7 +506,7 @@ function FlowCanvasInner() {
 
     // 延迟 fitView，等待 React Flow 完成位置更新
     setTimeout(() => {
-      fitView({ padding: 0.2, duration: 300 });
+      fitView({ padding: 0.4, duration: 300 });
     }, 150);
   }, [flow, batchUpdateNodePositions, fitView]);
 
@@ -829,7 +829,7 @@ function FlowCanvasInner() {
 
         fitView
 
-        fitViewOptions={{ padding: 0.2 }}
+        fitViewOptions={{ padding: 0.4 }}
         minZoom={0.1}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
