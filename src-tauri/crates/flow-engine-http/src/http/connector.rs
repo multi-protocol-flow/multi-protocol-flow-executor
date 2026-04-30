@@ -306,16 +306,19 @@ impl Service<Uri> for TimingConnector {
                     .await
                     .map_err(HttpError::ProxyFailed)?
             } else {
-                // 直连：DNS 解析
-                let addr = tokio::time::timeout(
+                // 直连：DNS 解析 — 收集所有解析地址
+                let addrs: Vec<_> = tokio::time::timeout(
                     std::time::Duration::from_millis(timeout_ms),
                     tokio::net::lookup_host((host.as_str(), port)),
                 )
                 .await
                 .map_err(|_| HttpError::DnsTimeout)?
                 .map_err(|e| HttpError::DnsFailed(e.to_string()))?
-                .next()
-                .ok_or(HttpError::DnsNoAddress)?;
+                .collect();
+
+                if addrs.is_empty() {
+                    return Err(HttpError::DnsNoAddress);
+                }
 
                 {
                     let mut timing = timing
@@ -323,16 +326,44 @@ impl Service<Uri> for TimingConnector {
                         .map_err(|_| HttpError::DnsFailed("计时锁获取失败".into()))?;
                     timing.mark_dns_resolved();
                 }
-                log::debug!("DNS 解析完成: {}", addr);
+                log::debug!("DNS 解析完成，共 {} 个地址: {:?}", addrs.len(), addrs);
 
-                // 直连：TCP 连接
-                let stream = tokio::time::timeout(
-                    std::time::Duration::from_millis(timeout_ms),
-                    TcpStream::connect(&addr),
-                )
-                .await
-                .map_err(|_| HttpError::TcpTimeout)?
-                .map_err(|e| HttpError::TcpFailed(e.to_string()))?;
+                // 直连：TCP 连接 — 依次尝试所有地址
+                let stream = {
+                    let mut last_err = None;
+                    let mut connected = None;
+                    for addr in &addrs {
+                        log::debug!("尝试连接: {}", addr);
+                        match tokio::time::timeout(
+                            std::time::Duration::from_millis(timeout_ms),
+                            TcpStream::connect(addr),
+                        )
+                        .await
+                        {
+                            Ok(Ok(s)) => {
+                                connected = Some(s);
+                                break;
+                            }
+                            Ok(Err(e)) => {
+                                log::debug!("连接 {} 失败: {}", addr, e);
+                                last_err = Some(e);
+                            }
+                            Err(_) => {
+                                log::debug!("连接 {} 超时", addr);
+                                last_err = Some(std::io::Error::new(
+                                    std::io::ErrorKind::TimedOut,
+                                    format!("连接 {} 超时", addr),
+                                ));
+                            }
+                        }
+                    }
+                    connected.ok_or_else(|| {
+                        let msg = last_err
+                            .map(|e| e.to_string())
+                            .unwrap_or_else(|| "所有地址连接失败".to_string());
+                        HttpError::TcpFailed(msg)
+                    })?
+                };
 
                 stream
             };
@@ -349,10 +380,14 @@ impl Service<Uri> for TimingConnector {
             if is_https {
                 let connector = TlsConnector::from(tls_config);
 
-                // 创建 ServerName
-                let dns_name = rustls_pki_types::DnsName::try_from(host.clone())
-                    .map_err(|e| HttpError::InvalidServerName(format!("{}: {:?}", host, e)))?;
-                let server_name = rustls_pki_types::ServerName::from(dns_name);
+                // 创建 ServerName（兼容 DNS 名称和 IP 地址）
+                let server_name = if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+                    rustls_pki_types::ServerName::IpAddress(ip.into())
+                } else {
+                    let dns_name = rustls_pki_types::DnsName::try_from(host.clone())
+                        .map_err(|e| HttpError::InvalidServerName(format!("{}: {:?}", host, e)))?;
+                    rustls_pki_types::ServerName::from(dns_name)
+                };
 
                 let tls_stream = tokio::time::timeout(
                     std::time::Duration::from_millis(timeout_ms),
@@ -411,6 +446,9 @@ impl HttpConnector {
     /// # 参数
     /// - `timeout_ms`: 各阶段超时时间（毫秒）
     pub fn new(timeout_ms: u64) -> Self {
+        // 确保 CryptoProvider 已安装（rustls 0.23+ 必需）
+        ensure_crypto_provider();
+
         // 构建根证书存储
         let root_store =
             rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
@@ -462,28 +500,59 @@ impl HttpConnector {
             port
         );
 
-        // 2. DNS 解析
-        let addr = tokio::time::timeout(
+        // 2. DNS 解析 — 收集所有解析地址
+        let addrs: Vec<_> = tokio::time::timeout(
             std::time::Duration::from_millis(self.timeout_ms),
             tokio::net::lookup_host((host.as_str(), port)),
         )
         .await
         .map_err(|_| HttpError::DnsTimeout)?
         .map_err(|e| HttpError::DnsFailed(e.to_string()))?
-        .next()
-        .ok_or(HttpError::DnsNoAddress)?;
+        .collect();
+
+        if addrs.is_empty() {
+            return Err(HttpError::DnsNoAddress);
+        }
 
         timing.mark_dns_resolved();
-        log::debug!("DNS 解析完成: {}", addr);
+        log::debug!("DNS 解析完成，共 {} 个地址: {:?}", addrs.len(), addrs);
 
-        // 3. TCP 连接
-        let tcp_stream = tokio::time::timeout(
-            std::time::Duration::from_millis(self.timeout_ms),
-            TcpStream::connect(&addr),
-        )
-        .await
-        .map_err(|_| HttpError::TcpTimeout)?
-        .map_err(|e| HttpError::TcpFailed(e.to_string()))?;
+        // 3. TCP 连接 — 依次尝试所有解析地址
+        let tcp_stream = {
+            let mut last_err = None;
+            let mut connected = None;
+            for addr in &addrs {
+                log::debug!("尝试连接: {}", addr);
+                match tokio::time::timeout(
+                    std::time::Duration::from_millis(self.timeout_ms),
+                    TcpStream::connect(addr),
+                )
+                .await
+                {
+                    Ok(Ok(s)) => {
+                        connected = Some(s);
+                        break;
+                    }
+                    Ok(Err(e)) => {
+                        log::debug!("连接 {} 失败: {}", addr, e);
+                        last_err = Some(e);
+                    }
+                    Err(_) => {
+                        log::debug!("连接 {} 超时", addr);
+                        last_err = Some(std::io::Error::new(
+                            std::io::ErrorKind::TimedOut,
+                            format!("连接 {} 超时", addr),
+                        ));
+                    }
+                }
+            }
+            connected.ok_or_else(|| {
+                let msg = last_err
+                    .map(|e| e.to_string())
+                    .unwrap_or_else(|| "所有地址连接失败".to_string());
+                HttpError::TcpFailed(msg)
+            })?
+        };
 
         timing.mark_tcp_connected();
         log::debug!("TCP 连接完成");
@@ -492,10 +561,14 @@ impl HttpConnector {
         if is_https {
             let connector = TlsConnector::from(self.tls_config.clone());
 
-            // 创建拥有所有权的 ServerName
-            let dns_name = rustls_pki_types::DnsName::try_from(host.clone())
-                .map_err(|e| HttpError::InvalidServerName(format!("{}: {:?}", host, e)))?;
-            let server_name = rustls_pki_types::ServerName::from(dns_name);
+            // 创建 ServerName（兼容 DNS 名称和 IP 地址）
+            let server_name = if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+                rustls_pki_types::ServerName::IpAddress(ip.into())
+            } else {
+                let dns_name = rustls_pki_types::DnsName::try_from(host.clone())
+                    .map_err(|e| HttpError::InvalidServerName(format!("{}: {:?}", host, e)))?;
+                rustls_pki_types::ServerName::from(dns_name)
+            };
 
             let tls_stream = tokio::time::timeout(
                 std::time::Duration::from_millis(self.timeout_ms),

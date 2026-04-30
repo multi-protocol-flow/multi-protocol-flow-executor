@@ -1,0 +1,37 @@
+{
+  "uuid": "tls-skip-verify",
+  "name": "TLS 跳过证书验证",
+  "description": "不配 CA 证书，但开启跳过验证。预期: 200 成功（手动信任）",
+  "nodes": [
+    {
+      "uuid": "entry-001",
+      "type": "entry",
+      "name": "入口",
+      "position": { "x": 0.0, "y": 0.0 },
+      "data": { "type": "entry" },
+      "ports": null
+    },
+    {
+      "uuid": "http-001",
+      "type": "http",
+      "name": "TLS 跳过验证",
+      "position": { "x": 250.0, "y": 0.0 },
+      "data": {
+        "type": "http",
+        "url": "https://localhost:8443/api/echo",
+        "method": "get",
+        "tls_skip_verify": true
+      },
+      "ports": null
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-001",
+      "source_node_uuid": "entry-001",
+      "target_node_uuid": "http-001",
+      "source_port_id": "output",
+      "target_port_id": "input"
+    }
+  ]
+}

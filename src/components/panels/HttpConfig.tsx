@@ -351,6 +351,9 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   }, [retryOnStatus, saveData]);
   /** 隐藏的文件输入框 ref (用于非 Tauri 环境) */
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const tlsCertInputRef = useRef<HTMLInputElement>(null);
+  const tlsClientCertInputRef = useRef<HTMLInputElement>(null);
+  const tlsClientKeyInputRef = useRef<HTMLInputElement>(null);
 
   /** cURL 导入弹窗状态 */
   const [isCurlDialogOpen, setIsCurlDialogOpen] = useState(false);
@@ -419,6 +422,72 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   }, [setValue, saveData]);
 
   /**
+   * 选择 TLS CA 证书文件
+   */
+  const handleSelectTlsCaCert = useCallback(async () => {
+    if (isTauriEnv()) {
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: '证书文件', extensions: ['pem', 'crt', 'cer', 'cert', 'p12', 'pfx'] }],
+      });
+      if (selected) {
+        setValue('tls_ca_cert_path', selected as string, { shouldDirty: true });
+        safeSetTimeout(saveData, 100);
+      }
+    } else {
+      tlsCertInputRef.current?.click();
+    }
+  }, [setValue, saveData]);
+
+  /**
+   * 选择 TLS 客户端证书文件
+   */
+  const handleSelectTlsClientCert = useCallback(async () => {
+    if (isTauriEnv()) {
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: '证书文件', extensions: ['pem', 'crt', 'cer', 'cert'] }],
+      });
+      if (selected) {
+        setValue('tls_client_cert_path', selected as string, { shouldDirty: true });
+        safeSetTimeout(saveData, 100);
+      }
+    } else {
+      tlsClientCertInputRef.current?.click();
+    }
+  }, [setValue, saveData]);
+
+  /**
+   * 选择 TLS 客户端密钥文件
+   */
+  const handleSelectTlsClientKey = useCallback(async () => {
+    if (isTauriEnv()) {
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: '密钥文件', extensions: ['pem', 'key', 'pk8'] }],
+      });
+      if (selected) {
+        setValue('tls_client_key_path', selected as string, { shouldDirty: true });
+        safeSetTimeout(saveData, 100);
+      }
+    } else {
+      tlsClientKeyInputRef.current?.click();
+    }
+  }, [setValue, saveData]);
+
+  /**
+   * 处理非 Tauri 环境的 TLS 证书文件选择
+   */
+  const handleTlsCertInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, field: 'tls_ca_cert_path' | 'tls_client_cert_path' | 'tls_client_key_path') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setValue(field, file.name, { shouldDirty: true });
+      safeSetTimeout(saveData, 100);
+    }
+    e.target.value = '';
+  }, [setValue, saveData]);
+
+  /**
    * 选择 Form Field 文件
    */
   const handleSelectFormFieldFile = useCallback(async (index: number) => {
@@ -458,6 +527,27 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         type="file"
         className="hidden"
         onChange={handleFileInputChange}
+      />
+      <input
+        ref={tlsCertInputRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => handleTlsCertInputChange(e, 'tls_ca_cert_path')}
+        accept=".pem,.crt,.cer,.cert,.p12,.pfx"
+      />
+      <input
+        ref={tlsClientCertInputRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => handleTlsCertInputChange(e, 'tls_client_cert_path')}
+        accept=".pem,.crt,.cer,.cert"
+      />
+      <input
+        ref={tlsClientKeyInputRef}
+        type="file"
+        className="hidden"
+        onChange={(e) => handleTlsCertInputChange(e, 'tls_client_key_path')}
+        accept=".pem,.key,.pk8"
       />
 
       {/* cURL 导入按钮 */}
@@ -1100,27 +1190,81 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">CA 证书路径</Label>
-                    <Input
-                      {...register('tls_ca_cert_path')}
-                      placeholder="/path/to/ca-cert.pem"
-                      className="h-8 text-xs font-mono"
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        {...register('tls_ca_cert_path')}
+                        placeholder="/path/to/ca-cert.pem"
+                        className="h-8 flex-1 font-mono text-xs bg-muted/50 cursor-pointer"
+                        readOnly
+                        onClick={() => handleSelectTlsCaCert()}
+                      />
+                      {watch('tls_ca_cert_path') && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setValue('tls_ca_cert_path', '', { shouldDirty: true });
+                            saveData();
+                          }}
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">客户端证书路径</Label>
-                    <Input
-                      {...register('tls_client_cert_path')}
-                      placeholder="/path/to/client-cert.pem"
-                      className="h-8 text-xs font-mono"
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        {...register('tls_client_cert_path')}
+                        placeholder="/path/to/client-cert.pem"
+                        className="h-8 flex-1 font-mono text-xs bg-muted/50 cursor-pointer"
+                        readOnly
+                        onClick={() => handleSelectTlsClientCert()}
+                      />
+                      {watch('tls_client_cert_path') && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setValue('tls_client_cert_path', '', { shouldDirty: true });
+                            saveData();
+                          }}
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">客户端密钥路径</Label>
-                    <Input
-                      {...register('tls_client_key_path')}
-                      placeholder="/path/to/client-key.pem"
-                      className="h-8 text-xs font-mono"
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        {...register('tls_client_key_path')}
+                        placeholder="/path/to/client-key.pem"
+                        className="h-8 flex-1 font-mono text-xs bg-muted/50 cursor-pointer"
+                        readOnly
+                        onClick={() => handleSelectTlsClientKey()}
+                      />
+                      {watch('tls_client_key_path') && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setValue('tls_client_key_path', '', { shouldDirty: true });
+                            saveData();
+                          }}
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-500"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

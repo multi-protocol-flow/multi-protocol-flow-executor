@@ -96,12 +96,25 @@ pub async fn execute(
         .map(|r| r.duration_ms)
         .unwrap_or(0);
 
+    // 提取节点级别的执行结果（用于测试验证）
+    let node_results: Vec<serde_json::Value> = result.node_reports.iter().map(|r| {
+        serde_json::json!({
+            "uuid": r.node_uuid,
+            "node_type": r.node_type,
+            "name": r.node_name,
+            "status": r.status,
+            "output": r.output_data,
+            "error": r.error,
+        })
+    }).collect();
+
     let output_data = serde_json::json!({
         "success": result.success,
         "data": result.data,
         "error": result.error,
         "execution_time_ms": total_time_ms,
         "executed_count": result.executed_count,
+        "node_results": node_results,
     });
 
     let cli_output = if result.success {
