@@ -827,8 +827,6 @@ function FlowCanvasInner() {
         // 边删除：由 handleEdgesChange 处理（仅未选中节点时生效）
         deleteKeyCode={['Backspace', 'Delete']}
 
-        fitView
-
         fitViewOptions={{ padding: 0.4 }}
         minZoom={0.1}
         maxZoom={2}
@@ -852,6 +850,7 @@ function FlowCanvasInner() {
           showZoom
           showFitView
           showInteractive
+          fitViewOptions={{ padding: 0.4 }}
         >
           {/* 小地图开关 */}
           <ControlButton
