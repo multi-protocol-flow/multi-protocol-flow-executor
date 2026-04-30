@@ -301,6 +301,8 @@ export function createDefaultNodeData(type: NodeType): NodeData {
       return { type: 'proxy', mode: 'clear' };
     case 'entry':
       return { type: 'entry' };
+    default:
+      return { type: 'entry' } as NodeData;
   }
 }
 

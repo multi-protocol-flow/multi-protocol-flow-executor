@@ -181,6 +181,8 @@ function createNodeData(type: NodeData['type']): NodeData {
       return { type: 'amqp10_disconnect', connection_id: 'amqp10-conn-1' };
     case 'variable_extractor':
       return { type: 'variable_extractor' };
+    default:
+      return { type: 'entry' } as NodeData;
   }
 }
 
