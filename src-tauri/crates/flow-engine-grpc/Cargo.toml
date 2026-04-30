@@ -23,6 +23,8 @@ tokio-rustls = { version = "0.26", default-features = false, features = ["loggin
 webpki-roots = "0.26"
 hyper-util = "0.1"
 tower = { version = "0.4", default-features = false }
+# gRPC 压缩支持（gzip 编码/解码）
+async-compression = { version = "0.4", features = ["gzip", "tokio"] }
 # Workspace 共享依赖
 async-trait = { workspace = true }
 serde = { workspace = true }

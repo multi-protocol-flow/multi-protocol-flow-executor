@@ -53,6 +53,6 @@ RUN mkdir -p /app/certs && \
       -subj "/CN=localhost" \
       -addext "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:0.0.0.0"
 
-EXPOSE 9001 9002 9003 9004 9101 9102 8080 8081 50051 8085
+EXPOSE 9001 9002 9003 9004 9101 9102 8080 8081 50051 50052 50053 8085
 
 CMD ["./protocol-test-server"]

@@ -46,8 +46,6 @@ function toFormData(data: GrpcCallConfigType): GrpcCallConfigFormData {
     metadata: data.metadata || [],
     request_messages: data.request_messages || [],
     compression_encoding: data.compression_encoding,
-    max_retries: data.max_retries,
-    initial_backoff_ms: data.initial_backoff_ms,
   };
 }
 
@@ -68,8 +66,6 @@ function fromFormData(formData: GrpcCallConfigFormData): GrpcCallConfigType {
     request_messages: formData.request_messages && formData.request_messages.length > 0
       ? formData.request_messages : undefined,
     compression_encoding: formData.compression_encoding || undefined,
-    max_retries: formData.max_retries,
-    initial_backoff_ms: formData.initial_backoff_ms,
   };
 }
 
@@ -1121,48 +1117,6 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
         </Select>
         <p className="text-xs text-muted-foreground">
           "继承默认" 使用连接节点的压缩配置
-        </p>
-      </div>
-
-      {/* 重试配置 */}
-      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
-        <p className="text-xs font-medium text-muted-foreground">重试配置（EXPERIMENTAL）</p>
-        <div className="space-y-2">
-          <Label htmlFor="max_retries" className="text-xs text-muted-foreground">
-            最大重试次数
-          </Label>
-          <Input
-            id="max_retries"
-            type="number"
-            min={0}
-            max={10}
-            placeholder="继承默认"
-            {...register('max_retries', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
-            className="h-8 font-mono text-xs"
-          />
-          <p className="text-[11px] text-muted-foreground/70">
-            0 = 不重试，留空使用连接级默认值
-          </p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="call_initial_backoff_ms" className="text-xs text-muted-foreground">
-            初始退避时间 (ms)
-          </Label>
-          <Input
-            id="call_initial_backoff_ms"
-            type="number"
-            min={100}
-            max={30000}
-            placeholder="继承默认"
-            {...register('initial_backoff_ms', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
-            className="h-8 font-mono text-xs"
-          />
-          <p className="text-[11px] text-muted-foreground/70">
-            范围 100-30000ms，留空使用连接级默认值
-          </p>
-        </div>
-        <p className="text-[11px] text-muted-foreground/70">
-          仅对 Unary 和 Server Streaming 调用生效
         </p>
       </div>
 

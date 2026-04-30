@@ -1198,45 +1198,6 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
         </div>
       </div>
 
-      {/* 默认重试配置 */}
-      <div className="space-y-3 rounded-md border bg-muted/30 p-3">
-        <p className="text-xs font-medium text-muted-foreground">默认重试配置（EXPERIMENTAL）</p>
-        <div className="space-y-2">
-          <Label htmlFor="default_max_retries" className="text-xs text-muted-foreground">
-            默认最大重试次数
-          </Label>
-          <Input
-            id="default_max_retries"
-            type="number"
-            min={0}
-            max={10}
-            placeholder="0（不重试）"
-            {...register('max_retries', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
-            className="h-8 font-mono text-xs"
-          />
-          <p className="text-[11px] text-muted-foreground/70">
-            0 = 不重试，Call 节点可单独覆盖
-          </p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="default_initial_backoff_ms" className="text-xs text-muted-foreground">
-            默认初始退避时间 (ms)
-          </Label>
-          <Input
-            id="default_initial_backoff_ms"
-            type="number"
-            min={100}
-            max={30000}
-            placeholder="1000"
-            {...register('initial_backoff_ms', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
-            className="h-8 font-mono text-xs"
-          />
-          <p className="text-[11px] text-muted-foreground/70">
-            范围 100-30000ms，指数退避（上限 30s）+ 随机抖动
-          </p>
-        </div>
-      </div>
-
       {/* 负载均衡配置 */}
       <div className="space-y-3 rounded-md border bg-muted/30 p-3">
         <div className="flex items-center justify-between">

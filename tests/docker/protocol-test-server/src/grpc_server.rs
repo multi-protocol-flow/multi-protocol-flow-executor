@@ -3,11 +3,15 @@
 //! 基于 tonic 0.12 实现 TestService 的全部 6 个 RPC 方法，
 //! 覆盖 Unary / Server Streaming / Client Streaming / Bidi Streaming 四种通信模式。
 
+use std::fs::File;
+use std::io::{BufReader, Read};
 use std::pin::Pin;
+use std::sync::Arc;
 use std::task::{Context, Poll};
 
-use anyhow::Result;
+use anyhow::{Context as AnyhowContext, Result};
 use futures_util::Stream;
+use tonic::transport::{Identity, ServerTlsConfig};
 use tonic::{Request, Response, Status, Streaming};
 
 // 引入 build.rs 生成的 protobuf 代码
@@ -246,7 +250,7 @@ impl TestService for TestServiceImpl {
 // 公共入口
 // ============================================================================
 
-/// 启动 gRPC TestService 服务器并阻塞
+/// 启动 gRPC TestService 服务器（明文）
 ///
 /// 端口可通过 `GRPC_PORT` 环境变量配置，默认 50051。
 pub async fn run(port: u16) -> Result<()> {
@@ -254,6 +258,105 @@ pub async fn run(port: u16) -> Result<()> {
     tracing::info!("gRPC TestService 服务启动 → 0.0.0.0:{}", port);
 
     tonic::transport::Server::builder()
+        .add_service(TestServiceServer::new(TestServiceImpl::default()))
+        .serve(addr)
+        .await?;
+
+    Ok(())
+}
+
+/// 加载 PEM 证书和私钥
+fn load_pem_cert(cert_path: &str) -> Result<Vec<u8>> {
+    let mut buf = Vec::new();
+    File::open(cert_path)
+        .with_context(|| format!("打开证书文件失败: {}", cert_path))?
+        .read_to_end(&mut buf)?;
+    Ok(buf)
+}
+
+fn load_pem_key(key_path: &str) -> Result<Vec<u8>> {
+    let mut buf = Vec::new();
+    File::open(key_path)
+        .with_context(|| format!("打开私钥文件失败: {}", key_path))?
+        .read_to_end(&mut buf)?;
+    Ok(buf)
+}
+
+/// 启动 TLS gRPC TestService 服务器
+///
+/// 端口可通过 `GRPC_TLS_PORT` 环境变量配置，默认 50052。
+/// 证书路径可通过 `TLS_CERT_PATH` / `TLS_KEY_PATH` 配置。
+pub async fn run_tls(port: u16) -> Result<()> {
+    let cert_path = std::env::var("TLS_CERT_PATH")
+        .unwrap_or_else(|_| "/app/certs/server.crt".to_string());
+    let key_path = std::env::var("TLS_KEY_PATH")
+        .unwrap_or_else(|_| "/app/certs/server.key".to_string());
+
+    let cert_pem = match load_pem_cert(&cert_path) {
+        Ok(c) => c,
+        Err(e) => {
+            // 尝试备用路径
+            let fallback_cert = "./certs/server.crt";
+            let fallback_key = "./certs/server.key";
+            tracing::warn!(
+                "主证书路径加载失败 ({}: {}), 尝试备用: {}, {}",
+                cert_path, e, fallback_cert, fallback_key
+            );
+            load_pem_cert(fallback_cert)?
+        }
+    };
+    let key_pem = load_pem_key(&key_path).or_else(|_| load_pem_key("./certs/server.key"))?;
+
+    let identity = Identity::from_pem(cert_pem, key_pem);
+    let tls_config = ServerTlsConfig::new().identity(identity);
+
+    let addr = format!("0.0.0.0:{}", port).parse()?;
+    tracing::info!("gRPC TLS TestService 服务启动 → 0.0.0.0:{}", port);
+
+    tonic::transport::Server::builder()
+        .tls_config(tls_config)
+        .with_context(|| "gRPC TLS 配置失败")?
+        .add_service(TestServiceServer::new(TestServiceImpl::default()))
+        .serve(addr)
+        .await?;
+
+    Ok(())
+}
+
+/// 启动 mTLS gRPC TestService 服务器（需要客户端证书）
+///
+/// 端口可通过 `GRPC_MTLS_PORT` 环境变量配置，默认 50053。
+/// CA 证书路径通过 `TLS_CA_CERT_PATH` 配置。
+pub async fn run_mtls(port: u16) -> Result<()> {
+    let cert_path = std::env::var("TLS_CERT_PATH")
+        .unwrap_or_else(|_| "/app/certs/server.crt".to_string());
+    let key_path = std::env::var("TLS_KEY_PATH")
+        .unwrap_or_else(|_| "/app/certs/server.key".to_string());
+    let ca_cert_path = std::env::var("TLS_CA_CERT_PATH")
+        .unwrap_or_else(|_| "/app/certs/ca.pem".to_string());
+
+    let cert_pem = load_pem_cert(&cert_path)
+        .or_else(|_| load_pem_cert("./certs/server.crt"))?;
+    let key_pem = load_pem_key(&key_path)
+        .or_else(|_| load_pem_key("./certs/server.key"))?;
+
+    // 加载 CA 证书用于客户端验证
+    let mut ca_buf = Vec::new();
+    File::open(&ca_cert_path)
+        .with_context(|| format!("打开 CA 证书文件失败: {}", ca_cert_path))?
+        .read_to_end(&mut ca_buf)?;
+
+    let identity = Identity::from_pem(cert_pem, key_pem);
+    let tls_config = ServerTlsConfig::new()
+        .identity(identity)
+        .client_ca_root(tonic::transport::Certificate::from_pem(ca_buf));
+
+    let addr = format!("0.0.0.0:{}", port).parse()?;
+    tracing::info!("gRPC mTLS TestService 服务启动 → 0.0.0.0:{}", port);
+
+    tonic::transport::Server::builder()
+        .tls_config(tls_config)
+        .with_context(|| "gRPC mTLS 配置失败")?
         .add_service(TestServiceServer::new(TestServiceImpl::default()))
         .serve(addr)
         .await?;

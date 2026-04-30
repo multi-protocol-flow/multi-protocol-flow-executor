@@ -21,12 +21,22 @@ services:
       # WebSocket 服务
       - "9091:8081"   # WebSocket (内部 8081)
       # gRPC 服务
-      - "50051:50051" # gRPC TestService
+      - "50051:50051" # gRPC TestService (明文)
+      - "50052:50052" # gRPC TestService (TLS, 自签名/CA 证书)
+      - "50053:50053" # gRPC TestService (mTLS)
       # MCP Streamable HTTP
       - "9085:8085"   # MCP Server (内部 8085, 映射到主机 9085)
     environment:
       - RUST_LOG=info
       - CONN_TIMEOUT_SECS=120
+      # TLS 证书路径 (默认使用 Dockerfile 构建时生成的自签名证书)
+      # 如需自定义证书，取消下方注释并用 volume 挂载:
+      # - TLS_CERT_PATH=/app/custom-certs/server.pem
+      # - TLS_KEY_PATH=/app/custom-certs/server.key
+      # - TLS_CA_CERT_PATH=/app/custom-certs/ca.pem
+    volumes:
+      # 挂载项目 tests/certs/ 目录，可用自定义证书替代自签名证书
+      - ../../tests/certs:/app/custom-certs:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/status || exit 1"]
@@ -53,6 +63,25 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
+
+  # ============================================================
+  # gRPC 测试服务 (grpcbin) — 支持 TLS + Server Reflection
+  # ============================================================
+  grpcbin-1:
+    image: mccutchen/go-grpcbin:latest
+    container_name: mpe-grpcbin-1
+    ports:
+      - "9092:9000"   # 明文 gRPC
+      - "9093:9001"   # TLS（自签名证书，测试跳过验证）
+    restart: unless-stopped
+
+  # 第二个 grpcbin 实例（用于负载均衡测试）
+  grpcbin-2:
+    image: mccutchen/go-grpcbin:latest
+    container_name: mpe-grpcbin-2
+    ports:
+      - "9094:9000"   # 明文 gRPC（与 grpcbin-1 端口不同）
+    restart: unless-stopped
 
   # ============================================================
   # AMQP Broker — RabbitMQ (with Management UI)

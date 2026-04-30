@@ -652,11 +652,6 @@ export const grpcConnectConfigSchema = z.object({
   reflection_metadata: z.array(grpcMetadataEntrySchema).optional(),
   // 负载均衡配置
   endpoints: z.array(z.string()).optional(),
-  // 重试配置
-  max_retries: z.number().optional(),
-  initial_backoff_ms: z.number().optional(),
-  max_backoff_ms: z.number().optional(),
-  retryable_status_codes: z.array(z.string()).optional(),
   // Channelz 内省（EXPERIMENTAL）— 仅前端 UI 状态，不保存到节点数据
   channelz_connection_id: z.string().optional(),
 });
@@ -690,9 +685,6 @@ export const grpcCallConfigSchema = z.object({
   // 消息大小限制
   max_receive_message_size: z.number().optional(),
   max_send_message_size: z.number().optional(),
-  // 重试配置（调用级覆盖）
-  max_retries: z.number().min(0).max(10).optional(),
-  initial_backoff_ms: z.number().min(100).max(30000).optional(),
 });
 
 export type GrpcCallConfigFormData = z.infer<typeof grpcCallConfigSchema>;

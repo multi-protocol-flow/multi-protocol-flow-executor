@@ -692,8 +692,11 @@ fn print_banner(
     http_port: u16,
     ws_port: u16,
     grpc_port: u16,
+    grpc_tls_port: u16,
+    grpc_mtls_port: u16,
     mcp_port: u16,
     tls_available: bool,
+    grpc_tls_available: bool,
 ) {
     eprintln!();
     eprintln!("╔══════════════════════════════════════════════════════════════════╗");
@@ -716,7 +719,13 @@ fn print_banner(
     eprintln!("║  HTTP Services:                                                 ║");
     eprintln!("║    REST+SSE+GQL → 0.0.0.0:{:<5}  (/api/* /sse /graphql)       ║", http_port);
     eprintln!("║    WebSocket    → 0.0.0.0:{:<5}  (Echo/JSON Cmd/Broadcast)    ║", ws_port);
-    eprintln!("║    gRPC         → 0.0.0.0:{:<5}  (Unary/SS/CS/Bidi)           ║", grpc_port);
+    eprintln!("║    gRPC         → 0.0.0.0:{:<5}  (明文, Unary/SS/CS/Bidi)     ║", grpc_port);
+    if grpc_tls_available {
+        eprintln!("║    gRPC TLS     → 0.0.0.0:{:<5}  (TLS 加密, 标准验证)       ║", grpc_tls_port);
+        eprintln!("║    gRPC mTLS    → 0.0.0.0:{:<5}  (TLS + 客户端证书验证)     ║", grpc_mtls_port);
+    } else {
+        eprintln!("║    gRPC TLS     → DISABLED (证书未找到)                        ║");
+    }
     eprintln!("║    MCP HTTP     → 0.0.0.0:{:<5}  (Streamable HTTP /mcp)       ║", mcp_port);
     eprintln!("╠══════════════════════════════════════════════════════════════════╣");
     eprintln!("║  外部服务 (docker-compose):                                     ║");
@@ -727,7 +736,7 @@ fn print_banner(
     eprintln!("║  环境变量覆盖:                                                  ║");
     eprintln!("║    TCP_ECHO_PORT / TCP_LINE_PORT / TCP_PREFIX_PORT              ║");
     eprintln!("║    TCP_TLS_PORT / UDP_ECHO_PORT / UDP_RESPONDER_PORT            ║");
-    eprintln!("║    HTTP_PORT / WS_PORT / GRPC_PORT / MCP_PORT                   ║");
+    eprintln!("║    HTTP_PORT / WS_PORT / GRPC_PORT / GRPC_TLS_PORT              ║");
     eprintln!("║    TLS_CERT_PATH / TLS_KEY_PATH / CONN_TIMEOUT_SECS             ║");
     eprintln!("║    RUST_LOG (默认: info)                                         ║");
     eprintln!("╚══════════════════════════════════════════════════════════════════╝");
@@ -758,6 +767,8 @@ async fn main() -> Result<()> {
     let http_port = env_port("HTTP_PORT", 8080);
     let ws_port = env_port("WS_PORT", 8081);
     let grpc_port = env_port("GRPC_PORT", 50051);
+    let grpc_tls_port = env_port("GRPC_TLS_PORT", 50052);
+    let grpc_mtls_port = env_port("GRPC_MTLS_PORT", 50053);
     let mcp_port = env_port("MCP_PORT", 8085);
 
     // 检查 TLS 证书是否可用（用于横幅显示）
@@ -766,6 +777,8 @@ async fn main() -> Result<()> {
     let tls_available = std::path::Path::new(&cert_path).exists() && std::path::Path::new(&key_path).exists()
         || (std::path::Path::new("./certs/server.crt").exists()
             && std::path::Path::new("./certs/server.key").exists());
+    // gRPC TLS/mTLS 可用性（依赖同一套证书）
+    let grpc_tls_available = tls_available;
 
     // 打印启动横幅
     print_banner(
@@ -778,8 +791,11 @@ async fn main() -> Result<()> {
         http_port,
         ws_port,
         grpc_port,
+        grpc_tls_port,
+        grpc_mtls_port,
         mcp_port,
         tls_available,
+        grpc_tls_available,
     );
 
     // 启动所有服务
@@ -837,6 +853,18 @@ async fn main() -> Result<()> {
         }
     });
 
+    let grpc_tls_task = tokio::spawn(async move {
+        if let Err(e) = grpc_server::run_tls(grpc_tls_port).await {
+            error!("gRPC TLS 服务异常退出: {}", e);
+        }
+    });
+
+    let grpc_mtls_task = tokio::spawn(async move {
+        if let Err(e) = grpc_server::run_mtls(grpc_mtls_port).await {
+            error!("gRPC mTLS 服务异常退出: {}", e);
+        }
+    });
+
     let mcp_task = tokio::spawn(async move {
         if let Err(e) = mcp_server::run(mcp_port).await {
             error!("MCP 服务异常退出: {}", e);
@@ -859,6 +887,8 @@ async fn main() -> Result<()> {
     http_task.abort();
     ws_task.abort();
     grpc_task.abort();
+    grpc_tls_task.abort();
+    grpc_mtls_task.abort();
     mcp_task.abort();
 
     info!("所有服务已关闭。");
