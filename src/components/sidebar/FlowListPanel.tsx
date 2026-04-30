@@ -213,6 +213,10 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const moveFolderMenuRef = useRef<HTMLDivElement>(null);
   const [moveFolderMenuPosition, setMoveFolderMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
+  // 移动菜单中展开的文件夹路径（用于折叠/展开子文件夹）
+  const [expandedMoveMenuFolders, setExpandedMoveMenuFolders] = useState<Set<string>>(new Set());
+  const [expandedMoveFolderMenuFolders, setExpandedMoveFolderMenuFolders] = useState<Set<string>>(new Set());
+
   /**
    * 计算菜单定位，考虑视口边界自动翻转方向
    * @param anchorRect 触发元素的 boundingClientRect
@@ -409,6 +413,32 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     }
   };
 
+  /** 切换移动菜单中文件夹的展开/折叠 */
+  const toggleExpandedMoveFolder = useCallback((path: string) => {
+    setExpandedMoveMenuFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  }, []);
+
+  /** 切换文件夹移动菜单中文件夹的展开/折叠 */
+  const toggleExpandedMoveFolderMenu = useCallback((path: string) => {
+    setExpandedMoveFolderMenuFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  }, []);
+
   /** 移动文件夹 */
   const handleMoveFolder = async (sourcePath: string, targetPath: string) => {
     setMoveFolderMenuPath(null);
@@ -588,6 +618,33 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     return { rootFlows, folderMap, rootFolderPaths, folderChildrenMap };
   }, [flows, folders]);
 
+  // ===== 构建文件夹树（用于移动菜单） =====
+  const folderTree = useMemo(() => {
+    const allPaths = new Set(folders.map(f => f.path));
+    const childrenMap = new Map<string, string[]>();
+    const rootPaths: string[] = [];
+
+    for (const folder of folders) {
+      const parentPath = folder.path.includes('/')
+        ? folder.path.substring(0, folder.path.lastIndexOf('/'))
+        : '';
+      if (parentPath && allPaths.has(parentPath)) {
+        const children = childrenMap.get(parentPath) ?? [];
+        children.push(folder.path);
+        childrenMap.set(parentPath, children);
+      } else {
+        rootPaths.push(folder.path);
+      }
+    }
+
+    rootPaths.sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    for (const [, children] of childrenMap) {
+      children.sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    }
+
+    return { rootPaths, childrenMap };
+  }, [folders]);
+
   // ===== 渲染流程项 =====
   const renderFlowItem = (flowMeta: typeof flows[number], depth: number) => {
     const isSelected = currentFlow?.uuid === flowMeta.uuid;
@@ -716,7 +773,8 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                   // 显示移动子菜单
                   setOpenMenuUuid(null);
                   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  setMoveMenuPosition(computeMenuPosition(rect, 140, 140, 4, 'right'));
+                  setExpandedMoveMenuFolders(new Set());
+                  setMoveMenuPosition(computeMenuPosition(rect, 180, 300, 4, 'right'));
                   setMoveMenuUuid(flowMeta.uuid);
                 }}
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
@@ -1022,7 +1080,8 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               e.stopPropagation();
               setOpenFolderMenuPath(null);
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              setMoveFolderMenuPosition(computeMenuPosition(rect, 140, 140, 4, 'right'));
+              setExpandedMoveFolderMenuFolders(new Set());
+              setMoveFolderMenuPosition(computeMenuPosition(rect, 180, 300, 4, 'right'));
               setMoveFolderMenuPath(openFolderMenuPath);
             }}
             className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
@@ -1060,34 +1119,82 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       {moveMenuUuid !== null && createPortal(
         <div
           ref={moveMenuRef}
-          className="fixed z-[10000] min-w-[140px] rounded-md border border-border bg-background shadow-md animate-in fade-in-0 zoom-in-95"
+          className="fixed z-[10000] min-w-[180px] rounded-md border border-border bg-background shadow-md animate-in fade-in-0 zoom-in-95"
           style={{ top: moveMenuPosition.top, left: moveMenuPosition.left }}
         >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleMoveFlow(moveMenuUuid, '');
-            }}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
-          >
-            <FileJson className="w-3.5 h-3.5" />
-            根目录
-          </button>
-          {folders.map(folder => (
+          <div className="max-h-[300px] overflow-y-auto py-1">
             <button
-              key={folder.path}
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                handleMoveFlow(moveMenuUuid, folder.path);
+                handleMoveFlow(moveMenuUuid, '');
               }}
               className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
             >
-              <Folder className="w-3.5 h-3.5 text-amber-500" />
-              {folder.name}
+              <FileJson className="w-3.5 h-3.5 shrink-0" />
+              根目录
             </button>
-          ))}
+            {(() => {
+              const renderFolderItems = (folderPaths: string[], depth: number): ReactNode[] => {
+                const items: ReactNode[] = [];
+                for (const path of folderPaths) {
+                  const folder = folders.find(f => f.path === path);
+                  if (!folder) continue;
+                  const children = folderTree.childrenMap.get(path) ?? [];
+                  const hasChildren = children.length > 0;
+                  const isExpanded = expandedMoveMenuFolders.has(path);
+                  const isCurrentFlowFolder = flows.find(f => f.uuid === moveMenuUuid)?.folder_path === path;
+
+                  items.push(
+                    <div key={path} className="flex items-center hover:bg-accent transition-colors"
+                      style={{ paddingLeft: `${depth * 16}px` }}
+                    >
+                      {/* 折叠/展开按钮（有子文件夹时显示） */}
+                      {hasChildren ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpandedMoveFolder(path);
+                          }}
+                          className="p-0.5 shrink-0 text-muted-foreground hover:text-foreground"
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="w-3 h-3" />
+                          ) : (
+                            <ChevronRight className="w-3 h-3" />
+                          )}
+                        </button>
+                      ) : (
+                        <span className="w-4 shrink-0" />
+                      )}
+                      {/* 文件夹名称（点击选择目标） */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveFlow(moveMenuUuid, path);
+                        }}
+                        disabled={isCurrentFlowFolder}
+                        className="flex items-center gap-1.5 px-2 py-1.5 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex-1 min-w-0"
+                      >
+                        <Folder className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        <span className="truncate">{folder.name}</span>
+                        {isCurrentFlowFolder && (
+                          <span className="text-[10px] text-muted-foreground shrink-0">(当前)</span>
+                        )}
+                      </button>
+                    </div>,
+                  );
+                  if (hasChildren && isExpanded) {
+                    items.push(...renderFolderItems(children, depth + 1));
+                  }
+                }
+                return items;
+              };
+              return renderFolderItems(folderTree.rootPaths, 0);
+            })()}
+          </div>
         </div>,
         document.body
       )}
@@ -1096,41 +1203,80 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       {moveFolderMenuPath !== null && createPortal(
         <div
           ref={moveFolderMenuRef}
-          className="fixed z-[10000] min-w-[140px] rounded-md border border-border bg-background shadow-md animate-in fade-in-0 zoom-in-95"
+          className="fixed z-[10000] min-w-[180px] rounded-md border border-border bg-background shadow-md animate-in fade-in-0 zoom-in-95"
           style={{ top: moveFolderMenuPosition.top, left: moveFolderMenuPosition.left }}
         >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleMoveFolder(moveFolderMenuPath, '');
-            }}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
-          >
-            <FileJson className="w-3.5 h-3.5" />
-            根目录
-          </button>
-          {folders
-            .filter(f => {
-              // 排除自身和自身的子目录
-              if (f.path === moveFolderMenuPath) return false;
-              if (f.path.startsWith(moveFolderMenuPath + '/')) return false;
-              return true;
-            })
-            .map(folder => (
-              <button
-                key={folder.path}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMoveFolder(moveFolderMenuPath, folder.path);
-                }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
-              >
-                <Folder className="w-3.5 h-3.5 text-amber-500" />
-                {folder.name}
-              </button>
-            ))}
+          <div className="max-h-[300px] overflow-y-auto py-1">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMoveFolder(moveFolderMenuPath, '');
+              }}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+            >
+              <FileJson className="w-3.5 h-3.5 shrink-0" />
+              根目录
+            </button>
+            {(() => {
+              const renderFolderItems = (folderPaths: string[], depth: number): ReactNode[] => {
+                const items: ReactNode[] = [];
+                for (const path of folderPaths) {
+                  // 排除自身和自身的子目录
+                  if (path === moveFolderMenuPath) continue;
+                  if (path.startsWith(moveFolderMenuPath + '/')) continue;
+                  const folder = folders.find(f => f.path === path);
+                  if (!folder) continue;
+                  const children = folderTree.childrenMap.get(path) ?? [];
+                  const hasChildren = children.length > 0;
+                  const isExpanded = expandedMoveFolderMenuFolders.has(path);
+
+                  items.push(
+                    <div key={path} className="flex items-center hover:bg-accent transition-colors"
+                      style={{ paddingLeft: `${depth * 16}px` }}
+                    >
+                      {/* 折叠/展开按钮（有子文件夹时显示） */}
+                      {hasChildren ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpandedMoveFolderMenu(path);
+                          }}
+                          className="p-0.5 shrink-0 text-muted-foreground hover:text-foreground"
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="w-3 h-3" />
+                          ) : (
+                            <ChevronRight className="w-3 h-3" />
+                          )}
+                        </button>
+                      ) : (
+                        <span className="w-4 shrink-0" />
+                      )}
+                      {/* 文件夹名称（点击选择目标） */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveFolder(moveFolderMenuPath, path);
+                        }}
+                        className="flex items-center gap-1.5 px-2 py-1.5 text-sm flex-1 min-w-0"
+                      >
+                        <Folder className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        <span className="truncate">{folder.name}</span>
+                      </button>
+                    </div>,
+                  );
+                  if (hasChildren && isExpanded) {
+                    items.push(...renderFolderItems(children, depth + 1));
+                  }
+                }
+                return items;
+              };
+              return renderFolderItems(folderTree.rootPaths, 0);
+            })()}
+          </div>
         </div>,
         document.body
       )}
