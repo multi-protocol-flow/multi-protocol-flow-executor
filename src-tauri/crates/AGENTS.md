@@ -1,11 +1,11 @@
 # Rust Workspace 总览
 
-**生成时间:** 2026-04-23
-**Commit:** 5995d24
+**生成时间:** 2026-04-30
+**Commit:** ddd1819
 
 ## 概述
 
-12 个 crate 组成的 Rust Workspace。`flow-engine` 为门面 crate (re-export 全部)，`app` (src-tauri/src/) 仅依赖 `flow-engine`。
+19 个 crate 组成的 Rust Workspace。`flow-engine` 为门面 crate (re-export 全部)，`app` (src-tauri/src/) 仅依赖 `flow-engine`。
 
 ## 依赖图
 
@@ -13,7 +13,9 @@
 Layer 0 (叶子):   flow-engine-core, flow-engine-crypto
 Layer 1 (协议):   flow-engine-http, flow-engine-ws, flow-engine-db,
                   flow-engine-script, flow-engine-assertion,
-                  flow-engine-grpc, flow-engine-mcp, flow-engine-tcp  (→ core)
+                  flow-engine-grpc, flow-engine-mcp, flow-engine-tcp,
+                  flow-engine-amqp, flow-engine-graphql, flow-engine-imap,
+                  flow-engine-kafka, flow-engine-smtp, flow-engine-sse  (→ core)
 Layer 2 (编排):   flow-engine-executor                          (→ core + 全部 Layer 1 + crypto)
 Layer 3 (门面):   flow-engine                                   (re-export 全部)
 Layer 4 (应用):   app (src-tauri/)                              (→ flow-engine)
@@ -33,8 +35,14 @@ Layer 4 (应用):   app (src-tauri/)                              (→ flow-engi
 | flow-engine-grpc | 1 | core | 7 | ~4,365 |
 | flow-engine-mcp | 1 | core | 9 | ~4,000 |
 | flow-engine-tcp | 1 | core | 15 | ~5,000 |
+| flow-engine-amqp | 1 | core | 26 | ~8,500 |
+| flow-engine-graphql | 1 | core | 10 | ~3,200 |
+| flow-engine-imap | 1 | core | 16 | ~4,800 |
+| flow-engine-kafka | 1 | core | 12 | ~3,600 |
+| flow-engine-smtp | 1 | core | 8 | ~2,400 |
+| flow-engine-sse | 1 | core | 7 | ~2,100 |
 | flow-engine-executor | 2 | core + 全部 Layer 1 + crypto | 28 | ~15,717 |
-| flow-engine | 3 | 全部 11 个 crate | 2 | ~205 |
+| flow-engine | 3 | 全部 18 个 crate | 2 | ~205 |
 
 ## 快速定位
 
@@ -49,6 +57,12 @@ Layer 4 (应用):   app (src-tauri/)                              (→ flow-engi
 | gRPC 执行器 | flow-engine-grpc | `grpc/src/` |
 | MCP 执行器 | flow-engine-mcp | `mcp/src/` |
 | TCP/UDP 执行器 | flow-engine-tcp | `tcp/src/` |
+| AMQP 执行器 | flow-engine-amqp | `amqp/src/` |
+| GraphQL 执行器 | flow-engine-graphql | `graphql/src/` |
+| IMAP 执行器 | flow-engine-imap | `imap/src/` |
+| Kafka 执行器 | flow-engine-kafka | `kafka/src/` |
+| SMTP 执行器 | flow-engine-smtp | `smtp/src/` |
+| SSE 执行器 | flow-engine-sse | `sse/src/` |
 | 主执行器 / 调试 / 压测 | flow-engine-executor | `executor/src/` |
 | 加密 / Keychain | flow-engine-crypto | `crypto/src/` |
 
@@ -67,7 +81,7 @@ cargo clippy -p flow-engine-db           # 仅 Lint DB
 |-------------|-----------|--------|
 | `flow-engine-core` | 全部 crate (级联) | **全量** |
 | `flow-engine-crypto` | executor → flow-engine → app | ~3 crate |
-| `flow-engine-http/ws/db/script/assertion/grpc/mcp/tcp` | executor → flow-engine → app | ~3 crate |
+| `flow-engine-http/ws/db/script/assertion/grpc/mcp/tcp/amqp/graphql/imap/kafka/smtp/sse` | executor → flow-engine → app | ~3 crate |
 | `flow-engine-executor` | flow-engine → app | ~2 crate |
 | `flow-engine` (门面) | app | ~1 crate |
 
@@ -84,3 +98,9 @@ cargo clippy -p flow-engine-db           # 仅 Lint DB
 - [flow-engine-grpc/src/AGENTS.md](./flow-engine-grpc/src/AGENTS.md) - gRPC
 - [flow-engine-mcp/src/AGENTS.md](./flow-engine-mcp/src/AGENTS.md) - MCP
 - [flow-engine-tcp/src/AGENTS.md](./flow-engine-tcp/src/AGENTS.md) - TCP/UDP
+- [flow-engine-amqp/src/AGENTS.md](./flow-engine-amqp/src/AGENTS.md) - AMQP
+- [flow-engine-graphql/src/AGENTS.md](./flow-engine-graphql/src/AGENTS.md) - GraphQL
+- [flow-engine-imap/src/AGENTS.md](./flow-engine-imap/src/AGENTS.md) - IMAP
+- [flow-engine-kafka/src/AGENTS.md](./flow-engine-kafka/src/AGENTS.md) - Kafka
+- [flow-engine-smtp/src/AGENTS.md](./flow-engine-smtp/src/AGENTS.md) - SMTP
+- [flow-engine-sse/src/AGENTS.md](./flow-engine-sse/src/AGENTS.md) - SSE

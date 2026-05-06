@@ -1,14 +1,14 @@
 # 项目知识库
 
-**生成时间:** 2026-04-23
-**Commit:** 5995d24
+**生成时间:** 2026-04-30
+**Commit:** ddd1819
 **Branch:** master
 
 ## 概述
 
 多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 工具。支持 HTTP、WebSocket、数据库（PostgreSQL/MySQL/SQLite/Redis）、gRPC、MCP、TCP/UDP、MQTT 协议，具备调试模式和压力测试功能。
 - **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + React Flow
-- **后端:** Rust Workspace (13 crates) + Tauri 2.x
+- **后端:** Rust Workspace (19 crates) + Tauri 2.x
 
 ## 结构
 
@@ -27,7 +27,7 @@ multi-protocol-flow-executor/
 │   └── __tests__/          # Vitest 单元测试 (~76 文件)
 ├── src-tauri/              # Rust 后端 (Workspace)
 │   ├── src/                # Tauri 适配层 + IPC 命令 (49 命令)
-│   ├── crates/             # 13 个子 crate
+│   ├── crates/             # 19 个子 crate
 │   │   ├── flow-engine/    # 门面 crate (re-export)
 │   │   ├── flow-engine-core/       # 基础类型、traits、插件注册
 │   │   ├── flow-engine-crypto/     # AES-256-GCM 加密 + OS Keychain
@@ -40,7 +40,13 @@ multi-protocol-flow-executor/
 │   │   ├── flow-engine-mcp/        # MCP 客户端 + 5 个执行器
 │   │   ├── flow-engine-tcp/        # TCP/UDP 客户端 + 3 TCP + 4 UDP 执行器
 │   │   ├── flow-engine-mqtt/        # MQTT 5.0 客户端 (rumqttc-next) + 7 个执行器
-│   │   └── flow-engine-executor/   # 主执行器、调试模式、压力测试、插件注册
+│   │   ├── flow-engine-executor/   # 主执行器、调试模式、压力测试、插件注册
+│   │   ├── flow-engine-amqp/       # AMQP 0-9-1 + 1.0 客户端 + 2 个子模块
+│   │   ├── flow-engine-graphql/    # GraphQL 客户端 (支持内省/查询/订阅)
+│   │   ├── flow-engine-imap/       # IMAP 客户端 (支持收发/搜索/文件夹管理)
+│   │   ├── flow-engine-kafka/      # Kafka 客户端 (支持生产/消费/Schema Registry)
+│   │   ├── flow-engine-smtp/       # SMTP 客户端 (支持 SASL/OAuth2 认证)
+│   │   └── flow-engine-sse/        # SSE 客户端 (支持连接/监听/断开)
 │   └── bin/mpe/            # CLI 工具 (6 子命令, mpe run/validate/debug/stress/flow/report)
 ├── tests/                  # CLI 测试数据 + fixtures
 └── docs/                   # 架构文档
@@ -53,7 +59,9 @@ Layer 0 (叶子):  flow-engine-core, flow-engine-crypto
 Layer 1:         flow-engine-http, flow-engine-ws, flow-engine-db,
                  flow-engine-script, flow-engine-assertion,
                  flow-engine-grpc, flow-engine-mcp, flow-engine-tcp,
-                 flow-engine-mqtt  (→ core)
+                 flow-engine-mqtt, flow-engine-amqp, flow-engine-graphql,
+                 flow-engine-imap, flow-engine-kafka, flow-engine-smtp,
+                 flow-engine-sse  (→ core)
 Layer 2:         flow-engine-executor                                (→ core + 全部 Layer 1 + crypto)
 Layer 3:         flow-engine                                         (门面，re-export 全部)
 Layer 4:         app (src-tauri/)                                    (→ flow-engine)
@@ -81,6 +89,12 @@ Layer 4:         app (src-tauri/)                                    (→ flow-e
 | MCP 节点 | `src-tauri/crates/flow-engine-mcp/` (详见该 crate 的 AGENTS.md) |
 | TCP/UDP 节点 | `src-tauri/crates/flow-engine-tcp/` (详见该 crate 的 AGENTS.md) |
 | MQTT 节点 | `src-tauri/crates/flow-engine-mqtt/` (详见该 crate 的 AGENTS.md) |
+| AMQP 节点 | `src-tauri/crates/flow-engine-amqp/` (详见该 crate 的 AGENTS.md) |
+| GraphQL 节点 | `src-tauri/crates/flow-engine-graphql/` (详见该 crate 的 AGENTS.md) |
+| IMAP 节点 | `src-tauri/crates/flow-engine-imap/` (详见该 crate 的 AGENTS.md) |
+| Kafka 节点 | `src-tauri/crates/flow-engine-kafka/` (详见该 crate 的 AGENTS.md) |
+| SMTP 节点 | `src-tauri/crates/flow-engine-smtp/` (详见该 crate 的 AGENTS.md) |
+| SSE 节点 | `src-tauri/crates/flow-engine-sse/` (详见该 crate 的 AGENTS.md) |
 | 插件注册表 | `src-tauri/crates/flow-engine-core/src/registry.rs` + `plugin.rs` |
 | 前端注册表 | `src/lib/NodeRegistry.ts` + `configPanelRegistry.ts` + `viewerRegistry.tsx` |
 | 调试模式 | `src-tauri/crates/flow-engine-executor/src/debug/` + `src/stores/debug.ts` |
@@ -145,7 +159,7 @@ cargo clippy -p flow-engine-grpc         # 只检查 gRPC crate
 |-------------|-----------|--------|
 | `flow-engine-core` | 全部 crate (级联) | **全量** |
 | `flow-engine-crypto` | executor → flow-engine → app | ~3 crate |
-| `flow-engine-http/ws/db/script/assertion/grpc/mcp/tcp/mqtt` | executor → flow-engine → app | ~3 crate |
+| `flow-engine-http/ws/db/script/assertion/grpc/mcp/tcp/mqtt/amqp/graphql/imap/kafka/smtp/sse` | executor → flow-engine → app | ~3 crate |
 | `flow-engine-executor` | flow-engine → app | ~2 crate |
 | `flow-engine` (门面) | app | ~1 crate |
 | `src-tauri/src/*` (Tauri 层) | app | ~1 crate |
@@ -353,6 +367,18 @@ npm run tauri build  # 构建安装包
 
 21. **MQTT 支持**: 七种节点类型 - `mqtt_connect` (连接)、`mqtt_publish` (发布)、`mqtt_subscribe` (订阅)、`mqtt_unsubscribe` (取消订阅)、`mqtt_disconnect` (断开)、`mqtt_wait_message` (等待消息)、`mqtt_request` (请求/响应)。支持 MQTT 5.0 协议，QoS 0/1/2，Retain 消息，遗嘱消息(LWT)，TLS，WebSocket 传输
 
+22. **AMQP 支持**: 两种协议版本 - AMQP 0-9-1 (RabbitMQ 兼容) 和 AMQP 1.0。三种节点类型 - `amqp_connect` (连接)、`amqp_publish` (发布消息)、`amqp_consume` (消费消息)。支持交换器声明、队列绑定、消息确认、事务处理
+
+23. **GraphQL 支持**: 四种节点类型 - `graphql_introspect` (内省)、`graphql_query` (查询)、`graphql_subscribe` (订阅)、`graphql_unsubscribe` (取消订阅)。支持运行时内省获取 Schema、查询/变更操作、实时订阅、变量绑定
+
+24. **IMAP 支持**: 五种节点类型 - `imap_connect` (连接)、`imap_fetch` (获取邮件)、`imap_search` (搜索邮件)、`imap_folder` (文件夹管理)、`imap_idle` (IDLE 监听)。支持 SSL/TLS、PLAIN/LOGIN/XOAUTH2 认证、邮件解析、附件下载
+
+25. **Kafka 支持**: 四种节点类型 - `kafka_produce` (生产消息)、`kafka_consume` (消费消息)、`kafka_batch_consume` (批量消费)、`kafka_admin` (管理操作)。支持 Schema Registry、消费者组、偏移量管理、主题管理、分区控制
+
+26. **SMTP 支持**: 三种节点类型 - `smtp_connect` (连接)、`smtp_send` (发送邮件)、`smtp_close` (关闭)。支持 PLAIN/LOGIN/CRAM-MD5/XOAUTH2 认证、TLS/STARTTLS、多收件人、附件发送、HTML/纯文本内容
+
+27. **SSE 支持**: 三种节点类型 - `sse_connect` (连接)、`sse_listen` (监听事件)、`sse_close` (关闭)。支持自动重连、自定义事件过滤、Last-Event-ID 恢复、多事件流并发
+
 ## 子目录知识库
 
 - [src/components/AGENTS.md](./src/components/AGENTS.md) - 前端组件架构
@@ -370,6 +396,12 @@ npm run tauri build  # 构建安装包
 - [src-tauri/crates/flow-engine-mcp/src/AGENTS.md](./src-tauri/crates/flow-engine-mcp/src/AGENTS.md) - MCP crate
 - [src-tauri/crates/flow-engine-tcp/src/AGENTS.md](./src-tauri/crates/flow-engine-tcp/src/AGENTS.md) - TCP/UDP crate
 - [src-tauri/crates/flow-engine-mqtt/src/AGENTS.md](./src-tauri/crates/flow-engine-mqtt/src/AGENTS.md) - MQTT crate
+- [src-tauri/crates/flow-engine-amqp/src/AGENTS.md](./src-tauri/crates/flow-engine-amqp/src/AGENTS.md) - AMQP crate
+- [src-tauri/crates/flow-engine-graphql/src/AGENTS.md](./src-tauri/crates/flow-engine-graphql/src/AGENTS.md) - GraphQL crate
+- [src-tauri/crates/flow-engine-imap/src/AGENTS.md](./src-tauri/crates/flow-engine-imap/src/AGENTS.md) - IMAP crate
+- [src-tauri/crates/flow-engine-kafka/src/AGENTS.md](./src-tauri/crates/flow-engine-kafka/src/AGENTS.md) - Kafka crate
+- [src-tauri/crates/flow-engine-smtp/src/AGENTS.md](./src-tauri/crates/flow-engine-smtp/src/AGENTS.md) - SMTP crate
+- [src-tauri/crates/flow-engine-sse/src/AGENTS.md](./src-tauri/crates/flow-engine-sse/src/AGENTS.md) - SSE crate
 - [src/stores/AGENTS.md](./src/stores/AGENTS.md) - Zustand 状态管理
 - [src/services/AGENTS.md](./src/services/AGENTS.md) - Tauri IPC 服务
 - [src/types/AGENTS.md](./src/types/AGENTS.md) - TypeScript 类型定义
