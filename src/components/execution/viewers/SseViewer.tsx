@@ -146,6 +146,13 @@ interface SseListenOutput {
     total_ms?: number;
   };
   error?: string;
+  /** 请求参数（connection_id 在此字段内） */
+  request?: {
+    connection_id?: string;
+    event_filter?: string | null;
+    max_events?: number;
+    timeout_ms?: number;
+  };
 }
 
 /** SSE Disconnect 输出数据 */
@@ -311,7 +318,7 @@ function SseListenView({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <SseBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {output?.connection_id || <span className="text-muted-foreground italic">未指定连接 ID</span>}
+              {(output?.request?.connection_id || output?.connection_id) || <span className="text-muted-foreground italic">未指定连接 ID</span>}
             </code>
           </div>
 

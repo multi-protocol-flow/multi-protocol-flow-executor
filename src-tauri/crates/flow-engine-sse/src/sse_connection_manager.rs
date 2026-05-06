@@ -2,7 +2,7 @@
 //!
 //! 实现 [`SseProvider`] trait，管理 SSE 连接的生命周期。
 //! 使用 reqwest 流式 GET 请求接收 SSE 事件，
-//! 后台 tokio 任务持续解析事件并通过 mpsc 通道分发。
+//! 后台 tokio 任务持续解析事件并通过 broadcast 通道分发给多个消费者。
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -10,11 +10,11 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use log::{info, warn};
-use tokio::sync::RwLock;
+use tokio::sync::{broadcast, RwLock};
 
 use flow_engine_core::node_config::{SseConnectConfig, SseDisconnectConfig, SseListenConfig};
 use flow_engine_core::traits::{
-    SseConnectOutput, SseConnectionInfo, SseListenOutput, SseProvider,
+    SseConnectOutput, SseConnectionInfo, SseEventItem, SseListenOutput, SseProvider,
 };
 
 use crate::sse_client::{SseClient, SseClientConfig, SseEvent};
@@ -53,7 +53,7 @@ impl std::fmt::Display for SseConnectionStatus {
 
 /// SSE 连接
 ///
-/// 持有连接元数据、后台事件读取任务句柄和事件通道。
+/// 持有连接元数据、后台事件读取任务句柄和 broadcast 事件通道。
 pub struct SseConnection {
     /// SSE 端点 URL
     pub url: String,
@@ -67,8 +67,8 @@ pub struct SseConnection {
     pub last_event_id: Arc<RwLock<Option<String>>>,
     /// 后台事件读取任务句柄
     listen_handle: Option<tokio::task::JoinHandle<()>>,
-    /// 事件发送端
-    event_sender: Option<tokio::sync::mpsc::Sender<SseEvent>>,
+    /// 事件广播发送端（多个 listen 可同时订阅）
+    event_tx: broadcast::Sender<SseEvent>,
     /// 取消令牌
     cancel_token: tokio_util::sync::CancellationToken,
 }
@@ -81,7 +81,7 @@ pub struct SseConnection {
 ///
 /// 管理 SSE 连接池，实现 `SseProvider` trait。
 /// 线程安全，使用 `Arc<RwLock<HashMap>>` 保护连接池。
-/// 事件通过 `mpsc` 通道传递给消费者。
+/// 事件通过 `broadcast` 通道分发给多个消费者（listen 节点）。
 pub struct SseConnectionManager {
     /// 活跃连接池: `connection_id` → [`SseConnection`]
     connections: Arc<RwLock<HashMap<String, SseConnection>>>,
@@ -142,6 +142,26 @@ impl SseConnectionManager {
     /// 获取当前时间戳（毫秒）
     fn now_ms() -> i64 {
         chrono::Utc::now().timestamp_millis()
+    }
+
+    /// 将 `SseEvent` 转换为 `SseEventItem`，可选 JSON 解码
+    fn sse_event_to_item(event: &SseEvent, decode_json: bool) -> SseEventItem {
+        let data_decoded = if decode_json {
+            serde_json::from_str::<serde_json::Value>(&event.data).ok()
+        } else {
+            None
+        };
+
+        SseEventItem {
+            event: event.event.clone(),
+            id: event.id.clone(),
+            data: event.data.clone(),
+            data_decoded,
+            received_at: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or(0),
+        }
     }
 }
 
@@ -214,8 +234,8 @@ impl SseProvider for SseConnectionManager {
             .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
             .collect();
 
-        // 创建事件通道
-        let (event_tx, _event_rx) = tokio::sync::mpsc::channel::<SseEvent>(256);
+        // 创建 broadcast 事件通道（允许同时有多个 listen 订阅）
+        let (event_tx, _) = broadcast::channel::<SseEvent>(256);
         let cancel_token = tokio_util::sync::CancellationToken::new();
 
         // 设置连接状态
@@ -235,7 +255,7 @@ impl SseProvider for SseConnectionManager {
             headers: config.headers.clone().unwrap_or_default(),
             last_event_id: Arc::clone(&last_event_id),
             listen_handle: Some(listen_handle),
-            event_sender: Some(event_tx),
+            event_tx,
             cancel_token,
         };
 
@@ -257,37 +277,88 @@ impl SseProvider for SseConnectionManager {
 
     /// 监听 SSE 事件
     ///
-    /// 从已建立的连接获取事件接收端，在指定超时内收集事件。
+    /// 从已建立的连接获取 broadcast 接收端，在指定超时内收集事件，
+    /// 支持事件过滤、最大事件数限制和 JSON 解码。
     async fn listen(
         &self,
         uuid: &str,
-        _config: &SseListenConfig,
+        config: &SseListenConfig,
     ) -> Result<SseListenOutput, String> {
         let start = std::time::Instant::now();
 
-        // 从连接池获取事件发送端的克隆
-        // 验证连接存在
-        {
+        // 从连接池获取 broadcast 发送端并克隆（以便释放读锁）
+        let event_tx = {
             let conns = self.connections.read().await;
             let conn = conns
                 .get(uuid)
                 .ok_or_else(|| format!("SSE 连接 '{}' 不存在", uuid))?;
-            let _ = conn
-                .event_sender
-                .clone()
-                .ok_or_else(|| format!("SSE 连接 '{}' 事件通道不可用", uuid))?;
+            conn.event_tx.clone()
+        };
+
+        let mut rx = event_tx.subscribe();
+        let event_filter = config.event_filter.clone();
+        let max_events = config.max_events;
+        let timeout_ms = config.timeout_ms;
+        let decode_json = config.decode_json;
+
+        // 计算超时时刻
+        let timeout = if timeout_ms > 0 {
+            Duration::from_millis(timeout_ms)
+        } else {
+            Duration::from_secs(3600) // 0 = 无限等待
+        };
+        let deadline = tokio::time::Instant::now() + timeout;
+
+        let mut events: Vec<SseEventItem> = Vec::new();
+
+        loop {
+            // 检查是否已超时
+            let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+            if remaining.is_zero() {
+                break;
+            }
+
+            match tokio::time::timeout(remaining, rx.recv()).await {
+                Ok(Ok(event)) => {
+                    // 事件过滤
+                    if let Some(ref filter) = event_filter {
+                        let event_type = event.event.as_deref().unwrap_or("message");
+                        if event_type != filter.as_str() {
+                            continue;
+                        }
+                    }
+
+                    // 转换为 SseEventItem
+                    let item = Self::sse_event_to_item(&event, decode_json);
+                    events.push(item);
+
+                    // 最大事件数限制
+                    if max_events > 0 && events.len() >= max_events as usize {
+                        break;
+                    }
+                }
+                Ok(Err(broadcast::error::RecvError::Closed)) => {
+                    // 通道已关闭（连接被断开）
+                    break;
+                }
+                Ok(Err(broadcast::error::RecvError::Lagged(n))) => {
+                    warn!("SSE 接收滞后，丢失 {} 个事件", n);
+                    continue;
+                }
+                Err(_elapsed) => {
+                    // 超时
+                    break;
+                }
+            }
         }
 
-        // 注意：完整的监听实现需要在连接管理器中使用 broadcast channel
-        // 而非 mpsc channel。此处在 T3/T4/T5 任务中完善。
-        // 这里提供一个基础框架，让连接管理器可以通过编译和基本测试。
-
         let duration_ms = start.elapsed().as_millis() as u64;
+        let event_count = events.len() as u32;
 
         Ok(SseListenOutput {
             success: true,
-            events: vec![],
-            event_count: 0,
+            events,
+            event_count,
             duration_ms,
             error: None,
         })

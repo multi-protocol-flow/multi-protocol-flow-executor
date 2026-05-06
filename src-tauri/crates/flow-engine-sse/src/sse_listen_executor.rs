@@ -99,8 +99,8 @@ impl NodeExecutor for SseListenExecutor {
             decode_json: config.decode_json,
         };
 
-        // 5. 调用 provider.listen()
-        let listen_result = self.sse_manager.listen(&node.uuid, &listen_config).await;
+        // 5. 调用 provider.listen()，传入 connection_id（即 connect 节点的 UUID）
+        let listen_result = self.sse_manager.listen(&connection_id, &listen_config).await;
 
         match listen_result {
             Ok(output) => {

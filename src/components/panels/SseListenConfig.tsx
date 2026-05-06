@@ -4,16 +4,19 @@
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   sseListenConfigSchema,
   type SseListenConfigFormData,
 } from './schemas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Ear, Info } from 'lucide-react';
 import type { SseListenConfig as SseListenConfigType } from '@/types';
+import { useFlowStore } from '@/stores';
+import { isSseConnectConfig } from '@/types/node';
 
 interface SseListenConfigProps {
   data: SseListenConfigType;
@@ -97,6 +100,19 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
     reset(toFormData(data));
   }, [data, reset]);
 
+  const flow = useFlowStore((state) => state.flow);
+
+  const availableConnections = useMemo(() => {
+    if (!flow) return [];
+    const connections: Array<{ uuid: string; name: string }> = [];
+    flow.nodes.forEach(node => {
+      if (isSseConnectConfig(node.data)) {
+        connections.push({ uuid: node.uuid, name: node.name });
+      }
+    });
+    return connections;
+  }, [flow]);
+
   const saveData = useCallback(() => {
     handleSubmit((formData) => {
       try {
@@ -136,19 +152,48 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
         </div>
       </div>
 
-      {/* 连接 ID */}
+      {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 ID <span className="text-rose-500">*</span>
+          连接 <span className="text-rose-500">*</span>
         </Label>
-        <Input
-          id="connection_id"
-          {...register('connection_id')}
-          placeholder="输入 SSE 连接 ID"
-          className="font-mono text-sm"
-        />
+        {availableConnections.length > 0 ? (
+          <Select
+            value={watch('connection_id') || ''}
+            onValueChange={(value) => {
+              setValue('connection_id', value, { shouldDirty: true });
+              saveData();
+            }}
+          >
+            <SelectTrigger id="connection_id" className="font-mono">
+              <SelectValue placeholder="选择 SSE 连接" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableConnections.map((conn) => (
+                <SelectItem key={conn.uuid} value={conn.uuid}>
+                  <span className="font-mono">{conn.name}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    ({conn.uuid.substring(0, 8)}...)
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            id="connection_id"
+            {...register('connection_id')}
+            placeholder="输入连接 ID"
+            className="font-mono text-sm"
+          />
+        )}
         {errors.connection_id && (
           <p className="text-xs text-rose-500">{errors.connection_id.message}</p>
+        )}
+        {availableConnections.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            未检测到 SSE Connect 节点，请手动输入连接 ID
+          </p>
         )}
       </div>
 

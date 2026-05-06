@@ -26,6 +26,7 @@ use std::time::Duration;
 use futures_util::StreamExt;
 use log::{info, warn};
 use reqwest::Response;
+use tokio::sync::broadcast;
 
 // ---------------------------------------------------------------------------
 // 公共类型
@@ -116,12 +117,12 @@ impl SseClient {
 
     /// 从 Response 中解析 SSE 事件流
     ///
-    /// 逐字节读取响应体，按 SSE 协议解析事件。
-    /// 返回事件接收器和用于控制后台读取任务的取消令牌。
+    /// 逐字节读取响应体，按 SSE 协议解析事件，
+    /// 通过 broadcast channel 分发给多个消费者。
     pub fn spawn_event_reader(
         response: Response,
         cancel_token: tokio_util::sync::CancellationToken,
-        event_sender: tokio::sync::mpsc::Sender<SseEvent>,
+        event_sender: broadcast::Sender<SseEvent>,
     ) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
             if let Err(e) = Self::read_sse_stream(response, &cancel_token, &event_sender).await {
@@ -139,7 +140,7 @@ impl SseClient {
     async fn read_sse_stream(
         response: Response,
         cancel_token: &tokio_util::sync::CancellationToken,
-        event_sender: &tokio::sync::mpsc::Sender<SseEvent>,
+        event_sender: &broadcast::Sender<SseEvent>,
     ) -> Result<(), String> {
         let mut stream = response.bytes_stream();
 
@@ -177,11 +178,8 @@ impl SseClient {
                             retry: current_retry.take(),
                         };
 
-                        // 尝试发送事件，如果通道关闭则退出
-                        if event_sender.send(event).await.is_err() {
-                            info!("SSE 事件通道已关闭，停止读取");
-                            return Ok(());
-                        }
+                        // 通过 broadcast 发送事件，无接收者时静默丢弃
+                        let _ = event_sender.send(event);
 
                         current_data_lines.clear();
                     }
@@ -238,7 +236,7 @@ impl SseClient {
                 data: current_data_lines.join("\n"),
                 retry: current_retry,
             };
-            let _ = event_sender.send(event).await;
+            let _ = event_sender.send(event);
         }
 
         info!("SSE 流结束");
@@ -289,21 +287,39 @@ mod tests {
 
     // ---- 行解析逻辑测试（通过模拟字节流） ----
 
+    /// 辅助：从 broadcast channel 收集所有事件（直到流结束或超时）
+    async fn collect_events(mut rx: broadcast::Receiver<SseEvent>, timeout_ms: u64) -> Vec<SseEvent> {
+        let timeout = if timeout_ms > 0 {
+            Duration::from_millis(timeout_ms)
+        } else {
+            Duration::from_secs(5)
+        };
+        let mut events = Vec::new();
+        loop {
+            match tokio::time::timeout(timeout, rx.recv()).await {
+                Ok(Ok(event)) => events.push(event),
+                _ => break,
+            }
+        }
+        events
+    }
+
     #[tokio::test]
     async fn test_sse_stream_parse_single_event() {
-        let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+        let (tx, _) = broadcast::channel::<SseEvent>(16);
         let cancel = tokio_util::sync::CancellationToken::new();
 
-        // 构造模拟 SSE 响应体
         let sse_text = "event: message\ndata: hello world\nid: 1\n\n";
         let response = mock_response(sse_text).await;
 
+        let rx = tx.subscribe();
         let handle = SseClient::spawn_event_reader(response, cancel.clone(), tx);
 
-        // 等待读取完成
         let _ = handle.await;
 
-        let event = rx.try_recv().expect("应该收到一个事件");
+        let events = collect_events(rx, 1000).await;
+        assert!(!events.is_empty(), "应该收到至少一个事件");
+        let event = &events[0];
         assert_eq!(event.event, Some("message".to_string()));
         assert_eq!(event.data, "hello world");
         assert_eq!(event.id, Some("1".to_string()));
@@ -311,74 +327,82 @@ mod tests {
 
     #[tokio::test]
     async fn test_sse_stream_parse_multiline_data() {
-        let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+        let (tx, _) = broadcast::channel::<SseEvent>(16);
         let cancel = tokio_util::sync::CancellationToken::new();
 
         let sse_text = "data: line1\ndata: line2\ndata: line3\n\n";
         let response = mock_response(sse_text).await;
 
+        let rx = tx.subscribe();
         let handle = SseClient::spawn_event_reader(response, cancel.clone(), tx);
         let _ = handle.await;
 
-        let event = rx.try_recv().expect("应该收到一个事件");
+        let events = collect_events(rx, 1000).await;
+        assert!(!events.is_empty(), "应该收到至少一个事件");
+        let event = &events[0];
         assert_eq!(event.data, "line1\nline2\nline3");
     }
 
     #[tokio::test]
     async fn test_sse_stream_parse_multiple_events() {
-        let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+        let (tx, _) = broadcast::channel::<SseEvent>(16);
         let cancel = tokio_util::sync::CancellationToken::new();
 
         let sse_text = "data: first\n\ndata: second\n\n";
         let response = mock_response(sse_text).await;
 
+        let rx = tx.subscribe();
         let handle = SseClient::spawn_event_reader(response, cancel.clone(), tx);
         let _ = handle.await;
 
-        let event1 = rx.try_recv().expect("应该收到第一个事件");
-        assert_eq!(event1.data, "first");
-        let event2 = rx.try_recv().expect("应该收到第二个事件");
-        assert_eq!(event2.data, "second");
+        let events = collect_events(rx, 1000).await;
+        assert_eq!(events.len(), 2, "应该收到两个事件");
+        assert_eq!(events[0].data, "first");
+        assert_eq!(events[1].data, "second");
     }
 
     #[tokio::test]
     async fn test_sse_stream_parse_retry_field() {
-        let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+        let (tx, _) = broadcast::channel::<SseEvent>(16);
         let cancel = tokio_util::sync::CancellationToken::new();
 
         let sse_text = "retry: 5000\ndata: test\n\n";
         let response = mock_response(sse_text).await;
 
+        let rx = tx.subscribe();
         let handle = SseClient::spawn_event_reader(response, cancel.clone(), tx);
         let _ = handle.await;
 
-        let event = rx.try_recv().expect("应该收到一个事件");
+        let events = collect_events(rx, 1000).await;
+        assert!(!events.is_empty(), "应该收到至少一个事件");
+        let event = &events[0];
         assert_eq!(event.retry, Some(5000));
         assert_eq!(event.data, "test");
     }
 
     #[tokio::test]
     async fn test_sse_stream_ignore_comments() {
-        let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+        let (tx, _) = broadcast::channel::<SseEvent>(16);
         let cancel = tokio_util::sync::CancellationToken::new();
 
         let sse_text = ": this is a comment\ndata: actual data\n\n";
         let response = mock_response(sse_text).await;
 
+        let rx = tx.subscribe();
         let handle = SseClient::spawn_event_reader(response, cancel.clone(), tx);
         let _ = handle.await;
 
-        let event = rx.try_recv().expect("应该收到一个事件");
+        let events = collect_events(rx, 1000).await;
+        assert!(!events.is_empty(), "应该收到至少一个事件");
+        let event = &events[0];
         assert_eq!(event.data, "actual data");
     }
 
     #[tokio::test]
     async fn test_sse_stream_cancellation() {
-        let (tx, _rx) = tokio::sync::mpsc::channel(16);
+        let (tx, _) = broadcast::channel::<SseEvent>(16);
         let cancel = tokio_util::sync::CancellationToken::new();
 
-        // 创建一个会持续发送数据的流（不会自然结束）
-        // 使用空数据来测试取消机制
         let sse_text = "data: before_cancel\n\n";
         let response = mock_response(sse_text).await;
 
@@ -386,38 +410,43 @@ mod tests {
         let handle = SseClient::spawn_event_reader(response, cancel.clone(), tx);
         let _ = handle.await;
 
-        // 取消后不应收到事件（或可能收到 before_cancel，取决于竞争条件）
-        // 主要验证不会 panic 或死锁
+        // 取消后主要验证不会 panic 或死锁
     }
 
     #[tokio::test]
     async fn test_sse_stream_ignore_unknown_fields() {
-        let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+        let (tx, _) = broadcast::channel::<SseEvent>(16);
         let cancel = tokio_util::sync::CancellationToken::new();
 
         let sse_text = "unknown: field\ndata: test\n\n";
         let response = mock_response(sse_text).await;
 
+        let rx = tx.subscribe();
         let handle = SseClient::spawn_event_reader(response, cancel.clone(), tx);
         let _ = handle.await;
 
-        let event = rx.try_recv().expect("应该收到一个事件");
+        let events = collect_events(rx, 1000).await;
+        assert!(!events.is_empty(), "应该收到至少一个事件");
+        let event = &events[0];
         assert_eq!(event.data, "test");
     }
 
     #[tokio::test]
     async fn test_sse_stream_id_no_null_byte() {
-        let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+        let (tx, _) = broadcast::channel::<SseEvent>(16);
         let cancel = tokio_util::sync::CancellationToken::new();
 
         // id 包含空字节，应被忽略
         let sse_text = "id: bad\x00id\ndata: test\n\n";
         let response = mock_response(sse_text).await;
 
+        let rx = tx.subscribe();
         let handle = SseClient::spawn_event_reader(response, cancel.clone(), tx);
         let _ = handle.await;
 
-        let event = rx.try_recv().expect("应该收到一个事件");
+        let events = collect_events(rx, 1000).await;
+        assert!(!events.is_empty(), "应该收到至少一个事件");
+        let event = &events[0];
         assert_eq!(event.id, None);
         assert_eq!(event.data, "test");
     }
