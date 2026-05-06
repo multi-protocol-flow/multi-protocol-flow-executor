@@ -1517,6 +1517,14 @@ export interface GraphqlConnectConfig {
   connection_timeout_ms?: number;
   /** 连接 ID */
   connection_id?: string;
+  /** 设计时内省发现的 Schema（JSON） */
+  discovered_schema?: Record<string, unknown>;
+  /** 设计时内省发现的查询模板 */
+  discovered_queries?: Array<{
+    type_name: string;
+    operation: string;
+    template: string;
+  }>;
 }
 
 /** GraphQL 查询/变更节点配置 */

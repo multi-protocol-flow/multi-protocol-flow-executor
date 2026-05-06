@@ -14,10 +14,13 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Plus, Trash2, Info } from 'lucide-react';
-import type { GraphqlQueryConfig as GraphqlQueryConfigType } from '@/types';
+import { Plus, Trash2, Info, Send } from 'lucide-react';
+import type { GraphqlQueryConfig as GraphqlQueryConfigType, GraphqlConnectConfig as GraphqlConnectConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isGraphqlConnectConfig } from '@/types/node';
+import { buildOperationFieldTrees } from '@/lib/graphqlSchema';
+import type { FieldNode } from '@/lib/graphqlSchema';
+import { GraphqlFieldTree } from '@/components/ui/GraphqlFieldTree';
 
 interface GraphqlQueryConfigProps {
   data: GraphqlQueryConfigType;
@@ -136,6 +139,31 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
     });
     return connections;
   }, [flow]);
+
+  // 获取选中的 connect 节点中的 discovered_schema，构建字段树
+  const selectedSchema = useMemo<{
+    queryFields: FieldNode[];
+    mutationFields: FieldNode[];
+    hasSchema: boolean;
+  }>(() => {
+    if (!flow || !watch('connection_id')) {
+      return { queryFields: [], mutationFields: [], hasSchema: false };
+    }
+    const connectNode = flow.nodes.find(
+      n => n.uuid === watch('connection_id') && isGraphqlConnectConfig(n.data)
+    );
+    if (!connectNode) return { queryFields: [], mutationFields: [], hasSchema: false };
+    const config = connectNode.data as GraphqlConnectConfigType;
+    if (!config.discovered_schema) return { queryFields: [], mutationFields: [], hasSchema: false };
+
+    const query = buildOperationFieldTrees(config.discovered_schema, 'query');
+    const mutation = buildOperationFieldTrees(config.discovered_schema, 'mutation');
+    return {
+      queryFields: query.rootFields,
+      mutationFields: mutation.rootFields,
+      hasSchema: true,
+    };
+  }, [flow, watch('connection_id')]);
 
   const [fileEntries, setFileEntries] = useState<FileEntry[]>(data.files || []);
 
@@ -259,6 +287,50 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
           </p>
         )}
       </div>
+
+      {/* Schema 字段浏览器 */}
+      {selectedSchema.hasSchema && (selectedSchema.queryFields.length > 0 || selectedSchema.mutationFields.length > 0) && (
+        <div className="space-y-3">
+          <Label className="text-sm font-medium text-foreground">
+            Schema 字段浏览器
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            勾选需要的字段，点击"生成查询"自动填充查询编辑器
+          </p>
+
+          {/* Query 字段 */}
+          {selectedSchema.queryFields.length > 0 && (
+            <GraphqlFieldTree
+              title="Query"
+              fields={selectedSchema.queryFields}
+              onGenerate={(q) => {
+                if (!q) return;
+                // 使用 reset 替代 setValue，确保表单状态完整刷新到 Textarea 组件
+                const vals = getValues();
+                const updated = { ...vals, query: q };
+                reset(updated as GraphqlQueryConfigFormData);
+                onSave(fromFormData(updated, fileEntries));
+              }}
+            />
+          )}
+
+          {/* Mutation 字段 */}
+          {selectedSchema.mutationFields.length > 0 && (
+            <GraphqlFieldTree
+              title="Mutation"
+              fields={selectedSchema.mutationFields}
+              onGenerate={(q) => {
+                if (!q) return;
+                // 使用 reset 替代 setValue，确保表单状态完整刷新到 Textarea 组件
+                const vals = getValues();
+                const updated = { ...vals, query: q };
+                reset(updated as GraphqlQueryConfigFormData);
+                onSave(fromFormData(updated, fileEntries));
+              }}
+            />
+          )}
+        </div>
+      )}
 
       {/* 查询编辑器 */}
       <div className="space-y-2">
@@ -390,3 +462,5 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
     </form>
   );
 }
+
+

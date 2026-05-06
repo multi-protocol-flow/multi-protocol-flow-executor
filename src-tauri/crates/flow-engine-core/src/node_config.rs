@@ -1,6 +1,6 @@
 // 节点配置模块 - 强类型节点配置定义
 
-use crate::traits::{FramingConfig, GrpcServiceInfo, TcpFramingMode};
+use crate::traits::{FramingConfig, GrpcServiceInfo, GraphqlQueryTemplate, TcpFramingMode};
 use crate::variable::InitialVariable;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -2531,6 +2531,12 @@ pub struct GraphqlConnectConfig {
     /// 连接 ID（用于后续节点引用）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub connection_id: Option<String>,
+    /// 设计时内省发现的 Schema（JSON）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discovered_schema: Option<serde_json::Value>,
+    /// 设计时内省发现的查询模板
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discovered_queries: Option<Vec<GraphqlQueryTemplate>>,
 }
 
 /// GraphQL 文件上传描述

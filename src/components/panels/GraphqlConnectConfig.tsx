@@ -4,7 +4,7 @@
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   graphqlConnectConfigSchema,
   type GraphqlConnectConfigFormData,
@@ -104,28 +104,59 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
   const [isIntrospecting, setIsIntrospecting] = useState(false);
   const [introspectResult, setIntrospectResult] = useState<{ success: boolean; message: string; schema?: Record<string, unknown> } | null>(null);
 
+  const [headerEntries, setHeaderEntries] = useState<HeaderEntry[]>(() => {
+    if (!data.headers) return [];
+    return Object.entries(data.headers).map<HeaderEntry>(([key, value]) => ({ key, value: String(value) }));
+  });
+
+  /** 将 headerEntries 转换为 Record<string, string> 用于 IPC 调用 */
+  const headerMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    headerEntries.forEach(entry => {
+      if (entry.key.trim()) map[entry.key.trim()] = entry.value;
+    });
+    return map;
+  }, [headerEntries]);
+
   const handleIntrospectSchema = useCallback(async () => {
     const endpoint = watch('endpoint')?.trim();
-    if (!endpoint) return;
+    if (!endpoint) {
+      setIntrospectResult({
+        success: false,
+        message: '请先配置 GraphQL 端点 URL',
+      });
+      return;
+    }
 
     setIsIntrospecting(true);
     setIntrospectResult(null);
 
     try {
-      const headers = watch('headers');
-      const result = await introspectSchema({ endpoint, headers: headers || undefined });
+      const result = await introspectSchema({ endpoint, headers: Object.keys(headerMap).length > 0 ? headerMap : undefined });
 
       if (result.success) {
         const typeCount = result.schema ? Object.keys(result.schema).length : 0;
         setIntrospectResult({
           success: true,
-          message: `Schema 内省成功（${typeCount} 个类型）`,
+          message: `Schema 探索成功（${typeCount} 个类型）`,
           schema: result.schema || undefined,
+        });
+        // 保存发现的 Schema 和查询模板到节点配置
+        const currentData = getValues();
+        onSave({
+          type: 'graphql_connect',
+          endpoint: currentData.endpoint,
+          ws_endpoint: currentData.ws_endpoint || undefined,
+          headers: Object.keys(headerMap).length > 0 ? headerMap : undefined,
+          connection_timeout_ms: currentData.connection_timeout_ms || undefined,
+          connection_id: currentData.connection_id || undefined,
+          discovered_schema: result.schema ?? undefined,
+          discovered_queries: result.query_templates,
         });
       } else {
         setIntrospectResult({
           success: false,
-          message: result.error || 'Schema 内省失败',
+          message: result.error || 'Schema 探索失败',
         });
       }
     } catch (error) {
@@ -136,16 +167,11 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
     } finally {
       setIsIntrospecting(false);
     }
-  }, [watch]);
+  }, [watch, headerMap, getValues, onSave]);
 
   useEffect(() => {
     reset(toFormData(data));
   }, [data, reset]);
-
-  const [headerEntries, setHeaderEntries] = useState<HeaderEntry[]>(() => {
-    if (!data.headers) return [];
-    return Object.entries(data.headers).map<HeaderEntry>(([key, value]) => ({ key, value: String(value) }));
-  });
 
   useEffect(() => {
     if (data.headers) {
@@ -339,34 +365,43 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
         </p>
       </div>
 
-      {/* 内省 Schema */}
-      <div className="space-y-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="w-full gap-2"
-          disabled={isIntrospecting || !watch('endpoint')?.trim()}
-          onClick={handleIntrospectSchema}
-        >
-          {isIntrospecting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <FileJson className="h-4 w-4" />
-          )}
-          {isIntrospecting ? '正在内省 Schema...' : '内省 Schema'}
-        </Button>
+      {/* Schema 探索 */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-medium text-foreground">
+            Schema 探索
+          </Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleIntrospectSchema}
+            disabled={isIntrospecting}
+            className="h-8 gap-1.5 text-xs"
+          >
+            {isIntrospecting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <FileJson className="h-3.5 w-3.5" />
+            )}
+            {isIntrospecting ? '探索中...' : '获取 Schema'}
+          </Button>
+        </div>
 
         {introspectResult && (
           <div className={cn(
             "rounded-md border px-3 py-2 text-xs",
             introspectResult.success
-              ? "border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
-              : "border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400"
+              ? "border-green-200 bg-green-50 text-green-700"
+              : "border-red-200 bg-red-50 text-red-700"
           )}>
             {introspectResult.message}
           </div>
         )}
+
+        <p className="text-xs text-muted-foreground">
+          向已配置的端点发送内省查询，获取可用的 Query 和 Mutation 列表
+        </p>
       </div>
 
       {/* 提示信息 */}

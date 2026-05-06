@@ -24,6 +24,12 @@ export interface GraphqlIntrospectOutput {
   schema: Record<string, unknown> | null;
   /** 错误信息 */
   error: string | null;
+  /** 生成的查询模板 */
+  query_templates?: Array<{
+    type_name: string;
+    operation: string;
+    template: string;
+  }>;
 }
 
 // ============================================================================

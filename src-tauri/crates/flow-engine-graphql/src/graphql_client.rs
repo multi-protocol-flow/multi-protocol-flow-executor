@@ -151,10 +151,13 @@ pub struct GraphqlClient {
 }
 
 impl GraphqlClient {
-    /// 创建新的 GraphQL 客户端
+    /// 创建新的 GraphQL 客户端（不自动跟随 301/302 重定向，避免 POST→GET 丢失 body）
     pub fn new() -> Self {
         Self {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
         }
     }
 
@@ -162,6 +165,7 @@ impl GraphqlClient {
     pub fn with_timeout(timeout: Duration) -> Self {
         Self {
             client: reqwest::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
                 .timeout(timeout)
                 .build()
                 .unwrap_or_else(|_| reqwest::Client::new()),
@@ -308,6 +312,78 @@ impl GraphqlClient {
     // 内部方法
     // -----------------------------------------------------------------------
 
+    /// 手动跟随重定向并发送 POST 请求（保持 POST 方法）
+    async fn send_post_with_redirects(
+        client: &reqwest::Client,
+        endpoint: &str,
+        body: &GraphqlRequestBody,
+        headers: Option<&HashMap<String, String>>,
+        auth: &GraphqlAuth,
+        timeout: Duration,
+        start: Instant,
+    ) -> Result<GraphqlResponse, String> {
+        let max_redirects = 5u32;
+        let mut current_url = endpoint.to_string();
+
+        for _ in 0..=max_redirects {
+            let mut builder = client
+                .post(&current_url)
+                .timeout(timeout)
+                .json(body);
+
+            builder = Self::apply_auth(builder, auth);
+            builder = Self::apply_headers(builder, headers);
+
+            let resp = builder.send().await.map_err(|e| {
+                if e.is_timeout() {
+                    format!("GraphQL 请求超时: {}", e)
+                } else if e.is_connect() {
+                    format!("GraphQL 连接失败: {}", e)
+                } else {
+                    format!("GraphQL 请求失败: {}", e)
+                }
+            })?;
+
+            let status = resp.status();
+            let elapsed = start.elapsed();
+
+            if status.is_redirection() {
+                let next = resp.headers()
+                    .get("location")
+                    .and_then(|v| v.to_str().ok())
+                    .map(|loc| {
+                        if loc.starts_with('/') {
+                            // 相对 origin 解析
+                            let origin = current_url.split('/')
+                                .take(3)
+                                .collect::<Vec<_>>()
+                                .join("/");
+                            format!("{}{}", origin, loc)
+                        } else {
+                            loc.to_string()
+                        }
+                    });
+                match next {
+                    Some(url) => { current_url = url; continue; }
+                    None => return Err("重定向无 Location 头".to_string()),
+                }
+            }
+
+            let status_code = status.as_u16();
+            let response_text = resp.text().await
+                .map_err(|e| format!("读取响应体失败: {}", e))?;
+
+            info!(
+                "GraphQL 请求完成: endpoint={}, status={}, elapsed={}ms",
+                current_url, status_code, elapsed.as_millis()
+            );
+
+            return Self::parse_graphql_response(response_text, status_code, elapsed);
+        }
+
+        Err("重定向次数过多".to_string())
+    }
+
     /// 执行通用 GraphQL HTTP 请求
     async fn execute_request(
         &self,
@@ -328,44 +404,9 @@ impl GraphqlClient {
             operation_name,
         };
 
-        let mut builder = self
-            .client
-            .post(endpoint)
-            .timeout(timeout)
-            .json(&body);
-
-        builder = Self::apply_auth(builder, auth);
-        builder = Self::apply_headers(builder, headers);
-
-        let response = builder
-            .send()
-            .await
-            .map_err(|e| {
-                if e.is_timeout() {
-                    format!("GraphQL 请求超时（{}ms）: {}", timeout_ms, e)
-                } else if e.is_connect() {
-                    format!("GraphQL 连接失败: {}", e)
-                } else {
-                    format!("GraphQL 请求失败: {}", e)
-                }
-            })?;
-
-        let status_code = response.status().as_u16();
-        let elapsed = start.elapsed();
-
-        let response_text = response
-            .text()
-            .await
-            .map_err(|e| format!("读取响应体失败: {}", e))?;
-
-        info!(
-            "GraphQL 请求完成: endpoint={}, status={}, elapsed={}ms",
-            endpoint,
-            status_code,
-            elapsed.as_millis()
-        );
-
-        Self::parse_graphql_response(response_text, status_code, elapsed)
+        Self::send_post_with_redirects(
+            &self.client, endpoint, &body, headers, auth, timeout, start,
+        ).await
     }
 
     /// 解析 GraphQL HTTP 响应

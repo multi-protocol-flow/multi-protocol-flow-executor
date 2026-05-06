@@ -2039,8 +2039,187 @@ pub struct GraphqlIntrospectOutput {
     pub success: bool,
     /// Schema JSON 字符串
     pub schema: Option<serde_json::Value>,
+    /// 生成的查询模板
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query_templates: Option<Vec<flow_engine::traits::GraphqlQueryTemplate>>,
     /// 错误信息
     pub error: Option<String>,
+}
+
+/// 从 Schema 类型定义中提取字段的嵌套子字段（递归，最大深度 2）
+fn generate_nested_fields(
+    type_name: &str,
+    types_map: &std::collections::HashMap<&str, &serde_json::Value>,
+    depth: usize,
+    visited: &mut std::collections::HashSet<String>,
+) -> String {
+    if depth > 2 || visited.contains(type_name) {
+        return String::new();
+    }
+    visited.insert(type_name.to_string());
+
+    let type_def = match types_map.get(type_name) {
+        Some(t) => t,
+        None => return String::new(),
+    };
+
+    let fields = match type_def.get("fields").and_then(|f| f.as_array()) {
+        Some(f) => f,
+        None => return String::new(), // SCALAR/ENUM → 无子字段
+    };
+
+    let mut sub_fields = Vec::new();
+    for field in fields {
+        let name = match field.get("name").and_then(|n| n.as_str()) {
+            Some(n) if !n.starts_with("__") => n,
+            _ => continue,
+        };
+
+        // 提取字段的返回值类型名（剥掉 NON_NULL / LIST 包装）
+        let return_type = resolve_type_name(field.get("type"));
+        if let Some(rt) = return_type {
+            if is_leaf_type(&rt) {
+                sub_fields.push(name.to_string());
+            } else {
+                let nested = generate_nested_fields(&rt, types_map, depth + 1, visited);
+                if nested.is_empty() {
+                    sub_fields.push(name.to_string());
+                } else {
+                    sub_fields.push(format!("{} {{\n{}  }}", name, nested));
+                }
+            }
+        } else {
+            sub_fields.push(name.to_string());
+        }
+    }
+
+    visited.remove(type_name);
+    sub_fields.join("\n  ")
+}
+
+/// 判断类型是否为叶子类型（SCALAR / ENUM）
+fn is_leaf_type(name: &str) -> bool {
+    matches!(name, "String" | "Int" | "Float" | "Boolean" | "ID")
+}
+
+/// 从 type 引用结构中提取实际类型名（剥掉 NON_NULL / LIST 包装）
+fn resolve_type_name(type_ref: Option<&serde_json::Value>) -> Option<String> {
+    let mut current = type_ref?;
+    loop {
+        match current.get("kind").and_then(|k| k.as_str()) {
+            Some("NON_NULL") | Some("LIST") => {
+                current = current.get("ofType")?;
+            }
+            Some(_) => {
+                return current.get("name").and_then(|n| n.as_str()).map(|s| s.to_string());
+            }
+            None => return None,
+        }
+    }
+}
+
+/// 从 Schema 数据生成查询模板（含展开的子字段）
+fn generate_graphql_templates(schema: &serde_json::Value) -> Option<Vec<flow_engine::traits::GraphqlQueryTemplate>> {
+    let schema_obj = schema.get("__schema")?;
+    let types = schema_obj.get("types").and_then(|t| t.as_array())?;
+
+    // 构建类型索引: type_name → type_def
+    let types_map: std::collections::HashMap<&str, &serde_json::Value> = types
+        .iter()
+        .filter_map(|t| {
+            t.get("name")
+                .and_then(|n| n.as_str())
+                .map(|name| (name, t))
+        })
+        .collect();
+
+    let mut templates = Vec::new();
+
+    // 生成 Query 模板
+    if let Some(qt_name) = schema_obj.get("queryType").and_then(|qt| qt.get("name")).and_then(|n| n.as_str()) {
+        if let Some(query_type_def) = types_map.get(qt_name) {
+            if let Some(query_fields) = query_type_def.get("fields").and_then(|f| f.as_array()) {
+                for field in query_fields {
+                    let name = field.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                    if name.starts_with("__") { continue; }
+
+                    let field_return_type = resolve_type_name(field.get("type"));
+                    let field_nested = field_return_type
+                        .as_ref()
+                        .map(|rt| {
+                            let mut v = std::collections::HashSet::new();
+                            generate_nested_fields(rt, &types_map, 0, &mut v)
+                        })
+                        .unwrap_or_default();
+
+                    let template = if field_nested.is_empty() {
+                        format!("query {} {{\n  {}\n}}", pascal_case(name), name)
+                    } else {
+                        format!("query {} {{\n  {} {{\n{}  }}\n}}", pascal_case(name), name, indent(&field_nested, 4))
+                    };
+
+                    templates.push(flow_engine::traits::GraphqlQueryTemplate {
+                        type_name: qt_name.to_string(),
+                        operation: "query".to_string(),
+                        template,
+                    });
+                }
+            }
+        }
+    }
+
+    // 生成 Mutation 模板
+    if let Some(mutation_type) = schema_obj.get("mutationType").and_then(|mt| mt.get("name")) {
+        let type_name = mutation_type.as_str().unwrap_or("Mutation");
+        if let Some(mutation_type_def) = types_map.get(type_name) {
+            if let Some(mutation_fields) = mutation_type_def.get("fields").and_then(|f| f.as_array()) {
+                for field in mutation_fields {
+                    let name = field.get("name").and_then(|n| n.as_str()).unwrap_or("");
+
+                    let field_return_type = resolve_type_name(field.get("type"));
+                    let field_nested = field_return_type
+                        .as_ref()
+                        .map(|rt| {
+                            let mut v = std::collections::HashSet::new();
+                            generate_nested_fields(rt, &types_map, 0, &mut v)
+                        })
+                        .unwrap_or_default();
+
+                    let template = if field_nested.is_empty() {
+                        format!("mutation {} {{\n  {}\n}}", pascal_case(name), name)
+                    } else {
+                        format!("mutation {} {{\n  {} {{\n{}  }}\n}}", pascal_case(name), name, indent(&field_nested, 4))
+                    };
+
+                    templates.push(flow_engine::traits::GraphqlQueryTemplate {
+                        type_name: type_name.to_string(),
+                        operation: "mutation".to_string(),
+                        template,
+                    });
+                }
+            }
+        }
+    }
+
+    if templates.is_empty() { None } else { Some(templates) }
+}
+
+/// 首字母大写
+fn pascal_case(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        Some(first) => first.to_uppercase().to_string() + c.as_str(),
+        None => String::new(),
+    }
+}
+
+/// 缩进文本
+fn indent(text: &str, spaces: usize) -> String {
+    let prefix = " ".repeat(spaces);
+    text.lines()
+        .map(|line| format!("{}{}", prefix, line))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// GraphQL Schema 内省
@@ -2057,6 +2236,7 @@ pub async fn graphql_introspect_schema(
         return GraphqlIntrospectOutput {
             success: false,
             schema: None,
+            query_templates: None,
             error: Some("端点 URL 不能为空".to_string()),
         };
     }
@@ -2064,13 +2244,14 @@ pub async fn graphql_introspect_schema(
         return GraphqlIntrospectOutput {
             success: false,
             schema: None,
+            query_templates: None,
             error: Some("端点 URL 必须以 http:// 或 https:// 开头".to_string()),
         };
     }
 
     // GraphQL 内省查询
     let introspection_query = serde_json::json!({
-        "query": r#"{
+        "query": r#"query IntrospectionQuery {
           __schema {
             queryType { name }
             mutationType { name }
@@ -2101,59 +2282,116 @@ pub async fn graphql_introspect_schema(
         }"#
     });
 
-    // 构建请求
-    let mut req = reqwest::Client::new()
-        .post(&input.endpoint)
-        .header("Content-Type", "application/json")
-        .timeout(std::time::Duration::from_secs(10));
+    // 构建 HTTP 客户端（不自动跟随重定向，手动处理 301→POST）
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| format!("创建 HTTP 客户端失败: {}", e));
 
-    if let Some(headers) = input.headers {
-        for (key, value) in headers {
-            req = req.header(&key, &value);
-        }
-    }
+    let client = match client {
+        Ok(c) => c,
+        Err(e) => return GraphqlIntrospectOutput {
+            success: false, schema: None, query_templates: None, error: Some(e),
+        },
+    };
 
-    match req.json(&introspection_query).send().await {
-        Ok(resp) => {
-            let status = resp.status();
-            match resp.json::<serde_json::Value>().await {
-                Ok(body) => {
-                    if status.is_success() {
-                        // 检查是否有 GraphQL 错误
-                        if let Some(errors) = body.get("errors") {
-                            GraphqlIntrospectOutput {
-                                success: false,
-                                schema: None,
-                                error: Some(format!("GraphQL 错误: {}", errors)),
-                            }
-                        } else {
-                            GraphqlIntrospectOutput {
-                                success: true,
-                                schema: Some(body.get("data").cloned().unwrap_or(body)),
-                                error: None,
-                            }
-                        }
-                    } else {
-                        GraphqlIntrospectOutput {
-                            success: false,
-                            schema: None,
-                            error: Some(format!("HTTP 错误: {}", status)),
-                        }
-                    }
-                }
-                Err(e) => GraphqlIntrospectOutput {
-                    success: false,
-                    schema: None,
-                    error: Some(format!("解析响应失败: {}", e)),
-                },
+    // 手动跟随重定向（保持 POST 方法）
+    let max_redirects = 5u32;
+    let mut current_url = input.endpoint.clone();
+    let mut result = None;
+
+    for _ in 0..=max_redirects {
+        let mut req = client
+            .post(&current_url)
+            .header("Content-Type", "application/json")
+            .json(&introspection_query);
+
+        if let Some(ref headers) = input.headers {
+            for (key, value) in headers {
+                req = req.header(key, value);
             }
         }
-        Err(e) => GraphqlIntrospectOutput {
-            success: false,
-            schema: None,
-            error: Some(format!("请求失败: {}", e)),
-        },
+
+        match req.send().await {
+            Ok(resp) => {
+                let status = resp.status();
+                if status.is_redirection() {
+                    // 跟随重定向
+                    if let Some(location) = resp.headers().get("location").and_then(|v| v.to_str().ok()) {
+                        let next_url = if location.starts_with("http://") || location.starts_with("https://") {
+                            location.to_string()
+                        } else if location.starts_with('/') {
+                            // 以 / 开头的相对路径 → 相对 origin 解析
+                            let origin = current_url.split('/')
+                                .take(3) // ["https:", "", "host"]
+                                .collect::<Vec<_>>()
+                                .join("/");
+                            format!("{}{}", origin, location)
+                        } else {
+                            // 相对当前路径
+                            let base = current_url.trim_end_matches('/');
+                            format!("{}/{}", base, location.trim_start_matches('/'))
+                        };
+                        current_url = next_url;
+                        continue;
+                    }
+                    result = Some(GraphqlIntrospectOutput {
+                        success: false, schema: None, query_templates: None,
+                        error: Some(format!("重定向无 Location 头: {}", status)),
+                    });
+                    break;
+                }
+
+                // 非重定向 → 解析响应
+                match resp.json::<serde_json::Value>().await {
+                    Ok(body) => {
+                        if status.is_success() {
+                            if let Some(errors) = body.get("errors") {
+                                result = Some(GraphqlIntrospectOutput {
+                                    success: false, schema: None, query_templates: None,
+                                    error: Some(format!("GraphQL 错误: {}", errors)),
+                                });
+                            } else {
+                                let schema = body.get("data").cloned().unwrap_or(body);
+                                let query_templates = generate_graphql_templates(&schema);
+                                result = Some(GraphqlIntrospectOutput {
+                                    success: true,
+                                    schema: Some(schema),
+                                    query_templates,
+                                    error: None,
+                                });
+                            }
+                        } else {
+                            result = Some(GraphqlIntrospectOutput {
+                                success: false, schema: None, query_templates: None,
+                                error: Some(format!("HTTP 错误: {}", status)),
+                            });
+                        }
+                    }
+                    Err(e) => {
+                        result = Some(GraphqlIntrospectOutput {
+                            success: false, schema: None, query_templates: None,
+                            error: Some(format!("解析响应失败: {}", e)),
+                        });
+                    }
+                }
+                break;
+            }
+            Err(e) => {
+                result = Some(GraphqlIntrospectOutput {
+                    success: false, schema: None, query_templates: None,
+                    error: Some(format!("请求失败: {}", e)),
+                });
+                break;
+            }
+        }
     }
+
+    result.unwrap_or_else(|| GraphqlIntrospectOutput {
+        success: false, schema: None, query_templates: None,
+        error: Some("重定向次数过多".to_string()),
+    })
 }
 
 // ============================================================================
