@@ -55,3 +55,9 @@ qa-*.png
 /json-view.png
 src-tauri/test_*.json
 .playwright-mcp/
+
+# GraphQL subscription test server (node_modules)
+/tests/graphql-subscription-server/
+
+# Temporary directories
+/%TEMP%/
