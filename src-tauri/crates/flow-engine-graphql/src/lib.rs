@@ -11,7 +11,6 @@ pub mod graphql_disconnect_executor;
 pub mod graphql_introspect_executor;
 pub mod graphql_query_executor;
 pub mod graphql_subscribe_executor;
-pub mod graphql_unsubscribe_executor;
 #[allow(missing_docs)]
 pub mod plugin;
 

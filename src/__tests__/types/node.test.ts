@@ -137,8 +137,6 @@ function createNodeData(type: NodeData['type']): NodeData {
       return { type: 'graphql_query', connection_id: 'gql-conn-1', query: '{ __typename }' };
     case 'graphql_subscribe':
       return { type: 'graphql_subscribe', connection_id: 'gql-conn-1', subscription: 'subscription { test }' };
-    case 'graphql_unsubscribe':
-      return { type: 'graphql_unsubscribe', connection_id: 'gql-conn-1', subscription_id: 'sub-1' };
     case 'graphql_introspect':
       return { type: 'graphql_introspect', connection_id: 'gql-conn-1' };
     case 'graphql_disconnect':

@@ -1,7 +1,7 @@
 // GraphQL Provider trait - GraphQL 连接管理抽象接口
 
 use crate::node_config::{
-    GraphqlConnectConfig, GraphqlQueryConfig, GraphqlSubscribeConfig, GraphqlUnsubscribeConfig,
+    GraphqlConnectConfig, GraphqlQueryConfig, GraphqlSubscribeConfig,
     GraphqlIntrospectConfig, GraphqlDisconnectConfig,
 };
 use async_trait::async_trait;
@@ -162,13 +162,6 @@ pub trait GraphqlProvider: Send + Sync {
         uuid: &str,
         config: &GraphqlSubscribeConfig,
     ) -> Result<GraphqlSubscribeOutput, String>;
-
-    /// 取消 GraphQL 订阅
-    async fn unsubscribe(
-        &self,
-        uuid: &str,
-        config: &GraphqlUnsubscribeConfig,
-    ) -> Result<(), String>;
 
     /// 执行 GraphQL Schema 探索
     async fn introspect(

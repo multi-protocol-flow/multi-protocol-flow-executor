@@ -301,7 +301,7 @@ mod tests {
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
         GraphqlConnectConfig, GraphqlDisconnectConfig, GraphqlIntrospectConfig,
-        GraphqlQueryConfig, GraphqlSubscribeConfig, GraphqlUnsubscribeConfig,
+        GraphqlQueryConfig, GraphqlSubscribeConfig,
     };
     use flow_engine_core::traits::{
         GraphqlConnectOutput, GraphqlConnectionInfo, GraphqlIntrospectOutput,
@@ -399,14 +399,6 @@ mod tests {
             Ok(self.output.clone())
         }
 
-        async fn unsubscribe(
-            &self,
-            _uuid: &str,
-            _config: &GraphqlUnsubscribeConfig,
-        ) -> Result<(), String> {
-            Ok(())
-        }
-
         async fn introspect(
             &self,
             _uuid: &str,
@@ -459,14 +451,6 @@ mod tests {
             _config: &GraphqlSubscribeConfig,
         ) -> Result<GraphqlSubscribeOutput, String> {
             Err("连接 'missing-conn' 不存在".to_string())
-        }
-
-        async fn unsubscribe(
-            &self,
-            _uuid: &str,
-            _config: &GraphqlUnsubscribeConfig,
-        ) -> Result<(), String> {
-            Ok(())
         }
 
         async fn introspect(

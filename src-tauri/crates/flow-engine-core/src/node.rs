@@ -153,9 +153,6 @@ pub enum NodeType {
     /// GraphQL 订阅节点
     #[serde(rename = "graphql_subscribe")]
     GraphqlSubscribe,
-    /// GraphQL 取消订阅节点
-    #[serde(rename = "graphql_unsubscribe")]
-    GraphqlUnsubscribe,
     /// GraphQL Schema 探索节点
     #[serde(rename = "graphql_introspect")]
     GraphqlIntrospect,

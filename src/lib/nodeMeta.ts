@@ -34,7 +34,6 @@ import {
   Download,
   Timer,
   Eye,
-  EyeOff,
   Search,
   Mail,
   Layers,
@@ -132,7 +131,6 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
   graphql_connect: { icon: Plug, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
   graphql_query: { icon: Search, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
   graphql_subscribe: { icon: Eye, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
-  graphql_unsubscribe: { icon: EyeOff, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
   graphql_introspect: { icon: FileSearch, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
   graphql_disconnect: { icon: Unplug, iconBg: 'bg-indigo-500', labelColor: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' },
 
@@ -240,7 +238,6 @@ const STATIC_DISPLAY_NAMES: Record<string, string> = {
   graphql_connect: 'GraphQL 连接',
   graphql_query: 'GraphQL 查询',
   graphql_subscribe: 'GraphQL 订阅',
-  graphql_unsubscribe: 'GraphQL 取消订阅',
   graphql_introspect: 'GraphQL 内省',
   graphql_disconnect: 'GraphQL 断开',
   // AMQP 0-9-1

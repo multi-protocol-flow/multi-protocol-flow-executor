@@ -279,7 +279,7 @@ mod tests {
     use flow_engine_core::node::NodePosition;
     use flow_engine_core::node_config::{
         GraphqlConnectConfig, GraphqlDisconnectConfig, GraphqlQueryConfig,
-        GraphqlSubscribeConfig, GraphqlUnsubscribeConfig,
+        GraphqlSubscribeConfig,
     };
     use flow_engine_core::traits::{
         GraphqlConnectOutput, GraphqlConnectionInfo, GraphqlIntrospectOutput,
@@ -379,14 +379,6 @@ mod tests {
             Err("not implemented".to_string())
         }
 
-        async fn unsubscribe(
-            &self,
-            _uuid: &str,
-            _config: &GraphqlUnsubscribeConfig,
-        ) -> Result<(), String> {
-            Ok(())
-        }
-
         async fn introspect(
             &self,
             _uuid: &str,
@@ -439,14 +431,6 @@ mod tests {
             _config: &GraphqlSubscribeConfig,
         ) -> Result<GraphqlSubscribeOutput, String> {
             Err("not implemented".to_string())
-        }
-
-        async fn unsubscribe(
-            &self,
-            _uuid: &str,
-            _config: &GraphqlUnsubscribeConfig,
-        ) -> Result<(), String> {
-            Ok(())
         }
 
         async fn introspect(

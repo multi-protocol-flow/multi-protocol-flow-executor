@@ -2594,16 +2594,6 @@ pub struct GraphqlSubscribeConfig {
     pub timeout_ms: u64,
 }
 
-/// GraphQL 取消订阅节点配置
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct GraphqlUnsubscribeConfig {
-    /// 连接 ID（引用 graphql_connect 节点的 UUID）
-    pub connection_id: String,
-    /// 订阅 ID
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub subscription_id: Option<String>,
-}
-
 /// GraphQL Schema 探索节点配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GraphqlIntrospectConfig {
@@ -3571,9 +3561,6 @@ pub enum NodeData {
     /// GraphQL 订阅节点配置
     #[serde(rename = "graphql_subscribe")]
     GraphqlSubscribe(GraphqlSubscribeConfig),
-    /// GraphQL 取消订阅节点配置
-    #[serde(rename = "graphql_unsubscribe")]
-    GraphqlUnsubscribe(GraphqlUnsubscribeConfig),
     /// GraphQL Schema 探索节点配置
     #[serde(rename = "graphql_introspect")]
     GraphqlIntrospect(GraphqlIntrospectConfig),
@@ -3867,9 +3854,6 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "graphql_subscribe" => serde_json::from_value::<GraphqlSubscribeConfig>(value.clone())
                 .map(NodeData::GraphqlSubscribe)
                 .map_err(serde::de::Error::custom),
-            "graphql_unsubscribe" => serde_json::from_value::<GraphqlUnsubscribeConfig>(value.clone())
-                .map(NodeData::GraphqlUnsubscribe)
-                .map_err(serde::de::Error::custom),
             "graphql_introspect" => serde_json::from_value::<GraphqlIntrospectConfig>(value.clone())
                 .map(NodeData::GraphqlIntrospect)
                 .map_err(serde::de::Error::custom),
@@ -4050,7 +4034,6 @@ impl NodeData {
             NodeData::GraphqlConnect(_) => "graphql_connect".to_string(),
             NodeData::GraphqlQuery(_) => "graphql_query".to_string(),
             NodeData::GraphqlSubscribe(_) => "graphql_subscribe".to_string(),
-            NodeData::GraphqlUnsubscribe(_) => "graphql_unsubscribe".to_string(),
             NodeData::GraphqlIntrospect(_) => "graphql_introspect".to_string(),
             NodeData::GraphqlDisconnect(_) => "graphql_disconnect".to_string(),
             // AMQP 0-9-1 节点

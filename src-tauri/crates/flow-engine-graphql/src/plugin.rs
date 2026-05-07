@@ -309,101 +309,6 @@ impl NodePlugin for GraphqlSubscribePlugin {
 }
 
 // ---------------------------------------------------------------------------
-// GraphqlUnsubscribePlugin
-// ---------------------------------------------------------------------------
-
-/// GraphQL 取消订阅节点插件
-pub struct GraphqlUnsubscribePlugin;
-
-#[async_trait::async_trait]
-impl NodePlugin for GraphqlUnsubscribePlugin {
-    fn type_id(&self) -> &str {
-        "graphql_unsubscribe"
-    }
-
-    fn display_name(&self) -> &str {
-        "GraphQL 取消订阅"
-    }
-
-    fn category(&self) -> &str {
-        "graphql"
-    }
-
-    fn icon(&self) -> &str {
-        "eye-off"
-    }
-
-    fn color(&self) -> &str {
-        "#6366f1"
-    }
-
-    fn ports(&self) -> Vec<PortDef> {
-        vec![
-            PortDef {
-                id: "true".into(),
-                label: "成功".into(),
-                position: "right".into(),
-            },
-            PortDef {
-                id: "false".into(),
-                label: "失败".into(),
-                position: "bottom".into(),
-            },
-        ]
-    }
-
-    fn default_config(&self) -> serde_json::Value {
-        serde_json::json!({
-            "connection_id": "",
-        })
-    }
-
-    /// `GraphqlUnsubscribe` 检查 $.success → "true" / "false"
-    fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
-        match output {
-            Some(serde_json::Value::Object(map)) => {
-                if let Some(serde_json::Value::Bool(true)) = map.get("success") {
-                    "true".to_string()
-                } else {
-                    "false".to_string()
-                }
-            }
-            _ => "false".to_string(),
-        }
-    }
-
-    fn is_protocol_node(&self) -> bool {
-        true
-    }
-
-    fn supports_false_port(&self) -> bool {
-        true
-    }
-
-    fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
-        Some(serde_json::json!({
-            "connection_id": config.get("connection_id"),
-        }))
-    }
-
-    async fn execute(
-        &self,
-        node: &Node,
-        context: &mut ExecutionContext,
-        connections: &[Connection],
-        node_map: &HashMap<String, &Node>,
-    ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let graphql_manager = context.graphql_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new())
-        });
-        let executor = crate::graphql_unsubscribe_executor::GraphqlUnsubscribeExecutor::new(graphql_manager);
-        executor
-            .execute(node, context, connections, node_map)
-            .await
-    }
-}
-
-// ---------------------------------------------------------------------------
 // GraphqlIntrospectPlugin
 // ---------------------------------------------------------------------------
 
@@ -590,7 +495,6 @@ impl GraphqlPluginGroup {
         registry.register(Arc::new(GraphqlConnectPlugin));
         registry.register(Arc::new(GraphqlQueryPlugin));
         registry.register(Arc::new(GraphqlSubscribePlugin));
-        registry.register(Arc::new(GraphqlUnsubscribePlugin));
         registry.register(Arc::new(GraphqlIntrospectPlugin));
         registry.register(Arc::new(GraphqlDisconnectPlugin));
     }
@@ -647,23 +551,6 @@ mod tests {
         assert_eq!(plugin.display_name(), "GraphQL 订阅");
         assert_eq!(plugin.category(), "graphql");
         assert_eq!(plugin.icon(), "eye");
-        assert_eq!(plugin.color(), "#6366f1");
-        assert!(plugin.is_protocol_node());
-        assert!(plugin.supports_false_port());
-
-        let ports = plugin.ports();
-        assert_eq!(ports.len(), 2);
-        assert_eq!(ports[0].id, "true");
-        assert_eq!(ports[1].id, "false");
-    }
-
-    #[test]
-    fn test_graphql_unsubscribe_plugin_metadata() {
-        let plugin = GraphqlUnsubscribePlugin;
-        assert_eq!(plugin.type_id(), "graphql_unsubscribe");
-        assert_eq!(plugin.display_name(), "GraphQL 取消订阅");
-        assert_eq!(plugin.category(), "graphql");
-        assert_eq!(plugin.icon(), "eye-off");
         assert_eq!(plugin.color(), "#6366f1");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -752,20 +639,6 @@ mod tests {
     }
 
     #[test]
-    fn test_graphql_unsubscribe_resolve_port() {
-        let plugin = GraphqlUnsubscribePlugin;
-        assert_eq!(
-            plugin.resolve_port(&Some(serde_json::json!({"success": true}))),
-            "true"
-        );
-        assert_eq!(
-            plugin.resolve_port(&Some(serde_json::json!({"success": false}))),
-            "false"
-        );
-        assert_eq!(plugin.resolve_port(&None), "false");
-    }
-
-    #[test]
     fn test_graphql_introspect_resolve_port() {
         let plugin = GraphqlIntrospectPlugin;
         assert_eq!(
@@ -812,11 +685,6 @@ mod tests {
         let config = subscribe_plugin.default_config();
         assert!(config.is_object());
         assert!(config.get("subscription").is_some());
-
-        let unsubscribe_plugin = GraphqlUnsubscribePlugin;
-        let config = unsubscribe_plugin.default_config();
-        assert!(config.is_object());
-        assert!(config.get("connection_id").is_some());
 
         let introspect_plugin = GraphqlIntrospectPlugin;
         let config = introspect_plugin.default_config();
@@ -866,14 +734,6 @@ mod tests {
     }
 
     #[test]
-    fn test_unsubscribe_build_report_input() {
-        let plugin = GraphqlUnsubscribePlugin;
-        let config = serde_json::json!({"connection_id": "conn-1"});
-        let report = plugin.build_report_input(&config).expect("报告应存在");
-        assert_eq!(report["connection_id"], "conn-1");
-    }
-
-    #[test]
     fn test_introspect_build_report_input() {
         let plugin = GraphqlIntrospectPlugin;
         let config = serde_json::json!({
@@ -899,12 +759,11 @@ mod tests {
         assert!(registry.is_empty());
 
         GraphqlPluginGroup::register_all(&mut registry);
-        assert_eq!(registry.len(), 6);
+        assert_eq!(registry.len(), 5);
 
         assert!(registry.get("graphql_connect").is_some());
         assert!(registry.get("graphql_query").is_some());
         assert!(registry.get("graphql_subscribe").is_some());
-        assert!(registry.get("graphql_unsubscribe").is_some());
         assert!(registry.get("graphql_introspect").is_some());
         assert!(registry.get("graphql_disconnect").is_some());
     }

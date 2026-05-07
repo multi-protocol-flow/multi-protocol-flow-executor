@@ -154,13 +154,12 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   sse_listen: 1,
   sse_disconnect: 2,
 
-  // GraphQL: 连接 → 查询 → 订阅 → 取消订阅 → 内省 → 断开
+  // GraphQL: 连接 → 查询 → 订阅 → 内省 → 断开
   graphql_connect: 0,
   graphql_query: 1,
   graphql_subscribe: 2,
-  graphql_unsubscribe: 3,
-  graphql_introspect: 4,
-  graphql_disconnect: 5,
+  graphql_introspect: 3,
+  graphql_disconnect: 4,
 
   // AMQP: 连接 → 交换器声明 → 交换器删除 → 队列声明 → 队列删除 → 队列绑定 → 发布 → 消费 → 获取 → 确认 → 管理 → 关闭 → AMQP1.0连接 → 发送 → 接收 → 确认 → 拒绝 → 断开
   amqp_connect: 0,
@@ -293,7 +292,6 @@ export function getBadgeClassForType(typeId: string): string {
     graphql_connect: 'bg-indigo-100 text-indigo-700',
     graphql_query: 'bg-indigo-100 text-indigo-700',
     graphql_subscribe: 'bg-indigo-100 text-indigo-700',
-    graphql_unsubscribe: 'bg-indigo-100 text-indigo-700',
     graphql_introspect: 'bg-indigo-100 text-indigo-700',
     graphql_disconnect: 'bg-indigo-100 text-indigo-700',
     amqp_connect: 'bg-violet-100 text-violet-700',

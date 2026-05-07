@@ -348,14 +348,6 @@ mod tests {
             Err("not implemented".to_string())
         }
 
-        async fn unsubscribe(
-            &self,
-            _uuid: &str,
-            _config: &flow_engine_core::node_config::GraphqlUnsubscribeConfig,
-        ) -> Result<(), String> {
-            Ok(())
-        }
-
         async fn introspect(
             &self,
             _uuid: &str,
@@ -408,14 +400,6 @@ mod tests {
             _config: &flow_engine_core::node_config::GraphqlSubscribeConfig,
         ) -> Result<flow_engine_core::traits::GraphqlSubscribeOutput, String> {
             Err("not implemented".to_string())
-        }
-
-        async fn unsubscribe(
-            &self,
-            _uuid: &str,
-            _config: &flow_engine_core::node_config::GraphqlUnsubscribeConfig,
-        ) -> Result<(), String> {
-            Ok(())
         }
 
         async fn introspect(
@@ -730,6 +714,7 @@ mod tests {
                 }),
                 connection_timeout_ms: 5000,
                 connection_id: Some("my-conn-id".to_string()),
+                ..GraphqlConnectConfig::default()
             }),
             ports: None,
             has_breakpoint: None,

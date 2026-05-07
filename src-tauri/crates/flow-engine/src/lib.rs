@@ -100,7 +100,6 @@ pub use flow_engine_sse::sse_connection_manager;
 pub use flow_engine_graphql::graphql_connect_executor;
 pub use flow_engine_graphql::graphql_query_executor;
 pub use flow_engine_graphql::graphql_subscribe_executor;
-pub use flow_engine_graphql::graphql_unsubscribe_executor;
 pub use flow_engine_graphql::graphql_introspect_executor;
 pub use flow_engine_graphql::graphql_disconnect_executor;
 pub use flow_engine_graphql::graphql_connection_manager;

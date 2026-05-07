@@ -55,7 +55,6 @@ import { SseDisconnectConfig } from '@/components/panels/SseDisconnectConfig';
 import { GraphqlConnectConfig } from '@/components/panels/GraphqlConnectConfig';
 import { GraphqlQueryConfig } from '@/components/panels/GraphqlQueryConfig';
 import { GraphqlSubscribeConfig } from '@/components/panels/GraphqlSubscribeConfig';
-import { GraphqlUnsubscribeConfig } from '@/components/panels/GraphqlUnsubscribeConfig';
 import { GraphqlIntrospectConfig } from '@/components/panels/GraphqlIntrospectConfig';
 import { GraphqlDisconnectConfig } from '@/components/panels/GraphqlDisconnectConfig';
 import { AmqpConnectConfigPanel as AmqpConnectConfig } from '@/components/panels/AmqpConnectConfigPanel';
@@ -146,7 +145,6 @@ export const configPanelRegistry: Record<string, ComponentType<any>> = {
   graphql_connect: GraphqlConnectConfig,
   graphql_query: GraphqlQueryConfig,
   graphql_subscribe: GraphqlSubscribeConfig,
-  graphql_unsubscribe: GraphqlUnsubscribeConfig,
   graphql_introspect: GraphqlIntrospectConfig,
   graphql_disconnect: GraphqlDisconnectConfig,
   amqp_connect: AmqpConnectConfig,

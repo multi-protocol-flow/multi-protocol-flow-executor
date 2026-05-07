@@ -221,8 +221,6 @@ export function createDefaultNodeData(type: NodeType): NodeData {
       return { type: 'graphql_query', connection_id: '', query: '' };
     case 'graphql_subscribe':
       return { type: 'graphql_subscribe', connection_id: '', subscription: '' };
-    case 'graphql_unsubscribe':
-      return { type: 'graphql_unsubscribe', connection_id: '', subscription_id: '' };
     case 'graphql_introspect':
       return { type: 'graphql_introspect', connection_id: '' };
     case 'graphql_disconnect':
@@ -361,7 +359,6 @@ const STATIC_NODE_TYPE_LABELS: Record<NodeType, string> = {
   graphql_connect: 'GraphQL 连接',
   graphql_query: 'GraphQL 查询',
   graphql_subscribe: 'GraphQL 订阅',
-  graphql_unsubscribe: 'GraphQL 取消订阅',
   graphql_introspect: 'GraphQL 内省',
   graphql_disconnect: 'GraphQL 断开',
   amqp_connect: 'AMQP 连接',

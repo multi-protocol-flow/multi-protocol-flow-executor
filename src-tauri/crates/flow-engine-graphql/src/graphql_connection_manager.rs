@@ -13,7 +13,7 @@ use tokio::sync::RwLock;
 
 use flow_engine_core::node_config::{
     GraphqlConnectConfig, GraphqlDisconnectConfig, GraphqlIntrospectConfig, GraphqlQueryConfig,
-    GraphqlSubscribeConfig, GraphqlUnsubscribeConfig,
+    GraphqlSubscribeConfig,
 };
 use flow_engine_core::traits::{
     GraphqlConnectOutput, GraphqlConnectionInfo, GraphqlIntrospectOutput, GraphqlProvider,
@@ -442,6 +442,7 @@ impl GraphqlProvider for GraphqlConnectionManager {
                 &ws_url,
                 &config.subscription,
                 config.variables.clone(),
+                config.operation_name.clone(),
                 Some(&headers),
                 &auth,
                 config.max_events,
@@ -489,27 +490,6 @@ impl GraphqlProvider for GraphqlConnectionManager {
                 error: Some(e),
             }),
         }
-    }
-
-    /// 取消 GraphQL 订阅
-    ///
-    /// 当前为 no-op，WebSocket 订阅管理将在 T14 中实现。
-    async fn unsubscribe(
-        &self,
-        uuid: &str,
-        _config: &GraphqlUnsubscribeConfig,
-    ) -> Result<(), String> {
-        // 验证连接存在
-        let conns = self.connections.read().await;
-        let _conn = conns
-            .get(uuid)
-            .ok_or_else(|| format!("GraphQL 连接 '{}' 不存在", uuid))?;
-
-        info!(
-            "GraphQL 取消订阅: id={}（WebSocket 订阅管理将在 T14 中实现）",
-            uuid
-        );
-        Ok(())
     }
 
     /// 执行 GraphQL Schema 探索
@@ -808,6 +788,30 @@ impl GraphqlConnectionManager {
             }
         }
 
+        // 生成 Subscription 模板
+        if let Some(subscription_type) = schema.get("subscriptionType").and_then(|st| st.get("name")) {
+            let type_name = subscription_type.as_str().unwrap_or("Subscription");
+            if let Some(types) = schema.get("types").and_then(|t| t.as_array()) {
+                if let Some(subscription_type_def) = types.iter().find(|t| {
+                    t.get("name").and_then(|n| n.as_str()) == Some(type_name)
+                }) {
+                    if let Some(fields) = subscription_type_def.get("fields").and_then(|f| f.as_array()) {
+                        for field in fields {
+                            let field_name = field.get("name").and_then(|n| n.as_str()).unwrap_or("");
+                            if field_name.starts_with("__") {
+                                continue;
+                            }
+                            templates.push(GraphqlQueryTemplate {
+                                type_name: type_name.to_string(),
+                                operation: "subscription".to_string(),
+                                template: format!("subscription {{ {} }}", field_name),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
         Some(templates)
     }
 }
@@ -888,15 +892,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_unsubscribe_nonexistent_connection() {
-        let manager = GraphqlConnectionManager::new();
-        let config = GraphqlUnsubscribeConfig::default();
-        let result = manager.unsubscribe("non-existent", &config).await;
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
-    }
-
-    #[tokio::test]
     async fn test_introspect_nonexistent_connection() {
         let manager = GraphqlConnectionManager::new();
         let config = GraphqlIntrospectConfig::default();
@@ -928,6 +923,7 @@ mod tests {
             headers: None,
             connection_timeout_ms: 0,
             connection_id: None,
+            ..GraphqlConnectConfig::default()
         };
         let auth = GraphqlConnectionManager::build_auth(&config);
         assert_eq!(auth, GraphqlAuth::None);
@@ -946,6 +942,7 @@ mod tests {
             headers: Some(headers),
             connection_timeout_ms: 0,
             connection_id: None,
+            ..GraphqlConnectConfig::default()
         };
         let auth = GraphqlConnectionManager::build_auth(&config);
         assert_eq!(auth, GraphqlAuth::Bearer("my-secret-token".to_string()));
@@ -961,6 +958,7 @@ mod tests {
             headers: Some(headers),
             connection_timeout_ms: 0,
             connection_id: None,
+            ..GraphqlConnectConfig::default()
         };
         let auth = GraphqlConnectionManager::build_auth(&config);
         assert_eq!(
@@ -982,6 +980,7 @@ mod tests {
             headers: Some(headers),
             connection_timeout_ms: 0,
             connection_id: None,
+            ..GraphqlConnectConfig::default()
         };
         let auth = GraphqlConnectionManager::build_auth(&config);
         assert_eq!(auth, GraphqlAuth::Cookie("session=abc123".to_string()));
@@ -995,6 +994,7 @@ mod tests {
             "__schema": {
                 "queryType": {"name": "Query"},
                 "mutationType": {"name": "Mutation"},
+                "subscriptionType": {"name": "Subscription"},
                 "types": [
                     {
                         "name": "Query",
@@ -1009,6 +1009,13 @@ mod tests {
                         "fields": [
                             {"name": "createUser"},
                             {"name": "deleteUser"}
+                        ]
+                    },
+                    {
+                        "name": "Subscription",
+                        "fields": [
+                            {"name": "messageAdded"},
+                            {"name": "userOnline"}
                         ]
                     }
                 ]
@@ -1031,6 +1038,14 @@ mod tests {
             templates
                 .iter()
                 .filter(|t| t.operation == "mutation")
+                .count(),
+            2
+        );
+        // Subscription 模板
+        assert_eq!(
+            templates
+                .iter()
+                .filter(|t| t.operation == "subscription")
                 .count(),
             2
         );
@@ -1148,6 +1163,7 @@ mod tests {
             headers: None,
             connection_timeout_ms: 1000,
             connection_id: None,
+            ..GraphqlConnectConfig::default()
         };
         let result = manager.connect("reuse-conn", &config).await;
         assert!(result.is_ok());

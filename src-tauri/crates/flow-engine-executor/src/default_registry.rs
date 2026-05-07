@@ -61,7 +61,6 @@ use flow_engine_core::registry::NodeRegistry;
 /// | GraphQL | GraphqlConnectPlugin | `graphql_connect` |
 /// | GraphQL | GraphqlQueryPlugin | `graphql_query` |
 /// | GraphQL | GraphqlSubscribePlugin | `graphql_subscribe` |
-/// | GraphQL | GraphqlUnsubscribePlugin | `graphql_unsubscribe` |
 /// | GraphQL | GraphqlIntrospectPlugin | `graphql_introspect` |
 /// | GraphQL | GraphqlDisconnectPlugin | `graphql_disconnect` |
 pub fn default_registry() -> NodeRegistry {
@@ -113,7 +112,7 @@ pub fn default_registry() -> NodeRegistry {
     // SSE (flow-engine-sse) — 批量注册 3 个插件
     flow_engine_sse::plugin::SsePluginGroup::register_all(&mut registry);
 
-    // GraphQL (flow-engine-graphql) — 批量注册 6 个插件
+    // GraphQL (flow-engine-graphql) — 批量注册 5 个插件
     flow_engine_graphql::plugin::GraphqlPluginGroup::register_all(&mut registry);
 
     // AMQP (flow-engine-amqp) — 批量注册 17 个插件（11 AMQP 0-9-1 + 6 AMQP 1.0）
@@ -143,10 +142,10 @@ mod tests {
     #[test]
     fn test_default_registry_has_18_plugins() {
         let registry = default_registry();
-        assert_eq!(registry.len(), 88);
+        assert_eq!(registry.len(), 87);
 
         let metadata = registry.all_metadata();
-        assert_eq!(metadata.len(), 88);
+        assert_eq!(metadata.len(), 87);
 
         // 验证每个 type_id 都已注册
         let type_ids: Vec<&str> = metadata.iter().map(|m| m.type_id.as_str()).collect();
@@ -200,7 +199,6 @@ mod tests {
             "graphql_connect",
             "graphql_query",
             "graphql_subscribe",
-            "graphql_unsubscribe",
             "graphql_introspect",
             "graphql_disconnect",
             "amqp_connect",

@@ -1194,17 +1194,6 @@ export const graphqlSubscribeConfigSchema = z.object({
 export type GraphqlSubscribeConfigFormData = z.infer<typeof graphqlSubscribeConfigSchema>;
 
 /**
- * GraphQL Unsubscribe 配置表单 Schema
- */
-export const graphqlUnsubscribeConfigSchema = z.object({
-  type: z.literal('graphql_unsubscribe'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  subscription_id: z.string().min(1, '订阅 ID 不能为空'),
-});
-
-export type GraphqlUnsubscribeConfigFormData = z.infer<typeof graphqlUnsubscribeConfigSchema>;
-
-/**
  * GraphQL Introspect 配置表单 Schema
  */
 export const graphqlIntrospectConfigSchema = z.object({

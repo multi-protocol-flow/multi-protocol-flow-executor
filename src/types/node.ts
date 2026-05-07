@@ -87,7 +87,6 @@ export type NodeType =
   | 'graphql_connect'
   | 'graphql_query'
   | 'graphql_subscribe'
-  | 'graphql_unsubscribe'
   | 'graphql_introspect'
   | 'graphql_disconnect'
   | 'amqp_connect'
@@ -1561,15 +1560,6 @@ export interface GraphqlSubscribeConfig {
   timeout_ms?: number;
 }
 
-/** GraphQL 取消订阅节点配置 */
-export interface GraphqlUnsubscribeConfig {
-  type: 'graphql_unsubscribe';
-  /** 连接 ID */
-  connection_id: string;
-  /** 订阅 ID */
-  subscription_id: string;
-}
-
 /** GraphQL 内省节点配置 */
 export interface GraphqlIntrospectConfig {
   type: 'graphql_introspect';
@@ -2354,7 +2344,6 @@ export type NodeData =
   | GraphqlConnectConfig
   | GraphqlQueryConfig
   | GraphqlSubscribeConfig
-  | GraphqlUnsubscribeConfig
   | GraphqlIntrospectConfig
   | GraphqlDisconnectConfig
   | AmqpConnectConfig
@@ -2725,10 +2714,6 @@ export function isGraphqlQueryConfig(data: NodeData): data is GraphqlQueryConfig
 
 export function isGraphqlSubscribeConfig(data: NodeData): data is GraphqlSubscribeConfig {
   return data.type === 'graphql_subscribe';
-}
-
-export function isGraphqlUnsubscribeConfig(data: NodeData): data is GraphqlUnsubscribeConfig {
-  return data.type === 'graphql_unsubscribe';
 }
 
 export function isGraphqlIntrospectConfig(data: NodeData): data is GraphqlIntrospectConfig {

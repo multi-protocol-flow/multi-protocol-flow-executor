@@ -72,7 +72,6 @@ export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
   graphql_connect: GraphqlViewer,
   graphql_query: GraphqlViewer,
   graphql_subscribe: GraphqlViewer,
-  graphql_unsubscribe: GraphqlViewer,
   graphql_introspect: GraphqlViewer,
   graphql_disconnect: GraphqlViewer,
   amqp_connect: AmqpViewer,

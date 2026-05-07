@@ -91,8 +91,6 @@ pub const GRAPHQL_CONNECT: &str = "graphql_connect";
 pub const GRAPHQL_QUERY: &str = "graphql_query";
 /// GraphQL 订阅节点
 pub const GRAPHQL_SUBSCRIBE: &str = "graphql_subscribe";
-/// GraphQL 取消订阅节点
-pub const GRAPHQL_UNSUBSCRIBE: &str = "graphql_unsubscribe";
 /// GraphQL Schema 探索节点
 pub const GRAPHQL_INTROSPECT: &str = "graphql_introspect";
 /// GraphQL 断开连接节点

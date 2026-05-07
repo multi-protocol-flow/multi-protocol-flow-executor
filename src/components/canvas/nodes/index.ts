@@ -52,7 +52,6 @@ export { SseDisconnectNode, type SseDisconnectNodeData } from './SseDisconnectNo
 export { GraphqlConnectNode, type GraphqlConnectNodeData } from './GraphqlConnectNode';
 export { GraphqlQueryNode, type GraphqlQueryNodeData } from './GraphqlQueryNode';
 export { GraphqlSubscribeNode, type GraphqlSubscribeNodeData } from './GraphqlSubscribeNode';
-export { GraphqlUnsubscribeNode, type GraphqlUnsubscribeNodeData } from './GraphqlUnsubscribeNode';
 export { GraphqlIntrospectNode, type GraphqlIntrospectNodeData } from './GraphqlIntrospectNode';
 export { GraphqlDisconnectNode, type GraphqlDisconnectNodeData } from './GraphqlDisconnectNode';
 export { ImapConnectNode, type ImapConnectNodeData } from './ImapConnectNode';

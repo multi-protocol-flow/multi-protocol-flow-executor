@@ -1,10 +1,9 @@
 /**
  * GraphqlViewer - GraphQL 节点执行详情查看器
- * 结构化展示 GraphQL Connect/Query/Subscribe/Unsubscribe/Introspect/Disconnect 六种节点的执行结果
+ * 结构化展示 GraphQL Connect/Query/Subscribe/Introspect/Disconnect 五种节点的执行结果
  * Connect: 连接状态、连接 ID、服务器信息
  * Query/Mutation: 响应数据 (JSON)、错误列表、扩展信息、耗时、HTTP 状态码
  * Subscribe: 事件列表（data/errors/received_at）、事件数量、持续时间
- * Unsubscribe: 成功/失败状态
  * Introspect: Schema 类型列表、查询模板
  * Disconnect: 断开状态
  */
@@ -15,7 +14,6 @@ import {
   Cable,
   Send,
   Radio,
-  XCircle,
   Search,
   Unplug,
   Clock,
@@ -167,12 +165,6 @@ interface GraphqlSubscribeOutput {
   error?: string;
 }
 
-/** GraphQL Unsubscribe 输出数据 */
-interface GraphqlUnsubscribeOutput {
-  success?: boolean;
-  error?: string;
-}
-
 /** GraphQL 查询模板 */
 interface GraphqlQueryTemplate {
   type_name: string;
@@ -241,8 +233,6 @@ export function GraphqlViewer({ report }: GraphqlViewerProps) {
       return <GraphqlQueryView report={report} />;
     case 'graphql_subscribe':
       return <GraphqlSubscribeView report={report} />;
-    case 'graphql_unsubscribe':
-      return <GraphqlUnsubscribeView report={report} />;
     case 'graphql_introspect':
       return <GraphqlIntrospectView report={report} />;
     case 'graphql_disconnect':
@@ -496,43 +486,6 @@ function GraphqlSubscribeView({ report }: { report: NodeExecutionReport }) {
           </div>
         </CollapsibleSection>
       )}
-
-      {/* 变量变更 */}
-      <VariableChangesCard changes={report.variable_changes} />
-    </div>
-  );
-}
-
-// ============================================================================
-// GraphQL Unsubscribe 查看器
-// ============================================================================
-
-function GraphqlUnsubscribeView({ report }: { report: NodeExecutionReport }) {
-  const output = report.output_data as GraphqlUnsubscribeOutput | undefined;
-  const isSuccess = output?.success ?? report.status === 'success';
-
-  return (
-    <div className="space-y-3">
-      {/* 取消订阅状态 */}
-      <CollapsibleSection
-        title="取消订阅状态"
-        icon={<XCircle className="w-4 h-4" />}
-        defaultOpen={true}
-      >
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已取消" failText="取消失败" />
-            <GraphqlBadge />
-            <span className="text-sm text-muted-foreground">
-              {isSuccess
-                ? 'GraphQL 订阅已成功取消'
-                : output?.error ?? '取消订阅失败'}
-            </span>
-          </div>
-
-          <ErrorBlock error={!isSuccess ? output?.error : undefined} />
-        </div>
-      </CollapsibleSection>
 
       {/* 变量变更 */}
       <VariableChangesCard changes={report.variable_changes} />
