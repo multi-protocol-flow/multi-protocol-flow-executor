@@ -14,9 +14,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Activity, Info } from 'lucide-react';
-import type { GraphqlSubscribeConfig as GraphqlSubscribeConfigType } from '@/types';
+import type { GraphqlSubscribeConfig as GraphqlSubscribeConfigType, GraphqlConnectConfig as GraphqlConnectConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isGraphqlConnectConfig } from '@/types/node';
+import { buildOperationFieldTrees } from '@/lib/graphqlSchema';
+import type { FieldNode } from '@/lib/graphqlSchema';
+import { GraphqlFieldTree } from '@/components/ui/GraphqlFieldTree';
 
 interface GraphqlSubscribeConfigProps {
   data: GraphqlSubscribeConfigType;
@@ -131,6 +134,28 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
     return connections;
   }, [flow]);
 
+  // 获取选中的 connect 节点中的 discovered_schema，构建订阅字段树
+  const selectedSchema = useMemo<{
+    subscriptionFields: FieldNode[];
+    hasSchema: boolean;
+  }>(() => {
+    if (!flow || !watch('connection_id')) {
+      return { subscriptionFields: [], hasSchema: false };
+    }
+    const connectNode = flow.nodes.find(
+      n => n.uuid === watch('connection_id') && isGraphqlConnectConfig(n.data)
+    );
+    if (!connectNode) return { subscriptionFields: [], hasSchema: false };
+    const config = connectNode.data as GraphqlConnectConfigType;
+    if (!config.discovered_schema) return { subscriptionFields: [], hasSchema: false };
+
+    const subscription = buildOperationFieldTrees(config.discovered_schema, 'subscription');
+    return {
+      subscriptionFields: subscription.rootFields,
+      hasSchema: true,
+    };
+  }, [flow, watch('connection_id')]);
+
   const saveData = useCallback(() => {
     handleSubmit((formData) => {
       try {
@@ -235,6 +260,29 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
           </p>
         )}
       </div>
+
+      {/* Schema 字段浏览器 */}
+      {selectedSchema.hasSchema && selectedSchema.subscriptionFields.length > 0 && (
+        <div className="space-y-3">
+          <Label className="text-sm font-medium text-foreground">
+            Schema 字段浏览器
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            勾选需要的订阅字段，点击"生成订阅"自动填充订阅编辑器
+          </p>
+          <GraphqlFieldTree
+            title="Subscription"
+            fields={selectedSchema.subscriptionFields}
+            onGenerate={(q) => {
+              if (!q) return;
+              const vals = getValues();
+              const updated = { ...vals, subscription: q };
+              reset(updated as GraphqlSubscribeConfigFormData);
+              onSave(fromFormData(updated));
+            }}
+          />
+        </div>
+      )}
 
       {/* 订阅编辑器 */}
       <div className="space-y-2">

@@ -2209,11 +2209,13 @@ dependencies = [
  "async-trait",
  "chrono",
  "flow-engine-core",
+ "futures-util",
  "log",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
  "tokio",
+ "tokio-tungstenite",
 ]
 
 [[package]]

@@ -100,7 +100,7 @@ export function GraphqlFieldTree({
   const handleGenerate = () => {
     if (!hasChecked) return;
 
-    const operation = title.toLowerCase() as 'query' | 'mutation';
+    const operation = title.toLowerCase() as 'query' | 'mutation' | 'subscription';
     // 收集所有含已勾选后代的根节点（包括根节点本身勾选和仅子节点勾选的场景）
     const checkedRoots = collectRootsWithChecked(tree);
     const rootFieldName = checkedRoots[0]?.name ?? 'Query';

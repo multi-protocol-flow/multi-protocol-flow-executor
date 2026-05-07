@@ -63,11 +63,11 @@ export function buildTypesMap(schema: unknown): Map<string, any> {
   return map;
 }
 
-/** 获取 Query / Mutation 的根类型名 */
-export function getRootTypeName(schema: unknown, operation: 'query' | 'mutation'): string | null {
+/** 获取 Query / Mutation / Subscription 的根类型名 */
+export function getRootTypeName(schema: unknown, operation: 'query' | 'mutation' | 'subscription'): string | null {
   const schemaObj = (schema as any)?.['__schema'];
   if (!schemaObj) return null;
-  const key = operation === 'query' ? 'queryType' : 'mutationType';
+  const key = operation === 'query' ? 'queryType' : operation === 'mutation' ? 'mutationType' : 'subscriptionType';
   return schemaObj[key]?.name ?? null;
 }
 
@@ -243,7 +243,7 @@ function pascalCase(s: string): string {
  */
 export function generateQueryFromSelection(
   selectedNodes: FieldNode[],
-  operation: 'query' | 'mutation',
+  operation: 'query' | 'mutation' | 'subscription',
   rootFieldName: string,
 ): string {
   if (selectedNodes.length === 0) return '';
@@ -298,7 +298,7 @@ function indent(text: string, spaces: number): string {
  */
 export function buildOperationFieldTrees(
   schema: unknown,
-  operation: 'query' | 'mutation',
+  operation: 'query' | 'mutation' | 'subscription',
 ): { rootTypeName: string | null; rootFields: FieldNode[] } {
   const typesMap = buildTypesMap(schema);
   const rootTypeName = getRootTypeName(schema, operation);

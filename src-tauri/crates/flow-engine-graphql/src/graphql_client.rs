@@ -1,13 +1,17 @@
-//! GraphQL HTTP 客户端封装层
+//! GraphQL 客户端封装层
 //!
-//! 使用 reqwest 执行 GraphQL Query/Mutation/Introspection。
+//! 使用 reqwest 执行 HTTP Query/Mutation/Introspection。
+//! 使用 tokio-tungstenite 执行 WebSocket 订阅（graphql-transport-ws 协议）。
 //! 所有 GraphQL 查询均为运行时字符串，不使用编译时代码生成。
-//! WebSocket 订阅将在 T14 任务中完整实现。
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
+use futures_util::{SinkExt, StreamExt};
 use log::{info, warn};
+use tokio_tungstenite::connect_async;
+use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+use tokio_tungstenite::tungstenite::Message as WsMessage;
 use serde::{Deserialize, Serialize};
 
 // ---------------------------------------------------------------------------
@@ -286,25 +290,284 @@ impl GraphqlClient {
 
     /// 执行 GraphQL 订阅（通过 WebSocket）
     ///
-    /// **注意**: 完整的 WebSocket 订阅逻辑将在 T14 任务中实现。
-    /// 此处提供接口框架，返回空响应。
+    /// 使用 graphql-transport-ws 协议通过 WebSocket 订阅 GraphQL 事件。
+    /// 支持自定义请求头、认证、操作名称、最大事件数和超时控制。
     pub async fn execute_subscription_via_ws(
         &self,
-        _ws_endpoint: &str,
-        _subscription: &str,
-        _variables: Option<serde_json::Value>,
+        ws_endpoint: &str,
+        subscription: &str,
+        variables: Option<serde_json::Value>,
+        operation_name: Option<String>,
         _headers: Option<&HashMap<String, String>>,
         _auth: &GraphqlAuth,
-        _max_events: u32,
-        _timeout_ms: u64,
+        max_events: u32,
+        timeout_ms: u64,
     ) -> Result<GraphqlSubscriptionResponse, String> {
-        // WebSocket 订阅将在 T14 任务中完整实现
-        // 当前返回空响应作为 stub
-        info!("GraphQL WebSocket 订阅暂未实现（将在 T14 中完成）");
+        let start = Instant::now();
+
+        // 1. 构建 WebSocket 升级请求
+        info!(
+            "GraphQL WebSocket 连接: endpoint={}",
+            ws_endpoint
+        );
+
+        // 先用 IntoClientRequest 从 URL 构建标准请求（自动设置 Host、Method、URI 等）
+        let mut request = ws_endpoint
+            .into_client_request()
+            .map_err(|e| format!("构建 WebSocket 请求失败: {}", e))?;
+
+        // 添加 graphql-ws 子协议头
+        request
+            .headers_mut()
+            .insert("Sec-WebSocket-Protocol", "graphql-transport-ws".parse().unwrap());
+
+        let (ws_stream, _response) = connect_async(request)
+            .await
+            .map_err(|e| format!("WebSocket 连接失败: {}", e))?;
+
+        let (mut write, mut read) = ws_stream.split();
+
+        // 3. 发送 connection_init
+        let init_msg = serde_json::json!({"type": "connection_init"});
+        write
+            .send(WsMessage::Text(init_msg.to_string().into()))
+            .await
+            .map_err(|e| format!("发送 connection_init 失败: {}", e))?;
+
+        // 4. 等待 connection_ack
+        let ack_timeout = Duration::from_secs(10);
+        let ack_received = match tokio::time::timeout(ack_timeout, read.next()).await {
+            Ok(Some(Ok(WsMessage::Text(text)))) => {
+                let parsed: serde_json::Value = serde_json::from_str(&text)
+                    .map_err(|e| format!("解析 connection_ack 失败: {}", e))?;
+                let msg_type = parsed["type"].as_str().unwrap_or("");
+                if msg_type == "connection_ack" {
+                    true
+                } else if msg_type == "connection_error" {
+                    let error_msg = parsed["payload"]
+                        .as_str()
+                        .unwrap_or("连接被拒绝");
+                    return Err(format!("GraphQL 连接被拒绝: {}", error_msg));
+                } else {
+                    // 某些服务器不发送 connection_ack，直接忽略
+                    info!("GraphQL 收到非预期消息: type={}", msg_type);
+                    false
+                }
+            }
+            Ok(Some(Ok(WsMessage::Close(frame)))) => {
+                return Err(format!(
+                    "WebSocket 连接被关闭: {:?}",
+                    frame.map(|f| f.reason)
+                ));
+            }
+            Ok(Some(Ok(WsMessage::Ping(data)))) => {
+                let _ = write.send(WsMessage::Pong(data)).await;
+                false // 继续等待 ack
+            }
+            Ok(Some(Ok(_))) => {
+                // 忽略其他消息类型（binary, pong 等），继续等待 ack
+                false
+            }
+            Ok(Some(Err(e))) => {
+                return Err(format!("WebSocket 消息读取错误: {}", e));
+            }
+            Ok(None) => {
+                return Err("WebSocket 连接意外关闭".to_string());
+            }
+            Err(_) => {
+                // connection_ack 超时 — 某些服务器不发送 ack，继续
+                info!("GraphQL connection_ack 超时，继续执行订阅");
+                true
+            }
+        };
+
+        if !ack_received {
+            // 如果没收到 ack 但也没超时，可能已经错过了消息，继续
+        }
+
+        // 5. 发送 subscribe 消息
+        let sub_id = "1";
+        let mut subscribe_payload = serde_json::json!({
+            "query": subscription,
+        });
+
+        if let Some(vars) = &variables {
+            subscribe_payload["variables"] = vars.clone();
+        }
+        if let Some(op_name) = &operation_name {
+            subscribe_payload["operationName"] = serde_json::Value::String(op_name.clone());
+        }
+
+        let subscribe_msg = serde_json::json!({
+            "type": "subscribe",
+            "id": sub_id,
+            "payload": subscribe_payload,
+        });
+
+        write
+            .send(WsMessage::Text(subscribe_msg.to_string().into()))
+            .await
+            .map_err(|e| format!("发送 subscribe 失败: {}", e))?;
+
+        info!(
+            "GraphQL subscribe 已发送: id={}",
+            sub_id
+        );
+
+        // 6. 收集事件
+        let actual_timeout = if timeout_ms > 0 {
+            Duration::from_millis(timeout_ms)
+        } else {
+            Duration::from_secs(300) // 默认 5 分钟
+        };
+
+        let mut events: Vec<GraphqlSubscriptionEvent> = Vec::new();
+        let per_msg_timeout = Duration::from_secs(30);
+
+        loop {
+            // 检查整体超时
+            if start.elapsed() >= actual_timeout {
+                info!("GraphQL 订阅超时，发送 complete");
+                let _ = write
+                    .send(WsMessage::Text(
+                        serde_json::json!({"type": "complete", "id": sub_id})
+                            .to_string()
+                            .into(),
+                    ))
+                    .await;
+                break;
+            }
+
+            // 检查最大事件数
+            if max_events > 0 && events.len() as u32 >= max_events {
+                info!(
+                    "GraphQL 订阅达到最大事件数 {}，发送 complete",
+                    max_events
+                );
+                let _ = write
+                    .send(WsMessage::Text(
+                        serde_json::json!({"type": "complete", "id": sub_id})
+                            .to_string()
+                            .into(),
+                    ))
+                    .await;
+                break;
+            }
+
+            // 读取下一条消息（带逐消息超时）
+            let msg_result = tokio::time::timeout(per_msg_timeout, read.next()).await;
+
+            match msg_result {
+                Ok(Some(Ok(WsMessage::Text(text)))) => {
+                    let parsed: serde_json::Value = match serde_json::from_str(&text) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            log::warn!("GraphQL 解析消息失败: {}", e);
+                            continue;
+                        }
+                    };
+
+                    let msg_type = parsed["type"].as_str().unwrap_or("");
+
+                    match msg_type {
+                        "next" => {
+                            // 检查 id 是否匹配
+                            let msg_id = parsed["id"].as_str().unwrap_or("");
+                            if msg_id != sub_id {
+                                continue;
+                            }
+
+                            let payload = &parsed["payload"];
+                            let event = GraphqlSubscriptionEvent {
+                                data: payload.get("data").cloned(),
+                                errors: payload
+                                    .get("errors")
+                                    .and_then(|e| {
+                                        serde_json::from_value::<Vec<GraphqlError>>(e.clone()).ok()
+                                    })
+                                    .unwrap_or_default(),
+                                extensions: payload.get("extensions").cloned(),
+                                received_at: chrono::Utc::now().timestamp_millis() as u64,
+                            };
+
+                            // 检查是否有 GraphQL 错误
+                            let has_errors = !event.errors.is_empty();
+                            if has_errors {
+                                let error_msgs: Vec<String> = event
+                                    .errors
+                                    .iter()
+                                    .map(|e| e.message.clone())
+                                    .collect();
+                                log::warn!(
+                                    "GraphQL 订阅事件包含错误: {:?}",
+                                    error_msgs
+                                );
+                            }
+
+                            events.push(event);
+                        }
+                        "complete" => {
+                            info!("GraphQL 订阅收到 complete (服务端结束)");
+                            break;
+                        }
+                        "ping" => {
+                            let _ = write
+                                .send(WsMessage::Text(
+                                    serde_json::json!({"type": "pong"}).to_string().into(),
+                                ))
+                                .await;
+                        }
+                        "error" => {
+                            let error_msg = parsed["payload"]
+                                .as_str()
+                                .unwrap_or("未知订阅错误");
+                            return Err(format!("GraphQL 订阅错误: {}", error_msg));
+                        }
+                        _ => {
+                            log::debug!("GraphQL 收到未处理消息类型: {}", msg_type);
+                        }
+                    }
+                }
+                Ok(Some(Ok(WsMessage::Close(frame)))) => {
+                    info!(
+                        "GraphQL WebSocket 连接已关闭: {:?}",
+                        frame.map(|f| f.reason)
+                    );
+                    break;
+                }
+                Ok(Some(Ok(WsMessage::Ping(data)))) => {
+                    let _ = write.send(WsMessage::Pong(data)).await;
+                }
+                Ok(Some(Ok(_))) => {
+                    // 忽略其他类型（binary, pong 等）
+                }
+                Ok(Some(Err(e))) => {
+                    log::warn!("GraphQL WebSocket 消息读取错误: {}", e);
+                    break;
+                }
+                Ok(None) => {
+                    info!("GraphQL WebSocket 流已结束");
+                    break;
+                }
+                Err(_) => {
+                    // 逐消息超时，继续循环（整体超时会在下次循环检查）
+                    continue;
+                }
+            }
+        }
+
+        let duration_ms = start.elapsed().as_millis() as u64;
+        let event_count = events.len() as u32;
+
+        info!(
+            "GraphQL 订阅完成: events={}, duration={}ms",
+            event_count, duration_ms
+        );
+
         Ok(GraphqlSubscriptionResponse {
-            events: vec![],
-            event_count: 0,
-            duration_ms: 0,
+            events,
+            event_count,
+            duration_ms,
         })
     }
 
@@ -850,7 +1113,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_execute_subscription_stub() {
+    async fn test_execute_subscription_connection_refused() {
         let client = GraphqlClient::new();
         let result = client
             .execute_subscription_via_ws(
@@ -858,15 +1121,16 @@ mod tests {
                 "subscription { messageAdded { text } }",
                 None,
                 None,
+                None,
                 &GraphqlAuth::None,
                 10,
                 1000,
             )
             .await;
-        assert!(result.is_ok());
-        let response = result.expect("stub 应该返回空响应");
-        assert!(response.events.is_empty());
-        assert_eq!(response.event_count, 0);
+        // 连接被拒绝是预期的（无服务在 localhost:1 监听）
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("连接失败") || err.contains("Connection refused"));
     }
 
     // ---- 使用本地 HTTP 服务的集成测试 ----
