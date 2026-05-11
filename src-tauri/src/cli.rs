@@ -1,34 +1,24 @@
-//! mpe - Multi-Protocol Executor CLI
+//! mpe - Multi-Protocol Executor CLI 模块
 //!
-//! AI 可托管的流程引擎命令行工具。
+//! 流程引擎命令行工具，供统一入口 `main.rs` 调用。
 
-#[path = "mpe/config.rs"]
-mod config;
-#[path = "mpe/output.rs"]
-mod output;
-#[path = "mpe/run.rs"]
-mod run;
-#[path = "mpe/validate.rs"]
-mod validate;
-#[path = "mpe/flow.rs"]
-mod flow;
-#[path = "mpe/flow_edit.rs"]
-mod flow_edit;
-#[path = "mpe/report.rs"]
-mod report;
-#[path = "mpe/stress.rs"]
-mod stress;
-#[path = "mpe/debug_cmd.rs"]
-mod debug_cmd;
+pub mod config;
+pub mod output;
+pub mod run;
+pub mod validate;
+pub mod flow;
+pub mod flow_edit;
+pub mod report;
+pub mod stress;
+pub mod debug_cmd;
 
-use std::process;
 use clap::{Parser, Subcommand};
 
 // ── CLI 错误类型 ──────────────────────────────────────────────────
 
 /// CLI 错误类型
 #[derive(Debug)]
-enum CliError {
+pub enum CliError {
     /// 配置错误
     Config(String),
     /// 执行错误
@@ -61,17 +51,19 @@ impl From<std::io::Error> for CliError {
 /// Multi-Protocol Executor — AI 可托管的流程引擎 CLI
 #[derive(Parser)]
 #[command(name = "mpe", version, about = "多协议流程编排与执行引擎")]
-struct Cli {
+pub struct Cli {
     /// 输出格式 (json 或 table)
     #[arg(long, global = true, default_value = "json")]
     format: String,
 
+    /// CLI 子命令
     #[command(subcommand)]
-    command: Commands,
+    pub command: Commands,
 }
 
+/// CLI 子命令枚举
 #[derive(Subcommand)]
-enum Commands {
+pub enum Commands {
     /// 执行流程
     Run {
         /// 流程文件路径 (.mpe)
@@ -107,23 +99,27 @@ enum Commands {
     },
     /// 压力测试
     Stress {
+        /// 压力测试子命令
         #[command(subcommand)]
         command: StressCommands,
     },
     /// 流程管理
     Flow {
+        /// 流程管理子命令
         #[command(subcommand)]
         command: FlowCommands,
     },
     /// 报告管理
     Report {
+        /// 报告管理子命令
         #[command(subcommand)]
         command: ReportCommands,
     },
 }
 
+/// 压力测试子命令枚举
 #[derive(Subcommand)]
-enum StressCommands {
+pub enum StressCommands {
     /// 执行压力测试
     Run {
         /// 流程文件路径 (.mpe)
@@ -144,13 +140,15 @@ enum StressCommands {
     },
     /// 压测报告管理
     Report {
+        /// 压测报告子命令
         #[command(subcommand)]
         command: StressReportCommands,
     },
 }
 
+/// 压测报告子命令枚举
 #[derive(Subcommand)]
-enum StressReportCommands {
+pub enum StressReportCommands {
     /// 列出压测报告
     List,
     /// 查看压测报告
@@ -165,8 +163,9 @@ enum StressReportCommands {
     },
 }
 
+/// 流程管理子命令枚举
 #[derive(Subcommand)]
-enum FlowCommands {
+pub enum FlowCommands {
     /// 列出流程
     List {
         /// 搜索关键词
@@ -208,13 +207,15 @@ enum FlowCommands {
     },
     /// 编辑流程
     Edit {
+        /// 流程编辑子命令
         #[command(subcommand)]
         command: FlowEditCommands,
     },
 }
 
+/// 流程编辑子命令枚举
 #[derive(Subcommand)]
-enum FlowEditCommands {
+pub enum FlowEditCommands {
     /// 添加节点
     NodeAdd {
         /// 流程 UUID
@@ -301,8 +302,9 @@ enum FlowEditCommands {
     },
 }
 
+/// 报告管理子命令枚举
 #[derive(Subcommand)]
-enum ReportCommands {
+pub enum ReportCommands {
     /// 列出报告
     List,
     /// 查看报告
@@ -317,12 +319,12 @@ enum ReportCommands {
     },
 }
 
-// ── 入口 ──────────────────────────────────────────────────────────
+// ── CLI 入口 ──────────────────────────────────────────────────────
 
 /// 配置日志：同时输出到控制台和文件
 fn setup_logging() {
     // 获取日志目录
-    let log_dir = app_lib::get_data_dir()
+    let log_dir = crate::get_data_dir()
         .ok()
         .map(|d| d.join("logs"))
         .unwrap_or_default();
@@ -366,32 +368,7 @@ fn setup_logging() {
     }
 }
 
-fn main() {
-    setup_logging();
-
-    // 安装 rustls CryptoProvider（HTTP/gRPC TLS 需要）
-    // 必须在任何 TLS 连接创建之前调用
-    let _ = rustls::crypto::ring::default_provider().install_default();
-
-    let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
-
-    let result = rt.block_on(async_main());
-
-    let exit_code = match result {
-        Ok(()) => output::EXIT_SUCCESS,
-        Err(CliError::InvalidArgs(_)) => {
-            output::output_error(result.unwrap_err().to_string());
-            output::EXIT_INVALID_ARGS
-        }
-        Err(e) => {
-            output::output_error(e.to_string());
-            output::EXIT_FAILURE
-        }
-    };
-
-    process::exit(exit_code);
-}
-
+/// CLI 异步主逻辑
 async fn async_main() -> Result<(), CliError> {
     let cli = Cli::parse();
 
@@ -422,5 +399,35 @@ async fn async_main() -> Result<(), CliError> {
         Commands::Stress { command } => stress::execute(&cli.format, command, cancel_rx).await,
         Commands::Flow { command } => flow::execute(&cli.format, command).await,
         Commands::Report { command } => report::execute(&cli.format, command).await,
+    }
+}
+
+/// CLI 主入口（同步，返回退出码）
+///
+/// 供 `main.rs` 统一入口调用。返回进程退出码：
+/// - 0: 成功
+/// - 1: 执行错误
+/// - 2: 参数错误
+pub fn run_cli() -> i32 {
+    setup_logging();
+
+    // 安装 rustls CryptoProvider（HTTP/gRPC TLS 需要）
+    // 必须在任何 TLS 连接创建之前调用
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
+    let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+
+    let result = rt.block_on(async_main());
+
+    match result {
+        Ok(()) => output::EXIT_SUCCESS,
+        Err(CliError::InvalidArgs(_)) => {
+            output::output_error(result.unwrap_err().to_string());
+            output::EXIT_INVALID_ARGS
+        }
+        Err(e) => {
+            output::output_error(e.to_string());
+            output::EXIT_FAILURE
+        }
     }
 }

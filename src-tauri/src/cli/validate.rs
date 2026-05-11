@@ -19,11 +19,11 @@ pub async fn execute(
     }
 
     // 加载流程
-    let flow = app_lib::load_flow(flow_path)
+    let flow = crate::load_flow(flow_path)
         .map_err(|e| super::CliError::Execution(format!("加载流程失败: {}", e)))?;
 
     // 验证流程
-    let result = app_lib::validator::FlowValidator::new().validate(&flow);
+    let result = crate::validator::FlowValidator::new().validate(&flow);
 
     let output_data = serde_json::json!({
         "valid": result.valid,

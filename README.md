@@ -101,28 +101,31 @@ npx tauri build
 ```bash
 # 开发版本
 cd src-tauri
-cargo build --bin cli
+cargo build
 
 # 生产版本
 cd src-tauri
-cargo build --release --bin cli
+cargo build --release
 ```
 
 编译产物位置：
-- Windows: `src-tauri\target\debug\cli.exe` (或 `release\cli.exe`)
-- Linux/macOS: `src-tauri/target/debug/cli` (或 `release/cli`)
+- Windows: `src-tauri\target\debug\mpe.exe` (或 `release\mpe.exe`)
+- Linux/macOS: `src-tauri/target/debug/mpe` (或 `release/mpe`)
 
 ### 使用 CLI
 
 ```bash
 # 执行流程文件
-cli --execute --flow <path-to-flow.json>
+mpe run -f <path-to-flow.json>
 
-# 或使用短格式
-cli -e -f <path-to-flow.json>
+# 验证流程
+mpe validate -f <path-to-flow.json>
+
+# 压力测试
+mpe stress run -f <path-to-flow.json>
 
 # 显示帮助
-cli --help
+mpe --help
 ```
 
 ## 📖 使用指南

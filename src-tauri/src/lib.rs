@@ -9,6 +9,9 @@ use tauri::Manager;
 use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;
 
+// CLI 模块（供统一入口 main.rs 调用）
+pub mod cli;
+
 // Tauri 特有模块
 mod tauri_adapters;
 mod tauri_commands;

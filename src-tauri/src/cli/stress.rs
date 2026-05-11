@@ -44,11 +44,11 @@ async fn execute_run(
     // 加载流程文件
     let flow_json = std::fs::read_to_string(&path)
         .map_err(|e| CliError::Io(format!("读取流程文件失败: {}", e)))?;
-    let flow: app_lib::flow::Flow = serde_json::from_str(&flow_json)
+    let flow: crate::flow::Flow = serde_json::from_str(&flow_json)
         .map_err(|e| CliError::Execution(format!("解析流程文件失败: {}", e)))?;
 
     // 创建压测配置
-    let stress_config = app_lib::stress_test::StressTestConfig {
+    let stress_config = crate::stress_test::StressTestConfig {
         concurrent_users,
         ramp_up_seconds: ramp_up,
         duration_seconds: duration,
@@ -62,7 +62,7 @@ async fn execute_run(
     let (event_tx, mut event_rx) = mpsc::unbounded_channel();
 
     // 创建执行器
-    let executor = app_lib::stress_test::StressTestExecutor::new(
+    let executor = crate::stress_test::StressTestExecutor::new(
         flow.clone(),
         stress_config.clone(),
         event_tx,
@@ -75,14 +75,14 @@ async fn execute_run(
         .map_err(|e| CliError::Execution(format!("启动压力测试失败: {}", e)))?;
 
     // 流式输出事件 (NDJSON)，同时监听取消信号
-    let mut final_report: Option<app_lib::stress_test::StressTestReport> = None;
+    let mut final_report: Option<crate::stress_test::StressTestReport> = None;
     let mut cancel_rx = cancel_rx;
     loop {
         tokio::select! {
             event = event_rx.recv() => {
                 match event {
                     Some(evt) => {
-                        if let app_lib::stress_test::StressTestEvent::Ended { ref report } = evt {
+                        if let crate::stress_test::StressTestEvent::Ended { ref report } = evt {
                             final_report = Some((**report).clone());
                         }
                         output::output_ndjson(&evt);
@@ -103,7 +103,7 @@ async fn execute_run(
     // 保存报告到默认目录
     if let Some(report) = &final_report {
         let app_config = config::AppConfig::load().map_err(CliError::Config)?;
-        let _ = app_lib::storage::save_stress_report(report, &app_config.reports_dir);
+        let _ = crate::storage::save_stress_report(report, &app_config.reports_dir);
     }
 
     // 如指定输出路径，写入报告文件
@@ -124,7 +124,7 @@ async fn execute_report(command: StressReportCommands, format: &str) -> Result<(
     match command {
         StressReportCommands::List => {
             let app_config = config::AppConfig::load().map_err(CliError::Config)?;
-            let reports = app_lib::storage::list_stress_reports(&app_config.reports_dir)
+            let reports = crate::storage::list_stress_reports(&app_config.reports_dir)
                 .map_err(|e| CliError::Execution(format!("列出压测报告失败: {}", e)))?;
 
             if format == "table" {
@@ -149,13 +149,13 @@ async fn execute_report(command: StressReportCommands, format: &str) -> Result<(
             Ok(())
         }
         StressReportCommands::Show { file_path } => {
-            let report = app_lib::storage::load_stress_report(&PathBuf::from(&file_path))
+            let report = crate::storage::load_stress_report(&PathBuf::from(&file_path))
                 .map_err(|e| CliError::Execution(format!("加载压测报告失败: {}", e)))?;
             output::output_json(&CliOutput::success(&report));
             Ok(())
         }
         StressReportCommands::Delete { file_path } => {
-            app_lib::storage::delete_stress_report(&PathBuf::from(&file_path))
+            crate::storage::delete_stress_report(&PathBuf::from(&file_path))
                 .map_err(|e| CliError::Execution(format!("删除压测报告失败: {}", e)))?;
             output::output_json(&CliOutput::success(serde_json::json!({"deleted": file_path})));
             Ok(())

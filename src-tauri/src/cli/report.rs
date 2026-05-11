@@ -17,7 +17,7 @@ pub async fn execute(
 
 async fn execute_list(format: &str) -> Result<(), CliError> {
     let app_config = config::AppConfig::load().map_err(CliError::Config)?;
-    let reports = app_lib::list_reports(&app_config.reports_dir)
+    let reports = crate::list_reports(&app_config.reports_dir)
         .map_err(|e| CliError::Execution(format!("列出报告失败: {}", e)))?;
 
     if format == "table" {
@@ -47,7 +47,7 @@ async fn execute_list(format: &str) -> Result<(), CliError> {
 
 async fn execute_show(uuid: &str) -> Result<(), CliError> {
     let app_config = config::AppConfig::load().map_err(CliError::Config)?;
-    let report = app_lib::load_report(uuid, &app_config.reports_dir)
+    let report = crate::load_report(uuid, &app_config.reports_dir)
         .map_err(|e| CliError::Execution(format!("加载报告失败: {}", e)))?;
     let cli_output = CliOutput::success(&report);
     output::output_json(&cli_output);
@@ -56,7 +56,7 @@ async fn execute_show(uuid: &str) -> Result<(), CliError> {
 
 async fn execute_delete(uuid: &str) -> Result<(), CliError> {
     let app_config = config::AppConfig::load().map_err(CliError::Config)?;
-    app_lib::delete_report(uuid, &app_config.reports_dir)
+    crate::delete_report(uuid, &app_config.reports_dir)
         .map_err(|e| CliError::Execution(format!("删除报告失败: {}", e)))?;
     let cli_output = CliOutput::success(serde_json::json!({"deleted": uuid}));
     output::output_json(&cli_output);

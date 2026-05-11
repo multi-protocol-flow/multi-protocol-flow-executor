@@ -1,11 +1,22 @@
-//! Tauri 应用入口
+//! Multi-Protocol Flow Executor 统一入口
 //!
-//! Windows 发布版本隐藏控制台窗口。
-
-
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+//! **无参数启动** → GUI 模式（Tauri 桌面应用）
+//! **有参数启动** → CLI 模式（mpe 命令行工具）
+//!
+//! 用法:
+//!   mpe.exe                  # 打开桌面 GUI
+//!   mpe.exe run -f flow.mpe  # CLI 执行流程
+//!   mpe.exe --help           # 查看 CLI 帮助
 
 fn main() {
-  app_lib::run();
+    let args: Vec<String> = std::env::args().collect();
+
+    if args.len() > 1 {
+        // 有命令行参数 → CLI 模式
+        let exit_code = app_lib::cli::run_cli();
+        std::process::exit(exit_code);
+    } else {
+        // 无参数 → GUI 模式（Tauri 桌面应用）
+        app_lib::run();
+    }
 }

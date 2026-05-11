@@ -253,7 +253,7 @@ CLI 和桌面 GUI 使用**完全相同的执行引擎**，零重复逻辑。在 
 #### 流式输出
 
 ```bash
-mpe run -f flow.mpe --stream
+mpe run -f flow.mpf --stream
 ```
 
 执行过程中实时输出每个节点的执行结果（NDJSON 格式，每行一个 JSON），方便对接监控或日志系统。
@@ -261,7 +261,7 @@ mpe run -f flow.mpe --stream
 #### CLI 调试
 
 ```bash
-mpe debug -f flow.mpe --break node-uuid-1 node-uuid-2
+mpe debug -f flow.mpf --break node-uuid-1 node-uuid-2
 ```
 
 通过 stdin/stdout 进行交互式调试：
@@ -284,7 +284,7 @@ mpe flow edit variable-set --name token --value "abc123"
 #### 压力测试
 
 ```bash
-mpe stress run -f flow.mpe -c 100 -d 60 -o report.json
+mpe stress run -f flow.mpf -c 100 -d 60 -o report.json
 ```
 
 | 参数 | 说明 |

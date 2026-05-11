@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use app_lib::{ExecutionEventSender, ExecutionEvent};
+use crate::{ExecutionEventSender, ExecutionEvent};
 
 use super::{CliError, config, output};
 use super::output::CliOutput;
@@ -68,7 +68,7 @@ pub async fn execute(
     let app_config = config::AppConfig::load().map_err(CliError::Config)?;
 
     // 加载流程
-    let flow = app_lib::load_flow(flow_path)
+    let flow = crate::load_flow(flow_path)
         .map_err(|e| CliError::Execution(format!("加载流程失败: {}", e)))?;
 
     // 解析变量覆盖
@@ -132,7 +132,7 @@ pub async fn execute(
     // 保存报告
     if !no_report {
         if let Some(ref flow_report) = result.flow_report {
-            if let Err(e) = app_lib::save_report(flow_report, &app_config.reports_dir) {
+            if let Err(e) = crate::save_report(flow_report, &app_config.reports_dir) {
                 eprintln!("保存报告失败: {}", e);
             }
         }
@@ -152,13 +152,13 @@ pub async fn execute(
 /// 非流式执行 — 直接调用 `FlowExecutor`
 async fn execute_simple(
     path: PathBuf,
-    flow: &app_lib::flow::Flow,
+    flow: &crate::flow::Flow,
     variables: Option<serde_json::Value>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
-) -> Result<app_lib::ExecutionResult, CliError> {
-    let executor = app_lib::FlowExecutor::new()
+) -> Result<crate::ExecutionResult, CliError> {
+    let executor = crate::FlowExecutor::new()
         .with_flow_file_path(path)
-        .with_hook_executor(Arc::new(app_lib::hook_runner::DefaultHookExecutor::new()))
+        .with_hook_executor(Arc::new(crate::hook_runner::DefaultHookExecutor::new()))
         .with_cancel_receiver(cancel_rx);
     Ok(executor.execute_flow(flow, variables, None, None).await)
 }
@@ -166,18 +166,18 @@ async fn execute_simple(
 /// 流式执行 — 注册事件发送器，NDJSON 实时输出
 async fn execute_with_streaming(
     path: PathBuf,
-    flow: &app_lib::flow::Flow,
+    flow: &crate::flow::Flow,
     variables: Option<serde_json::Value>,
     cancel_rx: tokio::sync::watch::Receiver<bool>,
-) -> Result<app_lib::ExecutionResult, CliError> {
+) -> Result<crate::ExecutionResult, CliError> {
     let (event_tx, mut event_rx) = tokio::sync::mpsc::unbounded_channel();
 
     let sender: Arc<dyn ExecutionEventSender> = Arc::new(CliExecutionEventSender { tx: event_tx });
 
-    let executor = app_lib::FlowExecutor::new()
+    let executor = crate::FlowExecutor::new()
         .with_flow_file_path(path)
         .with_execution_event_sender(sender)
-        .with_hook_executor(Arc::new(app_lib::hook_runner::DefaultHookExecutor::new()))
+        .with_hook_executor(Arc::new(crate::hook_runner::DefaultHookExecutor::new()))
         .with_cancel_receiver(cancel_rx);
 
     // 在后台启动执行，同时消费事件流

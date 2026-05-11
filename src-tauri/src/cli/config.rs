@@ -3,7 +3,7 @@
 //! 配置优先级（从高到低）:
 //! 1. 环境变量 (`MPE_FLOWS_DIR`, `MPE_REPORTS_DIR`)
 //! 2. 配置文件 (`<data_dir>/config.toml` 或 `$MPE_CONFIG`)
-//! 3. 引擎默认值 (`app_lib::get_flows_dir()` 等)
+//! 3. 引擎默认值 (`crate::get_flows_dir()` 等)
 //!
 //! 配置文件格式:
 //! ```toml
@@ -68,7 +68,7 @@ impl AppConfig {
             config_file
                 .as_ref()
                 .and_then(|c| c.storage.flows_dir.clone()),
-            &app_lib::get_flows_dir,
+            &crate::get_flows_dir,
         )?;
 
         let reports_dir = Self::resolve_path(
@@ -76,7 +76,7 @@ impl AppConfig {
             config_file
                 .as_ref()
                 .and_then(|c| c.storage.reports_dir.clone()),
-            &app_lib::get_reports_dir,
+            &crate::get_reports_dir,
         )?;
 
         Ok(AppConfig {
@@ -92,7 +92,7 @@ impl AppConfig {
     fn load_config_file() -> Result<Option<ConfigFile>, String> {
         let config_path = match std::env::var("MPE_CONFIG") {
             Ok(p) => PathBuf::from(p),
-            Err(_) => app_lib::get_data_dir()?.join("config.toml"),
+            Err(_) => crate::get_data_dir()?.join("config.toml"),
         };
 
         // 配置文件不存在时静默返回 None

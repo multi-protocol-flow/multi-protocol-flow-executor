@@ -35,7 +35,7 @@ async fn execute_list(
     let config = AppConfig::load().map_err(CliError::Config)?;
     let flows_dir = &config.flows_dir;
 
-    let mut list = app_lib::storage::list_flow_files(flows_dir)
+    let mut list = crate::storage::list_flow_files(flows_dir)
         .map_err(CliError::Execution)?;
 
     // 搜索过滤
@@ -80,11 +80,11 @@ async fn execute_show(uuid_or_path: &str) -> Result<(), CliError> {
 
     let flow = if is_file_path(uuid_or_path) {
         // 文件路径直接加载
-        app_lib::storage::load_flow(uuid_or_path)
+        crate::storage::load_flow(uuid_or_path)
             .map_err(CliError::Execution)?
     } else {
         // UUID 加载
-        app_lib::storage::load_flow_file(uuid_or_path, flows_dir)
+        crate::storage::load_flow_file(uuid_or_path, flows_dir)
             .map_err(CliError::Execution)?
     };
 
@@ -102,12 +102,12 @@ async fn execute_create(name: &str) -> Result<(), CliError> {
     std::fs::create_dir_all(flows_dir)
         .map_err(|e| CliError::Io(format!("创建流程目录失败: {}", e)))?;
 
-    let input = app_lib::command::CreateFlowCommandInput {
+    let input = crate::command::CreateFlowCommandInput {
         name: name.to_string(),
     };
-    let output = app_lib::commands::create_flow(input);
+    let output = crate::commands::create_flow(input);
 
-    app_lib::storage::save_flow_file(&output.flow, flows_dir)
+    crate::storage::save_flow_file(&output.flow, flows_dir)
         .map_err(CliError::Execution)?;
 
     let cli_output = CliOutput::success(output.flow);
@@ -120,7 +120,7 @@ async fn execute_copy(uuid: &str) -> Result<(), CliError> {
     let config = AppConfig::load().map_err(CliError::Config)?;
     let flows_dir = &config.flows_dir;
 
-    let copied = app_lib::storage::copy_flow_file(uuid, flows_dir)
+    let copied = crate::storage::copy_flow_file(uuid, flows_dir)
         .map_err(CliError::Execution)?;
 
     let output = CliOutput::success(copied);
@@ -133,7 +133,7 @@ async fn execute_delete(uuid: &str) -> Result<(), CliError> {
     let config = AppConfig::load().map_err(CliError::Config)?;
     let flows_dir = &config.flows_dir;
 
-    app_lib::storage::delete_flow_file(uuid, flows_dir)
+    crate::storage::delete_flow_file(uuid, flows_dir)
         .map_err(CliError::Execution)?;
 
     #[derive(serde::Serialize)]
@@ -158,7 +158,7 @@ async fn execute_import(flow_path: &str, name: &str) -> Result<(), CliError> {
         .map_err(|e| CliError::Io(format!("创建流程目录失败: {}", e)))?;
 
     // 加载外部流程文件
-    let mut flow = app_lib::storage::load_flow(flow_path)
+    let mut flow = crate::storage::load_flow(flow_path)
         .map_err(CliError::Execution)?;
 
     // 修改名称，生成新 UUID
@@ -166,7 +166,7 @@ async fn execute_import(flow_path: &str, name: &str) -> Result<(), CliError> {
     flow.uuid = uuid::Uuid::new_v4().to_string();
 
     // 保存到 flows_dir
-    app_lib::storage::save_flow_file(&flow, flows_dir)
+    crate::storage::save_flow_file(&flow, flows_dir)
         .map_err(CliError::Execution)?;
 
     let output = CliOutput::success(flow);

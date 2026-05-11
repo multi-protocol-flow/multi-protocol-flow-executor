@@ -9,8 +9,11 @@ use std::io::Write;
 
 // ── 退出码常量 ──────────────────────────────────────────────────────
 
+/// CLI 退出码：成功
 pub const EXIT_SUCCESS: i32 = 0;
+/// CLI 退出码：执行错误
 pub const EXIT_FAILURE: i32 = 1;
+/// CLI 退出码：参数错误
 pub const EXIT_INVALID_ARGS: i32 = 2;
 
 // ── 统一输出结构体 ──────────────────────────────────────────────────
@@ -23,9 +26,12 @@ pub const EXIT_INVALID_ARGS: i32 = 2;
 /// ```
 #[derive(serde::Serialize)]
 pub struct CliOutput<T: serde::Serialize> {
+    /// 执行是否成功
     pub success: bool,
+    /// 成功时的输出数据
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<T>,
+    /// 失败时的错误信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }

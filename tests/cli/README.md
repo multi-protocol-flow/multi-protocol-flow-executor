@@ -107,13 +107,13 @@
 
 ```bash
 cd src-tauri
-cargo build --bin cli --release
+cargo build --release
 ```
 
 ### 执行测试文件
 
 ```bash
-./target/release/cli -e -f ../tests/cli/01_simple_entry_http.json
+./target/release/mpe run -f ../tests/cli/01_simple_entry_http.json
 ```
 
 ### 验证 JSON 语法

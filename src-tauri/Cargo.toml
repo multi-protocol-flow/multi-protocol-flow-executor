@@ -72,7 +72,7 @@ license = ""
 repository = ""
 edition = "2021"
 rust-version = "1.77.2"
-default-run = "app"
+default-run = "mpe"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -82,7 +82,7 @@ crate-type = ["lib"]
 
 [[bin]]
 name = "mpe"
-path = "bin/mpe.rs"
+path = "src/main.rs"
 
 [build-dependencies]
 tauri-build = { version = "2.5.4", features = [] }

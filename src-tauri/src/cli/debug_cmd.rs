@@ -40,8 +40,8 @@ fn parse_vars(vars: &[String]) -> Result<HashMap<String, serde_json::Value>, sup
 }
 
 /// 判断是否为 `SessionEnded` 事件
-fn is_session_ended(event: &app_lib::debug::DebugEvent) -> bool {
-    matches!(event, app_lib::debug::DebugEvent::SessionEnded { .. })
+fn is_session_ended(event: &crate::debug::DebugEvent) -> bool {
+    matches!(event, crate::debug::DebugEvent::SessionEnded { .. })
 }
 
 // ── 主入口 ────────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ pub async fn execute(
     }
 
     // 2. 加载流程
-    let flow = app_lib::load_flow(flow_path)
+    let flow = crate::load_flow(flow_path)
         .map_err(|e| super::CliError::Execution(format!("加载流程失败: {}", e)))?;
 
     // 3. 解析变量
@@ -82,14 +82,14 @@ pub async fn execute(
     };
 
     // 4. 创建通道
-    let (debug_event_tx, mut debug_event_rx) = mpsc::unbounded_channel::<app_lib::debug::DebugEvent>();
-    let (debug_cmd_tx, debug_cmd_rx) = mpsc::unbounded_channel::<app_lib::debug::DebugCommand>();
+    let (debug_event_tx, mut debug_event_rx) = mpsc::unbounded_channel::<crate::debug::DebugEvent>();
+    let (debug_cmd_tx, debug_cmd_rx) = mpsc::unbounded_channel::<crate::debug::DebugCommand>();
 
     // 5. 启动调试会话（后台任务）
     let bp_list = breakpoints.to_vec();
     let flow_clone = flow.clone();
     let debug_handle = tokio::spawn(async move {
-        let executor = app_lib::debug::DebuggableFlowExecutor::new()
+        let executor = crate::debug::DebuggableFlowExecutor::new()
             .with_flow_file_path(path);
         executor
             .start_debug(
@@ -114,7 +114,7 @@ pub async fn execute(
             // Ctrl+C 取消信号
             _ = cancel_rx.changed() => {
                 // 收到取消信号，发送 EndDebug 命令
-                let _ = debug_cmd_tx.send(app_lib::debug::DebugCommand::EndDebug);
+                let _ = debug_cmd_tx.send(crate::debug::DebugCommand::EndDebug);
                 // 继续读取事件直到 SessionEnded
             }
             // 事件: 调试器 → stdout (NDJSON)
@@ -139,7 +139,7 @@ pub async fn execute(
                             continue;
                         }
                         // 尝试解析为 DebugCommand
-                        match serde_json::from_str::<app_lib::debug::DebugCommand>(trimmed) {
+                        match serde_json::from_str::<crate::debug::DebugCommand>(trimmed) {
                             Ok(cmd) => {
                                 if debug_cmd_tx.send(cmd).is_err() {
                                     // 调试会话已结束
@@ -154,13 +154,13 @@ pub async fn execute(
                     }
                     Ok(None) => {
                         // stdin EOF — 发送 EndDebug 并退出
-                        let _ = debug_cmd_tx.send(app_lib::debug::DebugCommand::EndDebug);
+                        let _ = debug_cmd_tx.send(crate::debug::DebugCommand::EndDebug);
                         // 继续读取事件直到 SessionEnded
                     }
                     Err(e) => {
                         // stdin 读取错误
                         eprintln!("stdin 读取错误: {}", e);
-                        let _ = debug_cmd_tx.send(app_lib::debug::DebugCommand::EndDebug);
+                        let _ = debug_cmd_tx.send(crate::debug::DebugCommand::EndDebug);
                     }
                 }
             }

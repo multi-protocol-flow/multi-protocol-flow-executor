@@ -2,7 +2,12 @@
 
 ## 概述
 
-多协议流程执行器的命令行工具，用于执行 JSON 格式的流程文件。支持 Entry、HTTP、Conditional 三种节点类型，可实现复杂的 API 调用链和条件分支逻辑。
+多协议流程执行器的命令行工具。支持 CLI 模式和 GUI 桌面模式：
+
+- **无参数启动** → 打开 Tauri 桌面 GUI
+- **有参数启动** → CLI 模式（执行流程、验证、调试、压力测试、流程管理、报告管理）
+
+`mpe.exe` 是统一的单一二进制文件，同时支持两种运行模式。
 
 ## 安装
 
@@ -10,66 +15,58 @@
 
 ```bash
 cd src-tauri
-cargo build --bin cli
+cargo build
 ```
 
 编译产物位置：
-- Windows: `src-tauri\target\debug\cli.exe`
-- Linux/macOS: `src-tauri/target/debug/cli`
+- Windows: `src-tauri\target\debug\mpe.exe`
+- Linux/macOS: `src-tauri/target/debug/mpe`
 
 ### 生产版本
 
 ```bash
 cd src-tauri
-cargo build --release --bin cli
+cargo build --release
 ```
 
 编译产物位置：
-- Windows: `src-tauri\target\release\cli.exe`
-- Linux/macOS: `src-tauri/target/release/cli`
+- Windows: `src-tauri\target\release\mpe.exe`
+- Linux/macOS: `src-tauri/target/release/mpe`
+
+### GUI 桌面应用
+
+```bash
+npx tauri dev      # 开发模式（前端热重载）
+npx tauri build    # 构建安装包
+```
 
 ## 命令语法
 
 ### 基本用法
 
 ```bash
-cli --execute --flow <流程文件路径>
-cli -e -f <流程文件路径>
+mpe run -f <流程文件.mpf>       # 执行流程
+mpe validate -f <流程文件.mpf>  # 验证流程
+mpe debug -f <流程文件.mpf>     # 调试流程
 ```
-
-### 参数说明
-
-| 参数 | 短格式 | 说明 |
-|------|--------|------|
-| `--execute` | `-e` | 执行流程（必需） |
-| `--flow <path>` | `-f <path>` | 流程 JSON 文件路径（必需） |
-| `--help` | `-h` | 显示帮助信息 |
 
 ### 帮助信息
 
 ```bash
-cli --help
+mpe --help
+mpe run --help     # 查看子命令帮助
 ```
 
-输出：
-```
-多协议流程执行器 - CLI 工具
+全部子命令：
 
-用法:
-  cli --execute --flow <path>  执行指定路径的流程
-  cli -e -f <path>             执行指定路径的流程（短格式）
-  cli --help                   显示帮助信息
-  cli -h                       显示帮助信息（短格式）
-
-参数:
-  -e, --execute                执行流程
-  -f, --flow <path>            流程文件路径
-  -h, --help                   显示帮助信息
-
-示例:
-  cli --execute --flow my-flow.json
-  cli -e -f /path/to/flow.json
-```
+| 命令 | 说明 |
+|------|------|
+| `run` | 执行流程 |
+| `validate` | 验证流程 |
+| `debug` | 调试流程 (NDJSON 双向协议) |
+| `stress` | 压力测试 |
+| `flow` | 流程管理（列出/查看/创建/复制/删除/导入/编辑） |
+| `report` | 报告管理（列出/查看/删除） |
 
 ## 输出格式
 
@@ -382,7 +379,7 @@ cli --help
 ### 执行简单流程
 
 ```bash
-cli -e -f tests/cli/01_simple_entry_http.json
+mpe run -f tests/cli/01_simple_entry_http.json
 ```
 
 输出：
@@ -431,13 +428,13 @@ cli -e -f tests/cli/01_simple_entry_http.json
 ### 执行带条件分支的流程
 
 ```bash
-cli -e -f tests/cli/09_full_workflow.json
+mpe run -f tests/cli/09_full_workflow.json
 ```
 
 ### 执行失败示例
 
 ```bash
-cli -e -f tests/cli/edge_cases/02_no_entry_node.json
+mpe run -f tests/cli/edge_cases/02_no_entry_node.json
 ```
 
 输出（stdout）：
