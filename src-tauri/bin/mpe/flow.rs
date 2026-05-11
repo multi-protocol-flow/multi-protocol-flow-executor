@@ -176,6 +176,6 @@ async fn execute_import(flow_path: &str, name: &str) -> Result<(), CliError> {
 
 /// 判断字符串是否为文件路径（而非 UUID）
 fn is_file_path(s: &str) -> bool {
-    s.contains('/') || s.contains('\\') || s.ends_with(".mpe") || s.ends_with(".json")
+    s.contains('/') || s.contains('\\') || s.ends_with(".mpf")
         || Path::new(s).extension().is_some()
 }
