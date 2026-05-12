@@ -129,9 +129,9 @@ pub fn list_services(pool: &DescriptorPool) -> Vec<ServiceInfo> {
         .collect()
 }
 
-/// 从 DescriptorPool 生成指定服务和方法的请求 JSON 骨架
+/// 从 `DescriptorPool` 生成指定服务和方法的请求 JSON 骨架
 ///
-/// 通过 service_name 和 method_name 定位方法的输入消息类型，
+/// 通过 `service_name` 和 `method_name` 定位方法的输入消息类型，
 /// 复用 `generate_json_skeleton` 生成占位 JSON。
 /// 适用于 Server Reflection 场景（无需 proto 文件）。
 pub fn generate_skeleton_from_pool(
@@ -263,14 +263,14 @@ fn scan_proto_dir(
     Ok(())
 }
 
-/// 解析 FileDescriptorSet 二进制数据
+/// 解析 `FileDescriptorSet` 二进制数据
 ///
 /// 从预编译的 `.pb` / `.fdset` / `.desc` 文件中解码 `FileDescriptorSet`，
 /// 构建 `DescriptorPool` 用于后续服务发现和动态调用。
 ///
 /// # 参数
 ///
-/// * `data` - FileDescriptorSet 的原始字节数据
+/// * `data` - `FileDescriptorSet` 的原始字节数据
 ///
 /// # 返回
 ///

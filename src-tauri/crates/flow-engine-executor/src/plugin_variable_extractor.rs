@@ -75,7 +75,7 @@ impl NodePlugin for VariableExtractorPlugin {
         }))
     }
 
-    /// 委托给 VariableExtractorExecutor 执行
+    /// 委托给 `VariableExtractorExecutor` 执行
     async fn execute(
         &self,
         node: &Node,

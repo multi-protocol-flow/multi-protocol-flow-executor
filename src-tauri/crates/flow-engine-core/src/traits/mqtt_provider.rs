@@ -87,7 +87,7 @@ pub struct MqttReceivedMessage {
     pub topic: String,
     /// 负载数据
     pub payload: Vec<u8>,
-    /// QoS 等级
+    /// `QoS` 等级
     pub qos: u8,
     /// 是否为保留消息
     pub retain: bool,

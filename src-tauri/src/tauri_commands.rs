@@ -575,9 +575,9 @@ pub struct GrpcParseDescriptorSetOutput {
     pub error: Option<String>,
 }
 
-/// 解析 FileDescriptorSet 二进制文件
+/// 解析 `FileDescriptorSet` 二进制文件
 ///
-/// 读取 `.pb` / `.fdset` / `.desc` 格式的 FileDescriptorSet 文件，
+/// 读取 `.pb` / `.fdset` / `.desc` 格式的 `FileDescriptorSet` 文件，
 /// 解析并返回其中的服务和方法信息。
 #[tauri::command]
 pub async fn grpc_parse_descriptor_set(
@@ -1137,7 +1137,7 @@ pub struct McpDiscoverToolsInput {
     pub headers: Option<std::collections::HashMap<String, String>>,
     /// MCP 协议版本
     pub protocol_version: Option<String>,
-    /// 传输模式: "streamable_http" | "stdio"
+    /// 传输模式: "`streamable_http`" | "stdio"
     pub transport: Option<String>,
     /// Stdio 模式：可执行文件路径
     pub command: Option<String>,
@@ -1656,20 +1656,20 @@ pub async fn test_imap_connection(
 // Email OAuth2 命令
 // ============================================================================
 
-/// OAuth2 授权输入
+/// `OAuth2` 授权输入
 #[derive(serde::Deserialize)]
 pub struct EmailOAuth2AuthorizeInput {
     /// 邮件服务商: "gmail" | "outlook" | "yahoo" | "custom"
     pub provider: String,
-    /// OAuth2 客户端 ID
+    /// `OAuth2` 客户端 ID
     pub client_id: String,
-    /// OAuth2 客户端密钥（可选，PKCE 流程不需要）
+    /// `OAuth2` 客户端密钥（可选，PKCE 流程不需要）
     pub client_secret: Option<String>,
     /// 本地回调监听端口
     pub redirect_port: Option<u16>,
 }
 
-/// OAuth2 授权输出
+/// `OAuth2` 授权输出
 #[derive(serde::Serialize)]
 pub struct EmailOAuth2AuthorizeOutput {
     /// 是否成功
@@ -1680,10 +1680,10 @@ pub struct EmailOAuth2AuthorizeOutput {
     pub error: Option<String>,
 }
 
-/// 触发 OAuth2 授权流程
+/// 触发 `OAuth2` 授权流程
 ///
-/// 在浏览器中打开 OAuth2 授权页面，等待用户授权后获取 Token。
-/// 使用 PKCE 流程，无需 client_secret。
+/// 在浏览器中打开 `OAuth2` 授权页面，等待用户授权后获取 Token。
+/// 使用 PKCE 流程，无需 `client_secret`。
 /// Token 获取后自动加密存储并返回密文。
 #[tauri::command]
 pub async fn email_oauth2_authorize(
@@ -1800,20 +1800,20 @@ pub async fn email_oauth2_authorize(
     }
 }
 
-/// OAuth2 刷新输入
+/// `OAuth2` 刷新输入
 #[derive(serde::Deserialize)]
 pub struct EmailOAuth2RefreshInput {
     /// 邮件服务商: "gmail" | "outlook" | "yahoo" | "custom"
     pub provider: String,
-    /// OAuth2 客户端 ID
+    /// `OAuth2` 客户端 ID
     pub client_id: String,
-    /// OAuth2 客户端密钥（可选）
+    /// `OAuth2` 客户端密钥（可选）
     pub client_secret: Option<String>,
     /// 加密后的 Token 密文
     pub encrypted_tokens: String,
 }
 
-/// OAuth2 刷新输出
+/// `OAuth2` 刷新输出
 #[derive(serde::Serialize)]
 pub struct EmailOAuth2RefreshOutput {
     /// 是否成功
@@ -1824,9 +1824,9 @@ pub struct EmailOAuth2RefreshOutput {
     pub error: Option<String>,
 }
 
-/// 刷新 OAuth2 Token
+/// 刷新 `OAuth2` Token
 ///
-/// 解密现有 Token，使用 refresh_token 获取新的 access_token，
+/// 解密现有 Token，使用 `refresh_token` 获取新的 `access_token`，
 /// 加密后返回。
 #[tauri::command]
 pub async fn email_oauth2_refresh(
@@ -1930,7 +1930,7 @@ pub async fn email_oauth2_refresh(
     }
 }
 
-/// OAuth2 撤销输入
+/// `OAuth2` 撤销输入
 #[derive(serde::Deserialize)]
 pub struct EmailOAuth2RevokeInput {
     /// 邮件服务商: "gmail" | "outlook" | "yahoo" | "custom"
@@ -1939,7 +1939,7 @@ pub struct EmailOAuth2RevokeInput {
     pub encrypted_tokens: String,
 }
 
-/// OAuth2 撤销输出
+/// `OAuth2` 撤销输出
 #[derive(serde::Serialize)]
 pub struct EmailOAuth2RevokeOutput {
     /// 是否成功
@@ -1948,7 +1948,7 @@ pub struct EmailOAuth2RevokeOutput {
     pub error: Option<String>,
 }
 
-/// 撤销 OAuth2 授权
+/// 撤销 `OAuth2` 授权
 ///
 /// 解密 Token 并向服务商发送撤销请求，使 Token 失效。
 #[tauri::command]
@@ -2102,7 +2102,7 @@ fn is_leaf_type(name: &str) -> bool {
     matches!(name, "String" | "Int" | "Float" | "Boolean" | "ID")
 }
 
-/// 从 type 引用结构中提取实际类型名（剥掉 NON_NULL / LIST 包装）
+/// 从 type 引用结构中提取实际类型名（剥掉 `NON_NULL` / LIST 包装）
 fn resolve_type_name(type_ref: Option<&serde_json::Value>) -> Option<String> {
     let mut current = type_ref?;
     loop {
@@ -2409,7 +2409,7 @@ pub struct KafkaTestConnectionInput {
     pub bootstrap_servers: String,
     /// 客户端 ID
     pub client_id: Option<String>,
-    /// 安全协议："plaintext"/"ssl"/"sasl_plaintext"/"sasl_ssl"
+    /// `安全协议："plaintext"/"ssl"/"sasl_plaintext"/"sasl_ssl`"
     pub security_protocol: Option<String>,
     /// SASL 机制："PLAIN"/"SCRAM-SHA-256"/"SCRAM-SHA-512"/"OAUTHBEARER"
     pub sasl_mechanism: Option<String>,
@@ -3277,8 +3277,8 @@ pub fn get_registered_node_types() -> Vec<NodeMetadata> {
 
 /// 获取指定节点类型的配置 JSON Schema
 ///
-/// 通过 type_id 查找已注册的节点插件，返回其配置 schema。
-/// 若 type_id 不存在或插件未提供 schema，返回 None。
+/// 通过 `type_id` 查找已注册的节点插件，返回其配置 schema。
+/// 若 `type_id` 不存在或插件未提供 schema，返回 None。
 #[tauri::command]
 pub fn get_node_config_schema(type_id: String) -> Option<serde_json::Value> {
     let registry = flow_engine::default_registry::default_registry();
@@ -3287,8 +3287,8 @@ pub fn get_node_config_schema(type_id: String) -> Option<serde_json::Value> {
 
 /// 获取所有已注册插件的元数据列表
 ///
-/// 与 get_registered_node_types 相同，语义上更侧重"插件"概念。
-/// 返回全部插件的 NodeMetadata 列表。
+/// 与 `get_registered_node_types` 相同，语义上更侧重"插件"概念。
+/// 返回全部插件的 `NodeMetadata` 列表。
 #[tauri::command]
 pub fn list_registered_plugins() -> Vec<NodeMetadata> {
     let registry = flow_engine::default_registry::default_registry();
@@ -3318,7 +3318,7 @@ pub fn validate_dataset_csv(
 
 /// 启动数据驱动执行
 ///
-/// 从 CSV 文件逐行读取数据，每行注入为 runtime_variables 执行流程。
+/// 从 CSV 文件逐行读取数据，每行注入为 `runtime_variables` 执行流程。
 /// 通过 Channel 实时向前端发送执行事件。
 #[tauri::command]
 pub async fn execute_flow_with_dataset(

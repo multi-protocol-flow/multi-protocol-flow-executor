@@ -1,7 +1,7 @@
 //! AMQP 确认消息节点执行器
 //!
 //! 实现 AMQP 0-9-1 消息确认/拒绝功能。
-//! 支持 basic_ack(multiple)、basic_nack(multiple, requeue)、basic_reject(requeue)。
+//! 支持 `basic_ack(multiple)、basic_nack(multiple`, `requeue)、basic_reject(requeue`)。
 //! 成功走 true 端口，失败走 false 端口。
 
 use std::collections::HashMap;

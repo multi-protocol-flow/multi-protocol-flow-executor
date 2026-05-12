@@ -277,7 +277,7 @@ impl NodePlugin for TcpSendPlugin {
         })
     }
 
-    /// TcpSend 检查 $.success → "true" / "false"
+    /// `TcpSend` 检查 $.success → "true" / "false"
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {
@@ -373,7 +373,7 @@ impl NodePlugin for TcpReceivePlugin {
         })
     }
 
-    /// TcpReceive 检查 $.success → "true" / "false"
+    /// `TcpReceive` 检查 $.success → "true" / "false"
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {
@@ -472,7 +472,7 @@ impl NodePlugin for TcpClosePlugin {
         })
     }
 
-    /// TcpClose 检查 $.success → "true" / "false"
+    /// `TcpClose` 检查 $.success → "true" / "false"
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {
@@ -590,7 +590,7 @@ impl NodePlugin for UdpBindPlugin {
         })
     }
 
-    /// UdpBind 检查 $.success → "true" / "false"
+    /// `UdpBind` 检查 $.success → "true" / "false"
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {
@@ -646,7 +646,7 @@ impl NodePlugin for UdpBindPlugin {
     }
 }
 
-/// UDP SendTo 节点插件
+/// UDP `SendTo` 节点插件
 pub struct UdpSendToPlugin;
 
 #[async_trait::async_trait]
@@ -699,7 +699,7 @@ impl NodePlugin for UdpSendToPlugin {
         })
     }
 
-    /// UdpSendTo 检查 $.success → "true" / "false"
+    /// `UdpSendTo` 检查 $.success → "true" / "false"
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {
@@ -748,7 +748,7 @@ impl NodePlugin for UdpSendToPlugin {
     }
 }
 
-/// UDP RecvFrom 节点插件
+/// UDP `RecvFrom` 节点插件
 pub struct UdpRecvFromPlugin;
 
 #[async_trait::async_trait]
@@ -798,7 +798,7 @@ impl NodePlugin for UdpRecvFromPlugin {
         })
     }
 
-    /// UdpRecvFrom 检查 $.success → "true" / "false"
+    /// `UdpRecvFrom` 检查 $.success → "true" / "false"
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {
@@ -893,7 +893,7 @@ impl NodePlugin for UdpClosePlugin {
         })
     }
 
-    /// UdpClose 检查 $.success → "true" / "false"
+    /// `UdpClose` 检查 $.success → "true" / "false"
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {

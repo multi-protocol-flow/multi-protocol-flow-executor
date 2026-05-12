@@ -111,7 +111,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                     "messages": output.messages.iter().map(|msg| {
                         json!({
                             "topic": msg.topic,
-                            "payload": msg.payload.iter().map(|b| *b as u8).collect::<Vec<_>>(),
+                            "payload": msg.payload.to_vec(),
                             "payload_text": String::from_utf8_lossy(&msg.payload).to_string(),
                             "qos": msg.qos,
                             "retain": msg.retain,

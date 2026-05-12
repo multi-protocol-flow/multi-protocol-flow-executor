@@ -1,60 +1,77 @@
 {
-  "uuid": "ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
-  "name": "变量替换流程 - Start → HTTP → End (带变量)",
-  "initial_variables": {
-    "api_url": "https://httpbin.org/get",
-    "custom_header": "application/json",
-    "test_value": "integration_test"
-  },
-  "nodes": [
-    {
-      "uuid": "start-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
-      "type": "entry",
-      "name": "开始",
-      "position": { "x": 0.0, "y": 0.0 },
-      "data": { "type": "entry" },
-      "ports": null
+  "_version": 1,
+  "flow": {
+    "uuid": "ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
+    "name": "变量替换流程 - Start → HTTP → End (带变量)",
+    "initial_variables": {
+      "api_url": "https://httpbin.org/get",
+      "custom_header": "application/json",
+      "test_value": "integration_test"
     },
-    {
-      "uuid": "http-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
-      "type": "http",
-      "name": "HTTP请求(带变量)",
-      "position": { "x": 200.0, "y": 0.0 },
-      "data": {
-        "type": "http",
-        "url": "{{api_url}}",
-        "method": "GET",
-        "headers": {
-          "Content-Type": "{{custom_header}}",
-          "X-Test-Value": "{{test_value}}"
+    "nodes": [
+      {
+        "uuid": "start-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
+        "type": "entry",
+        "name": "开始",
+        "position": {
+          "x": 0,
+          "y": 0
         },
-        "body": null
+        "data": {
+          "type": "entry"
+        },
+        "ports": null
       },
-      "ports": null
-    },
-    {
-      "uuid": "end-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
-      "type": "end",
-      "name": "结束",
-      "position": { "x": 400.0, "y": 0.0 },
-      "data": { "type": "end" },
-      "ports": null
-    }
-  ],
-  "connections": [
-    {
-      "id": "conn-1-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
-      "source_node_uuid": "start-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
-      "target_node_uuid": "http-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    },
-    {
-      "id": "conn-2-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
-      "source_node_uuid": "http-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
-      "target_node_uuid": "end-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    }
-  ]
+      {
+        "uuid": "http-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
+        "type": "http",
+        "name": "HTTP请求(带变量)",
+        "position": {
+          "x": 200,
+          "y": 0
+        },
+        "data": {
+          "type": "http",
+          "url": "{{api_url}}",
+          "method": "GET",
+          "headers": {
+            "Content-Type": "{{custom_header}}",
+            "X-Test-Value": "{{test_value}}"
+          },
+          "body": null
+        },
+        "ports": null
+      },
+      {
+        "uuid": "end-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
+        "type": "end",
+        "name": "结束",
+        "position": {
+          "x": 400,
+          "y": 0
+        },
+        "data": {
+          "type": "end"
+        },
+        "ports": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-1-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
+        "source_node_uuid": "start-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
+        "target_node_uuid": "http-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      },
+      {
+        "id": "conn-2-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
+        "source_node_uuid": "http-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
+        "target_node_uuid": "end-ad4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      }
+    ]
+  },
+  "_meta": null
 }

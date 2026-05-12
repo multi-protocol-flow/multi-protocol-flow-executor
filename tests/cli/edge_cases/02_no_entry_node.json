@@ -1,19 +1,26 @@
 {
-  "uuid": "no-entry-node",
-  "name": "缺少Entry节点",
-  "nodes": [
-    {
-      "uuid": "http-001",
-      "type": "http",
-      "name": "HTTP请求",
-      "position": { "x": 0.0, "y": 0.0 },
-      "data": {
+  "_version": 1,
+  "flow": {
+    "uuid": "no-entry-node",
+    "name": "缺少Entry节点",
+    "nodes": [
+      {
+        "uuid": "http-001",
         "type": "http",
-        "url": "https://httpbin.org/get",
-        "method": "get"
-      },
-      "ports": null
-    }
-  ],
-  "connections": []
+        "name": "HTTP请求",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "type": "http",
+          "url": "https://httpbin.org/get",
+          "method": "get"
+        },
+        "ports": null
+      }
+    ],
+    "connections": []
+  },
+  "_meta": null
 }

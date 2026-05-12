@@ -59,7 +59,7 @@ impl NodePlugin for EntryPlugin {
         None
     }
 
-    /// 委托给 EntryNodeExecutor 执行
+    /// 委托给 `EntryNodeExecutor` 执行
     async fn execute(
         &self,
         node: &Node,

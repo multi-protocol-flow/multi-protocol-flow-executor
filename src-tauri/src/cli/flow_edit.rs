@@ -146,7 +146,12 @@ async fn execute_node_add(
     crate::storage::save_flow_file(&flow, flows_dir)
         .map_err(CliError::Execution)?;
 
-    let output = CliOutput::success(&flow);
+    let flow_file = crate::storage::FlowFile {
+        _version: 1,
+        flow,
+        _meta: None,
+    };
+    let output = CliOutput::success(&flow_file);
     super::output::output_json(&output);
     Ok(())
 }
@@ -177,7 +182,12 @@ async fn execute_node_remove(
     crate::storage::save_flow_file(&flow, flows_dir)
         .map_err(CliError::Execution)?;
 
-    let output = CliOutput::success(&flow);
+    let flow_file = crate::storage::FlowFile {
+        _version: 1,
+        flow,
+        _meta: None,
+    };
+    let output = CliOutput::success(&flow_file);
     super::output::output_json(&output);
     Ok(())
 }
@@ -209,7 +219,12 @@ async fn execute_node_update(
     crate::storage::save_flow_file(&flow, flows_dir)
         .map_err(CliError::Execution)?;
 
-    let output = CliOutput::success(&flow);
+    let flow_file = crate::storage::FlowFile {
+        _version: 1,
+        flow,
+        _meta: None,
+    };
+    let output = CliOutput::success(&flow_file);
     super::output::output_json(&output);
     Ok(())
 }
@@ -257,7 +272,12 @@ async fn execute_connection_add(
     crate::storage::save_flow_file(&flow, flows_dir)
         .map_err(CliError::Execution)?;
 
-    let output = CliOutput::success(&flow);
+    let flow_file = crate::storage::FlowFile {
+        _version: 1,
+        flow,
+        _meta: None,
+    };
+    let output = CliOutput::success(&flow_file);
     super::output::output_json(&output);
     Ok(())
 }
@@ -284,7 +304,12 @@ async fn execute_connection_remove(
     crate::storage::save_flow_file(&flow, flows_dir)
         .map_err(CliError::Execution)?;
 
-    let output = CliOutput::success(&flow);
+    let flow_file = crate::storage::FlowFile {
+        _version: 1,
+        flow,
+        _meta: None,
+    };
+    let output = CliOutput::success(&flow_file);
     super::output::output_json(&output);
     Ok(())
 }
@@ -317,7 +342,12 @@ async fn execute_variable_set(
     crate::storage::save_flow_file(&flow, flows_dir)
         .map_err(CliError::Execution)?;
 
-    let output = CliOutput::success(&flow);
+    let flow_file = crate::storage::FlowFile {
+        _version: 1,
+        flow,
+        _meta: None,
+    };
+    let output = CliOutput::success(&flow_file);
     super::output::output_json(&output);
     Ok(())
 }
@@ -355,7 +385,12 @@ async fn execute_variable_remove(
     crate::storage::save_flow_file(&flow, flows_dir)
         .map_err(CliError::Execution)?;
 
-    let output = CliOutput::success(&flow);
+    let flow_file = crate::storage::FlowFile {
+        _version: 1,
+        flow,
+        _meta: None,
+    };
+    let output = CliOutput::success(&flow_file);
     super::output::output_json(&output);
     Ok(())
 }

@@ -77,7 +77,7 @@ pub enum HookAction {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         timeout_ms: Option<u64>,
     },
-    /// QuickJS 脚本执行
+    /// `QuickJS` 脚本执行
     Script {
         /// 脚本代码
         code: String,

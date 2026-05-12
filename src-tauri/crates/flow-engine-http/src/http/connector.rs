@@ -100,7 +100,7 @@ pub struct TlsOptions {
     pub client_key_path: Option<String>,
 }
 
-/// 确保 CryptoProvider 已安装
+/// 确保 `CryptoProvider` 已安装
 fn ensure_crypto_provider() {
     let _ = rustls::crypto::ring::default_provider().install_default();
 }

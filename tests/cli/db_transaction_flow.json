@@ -1,181 +1,220 @@
 {
-  "uuid": "db-transaction-flow",
-  "name": "数据库事务流程",
-  "nodes": [
-    {
-      "uuid": "entry-001",
-      "type": "entry",
-      "name": "入口",
-      "position": { "x": 0.0, "y": 0.0 },
-      "data": { "type": "entry" },
-      "ports": null
-    },
-    {
-      "uuid": "db-connect-001",
-      "type": "db_connect",
-      "name": "连接数据库",
-      "position": { "x": 100.0, "y": 0.0 },
-      "data": {
+  "_version": 1,
+  "flow": {
+    "uuid": "db-transaction-flow",
+    "name": "数据库事务流程",
+    "nodes": [
+      {
+        "uuid": "entry-001",
+        "type": "entry",
+        "name": "入口",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "type": "entry"
+        },
+        "ports": null
+      },
+      {
+        "uuid": "db-connect-001",
         "type": "db_connect",
-        "connection_uuid": "tx-conn-001",
-        "driver": "sqlite",
-        "connection_string": ":memory:",
-        "min_connections": 1,
-        "max_connections": 1,
-        "connect_timeout_ms": 5000
+        "name": "连接数据库",
+        "position": {
+          "x": 100,
+          "y": 0
+        },
+        "data": {
+          "type": "db_connect",
+          "connection_uuid": "tx-conn-001",
+          "driver": "sqlite",
+          "connection_string": ":memory:",
+          "min_connections": 1,
+          "max_connections": 1,
+          "connect_timeout_ms": 5000
+        },
+        "ports": null
       },
-      "ports": null
-    },
-    {
-      "uuid": "db-query-init",
-      "type": "db_query",
-      "name": "初始化表结构",
-      "position": { "x": 200.0, "y": 0.0 },
-      "data": {
+      {
+        "uuid": "db-query-init",
         "type": "db_query",
-        "connection_uuid": "tx-conn-001",
-        "sql": "CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY, name TEXT, balance INTEGER)",
-        "fetch_mode": "scalar",
-        "timeout_ms": 5000
+        "name": "初始化表结构",
+        "position": {
+          "x": 200,
+          "y": 0
+        },
+        "data": {
+          "type": "db_query",
+          "connection_uuid": "tx-conn-001",
+          "sql": "CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY, name TEXT, balance INTEGER)",
+          "fetch_mode": "scalar",
+          "timeout_ms": 5000
+        },
+        "ports": null
       },
-      "ports": null
-    },
-    {
-      "uuid": "db-begin-001",
-      "type": "db_begin",
-      "name": "开始事务",
-      "position": { "x": 300.0, "y": 0.0 },
-      "data": {
+      {
+        "uuid": "db-begin-001",
         "type": "db_begin",
-        "connection_uuid": "tx-conn-001",
-        "isolation_level": "read_committed"
+        "name": "开始事务",
+        "position": {
+          "x": 300,
+          "y": 0
+        },
+        "data": {
+          "type": "db_begin",
+          "connection_uuid": "tx-conn-001",
+          "isolation_level": "read_committed"
+        },
+        "ports": null
       },
-      "ports": null
-    },
-    {
-      "uuid": "db-query-insert",
-      "type": "db_query",
-      "name": "插入账户A",
-      "position": { "x": 400.0, "y": 0.0 },
-      "data": {
+      {
+        "uuid": "db-query-insert",
         "type": "db_query",
-        "connection_uuid": "tx-conn-001",
-        "sql": "INSERT INTO accounts (name, balance) VALUES (?, ?)",
-        "params": ["account_a", "1000"],
-        "fetch_mode": "scalar",
-        "timeout_ms": 5000
+        "name": "插入账户A",
+        "position": {
+          "x": 400,
+          "y": 0
+        },
+        "data": {
+          "type": "db_query",
+          "connection_uuid": "tx-conn-001",
+          "sql": "INSERT INTO accounts (name, balance) VALUES (?, ?)",
+          "params": [
+            "account_a",
+            "1000"
+          ],
+          "fetch_mode": "scalar",
+          "timeout_ms": 5000
+        },
+        "ports": null
       },
-      "ports": null
-    },
-    {
-      "uuid": "db-query-update",
-      "type": "db_query",
-      "name": "更新账户B",
-      "position": { "x": 500.0, "y": 0.0 },
-      "data": {
+      {
+        "uuid": "db-query-update",
         "type": "db_query",
-        "connection_uuid": "tx-conn-001",
-        "sql": "INSERT INTO accounts (name, balance) VALUES (?, ?)",
-        "params": ["account_b", "500"],
-        "fetch_mode": "scalar",
-        "timeout_ms": 5000
+        "name": "更新账户B",
+        "position": {
+          "x": 500,
+          "y": 0
+        },
+        "data": {
+          "type": "db_query",
+          "connection_uuid": "tx-conn-001",
+          "sql": "INSERT INTO accounts (name, balance) VALUES (?, ?)",
+          "params": [
+            "account_b",
+            "500"
+          ],
+          "fetch_mode": "scalar",
+          "timeout_ms": 5000
+        },
+        "ports": null
       },
-      "ports": null
-    },
-    {
-      "uuid": "db-commit-001",
-      "type": "db_commit",
-      "name": "提交事务",
-      "position": { "x": 600.0, "y": 0.0 },
-      "data": {
+      {
+        "uuid": "db-commit-001",
         "type": "db_commit",
-        "connection_uuid": "tx-conn-001"
+        "name": "提交事务",
+        "position": {
+          "x": 600,
+          "y": 0
+        },
+        "data": {
+          "type": "db_commit",
+          "connection_uuid": "tx-conn-001"
+        },
+        "ports": null
       },
-      "ports": null
-    },
-    {
-      "uuid": "db-query-verify",
-      "type": "db_query",
-      "name": "验证结果",
-      "position": { "x": 700.0, "y": 0.0 },
-      "data": {
+      {
+        "uuid": "db-query-verify",
         "type": "db_query",
-        "connection_uuid": "tx-conn-001",
-        "sql": "SELECT * FROM accounts",
-        "fetch_mode": "all",
-        "result_to": "accounts",
-        "timeout_ms": 5000
+        "name": "验证结果",
+        "position": {
+          "x": 700,
+          "y": 0
+        },
+        "data": {
+          "type": "db_query",
+          "connection_uuid": "tx-conn-001",
+          "sql": "SELECT * FROM accounts",
+          "fetch_mode": "all",
+          "result_to": "accounts",
+          "timeout_ms": 5000
+        },
+        "ports": null
       },
-      "ports": null
-    },
-    {
-      "uuid": "db-close-001",
-      "type": "db_close",
-      "name": "关闭连接",
-      "position": { "x": 800.0, "y": 0.0 },
-      "data": {
+      {
+        "uuid": "db-close-001",
         "type": "db_close",
-        "connection_uuid": "tx-conn-001"
+        "name": "关闭连接",
+        "position": {
+          "x": 800,
+          "y": 0
+        },
+        "data": {
+          "type": "db_close",
+          "connection_uuid": "tx-conn-001"
+        },
+        "ports": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-001",
+        "source_node_uuid": "entry-001",
+        "target_node_uuid": "db-connect-001",
+        "source_port_id": "output",
+        "target_port_id": "input"
       },
-      "ports": null
-    }
-  ],
-  "connections": [
-    {
-      "id": "conn-001",
-      "source_node_uuid": "entry-001",
-      "target_node_uuid": "db-connect-001",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    },
-    {
-      "id": "conn-002",
-      "source_node_uuid": "db-connect-001",
-      "target_node_uuid": "db-query-init",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    },
-    {
-      "id": "conn-003",
-      "source_node_uuid": "db-query-init",
-      "target_node_uuid": "db-begin-001",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    },
-    {
-      "id": "conn-004",
-      "source_node_uuid": "db-begin-001",
-      "target_node_uuid": "db-query-insert",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    },
-    {
-      "id": "conn-005",
-      "source_node_uuid": "db-query-insert",
-      "target_node_uuid": "db-query-update",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    },
-    {
-      "id": "conn-006",
-      "source_node_uuid": "db-query-update",
-      "target_node_uuid": "db-commit-001",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    },
-    {
-      "id": "conn-007",
-      "source_node_uuid": "db-commit-001",
-      "target_node_uuid": "db-query-verify",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    },
-    {
-      "id": "conn-008",
-      "source_node_uuid": "db-query-verify",
-      "target_node_uuid": "db-close-001",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    }
-  ]
+      {
+        "id": "conn-002",
+        "source_node_uuid": "db-connect-001",
+        "target_node_uuid": "db-query-init",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      },
+      {
+        "id": "conn-003",
+        "source_node_uuid": "db-query-init",
+        "target_node_uuid": "db-begin-001",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      },
+      {
+        "id": "conn-004",
+        "source_node_uuid": "db-begin-001",
+        "target_node_uuid": "db-query-insert",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      },
+      {
+        "id": "conn-005",
+        "source_node_uuid": "db-query-insert",
+        "target_node_uuid": "db-query-update",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      },
+      {
+        "id": "conn-006",
+        "source_node_uuid": "db-query-update",
+        "target_node_uuid": "db-commit-001",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      },
+      {
+        "id": "conn-007",
+        "source_node_uuid": "db-commit-001",
+        "target_node_uuid": "db-query-verify",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      },
+      {
+        "id": "conn-008",
+        "source_node_uuid": "db-query-verify",
+        "target_node_uuid": "db-close-001",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      }
+    ]
+  },
+  "_meta": null
 }

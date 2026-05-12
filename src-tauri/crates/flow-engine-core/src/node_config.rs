@@ -1210,8 +1210,9 @@ fn default_mcp_protocol_version() -> String {
 
 /// MCP Call Tool 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct McpCallToolConfig {
-    /// 连接 ID（引用 mcp_connect 节点的 UUID）
+    /// 连接 ID（引用 `mcp_connect` 节点的 UUID）
     pub connection_id: String,
     /// 工具名称
     pub tool_name: String,
@@ -1220,45 +1221,30 @@ pub struct McpCallToolConfig {
     pub arguments: Option<serde_json::Value>,
 }
 
-impl Default for McpCallToolConfig {
-    fn default() -> Self {
-        Self {
-            connection_id: String::new(),
-            tool_name: String::new(),
-            arguments: None,
-        }
-    }
-}
 
 /// MCP Read Resource 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct McpReadResourceConfig {
-    /// 连接 ID（引用 mcp_connect 节点的 UUID）
+    /// 连接 ID（引用 `mcp_connect` 节点的 UUID）
     pub connection_id: String,
     /// 资源 URI
     pub resource_uri: String,
 }
 
-impl Default for McpReadResourceConfig {
-    fn default() -> Self {
-        Self {
-            connection_id: String::new(),
-            resource_uri: String::new(),
-        }
-    }
-}
 
 /// MCP Close 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct McpCloseConfig {
-    /// 连接 ID（引用 mcp_connect 节点的 UUID）
+    /// 连接 ID（引用 `mcp_connect` 节点的 UUID）
     pub connection_id: String,
 }
 
 /// MCP Get Prompt 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct McpGetPromptConfig {
-    /// 连接 ID（引用 mcp_connect 节点的 UUID）
+    /// 连接 ID（引用 `mcp_connect` 节点的 UUID）
     pub connection_id: String,
     /// 提示词名称
     pub prompt_name: String,
@@ -1267,15 +1253,6 @@ pub struct McpGetPromptConfig {
     pub arguments: std::collections::HashMap<String, String>,
 }
 
-impl Default for McpGetPromptConfig {
-    fn default() -> Self {
-        Self {
-            connection_id: String::new(),
-            prompt_name: String::new(),
-            arguments: std::collections::HashMap::new(),
-        }
-    }
-}
 
 // ============================================================================
 // TCP 节点配置
@@ -1349,7 +1326,7 @@ impl Default for TcpConnectConfig {
 /// TCP Send 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TcpSendConfig {
-    /// 连接 ID（引用 tcp_connect 节点的 UUID）
+    /// 连接 ID（引用 `tcp_connect` 节点的 UUID）
     pub connection_id: String,
     /// 要发送的数据
     pub data: String,
@@ -1365,7 +1342,7 @@ pub struct TcpSendConfig {
     /// 发送超时（毫秒）
     #[serde(default = "default_tcp_send_timeout")]
     pub send_timeout_ms: u64,
-    /// 协议解析器配置（JSON 序列化的 ParserConfig）
+    /// 协议解析器配置（JSON 序列化的 `ParserConfig`）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub parser_config: Option<serde_json::Value>,
 }
@@ -1395,7 +1372,7 @@ impl Default for TcpSendConfig {
 /// TCP Close 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TcpCloseConfig {
-    /// 连接 ID（引用 tcp_connect 节点的 UUID）
+    /// 连接 ID（引用 `tcp_connect` 节点的 UUID）
     pub connection_id: String,
     /// 关闭超时（毫秒）
     #[serde(default = "default_tcp_close_timeout")]
@@ -1418,7 +1395,7 @@ impl Default for TcpCloseConfig {
 /// TCP Receive 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TcpReceiveConfig {
-    /// 连接 ID（引用 tcp_connect 节点的 UUID）
+    /// 连接 ID（引用 `tcp_connect` 节点的 UUID）
     pub connection_id: String,
     /// 接收超时（毫秒）
     #[serde(default = "default_tcp_receive_timeout")]
@@ -1497,10 +1474,10 @@ impl Default for UdpBindConfig {
     }
 }
 
-/// UDP SendTo 节点配置
+/// UDP `SendTo` 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UdpSendToConfig {
-    /// 连接 ID（引用 udp_bind 节点的 UUID）
+    /// 连接 ID（引用 `udp_bind` 节点的 UUID）
     pub connection_id: String,
     /// 要发送的数据
     pub data: String,
@@ -1533,10 +1510,10 @@ impl Default for UdpSendToConfig {
     }
 }
 
-/// UDP RecvFrom 节点配置
+/// UDP `RecvFrom` 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UdpRecvFromConfig {
-    /// 连接 ID（引用 udp_bind 节点的 UUID）
+    /// 连接 ID（引用 `udp_bind` 节点的 UUID）
     pub connection_id: String,
     /// 接收超时（毫秒）
     #[serde(default = "default_udp_recv_timeout")]
@@ -1567,7 +1544,7 @@ impl Default for UdpRecvFromConfig {
 /// UDP Close 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct UdpCloseConfig {
-    /// 连接 ID（引用 udp_bind 节点的 UUID）
+    /// 连接 ID（引用 `udp_bind` 节点的 UUID）
     pub connection_id: String,
 }
 
@@ -1611,7 +1588,7 @@ pub struct MqttConnectConfig {
     /// 遗嘱载荷
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub will_payload: Option<String>,
-    /// 遗嘱 QoS
+    /// 遗嘱 `QoS`
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub will_qos: Option<u8>,
     /// 遗嘱保留标志
@@ -1696,14 +1673,14 @@ pub struct MqttPublishConfig {
     /// 节点类型标识
     #[serde(default = "default_mqtt_publish_type")]
     pub r#type: String,
-    /// 连接 ID（引用 mqtt_connect 节点的 UUID）
+    /// 连接 ID（引用 `mqtt_connect` 节点的 UUID）
     pub connection_id: String,
     /// 发布主题
     pub topic: String,
     /// 发布载荷
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub payload: Option<String>,
-    /// QoS 等级
+    /// `QoS` 等级
     #[serde(default = "default_mqtt_qos")]
     pub qos: Option<u8>,
     /// 保留标志
@@ -1765,11 +1742,11 @@ pub struct MqttSubscribeConfig {
     /// 节点类型标识
     #[serde(default = "default_mqtt_subscribe_type")]
     pub r#type: String,
-    /// 连接 ID（引用 mqtt_connect 节点的 UUID）
+    /// 连接 ID（引用 `mqtt_connect` 节点的 UUID）
     pub connection_id: String,
     /// 订阅主题
     pub topic: String,
-    /// QoS 等级
+    /// `QoS` 等级
     #[serde(default = "default_mqtt_qos")]
     pub qos: Option<u8>,
     /// 最大接收消息数
@@ -1830,7 +1807,7 @@ pub struct MqttUnsubscribeConfig {
     /// 节点类型标识
     #[serde(default = "default_mqtt_unsubscribe_type")]
     pub r#type: String,
-    /// 连接 ID（引用 mqtt_connect 节点的 UUID）
+    /// 连接 ID（引用 `mqtt_connect` 节点的 UUID）
     pub connection_id: String,
     /// 取消订阅主题
     pub topic: String,
@@ -1856,7 +1833,7 @@ pub struct MqttDisconnectConfig {
     /// 节点类型标识
     #[serde(default = "default_mqtt_disconnect_type")]
     pub r#type: String,
-    /// 连接 ID（引用 mqtt_connect 节点的 UUID）
+    /// 连接 ID（引用 `mqtt_connect` 节点的 UUID）
     pub connection_id: String,
     /// 断开原因码
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1881,17 +1858,17 @@ impl Default for MqttDisconnectConfig {
     }
 }
 
-/// MQTT WaitMessage 节点配置
+/// MQTT `WaitMessage` 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MqttWaitMessageConfig {
     /// 节点类型标识
     #[serde(default = "default_mqtt_wait_message_type")]
     pub r#type: String,
-    /// 连接 ID（引用 mqtt_connect 节点的 UUID）
+    /// 连接 ID（引用 `mqtt_connect` 节点的 UUID）
     pub connection_id: String,
     /// 等待主题
     pub topic: String,
-    /// 匹配条件（包含 match_type + expression）
+    /// 匹配条件（包含 `match_type` + expression）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub match_condition: Option<serde_json::Value>,
     /// 等待超时（毫秒）
@@ -1928,7 +1905,7 @@ pub struct MqttRequestConfig {
     /// 节点类型标识
     #[serde(default = "default_mqtt_request_type")]
     pub r#type: String,
-    /// 连接 ID（引用 mqtt_connect 节点的 UUID）
+    /// 连接 ID（引用 `mqtt_connect` 节点的 UUID）
     pub connection_id: String,
     /// 请求主题
     pub request_topic: String,
@@ -1937,7 +1914,7 @@ pub struct MqttRequestConfig {
     /// 请求载荷
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub payload: Option<String>,
-    /// QoS 等级
+    /// `QoS` 等级
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub qos: Option<u8>,
     /// 关联数据
@@ -1986,7 +1963,7 @@ pub struct KafkaConnectConfig {
     /// 客户端 ID
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub client_id: Option<String>,
-    /// 安全协议："plaintext"/"ssl"/"sasl_plaintext"/"sasl_ssl"
+    /// `安全协议："plaintext"/"ssl"/"sasl_plaintext"/"sasl_ssl`"
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub security_protocol: Option<String>,
     /// SASL 认证机制："PLAIN"/"SCRAM-SHA-256"/"SCRAM-SHA-512"/"OAUTHBEARER"
@@ -2066,7 +2043,7 @@ pub struct KafkaProduceConfig {
     /// 节点类型标识
     #[serde(default = "default_kafka_produce_type")]
     pub r#type: String,
-    /// 连接 ID（引用 kafka_connect 节点的 UUID）
+    /// 连接 ID（引用 `kafka_connect` 节点的 UUID）
     pub connection_id: String,
     /// 目标主题
     pub topic: String,
@@ -2137,7 +2114,7 @@ pub struct KafkaConsumeConfig {
     /// 节点类型标识
     #[serde(default = "default_kafka_consume_type")]
     pub r#type: String,
-    /// 连接 ID（引用 kafka_connect 节点的 UUID）
+    /// 连接 ID（引用 `kafka_connect` 节点的 UUID）
     pub connection_id: String,
     /// 订阅主题
     pub topic: String,
@@ -2216,13 +2193,13 @@ impl Default for KafkaConsumeConfig {
     }
 }
 
-/// Kafka ConsumeBatch 节点配置
+/// Kafka `ConsumeBatch` 节点配置
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct KafkaConsumeBatchConfig {
     /// 节点类型标识
     #[serde(default = "default_kafka_consume_batch_type")]
     pub r#type: String,
-    /// 连接 ID（引用 kafka_connect 节点的 UUID）
+    /// 连接 ID（引用 `kafka_connect` 节点的 UUID）
     pub connection_id: String,
     /// 订阅主题
     pub topic: String,
@@ -2253,7 +2230,7 @@ pub struct KafkaConsumeBatchConfig {
     /// Schema 主题
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub schema_subject: Option<String>,
-    /// 批量策略："count_timeout"/"count_only"/"timeout_only"
+    /// `批量策略："count_timeout"/"count_only"/"timeout_only`"
     #[serde(default = "default_kafka_batch_strategy")]
     pub batch_strategy: Option<String>,
 }
@@ -2303,11 +2280,11 @@ pub struct KafkaAdminConfig {
     /// 节点类型标识
     #[serde(default = "default_kafka_admin_type")]
     pub r#type: String,
-    /// 连接 ID（引用 kafka_connect 节点的 UUID）
+    /// 连接 ID（引用 `kafka_connect` 节点的 UUID）
     pub connection_id: String,
-    /// 管理操作："topic_create"/"topic_delete"/"topic_describe"/"topic_list"/"topic_alter_config"/
-    /// "consumer_group_list"/"consumer_group_describe"/"consumer_group_reset_offset"/
-    /// "broker_list"/"broker_describe_config"/"acl_create"/"acl_delete"/"acl_list"
+    /// `管理操作："topic_create"/"topic_delete"/"topic_describe"/"topic_list"/"topic_alter_config`"/
+    /// "`consumer_group_list"/"consumer_group_describe"/"consumer_group_reset_offset`"/
+    /// "`broker_list"/"broker_describe_config"/"acl_create"/"acl_delete"/"acl_list`"
     pub operation: String,
     /// 主题名称
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -2382,10 +2359,10 @@ pub struct KafkaSchemaRegistryConfig {
     /// 节点类型标识
     #[serde(default = "default_kafka_schema_registry_type")]
     pub r#type: String,
-    /// 连接 ID（引用 kafka_connect 节点的 UUID）
+    /// 连接 ID（引用 `kafka_connect` 节点的 UUID）
     pub connection_id: String,
-    /// 操作类型："list_subjects"/"get_subject_versions"/"get_schema_by_version"/
-    /// "check_compatibility"/"register_schema"
+    /// `操作类型："list_subjects"/"get_subject_versions"/"get_schema_by_version`"/
+    /// "`check_compatibility"/"register_schema`"
     pub operation: String,
     /// Schema 主题
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -2396,7 +2373,7 @@ pub struct KafkaSchemaRegistryConfig {
     /// Schema 定义
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub schema_definition: Option<String>,
-    /// Schema 类型："avro"/"protobuf"/"json_schema"
+    /// Schema `类型："avro"/"protobuf"/"json_schema`"
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub schema_type: Option<String>,
     /// 兼容性级别
@@ -2429,7 +2406,7 @@ pub struct KafkaCloseConfig {
     /// 节点类型标识
     #[serde(default = "default_kafka_close_type")]
     pub r#type: String,
-    /// 连接 ID（引用 kafka_connect 节点的 UUID）
+    /// 连接 ID（引用 `kafka_connect` 节点的 UUID）
     pub connection_id: String,
 }
 
@@ -2484,7 +2461,7 @@ pub struct SseConnectConfig {
 /// SSE 监听事件节点配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct SseListenConfig {
-    /// 连接 ID（引用 sse_connect 节点的 UUID）
+    /// 连接 ID（引用 `sse_connect` 节点的 UUID）
     pub connection_id: String,
     /// 事件过滤（仅接收匹配的事件名）
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -2506,7 +2483,7 @@ pub struct SseListenConfig {
 /// SSE 断开连接节点配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct SseDisconnectConfig {
-    /// 连接 ID（引用 sse_connect 节点的 UUID）
+    /// 连接 ID（引用 `sse_connect` 节点的 UUID）
     pub connection_id: String,
 }
 
@@ -2555,7 +2532,7 @@ pub struct GraphqlFileUpload {
 /// GraphQL 查询节点配置（Query + Mutation）
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GraphqlQueryConfig {
-    /// 连接 ID（引用 graphql_connect 节点的 UUID）
+    /// 连接 ID（引用 `graphql_connect` 节点的 UUID）
     pub connection_id: String,
     /// GraphQL 查询/变更语句
     pub query: String,
@@ -2576,7 +2553,7 @@ pub struct GraphqlQueryConfig {
 /// GraphQL 订阅节点配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GraphqlSubscribeConfig {
-    /// 连接 ID（引用 graphql_connect 节点的 UUID）
+    /// 连接 ID（引用 `graphql_connect` 节点的 UUID）
     pub connection_id: String,
     /// GraphQL 订阅语句
     pub subscription: String,
@@ -2597,7 +2574,7 @@ pub struct GraphqlSubscribeConfig {
 /// GraphQL Schema 探索节点配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GraphqlIntrospectConfig {
-    /// 连接 ID（引用 graphql_connect 节点的 UUID）
+    /// 连接 ID（引用 `graphql_connect` 节点的 UUID）
     pub connection_id: String,
     /// 探索超时（毫秒）
     #[serde(default)]
@@ -2607,7 +2584,7 @@ pub struct GraphqlIntrospectConfig {
 /// GraphQL 断开连接节点配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct GraphqlDisconnectConfig {
-    /// 连接 ID（引用 graphql_connect 节点的 UUID）
+    /// 连接 ID（引用 `graphql_connect` 节点的 UUID）
     pub connection_id: String,
 }
 
@@ -2652,7 +2629,7 @@ pub struct AmqpConnectConfig {
 /// AMQP 关闭连接节点配置
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct AmqpCloseConfig {
-    /// 连接 ID（引用 amqp_connect 节点的 UUID）
+    /// 连接 ID（引用 `amqp_connect` 节点的 UUID）
     pub connection_id: String,
     /// 关闭回复码
     #[serde(default)]
@@ -2672,7 +2649,7 @@ pub struct AmqpExchangeDeclareConfig {
     /// 交换器类型："direct"/"fanout"/"topic"/"headers"/"custom"
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exchange_type: Option<String>,
-    /// 自定义交换器类型（当 exchange_type 为 "custom" 时使用）
+    /// 自定义交换器类型（当 `exchange_type` 为 "custom" 时使用）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub custom_type: Option<String>,
     /// 是否被动声明（仅检查是否存在）

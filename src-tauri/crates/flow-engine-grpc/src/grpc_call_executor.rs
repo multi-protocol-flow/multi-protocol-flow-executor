@@ -22,7 +22,7 @@ const MAX_BACKOFF_CAP_MS: u64 = 30_000;
 
 /// 检查 gRPC 错误是否可重试
 ///
-/// 可重试的状态码：UNAVAILABLE、DEADLINE_EXCEEDED
+/// `可重试的状态码：UNAVAILABLE、DEADLINE_EXCEEDED`
 /// 这些 code 出现在 tonic Status 的字符串表示中，格式为 "message (CODE)"
 fn is_retryable_error(error: &str) -> bool {
     error.contains("(UNAVAILABLE)") || error.contains("(DEADLINE_EXCEEDED)")

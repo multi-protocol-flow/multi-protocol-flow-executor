@@ -221,7 +221,7 @@ async fn connect_via_socks5_proxy(
     Ok(socks5_stream)
 }
 
-/// 执行 SOCKS5 连接握手，返回内部 TcpStream
+/// 执行 SOCKS5 连接握手，返回内部 `TcpStream`
 async fn connect_socks5(
     proxy_state: &ProxyState,
     target_host: &str,

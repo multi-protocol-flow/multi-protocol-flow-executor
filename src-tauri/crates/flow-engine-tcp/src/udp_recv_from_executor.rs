@@ -16,13 +16,13 @@ use std::time::Instant;
 
 use crate::encoding::build_binary_output;
 
-/// UDP RecvFrom 节点执行器
+/// UDP `RecvFrom` 节点执行器
 pub struct UdpRecvFromExecutor {
     udp_manager: Arc<dyn UdpProvider>,
 }
 
 impl UdpRecvFromExecutor {
-    /// 创建新的 UDP RecvFrom 执行器
+    /// 创建新的 UDP `RecvFrom` 执行器
     pub fn new(udp_manager: Arc<dyn UdpProvider>) -> Self {
         Self { udp_manager }
     }

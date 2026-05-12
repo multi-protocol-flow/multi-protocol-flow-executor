@@ -600,9 +600,9 @@ impl AmqpProvider for AmqpConnectionManager {
         }
     }
 
-    /// 管理操作（通过 RabbitMQ Management HTTP API）
+    /// 管理操作（通过 `RabbitMQ` Management HTTP API）
     ///
-    /// 使用 reqwest 调用 RabbitMQ Management API (默认端口 15672)。
+    /// 使用 reqwest 调用 `RabbitMQ` Management API (默认端口 15672)。
     /// 仅在 `management` feature 启用时可用。
     async fn management(
         &self,

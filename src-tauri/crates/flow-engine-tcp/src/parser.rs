@@ -1,7 +1,7 @@
 //! 协议解析引擎
 //!
 //! 支持 3 种内置解析器：
-//! - LengthPrefix: [length][data] 格式
+//! - `LengthPrefix`: [length][data] 格式
 //! - Delimiter: 分隔符边界
 //! - TLV: [Tag][Length][Value] 格式
 //!
@@ -38,7 +38,7 @@ pub struct ParsedMessage {
 impl ParsedMessage {
     /// 从解析结果重新编码为原始字节
     ///
-    /// 按字段顺序拼接所有 value_bytes。
+    /// 按字段顺序拼接所有 `value_bytes`。
     pub fn re_encode(&self) -> Vec<u8> {
         let mut result = Vec::new();
         for field in &self.fields {
@@ -527,14 +527,14 @@ impl ProtocolParser for TlvParser {
 // 重新编码辅助
 // ============================================================================
 
-/// 从 ParsedMessage 重新编码（使用 ParsedMessage::re_encode）
+/// 从 `ParsedMessage` 重新编码（使用 `ParsedMessage::re_encode`）
 ///
 /// 这是便捷函数，等价于 `message.re_encode()`。
 pub fn re_encode_message(message: &ParsedMessage) -> Vec<u8> {
     message.re_encode()
 }
 
-/// 从 ParserConfig 和原始数据执行完整的 parse → re-encode → 比较
+/// 从 `ParserConfig` 和原始数据执行完整的 parse → re-encode → 比较
 pub fn roundtrip_verify(data: &[u8], config: &ParserConfig) -> Result<bool, String> {
     let parser = create_parser(config)?;
     let message = parser.parse(data)?;

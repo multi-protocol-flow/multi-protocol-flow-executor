@@ -17,7 +17,7 @@ use flow_engine_core::traits::*;
 // 类型别名：通过 boxing 擦除底层流的泛型参数
 // ────────────────────────────────────────────────────────────────────────────
 
-/// 组合 AsyncRead + AsyncWrite + Debug 的辅助 trait
+/// 组合 `AsyncRead` + `AsyncWrite` + Debug 的辅助 trait
 ///
 /// async-imap 要求底层流实现 `Read + Write + Unpin + Debug`，
 /// 通过辅助 trait 可以将这些约束打包到一个 dyn trait 中。
@@ -84,7 +84,7 @@ pub struct ImapConnection {
 /// IMAP 连接管理器
 ///
 /// 管理 IMAP 连接的生命周期，实现 `ImapProvider` trait。
-/// 支持 Plain/Login 密码认证和 OAuth2 认证。
+/// 支持 Plain/Login 密码认证和 `OAuth2` 认证。
 pub struct ImapConnectionManager {
     connections: Arc<Mutex<HashMap<String, ImapConnection>>>,
 }

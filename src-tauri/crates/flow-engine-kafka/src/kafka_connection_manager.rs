@@ -37,7 +37,7 @@ use crate::schema_registry_client::{SchemaRegistryAuth, SchemaRegistryClient};
 /// Kafka 连接
 ///
 /// 持有 KafkaClient、原始配置和元数据。
-/// KafkaClient 按需创建 Producer / Consumer / Admin 客户端。
+/// `KafkaClient` 按需创建 Producer / Consumer / Admin 客户端。
 struct KafkaConnection {
     /// Kafka 高级客户端封装
     client: KafkaClient,
@@ -81,7 +81,7 @@ impl KafkaConnectionManager {
         chrono::Utc::now().timestamp_millis()
     }
 
-    /// 将 KafkaError 映射为 String
+    /// 将 `KafkaError` 映射为 String
     fn map_error(e: KafkaError) -> String {
         e.to_string()
     }
@@ -193,7 +193,7 @@ impl KafkaConnectionManager {
             .unwrap_or_default()
     }
 
-    /// 将 rdkafka 的 BorrowedMessage 转换为 KafkaMessageOutput
+    /// 将 rdkafka 的 `BorrowedMessage` 转换为 `KafkaMessageOutput`
     fn msg_to_output(msg: &rdkafka::message::BorrowedMessage<'_>) -> KafkaMessageOutput {
         let key = msg.key().map(|k| String::from_utf8_lossy(k).to_string());
         let value = msg.payload().map(|p| {
@@ -230,7 +230,7 @@ impl KafkaConnectionManager {
         }
     }
 
-    /// 使用 StreamConsumer 消费指定数量的消息
+    /// 使用 `StreamConsumer` 消费指定数量的消息
     async fn consume_messages(
         consumer: &StreamConsumer,
         max_messages: usize,

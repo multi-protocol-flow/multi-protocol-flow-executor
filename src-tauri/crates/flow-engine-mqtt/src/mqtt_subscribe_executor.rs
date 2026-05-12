@@ -38,7 +38,7 @@ fn build_shared_topic(topic: &str, share_group: Option<&String>) -> String {
     }
 }
 
-/// 根据 output_mode 过滤消息列表
+/// 根据 `output_mode` 过滤消息列表
 ///
 /// - "first": 仅返回第一条消息
 /// - "all" 或其他: 返回全部消息
@@ -156,7 +156,7 @@ impl NodeExecutor for MqttSubscribeExecutor {
                     "messages": filtered_messages.iter().map(|msg| {
                         json!({
                             "topic": msg.topic,
-                            "payload": msg.payload.iter().map(|b| *b as u8).collect::<Vec<_>>(),
+                            "payload": msg.payload.to_vec(),
                             "payload_text": String::from_utf8_lossy(&msg.payload).to_string(),
                             "qos": msg.qos,
                             "retain": msg.retain,

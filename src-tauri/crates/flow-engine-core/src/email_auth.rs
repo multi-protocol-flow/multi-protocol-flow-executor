@@ -27,11 +27,11 @@ pub struct EmailProviderPreset {
     pub imap_port: u16,
     /// IMAP 端口（STARTTLS）
     pub imap_port_starttls: u16,
-    /// OAuth2 Scope
+    /// `OAuth2` Scope
     pub oauth_scope: &'static str,
-    /// OAuth2 授权 URL
+    /// `OAuth2` 授权 URL
     pub auth_url: &'static str,
-    /// OAuth2 Token URL
+    /// `OAuth2` Token URL
     pub token_url: &'static str,
 }
 
@@ -101,7 +101,7 @@ pub fn get_provider_preset(provider: &EmailProvider) -> Option<EmailProviderPres
 ///
 /// # 参数
 /// - `user`: 用户邮箱地址
-/// - `token`: OAuth2 Access Token
+/// - `token`: `OAuth2` Access Token
 ///
 /// # 返回
 /// Base64 编码的 XOAUTH2 SASL 字符串

@@ -4,7 +4,7 @@
 
 /// WebSocket 连接池管理器，管理流程级别的连接生命周期
 pub mod websocket_manager;
-/// WebSocket 节点插件（WsConnectPlugin, WsSendCollectPlugin, WsClosePlugin）
+/// WebSocket 节点插件（WsConnectPlugin, `WsSendCollectPlugin`, `WsClosePlugin`）
 pub mod plugin;
 /// WebSocket 连接节点执行器，负责建立新连接
 pub mod ws_connect_executor;

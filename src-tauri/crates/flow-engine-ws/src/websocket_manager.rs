@@ -84,7 +84,7 @@ fn ensure_crypto_provider() {
     let _ = rustls::crypto::ring::default_provider().install_default();
 }
 
-/// 创建 TLS ClientConfig
+/// 创建 TLS `ClientConfig`
 ///
 /// # 参数
 /// - `skip_verify`: 是否跳过证书验证

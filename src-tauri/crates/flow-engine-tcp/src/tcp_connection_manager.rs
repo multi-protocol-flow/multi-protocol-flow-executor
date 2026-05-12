@@ -279,14 +279,14 @@ impl TcpConnectionManager {
         rec.is_recording()
     }
 
-    /// 建立 TCP 连接（支持 NoDelay / Keepalive / 自定义 CA 证书）
+    /// 建立 TCP 连接（支持 `NoDelay` / Keepalive / 自定义 CA 证书）
     ///
     /// 与 `TcpProvider::connect` 功能相同，但额外支持：
     /// - `no_delay=true` → 禁用 Nagle 算法
     /// - `keepalive=Some(...)` → 配置 TCP Keepalive
     /// - `tls_ca_cert=Some(...)` → 自定义 CA 证书（PEM 格式，追加到系统根证书）
     ///
-    /// Socket 选项在 TcpStream 创建后、TLS 握手前设置。
+    /// Socket 选项在 `TcpStream` 创建后、TLS 握手前设置。
     pub async fn connect_with_options(
         &self,
         uuid: String,

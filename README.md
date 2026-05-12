@@ -141,43 +141,49 @@ mpe --help
 
 ### 流程文件示例
 
+流程文件使用 **FlowFile 包装格式**，包含 `_version`（版本号）、`flow`（流程数据）和 `_meta`（元数据）三个顶层键：
+
 ```json
 {
-  "uuid": "flow-001",
-  "name": "示例流程",
-  "initial_variables": {
-    "api_base": "https://api.example.com"
-  },
-  "nodes": [
-    {
-      "uuid": "entry-001",
-      "type": "entry",
-      "name": "入口",
-      "position": { "x": 0, "y": 0 },
-      "data": { "type": "entry" }
+  "_version": 1,
+  "flow": {
+    "uuid": "flow-001",
+    "name": "示例流程",
+    "initial_variables": {
+      "api_base": "https://api.example.com"
     },
-    {
-      "uuid": "http-001",
-      "type": "http",
-      "name": "获取数据",
-      "position": { "x": 200, "y": 0 },
-      "data": {
+    "nodes": [
+      {
+        "uuid": "entry-001",
+        "type": "entry",
+        "name": "入口",
+        "position": { "x": 0, "y": 0 },
+        "data": { "type": "entry" }
+      },
+      {
+        "uuid": "http-001",
         "type": "http",
-        "url": "{{initial_variables.api_base}}/users",
-        "method": "get",
-        "timeout_ms": 30000
+        "name": "获取数据",
+        "position": { "x": 200, "y": 0 },
+        "data": {
+          "type": "http",
+          "url": "{{initial_variables.api_base}}/users",
+          "method": "get",
+          "timeout_ms": 30000
+        }
       }
-    }
-  ],
-  "connections": [
-    {
-      "id": "conn-001",
-      "source_node_uuid": "entry-001",
-      "target_node_uuid": "http-001",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    }
-  ]
+    ],
+    "connections": [
+      {
+        "id": "conn-001",
+        "source_node_uuid": "entry-001",
+        "target_node_uuid": "http-001",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      }
+    ]
+  },
+  "_meta": null
 }
 ```
 

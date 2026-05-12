@@ -23,11 +23,15 @@ fn fixtures_dir() -> PathBuf {
 }
 
 /// Load a flow from a fixture file
+/// 
+/// Fixture 文件使用 FlowFile 包装格式，此函数自动解包返回内部的 flow 数据。
 fn load_flow_fixture(fixture_name: &str) -> serde_json::Value {
     let mut path = fixtures_dir();
     path.push(fixture_name);
     let content = fs::read_to_string(&path).expect(&format!("Failed to read fixture: {:?}", path));
-    serde_json::from_str(&content).expect(&format!("Failed to parse fixture JSON: {:?}", path))
+    let flow_file: serde_json::Value = serde_json::from_str(&content).expect(&format!("Failed to parse fixture JSON: {:?}", path));
+    // 解包 FlowFile 包装格式，返回内部的 flow 数据
+    flow_file.get("flow").cloned().expect(&format!("Fixture must be in FlowFile format (with 'flow' key): {:?}", path))
 }
 
 /// Verify UUID format (basic check)

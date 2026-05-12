@@ -11,35 +11,39 @@ use tempfile::NamedTempFile;
 fn create_valid_flow_file() -> NamedTempFile {
     let file = NamedTempFile::new().unwrap();
     let flow_content = r#"{
-        "uuid": "test-flow-uuid",
-        "name": "测试流程",
-        "nodes": [
-            {
-                "uuid": "entry-node-1",
-                "type": "entry",
-                "name": "开始节点",
-                "position": { "x": 0.0, "y": 0.0 },
-                "data": {"type": "entry" },
-                "ports": null
-            },
-            {
-                "uuid": "http-node-1",
-                "type": "http",
-                "name": "HTTP 节点",
-                "position": { "x": 100.0, "y": 0.0 },
-                "data": { "type": "http", "url": "https://httpbin.org/status/200" },
-                "ports": null
-            }
-        ],
-        "connections": [
-            {
-                "id": "conn-1",
-                "source_node_uuid": "entry-node-1",
-                "target_node_uuid": "http-node-1",
-                "source_port_id": "output",
-                "target_port_id": "input"
-            }
-        ]
+        "_version": 1,
+        "flow": {
+            "uuid": "test-flow-uuid",
+            "name": "测试流程",
+            "nodes": [
+                {
+                    "uuid": "entry-node-1",
+                    "type": "entry",
+                    "name": "开始节点",
+                    "position": { "x": 0.0, "y": 0.0 },
+                    "data": {"type": "entry" },
+                    "ports": null
+                },
+                {
+                    "uuid": "http-node-1",
+                    "type": "http",
+                    "name": "HTTP 节点",
+                    "position": { "x": 100.0, "y": 0.0 },
+                    "data": { "type": "http", "url": "https://httpbin.org/status/200" },
+                    "ports": null
+                }
+            ],
+            "connections": [
+                {
+                    "id": "conn-1",
+                    "source_node_uuid": "entry-node-1",
+                    "target_node_uuid": "http-node-1",
+                    "source_port_id": "output",
+                    "target_port_id": "input"
+                }
+            ]
+        },
+        "_meta": null
     }"#;
     fs::write(file.path(), flow_content).unwrap();
     file
@@ -49,35 +53,39 @@ fn create_valid_flow_file() -> NamedTempFile {
 fn create_flow_with_uuid() -> NamedTempFile {
     let file = NamedTempFile::new().unwrap();
     let flow_content = r#"{
-        "uuid": "flow-uuid-123",
-        "name": "带 UUID 的流程",
-        "nodes": [
-            {
-                "uuid": "entry-node-1",
-                "type": "entry",
-                "name": "开始节点",
-                "position": { "x": 0.0, "y": 0.0 },
-                "data": {"type": "entry" },
-                "ports": null
-            },
-            {
-                "uuid": "http-node-1",
-                "type": "http",
-                "name": "HTTP 节点",
-                "position": { "x": 100.0, "y": 0.0 },
-                "data": { "type": "http", "url": "https://httpbin.org/status/200" },
-                "ports": null
-            }
-        ],
-        "connections": [
-            {
-                "id": "conn-1",
-                "source_node_uuid": "entry-node-1",
-                "target_node_uuid": "http-node-1",
-                "source_port_id": "output",
-                "target_port_id": "input"
-            }
-        ]
+        "_version": 1,
+        "flow": {
+            "uuid": "flow-uuid-123",
+            "name": "带 UUID 的流程",
+            "nodes": [
+                {
+                    "uuid": "entry-node-1",
+                    "type": "entry",
+                    "name": "开始节点",
+                    "position": { "x": 0.0, "y": 0.0 },
+                    "data": {"type": "entry" },
+                    "ports": null
+                },
+                {
+                    "uuid": "http-node-1",
+                    "type": "http",
+                    "name": "HTTP 节点",
+                    "position": { "x": 100.0, "y": 0.0 },
+                    "data": { "type": "http", "url": "https://httpbin.org/status/200" },
+                    "ports": null
+                }
+            ],
+            "connections": [
+                {
+                    "id": "conn-1",
+                    "source_node_uuid": "entry-node-1",
+                    "target_node_uuid": "http-node-1",
+                    "source_port_id": "output",
+                    "target_port_id": "input"
+                }
+            ]
+        },
+        "_meta": null
     }"#;
     fs::write(file.path(), flow_content).unwrap();
     file
@@ -123,7 +131,7 @@ fn create_large_flow_file() -> NamedTempFile {
     connections.push_str("]");
 
     let flow_content = format!(
-        r#"{{"uuid": "large-flow-uuid", "name": "大型流程", "nodes": {}, "connections": {}}}"#,
+        r#"{{"_version": 1, "flow": {{\"uuid\": \"large-flow-uuid\", \"name\": \"大型流程\", \"nodes\": {}, \"connections\": {}}}, "_meta": null}}"#,
         nodes, connections
     );
     fs::write(file.path(), flow_content).unwrap();
@@ -419,19 +427,23 @@ fn test_concurrent_execution() {
 fn test_execution_with_single_entry_node() {
     let file = NamedTempFile::new().unwrap();
     let flow_content = r#"{
-        "uuid": "single-node-flow-uuid",
-        "name": "单节点流程",
-        "nodes": [
-            {
-                "uuid": "entry-node-1",
-                "type": "entry",
-                "name": "开始节点",
-                "position": { "x": 0.0, "y": 0.0 },
-                "data": {"type": "entry"},
-                "ports": null
-            }
-        ],
-        "connections": []
+        "_version": 1,
+        "flow": {
+            "uuid": "single-node-flow-uuid",
+            "name": "单节点流程",
+            "nodes": [
+                {
+                    "uuid": "entry-node-1",
+                    "type": "entry",
+                    "name": "开始节点",
+                    "position": { "x": 0.0, "y": 0.0 },
+                    "data": {"type": "entry"},
+                    "ports": null
+                }
+            ],
+            "connections": []
+        },
+        "_meta": null
     }"#;
     fs::write(file.path(), flow_content).unwrap();
 
@@ -448,35 +460,39 @@ fn test_execution_with_single_entry_node() {
 fn test_flow_with_connections() {
     let file = NamedTempFile::new().unwrap();
     let flow_content = r#"{
-        "uuid": "flow-with-connections-uuid",
-        "name": "带连接的流程",
-        "nodes": [
-            {
-                "uuid": "entry-node-1",
-                "type": "entry",
-                "name": "开始节点",
-                "position": { "x": 0.0, "y": 0.0 },
-                "data": {"type": "entry"},
-                "ports": null
-            },
-            {
-                "uuid": "http-node-1",
-                "type": "http",
-                "name": "HTTP 节点",
-                "position": { "x": 100.0, "y": 0.0 },
-                "data": { "type": "http", "url": "https://httpbin.org/status/200" },
-                "ports": null
-            }
-        ],
-        "connections": [
-            {
-                "id": "conn-1",
-                "source_node_uuid": "entry-node-1",
-                "target_node_uuid": "http-node-1",
-                "source_port_id": "output",
-                "target_port_id": "input"
-            }
-        ]
+        "_version": 1,
+        "flow": {
+            "uuid": "flow-with-connections-uuid",
+            "name": "带连接的流程",
+            "nodes": [
+                {
+                    "uuid": "entry-node-1",
+                    "type": "entry",
+                    "name": "开始节点",
+                    "position": { "x": 0.0, "y": 0.0 },
+                    "data": {"type": "entry"},
+                    "ports": null
+                },
+                {
+                    "uuid": "http-node-1",
+                    "type": "http",
+                    "name": "HTTP 节点",
+                    "position": { "x": 100.0, "y": 0.0 },
+                    "data": { "type": "http", "url": "https://httpbin.org/status/200" },
+                    "ports": null
+                }
+            ],
+            "connections": [
+                {
+                    "id": "conn-1",
+                    "source_node_uuid": "entry-node-1",
+                    "target_node_uuid": "http-node-1",
+                    "source_port_id": "output",
+                    "target_port_id": "input"
+                }
+            ]
+        },
+        "_meta": null
     }"#;
     fs::write(file.path(), flow_content).unwrap();
 
@@ -544,35 +560,40 @@ fn test_error_handling_invalid_json_file() {
 #[test]
 fn test_flow_with_missing_uuid() {
     let file = NamedTempFile::new().unwrap();
+    // 创建 FlowFile 包装但 Flow 内缺少 uuid 字段（反序列化失败）
     let flow_content = r#"{
-        "name": "无 UUID 流程",
-        "nodes": [
-            {
-                "uuid": "entry-node-1",
-                "type": "entry",
-                "name": "开始节点",
-                "position": { "x": 0.0, "y": 0.0 },
-                "data": {"type": "entry"},
-                "ports": null
-            },
-            {
-                "uuid": "http-node-1",
-                "type": "http",
-                "name": "HTTP 节点",
-                "position": { "x": 100.0, "y": 0.0 },
-                "data": { "type": "http", "url": "https://httpbin.org/status/200" },
-                "ports": null
-            }
-        ],
-        "connections": [
-            {
-                "id": "conn-1",
-                "source_node_uuid": "entry-node-1",
-                "target_node_uuid": "http-node-1",
-                "source_port_id": "output",
-                "target_port_id": "input"
-            }
-        ]
+        "_version": 1,
+        "flow": {
+            "name": "无 UUID 流程",
+            "nodes": [
+                {
+                    "uuid": "entry-node-1",
+                    "type": "entry",
+                    "name": "开始节点",
+                    "position": { "x": 0.0, "y": 0.0 },
+                    "data": {"type": "entry"},
+                    "ports": null
+                },
+                {
+                    "uuid": "http-node-1",
+                    "type": "http",
+                    "name": "HTTP 节点",
+                    "position": { "x": 100.0, "y": 0.0 },
+                    "data": { "type": "http", "url": "https://httpbin.org/status/200" },
+                    "ports": null
+                }
+            ],
+            "connections": [
+                {
+                    "id": "conn-1",
+                    "source_node_uuid": "entry-node-1",
+                    "target_node_uuid": "http-node-1",
+                    "source_port_id": "output",
+                    "target_port_id": "input"
+                }
+            ]
+        },
+        "_meta": null
     }"#;
     fs::write(file.path(), flow_content).unwrap();
 
@@ -604,10 +625,14 @@ fn test_validate_invalid_flow() {
     let file = NamedTempFile::new().unwrap();
     // 创建有 uuid 但无 nodes 的流程（可以加载但验证失败）
     let flow_content = r#"{
-        "uuid": "invalid-flow-uuid",
-        "name": "无效流程",
-        "nodes": [],
-        "connections": []
+        "_version": 1,
+        "flow": {
+            "uuid": "invalid-flow-uuid",
+            "name": "无效流程",
+            "nodes": [],
+            "connections": []
+        },
+        "_meta": null
     }"#;
     fs::write(file.path(), flow_content).unwrap();
 
@@ -758,7 +783,7 @@ fn test_flow_create_and_show_crud_cycle() {
 
     let output_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
-    let flow_uuid = json["data"]["uuid"].as_str().unwrap().to_string();
+    let flow_uuid = json["data"]["flow"]["uuid"].as_str().unwrap().to_string();
 
     // 查看流程
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -827,7 +852,7 @@ fn test_flow_edit_node_add() {
 
     let output_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
-    let flow_uuid = json["data"]["uuid"].as_str().unwrap().to_string();
+    let flow_uuid = json["data"]["flow"]["uuid"].as_str().unwrap().to_string();
 
     // 添加一个 HTTP 节点
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -877,10 +902,10 @@ fn test_flow_edit_connection_add() {
 
     let output_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
-    let flow_uuid = json["data"]["uuid"].as_str().unwrap().to_string();
+    let flow_uuid = json["data"]["flow"]["uuid"].as_str().unwrap().to_string();
 
     // 获取 entry 节点 UUID
-    let entry_node_uuid = json["data"]["nodes"][0]["uuid"]
+    let entry_node_uuid = json["data"]["flow"]["nodes"][0]["uuid"]
         .as_str()
         .unwrap()
         .to_string();
@@ -910,7 +935,7 @@ fn test_flow_edit_connection_add() {
     let node_json: serde_json::Value = serde_json::from_str(&node_output_str).unwrap();
 
     // 找到新添加的 HTTP 节点 UUID
-    let http_node_uuid = node_json["data"]["nodes"]
+    let http_node_uuid = node_json["data"]["flow"]["nodes"]
         .as_array()
         .unwrap()
         .iter()
@@ -967,7 +992,7 @@ fn test_flow_edit_variable_set() {
 
     let output_str = String::from_utf8(output).unwrap();
     let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
-    let flow_uuid = json["data"]["uuid"].as_str().unwrap().to_string();
+    let flow_uuid = json["data"]["flow"]["uuid"].as_str().unwrap().to_string();
 
     // 设置变量
     let mut cmd = cargo::cargo_bin_cmd!("mpe");
@@ -1078,109 +1103,130 @@ fn test_log_level_info() {
 /// 创建断言通过流程（断言验证状态码 200，通过 true 分支）
 fn create_assertion_pass_flow() -> NamedTempFile {
     let file = NamedTempFile::new().unwrap();
-    let flow_content = r#"{
-        "uuid": "assertion-pass-flow-001",
-        "name": "断言通过流程",
-        "nodes": [
-            {
-                "uuid": "entry-node",
-                "type": "entry",
-                "name": "开始",
-                "position": { "x": 0.0, "y": 0.0 },
-                "data": { "type": "entry" },
-                "ports": null
-            },
-            {
-                "uuid": "http-node",
-                "type": "http",
-                "name": "HTTP 请求",
-                "position": { "x": 200.0, "y": 0.0 },
-                "data": {
-                    "type": "http",
-                    "url": "https://httpbin.org/status/200",
-                    "method": "get"
+    let flow_content = r#"    {
+        "_version": 1,
+        "flow": {
+            "uuid": "assertion-pass-flow-001",
+            "name": "断言通过流程",
+            "nodes": [
+                {
+                    "uuid": "entry-node",
+                    "type": "entry",
+                    "name": "开始",
+                    "position": {
+                        "x": 0,
+                        "y": 0
+                    },
+                    "data": {
+                        "type": "entry"
+                    },
+                    "ports": null
                 },
-                "ports": null
-            },
-            {
-                "uuid": "assertion-node",
-                "type": "assertion",
-                "name": "断言状态码",
-                "position": { "x": 400.0, "y": 0.0 },
-                "data": {
+                {
+                    "uuid": "http-node",
+                    "type": "http",
+                    "name": "HTTP 请求",
+                    "position": {
+                        "x": 200,
+                        "y": 0
+                    },
+                    "data": {
+                        "type": "http",
+                        "url": "https://httpbin.org/status/200",
+                        "method": "get"
+                    },
+                    "ports": null
+                },
+                {
+                    "uuid": "assertion-node",
                     "type": "assertion",
-                    "preset": null,
-                    "mode": "all",
-                    "on_failure": "route_false",
-                    "continue_on_failure": false,
-                    "assertions": [
-                        {
-                            "id": "assert-status",
-                            "description": "验证状态码为 200",
-                            "target": "$.status",
-                            "operator": "eq",
-                            "expected": 200,
-                            "enabled": true
-                        }
-                    ]
+                    "name": "断言状态码",
+                    "position": {
+                        "x": 400,
+                        "y": 0
+                    },
+                    "data": {
+                        "type": "assertion",
+                        "preset": null,
+                        "mode": "all",
+                        "on_failure": "route_false",
+                        "continue_on_failure": false,
+                        "assertions": [
+                            {
+                                "id": "assert-status",
+                                "description": "验证状态码为 200",
+                                "target": "$.status",
+                                "operator": "eq",
+                                "expected": 200,
+                                "enabled": true
+                            }
+                        ]
+                    },
+                    "ports": null
                 },
-                "ports": null
-            },
-            {
-                "uuid": "true-branch-http",
-                "type": "http",
-                "name": "True 分支标记",
-                "position": { "x": 600.0, "y": -100.0 },
-                "data": {
+                {
+                    "uuid": "true-branch-http",
                     "type": "http",
-                    "url": "https://httpbin.org/status/201",
-                    "method": "get"
+                    "name": "True 分支标记",
+                    "position": {
+                        "x": 600,
+                        "y": -100
+                    },
+                    "data": {
+                        "type": "http",
+                        "url": "https://httpbin.org/status/201",
+                        "method": "get"
+                    },
+                    "ports": null
                 },
-                "ports": null
-            },
-            {
-                "uuid": "false-branch-http",
-                "type": "http",
-                "name": "False 分支标记",
-                "position": { "x": 600.0, "y": 100.0 },
-                "data": {
+                {
+                    "uuid": "false-branch-http",
                     "type": "http",
-                    "url": "https://httpbin.org/status/400",
-                    "method": "get"
+                    "name": "False 分支标记",
+                    "position": {
+                        "x": 600,
+                        "y": 100
+                    },
+                    "data": {
+                        "type": "http",
+                        "url": "https://httpbin.org/status/400",
+                        "method": "get"
+                    },
+                    "ports": null
+                }
+            ],
+            "connections": [
+                {
+                    "id": "conn-entry-http",
+                    "source_node_uuid": "entry-node",
+                    "target_node_uuid": "http-node",
+                    "source_port_id": "output",
+                    "target_port_id": "input"
                 },
-                "ports": null
-            }
-        ],
-        "connections": [
-            {
-                "id": "conn-entry-http",
-                "source_node_uuid": "entry-node",
-                "target_node_uuid": "http-node",
-                "source_port_id": "output",
-                "target_port_id": "input"
-            },
-            {
-                "id": "conn-http-assertion",
-                "source_node_uuid": "http-node",
-                "target_node_uuid": "assertion-node",
-                "source_port_id": "true",
-                "target_port_id": "input"
-            },
-            {
-                "id": "conn-assertion-true",
-                "source_node_uuid": "assertion-node",
-                "target_node_uuid": "true-branch-http",
-                "source_port_id": "true",
-                "target_port_id": "input"
-            },
-            {
-                "id": "conn-assertion-false",
-                "source_node_uuid": "assertion-node",
-                "target_node_uuid": "false-branch-http",
-                "source_port_id": "false",
-                "target_port_id": "input"
-            }
-        ]
+                {
+                    "id": "conn-http-assertion",
+                    "source_node_uuid": "http-node",
+                    "target_node_uuid": "assertion-node",
+                    "source_port_id": "true",
+                    "target_port_id": "input"
+                },
+                {
+                    "id": "conn-assertion-true",
+                    "source_node_uuid": "assertion-node",
+                    "target_node_uuid": "true-branch-http",
+                    "source_port_id": "true",
+                    "target_port_id": "input"
+                },
+                {
+                    "id": "conn-assertion-false",
+                    "source_node_uuid": "assertion-node",
+                    "target_node_uuid": "false-branch-http",
+                    "source_port_id": "false",
+                    "target_port_id": "input"
+                }
+            ]
+        },
+        "_meta": null
     }"#;
     fs::write(file.path(), flow_content).unwrap();
     file
@@ -1189,109 +1235,130 @@ fn create_assertion_pass_flow() -> NamedTempFile {
 /// 创建断言失败流程（断言验证状态码 999，实际返回 200，走 false 分支）
 fn create_assertion_fail_route_false_flow() -> NamedTempFile {
     let file = NamedTempFile::new().unwrap();
-    let flow_content = r#"{
-        "uuid": "assertion-fail-route-false-001",
-        "name": "断言失败路由流程",
-        "nodes": [
-            {
-                "uuid": "entry-node",
-                "type": "entry",
-                "name": "开始",
-                "position": { "x": 0.0, "y": 0.0 },
-                "data": { "type": "entry" },
-                "ports": null
-            },
-            {
-                "uuid": "http-node",
-                "type": "http",
-                "name": "HTTP 请求",
-                "position": { "x": 200.0, "y": 0.0 },
-                "data": {
-                    "type": "http",
-                    "url": "https://httpbin.org/status/200",
-                    "method": "get"
+    let flow_content = r#"    {
+        "_version": 1,
+        "flow": {
+            "uuid": "assertion-fail-route-false-001",
+            "name": "断言失败路由流程",
+            "nodes": [
+                {
+                    "uuid": "entry-node",
+                    "type": "entry",
+                    "name": "开始",
+                    "position": {
+                        "x": 0,
+                        "y": 0
+                    },
+                    "data": {
+                        "type": "entry"
+                    },
+                    "ports": null
                 },
-                "ports": null
-            },
-            {
-                "uuid": "assertion-node",
-                "type": "assertion",
-                "name": "断言状态码",
-                "position": { "x": 400.0, "y": 0.0 },
-                "data": {
+                {
+                    "uuid": "http-node",
+                    "type": "http",
+                    "name": "HTTP 请求",
+                    "position": {
+                        "x": 200,
+                        "y": 0
+                    },
+                    "data": {
+                        "type": "http",
+                        "url": "https://httpbin.org/status/200",
+                        "method": "get"
+                    },
+                    "ports": null
+                },
+                {
+                    "uuid": "assertion-node",
                     "type": "assertion",
-                    "preset": null,
-                    "mode": "all",
-                    "on_failure": "route_false",
-                    "continue_on_failure": false,
-                    "assertions": [
-                        {
-                            "id": "assert-status-fail",
-                            "description": "验证状态码为 999（故意失败）",
-                            "target": "$.status",
-                            "operator": "eq",
-                            "expected": 999,
-                            "enabled": true
-                        }
-                    ]
+                    "name": "断言状态码",
+                    "position": {
+                        "x": 400,
+                        "y": 0
+                    },
+                    "data": {
+                        "type": "assertion",
+                        "preset": null,
+                        "mode": "all",
+                        "on_failure": "route_false",
+                        "continue_on_failure": false,
+                        "assertions": [
+                            {
+                                "id": "assert-status-fail",
+                                "description": "验证状态码为 999（故意失败）",
+                                "target": "$.status",
+                                "operator": "eq",
+                                "expected": 999,
+                                "enabled": true
+                            }
+                        ]
+                    },
+                    "ports": null
                 },
-                "ports": null
-            },
-            {
-                "uuid": "true-branch-http",
-                "type": "http",
-                "name": "True 分支标记",
-                "position": { "x": 600.0, "y": -100.0 },
-                "data": {
+                {
+                    "uuid": "true-branch-http",
                     "type": "http",
-                    "url": "https://httpbin.org/status/201",
-                    "method": "get"
+                    "name": "True 分支标记",
+                    "position": {
+                        "x": 600,
+                        "y": -100
+                    },
+                    "data": {
+                        "type": "http",
+                        "url": "https://httpbin.org/status/201",
+                        "method": "get"
+                    },
+                    "ports": null
                 },
-                "ports": null
-            },
-            {
-                "uuid": "false-branch-http",
-                "type": "http",
-                "name": "False 分支标记",
-                "position": { "x": 600.0, "y": 100.0 },
-                "data": {
+                {
+                    "uuid": "false-branch-http",
                     "type": "http",
-                    "url": "https://httpbin.org/status/400",
-                    "method": "get"
+                    "name": "False 分支标记",
+                    "position": {
+                        "x": 600,
+                        "y": 100
+                    },
+                    "data": {
+                        "type": "http",
+                        "url": "https://httpbin.org/status/400",
+                        "method": "get"
+                    },
+                    "ports": null
+                }
+            ],
+            "connections": [
+                {
+                    "id": "conn-entry-http",
+                    "source_node_uuid": "entry-node",
+                    "target_node_uuid": "http-node",
+                    "source_port_id": "output",
+                    "target_port_id": "input"
                 },
-                "ports": null
-            }
-        ],
-        "connections": [
-            {
-                "id": "conn-entry-http",
-                "source_node_uuid": "entry-node",
-                "target_node_uuid": "http-node",
-                "source_port_id": "output",
-                "target_port_id": "input"
-            },
-            {
-                "id": "conn-http-assertion",
-                "source_node_uuid": "http-node",
-                "target_node_uuid": "assertion-node",
-                "source_port_id": "true",
-                "target_port_id": "input"
-            },
-            {
-                "id": "conn-assertion-true",
-                "source_node_uuid": "assertion-node",
-                "target_node_uuid": "true-branch-http",
-                "source_port_id": "true",
-                "target_port_id": "input"
-            },
-            {
-                "id": "conn-assertion-false",
-                "source_node_uuid": "assertion-node",
-                "target_node_uuid": "false-branch-http",
-                "source_port_id": "false",
-                "target_port_id": "input"
-            }
-        ]
+                {
+                    "id": "conn-http-assertion",
+                    "source_node_uuid": "http-node",
+                    "target_node_uuid": "assertion-node",
+                    "source_port_id": "true",
+                    "target_port_id": "input"
+                },
+                {
+                    "id": "conn-assertion-true",
+                    "source_node_uuid": "assertion-node",
+                    "target_node_uuid": "true-branch-http",
+                    "source_port_id": "true",
+                    "target_port_id": "input"
+                },
+                {
+                    "id": "conn-assertion-false",
+                    "source_node_uuid": "assertion-node",
+                    "target_node_uuid": "false-branch-http",
+                    "source_port_id": "false",
+                    "target_port_id": "input"
+                }
+            ]
+        },
+        "_meta": null
     }"#;
     fs::write(file.path(), flow_content).unwrap();
     file
@@ -1300,90 +1367,108 @@ fn create_assertion_fail_route_false_flow() -> NamedTempFile {
 /// 创建断言失败抛出错误流程（流程在断言节点终止）
 fn create_assertion_fail_throw_flow() -> NamedTempFile {
     let file = NamedTempFile::new().unwrap();
-    let flow_content = r#"{
-        "uuid": "assertion-fail-throw-001",
-        "name": "断言失败抛出流程",
-        "nodes": [
-            {
-                "uuid": "entry-node",
-                "type": "entry",
-                "name": "开始",
-                "position": { "x": 0.0, "y": 0.0 },
-                "data": { "type": "entry" },
-                "ports": null
-            },
-            {
-                "uuid": "http-node",
-                "type": "http",
-                "name": "HTTP 请求",
-                "position": { "x": 200.0, "y": 0.0 },
-                "data": {
-                    "type": "http",
-                    "url": "https://httpbin.org/status/200",
-                    "method": "get"
+    let flow_content = r#"    {
+        "_version": 1,
+        "flow": {
+            "uuid": "assertion-fail-throw-001",
+            "name": "断言失败抛出流程",
+            "nodes": [
+                {
+                    "uuid": "entry-node",
+                    "type": "entry",
+                    "name": "开始",
+                    "position": {
+                        "x": 0,
+                        "y": 0
+                    },
+                    "data": {
+                        "type": "entry"
+                    },
+                    "ports": null
                 },
-                "ports": null
-            },
-            {
-                "uuid": "assertion-node",
-                "type": "assertion",
-                "name": "断言状态码",
-                "position": { "x": 400.0, "y": 0.0 },
-                "data": {
+                {
+                    "uuid": "http-node",
+                    "type": "http",
+                    "name": "HTTP 请求",
+                    "position": {
+                        "x": 200,
+                        "y": 0
+                    },
+                    "data": {
+                        "type": "http",
+                        "url": "https://httpbin.org/status/200",
+                        "method": "get"
+                    },
+                    "ports": null
+                },
+                {
+                    "uuid": "assertion-node",
                     "type": "assertion",
-                    "preset": null,
-                    "mode": "all",
-                    "on_failure": "throw",
-                    "continue_on_failure": false,
-                    "assertions": [
-                        {
-                            "id": "assert-status-throw",
-                            "description": "验证状态码为 999（失败时抛出）",
-                            "target": "$.status",
-                            "operator": "eq",
-                            "expected": 999,
-                            "enabled": true
-                        }
-                    ]
+                    "name": "断言状态码",
+                    "position": {
+                        "x": 400,
+                        "y": 0
+                    },
+                    "data": {
+                        "type": "assertion",
+                        "preset": null,
+                        "mode": "all",
+                        "on_failure": "throw",
+                        "continue_on_failure": false,
+                        "assertions": [
+                            {
+                                "id": "assert-status-throw",
+                                "description": "验证状态码为 999（失败时抛出）",
+                                "target": "$.status",
+                                "operator": "eq",
+                                "expected": 999,
+                                "enabled": true
+                            }
+                        ]
+                    },
+                    "ports": null
                 },
-                "ports": null
-            },
-            {
-                "uuid": "true-branch-http",
-                "type": "http",
-                "name": "True 分支标记",
-                "position": { "x": 600.0, "y": 0.0 },
-                "data": {
+                {
+                    "uuid": "true-branch-http",
                     "type": "http",
-                    "url": "https://httpbin.org/status/201",
-                    "method": "get"
+                    "name": "True 分支标记",
+                    "position": {
+                        "x": 600,
+                        "y": 0
+                    },
+                    "data": {
+                        "type": "http",
+                        "url": "https://httpbin.org/status/201",
+                        "method": "get"
+                    },
+                    "ports": null
+                }
+            ],
+            "connections": [
+                {
+                    "id": "conn-entry-http",
+                    "source_node_uuid": "entry-node",
+                    "target_node_uuid": "http-node",
+                    "source_port_id": "output",
+                    "target_port_id": "input"
                 },
-                "ports": null
-            }
-        ],
-        "connections": [
-            {
-                "id": "conn-entry-http",
-                "source_node_uuid": "entry-node",
-                "target_node_uuid": "http-node",
-                "source_port_id": "output",
-                "target_port_id": "input"
-            },
-            {
-                "id": "conn-http-assertion",
-                "source_node_uuid": "http-node",
-                "target_node_uuid": "assertion-node",
-                "source_port_id": "true",
-                "target_port_id": "input"
-            },
-            {
-                "id": "conn-assertion-true",
-                "source_node_uuid": "assertion-node",
-                "target_node_uuid": "true-branch-http",
-                "source_port_id": "true",
-                "target_port_id": "input"
-            }
-        ]
+                {
+                    "id": "conn-http-assertion",
+                    "source_node_uuid": "http-node",
+                    "target_node_uuid": "assertion-node",
+                    "source_port_id": "true",
+                    "target_port_id": "input"
+                },
+                {
+                    "id": "conn-assertion-true",
+                    "source_node_uuid": "assertion-node",
+                    "target_node_uuid": "true-branch-http",
+                    "source_port_id": "true",
+                    "target_port_id": "input"
+                }
+            ]
+        },
+        "_meta": null
     }"#;
     fs::write(file.path(), flow_content).unwrap();
     file

@@ -79,7 +79,7 @@ async fn reflect_services_v1alpha(
     collect_reflection_data_v1alpha(stream, tx).await
 }
 
-/// v1alpha 反射: 收集文件描述符（从 ListServices 之后开始）
+/// v1alpha 反射: 收集文件描述符（从 `ListServices` 之后开始）
 async fn collect_reflection_data_v1alpha(
     mut stream: tonic::codec::Streaming<
         tonic_reflection::pb::v1alpha::ServerReflectionResponse,
@@ -691,7 +691,7 @@ fn set_metadata_on_request<T>(
     Ok(())
 }
 
-/// 从文件描述符列表构建 DescriptorPool
+/// 从文件描述符列表构建 `DescriptorPool`
 fn build_descriptor_pool(
     all_fds: Vec<prost_types::FileDescriptorProto>,
 ) -> Result<prost_reflect::DescriptorPool, String> {
@@ -789,7 +789,7 @@ pub async fn discover_services_via_reflection(
 
 /// 通过 Server Reflection 协议生成请求骨架（不创建持久连接）
 ///
-/// 创建临时连接，通过反射获取 DescriptorPool，
+/// 创建临时连接，通过反射获取 `DescriptorPool`，
 /// 从中生成指定服务和方法的请求 JSON 骨架。
 /// 适用于未提供 proto 文件的 Reflection 场景。
 pub async fn generate_skeleton_via_reflection(

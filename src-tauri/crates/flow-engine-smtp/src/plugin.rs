@@ -308,7 +308,7 @@ impl NodePlugin for SmtpDisconnectPlugin {
 pub struct SmtpPluginGroup;
 
 impl SmtpPluginGroup {
-    /// 将所有 SMTP 插件注册到 NodeRegistry
+    /// 将所有 SMTP 插件注册到 `NodeRegistry`
     pub fn register_all(registry: &mut flow_engine_core::registry::NodeRegistry) {
         registry.register(Arc::new(SmtpConnectPlugin));
         registry.register(Arc::new(SmtpSendPlugin));

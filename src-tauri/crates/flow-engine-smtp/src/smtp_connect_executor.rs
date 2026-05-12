@@ -26,7 +26,7 @@ impl SmtpConnectExecutor {
         Self { smtp_manager }
     }
 
-    /// 将字符串 tls_mode 解析为 TlsMode 枚举
+    /// 将字符串 `tls_mode` 解析为 `TlsMode` 枚举
     fn parse_tls_mode(tls_mode: &str) -> TlsMode {
         match tls_mode {
             "starttls" => TlsMode::StartTls,
@@ -35,7 +35,7 @@ impl SmtpConnectExecutor {
         }
     }
 
-    /// 将 JSON Value 格式的 auth 配置解析为 EmailAuthConfig
+    /// 将 JSON Value 格式的 auth 配置解析为 `EmailAuthConfig`
     fn parse_auth(auth_value: &serde_json::Value) -> Result<Option<EmailAuthConfig>, String> {
         if auth_value.is_null() {
             return Ok(None);

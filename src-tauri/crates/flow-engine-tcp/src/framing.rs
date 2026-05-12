@@ -1,9 +1,9 @@
 //! TCP 消息分帧引擎
 //!
 //! 支持 5 种分帧模式：
-//! - LengthPrefix: N 字节长度前缀（大端序）
+//! - `LengthPrefix`: N 字节长度前缀（大端序）
 //! - Delimiter: 分隔符边界
-//! - FixedLength: 固定长度
+//! - `FixedLength`: 固定长度
 //! - Timeout: 超时读取
 //! - Manual: 直通（不添加帧）
 

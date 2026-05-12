@@ -249,7 +249,7 @@ impl DatabasePool for MySqlConnection {
             if let Some(ref mut conn) = *guard {
                 // 事务中 — 在专用连接上执行
                 // 解引用 PoolConnection 获取内部 MySqlConnection
-                self.execute_on_connection(&mut **conn, sql, params).await
+                self.execute_on_connection(conn, sql, params).await
             } else {
                 // 非事务 — 释放锁，用连接池
                 drop(guard);
@@ -517,7 +517,7 @@ impl MySqlConnection {
         }
     }
 
-    /// 将 sqlx 行数据转换为 QueryResult
+    /// 将 sqlx 行数据转换为 `QueryResult`
     ///
     /// 从 `execute_internal` 和 `execute_on_connection` 共用的结果处理逻辑。
     fn rows_to_query_result(rows: Vec<sqlx::mysql::MySqlRow>) -> Result<QueryResult, String> {

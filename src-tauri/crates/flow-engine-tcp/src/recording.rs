@@ -261,7 +261,7 @@ impl RecordingManager {
     pub fn is_recording(&self) -> bool {
         self.active_recording
             .as_ref()
-            .map_or(false, |a| a.enabled)
+            .is_some_and(|a| a.enabled)
     }
 
     /// 内部：记录一条条目

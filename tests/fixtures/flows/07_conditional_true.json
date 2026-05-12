@@ -1,53 +1,70 @@
 {
-  "uuid": "8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
-  "name": "条件流程 - Start → Conditional (true) → End",
-  "initial_variables": null,
-  "nodes": [
-    {
-      "uuid": "start-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
-      "type": "entry",
-      "name": "开始",
-      "position": { "x": 0.0, "y": 0.0 },
-      "data": { "type": "entry" },
-      "ports": null
-    },
-    {
-      "uuid": "conditional-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
-      "type": "conditional",
-      "name": "条件判断(成功)",
-      "position": { "x": 200.0, "y": 0.0 },
-      "data": {
-        "type": "conditional",
-        "condition_type": "equal",
-        "field_path": "status",
-        "expected_value": "success",
-        "expression": null
+  "_version": 1,
+  "flow": {
+    "uuid": "8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
+    "name": "条件流程 - Start → Conditional (true) → End",
+    "initial_variables": null,
+    "nodes": [
+      {
+        "uuid": "start-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
+        "type": "entry",
+        "name": "开始",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "type": "entry"
+        },
+        "ports": null
       },
-      "ports": null
-    },
-    {
-      "uuid": "end-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
-      "type": "end",
-      "name": "结束",
-      "position": { "x": 400.0, "y": 0.0 },
-      "data": { "type": "end" },
-      "ports": null
-    }
-  ],
-  "connections": [
-    {
-      "id": "conn-1-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
-      "source_node_uuid": "start-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
-      "target_node_uuid": "conditional-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    },
-    {
-      "id": "conn-2-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
-      "source_node_uuid": "conditional-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
-      "target_node_uuid": "end-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    }
-  ]
+      {
+        "uuid": "conditional-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
+        "type": "conditional",
+        "name": "条件判断(成功)",
+        "position": {
+          "x": 200,
+          "y": 0
+        },
+        "data": {
+          "type": "conditional",
+          "condition_type": "equal",
+          "field_path": "status",
+          "expected_value": "success",
+          "expression": null
+        },
+        "ports": null
+      },
+      {
+        "uuid": "end-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
+        "type": "end",
+        "name": "结束",
+        "position": {
+          "x": 400,
+          "y": 0
+        },
+        "data": {
+          "type": "end"
+        },
+        "ports": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-1-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
+        "source_node_uuid": "start-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
+        "target_node_uuid": "conditional-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      },
+      {
+        "id": "conn-2-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
+        "source_node_uuid": "conditional-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
+        "target_node_uuid": "end-8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      }
+    ]
+  },
+  "_meta": null
 }

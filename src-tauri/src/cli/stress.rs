@@ -41,11 +41,9 @@ async fn execute_run(
         )));
     }
 
-    // 加载流程文件
-    let flow_json = std::fs::read_to_string(&path)
-        .map_err(|e| CliError::Io(format!("读取流程文件失败: {}", e)))?;
-    let flow: crate::flow::Flow = serde_json::from_str(&flow_json)
-        .map_err(|e| CliError::Execution(format!("解析流程文件失败: {}", e)))?;
+    // 加载流程文件（使用统一 FlowFile 格式）
+    let flow = crate::load_flow(flow_path)
+        .map_err(|e| CliError::Execution(format!("加载流程文件失败: {}", e)))?;
 
     // 创建压测配置
     let stress_config = crate::stress_test::StressTestConfig {

@@ -220,7 +220,7 @@ impl NodeExecutor for SmtpSendExecutor {
             .await;
 
         // 12. 基本参数校验
-        if from.as_ref().map_or(true, |f| f.is_empty()) {
+        if from.as_ref().is_none_or(|f| f.is_empty()) {
             let duration = start_time.elapsed();
             let error_msg = "发件人地址不能为空";
             log::error!(

@@ -116,7 +116,7 @@ pub struct GrpcStreamMessage {
 /// 健康检查响应
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct HealthCheckResponse {
-    /// 服务状态："UNKNOWN", "SERVING", "NOT_SERVING", "NOT_IMPLEMENTED"
+    /// 服务状态："UNKNOWN", "SERVING", "`NOT_SERVING`", "`NOT_IMPLEMENTED`"
     pub status: String,
 }
 

@@ -1,88 +1,106 @@
 {
-  "uuid": "ws-send-wait-001",
-  "name": "WebSocket 发送收集测试 - Entry → WS Connect → WS Send+Collect → WS Close",
-  "initial_variables": null,
-  "nodes": [
-    {
-      "uuid": "entry-ws-send-wait",
-      "type": "entry",
-      "name": "入口",
-      "position": { "x": 0.0, "y": 0.0 },
-      "data": { "type": "entry" },
-      "ports": null
-    },
-    {
-      "uuid": "ws-connect-send-wait",
-      "type": "ws_connect",
-      "name": "WS 连接",
-      "position": { "x": 200.0, "y": 0.0 },
-      "data": {
+  "_version": 1,
+  "flow": {
+    "uuid": "ws-send-wait-001",
+    "name": "WebSocket 发送收集测试 - Entry → WS Connect → WS Send+Collect → WS Close",
+    "initial_variables": null,
+    "nodes": [
+      {
+        "uuid": "entry-ws-send-wait",
+        "type": "entry",
+        "name": "入口",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "type": "entry"
+        },
+        "ports": null
+      },
+      {
+        "uuid": "ws-connect-send-wait",
         "type": "ws_connect",
-        "url": "wss://echo.websocket.org",
-        "headers": [],
-        "subprotocols": [],
-        "connect_timeout_ms": 30000,
-        "collect_message": false,
-        "collect_mode": "none",
-        "collect_timeout_ms": 10000,
-        "output_mappings": []
+        "name": "WS 连接",
+        "position": {
+          "x": 200,
+          "y": 0
+        },
+        "data": {
+          "type": "ws_connect",
+          "url": "wss://echo.websocket.org",
+          "headers": [],
+          "subprotocols": [],
+          "connect_timeout_ms": 30000,
+          "collect_message": false,
+          "collect_mode": "none",
+          "collect_timeout_ms": 10000,
+          "output_mappings": []
+        },
+        "ports": null
       },
-      "ports": null
-    },
-    {
-      "uuid": "ws-send-wait-test",
-      "type": "ws_send_collect",
-      "name": "WS 发送收集",
-      "position": { "x": 400.0, "y": 0.0 },
-      "data": {
+      {
+        "uuid": "ws-send-wait-test",
         "type": "ws_send_collect",
-        "connection_id": "ws-connect-send-wait",
-        "message": "Hello, WebSocket!",
-        "message_type": "text",
-        "send_timeout_ms": 30000,
-        "collect_response": true,
-        "collect_mode": "first_match",
-        "collect_timeout_ms": 30000,
-        "output_mappings": []
+        "name": "WS 发送收集",
+        "position": {
+          "x": 400,
+          "y": 0
+        },
+        "data": {
+          "type": "ws_send_collect",
+          "connection_id": "ws-connect-send-wait",
+          "message": "Hello, WebSocket!",
+          "message_type": "text",
+          "send_timeout_ms": 30000,
+          "collect_response": true,
+          "collect_mode": "first_match",
+          "collect_timeout_ms": 30000,
+          "output_mappings": []
+        },
+        "ports": null
       },
-      "ports": null
-    },
-    {
-      "uuid": "ws-close-send-wait",
-      "type": "ws_close",
-      "name": "WS 关闭",
-      "position": { "x": 600.0, "y": 0.0 },
-      "data": {
+      {
+        "uuid": "ws-close-send-wait",
         "type": "ws_close",
-        "connection_id": "ws-connect-send-wait",
-        "close_code": 1000,
-        "close_reason": "正常关闭",
-        "close_timeout_ms": 5000
+        "name": "WS 关闭",
+        "position": {
+          "x": 600,
+          "y": 0
+        },
+        "data": {
+          "type": "ws_close",
+          "connection_id": "ws-connect-send-wait",
+          "close_code": 1000,
+          "close_reason": "正常关闭",
+          "close_timeout_ms": 5000
+        },
+        "ports": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-entry-to-ws-connect",
+        "source_node_uuid": "entry-ws-send-wait",
+        "target_node_uuid": "ws-connect-send-wait",
+        "source_port_id": "output",
+        "target_port_id": "input"
       },
-      "ports": null
-    }
-  ],
-  "connections": [
-    {
-      "id": "conn-entry-to-ws-connect",
-      "source_node_uuid": "entry-ws-send-wait",
-      "target_node_uuid": "ws-connect-send-wait",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    },
-    {
-      "id": "conn-ws-connect-to-send-wait",
-      "source_node_uuid": "ws-connect-send-wait",
-      "target_node_uuid": "ws-send-wait-test",
-      "source_port_id": "true",
-      "target_port_id": "input"
-    },
-    {
-      "id": "conn-send-wait-to-close",
-      "source_node_uuid": "ws-send-wait-test",
-      "target_node_uuid": "ws-close-send-wait",
-      "source_port_id": "true",
-      "target_port_id": "input"
-    }
-  ]
+      {
+        "id": "conn-ws-connect-to-send-wait",
+        "source_node_uuid": "ws-connect-send-wait",
+        "target_node_uuid": "ws-send-wait-test",
+        "source_port_id": "true",
+        "target_port_id": "input"
+      },
+      {
+        "id": "conn-send-wait-to-close",
+        "source_node_uuid": "ws-send-wait-test",
+        "target_node_uuid": "ws-close-send-wait",
+        "source_port_id": "true",
+        "target_port_id": "input"
+      }
+    ]
+  },
+  "_meta": null
 }

@@ -17,13 +17,13 @@ use std::time::Instant;
 
 use crate::encoding::build_binary_output;
 
-/// UDP SendTo 节点执行器
+/// UDP `SendTo` 节点执行器
 pub struct UdpSendToExecutor {
     udp_manager: Arc<dyn UdpProvider>,
 }
 
 impl UdpSendToExecutor {
-    /// 创建新的 UDP SendTo 执行器
+    /// 创建新的 UDP `SendTo` 执行器
     pub fn new(udp_manager: Arc<dyn UdpProvider>) -> Self {
         Self { udp_manager }
     }

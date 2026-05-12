@@ -88,7 +88,12 @@ async fn execute_show(uuid_or_path: &str) -> Result<(), CliError> {
             .map_err(CliError::Execution)?
     };
 
-    let output = CliOutput::success(flow);
+    let flow_file = crate::storage::FlowFile {
+        _version: 1,
+        flow,
+        _meta: None,
+    };
+    let output = CliOutput::success(flow_file);
     super::output::output_json(&output);
     Ok(())
 }
@@ -110,7 +115,12 @@ async fn execute_create(name: &str) -> Result<(), CliError> {
     crate::storage::save_flow_file(&output.flow, flows_dir)
         .map_err(CliError::Execution)?;
 
-    let cli_output = CliOutput::success(output.flow);
+    let flow_file = crate::storage::FlowFile {
+        _version: 1,
+        flow: output.flow,
+        _meta: None,
+    };
+    let cli_output = CliOutput::success(flow_file);
     super::output::output_json(&cli_output);
     Ok(())
 }
@@ -123,7 +133,12 @@ async fn execute_copy(uuid: &str) -> Result<(), CliError> {
     let copied = crate::storage::copy_flow_file(uuid, flows_dir)
         .map_err(CliError::Execution)?;
 
-    let output = CliOutput::success(copied);
+    let flow_file = crate::storage::FlowFile {
+        _version: 1,
+        flow: copied,
+        _meta: None,
+    };
+    let output = CliOutput::success(flow_file);
     super::output::output_json(&output);
     Ok(())
 }
@@ -169,7 +184,12 @@ async fn execute_import(flow_path: &str, name: &str) -> Result<(), CliError> {
     crate::storage::save_flow_file(&flow, flows_dir)
         .map_err(CliError::Execution)?;
 
-    let output = CliOutput::success(flow);
+    let flow_file = crate::storage::FlowFile {
+        _version: 1,
+        flow,
+        _meta: None,
+    };
+    let output = CliOutput::success(flow_file);
     super::output::output_json(&output);
     Ok(())
 }

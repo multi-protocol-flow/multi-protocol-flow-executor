@@ -152,7 +152,7 @@ impl DatasetExecutor {
 
     /// 顺序执行（concurrency = 1）
     ///
-    /// 返回 (summaries, failed_details, `was_cancelled`)
+    /// 返回 (summaries, `failed_details`, `was_cancelled`)
     async fn execute_sequential(
         &self,
         config: &DatasetExecutionConfig,
@@ -296,7 +296,7 @@ impl DatasetExecutor {
 
     /// 并发执行（concurrency > 1，使用 Semaphore 控制并发数）
     ///
-    /// 返回 (summaries, failed_details, `was_cancelled`)
+    /// 返回 (summaries, `failed_details`, `was_cancelled`)
     async fn execute_concurrent(
         &self,
         config: &DatasetExecutionConfig,

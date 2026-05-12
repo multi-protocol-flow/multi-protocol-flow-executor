@@ -130,9 +130,14 @@ pub fn save_flow(flow: &Flow, path: &str) -> Result<(), String> {
         }
     }
 
-    // 序列化为 JSON
+    // 包装为 FlowFile 并序列化为 JSON
+    let flow_file = FlowFile {
+        _version: 1,
+        flow: flow.clone(),
+        _meta: None,
+    };
     let json_string =
-        serde_json::to_string_pretty(flow).map_err(|e| format!("序列化 Flow 失败: {}", e))?;
+        serde_json::to_string_pretty(&flow_file).map_err(|e| format!("序列化 Flow 失败: {}", e))?;
 
     // 创建并写入文件
     let mut file =
@@ -171,13 +176,10 @@ pub fn load_flow(path: &str) -> Result<Flow, String> {
     file.read_to_string(&mut content)
         .map_err(|e| format!("读取文件 {:?} 失败: {}", file_path, e))?;
 
-    // 反序列化为 Flow
-    // 先尝试 FlowFile 包装格式（.mpf 文件），失败则尝试直接 Flow 格式（旧 JSON）
-    let flow: Flow = if let Ok(flow_file) = serde_json::from_str::<FlowFile>(&content) {
-        flow_file.flow
-    } else {
-        serde_json::from_str(&content).map_err(|e| format!("反序列化 Flow 失败: {}", e))?
-    };
+    // 反序列化为 FlowFile 包装格式（.mpf 文件统一格式）
+    let flow_file: FlowFile = serde_json::from_str(&content)
+        .map_err(|e| format!("反序列化 FlowFile 失败: {}（流程文件必须使用 FlowFile 包装格式，包含 _version 和 flow 键）", e))?;
+    let flow = flow_file.flow;
 
     Ok(flow)
 }

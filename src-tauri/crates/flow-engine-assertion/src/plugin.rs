@@ -1,6 +1,6 @@
 //! 断言节点插件
 //!
-//! 实现 NodePlugin trait，提供断言节点的元数据、端口路由和执行能力。
+//! 实现 `NodePlugin` trait，提供断言节点的元数据、端口路由和执行能力。
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;

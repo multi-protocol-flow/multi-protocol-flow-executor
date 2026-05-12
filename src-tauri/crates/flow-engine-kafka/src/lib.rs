@@ -14,7 +14,7 @@ pub mod kafka_connect_executor;
 pub mod kafka_produce_executor;
 /// Kafka Consume 执行器
 pub mod kafka_consume_executor;
-/// Kafka ConsumeBatch 执行器
+/// Kafka `ConsumeBatch` 执行器
 pub mod kafka_consume_batch_executor;
 /// Kafka Admin 执行器
 pub mod kafka_admin_executor;

@@ -1,23 +1,32 @@
 {
-  "uuid": "connection-invalid-reference",
-  "name": "无效连接引用",
-  "nodes": [
-    {
-      "uuid": "entry-001",
-      "type": "entry",
-      "name": "入口",
-      "position": { "x": 0.0, "y": 0.0 },
-      "data": { "type": "entry" },
-      "ports": null
-    }
-  ],
-  "connections": [
-    {
-      "id": "conn-001",
-      "source_node_uuid": "entry-001",
-      "target_node_uuid": "nonexistent-node",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    }
-  ]
+  "_version": 1,
+  "flow": {
+    "uuid": "connection-invalid-reference",
+    "name": "无效连接引用",
+    "nodes": [
+      {
+        "uuid": "entry-001",
+        "type": "entry",
+        "name": "入口",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "type": "entry"
+        },
+        "ports": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-001",
+        "source_node_uuid": "entry-001",
+        "target_node_uuid": "nonexistent-node",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      }
+    ]
+  },
+  "_meta": null
 }

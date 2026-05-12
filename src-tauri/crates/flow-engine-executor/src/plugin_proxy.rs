@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 /// 代理设置节点插件
 ///
-/// 设置或清除后续节点的代理配置。通过 ExecutionContext 的 provider 注册表
+/// 设置或清除后续节点的代理配置。通过 `ExecutionContext` 的 provider 注册表
 /// 存取 `ProxyState`，协议执行器可通过 `context.get_provider::<ProxyState>("proxy_state")` 读取。
 pub struct ProxyPlugin;
 

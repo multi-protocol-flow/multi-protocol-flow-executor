@@ -7,5 +7,5 @@
 pub mod http;
 /// HTTP 节点执行器，负责在流程引擎中执行 HTTP 请求节点
 pub mod http_executor;
-/// HTTP 节点插件，实现 NodePlugin trait
+/// HTTP 节点插件，实现 `NodePlugin` trait
 pub mod plugin;

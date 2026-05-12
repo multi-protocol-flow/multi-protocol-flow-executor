@@ -105,7 +105,7 @@ message ErrorInfo {
 }
 "#;
 
-/// 获取错误详情类型 DescriptorPool
+/// 获取错误详情类型 `DescriptorPool`
 ///
 /// 编译 `google.rpc.*` proto 定义并缓存结果。
 /// 失败时返回空 DescriptorPool（错误详情将以原始十六进制展示）。
@@ -185,8 +185,8 @@ pub(crate) const ERROR_DETAILS_MARKER: &str = "\n---GRPC_ERROR_DETAILS---\n";
 /// 解码流程:
 /// 1. 将 `Status.details()` 解码为 `google.rpc.Status`
 /// 2. 遍历 `details` 字段中的每个 `google.protobuf.Any`
-/// 3. 从 `type_url` 提取类型名，尝试在 DescriptorPool 中查找
-/// 4. 使用 DynamicMessage 解码为 JSON
+/// 3. 从 `type_url` 提取类型名，尝试在 `DescriptorPool` 中查找
+/// 4. 使用 `DynamicMessage` 解码为 JSON
 /// 5. 查找失败时返回原始十六进制
 ///
 /// # 参数
@@ -238,7 +238,7 @@ pub(crate) fn decode_error_details(
     result
 }
 
-/// 尝试用指定的 DescriptorPool 解码 Any 的 value 字段
+/// 尝试用指定的 `DescriptorPool` 解码 Any 的 value 字段
 fn try_decode_any(
     value_bytes: &[u8],
     type_name: &str,

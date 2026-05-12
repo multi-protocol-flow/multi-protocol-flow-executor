@@ -186,7 +186,7 @@ impl Default for UdpSocketManager {
 impl UdpSocketManager {
     /// 带完整配置的 UDP Socket 绑定
     ///
-    /// 使用 `socket2` 创建 socket，支持 reuse_addr/broadcast/multicast 等选项。
+    /// 使用 `socket2` 创建 socket，支持 `reuse_addr/broadcast/multicast` 等选项。
     /// 绑定成功后存入 Socket 池。
     pub async fn bind_with_options(
         &self,
@@ -304,7 +304,7 @@ impl UdpSocketManager {
 impl UdpProvider for UdpSocketManager {
     /// 绑定 UDP Socket 到指定地址和端口（使用默认配置）
     ///
-    /// 通过 `bind_with_options` 实现，默认 reuse_addr=true，其余选项关闭。
+    /// 通过 `bind_with_options` 实现，默认 `reuse_addr=true，其余选项关闭`。
     async fn bind(
         &self,
         uuid: String,

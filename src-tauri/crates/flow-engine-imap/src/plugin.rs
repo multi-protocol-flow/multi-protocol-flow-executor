@@ -41,7 +41,7 @@ fn true_false_ports(success_label: &str, fail_label: &str) -> Vec<PortDef> {
     ]
 }
 
-/// 检查 $.success 的 resolve_port
+/// 检查 $.success 的 `resolve_port`
 fn resolve_success_port(output: &Option<serde_json::Value>) -> String {
     match output {
         Some(serde_json::Value::Object(map)) => {
@@ -512,7 +512,7 @@ impl NodePlugin for ImapClosePlugin {
 pub struct ImapPluginGroup;
 
 impl ImapPluginGroup {
-    /// 将所有 IMAP 插件注册到 NodeRegistry
+    /// 将所有 IMAP 插件注册到 `NodeRegistry`
     pub fn register_all(registry: &mut flow_engine_core::registry::NodeRegistry) {
         registry.register(Arc::new(ImapConnectPlugin));
         registry.register(Arc::new(ImapSelectPlugin));

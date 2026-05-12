@@ -1,80 +1,100 @@
 {
-  "uuid": "smtp-send-email-001",
-  "name": "SMTP 发送邮件测试",
-  "initial_variables": null,
-  "nodes": [
-    {
-      "uuid": "entry-smtp",
-      "type": "entry",
-      "name": "入口",
-      "position": { "x": 0.0, "y": 0.0 },
-      "data": { "type": "entry" },
-      "ports": null
-    },
-    {
-      "uuid": "smtp-connect-001",
-      "type": "smtp_connect",
-      "name": "SMTP 连接",
-      "position": { "x": 200.0, "y": 0.0 },
-      "data": {
+  "_version": 1,
+  "flow": {
+    "uuid": "smtp-send-email-001",
+    "name": "SMTP 发送邮件测试",
+    "initial_variables": null,
+    "nodes": [
+      {
+        "uuid": "entry-smtp",
+        "type": "entry",
+        "name": "入口",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "type": "entry"
+        },
+        "ports": null
+      },
+      {
+        "uuid": "smtp-connect-001",
         "type": "smtp_connect",
-        "host": "smtp.example.com",
-        "port": 587,
-        "tls_mode": "starttls",
-        "connect_timeout_ms": 30000
+        "name": "SMTP 连接",
+        "position": {
+          "x": 200,
+          "y": 0
+        },
+        "data": {
+          "type": "smtp_connect",
+          "host": "smtp.example.com",
+          "port": 587,
+          "tls_mode": "starttls",
+          "connect_timeout_ms": 30000
+        },
+        "ports": null
       },
-      "ports": null
-    },
-    {
-      "uuid": "smtp-send-001",
-      "type": "smtp_send",
-      "name": "发送邮件",
-      "position": { "x": 400.0, "y": 0.0 },
-      "data": {
+      {
+        "uuid": "smtp-send-001",
         "type": "smtp_send",
-        "connection_id": "smtp-connect-001",
-        "from": "sender@example.com",
-        "to": ["recipient@example.com"],
-        "subject": "测试邮件",
-        "body_type": "plain_text",
-        "body": "这是一封测试邮件",
-        "timeout_ms": 30000
+        "name": "发送邮件",
+        "position": {
+          "x": 400,
+          "y": 0
+        },
+        "data": {
+          "type": "smtp_send",
+          "connection_id": "smtp-connect-001",
+          "from": "sender@example.com",
+          "to": [
+            "recipient@example.com"
+          ],
+          "subject": "测试邮件",
+          "body_type": "plain_text",
+          "body": "这是一封测试邮件",
+          "timeout_ms": 30000
+        },
+        "ports": null
       },
-      "ports": null
-    },
-    {
-      "uuid": "smtp-disconnect-001",
-      "type": "smtp_disconnect",
-      "name": "SMTP 断开",
-      "position": { "x": 600.0, "y": 0.0 },
-      "data": {
+      {
+        "uuid": "smtp-disconnect-001",
         "type": "smtp_disconnect",
-        "connection_id": "smtp-connect-001"
+        "name": "SMTP 断开",
+        "position": {
+          "x": 600,
+          "y": 0
+        },
+        "data": {
+          "type": "smtp_disconnect",
+          "connection_id": "smtp-connect-001"
+        },
+        "ports": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-entry-to-smtp-connect",
+        "source_node_uuid": "entry-smtp",
+        "target_node_uuid": "smtp-connect-001",
+        "source_port_id": "output",
+        "target_port_id": "input"
       },
-      "ports": null
-    }
-  ],
-  "connections": [
-    {
-      "id": "conn-entry-to-smtp-connect",
-      "source_node_uuid": "entry-smtp",
-      "target_node_uuid": "smtp-connect-001",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    },
-    {
-      "id": "conn-smtp-connect-to-send",
-      "source_node_uuid": "smtp-connect-001",
-      "target_node_uuid": "smtp-send-001",
-      "source_port_id": "true",
-      "target_port_id": "input"
-    },
-    {
-      "id": "conn-smtp-send-to-disconnect",
-      "source_node_uuid": "smtp-send-001",
-      "target_node_uuid": "smtp-disconnect-001",
-      "source_port_id": "true",
-      "target_port_id": "input"
-    }
-  ]
+      {
+        "id": "conn-smtp-connect-to-send",
+        "source_node_uuid": "smtp-connect-001",
+        "target_node_uuid": "smtp-send-001",
+        "source_port_id": "true",
+        "target_port_id": "input"
+      },
+      {
+        "id": "conn-smtp-send-to-disconnect",
+        "source_node_uuid": "smtp-send-001",
+        "target_node_uuid": "smtp-disconnect-001",
+        "source_port_id": "true",
+        "target_port_id": "input"
+      }
+    ]
+  },
+  "_meta": null
 }

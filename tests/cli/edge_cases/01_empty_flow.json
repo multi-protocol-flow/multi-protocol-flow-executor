@@ -1,6 +1,10 @@
 {
-  "uuid": "empty-flow",
-  "name": "空流程",
-  "nodes": [],
-  "connections": []
+  "_version": 1,
+  "flow": {
+    "uuid": "empty-flow",
+    "name": "空流程",
+    "nodes": [],
+    "connections": []
+  },
+  "_meta": null
 }

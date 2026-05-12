@@ -12,7 +12,7 @@ use flow_engine_core::email_types::{EmailOAuthTokens, EmailProvider};
 use rand::RngCore;
 use sha2::{Digest, Sha256};
 
-/// OAuth2 配置
+/// `OAuth2` 配置
 #[derive(Debug, Clone)]
 pub struct OAuth2Config {
     /// 客户端 ID
@@ -23,18 +23,18 @@ pub struct OAuth2Config {
     pub auth_url: String,
     /// Token URL
     pub token_url: String,
-    /// OAuth2 Scope
+    /// `OAuth2` Scope
     pub scope: String,
     /// 本地回调端口（PKCE 流程使用）
     pub redirect_port: u16,
 }
 
-/// 从 EmailProvider 创建 OAuth2Config
+/// 从 `EmailProvider` 创建 `OAuth2Config`
 ///
 /// # 参数
 /// - `provider`: 邮件服务商
-/// - `client_id`: OAuth2 客户端 ID
-/// - `client_secret`: OAuth2 客户端密钥（可选）
+/// - `client_id`: `OAuth2` 客户端 ID
+/// - `client_secret`: `OAuth2` 客户端密钥（可选）
 /// - `redirect_port`: 本地回调监听端口
 ///
 /// # 返回
@@ -66,7 +66,7 @@ fn generate_random_string(len: usize) -> String {
     URL_SAFE_NO_PAD.encode(&bytes)
 }
 
-/// 计算 PKCE code_challenge (S256: BASE64URL(SHA256(code_verifier)))
+/// 计算 PKCE `code_challenge` (S256: `BASE64URL(SHA256(code_verifier))`)
 fn pkce_challenge(verifier: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(verifier.as_bytes());
@@ -76,7 +76,7 @@ fn pkce_challenge(verifier: &str) -> String {
 
 // ─── PKCE Flow (Tauri 桌面应用) ──────────────────────────────────────────────
 
-/// 构建 OAuth2 授权 URL (PKCE)
+/// 构建 `OAuth2` 授权 URL (PKCE)
 ///
 /// 生成 PKCE verifier + challenge，构建包含所有必需参数的授权 URL。
 ///
@@ -113,7 +113,7 @@ fn urlencoding(s: &str) -> String {
     s.replace(' ', "%20")
 }
 
-/// 启动本地回调监听器，等待 OAuth2 授权码
+/// 启动本地回调监听器，等待 `OAuth2` 授权码
 ///
 /// 在 localhost:{port} 上启动一个极简 HTTP 服务器，等待浏览器回调。
 /// 解析回调 URL 中的 `code` 参数并返回。
@@ -185,10 +185,10 @@ pub async fn start_callback_listener(
     Ok((code, state))
 }
 
-/// 用授权码换取 OAuth2 Token（PKCE）
+/// 用授权码换取 `OAuth2` Token（PKCE）
 ///
 /// # 参数
-/// - `config`: OAuth2 配置
+/// - `config`: `OAuth2` 配置
 /// - `code`: 授权码
 /// - `pkce_verifier`: PKCE 验证码（必须与授权 URL 中 challenge 对应）
 ///
@@ -305,7 +305,7 @@ pub async fn start_device_flow(
 /// 使用设备码轮询 Token 端点，直到用户完成授权或超时。
 ///
 /// # 参数
-/// - `config`: OAuth2 配置
+/// - `config`: `OAuth2` 配置
 /// - `device_code`: 设备码
 /// - `interval_secs`: 轮询间隔（秒）
 /// - `max_attempts`: 最大轮询次数（0 表示无限）
@@ -393,16 +393,16 @@ pub async fn poll_device_token(
 
 // ─── Token 刷新 ──────────────────────────────────────────────────────────────
 
-/// 刷新 OAuth2 Token
+/// 刷新 `OAuth2` Token
 ///
-/// 使用 refresh_token 获取新的 access_token。
+/// 使用 `refresh_token` 获取新的 `access_token`。
 ///
 /// # 参数
-/// - `config`: OAuth2 配置
+/// - `config`: `OAuth2` 配置
 /// - `refresh_token`: 刷新令牌
 ///
 /// # 返回
-/// - `Ok(EmailOAuthTokens)`: 新的 Token（可能包含新的 refresh_token）
+/// - `Ok(EmailOAuthTokens)`: 新的 Token（可能包含新的 `refresh_token`）
 /// - `Err(String)`: 刷新失败
 pub async fn refresh_token(
     config: &OAuth2Config,
@@ -451,10 +451,10 @@ pub async fn refresh_token(
 
 /// 加密存储 Token
 ///
-/// 将 EmailOAuthTokens 序列化为 JSON 后使用 AES-256-GCM 加密。
+/// 将 `EmailOAuthTokens` 序列化为 JSON 后使用 AES-256-GCM 加密。
 ///
 /// # 参数
-/// - `tokens`: OAuth2 Token
+/// - `tokens`: `OAuth2` Token
 ///
 /// # 返回
 /// - `Ok(String)`: 加密后的密文（格式: `base64(nonce):base64(ciphertext)`）
@@ -466,7 +466,7 @@ pub fn store_tokens_encrypted(tokens: &EmailOAuthTokens) -> Result<String, Strin
 
 /// 解密加载 Token
 ///
-/// 解密密文并反序列化为 EmailOAuthTokens。
+/// 解密密文并反序列化为 `EmailOAuthTokens`。
 ///
 /// # 参数
 /// - `encrypted`: 加密的 Token 密文
@@ -482,7 +482,7 @@ pub fn load_tokens_decrypted(encrypted: &str) -> Result<EmailOAuthTokens, String
 
 // ─── 内部工具函数 ─────────────────────────────────────────────────────────────
 
-/// 从 token_url 推导 device_code_url
+/// 从 `token_url` 推导 `device_code_url`
 ///
 /// - Google: `https://oauth2.googleapis.com/token` → `https://oauth2.googleapis.com/device/code`
 /// - Outlook: `https://login.microsoftonline.com/common/oauth2/v2.0/token` → `https://login.microsoftonline.com/common/oauth2/v2.0/devicecode`
@@ -501,7 +501,7 @@ fn derive_device_code_url(token_url: &str) -> Result<String, String> {
     }
 }
 
-/// 解析 Token 响应 JSON 为 EmailOAuthTokens
+/// 解析 Token 响应 JSON 为 `EmailOAuthTokens`
 fn parse_token_response(resp: &serde_json::Value) -> Result<EmailOAuthTokens, String> {
     let access_token = resp
         .get("access_token")

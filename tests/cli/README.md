@@ -14,13 +14,19 @@
 
 ### 流程结构
 
+流程文件使用 **FlowFile 包装格式**：
+
 ```json
 {
-  "uuid": "flow-identifier",
-  "name": "流程名称",
-  "initial_variables": { ... },
-  "nodes": [...],
-  "connections": [...]
+  "_version": 1,
+  "flow": {
+    "uuid": "flow-identifier",
+    "name": "流程名称",
+    "initial_variables": { ... },
+    "nodes": [...],
+    "connections": [...]
+  },
+  "_meta": null
 }
 ```
 

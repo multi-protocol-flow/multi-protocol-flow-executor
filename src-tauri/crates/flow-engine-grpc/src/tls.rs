@@ -115,7 +115,7 @@ fn read_file_content(path: &str) -> Result<String, String> {
         .map_err(|e| format!("读取文件 '{}' 失败: {}", path, e))
 }
 
-/// 构建包含自定义 CA 和/或客户端证书的 rustls ClientConfig
+/// 构建包含自定义 CA 和/或客户端证书的 rustls `ClientConfig`
 ///
 /// - 自定义 CA 证书会被添加到 RootCertStore（与系统根证书共存）
 /// - 客户端证书+私钥用于 mTLS 双向认证
@@ -172,7 +172,7 @@ fn build_custom_tls_config(
     Ok(Arc::new(config))
 }
 
-/// 使用自定义 rustls ClientConfig 构建 gRPC channel
+/// 使用自定义 rustls `ClientConfig` 构建 gRPC channel
 ///
 /// 支持：自定义 CA、mTLS、SNI 覆盖。
 /// 通过 `connect_with_connector_lazy()` 注入自定义 TLS 连接器。
@@ -384,7 +384,7 @@ fn build_standard_tls_endpoint(
 ///
 /// 当提供多个端点时，使用 `Channel::balance_list()` 进行轮询负载均衡。
 /// 所有端点共享相同的 TLS/keepalive/超时配置。
-/// 仅支持明文和标准 TLS 模式（不支持 skip_verify 和自定义 TLS 的负载均衡）。
+/// 仅支持明文和标准 TLS 模式（不支持 `skip_verify` 和自定义 TLS 的负载均衡）。
 pub(crate) fn create_balanced_channel(
     primary_url: &str,
     additional_endpoints: &[String],

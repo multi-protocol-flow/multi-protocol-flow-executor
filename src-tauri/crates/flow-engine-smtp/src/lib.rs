@@ -10,7 +10,7 @@ pub mod smtp_connect_executor;
 pub mod smtp_send_executor;
 /// SMTP 断开连接节点执行器
 pub mod smtp_disconnect_executor;
-/// OAuth2 Token 流程（PKCE、Device Flow、Token 刷新、加密存储）
+/// `OAuth2` Token 流程（PKCE、Device Flow、Token 刷新、加密存储）
 pub mod oauth2;
 /// SMTP 节点插件注册
 pub mod plugin;

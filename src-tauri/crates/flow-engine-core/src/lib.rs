@@ -16,7 +16,7 @@ pub mod db_types;
 pub mod debug_types;
 /// 邮件协议共享类型定义（SMTP/IMAP 通用）
 pub mod email_types;
-/// OAuth2 + SASL 认证工具模块（服务商预设配置、SASL 字符串构建）
+/// `OAuth2` + SASL 认证工具模块（服务商预设配置、SASL 字符串构建）
 pub mod email_auth;
 /// 错误类型定义，区分致命错误和可恢复错误
 pub mod error;

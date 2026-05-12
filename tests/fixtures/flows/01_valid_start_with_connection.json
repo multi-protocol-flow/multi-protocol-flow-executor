@@ -1,31 +1,45 @@
 {
-  "uuid": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "有效流程 - 开始节点连接到结束节点",
-  "nodes": [
-    {
-      "uuid": "start-550e8400-e29b-41d4-a716-446655440000",
-      "type": "entry",
-      "name": "开始",
-      "position": { "x": 0.0, "y": 0.0 },
-      "data": { "type": "entry" },
-      "ports": null
-    },
-    {
-      "uuid": "end-550e8400-e29b-41d4-a716-446655440000",
-      "type": "end",
-      "name": "结束",
-      "position": { "x": 100.0, "y": 0.0 },
-      "data": { "type": "end" },
-      "ports": null
-    }
-  ],
-  "connections": [
-    {
-      "id": "conn-550e8400-e29b-41d4-a716-446655440000",
-      "source_node_uuid": "start-550e8400-e29b-41d4-a716-446655440000",
-      "target_node_uuid": "end-550e8400-e29b-41d4-a716-446655440000",
-      "source_port_id": "output",
-      "target_port_id": "input"
-    }
-  ]
+  "_version": 1,
+  "flow": {
+    "uuid": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "有效流程 - 开始节点连接到结束节点",
+    "nodes": [
+      {
+        "uuid": "start-550e8400-e29b-41d4-a716-446655440000",
+        "type": "entry",
+        "name": "开始",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "data": {
+          "type": "entry"
+        },
+        "ports": null
+      },
+      {
+        "uuid": "end-550e8400-e29b-41d4-a716-446655440000",
+        "type": "end",
+        "name": "结束",
+        "position": {
+          "x": 100,
+          "y": 0
+        },
+        "data": {
+          "type": "end"
+        },
+        "ports": null
+      }
+    ],
+    "connections": [
+      {
+        "id": "conn-550e8400-e29b-41d4-a716-446655440000",
+        "source_node_uuid": "start-550e8400-e29b-41d4-a716-446655440000",
+        "target_node_uuid": "end-550e8400-e29b-41d4-a716-446655440000",
+        "source_port_id": "output",
+        "target_port_id": "input"
+      }
+    ]
+  },
+  "_meta": null
 }

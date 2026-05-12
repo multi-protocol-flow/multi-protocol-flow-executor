@@ -26,7 +26,7 @@ use crate::tls::create_balanced_channel;
 // 重新导出公共函数，保持外部 API 兼容
 pub use crate::reflection::{discover_services_via_reflection, discover_services_via_proto};
 
-/// 从 tonic MetadataMap 提取 ASCII 键值对
+/// 从 tonic `MetadataMap` 提取 ASCII 键值对
 /// 跳过 binary headers（key 以 -bin 后缀标识）
 fn extract_metadata(metadata: &tonic::metadata::MetadataMap) -> Vec<(String, String)> {
     let mut result = Vec::new();
@@ -46,7 +46,7 @@ fn extract_metadata(metadata: &tonic::metadata::MetadataMap) -> Vec<(String, Str
     result
 }
 
-/// 解析压缩编码字符串为 tonic CompressionEncoding
+/// 解析压缩编码字符串为 tonic `CompressionEncoding`
 ///
 /// 仅支持 "gzip"，其他值返回 None
 fn parse_compression(encoding: &str) -> Option<tonic::codec::CompressionEncoding> {
@@ -74,7 +74,7 @@ fn resolve_compression(
 /// Channelz 内省信息（轻量级，非完整 Channelz 协议）
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ChannelzInfo {
-    /// 连接状态: "READY", "IDLE", "CONNECTING", "TRANSIENT_FAILURE", "SHUTDOWN"
+    /// 连接状态: "READY", "IDLE", "CONNECTING", "`TRANSIENT_FAILURE`", "SHUTDOWN"
     pub state: String,
     /// 连接建立时间（ISO 8601）
     pub connected_at: String,
@@ -103,7 +103,7 @@ struct GrpcConnection {
     default_metadata: Vec<(String, String)>,
     /// 连接级默认压缩编码（由 `grpc_connect` 节点配置）
     compression_encoding: Option<String>,
-    /// 活跃的流式调用: call_id → CancellationToken
+    /// 活跃的流式调用: `call_id` → `CancellationToken`
     active_calls: Arc<Mutex<HashMap<String, CancellationToken>>>,
     /// 最后一次错误信息（用于 Channelz 内省）
     last_error: Option<String>,
@@ -126,7 +126,7 @@ impl GrpcConnectionManager {
         }
     }
 
-    /// 获取指定连接的 DescriptorPool 克隆
+    /// 获取指定连接的 `DescriptorPool` 克隆
     ///
     /// 用于在设计时（如生成请求骨架）访问连接缓存的类型描述信息。
     /// 返回 `None` 表示连接不存在。
@@ -145,7 +145,7 @@ impl GrpcConnectionManager {
     /// - "READY" — 连接可用
     /// - "IDLE" — 连接空闲（tonic Channel 可能在此状态）
     /// - "CONNECTING" — 正在建立连接
-    /// - "TRANSIENT_FAILURE" — 暂时性故障
+    /// - "`TRANSIENT_FAILURE`" — 暂时性故障
     /// - "CLOSED" — 连接已关闭或不存在
     pub async fn get_channelz_info(&self, connection_id: &str) -> Result<ChannelzInfo, String> {
         // 获取连接信息（克隆后释放锁）
@@ -954,9 +954,9 @@ impl GrpcProvider for GrpcConnectionManager {
     /// 健康检查（gRPC Health Checking Protocol unary Check）
     ///
     /// 使用 `tonic_health::pb::health_client::HealthClient` 发送 unary Check 请求。
-    /// - UNIMPLEMENTED → 返回 "NOT_IMPLEMENTED"
+    /// - UNIMPLEMENTED → 返回 "`NOT_IMPLEMENTED`"
     /// - 其他错误 → 返回错误字符串
-    /// - 成功 → 返回 ServingStatus 字符串
+    /// - 成功 → 返回 `ServingStatus` 字符串
     async fn health_check(
         &self,
         connection_id: &str,

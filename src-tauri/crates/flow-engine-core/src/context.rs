@@ -15,7 +15,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-/// 代理状态（运行时，通过 context.providers["proxy_state"] 存取）
+/// 代理状态（运行时，通过 context.providers["`proxy_state`"] 存取）
 ///
 /// 代理节点设置时写入 providers，清除代理时从 providers 移除。
 /// 协议执行器通过 `context.get_provider::<ProxyState>("proxy_state")` 读取。
@@ -450,7 +450,7 @@ impl ExecutionContext {
     ///
     /// # 参数
     ///
-    /// * `name` - provider 名称（如 "proxy_state"）
+    /// * `name` - provider 名称（如 "`proxy_state`"）
     pub fn remove_provider(&mut self, name: &str) {
         self.providers.remove(name);
     }

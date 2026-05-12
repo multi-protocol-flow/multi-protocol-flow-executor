@@ -268,7 +268,7 @@ impl NodeExecutor for KafkaConsumeExecutor {
 // 端口路由辅助函数
 // ---------------------------------------------------------------------------
 
-/// 根据 port_id 查找连接中的目标节点 UUID
+/// 根据 `port_id` 查找连接中的目标节点 UUID
 fn route_to_port(node: &Node, connections: &[Connection], port: &str) -> Vec<String> {
     let filtered: Vec<String> = connections
         .iter()

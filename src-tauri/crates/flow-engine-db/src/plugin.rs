@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 /// 从执行上下文获取数据库连接池管理器
 ///
-/// 如果上下文中没有设置 db_manager，则创建一个新的空管理器。
+/// 如果上下文中没有设置 `db_manager，则创建一个新的空管理器`。
 fn get_db_manager(context: &ExecutionContext) -> Arc<dyn flow_engine_core::traits::DbProvider> {
     context
         .db_manager
@@ -546,7 +546,7 @@ impl NodePlugin for DbRollbackPlugin {
 
 /// 关闭连接节点插件
 ///
-/// 特殊：只有一个 "out" 端口，resolve_port 始终返回 "out"
+/// 特殊：只有一个 "out" `端口，resolve_port` 始终返回 "out"
 pub struct DbClosePlugin;
 
 #[async_trait::async_trait]
@@ -585,7 +585,7 @@ impl NodePlugin for DbClosePlugin {
         })
     }
 
-    /// DbClose 始终返回 "out"（关闭操作是幂等的）
+    /// `DbClose` 始终返回 "out"（关闭操作是幂等的）
     fn resolve_port(&self, _output: &Option<serde_json::Value>) -> String {
         "out".to_string()
     }

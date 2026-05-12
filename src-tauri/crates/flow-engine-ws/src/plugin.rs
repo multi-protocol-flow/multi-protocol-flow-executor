@@ -70,7 +70,7 @@ impl NodePlugin for WsConnectPlugin {
         })
     }
 
-    /// WsConnect 检查 $.connected → "true" / "false"
+    /// `WsConnect` 检查 $.connected → "true" / "false"
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {
@@ -173,7 +173,7 @@ impl NodePlugin for WsSendCollectPlugin {
         })
     }
 
-    /// WsSendCollect 检查 $.success → "true" / "false"
+    /// `WsSendCollect` 检查 $.success → "true" / "false"
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {
@@ -273,7 +273,7 @@ impl NodePlugin for WsClosePlugin {
         })
     }
 
-    /// WsClose 检查 $.success → "true" / "false"
+    /// `WsClose` 检查 $.success → "true" / "false"
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String {
         match output {
             Some(serde_json::Value::Object(map)) => {

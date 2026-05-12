@@ -16,7 +16,7 @@ pub fn decode_from_base64(encoded: &str) -> Result<Vec<u8>, String> {
         .map_err(|e| format!("Base64 解码失败: {}", e))
 }
 
-/// 尝试 UTF-8 解码（用于 text_preview）
+/// 尝试 UTF-8 解码（用于 `text_preview`）
 ///
 /// 如果数据超过 1024 字节，截断并添加 `...[truncated]` 后缀。
 pub fn try_decode_text(data: &[u8]) -> Option<String> {

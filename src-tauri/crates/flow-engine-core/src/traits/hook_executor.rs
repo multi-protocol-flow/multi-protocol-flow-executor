@@ -8,7 +8,7 @@ use crate::hook::{FlowHook, HookContext};
 /// 钩子执行器 trait
 ///
 /// 所有钩子执行实现必须实现此接口。
-/// 提供 execute 单个钩子和 execute_all 批量执行的默认实现。
+/// 提供 execute 单个钩子和 `execute_all` 批量执行的默认实现。
 pub trait HookExecutor: Send + Sync {
     /// 执行单个钩子
     ///

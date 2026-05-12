@@ -73,7 +73,7 @@ impl rustls::client::danger::ServerCertVerifier for NoVerifier {
 
 /// 确保已安装 CryptoProvider（幂等，多次调用安全）
 ///
-/// rustls 0.23 需要在首次创建 `ClientConfig` 前安装 CryptoProvider。
+/// rustls 0.23 需要在首次创建 `ClientConfig` 前安装 `CryptoProvider`。
 /// 此函数使用 ring 作为加密后端。
 fn ensure_crypto_provider() {
     let _ = rustls::crypto::ring::default_provider().install_default();
@@ -104,7 +104,7 @@ pub fn create_tls_connector(skip_verify: bool) -> Result<TlsConnector, String> {
 
 /// 创建跳过验证的 TLS 配置
 ///
-/// 使用自定义的 NoVerifier 跳过所有证书验证。
+/// 使用自定义的 `NoVerifier` 跳过所有证书验证。
 /// **警告**: 仅用于开发/测试环境。
 fn create_skip_verify_config() -> Result<ClientConfig, String> {
     let config = rustls::ClientConfig::builder()

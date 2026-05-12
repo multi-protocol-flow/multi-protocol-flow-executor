@@ -154,7 +154,7 @@ pub struct FlowExecutor {
     registry: Arc<NodeRegistry>,
     /// 钩子执行器（流程完成时触发）
     hook_executor: Option<Arc<dyn flow_engine_core::traits::HookExecutor>>,
-    /// 外部注入的 gRPC manager（用于 IPC cancel_stream）
+    /// 外部注入的 gRPC manager（用于 IPC `cancel_stream`）
     grpc_manager: Option<Arc<dyn flow_engine_core::traits::GrpcProvider>>,
 }
 
@@ -224,7 +224,7 @@ impl FlowExecutor {
         self
     }
 
-    /// 设置外部注入的 gRPC manager（用于 IPC cancel_stream 等外部操作）
+    /// 设置外部注入的 gRPC manager（用于 IPC `cancel_stream` 等外部操作）
     pub fn with_grpc_manager(mut self, manager: Arc<dyn flow_engine_core::traits::GrpcProvider>) -> Self {
         self.grpc_manager = Some(manager);
         self

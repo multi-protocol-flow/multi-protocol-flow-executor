@@ -83,7 +83,7 @@ pub struct KafkaClient {
 }
 
 impl KafkaClient {
-    /// 从 KafkaConnectConfig 创建 KafkaClient
+    /// 从 `KafkaConnectConfig` 创建 `KafkaClient`
     ///
     /// 将业务配置映射为 rdkafka 的 `ClientConfig` 键值对。
     pub fn new(config: &KafkaConnectConfig) -> Result<Self, KafkaError> {
@@ -144,12 +144,12 @@ impl KafkaClient {
         Ok(Self { client_config })
     }
 
-    /// 获取底层 ClientConfig 的引用（供外部按需定制）
+    /// 获取底层 `ClientConfig` 的引用（供外部按需定制）
     pub fn client_config(&self) -> &ClientConfig {
         &self.client_config
     }
 
-    /// 获取底层 ClientConfig 的可变引用（供外部按需定制）
+    /// 获取底层 `ClientConfig` 的可变引用（供外部按需定制）
     pub fn client_config_mut(&mut self) -> &mut ClientConfig {
         &mut self.client_config
     }
