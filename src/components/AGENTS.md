@@ -15,7 +15,7 @@ components/
 │   ├── CanvasToolbar.tsx # 工具栏
 │   ├── DebugToolbar.tsx  # 调试工具栏 (继续/单步/跳过/结束)
 │   ├── BreakpointMarker.tsx # 断点标记
-│   ├── nodes/            # 29 种节点: Entry, Http, Conditional, Script, Assertion, Ws*, Db*, Grpc*, Mcp*, Tcp*, Udp* + DynamicPluginNode
+│   ├── nodes/            # 36 种节点: Entry, Http, Conditional, Script, Assertion, Ws*, Db*, Grpc*, Mcp*, Tcp*, Udp*, Mqtt*, Amqp*, Graphql*, Imap*, Kafka*, Smtp*, Sse* + DynamicPluginNode
 │   ├── edges/CustomEdge.tsx
 │   └── utils.ts          # Flow ↔ ReactFlow 转换
 ├── panels/               # 节点配置面板 (~22 文件)
@@ -29,6 +29,13 @@ components/
 │   ├── McpConnectConfig.tsx / McpCallToolConfig.tsx / McpReadResourceConfig.tsx / McpGetPromptConfig.tsx / McpCloseConfig.tsx
 │   ├── TcpConnectConfig.tsx / TcpSendConfig.tsx / TcpCloseConfig.tsx
 │   ├── UdpBindConfig.tsx / UdpSendToConfig.tsx / UdpRecvFromConfig.tsx / UdpCloseConfig.tsx
+│   ├── MqttConnectConfig.tsx / MqttPublishConfig.tsx / MqttSubscribeConfig.tsx / MqttUnsubscribeConfig.tsx / MqttDisconnectConfig.tsx / MqttWaitMessageConfig.tsx / MqttRequestConfig.tsx
+│   ├── AmqpConnectConfig.tsx / AmqpPublishConfig.tsx / AmqpConsumeConfig.tsx
+│   ├── GraphqlIntrospectConfig.tsx / GraphqlQueryConfig.tsx / GraphqlSubscribeConfig.tsx / GraphqlUnsubscribeConfig.tsx
+│   ├── ImapConnectConfig.tsx / ImapFetchConfig.tsx / ImapSearchConfig.tsx / ImapFolderConfig.tsx / ImapIdleConfig.tsx
+│   ├── KafkaProduceConfig.tsx / KafkaConsumeConfig.tsx / KafkaBatchConsumeConfig.tsx / KafkaAdminConfig.tsx
+│   ├── SmtpConnectConfig.tsx / SmtpSendConfig.tsx / SmtpCloseConfig.tsx
+│   ├── SseConnectConfig.tsx / SseListenConfig.tsx / SseCloseConfig.tsx
 │   ├── SchemaConfigPanel.tsx # Schema 配置面板
 │   ├── FlowNodeList.tsx      # 流程节点列表
 │   ├── VariablePanel.tsx     # 变量面板
@@ -46,7 +53,7 @@ components/
 │   ├── WsMessageTimeline.tsx # WebSocket 消息时间线
 │   ├── StressTestHistory.tsx # 压测历史
 │   ├── NodeListItem.tsx      # 节点列表项
-│   └── viewers/              # 节点执行结果查看器 (12 文件: HttpNodeViewer, ConditionalViewer, GenericViewer, WsConnectViewer, WsSendCollectViewer, WsCloseViewer, GrpcViewer, McpViewer, TcpUdpViewer, RawJsonViewer, VariableChangesCard, +1)
+│   └── viewers/              # 节点执行结果查看器 (19 文件: HttpNodeViewer, ConditionalViewer, GenericViewer, WsConnectViewer, WsSendCollectViewer, WsCloseViewer, GrpcViewer, McpViewer, TcpUdpViewer, MqttViewer, AmqpViewer, GraphqlViewer, ImapViewer, KafkaViewer, SmtpViewer, SseViewer, RawJsonViewer, VariableChangesCard, +1)
 ├── sidebar/              # FlowListPanel, NodeLibrary, ConnectionsPanel
 ├── dialogs/              # NewFlowDialog, ConfirmDialog, DebugNodeConfigDialog, SkipNodeDialog, ConnectionDialog, ScriptHelpDialog
 ├── panels/SettingsPanel.tsx  # 全局设置 (报告/日志目录)
@@ -69,6 +76,20 @@ components/
 | TCP 节点配置 | `panels/TcpConnectConfig.tsx`, `panels/TcpSendConfig.tsx`, `panels/TcpCloseConfig.tsx` |
 | UDP 节点配置 | `panels/UdpBindConfig.tsx`, `panels/UdpSendToConfig.tsx`, `panels/UdpRecvFromConfig.tsx`, `panels/UdpCloseConfig.tsx` |
 | TCP/UDP 执行结果 | `execution/viewers/TcpUdpViewer.tsx` |
+| MQTT 节点配置 | `panels/MqttConnectConfig.tsx`, `panels/MqttPublishConfig.tsx`, `panels/MqttSubscribeConfig.tsx`, `panels/MqttUnsubscribeConfig.tsx`, `panels/MqttDisconnectConfig.tsx`, `panels/MqttWaitMessageConfig.tsx`, `panels/MqttRequestConfig.tsx` |
+| MQTT 执行结果 | `execution/viewers/MqttViewer.tsx` |
+| AMQP 节点配置 | `panels/AmqpConnectConfig.tsx`, `panels/AmqpPublishConfig.tsx`, `panels/AmqpConsumeConfig.tsx` |
+| AMQP 执行结果 | `execution/viewers/AmqpViewer.tsx` |
+| GraphQL 节点配置 | `panels/GraphqlIntrospectConfig.tsx`, `panels/GraphqlQueryConfig.tsx`, `panels/GraphqlSubscribeConfig.tsx`, `panels/GraphqlUnsubscribeConfig.tsx` |
+| GraphQL 执行结果 | `execution/viewers/GraphqlViewer.tsx` |
+| IMAP 节点配置 | `panels/ImapConnectConfig.tsx`, `panels/ImapFetchConfig.tsx`, `panels/ImapSearchConfig.tsx`, `panels/ImapFolderConfig.tsx`, `panels/ImapIdleConfig.tsx` |
+| IMAP 执行结果 | `execution/viewers/ImapViewer.tsx` |
+| Kafka 节点配置 | `panels/KafkaProduceConfig.tsx`, `panels/KafkaConsumeConfig.tsx`, `panels/KafkaBatchConsumeConfig.tsx`, `panels/KafkaAdminConfig.tsx` |
+| Kafka 执行结果 | `execution/viewers/KafkaViewer.tsx` |
+| SMTP 节点配置 | `panels/SmtpConnectConfig.tsx`, `panels/SmtpSendConfig.tsx`, `panels/SmtpCloseConfig.tsx` |
+| SMTP 执行结果 | `execution/viewers/SmtpViewer.tsx` |
+| SSE 节点配置 | `panels/SseConnectConfig.tsx`, `panels/SseListenConfig.tsx`, `panels/SseCloseConfig.tsx` |
+| SSE 执行结果 | `execution/viewers/SseViewer.tsx` |
 | 变量输入组件 | `ui/VariableInput.tsx`, `ui/VariableSelector.tsx` |
 | SQL 编辑器 | `ui/SqlEditor.tsx` |
 | 数据库结果预览 | `ui/DbResultPreview.tsx` |
@@ -121,6 +142,35 @@ components/
 | UdpSendTo | UdpSendToNode.tsx | UdpSendToConfig.tsx | 橄榄色 |
 | UdpRecvFrom | UdpRecvFromNode.tsx | UdpRecvFromConfig.tsx | 橄榄色 |
 | UdpClose | UdpCloseNode.tsx | UdpCloseConfig.tsx | 橄榄色 |
+| MqttConnect | MqttConnectNode.tsx | MqttConnectConfig.tsx | 蓝绿色 |
+| MqttPublish | MqttPublishNode.tsx | MqttPublishConfig.tsx | 蓝绿色 |
+| MqttSubscribe | MqttSubscribeNode.tsx | MqttSubscribeConfig.tsx | 蓝绿色 |
+| MqttUnsubscribe | MqttUnsubscribeNode.tsx | MqttUnsubscribeConfig.tsx | 蓝绿色 |
+| MqttDisconnect | MqttDisconnectNode.tsx | MqttDisconnectConfig.tsx | 蓝绿色 |
+| MqttWaitMessage | MqttWaitMessageNode.tsx | MqttWaitMessageConfig.tsx | 蓝绿色 |
+| MqttRequest | MqttRequestNode.tsx | MqttRequestConfig.tsx | 蓝绿色 |
+| AmqpConnect | AmqpConnectNode.tsx | AmqpConnectConfig.tsx | 金黄色 |
+| AmqpPublish | AmqpPublishNode.tsx | AmqpPublishConfig.tsx | 金黄色 |
+| AmqpConsume | AmqpConsumeNode.tsx | AmqpConsumeConfig.tsx | 金黄色 |
+| GraphqlIntrospect | GraphqlIntrospectNode.tsx | GraphqlIntrospectConfig.tsx | 粉红色 |
+| GraphqlQuery | GraphqlQueryNode.tsx | GraphqlQueryConfig.tsx | 粉红色 |
+| GraphqlSubscribe | GraphqlSubscribeNode.tsx | GraphqlSubscribeConfig.tsx | 粉红色 |
+| GraphqlUnsubscribe | GraphqlUnsubscribeNode.tsx | GraphqlUnsubscribeConfig.tsx | 粉红色 |
+| ImapConnect | ImapConnectNode.tsx | ImapConnectConfig.tsx | 深蓝色 |
+| ImapFetch | ImapFetchNode.tsx | ImapFetchConfig.tsx | 深蓝色 |
+| ImapSearch | ImapSearchNode.tsx | ImapSearchConfig.tsx | 深蓝色 |
+| ImapFolder | ImapFolderNode.tsx | ImapFolderConfig.tsx | 深蓝色 |
+| ImapIdle | ImapIdleNode.tsx | ImapIdleConfig.tsx | 深蓝色 |
+| KafkaProduce | KafkaProduceNode.tsx | KafkaProduceConfig.tsx | 深绿色 |
+| KafkaConsume | KafkaConsumeNode.tsx | KafkaConsumeConfig.tsx | 深绿色 |
+| KafkaBatchConsume | KafkaBatchConsumeNode.tsx | KafkaBatchConsumeConfig.tsx | 深绿色 |
+| KafkaAdmin | KafkaAdminNode.tsx | KafkaAdminConfig.tsx | 深绿色 |
+| SmtpConnect | SmtpConnectNode.tsx | SmtpConnectConfig.tsx | 天蓝色 |
+| SmtpSend | SmtpSendNode.tsx | SmtpSendConfig.tsx | 天蓝色 |
+| SmtpClose | SmtpCloseNode.tsx | SmtpCloseConfig.tsx | 天蓝色 |
+| SseConnect | SseConnectNode.tsx | SseConnectConfig.tsx | 浅紫色 |
+| SseListen | SseListenNode.tsx | SseListenConfig.tsx | 浅紫色 |
+| SseClose | SseCloseNode.tsx | SseCloseConfig.tsx | 浅紫色 |
 
 ## 注意事项
 

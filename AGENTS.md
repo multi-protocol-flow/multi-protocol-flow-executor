@@ -115,17 +115,32 @@ Layer 4:         app (src-tauri/)                                    (→ flow-e
 ### Rust
 - **禁止** `unsafe_code` (forbid)
 - `correctness = "deny"` - 正确性问题报错
+- `missing_docs = "warn"` - 公开 API 必须有文档注释
+- Clippy 全量检查: `all = "warn"`, `style = "warn"`, `complexity = "warn"`, `perf = "warn"`, `doc_markdown = "warn"`
+- Clippy 放行: `too_many_arguments = "allow"`, `type_complexity = "allow"`, `missing_docs_in_private_items = "allow"`
 - 格式化: `cargo fmt`, Lint: `cargo clippy`
 - 无 `unwrap()` 调用（使用 `?` 或 `expect`）
+- Rust edition 2021, 最低版本 1.77.2
 
 ### 通用
 - 禁止空 catch 块
 - 禁止删除失败测试来"通过"
 - 注释使用中文
 
+### TypeScript 编译设置（补充）
+- `moduleResolution: "bundler"` - Bundler 模式解析
+- `jsx: "react-jsx"` - React 17+ JSX 转换，无需 import React
+- `isolatedModules: true` - 文件级隔离
+- `noFallthroughCasesInSwitch: true` - 禁止 switch 穿透
+
+### 前端配置
+- shadcn/ui 使用 "new-york" 风格，无 RSC (`rsc: false`)，图标库 lucide
+- Vite dev server 绑定 `0.0.0.0:5173`，`strictPort: true` 端口不自动递增
+
 ### 架构约定
 - NodePlugin trait + NodeRegistry 替代旧的 match 分发模式，新增节点类型只需实现 trait 并注册
 - 前端 3 个注册表: NodeRegistry (后端元数据), configPanelRegistry (配置面板), viewerRegistry (结果查看器)
+- **19-crate 分层架构**: Layer 0 (core/crypto) → Layer 1 (协议) → Layer 2 (executor) → Layer 3 (facade) → Layer 4 (app)。增量编译按层传播
 
 ## 增量编译 (减少编译时间)
 
@@ -254,7 +269,8 @@ npm run typecheck && npm run test        # 无需编译 Rust
 | `as any` | TypeScript | 类型安全红线 |
 | `@ts-ignore` | TypeScript | 禁止压制类型错误 |
 | `unwrap()` 生产代码 | `core/src/executor.rs:32-33` | 2 个违规 (regex captures) |
-| `eslint-disable` 生产组件 | `panels/*.tsx` | 7 处 react-hooks/exhaustive-deps |
+| `as any` / `as unknown` 类型断言 | `src/lib/graphqlSchema.ts`, `src/lib/flowDiff.ts`, `src/components/execution/VariableTreeView.tsx`, `src/components/panels/Mcp*.tsx` | 23 处绕过类型检查 |
+| `eslint-disable` 生产组件 | `src/components/panels/SchemaConfigPanel.tsx` 等 9 文件 | 13 处 react-hooks/exhaustive-deps
 
 ## Bug 修复规范
 
@@ -276,6 +292,9 @@ npm run typecheck && npm run test        # 无需编译 Rust
 | 无 ESLint/Prettier | 前端无 lint/format 配置，但代码中有 eslint-disable | 中 |
 | CSP 未配置 | tauri.conf.json csp: null，生产安全风险 | 中 |
 | `components.json` | 引用不存在的 `tailwind.config.js` | 低 |
+| `src/components/panels/*.tsx` | setTimeout 硬编码魔数 (100ms, 500ms) | 低 |
+| `src/services/storage/migration.ts` | 直接使用 console.log/error 而非日志框架 | 低 |
+| `src/components/panels/Mcp*.tsx` | 多处 setValue 使用 `as` 类型断言 hack | 中 |
 
 ## 命令
 

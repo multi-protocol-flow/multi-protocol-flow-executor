@@ -84,7 +84,15 @@ type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | As
   | GrpcConnectConfig | GrpcCallConfig | GrpcCloseConfig
   | McpConnectConfig | McpCallToolConfig | McpReadResourceConfig | McpGetPromptConfig | McpCloseConfig
   | TcpConnectConfig | TcpSendConfig | TcpCloseConfig
-  | UdpBindConfig | UdpSendToConfig | UdpRecvFromConfig | UdpCloseConfig;
+  | UdpBindConfig | UdpSendToConfig | UdpRecvFromConfig | UdpCloseConfig
+  | MqttConnectConfig | MqttPublishConfig | MqttSubscribeConfig | MqttUnsubscribeConfig
+  | MqttDisconnectConfig | MqttWaitMessageConfig | MqttRequestConfig
+  | AmqpConnectConfig | AmqpPublishConfig | AmqpConsumeConfig
+  | GraphqlIntrospectConfig | GraphqlQueryConfig | GraphqlSubscribeConfig | GraphqlUnsubscribeConfig
+  | ImapConnectConfig | ImapFetchConfig | ImapSearchConfig | ImapFolderConfig | ImapIdleConfig
+  | KafkaProduceConfig | KafkaConsumeConfig | KafkaBatchConsumeConfig | KafkaAdminConfig
+  | SmtpConnectConfig | SmtpSendConfig | SmtpCloseConfig
+  | SseConnectConfig | SseListenConfig | SseCloseConfig;
 ```
 
 ### 可选字段
@@ -126,9 +134,37 @@ type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | As
 | `udp_send_to` | UdpSendToConfig | UDP 发送 |
 | `udp_recv_from` | UdpRecvFromConfig | UDP 接收 |
 | `udp_close` | UdpCloseConfig | UDP 关闭 |
-
-## 类型漂移风险
+| `mqtt_connect` | MqttConnectConfig | MQTT 连接 |
+| `mqtt_publish` | MqttPublishConfig | MQTT 发布 |
+| `mqtt_subscribe` | MqttSubscribeConfig | MQTT 订阅 |
+| `mqtt_unsubscribe` | MqttUnsubscribeConfig | MQTT 取消订阅 |
+| `mqtt_disconnect` | MqttDisconnectConfig | MQTT 断开 |
+| `mqtt_wait_message` | MqttWaitMessageConfig | MQTT 等待消息 |
+| `mqtt_request` | MqttRequestConfig | MQTT 请求/响应 |
+| `amqp_connect` | AmqpConnectConfig | AMQP 连接 |
+| `amqp_publish` | AmqpPublishConfig | AMQP 发布 |
+| `amqp_consume` | AmqpConsumeConfig | AMQP 消费 |
+| `graphql_introspect` | GraphqlIntrospectConfig | GraphQL 内省 |
+| `graphql_query` | GraphqlQueryConfig | GraphQL 查询/变更 |
+| `graphql_subscribe` | GraphqlSubscribeConfig | GraphQL 订阅 |
+| `graphql_unsubscribe` | GraphqlUnsubscribeConfig | GraphQL 取消订阅 |
+| `imap_connect` | ImapConnectConfig | IMAP 连接 |
+| `imap_fetch` | ImapFetchConfig | IMAP 获取邮件 |
+| `imap_search` | ImapSearchConfig | IMAP 搜索 |
+| `imap_folder` | ImapFolderConfig | IMAP 文件夹管理 |
+| `imap_idle` | ImapIdleConfig | IMAP IDLE 监听 |
+| `kafka_produce` | KafkaProduceConfig | Kafka 生产 |
+| `kafka_consume` | KafkaConsumeConfig | Kafka 消费 |
+| `kafka_batch_consume` | KafkaBatchConsumeConfig | Kafka 批量消费 |
+| `kafka_admin` | KafkaAdminConfig | Kafka 管理 |
+| `smtp_connect` | SmtpConnectConfig | SMTP 连接 |
+| `smtp_send` | SmtpSendConfig | SMTP 发送 |
+| `smtp_close` | SmtpCloseConfig | SMTP 关闭 |
+| `sse_connect` | SseConnectConfig | SSE 连接 |
+| `sse_listen` | SseListenConfig | SSE 监听 |
+| `sse_close` | SseCloseConfig | SSE 关闭 |
 
 | 位置 | 内容 | 优先级 |
 |------|------|--------|
 | 无 | 前后端类型已完全对齐 | — |
+| `node.ts` | 36 种节点的 NodeData 判别联合过于庞大，考虑拆分 | 低 |

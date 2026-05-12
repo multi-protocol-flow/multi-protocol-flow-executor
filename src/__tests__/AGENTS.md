@@ -24,6 +24,7 @@ src/__tests__/
 ├── e2e/          # 端到端测试 (debug.e2e.test.ts, settings.test.ts)
 ├── layouts/      # 布局测试 (1 个文件: MainLayout)
 ├── lib/          # 工具函数测试 (flowDiff, restoreFlow)
+├── test-utils/factories/  # 测试工厂 (~3 文件: nodeFactory, flowFactory, connectionFactory)
 ├── templates.test.ts
 ├── setup.test.tsx
 └── setup.ts      # Polyfills (ResizeObserver, matchMedia, getComputedStyle)
@@ -40,6 +41,7 @@ src/__tests__/
 | E2E | `e2e/*.e2e.test.ts` |
 | gRPC 类型 | `types/node.test.ts` |
 | gRPC 配置面板 | `components/panels/GrpcCallConfig.test.tsx` |
+| 测试工厂 | `test-utils/factories/` (创建测试用 Node/Flow/Connection) |
 | gRPC 查看器 | `components/execution/GrpcViewer.test.tsx` |
 
 ## 约定
@@ -51,6 +53,23 @@ src/__tests__/
 | Full mock service | 组件/Store 测试 | `import from '@/services/tauri/mock'` |
 | 模块级 vi.mock | 隔离服务层 | `vi.mock('@/services/tauri', () => ({...}))` |
 | Tauri API mock | 测试真实 IPC 包装 | `vi.mock('@tauri-apps/api/core', () => ({invoke: vi.fn()}))` |
+
+### 工厂函数模式
+```ts
+// src/test-utils/factories/nodeFactory.ts
+export function createNode(overrides: Partial<Node> = {}): Node {
+  return { uuid: crypto.randomUUID(), ...overrides };
+}
+export const createHttpNode = (overrides?: Partial<Node>) => createNode({ type: 'http', ...overrides });
+```
+
+### E2E 测试模式
+```ts
+// 事件回调捕获 + act() 模拟异步事件
+const debugEventCallback = vi.fn();
+// 通过 Store getState() 直接读取状态验证
+expect(useDebugStore.getState().status).toBe('paused');
+```
 
 ### Store 测试
 ```ts
@@ -87,3 +106,4 @@ npm run typecheck  # 类型检查
 4. E2E 测试文件命名 `*.e2e.test.ts`
 5. 覆盖率阈值: 80% statements, 75% branches, 80% functions, 80% lines
 6. gRPC 类型测试包含在 `types/node.test.ts` 中
+7. Mock 服务 (`src/services/tauri/mock.ts`) 覆盖全部 49 个 IPC 命令，含 gRPC/MCP/MQTT/SSE/AMQP/GraphQL 模拟
