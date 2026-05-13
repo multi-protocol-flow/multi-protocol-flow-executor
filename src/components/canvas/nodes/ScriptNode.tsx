@@ -51,7 +51,7 @@ export function ScriptNode({ id, data, selected }: NodeProps) {
       <Handle
         type="target"
         position={Position.Left}
-        id="input"
+        id="in"
         className={cn(
           '!w-3.5 !h-3.5 !top-1/2',
           '!bg-background !border-2 !border-border',
