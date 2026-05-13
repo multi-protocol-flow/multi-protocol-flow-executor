@@ -299,32 +299,85 @@ pub fn delete_flow_report(
 // 数据库连接命令
 // ============================================================================
 
-use flow_engine::db::{DbConnection, DatabasePool, MockPool, TestDbConnectionResult};
+use flow_engine::db::{
+    DbConnection, DatabasePool, DbDriver, PostgresConnection, MySqlConnection, SqliteConnection,
+    RedisConnection, TestDbConnectionResult,
+};
 
 /// 测试数据库连接
 ///
-/// 接收前端传来的数据库连接配置，执行连接测试。
-/// 当前使用 `MockPool` 实现（Wave 2），后续会接入真实数据库驱动。
+/// 接收前端传来的数据库连接配置，根据驱动类型创建真实连接池并测试连接。
 #[tauri::command]
 pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionResult {
     log::info!(
         "[数据库] 测试连接: id={}, name={}, driver={}",
         connection.id,
         connection.name,
-        connection.driver
+        connection.driver,
     );
 
-    // Wave 2: 使用 MockPool 测试连接
-    // 后续 Wave 会根据 driver 类型创建真实的数据库连接
-    let pool = MockPool::new(connection.id.clone());
+    // 根据驱动类型创建真实连接池
+    let pool: Arc<dyn DatabasePool> = match connection.driver {
+        DbDriver::Postgres => {
+            match PostgresConnection::from_config(&connection).await {
+                Ok(p) => {
+                    log::info!("[数据库] PostgreSQL 连接池创建成功: id={}", connection.id);
+                    Arc::new(p) as Arc<dyn DatabasePool>
+                }
+                Err(e) => {
+                    log::error!("[数据库] PostgreSQL 连接池创建失败: id={}, error={}", connection.id, e);
+                    return TestDbConnectionResult::failure(format!("PostgreSQL 连接失败: {}", e));
+                }
+            }
+        }
+        DbDriver::Mysql => {
+            match MySqlConnection::from_config(&connection).await {
+                Ok(p) => {
+                    log::info!("[数据库] MySQL 连接池创建成功: id={}", connection.id);
+                    Arc::new(p) as Arc<dyn DatabasePool>
+                }
+                Err(e) => {
+                    log::error!("[数据库] MySQL 连接池创建失败: id={}, error={}", connection.id, e);
+                    return TestDbConnectionResult::failure(format!("MySQL 连接失败: {}", e));
+                }
+            }
+        }
+        DbDriver::Sqlite => {
+            match SqliteConnection::from_config(&connection).await {
+                Ok(p) => {
+                    log::info!("[数据库] SQLite 连接池创建成功: id={}", connection.id);
+                    Arc::new(p) as Arc<dyn DatabasePool>
+                }
+                Err(e) => {
+                    log::error!("[数据库] SQLite 连接池创建失败: id={}, error={}", connection.id, e);
+                    return TestDbConnectionResult::failure(format!("SQLite 连接失败: {}", e));
+                }
+            }
+        }
+        DbDriver::Redis => {
+            match RedisConnection::from_config(&connection).await {
+                Ok(p) => {
+                    log::info!("[数据库] Redis 连接池创建成功: id={}", connection.id);
+                    Arc::new(p) as Arc<dyn DatabasePool>
+                }
+                Err(e) => {
+                    log::error!("[数据库] Redis 连接池创建失败: id={}, error={}", connection.id, e);
+                    return TestDbConnectionResult::failure(format!("Redis 连接失败: {}", e));
+                }
+            }
+        }
+    };
 
+    // 执行连接测试
     match pool.test_connection().await {
         Ok(()) => {
             log::info!("[数据库] 连接测试成功: id={}", connection.id);
+            pool.close().await;
             TestDbConnectionResult::success()
         }
         Err(e) => {
             log::error!("[数据库] 连接测试失败: id={}, error={}", connection.id, e);
+            pool.close().await;
             TestDbConnectionResult::failure(e)
         }
     }

@@ -130,8 +130,12 @@ function getConnectionTarget(data: DbConnectConfigType): string | null {
  * 将 DbConnectConfigType 转换为 ConnectionDialog 的 initialData
  */
 function toConnectionInitialData(data: DbConnectConfigType): Partial<ConnectionFormData> {
+  // 生成默认名称，避免 ConnectionDialog 因 name 为空禁用保存按钮
+  const defaultName = data.driver
+    ? `${getDriverLabel(data.driver)}${data.host ? `@${data.host}` : ''}${data.database ? `/${data.database}` : ''}`
+    : '数据库连接';
   return {
-    name: '', // 面板内编辑不需要名称，但 dialog 要求
+    name: defaultName,
     driver: (data.driver as ConnectionFormData['driver']) || 'postgres',
     host: data.host,
     port: data.port,
@@ -152,12 +156,41 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
     handleSubmit,
     reset,
     getValues,
+    watch,
     formState: { errors, isDirty },
   } = useForm<DbConnectConfigFormData>({
     resolver: zodResolver(dbConnectConfigSchema),
     defaultValues: toFormData(data),
     mode: 'onBlur',
   });
+
+  // 使用表单当前值而非 data prop 显示连接摘要（摘要卡片 + 对话框初始数据）
+  // 原因：NodeConfigPanel 的 stableData useMemo 依赖 [uuid, historyVersion] ，
+  //       dialog 保存后 data prop 不会更新，但 reset() 会更新表单状态
+  const formDriver = watch('driver');
+  const formHost = watch('host');
+  const formPort = watch('port');
+  const formDatabase = watch('database');
+  const formUsername = watch('username');
+  const formMinConnections = watch('min_connections');
+  const formMaxConnections = watch('max_connections');
+  const formConnectionString = watch('connection_string');
+
+  /** 从表单值构建显示用的连接配置数据 */
+  const displayConfig: DbConnectConfigType = {
+    type: 'db_connect',
+    driver: formDriver || undefined,
+    host: formHost || undefined,
+    port: formPort || undefined,
+    database: formDatabase || undefined,
+    username: formUsername || undefined,
+    min_connections: formMinConnections ?? undefined,
+    max_connections: formMaxConnections ?? undefined,
+    connection_string: formConnectionString || undefined,
+    password: undefined,
+    test_query: undefined,
+    connect_timeout_ms: undefined,
+  };
 
   // 追踪表单实际修改状态（useRef 用于卸载时读取）
   const isActuallyDirtyRef = useRef(false);
@@ -256,8 +289,8 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
     reset(toFormData(config));
   }, [data.test_query, data.connect_timeout_ms, onSave, reset]);
 
-  const hasConnection = !!data.driver;
-  const connectionTarget = getConnectionTarget(data);
+  const hasConnection = !!displayConfig.driver;
+  const connectionTarget = getConnectionTarget(displayConfig);
 
   return (
     <>
@@ -268,9 +301,9 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
             {/* 驱动类型徽标 */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-semibold ${getDriverBadgeBg(data.driver!)}`}>
-                  <Database className={`h-3.5 w-3.5 ${getDriverColor(data.driver!)}`} />
-                  <span className={getDriverColor(data.driver!)}>{getDriverLabel(data.driver!)}</span>
+                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-semibold ${getDriverBadgeBg(displayConfig.driver!)}`}>
+                  <Database className={`h-3.5 w-3.5 ${getDriverColor(displayConfig.driver!)}`} />
+                  <span className={getDriverColor(displayConfig.driver!)}>{getDriverLabel(displayConfig.driver!)}</span>
                 </div>
               </div>
               <Button
@@ -295,17 +328,17 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
                   </span>
                 </div>
               )}
-              {data.username && (
+              {displayConfig.username && (
                 <div className="flex items-center gap-2 text-sm">
                   <User className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
-                  <span className="text-xs text-indigo-700/80 dark:text-indigo-400/80">{data.username}</span>
+                  <span className="text-xs text-indigo-700/80 dark:text-indigo-400/80">{displayConfig.username}</span>
                 </div>
               )}
-              {(data.min_connections != null || data.max_connections != null) && (
+              {(displayConfig.min_connections != null || displayConfig.max_connections != null) && (
                 <div className="flex items-center gap-2 text-sm">
                   <FileText className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
                   <span className="text-xs text-indigo-700/60 dark:text-indigo-400/60">
-                    连接池 {data.min_connections ?? 1} - {data.max_connections ?? 10}
+                    连接池 {displayConfig.min_connections ?? 1} - {displayConfig.max_connections ?? 10}
                   </span>
                 </div>
               )}
@@ -393,7 +426,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
         open={showDialog}
         onOpenChange={setShowDialog}
         onSave={handleDialogSave}
-        initialData={toConnectionInitialData(data)}
+        initialData={toConnectionInitialData(displayConfig)}
       />
     </>
   );

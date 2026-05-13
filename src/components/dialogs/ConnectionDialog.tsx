@@ -15,8 +15,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { DbDriver } from '@/types/database';
+import type { TestDbConnectionResult } from '@/types/ipc';
 import { cn } from '@/lib/utils';
 import { Loader2, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
+
+/**
+ * 检查是否在 Tauri 环境
+ */
+function isTauriEnv(): boolean {
+  return typeof window !== 'undefined' && '__TAURI__' in window;
+}
 
 /** 连接表单数据类型（导出供调用方使用） */
 export interface ConnectionFormData {
@@ -119,11 +127,65 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
     setIsTesting(true);
     setTestResult(null);
     setTestError(null);
-    // 模拟测试延迟
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setTestResult('success');
-    setIsTesting(false);
-  }, []);
+
+    console.log('[数据库连接测试] 开始测试...', {
+      driver: formData.driver,
+      host: formData.host,
+      port: formData.port,
+      database: formData.database,
+      username: formData.username,
+    });
+
+    try {
+      if (!isTauriEnv()) {
+        console.warn('[数据库连接测试] 非 Tauri 环境，跳过真实连接测试');
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        setTestResult('success');
+        setIsTesting(false);
+        return;
+      }
+
+      // 动态导入 invoke，避免非 Tauri 环境加载报错
+      const { invoke } = await import('@tauri-apps/api/core');
+
+      const result = await invoke<TestDbConnectionResult>('test_db_connection', {
+        connection: {
+          id: `test-${Date.now()}`,
+          name: formData.name || '测试连接',
+          driver: formData.driver,
+          host: formData.host || null,
+          port: formData.port || null,
+          database: formData.database || null,
+          username: formData.username || null,
+          password: formData.password || null,
+          passwordFromEnv: formData.password_from_env || null,
+          connectionString: formData.connection_string || null,
+          minConnections: formData.min_connections,
+          maxConnections: formData.max_connections,
+          connectTimeoutMs: formData.connect_timeout_ms,
+          idleTimeoutMs: formData.idle_timeout_ms,
+          status: 'disconnected',
+          lastError: null,
+          lastTestedAt: null,
+        },
+      });
+
+      console.log('[数据库连接测试] 结果:', result);
+
+      if (result.success) {
+        setTestResult('success');
+      } else {
+        setTestResult('error');
+        setTestError(result.error || '连接测试失败');
+      }
+    } catch (err) {
+      console.error('[数据库连接测试] 异常:', err);
+      setTestResult('error');
+      setTestError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsTesting(false);
+    }
+  }, [formData]);
 
   // 保存连接
   const handleSave = useCallback(() => {

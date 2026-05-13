@@ -20,7 +20,7 @@ fn main() {
         // Windows 上分离控制台，使终端关闭不影响应用
         #[cfg(target_os = "windows")]
         unsafe {
-            windows::Win32::System::Console::FreeConsole();
+            let _ = windows::Win32::System::Console::FreeConsole();
         }
         app_lib::run();
     }
