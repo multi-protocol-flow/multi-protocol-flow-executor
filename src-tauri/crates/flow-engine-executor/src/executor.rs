@@ -1590,13 +1590,12 @@ mod tests {
     #[test]
     fn test_replace_variables_simple() {
         // 测试简单变量替换
-        let template = "Bearer {{initial_variables.api_key}}";
+        // 注意：变量是拍平存储的（顶级 key），不需要 initial_variables. 前缀
+        let template = "Bearer {{api_key}}";
         let mut variables = VariableStorage::new();
         variables.set_variable(
-            "initial_variables".to_string(),
-            json!({
-                "api_key": "test-key"
-            }),
+            "api_key".to_string(),
+            json!("test-key"),
             String::new(),
         );
         let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };

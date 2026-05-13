@@ -319,7 +319,7 @@ mpe run --help     # 查看子命令帮助
 
 | 语法 | 说明 |
 |------|------|
-| `{{initial_variables.xxx}}` | 引用流程初始变量 |
+| `{{xxx}}` | 引用流程初始变量（变量已拍平为顶级 key） |
 | `{{status}}` | 引用上一个 HTTP 响应的状态码 |
 | `{{body.xxx}}` | 引用上一个 HTTP 响应的 JSON 数据 |
 | `{{headers.xxx}}` | 引用上一个 HTTP 响应的响应头 |
@@ -327,9 +327,9 @@ mpe run --help     # 查看子命令帮助
 **示例**：
 ```json
 {
-  "url": "{{initial_variables.api_base}}/users",
+  "url": "{{api_base}}/users",
   "headers": {
-    "Authorization": "Bearer {{initial_variables.token}}"
+    "Authorization": "Bearer {{token}}"
   }
 }
 ```

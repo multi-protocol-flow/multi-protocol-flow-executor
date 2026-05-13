@@ -2,7 +2,7 @@
  * ConnectionDialog - 数据库连接编辑对话框（受控组件）
  * 通过 props 控制打开/关闭状态，表单数据通过 onSave 回调返回
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,31 @@ import { useFlowVariables } from '@/hooks';
  */
 function isTauriEnv(): boolean {
   return typeof window !== 'undefined' && '__TAURI__' in window;
+}
+
+/**
+ * 解析字符串中的 {{variable}} 引用，替换为变量实际值
+ * 变量未找到时保留原始 {{name}} 不变
+ */
+function resolveVariables(
+  value: string | undefined | null,
+  varMap: Map<string, unknown>,
+): string | undefined | null {
+  if (!value) return value;
+  return value.replace(
+    /\{\{([^}]+)\}\}/g,
+    (match: string, varPath: string) => {
+      const trimmed = varPath.trim();
+      if (varMap.has(trimmed)) {
+        const resolved = varMap.get(trimmed);
+        if (resolved !== null && resolved !== undefined) {
+          return String(resolved);
+        }
+      }
+      // 保留原始模板，让后端报错时能看到
+      return match;
+    },
+  );
 }
 
 /** 连接表单数据类型（导出供调用方使用） */
@@ -97,6 +122,11 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
   const [testError, setTestError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const { variables, nodeLabels } = useFlowVariables();
+  // 构建变量名→值的映射，用于测试连接时预替换 {{variable}}
+  const varMap = useMemo(
+    () => new Map(variables.map((v) => [v.name, v.value])),
+    [variables]
+  );
 
   // 当对话框打开时，初始化表单数据
   useEffect(() => {
@@ -148,6 +178,23 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
         return;
       }
 
+      // 预替换连接字段中的 {{variable}} 为实际值
+      // 注意：变量是拍平存储的，使用 {{name}} 而非 {{initial_variables.name}}
+      const resolvedHost = resolveVariables(formData.host, varMap);
+      const resolvedDatabase = resolveVariables(formData.database, varMap);
+      const resolvedUsername = resolveVariables(formData.username, varMap);
+      const resolvedPassword = resolveVariables(formData.password, varMap);
+      const resolvedConnectionString = resolveVariables(
+        formData.connection_string,
+        varMap,
+      );
+
+      console.log('[数据库连接测试] 变量替换后:', {
+        host: resolvedHost,
+        database: resolvedDatabase,
+        username: resolvedUsername,
+      });
+
       // 动态导入 invoke，避免非 Tauri 环境加载报错
       const { invoke } = await import('@tauri-apps/api/core');
 
@@ -156,13 +203,13 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
           id: `test-${Date.now()}`,
           name: formData.name || '测试连接',
           driver: formData.driver,
-          host: formData.host || null,
+          host: resolvedHost || null,
           port: formData.port || null,
-          database: formData.database || null,
-          username: formData.username || null,
-          password: formData.password || null,
+          database: resolvedDatabase || null,
+          username: resolvedUsername || null,
+          password: resolvedPassword || null,
           passwordFromEnv: formData.password_from_env || null,
-          connectionString: formData.connection_string || null,
+          connectionString: resolvedConnectionString || null,
           minConnections: formData.min_connections,
           maxConnections: formData.max_connections,
           connectTimeoutMs: formData.connect_timeout_ms,

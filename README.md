@@ -167,7 +167,7 @@ mpe --help
         "position": { "x": 200, "y": 0 },
         "data": {
           "type": "http",
-          "url": "{{initial_variables.api_base}}/users",
+          "url": "{{api_base}}/users",
           "method": "get",
           "timeout_ms": 30000
         }

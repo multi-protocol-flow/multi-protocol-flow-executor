@@ -56,7 +56,7 @@
     "url": "https://api.example.com/users",
     "method": "get",
     "headers": {
-      "Authorization": "Bearer {{initial_variables.api_key}}"
+      "Authorization": "Bearer {{api_key}}"
     }
   }
 }
@@ -139,7 +139,7 @@ let result = executor.execute_flow(&flow, None);
 
 节点间数据传递使用变量引用语法：
 
-- `{{initial_variables.xxx}}` - 引用初始变量
+- `{{xxx}}` - 引用初始变量（变量已拍平为顶级 key，无需前缀）
 - `{{http_response.data.xxx}}` - 引用 HTTP 响应数据
 - `{{node_id.output.xxx}}` - 引用指定节点的输出
 

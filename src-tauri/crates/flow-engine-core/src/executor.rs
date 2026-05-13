@@ -20,7 +20,7 @@ use std::collections::HashMap;
 /// - `Result<String, String>`: 替换后的字符串，或错误信息
 ///
 /// # 功能
-/// - 支持简单的变量替换，如 `{{initial_variables.api_key}}`
+/// - 支持简单的变量替换，如 `{{api_key}}`
 /// - 支持嵌套路径访问，如 `{{user.profile.name}}`
 /// - 严格模式：变量不存在时返回错误
 /// - 不支持索引访问（如 `items[0]`）和函数调用

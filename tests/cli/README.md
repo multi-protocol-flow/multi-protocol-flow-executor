@@ -72,7 +72,7 @@
 
 ### 变量引用
 
-- `{{initial_variables.xxx}}` - 引用流程初始变量
+- `{{xxx}}` - 引用流程初始变量（变量已拍平为顶级 key）
 - `{{http_response.data.xxx}}` - 引用HTTP响应数据
 - `{{http_response.status}}` - 引用HTTP状态码
 
