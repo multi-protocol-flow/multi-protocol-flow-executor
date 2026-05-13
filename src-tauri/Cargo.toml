@@ -120,6 +120,10 @@ chrono = "0.4"
 clap = { version = "4", features = ["derive"] }
 toml = "0.8"
 
+# Windows API（FreeConsole 用于分离控制台）
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = ["Win32_System_Console"] }
+
 [dev-dependencies]
 mockito = "1.0"
 assert_cmd = "2.0"
@@ -139,5 +143,19 @@ strip = true          # 剥离调试符号
 panic = "abort"       # abort 替代 unwind，减小二进制体积
 opt-level = "z"       # 体积优先优化
 
-[lints]
-workspace = true
+[lints.rust]
+# 允许 unsafe（FreeConsole 等平台 API 需要）
+unsafe_code = "allow"
+missing_docs = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+missing_docs_in_private_items = "allow"
+doc_markdown = "warn"
+too_many_arguments = "allow"
+type_complexity = "allow"

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFlowListStore, useFlowStore, useUIStore } from '@/stores';
+import { useSettingsStore } from '@/stores/settings';
 import { flowStorage } from '@/services/storage';
 import type { FolderInfo } from '@/services/storage';
 import { DEMO_FLOW, WS_DEMO_FLOW, BUILTIN_FLOW_VERSION } from '@/templates/builtinFlows';
@@ -35,6 +36,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const { setFlows, addFlow: addFlowToList, removeFlow: removeFlowFromList } = useFlowListStore();
   const { setFlow, flow: currentFlow, isDirty, markSaved } = useFlowStore();
   const { openNewFlowDialog, showConfirm } = useUIStore();
+  const flowsDir = useSettingsStore((state) => state.flowsDir);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -156,7 +158,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     init();
 
     return () => { cancelled = true; };
-  }, [setFlows, setFlow, currentFlow?.uuid, loadFlowList, loadFolders, mapMetadata]);
+  }, [flowsDir, setFlows, setFlow, currentFlow?.uuid, loadFlowList, loadFolders, mapMetadata]);
 
   // 窗口聚焦时刷新流程列表
   useEffect(() => {
