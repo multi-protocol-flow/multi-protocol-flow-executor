@@ -175,6 +175,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
   const formMinConnections = watch('min_connections');
   const formMaxConnections = watch('max_connections');
   const formConnectionString = watch('connection_string');
+  const formPassword = watch('password');
 
   /** 从表单值构建显示用的连接配置数据 */
   const displayConfig: DbConnectConfigType = {
@@ -187,7 +188,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
     min_connections: formMinConnections ?? undefined,
     max_connections: formMaxConnections ?? undefined,
     connection_string: formConnectionString || undefined,
-    password: undefined,
+    password: formPassword || undefined,
     test_query: undefined,
     connect_timeout_ms: undefined,
   };
