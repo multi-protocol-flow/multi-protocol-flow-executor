@@ -392,6 +392,7 @@ export function CanvasToolbar() {
                     className={cn(
                       'z-50',
                       'w-72 max-h-[calc(100vh-200px)]',
+                      'flex flex-col',
                       'bg-background/95 backdrop-blur-xl rounded-xl',
                       'shadow-xl border border-border/50 dark:border-white/20',
                       'overflow-hidden',
@@ -400,7 +401,7 @@ export function CanvasToolbar() {
                     )}
                   >
                     {/* 标题栏 + 关闭按钮 */}
-                    <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
                       <div className="flex items-center gap-2">
                         <VariableIcon className="w-4 h-4 text-violet-600" />
                         <span className="text-sm font-semibold text-foreground">变量</span>
@@ -418,7 +419,7 @@ export function CanvasToolbar() {
                       </button>
                     </div>
                     {/* 变量面板内容 */}
-                    <div className="h-[calc(100%-40px)] overflow-hidden">
+                    <div className="flex-1 overflow-y-auto min-h-0">
                       <VariablePanel flow={flow!} nodes={flow!.nodes} showHeader={false} />
                     </div>
                     <Popover.Arrow className="fill-background drop-shadow-sm" />

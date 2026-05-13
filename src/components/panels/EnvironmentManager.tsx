@@ -7,7 +7,7 @@
  * - 对话框中可添加/编辑/删除环境及其变量
  */
 import { useCallback, useState } from 'react';
-import { Globe, Plus, Trash2, Pencil, Check, X, Settings2 } from 'lucide-react';
+import { Globe, Plus, Trash2, Pencil, Check, X, Settings2, Variable } from 'lucide-react';
 import { useFlowStore } from '@/stores';
 import { useUIStore } from '@/stores/ui';
 import { cn } from '@/lib/utils';
@@ -71,10 +71,10 @@ export function EnvironmentSelector() {
                 'py-1',
               )}
             >
-              {/* 默认（无环境） */}
+              {/* 默认变量 — 点击打开管理对话框 */}
               <button
                 type="button"
-                onClick={() => { setActiveEnvironment(null); setShowDropdown(false); }}
+                onClick={() => { setActiveEnvironment(null); setShowDropdown(false); openEnvironmentManagerDialog(); }}
                 className={cn(
                   'w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors cursor-pointer',
                   !activeEnv && 'text-violet-600 font-medium',
@@ -120,6 +120,135 @@ export function EnvironmentSelector() {
 }
 
 /**
+ * 默认变量编辑卡片 — 编辑 flow.initial_variables
+ */
+function DefaultVariablesCard({
+  variables,
+  onAdd,
+  onUpdate,
+  onRemove,
+}: {
+  variables: Record<string, unknown>;
+  onAdd: (key: string, value: unknown) => void;
+  onUpdate: (key: string, value: unknown) => void;
+  onRemove: (key: string) => void;
+}) {
+  const [newKey, setNewKey] = useState('');
+  const [newValue, setNewValue] = useState('');
+
+  const varEntries = Object.entries(variables);
+
+  const handleAdd = useCallback(() => {
+    const key = newKey.trim();
+    if (!key) return;
+    let value: unknown = newValue;
+    try { value = JSON.parse(newValue); } catch { /* 保持字符串 */ }
+    onAdd(key, value);
+    setNewKey('');
+    setNewValue('');
+  }, [newKey, newValue, onAdd]);
+
+  const handleUpdateValue = useCallback(
+    (key: string, rawValue: string) => {
+      let value: unknown = rawValue;
+      try { value = JSON.parse(rawValue); } catch { /* 保持字符串 */ }
+      onUpdate(key, value);
+    },
+    [onUpdate],
+  );
+
+  return (
+    <div className="rounded-lg border border-violet-200 bg-violet-50/30 dark:border-violet-800 dark:bg-violet-950/10 p-3 space-y-2">
+      {/* 标题行 */}
+      <div className="flex items-center gap-2">
+        <Variable className="w-4 h-4 text-violet-600" />
+        <span className="text-xs font-semibold text-foreground flex-1">默认变量</span>
+        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+          {varEntries.length} 个
+        </span>
+      </div>
+
+      {/* 变量列表 */}
+      <div className="space-y-1">
+        {varEntries.length === 0 ? (
+          <div className="rounded border border-dashed border-muted-foreground/30 px-3 py-2 text-center">
+            <p className="text-[11px] text-muted-foreground">
+              暂无默认变量，请在下方添加
+            </p>
+          </div>
+        ) : (
+          varEntries.map(([key, val]) => (
+            <div key={key} className="flex items-center gap-1.5 group">
+              <span
+                className="text-[11px] font-mono text-muted-foreground w-24 truncate shrink-0"
+                title={key}
+              >
+                {key}
+              </span>
+              <input
+                type="text"
+                value={typeof val === 'string' ? val : JSON.stringify(val)}
+                onChange={(e) => handleUpdateValue(key, e.target.value)}
+                className="h-6 flex-1 rounded border border-transparent bg-transparent px-1.5 text-[11px] font-mono hover:border-border focus:border-violet-300 focus:outline-none transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => onRemove(key)}
+                className="p-0.5 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-rose-500 transition-all cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))
+        )}
+
+        {/* 添加变量 */}
+        <div className="flex items-center gap-1.5 pt-1">
+          <input
+            type="text"
+            value={newKey}
+            onChange={(e) => setNewKey(e.target.value)}
+            placeholder="键名"
+            className="h-6 w-24 rounded border border-dashed border-muted-foreground/30 bg-transparent px-1.5 text-[11px] font-mono focus:border-violet-300 focus:outline-none placeholder:text-muted-foreground/40"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newKey.trim()) handleAdd();
+            }}
+          />
+          <input
+            type="text"
+            value={newValue}
+            onChange={(e) => setNewValue(e.target.value)}
+            placeholder="值"
+            className="h-6 flex-1 rounded border border-dashed border-muted-foreground/30 bg-transparent px-1.5 text-[11px] font-mono focus:border-violet-300 focus:outline-none placeholder:text-muted-foreground/40"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newKey.trim()) handleAdd();
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={!newKey.trim()}
+            className={cn(
+              'p-0.5 rounded transition-colors cursor-pointer',
+              newKey.trim()
+                ? 'text-violet-600 hover:text-violet-700'
+                : 'text-muted-foreground/30 cursor-not-allowed',
+            )}
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* 提示 */}
+      <p className="text-[10px] text-muted-foreground/60 leading-tight">
+        默认变量即流程初始变量（flow.initial_variables），执行时会注入到流程上下文中。也可在 Entry 节点配置面板中编辑。
+      </p>
+    </div>
+  );
+}
+
+/**
  * 环境管理对话框
  */
 export function EnvironmentManagerDialog() {
@@ -144,6 +273,35 @@ export function EnvironmentManagerDialog() {
       if (editingEnv === name) setEditingEnv(null);
     },
     [removeEnvironment, editingEnv],
+  );
+
+  const flowInitialVars = flow?.initial_variables ?? {};
+
+  const handleUpdateDefaultVar = useCallback(
+    (key: string, value: unknown) => {
+      if (!flow) return;
+      const updated = { ...flow.initial_variables, [key]: value };
+      useFlowStore.getState().updateInitialVariables(updated);
+    },
+    [flow],
+  );
+
+  const handleAddDefaultVar = useCallback(
+    (key: string, value: unknown) => {
+      if (!flow || !key.trim()) return;
+      const updated = { ...flow.initial_variables, [key.trim()]: value };
+      useFlowStore.getState().updateInitialVariables(updated);
+    },
+    [flow],
+  );
+
+  const handleRemoveDefaultVar = useCallback(
+    (key: string) => {
+      if (!flow) return;
+      const { [key]: _, ...rest } = flow.initial_variables ?? {};
+      useFlowStore.getState().updateInitialVariables(rest);
+    },
+    [flow],
   );
 
   return (
@@ -174,8 +332,15 @@ export function EnvironmentManagerDialog() {
           </button>
         </div>
 
-        {/* 环境列表 */}
+        {/* 变量编辑区域 */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {/* 默认变量卡片 */}
+          <DefaultVariablesCard
+            variables={flowInitialVars}
+            onAdd={handleAddDefaultVar}
+            onUpdate={handleUpdateDefaultVar}
+            onRemove={handleRemoveDefaultVar}
+          />
           {environments.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-6 text-center">
               <p className="text-xs text-muted-foreground">暂无环境配置</p>
