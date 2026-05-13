@@ -18,6 +18,8 @@ import type { DbDriver } from '@/types/database';
 import type { TestDbConnectionResult } from '@/types/ipc';
 import { cn } from '@/lib/utils';
 import { Loader2, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
+import { VariableInput } from '@/components/ui/VariableInput';
+import { useFlowVariables } from '@/hooks';
 
 /**
  * 检查是否在 Tauri 环境
@@ -94,6 +96,7 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const { variables, nodeLabels } = useFlowVariables();
 
   // 当对话框打开时，初始化表单数据
   useEffect(() => {
@@ -260,10 +263,12 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2 space-y-2">
                   <Label htmlFor="conn-host">主机地址</Label>
-                  <Input
+                  <VariableInput
                     id="conn-host"
+                    variables={variables}
+                    nodeLabels={nodeLabels}
                     value={formData.host || ''}
-                    onChange={(e) => updateField('host', e.target.value)}
+                    onValueChange={(value) => updateField('host', value)}
                     placeholder="localhost"
                   />
                 </div>
@@ -282,10 +287,12 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
               {/* 数据库名 */}
               <div className="space-y-2">
                 <Label htmlFor="conn-database">数据库名</Label>
-                <Input
+                <VariableInput
                   id="conn-database"
+                  variables={variables}
+                  nodeLabels={nodeLabels}
                   value={formData.database || ''}
-                  onChange={(e) => updateField('database', e.target.value)}
+                  onValueChange={(value) => updateField('database', value)}
                   placeholder="mydb"
                 />
               </div>
@@ -294,10 +301,12 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="conn-username">用户名</Label>
-                  <Input
+                  <VariableInput
                     id="conn-username"
+                    variables={variables}
+                    nodeLabels={nodeLabels}
                     value={formData.username || ''}
-                    onChange={(e) => updateField('username', e.target.value)}
+                    onValueChange={(value) => updateField('username', value)}
                     placeholder="root"
                   />
                 </div>
@@ -345,26 +354,28 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
             </div>
           )}
 
-          {/* SQLite 文件路径 */}
-          {isSqlite && (
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium text-foreground border-b border-border pb-1">
-                连接参数
-              </h4>
-              <div className="space-y-2">
-                <Label htmlFor="conn-connection-string">数据库文件路径</Label>
-                <Input
-                  id="conn-connection-string"
-                  value={formData.connection_string || ''}
-                  onChange={(e) => updateField('connection_string', e.target.value)}
-                  placeholder="/path/to/database.db"
-                />
-                <p className="text-xs text-muted-foreground">
-                  SQLite 数据库文件的绝对路径或相对路径
-                </p>
-              </div>
-            </div>
-          )}
+              {/* SQLite 文件路径 */}
+              {isSqlite && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-foreground border-b border-border pb-1">
+                    连接参数
+                  </h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="conn-connection-string">数据库文件路径</Label>
+                    <VariableInput
+                      id="conn-connection-string"
+                      variables={variables}
+                      nodeLabels={nodeLabels}
+                      value={formData.connection_string || ''}
+                      onValueChange={(value) => updateField('connection_string', value)}
+                      placeholder="/path/to/database.db"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      SQLite 数据库文件的绝对路径或相对路径
+                    </p>
+                  </div>
+                </div>
+              )}
 
           {/* 连接池配置 */}
           <div className="space-y-4">

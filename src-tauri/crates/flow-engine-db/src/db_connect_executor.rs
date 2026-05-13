@@ -56,6 +56,31 @@ impl NodeExecutor for DbConnectExecutor {
         // 2.5 连接池 key = 节点自身的 uuid
         let pool_key = node.uuid.clone();
 
+        // 2.75 变量替换：对连接字段中的 {{variable}} 进行运行时替换
+        let replace_opt = |val: &Option<String>, label: &str| -> Result<Option<String>, String> {
+            match val {
+                Some(v) if v.contains("{{") => {
+                    match flow_engine_core::executor::replace_variables(v, context) {
+                        Ok(replaced) => Ok(Some(replaced)),
+                        Err(e) => {
+                            let err_msg = format!("{} 变量替换失败: {}", label, e);
+                            log::error!("[流程 {}] [错误] 节点ID: {}, 错误: {}", context.flow_uuid, node.uuid, err_msg);
+                            Err(err_msg)
+                        }
+                    }
+                }
+                Some(v) => Ok(Some(v.clone())),
+                None => Ok(None),
+            }
+        };
+
+        let replaced_host = replace_opt(&config.host, "host")?;
+        let replaced_database = replace_opt(&config.database, "database")?;
+        let replaced_username = replace_opt(&config.username, "username")?;
+        let replaced_password = replace_opt(&config.password, "password")?;
+        let replaced_connection_string = replace_opt(&config.connection_string, "connection_string")?;
+        let replaced_test_query = replace_opt(&config.test_query, "test_query")?;
+
         // 3. 验证 driver（必填字段）
         if config.driver.is_none() {
             let error_msg = "driver 不能为空".to_string();
@@ -107,18 +132,18 @@ impl NodeExecutor for DbConnectExecutor {
         // 根据数据库类型创建连接池
         let pool: Arc<dyn DatabasePool> = match config.driver.as_deref() {
             Some("sqlite") => {
-                // 构建 DbConnection 配置
+                // 构建 DbConnection 配置（使用变量替换后的值）
                 let db_config = DbConnection {
                     id: pool_key.clone(),
                     name: node.name.clone(),
                     driver: DbDriver::Sqlite,
-                    host: config.host.clone(),
+                    host: replaced_host.clone(),
                     port: config.port,
-                    database: config.database.clone(),
-                    username: config.username.clone(),
-                    password: config.password.clone(),
+                    database: replaced_database.clone(),
+                    username: replaced_username.clone(),
+                    password: replaced_password.clone(),
                     password_from_env: None,
-                    connection_string: config.connection_string.clone(),
+                    connection_string: replaced_connection_string.clone(),
                     min_connections: config.min_connections,
                     max_connections: config.max_connections,
                     connect_timeout_ms: config.connect_timeout_ms.unwrap_or(10000),
@@ -131,7 +156,7 @@ impl NodeExecutor for DbConnectExecutor {
                 log::info!(
                     "[Database] 创建 SQLite 连接池: uuid={}, connection_string={}",
                     pool_key,
-                    config.connection_string.as_deref().unwrap_or(":memory:")
+                    replaced_connection_string.as_deref().unwrap_or(":memory:")
                 );
 
                 // 创建 SQLite 连接池
@@ -179,18 +204,18 @@ impl NodeExecutor for DbConnectExecutor {
                 }
             }
             Some("redis") => {
-                // 构建 DbConnection 配置
+                // 构建 DbConnection 配置（使用变量替换后的值）
                 let db_config = DbConnection {
                     id: pool_key.clone(),
                     name: node.name.clone(),
                     driver: DbDriver::Redis,
-                    host: config.host.clone(),
+                    host: replaced_host.clone(),
                     port: config.port,
-                    database: config.database.clone(),
-                    username: config.username.clone(),
-                    password: config.password.clone(),
+                    database: replaced_database.clone(),
+                    username: replaced_username.clone(),
+                    password: replaced_password.clone(),
                     password_from_env: None,
-                    connection_string: config.connection_string.clone(),
+                    connection_string: replaced_connection_string.clone(),
                     min_connections: config.min_connections,
                     max_connections: config.max_connections,
                     connect_timeout_ms: config.connect_timeout_ms.unwrap_or(10000),
@@ -203,7 +228,7 @@ impl NodeExecutor for DbConnectExecutor {
                 log::info!(
                     "[Database] 创建 Redis 连接池: uuid={}, host={:?}",
                     pool_key,
-                    config.host
+                    replaced_host
                 );
 
                 // 创建 Redis 连接池
@@ -249,18 +274,18 @@ impl NodeExecutor for DbConnectExecutor {
                 }
             }
             Some("mysql") => {
-                // 构建 DbConnection 配置
+                // 构建 DbConnection 配置（使用变量替换后的值）
                 let db_config = DbConnection {
                     id: pool_key.clone(),
                     name: node.name.clone(),
                     driver: DbDriver::Mysql,
-                    host: config.host.clone(),
+                    host: replaced_host.clone(),
                     port: config.port,
-                    database: config.database.clone(),
-                    username: config.username.clone(),
-                    password: config.password.clone(),
+                    database: replaced_database.clone(),
+                    username: replaced_username.clone(),
+                    password: replaced_password.clone(),
                     password_from_env: None,
-                    connection_string: config.connection_string.clone(),
+                    connection_string: replaced_connection_string.clone(),
                     min_connections: config.min_connections,
                     max_connections: config.max_connections,
                     connect_timeout_ms: config.connect_timeout_ms.unwrap_or(10000),
@@ -273,7 +298,7 @@ impl NodeExecutor for DbConnectExecutor {
                 log::info!(
                     "[Database] 创建 MySQL 连接池: uuid={}, host={:?}",
                     pool_key,
-                    config.host
+                    replaced_host
                 );
 
                 // 创建 MySQL 连接池
@@ -319,18 +344,18 @@ impl NodeExecutor for DbConnectExecutor {
                 }
             }
             Some("postgres") | Some("postgresql") => {
-                // 构建 DbConnection 配置
+                // 构建 DbConnection 配置（使用变量替换后的值）
                 let db_config = DbConnection {
                     id: pool_key.clone(),
                     name: node.name.clone(),
                     driver: DbDriver::Postgres,
-                    host: config.host.clone(),
+                    host: replaced_host.clone(),
                     port: config.port,
-                    database: config.database.clone(),
-                    username: config.username.clone(),
-                    password: config.password.clone(),
+                    database: replaced_database.clone(),
+                    username: replaced_username.clone(),
+                    password: replaced_password.clone(),
                     password_from_env: None,
-                    connection_string: config.connection_string.clone(),
+                    connection_string: replaced_connection_string.clone(),
                     min_connections: config.min_connections,
                     max_connections: config.max_connections,
                     connect_timeout_ms: config.connect_timeout_ms.unwrap_or(10000),
@@ -343,7 +368,7 @@ impl NodeExecutor for DbConnectExecutor {
                 log::info!(
                     "[Database] 创建 PostgreSQL 连接池: uuid={}, host={:?}",
                     pool_key,
-                    config.host
+                    replaced_host
                 );
 
                 // 创建 PostgreSQL 连接池
@@ -418,8 +443,8 @@ impl NodeExecutor for DbConnectExecutor {
                     pool_key
                 );
 
-                // 5. 执行测试查询（如果配置了）
-                let test_query_result = if let Some(ref test_query) = config.test_query {
+                // 5. 执行测试查询（如果配置了，使用变量替换后的值）
+                let test_query_result = if let Some(ref test_query) = replaced_test_query {
                     if !test_query.is_empty() {
                         log::info!(
                             "[Database] 执行测试查询: uuid={}, query={}",
