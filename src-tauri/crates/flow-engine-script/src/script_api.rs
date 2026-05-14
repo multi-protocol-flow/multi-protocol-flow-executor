@@ -20,13 +20,13 @@ pub struct LogEntry {
 /// 响应数据（传递给 fn.response）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResponseData {
-    /// HTTP 状态码
+    /// HTTP 状态码（非 HTTP 节点为 0）
     pub code: u16,
-    /// 状态文本
+    /// 状态文本（非 HTTP 节点为空字符串）
     pub status: String,
-    /// 响应头
+    /// 响应头（非 HTTP 节点为空）
     pub headers: HashMap<String, String>,
-    /// 响应体（自动 JSON 解析后的值）
+    /// 响应体（自动 JSON 解析后的值，非 HTTP 节点为完整 output）
     pub body: serde_json::Value,
     /// 原始响应体文本
     pub raw_body: String,
@@ -34,6 +34,8 @@ pub struct ResponseData {
     pub size: usize,
     /// 响应时间（毫秒）
     pub time: u64,
+    /// 完整原始输出数据（不限协议类型，即 `last_node_output` 的完整内容）
+    pub raw_output: serde_json::Value,
 }
 
 /// 请求数据（传递给 fn.request）
@@ -284,6 +286,11 @@ impl ScriptExecutionContext {
                 "json",
                 Func::from(move || -> String { body_clone.to_string() }),
             )?;
+
+            // raw - 完整原始输出数据（JSON 字符串，不限协议类型）
+            // 对于非 HTTP 节点（数据库/WebSocket/gRPC 等），此为完整的 last_node_output
+            // JS 端可用 JSON.parse(fn.response.raw) 获取完整对象
+            response_obj.set("raw", resp.raw_output.to_string())?;
         }
 
         fn_obj.set("response", response_obj)?;
@@ -1533,6 +1540,12 @@ mod tests {
         let rt = Runtime::new().unwrap();
         let ctx = Context::full(&rt).unwrap();
 
+        let raw_output = serde_json::json!({
+            "status": 200,
+            "body": {"token": "abc123"},
+            "headers": {"Content-Type": "application/json"}
+        });
+
         let response = ResponseData {
             code: 200,
             status: "OK".to_string(),
@@ -1545,6 +1558,7 @@ mod tests {
             raw_body: r#"{"token":"abc123"}"#.to_string(),
             size: 19,
             time: 150,
+            raw_output: raw_output.clone(),
         };
 
         let script_ctx = ScriptExecutionContext::new().with_response(response);
@@ -1577,6 +1591,13 @@ mod tests {
             // 测试 json() 函数
             let json: String = ctx.eval("fn.response.json()").catch(&ctx).unwrap();
             assert!(json.contains("token"));
+
+            // 测试 raw 属性 - 完整原始输出
+            let raw_str: String = ctx.eval("fn.response.raw").catch(&ctx).unwrap();
+            let raw_parsed: serde_json::Value =
+                serde_json::from_str(&raw_str).unwrap();
+            assert_eq!(raw_parsed["status"], 200);
+            assert_eq!(raw_parsed["body"]["token"], "abc123");
         });
     }
 
@@ -1615,6 +1636,7 @@ mod tests {
             raw_body: r#"{"user":{"id":1,"name":"test"},"items":[1,2,3]}"#.to_string(),
             size: 50,
             time: 100,
+            raw_output: serde_json::json!({"user":{"id":1,"name":"test"},"items":[1,2,3]}),
         };
 
         let script_ctx = ScriptExecutionContext::new().with_response(response);
@@ -1631,6 +1653,62 @@ mod tests {
             let user: Object = parsed.get("user").unwrap();
             let id: i32 = user.get("id").unwrap();
             assert_eq!(id, 1);
+        });
+    }
+
+    #[test]
+    fn test_fn_response_raw_with_non_http_output() {
+        let rt = Runtime::new().unwrap();
+        let ctx = Context::full(&rt).unwrap();
+
+        // 模拟数据库查询输出（非 HTTP 格式）
+        let raw_output = serde_json::json!({
+            "rows": [
+                {"id": 1, "name": "Alice"},
+                {"id": 2, "name": "Bob"}
+            ],
+            "affected": 2,
+            "duration_ms": 15
+        });
+
+        let response = ResponseData {
+            code: 0,
+            status: String::new(),
+            headers: HashMap::new(),
+            body: raw_output.clone(),
+            raw_body: raw_output.to_string(),
+            size: raw_output.to_string().len(),
+            time: 15,
+            raw_output: raw_output.clone(),
+        };
+
+        let script_ctx = ScriptExecutionContext::new().with_response(response);
+
+        ctx.with(|ctx| {
+            script_ctx.register_all_apis(&ctx).unwrap();
+
+            // HTTP 专属字段应该为空或 0
+            let code: u16 = ctx.eval("fn.response.code").catch(&ctx).unwrap();
+            assert_eq!(code, 0);
+            let status: String = ctx.eval("fn.response.status").catch(&ctx).unwrap();
+            assert_eq!(status, "");
+
+            // 通过 raw 访问完整输出
+            let raw_str: String = ctx.eval("fn.response.raw").catch(&ctx).unwrap();
+            let raw_parsed: serde_json::Value =
+                serde_json::from_str(&raw_str).unwrap();
+            assert_eq!(raw_parsed["rows"][0]["name"], "Alice");
+            assert_eq!(raw_parsed["affected"], 2);
+
+            // 验证可以 JSON.parse + 遍历
+            let names: String = ctx
+                .eval(r#"
+                    var data = JSON.parse(fn.response.raw);
+                    JSON.stringify(data.rows.map(function(r) { return r.name; }))
+                "#)
+                .catch(&ctx)
+                .unwrap();
+            assert_eq!(names, r#"["Alice","Bob"]"#);
         });
     }
 

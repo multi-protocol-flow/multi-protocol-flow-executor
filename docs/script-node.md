@@ -48,31 +48,43 @@ if (fn.variables.has('token')) {
 const allVars = JSON.parse(fn.variables.all());
 ```
 
-### fn.response - 响应数据（只读）
+### fn.response - 节点输出数据（只读）
+
+`fn.response` 兼容**所有协议节点**的输出，不再局限于 HTTP 响应。
 
 | 属性/方法 | 说明 |
 |-----------|------|
-| `fn.response.code` | HTTP 状态码 |
-| `fn.response.status` | 状态文本 |
-| `fn.response.headers` | 响应头对象 |
-| `fn.response.body` | 响应体（JSON 字符串） |
+| `fn.response.code` | HTTP 状态码（非 HTTP 节点为 0） |
+| `fn.response.status` | 状态文本（非 HTTP 节点为空字符串） |
+| `fn.response.headers` | 响应头对象（非 HTTP 节点为空） |
+| `fn.response.body` | 响应体（JSON 字符串，非 HTTP 节点为完整输出） |
 | `fn.response.size` | 响应大小（字节） |
 | `fn.response.time` | 响应时间（毫秒） |
+| `fn.response.raw` | **完整原始输出数据**（JSON 字符串，不限协议类型） |
 | `fn.response.text()` | 获取原始文本 |
 | `fn.response.json()` | 获取 JSON 对象（JSON 字符串） |
 
+**`fn.response.raw`** 是最通用的接口，返回前一个节点的完整 `output` 数据，适用于所有协议：
+
 ```javascript
-// 获取状态码
+// 获取完整输出（任意节点类型）
+const raw = JSON.parse(fn.response.raw);
+
+// HTTP 节点示例
 const code = fn.response.code;
-
-// 解析响应体
 const body = JSON.parse(fn.response.body);
-fn.variables.set('userId', body.user.id);
 
-// 获取原始文本
+// 数据库查询节点示例
+const data = JSON.parse(fn.response.raw);
+fn.variables.set('count', data.rows.length.toString());
+fn.variables.set('first_name', data.rows[0].name);
+
+// WebSocket/gRPC 等其他节点
+const result = JSON.parse(fn.response.raw);
+fn.variables.set('message', result.data);
+
+// 原始 API 仍可用（HTTP 节点兼容）
 const rawText = fn.response.text();
-
-// 获取响应头
 const contentType = fn.response.headers['content-type'];
 ```
 

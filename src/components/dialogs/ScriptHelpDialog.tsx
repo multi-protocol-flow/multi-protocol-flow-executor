@@ -196,25 +196,34 @@ const allVars = JSON.parse(fn.variables.all());`} />
     // fn.response
     {
       id: 'response',
-      title: 'fn.response - 响应数据（只读）',
+      title: 'fn.response - 节点输出数据（只读）',
       icon: <Globe className="h-4 w-4" />,
       content: (
         <>
+          <p className="text-xs text-muted-foreground mb-2">
+            兼容所有协议节点（HTTP/数据库/WebSocket/gRPC/MQTT 等）。
+            <code className="bg-muted/60 px-1.5 py-0.5 rounded text-[11px] font-mono ml-1">fn.response.raw</code> 返回完整原始输出。
+          </p>
           <ApiTable rows={[
-            { method: 'code', description: 'HTTP 状态码' },
-            { method: 'status', description: '状态文本' },
-            { method: 'headers', description: '响应头对象' },
-            { method: 'body', description: '响应体（JSON 字符串）' },
+            { method: 'code', description: 'HTTP 状态码（非 HTTP 节点为 0）' },
+            { method: 'status', description: '状态文本（非 HTTP 节点为空）' },
+            { method: 'headers', description: '响应头对象（非 HTTP 节点为空）' },
+            { method: 'body', description: '响应体（JSON 字符串，HTTP 节点专用）' },
+            { method: 'raw', description: '完整原始输出（JSON 字符串），含 status/headers/body 等全部字段' },
             { method: 'size', description: '响应大小（字节）' },
             { method: 'time', description: '响应时间（毫秒）' },
             { method: 'text()', description: '获取原始文本' },
             { method: 'json()', description: '获取 JSON 对象（JSON 字符串）' },
           ]} />
-          <CodeBlock code={`const code = fn.response.code;
+          <CodeBlock code={`// 任意节点类型 — 获取完整输出
+const data = JSON.parse(fn.response.raw);
+fn.variables.set('count', data.rows.length.toString());
+fn.variables.set('firstName', data.rows[0].name);
+
+// HTTP 节点（向下兼容）
+const code = fn.response.code;
 const body = JSON.parse(fn.response.body);
-fn.variables.set('userId', body.user.id);
-const rawText = fn.response.text();
-const contentType = fn.response.headers['content-type'];`} />
+fn.variables.set('userId', body.user.id);`} />
         </>
       ),
     },

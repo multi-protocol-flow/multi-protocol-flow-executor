@@ -403,13 +403,22 @@ impl ScriptNodeExecutor {
     }
 
     /// 从 `last_node_output` 提取响应数据
+    ///
+    /// 兼容 HTTP 和非 HTTP 两种输出格式：
+    /// - HTTP 节点输出包含 `status`/`body`/`headers` 字段
+    /// - 其他节点（数据库/WebSocket/gRPC/脚本等）输出格式各异
+    ///
+    /// 完整输出始终存储在 `raw_output` 字段，可通过 `fn.response.raw` 访问
     fn extract_response_data(&self, output: &serde_json::Value) -> Option<ResponseData> {
-        // 检查是否是 HTTP 响应格式
-        let status = output.get("status")?.as_u64()? as u16;
+        // 尝试提取 HTTP 字段（向后兼容）
+        let status = output
+            .get("status")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u16;
         let body = output
             .get("body")
             .cloned()
-            .unwrap_or(serde_json::Value::Null);
+            .unwrap_or(output.clone());
         let headers = output
             .get("headers")
             .and_then(|h| serde_json::from_value(h.clone()).ok())
@@ -421,18 +430,22 @@ impl ScriptNodeExecutor {
         };
         let size = raw_body.len();
 
+        // 始终返回 ResponseData，非 HTTP 节点也至少有 raw_output 可访问
         Some(ResponseData {
             code: status,
-            status: if (200..300).contains(&status) {
+            status: if status > 0 && (200..300).contains(&status) {
                 "OK".to_string()
-            } else {
+            } else if status > 0 {
                 "Error".to_string()
+            } else {
+                String::new()
             },
             headers,
             body,
             raw_body,
             size,
             time: 0, // TODO: 从 output 提取实际时间
+            raw_output: output.clone(),
         })
     }
 
@@ -879,6 +892,47 @@ mod tests {
         assert_eq!(
             context.variables.get_variable("result"),
             Some(&serde_json::json!("ok"))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_script_executor_with_non_http_output() {
+        let executor = ScriptNodeExecutor::new();
+        let node = create_test_node(
+            "script-non-http",
+            r#"
+                var raw = fn.response.raw;
+                var data = JSON.parse(raw);
+                fn.variables.set('first_name', data.rows[0].name);
+                fn.variables.set('total', data.affected.toString());
+            "#,
+            5000,
+        );
+        let mut context = create_test_context("test-flow");
+
+        // 设置 last_node_output 模拟数据库查询输出（无 HTTP 字段）
+        context.last_node_output = Some(serde_json::json!({
+            "rows": [
+                {"id": 1, "name": "Alice"},
+                {"id": 2, "name": "Bob"}
+            ],
+            "affected": 2
+        }));
+
+        let connections = vec![];
+
+        let result = executor
+            .execute(&node, &mut context, &connections, &HashMap::new())
+            .await;
+
+        assert!(result.is_ok());
+        assert_eq!(
+            context.variables.get_variable("first_name"),
+            Some(&serde_json::json!("Alice"))
+        );
+        assert_eq!(
+            context.variables.get_variable("total"),
+            Some(&serde_json::json!("2"))
         );
     }
 
