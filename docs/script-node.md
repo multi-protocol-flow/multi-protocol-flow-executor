@@ -111,9 +111,9 @@ fn.console.warn('这是一个警告');
 
 | 方法 | 说明 |
 |------|------|
-| `fn.flow.skip()` | 跳过后续节点，流程继续 |
+| `fn.flow.skip()` | 跳过后续节点（不再继续执行） |
 | `fn.flow.abort(message)` | 终止流程并报错 |
-| `fn.flow.stop()` | 正常终止流程 |
+| `fn.flow.stop(message?)` | 正常终止流程（可选终止消息） |
 
 ```javascript
 // 条件跳过
@@ -121,9 +121,14 @@ if (fn.response.code !== 200) {
   fn.flow.abort('请求失败: ' + fn.response.code);
 }
 
-// 正常终止
+// 正常终止（无消息）
 if (JSON.parse(fn.response.body).done) {
   fn.flow.stop();
+}
+
+// 正常终止（带消息）
+if (JSON.parse(fn.response.body).error) {
+  fn.flow.stop('API验证失败：数据校验未通过');
 }
 
 // 跳过后续节点

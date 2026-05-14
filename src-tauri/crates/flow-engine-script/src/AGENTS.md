@@ -35,7 +35,7 @@ flow-engine-script/src/
 | `fn.variables.get/set/has` | 变量读写 |
 | `fn.response.status/body/headers` | 上一个节点响应 |
 | `fn.console.log/warn/error` | 日志输出 |
-| `fn.flow.setVariable/getVariable` | 流程变量 |
+| `fn.flow.stop/abort/skip` | 流程控制（终止/报错/跳过） |
 | `fn.util.encode/decode/hash/uuid/time` | 工具函数 |
 | `fn.expect()` | 链式断言 |
 

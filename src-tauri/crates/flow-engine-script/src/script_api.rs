@@ -82,6 +82,8 @@ pub struct ScriptExecutionContext {
     pub abort_message: Rc<RefCell<Option<String>>>,
     /// 流程控制：正常终止流程
     pub should_stop: Rc<RefCell<bool>>,
+    /// 流程控制：终止消息
+    pub stop_message: Rc<RefCell<Option<String>>>,
     /// 流程信息：流程名称
     pub flow_name: Option<String>,
     /// 流程信息：流程 ID
@@ -106,6 +108,7 @@ impl ScriptExecutionContext {
             should_abort: Rc::new(RefCell::new(false)),
             abort_message: Rc::new(RefCell::new(None)),
             should_stop: Rc::new(RefCell::new(false)),
+            stop_message: Rc::new(RefCell::new(None)),
             flow_name: None,
             flow_id: None,
             node_id: None,
@@ -411,7 +414,7 @@ impl ScriptExecutionContext {
     /// # 注册的方法
     /// - `fn.flow.skip()` - 跳过后续节点
     /// - `fn.flow.abort(message?)` - 终止流程并报错
-    /// - `fn.flow.stop()` - 正常终止流程
+    /// - `fn.flow.stop(message?)` - 正常终止流程
     pub fn register_flow_api(&self, ctx: &Ctx) -> Result<(), rquickjs::Error> {
         let fn_obj = ctx.globals().get::<_, Object>("fn")?;
         let flow_obj = Object::new(ctx.clone())?;
@@ -440,16 +443,36 @@ impl ScriptExecutionContext {
             }),
         )?;
 
-        // stop()
+        // _stop(message) - 底层实现（始终接收字符串参数）
         let should_stop = self.should_stop.clone();
+        let stop_message = self.stop_message.clone();
         flow_obj.set(
-            "stop",
-            Func::from(move || {
+            "_stop",
+            Func::from(move |message: String| {
                 *should_stop.borrow_mut() = true;
+                *stop_message.borrow_mut() = if message.is_empty() {
+                    None
+                } else {
+                    Some(message)
+                };
             }),
         )?;
 
         fn_obj.set("flow", flow_obj)?;
+
+        // JS 包装：fn.flow.stop() 支持有参和无参两种调用方式
+        ctx.eval::<(), _>(r#"
+            (function() {
+                var origStop = fn.flow._stop;
+                fn.flow.stop = function(message) {
+                    if (arguments.length === 0 || message === undefined) {
+                        message = '';
+                    }
+                    return origStop(message);
+                };
+            })();
+        "#)?;
+
         Ok(())
     }
 
@@ -1783,8 +1806,26 @@ mod tests {
             script_ctx.register_all_apis(&ctx).unwrap();
             assert!(!*script_ctx.should_stop.borrow());
 
+            // 测试无参调用
+            script_ctx.should_stop.replace(false);
+            script_ctx.stop_message.replace(None);
             let _: () = ctx.eval("fn.flow.stop()").catch(&ctx).unwrap();
             assert!(*script_ctx.should_stop.borrow());
+            assert_eq!(*script_ctx.stop_message.borrow(), None);
+
+            // 测试传空字符串
+            script_ctx.should_stop.replace(false);
+            script_ctx.stop_message.replace(None);
+            let _: () = ctx.eval("fn.flow.stop('')").catch(&ctx).unwrap();
+            assert!(*script_ctx.should_stop.borrow());
+            assert_eq!(*script_ctx.stop_message.borrow(), None);
+
+            // 测试带消息的 stop
+            script_ctx.should_stop.replace(false);
+            script_ctx.stop_message.replace(None);
+            let _: () = ctx.eval("fn.flow.stop('自定义终止消息')").catch(&ctx).unwrap();
+            assert!(*script_ctx.should_stop.borrow());
+            assert_eq!(*script_ctx.stop_message.borrow(), Some("自定义终止消息".to_string()));
         });
     }
 

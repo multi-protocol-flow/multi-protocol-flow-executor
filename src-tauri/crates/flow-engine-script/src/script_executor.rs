@@ -44,6 +44,8 @@ struct ScriptExecutionResult {
     abort_message: Option<String>,
     /// 是否正常终止流程 (`fn.flow.stop()`)
     should_stop: bool,
+    /// 终止消息
+    stop_message: Option<String>,
     /// `fn.expect()` 断言结果
     test_results: Vec<crate::script_api::TestResult>,
 }
@@ -190,6 +192,7 @@ impl NodeExecutor for ScriptNodeExecutor {
                 let should_abort = *script_ctx.should_abort.borrow();
                 let abort_message = script_ctx.abort_message.borrow().clone();
                 let should_stop = *script_ctx.should_stop.borrow();
+                let stop_message = script_ctx.stop_message.borrow().clone();
                 let test_results = script_ctx.test_results.borrow().clone();
 
                 Ok::<_, String>(ScriptExecutionResult {
@@ -199,6 +202,7 @@ impl NodeExecutor for ScriptNodeExecutor {
                     should_abort,
                     abort_message,
                     should_stop,
+                    stop_message,
                     test_results,
                 })
             })
@@ -299,10 +303,16 @@ impl NodeExecutor for ScriptNodeExecutor {
                 }
                 if exec_result.should_stop {
                     output_data["flow_stop"] = serde_json::json!(true);
+                    output_data["stop_message"] = serde_json::json!(exec_result.stop_message);
                 }
 
-                // 返回 true 端口的连接
-                let next_nodes = self.get_next_nodes_by_port(node, "true", connections);
+                // 确定下一节点
+                // fn.flow.stop() 和 fn.flow.skip() 都不应继续执行后续节点
+                let next_nodes = if exec_result.should_stop || exec_result.should_skip {
+                    vec![]
+                } else {
+                    self.get_next_nodes_by_port(node, "true", connections)
+                };
                 Ok((next_nodes, Some(output_data)))
             }
             Ok(Ok(Err(e))) => {
