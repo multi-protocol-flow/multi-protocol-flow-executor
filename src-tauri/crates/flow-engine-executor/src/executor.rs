@@ -482,19 +482,9 @@ impl FlowExecutor {
                         );
                     }
 
-                    // 更新 last_node_output（仅协议节点更新，工具节点延续上游数据）
-                    // 协议节点：Http, WsConnect, WsSendCollect
-                    // 工具节点：Entry, Conditional, WsClose（不更新，延续上游）
-                    let is_protocol_node = self.registry.get(&type_id)
-                        .map(|p| p.is_protocol_node())
-                        .unwrap_or(false);
-                    if is_protocol_node {
-                        context.last_node_output = output_data.clone();
-                        log::debug!(
-                            "[流程 {}] 更新 last_node_output（协议节点 {}）",
-                            context.flow_uuid,
-                            node.name
-                        );
+                    // 更新 last_node_output（所有节点均更新，供下游节点通过 jsonpath 访问）
+                    if let Some(ref data) = output_data {
+                        context.last_node_output = Some(data.clone());
                     }
 
                     // 计算变量变更：对比前后的变量差异

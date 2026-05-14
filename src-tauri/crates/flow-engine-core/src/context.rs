@@ -154,9 +154,8 @@ pub struct ExecutionContext {
     #[serde(skip)]
     pub imap_manager: Option<Arc<dyn ImapProvider>>,
 
-    /// 最近一个协议节点的输出数据
-    /// 协议节点（HTTP、WebSocket）执行后更新此字段
-    /// 工具节点（Conditional、Entry、WsClose）不更新，延续上游数据
+    /// 最近一个节点的输出数据
+    /// 每个节点执行后均更新此字段
     /// 下游节点通过 jsonpath（如 $.body.xxx）访问此数据
     #[serde(skip)]
     pub last_node_output: Option<Value>,
