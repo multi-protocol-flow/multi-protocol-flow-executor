@@ -41,7 +41,7 @@ describe('NodeListItem', () => {
     expect(screen.getByText('获取用户数据')).toBeDefined();
 
     // 检查类型标签
-    expect(screen.getByText('HTTP')).toBeDefined();
+    expect(screen.getByText('HTTP 请求')).toBeDefined();
 
     // 检查执行时间
     expect(screen.getByText('500ms')).toBeDefined();
@@ -92,9 +92,9 @@ describe('NodeListItem', () => {
   it('正确显示各节点类型标签', () => {
     const nodeTypes: Array<{ type: string; label: string }> = [
       { type: 'entry', label: '入口' },
-      { type: 'http', label: 'HTTP' },
-      { type: 'conditional', label: '条件' },
-      { type: 'end', label: '终止' },
+      { type: 'http', label: 'HTTP 请求' },
+      { type: 'conditional', label: '条件判断' },
+      { type: 'variable_extractor', label: '变量提取' },
     ];
 
     nodeTypes.forEach(({ type, label }) => {

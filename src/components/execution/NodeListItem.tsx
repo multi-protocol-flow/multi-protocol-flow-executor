@@ -3,9 +3,8 @@
  * 用于在执行报告列表中显示单个节点的执行信息
  */
 import { CheckCircle2, XCircle, Clock } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { NODE_TYPE_NAMES, NODE_TYPE_COLORS } from './constants';
+import { getNodeMeta } from '@/lib/nodeMeta';
 import type { NodeExecutionReport } from '@/types';
 
 interface NodeListItemProps {
@@ -19,8 +18,8 @@ interface NodeListItemProps {
 
 export function NodeListItem({ report, isSelected, onClick }: NodeListItemProps) {
   const isSuccess = report.status === 'success';
-  const nodeTypeLabel = NODE_TYPE_NAMES[report.node_type] || report.node_type;
-  const nodeTypeColor = NODE_TYPE_COLORS[report.node_type] || '';
+  const meta = getNodeMeta(report.node_type);
+  const nodeTypeLabel = meta?.name ?? report.node_type;
 
   return (
     <button
@@ -44,12 +43,14 @@ export function NodeListItem({ report, isSelected, onClick }: NodeListItemProps)
       </span>
 
       {/* 类型标签 */}
-      <Badge
-        variant="outline"
-        className={cn('text-xs font-normal border-0 shrink-0', nodeTypeColor)}
+      <span
+        className={cn(
+          'inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium leading-none shrink-0',
+          meta?.badge || 'bg-muted text-muted-foreground',
+        )}
       >
         {nodeTypeLabel}
-      </Badge>
+      </span>
 
       {/* 执行时间 */}
       <div className="flex items-center gap-1 text-sm text-muted-foreground shrink-0">

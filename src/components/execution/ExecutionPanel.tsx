@@ -27,7 +27,7 @@ import { NodeExecutionDetails } from './NodeExecutionDetails';
 import { WsMessageTimeline } from './WsMessageTimeline';
 import { VariableTreeView } from './VariableTreeView';
 import { ExecutionStackView } from './ExecutionStackView';
-import { NODE_TYPE_NAMES, NODE_TYPE_COLORS } from './constants';
+import { getNodeMeta } from '@/lib/nodeMeta';
 import { cn } from '@/lib/utils';
 import { sendDebugCommand } from '@/services/tauri';
 import { toast } from 'sonner';
@@ -52,8 +52,8 @@ function NodeStatusItem({
   durationMs,
   onClick,
 }: NodeStatusItemProps) {
-  const nodeTypeLabel = NODE_TYPE_NAMES[node.data.type] || node.data.type;
-  const nodeTypeColor = NODE_TYPE_COLORS[node.data.type] || '';
+  const meta = getNodeMeta(node.data.type);
+  const nodeTypeLabel = meta?.name ?? node.data.type;
 
   const StatusIcon = () => {
     switch (status) {
@@ -100,8 +100,8 @@ function NodeStatusItem({
       </span>
       <span
         className={cn(
-          'text-[10px] px-1.5 py-0 rounded-sm shrink-0',
-          nodeTypeColor || 'bg-muted text-muted-foreground',
+          'text-[10px] px-1.5 py-0.5 rounded shrink-0 font-medium leading-none',
+          meta?.badge || 'bg-muted text-muted-foreground',
         )}
       >
         {nodeTypeLabel}
@@ -337,11 +337,14 @@ export function ExecutionPanel() {
                   status={status}
                   isSelected={selectedNodeUuid === node.uuid}
                   durationMs={durationMs}
-                  onClick={() =>
-                    setSelectedNodeUuid(
-                      selectedNodeUuid === node.uuid ? null : node.uuid,
-                    )
-                  }
+                  onClick={() => {
+                    const newUuid = selectedNodeUuid === node.uuid ? null : node.uuid;
+                    setSelectedNodeUuid(newUuid);
+                    if (newUuid) {
+                      useFlowStore.getState().selectNode(newUuid);
+                      useFlowStore.getState().focusOnNode(newUuid);
+                    }
+                  }}
                 />
               </div>
             );
