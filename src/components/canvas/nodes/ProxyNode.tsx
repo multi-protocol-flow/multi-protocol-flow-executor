@@ -65,7 +65,7 @@ export function ProxyNode({ id, data, selected }: NodeProps) {
         className={cn(
           '!w-3.5 !h-3.5 !top-1/2',
           '!bg-background !border-2 !border-border',
-          '![background:radial-gradient(circle,_theme(colors.lime.500)_35%,_white_35%)]',
+          '![background:radial-gradient(circle,_theme(colors.lime.500)_35%,_transparent_35%)]',
           'hover:!scale-125',
           'transition-transform duration-150'
         )}
@@ -110,7 +110,7 @@ export function ProxyNode({ id, data, selected }: NodeProps) {
         className={cn(
           '!w-3.5 !h-3.5 !top-1/2',
           '!bg-background !border-2 !border-border',
-          '![background:radial-gradient(circle,_theme(colors.lime.500)_35%,_white_35%)]',
+          '![background:radial-gradient(circle,_theme(colors.lime.500)_35%,_transparent_35%)]',
           'hover:!scale-125',
           'transition-transform duration-150'
         )}
