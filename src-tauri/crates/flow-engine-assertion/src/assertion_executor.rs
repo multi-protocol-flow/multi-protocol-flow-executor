@@ -97,8 +97,26 @@ impl NodeExecutor for AssertionNodeExecutor {
             }
         };
 
-        // 2. 获取上游输入（last_node_output）
-        let input = context.last_node_output.clone().unwrap_or_else(|| json!({}));
+        // 2. 解析数据来源：若指定了 source_node_id，从该节点的执行报告中读取输出；
+        //    否则使用 last_node_output（最近上游节点输出）
+        let input: serde_json::Value = if let Some(ref source_node_id) = assertion_config.source_node_id {
+            context
+                .node_reports
+                .iter()
+                .find(|r| r.node_uuid == *source_node_id)
+                .and_then(|r| r.output_data.clone())
+                .unwrap_or_else(|| {
+                    log::warn!(
+                        "[流程 {}] 节点UUID: {}, 未找到指定来源节点 {} 的输出数据，使用空对象",
+                        context.flow_uuid,
+                        node.uuid,
+                        source_node_id
+                    );
+                    json!({})
+                })
+        } else {
+            context.last_node_output.clone().unwrap_or_else(|| json!({}))
+        };
 
         // 3. 合并预设和自定义断言
         let merged_config = self.merge_preset_and_custom(&assertion_config);
@@ -324,6 +342,7 @@ impl AssertionNodeExecutor {
             on_failure: config.on_failure.clone(),
             continue_on_failure: config.continue_on_failure,
             assertions: merged_assertions,
+            source_node_id: config.source_node_id.clone(),
         }
     }
 
@@ -515,6 +534,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -552,6 +572,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -582,6 +603,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions: vec![],
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -611,6 +633,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions: vec![assertion],
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -647,6 +670,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -685,6 +709,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -734,6 +759,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -766,6 +792,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -802,6 +829,7 @@ mod tests {
             on_failure: OnFailureMode::Throw,
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -830,6 +858,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions: vec![],
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -863,6 +892,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: true, // 继续执行
             assertions,
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -944,6 +974,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -1016,6 +1047,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -1069,6 +1101,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions: vec![],
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -1128,6 +1161,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 
@@ -1177,6 +1211,7 @@ mod tests {
             on_failure: OnFailureMode::RouteFalse,
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
         let node = create_assertion_node("assertion-1", config);
 

@@ -294,6 +294,7 @@ mod tests {
             on_failure: Default::default(),
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
 
         // 测试 200 通过
@@ -334,6 +335,7 @@ mod tests {
             on_failure: Default::default(),
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
 
         // 测试 application/json 通过
@@ -364,6 +366,7 @@ mod tests {
             on_failure: Default::default(),
             continue_on_failure: false,
             assertions,
+            source_node_id: None,
         };
 
         // 测试 100ms 通过

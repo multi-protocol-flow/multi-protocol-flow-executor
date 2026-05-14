@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2, CheckCircle, XCircle, Zap } from 'lucide-react';
 import type { AssertionNodeConfig, Assertion, AssertionOperator } from '@/types';
+import { useFlowStore } from '@/stores';
 
 interface AssertionConfigProps {
   /** 当前节点数据 */
@@ -84,6 +85,14 @@ const PRESET_ASSERTIONS: Record<string, AssertionFormData[]> = {
 };
 
 /**
+ * 不应出现在数据来源下拉中的节点类型（无输出数据或无意义）
+ */
+const EXCLUDED_SOURCE_TYPES: Set<string> = new Set([
+  'entry',
+  'assertion',
+]);
+
+/**
  * 生成唯一 ID
  */
 function generateId(): string {
@@ -109,6 +118,7 @@ function toFormData(data: AssertionNodeConfig): AssertionConfigFormData {
     on_failure: data.on_failure,
     continue_on_failure: data.continue_on_failure,
     assertions,
+    source_node_id: data.source_node_id || undefined,
   };
 }
 
@@ -147,6 +157,7 @@ function fromFormData(formData: AssertionConfigFormData): AssertionNodeConfig {
     on_failure: formData.on_failure,
     continue_on_failure: formData.continue_on_failure,
     assertions,
+    source_node_id: formData.source_node_id || undefined,
   };
 }
 
@@ -224,6 +235,16 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
   const watchedMode = watch('mode');
   const watchedOnFailure = watch('on_failure');
   const watchedContinueOnFailure = watch('continue_on_failure');
+  const watchedSourceNodeId = watch('source_node_id');
+
+  // 获取当前流程节点列表和当前选中节点（用于数据来源选择）
+  const flow = useFlowStore((state) => state.flow);
+  const selectedNodeId = useFlowStore((state) => state.selectedNodeId);
+
+  // 可选的数据来源节点（排除自身和无输出节点类型）
+  const sourceNodes = flow?.nodes.filter(
+    (node) => node.uuid !== selectedNodeId && !EXCLUDED_SOURCE_TYPES.has(node.type)
+  ) ?? [];
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
@@ -283,6 +304,14 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
       }
     })();
   }, [handleSubmit, onSave]);
+
+  /**
+   * 处理数据来源选择变更
+   */
+  const handleSourceNodeChange = useCallback((value: string) => {
+    setValue('source_node_id', value || undefined, { shouldDirty: true });
+    saveData();
+  }, [setValue, saveData]);
 
   /**
    * 处理失焦事件 (100ms debounce)
@@ -382,6 +411,34 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
 
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
+      {/* 数据来源选择 */}
+      <div className="space-y-2">
+        <Label htmlFor="source_node_id" className="text-sm font-medium text-foreground">
+          数据来源
+        </Label>
+        <Select
+          value={watchedSourceNodeId || ''}
+          onValueChange={handleSourceNodeChange}
+        >
+          <SelectTrigger id="source_node_id" className="font-mono">
+            <SelectValue placeholder="选择数据来源..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">
+              自动（最近上游节点输出）
+            </SelectItem>
+            {sourceNodes.map((node) => (
+              <SelectItem key={node.uuid} value={node.uuid}>
+                {node.name} ({node.type})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          选择断言判断的数据来源节点，默认使用最近的上游节点输出。指定节点后断言将从该节点的输出中提取数据进行验证。
+        </p>
+      </div>
+
       {/* 预设选择 */}
       <div className="space-y-2">
         <Label htmlFor="preset" className="text-sm font-medium text-foreground flex items-center gap-2">

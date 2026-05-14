@@ -883,6 +883,9 @@ pub struct AssertionConfig {
     /// 断言列表
     #[serde(default)]
     pub assertions: Vec<Assertion>,
+    /// 可选，指定读取特定上游节点的输出进行断言判断
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_node_id: Option<String>,
 }
 
 /// 单条断言执行结果

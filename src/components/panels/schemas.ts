@@ -434,6 +434,7 @@ export const assertionConfigSchema = z.object({
   on_failure: onFailureModeSchema,
   continue_on_failure: z.boolean().default(false),
   assertions: z.array(assertionSchema),
+  source_node_id: z.string().optional(),
 });
 
 export type AssertionConfigFormData = z.infer<typeof assertionConfigSchema>;

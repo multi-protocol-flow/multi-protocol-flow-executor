@@ -55,6 +55,7 @@ impl NodePlugin for AssertionPlugin {
             "on_failure": "route_false",
             "continue_on_failure": false,
             "assertions": [],
+            "source_node_id": null,
         })
     }
 

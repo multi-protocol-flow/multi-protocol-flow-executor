@@ -506,6 +506,7 @@ mod tests {
                     enabled: true,
                 },
             ],
+            source_node_id: None,
         };
         let input = json!({
             "status": 200,
@@ -546,6 +547,7 @@ mod tests {
                     enabled: true,
                 },
             ],
+            source_node_id: None,
         };
         let input = json!({
             "status": 200,
@@ -586,6 +588,7 @@ mod tests {
                     enabled: true,
                 },
             ],
+            source_node_id: None,
         };
         let input = json!({
             "status": 200,
@@ -630,6 +633,7 @@ mod tests {
                     enabled: true,
                 },
             ],
+            source_node_id: None,
         };
         let input = json!({"status": 200});
 
@@ -664,6 +668,7 @@ mod tests {
                     enabled: true,
                 },
             ],
+            source_node_id: None,
         };
         let input = json!({"status": 200});
 
@@ -699,6 +704,7 @@ mod tests {
                     enabled: false, // 禁用
                 },
             ],
+            source_node_id: None,
         };
         let input = json!({"status": 200});
 
@@ -717,6 +723,7 @@ mod tests {
             on_failure: Default::default(),
             continue_on_failure: false,
             assertions: vec![],
+            source_node_id: None,
         };
         let input = json!({"status": 200});
 
@@ -798,6 +805,7 @@ mod tests {
                     enabled: true,
                 },
             ],
+            source_node_id: None,
         };
 
         let output = AssertionEvaluator::evaluate_all(&config, &input);

@@ -395,6 +395,9 @@ export interface AssertionNodeConfig {
   continue_on_failure: boolean;
   /** 预设模板名称（可选） */
   preset?: string;
+  /** 可选，指定读取特定上游节点的输出进行断言判断（UUID）。
+   * 为 undefined 时读取 last_node_output（即最近上游节点输出） */
+  source_node_id?: string;
 }
 
 /**

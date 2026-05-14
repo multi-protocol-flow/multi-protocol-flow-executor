@@ -73,6 +73,7 @@ fn create_default_assertion_config(assertions: Vec<Assertion>) -> AssertionConfi
         on_failure: OnFailureMode::RouteFalse,
         continue_on_failure: false,
         assertions,
+        source_node_id: None,
     }
 }
 
@@ -517,6 +518,7 @@ async fn test_mode_all_pass() {
         on_failure: OnFailureMode::RouteFalse,
         continue_on_failure: false,
         assertions,
+        source_node_id: None,
     };
     let node = create_assertion_node("assertion-1", config);
 
@@ -540,6 +542,7 @@ async fn test_mode_all_partial_fail() {
         on_failure: OnFailureMode::RouteFalse,
         continue_on_failure: false,
         assertions,
+        source_node_id: None,
     };
     let node = create_assertion_node("assertion-1", config);
 
@@ -563,6 +566,7 @@ async fn test_mode_any_pass() {
         on_failure: OnFailureMode::RouteFalse,
         continue_on_failure: false,
         assertions,
+        source_node_id: None,
     };
     let node = create_assertion_node("assertion-1", config);
 
@@ -586,6 +590,7 @@ async fn test_preset_http_success() {
         on_failure: OnFailureMode::RouteFalse,
         continue_on_failure: false,
         assertions: vec![],
+        source_node_id: None,
     };
     let node = create_assertion_node("assertion-1", config);
 
@@ -605,6 +610,7 @@ async fn test_preset_http_client_error() {
         on_failure: OnFailureMode::RouteFalse,
         continue_on_failure: false,
         assertions: vec![],
+        source_node_id: None,
     };
     let node = create_assertion_node("assertion-1", config);
 
@@ -624,6 +630,7 @@ async fn test_preset_http_server_error() {
         on_failure: OnFailureMode::RouteFalse,
         continue_on_failure: false,
         assertions: vec![],
+        source_node_id: None,
     };
     let node = create_assertion_node("assertion-1", config);
 
@@ -646,6 +653,7 @@ async fn test_preset_json_response() {
         on_failure: OnFailureMode::RouteFalse,
         continue_on_failure: false,
         assertions: vec![],
+        source_node_id: None,
     };
     let node = create_assertion_node("assertion-1", config);
 
@@ -665,6 +673,7 @@ async fn test_preset_response_fast() {
         on_failure: OnFailureMode::RouteFalse,
         continue_on_failure: false,
         assertions: vec![],
+        source_node_id: None,
     };
     let node = create_assertion_node("assertion-1", config);
 
@@ -688,6 +697,7 @@ async fn test_empty_assertions_pass() {
         on_failure: OnFailureMode::RouteFalse,
         continue_on_failure: false,
         assertions: vec![],
+        source_node_id: None,
     };
     let node = create_assertion_node("assertion-1", config);
 
@@ -711,6 +721,7 @@ async fn test_all_disabled_assertions_pass() {
         on_failure: OnFailureMode::RouteFalse,
         continue_on_failure: false,
         assertions: vec![assertion],
+        source_node_id: None,
     };
     let node = create_assertion_node("assertion-1", config);
 
@@ -756,6 +767,7 @@ async fn test_on_failure_route_false() {
         on_failure: OnFailureMode::RouteFalse,
         continue_on_failure: false,
         assertions,
+        source_node_id: None,
     };
     let node = create_assertion_node("assertion-1", config);
 
@@ -799,6 +811,7 @@ async fn test_on_failure_throw() {
         on_failure: OnFailureMode::Throw,
         continue_on_failure: false,
         assertions,
+        source_node_id: None,
     };
     let node = create_assertion_node("assertion-1", config);
 
@@ -828,6 +841,7 @@ async fn test_continue_on_failure() {
         on_failure: OnFailureMode::RouteFalse,
         continue_on_failure: true,
         assertions,
+        source_node_id: None,
     };
     let node = create_assertion_node("assertion-1", config);
 
