@@ -167,7 +167,7 @@ export function OutputMappingsEditor({
         <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
           <div className="text-xs text-muted-foreground space-y-1">
-            <p className="font-medium text-foreground">JSONPath 语法（从节点执行结果的 <code className="rounded bg-muted px-1">output_data</code> 中提取）：</p>
+            <p className="font-medium text-foreground">JSONPath 语法（从所选数据来源节点的 <code className="rounded bg-muted px-1">output_data</code> 中提取）：</p>
             <p><code className="rounded bg-muted px-1">$.status</code> 状态码</p>
             <p><code className="rounded bg-muted px-1">$.body.data.token</code> 嵌套字段</p>
             <p><code className="rounded bg-muted px-1">$.body.items[0]</code> 数组索引</p>

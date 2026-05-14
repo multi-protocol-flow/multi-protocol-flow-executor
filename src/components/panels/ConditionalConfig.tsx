@@ -235,7 +235,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
           ))}
         </select>
         <p className="text-xs text-muted-foreground">
-          选择条件判断的数据来源节点，默认使用最近的上游节点输出。指定节点后条件中的变量引用将从该节点的输出中读取。
+          选择条件判断的数据来源节点，默认使用最近的上游节点输出。指定后将从该节点的 output_data 中提取数据。
         </p>
       </div>
 

@@ -163,7 +163,7 @@ export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfi
           ))}
         </select>
         <p className="text-xs text-muted-foreground">
-          选择提取变量的数据来源节点，默认使用最近的上游节点输出
+          选择变量提取的数据来源节点，默认使用最近的上游节点输出。指定后将从该节点的 output_data 中提取数据。
         </p>
       </div>
 

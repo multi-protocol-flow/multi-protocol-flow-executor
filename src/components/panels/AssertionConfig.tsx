@@ -435,7 +435,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          选择断言判断的数据来源节点，默认使用最近的上游节点输出。指定节点后断言将从该节点的输出中提取数据进行验证。
+          选择断言判断的数据来源节点，默认使用最近的上游节点输出。指定后将从该节点的 output_data 中提取数据。
         </p>
       </div>
 
@@ -602,7 +602,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
                     />
                     <Input
                       {...register(`assertions.${index}.target`)}
-                      placeholder="目标字段 (JSONPath，从上游 output_data 提取，如 $.status)"
+                      placeholder="目标字段 (JSONPath，从所选数据来源节点的 output_data 提取，如 $.status)"
                       className={`h-8 flex-1 font-mono text-xs ${targetError ? 'border-rose-500' : ''} ${!isEnabled ? 'bg-muted/50' : ''}`}
                       disabled={!isEnabled}
                     />
@@ -670,7 +670,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
         {/* 提示信息 */}
         {fields.length > 0 && (
           <div className="rounded-md bg-muted/30 p-3 text-xs text-muted-foreground space-y-2">
-              <p className="font-medium text-foreground">JSONPath 语法（从上游节点执行结果的 <code className="rounded bg-muted px-1">output_data</code> 中提取）：</p>
+              <p className="font-medium text-foreground">JSONPath 语法（从所选数据来源节点的 <code className="rounded bg-muted px-1">output_data</code> 中提取）：</p>
             <ul className="ml-3 list-disc space-y-0.5">
               <li><code className="rounded bg-muted px-1">$.status</code> HTTP 状态码</li>
               <li><code className="rounded bg-muted px-1">$.body.data.token</code> 嵌套字段</li>
