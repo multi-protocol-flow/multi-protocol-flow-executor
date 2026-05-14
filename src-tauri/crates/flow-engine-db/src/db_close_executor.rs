@@ -185,14 +185,14 @@ impl DbCloseExecutor {
         let filtered: Vec<String> = connections
             .iter()
             .filter(|conn| {
-                conn.source_node_uuid == node.uuid && conn.source_port_id == "output"
+                conn.source_node_uuid == node.uuid && conn.source_port_id == "out"
             })
             .map(|conn| conn.target_node_uuid.clone())
             .collect();
 
         // 如果没有连接，返回端口名称（用于测试）
         if filtered.is_empty() {
-            vec!["output".to_string()]
+            vec!["out".to_string()]
         } else {
             filtered
         }
@@ -335,7 +335,7 @@ mod tests {
         // 应该返回单一输出端口（成功）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        assert_eq!(next_nodes, vec!["output"]);
+        assert_eq!(next_nodes, vec!["out"]);
         assert!(output_data.is_some());
 
         let data = output_data.unwrap();
@@ -360,7 +360,7 @@ mod tests {
         // 关闭不存在的连接池也应该成功（幂等操作）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        assert_eq!(next_nodes, vec!["output"]);
+        assert_eq!(next_nodes, vec!["out"]);
         assert!(output_data.is_some());
 
         let data = output_data.unwrap();
@@ -382,7 +382,7 @@ mod tests {
         // 空 UUID 时跳过关闭，返回成功
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        assert_eq!(next_nodes, vec!["output"]);
+        assert_eq!(next_nodes, vec!["out"]);
         assert!(output_data.is_some());
 
         let data = output_data.unwrap();
@@ -404,7 +404,7 @@ mod tests {
             id: "conn-1".to_string(),
             source_node_uuid: "test-4".to_string(),
             target_node_uuid: "target-node".to_string(),
-            source_port_id: "output".to_string(),
+            source_port_id: "out".to_string(),
             target_port_id: "input".to_string(),
         }];
 

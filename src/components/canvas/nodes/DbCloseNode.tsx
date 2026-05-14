@@ -17,7 +17,7 @@ export interface DbCloseNodeData {
 
 /**
  * DbClose 节点 - 关闭连接
- * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
+ * 输入端口 "in"，单输出端口 "out"（关闭操作幂等始终成功，无需 false 分支）
  */
 export function DbCloseNode({ id, data, selected }: NodeProps) {
   const nodeData = data as DbCloseNodeData;
@@ -81,33 +81,15 @@ export function DbCloseNode({ id, data, selected }: NodeProps) {
       <Handle
         type="source"
         position={Position.Right}
-        id="true"
+        id="out"
         className={cn(
-          '!w-3.5 !h-3.5 !top-[30%]',
+          '!w-3.5 !h-3.5',
           '!bg-background !border-2 !border-border',
           'hover:!scale-125',
           'transition-transform duration-150',
           "before:content-[''] before:absolute before:inset-[3px] before:bg-violet-500 before:rounded-full"
         )}
       />
-      
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="false"
-        className={cn(
-          '!w-3.5 !h-3.5 !top-[70%]',
-          '!bg-background !border-2 !border-border',
-          'hover:!scale-125',
-          'transition-transform duration-150',
-          "before:content-[''] before:absolute before:inset-[3px] before:bg-violet-500 before:rounded-full"
-        )}
-      />
-      
-      <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center translate-x-5 pointer-events-none">
-        <span className="text-[10px] font-bold text-emerald-600 leading-none -mt-2">✓</span>
-        <span className="text-[10px] font-bold text-rose-600 leading-none mt-4">✗</span>
-      </div>
     </div>
   );
 }
