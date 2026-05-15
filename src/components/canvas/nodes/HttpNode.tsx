@@ -79,39 +79,33 @@ export function HttpNode({ id, data, selected }: NodeProps) {
         </div>
       </div>
       
-      {/* 成功输出端口 */}
+      {/* 成功输出端口 - 绿色 */}
       <Handle
         type="source"
         position={Position.Right}
         id="true"
         className={cn(
           '!w-3.5 !h-3.5 !top-[30%]',
-          '!bg-background !border-2 !border-border',
+          '!bg-background !border-2 !border-emerald-500 dark:!border-emerald-400',
           'hover:!scale-125',
           'transition-transform duration-150',
-          "before:content-[''] before:absolute before:inset-[3px] before:bg-sky-500 before:rounded-full"
+          "before:content-[''] before:absolute before:inset-[3px] before:bg-emerald-600 dark:before:bg-emerald-500 before:rounded-full"
         )}
       />
       
-      {/* 失败输出端口 */}
+      {/* 失败输出端口 - 红色 */}
       <Handle
         type="source"
         position={Position.Right}
         id="false"
         className={cn(
           '!w-3.5 !h-3.5 !top-[70%]',
-          '!bg-background !border-2 !border-border',
+          '!bg-background !border-2 !border-rose-500 dark:!border-rose-400',
           'hover:!scale-125',
           'transition-transform duration-150',
-          "before:content-[''] before:absolute before:inset-[3px] before:bg-sky-500 before:rounded-full"
+          "before:content-[''] before:absolute before:inset-[3px] before:bg-rose-600 dark:before:bg-rose-500 before:rounded-full"
         )}
       />
-      
-      {/* 端口标签 */}
-      <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center translate-x-5 pointer-events-none">
-        <span className="text-[10px] font-bold text-emerald-600 leading-none -mt-2">✓</span>
-        <span className="text-[10px] font-bold text-rose-600 leading-none mt-4">✗</span>
-      </div>
     </div>
   );
 }
