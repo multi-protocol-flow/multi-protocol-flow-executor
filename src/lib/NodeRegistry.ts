@@ -4,6 +4,18 @@
  */
 import { invoke } from '@tauri-apps/api/core';
 import type { NodeMetadata } from '@/types/nodeRegistry';
+import { i18nObject } from '@/i18n/i18n-util';
+import type { TranslationFunctions } from '@/i18n/i18n-types';
+
+// 懒加载 i18n 对象
+let LL_cache: TranslationFunctions | null = null;
+function getLL() {
+  if (!LL_cache) {
+    const locale = (localStorage.getItem('locale') as any) || 'zh-CN';
+    LL_cache = i18nObject(locale);
+  }
+  return LL_cache;
+}
 
 // 节点元数据缓存
 let cachedMetadata: NodeMetadata[] | null = null;
@@ -57,22 +69,22 @@ export function groupByCategory(
  * 分类显示名称映射
  */
 export const CATEGORY_NAMES: Record<string, string> = {
-  http: 'HTTP',
-  websocket: 'WS',
-  database: 'DB',
-  tools: 'Tool',
-  script: '脚本',
-  assertion: '断言',
-  grpc: 'gRPC',
-  mcp: 'MCP',
-  mqtt: 'MQTT',
-  kafka: 'Kafka',
-  sse: 'SSE',
-  graphql: 'GraphQL',
-  amqp: 'AMQP',
-  tcp: 'TCP',
-  udp: 'UDP',
-  email: 'Email',
+  get http() { return getLL().nodes.category.http(); },
+  get websocket() { return getLL().nodes.category.websocket(); },
+  get database() { return getLL().nodes.category.database(); },
+  get tools() { return getLL().nodes.category.tools(); },
+  get script() { return getLL().nodes.category.script(); },
+  get assertion() { return getLL().nodes.category.assertion(); },
+  get grpc() { return getLL().nodes.category.grpc(); },
+  get mcp() { return getLL().nodes.category.mcp(); },
+  get mqtt() { return getLL().nodes.category.mqtt(); },
+  get kafka() { return getLL().nodes.category.kafka(); },
+  get sse() { return getLL().nodes.category.sse(); },
+  get graphql() { return getLL().nodes.category.graphql(); },
+  get amqp() { return getLL().nodes.category.amqp(); },
+  get tcp() { return getLL().nodes.category.tcp(); },
+  get udp() { return getLL().nodes.category.udp(); },
+  get email() { return getLL().nodes.category.email(); },
 };
 
 /**
