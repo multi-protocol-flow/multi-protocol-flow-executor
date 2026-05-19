@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:run": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typesafe-i18n": "typesafe-i18n --no-watch",
+    "i18n:generate": "typesafe-i18n --no-watch"
   },
   "dependencies": {
     "@bany/curl-to-json": "^1.2.10",
@@ -46,6 +48,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",
+    "typesafe-i18n": "^5.26.2",
     "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },

@@ -61,3 +61,10 @@ src-tauri/test_*.json
 
 # Temporary directories
 /%TEMP%/
+
+# i18n auto-generated files
+src/i18n/i18n-types.ts
+src/i18n/i18n-util.ts
+src/i18n/i18n-util.async.ts
+src/i18n/i18n-util.sync.ts
+src/i18n/i18n-react.tsx
