@@ -1,7 +1,7 @@
 /**
  * App - 应用入口组件
  */
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { MainLayout } from '@/layouts/MainLayout';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useTheme } from '@/hooks/useTheme';
@@ -10,13 +10,31 @@ import { useDebugStore } from '@/stores/debug';
 import { useFlowStore } from '@/stores/flow';
 import { useZoomStore } from '@/stores/zoom';
 import { get_debug_status, force_end_debug } from '@/services/tauri';
+import { TypesafeI18n, switchLocale } from '@/i18n';
+import { useI18nContext } from '@/i18n/i18n-react';
+import type { Locales } from '@/i18n';
 
 // 检测是否在 Tauri 环境中
 function isTauriEnv(): boolean {
   return typeof window !== 'undefined' && '__TAURI__' in window;
 }
 
+/**
+ * I18nBridge - 当 locale 变化时强制整个子树重渲染
+ *
+ * 绝大多数组件通过 getLL() 获取翻译，它是一个模块级函数，不参与 React 响应式。
+ * 本组件通过接收 locale prop 来触发自身重渲染 → 子孙组件全部重渲染 → getLL() 重新计算。
+ */
+function I18nBridge({ children }: { children: React.ReactNode }) {
+  // 使用 useI18nContext 订阅 context 变化，确保 TypesafeI18n 切换 locale 时重渲染
+  useI18nContext();
+  return <>{children}</>;
+}
+
 function App() {
+  // 当前语言区域状态
+  const [currentLocale, setCurrentLocale] = useState<Locales>('zh-CN');
+
   // 初始化键盘快捷键
   useKeyboardShortcuts();
 
@@ -60,6 +78,13 @@ function App() {
     initApp();
   }, [loadSettings]);
 
+  // 订阅 store 中的 locale 变化，同步到 TypesafeI18n context
+  const storeLocale = useSettingsStore((state) => state.locale);
+  useEffect(() => {
+    switchLocale(storeLocale as Locales);
+    setCurrentLocale(storeLocale as Locales);
+  }, [storeLocale]);
+
   // 关闭窗口前提示保存（有未保存修改时阻止关闭）
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -90,7 +115,13 @@ function App() {
     return () => document.removeEventListener('contextmenu', handleContextMenu);
   }, []);
 
-  return <MainLayout />;
+  return (
+    <TypesafeI18n locale={currentLocale}>
+      <I18nBridge>
+        <MainLayout />
+      </I18nBridge>
+    </TypesafeI18n>
+  );
 }
 
 export default App;
