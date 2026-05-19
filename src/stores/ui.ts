@@ -24,12 +24,12 @@ export interface DatasetReportPageState {
 
 /** 确认对话框配置 */
 export interface ConfirmDialogConfig {
-  /** 对话框标题 */
-  title: string;
+  /** 对话框标题（支持函数以延迟求值，适配语言切换） */
+  title: string | (() => string);
   /** 对话框描述 */
-  description?: string;
+  description?: string | (() => string);
   /** 确认按钮文本 */
-  confirmText?: string;
+  confirmText?: string | (() => string);
   /** 确认回调 */
   onConfirm: () => void | Promise<void>;
   /** 取消/关闭回调 */
