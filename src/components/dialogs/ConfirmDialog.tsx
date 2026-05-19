@@ -84,7 +84,7 @@ export function ConfirmDialog({
             onClick={onConfirm} 
             disabled={loading}
           >
-            {loading ? '处理中...' : confirmText}
+            {loading ? getLL().flow.processing() : confirmText}
           </Button>
         </DialogFooter>
       </DialogContent>

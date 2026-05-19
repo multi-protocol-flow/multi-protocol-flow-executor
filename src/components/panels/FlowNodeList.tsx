@@ -85,8 +85,7 @@ function NodeTypeIcon({ type }: { type: NodeType }) {
 // ============================================================================
 
 export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
-  const ll = getLL().panels.flowNodeList;
-  const commonLL = getLL().panels;
+const ll = getLL().panels.flowNodeList;
   // 按加入时间排序（flow.nodes 的顺序即为加入顺序）
   const nodes = useFlowStore(selectNodes);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
@@ -135,21 +134,22 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
     useFlowStore.getState().focusOnNode(uuid);
   }, []);
 
-  // 批量删除
+// 批量删除
   const handleBatchDelete = useCallback(() => {
     if (checkedIds.size === 0) return;
     const count = checkedIds.size;
 
     useUIStore.getState().showConfirm({
-      title: commonLL.confirmDelete(),
-      description: commonLL.deleteConfirmDesc({ count }),
-      confirmText: commonLL.delete(),
+      // 使用函数延迟求值，对话框渲染时调用 getLL() 获取当前语言文本
+      title: () => getLL().panels.confirmDelete(),
+      description: () => getLL().panels.deleteConfirmDesc({ count }),
+      confirmText: () => getLL().panels.delete(),
       onConfirm: () => {
         useFlowStore.getState().removeNodes([...checkedIds]);
         setCheckedIds(new Set());
       },
     });
-  }, [checkedIds, commonLL]);
+  }, [checkedIds]);
 
   // 空状态
   if (nodes.length === 0) {

@@ -2,7 +2,7 @@
  * NodeContextMenu - 节点右键上下文菜单
  * 在鼠标右键点击节点时显示，支持复制、重命名、删除操作
  */
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef } from 'react';
 import { Copy, Trash2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -58,7 +58,7 @@ export function NodeContextMenu({
   const menuRef = useRef<HTMLDivElement>(null);
 
   // 构建菜单项
-  const LL = useMemo(() => getLL(), []);
+  const LL = getLL();
   const menuItems: MenuItem[] = [
     {
       key: 'copy',

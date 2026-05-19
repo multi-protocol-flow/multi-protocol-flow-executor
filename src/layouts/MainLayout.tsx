@@ -53,12 +53,16 @@ function ConfirmDialogHandler() {
     return null;
   }
 
+  // 延迟求值：函数类型的 title/description/confirmText 在渲染时调用，确保跟随当前语言
+  const resolve = (v: string | (() => string) | undefined): string | undefined =>
+    typeof v === 'function' ? v() : v;
+
   return (
     <ConfirmDialog
       open={showConfirmDialog}
-      title={confirmDialogConfig.title}
-      description={confirmDialogConfig.description}
-      confirmText={confirmDialogConfig.confirmText}
+      title={resolve(confirmDialogConfig.title) ?? ''}
+      description={resolve(confirmDialogConfig.description)}
+      confirmText={resolve(confirmDialogConfig.confirmText)}
       onConfirm={() => {
         confirmDialogConfig.onConfirm();
         hideConfirm();
