@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { AmqpExchangeDeclareConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** AmqpExchangeDeclare 节点数据类型 */
 export interface AmqpExchangeDeclareNodeData {
@@ -70,10 +71,10 @@ export function AmqpExchangeDeclareNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-violet-600 font-medium tracking-wide">
-            AMQP-声明交换器
+            {getNodeDisplayName('amqp_exchange_declare')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || '声明交换器'}
+            {nodeData.label || getNodeDisplayName('amqp_exchange_declare')}
           </span>
           {nodeData.config?.exchange && (
             <span className="text-[10px] text-muted-foreground truncate">

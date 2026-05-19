@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { UdpRecvFromConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** UdpRecvFrom 节点数据类型 */
 export interface UdpRecvFromNodeData {
@@ -70,10 +71,10 @@ export function UdpRecvFromNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-orange-600 font-medium tracking-wide">
-            UDP-接收
+            {getNodeDisplayName('udp_recv_from')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'UDP 接收'}
+            {nodeData.label || getNodeDisplayName('udp_recv_from')}
           </span>
         </div>
       </div>

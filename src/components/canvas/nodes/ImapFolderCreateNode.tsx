@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { ImapFolderCreateConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 export interface ImapFolderCreateNodeData {
   label?: string;
@@ -50,9 +51,9 @@ export function ImapFolderCreateNode({ id, data, selected }: NodeProps) {
           <FolderPlus className="w-3.5 h-3.5" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="text-xs text-blue-600 font-medium tracking-wide">IMAP-创建文件夹</span>
+          <span className="text-xs text-blue-600 font-medium tracking-wide">{getNodeDisplayName('imap_folder_create')}</span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || '创建文件夹'}
+            {nodeData.label || getNodeDisplayName('imap_folder_create')}
           </span>
           {nodeData.config?.folder_name && (
             <span className="text-[10px] text-muted-foreground truncate">

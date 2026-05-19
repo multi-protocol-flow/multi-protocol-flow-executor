@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { SseListenConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** SseListen 节点数据类型 */
 export interface SseListenNodeData {
@@ -70,10 +71,10 @@ export function SseListenNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-rose-600 font-medium tracking-wide">
-            SSE-监听
+            {getNodeDisplayName('sse_listen')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'SSE 监听'}
+            {nodeData.label || getNodeDisplayName('sse_listen')}
           </span>
           {nodeData.config?.connection_id && (
             <span className="text-[10px] text-muted-foreground truncate">

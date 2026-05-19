@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { AmqpManagementConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** AmqpManagement 节点数据类型 */
 export interface AmqpManagementNodeData {
@@ -70,10 +71,10 @@ export function AmqpManagementNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-violet-600 font-medium tracking-wide">
-            AMQP-管理
+            {getNodeDisplayName('amqp_management')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'AMQP 管理'}
+            {nodeData.label || getNodeDisplayName('amqp_management')}
           </span>
           {nodeData.config?.action && (
             <span className="text-[10px] text-muted-foreground truncate">

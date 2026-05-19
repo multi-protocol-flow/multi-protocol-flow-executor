@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { SseConnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** SseConnect 节点数据类型 */
 export interface SseConnectNodeData {
@@ -70,10 +71,10 @@ export function SseConnectNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-rose-600 font-medium tracking-wide">
-            SSE-连接
+            {getNodeDisplayName('sse_connect')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'SSE 连接'}
+            {nodeData.label || getNodeDisplayName('sse_connect')}
           </span>
           {nodeData.config?.url && (
             <span className="text-[10px] text-muted-foreground truncate">

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import type { ImapCloseConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 export interface ImapCloseNodeData {
   label?: string;
@@ -51,9 +52,9 @@ export function ImapCloseNode({ id, data, selected }: NodeProps) {
           <Unplug className="w-3.5 h-3.5" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="text-xs text-blue-600 font-medium tracking-wide">IMAP-关闭</span>
+          <span className="text-xs text-blue-600 font-medium tracking-wide">{getNodeDisplayName('imap_close')}</span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || '关闭连接'}
+            {nodeData.label || getNodeDisplayName('imap_close')}
           </span>
         </div>
       </div>

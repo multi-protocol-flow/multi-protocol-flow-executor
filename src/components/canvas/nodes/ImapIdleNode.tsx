@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { ImapIdleConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 export interface ImapIdleNodeData {
   label?: string;
@@ -54,9 +55,9 @@ export function ImapIdleNode({ id, data, selected }: NodeProps) {
           <Eye className="w-3.5 h-3.5" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="text-xs text-blue-600 font-medium tracking-wide">IMAP-IDLE</span>
+          <span className="text-xs text-blue-600 font-medium tracking-wide">{getNodeDisplayName('imap_idle')}</span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'IDLE 监听'}
+            {nodeData.label || getNodeDisplayName('imap_idle')}
           </span>
           {summary && (
             <span className="text-[10px] text-muted-foreground truncate">{summary}</span>

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { McpCallToolConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** McpCallTool 节点数据类型 */
 export interface McpCallToolNodeData {
@@ -70,10 +71,10 @@ export function McpCallToolNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-amber-600 font-medium tracking-wide">
-            MCP-工具
+            {getNodeDisplayName('mcp_call_tool')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'MCP 工具'}
+            {nodeData.label || getNodeDisplayName('mcp_call_tool')}
           </span>
           {nodeData.config?.tool_name && (
             <span className="text-[10px] text-muted-foreground truncate">

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { DbConnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** DbConnect 节点数据类型 */
 export interface DbConnectNodeData {
@@ -103,7 +104,7 @@ export function DbConnectNode({ id, data, selected }: NodeProps) {
             {driverLabel ?? 'DB'}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'DB 连接'}
+            {nodeData.label || getNodeDisplayName('db_connect')}
           </span>
           {driverLabel ? (
             <span className="text-[10px] text-muted-foreground truncate">

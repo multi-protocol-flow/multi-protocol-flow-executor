@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { Amqp10SendConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** Amqp10Send 节点数据类型 */
 export interface Amqp10SendNodeData {
@@ -70,10 +71,10 @@ export function Amqp10SendNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-purple-600 font-medium tracking-wide">
-            AMQP1.0-发送
+            {getNodeDisplayName('amqp10_send')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'AMQP 1.0 发送'}
+            {nodeData.label || getNodeDisplayName('amqp10_send')}
           </span>
           {nodeData.config?.address && (
             <span className="text-[10px] text-muted-foreground truncate">

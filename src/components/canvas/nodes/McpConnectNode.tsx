@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { McpConnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** McpConnect 节点数据类型 */
 export interface McpConnectNodeData {
@@ -70,10 +71,10 @@ export function McpConnectNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-amber-600 font-medium tracking-wide">
-            MCP-连接
+            {getNodeDisplayName('mcp_connect')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'MCP 连接'}
+            {nodeData.label || getNodeDisplayName('mcp_connect')}
           </span>
           {nodeData.config?.url && (
             <span className="text-[10px] text-muted-foreground truncate">

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { ScriptNodeConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** Script 节点数据类型 */
 export interface ScriptNodeData {
@@ -70,10 +71,10 @@ export function ScriptNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-indigo-600 font-medium uppercase tracking-wide">
-            脚本
+            {getNodeDisplayName('script')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || '脚本执行'}
+            {nodeData.label || getNodeDisplayName('script')}
           </span>
         </div>
       </div>

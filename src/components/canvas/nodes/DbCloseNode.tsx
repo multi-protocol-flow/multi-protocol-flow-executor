@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { DbCloseConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** DbClose 节点数据类型 */
 export interface DbCloseNodeData {
@@ -70,10 +71,10 @@ export function DbCloseNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-violet-600 font-medium tracking-wide">
-            DB-关闭
+            {getNodeDisplayName('db_close')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'DB 关闭'}
+            {nodeData.label || getNodeDisplayName('db_close')}
           </span>
         </div>
       </div>

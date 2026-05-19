@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { MqttDisconnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** MqttDisconnect 节点数据类型 */
 export interface MqttDisconnectNodeData {
@@ -70,10 +71,10 @@ export function MqttDisconnectNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-cyan-600 font-medium tracking-wide">
-            MQTT-断开
+            {getNodeDisplayName('mqtt_disconnect')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'MQTT 断开'}
+            {nodeData.label || getNodeDisplayName('mqtt_disconnect')}
           </span>
         </div>
       </div>

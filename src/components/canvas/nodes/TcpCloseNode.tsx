@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { TcpCloseConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** TcpClose 节点数据类型 */
 export interface TcpCloseNodeData {
@@ -70,10 +71,10 @@ export function TcpCloseNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-emerald-600 font-medium tracking-wide">
-            TCP-关闭
+            {getNodeDisplayName('tcp_close')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'TCP 关闭'}
+            {nodeData.label || getNodeDisplayName('tcp_close')}
           </span>
         </div>
       </div>

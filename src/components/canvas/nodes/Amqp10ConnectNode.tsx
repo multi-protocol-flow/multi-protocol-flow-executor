@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { Amqp10ConnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** Amqp10Connect 节点数据类型 */
 export interface Amqp10ConnectNodeData {
@@ -70,10 +71,10 @@ export function Amqp10ConnectNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-purple-600 font-medium tracking-wide">
-            AMQP1.0-连接
+            {getNodeDisplayName('amqp10_connect')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'AMQP 1.0 连接'}
+            {nodeData.label || getNodeDisplayName('amqp10_connect')}
           </span>
           {nodeData.config?.url && (
             <span className="text-[10px] text-muted-foreground truncate">

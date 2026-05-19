@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { HttpConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** HTTP 节点数据类型 */
 export interface HttpNodeData {
@@ -74,7 +75,7 @@ export function HttpNode({ id, data, selected }: NodeProps) {
             {method}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'HTTP 请求'}
+            {nodeData.label || getNodeDisplayName('http')}
           </span>
         </div>
       </div>

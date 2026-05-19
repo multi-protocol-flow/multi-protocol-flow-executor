@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { SmtpConnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** SmtpConnect 节点数据类型 */
 export interface SmtpConnectNodeData {
@@ -70,10 +71,10 @@ export function SmtpConnectNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-orange-600 font-medium tracking-wide">
-            SMTP-连接
+            {getNodeDisplayName('smtp_connect')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'SMTP 连接'}
+            {nodeData.label || getNodeDisplayName('smtp_connect')}
           </span>
           {nodeData.config?.host && (
             <span className="text-[10px] text-muted-foreground truncate">

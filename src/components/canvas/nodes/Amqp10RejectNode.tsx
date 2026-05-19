@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { Amqp10RejectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** Amqp10Reject 节点数据类型 */
 export interface Amqp10RejectNodeData {
@@ -70,10 +71,10 @@ export function Amqp10RejectNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-purple-600 font-medium tracking-wide">
-            AMQP1.0-拒绝
+            {getNodeDisplayName('amqp10_reject')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'AMQP 1.0 拒绝'}
+            {nodeData.label || getNodeDisplayName('amqp10_reject')}
           </span>
         </div>
       </div>

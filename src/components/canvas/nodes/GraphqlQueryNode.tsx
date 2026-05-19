@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { GraphqlQueryConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** GraphqlQuery 节点数据类型 */
 export interface GraphqlQueryNodeData {
@@ -70,10 +71,10 @@ export function GraphqlQueryNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-indigo-600 font-medium tracking-wide">
-            GQL-查询
+            {getNodeDisplayName('graphql_query')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'GraphQL 查询'}
+            {nodeData.label || getNodeDisplayName('graphql_query')}
           </span>
           {nodeData.config?.connection_id && (
             <span className="text-[10px] text-muted-foreground truncate">

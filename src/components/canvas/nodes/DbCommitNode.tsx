@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { DbCommitConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** DbCommit 节点数据类型 */
 export interface DbCommitNodeData {
@@ -70,10 +71,10 @@ export function DbCommitNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-violet-600 font-medium tracking-wide">
-            DB-提交
+            {getNodeDisplayName('db_commit')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'DB 提交'}
+            {nodeData.label || getNodeDisplayName('db_commit')}
           </span>
         </div>
       </div>

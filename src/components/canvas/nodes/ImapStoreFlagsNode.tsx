@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { ImapStoreFlagsConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** ImapStoreFlags 节点数据类型 */
 export interface ImapStoreFlagsNodeData {
@@ -55,9 +56,9 @@ export function ImapStoreFlagsNode({ id, data, selected }: NodeProps) {
           <Flag className="w-3.5 h-3.5" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="text-xs text-blue-600 font-medium tracking-wide">IMAP-标志</span>
+          <span className="text-xs text-blue-600 font-medium tracking-wide">{getNodeDisplayName('imap_store_flags')}</span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || '修改标志'}
+            {nodeData.label || getNodeDisplayName('imap_store_flags')}
           </span>
           {summary && (
             <span className="text-[10px] text-muted-foreground truncate">{summary}</span>

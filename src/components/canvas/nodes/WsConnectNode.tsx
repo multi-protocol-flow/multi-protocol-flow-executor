@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { WsConnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** WsConnect 节点数据类型 */
 export interface WsConnectNodeData {
@@ -70,10 +71,10 @@ export function WsConnectNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-amber-600 font-medium tracking-wide">
-            WS-连接
+            {getNodeDisplayName('ws_connect')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'WS 连接'}
+            {nodeData.label || getNodeDisplayName('ws_connect')}
           </span>
         </div>
       </div>

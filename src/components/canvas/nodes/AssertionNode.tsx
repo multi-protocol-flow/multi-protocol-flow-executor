@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { AssertionNodeConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** Assertion 节点数据类型 */
 export interface AssertionNodeData {
@@ -80,10 +81,10 @@ export function AssertionNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-purple-600 font-medium uppercase tracking-wide">
-            断言
+            {getNodeDisplayName('assertion')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || '断言验证'}
+            {nodeData.label || getNodeDisplayName('assertion')}
           </span>
           {/* 显示模式信息 */}
           <div className="flex items-center gap-1 mt-0.5">

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { AmqpGetConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** AmqpGet 节点数据类型 */
 export interface AmqpGetNodeData {
@@ -70,10 +71,10 @@ export function AmqpGetNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-violet-600 font-medium tracking-wide">
-            AMQP-获取
+            {getNodeDisplayName('amqp_get')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'AMQP 获取'}
+            {nodeData.label || getNodeDisplayName('amqp_get')}
           </span>
           {nodeData.config?.queue && (
             <span className="text-[10px] text-muted-foreground truncate">

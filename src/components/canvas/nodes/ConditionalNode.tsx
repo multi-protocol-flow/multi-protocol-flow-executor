@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { ConditionalConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** Conditional 节点数据类型 */
 export interface ConditionalNodeData {
@@ -70,10 +71,10 @@ export function ConditionalNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-orange-600 font-medium uppercase tracking-wide">
-            条件
+            {getNodeDisplayName('conditional')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || '条件判断'}
+            {nodeData.label || getNodeDisplayName('conditional')}
           </span>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { KafkaSchemaRegistryConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** KafkaSchemaRegistry 节点数据类型 */
 export interface KafkaSchemaRegistryNodeData {
@@ -70,10 +71,10 @@ export function KafkaSchemaRegistryNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-rose-600 font-medium tracking-wide">
-            Kafka-Schema
+            {getNodeDisplayName('kafka_schema_registry')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'Kafka Schema'}
+            {nodeData.label || getNodeDisplayName('kafka_schema_registry')}
           </span>
           {nodeData.config?.operation && (
             <span className="text-[10px] text-muted-foreground truncate">

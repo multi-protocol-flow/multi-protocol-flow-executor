@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { VariableExtractorConfig } from '@/types/node';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** VariableExtractor 节点数据类型 */
 export interface VariableExtractorNodeData {
@@ -70,10 +71,10 @@ export function VariableExtractorNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-amber-600 font-medium uppercase tracking-wide">
-            变量提取
+            {getNodeDisplayName('variable_extractor')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || '变量提取'}
+            {nodeData.label || getNodeDisplayName('variable_extractor')}
           </span>
         </div>
       </div>

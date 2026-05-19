@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { McpGetPromptConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** McpGetPrompt 节点数据类型 */
 export interface McpGetPromptNodeData {
@@ -70,10 +71,10 @@ export function McpGetPromptNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-amber-600 font-medium tracking-wide">
-            MCP-提示词
+            {getNodeDisplayName('mcp_get_prompt')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'MCP 获取提示词'}
+            {nodeData.label || getNodeDisplayName('mcp_get_prompt')}
           </span>
           {nodeData.config?.prompt_name ? (
             <span className="text-[10px] text-muted-foreground truncate">

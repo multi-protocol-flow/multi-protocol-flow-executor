@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { ImapCopyConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 export interface ImapCopyNodeData {
   label?: string;
@@ -50,9 +51,9 @@ export function ImapCopyNode({ id, data, selected }: NodeProps) {
           <Copy className="w-3.5 h-3.5" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="text-xs text-blue-600 font-medium tracking-wide">IMAP-复制</span>
+          <span className="text-xs text-blue-600 font-medium tracking-wide">{getNodeDisplayName('imap_copy')}</span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || '复制邮件'}
+            {nodeData.label || getNodeDisplayName('imap_copy')}
           </span>
           {nodeData.config?.destination_mailbox && (
             <span className="text-[10px] text-muted-foreground truncate">

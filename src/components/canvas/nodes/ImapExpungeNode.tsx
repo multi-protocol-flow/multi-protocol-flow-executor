@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { ImapExpungeConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 export interface ImapExpungeNodeData {
   label?: string;
@@ -50,9 +51,9 @@ export function ImapExpungeNode({ id, data, selected }: NodeProps) {
           <Trash2 className="w-3.5 h-3.5" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="text-xs text-blue-600 font-medium tracking-wide">IMAP-清除</span>
+          <span className="text-xs text-blue-600 font-medium tracking-wide">{getNodeDisplayName('imap_expunge')}</span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || '清除已删除'}
+            {nodeData.label || getNodeDisplayName('imap_expunge')}
           </span>
           <span className="text-[10px] text-muted-foreground truncate">
             永久删除标记邮件

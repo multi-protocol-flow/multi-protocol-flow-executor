@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import type { AmqpPublishConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** AmqpPublish 节点数据类型 */
 export interface AmqpPublishNodeData {
@@ -70,10 +71,10 @@ export function AmqpPublishNode({ id, data, selected }: NodeProps) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-xs text-violet-600 font-medium tracking-wide">
-            AMQP-发布
+            {getNodeDisplayName('amqp_publish')}
           </span>
           <span className="text-sm font-semibold text-foreground break-words">
-            {nodeData.label || 'AMQP 发布'}
+            {nodeData.label || getNodeDisplayName('amqp_publish')}
           </span>
           {(nodeData.config?.exchange || nodeData.config?.routing_key) && (
             <span className="text-[10px] text-muted-foreground truncate">
