@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Settings, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { AmqpManagementConfig as ConfigType } from '@/types';
 
 interface Props { data: ConfigType; onSave: (data: ConfigType) => void; }
@@ -99,9 +100,9 @@ export function AmqpManagementConfigPanel({ data, onSave }: Props) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <Settings className="h-4 w-4" />
-            AMQP 管理节点
+            {getLL().panels.amqpManagement.title()}
           </h4>
-          <p className="text-sm leading-relaxed text-violet-700/90">通过 RabbitMQ Management API 查询 Broker 信息。</p>
+          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqpManagement.description()}</p>
         </div>
       </div>
 

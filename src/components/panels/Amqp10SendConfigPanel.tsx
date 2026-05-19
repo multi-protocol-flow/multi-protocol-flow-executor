@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AMQP 1.0 Send 节点配置组件
  */
 import { useForm } from 'react-hook-form';
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, Info, ChevronDown } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { Amqp10SendConfig as ConfigType, Amqp10MessageProperties } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -111,33 +112,33 @@ export function Amqp10SendConfigPanel({ data, onSave }: Props) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <Send className="h-4 w-4" />
-            AMQP 1.0 发送节点
+            {getLL().panels.amqp10Send.title()}
           </h4>
-          <p className="text-sm leading-relaxed text-violet-700/90">向 AMQP 1.0 目标地址发送消息。</p>
+          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqp10Send.description()}</p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">连接 ID <span className="text-rose-500">*</span></Label>
-        <Input id="connection_id" {...register('connection_id')} placeholder="输入连接 ID" className="font-mono text-sm" />
+        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Send.connectionId()} <span className="text-rose-500">*</span></Label>
+        <Input id="connection_id" {...register('connection_id')} placeholder={getLL().panels.enterConnectionId()} className="font-mono text-sm" />
         {errors.connection_id && <p className="text-xs text-rose-500">{errors.connection_id.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address" className="text-sm font-medium text-foreground">目标地址 <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="address" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Send.targetAddress()} <span className="text-rose-500">*</span></Label>
         <Input id="address" {...register('address')} placeholder="my-queue" className="font-mono text-sm" />
         {errors.address && <p className="text-xs text-rose-500">{errors.address.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="message_body" className="text-sm font-medium text-foreground">消息体</Label>
-        <Textarea id="message_body" {...register('message_body')} placeholder='{"message": "hello"}' className="min-h-[80px] resize-y font-mono text-xs" rows={4} />
+        <Label htmlFor="message_body" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Send.payload()}</Label>
+        <Textarea id="message_body" {...register('message_body')} placeholder={`{"message": "hello"}`} className="min-h-[80px] resize-y font-mono text-xs" rows={4} />
       </div>
 
       {/* 消息属性 */}
       <div className="border rounded-lg overflow-hidden">
         <button type="button" onClick={() => toggleSection('props')} className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-muted/50 transition-colors">
-          <div className="flex items-center gap-2"><Info className="h-4 w-4 text-violet-600" /><span className="text-sm font-medium text-foreground">消息属性</span></div>
+          <div className="flex items-center gap-2"><Info className="h-4 w-4 text-violet-600" /><span className="text-sm font-medium text-foreground">{getLL().panels.advancedSettings()}</span></div>
           <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", expandedSections.has('props') && "rotate-180")} />
         </button>
         {expandedSections.has('props') && (
@@ -152,23 +153,23 @@ export function Amqp10SendConfigPanel({ data, onSave }: Props) {
             </div>
             <div className="space-y-2">
               <Label htmlFor={`${propsPrefix}.correlation_id`} className="text-xs font-medium text-foreground">关联 ID</Label>
-              <Input id={`${propsPrefix}.correlation_id`} {...register(`${propsPrefix}.correlation_id`)} placeholder="可选" className="h-8 text-xs font-mono" />
+              <Input id={`${propsPrefix}.correlation_id`} {...register(`${propsPrefix}.correlation_id`)} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
               <Label htmlFor={`${propsPrefix}.message_id`} className="text-xs font-medium text-foreground">消息 ID</Label>
-              <Input id={`${propsPrefix}.message_id`} {...register(`${propsPrefix}.message_id`)} placeholder="可选" className="h-8 text-xs font-mono" />
+              <Input id={`${propsPrefix}.message_id`} {...register(`${propsPrefix}.message_id`)} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
               <Label htmlFor={`${propsPrefix}.reply_to`} className="text-xs font-medium text-foreground">回复地址</Label>
-              <Input id={`${propsPrefix}.reply_to`} {...register(`${propsPrefix}.reply_to`)} placeholder="可选" className="h-8 text-xs font-mono" />
+              <Input id={`${propsPrefix}.reply_to`} {...register(`${propsPrefix}.reply_to`)} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
               <Label htmlFor={`${propsPrefix}.subject`} className="text-xs font-medium text-foreground">主题</Label>
-              <Input id={`${propsPrefix}.subject`} {...register(`${propsPrefix}.subject`)} placeholder="可选" className="h-8 text-xs font-mono" />
+              <Input id={`${propsPrefix}.subject`} {...register(`${propsPrefix}.subject`)} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
               <Label htmlFor={`${propsPrefix}.to`} className="text-xs font-medium text-foreground">目标</Label>
-              <Input id={`${propsPrefix}.to`} {...register(`${propsPrefix}.to`)} placeholder="可选" className="h-8 text-xs font-mono" />
+              <Input id={`${propsPrefix}.to`} {...register(`${propsPrefix}.to`)} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
           </div>
         )}
@@ -176,7 +177,7 @@ export function Amqp10SendConfigPanel({ data, onSave }: Props) {
 
       <div className="space-y-2">
         <Label htmlFor="message_annotations" className="text-sm font-medium text-foreground">消息注解（JSON）</Label>
-        <Textarea id="message_annotations" {...register('message_annotations')} placeholder='{"x-opt-key": "value"}' className="min-h-[60px] resize-y font-mono text-xs" rows={3} />
+        <Textarea id="message_annotations" {...register('message_annotations')} placeholder={`{"x-opt-key": "value"}`} className="min-h-[60px] resize-y font-mono text-xs" rows={3} />
       </div>
 
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">

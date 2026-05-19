@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Database, Info, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 import type { DbQueryConfig as DbQueryConfigType, DbConnectConfig as DbConnectConfigType } from '@/types/node';
 import { useFlowStore } from '@/stores/flow';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface DbQueryConfigProps {
   /** 当前节点数据 */
@@ -258,7 +259,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
   }, [setValue, saveData]);
 
   /**
-   * 添加参数
+   * {getLL().panels.dbQuery.addParam()}
    */
   const handleAddParam = useCallback(() => {
     paramsFieldArray.append('');
@@ -279,10 +280,10 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-purple-900 flex items-center gap-2">
             <Database className="h-4 w-4" />
-            数据库查询节点
+            {getLL().panels.dbQuery.title()}
           </h4>
           <p className="text-sm leading-relaxed text-purple-700/90 whitespace-normal break-words">
-            执行 SQL 查询语句，支持参数化查询和结果映射。查询结果可存储到变量供后续节点使用。
+            {getLL().panels.dbQuery.description()}
           </p>
         </div>
       </div>
@@ -290,19 +291,19 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
       {/* 连接选择下拉框 */}
       <div className="space-y-2">
         <Label htmlFor="connection_uuid" className="text-sm font-medium text-foreground">
-          数据库连接 <span className="text-rose-500">*</span>
+          {getLL().panels.dbCommon.databaseConnection()} <span className="text-rose-500">*</span>
         </Label>
         <Select
           value={selectedConnectionUuid || ''}
           onValueChange={handleConnectionChange}
         >
           <SelectTrigger id="connection_uuid" className="font-mono">
-            <SelectValue placeholder="选择流程中的数据库连接节点" />
+            <SelectValue placeholder={getLL().panels.dbCommon.selectConnectionPlaceholder()} />
           </SelectTrigger>
           <SelectContent>
             {dbConnectNodes.length === 0 ? (
               <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                无可用连接节点
+                {getLL().panels.dbCommon.noConnectionNodes()}
               </div>
             ) : (
               dbConnectNodes.map((node) => {
@@ -315,7 +316,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
                     <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
                       <span className="shrink-0">{node.name}</span>
                       <span className={`shrink-0 font-medium text-xs ${getDriverColor(driver)}`}>
-                        [{getDriverLabel(driver || '未设置')}]
+                        [{getDriverLabel(driver || getLL().panels.notSet())}]
                       </span>
                       {host && (
                         <span className="text-muted-foreground text-xs truncate" title={`${host}${port}`}>
@@ -334,7 +335,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
         )}
         {dbConnectNodes.length === 0 && (
           <p className="text-xs text-amber-600">
-            请先在流程中添加数据库连接节点
+            {getLL().panels.dbCommon.addConnectionNodeFirst()}
           </p>
         )}
       </div>
@@ -342,7 +343,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
       {/* SQL 编辑区域 */}
       <div className="space-y-2">
         <Label htmlFor="sql" className="text-sm font-medium text-foreground">
-          SQL 查询语句
+          {getLL().panels.dbQuery.sqlQuery()}
         </Label>
         <Textarea
           id="sql"
@@ -355,7 +356,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
           <p className="text-xs text-rose-500">{errors.sql.message}</p>
         )}
         <p className="text-xs text-muted-foreground">
-          支持 ? 占位符进行参数化查询，参数在下方配置
+          {getLL().panels.dbQuery.sqlPlaceholderHelp()}
         </p>
       </div>
 
@@ -366,14 +367,14 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
             <AlertTriangle className="h-5 w-5 text-orange-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <h5 className="text-sm font-semibold text-orange-800">
-                检测到修改操作
+                {getLL().panels.dbQuery.dangerousOpsDetected()}
               </h5>
               <p className="text-sm text-orange-700">
-                <span className="font-medium">操作类型：</span>
+                <span className="font-medium">{getLL().panels.dbQuery.operationType()}</span>
                 {dangerousOperations.join(' / ')}
               </p>
               <p className="text-xs text-orange-600/90">
-                此操作将修改数据库数据，请谨慎执行。建议在执行前备份数据。
+                {getLL().panels.dbQuery.dangerousOpsWarning()}
               </p>
             </div>
           </div>
@@ -383,7 +384,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
       {/* 参数化查询 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">查询参数（可选）</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.dbQuery.queryParamsOptional()}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -392,15 +393,15 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加参数
+            {getLL().panels.dbQuery.addParam()}
           </Button>
         </div>
         <div className="space-y-2">
           {paramsFieldArray.fields.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无查询参数</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.dbQuery.noQueryParams()}</p>
               <p className="mt-1 text-xs text-muted-foreground/60">
-                点击「添加参数」配置参数化查询
+                {getLL().panels.dbQuery.clickAddParamHint()}
               </p>
             </div>
           ) : (
@@ -411,7 +412,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
                 </span>
                 <Input
                   {...register(`params.${index}`)}
-                  placeholder="参数值"
+                  placeholder={getLL().panels.dbQuery.paramValue()}
                   className="h-8 flex-1 font-mono text-xs"
                 />
                 <Button
@@ -429,7 +430,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
         </div>
         {paramsFieldArray.fields.length > 0 && (
           <p className="text-xs text-muted-foreground">
-            参数按顺序对应 SQL 中的 ? 占位符
+            {getLL().panels.dbQuery.paramOrderHelp()}
           </p>
         )}
       </div>
@@ -437,7 +438,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
       {/* fetch_mode 选择 */}
       <div className="space-y-2">
         <Label htmlFor="fetch_mode" className="text-sm font-medium text-foreground">
-          获取模式
+          {getLL().panels.dbQuery.fetchMode()}
         </Label>
         <Select
           value={watch('fetch_mode') || 'all'}
@@ -455,14 +456,14 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          all=返回所有行，one=返回第一行，scalar=返回单个值
+          {getLL().panels.dbQuery.fetchModeHelp()}
         </p>
       </div>
 
       {/* 查询超时 */}
       <div className="space-y-2">
         <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">
-          查询超时
+          {getLL().panels.dbQuery.queryTimeout()}
         </Label>
         <Input
           id="timeout_ms"
@@ -471,7 +472,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
           max={300000}
           {...register('timeout_ms', { valueAsNumber: true })}
         />
-        <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000，默认 30000</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.dbConnect.timeoutHint()}</p>
         {errors.timeout_ms && (
           <p className="text-xs text-rose-500">{errors.timeout_ms.message}</p>
         )}
@@ -480,7 +481,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
       {/* 结果存储变量名 */}
       <div className="space-y-2">
         <Label htmlFor="result_to" className="text-sm font-medium text-foreground">
-          结果存储变量名（可选）
+          {getLL().panels.dbQuery.resultVariableOptional()}
         </Label>
         <Input
           id="result_to"
@@ -489,7 +490,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          查询结果将存储到此变量，可通过 {'{{变量名}}'} 在后续节点中引用
+          {getLL().panels.dbQuery.resultVariableHelp('{{变量名}}')}
         </p>
         {errors.result_to && (
           <p className="text-xs text-rose-500">{errors.result_to.message}</p>
@@ -500,11 +501,11 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-sky-50/60 dark:bg-sky-950/40 border border-sky-200/50 dark:border-sky-700/40 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500 dark:text-sky-400" />
         <div className="text-xs text-sky-700/90 dark:text-sky-300/90 space-y-1">
-          <p className="font-medium text-sky-800 dark:text-sky-200">使用说明：</p>
-          <p>1. 选择已建立的数据库连接</p>
-          <p>2. 编写 SQL 查询语句，支持 ? 占位符</p>
-          <p>3. 可选配置参数化查询和结果映射</p>
-          <p>4. 查询结果可存储到变量供后续节点使用</p>
+          <p className="font-medium text-sky-800 dark:text-sky-200">{getLL().panels.dbQuery.usageNotes()}</p>
+          <p>{getLL().panels.dbQuery.usageStep1()}</p>
+          <p>{getLL().panels.dbQuery.usageStep2()}</p>
+          <p>{getLL().panels.dbQuery.usageStep3()}</p>
+          <p>{getLL().panels.dbQuery.usageStep4()}</p>
         </div>
       </div>
     </form>

@@ -15,6 +15,7 @@ import { Wrench, Info } from 'lucide-react';
 import type { McpCallToolConfig as McpCallToolConfigType, McpToolInfo } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isMcpConnectConfig } from '@/types/node';
+import { getLL } from '@/i18n/i18n-lazy';
 
 // ============================================================================
 // Schema 分析辅助
@@ -426,10 +427,10 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-amber-900 flex items-center gap-2">
             <Wrench className="h-4 w-4" />
-            MCP 工具调用节点
+            {getLL().panels.mcpCallTool.title()}
           </h4>
           <p className="text-sm leading-relaxed text-amber-700/90 whitespace-normal break-words">
-            调用 MCP 服务器上注册的工具，传入参数并获取结果。
+            {getLL().panels.mcpCallTool.description()}
           </p>
         </div>
       </div>
@@ -437,7 +438,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.connection()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -452,7 +453,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 MCP 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -469,7 +470,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -478,7 +479,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 MCP Connect 节点，请手动输入连接 ID
+            {getLL().panels.mcpCallTool.noConnectNodeDetected()}
           </p>
         )}
       </div>
@@ -487,7 +488,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="tool_name" className="text-sm font-medium text-foreground">
-            工具名称 <span className="text-rose-500">*</span>
+            {getLL().panels.mcpCallTool.toolName()} <span className="text-rose-500">*</span>
           </Label>
           {discoveredTools.length > 0 && (
             <button
@@ -495,7 +496,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
               onClick={() => setToolInputMode(prev => prev === 'select' ? 'manual' : 'select')}
               className="text-xs text-amber-600 hover:text-amber-800 hover:underline transition-colors"
             >
-              {toolInputMode === 'select' ? '手动输入' : '下拉选择'}
+              {toolInputMode === 'select' ? getLL().panels.manualInput() : getLL().panels.dropdownSelect()}
             </button>
           )}
         </div>
@@ -506,7 +507,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
               onValueChange={handleToolChange}
             >
               <SelectTrigger id="tool_name" className="font-mono">
-                <SelectValue placeholder="选择工具" />
+                <SelectValue placeholder={getLL().panels.mcpCallTool.selectTool()} />
               </SelectTrigger>
               <SelectContent className="max-h-[280px]">
                 {discoveredTools.map((tool) => (
@@ -527,18 +528,18 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
             <Input
               id="tool_name"
               {...register('tool_name')}
-              placeholder="例如：search、query"
+              placeholder={getLL().panels.mcpCallTool.toolNamePlaceholder()}
               className="font-mono text-sm"
             />
             {discoveredTools.length > 0 && (
               <p className="text-xs text-muted-foreground">
-                当前为手动输入模式，
+                {getLL().panels.manualInput()}，
                 <button
                   type="button"
                   onClick={() => setToolInputMode('select')}
                   className="text-amber-600 hover:underline"
                 >
-                  切换到下拉选择
+                  {getLL().panels.switchToDropdown()}
                 </button>
               </p>
             )}
@@ -549,7 +550,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
         )}
         {discoveredTools.length === 0 && currentConnectionId && (
           <p className="text-xs text-muted-foreground">
-            连接节点未发现工具，请手动输入工具名称
+            {getLL().panels.mcpCallTool.noDiscoveredTools()}
           </p>
         )}
       </div>
@@ -569,7 +570,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
             )}
             {schemaAnalysis.fields.length > 0 && (
               <div className="space-y-1 pt-1 border-t border-amber-200/40">
-                <p className="text-[10px] font-medium text-amber-700">参数列表：</p>
+                <p className="text-[10px] font-medium text-amber-700">{getLL().panels.mcpCallTool.paramList()}</p>
                 <div className="space-y-0.5">
                   {schemaAnalysis.fields.map((field) => (
                     <div key={field.name} className="flex items-start gap-1 text-[10px]">
@@ -583,7 +584,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
               </div>
             )}
             {!selectedTool.input_schema && !selectedTool.description && (
-              <p className="text-[10px] text-muted-foreground">此工具无描述和参数说明</p>
+              <p className="text-[10px] text-muted-foreground">{getLL().panels.mcpCallTool.noDescription()}</p>
             )}
           </div>
         </div>
@@ -601,7 +602,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
               onClick={() => setArgsMode(prev => prev === 'form' ? 'json' : 'form')}
               className="text-xs text-amber-600 hover:text-amber-800 hover:underline transition-colors"
             >
-              {argsMode === 'form' ? 'JSON 模式' : '表单模式'}
+              {argsMode === 'form' ? getLL().panels.mcpCallTool.jsonMode() : getLL().panels.mcpCallTool.formMode()}
             </button>
           )}
         </div>
@@ -693,7 +694,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
             {selectedTool?.input_schema && !schemaAnalysis.isSimple && (
               <div className="rounded-md bg-amber-50/60 border border-amber-100 px-3 py-2 mb-2">
                 <p className="text-xs text-amber-700">
-                  此工具参数结构较复杂，请以 JSON 格式输入
+                  {getLL().panels.mcpCallTool.complexSchemaHint()}
                 </p>
               </div>
             )}
@@ -717,7 +718,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
               rows={5}
             />
             <p className="text-xs text-muted-foreground">
-              JSON 格式的工具参数，留空则不传参数
+              {getLL().panels.mcpCallTool.jsonArgsHint()}
             </p>
           </>
         )}
@@ -727,11 +728,11 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">工具调用说明：</p>
-          <p>选择已建立的 MCP 连接，选择或输入工具名称</p>
-          <p>参数以 JSON 格式传入，结构取决于工具定义</p>
+          <p className="font-medium text-foreground">{getLL().panels.mcpCallTool.callExplanation()}</p>
+          <p>{getLL().panels.mcpCallTool.callExplanation1()}</p>
+          <p>{getLL().panels.mcpCallTool.callExplanation2()}</p>
           {discoveredTools.length === 0 && currentConnectionId && (
-            <p className="text-amber-600">提示：连接节点尚未发现工具，请先在连接节点中执行工具发现</p>
+            <p className="text-amber-600">{getLL().panels.mcpCallTool.noDiscoveryHint()}</p>
           )}
         </div>
       </div>

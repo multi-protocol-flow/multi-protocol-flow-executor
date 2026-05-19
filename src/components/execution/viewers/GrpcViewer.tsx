@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
+import { useVT } from '@/i18n/viewer-translations';
 import { useDebugStore } from '@/stores/debug';
 
 interface GrpcViewerProps {
@@ -228,6 +229,7 @@ function isStreamingData(data: unknown): boolean {
 
 export function GrpcViewer({ report }: GrpcViewerProps) {
   const nodeType = report.node_type;
+  const t = useVT();
 
   // 根据 node_type 分发到对应的子组件
   switch (nodeType) {
@@ -240,7 +242,7 @@ export function GrpcViewer({ report }: GrpcViewerProps) {
     default:
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
-          未知的 gRPC 节点类型: {nodeType}
+          {t("grpc.unknown_node_type", { type: nodeType })}
         </div>
       );
   }

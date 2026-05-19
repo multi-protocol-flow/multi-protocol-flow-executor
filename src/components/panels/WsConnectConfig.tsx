@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2, Wifi, Info, AlertTriangle } from 'lucide-react';
 import type { WsConnectConfig as WsConnectConfigType, FormField } from '@/types';
 import { useFlowVariables } from '@/hooks';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface WsConnectConfigProps {
   /** 当前节点数据 */
@@ -203,10 +204,10 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-amber-900 flex items-center gap-2">
             <Wifi className="h-4 w-4" />
-            WebSocket 连接节点
+            {getLL().panels.wsConnect.title()}
           </h4>
           <p className="text-sm leading-relaxed text-amber-700/90 whitespace-normal break-words">
-            建立 WebSocket 连接，可选择等待服务器消息或条件满足后继续流程。
+            {getLL().panels.wsConnect.description()}
           </p>
         </div>
       </div>
@@ -214,7 +215,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
       {/* URL 输入 */}
       <div className="space-y-2">
         <Label htmlFor="url" className="text-sm font-medium text-foreground">
-          WebSocket URL <span className="text-rose-500">*</span>
+          {getLL().panels.wsConnect.wsUrl()} <span className="text-rose-500">*</span>
         </Label>
         <div className="relative">
           <Wifi className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
@@ -250,7 +251,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加
+            {getLL().panels.add()}
           </Button>
         </div>
         <div className="space-y-2">
@@ -299,7 +300,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
       {/* Subprotocols */}
       <div className="space-y-2">
         <Label htmlFor="subprotocols" className="text-sm font-medium text-foreground">
-          子协议（可选）
+          {getLL().panels.wsConnect.subprotocolsOptional()}
         </Label>
         <Input
           id="subprotocols"
@@ -310,14 +311,14 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          多个子协议用逗号分隔
+          {getLL().panels.wsConnect.subprotocolsHelp()}
         </p>
       </div>
 
       {/* 连接超时 */}
       <div className="space-y-2">
         <Label htmlFor="connect_timeout_ms" className="text-sm font-medium text-foreground">
-          连接超时
+          {getLL().panels.wsConnect.connectTimeout()}
         </Label>
         <Input
           id="connect_timeout_ms"
@@ -344,7 +345,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
             }}
           />
           <Label htmlFor="use_tls" className="text-sm font-medium text-foreground cursor-pointer">
-            启用 TLS
+            {getLL().panels.wsConnect.enableTls()}
           </Label>
         </div>
 
@@ -360,14 +361,14 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                 }}
               />
               <Label htmlFor="tls_skip_verify" className="text-sm font-medium text-foreground cursor-pointer">
-                跳过证书验证
+                {getLL().panels.wsConnect.skipCertVerify()}
               </Label>
             </div>
             {watch('tls_skip_verify') && (
               <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-800/60 dark:bg-amber-950/30">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
                 <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-400">
-                  跳过证书验证仅用于开发/测试环境，生产环境请使用有效证书。
+                  {getLL().panels.wsConnect.skipCertVerifyWarning()}
                 </p>
               </div>
             )}
@@ -394,7 +395,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
               }}
             />
             <Label htmlFor="ping_enabled" className="text-sm font-medium text-foreground cursor-pointer">
-              启用心跳
+              {getLL().panels.wsConnect.enablePing()}
             </Label>
           </div>
 
@@ -402,7 +403,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
             <>
               <div className="space-y-2">
                 <Label htmlFor="ping_interval_ms" className="text-sm font-medium text-foreground">
-                  Ping 间隔 (ms)
+                  {getLL().panels.wsConnect.pingInterval()}
                 </Label>
                 <Input
                   id="ping_interval_ms"
@@ -415,7 +416,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ping_timeout_ms" className="text-sm font-medium text-foreground">
-                  Ping 超时 (ms)
+                  {getLL().panels.wsConnect.pingTimeout()}
                 </Label>
                 <Input
                   id="ping_timeout_ms"
@@ -448,7 +449,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
           }}
         />
         <Label htmlFor="collect_message" className="text-sm font-medium text-foreground cursor-pointer">
-          连接后采集消息
+          {getLL().panels.wsConnect.collectAfterConnect()}
         </Label>
       </div>
 
@@ -458,7 +459,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
           {/* 采集模式 */}
           <div className="space-y-2">
             <Label htmlFor="collect_mode" className="text-sm font-medium text-foreground">
-              采集模式
+              {getLL().panels.wsConnect.collectMode()}
             </Label>
             <Select
               value={collectMode || 'first_match'}
@@ -493,7 +494,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                 {/* 匹配类型 */}
                 <div className="space-y-2">
                   <Label htmlFor="collect_condition.match_type" className="text-xs text-muted-foreground">
-                    匹配类型
+                    {getLL().panels.wsConnect.matchType()}
                   </Label>
                   <Select
                     value={watch('collect_condition.match_type') || 'json_path'}
@@ -516,11 +517,11 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                 {/* 匹配表达式 */}
                 <div className="space-y-2">
                   <Label htmlFor="collect_condition.expression" className="text-xs text-muted-foreground">
-                    匹配表达式 <span className="text-rose-500">*</span>
+                    {getLL().panels.wsConnect.matchExpression()} <span className="text-rose-500">*</span>
                   </Label>
                   <Textarea
                     id="collect_condition.expression"
-                    {...register('collect_condition.expression', { required: '匹配表达式不能为空' })}
+                    {...register('collect_condition.expression', { required: getLL().panels.wsConnect.matchExpressionRequired() })}
                     placeholder={watch('collect_condition.match_type') === 'expression' ? 'msg == "authenticated"' : watch('collect_condition.match_type') === 'regex' ? 'authenticated|success' : '$.msg'}
                     className={`min-h-[80px] resize-y font-mono text-xs ${
                       errors.collect_condition?.expression ? 'border-rose-500 focus-visible:ring-rose-500' : ''
@@ -586,7 +587,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
           {/* 采集超时 */}
           <div className="space-y-2">
             <Label htmlFor="collect_timeout_ms" className="text-sm font-medium text-foreground">
-              采集超时
+              {getLL().panels.wsConnect.collectTimeout()}
             </Label>
             <Input
               id="collect_timeout_ms"

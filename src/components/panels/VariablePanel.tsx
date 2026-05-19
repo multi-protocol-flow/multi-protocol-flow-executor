@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 变量面板组件
  * 显示所有变量，按来源节点分组
  */
@@ -9,6 +9,7 @@ import type { Flow, Node } from '@/types';
 import type { Variable } from '@/types/variable';
 import { isEntryConfig, isVariableExtractorConfig } from '@/types/node';
 import { getActiveVariables } from '@/types/flow';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface VariablePanelProps {
   /** 当前流程 */
@@ -30,9 +31,10 @@ export interface VariableGroup {
  * 从流程中提取所有变量并按节点分组
  */
 export function extractVariableGroups(flow: Flow): VariableGroup[] {
+  const ll = getLL().panels.variablePanel;
   const groups: VariableGroup[] = [];
   const nodeMap = new Map<string, Node>();
-  
+
   // 建立节点映射
   flow.nodes.forEach(node => {
     nodeMap.set(node.uuid, node);
@@ -83,11 +85,11 @@ export function extractVariableGroups(flow: Flow): VariableGroup[] {
         name: key,
         value,
         sourceNodeUuid: '__flow__',
-        description: '流程初始变量',
+        description: ll.flowInitialVar(),
       }));
       groups.push({
         nodeUuid: '__flow__',
-        nodeName: '流程变量',
+        nodeName: ll.flowVariables(),
         nodeType: 'flow',
         variables: flowVars,
       });
@@ -101,11 +103,11 @@ export function extractVariableGroups(flow: Flow): VariableGroup[] {
         name: key,
         value,
         sourceNodeUuid: '__environment__',
-        description: `环境变量 (${envName})`,
+        description: ll.environmentVariables({ name: envName }),
       }));
       groups.push({
         nodeUuid: '__environment__',
-        nodeName: `环境变量 (${envName})`,
+        nodeName: ll.environmentVariables({ name: envName }),
         nodeType: 'environment',
         variables: envVars,
       });
@@ -154,6 +156,7 @@ function getValueType(value: unknown): string {
 }
 
 export function VariablePanel({ flow, nodes: _nodes, showHeader = true }: VariablePanelProps) {
+  const ll = getLL().panels.variablePanel;
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -223,10 +226,10 @@ export function VariablePanel({ flow, nodes: _nodes, showHeader = true }: Variab
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <VariableIcon className="h-4 w-4 text-violet-600" />
-              <h3 className="text-sm font-semibold text-foreground">变量面板</h3>
+              <h3 className="text-sm font-semibold text-foreground">{ll.title()}</h3>
             </div>
             <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-              {totalVariables} 个变量
+              {ll.variableCount({ count: totalVariables })}
             </span>
           </div>
 
@@ -235,7 +238,7 @@ export function VariablePanel({ flow, nodes: _nodes, showHeader = true }: Variab
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="搜索变量..."
+              placeholder={ll.searchPlaceholder()}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-8 pl-8 text-xs bg-background border-border focus:border-violet-400 focus:ring-violet-400/20"
@@ -249,7 +252,7 @@ export function VariablePanel({ flow, nodes: _nodes, showHeader = true }: Variab
               onClick={expandAll}
               className="text-xs text-muted-foreground hover:text-violet-600 transition-colors"
           >
-            全部展开
+            {ll.expandAll()}
           </button>
           <span className="text-muted-foreground">|</span>
           <button
@@ -257,7 +260,7 @@ export function VariablePanel({ flow, nodes: _nodes, showHeader = true }: Variab
             onClick={collapseAll}
             className="text-xs text-muted-foreground hover:text-violet-600 transition-colors"
           >
-            全部折叠
+            {ll.collapseAll()}
           </button>
         </div>
       </div>
@@ -269,17 +272,17 @@ export function VariablePanel({ flow, nodes: _nodes, showHeader = true }: Variab
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
             <VariableIcon className="h-10 w-10 text-muted-foreground mb-3" />
             <p className="text-sm text-muted-foreground">
-              {searchQuery ? '未找到匹配的变量' : '暂无变量'}
+              {searchQuery ? ll.noMatch() : ll.empty()}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {searchQuery ? '尝试其他搜索词' : '在 Entry 节点添加初始变量'}
+              {searchQuery ? ll.tryOtherSearch() : ll.addEntryVarHint()}
             </p>
           </div>
         ) : (
           <div className="space-y-2">
             {filteredGroups.map((group) => {
               const isExpanded = expandedGroups.has(group.nodeUuid);
-              
+
               return (
                 <div
                   key={group.nodeUuid}
@@ -323,7 +326,7 @@ export function VariablePanel({ flow, nodes: _nodes, showHeader = true }: Variab
                                   {getValueType(variable.value)}
                                 </span>
                               </div>
-                              
+
                               {/* 变量值 */}
                               <div className="mt-1.5">
                                 <code className="text-xs font-mono text-muted-foreground break-all line-clamp-2">

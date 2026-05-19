@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Radio, Shield, ChevronDown, Info, Loader2 } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { AmqpConnectConfig as AmqpConnectConfigType } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -179,10 +180,10 @@ export function AmqpConnectConfigPanel({ data, onSave }: AmqpConnectConfigPanelP
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <Radio className="h-4 w-4" />
-            AMQP 连接节点
+            {getLL().panels.amqpConnect.title()}
           </h4>
           <p className="text-sm leading-relaxed text-violet-700/90 whitespace-normal break-words">
-            建立 AMQP 0-9-1 Broker 连接，用于消息队列操作。
+            {getLL().panels.amqpConnect.description()}
           </p>
         </div>
       </div>

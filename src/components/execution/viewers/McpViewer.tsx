@@ -27,6 +27,7 @@ import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
+import { useVT } from '@/i18n/viewer-translations';
 import { VariableChangesCard } from './VariableChangesCard';
 
 interface McpViewerProps {
@@ -383,6 +384,7 @@ function ContentBlockLabel({ type }: { type: ContentBlockType }) {
 // ============================================================================
 
 export function McpViewer({ report }: McpViewerProps) {
+  const t = useVT();
   const nodeType = report.node_type;
 
   switch (nodeType) {
@@ -399,7 +401,7 @@ export function McpViewer({ report }: McpViewerProps) {
     default:
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
-          未知的 MCP 节点类型: {nodeType}
+          {t('mcp.unknown_node_type', { type: nodeType })}
         </div>
       );
   }
@@ -410,6 +412,7 @@ export function McpViewer({ report }: McpViewerProps) {
 // ============================================================================
 
 function McpConnectSection({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as McpConnectOutput | undefined;
   const resolvedConfig = report.resolved_config as McpConnectOutput['request'] | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
@@ -427,7 +430,7 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 连接配置 */}
       <CollapsibleSection
-        title="连接配置"
+        title={t('mcp.section_server_info')}
         icon={<Cable className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -460,17 +463,17 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 连接状态 */}
       <CollapsibleSection
-        title="连接状态"
+        title={t('mcp.section_connection')}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已连接" failText="连接失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('mcp.status_connected')} failText={t('mcp.status_connection_failed')} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `MCP 连接建立成功`
-                : output?.error ?? '无法建立 MCP 连接'}
+                : output?.error ?? t('mcp.connect_error')}
             </span>
           </div>
 
@@ -507,7 +510,7 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
       {/* 发现列表 - 工具 */}
       {isSuccess && tools.length > 0 && (
         <CollapsibleSection
-          title="工具列表"
+          title={t('mcp.section_available_tools')}
           icon={<Wrench className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -534,7 +537,7 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
       {/* 发现列表 - 资源 */}
       {isSuccess && resources.length > 0 && (
         <CollapsibleSection
-          title="资源列表"
+          title={t('mcp.section_available_resources')}
           icon={<Box className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -571,7 +574,7 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
       {/* 发现列表 - 提示词 */}
       {isSuccess && prompts.length > 0 && (
         <CollapsibleSection
-          title="提示词列表"
+          title={t('mcp.section_available_prompts')}
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -643,6 +646,7 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as McpCallToolOutput | undefined;
   const resolvedConfig = report.resolved_config as McpCallToolOutput['request'] | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
@@ -696,7 +700,7 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 调用状态 */}
       <CollapsibleSection
-        title="调用状态"
+        title={t('mcp.section_tool_result')}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -704,8 +708,8 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-3">
             <StatusBadge
               isSuccess={isSuccess && !isError}
-              successText="调用成功"
-              failText="调用失败"
+              successText={t('mcp.status_call_success')}
+              failText={t('mcp.status_call_failed')}
             />
             <span className="text-sm text-muted-foreground">
               {isSuccess && !isError
@@ -768,6 +772,7 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as McpReadResourceOutput | undefined;
   const resolvedConfig = report.resolved_config as McpReadResourceOutput['request'] | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
@@ -807,7 +812,7 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 读取状态 */}
       <CollapsibleSection
-        title="读取状态"
+        title={t('mcp.section_resource_content')}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -914,6 +919,7 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as McpGetPromptOutput | undefined;
   const resolvedConfig = report.resolved_config as McpGetPromptOutput['request'] | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
@@ -964,7 +970,7 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 获取状态 */}
       <CollapsibleSection
-        title="获取状态"
+        title={t('mcp.section_prompt_content')}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -1072,6 +1078,7 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function McpCloseSection({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as McpCloseOutput | undefined;
   const resolvedConfig = report.resolved_config as McpCloseOutput['request'] | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
@@ -1102,17 +1109,17 @@ function McpCloseSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 关闭状态 */}
       <CollapsibleSection
-        title="关闭状态"
+        title={t('mcp.section_close')}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已关闭" failText="关闭失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('mcp.status_closed')} failText={t('mcp.status_close_failed')} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'MCP 连接已成功关闭'
-                : output?.error ?? '连接关闭失败'}
+                ? t('mcp.close_success')
+                : output?.error ?? t('mcp.close_error')}
             </span>
           </div>
 

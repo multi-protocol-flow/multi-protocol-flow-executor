@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GraphQL Connect 节点配置组件
  * 支持 HTTP 端点、WebSocket 端点、请求头、连接超时、连接 ID
  */
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Plug, Plus, Trash2, Info, Loader2, FileJson } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { GraphqlConnectConfig as GraphqlConnectConfigType } from '@/types';
 import { cn } from '@/lib/utils';
 import { introspectSchema } from '@/services/tauri/graphql';
@@ -240,10 +241,10 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
             <Plug className="h-4 w-4" />
-            GraphQL 连接节点
+            {getLL().panels.graphqlConnect.title()}
           </h4>
           <p className="text-sm leading-relaxed text-indigo-700/90 whitespace-normal break-words">
-            建立 GraphQL 连接，配置 HTTP 端点和可选的 WebSocket 端点（用于订阅）。
+            {getLL().panels.graphqlConnect.description()}
           </p>
         </div>
       </div>
@@ -251,14 +252,14 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
       {/* HTTP 端点 */}
       <div className="space-y-2">
         <Label htmlFor="endpoint" className="text-sm font-medium text-foreground">
-          HTTP 端点 URL <span className="text-indigo-500">*</span>
+          {getLL().panels.graphqlConnect.url()} <span className="text-indigo-500">*</span>
         </Label>
         <div className="relative">
           <Plug className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
           <Input
             id="endpoint"
             {...register('endpoint')}
-            placeholder="https://api.example.com/graphql"
+            placeholder={getLL().panels.graphqlConnect.urlPlaceholder()}
             className="pl-9 font-mono text-sm"
           />
         </div>
@@ -286,7 +287,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
       {/* 自定义请求头 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">自定义请求头（可选）</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.graphqlConnect.headers()}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -295,7 +296,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加
+            {getLL().panels.add()}
           </Button>
         </div>
         <div className="space-y-2">
@@ -338,7 +339,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
       {/* 连接超时 */}
       <div className="space-y-2">
         <Label htmlFor="connection_timeout_ms" className="text-sm font-medium text-foreground">
-          连接超时（毫秒）
+          {getLL().panels.graphqlConnect.timeout()}
         </Label>
         <Input
           id="connection_timeout_ms"

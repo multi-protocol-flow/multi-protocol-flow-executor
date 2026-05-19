@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 环境选择器组件 — 画布工具栏中的环境切换 + 管理对话框
  *
  * 功能:
@@ -12,11 +12,13 @@ import { useFlowStore } from '@/stores';
 import { useUIStore } from '@/stores/ui';
 import { cn } from '@/lib/utils';
 import type { EnvironmentSet } from '@/types';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /**
  * 环境选择器（嵌入工具栏）
  */
 export function EnvironmentSelector() {
+  const ll = getLL().panels.environment;
   const flow = useFlowStore((s) => s.flow);
   const setActiveEnvironment = useFlowStore((s) => s.setActiveEnvironment);
   const openEnvironmentManagerDialog = useUIStore((s) => s.openEnvironmentManagerDialog);
@@ -48,11 +50,11 @@ export function EnvironmentSelector() {
             'hover:bg-accent',
             activeEnv ? 'text-violet-600 font-medium' : 'text-muted-foreground',
           )}
-          title={activeEnv ? `当前环境: ${activeEnv}` : '选择环境'}
+          title={activeEnv ? ll.currentEnv({ name: activeEnv }) : ll.selectEnv()}
         >
           <Globe className="w-3.5 h-3.5" />
           <span className="max-w-[80px] truncate">
-            {activeEnv ?? '环境'}
+            {activeEnv ?? ll.label()}
           </span>
         </button>
 
@@ -80,7 +82,7 @@ export function EnvironmentSelector() {
                   !activeEnv && 'text-violet-600 font-medium',
                 )}
               >
-                默认变量
+                {ll.defaultVars()}
               </button>
 
               {environments.map((env) => (
@@ -108,7 +110,7 @@ export function EnvironmentSelector() {
                   className="w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer flex items-center gap-1.5"
                 >
                   <Settings2 className="w-3 h-3" />
-                  管理环境
+                  {ll.manageEnvs()}
                 </button>
               </div>
             </div>
@@ -133,6 +135,7 @@ function DefaultVariablesCard({
   onUpdate: (key: string, value: unknown) => void;
   onRemove: (key: string) => void;
 }) {
+  const ll = getLL().panels.environment;
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
 
@@ -162,9 +165,9 @@ function DefaultVariablesCard({
       {/* 标题行 */}
       <div className="flex items-center gap-2">
         <Variable className="w-4 h-4 text-violet-600" />
-        <span className="text-xs font-semibold text-foreground flex-1">默认变量</span>
+        <span className="text-xs font-semibold text-foreground flex-1">{ll.defaultVars()}</span>
         <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-          {varEntries.length} 个
+          {ll.varCount({ count: varEntries.length })}
         </span>
       </div>
 
@@ -173,7 +176,7 @@ function DefaultVariablesCard({
         {varEntries.length === 0 ? (
           <div className="rounded border border-dashed border-muted-foreground/30 px-3 py-2 text-center">
             <p className="text-[11px] text-muted-foreground">
-              暂无默认变量，请在下方添加
+              {ll.noDefaultVarsHint()}
             </p>
           </div>
         ) : (
@@ -208,7 +211,7 @@ function DefaultVariablesCard({
             type="text"
             value={newKey}
             onChange={(e) => setNewKey(e.target.value)}
-            placeholder="键名"
+            placeholder={ll.keyPlaceholder()}
             className="h-6 w-24 rounded border border-dashed border-muted-foreground/30 bg-transparent px-1.5 text-[11px] font-mono focus:border-violet-300 focus:outline-none placeholder:text-muted-foreground/40"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && newKey.trim()) handleAdd();
@@ -218,7 +221,7 @@ function DefaultVariablesCard({
             type="text"
             value={newValue}
             onChange={(e) => setNewValue(e.target.value)}
-            placeholder="值"
+            placeholder={ll.valuePlaceholder()}
             className="h-6 flex-1 rounded border border-dashed border-muted-foreground/30 bg-transparent px-1.5 text-[11px] font-mono focus:border-violet-300 focus:outline-none placeholder:text-muted-foreground/40"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && newKey.trim()) handleAdd();
@@ -242,7 +245,7 @@ function DefaultVariablesCard({
 
       {/* 提示 */}
       <p className="text-[10px] text-muted-foreground/60 leading-tight">
-        默认变量即流程初始变量（flow.initial_variables），执行时会注入到流程上下文中。也可在 Entry 节点配置面板中编辑。
+        {ll.defaultVarsHint()}
       </p>
     </div>
   );
@@ -252,6 +255,7 @@ function DefaultVariablesCard({
  * 环境管理对话框
  */
 export function EnvironmentManagerDialog() {
+  const ll = getLL().panels.environment;
   const flow = useFlowStore((s) => s.flow);
   const addEnvironment = useFlowStore((s) => s.addEnvironment);
   const updateEnvironment = useFlowStore((s) => s.updateEnvironment);
@@ -262,10 +266,10 @@ export function EnvironmentManagerDialog() {
   const [editingEnv, setEditingEnv] = useState<string | null>(null);
 
   const handleAdd = useCallback(() => {
-    const name = `环境 ${environments.length + 1}`;
+    const name = `${ll.label()} ${environments.length + 1}`;
     addEnvironment({ name, variables: {} });
     setEditingEnv(name);
-  }, [environments.length, addEnvironment]);
+  }, [environments.length, addEnvironment, ll]);
 
   const handleDelete = useCallback(
     (name: string) => {
@@ -321,7 +325,7 @@ export function EnvironmentManagerDialog() {
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
             <Globe className="w-4 h-4 text-violet-600" />
-            <span className="text-sm font-semibold">环境管理</span>
+            <span className="text-sm font-semibold">{ll.title()}</span>
           </div>
           <button
             type="button"
@@ -343,9 +347,9 @@ export function EnvironmentManagerDialog() {
           />
           {environments.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-6 text-center">
-              <p className="text-xs text-muted-foreground">暂无环境配置</p>
+              <p className="text-xs text-muted-foreground">{ll.noEnvs()}</p>
               <p className="mt-1 text-xs text-muted-foreground/60">
-                点击下方「添加环境」按钮创建环境变量集
+                {ll.noEnvsHint()}
               </p>
             </div>
           ) : (
@@ -372,7 +376,7 @@ export function EnvironmentManagerDialog() {
             className="w-full h-8 rounded-md border border-dashed border-muted-foreground/30 hover:border-violet-400 text-xs text-muted-foreground hover:text-violet-600 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            添加环境
+            {ll.addEnv()}
           </button>
         </div>
       </div>
@@ -400,6 +404,7 @@ function EnvironmentCard({
   onDelete: () => void;
   onUpdate: (env: EnvironmentSet) => void;
 }) {
+  const ll = getLL().panels.environment;
   const setActiveEnvironment = useFlowStore((s) => s.setActiveEnvironment);
   const [editName, setEditName] = useState(env.name);
   const [newKey, setNewKey] = useState('');
@@ -495,7 +500,7 @@ function EnvironmentCard({
             </span>
             {isActive && (
               <span className="text-[10px] text-violet-600 bg-violet-100 dark:bg-violet-900/40 px-1.5 py-0.5 rounded-full">
-                激活
+                {ll.active()}
               </span>
             )}
             {!isActive && (
@@ -503,16 +508,16 @@ function EnvironmentCard({
                 type="button"
                 onClick={() => setActiveEnvironment(env.name)}
                 className="text-[10px] text-muted-foreground hover:text-violet-600 transition-colors cursor-pointer px-1"
-                title="激活此环境"
+                title={ll.activateThis()}
               >
-                激活
+                {ll.active()}
               </button>
             )}
             <button
               type="button"
               onClick={onStartEdit}
               className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              title="重命名"
+              title={ll.rename()}
             >
               <Pencil className="w-3 h-3" />
             </button>
@@ -520,7 +525,7 @@ function EnvironmentCard({
               type="button"
               onClick={onDelete}
               className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-rose-500 transition-colors cursor-pointer"
-              title="删除环境"
+              title={ll.deleteEnv()}
             >
               <Trash2 className="w-3 h-3" />
             </button>
@@ -557,7 +562,7 @@ function EnvironmentCard({
             type="text"
             value={newKey}
             onChange={(e) => setNewKey(e.target.value)}
-            placeholder="键名"
+            placeholder={ll.keyPlaceholder()}
             className="h-6 w-24 rounded border border-dashed border-muted-foreground/30 bg-transparent px-1.5 text-[11px] font-mono focus:border-violet-300 focus:outline-none placeholder:text-muted-foreground/40"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && newKey.trim()) handleAddVariable();
@@ -567,7 +572,7 @@ function EnvironmentCard({
             type="text"
             value={newValue}
             onChange={(e) => setNewValue(e.target.value)}
-            placeholder="值"
+            placeholder={ll.valuePlaceholder()}
             className="h-6 flex-1 rounded border border-dashed border-muted-foreground/30 bg-transparent px-1.5 text-[11px] font-mono focus:border-violet-300 focus:outline-none placeholder:text-muted-foreground/40"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && newKey.trim()) handleAddVariable();

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FlowNodeList - 流程节点列表面板
  * 按加入时间排序，批量删除，点击定位
  */
@@ -7,6 +7,7 @@ import { useFlowStore, useUIStore, selectNodes } from '@/stores';
 import { NODE_META } from '@/lib/nodeMeta';
 import { cn } from '@/lib/utils';
 import type { NodeType } from '@/types';
+import { getLL } from '@/i18n/i18n-lazy';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -84,6 +85,8 @@ function NodeTypeIcon({ type }: { type: NodeType }) {
 // ============================================================================
 
 export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
+  const ll = getLL().panels.flowNodeList;
+  const commonLL = getLL().panels;
   // 按加入时间排序（flow.nodes 的顺序即为加入顺序）
   const nodes = useFlowStore(selectNodes);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
@@ -138,15 +141,15 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
     const count = checkedIds.size;
 
     useUIStore.getState().showConfirm({
-      title: '确认删除',
-      description: `确定要删除选中的 ${count} 个节点吗？此操作可通过撤销恢复。`,
-      confirmText: '删除',
+      title: commonLL.confirmDelete(),
+      description: commonLL.deleteConfirmDesc({ count }),
+      confirmText: commonLL.delete(),
       onConfirm: () => {
         useFlowStore.getState().removeNodes([...checkedIds]);
         setCheckedIds(new Set());
       },
     });
-  }, [checkedIds]);
+  }, [checkedIds, commonLL]);
 
   // 空状态
   if (nodes.length === 0) {
@@ -155,11 +158,11 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
         <CardHeader className="shrink-0 border-b border-muted bg-background px-2 pt-4 pb-3">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
             <List className="h-4 w-4 text-muted-foreground" />
-            流程节点
+            {ll.title()}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-1 items-center justify-center p-4">
-          <p className="text-sm text-muted-foreground">暂无节点</p>
+          <p className="text-sm text-muted-foreground">{ll.empty()}</p>
         </CardContent>
       </Card>
     );
@@ -171,7 +174,7 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
         <div className="flex items-center justify-between px-1">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
             <List className="h-4 w-4 text-muted-foreground" />
-            流程节点
+            {ll.title()}
             <span className="text-xs text-muted-foreground font-normal">
               ({nodes.length})
             </span>
@@ -190,7 +193,7 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
                 onClick={handleBatchDelete}
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                删除选中 ({checkedIds.size || ''})
+                {ll.deleteSelected({ count: checkedIds.size || '' })}
               </Button>
             </div>
           )}
@@ -206,7 +209,7 @@ export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
               />
             </div>
             <span className="text-xs text-muted-foreground">
-              {allChecked ? '取消全选' : '全选'}
+              {allChecked ? ll.deselectAll() : ll.selectAll()}
             </span>
           </div>
         )}

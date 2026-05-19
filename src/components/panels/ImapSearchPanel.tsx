@@ -1,4 +1,4 @@
-/**
+﻿/**
  * IMAP Search 节点配置组件
  * 支持连接选择、搜索条件（带常用条件快捷标签）、UID 模式
  */
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Search, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { ImapSearchConfig } from '@/types';
 import { ImapConnectionSelector, useImapConnections } from './shared/ImapShared';
 import { cn } from '@/lib/utils';
@@ -16,7 +17,6 @@ interface ImapSearchPanelProps {
   onSave: (data: ImapSearchConfig) => void;
 }
 
-/** 常用搜索条件快捷标签 */
 const CRITERIA_PRESETS = [
   { label: 'UNSEEN', value: 'UNSEEN' },
   { label: 'SEEN', value: 'SEEN' },
@@ -83,9 +83,9 @@ export function ImapSearchPanel({ data, onSave }: ImapSearchPanelProps) {
       <div className="rounded-lg border border-blue-200/50 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 p-4">
         <h4 className="text-sm font-semibold text-blue-900 flex items-center gap-2">
           <Search className="h-4 w-4" />
-          IMAP 搜索节点
+          {getLL().panels.imapSearch.title()}
         </h4>
-        <p className="text-sm text-blue-700/90 mt-1">在邮箱中搜索匹配条件的邮件。</p>
+        <p className="text-sm text-blue-700/90 mt-1">{getLL().panels.imapSearch.description()}</p>
       </div>
 
       <ImapConnectionSelector
@@ -96,19 +96,19 @@ export function ImapSearchPanel({ data, onSave }: ImapSearchPanelProps) {
 
       <div className="space-y-2">
         <Label htmlFor="imap-search-mailbox" className="text-sm font-medium text-foreground">
-          邮箱（可选）
+          {getLL().panels.imapSearch.mailbox()}
         </Label>
         <Input
           id="imap-search-mailbox"
           defaultValue={data.mailbox ?? ''}
-          placeholder="留空使用当前已选择的邮箱"
+          placeholder={getLL().panels.imapSearch.mailboxPlaceholder()}
           className="font-mono text-sm"
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="imap-criteria" className="text-sm font-medium text-foreground">
-          搜索条件 <span className="text-rose-500">*</span>
+          {getLL().panels.imapSearch.criteria()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="imap-criteria"
@@ -117,9 +117,8 @@ export function ImapSearchPanel({ data, onSave }: ImapSearchPanelProps) {
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          如: <code className="rounded bg-muted px-1">UNSEEN FROM &quot;bob&quot; SINCE 01-Jan-2024</code>
+          {getLL().panels.imapSearch.criteriaExample()}
         </p>
-        {/* 快捷标签 */}
         <div className="flex flex-wrap gap-1.5">
           {CRITERIA_PRESETS.map((preset) => (
             <button
@@ -141,8 +140,8 @@ export function ImapSearchPanel({ data, onSave }: ImapSearchPanelProps) {
 
       <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
         <div>
-          <Label className="text-sm font-medium text-foreground">UID 模式</Label>
-          <p className="text-xs text-muted-foreground">使用 UID 而非序列号标识邮件</p>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.imapSearch.uidMode()}</Label>
+          <p className="text-xs text-muted-foreground">{getLL().panels.imapSearch.uidModeDesc()}</p>
         </div>
         <Switch
           checked={data.uid ?? false}
@@ -153,10 +152,10 @@ export function ImapSearchPanel({ data, onSave }: ImapSearchPanelProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">搜索条件说明：</p>
-          <p>多个条件以空格分隔，默认使用 AND 逻辑</p>
-          <p>点击上方快捷标签可快速追加常用条件</p>
-          <p>UID 模式下返回的结果为邮件的唯一标识符</p>
+          <p className="font-medium text-foreground">{getLL().panels.imapSearch.helpTitle()}</p>
+          <p>{getLL().panels.imapSearch.helpLine1()}</p>
+          <p>{getLL().panels.imapSearch.helpLine2()}</p>
+          <p>{getLL().panels.imapSearch.helpLine3()}</p>
         </div>
       </div>
     </div>

@@ -28,6 +28,7 @@ import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
+import { useVT } from '@/i18n/viewer-translations';
 
 interface KafkaViewerProps {
   /** 节点执行报告 */
@@ -302,6 +303,7 @@ function KafkaMessageCard({ message, index }: { message: KafkaMessage; index: nu
 
 export function KafkaViewer({ report }: KafkaViewerProps) {
   const nodeType = report.node_type;
+  const t = useVT();
 
   switch (nodeType) {
     case 'kafka_connect':
@@ -321,7 +323,7 @@ export function KafkaViewer({ report }: KafkaViewerProps) {
     default:
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
-          未知的 Kafka 节点类型: {nodeType}
+          {t("kafka.unknown_node_type", { type: nodeType })}
         </div>
       );
   }

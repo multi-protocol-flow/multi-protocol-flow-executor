@@ -1,4 +1,4 @@
-/**
+﻿/**
  * NodePalette - 画布底部浮动节点工具条（二级分组 UI）
  *
  * 收起状态：底部只显示 4 个大类别按钮（协议/数据/工具/邮件）
@@ -63,6 +63,7 @@ import {
 } from '@/lib/NodeRegistry';
 import { ICON_MAP as NODE_TYPE_ICON_MAP } from '@/lib/nodeMeta';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 
 // ============================================================================
@@ -160,21 +161,23 @@ export const ICON_MAP: Record<string, LucideIcon> = {
 };
 
 /** 静态回退分组数据 */
+const LL = getLL();
+
 export const FALLBACK_NODE_GROUPS: NodeGroup[] = [
   {
     key: 'http',
     label: 'HTTP',
     icon: Globe,
-    items: [{ type: 'http', name: 'HTTP 请求', icon: Globe }],
+    items: [{ type: 'http', name: LL.nodes.http(), icon: Globe }],
   },
   {
     key: 'websocket',
     label: 'WS',
     icon: Wifi,
     items: [
-      { type: 'ws_connect', name: 'WS 连接', icon: Wifi },
-      { type: 'ws_send_collect', name: 'WS 发送采集', icon: Send },
-      { type: 'ws_close', name: 'WS 关闭', icon: Plug },
+      { type: 'ws_connect', name: LL.nodes.ws_connect(), icon: Wifi },
+      { type: 'ws_send_collect', name: LL.nodes.ws_send_collect(), icon: Send },
+      { type: 'ws_close', name: LL.nodes.ws_close(), icon: Plug },
     ],
   },
   {
@@ -182,9 +185,9 @@ export const FALLBACK_NODE_GROUPS: NodeGroup[] = [
     label: 'gRPC',
     icon: Network,
     items: [
-      { type: 'grpc_connect', name: 'gRPC 连接', icon: Cable },
-      { type: 'grpc_call', name: 'gRPC 调用', icon: PhoneOutgoing },
-      { type: 'grpc_close', name: 'gRPC 关闭', icon: PhoneOff },
+      { type: 'grpc_connect', name: LL.nodes.grpc_connect(), icon: Cable },
+      { type: 'grpc_call', name: LL.nodes.grpc_call(), icon: PhoneOutgoing },
+      { type: 'grpc_close', name: LL.nodes.grpc_close(), icon: PhoneOff },
     ],
   },
   {
@@ -192,12 +195,12 @@ export const FALLBACK_NODE_GROUPS: NodeGroup[] = [
     label: 'DB',
     icon: Database,
     items: [
-      { type: 'db_connect', name: 'DB 连接', icon: Database },
-      { type: 'db_begin', name: 'DB 开始事务', icon: CirclePlay },
-      { type: 'db_query', name: 'DB 查询', icon: Database },
-      { type: 'db_commit', name: 'DB 提交', icon: CheckCircle },
-      { type: 'db_rollback', name: 'DB 回滚', icon: RotateCcw },
-      { type: 'db_close', name: 'DB 关闭', icon: Plug },
+      { type: 'db_connect', name: LL.nodes.db_connect(), icon: Database },
+      { type: 'db_begin', name: LL.nodes.db_begin(), icon: CirclePlay },
+      { type: 'db_query', name: LL.nodes.db_query(), icon: Database },
+      { type: 'db_commit', name: LL.nodes.db_commit(), icon: CheckCircle },
+      { type: 'db_rollback', name: LL.nodes.db_rollback(), icon: RotateCcw },
+      { type: 'db_close', name: LL.nodes.db_close(), icon: Plug },
     ],
   },
   {
@@ -205,9 +208,9 @@ export const FALLBACK_NODE_GROUPS: NodeGroup[] = [
     label: 'Tool',
     icon: Wrench,
     items: [
-      { type: 'conditional', name: '条件判断', icon: GitBranch },
-      { type: 'script', name: '脚本', icon: Code },
-      { type: 'assertion', name: '断言', icon: CheckCircle },
+      { type: 'conditional', name: LL.nodes.conditional(), icon: GitBranch },
+      { type: 'script', name: LL.nodes.script(), icon: Code },
+      { type: 'assertion', name: LL.nodes.assertion(), icon: CheckCircle },
     ],
   },
 ];
@@ -276,31 +279,31 @@ interface SuperCategory {
 const SUPER_CATEGORIES: SuperCategory[] = [
   {
     key: 'network',
-    label: '网络',
+    label: 'Network',
     icon: Globe,
     categories: ['http', 'websocket', 'sse', 'graphql'],
   },
   {
     key: 'service',
-    label: '服务',
+    label: 'Services',
     icon: Network,
     categories: ['grpc', 'mcp'],
   },
   {
     key: 'messaging',
-    label: '消息',
+    label: 'Messaging',
     icon: Send,
     categories: ['mqtt', 'kafka', 'amqp'],
   },
   {
     key: 'tools',
-    label: '工具',
+    label: 'Tools',
     icon: Wrench,
     categories: ['tools', 'script', 'assertion'],
   },
   {
     key: 'other',
-    label: '其他',
+    label: 'Other',
     icon: Layers,
     categories: ['database', 'email', 'tcp', 'udp'],
   },
@@ -356,6 +359,7 @@ function NodeCard({
  * 悬浮在画布底部居中，二级分组展示可用节点类型
  */
 export function NodePalette() {
+  const LL = getLL();
   const setPendingAddNodeType = useFlowStore((s) => s.setPendingAddNodeType);
   const flow = useFlowStore((s) => s.flow);
 
@@ -524,7 +528,7 @@ export function NodePalette() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="搜索节点..."
+                placeholder={LL.flow.search_placeholder()}
                 className={cn(
                   'w-full pl-8 pr-3 py-2 text-sm',
                   'bg-muted/50 rounded-xl',
@@ -588,7 +592,7 @@ export function NodePalette() {
               </div>
             ) : (
               <div className="py-6 text-center text-xs text-muted-foreground">
-                {isSearching ? '没有匹配的节点' : '暂无节点'}
+                {isSearching ? 'No matching nodes' : 'No nodes available'}
               </div>
             )}
           </div>

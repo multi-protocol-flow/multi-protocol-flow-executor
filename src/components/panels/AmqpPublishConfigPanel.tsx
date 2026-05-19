@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Send, Info, ChevronDown } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { AmqpPublishConfig as ConfigType } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -143,15 +144,15 @@ export function AmqpPublishConfigPanel({ data, onSave }: Props) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <Send className="h-4 w-4" />
-            AMQP 发布节点
+            {getLL().panels.amqpPublish.title()}
           </h4>
-          <p className="text-sm leading-relaxed text-violet-700/90">向 Exchange 发布消息。</p>
+          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqpPublish.description()}</p>
         </div>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">连接 ID <span className="text-rose-500">*</span></Label>
-        <Input id="connection_id" {...register('connection_id')} placeholder="输入连接 ID" className="font-mono text-sm" />
+        <Input id="connection_id" {...register('connection_id')} placeholder={getLL().panels.enterConnectionId()} className="font-mono text-sm" />
         {errors.connection_id && <p className="text-xs text-rose-500">{errors.connection_id.message}</p>}
       </div>
 

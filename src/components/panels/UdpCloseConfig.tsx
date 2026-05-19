@@ -1,4 +1,4 @@
-/**
+﻿/**
  * UDP Close 节点配置组件
  * 支持关闭指定 UDP 套接字
  */
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Unplug, Info } from 'lucide-react';
 import type { UdpCloseConfig as UdpCloseConfigType } from '@/types';
+import { getLL } from '@/i18n/i18n-lazy';
 import { useFlowStore } from '@/stores';
 import { isUdpBindConfig } from '@/types/node';
 
@@ -154,10 +155,10 @@ export function UdpCloseConfig({ data, onSave }: UdpCloseConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
             <Unplug className="h-4 w-4" />
-            UDP 关闭节点
+            {getLL().panels.udpClose.title()}
           </h4>
           <p className="text-sm leading-relaxed text-orange-700/90 whitespace-normal break-words">
-            关闭指定的 UDP 套接字，释放网络资源。
+            {getLL().panels.udpClose.description()}
           </p>
         </div>
       </div>
@@ -165,7 +166,7 @@ export function UdpCloseConfig({ data, onSave }: UdpCloseConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.connection()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -176,7 +177,7 @@ export function UdpCloseConfig({ data, onSave }: UdpCloseConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 UDP 绑定" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -193,7 +194,7 @@ export function UdpCloseConfig({ data, onSave }: UdpCloseConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -202,7 +203,7 @@ export function UdpCloseConfig({ data, onSave }: UdpCloseConfigProps) {
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 UDP Bind 节点，请手动输入连接 ID
+            {getLL().panels.udpClose.noConnectNode()}
           </p>
         )}
       </div>
@@ -211,9 +212,9 @@ export function UdpCloseConfig({ data, onSave }: UdpCloseConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">关闭说明：</p>
-          <p>关闭后将释放 UDP 套接字资源</p>
-          <p>后续发送和接收操作将无法使用该套接字</p>
+          <p className="font-medium text-foreground">{getLL().panels.udpClose.closeInfo()}</p>
+          <p>{getLL().panels.udpClose.closeInfoLine1()}</p>
+          <p>{getLL().panels.udpClose.closeInfoLine2()}</p>
         </div>
       </div>
     </form>

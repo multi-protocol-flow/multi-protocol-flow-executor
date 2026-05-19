@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 节点配置面板主组件
  * 根据节点类型显示不同的配置表单
  */
@@ -36,6 +36,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData, Node } from '@/types';
 import { Settings2, MousePointerClick, Lock, PencilLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface NodeConfigPanelProps {
   /** 只读模式（调试时查看节点配置） */
@@ -48,7 +49,8 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   const { flow, getSelectedNode, updateNode } = useFlowStore();
   const modifyNodeConfig = useDebugStore((state) => state.modifyNodeConfig);
   const historyVersion = useFlowStore(selectHistoryVersion);
-  
+  const ll = getLL().panels.nodeConfig;
+
   // 优先使用外部传入的节点，否则回退到 store 中的选中节点
   const selectedNode = externalNode ?? getSelectedNode();
 
@@ -78,10 +80,10 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             <MousePointerClick className="h-8 w-8 text-muted-foreground" />
           </div>
           <h3 className="text-lg font-medium text-foreground">
-            调试模式
+            {ll.debugMode()}
           </h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            点击画布上的节点查看其配置信息
+            {ll.debugHint()}
           </p>
         </div>
       );
@@ -130,7 +132,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             {readOnly && (
               <>
                 <span className="inline-flex items-center rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
-                  只读
+                  {ll.readOnly()}
                 </span>
                 {selectedNode && (
                   <Button
@@ -140,7 +142,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                     onClick={() => setIsEditDialogOpen(true)}
                   >
                     <PencilLine className="h-3 w-3" />
-                    编辑配置
+                    {ll.editConfig()}
                   </Button>
                 )}
               </>
@@ -148,7 +150,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="flex-1 overflow-hidden p-0 relative">
         <ScrollArea className="h-full">
           <div className={cn(

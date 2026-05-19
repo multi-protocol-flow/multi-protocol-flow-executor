@@ -18,6 +18,7 @@ import { Radio, Info, Plus, Trash2, ChevronDown, Loader2, Shield, MessageSquare 
 import type { MqttConnectConfig as MqttConnectConfigType } from '@/types';
 import { testMqttConnection } from '@/services/tauri/mqtt';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface MqttConnectConfigProps {
   /** 当前节点数据 */
@@ -292,10 +293,10 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-cyan-900 flex items-center gap-2">
             <Radio className="h-4 w-4" />
-            MQTT 连接节点
+            {getLL().panels.mqttConnect.title()}
           </h4>
           <p className="text-sm leading-relaxed text-cyan-700/90 whitespace-normal break-words">
-            建立 MQTT Broker 连接，支持 MQTT 5.0 和 3.1.1 协议。
+            {getLL().panels.mqttConnect.description()}
           </p>
         </div>
       </div>
@@ -303,7 +304,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
       {/* Broker 地址 */}
       <div className="space-y-2">
         <Label htmlFor="url" className="text-sm font-medium text-foreground">
-          Broker 地址 <span className="text-rose-500">*</span>
+          {getLL().panels.mqttConnect.brokerAddress()} <span className="text-rose-500">*</span>
         </Label>
         <div className="relative">
           <Radio className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
@@ -322,16 +323,16 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
       {/* Client ID */}
       <div className="space-y-2">
         <Label htmlFor="client_id" className="text-sm font-medium text-foreground">
-          客户端 ID
+          {getLL().panels.mqttConnect.clientId()}
         </Label>
         <Input
           id="client_id"
           {...register('client_id')}
-          placeholder="留空自动生成 UUID"
+          placeholder={getLL().panels.mqttConnect.clientIdPlaceholder()}
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          留空时执行器将自动生成唯一客户端 ID
+          {getLL().panels.mqttConnect.clientIdHelp()}
         </p>
       </div>
 
@@ -358,7 +359,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
               <Input
                 id="username"
                 {...register('username')}
-                placeholder="可选"
+                placeholder={getLL().panels.optional()}
                 className="h-8 text-xs font-mono"
               />
             </div>
@@ -368,7 +369,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
                 id="password"
                 type="password"
                 {...register('password')}
-                placeholder="可选"
+                placeholder={getLL().panels.optional()}
                 className="h-8 text-xs font-mono"
               />
             </div>
@@ -379,7 +380,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
       {/* MQTT 版本 */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">
-          协议版本
+          {getLL().panels.mqttConnect.protocolVersion()}
         </Label>
         <Select
           value={currentVersion}
@@ -416,7 +417,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
       {/* Keep Alive */}
       <div className="space-y-2">
         <Label htmlFor="keep_alive_secs" className="text-sm font-medium text-foreground">
-          心跳保活间隔（秒）
+          {getLL().panels.mqttConnect.keepAlive()}
         </Label>
         <Input
           id="keep_alive_secs"
@@ -430,7 +431,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
       {/* Connect Timeout */}
       <div className="space-y-2">
         <Label htmlFor="connect_timeout_ms" className="text-sm font-medium text-foreground">
-          连接超时（毫秒）
+          {getLL().panels.mqttConnect.connectTimeout()}
         </Label>
         <Input
           id="connect_timeout_ms"
@@ -583,7 +584,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
                   id="session_expiry_interval"
                   type="number"
                   {...register('session_expiry_interval', { valueAsNumber: true })}
-                  placeholder="可选"
+                  placeholder={getLL().panels.optional()}
                   className="h-8 text-xs font-mono"
                 />
               </div>
@@ -593,7 +594,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
                   id="will_delay_interval"
                   type="number"
                   {...register('will_delay_interval', { valueAsNumber: true })}
-                  placeholder="可选"
+                  placeholder={getLL().panels.optional()}
                   className="h-8 text-xs font-mono"
                 />
               </div>
@@ -603,7 +604,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
                   id="receive_maximum"
                   type="number"
                   {...register('receive_maximum', { valueAsNumber: true })}
-                  placeholder="可选"
+                  placeholder={getLL().panels.optional()}
                   className="h-8 text-xs font-mono"
                 />
               </div>
@@ -613,7 +614,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
                   id="topic_alias_maximum"
                   type="number"
                   {...register('topic_alias_maximum', { valueAsNumber: true })}
-                  placeholder="可选"
+                  placeholder={getLL().panels.optional()}
                   className="h-8 text-xs font-mono"
                 />
               </div>
@@ -623,7 +624,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
                   id="max_packet_size"
                   type="number"
                   {...register('max_packet_size', { valueAsNumber: true })}
-                  placeholder="可选"
+                  placeholder={getLL().panels.optional()}
                   className="h-8 text-xs font-mono"
                 />
               </div>
@@ -644,7 +645,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加
+            {getLL().panels.add()}
           </Button>
         </div>
         <div className="space-y-2">
@@ -699,7 +700,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
           ) : (
             <Radio className="h-4 w-4" />
           )}
-          {isTesting ? '正在测试连接...' : '测试连接'}
+          {isTesting ? getLL().panels.mqttConnect.testing() : getLL().panels.mqttConnect.testConnection()}
         </Button>
 
         {testResult && (

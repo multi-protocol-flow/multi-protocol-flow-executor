@@ -18,6 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2, Globe, X, Terminal, ChevronDown, ChevronRight, Shield, Settings2 } from 'lucide-react';
 import type { HttpConfig as HttpConfigType } from '@/types';
 import { useFlowVariables } from '@/hooks';
+import { getLL } from '@/i18n/i18n-lazy';
 import {
   Dialog,
   DialogContent,
@@ -143,10 +144,10 @@ const HTTP_METHODS = [
 /** 根据 Content-Type 返回对应的 Body 标签和占位提示 */
 const BODY_CONTENT_TYPE_META: Record<string, { label: string; placeholder: string }> = {
   json: { label: 'Body (JSON)', placeholder: '{"key": "value"}' },
-  text: { label: 'Body (Text)', placeholder: '输入文本内容...' },
+  text: { label: 'Body (Text)', placeholder: 'Enter text content...' },
   html: { label: 'Body (HTML)', placeholder: '<div>...</div>' },
   xml: { label: 'Body (XML)', placeholder: '<root>\n  <item>value</item>\n</root>' },
-  javascript: { label: 'Body (JavaScript)', placeholder: '// JavaScript 代码\n' },
+  javascript: { label: 'Body (JavaScript)', placeholder: '// JavaScript code\n' },
 };
 
 export function HttpConfig({ data, onSave }: HttpConfigProps) {
@@ -267,7 +268,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         const config = fromFormData(formData);
         onSave(config);
       } catch (error) {
-        console.error('保存 HTTP 配置失败:', error);
+        console.error('Failed to save HTTP config:', error);
       }
     })();
   }, [handleSubmit, onSave]);
@@ -363,20 +364,20 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
   /** 处理 cURL 导入 */
   const handleCurlImport = useCallback(() => {
     if (!curlText.trim()) {
-      setCurlError('请输入 cURL 命令');
+      setCurlError(getLL().panels.http.curlErrorRequired());
       return;
     }
 
     const formData = parseCurlToFormData(curlText);
     if (!formData) {
-      setCurlError('无法解析 cURL 命令，请检查格式是否正确');
+      setCurlError(getLL().panels.http.curlErrorParseFailed());
       return;
     }
 
     // 用解析结果填充表单
     reset(formData);
 
-    toast.success('cURL 命令已导入');
+    toast.success(getLL().panels.http.curlImportSuccess());
     setCurlText('');
     setCurlError(null);
     setIsCurlDialogOpen(false);
@@ -428,7 +429,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     if (isTauriEnv()) {
       const selected = await open({
         multiple: false,
-        filters: [{ name: '证书文件', extensions: ['pem', 'crt', 'cer', 'cert', 'p12', 'pfx'] }],
+        filters: [{ name: 'Certificate files', extensions: ['pem', 'crt', 'cer', 'cert', 'p12', 'pfx'] }],
       });
       if (selected) {
         setValue('tls_ca_cert_path', selected as string, { shouldDirty: true });
@@ -446,7 +447,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     if (isTauriEnv()) {
       const selected = await open({
         multiple: false,
-        filters: [{ name: '证书文件', extensions: ['pem', 'crt', 'cer', 'cert'] }],
+        filters: [{ name: 'Certificate files', extensions: ['pem', 'crt', 'cer', 'cert'] }],
       });
       if (selected) {
         setValue('tls_client_cert_path', selected as string, { shouldDirty: true });
@@ -464,7 +465,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     if (isTauriEnv()) {
       const selected = await open({
         multiple: false,
-        filters: [{ name: '密钥文件', extensions: ['pem', 'key', 'pk8'] }],
+        filters: [{ name: 'Key files', extensions: ['pem', 'key', 'pk8'] }],
       });
       if (selected) {
         setValue('tls_client_key_path', selected as string, { shouldDirty: true });
@@ -560,7 +561,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           onClick={() => setIsCurlDialogOpen(true)}
         >
           <Terminal className="h-3 w-3" />
-          导入 cURL
+          {getLL().panels.http.curlImportButton()}
         </Button>
       </div>
 
@@ -574,9 +575,9 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       }}>
         <DialogContent className="max-w-[560px]">
           <DialogHeader>
-            <DialogTitle>导入 cURL 命令</DialogTitle>
+            <DialogTitle>{getLL().panels.http.curlDialogTitle()}</DialogTitle>
             <DialogDescription>
-              粘贴从浏览器 DevTools 或 Postman 复制的 cURL 命令，自动解析为 HTTP 请求配置
+              {getLL().panels.http.curlDialogDesc()}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
@@ -595,7 +596,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
               <p className="text-xs text-rose-500">{curlError}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              支持 -X、-H、-d、--data-raw、-F、-b 等常用参数
+              {getLL().panels.http.curlSupportedParams()}
             </p>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -607,10 +608,10 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 setCurlError(null);
               }}
             >
-              取消
+              {getLL().panels.cancel()}
             </Button>
             <Button onClick={handleCurlImport}>
-              导入
+              {getLL().panels.import()}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -645,7 +646,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {/* 请求方法选择 */}
       <div className="space-y-2">
         <Label htmlFor="method" className="text-sm font-medium text-foreground">
-          请求方法
+          {getLL().panels.http.requestMethod()}
         </Label>
         <Select
           value={watchedMethod}
@@ -655,7 +656,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           }}
         >
           <SelectTrigger id="method" className="font-mono">
-            <SelectValue placeholder="选择方法" />
+            <SelectValue placeholder={getLL().panels.http.selectMethod()} />
           </SelectTrigger>
           <SelectContent>
             {HTTP_METHODS.map((method) => (
@@ -672,7 +673,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {/* 超时时间 */}
       <div className="space-y-2">
         <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">
-          超时时间
+          {getLL().panels.http.timeout()}
         </Label>
         <Input
           id="timeout_ms"
@@ -681,7 +682,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           max={300000}
           {...register('timeout_ms', { valueAsNumber: true })}
         />
-        <p className="text-xs text-muted-foreground">毫秒 (ms)</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.http.milliseconds()}</p>
       </div>
 
       {/* Headers 编辑器 */}
@@ -696,13 +697,13 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加
+             {getLL().panels.add()}
           </Button>
         </div>
         <div className="space-y-2">
           {fields.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无自定义 Headers</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.http.noCustomHeaders()}</p>
             </div>
           ) : (
             fields.map((field, index) => (
@@ -744,7 +745,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {/* Body 类型选择器 */}
       <div className="space-y-2">
         <Label htmlFor="body_type" className="text-sm font-medium text-foreground">
-          Body 类型
+          {getLL().panels.http.bodyType()}
         </Label>
         <Select
           value={watchedBodyType || 'none'}
@@ -754,14 +755,14 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           }}
         >
           <SelectTrigger id="body_type" className="font-mono">
-            <SelectValue placeholder="选择 Body 类型" />
+            <SelectValue placeholder={getLL().panels.http.selectBodyType()} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">无 Body</SelectItem>
-            <SelectItem value="body">Raw Body</SelectItem>
-            <SelectItem value="form-data">Form-Data</SelectItem>
-            <SelectItem value="x-www-form-urlencoded">X-WWW-Form-Urlencoded</SelectItem>
-            <SelectItem value="binary">Binary File</SelectItem>
+            <SelectItem value="none">{getLL().panels.http.noBody()}</SelectItem>
+            <SelectItem value="body">{getLL().panels.http.rawBody()}</SelectItem>
+            <SelectItem value="form-data">{getLL().panels.http.formData()}</SelectItem>
+            <SelectItem value="x-www-form-urlencoded">{getLL().panels.http.xWwwFormUrlencoded()}</SelectItem>
+            <SelectItem value="binary">{getLL().panels.http.binaryFile()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -780,7 +781,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
             rows={5}
           />
           <p className="text-xs text-muted-foreground break-all">
-            支持使用 <code className="rounded bg-muted px-1 py-0.5 break-all">{'{{变量名}}'}</code> 引用变量
+            {getLL().panels.http.variableRefHelp('{{var}}')}
           </p>
           <VariableValidationWarning
             value={watch('body') || ''}
@@ -803,7 +804,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
             }}
           >
             <SelectTrigger id="content_type" className="font-mono">
-              <SelectValue placeholder="选择 Content-Type" />
+              <SelectValue placeholder={getLL().panels.http.selectContentType()} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="json">JSON</SelectItem>
@@ -829,13 +830,13 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
               className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
               <Plus className="h-3 w-3" />
-              添加字段
+               {getLL().panels.addField()}
             </Button>
           </div>
           <div className="space-y-2">
             {formFields.fields.length === 0 ? (
               <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-                <p className="text-xs text-muted-foreground">暂无 Form Fields</p>
+                <p className="text-xs text-muted-foreground">{getLL().panels.http.noFormFields()}</p>
               </div>
             ) : (
               formFields.fields.map((field, index) => {
@@ -891,7 +892,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                         <div className="flex items-center gap-2">
                           <Input
                             {...register(`form_fields.${index}.file_path`)}
-                            placeholder="点击选择文件..."
+                            placeholder={getLL().panels.http.clickToSelectFile()}
                             className="h-8 flex-1 font-mono text-xs bg-muted/50 cursor-pointer"
                             readOnly
                             onClick={() => handleSelectFormFieldFile(index)}
@@ -927,7 +928,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            支持使用 <code className="rounded bg-muted px-1 py-0.5">{'{{变量名}}'}</code> 引用变量
+            {getLL().panels.http.variableRefHelp('{{var}}')}
           </p>
         </div>
       )}
@@ -935,11 +936,11 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {/* Binary File 选择器 */}
       {watchedBodyType === 'binary' && (
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-foreground">File Path</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.http.filePath()}</Label>
           <div className="flex items-center gap-2">
             <Input
               {...register('file_path')}
-              placeholder="点击选择文件..."
+              placeholder={getLL().panels.http.clickToSelectFile()}
               className="h-8 flex-1 font-mono text-xs bg-muted/50 cursor-pointer"
               readOnly
               onClick={handleSelectFile}
@@ -971,7 +972,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         >
           {advancedOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
           <Settings2 className="h-4 w-4 text-muted-foreground" />
-          高级设置
+          {getLL().panels.advancedSettings()}
         </button>
 
         {advancedOpen && (
@@ -984,7 +985,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
               >
                 {authOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                认证配置
+                {getLL().panels.http.authConfig()}
                 {watchedAuthType && watchedAuthType !== 'none' && (
                   <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
                     {watchedAuthType}
@@ -996,7 +997,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 <div className="space-y-3 px-2 pb-3">
                   {/* 认证类型 */}
                   <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">认证类型</Label>
+                    <Label className="text-xs text-muted-foreground">{getLL().panels.http.authType()}</Label>
                     <Select
                       value={watchedAuthType || 'none'}
                       onValueChange={(value) => {
@@ -1008,12 +1009,12 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">无认证</SelectItem>
-                        <SelectItem value="basic">Basic Auth</SelectItem>
-                        <SelectItem value="bearer">Bearer Token</SelectItem>
-                        <SelectItem value="api_key_header">API Key (Header)</SelectItem>
-                        <SelectItem value="api_key_query">API Key (Query)</SelectItem>
-                        <SelectItem value="digest">Digest</SelectItem>
+                        <SelectItem value="none">{getLL().panels.http.noAuth()}</SelectItem>
+                        <SelectItem value="basic">{getLL().panels.http.basicAuth()}</SelectItem>
+                        <SelectItem value="bearer">{getLL().panels.http.bearerToken()}</SelectItem>
+                        <SelectItem value="api_key_header">{getLL().panels.http.apiKeyHeader()}</SelectItem>
+                        <SelectItem value="api_key_query">{getLL().panels.http.apiKeyQuery()}</SelectItem>
+                        <SelectItem value="digest">{getLL().panels.http.digest()}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1022,7 +1023,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   {watchedAuthType === 'basic' && (
                     <div className="space-y-2">
                       <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">用户名</Label>
+                        <Label className="text-xs text-muted-foreground">{getLL().panels.http.username()}</Label>
                         <VariableInput
                           variables={variables}
                           nodeLabels={nodeLabels}
@@ -1033,7 +1034,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">密码</Label>
+                        <Label className="text-xs text-muted-foreground">{getLL().panels.http.password()}</Label>
                         <Input
                           type="password"
                           {...register('auth.password')}
@@ -1047,7 +1048,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   {/* Bearer Token */}
                   {watchedAuthType === 'bearer' && (
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Token</Label>
+                      <Label className="text-xs text-muted-foreground">{getLL().panels.http.token()}</Label>
                       <VariableInput
                         variables={variables}
                         nodeLabels={nodeLabels}
@@ -1063,7 +1064,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   {watchedAuthType === 'api_key_header' && (
                     <div className="space-y-2">
                       <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">Header 名称</Label>
+                        <Label className="text-xs text-muted-foreground">{getLL().panels.http.headerName()}</Label>
                         <Input
                           {...register('auth.api_key_name')}
                           placeholder="X-API-Key"
@@ -1071,7 +1072,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">值</Label>
+                        <Label className="text-xs text-muted-foreground">{getLL().panels.http.value()}</Label>
                         <VariableInput
                           variables={variables}
                           nodeLabels={nodeLabels}
@@ -1088,7 +1089,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   {watchedAuthType === 'api_key_query' && (
                     <div className="space-y-2">
                       <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">参数名称</Label>
+                        <Label className="text-xs text-muted-foreground">{getLL().panels.http.paramName()}</Label>
                         <Input
                           {...register('auth.api_key_name')}
                           placeholder="api_key"
@@ -1096,7 +1097,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">值</Label>
+                        <Label className="text-xs text-muted-foreground">{getLL().panels.http.value()}</Label>
                         <VariableInput
                           variables={variables}
                           nodeLabels={nodeLabels}
@@ -1112,7 +1113,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   {/* Digest */}
                   {watchedAuthType === 'digest' && (
                     <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-3 text-center">
-                      <p className="text-xs text-muted-foreground">Digest 认证暂不支持</p>
+                      <p className="text-xs text-muted-foreground">{getLL().panels.http.digestNotSupported()}</p>
                     </div>
                   )}
                 </div>
@@ -1126,17 +1127,16 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 onClick={() => setRedirectOpen(!redirectOpen)}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
               >
-                {redirectOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                重定向配置
+                {redirectOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}                {getLL().panels.http.redirectConfig()}
                 {watchedFollowRedirects === false && (
-                  <span className="ml-auto rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-600">已禁用</span>
+                  <span className="ml-auto rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-600">{getLL().panels.http.disabled()}</span>
                 )}
               </button>
 
               {redirectOpen && (
                 <div className="space-y-3 px-2 pb-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs text-muted-foreground">跟随重定向</Label>
+                    <Label className="text-xs text-muted-foreground">{getLL().panels.http.followRedirects()}</Label>
                     <Switch
                       checked={watch('follow_redirects') ?? true}
                       onCheckedChange={(checked) => {
@@ -1147,7 +1147,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   </div>
                   {(watchedFollowRedirects !== false) && (
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">最大重定向次数</Label>
+                      <Label className="text-xs text-muted-foreground">{getLL().panels.http.maxRedirects()}</Label>
                       <Input
                         type="number"
                         min={1}
@@ -1169,17 +1169,16 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
               >
                 {tlsOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-                TLS 配置
+                <Shield className="h-3.5 w-3.5 text-muted-foreground" />                {getLL().panels.http.tlsConfig()}
                 {watch('tls_skip_verify') && (
-                  <span className="ml-auto rounded-full bg-rose-500/10 px-2 py-0.5 text-xs text-rose-500">跳过验证</span>
+                  <span className="ml-auto rounded-full bg-rose-500/10 px-2 py-0.5 text-xs text-rose-500">{getLL().panels.http.skipVerify()}</span>
                 )}
               </button>
 
               {tlsOpen && (
                 <div className="space-y-3 px-2 pb-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs text-muted-foreground">跳过证书验证</Label>
+                    <Label className="text-xs text-muted-foreground">{getLL().panels.http.skipCertVerify()}</Label>
                     <Switch
                       checked={watch('tls_skip_verify') ?? false}
                       onCheckedChange={(checked) => {
@@ -1189,7 +1188,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">CA 证书路径</Label>
+                    <Label className="text-xs text-muted-foreground">{getLL().panels.http.caCertPath()}</Label>
                     <div className="flex items-center gap-2">
                       <Input
                         {...register('tls_ca_cert_path')}
@@ -1215,7 +1214,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">客户端证书路径</Label>
+                    <Label className="text-xs text-muted-foreground">{getLL().panels.http.clientCertPath()}</Label>
                     <div className="flex items-center gap-2">
                       <Input
                         {...register('tls_client_cert_path')}
@@ -1241,7 +1240,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">客户端密钥路径</Label>
+                    <Label className="text-xs text-muted-foreground">{getLL().panels.http.clientKeyPath()}</Label>
                     <div className="flex items-center gap-2">
                       <Input
                         {...register('tls_client_key_path')}
@@ -1277,15 +1276,14 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 onClick={() => setCompressionOpen(!compressionOpen)}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
               >
-                {compressionOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                压缩配置
+                {compressionOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}                {getLL().panels.http.compressionConfig()}
               </button>
 
               {compressionOpen && (
                 <div className="space-y-3 px-2 pb-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label className="text-xs text-muted-foreground">自动处理压缩响应</Label>
+                      <Label className="text-xs text-muted-foreground">{getLL().panels.http.autoDecompress()}</Label>
                       <p className="text-xs text-muted-foreground/60 mt-0.5">gzip / deflate / brotli</p>
                     </div>
                     <Switch
@@ -1308,10 +1306,10 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
               >
                 {cookieOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                Cookie 配置
+                {getLL().panels.http.cookieConfig()}
                 {watchedEnableCookies && (
                   <span className="ml-auto rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-600">
-                    {cookieJar.fields.length} 条
+                    {getLL().panels.http.cookieCount({ count: cookieJar.fields.length })}
                   </span>
                 )}
               </button>
@@ -1319,7 +1317,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
               {cookieOpen && (
                 <div className="space-y-3 px-2 pb-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs text-muted-foreground">启用 Cookie 管理</Label>
+                    <Label className="text-xs text-muted-foreground">{getLL().panels.http.enableCookieManagement()}</Label>
                     <Switch
                       checked={watchedEnableCookies ?? false}
                       onCheckedChange={(checked) => {
@@ -1332,7 +1330,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   {watchedEnableCookies && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label className="text-xs text-muted-foreground">初始 Cookie</Label>
+                        <Label className="text-xs text-muted-foreground">{getLL().panels.http.initialCookies()}</Label>
                         <Button
                           type="button"
                           variant="ghost"
@@ -1341,12 +1339,12 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                           className="h-6 gap-1 text-xs text-muted-foreground hover:text-foreground"
                         >
                           <Plus className="h-3 w-3" />
-                          添加
+                          {getLL().panels.add()}
                         </Button>
                       </div>
                       {cookieJar.fields.length === 0 ? (
                         <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-3 text-center">
-                          <p className="text-xs text-muted-foreground">暂无 Cookie</p>
+                          <p className="text-xs text-muted-foreground">{getLL().panels.http.noCookies()}</p>
                         </div>
                       ) : (
                         cookieJar.fields.map((field, index) => (
@@ -1354,12 +1352,12 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                             <div className="flex items-center gap-2">
                               <Input
                                 {...register(`cookie_jar.${index}.name`)}
-                                placeholder="名称"
+                                placeholder={getLL().panels.http.cookieName()}
                                 className="h-7 flex-1 font-mono text-xs"
                               />
                               <Input
                                 {...register(`cookie_jar.${index}.value`)}
-                                placeholder="值"
+                                placeholder={getLL().panels.http.value()}
                                 className="h-7 flex-1 font-mono text-xs"
                               />
                               <Button
@@ -1375,12 +1373,12 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                             <div className="flex items-center gap-2">
                               <Input
                                 {...register(`cookie_jar.${index}.domain`)}
-                                placeholder="域名（可选）"
+                                placeholder={getLL().panels.http.cookieDomainOptional()}
                                 className="h-7 flex-1 text-xs"
                               />
                               <Input
                                 {...register(`cookie_jar.${index}.path`)}
-                                placeholder="路径（可选）"
+                                placeholder={getLL().panels.http.cookiePathOptional()}
                                 className="h-7 flex-1 text-xs"
                               />
                             </div>
@@ -1401,10 +1399,10 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
               >
                 {retryOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                重试配置
+                {getLL().panels.http.retryConfig()}
                 {watchedRetryCount && watchedRetryCount > 0 && (
                   <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                    {watchedRetryCount} 次
+                    {getLL().panels.http.retryCountBadge({ count: watchedRetryCount })}
                   </span>
                 )}
               </button>
@@ -1412,7 +1410,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
               {retryOpen && (
                 <div className="space-y-3 px-2 pb-3">
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">重试次数</Label>
+                    <Label className="text-xs text-muted-foreground">{getLL().panels.http.retryCount()}</Label>
                     <Input
                       type="number"
                       min={0}
@@ -1425,7 +1423,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   {(watchedRetryCount ?? 0) > 0 && (
                     <>
                       <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">重试延迟 (ms)</Label>
+                        <Label className="text-xs text-muted-foreground">{getLL().panels.http.retryDelayMs()}</Label>
                         <Input
                           type="number"
                           min={0}
@@ -1436,7 +1434,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <Label className="text-xs text-muted-foreground">触发重试的状态码</Label>
+                          <Label className="text-xs text-muted-foreground">{getLL().panels.http.retryOnStatusCodes()}</Label>
                           <Button
                             type="button"
                             variant="ghost"
@@ -1445,7 +1443,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                             className="h-6 gap-1 text-xs text-muted-foreground hover:text-foreground"
                           >
                             <Plus className="h-3 w-3" />
-                            添加
+                            {getLL().panels.add()}
                           </Button>
                         </div>
 

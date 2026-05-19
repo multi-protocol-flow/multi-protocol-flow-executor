@@ -45,6 +45,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
 import { RawJsonViewer } from './RawJsonViewer';
+import { useVT } from '@/i18n/viewer-translations';
 
 interface AmqpViewerProps {
   /** 节点执行报告 */
@@ -478,6 +479,7 @@ function Amqp10MessageCard({ message, index }: { message: Amqp10Message; index: 
 // ============================================================================
 
 export function AmqpViewer({ report }: AmqpViewerProps) {
+  const t = useVT();
   const nodeType = report.node_type;
 
   switch (nodeType) {
@@ -521,7 +523,7 @@ export function AmqpViewer({ report }: AmqpViewerProps) {
     default:
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
-          未知的 AMQP 节点类型: {nodeType}
+          {t('amqp.unknown_node_type', { type: nodeType })}
         </div>
       );
   }
@@ -532,32 +534,32 @@ export function AmqpViewer({ report }: AmqpViewerProps) {
 // ============================================================================
 
 function AmqpConnectView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as AmqpConnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const serverProps = output?.server_properties;
 
   return (
     <div className="space-y-3">
-      {/* 连接状态 */}
       <CollapsibleSection
-        title="连接状态"
+        title={t('amqp.section_connection')}
         icon={<Cable className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已连接" failText="连接失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_connected')} failText={t('amqp.status_connection_failed')} />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'AMQP 连接建立成功'
-                : output?.error ?? '无法建立 AMQP 连接'}
+                ? t('amqp.connect_success')
+                : output?.error ?? t('amqp.connect_error')}
             </span>
           </div>
 
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{t('amqp.label_connection_id')}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>
@@ -568,44 +570,42 @@ function AmqpConnectView({ report }: { report: NodeExecutionReport }) {
         </div>
       </CollapsibleSection>
 
-      {/* 服务器属性 */}
       {isSuccess && serverProps && (
         <CollapsibleSection
-          title="服务器属性"
+          title={t('amqp.section_server_properties')}
           icon={<Server className="w-4 h-4" />}
           defaultOpen={true}
         >
           <div className="flex flex-wrap gap-2">
             {serverProps.product && (
               <Badge variant="outline" className="font-mono text-xs">
-                产品: {serverProps.product}
+                {t('amqp.label_server_product')}: {serverProps.product}
               </Badge>
             )}
             {serverProps.version && (
               <Badge variant="outline" className="font-mono text-xs">
-                版本: {serverProps.version}
+                {t('amqp.label_server_version')}: {serverProps.version}
               </Badge>
             )}
             {serverProps.host && (
               <Badge variant="outline" className="font-mono text-xs">
-                主机: {serverProps.host}
+                {t('amqp.label_server_host')}: {serverProps.host}
               </Badge>
             )}
             {output?.channel_max !== undefined && (
               <Badge variant="secondary" className="font-mono text-xs">
-                最大通道数: {output.channel_max}
+                {t('amqp.label_channel_max')}: {output.channel_max}
               </Badge>
             )}
             {output?.frame_max !== undefined && (
               <Badge variant="secondary" className="font-mono text-xs">
-                最大帧大小: {output.frame_max}
+                {t('amqp.label_frame_max')}: {output.frame_max}
               </Badge>
             )}
           </div>
         </CollapsibleSection>
       )}
 
-      {/* 变量变更 */}
       <VariableChangesCard changes={report.variable_changes} />
     </div>
   );
@@ -616,23 +616,24 @@ function AmqpConnectView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpCloseView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as AmqpCloseOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title="关闭状态"
+        title={t('amqp.section_close')}
         icon={<Unplug className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已关闭" failText="关闭失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_closed')} failText={t('amqp.status_close_failed')} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'AMQP 连接已成功关闭'
-                : output?.error ?? '关闭连接失败'}
+                ? t('amqp.close_success')
+                : output?.error ?? t('amqp.close_error')}
             </span>
           </div>
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -649,6 +650,7 @@ function AmqpCloseView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpExchangeView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as AmqpExchangeOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const isDeclare = report.node_type === 'amqp_exchange_declare';
@@ -656,7 +658,7 @@ function AmqpExchangeView({ report }: { report: NodeExecutionReport }) {
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={isDeclare ? '交换机声明' : '交换机删除'}
+        title={isDeclare ? t('amqp.section_exchange') : t('amqp.section_exchange_delete')}
         icon={<Layers className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -664,24 +666,24 @@ function AmqpExchangeView({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-3">
             <StatusBadge
               isSuccess={isSuccess}
-              successText={isDeclare ? '已声明' : '已删除'}
-              failText={isDeclare ? '声明失败' : '删除失败'}
+              successText={isDeclare ? t('amqp.status_declared') : t('amqp.status_deleted')}
+              failText={isDeclare ? t('amqp.status_declare_failed') : t('amqp.status_delete_failed')}
             />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? isDeclare
-                  ? `交换机 ${output?.exchange ?? ''} 声明成功`
-                  : `交换机 ${output?.exchange ?? ''} 删除成功`
-                : output?.error ?? (isDeclare ? '交换机声明失败' : '交换机删除失败')}
+                  ? t('amqp.exchange_declare_success', { name: output?.exchange ?? '' })
+                  : t('amqp.exchange_delete_success', { name: output?.exchange ?? '' })
+                : output?.error ?? (isDeclare ? t('amqp.exchange_declare_error') : t('amqp.exchange_delete_error'))}
             </span>
           </div>
 
           {output?.exchange && (
-            <KvRow label="交换机" value={output.exchange} />
+            <KvRow label={t('amqp.label_exchange')} value={output.exchange} />
           )}
           {output?.exchange_type && (
-            <KvRow label="类型" value={output.exchange_type} />
+            <KvRow label={t('amqp.label_exchange_type')} value={output.exchange_type} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -698,41 +700,42 @@ function AmqpExchangeView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpQueueDeclareView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as AmqpQueueDeclareOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title="队列声明"
+        title={t('amqp.section_queue_declare')}
         icon={<Inbox className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已声明" failText="声明失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_declared')} failText={t('amqp.status_declare_failed')} />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `队列 ${output?.queue ?? ''} 声明成功`
-                : output?.error ?? '队列声明失败'}
+                ? t('amqp.queue_declare_success', { name: output?.queue ?? '' })
+                : output?.error ?? t('amqp.queue_declare_error')}
             </span>
           </div>
 
           {output?.queue && (
-            <KvRow label="队列名" value={output.queue} />
+            <KvRow label={t('amqp.label_queue_name')} value={output.queue} />
           )}
 
           {isSuccess && (
             <div className="flex flex-wrap gap-2">
               {output?.message_count !== undefined && (
                 <Badge variant="outline" className="font-mono text-xs">
-                  消息数: {output.message_count}
+                  {t('amqp.label_message_count')}: {output.message_count}
                 </Badge>
               )}
               {output?.consumer_count !== undefined && (
                 <Badge variant="outline" className="font-mono text-xs">
-                  消费者数: {output.consumer_count}
+                  {t('amqp.label_consumer_count')}: {output.consumer_count}
                 </Badge>
               )}
             </div>
@@ -752,33 +755,34 @@ function AmqpQueueDeclareView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpQueueDeleteView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as AmqpQueueDeleteOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title="队列删除"
+        title={t('amqp.section_queue_delete')}
         icon={<X className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已删除" failText="删除失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_deleted')} failText={t('amqp.status_delete_failed')} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `队列 ${output?.queue ?? ''} 删除成功`
-                : output?.error ?? '队列删除失败'}
+                ? t('amqp.queue_delete_success', { name: output?.queue ?? '' })
+                : output?.error ?? t('amqp.queue_delete_error')}
             </span>
           </div>
 
           {output?.queue && (
-            <KvRow label="队列名" value={output.queue} />
+            <KvRow label={t('amqp.label_queue_name')} value={output.queue} />
           )}
 
           {isSuccess && output?.deleted_message_count !== undefined && (
             <Badge variant="secondary" className="font-mono text-xs">
-              已删除消息数: {output.deleted_message_count}
+              {t('amqp.label_deleted_messages')}: {output.deleted_message_count}
             </Badge>
           )}
 
@@ -796,30 +800,31 @@ function AmqpQueueDeleteView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpQueueBindView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as AmqpQueueBindOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title="队列绑定"
+        title={t('amqp.section_queue_bind')}
         icon={<Layers className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已绑定" failText="绑定失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_bound')} failText={t('amqp.status_bind_failed')} />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? '队列绑定成功'
-                : output?.error ?? '队列绑定失败'}
+                ? t('amqp.queue_bind_success')
+                : output?.error ?? t('amqp.queue_bind_error')}
             </span>
           </div>
 
-          {output?.queue && <KvRow label="队列" value={output.queue} />}
-          {output?.exchange && <KvRow label="交换机" value={output.exchange} />}
-          {output?.routing_key && <KvRow label="路由键" value={output.routing_key} />}
+          {output?.queue && <KvRow label={t('amqp.label_queue')} value={output.queue} />}
+          {output?.exchange && <KvRow label={t('amqp.label_exchange')} value={output.exchange} />}
+          {output?.routing_key && <KvRow label={t('amqp.label_routing_key')} value={output.routing_key} />}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
         </div>
@@ -835,14 +840,14 @@ function AmqpQueueBindView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpPublishView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as AmqpPublishOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
-      {/* 发布配置 */}
       <CollapsibleSection
-        title="发布配置"
+        title={t('amqp.section_publish_config')}
         icon={<Send className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -854,41 +859,40 @@ function AmqpPublishView({ report }: { report: NodeExecutionReport }) {
                 {output.routing_key}
               </code>
             ) : (
-              <span className="text-sm text-muted-foreground italic">未配置路由键</span>
+              <span className="text-sm text-muted-foreground italic">{t('amqp.no_routing_key')}</span>
             )}
           </div>
 
           <div className="flex flex-wrap gap-2">
             {output?.exchange && (
               <Badge variant="outline" className="font-mono text-xs">
-                交换机: {output.exchange}
+                {t('amqp.label_exchange')}: {output.exchange}
               </Badge>
             )}
           </div>
         </div>
       </CollapsibleSection>
 
-      {/* 发布状态 */}
       <CollapsibleSection
-        title="发布状态"
+        title={t('amqp.section_publish_status')}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已发布" failText="发布失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_published')} failText={t('amqp.status_publish_failed')} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? '消息已成功发布'
-                : output?.error ?? '消息发布失败'}
+                ? t('amqp.publish_success')
+                : output?.error ?? t('amqp.publish_error')}
             </span>
           </div>
 
           {isSuccess && output?.confirm_status && (
-            <KvRow label="确认状态" value={output.confirm_status} />
+            <KvRow label={t('amqp.label_confirm_status')} value={output.confirm_status} />
           )}
           {isSuccess && output?.message_id && (
-            <KvRow label="消息 ID" value={output.message_id} />
+            <KvRow label={t('amqp.label_message_id')} value={output.message_id} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -905,6 +909,7 @@ function AmqpPublishView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpConsumeView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as AmqpConsumeOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const messages = output?.messages ?? [];
@@ -912,40 +917,38 @@ function AmqpConsumeView({ report }: { report: NodeExecutionReport }) {
 
   return (
     <div className="space-y-3">
-      {/* 消费状态 */}
       <CollapsibleSection
-        title="消费状态"
+        title={t('amqp.section_consume_status')}
         icon={<Inbox className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="消费完成" failText="消费失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_consume_complete')} failText={t('amqp.status_consume_failed')} />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `收到 ${messageCount} 条消息`
-                : output?.error ?? '消费失败'}
+                ? t('amqp.consume_success', { count: messageCount })
+                : output?.error ?? t('amqp.consume_error')}
             </span>
           </div>
 
           {output?.duration_ms !== undefined && (
-            <KvRow label="持续时间" value={`${output.duration_ms}ms`} />
+            <KvRow label={t('amqp.label_duration')} value={`${output.duration_ms}ms`} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
         </div>
       </CollapsibleSection>
 
-      {/* 消息列表 */}
       {messages.length > 0 && (
         <CollapsibleSection
-          title="消息列表"
+          title={t('amqp.section_message_list')}
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {messageCount} 条消息
+              {t('amqp.messages_count', { count: messageCount })}
             </Badge>
           }
         >
@@ -967,43 +970,42 @@ function AmqpConsumeView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpGetView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as AmqpGetOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const message = output?.message;
 
   return (
     <div className="space-y-3">
-      {/* 获取状态 */}
       <CollapsibleSection
-        title="获取状态"
+        title={t('amqp.section_get_status')}
         icon={<Inbox className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已获取" failText="获取失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_fetched')} failText={t('amqp.status_fetch_failed')} />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? message
-                  ? '成功获取消息'
-                  : '队列为空，无消息'
-                : output?.error ?? '获取消息失败'}
+                  ? t('amqp.fetch_success')
+                  : t('amqp.fetch_empty')
+                : output?.error ?? t('amqp.fetch_error')}
             </span>
           </div>
 
           {output?.message_count !== undefined && (
-            <KvRow label="队列消息数" value={output.message_count} />
+            <KvRow label={t('amqp.label_queue_messages')} value={output.message_count} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
         </div>
       </CollapsibleSection>
 
-      {/* 消息详情 */}
       {message && (
         <CollapsibleSection
-          title="消息详情"
+          title={t('amqp.section_message_detail')}
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={true}
         >
@@ -1021,30 +1023,31 @@ function AmqpGetView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpAckView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as AmqpAckOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title="确认状态"
+        title={t('amqp.section_ack_status')}
         icon={<Check className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已确认" failText="确认失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_acknowledged')} failText={t('amqp.status_ack_failed')} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? output?.delivery_tag !== undefined
-                  ? `消息 (delivery_tag: ${output.delivery_tag}) 已确认`
-                  : '消息已确认'
-                : output?.error ?? '消息确认失败'}
+                  ? t('amqp.ack_success_with_tag', { tag: output.delivery_tag })
+                  : t('amqp.ack_success')
+                : output?.error ?? t('amqp.ack_error')}
             </span>
           </div>
 
           {output?.delivery_tag !== undefined && (
-            <KvRow label="Delivery Tag" value={output.delivery_tag} />
+            <KvRow label={t('amqp.label_delivery_tag')} value={output.delivery_tag} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -1061,6 +1064,7 @@ function AmqpAckView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpManagementView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as AmqpManagementOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const overview = output?.overview;
@@ -1068,20 +1072,19 @@ function AmqpManagementView({ report }: { report: NodeExecutionReport }) {
 
   return (
     <div className="space-y-3">
-      {/* 管理状态 */}
       <CollapsibleSection
-        title="管理操作"
+        title={t('amqp.section_management')}
         icon={<Settings className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="操作成功" failText="操作失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_operation_ok')} failText={t('amqp.status_operation_failed')} />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? '管理 API 请求成功'
-                : output?.error ?? '管理 API 请求失败'}
+                ? t('amqp.management_success')
+                : output?.error ?? t('amqp.management_error')}
             </span>
           </div>
 
@@ -1089,47 +1092,45 @@ function AmqpManagementView({ report }: { report: NodeExecutionReport }) {
         </div>
       </CollapsibleSection>
 
-      {/* 概览统计 */}
       {isSuccess && overview && (
         <CollapsibleSection
-          title="概览统计"
+          title={t('amqp.section_overview')}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={true}
         >
           <div className="flex flex-wrap gap-2">
             {overview.connection_count !== undefined && (
               <Badge variant="outline" className="font-mono text-xs">
-                连接数: {overview.connection_count}
+                {t('amqp.label_connection_count')}: {overview.connection_count}
               </Badge>
             )}
             {overview.channel_count !== undefined && (
               <Badge variant="outline" className="font-mono text-xs">
-                通道数: {overview.channel_count}
+                {t('amqp.label_channel_count')}: {overview.channel_count}
               </Badge>
             )}
             {overview.queue_count !== undefined && (
               <Badge variant="outline" className="font-mono text-xs">
-                队列数: {overview.queue_count}
+                {t('amqp.label_queue_count')}: {overview.queue_count}
               </Badge>
             )}
             {overview.message_stats?.publish !== undefined && (
               <Badge variant="secondary" className="font-mono text-xs">
-                发布速率: {overview.message_stats.publish}
+                {t('amqp.label_publish_rate')}: {overview.message_stats.publish}
               </Badge>
             )}
             {overview.message_stats?.deliver !== undefined && (
               <Badge variant="secondary" className="font-mono text-xs">
-                投递速率: {overview.message_stats.deliver}
+                {t('amqp.label_deliver_rate')}: {overview.message_stats.deliver}
               </Badge>
             )}
           </div>
         </CollapsibleSection>
       )}
 
-      {/* 完整响应 */}
       {hasResponse && (
         <CollapsibleSection
-          title="API 响应"
+          title={t('amqp.section_api_response')}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={false}
         >
@@ -1149,40 +1150,41 @@ function AmqpManagementView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function Amqp10ConnectView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as Amqp10ConnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title="连接状态"
+        title={t('amqp.section_connection')}
         icon={<Cable className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已连接" failText="连接失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_connected')} failText={t('amqp.status_connection_failed')} />
             <Badge
               variant="outline"
               className="font-mono text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50 border-0"
             >
-              AMQP 1.0
+              {t('amqp.protocol_amqp10')}
             </Badge>
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'AMQP 1.0 连接建立成功'
-                : output?.error ?? '无法建立 AMQP 1.0 连接'}
+                ? t('amqp.connect_success_10')
+                : output?.error ?? t('amqp.connect_error_10')}
             </span>
           </div>
 
           {output?.connection_id && (
-            <KvRow label="连接 ID" value={output.connection_id} />
+            <KvRow label={t('amqp.label_connection_id')} value={output.connection_id} />
           )}
           {output?.container_id && (
-            <KvRow label="容器 ID" value={output.container_id} />
+            <KvRow label={t('amqp.label_container_id')} value={output.container_id} />
           )}
           {output?.session_info && (
-            <KvRow label="会话信息" value={output.session_info} />
+            <KvRow label={t('amqp.label_session_info')} value={output.session_info} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -1199,31 +1201,32 @@ function Amqp10ConnectView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function Amqp10SendView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as Amqp10SendOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title="发送状态"
+        title={t('amqp.section_send_status')}
         icon={<Send className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已发送" failText="发送失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_sent')} failText={t('amqp.status_send_failed')} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? '消息已成功发送'
-                : output?.error ?? '消息发送失败'}
+                ? t('amqp.send_success')
+                : output?.error ?? t('amqp.send_error')}
             </span>
           </div>
 
           {isSuccess && output?.delivery_state && (
-            <KvRow label="投递状态" value={output.delivery_state} />
+            <KvRow label={t('amqp.label_delivery_status')} value={output.delivery_state} />
           )}
           {isSuccess && output?.message_id && (
-            <KvRow label="消息 ID" value={output.message_id} />
+            <KvRow label={t('amqp.label_message_id')} value={output.message_id} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -1240,6 +1243,7 @@ function Amqp10SendView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function Amqp10ReceiveView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as Amqp10ReceiveOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const messages = output?.messages ?? [];
@@ -1247,45 +1251,43 @@ function Amqp10ReceiveView({ report }: { report: NodeExecutionReport }) {
 
   return (
     <div className="space-y-3">
-      {/* 接收状态 */}
       <CollapsibleSection
-        title="接收状态"
+        title={t('amqp.section_receive_status')}
         icon={<Inbox className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="接收完成" failText="接收失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_received')} failText={t('amqp.status_receive_failed')} />
             <Badge
               variant="outline"
               className="font-mono text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50 border-0"
             >
-              AMQP 1.0
+              {t('amqp.protocol_amqp10')}
             </Badge>
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `收到 ${messageCount} 条消息`
-                : output?.error ?? '接收失败'}
+                ? t('amqp.receive_success', { count: messageCount })
+                : output?.error ?? t('amqp.receive_error')}
             </span>
           </div>
 
           {output?.duration_ms !== undefined && (
-            <KvRow label="持续时间" value={`${output.duration_ms}ms`} />
+            <KvRow label={t('amqp.label_duration')} value={`${output.duration_ms}ms`} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
         </div>
       </CollapsibleSection>
 
-      {/* 消息列表 */}
       {messages.length > 0 && (
         <CollapsibleSection
-          title="消息列表"
+          title={t('amqp.section_message_list')}
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {messageCount} 条消息
+              {t('amqp.messages_count', { count: messageCount })}
             </Badge>
           }
         >
@@ -1307,23 +1309,24 @@ function Amqp10ReceiveView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function Amqp10AcceptView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as Amqp10AcceptOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title="接受状态"
+        title={t('amqp.section_accept_status')}
         icon={<Check className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已接受" failText="接受失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_accepted')} failText={t('amqp.status_accept_failed')} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? '消息已成功接受'
-                : output?.error ?? '消息接受失败'}
+                ? t('amqp.accept_success')
+                : output?.error ?? t('amqp.accept_error')}
             </span>
           </div>
 
@@ -1341,23 +1344,24 @@ function Amqp10AcceptView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function Amqp10RejectView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as Amqp10RejectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title="拒绝状态"
+        title={t('amqp.section_reject_status')}
         icon={<Ban className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已拒绝" failText="拒绝失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_rejected')} failText={t('amqp.status_reject_failed')} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? '消息已成功拒绝'
-                : output?.error ?? '消息拒绝失败'}
+                ? t('amqp.reject_success')
+                : output?.error ?? t('amqp.reject_error')}
             </span>
           </div>
 
@@ -1375,23 +1379,24 @@ function Amqp10RejectView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function Amqp10DisconnectView({ report }: { report: NodeExecutionReport }) {
+  const t = useVT();
   const output = report.output_data as Amqp10DisconnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title="断开状态"
+        title={t('amqp.section_disconnect_status')}
         icon={<Unplug className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已断开" failText="断开失败" />
+            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_disconnected')} failText={t('amqp.status_disconnect_failed')} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'AMQP 1.0 连接已成功断开'
-                : output?.error ?? '断开连接失败'}
+                ? t('amqp.disconnect_success')
+                : output?.error ?? t('amqp.disconnect_error')}
             </span>
           </div>
 

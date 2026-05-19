@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AMQP 1.0 Receive 节点配置组件
  */
 import { useForm } from 'react-hook-form';
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Inbox, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { Amqp10ReceiveConfig as ConfigType } from '@/types';
 
 interface Props { data: ConfigType; onSave: (data: ConfigType) => void; }
@@ -95,20 +96,20 @@ export function Amqp10ReceiveConfigPanel({ data, onSave }: Props) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <Inbox className="h-4 w-4" />
-            AMQP 1.0 接收节点
+            {getLL().panels.amqp10Receive.title()}
           </h4>
-          <p className="text-sm leading-relaxed text-violet-700/90">从 AMQP 1.0 地址接收消息。</p>
+          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqp10Receive.description()}</p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">连接 ID <span className="text-rose-500">*</span></Label>
-        <Input id="connection_id" {...register('connection_id')} placeholder="输入连接 ID" className="font-mono text-sm" />
+        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Receive.connectionId()} <span className="text-rose-500">*</span></Label>
+        <Input id="connection_id" {...register('connection_id')} placeholder={getLL().panels.enterConnectionId()} className="font-mono text-sm" />
         {errors.connection_id && <p className="text-xs text-rose-500">{errors.connection_id.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address" className="text-sm font-medium text-foreground">源地址 <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="address" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Receive.sourceAddress()} <span className="text-rose-500">*</span></Label>
         <Input id="address" {...register('address')} placeholder="my-queue" className="font-mono text-sm" />
         {errors.address && <p className="text-xs text-rose-500">{errors.address.message}</p>}
       </div>
@@ -125,7 +126,7 @@ export function Amqp10ReceiveConfigPanel({ data, onSave }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">超时（毫秒）</Label>
+        <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Receive.timeout()}</Label>
         <Input id="timeout_ms" type="number" {...register('timeout_ms', { valueAsNumber: true })} placeholder="30000" className="font-mono text-sm" />
       </div>
 

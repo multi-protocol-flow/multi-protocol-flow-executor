@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SSE Listen 节点配置组件
  * 支持连接 ID、事件过滤、最大事件数、超时、数据包含选项、JSON 解码
  */
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Ear, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { SseListenConfig as SseListenConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isSseConnectConfig } from '@/types/node';
@@ -144,10 +145,10 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-rose-900 flex items-center gap-2">
             <Ear className="h-4 w-4" />
-            SSE 监听节点
+            {getLL().panels.sseListen.title()}
           </h4>
           <p className="text-sm leading-relaxed text-rose-700/90 whitespace-normal break-words">
-            监听 SSE 连接上的事件流，支持事件过滤和数量限制。
+            {getLL().panels.sseListen.description()}
           </p>
         </div>
       </div>
@@ -155,7 +156,7 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.connection()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -166,7 +167,7 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 SSE 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -183,7 +184,7 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -192,7 +193,7 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 SSE Connect 节点，请手动输入连接 ID
+            {getLL().panels.sseListen.noConnectNode()}
           </p>
         )}
       </div>
@@ -200,23 +201,23 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
       {/* 事件过滤 */}
       <div className="space-y-2">
         <Label htmlFor="event_filter" className="text-sm font-medium text-foreground">
-          事件过滤器
+          {getLL().panels.sseListen.eventFilter()}
         </Label>
         <Input
           id="event_filter"
           {...register('event_filter')}
-          placeholder="可选，如 message、update（留空接收全部）"
+          placeholder={getLL().panels.sseListen.eventFilterPlaceholder()}
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          仅接收指定 event type 的事件，留空接收全部事件
+          {getLL().panels.sseListen.eventFilterHelp()}
         </p>
       </div>
 
       {/* 最大事件数 */}
       <div className="space-y-2">
         <Label htmlFor="max_events" className="text-sm font-medium text-foreground">
-          最大事件数
+          {getLL().panels.sseListen.maxEvents()}
         </Label>
         <Input
           id="max_events"
@@ -226,14 +227,14 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          达到最大事件数后自动停止监听，0 表示不限制
+          {getLL().panels.sseListen.maxEventsHint()}
         </p>
       </div>
 
       {/* 监听超时 */}
       <div className="space-y-2">
         <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">
-          监听超时（毫秒）
+          {getLL().panels.sseListen.timeout()}
         </Label>
         <Input
           id="timeout_ms"
@@ -243,7 +244,7 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          超时后自动停止监听，0 表示无限等待
+          {getLL().panels.sseListen.timeoutHint()}
         </p>
       </div>
 

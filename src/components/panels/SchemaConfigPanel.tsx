@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SchemaConfigPanel 通用配置面板组件
  * 从 JSON Schema 动态渲染表单，支持 string、integer、boolean、enum 字段类型
  */
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface SchemaConfigPanelProps {
   /** JSON Schema 对象，描述配置结构 */
@@ -39,6 +40,7 @@ function getFieldValue(key: string, data: Record<string, unknown>, prop: SchemaP
 }
 
 export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelProps) {
+  const ll = getLL().panels.schemaConfig;
   const properties = (schema.properties || {}) as Record<string, SchemaProperty>;
   const requiredFields = new Set(
     Array.isArray(schema.required) ? (schema.required as string[]) : []
@@ -134,7 +136,7 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
             onValueChange={(v) => handleFieldChange(key, v)}
           >
             <SelectTrigger id={`schema-field-${key}`}>
-              <SelectValue placeholder={`选择${prop.title || key}`} />
+              <SelectValue placeholder={ll.selectField({ field: prop.title || key })} />
             </SelectTrigger>
             <SelectContent>
               {prop.enum!.map((opt) => (
@@ -237,7 +239,7 @@ export function SchemaConfigPanel({ schema, data, onSave }: SchemaConfigPanelPro
   if (propertyEntries.length === 0) {
     return (
       <div className="w-full rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-        <p className="text-xs text-muted-foreground">无可配置字段</p>
+        <p className="text-xs text-muted-foreground">{ll.noFields()}</p>
       </div>
     );
   }

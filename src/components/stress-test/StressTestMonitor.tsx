@@ -19,6 +19,7 @@ import {
 import type { NodeMetrics } from '@/types/stressTest';
 import { StressTestCharts } from './StressTestCharts';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /**
  * 指标卡片组件
@@ -100,7 +101,7 @@ export function StressTestMonitor() {
     return nodeMetrics.filter((n) => selectedTypes.includes(n.nodeType));
   }, [nodeMetrics, selectedTypes]);
 
-  // 仅在运行时或刚完成时渲染，用户手动关闭后消失
+  // 仅在运行时或刚完成时渲染，用户手动getLL().flow.stress_monitor_close()后消失
   if (!isRunning && !isCompleted) {
     return null;
   }
@@ -114,11 +115,11 @@ export function StressTestMonitor() {
   const getStatusText = () => {
     switch (status) {
       case 'rampUp':
-        return '预热中';
+        return getLL().flow.stress_monitor_status_rampup();
       case 'running':
-        return '运行中';
+        return getLL().flow.stress_monitor_status_running();
       case 'stopped':
-        return '已完成';
+        return getLL().flow.stress_monitor_status_completed();
       default:
         return '';
     }
@@ -154,7 +155,7 @@ export function StressTestMonitor() {
         <div className="flex items-center justify-between mb-4 shrink-0">
           <div className="flex items-center gap-3">
             <Activity className="w-5 h-5 text-blue-500" />
-            <span className="font-semibold">压力测试</span>
+            <span className="font-semibold">{getLL().flow.stress_monitor_title()}</span>
             <Badge
               variant="outline"
               className={cn('font-medium', getStatusBadgeVariant())}
@@ -165,7 +166,7 @@ export function StressTestMonitor() {
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <Timer className="w-4 h-4" />
             <span className="font-medium tabular-nums">
-              {progress?.elapsedSeconds ?? 0} 秒
+              {getLL().flow.stress_monitor_elapsed({ seconds: String(progress?.elapsedSeconds ?? 0) })}
             </span>
           </div>
         </div>
@@ -176,24 +177,24 @@ export function StressTestMonitor() {
         <div className="grid grid-cols-3 gap-3 mb-4">
           <MetricCard
             icon={Activity}
-            label="执行次数"
+            label={getLL().flow.stress_monitor_exec_count()}
             value={progress?.totalIterations ?? 0}
             subValue={
               progress
-                ? `成功 ${progress.successfulIterations} / 失败 ${progress.failedIterations}`
+                ? `${getLL().flow.stress_monitor_exec_detail({ success: String(progress.successfulIterations), fail: String(progress.failedIterations) })}`
                 : undefined
             }
             iconColor="text-blue-500"
           />
           <MetricCard
             icon={Gauge}
-            label="当前 RPS"
+            label={getLL().flow.stress_monitor_current_rps()}
             value={progress?.currentRps?.toFixed(2) ?? '0.00'}
             iconColor="text-violet-500"
           />
           <MetricCard
             icon={Timer}
-            label="平均响应时间"
+            label={getLL().flow.stress_monitor_avg_response()}
             value={progress?.avgLatencyMs?.toFixed(0) ?? 0}
             subValue="ms"
             iconColor="text-emerald-500"
@@ -211,11 +212,11 @@ export function StressTestMonitor() {
         {nodeMetrics.length > 0 && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-foreground">节点指标</span>
+              <span className="text-sm font-semibold text-foreground">{getLL().flow.stress_monitor_node_metrics()}</span>
               <span className="text-xs text-muted-foreground">
                 {selectedTypes.length > 0
                   ? `${filteredMetrics.length}/${nodeMetrics.length}`
-                  : `${nodeMetrics.length} 个节点`}
+                  : getLL().flow.stress_monitor_node_count({ count: nodeMetrics.length })}
               </span>
             </div>
 
@@ -241,26 +242,19 @@ export function StressTestMonitor() {
                 <table className="w-full min-w-max whitespace-nowrap text-xs">
                   <thead>
                     <tr className="bg-muted/50">
-                      <th className="sticky left-0 z-20 bg-muted text-left py-1.5 px-2 font-medium text-muted-foreground">
-                        节点名称
+                      <th className="sticky left-0 z-20 bg-muted text-left py-1.5 px-2 font-medium text-muted-foreground">                         {getLL().flow.stress_result_node_name()}
                       </th>
-                      <th className="sticky left-[120px] z-10 bg-muted text-left py-1.5 px-2 font-medium text-muted-foreground border-r border-border/50">
-                        类型
+                      <th className="sticky left-[120px] z-10 bg-muted text-left py-1.5 px-2 font-medium text-muted-foreground border-r border-border/50">                         {getLL().flow.stress_result_node_type()}
                       </th>
-                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
-                        执行次数
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">                         {getLL().flow.stress_result_exec_count()}
                       </th>
-                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
-                        成功率
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">                         {getLL().flow.stress_result_success_rate()}
                       </th>
-                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
-                        最小
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">                         {getLL().flow.stress_result_min()}
                       </th>
-                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
-                        平均
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">                         {getLL().flow.stress_result_avg()}
                       </th>
-                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
-                        最大
+                      <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">                         {getLL().flow.stress_result_max()}
                       </th>
                       <th className="text-right py-1.5 px-2 font-medium text-muted-foreground">
                         P50
@@ -338,8 +332,7 @@ export function StressTestMonitor() {
               onClick={handleStopStressTest}
               className="gap-1.5"
             >
-              <Square className="w-4 h-4" />
-              停止压测
+              <Square className="w-4 h-4" />               {getLL().flow.stress_monitor_stop()}
             </Button>
           ) : (
             <>
@@ -349,8 +342,7 @@ export function StressTestMonitor() {
                 onClick={handleClose}
                 className="gap-1.5"
               >
-                <X className="w-4 h-4" />
-                关闭
+                <X className="w-4 h-4" />                {getLL().flow.stress_monitor_close()}
               </Button>
               {report && (
                 <Button
@@ -360,7 +352,7 @@ export function StressTestMonitor() {
                   className="gap-1.5"
                 >
                   <FileBarChart className="w-4 h-4" />
-                  查看报告
+                  {getLL().flow.stress_monitor_view_report()}
                 </Button>
               )}
             </>

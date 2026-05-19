@@ -8,6 +8,7 @@ import { useDebugStore, selectIsPaused, selectCurrentNodeUuid } from '@/stores';
 import { useFlowStore } from '@/stores';
 import { SkipNodeDialog } from '@/components/dialogs/SkipNodeDialog';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { Port } from '@/types';
 
 /**
@@ -34,7 +35,7 @@ export function DebugToolbar() {
   const getOutputPorts = (): Array<{ id: string; label: string }> => {
     if (!currentNode) return [];
 
-    // 根据节点类型返回不同的输出端口
+// 根据节点类型返回不同的输出端口
     switch (currentNode.type) {
       case 'conditional':
       case 'ws_connect':
@@ -42,13 +43,13 @@ export function DebugToolbar() {
       case 'ws_close':
         // 这些节点都有 true/false 两个分支
         return [
-          { id: 'true', label: 'True 分支' },
-          { id: 'false', label: 'False 分支' },
+          { id: 'true', label: 'True Branch' },
+          { id: 'false', label: 'False Branch' },
         ];
       case 'http':
-        return [{ id: 'out', label: '输出 (out)' }];
+        return [{ id: 'out', label: 'Output (out)' }];
       case 'entry':
-        return [{ id: 'out', label: '输出' }];
+        return [{ id: 'out', label: 'Output' }];
       default:
         // 如果节点有自定义端口定义，使用它
         if (currentNode.ports) {
@@ -56,7 +57,7 @@ export function DebugToolbar() {
             .filter((p: Port) => p.type === 'output')
             .map((p: Port) => ({ id: p.id, label: p.label || p.id }));
         }
-        return [{ id: 'output', label: '输出' }];
+        return [{ id: 'output', label: 'Output' }];
     }
   };
 
@@ -90,7 +91,7 @@ export function DebugToolbar() {
         <button
           onClick={continueExecution}
           disabled={!isPaused}
-          title={isPaused ? '继续执行到下一个断点' : '继续（仅在暂停时可用）'}
+          title={isPaused ? getLL().flow.debug_continue_available() : getLL().flow.debug_continue_unavailable()}
           className={cn(
             'flex items-center justify-center p-2 rounded-lg',
             'transition-all duration-150',
@@ -105,7 +106,7 @@ export function DebugToolbar() {
         <button
           onClick={stepOver}
           disabled={!isPaused}
-          title={isPaused ? '单步执行下一个节点' : '单步（仅在暂停时可用）'}
+          title={isPaused ? getLL().flow.debug_step_available() : getLL().flow.debug_step_unavailable()}
           className={cn(
             'flex items-center justify-center p-2 rounded-lg',
             'transition-all duration-150',
@@ -120,7 +121,7 @@ export function DebugToolbar() {
         <button
           onClick={handleSkipClick}
           disabled={!isPaused}
-          title={isPaused ? '跳过当前节点' : '跳过（仅在暂停时可用）'}
+          title={isPaused ? getLL().flow.debug_skip_available() : getLL().flow.debug_skip_unavailable()}
           className={cn(
             'flex items-center justify-center p-2 rounded-lg',
             'transition-all duration-150',
@@ -135,7 +136,7 @@ export function DebugToolbar() {
         <button
           onClick={runToEnd}
           disabled={!isPaused}
-          title={isPaused ? '执行到底（忽略后续断点）' : '执行到底（仅在暂停时可用）'}
+          title={isPaused ? getLL().flow.debug_run_to_end_available() : getLL().flow.debug_run_to_end_unavailable()}
           className={cn(
             'flex items-center justify-center p-2 rounded-lg',
             'transition-all duration-150',
@@ -152,7 +153,7 @@ export function DebugToolbar() {
         {/* 结束调试按钮 - 红色 */}
         <button
           onClick={endDebugSession}
-          title="结束调试会话"
+          title={getLL().flow.debug_end()}
           className={cn(
             'flex items-center justify-center p-2 rounded-lg',
             'transition-all duration-150',

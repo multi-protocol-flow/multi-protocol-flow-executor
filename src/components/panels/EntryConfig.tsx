@@ -4,6 +4,7 @@
  */
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { getLL } from '@/i18n/i18n-lazy';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { entryConfigSchema, type EntryConfigFormData } from './schemas';
 import { Input } from '@/components/ui/input';
@@ -183,7 +184,7 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
   }, [saveData]);
 
   /**
-   * 添加变量
+   * {getLL().panels.entryNode.addVariable()}
    */
   const handleAddVariable = useCallback(() => {
     append({ name: '', value: '', description: '' });
@@ -215,10 +216,10 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-emerald-900 flex items-center gap-2">
             <PlayCircle className="h-4 w-4" />
-            入口节点
+            {getLL().panels.entryNode.title()}
           </h4>
           <p className="text-sm leading-relaxed text-emerald-700/90 whitespace-normal break-words">
-            入口节点是流程的起点。每个流程必须有且仅有一个入口节点，流程执行将从这里开始，沿着连接线依次执行各个节点。
+            {getLL().panels.entryNode.description()}
           </p>
         </div>
       </div>
@@ -228,7 +229,7 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Variable className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm font-medium text-foreground">初始变量</Label>
+            <Label className="text-sm font-medium text-foreground">{getLL().panels.entryNode.initialVariables()}</Label>
           </div>
           <Button
             type="button"
@@ -238,7 +239,7 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加变量
+            {getLL().panels.entryNode.addVariable()}
           </Button>
         </div>
 
@@ -246,9 +247,9 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
         <div className="space-y-2">
           {fields.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无初始变量</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.entryNode.noVariables()}</p>
               <p className="mt-1 text-xs text-muted-foreground/60">
-                点击「添加变量」按钮创建初始变量
+                {getLL().panels.entryNode.addVariableHint()}
               </p>
             </div>
           ) : (
@@ -270,7 +271,7 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
                     <div className="flex-1 min-w-0">
                       <Input
                         {...register(`initial_variables.${index}.name`)}
-                        placeholder="变量名（如：api_base）"
+                        placeholder={getLL().panels.entryNode.variableNamePlaceholder()}
                         className={`h-8 font-mono text-xs ${nameError || hasDuplicate ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
                       />
                     </div>
@@ -290,7 +291,7 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
                     <p className="text-xs text-rose-500">{nameError.message}</p>
                   )}
                   {hasDuplicate && !nameError && (
-                    <p className="text-xs text-rose-500">变量名已存在</p>
+                    <p className="text-xs text-rose-500">{getLL().panels.entryNode.variableDuplicate()}</p>
                   )}
                   
                   {/* 第二行：默认值 */}
@@ -299,7 +300,7 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
                       value={valueString}
                       onChange={(e) => handleValueChange(index, e.target.value)}
                       onBlur={handleBlur}
-                      placeholder="默认值（支持 JSON：字符串、数字、对象、数组）"
+                      placeholder={getLL().panels.entryNode.variableValuePlaceholder()}
                       className="h-8 font-mono text-xs"
                     />
                   </div>
@@ -308,7 +309,7 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
                   <div>
                     <Input
                       {...register(`initial_variables.${index}.description`)}
-                      placeholder="说明（可选）"
+                      placeholder={getLL().panels.entryNode.variableDescPlaceholder()}
                       className="h-8 text-xs"
                     />
                   </div>
@@ -322,7 +323,7 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
         {fields.length > 0 && (
           <div className="rounded-md bg-muted/30 p-2">
             <p className="text-xs text-muted-foreground whitespace-normal break-words">
-              变量名只能包含字母、数字和下划线，长度 1-64 个字符。默认值支持 JSON 格式（字符串需加引号）。
+              {getLL().panels.entryNode.variableRules()}
             </p>
           </div>
         )}
@@ -364,15 +365,6 @@ export function EntryConfig({ data, onSave }: EntryConfigProps) {
 /** CSV 预览行数 */
 const PREVIEW_ROW_COUNT = 5;
 
-/** 编码选项 */
-const ENCODING_OPTIONS = [
-  { value: 'auto', label: '自动检测' },
-  { value: 'utf-8', label: 'UTF-8' },
-  { value: 'gbk', label: 'GBK' },
-  { value: 'gb2312', label: 'GB2312' },
-  { value: 'big5', label: 'Big5' },
-] as const;
-
 interface DatasetAssociationProps {
   /** 当前关联的 CSV 路径 */
   datasetPath?: string;
@@ -391,6 +383,15 @@ function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChang
   const [fileExists, setFileExists] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [previewRows, setPreviewRows] = useState<string[][]>([]);
+
+  /** 编码选项 */
+  const encodingOptions = [
+    { value: 'auto', label: getLL().panels.entryNode.encodingAuto() },
+    { value: 'utf-8', label: 'UTF-8' },
+    { value: 'gbk', label: 'GBK' },
+    { value: 'gb2312', label: 'GB2312' },
+    { value: 'big5', label: 'Big5' },
+  ] as const;
 
   /** 当前选中的编码值（UI 状态） */
   const encoding = datasetEncoding || 'auto';
@@ -476,7 +477,7 @@ function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChang
     <div className="space-y-3 pt-4 border-t">
       <div className="flex items-center gap-2">
         <Table className="h-4 w-4 text-muted-foreground" />
-        <Label className="text-sm font-medium text-foreground">关联数据集</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.entryNode.dataset()}</Label>
       </div>
 
       {!datasetPath ? (
@@ -487,7 +488,7 @@ function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChang
           className="w-full h-9 gap-2 text-sm"
         >
           <FileText className="h-4 w-4" />
-          选择 CSV 文件
+          {getLL().panels.entryNode.selectCsv()}
         </Button>
       ) : (
         <div className="space-y-2">
@@ -503,7 +504,7 @@ function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChang
               size="icon"
               onClick={handleRemoveAssociation}
               className="h-7 w-7 shrink-0 text-muted-foreground hover:text-rose-500"
-              title="移除关联"
+              title={getLL().panels.entryNode.removeAssociation()}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -512,10 +513,10 @@ function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChang
           {/* 编码选择器 */}
           <Select value={encoding} onValueChange={handleEncodingChange}>
             <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="自动检测" />
+              <SelectValue placeholder={getLL().panels.entryNode.encodingAuto()} />
             </SelectTrigger>
             <SelectContent>
-              {ENCODING_OPTIONS.map((opt) => (
+              {encodingOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>
@@ -526,7 +527,7 @@ function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChang
           {/* 加载中状态 */}
           {isLoading && (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-3 text-center">
-              <p className="text-xs text-muted-foreground">正在读取文件...</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.entryNode.readingFile()}</p>
             </div>
           )}
 
@@ -535,7 +536,7 @@ function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChang
             <div className="rounded-md border border-amber-200/50 bg-amber-50/50 p-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
-                <span className="text-sm text-amber-700 flex-1">关联文件已移除或重命名</span>
+                <span className="text-sm text-amber-700 flex-1">{getLL().panels.entryNode.fileMissing()}</span>
                 <Button
                   type="button"
                   variant="outline"
@@ -543,7 +544,7 @@ function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChang
                   onClick={handleSelectFile}
                   className="h-7 gap-1.5 text-xs shrink-0"
                 >
-                  重新选择
+                  {getLL().panels.entryNode.reselect()}
                 </Button>
               </div>
             </div>
@@ -556,7 +557,7 @@ function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChang
                 {csvInfo.row_count} 行 × {csvInfo.column_names.length} 列
                 {csvInfo.detected_encoding && (
                   <span className="ml-2 text-muted-foreground/60">
-                    检测编码: {csvInfo.detected_encoding}
+                    {getLL().panels.entryNode.detectedEncoding()} {csvInfo.detected_encoding}
                   </span>
                 )}
               </p>
@@ -574,7 +575,7 @@ function DatasetAssociationSection({ datasetPath, datasetEncoding, onConfigChang
                   ))}
                   {csvInfo.column_names.length > PREVIEW_ROW_COUNT && (
                     <span className="inline-flex items-center text-xs text-muted-foreground">
-                      +{csvInfo.column_names.length - PREVIEW_ROW_COUNT} 列
+                      +{getLL().panels.entryNode.moreColumns({ count: csvInfo.column_names.length - PREVIEW_ROW_COUNT })}
                     </span>
                   )}
                 </div>
@@ -624,27 +625,27 @@ interface HookConfigProps {
   onHooksChange: (hooks: FlowHook[]) => void;
 }
 
-/** 触发条件选项 */
-const TRIGGER_OPTIONS = [
-  { value: 'on_success', label: '执行成功时' },
-  { value: 'on_failure', label: '执行失败时' },
-  { value: 'on_cancel', label: '执行取消时' },
-  { value: 'on_complete', label: '执行完成时（任意结果）' },
-] as const;
-
-/** 动作类型选项 */
-const ACTION_TYPE_OPTIONS = [
-  { value: 'notify', label: '系统通知' },
-  { value: 'webhook', label: 'Webhook 回调' },
-  { value: 'script', label: '脚本执行' },
-] as const;
-
 /**
  * 钩子配置区块
  * 独立于 react-hook-form 管理，通过 onHooksChange 直接同步到父组件
  */
 function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
   const localHooks = hooks || [];
+
+  /** 触发条件选项 */
+  const triggerOptions = [
+    { value: 'on_success', label: getLL().panels.entryNode.triggerOnSuccess() },
+    { value: 'on_failure', label: getLL().panels.entryNode.triggerOnFailure() },
+    { value: 'on_cancel', label: getLL().panels.entryNode.triggerOnCancel() },
+    { value: 'on_complete', label: getLL().panels.entryNode.triggerOnComplete() },
+  ] as const;
+
+  /** 动作类型选项 */
+  const actionTypeOptions = [
+    { value: 'notify', label: getLL().panels.entryNode.actionNotify() },
+    { value: 'webhook', label: getLL().panels.entryNode.actionWebhook() },
+    { value: 'script', label: getLL().panels.entryNode.actionScript() },
+  ] as const;
 
   /** 添加新钩子 */
   const handleAddHook = useCallback(() => {
@@ -702,7 +703,7 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bell className="h-4 w-4 text-muted-foreground" />
-          <Label className="text-sm font-medium text-foreground">流程钩子</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.entryNode.flowHooks()}</Label>
         </div>
         <Button
           type="button"
@@ -713,14 +714,14 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
           disabled={localHooks.length >= 10}
         >
           <Plus className="h-3.5 w-3.5" />
-          添加 Hook
+          {getLL().panels.entryNode.addHook()}
         </Button>
       </div>
 
       {localHooks.length === 0 ? (
         <div className="rounded-md bg-muted/30 p-3">
           <p className="text-xs text-muted-foreground">
-            配置流程完成后自动触发的动作
+            {getLL().panels.entryNode.hooksHint()}
           </p>
         </div>
       ) : (
@@ -736,7 +737,7 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
                 <Input
                   value={hook.name}
                   onChange={(e) => handleUpdateHook(index, { name: e.target.value })}
-                  placeholder="Hook 名称"
+                  placeholder={getLL().panels.entryNode.hookNamePlaceholder()}
                   className="h-7 text-xs flex-1"
                 />
                 <Button
@@ -745,7 +746,7 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
                   size="icon"
                   onClick={() => handleRemoveHook(index)}
                   className="h-7 w-7 shrink-0 text-muted-foreground hover:text-rose-500"
-                  title="删除 Hook"
+                  title={getLL().panels.entryNode.deleteHook()}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -761,7 +762,7 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {TRIGGER_OPTIONS.map((opt) => (
+                    {triggerOptions.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
                       </SelectItem>
@@ -777,7 +778,7 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {ACTION_TYPE_OPTIONS.map((opt) => (
+                    {actionTypeOptions.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>
                         {opt.label}
                       </SelectItem>
@@ -806,14 +807,14 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
                     <Input
                       value={hook.action.url}
                       onChange={(e) => handleUpdateAction(index, { url: e.target.value })}
-                      placeholder="https://example.com/hook"
+                      placeholder={getLL().panels.entryNode.hookUrlPlaceholder()}
                       className="h-7 text-xs flex-1 font-mono"
                     />
                   </div>
                   <Textarea
                     value={hook.action.body_template || ''}
                     onChange={(e) => handleUpdateAction(index, { body_template: e.target.value || undefined })}
-                    placeholder={'请求体模板（可选，支持 {{status}} {{flow_name}} 等）'}
+                    placeholder={'{getLL().panels.entryNode.hookBodyPlaceholder()}'}
                     className="text-xs font-mono min-h-[48px] resize-y"
                     rows={2}
                   />
@@ -824,7 +825,7 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
                 <Textarea
                   value={hook.action.code}
                   onChange={(e) => handleUpdateAction(index, { code: e.target.value })}
-                  placeholder={'// QuickJS 脚本代码\nfn.log("流程完成: " + status)'}
+                  placeholder={getLL().panels.entryNode.hookCodePlaceholder()}
                   className="text-xs font-mono min-h-[48px] resize-y"
                   rows={3}
                 />
@@ -835,13 +836,13 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
                   <Input
                     value={hook.action.title_template}
                     onChange={(e) => handleUpdateAction(index, { title_template: e.target.value })}
-                    placeholder="通知标题（支持 {{flow_name}} {{status}}）"
+                    placeholder="{getLL().panels.entryNode.hookTitlePlaceholder()}"
                     className="h-7 text-xs"
                   />
                   <Input
                     value={hook.action.message_template}
                     onChange={(e) => handleUpdateAction(index, { message_template: e.target.value })}
-                    placeholder="通知内容（支持 {{status}} {{duration_ms}} {{error}}）"
+                    placeholder="{getLL().panels.entryNode.hookMessagePlaceholder()}"
                     className="h-7 text-xs"
                   />
                 </div>

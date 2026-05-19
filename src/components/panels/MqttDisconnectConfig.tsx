@@ -13,6 +13,7 @@ import { Unplug, Info } from 'lucide-react';
 import type { MqttDisconnectConfig as MqttDisconnectConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isMqttConnectConfig } from '@/types/node';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface MqttDisconnectConfigProps {
   data: MqttDisconnectConfigType;
@@ -134,10 +135,10 @@ export function MqttDisconnectConfig({ data, onSave }: MqttDisconnectConfigProps
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-cyan-900 flex items-center gap-2">
             <Unplug className="h-4 w-4" />
-            MQTT 断开连接节点
+            {getLL().panels.mqttDisconnect.title()}
           </h4>
           <p className="text-sm leading-relaxed text-cyan-700/90 whitespace-normal break-words">
-            断开指定的 MQTT 连接，释放会话资源。
+            {getLL().panels.mqttDisconnect.description()}
           </p>
         </div>
       </div>
@@ -156,7 +157,7 @@ export function MqttDisconnectConfig({ data, onSave }: MqttDisconnectConfigProps
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 MQTT 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -173,7 +174,7 @@ export function MqttDisconnectConfig({ data, onSave }: MqttDisconnectConfigProps
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -182,7 +183,7 @@ export function MqttDisconnectConfig({ data, onSave }: MqttDisconnectConfigProps
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 MQTT Connect 节点，请手动输入连接 ID
+            {getLL().panels.mqttPublish.noConnectNode()}
           </p>
         )}
       </div>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 代理节点配置组件
  * 支持代理模式选择（清除/HTTP/SOCKS5）及代理地址、认证配置
  */
@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { proxyConfigSchema, type ProxyConfigFormData } from './schemas';
 import { Label } from '@/components/ui/label';
 import type { ProxyConfig as ProxyConfigType } from '@/types/node';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface ProxyConfigProps {
   /** 当前节点数据 */
@@ -17,11 +18,14 @@ interface ProxyConfigProps {
 }
 
 /** 代理模式选项 */
-const PROXY_MODE_OPTIONS = [
-  { value: 'clear', label: '清除代理' },
-  { value: 'http', label: 'HTTP 代理' },
-  { value: 'socks5', label: 'SOCKS5 代理' },
-] as const;
+function getProxyModeOptions() {
+  const ll = getLL().panels.proxy;
+  return [
+    { value: 'clear', label: ll.clearProxy() },
+    { value: 'http', label: ll.httpProxy() },
+    { value: 'socks5', label: ll.socks5Proxy() },
+  ] as const;
+}
 
 /**
  * 将 ProxyConfigType 转换为表单数据
@@ -50,6 +54,8 @@ function fromFormData(formData: ProxyConfigFormData): ProxyConfigType {
 }
 
 export function ProxyConfig({ data, onSave }: ProxyConfigProps) {
+  const ll = getLL().panels.proxy;
+  const commonLL = getLL().panels;
   const {
     register,
     handleSubmit,
@@ -69,6 +75,7 @@ export function ProxyConfig({ data, onSave }: ProxyConfigProps) {
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
 
   const currentMode = watch('mode');
+  const proxyModeOptions = getProxyModeOptions();
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
@@ -132,7 +139,7 @@ export function ProxyConfig({ data, onSave }: ProxyConfigProps) {
       {/* 代理模式选择 */}
       <div className="space-y-2">
         <Label htmlFor="proxy-mode" className="text-sm font-medium text-foreground">
-          代理模式
+          {ll.mode()}
         </Label>
         <select
           id="proxy-mode"
@@ -140,7 +147,7 @@ export function ProxyConfig({ data, onSave }: ProxyConfigProps) {
           onChange={handleModeChange}
           className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
-          {PROXY_MODE_OPTIONS.map((opt) => (
+          {proxyModeOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
@@ -152,7 +159,7 @@ export function ProxyConfig({ data, onSave }: ProxyConfigProps) {
       {showProxyFields && (
         <div className="space-y-2">
           <Label htmlFor="proxy-url" className="text-sm font-medium text-foreground">
-            代理地址
+            {ll.proxyUrl()}
           </Label>
           <input
             id="proxy-url"
@@ -171,12 +178,12 @@ export function ProxyConfig({ data, onSave }: ProxyConfigProps) {
       {showProxyFields && (
         <div className="space-y-2">
           <Label htmlFor="proxy-username" className="text-sm font-medium text-foreground">
-            用户名
+            {ll.username()}
           </Label>
           <input
             id="proxy-username"
             type="text"
-            placeholder="可选"
+            placeholder={commonLL.optional()}
             {...register('username')}
             className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
@@ -187,12 +194,12 @@ export function ProxyConfig({ data, onSave }: ProxyConfigProps) {
       {showProxyFields && (
         <div className="space-y-2">
           <Label htmlFor="proxy-password" className="text-sm font-medium text-foreground">
-            密码
+            {ll.password()}
           </Label>
           <input
             id="proxy-password"
             type="password"
-            placeholder="可选"
+            placeholder={commonLL.optional()}
             {...register('password')}
             className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />

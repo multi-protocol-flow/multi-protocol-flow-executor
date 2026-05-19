@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, Info, BookOpen } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { TcpSendConfig as TcpSendConfigType, TcpFramingMode } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isTcpConnectConfig } from '@/types/node';
@@ -137,7 +138,7 @@ function fromFormData(formData: TcpSendConfigFormData): TcpSendConfigType {
  * 获取成帧模式的显示名称
  */
 function getFramingModeLabel(mode: TcpFramingMode | undefined): string {
-  if (!mode) return '未设置';
+  if (!mode) return getLL().panels.tcpConnect.notSet();
   return FRAMING_MODE_OPTIONS.find(o => o.value === mode.type)?.label ?? mode.type;
 }
 
@@ -382,10 +383,10 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-emerald-900 flex items-center gap-2">
             <Send className="h-4 w-4" />
-            TCP 发送节点
+            {getLL().panels.tcpSend.title()}
           </h4>
           <p className="text-sm leading-relaxed text-emerald-700/90 whitespace-normal break-words">
-            通过已建立的 TCP 连接发送数据，支持文本、十六进制、Base64 编码。
+            {getLL().panels.tcpSend.description()}
           </p>
         </div>
       </div>
@@ -393,7 +394,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.tcpSend.connectionId()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -404,7 +405,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 TCP 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -421,7 +422,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -430,7 +431,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 TCP Connect 节点，请手动输入连接 ID
+            {getLL().panels.tcpSend.noConnectNode()}
           </p>
         )}
       </div>
@@ -438,7 +439,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
       {/* 数据编码方式 */}
       <div className="space-y-2">
         <Label htmlFor="data_encoding" className="text-sm font-medium text-foreground">
-          编码方式
+          {getLL().panels.tcpSend.dataEncoding()}
         </Label>
         <Select
           value={watch('data_encoding') || 'text'}
@@ -459,14 +460,14 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          选择数据的编码格式，发送前会自动解码为原始字节
+          {getLL().panels.tcpSend.encodingConfig()}
         </p>
       </div>
 
       {/* 数据输入 */}
       <div className="space-y-2">
         <Label htmlFor="data" className="text-sm font-medium text-foreground">
-          发送数据
+          {getLL().panels.tcpSend.dataInput()}
         </Label>
         <Textarea
           id="data"
@@ -476,7 +477,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
               ? '48656C6C6F20576F726C64'
               : watch('data_encoding') === 'base64'
                 ? 'SGVsbG8gV29ybGQ='
-                : '输入要发送的数据...'
+                : getLL().panels.tcpSend.rawData() + '...'
           }
           className="min-h-[120px] resize-y font-mono text-sm"
           rows={5}
@@ -486,10 +487,10 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
         )}
         <p className="text-xs text-muted-foreground">
           {watch('data_encoding') === 'hex'
-            ? '十六进制格式，如 48656C6C6F'
+            ? getLL().panels.tcpSend.hexData()
             : watch('data_encoding') === 'base64'
-              ? 'Base64 编码的字符串'
-              : '纯文本数据，支持变量引用 {{variable}}'}
+              ? getLL().panels.tcpSend.base64Data()
+              : getLL().panels.tcpSend.textEncoding()}
         </p>
       </div>
 
@@ -497,7 +498,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground flex items-center gap-1.5">
           <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
-          协议模板
+          {getLL().panels.tcpSend.protocolTemplate()}
         </Label>
         <div className="grid grid-cols-2 gap-2">
           {PROTOCOL_TEMPLATES.map((tpl) => {
@@ -528,15 +529,15 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
           })}
         </div>
         <p className="text-xs text-muted-foreground">
-          选择预设模板快速配置成帧与解析参数，也可手动调整
+          {getLL().panels.tcpSend.autoApplyDesc()}
         </p>
       </div>
 
       {/* 成帧配置 */}
       <div className="space-y-3 rounded-md border bg-muted/30 p-3">
-        <Label className="text-sm font-medium text-foreground">成帧配置（可选）</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.tcpSend.framingConfig()}</Label>
         <p className="text-xs text-muted-foreground">
-          定义发送数据的帧封装方式，与连接配置配合使用
+          {getLL().panels.tcpSend.framingDesc()}
         </p>
 
         {/* 成帧模式选择 */}
@@ -547,10 +548,10 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
               onValueChange={handleFramingTypeChange}
             >
               <SelectTrigger className="font-mono text-sm">
-                <SelectValue placeholder="不使用成帧" />
+                <SelectValue placeholder={getLL().panels.tcpSend.noFraming()} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">不使用成帧</SelectItem>
+                <SelectItem value="none">{getLL().panels.tcpSend.noFraming()}</SelectItem>
                 {FRAMING_MODE_OPTIONS.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
@@ -564,7 +565,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
         {/* 成帧子字段 */}
         {selectedFramingType === 'length_prefix' && (
           <div className="space-y-2 pl-2">
-            <Label className="text-xs text-muted-foreground">前缀字节数</Label>
+            <Label className="text-xs text-muted-foreground">{getLL().panels.tcpSend.prefixBytes()}</Label>
             <Select
               value={String(currentFramingMode?.type === 'length_prefix' ? (currentFramingMode as { type: 'length_prefix'; prefix_bytes: number }).prefix_bytes : 4)}
               onValueChange={(val) => updateFramingSubField('prefix_bytes', Number(val))}
@@ -574,7 +575,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
               </SelectTrigger>
               <SelectContent>
                 {[1, 2, 4, 8].map((n) => (
-                  <SelectItem key={n} value={String(n)}>{n} 字节</SelectItem>
+                  <SelectItem key={n} value={String(n)}>{getLL().panels.tcpSend.bytes({ n })}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -583,7 +584,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
 
         {selectedFramingType === 'delimiter' && (
           <div className="space-y-2 pl-2">
-            <Label className="text-xs text-muted-foreground">分隔符</Label>
+            <Label className="text-xs text-muted-foreground">{getLL().panels.tcpSend.delimiter()}</Label>
             <Input
               value={currentFramingMode?.type === 'delimiter' ? (currentFramingMode as { type: 'delimiter'; delimiter: string }).delimiter : '\n'}
               onChange={(e) => updateFramingSubField('delimiter', e.target.value)}
@@ -595,7 +596,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
 
         {selectedFramingType === 'fixed_length' && (
           <div className="space-y-2 pl-2">
-            <Label className="text-xs text-muted-foreground">固定帧长度</Label>
+            <Label className="text-xs text-muted-foreground">{getLL().panels.tcpSend.fixedLength()}</Label>
             <Input
               type="number"
               min={1}
@@ -608,7 +609,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
 
         {selectedFramingType === 'timeout' && (
           <div className="space-y-2 pl-2">
-            <Label className="text-xs text-muted-foreground">读取超时 (ms)</Label>
+            <Label className="text-xs text-muted-foreground">{getLL().panels.tcpSend.readTimeout()}</Label>
             <Input
               type="number"
               min={100}
@@ -621,7 +622,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
 
         {selectedFramingType === 'manual' && (
           <p className="text-xs text-muted-foreground pl-2">
-            手动模式下不自动成帧，直接发送原始数据
+            {getLL().panels.tcpSend.manualModeDesc()}
           </p>
         )}
       </div>
@@ -629,7 +630,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
       {/* 发送超时 */}
       <div className="space-y-2">
         <Label htmlFor="send_timeout_ms" className="text-sm font-medium text-foreground">
-          发送超时
+          {getLL().panels.tcpSend.sendTimeout()}
         </Label>
         <Input
           id="send_timeout_ms"
@@ -639,14 +640,14 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
           {...register('send_timeout_ms', { valueAsNumber: true })}
           className="font-mono text-sm"
         />
-        <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.tcpSend.sendTimeoutHint()}</p>
       </div>
 
       {/* 协议解析配置 */}
       <div className="space-y-3 rounded-md border bg-muted/30 p-3">
-        <Label className="text-sm font-medium text-foreground">协议解析</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.tcpSend.protocolParser()}</Label>
         <p className="text-xs text-muted-foreground">
-          配置接收数据的解析方式，将原始字节流解析为结构化消息
+          {getLL().panels.tcpSend.protocolParserDesc()}
         </p>
 
         {/* 解析器类型选择 */}
@@ -656,12 +657,12 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
             onValueChange={handleParserTypeChange}
           >
             <SelectTrigger className="font-mono text-sm">
-              <SelectValue placeholder="无解析" />
+              <SelectValue placeholder={getLL().panels.tcpSend.noFraming()} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">无</SelectItem>
-              <SelectItem value="length_prefix">长度前缀</SelectItem>
-              <SelectItem value="delimiter">分隔符</SelectItem>
+              <SelectItem value="none">{getLL().panels.none()}</SelectItem>
+              <SelectItem value="length_prefix">{getLL().panels.tcpSend.fixedLength()}</SelectItem>
+              <SelectItem value="delimiter">{getLL().panels.tcpSend.delimiter()}</SelectItem>
               <SelectItem value="tlv">TLV</SelectItem>
             </SelectContent>
           </Select>
@@ -670,7 +671,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
         {/* 长度前缀子字段 */}
         {selectedParserType === 'length_prefix' && (
           <div className="space-y-2 pl-2">
-            <Label className="text-xs text-muted-foreground">前缀字节数</Label>
+            <Label className="text-xs text-muted-foreground">{getLL().panels.tcpSend.prefixBytes()}</Label>
             <Select
               value={String(watch('parser_config')?.prefix_bytes ?? 2)}
               onValueChange={(val) => updateParserSubField('prefix_bytes', Number(val))}
@@ -679,25 +680,25 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2">2 字节</SelectItem>
-                <SelectItem value="4">4 字节</SelectItem>
+                <SelectItem value="2">{getLL().panels.tcpSend.bytes({ n: 2 })}</SelectItem>
+                <SelectItem value="4">{getLL().panels.tcpSend.bytes({ n: 4 })}</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">用于表示消息长度的字节数</p>
+            <p className="text-xs text-muted-foreground">{getLL().panels.tcpSend.prefixBytesDesc()}</p>
           </div>
         )}
 
         {/* 分隔符子字段 */}
         {selectedParserType === 'delimiter' && (
           <div className="space-y-2 pl-2">
-            <Label className="text-xs text-muted-foreground">分隔符</Label>
+            <Label className="text-xs text-muted-foreground">{getLL().panels.tcpSend.delimiter()}</Label>
             <Input
               value={String(watch('parser_config')?.delimiter ?? '\r\n')}
               onChange={(e) => updateParserSubField('delimiter', e.target.value)}
               className="h-8 font-mono text-xs"
               placeholder="\r\n"
             />
-            <p className="text-xs text-muted-foreground">遇到此分隔符时视为一条消息结束</p>
+            <p className="text-xs text-muted-foreground">{getLL().panels.tcpSend.delimiterDesc()}</p>
           </div>
         )}
 
@@ -705,7 +706,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
         {selectedParserType === 'tlv' && (
           <div className="space-y-3 pl-2">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Tag 字节数</Label>
+              <Label className="text-xs text-muted-foreground">Tag {getLL().panels.tcpSend.prefixBytes()}</Label>
               <Input
                 type="number"
                 min={1}
@@ -716,7 +717,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Length 字节数</Label>
+              <Label className="text-xs text-muted-foreground">Length {getLL().panels.tcpSend.prefixBytes()}</Label>
               <Input
                 type="number"
                 min={1}
@@ -727,7 +728,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">字节序</Label>
+              <Label className="text-xs text-muted-foreground">{getLL().panels.tcpSend.byteOrder()}</Label>
               <Select
                 value={String(watch('parser_config')?.byte_order ?? 'big')}
                 onValueChange={(val) => updateParserSubField('byte_order', val)}
@@ -736,8 +737,8 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="big">大端序 (Big Endian)</SelectItem>
-                  <SelectItem value="little">小端序 (Little Endian)</SelectItem>
+                  <SelectItem value="big">{getLL().panels.tcpSend.bigEndian()}</SelectItem>
+                  <SelectItem value="little">{getLL().panels.tcpSend.littleEndian()}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -749,10 +750,10 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">发送说明：</p>
-          <p>选择已建立的 TCP 连接，输入要发送的数据</p>
-          <p>数据会根据编码方式自动转换为原始字节发送</p>
-          <p>成帧配置: <code className="rounded bg-muted px-1">{getFramingModeLabel(currentFramingMode)}</code></p>
+          <p className="font-medium text-foreground">{getLL().panels.tcpSend.senderInfo()}</p>
+          <p>{getLL().panels.tcpSend.senderInfo1()}</p>
+          <p>{getLL().panels.tcpSend.senderInfo2()}</p>
+          <p>{getLL().panels.tcpSend.senderInfo3()} <code className="rounded bg-muted px-1">{getFramingModeLabel(currentFramingMode)}</code></p>
         </div>
       </div>
     </form>

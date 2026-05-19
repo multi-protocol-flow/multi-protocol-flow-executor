@@ -1,4 +1,4 @@
-/**
+﻿/**
  * UDP Bind 节点配置组件
  * 支持本地绑定地址、端口、地址复用配置
  */
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Radio, Info, ChevronDown, ChevronRight, Wifi } from 'lucide-react';
 import type { UdpBindConfig as UdpBindConfigType } from '@/types';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface UdpBindConfigProps {
   /** 当前节点数据 */
@@ -76,7 +77,7 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
   const broadcast = watch('broadcast');
   const multicastLoop = watch('multicast_loop');
 
-  // 多播配置折叠状态
+  // {getLL().panels.udpBind.multicastConfig()}折叠状态
   const [multicastOpen, setMulticastOpen] = useState(false);
 
   // 追踪待执行的 setTimeout，组件卸载时清除
@@ -159,10 +160,10 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
             <Radio className="h-4 w-4" />
-            UDP 绑定节点
+            {getLL().panels.udpBind.title()}
           </h4>
           <p className="text-sm leading-relaxed text-orange-700/90 whitespace-normal break-words">
-            绑定 UDP 套接字到指定本地地址和端口，用于后续的发送和接收操作。
+            {getLL().panels.udpBind.description()}
           </p>
         </div>
       </div>
@@ -170,7 +171,7 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
       {/* 本地绑定地址 */}
       <div className="space-y-2">
         <Label htmlFor="local_addr" className="text-sm font-medium text-foreground">
-          本地绑定地址
+          {getLL().panels.udpBind.localAddr()}
         </Label>
         <div className="relative">
           <Radio className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
@@ -184,13 +185,13 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
         {errors.local_addr && (
           <p className="text-xs text-rose-500">{errors.local_addr.message}</p>
         )}
-        <p className="text-xs text-muted-foreground">默认 0.0.0.0 绑定所有网卡</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.udpBind.bindInfo1()}</p>
       </div>
 
       {/* 本地端口 */}
       <div className="space-y-2">
         <Label htmlFor="local_port" className="text-sm font-medium text-foreground">
-          本地端口 <span className="text-rose-500">*</span>
+          {getLL().panels.udpBind.localPort()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="local_port"
@@ -203,7 +204,7 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
         {errors.local_port && (
           <p className="text-xs text-rose-500">{errors.local_port.message}</p>
         )}
-        <p className="text-xs text-muted-foreground">范围 0-65535，0 表示随机分配</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.udpBind.localPortHint()}</p>
       </div>
 
       {/* 地址复用 */}
@@ -218,11 +219,11 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
             }}
           />
           <Label htmlFor="reuse_addr" className="text-sm font-medium text-foreground cursor-pointer">
-            允许地址复用 (SO_REUSEADDR)
+            {getLL().panels.udpBind.reuseAddr()}
           </Label>
         </div>
         <p className="text-xs text-muted-foreground">
-          启用后允许绑定处于 TIME_WAIT 状态的地址和端口
+          {getLL().panels.udpBind.reuseAddrDesc()}
         </p>
        </div>
 
@@ -230,7 +231,7 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
       <div className="space-y-3">
         <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <Wifi className="h-4 w-4" />
-          网络选项
+          {getLL().panels.advancedSettings()}
         </h4>
 
         {/* 广播开关 */}
@@ -245,11 +246,11 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
               }}
             />
             <Label htmlFor="broadcast" className="text-sm font-medium text-foreground cursor-pointer">
-              启用广播 (SO_BROADCAST)
+              {getLL().panels.udpBind.broadcast()}
             </Label>
           </div>
           <p className="text-xs text-muted-foreground">
-            启用后允许发送广播消息到 255.255.255.255 或特定子网
+            {getLL().panels.udpBind.broadcastDesc()}
           </p>
         </div>
 
@@ -266,7 +267,7 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
               ) : (
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               )}
-              多播配置
+              {getLL().panels.udpBind.multicastConfig()}
             </span>
           </button>
 
@@ -275,7 +276,7 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
               {/* 多播组地址 */}
               <div className="space-y-2">
                 <Label htmlFor="multicast_group" className="text-sm font-medium text-foreground">
-                  多播组地址
+                  {getLL().panels.udpBind.multicastGroup()}
                 </Label>
                 <Input
                   id="multicast_group"
@@ -284,14 +285,14 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
                   className="font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  IPv4 多播地址范围 224.0.0.0 ~ 239.255.255.255
+                  {getLL().panels.udpBind.multicastGroupPlaceholder()}
                 </p>
               </div>
 
               {/* 多播 TTL */}
               <div className="space-y-2">
                 <Label htmlFor="multicast_ttl" className="text-sm font-medium text-foreground">
-                  多播 TTL
+                  {getLL().panels.udpBind.multicastTtl()}
                 </Label>
                 <Input
                   id="multicast_ttl"
@@ -305,7 +306,7 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
                   <p className="text-xs text-rose-500">{errors.multicast_ttl.message}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  生存时间，控制多播数据包传播范围（0-255，默认 1）
+                  {getLL().panels.udpBind.multicastTtl()}
                 </p>
               </div>
 
@@ -320,14 +321,14 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
                   }}
                 />
                 <Label htmlFor="multicast_loop" className="text-sm font-medium text-foreground cursor-pointer">
-                  多播环回 (IP_MULTICAST_LOOP)
+                  {getLL().panels.udpBind.multicastLoop()}
                 </Label>
               </div>
 
               {/* 绑定接口 */}
               <div className="space-y-2">
                 <Label htmlFor="multicast_interface" className="text-sm font-medium text-foreground">
-                  绑定接口
+                  {getLL().panels.udpBind.multicastInterface()}
                 </Label>
                 <Input
                   id="multicast_interface"
@@ -336,7 +337,7 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
                   className="font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  多播数据包出口网络接口，留空使用默认接口
+                  {getLL().panels.udpBind.multicastInterfacePlaceholder()}
                 </p>
               </div>
             </div>
@@ -348,10 +349,9 @@ export function UdpBindConfig({ data, onSave }: UdpBindConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">绑定说明：</p>
-          <p>UDP 是无连接协议，绑定后即可发送和接收数据报</p>
-          <p>绑定 0.0.0.0 会监听所有可用网卡</p>
-          <p>端口 0 表示由操作系统随机分配可用端口</p>
+          <p className="font-medium text-foreground">{getLL().panels.udpBind.bindInfo()}</p>
+          <p>{getLL().panels.udpBind.bindInfo1()}</p>
+          <p>{getLL().panels.udpBind.bindInfo2()}</p>
         </div>
       </div>
     </form>

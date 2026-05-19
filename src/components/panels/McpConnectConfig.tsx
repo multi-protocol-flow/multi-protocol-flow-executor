@@ -1,7 +1,7 @@
 /**
  * MCP Connect 节点配置组件
  * 支持 Streamable HTTP 和 Stdio 两种传输模式
- * 支持服务器地址、自定义请求头、协议版本、工具/资源/提示词发现
+ * 支持服务器地址、自定义请求头、{getLL().panels.mcpConnect.protocolVersion()}、工具/资源/提示词发现
  */
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,6 +19,7 @@ import { Plus, Trash2, Plug, Info, Search, Loader2, ChevronDown, Wrench, FileSea
 import type { McpConnectConfig as McpConnectConfigType, McpToolInfo, McpResourceInfo, McpPromptInfo } from '@/types';
 import { discoverMcpTools } from '@/services/tauri/mcp';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface McpConnectConfigProps {
   /** 当前节点数据 */
@@ -295,7 +296,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
   }, [setValue, getValues, onSave, saveData, safeSetTimeout]);
 
   /**
-   * 测试连接 & 发现服务
+   * {getLL().panels.mcpConnect.testConnectionDiscover()}
    */
   const handleDiscover = useCallback(async () => {
     const formData = getValues();
@@ -345,7 +346,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
         config.discovered_prompts = result.prompts;
         onSave(config);
       } else {
-        setDiscoveryError(result.error || '发现服务失败，未知错误');
+        setDiscoveryError(result.error || getLL().panels.mcpConnect.discoveryFailed());
       }
     } catch (error) {
       console.error('[MCP] 发现服务失败:', error);
@@ -384,10 +385,10 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-amber-900 flex items-center gap-2">
             <Plug className="h-4 w-4" />
-            MCP 连接节点
+            {getLL().panels.mcpConnect.title()}
           </h4>
           <p className="text-sm leading-relaxed text-amber-700/90 whitespace-normal break-words">
-            建立 MCP（Model Context Protocol）连接，支持 Streamable HTTP 和 Stdio 两种传输模式。
+            {getLL().panels.mcpConnect.description()}
           </p>
         </div>
       </div>
@@ -411,8 +412,8 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
         </Select>
         <p className="text-xs text-muted-foreground">
           {currentTransport === 'streamable_http'
-            ? '通过 HTTP 协议连接 MCP 服务器'
-            : '通过子进程连接 MCP 服务器'}
+            ? '{getLL().panels.mcpConnect.transportHttpDesc()}'
+            : '{getLL().panels.mcpConnect.transportStdioDesc()}'}
         </p>
       </div>
 
@@ -424,7 +425,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           {/* 服务器地址 */}
           <div className="space-y-2">
             <Label htmlFor="url" className="text-sm font-medium text-foreground">
-              MCP 服务器地址 <span className="text-rose-500">*</span>
+              {getLL().panels.mcpConnect.serverAddress()} <span className="text-rose-500">*</span>
             </Label>
             <div className="relative">
               <Plug className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
@@ -439,14 +440,14 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
               <p className="text-xs text-rose-500">{errors.url.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              MCP 服务器的 Streamable HTTP 端点地址
+              {getLL().panels.mcpConnect.serverAddressHint()}
             </p>
           </div>
 
           {/* 自定义请求头 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-foreground">自定义请求头（可选）</Label>
+              <Label className="text-sm font-medium text-foreground">{getLL().panels.mcpConnect.customHeaders()}</Label>
               <Button
                 type="button"
                 variant="ghost"
@@ -461,7 +462,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
             <div className="space-y-2">
               {headerFields.fields.length === 0 ? (
                 <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-                  <p className="text-xs text-muted-foreground">暂无自定义请求头</p>
+                  <p className="text-xs text-muted-foreground">{getLL().panels.mcpConnect.noCustomHeaders()}</p>
                 </div>
               ) : (
                 headerFields.fields.map((field, index) => (
@@ -498,7 +499,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           {/* Command */}
           <div className="space-y-2">
             <Label htmlFor="command" className="text-sm font-medium text-foreground">
-              命令 <span className="text-rose-500">*</span>
+              {getLL().panels.mcpConnect.command()} <span className="text-rose-500">*</span>
             </Label>
             <div className="relative">
               <Terminal className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
@@ -513,14 +514,14 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
               <p className="text-xs text-rose-500">{errors.command.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              可执行文件路径，如 npx、uvx、node
+              {getLL().panels.mcpConnect.commandHint()}
             </p>
           </div>
 
           {/* Args */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-foreground">命令参数（可选）</Label>
+              <Label className="text-sm font-medium text-foreground">{getLL().panels.mcpConnect.command()}参数（可选）</Label>
               <Button
                 type="button"
                 variant="ghost"
@@ -541,7 +542,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
                 if (args.length === 0) {
                   return (
                     <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-                      <p className="text-xs text-muted-foreground">暂无命令参数</p>
+                      <p className="text-xs text-muted-foreground">{getLL().panels.mcpConnect.noCommandArgs()}</p>
                     </div>
                   );
                 }
@@ -575,7 +576,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           {/* Env 环境变量 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-foreground">环境变量（可选）</Label>
+              <Label className="text-sm font-medium text-foreground">{getLL().panels.mcpConnect.envVars()}</Label>
               <Button
                 type="button"
                 variant="ghost"
@@ -590,7 +591,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
             <div className="space-y-2">
               {envFields.fields.length === 0 ? (
                 <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-                  <p className="text-xs text-muted-foreground">暂无环境变量</p>
+                  <p className="text-xs text-muted-foreground">{getLL().panels.mcpConnect.noEnvVars()}</p>
                 </div>
               ) : (
                 envFields.fields.map((field, index) => (
@@ -624,14 +625,14 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           <div className="flex items-start gap-2 rounded-md border border-blue-200/50 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 p-3">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-500" />
             <div className="text-xs text-blue-700/90 space-y-1">
-              <p>Stdio 模式通过子进程连接 MCP Server。适用于本地开发和调试。</p>
-              <p>注意：Stdio 模式不支持并发压测，压测时将共享同一连接。</p>
+              <p>{getLL().panels.mcpConnect.stdioInfo1()}</p>
+              <p>{getLL().panels.mcpConnect.stdioInfo2()}</p>
             </div>
           </div>
         </>
       )}
 
-      {/* 测试连接 & 发现服务 */}
+      {/* {getLL().panels.mcpConnect.testConnectionDiscover()} */}
       <div className="space-y-2">
         <Button
           type="button"
@@ -646,7 +647,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           ) : (
             <Search className="h-4 w-4" />
           )}
-          {isDiscovering ? '正在发现服务...' : '测试连接 & 发现服务'}
+          {isDiscovering ? getLL().panels.mcpConnect.discoveringServices() : getLL().panels.mcpConnect.testConnectionDiscover()}
         </Button>
 
         {/* 发现错误 */}
@@ -659,7 +660,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
         {/* 发现成功摘要 */}
         {hasDiscoveredData && !discoveryError && (
           <div className="rounded-md border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
-            <p>发现 {displayTools.length} 个工具, {displayResources.length} 个资源, {displayPrompts.length} 个提示词</p>
+            <p>getLL().panels.mcpConnect.discoverySummary(displayTools.length, displayResources.length, displayPrompts.length)</p>
           </div>
         )}
       </div>
@@ -674,7 +675,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           >
             <div className="flex items-center gap-2">
               <Wrench className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-sm font-medium text-foreground">工具</span>
+              <span className="text-sm font-medium text-foreground">{getLL().panels.mcpConnect.tools()}</span>
               <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
                 {displayTools.length}
               </Badge>
@@ -728,7 +729,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
                         )}
                         {schemaFields.length > 0 && (
                           <div className="space-y-0.5">
-                            <p className="text-[10px] font-medium text-muted-foreground">参数：</p>
+                            <p className="text-[10px] font-medium text-muted-foreground">{getLL().panels.mcpConnect.parametersLabel()}</p>
                             {schemaFields.map((f) => (
                               <div key={f.name} className="flex items-start gap-1 text-[10px]">
                                 <code className="rounded bg-amber-100/80 px-1 py-0 text-amber-900 font-mono shrink-0">{f.name}</code>
@@ -740,7 +741,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
                           </div>
                         )}
                         {!tool.description && schemaFields.length === 0 && (
-                          <p className="text-[10px] text-muted-foreground">此工具无描述和参数说明</p>
+                          <p className="text-[10px] text-muted-foreground">{getLL().panels.mcpConnect.noDescription()}</p>
                         )}
                       </div>
                     )}
@@ -762,7 +763,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           >
             <div className="flex items-center gap-2">
               <FileSearch className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-sm font-medium text-foreground">资源</span>
+              <span className="text-sm font-medium text-foreground">{getLL().panels.mcpConnect.resources()}</span>
               <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
                 {displayResources.length}
               </Badge>
@@ -805,7 +806,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           >
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-sm font-medium text-foreground">提示词</span>
+              <span className="text-sm font-medium text-foreground">{getLL().panels.mcpConnect.prompts()}</span>
               <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
                 {displayPrompts.length}
               </Badge>
@@ -827,7 +828,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
                   </div>
                   {prompt.arguments && prompt.arguments.length > 0 && (
                     <Badge variant="outline" className="shrink-0 h-5 px-1.5 text-[10px]">
-                      {prompt.arguments.length} 个参数
+                      getLL().panels.mcpConnect.argCount()
                     </Badge>
                   )}
                 </div>
@@ -837,10 +838,10 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
         </div>
       )}
 
-      {/* 协议版本 */}
+      {/* {getLL().panels.mcpConnect.protocolVersion()} */}
       <div className="space-y-2">
         <Label htmlFor="protocol_version" className="text-sm font-medium text-foreground">
-          协议版本
+          {getLL().panels.mcpConnect.protocolVersion()}
         </Label>
         <Input
           id="protocol_version"
@@ -849,7 +850,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          MCP 协议版本号，默认 2025-11-25
+          MCP {getLL().panels.mcpConnect.protocolVersion()}号，默认 2025-11-25
         </p>
       </div>
 
@@ -857,9 +858,9 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">MCP 协议说明：</p>
-          <p>MCP（Model Context Protocol）用于与大语言模型工具和服务交互</p>
-          <p>支持 Streamable HTTP 和 Stdio 两种传输模式，兼容标准 MCP 服务器</p>
+          <p className="font-medium text-foreground">{getLL().panels.mcpConnect.protocolExplanation()}</p>
+          <p>{getLL().panels.mcpConnect.protocolExplanation1()}</p>
+          <p>{getLL().panels.mcpConnect.protocolExplanation2()}</p>
           <p><code className="rounded bg-muted px-1">测试连接</code> 验证连接并发现可用工具、资源和提示词，结果自动缓存供下游节点使用</p>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Database, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { KafkaSchemaRegistryConfig as KafkaSchemaRegistryConfigType, KafkaSchemaOperation } from '@/types/node';
 import { useFlowStore } from '@/stores';
 import { isKafkaConnectConfig } from '@/types/node';
@@ -167,10 +168,10 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
             <Database className="h-4 w-4" />
-            Kafka Schema Registry 节点
+            {getLL().panels.kafkaSchemaRegistry.title()}
           </h4>
           <p className="text-sm leading-relaxed text-orange-700/90 whitespace-normal break-words">
-            管理 Schema Registry 中的 Schema 定义，支持版本查询、兼容性检查和 Schema 注册。
+            {getLL().panels.kafkaSchemaRegistry.description()}
           </p>
         </div>
       </div>
@@ -178,7 +179,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.connection()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -189,7 +190,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 Kafka 连接" />
+              <SelectValue placeholder="{getLL().panels.selectConnection()}" />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -206,7 +207,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder="{getLL().panels.enterConnectionId()}"
             className="font-mono text-sm"
           />
         )}
@@ -251,7 +252,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
         <div className="space-y-3">
           <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Schema Subject</p>
           <div className="space-y-2">
-            <Label htmlFor="subject" className="text-sm font-medium text-foreground">Subject 名称</Label>
+            <Label htmlFor="subject" className="text-sm font-medium text-foreground">{getLL().panels.kafkaSchemaRegistry.schemaSubject()}</Label>
             <Input
               id="subject"
               {...register('subject')}
@@ -270,7 +271,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
         <div className="space-y-3">
           <p className="text-xs font-semibold text-foreground uppercase tracking-wider">版本信息</p>
           <div className="space-y-2">
-            <Label htmlFor="version" className="text-sm font-medium text-foreground">版本号</Label>
+            <Label htmlFor="version" className="text-sm font-medium text-foreground">{getLL().panels.kafkaSchemaRegistry.schemaVersion()}</Label>
             <Input
               id="version"
               type="number"
@@ -307,7 +308,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
         <div className="space-y-3">
           <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Schema 类型</p>
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">格式</Label>
+            <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaSchemaRegistry.schemaType()}</Label>
             <Select
               value={watch('schema_type') || 'avro'}
               onValueChange={(value) => {

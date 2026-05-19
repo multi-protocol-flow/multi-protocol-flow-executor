@@ -1,4 +1,4 @@
-/**
+﻿/**
  * IMAP Store Flags 节点配置组件
  * 支持连接选择、UID 集合、操作类型、标志列表
  */
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Flag, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { ImapStoreFlagsConfig } from '@/types';
 import { ImapConnectionSelector, useImapConnections } from './shared/ImapShared';
 import { cn } from '@/lib/utils';
@@ -71,9 +72,9 @@ export function ImapStoreFlagsPanel({ data, onSave }: ImapStoreFlagsPanelProps) 
       <div className="rounded-lg border border-blue-200/50 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 p-4">
         <h4 className="text-sm font-semibold text-blue-900 flex items-center gap-2">
           <Flag className="h-4 w-4" />
-          IMAP 修改标志节点
+          {getLL().panels.imapStoreFlags.title()}
         </h4>
-        <p className="text-sm text-blue-700/90 mt-1">设置、添加或删除邮件标志。</p>
+        <p className="text-sm text-blue-700/90 mt-1">{getLL().panels.imapStoreFlags.description()}</p>
       </div>
 
       <ImapConnectionSelector
@@ -84,7 +85,7 @@ export function ImapStoreFlagsPanel({ data, onSave }: ImapStoreFlagsPanelProps) 
 
       <div className="space-y-2">
         <Label htmlFor="imap-store-uid" className="text-sm font-medium text-foreground">
-          UID 集合 <span className="text-rose-500">*</span>
+          {getLL().panels.imapStoreFlags.uidSet()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="imap-store-uid"
@@ -95,7 +96,7 @@ export function ImapStoreFlagsPanel({ data, onSave }: ImapStoreFlagsPanelProps) 
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">操作类型</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.imapStoreFlags.operationType()}</Label>
         <Select
           value={data.operation || 'set'}
           onValueChange={(value) => onSave({ ...data, operation: value as 'set' | 'add' | 'remove' })}
@@ -104,15 +105,15 @@ export function ImapStoreFlagsPanel({ data, onSave }: ImapStoreFlagsPanelProps) 
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="set">Set（替换全部标志）</SelectItem>
-            <SelectItem value="add">Add（添加标志）</SelectItem>
-            <SelectItem value="remove">Remove（移除标志）</SelectItem>
+            <SelectItem value="set">{getLL().panels.imapStoreFlags.operationSet()}</SelectItem>
+            <SelectItem value="add">{getLL().panels.imapStoreFlags.operationAdd()}</SelectItem>
+            <SelectItem value="remove">{getLL().panels.imapStoreFlags.operationRemove()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">标志列表</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.imapStoreFlags.flags()}</Label>
         <div className="flex flex-wrap gap-1.5">
           {FLAGS_PRESETS.map((flag) => (
             <button
@@ -135,10 +136,10 @@ export function ImapStoreFlagsPanel({ data, onSave }: ImapStoreFlagsPanelProps) 
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">标志操作说明：</p>
-          <p>Set: 替换邮件的所有标志为指定标志</p>
-          <p>Add: 在现有标志基础上添加指定标志</p>
-          <p>Remove: 从现有标志中移除指定标志</p>
+          <p className="font-medium text-foreground">{getLL().panels.imapStoreFlags.helpTitle()}</p>
+          <p>{getLL().panels.imapStoreFlags.helpLine1()}</p>
+          <p>{getLL().panels.imapStoreFlags.helpLine2()}</p>
+          <p>{getLL().panels.imapStoreFlags.helpLine3()}</p>
         </div>
       </div>
     </div>

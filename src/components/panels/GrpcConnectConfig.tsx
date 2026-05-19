@@ -1,6 +1,6 @@
 /**
  * gRPC Connect 节点配置组件
- * 支持服务器地址、TLS、Proto 文件管理、默认 Metadata、连接超时
+ * 支持服务器地址、TLS、Proto 文件管理、默认 Metadata、{getLL().panels.grpcConnect.connectionTimeout()}
  */
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,6 +20,7 @@ import type { GrpcConnectConfig as GrpcConnectConfigType, GrpcServiceInfo } from
 import { discoverGrpcServices, scanProtoDirectory, parseDescriptorSet, readProtoFiles } from '@/services/tauri';
 import { grpcChannelzInfo, type ChannelzInfo } from '@/services/tauri/grpc';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface GrpcConnectConfigProps {
   /** 当前节点数据 */
@@ -267,7 +268,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
     error: string | null;
   } | null>(null);
 
-  // Channelz 内省状态（EXPERIMENTAL）
+  // {getLL().panels.grpcConnect.channelzIntrospection()}状态（EXPERIMENTAL）
   const [isChannelzLoading, setIsChannelzLoading] = useState(false);
   const [channelzResult, setChannelzResult] = useState<{
     success: boolean;
@@ -286,14 +287,14 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
     return data.discovered_services || [];
   }, [discoveryResult, data.discovered_services]);
 
-  // 监听 URL 变化，清除已发现的服务
+  // 监听 URL 变化，清除{getLL().panels.grpcConnect.discoveredServices()}
   const currentUrl = watch('url');
   const prevUrlRef = useRef(data.url);
   useEffect(() => {
     const trimmedUrl = currentUrl?.trim();
     const prevTrimmed = prevUrlRef.current?.trim();
     if (trimmedUrl !== prevTrimmed && prevTrimmed !== undefined) {
-      // URL 发生变化，清除已发现的服务
+      // URL 发生变化，清除{getLL().panels.grpcConnect.discoveredServices()}
       const formData = getValues();
       const config = fromFormData(formData);
       config.discovered_services = undefined;
@@ -307,7 +308,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
   }, [currentUrl]);
 
   /**
-   * 测试连接 & 发现服务
+   * {getLL().panels.grpcConnect.testConnectionDiscover()}
    */
   const handleDiscoverServices = useCallback(async () => {
     const formData = getValues();
@@ -362,10 +363,10 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <Cable className="h-4 w-4" />
-            gRPC 连接节点
+            {getLL().panels.grpcConnect.title()}
           </h4>
           <p className="text-sm leading-relaxed text-violet-700/90 whitespace-normal break-words">
-            建立 gRPC 连接，支持 TLS、Proto 文件管理或 Server Reflection。
+            {getLL().panels.grpcConnect.description()}
           </p>
         </div>
       </div>
@@ -373,7 +374,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
       {/* 服务器地址 */}
       <div className="space-y-2">
         <Label htmlFor="url" className="text-sm font-medium text-foreground">
-          gRPC 服务器地址 <span className="text-rose-500">*</span>
+          {getLL().panels.grpcConnect.serverAddress()} <span className="text-rose-500">*</span>
         </Label>
         <div className="relative">
           <Cable className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
@@ -388,7 +389,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
           <p className="text-xs text-rose-500">{errors.url.message}</p>
         )}
         <p className="text-xs text-muted-foreground">
-          支持 http://（明文）和 https://（TLS）格式
+          {getLL().panels.grpcConnect.serverAddressHint()}
         </p>
       </div>
 
@@ -407,7 +408,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
             }}
           />
           <Label htmlFor="use_tls" className="text-sm font-medium text-foreground cursor-pointer">
-            启用 TLS
+            {getLL().panels.enableTls()}
           </Label>
         </div>
 
@@ -423,30 +424,30 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                 }}
               />
               <Label htmlFor="tls_skip_verify" className="text-sm font-medium text-foreground cursor-pointer">
-                跳过证书验证
+                {getLL().panels.skipCertVerify()}
               </Label>
             </div>
             {watch('tls_skip_verify') && (
               <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-800/60 dark:bg-amber-950/30">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
                 <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-400">
-                  跳过证书验证会使连接面临中间人攻击风险，数据仍会加密传输，但无法确认服务端身份。仅建议在开发/测试环境使用。
+                  {getLL().panels.skipCertVerifyWarning()}
                 </p>
               </div>
             )}
 
-            {/* TLS 高级配置 */}
+            {/* {getLL().panels.grpcConnect.tlsAdvancedConfig()} */}
             {!watch('tls_skip_verify') && (
               <div className="space-y-2 pl-2 border-l-2 border-violet-200 dark:border-violet-800/60">
-                <p className="text-xs font-medium text-muted-foreground">TLS 高级配置</p>
+                <p className="text-xs font-medium text-muted-foreground">{getLL().panels.grpcConnect.tlsAdvancedConfig()}</p>
 
                 {/* CA 证书 */}
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">CA 证书</Label>
+                  <Label className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.caCert()}</Label>
                   <div className="flex items-center gap-2">
                     <Input
                       {...register('tls_ca_cert')}
-                      placeholder="CA 证书文件路径（PEM）"
+                      placeholder={getLL().panels.grpcConnect.caCertPlaceholder()}
                       className="h-8 flex-1 font-mono text-xs"
                     />
                     <Button
@@ -459,7 +460,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                           const { open } = await import('@tauri-apps/plugin-dialog');
                           const selected = await open({
                             multiple: false,
-                            filters: [{ name: 'PEM 证书', extensions: ['pem', 'crt', 'cer', 'ca'] }],
+                            filters: [{ name: getLL().panels.grpcConnect.pemCert(), extensions: ['pem', 'crt', 'cer', 'ca'] }],
                           });
                           if (selected) {
                             setValue('tls_ca_cert', selected, { shouldDirty: true });
@@ -477,11 +478,11 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
 
                 {/* 客户端证书 */}
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">客户端证书（mTLS）</Label>
+                  <Label className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.clientCert()}</Label>
                   <div className="flex items-center gap-2">
                     <Input
                       {...register('tls_client_cert')}
-                      placeholder="客户端证书文件路径（PEM）"
+                      placeholder={getLL().panels.grpcConnect.clientCertPlaceholder()}
                       className="h-8 flex-1 font-mono text-xs"
                     />
                     <Button
@@ -494,7 +495,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                           const { open } = await import('@tauri-apps/plugin-dialog');
                           const selected = await open({
                             multiple: false,
-                            filters: [{ name: 'PEM 证书', extensions: ['pem', 'crt', 'cer'] }],
+                            filters: [{ name: getLL().panels.grpcConnect.pemCert(), extensions: ['pem', 'crt', 'cer'] }],
                           });
                           if (selected) {
                             setValue('tls_client_cert', selected, { shouldDirty: true });
@@ -512,11 +513,11 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
 
                 {/* 客户端私钥 */}
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">客户端私钥（mTLS）</Label>
+                  <Label className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.clientKey()}</Label>
                   <div className="flex items-center gap-2">
                     <Input
                       {...register('tls_client_key')}
-                      placeholder="客户端私钥文件路径（PEM）"
+                      placeholder={getLL().panels.grpcConnect.clientKeyPlaceholder()}
                       className="h-8 flex-1 font-mono text-xs"
                     />
                     <Button
@@ -529,7 +530,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                           const { open } = await import('@tauri-apps/plugin-dialog');
                           const selected = await open({
                             multiple: false,
-                            filters: [{ name: 'PEM 私钥', extensions: ['pem', 'key'] }],
+                            filters: [{ name: getLL().panels.grpcConnect.pemKey(), extensions: ['pem', 'key'] }],
                           });
                           if (selected) {
                             setValue('tls_client_key', selected, { shouldDirty: true });
@@ -545,16 +546,16 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                   </div>
                 </div>
 
-                {/* SNI 覆盖 */}
+                {/* {getLL().panels.grpcConnect.sniOverride()} */}
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">SNI 覆盖</Label>
+                  <Label className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.sniOverride()}</Label>
                   <Input
                     {...register('tls_server_name_override')}
-                    placeholder="自定义 TLS 服务器名称（留空使用 URL host）"
+                    placeholder={getLL().panels.grpcConnect.sniOverridePlaceholder()}
                     className="h-8 font-mono text-xs"
                   />
                   <p className="text-[11px] text-muted-foreground/70">
-                    当证书域名与实际连接地址不一致时使用
+                    {getLL().panels.grpcConnect.sniOverrideHint()}
                   </p>
                 </div>
               </div>
@@ -563,9 +564,9 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
         )}
       </div>
 
-      {/* Proto 来源 */}
+      {/* {getLL().panels.grpcConnect.protoSource()} */}
       <div className="space-y-3">
-        <Label className="text-sm font-medium text-foreground">Proto 来源</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.grpcConnect.protoSource()}</Label>
         <div className="space-y-2">
           <div className="flex items-center space-x-2">
             <Switch
@@ -577,20 +578,20 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
               }}
             />
             <Label htmlFor="enable_reflection" className="text-sm text-foreground cursor-pointer">
-              使用 Server Reflection
+              {getLL().panels.grpcConnect.useServerReflection()}
             </Label>
           </div>
           <p className="text-xs text-muted-foreground pl-2">
             {enableReflection
-              ? '从 gRPC 服务器自动获取服务和方法定义'
-              : '手动上传 .proto 文件定义服务和方法'}
+              ? '{getLL().panels.grpcConnect.reflectionDescription()}'
+              : '{getLL().panels.grpcConnect.manualProtoDescription()}'}
           </p>
 
           {/* Reflection 认证 Metadata（仅 Reflection 模式显示） */}
           {enableReflection && (
             <div className="space-y-2 pl-2 border-l-2 border-violet-200 dark:border-violet-800/60">
               <div className="flex items-center justify-between">
-                <Label className="text-xs text-muted-foreground">认证 Metadata（可选）</Label>
+                <Label className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.authMetadata()}</Label>
                 <Button
                   type="button"
                   variant="ghost"
@@ -603,12 +604,12 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                 </Button>
               </div>
               <p className="text-[11px] text-muted-foreground/70">
-                用于需要认证的 gRPC 反射服务（与连接级 Metadata 独立）
+                {getLL().panels.grpcConnect.authMetadataHint()}
               </p>
               <div className="space-y-2">
                 {reflectionMetadataFields.fields.length === 0 ? (
                   <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-3 text-center">
-                    <p className="text-xs text-muted-foreground">暂无认证 Metadata</p>
+                    <p className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.noAuthMetadata()}</p>
                   </div>
                 ) : (
                   reflectionMetadataFields.fields.map((field, index) => (
@@ -644,7 +645,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
         {!enableReflection && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground">Proto 文件列表</Label>
+              <Label className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.protoFileList()}</Label>
               <div className="flex items-center gap-1">
                 <Button
                   type="button"
@@ -654,7 +655,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                   className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
                 >
                   <Plus className="h-3 w-3" />
-                  添加文件
+                  {getLL().panels.grpcConnect.addFile()}
                 </Button>
               </div>
             </div>
@@ -671,7 +672,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                     const { open } = await import('@tauri-apps/plugin-dialog');
                     const selected = await open({
                       multiple: true,
-                      filters: [{ name: 'Proto 文件', extensions: ['proto'] }],
+                      filters: [{ name: getLL().panels.grpcConnect.protoFileFilter(), extensions: ['proto'] }],
                     });
                     if (selected) {
                       const paths = Array.isArray(selected) ? selected : [selected];
@@ -697,7 +698,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                 }}
               >
                 <FileUp className="h-3.5 w-3.5" />
-                选择 .proto 文件
+                {getLL().panels.grpcConnect.selectProtoFile()}
               </Button>
               <Button
                 type="button"
@@ -735,7 +736,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                 }}
               >
                 <FolderOpen className="h-3.5 w-3.5" />
-                选择目录
+                {getLL().panels.grpcConnect.selectDirectory()}
               </Button>
               <Button
                 type="button"
@@ -780,16 +781,16 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                 }}
               >
                 <Upload className="h-3.5 w-3.5" />
-                导入 Descriptor Set
+                {getLL().panels.grpcConnect.importDescriptorSet()}
               </Button>
             </div>
 
             <div className="space-y-2">
               {protoFiles.fields.length === 0 ? (
                 <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-                  <p className="text-xs text-muted-foreground">暂无 Proto 文件</p>
+                  <p className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.noProtoFiles()}</p>
                   <p className="mt-1 text-xs text-muted-foreground/60">
-                    点击「添加文件」上传 .proto 文件
+                    {getLL().panels.grpcConnect.addFileHint()}
                   </p>
                 </div>
               ) : (
@@ -799,7 +800,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                       <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                       <Input
                         {...register(`proto_files.${index}.path`)}
-                        placeholder="文件名（如 example.proto）"
+                        placeholder={getLL().panels.grpcConnect.protoFileNamePlaceholder()}
                         className="h-8 flex-1 font-mono text-xs"
                       />
                       <Button
@@ -826,7 +827,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
         )}
       </div>
 
-      {/* 测试连接 & 发现服务 */}
+      {/* {getLL().panels.grpcConnect.testConnectionDiscover()} */}
       <div className="space-y-2">
         <Button
           type="button"
@@ -841,7 +842,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
           ) : (
             <Search className="h-4 w-4" />
           )}
-          {isDiscovering ? '正在发现服务...' : '测试连接 & 发现服务'}
+          {isDiscovering ? getLL().panels.grpcConnect.discoveringServices() : getLL().panels.grpcConnect.testConnectionDiscover()}
         </Button>
 
         {/* 发现结果摘要 */}
@@ -852,18 +853,18 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
               : 'border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400'
           }`}>
             {discoveryResult.success ? (
-              <p>发现 {discoveryResult.services.length} 个服务</p>
+              <p>{getLL().panels.grpcConnect.servicesDiscoveredPrefix({ count: discoveryResult.services.length })}{discoveryResult.services.length} {getLL().panels.grpcConnect.servicesUnit({ count: discoveryResult.services.length })}</p>
             ) : (
               <p className="text-rose-500 dark:text-rose-400">{discoveryResult.error}</p>
             )}
           </div>
         )}
 
-        {/* 已发现的服务树 */}
+        {/* {getLL().panels.grpcConnect.discoveredServices()}树 */}
         {displayServices.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground">已发现的服务</Label>
+              <Label className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.discoveredServices()}</Label>
               <span className="inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300">
                 {displayServices.length} 个服务
               </span>
@@ -907,15 +908,15 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                             <code className="text-muted-foreground font-mono text-[11px]">{method.output_type}</code>
                             {method.is_server_streaming && method.is_client_streaming ? (
                               <span className="inline-flex items-center rounded-full bg-purple-100 dark:bg-purple-900/30 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:text-purple-300">
-                                双向流式
+                                {getLL().panels.grpcConnect.bidiStreaming()}
                               </span>
                             ) : method.is_server_streaming ? (
                               <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
-                                服务端流式
+                                {getLL().panels.grpcConnect.serverStreaming()}
                               </span>
                             ) : method.is_client_streaming ? (
                               <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
-                                客户端流式
+                                {getLL().panels.grpcConnect.clientStreaming()}
                               </span>
                             ) : (
                               <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-300">
@@ -937,7 +938,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
       {/* 默认 Metadata */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">默认 Metadata（可选）</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.grpcConnect.defaultMetadata()}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -952,7 +953,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
         <div className="space-y-2">
           {metadataFields.fields.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无默认 Metadata</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.noDefaultMetadata()}</p>
             </div>
           ) : (
             metadataFields.fields.map((field, index) => (
@@ -982,10 +983,10 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
         </div>
       </div>
 
-      {/* 连接超时 */}
+      {/* {getLL().panels.grpcConnect.connectionTimeout()} */}
       <div className="space-y-2">
         <Label htmlFor="connect_timeout_ms" className="text-sm font-medium text-foreground">
-          连接超时
+          {getLL().panels.grpcConnect.connectionTimeout()}
         </Label>
         <Input
           id="connect_timeout_ms"
@@ -994,13 +995,13 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
           max={300000}
           {...register('connect_timeout_ms', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
         />
-        <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.timeoutMs()}</p>
       </div>
 
-      {/* 压缩编码 */}
+      {/* {getLL().panels.grpcConnect.compressionEncoding()} */}
       <div className="space-y-2">
         <Label htmlFor="compression_encoding" className="text-sm font-medium text-foreground">
-          压缩编码
+          {getLL().panels.grpcConnect.compressionEncoding()}
         </Label>
         <Select
           value={watch('compression_encoding') || 'none'}
@@ -1010,15 +1011,15 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
           }}
         >
           <SelectTrigger id="compression_encoding" className="font-mono text-sm">
-            <SelectValue placeholder="无" />
+            <SelectValue placeholder={getLL().panels.none()} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">无</SelectItem>
+            <SelectItem value="none">{getLL().panels.none()}</SelectItem>
             <SelectItem value="gzip">Gzip</SelectItem>
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          连接级默认压缩，gRPC Call 节点可单独覆盖
+          {getLL().panels.grpcConnect.compressionHint()}
         </p>
       </div>
 
@@ -1026,37 +1027,37 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
       <div className="space-y-3 rounded-md border bg-muted/30 p-3">
         <div className="flex items-center gap-2">
           <Cable className="h-3.5 w-3.5 text-muted-foreground" />
-          <Label className="text-sm font-medium text-foreground">连接设置</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.grpcConnect.keepaliveConfig()}</Label>
         </div>
 
         <div className="space-y-2 pl-2">
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">PING 间隔 (ms)</Label>
+            <Label className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.pingIntervalMs()}</Label>
             <Input
               type="number"
               min={1000}
               max={300000}
-              placeholder="默认不发送 PING"
+              placeholder={getLL().panels.grpcConnect.pingIntervalPlaceholder()}
               {...register('keepalive_time_ms', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
               className="h-8 font-mono text-xs"
             />
             <p className="text-[11px] text-muted-foreground/70">
-              HTTP/2 PING 帧发送间隔，范围 1000-300000
+              {getLL().panels.grpcConnect.pingIntervalHint()}
             </p>
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">PING 超时 (ms)</Label>
+            <Label className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.pingTimeoutMs()}</Label>
             <Input
               type="number"
               min={1000}
               max={60000}
-              placeholder="默认 20000"
+              placeholder={getLL().panels.grpcConnect.pingTimeoutPlaceholder()}
               {...register('keepalive_timeout_ms', { setValueAs: (v: string) => v === '' ? undefined : Number(v) })}
               className="h-8 font-mono text-xs"
             />
             <p className="text-[11px] text-muted-foreground/70">
-              等待 PING ACK 的超时时间，范围 1000-60000
+              {getLL().panels.grpcConnect.pingTimeoutHint()}
             </p>
           </div>
 
@@ -1070,34 +1071,34 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
               }}
             />
             <Label htmlFor="keepalive_permit_without_streams" className="text-xs text-foreground cursor-pointer">
-              无流时允许 PING
+              {getLL().panels.grpcConnect.pingWithoutStreams()}
             </Label>
           </div>
           <p className="text-[11px] text-muted-foreground/70">
-            没有活跃 RPC 调用时也保持连接存活
+            {getLL().panels.grpcConnect.pingWithoutStreamsHint()}
           </p>
         </div>
       </div>
 
-      {/* Channelz 内省（EXPERIMENTAL） */}
+      {/* {getLL().panels.grpcConnect.channelzIntrospection()}（EXPERIMENTAL） */}
       <div className="space-y-3 rounded-md border bg-muted/30 p-3">
         <div className="flex items-center gap-2">
           <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-          <Label className="text-sm font-medium text-foreground">Channelz 内省</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.grpcConnect.channelzIntrospection()}</Label>
           <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Experimental</span>
         </div>
 
         <div className="space-y-2 pl-2">
           <p className="text-xs text-muted-foreground">
-            查询活跃 gRPC 连接的实时状态信息（连接状态、运行时长、活跃调用数）。
-            需要在流程执行期间查询，输入连接 ID（通常为 grpc_connect 节点的 UUID）。
+            {getLL().panels.grpcConnect.channelzDescription1()}
+            {getLL().panels.grpcConnect.channelzDescription2({ id: watch('channelz_connection_id') || '' })}
           </p>
 
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">连接 ID</Label>
+            <Label className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.channelzConnectionId()}</Label>
             <Input
               type="text"
-              placeholder="输入连接 ID（如节点 UUID）"
+              placeholder={getLL().panels.grpcConnect.channelzConnectionIdPlaceholder()}
               {...register('channelz_connection_id')}
               className="h-8 font-mono text-xs"
             />
@@ -1135,7 +1136,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
             ) : (
               <RefreshCw className="h-4 w-4" />
             )}
-            {isChannelzLoading ? '正在查询...' : '查询连接状态'}
+            {isChannelzLoading ? '{getLL().panels.grpcConnect.channelzQuerying()}' : '查询连接状态'}
           </Button>
 
           {/* Channelz 结果 */}
@@ -1168,7 +1169,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                   </div>
                   {/* 详细信息 */}
                   <div className="grid grid-cols-2 gap-1 text-muted-foreground">
-                    <span>运行时长:</span>
+                    <span>{getLL().panels.grpcConnect.uptime()}</span>
                     <span className="font-mono text-foreground">
                       {channelzResult.info.uptime_secs < 60
                         ? `${channelzResult.info.uptime_secs}s`
@@ -1177,16 +1178,16 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                           : `${Math.floor(channelzResult.info.uptime_secs / 3600)}h ${Math.floor((channelzResult.info.uptime_secs % 3600) / 60)}m`
                       }
                     </span>
-                    <span>活跃调用:</span>
+                    <span>{getLL().panels.grpcConnect.activeCalls()}</span>
                     <span className="font-mono text-foreground">{channelzResult.info.active_calls}</span>
-                    <span>连接时间:</span>
+                    <span>{getLL().panels.grpcConnect.connectedAt()}</span>
                     <span className="font-mono text-foreground text-[11px]">
                       {new Date(channelzResult.info.connected_at).toLocaleTimeString()}
                     </span>
                   </div>
                   {channelzResult.info.last_error && (
                     <div className="mt-1 text-rose-500 dark:text-rose-400 text-[11px]">
-                      最后错误: {channelzResult.info.last_error}
+                      {getLL().panels.grpcConnect.lastError()} {channelzResult.info.last_error}
                     </div>
                   )}
                 </div>
@@ -1203,7 +1204,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Cable className="h-3.5 w-3.5 text-muted-foreground" />
-            <Label className="text-sm font-medium text-foreground">负载均衡（EXPERIMENTAL）</Label>
+            <Label className="text-sm font-medium text-foreground">{getLL().panels.grpcConnect.loadBalancing()}</Label>
           </div>
           <Button
             type="button"
@@ -1213,11 +1214,11 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加端点
+            {getLL().panels.grpcConnect.addEndpoint()}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          主端点 + 额外端点将使用轮询负载均衡
+          {getLL().panels.grpcConnect.loadBalancingHint()}
         </p>
         <div className="space-y-2">
           {(() => {
@@ -1225,7 +1226,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
             if (eps.length === 0) {
               return (
                 <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-3 text-center">
-                  <p className="text-xs text-muted-foreground">暂无额外端点</p>
+                  <p className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.noExtraEndpoints()}</p>
                 </div>
               );
             }
@@ -1255,10 +1256,10 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">Proto 来源说明：</p>
-          <p><code className="rounded bg-muted px-1">Server Reflection</code> 从服务器自动获取服务定义，无需手动上传</p>
-          <p><code className="rounded bg-muted px-1">手动上传</code> 适合不支持 Reflection 的服务器或离线开发</p>
-          <p><code className="rounded bg-muted px-1">测试连接</code> 验证连接并发现可用服务，结果自动缓存供 gRPC Call 节点使用</p>
+          <p className="font-medium text-foreground">{getLL().panels.grpcConnect.protoSource()}说明：</p>
+          <p><code className="rounded bg-muted px-1">Server Reflection</code> {getLL().panels.grpcConnect.reflectionExplanation()}</p>
+          <p><code className="rounded bg-muted px-1">手动上传</code> {getLL().panels.grpcConnect.manualUploadExplanation()}</p>
+          <p><code className="rounded bg-muted px-1">测试连接</code> {getLL().panels.grpcConnect.testConnectionExplanation()}</p>
         </div>
       </div>
     </form>

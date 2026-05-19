@@ -1,15 +1,16 @@
-/**
+﻿/**
  * 变量提取节点配置组件
  * 支持数据来源选择 + 输出变量映射编辑
  */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useMemo } from 'react';
 import { variableExtractorConfigSchema, type VariableExtractorConfigFormData } from './schemas';
 import { Label } from '@/components/ui/label';
 import { OutputMappingsEditor } from '@/components/panels/shared/OutputMappingsEditor';
 import type { VariableExtractorConfig as VariableExtractorConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface VariableExtractorConfigProps {
   /** 当前节点数据 */
@@ -23,20 +24,6 @@ const EXCLUDED_SOURCE_TYPES: Set<string> = new Set([
   'entry',
   'variable_extractor',
 ]);
-
-/** JSONPath 预设列表 */
-const jsonPathPresets = [
-  { value: '$.status', label: '状态码' },
-  { value: '$.body', label: '响应体' },
-  { value: '$.body.data', label: '响应数据' },
-  { value: '$.headers', label: '响应头' },
-  { value: '$.rows', label: '数据行' },
-  { value: '$.rows[0]', label: '首行数据' },
-  { value: '$.response', label: '响应' },
-  { value: '$.data', label: '数据' },
-  { value: '$.message', label: '消息' },
-  { value: '$.connection_id', label: '连接ID' },
-];
 
 /**
  * 将 VariableExtractorConfigType 转换为表单数据
@@ -63,6 +50,8 @@ function fromFormData(formData: VariableExtractorConfigFormData): VariableExtrac
 }
 
 export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfigProps) {
+  const ll = getLL().panels.variableExtractor;
+  const presetsLL = getLL().panels.variableExtractor.presets;
   const {
     register,
     handleSubmit,
@@ -90,6 +79,20 @@ export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfi
   const sourceNodes = flow?.nodes.filter(
     (node) => node.uuid !== selectedNodeId && !EXCLUDED_SOURCE_TYPES.has(node.type)
   ) ?? [];
+
+  /** JSONPath 预设列表 */
+  const jsonPathPresets = useMemo(() => [
+    { value: '$.status', label: presetsLL.statusCode() },
+    { value: '$.body', label: presetsLL.body() },
+    { value: '$.body.data', label: presetsLL.responseData() },
+    { value: '$.headers', label: presetsLL.headers() },
+    { value: '$.rows', label: presetsLL.rows() },
+    { value: '$.rows[0]', label: presetsLL.firstRow() },
+    { value: '$.response', label: presetsLL.response() },
+    { value: '$.data', label: presetsLL.data() },
+    { value: '$.message', label: presetsLL.message() },
+    { value: '$.connection_id', label: presetsLL.connectionId() },
+  ], [presetsLL]);
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
@@ -147,7 +150,7 @@ export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfi
       {/* 数据来源选择 */}
       <div className="space-y-2">
         <Label htmlFor="source_node_id" className="text-sm font-medium text-foreground">
-          数据来源
+          {ll.dataSource()}
         </Label>
         <select
           id="source_node_id"
@@ -155,7 +158,7 @@ export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfi
           onChange={handleSourceNodeChange}
           className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
-          <option value="">自动（最近上游节点输出）</option>
+          <option value="">{ll.sourceAuto()}</option>
           {sourceNodes.map((node) => (
             <option key={node.uuid} value={node.uuid}>
               {node.name} ({node.type})
@@ -163,7 +166,7 @@ export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfi
           ))}
         </select>
         <p className="text-xs text-muted-foreground">
-          选择变量提取的数据来源节点，默认使用最近的上游节点输出。指定后将从该节点的 output_data 中提取数据。
+          {ll.sourceHelp()}
         </p>
       </div>
 

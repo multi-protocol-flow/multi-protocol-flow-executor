@@ -16,6 +16,7 @@ import type { WsCloseConfig as WsCloseConfigType } from '@/types';
 import { useFlowVariables } from '@/hooks';
 import { useFlowStore } from '@/stores';
 import { isWsConnectConfig } from '@/types/node';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface WsCloseConfigProps {
   /** 当前节点数据 */
@@ -54,20 +55,20 @@ function fromFormData(formData: WsCloseConfigFormData): WsCloseConfigType {
  * 常用的 WebSocket 关闭码
  */
 const CLOSE_CODES = [
-  { value: 1000, label: '1000 - 正常关闭' },
-  { value: 1001, label: '1001 - 端点离开' },
-  { value: 1002, label: '1002 - 协议错误' },
-  { value: 1003, label: '1003 - 不支持的数据类型' },
-  { value: 1005, label: '1005 - 无状态码' },
-  { value: 1006, label: '1006 - 异常关闭' },
-  { value: 1007, label: '1007 - 无效帧数据' },
-  { value: 1008, label: '1008 - 策略违规' },
-  { value: 1009, label: '1009 - 消息过大' },
-  { value: 1010, label: '1010 - 缺少扩展' },
-  { value: 1011, label: '1011 - 内部错误' },
-  { value: 1012, label: '1012 - 服务重启' },
-  { value: 1013, label: '1013 - 稍后重试' },
-  { value: 1015, label: '1015 - TLS 握手失败' },
+  { value: 1000, label: `1000 - ${getLL().panels.wsClose.closeCode1000()}` },
+  { value: 1001, label: `1001 - ${getLL().panels.wsClose.closeCode1001()}` },
+  { value: 1002, label: `1002 - ${getLL().panels.wsClose.closeCode1002()}` },
+  { value: 1003, label: `1003 - ${getLL().panels.wsClose.closeCode1003()}` },
+  { value: 1005, label: `1005 - ${getLL().panels.wsClose.closeCode1005()}` },
+  { value: 1006, label: `1006 - ${getLL().panels.wsClose.closeCode1006()}` },
+  { value: 1007, label: `1007 - ${getLL().panels.wsClose.closeCode1007()}` },
+  { value: 1008, label: `1008 - ${getLL().panels.wsClose.closeCode1008()}` },
+  { value: 1009, label: `1009 - ${getLL().panels.wsClose.closeCode1009()}` },
+  { value: 1010, label: `1010 - ${getLL().panels.wsClose.closeCode1010()}` },
+  { value: 1011, label: `1011 - ${getLL().panels.wsClose.closeCode1011()}` },
+  { value: 1012, label: `1012 - ${getLL().panels.wsClose.closeCode1012()}` },
+  { value: 1013, label: `1013 - ${getLL().panels.wsClose.closeCode1013()}` },
+  { value: 1015, label: `1015 - ${getLL().panels.wsClose.closeCode1015()}` },
 ] as const;
 
 export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
@@ -190,10 +191,10 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-rose-900 flex items-center gap-2">
             <PlugZap className="h-4 w-4" />
-            WebSocket 关闭连接节点
+            {getLL().panels.wsClose.title()}
           </h4>
           <p className="text-sm leading-relaxed text-rose-700/90 whitespace-normal break-words">
-            关闭指定的 WebSocket 连接，可选择发送关闭码和关闭原因。
+            {getLL().panels.wsClose.description()}
           </p>
         </div>
       </div>
@@ -201,7 +202,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
       {/* 连接 ID */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 ID <span className="text-rose-500">*</span>
+          {getLL().panels.wsClose.connectionId()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnectionIds.length > 0 ? (
           <Select
@@ -212,7 +213,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnectionIds.map((conn) => (
@@ -246,7 +247,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
         />
         {availableConnectionIds.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 WS Connect 节点，请手动输入连接 ID 或使用变量引用
+            {getLL().panels.wsSendCollect.noConnectNode()}
           </p>
         )}
       </div>
@@ -254,7 +255,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
       {/* 关闭码 */}
       <div className="space-y-2">
         <Label htmlFor="close_code" className="text-sm font-medium text-foreground">
-          关闭码
+          {getLL().panels.wsClose.closeCode()}
         </Label>
         <Select
           value={String(watch('close_code') || 1000)}
@@ -275,30 +276,30 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          选择标准的 WebSocket 关闭码
+          {getLL().panels.wsClose.closeCodeHelp()}
         </p>
       </div>
 
       {/* 关闭原因 */}
       <div className="space-y-2">
         <Label htmlFor="close_reason" className="text-sm font-medium text-foreground">
-          关闭原因（可选）
+          {getLL().panels.wsClose.closeReason()}
         </Label>
         <Input
           id="close_reason"
           {...register('close_reason')}
-          placeholder="正常关闭"
+          placeholder={getLL().panels.wsClose.closeReasonPlaceholder()}
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          可选的关闭原因说明
+          {getLL().panels.wsClose.closeReasonHelp()}
         </p>
       </div>
 
       {/* 关闭超时 */}
       <div className="space-y-2">
         <Label htmlFor="close_timeout_ms" className="text-sm font-medium text-foreground">
-          关闭超时
+          {getLL().panels.close()}{getLL().panels.timeout()}
         </Label>
         <Input
           id="close_timeout_ms"
@@ -308,7 +309,7 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
           {...register('close_timeout_ms', { valueAsNumber: true })}
         />
         <p className="text-xs text-muted-foreground">
-          毫秒 (ms)，范围 1000-300000，等待服务器确认关闭
+          {getLL().panels.wsClose.closeTimeoutHelp()}
         </p>
       </div>
 

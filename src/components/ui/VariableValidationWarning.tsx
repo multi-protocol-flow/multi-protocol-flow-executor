@@ -1,10 +1,11 @@
-/**
+﻿/**
  * 变量引用失效警告组件
  * 检测输入值中的 {{变量名}} 引用，如果变量不存在则显示警告提示
  */
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { AlertCircle } from "lucide-react";
+import { getLL } from '@/i18n/i18n-lazy';
 
 // ============================================================================
 // 辅助函数
@@ -81,6 +82,8 @@ export function VariableValidationWarning({
   showIcon = true,
   compact = false,
 }: VariableValidationWarningProps) {
+  const LL = getLL();
+
   // 检测变量引用
   const invalidRefs = React.useMemo(() => {
     const refs = detectVariableRefs(value);
@@ -104,7 +107,7 @@ export function VariableValidationWarning({
       )}
       <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
         <span className="text-xs font-medium shrink-0">
-          变量引用失效:
+          {LL.flow.var_ref_invalid()}
         </span>
         {invalidRefs.map((ref, index) => (
           <code

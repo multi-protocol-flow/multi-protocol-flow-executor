@@ -19,6 +19,7 @@ import {
   ConnectionDialog,
   type ConnectionFormData,
 } from '@/components/dialogs/ConnectionDialog';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface DbConnectConfigProps {
   /** 当前节点数据 */
@@ -315,7 +316,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
                 className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
               >
                 <Settings2 className="h-3.5 w-3.5" />
-                修改配置
+                {getLL().panels.dbConnect.modifyConfig()}
               </Button>
             </div>
 
@@ -339,7 +340,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
                 <div className="flex items-center gap-2 text-sm">
                   <FileText className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
                   <span className="text-xs text-indigo-700/60 dark:text-indigo-400/60">
-                    连接池 {displayConfig.min_connections ?? 1} - {displayConfig.max_connections ?? 10}
+                    {getLL().panels.dbConnect.connectionPoolRange({ min: displayConfig.min_connections ?? 1, max: displayConfig.max_connections ?? 10 })}
                   </span>
                 </div>
               )}
@@ -350,10 +351,10 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
           <div className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 p-5 space-y-3">
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
               <Database className="h-5 w-5" />
-              <span className="text-sm font-medium">未配置数据库连接</span>
+              <span className="text-sm font-medium">{getLL().panels.dbConnect.notConfigured()}</span>
             </div>
             <p className="text-center text-xs text-muted-foreground/70">
-              配置数据库驱动、连接参数和认证信息
+              {getLL().panels.dbConnect.configurePrompt()}
             </p>
             <div className="flex justify-center">
               <Button
@@ -364,7 +365,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
                 className="gap-1.5"
               >
                 <Settings2 className="h-3.5 w-3.5" />
-                配置数据库连接
+                {getLL().panels.dbConnect.configureConnection()}
               </Button>
             </div>
           </div>
@@ -379,14 +380,14 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
             onClick={() => setShowDialog(true)}
           >
             <Settings2 className="h-4 w-4" />
-            配置数据库连接
+            {getLL().panels.dbConnect.configureConnection()}
           </Button>
         )}
 
         {/* 连接超时 */}
         <div className="space-y-2">
           <Label htmlFor="connect_timeout_ms" className="text-sm font-medium text-foreground">
-            连接超时
+            {getLL().panels.dbConnect.connectionTimeout()}
           </Label>
           <Input
             id="connect_timeout_ms"
@@ -395,7 +396,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
             max={300000}
             {...register('connect_timeout_ms', { valueAsNumber: true })}
           />
-          <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000，默认 30000</p>
+          <p className="text-xs text-muted-foreground">{getLL().panels.dbConnect.timeoutHint()}</p>
           {errors.connect_timeout_ms && (
             <p className="text-xs text-rose-500">{errors.connect_timeout_ms.message}</p>
           )}
@@ -404,7 +405,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
         {/* 测试查询 */}
         <div className="space-y-2">
           <Label htmlFor="test_query" className="text-sm font-medium text-foreground">
-            测试查询（可选）
+            {getLL().panels.dbConnect.testQueryOptional()}
           </Label>
           <Textarea
             id="test_query"
@@ -414,7 +415,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
             rows={3}
           />
           <p className="text-xs text-muted-foreground">
-            连接成功后执行的测试查询，用于验证连接有效性
+            {getLL().panels.dbConnect.testQueryHelp()}
           </p>
           {errors.test_query && (
             <p className="text-xs text-rose-500">{errors.test_query.message}</p>

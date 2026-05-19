@@ -27,6 +27,7 @@ import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
+import { useVT } from '@/i18n/viewer-translations';
 
 interface MqttViewerProps {
   /** 节点执行报告 */
@@ -279,6 +280,7 @@ function MqttMessageCard({ message, index }: { message: MqttMessage; index: numb
 
 export function MqttViewer({ report }: MqttViewerProps) {
   const nodeType = report.node_type;
+  const t = useVT();
 
   switch (nodeType) {
     case 'mqtt_connect':
@@ -298,7 +300,7 @@ export function MqttViewer({ report }: MqttViewerProps) {
     default:
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
-          未知的 MQTT 节点类型: {nodeType}
+          {t("mqtt.unknown_node_type", { type: nodeType })}
         </div>
       );
   }

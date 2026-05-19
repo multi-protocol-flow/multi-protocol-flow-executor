@@ -3,6 +3,7 @@
  * 显示在节点左上角，用于设置/取消断点
  */
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 
 export interface BreakpointMarkerProps {
   /** 是否设置断点 */
@@ -35,7 +36,7 @@ export function BreakpointMarker({ hasBreakpoint, onToggle, locked }: Breakpoint
           'z-10',
           'pointer-events-none',
         )}
-        title="入口节点断点（固定）"
+        title={getLL().flow.breakpoint_locked()}
       />
     );
   }
@@ -80,8 +81,8 @@ export function BreakpointMarker({ hasBreakpoint, onToggle, locked }: Breakpoint
           'hover:border-red-500',
         ]
       )}
-      title={hasBreakpoint ? '点击取消断点' : '点击设置断点'}
-      aria-label={hasBreakpoint ? '取消断点' : '设置断点'}
+      title={hasBreakpoint ? getLL().flow.breakpoint_set() : getLL().flow.breakpoint_unset()}
+      aria-label={hasBreakpoint ? getLL().flow.breakpoint_set_aria() : getLL().flow.breakpoint_unset_aria()}
     />
   );
 }

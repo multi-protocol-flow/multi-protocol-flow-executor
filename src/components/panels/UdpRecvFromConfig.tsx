@@ -1,4 +1,4 @@
-/**
+﻿/**
  * UDP RecvFrom 节点配置组件
  * 支持连接选择、接收超时、最大接收大小
  */
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Info } from 'lucide-react';
 import type { UdpRecvFromConfig as UdpRecvFromConfigType } from '@/types';
+import { getLL } from '@/i18n/i18n-lazy';
 import { useFlowStore } from '@/stores';
 import { isUdpBindConfig } from '@/types/node';
 
@@ -161,10 +162,10 @@ export function UdpRecvFromConfig({ data, onSave }: UdpRecvFromConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
             <Download className="h-4 w-4" />
-            UDP 接收节点
+            {getLL().panels.udpRecvFrom.title()}
           </h4>
           <p className="text-sm leading-relaxed text-orange-700/90 whitespace-normal break-words">
-            从已绑定的 UDP 套接字接收数据报，可配置超时和最大接收大小。
+            {getLL().panels.udpRecvFrom.description()}
           </p>
         </div>
       </div>
@@ -172,7 +173,7 @@ export function UdpRecvFromConfig({ data, onSave }: UdpRecvFromConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.connection()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -183,7 +184,7 @@ export function UdpRecvFromConfig({ data, onSave }: UdpRecvFromConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 UDP 绑定" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -200,7 +201,7 @@ export function UdpRecvFromConfig({ data, onSave }: UdpRecvFromConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -209,7 +210,7 @@ export function UdpRecvFromConfig({ data, onSave }: UdpRecvFromConfigProps) {
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 UDP Bind 节点，请手动输入连接 ID
+            {getLL().panels.udpRecvFrom.noConnectNode()}
           </p>
         )}
       </div>
@@ -217,7 +218,7 @@ export function UdpRecvFromConfig({ data, onSave }: UdpRecvFromConfigProps) {
       {/* 接收超时 */}
       <div className="space-y-2">
         <Label htmlFor="receive_timeout_ms" className="text-sm font-medium text-foreground">
-          接收超时
+          {getLL().panels.udpRecvFrom.receiveTimeout()}
         </Label>
         <Input
           id="receive_timeout_ms"
@@ -227,13 +228,13 @@ export function UdpRecvFromConfig({ data, onSave }: UdpRecvFromConfigProps) {
           {...register('receive_timeout_ms', { valueAsNumber: true })}
           className="font-mono text-sm"
         />
-        <p className="text-xs text-muted-foreground">毫秒 (ms)，默认 5000，范围 1000-300000</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.udpRecvFrom.receiveTimeoutHint()}</p>
       </div>
 
       {/* 最大接收大小 */}
       <div className="space-y-2">
         <Label htmlFor="max_size" className="text-sm font-medium text-foreground">
-          最大接收大小
+          {getLL().panels.udpRecvFrom.maxSize()}
         </Label>
         <Input
           id="max_size"
@@ -243,7 +244,7 @@ export function UdpRecvFromConfig({ data, onSave }: UdpRecvFromConfigProps) {
           {...register('max_size', { valueAsNumber: true })}
           className="font-mono text-sm"
         />
-        <p className="text-xs text-muted-foreground">字节数，默认 65536 (64KB)</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.udpRecvFrom.maxSizeHint()}</p>
       </div>
 
       {/* 提示信息 */}

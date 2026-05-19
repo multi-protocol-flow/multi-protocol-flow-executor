@@ -20,6 +20,7 @@ import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
+import { useVT } from '@/i18n/viewer-translations';
 
 interface SseViewerProps {
   report: NodeExecutionReport;
@@ -211,6 +212,7 @@ function SseEventCard({ event, index }: { event: SseEvent; index: number }) {
 
 export function SseViewer({ report }: SseViewerProps) {
   const nodeType = report.node_type;
+  const t = useVT();
 
   switch (nodeType) {
     case 'sse_connect':
@@ -222,7 +224,7 @@ export function SseViewer({ report }: SseViewerProps) {
     default:
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
-          未知的 SSE 节点类型: {nodeType}
+          {t("sse.unknown_node_type", { type: nodeType })}
         </div>
       );
   }

@@ -16,20 +16,22 @@ import type { FolderInfo } from '@/services/storage';
 import { DEMO_FLOW, WS_DEMO_FLOW, BUILTIN_FLOW_VERSION } from '@/templates/builtinFlows';
 import { cn } from '@/lib/utils';
 import type { Flow } from '@/types/flow';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /** 格式化时间为相对时间 */
-function formatRelativeTime(timestamp: number): string {
+function formatRelativeTime(timestamp: number, locale: string = 'zh-CN'): string {
   const now = Date.now();
   const diff = now - timestamp;
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
 
-  if (minutes < 1) return '刚刚';
-  if (minutes < 60) return `${minutes} 分钟前`;
-  if (hours < 24) return `${hours} 小时前`;
-  if (days < 7) return `${days} 天前`;
-  return new Date(timestamp).toLocaleDateString('zh-CN');
+  if (minutes < 1) return rtf.format(0, 'second');
+  if (minutes < 60) return rtf.format(-minutes, 'minute');
+  if (hours < 24) return rtf.format(-hours, 'hour');
+  if (days < 7) return rtf.format(-days, 'day');
+  return new Date(timestamp).toLocaleDateString(locale);
 }
 
 export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUuid, onCreateFolderTrigger }: { showHeader?: boolean; disabled?: boolean; debugFlowUuid?: string | null; onCreateFolderTrigger?: (fn: () => void) => void }) {
@@ -342,9 +344,9 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const handleDeleteFolder = (folderPath: string) => {
     setOpenFolderMenuPath(null);
     showConfirm({
-      title: '删除文件夹',
-      description: '确定要删除此文件夹吗？仅空文件夹可被删除。',
-      confirmText: '删除',
+      title: getLL().flow.delete_folder_title(),
+      description: getLL().flow.delete_folder_desc(),
+      confirmText: getLL().common.DELETE(),
       onConfirm: async () => {
         try {
           await flowStorage.deleteFolder(folderPath);
@@ -458,9 +460,9 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const handleDeleteFlow = (uuid: string) => {
     setOpenMenuUuid(null);
     showConfirm({
-      title: '删除流程',
-      description: '确定要删除此流程吗？删除后无法恢复。',
-      confirmText: '删除',
+      title: getLL().flow.delete_flow_title(),
+      description: getLL().flow.delete_flow_desc(),
+      confirmText: getLL().common.DELETE(),
       onConfirm: async () => {
         await flowStorage.deleteFlow(uuid);
         removeFlowFromList(uuid);
@@ -670,7 +672,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             handleSelectFlow(flowMeta.uuid);
           }
         }}
-        title={disabled ? '调试中不可切换流程' : undefined}
+        title={disabled ? getLL().flow.debug_no_switch() : undefined}
           style={{ marginLeft: `${depth * 20}px` }}
           className={cn(
           'group flex items-center gap-2 px-3 h-12 rounded-lg text-sm text-left transition-all duration-150',
@@ -735,7 +737,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               'opacity-0 group-hover:opacity-100',
               'hover:bg-accent'
             )}
-            title="更多操作"
+            title={getLL().flow.more_ops()}
           >
             <MoreVertical className="w-3.5 h-3.5" />
           </Button>
@@ -755,7 +757,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
               >
                 <Pencil className="w-3.5 h-3.5" />
-                重命名
+                {getLL().flow.rename()}
               </button>
               <button
                 type="button"
@@ -766,7 +768,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
               >
                 <Copy className="w-3.5 h-3.5" />
-                复制流程
+                {getLL().flow.duplicate_flow()}
               </button>
               <button
                 type="button"
@@ -779,10 +781,10 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                   setMoveMenuPosition(computeMenuPosition(rect, 180, 300, 4, 'right'));
                   setMoveMenuUuid(flowMeta.uuid);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+                className="flex w-full items-center gap-2 py-1.5 px-3 text-sm hover:bg-accent transition-colors"
               >
                 <Move className="w-3.5 h-3.5" />
-                移动到...
+                {getLL().flow.move_to()}
               </button>
               <button
                 type="button"
@@ -790,10 +792,10 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                   e.stopPropagation();
                   handleDeleteFlow(flowMeta.uuid);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                className="flex w-full items-center gap-2 py-1.5 px-3 text-sm text-red-500 hover:bg-red-50 transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                删除流程
+                {getLL().flow.delete_flow()}
               </button>
             </div>,
             document.body
@@ -878,7 +880,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               'opacity-0 group-hover:opacity-100',
               'hover:bg-accent'
             )}
-            title="文件夹操作"
+            title={getLL().flow.folder_ops()}
           >
             <MoreVertical className="w-3 h-3" />
           </Button>
@@ -895,7 +897,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                 className="text-xs text-muted-foreground/60 italic px-3 py-1"
                 style={{ marginLeft: `${(depth + 1) * 20}px` }}
               >
-                空文件夹
+                {getLL().flow.empty_folder()}
               </div>
             )}
             {isCreatingFolder && newFolderParentPath === folderPath && (
@@ -920,7 +922,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                       handleCancelCreateFolder();
                     }
                   }}
-                  placeholder="文件夹名称..."
+                  placeholder={getLL().flow.folder_name_placeholder()}
                   className="flex-1 min-w-0 px-1 py-0 text-sm bg-background border border-primary rounded outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -936,7 +938,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       {/* 标题栏（仅在 showHeader=true 时渲染，即非 LeftSidebarPanel 场景） */}
       {showHeader && (
         <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-          <span className="text-sm font-medium text-foreground">流程列表</span>
+          <span className="text-sm font-medium text-foreground">{getLL().flow.flow_list_title()}</span>
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
@@ -944,7 +946,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               onClick={disabled ? undefined : handleRefresh}
               disabled={disabled || isRefreshing}
               className="h-7 w-7 rounded-md bg-background border border-border hover:bg-accent disabled:opacity-50"
-              title="刷新列表"
+              title={getLL().flow.refresh_list()}
             >
               <RefreshCw className={cn("w-3.5 h-3.5 text-foreground", isRefreshing && "animate-spin")} />
             </Button>
@@ -954,7 +956,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               onClick={disabled ? undefined : () => handleStartCreateFolder()}
               disabled={disabled}
               className="h-7 w-7 rounded-md bg-background border border-border hover:bg-accent disabled:opacity-50"
-              title={disabled ? "调试中不可创建文件夹" : "新建文件夹"}
+              title={disabled ? getLL().flow.debug_no_create_folder() : getLL().flow.new_folder()}
             >
               <FolderPlus className="w-3.5 h-3.5 text-foreground" />
             </Button>
@@ -964,7 +966,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               onClick={disabled ? undefined : handleNewFlow}
               disabled={disabled}
               className="h-7 w-7 rounded-md bg-background border border-border hover:bg-accent disabled:opacity-50"
-              title={disabled ? "调试中不可新建流程" : "新建流程"}
+              title={disabled ? getLL().flow.debug_no_new_flow() : getLL().flow.new_flow()}
             >
               <Plus className="w-4 h-4 text-foreground" />
             </Button>
@@ -976,7 +978,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       {isLoading && (
         <div className="flex-1 flex items-center justify-center py-6 text-muted-foreground">
           <RefreshCw className="w-5 h-5 animate-spin" />
-          <span className="ml-2 text-sm">加载中...</span>
+          <span className="ml-2 text-sm">{getLL().flow.loading()}</span>
         </div>
       )}
 
@@ -1007,7 +1009,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                       handleCancelCreateFolder();
                     }
                   }}
-                  placeholder="文件夹名称..."
+                  placeholder={getLL().flow.folder_name_placeholder()}
                   className="flex-1 min-w-0 px-1 py-0 text-sm bg-background border border-primary rounded outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -1037,8 +1039,8 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             {flows.length === 0 && treeData.rootFolderPaths.length === 0 && !isCreatingFolder && (
               <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
                 <FileJson className="w-8 h-8 mb-2 opacity-40" />
-                <p className="text-sm">暂无流程</p>
-                <p className="text-xs mt-1 opacity-70">点击 + 创建新流程</p>
+                <p className="text-sm">{getLL().flow.no_flows()}</p>
+                <p className="text-xs mt-1 opacity-70">{getLL().flow.create_flow_hint()}</p>
               </div>
             )}
           </div>
@@ -1062,7 +1064,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
-            新建流程
+            {getLL().flow.new_flow()}
           </button>
           <button
             type="button"
@@ -1074,7 +1076,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
           >
             <FolderPlus className="w-3.5 h-3.5" />
-            新建子文件夹
+            {getLL().flow.new_subfolder()}
           </button>
           <button
             type="button"
@@ -1089,7 +1091,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
           >
             <Move className="w-3.5 h-3.5" />
-            移动到...
+            {getLL().flow.move_to()}
           </button>
           <button
             type="button"
@@ -1100,7 +1102,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
           >
             <Pencil className="w-3.5 h-3.5" />
-            重命名
+            {getLL().flow.rename()}
           </button>
           <button
             type="button"
@@ -1111,7 +1113,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            删除文件夹
+            {getLL().flow.delete_folder()}
           </button>
         </div>,
         document.body
@@ -1134,7 +1136,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
             >
               <FileJson className="w-3.5 h-3.5 shrink-0" />
-              根目录
+              {getLL().flow.root_dir()}
             </button>
             {(() => {
               const renderFolderItems = (folderPaths: string[], depth: number): ReactNode[] => {

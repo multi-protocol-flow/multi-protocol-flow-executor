@@ -15,6 +15,7 @@ import {
   Bar,
 } from 'recharts';
 import type { StressTestProgress } from '@/types/stressTest';
+import { getLL } from '@/i18n/i18n-lazy';
 
 // ============================================================================
 // Types
@@ -125,7 +126,7 @@ function RpsTooltip({ active, payload, label }: RpsTooltipProps) {
   return (
     <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-md">
       <p className="text-xs text-muted-foreground mb-1">
-        时间: <span className="font-medium text-foreground">{label}秒</span>
+        {getLL().flow.stress_chart_tooltip_time()}<span className="font-medium text-foreground">{label}{getLL().flow.stress_chart_tooltip_seconds()}</span>
       </p>
       <p className="text-xs text-muted-foreground">
         RPS: <span className="font-medium text-blue-600">{formatRps(payload[0].value)}</span>
@@ -144,7 +145,7 @@ function LatencyTooltip({ active, payload }: LatencyTooltipProps) {
   return (
     <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-md">
       <p className="text-xs text-muted-foreground">
-        {data.name}: <span className="font-medium text-foreground">{data.count} 秒</span>
+        {data.name}: <span className="font-medium text-foreground">{data.count}{getLL().flow.stress_chart_tooltip_seconds()}</span>
       </p>
     </div>
   );
@@ -170,8 +171,7 @@ export function StressTestCharts({ progressHistory }: StressTestChartsProps) {
   // 如果没有数据，显示占位符
   if (progressHistory.length === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
-        暂无数据
+      <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">        {getLL().flow.stress_chart_no_data()}
       </div>
     );
   }
@@ -180,7 +180,7 @@ export function StressTestCharts({ progressHistory }: StressTestChartsProps) {
     <div className="flex flex-col gap-6">
       {/* RPS 实时曲线 */}
       <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold text-foreground">RPS 实时曲线</h3>
+        <h3 className="text-sm font-semibold text-foreground">{getLL().flow.stress_chart_rps()}</h3>
         <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
@@ -194,7 +194,7 @@ export function StressTestCharts({ progressHistory }: StressTestChartsProps) {
                 tickLine={{ stroke: 'oklch(0.88 0 0)' }}
                 axisLine={{ stroke: 'oklch(0.88 0 0)' }}
                 label={{
-                  value: '时间（秒）',
+                  value: getLL().flow.stress_chart_rps_x(),
                   position: 'insideBottomRight',
                   offset: -5,
                   fontSize: 11,
@@ -231,9 +231,9 @@ export function StressTestCharts({ progressHistory }: StressTestChartsProps) {
       {/* 响应时间分布 */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-foreground">响应时间分布</h3>
+          <h3 className="text-sm font-semibold text-foreground">{getLL().flow.stress_chart_response_dist()}</h3>
           <span className="text-xs text-muted-foreground">
-            · 每秒采样一次平均延迟，统计各延迟区间对应的采样秒数
+            · {getLL().flow.stress_chart_response_note()}
           </span>
         </div>
         <div className="h-40">
@@ -254,7 +254,7 @@ export function StressTestCharts({ progressHistory }: StressTestChartsProps) {
                 tickLine={{ stroke: 'oklch(0.88 0 0)' }}
                 axisLine={{ stroke: 'oklch(0.88 0 0)' }}
                 label={{
-                  value: '采样秒数',
+                  value: getLL().flow.stress_chart_latency_y(),
                   angle: -90,
                   position: 'insideLeft',
                   offset: 10,

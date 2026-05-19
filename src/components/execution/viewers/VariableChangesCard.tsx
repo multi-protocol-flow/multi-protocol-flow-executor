@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { VariableChange } from '@/types';
 import { cn } from '@/lib/utils';
+
 import { RawJsonViewer } from './RawJsonViewer';
 
 interface VariableChangesCardProps {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * IMAP Folder Delete 节点配置组件
  * 支持连接选择、文件夹名称、确认提示
  */
@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FolderMinus, Info, AlertTriangle } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { ImapFolderDeleteConfig } from '@/types';
 import { ImapConnectionSelector, useImapConnections } from './shared/ImapShared';
 
@@ -56,9 +57,9 @@ export function ImapFolderDeletePanel({ data, onSave }: ImapFolderDeletePanelPro
       <div className="rounded-lg border border-blue-200/50 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 p-4">
         <h4 className="text-sm font-semibold text-blue-900 flex items-center gap-2">
           <FolderMinus className="h-4 w-4" />
-          IMAP 删除文件夹节点
+          {getLL().panels.imapFolder.titleDelete()}
         </h4>
-        <p className="text-sm text-blue-700/90 mt-1">删除邮箱中的文件夹。</p>
+        <p className="text-sm text-blue-700/90 mt-1">{getLL().panels.imapFolder.descriptionDelete()}</p>
       </div>
 
       <ImapConnectionSelector
@@ -69,12 +70,12 @@ export function ImapFolderDeletePanel({ data, onSave }: ImapFolderDeletePanelPro
 
       <div className="space-y-2">
         <Label htmlFor="imap-del-folder" className="text-sm font-medium text-foreground">
-          文件夹名称 <span className="text-rose-500">*</span>
+          {getLL().panels.imapFolder.folderName()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="imap-del-folder"
           defaultValue={data.folder_name ?? ''}
-          placeholder="要删除的文件夹名称"
+          placeholder={getLL().panels.imapFolder.folderNameDeletePlaceholder()}
           className="font-mono text-sm"
         />
       </div>
@@ -82,17 +83,17 @@ export function ImapFolderDeletePanel({ data, onSave }: ImapFolderDeletePanelPro
       <div className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 p-3">
         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
         <div className="text-xs text-amber-700 dark:text-amber-400 space-y-1">
-          <p className="font-medium">危险操作</p>
-          <p>删除文件夹将同时删除其中的所有邮件，此操作无法撤销。</p>
+          <p className="font-medium">{getLL().panels.imapFolder.dangerWarning()}</p>
+          <p>{getLL().panels.imapFolder.dangerDesc()}</p>
         </div>
       </div>
 
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">删除文件夹说明：</p>
-          <p>文件夹必须存在且为空（某些服务器允许删除非空文件夹）</p>
-          <p>不能删除 INBOX 等系统保留文件夹</p>
+          <p className="font-medium text-foreground">{getLL().panels.imapFolder.helpTitleDelete()}</p>
+          <p>{getLL().panels.imapFolder.helpLine1Delete()}</p>
+          <p>{getLL().panels.imapFolder.helpLine2Delete()}</p>
         </div>
       </div>
     </div>

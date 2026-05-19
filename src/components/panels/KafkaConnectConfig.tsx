@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Radio, Info, Shield, ChevronDown, Database } from 'lucide-react';
+import { Radio, Info, Shield, ChevronDown, Database } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { KafkaConnectConfig as KafkaConnectConfigType } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -182,10 +183,10 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
             <Radio className="h-4 w-4" />
-            Kafka 连接节点
+            {getLL().panels.kafkaConnect.title()}
           </h4>
           <p className="text-sm leading-relaxed text-orange-700/90 whitespace-normal break-words">
-            建立 Kafka Broker 连接，支持 SASL 认证、TLS 加密和 Schema Registry。
+            {getLL().panels.kafkaConnect.description()}
           </p>
         </div>
       </div>
@@ -214,7 +215,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
 
         <div className="space-y-2">
           <Label htmlFor="client_id" className="text-sm font-medium text-foreground">
-            客户端 ID
+            {getLL().panels.kafkaConnect.clientId()}
           </Label>
           <Input
             id="client_id"
@@ -335,7 +336,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
             <div className="border-t bg-muted/20 px-3 py-3 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-xs font-medium text-foreground">跳过证书验证</Label>
+                  <Label className="text-xs font-medium text-foreground">{getLL().panels.skipCertVerify()}</Label>
                   <p className="text-[10px] text-muted-foreground">不验证服务器 TLS 证书</p>
                 </div>
                 <Switch
@@ -387,7 +388,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
 
         <div className="space-y-2">
           <Label htmlFor="schema_registry_url" className="text-sm font-medium text-foreground">
-            Schema Registry URL
+            {getLL().panels.kafkaConnect.schemaRegistry()}
           </Label>
           <Input
             id="schema_registry_url"
@@ -422,13 +423,13 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
         )}
       </div>
 
-      {/* 高级设置 */}
+      {/* {getLL().panels.advancedSettings()} */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">高级设置</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.advancedSettings()}</p>
 
         <div className="space-y-2">
           <Label htmlFor="connect_timeout_ms" className="text-sm font-medium text-foreground">
-            连接超时（毫秒）
+            {getLL().panels.kafkaConnect.timeout()}
           </Label>
           <Input
             id="connect_timeout_ms"

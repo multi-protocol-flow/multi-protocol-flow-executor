@@ -13,6 +13,7 @@ import { FileText, Info } from 'lucide-react';
 import type { McpReadResourceConfig as McpReadResourceConfigType, McpResourceInfo } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isMcpConnectConfig } from '@/types/node';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface McpReadResourceConfigProps {
   /** 当前节点数据 */
@@ -183,10 +184,10 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-amber-900 flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            MCP 资源读取节点
+            {getLL().panels.mcpReadResource.title()}
           </h4>
           <p className="text-sm leading-relaxed text-amber-700/90 whitespace-normal break-words">
-            读取 MCP 服务器上的资源内容，通过 URI 定位。
+            {getLL().panels.mcpReadResource.description()}
           </p>
         </div>
       </div>
@@ -194,7 +195,7 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.connection()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -207,7 +208,7 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 MCP 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -224,7 +225,7 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -233,7 +234,7 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 MCP Connect 节点，请手动输入连接 ID
+            {getLL().panels.mcpReadResource.noConnectNodeDetected()}
           </p>
         )}
       </div>
@@ -242,7 +243,7 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="resource_uri" className="text-sm font-medium text-foreground">
-            资源 URI <span className="text-rose-500">*</span>
+            {getLL().panels.mcpReadResource.resourceUri()} <span className="text-rose-500">*</span>
           </Label>
           {discoveredResources.length > 0 && (
             <button
@@ -250,7 +251,7 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
               onClick={() => setUriInputMode(prev => prev === 'select' ? 'manual' : 'select')}
               className="text-xs text-amber-600 hover:text-amber-800 hover:underline transition-colors"
             >
-              {uriInputMode === 'select' ? '手动输入' : '下拉选择'}
+              {uriInputMode === 'select' ? getLL().panels.manualInput() : getLL().panels.dropdownSelect()}
             </button>
           )}
         </div>
@@ -264,7 +265,7 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
               }}
             >
               <SelectTrigger id="resource_uri" className="font-mono">
-                <SelectValue placeholder="选择资源" />
+                <SelectValue placeholder={getLL().panels.mcpReadResource.selectResource()} />
               </SelectTrigger>
               <SelectContent>
                 {discoveredResources.map((resource) => (
@@ -295,18 +296,18 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
             <Input
               id="resource_uri"
               {...register('resource_uri')}
-              placeholder="例如：file:///path/to/resource"
+              placeholder={getLL().panels.mcpReadResource.resourceUriPlaceholder()}
               className="font-mono text-sm"
             />
             {discoveredResources.length > 0 && (
               <p className="text-xs text-muted-foreground">
-                当前为手动输入模式，
+                {getLL().panels.manualInput()}，
                 <button
                   type="button"
                   onClick={() => setUriInputMode('select')}
                   className="text-amber-600 hover:underline"
                 >
-                  切换到下拉选择
+                  {getLL().panels.switchToDropdown()}
                 </button>
               </p>
             )}
@@ -317,12 +318,12 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
         )}
         {discoveredResources.length === 0 && currentConnectionId && (
           <p className="text-xs text-muted-foreground">
-            连接节点未发现资源，请手动输入资源 URI
+            {getLL().panels.mcpReadResource.noDiscoveredResources()}
           </p>
         )}
         {!currentConnectionId && (
           <p className="text-xs text-muted-foreground">
-            MCP 资源的 URI 标识符
+            {getLL().panels.mcpReadResource.uriIdentifier()}
           </p>
         )}
       </div>
@@ -346,11 +347,11 @@ export function McpReadResourceConfig({ data, onSave }: McpReadResourceConfigPro
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">资源读取说明：</p>
-          <p>资源 URI 需与 MCP 服务器支持的资源路径匹配</p>
-          <p>读取结果将作为节点输出传递给后续节点</p>
+          <p className="font-medium text-foreground">{getLL().panels.mcpReadResource.readExplanation()}</p>
+          <p>{getLL().panels.mcpReadResource.uriMatchHint()}</p>
+          <p>{getLL().panels.mcpReadResource.resultOutputHint()}</p>
           {discoveredResources.length === 0 && currentConnectionId && (
-            <p className="text-amber-600">提示：连接节点尚未发现资源，请先在连接节点中执行资源发现</p>
+            <p className="text-amber-600">{getLL().panels.mcpReadResource.noDiscoveryHint()}</p>
           )}
         </div>
       </div>

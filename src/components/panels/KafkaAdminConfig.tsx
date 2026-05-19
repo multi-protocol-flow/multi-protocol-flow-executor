@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Settings2, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { KafkaAdminConfig as KafkaAdminConfigType, KafkaAdminOperation } from '@/types/node';
 import { useFlowStore } from '@/stores';
 import { isKafkaConnectConfig } from '@/types/node';
@@ -240,10 +241,10 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
             <Settings2 className="h-4 w-4" />
-            Kafka 管理节点
+            {getLL().panels.kafkaAdmin.title()}
           </h4>
           <p className="text-sm leading-relaxed text-orange-700/90 whitespace-normal break-words">
-            执行 Kafka 集群管理操作，包括主题、消费者组、Broker 和 ACL 管理。
+            {getLL().panels.kafkaAdmin.description()}
           </p>
         </div>
       </div>
@@ -251,7 +252,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.connection()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -262,7 +263,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 Kafka 连接" />
+              <SelectValue placeholder="{getLL().panels.selectConnection()}" />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -279,7 +280,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder="{getLL().panels.enterConnectionId()}"
             className="font-mono text-sm"
           />
         )}
@@ -297,7 +298,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
       <div className="space-y-3">
         <p className="text-xs font-semibold text-foreground uppercase tracking-wider">管理操作</p>
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-foreground">操作类型 <span className="text-rose-500">*</span></Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.operation()} <span className="text-rose-500">*</span></Label>
           <Select
             value={operation}
             onValueChange={(value) => {
@@ -335,7 +336,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
 
           {showTopicFields && (
             <div className="space-y-2">
-              <Label htmlFor="topic_name" className="text-sm font-medium text-foreground">主题名称</Label>
+              <Label htmlFor="topic_name" className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.topic()}</Label>
               <Input
                 id="topic_name"
                 {...register('topic_name')}
@@ -348,7 +349,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
           {operation === 'topic_create' && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="partitions" className="text-sm font-medium text-foreground">分区数</Label>
+                <Label htmlFor="partitions" className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.partitions()}</Label>
                 <Input
                   id="partitions"
                   type="number"
@@ -358,7 +359,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="replication_factor" className="text-sm font-medium text-foreground">副本因子</Label>
+                <Label htmlFor="replication_factor" className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.replicationFactor()}</Label>
                 <Input
                   id="replication_factor"
                   type="number"

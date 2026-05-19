@@ -3,7 +3,7 @@
  * 复用 NodeConfigPanel 的布局样式，提供配置文件存储位置提示
  */
 import { useEffect, useState } from 'react';
-import { Settings2, FolderOpen, FolderCog, FolderInput, Info, Sun, Moon, Monitor } from 'lucide-react';
+import { Settings2, FolderOpen, FolderCog, FolderInput, Info, Sun, Moon, Monitor, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -11,7 +11,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSettingsStore } from '@/stores/settings';
-import type { ThemeMode } from '@/types/settings';
+import type { ThemeMode, Locale } from '@/types/settings';
+import { useI18nContext } from '@/i18n/i18n-react';
+
 
 // 动态导入设置服务（根据环境）
 async function getSettingsService() {
@@ -27,16 +29,21 @@ export function SettingsPanel() {
     logDir,
     flowsDir,
     theme,
+    locale,
     isLoading,
     loadSettings,
     setReportDir,
     setLogDir,
     setFlowsDir,
     setTheme,
+    setLocale,
     openReportDir,
     openLogDir,
     openFlowsDir,
   } = useSettingsStore();
+
+  // 从 React context 获取响应式翻译（跟随 TypesafeI18n 的 locale prop 自动更新）
+  const { LL: contextLL } = useI18nContext();
 
   // 配置文件存储路径
   const [configFilePath, setConfigFilePath] = useState<string>('');
@@ -144,6 +151,23 @@ export function SettingsPanel() {
                       跟随系统
                     </span>
                   </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 语言 */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                {contextLL?.settings?.language() ?? '语言'}
+              </Label>
+              <Select value={locale} onValueChange={(value) => setLocale(value as Locale)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+<SelectItem value="zh-CN">{contextLL?.settings?.zh_CN() ?? '简体中文'}</SelectItem>
+<SelectItem value="en-US">{contextLL?.settings?.en_US() ?? 'English'}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

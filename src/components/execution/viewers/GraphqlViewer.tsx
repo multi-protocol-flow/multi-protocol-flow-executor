@@ -25,6 +25,7 @@ import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
+import { useVT } from '@/i18n/viewer-translations';
 import { RawJsonViewer } from './RawJsonViewer';
 
 interface GraphqlViewerProps {
@@ -225,6 +226,7 @@ function GraphqlEventCard({ event, index }: { event: GraphqlSubscriptionEvent; i
 
 export function GraphqlViewer({ report }: GraphqlViewerProps) {
   const nodeType = report.node_type;
+  const t = useVT();
 
   switch (nodeType) {
     case 'graphql_connect':
@@ -240,7 +242,7 @@ export function GraphqlViewer({ report }: GraphqlViewerProps) {
     default:
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
-          未知的 GraphQL 节点类型: {nodeType}
+          {t("graphql.unknown_node_type", { type: nodeType })}
         </div>
       );
   }

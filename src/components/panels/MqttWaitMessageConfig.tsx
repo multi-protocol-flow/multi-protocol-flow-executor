@@ -15,6 +15,7 @@ import type { MqttWaitMessageConfig as MqttWaitMessageConfigType } from '@/types
 import { useFlowStore } from '@/stores';
 import { isMqttConnectConfig } from '@/types/node';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface MqttWaitMessageConfigProps {
   data: MqttWaitMessageConfigType;
@@ -176,10 +177,10 @@ export function MqttWaitMessageConfig({ data, onSave }: MqttWaitMessageConfigPro
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-cyan-900 flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            MQTT 等待消息节点
+            {getLL().panels.mqttWaitMessage.title()}
           </h4>
           <p className="text-sm leading-relaxed text-cyan-700/90 whitespace-normal break-words">
-            等待指定主题上的 MQTT 消息，支持匹配条件和超时设置。
+            {getLL().panels.mqttWaitMessage.description()}
           </p>
         </div>
       </div>
@@ -198,7 +199,7 @@ export function MqttWaitMessageConfig({ data, onSave }: MqttWaitMessageConfigPro
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 MQTT 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -215,7 +216,7 @@ export function MqttWaitMessageConfig({ data, onSave }: MqttWaitMessageConfigPro
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -224,7 +225,7 @@ export function MqttWaitMessageConfig({ data, onSave }: MqttWaitMessageConfigPro
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 MQTT Connect 节点，请手动输入连接 ID
+            {getLL().panels.mqttPublish.noConnectNode()}
           </p>
         )}
       </div>
@@ -232,7 +233,7 @@ export function MqttWaitMessageConfig({ data, onSave }: MqttWaitMessageConfigPro
       {/* 主题 */}
       <div className="space-y-2">
         <Label htmlFor="topic" className="text-sm font-medium text-foreground">
-          主题 <span className="text-rose-500">*</span>
+          {getLL().panels.mqttWaitMessage.topicLabel()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="topic"
@@ -264,7 +265,7 @@ export function MqttWaitMessageConfig({ data, onSave }: MqttWaitMessageConfigPro
         {expandedSections.has('match') && (
           <div className="border-t bg-muted/20 px-3 py-3 space-y-2">
             <p className="text-xs text-muted-foreground">
-              JSON 格式的匹配条件，留空表示接收所有消息
+              {getLL().panels.mqttWaitMessage.matchConditionHelp()}
             </p>
             <Textarea
               defaultValue={matchConditionStr}
@@ -291,7 +292,7 @@ export function MqttWaitMessageConfig({ data, onSave }: MqttWaitMessageConfigPro
       {/* 超时 */}
       <div className="space-y-2">
         <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">
-          超时（毫秒）
+          {getLL().panels.mqttWaitMessage.timeout()}
         </Label>
         <Input
           id="timeout_ms"
@@ -305,7 +306,7 @@ export function MqttWaitMessageConfig({ data, onSave }: MqttWaitMessageConfigPro
       {/* 最大消息数 */}
       <div className="space-y-2">
         <Label htmlFor="max_messages" className="text-sm font-medium text-foreground">
-          最大等待消息数
+          {getLL().panels.mqttWaitMessage.maxMessages()}
         </Label>
         <Input
           id="max_messages"

@@ -14,6 +14,7 @@ import { ArrowRightLeft, Info } from 'lucide-react';
 import type { MqttRequestConfig as MqttRequestConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isMqttConnectConfig } from '@/types/node';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface MqttRequestConfigProps {
   data: MqttRequestConfigType;
@@ -143,10 +144,10 @@ export function MqttRequestConfig({ data, onSave }: MqttRequestConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-cyan-900 flex items-center gap-2">
             <ArrowRightLeft className="h-4 w-4" />
-            MQTT 请求-响应节点
+            {getLL().panels.mqttRequest.title()}
           </h4>
           <p className="text-sm leading-relaxed text-cyan-700/90 whitespace-normal break-words">
-            发送请求到指定主题并等待响应，实现请求-响应模式。
+            {getLL().panels.mqttRequest.description()}
           </p>
         </div>
       </div>
@@ -165,7 +166,7 @@ export function MqttRequestConfig({ data, onSave }: MqttRequestConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 MQTT 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -182,7 +183,7 @@ export function MqttRequestConfig({ data, onSave }: MqttRequestConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -191,7 +192,7 @@ export function MqttRequestConfig({ data, onSave }: MqttRequestConfigProps) {
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 MQTT Connect 节点，请手动输入连接 ID
+            {getLL().panels.mqttPublish.noConnectNode()}
           </p>
         )}
       </div>
@@ -199,7 +200,7 @@ export function MqttRequestConfig({ data, onSave }: MqttRequestConfigProps) {
       {/* 请求主题 */}
       <div className="space-y-2">
         <Label htmlFor="request_topic" className="text-sm font-medium text-foreground">
-          请求主题 <span className="text-rose-500">*</span>
+          {getLL().panels.mqttRequest.requestTopic()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="request_topic"
@@ -215,7 +216,7 @@ export function MqttRequestConfig({ data, onSave }: MqttRequestConfigProps) {
       {/* 响应主题 */}
       <div className="space-y-2">
         <Label htmlFor="response_topic" className="text-sm font-medium text-foreground">
-          响应主题 <span className="text-rose-500">*</span>
+          {getLL().panels.mqttRequest.responseTopic()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="response_topic"
@@ -231,7 +232,7 @@ export function MqttRequestConfig({ data, onSave }: MqttRequestConfigProps) {
       {/* 载荷 */}
       <div className="space-y-2">
         <Label htmlFor="payload" className="text-sm font-medium text-foreground">
-          请求载荷
+          {getLL().panels.mqttRequest.requestPayload()}
         </Label>
         <Textarea
           id="payload"
@@ -266,23 +267,23 @@ export function MqttRequestConfig({ data, onSave }: MqttRequestConfigProps) {
       {/* 关联数据 */}
       <div className="space-y-2">
         <Label htmlFor="correlation_data" className="text-sm font-medium text-foreground">
-          关联数据
+          {getLL().panels.mqttRequest.correlationData()}
         </Label>
         <Input
           id="correlation_data"
           {...register('correlation_data')}
-          placeholder="留空自动生成 UUID"
+          placeholder={getLL().panels.mqttRequest.correlationPlaceholder()}
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          用于匹配请求和响应，留空时自动生成唯一 UUID
+          {getLL().panels.mqttRequest.correlationHelp()}
         </p>
       </div>
 
       {/* 超时 */}
       <div className="space-y-2">
         <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">
-          响应超时（毫秒）
+          {getLL().panels.mqttRequest.responseTimeout()}
         </Label>
         <Input
           id="timeout_ms"

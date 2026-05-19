@@ -13,6 +13,7 @@ import { Inbox, Info } from 'lucide-react';
 import type { MqttUnsubscribeConfig as MqttUnsubscribeConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isMqttConnectConfig } from '@/types/node';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface MqttUnsubscribeConfigProps {
   data: MqttUnsubscribeConfigType;
@@ -132,10 +133,10 @@ export function MqttUnsubscribeConfig({ data, onSave }: MqttUnsubscribeConfigPro
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-cyan-900 flex items-center gap-2">
             <Inbox className="h-4 w-4" />
-            MQTT 取消订阅节点
+            {getLL().panels.mqttUnsubscribe.title()}
           </h4>
           <p className="text-sm leading-relaxed text-cyan-700/90 whitespace-normal break-words">
-            取消订阅指定的 MQTT 主题。
+            {getLL().panels.mqttUnsubscribe.description()}
           </p>
         </div>
       </div>
@@ -154,7 +155,7 @@ export function MqttUnsubscribeConfig({ data, onSave }: MqttUnsubscribeConfigPro
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 MQTT 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -171,7 +172,7 @@ export function MqttUnsubscribeConfig({ data, onSave }: MqttUnsubscribeConfigPro
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -180,7 +181,7 @@ export function MqttUnsubscribeConfig({ data, onSave }: MqttUnsubscribeConfigPro
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 MQTT Connect 节点，请手动输入连接 ID
+            {getLL().panels.mqttPublish.noConnectNode()}
           </p>
         )}
       </div>
@@ -188,7 +189,7 @@ export function MqttUnsubscribeConfig({ data, onSave }: MqttUnsubscribeConfigPro
       {/* 主题 */}
       <div className="space-y-2">
         <Label htmlFor="topic" className="text-sm font-medium text-foreground">
-          主题 <span className="text-rose-500">*</span>
+          {getLL().panels.mqttUnsubscribe.topicLabel()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="topic"

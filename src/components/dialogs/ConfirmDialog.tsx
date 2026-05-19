@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 
 export interface ConfirmDialogProps {
   /** 是否显示对话框 */
@@ -39,8 +40,8 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmText = '确认',
-  cancelText = '取消',
+  confirmText = getLL().common.CONFIRM(),
+  cancelText = getLL().common.CANCEL(),
   confirmVariant = 'destructive',
   onConfirm,
   onCancel,

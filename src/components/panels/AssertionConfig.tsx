@@ -1,62 +1,56 @@
-/**
+﻿/**
  * Assertion 节点配置组件
  * 支持断言列表管理、预设选择、全局配置
  */
-import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useRef } from 'react';
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useCallback, useEffect, useRef } from "react";
 import {
   assertionConfigSchema,
   type AssertionConfigFormData,
   type AssertionFormData,
-} from './schemas';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, CheckCircle, XCircle, Zap } from 'lucide-react';
-import type { AssertionNodeConfig, Assertion, AssertionOperator } from '@/types';
-import { useFlowStore } from '@/stores';
-
-interface AssertionConfigProps {
-  /** 当前节点数据 */
-  data: AssertionNodeConfig;
-  /** 保存回调 */
-  onSave: (data: AssertionNodeConfig) => void;
-}
+} from "./schemas";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Trash2, CheckCircle, XCircle, Zap } from "lucide-react";
+import type { AssertionNodeConfig, Assertion, AssertionOperator } from "@/types";
+import { useFlowStore } from "@/stores";
+import { getLL } from "@/i18n/i18n-lazy";
 
 /**
  * 断言操作符选项 (15种)
  */
-const ASSERTION_OPERATOR_OPTIONS: { value: AssertionFormData['operator']; label: string }[] = [
-  { value: 'equal', label: '等于 (=)' },
-  { value: 'not_equal', label: '不等于 (!=)' },
-  { value: 'greater', label: '大于 (>)' },
-  { value: 'greater_or_equal', label: '大于等于 (>=)' },
-  { value: 'less', label: '小于 (<)' },
-  { value: 'less_or_equal', label: '小于等于 (<=)' },
-  { value: 'contains', label: '包含' },
-  { value: 'not_contains', label: '不包含' },
-  { value: 'starts_with', label: '以...开始' },
-  { value: 'ends_with', label: '以...结束' },
-  { value: 'exists', label: '存在' },
-  { value: 'not_exists', label: '不存在' },
-  { value: 'is_empty', label: '为空' },
-  { value: 'is_not_empty', label: '不为空' },
-  { value: 'matches_regex', label: '匹配正则' },
+const ASSERTION_OPERATOR_OPTIONS: { value: AssertionFormData["operator"]; label: string }[] = [
+  { value: "equal", label: "等于 (=)" },
+  { value: "not_equal", label: "不等于 (!=)" },
+  { value: "greater", label: "大于 (>)" },
+  { value: "greater_or_equal", label: "大于等于 (>=)" },
+  { value: "less", label: "小于 (<)" },
+  { value: "less_or_equal", label: "小于等于 (<=)" },
+  { value: "contains", label: "包含" },
+  { value: "not_contains", label: "不包含" },
+  { value: "starts_with", label: "以...开始" },
+  { value: "ends_with", label: "以...结束" },
+  { value: "exists", label: "存在" },
+  { value: "not_exists", label: "不存在" },
+  { value: "is_empty", label: "为空" },
+  { value: "is_not_empty", label: "不为空" },
+  { value: "matches_regex", label: "匹配正则" },
 ];
 
 /**
  * 预设配置
  */
 const ASSERTION_PRESETS = [
-  { value: 'none', label: '无预设' },
-  { value: 'http_success', label: 'HTTP 成功响应 (2xx)' },
-  { value: 'http_client_error', label: 'HTTP 客户端错误 (4xx)' },
-  { value: 'http_server_error', label: 'HTTP 服务端错误 (5xx)' },
-  { value: 'json_response', label: 'JSON 响应格式' },
-  { value: 'response_fast', label: '快速响应 (<1s)' },
+  { value: "none", label: "无预设" },
+  { value: "http_success", label: "HTTP 成功响应 (2xx)" },
+  { value: "http_client_error", label: "HTTP 客户端错误 (4xx)" },
+  { value: "http_server_error", label: "HTTP 服务端错误 (5xx)" },
+  { value: "json_response", label: "JSON 响应格式" },
+  { value: "response_fast", label: "快速响应 (<1s)" },
 ];
 
 /**
@@ -64,23 +58,23 @@ const ASSERTION_PRESETS = [
  */
 const PRESET_ASSERTIONS: Record<string, AssertionFormData[]> = {
   http_success: [
-    { target: '$.status', operator: 'greater_or_equal', expected: '200', enabled: true },
-    { target: '$.status', operator: 'less', expected: '300', enabled: true },
+    { target: "$.status", operator: "greater_or_equal", expected: "200", enabled: true },
+    { target: "$.status", operator: "less", expected: "300", enabled: true },
   ],
   http_client_error: [
-    { target: '$.status', operator: 'greater_or_equal', expected: '400', enabled: true },
-    { target: '$.status', operator: 'less', expected: '500', enabled: true },
+    { target: "$.status", operator: "greater_or_equal", expected: "400", enabled: true },
+    { target: "$.status", operator: "less", expected: "500", enabled: true },
   ],
   http_server_error: [
-    { target: '$.status', operator: 'greater_or_equal', expected: '500', enabled: true },
-    { target: '$.status', operator: 'less', expected: '600', enabled: true },
+    { target: "$.status", operator: "greater_or_equal", expected: "500", enabled: true },
+    { target: "$.status", operator: "less", expected: "600", enabled: true },
   ],
   json_response: [
-    { target: '$.headers.content-type', operator: 'contains', expected: 'application/json', enabled: true },
-    { target: '$.body', operator: 'is_not_empty', expected: '', enabled: true },
+    { target: "$.headers.content-type", operator: "contains", expected: "application/json", enabled: true },
+    { target: "$.body", operator: "is_not_empty", expected: "", enabled: true },
   ],
   response_fast: [
-    { target: '$.duration_ms', operator: 'less', expected: '1000', enabled: true },
+    { target: "$.duration_ms", operator: "less", expected: "1000", enabled: true },
   ],
 };
 
@@ -88,8 +82,8 @@ const PRESET_ASSERTIONS: Record<string, AssertionFormData[]> = {
  * 不应出现在数据来源下拉中的节点类型（无输出数据或无意义）
  */
 const EXCLUDED_SOURCE_TYPES: Set<string> = new Set([
-  'entry',
-  'assertion',
+  "entry",
+  "assertion",
 ]);
 
 /**
@@ -106,14 +100,14 @@ function toFormData(data: AssertionNodeConfig): AssertionConfigFormData {
   const assertions: AssertionFormData[] = data.assertions.map((a) => ({
     target: a.target,
     operator: mapOperatorToForm(a.operator),
-    expected: typeof a.expected === 'string' ? a.expected : JSON.stringify(a.expected),
+    expected: typeof a.expected === "string" ? a.expected : JSON.stringify(a.expected),
     enabled: a.enabled ?? true,
     description: a.description,
   }));
 
   return {
-    type: 'assertion',
-    preset: data.preset || 'none',
+    type: "assertion",
+    preset: data.preset || "none",
     mode: data.mode,
     on_failure: data.on_failure,
     continue_on_failure: data.continue_on_failure,
@@ -148,7 +142,7 @@ function fromFormData(formData: AssertionConfigFormData): AssertionNodeConfig {
   });
 
   return {
-    type: 'assertion',
+    type: "assertion",
     // 预设仅用于前端 UI 填充断言模板，不传给后端。
     // 后端 merge_preset_and_custom 会根据 preset 字段再追加预设断言，
     // 导致与已展平到 assertions 中的预设断言重复计算。
@@ -165,49 +159,54 @@ function fromFormData(formData: AssertionConfigFormData): AssertionNodeConfig {
  * 映射操作符：表单 -> 类型定义
  * schemas.ts 使用的操作符名称与 node.ts 不同，需要映射
  */
-function mapOperatorFromForm(op: AssertionFormData['operator']): AssertionOperator {
-  const mapping: Record<AssertionFormData['operator'], AssertionOperator> = {
-    equal: 'eq',
-    not_equal: 'ne',
-    greater: 'gt',
-    greater_or_equal: 'gte',
-    less: 'lt',
-    less_or_equal: 'lte',
-    contains: 'contains',
-    not_contains: 'not_contains',
-    starts_with: 'contains', // 映射到最接近的
-    ends_with: 'contains', // 映射到最接近的
-    exists: 'exists',
-    not_exists: 'not_exists',
-    is_empty: 'eq', // 需要配合期望值使用
-    is_not_empty: 'ne', // 需要配合期望值使用
-    matches_regex: 'matches',
+function mapOperatorFromForm(op: AssertionFormData["operator"]): AssertionOperator {
+  const mapping: Record<AssertionFormData["operator"], AssertionOperator> = {
+    equal: "eq",
+    not_equal: "ne",
+    greater: "gt",
+    greater_or_equal: "gte",
+    less: "lt",
+    less_or_equal: "lte",
+    contains: "contains",
+    not_contains: "not_contains",
+    starts_with: "contains", // 映射到最接近的
+    ends_with: "contains", // 映射到最接近的
+    exists: "exists",
+    not_exists: "not_exists",
+    is_empty: "eq", // 需要配合期望值使用
+    is_not_empty: "ne", // 需要配合期望值使用
+    matches_regex: "matches",
   };
-  return mapping[op] || 'eq';
+  return mapping[op] || "eq";
 }
 
 /**
  * 映射操作符：类型定义 -> 表单
  */
-function mapOperatorToForm(op: AssertionOperator): AssertionFormData['operator'] {
-  const mapping: Record<AssertionOperator, AssertionFormData['operator']> = {
-    eq: 'equal',
-    ne: 'not_equal',
-    gt: 'greater',
-    gte: 'greater_or_equal',
-    lt: 'less',
-    lte: 'less_or_equal',
-    contains: 'contains',
-    not_contains: 'not_contains',
-    matches: 'matches_regex',
-    exists: 'exists',
-    not_exists: 'not_exists',
-    in: 'contains', // 映射到最接近的
-    not_in: 'not_contains', // 映射到最接近的
-    type_is: 'equal', // 需要配合期望值使用
-    between: 'greater_or_equal', // 需要配合期望值使用
+function mapOperatorToForm(op: AssertionOperator): AssertionFormData["operator"] {
+  const mapping: Record<AssertionOperator, AssertionFormData["operator"]> = {
+    eq: "equal",
+    ne: "not_equal",
+    gt: "greater",
+    gte: "greater_or_equal",
+    lt: "less",
+    lte: "less_or_equal",
+    contains: "contains",
+    not_contains: "not_contains",
+    matches: "matches_regex",
+    exists: "exists",
+    not_exists: "not_exists",
+    in: "contains", // 映射到最接近的
+    not_in: "not_contains", // 映射到最接近的
+    type_is: "equal", // 需要配合期望值使用
+    between: "greater_or_equal", // 需要配合期望值使用
   };
-  return mapping[op] || 'equal';
+  return mapping[op] || "equal";
+}
+
+interface AssertionConfigProps {
+  data: AssertionNodeConfig;
+  onSave: (data: AssertionNodeConfig) => void;
 }
 
 export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
@@ -223,19 +222,19 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
   } = useForm<AssertionConfigFormData>({
     resolver: zodResolver(assertionConfigSchema) as never,
     defaultValues: toFormData(data),
-    mode: 'onBlur',
+    mode: "onBlur",
   });
 
   const { fields, append, remove } = useFieldArray({
     control,
-    name: 'assertions' as never,
+    name: "assertions" as never,
   });
 
-  const watchedPreset = watch('preset');
-  const watchedMode = watch('mode');
-  const watchedOnFailure = watch('on_failure');
-  const watchedContinueOnFailure = watch('continue_on_failure');
-  const watchedSourceNodeId = watch('source_node_id');
+  const watchedPreset = watch("preset");
+  const watchedMode = watch("mode");
+  const watchedOnFailure = watch("on_failure");
+  const watchedContinueOnFailure = watch("continue_on_failure");
+  const watchedSourceNodeId = watch("source_node_id");
 
   // 获取当前流程节点列表和当前选中节点（用于数据来源选择）
   const flow = useFlowStore((state) => state.flow);
@@ -300,7 +299,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
         const config = fromFormData(formData);
         onSave(config);
       } catch (error) {
-        console.error('保存断言配置失败:', error);
+        console.error("保存断言配置失败:", error);
       }
     })();
   }, [handleSubmit, onSave]);
@@ -309,7 +308,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    * 处理数据来源选择变更
    */
   const handleSourceNodeChange = useCallback((value: string) => {
-    setValue('source_node_id', value || undefined, { shouldDirty: true });
+    setValue("source_node_id", value || undefined, { shouldDirty: true });
     saveData();
   }, [setValue, saveData]);
 
@@ -326,8 +325,8 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
   // 监听 Ctrl+S 刷新事件，将表单数据同步到 store
   useEffect(() => {
     const handleFlush = () => { saveData(); };
-    window.addEventListener('flush-config-panel', handleFlush);
-    return () => { window.removeEventListener('flush-config-panel', handleFlush); };
+    window.addEventListener("flush-config-panel", handleFlush);
+    return () => { window.removeEventListener("flush-config-panel", handleFlush); };
   }, [saveData]);
 
   /**
@@ -335,9 +334,9 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    */
   const handleAddAssertion = useCallback(() => {
     append({
-      target: '',
-      operator: 'equal',
-      expected: '',
+      target: "",
+      operator: "equal",
+      expected: "",
       enabled: true,
     } as AssertionFormData);
   }, [append]);
@@ -354,10 +353,10 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    * 处理预设选择
    */
   const handlePresetChange = useCallback((value: string) => {
-    setValue('preset', value, { shouldDirty: true });
-    if (value !== 'none' && PRESET_ASSERTIONS[value]) {
+    setValue("preset", value, { shouldDirty: true });
+    if (value !== "none" && PRESET_ASSERTIONS[value]) {
       // 使用预设断言替换当前断言
-      setValue('assertions', [...PRESET_ASSERTIONS[value]], { shouldDirty: true });
+      setValue("assertions", [...PRESET_ASSERTIONS[value]], { shouldDirty: true });
     }
     saveData();
   }, [setValue, saveData]);
@@ -366,7 +365,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    * 处理组合模式变更
    */
   const handleModeChange = useCallback((value: string) => {
-    setValue('mode', value as 'all' | 'any', { shouldDirty: true });
+    setValue("mode", value as "all" | "any", { shouldDirty: true });
     saveData();
   }, [setValue, saveData]);
 
@@ -374,7 +373,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    * 处理失败行为变更
    */
   const handleOnFailureChange = useCallback((value: string) => {
-    setValue('on_failure', value as 'route_false' | 'throw', { shouldDirty: true });
+    setValue("on_failure", value as "route_false" | "throw", { shouldDirty: true });
     saveData();
   }, [setValue, saveData]);
 
@@ -382,7 +381,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    * 处理失败后继续执行变更
    */
   const handleContinueOnFailureChange = useCallback((checked: boolean) => {
-    setValue('continue_on_failure', checked, { shouldDirty: true });
+    setValue("continue_on_failure", checked, { shouldDirty: true });
     saveData();
   }, [setValue, saveData]);
 
@@ -398,15 +397,15 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
    * 处理断言操作符变更
    */
   const handleOperatorChange = useCallback((index: number, value: string) => {
-    setValue(`assertions.${index}.operator`, value as AssertionFormData['operator'], { shouldDirty: true });
+    setValue(`assertions.${index}.operator`, value as AssertionFormData["operator"], { shouldDirty: true });
     saveData();
   }, [setValue, saveData]);
 
   /**
    * 检查操作符是否需要期望值
    */
-  const operatorNeedsExpected = useCallback((op: AssertionFormData['operator']) => {
-    return !['exists', 'not_exists', 'is_empty', 'is_not_empty'].includes(op);
+  const operatorNeedsExpected = useCallback((op: AssertionFormData["operator"]) => {
+    return !["exists", "not_exists", "is_empty", "is_not_empty"].includes(op);
   }, []);
 
   return (
@@ -414,18 +413,18 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
       {/* 数据来源选择 */}
       <div className="space-y-2">
         <Label htmlFor="source_node_id" className="text-sm font-medium text-foreground">
-          数据来源
+          {getLL().panels.assertion.sourceNode()}
         </Label>
         <Select
-          value={watchedSourceNodeId || ''}
+          value={watchedSourceNodeId || ""}
           onValueChange={handleSourceNodeChange}
         >
           <SelectTrigger id="source_node_id" className="font-mono">
-            <SelectValue placeholder="选择数据来源..." />
+            <SelectValue placeholder={getLL().panels.assertion.sourcePlaceholder()} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">
-              自动（最近上游节点输出）
+              {getLL().panels.assertion.sourceAuto()}
             </SelectItem>
             {sourceNodes.map((node) => (
               <SelectItem key={node.uuid} value={node.uuid}>
@@ -435,7 +434,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          选择断言判断的数据来源节点，默认使用最近的上游节点输出。指定后将从该节点的 output_data 中提取数据。
+          {getLL().panels.assertion.sourceHelp()}
         </p>
       </div>
 
@@ -443,14 +442,14 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
       <div className="space-y-2">
         <Label htmlFor="preset" className="text-sm font-medium text-foreground flex items-center gap-2">
           <Zap className="h-4 w-4 text-amber-500" />
-          预设模板
+          {getLL().panels.assertion.preset()}
         </Label>
         <Select
-          value={watchedPreset || 'none'}
+          value={watchedPreset || "none"}
           onValueChange={handlePresetChange}
         >
           <SelectTrigger id="preset" className="font-mono">
-            <SelectValue placeholder="选择预设..." />
+            <SelectValue placeholder={getLL().panels.assertion.presetPlaceholder()} />
           </SelectTrigger>
           <SelectContent>
             {ASSERTION_PRESETS.map((preset) => (
@@ -461,91 +460,91 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          选择预设将自动填充常用断言配置
+          {getLL().panels.assertion.presetHelp()}
         </p>
       </div>
 
       {/* 全局配置区域 */}
       <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
-        <h3 className="text-sm font-medium text-foreground">全局配置</h3>
+        <h3 className="text-sm font-medium text-foreground">{getLL().panels.assertion.globalConfig()}</h3>
         
         {/* 组合模式 */}
         <div className="space-y-2">
-          <Label className="text-sm text-muted-foreground">组合模式</Label>
+          <Label className="text-sm text-muted-foreground">{getLL().panels.assertion.modeLabel()}</Label>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => handleModeChange('all')}
+              onClick={() => handleModeChange("all")}
               className={`flex items-center justify-center gap-2 rounded-lg border-2 p-2.5 transition-all text-sm ${
-                watchedMode === 'all'
-                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'
-                  : 'border-border hover:bg-muted/50'
+                watchedMode === "all"
+                  ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
+                  : "border-border hover:bg-muted/50"
               }`}
             >
               <CheckCircle className="h-4 w-4" />
-              全部通过 (AND)
+              {getLL().panels.assertion.modeAll()}
             </button>
             <button
               type="button"
-              onClick={() => handleModeChange('any')}
+              onClick={() => handleModeChange("any")}
               className={`flex items-center justify-center gap-2 rounded-lg border-2 p-2.5 transition-all text-sm ${
-                watchedMode === 'any'
-                  ? 'border-sky-500 bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300'
-                  : 'border-border hover:bg-muted/50'
+                watchedMode === "any"
+                  ? "border-sky-500 bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300"
+                  : "border-border hover:bg-muted/50"
               }`}
             >
-              任一通过 (OR)
+              {getLL().panels.assertion.modeAny()}
             </button>
           </div>
           <p className="text-xs text-muted-foreground">
-            {watchedMode === 'all' 
-              ? '所有启用的断言都必须通过'
-              : '只要有一条断言通过即可'}
+            {watchedMode === "all" 
+              ? getLL().panels.assertion.modeAllDesc()
+              : getLL().panels.assertion.modeAnyDesc()}
           </p>
         </div>
 
         {/* 失败行为 */}
         <div className="space-y-2">
-          <Label className="text-sm text-muted-foreground">失败行为</Label>
+          <Label className="text-sm text-muted-foreground">{getLL().panels.assertion.failureActionLabel()}</Label>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => handleOnFailureChange('route_false')}
+              onClick={() => handleOnFailureChange("route_false")}
               className={`flex items-center justify-center gap-2 rounded-lg border-2 p-2.5 transition-all text-sm ${
-                watchedOnFailure === 'route_false'
-                  ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300'
-                  : 'border-border hover:bg-muted/50'
+                watchedOnFailure === "route_false"
+                  ? "border-amber-500 bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                  : "border-border hover:bg-muted/50"
               }`}
             >
               <CheckCircle className="h-4 w-4" />
-              路由到 false 分支
+              {getLL().panels.assertion.routeFalse()}
             </button>
             <button
               type="button"
-              onClick={() => handleOnFailureChange('throw')}
+              onClick={() => handleOnFailureChange("throw")}
               className={`flex items-center justify-center gap-2 rounded-lg border-2 p-2.5 transition-all text-sm ${
-                watchedOnFailure === 'throw'
-                  ? 'border-rose-500 bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300'
-                  : 'border-border hover:bg-muted/50'
+                watchedOnFailure === "throw"
+                  ? "border-rose-500 bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300"
+                  : "border-border hover:bg-muted/50"
               }`}
             >
               <XCircle className="h-4 w-4" />
-              抛出异常
+              {getLL().panels.assertion.throwError()}
             </button>
           </div>
           <p className="text-xs text-muted-foreground">
-            {watchedOnFailure === 'route_false'
-              ? '断言失败时从 false 端口继续执行'
-              : '断言失败时终止流程执行'}
+            {watchedOnFailure === "route_false"
+              ? getLL().panels.assertion.routeFalseDesc()
+              : getLL().panels.assertion.throwErrorDesc()}
           </p>
         </div>
 
         {/* 失败后继续执行 */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <Label className="text-sm text-muted-foreground">失败后继续执行</Label>
+            <Label className="text-sm text-muted-foreground">{getLL().panels.assertion.continueOnFailure()}</Label>
             <p className="text-xs text-muted-foreground">
-              继续执行后续断言以收集所有失败信息
+              {getLL().panels.assertion.continueOnFailureDesc()}
             </p>
           </div>
           <Switch
@@ -558,7 +557,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
       {/* 断言列表区域 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">断言列表</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.assertion.listLabel()}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -567,21 +566,21 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加断言
+            {getLL().panels.assertion.addAssertion()}
           </Button>
         </div>
 
         <div className="space-y-2">
           {fields.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无断言配置</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.assertion.empty()}</p>
               <p className="mt-1 text-xs text-muted-foreground/60">
-                点击「添加断言」或选择预设模板
+                {getLL().panels.assertion.emptyHint()}
               </p>
             </div>
           ) : (
             fields.map((field, index) => {
-              const operator = watch(`assertions.${index}.operator`) as AssertionFormData['operator'];
+              const operator = watch(`assertions.${index}.operator`) as AssertionFormData["operator"];
               const targetError = errors.assertions?.[index]?.target;
               const expectedError = errors.assertions?.[index]?.expected;
               const isEnabled = watch(`assertions.${index}.enabled`) ?? true;
@@ -590,7 +589,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
                 <div
                   key={field.id}
                   className={`space-y-2 p-3 rounded-md border transition-all ${
-                    isEnabled ? 'bg-muted/30' : 'bg-muted/10 opacity-60'
+                    isEnabled ? "bg-muted/30" : "bg-muted/10 opacity-60"
                   }`}
                 >
                   {/* 第一行：启用开关 + 目标字段 + 删除按钮 */}
@@ -602,8 +601,8 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
                     />
                     <Input
                       {...register(`assertions.${index}.target`)}
-                      placeholder="目标字段 (JSONPath，从所选数据来源节点的 output_data 提取，如 $.status)"
-                      className={`h-8 flex-1 font-mono text-xs ${targetError ? 'border-rose-500' : ''} ${!isEnabled ? 'bg-muted/50' : ''}`}
+                      placeholder={getLL().panels.assertion.targetPlaceholder()}
+                      className={`h-8 flex-1 font-mono text-xs ${targetError ? "border-rose-500" : ""} ${!isEnabled ? "bg-muted/50" : ""}`}
                       disabled={!isEnabled}
                     />
                     <Button
@@ -624,8 +623,8 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
                       onValueChange={(value) => handleOperatorChange(index, value)}
                       disabled={!isEnabled}
                     >
-                      <SelectTrigger className={`h-8 w-40 font-mono text-xs ${!isEnabled ? 'bg-muted/50' : ''}`}>
-                        <SelectValue placeholder="操作符" />
+                      <SelectTrigger className={`h-8 w-40 font-mono text-xs ${!isEnabled ? "bg-muted/50" : ""}`}>
+                        <SelectValue placeholder={getLL().panels.assertion.operatorPlaceholder()} />
                       </SelectTrigger>
                       <SelectContent>
                         {ASSERTION_OPERATOR_OPTIONS.map((op) => (
@@ -639,8 +638,8 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
                     {operatorNeedsExpected(operator) && (
                       <Input
                         {...register(`assertions.${index}.expected`)}
-                        placeholder="期望值"
-                        className={`h-8 flex-1 font-mono text-xs ${expectedError ? 'border-rose-500' : ''} ${!isEnabled ? 'bg-muted/50' : ''}`}
+                        placeholder={getLL().panels.assertion.expectedPlaceholder()}
+                        className={`h-8 flex-1 font-mono text-xs ${expectedError ? "border-rose-500" : ""} ${!isEnabled ? "bg-muted/50" : ""}`}
                         disabled={!isEnabled}
                       />
                     )}
@@ -657,8 +656,8 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
                   {/* 第三行：说明（可选） */}
                   <Input
                     {...register(`assertions.${index}.description`)}
-                    placeholder="说明（可选）"
-                    className={`h-8 w-full text-xs ${!isEnabled ? 'bg-muted/50' : ''}`}
+                    placeholder={getLL().panels.entryNode.variableDescPlaceholder()}
+                    className={`h-8 w-full text-xs ${!isEnabled ? "bg-muted/50" : ""}`}
                     disabled={!isEnabled}
                   />
                 </div>
@@ -670,13 +669,13 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
         {/* 提示信息 */}
         {fields.length > 0 && (
           <div className="rounded-md bg-muted/30 p-3 text-xs text-muted-foreground space-y-2">
-              <p className="font-medium text-foreground">JSONPath 语法（从所选数据来源节点的 <code className="rounded bg-muted px-1">output_data</code> 中提取）：</p>
+              <p className="font-medium text-foreground">{getLL().panels.assertion.jsonpathTitle()}</p>
             <ul className="ml-3 list-disc space-y-0.5">
-              <li><code className="rounded bg-muted px-1">$.status</code> HTTP 状态码</li>
-              <li><code className="rounded bg-muted px-1">$.body.data.token</code> 嵌套字段</li>
-              <li><code className="rounded bg-muted px-1">$.body.items[0]</code> 数组索引</li>
-              <li><code className="rounded bg-muted px-1">$.headers.content-type</code> 响应头</li>
-              <li><code className="rounded bg-muted px-1">$.duration_ms</code> 响应时间 (ms)</li>
+              <li><code className="rounded bg-muted px-1">$.status</code> {getLL().panels.assertion.jsonpathStatusCode()}</li>
+              <li><code className="rounded bg-muted px-1">$.body.data.token</code> {getLL().panels.assertion.jsonpathNestedField()}</li>
+              <li><code className="rounded bg-muted px-1">$.body.items[0]</code> {getLL().panels.assertion.jsonpathArrayIndex()}</li>
+              <li><code className="rounded bg-muted px-1">$.headers.content-type</code> {getLL().panels.assertion.jsonpathResponseHeader()}</li>
+              <li><code className="rounded bg-muted px-1">$.duration_ms</code> {getLL().panels.assertion.jsonpathResponseTime()}</li>
             </ul>
           </div>
         )}

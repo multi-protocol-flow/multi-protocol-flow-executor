@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Radio, Plus, Trash2, ChevronDown, Shield, Info, Loader2 } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { SseConnectConfig as SseConnectConfigType } from '@/types';
 import { cn } from '@/lib/utils';
 import { testSseConnection } from '@/services/tauri/sse';
@@ -198,7 +199,10 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
 
   const handleTestConnection = useCallback(async () => {
     const url = watch('url')?.trim();
-    if (!url) return;
+    if (!url) {
+      setTestResult({ success: false, message: getLL().panels.sseConnect.testUrlError() });
+      return;
+    }
 
     setIsTesting(true);
     setTestResult(null);
@@ -207,7 +211,7 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
       const result = await testSseConnection({ url });
       setTestResult({
         success: result,
-        message: result ? '连接成功：SSE 端点 URL 格式有效' : '连接失败：URL 格式无效',
+        message: result ? getLL().panels.sseConnect.testSuccess() : getLL().panels.sseConnect.testFailure(),
       });
     } catch (error) {
       setTestResult({
@@ -226,10 +230,10 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-rose-900 flex items-center gap-2">
             <Radio className="h-4 w-4" />
-            SSE 连接节点
+            {getLL().panels.sseConnect.title()}
           </h4>
           <p className="text-sm leading-relaxed text-rose-700/90 whitespace-normal break-words">
-            建立 Server-Sent Events (SSE) 连接，用于接收服务器推送的事件流。
+            {getLL().panels.sseConnect.description()}
           </p>
         </div>
       </div>
@@ -237,14 +241,14 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
       {/* SSE URL */}
       <div className="space-y-2">
         <Label htmlFor="url" className="text-sm font-medium text-foreground">
-          SSE 端点 URL <span className="text-rose-500">*</span>
+          {getLL().panels.sseConnect.urlRequired()} <span className="text-rose-500">*</span>
         </Label>
         <div className="relative">
           <Radio className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
           <Input
             id="url"
             {...register('url')}
-            placeholder="https://api.example.com/events"
+            placeholder={getLL().panels.sseConnect.urlPlaceholder()}
             className="pl-9 font-mono text-sm"
           />
         </div>
@@ -256,7 +260,7 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
       {/* 请求头 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">自定义请求头（可选）</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.sseConnect.headers()}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -265,13 +269,13 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加
+            {getLL().panels.add()}
           </Button>
         </div>
         <div className="space-y-2">
           {headerEntries.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无自定义请求头</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.http.noCustomHeaders()}</p>
             </div>
           ) : (
             headerEntries.map((entry, index) => (
@@ -308,23 +312,23 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
       {/* Last-Event-ID */}
       <div className="space-y-2">
         <Label htmlFor="last_event_id" className="text-sm font-medium text-foreground">
-          Last-Event-ID
+          {getLL().panels.sseConnect.lastEventId()}
         </Label>
         <Input
           id="last_event_id"
           {...register('last_event_id')}
-          placeholder="可选，用于恢复断开前的事件流"
+          placeholder={getLL().panels.sseConnect.lastEventIdPlaceholder()}
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          指定上次接收事件的 ID，服务器将从该事件之后继续推送
+          {getLL().panels.sseConnect.lastEventIdHelp()}
         </p>
       </div>
 
       {/* 连接超时 */}
       <div className="space-y-2">
         <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">
-          连接超时（毫秒）
+          {getLL().panels.sseConnect.timeout()}
         </Label>
         <Input
           id="timeout_ms"
@@ -338,8 +342,8 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
       {/* 自动重连 */}
       <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
         <div>
-          <Label className="text-sm font-medium text-foreground">自动重连</Label>
-          <p className="text-xs text-muted-foreground">连接断开时自动尝试重新连接</p>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.sseConnect.autoReconnect()}</Label>
+          <p className="text-xs text-muted-foreground">{getLL().panels.sseConnect.autoReconnectDesc()}</p>
         </div>
         <Switch
           checked={currentAutoReconnect}
@@ -353,9 +357,9 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
       {/* 重连选项 */}
       {currentAutoReconnect && (
         <div className="space-y-3 rounded-md border bg-muted/20 p-3">
-          <p className="text-xs font-medium text-foreground">重连配置</p>
+          <p className="text-xs font-medium text-foreground">{getLL().panels.sseConnect.autoReconnect()}</p>
           <div className="space-y-2">
-            <Label htmlFor="reconnect_interval_ms" className="text-xs font-medium text-foreground">重连间隔（毫秒）</Label>
+            <Label htmlFor="reconnect_interval_ms" className="text-xs font-medium text-foreground">{getLL().panels.sseConnect.reconnectInterval()}</Label>
             <Input
               id="reconnect_interval_ms"
               type="number"
@@ -365,7 +369,7 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="max_reconnect_attempts" className="text-xs font-medium text-foreground">最大重连次数</Label>
+            <Label htmlFor="max_reconnect_attempts" className="text-xs font-medium text-foreground">{getLL().panels.sseConnect.maxReconnectAttempts()}</Label>
             <Input
               id="max_reconnect_attempts"
               type="number"
@@ -386,7 +390,7 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
         >
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-rose-600" />
-            <span className="text-sm font-medium text-foreground">TLS 选项</span>
+            <span className="text-sm font-medium text-foreground">{getLL().panels.sseConnect.tlsMode()}</span>
           </div>
           <ChevronDown className={cn(
             "h-3.5 w-3.5 text-muted-foreground transition-transform",
@@ -396,7 +400,7 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
         {expandedSections.has('tls') && (
           <div className="border-t bg-muted/20 px-3 py-3 space-y-3">
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-foreground">TLS 模式</Label>
+              <Label className="text-xs font-medium text-foreground">{getLL().panels.sseConnect.tlsMode()}</Label>
               <Select
                 value={watch('tls_mode') || 'none'}
                 onValueChange={(value) => {
@@ -408,9 +412,9 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">不使用 TLS</SelectItem>
-                  <SelectItem value="standard">标准 TLS</SelectItem>
-                  <SelectItem value="skip-verify">跳过证书验证</SelectItem>
+                  <SelectItem value="none">{getLL().panels.sseConnect.tlsNone()}</SelectItem>
+                  <SelectItem value="standard">{getLL().panels.sseConnect.tlsStandard()}</SelectItem>
+                  <SelectItem value="skip-verify">{getLL().panels.sseConnect.tlsSkipVerify()}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -433,7 +437,7 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
           ) : (
             <Radio className="h-4 w-4" />
           )}
-          {isTesting ? '正在测试连接...' : '测试连接'}
+          {isTesting ? getLL().panels.sseConnect.testing() : getLL().panels.sseConnect.testConnection()}
         </Button>
 
         {testResult && (
@@ -450,12 +454,10 @@ export function SseConnectConfig({ data, onSave }: SseConnectConfigProps) {
 
       {/* 提示信息 */}
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
-        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">SSE 连接说明：</p>
-          <p>SSE (Server-Sent Events) 是基于 HTTP 的单向实时推送协议</p>
-          <p>服务器通过 Content-Type: text/event-stream 推送事件</p>
-          <p>设置 Last-Event-ID 可在重连时恢复事件流</p>
+          <p className="font-medium text-foreground">{getLL().panels.connection()}</p>
+          <p>{getLL().panels.sseConnect.connectionDesc()}</p>
         </div>
       </div>
     </form>

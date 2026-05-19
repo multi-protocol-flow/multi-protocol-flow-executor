@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LeftSidebarPanel - 左侧面板容器
  * 管理 VSCode 风格的面板布局：顶部固定 + 底部可折叠面板区
  */
@@ -9,6 +9,7 @@ import { FlowListPanel } from '@/components/sidebar';
 import { useUIStore, useDebugStore } from '@/stores';
 import { selectIsDebugging } from '@/stores/debug';
 import { useRef, useCallback } from 'react';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /** 面板标题栏高度 */
 const HEADER_HEIGHT = 32;
@@ -20,6 +21,7 @@ const FLOW_LIST_COLLAPSED_HEIGHT = HEADER_HEIGHT;
 const FLOW_LIST_MIN_HEIGHT = 100;
 
 export function LeftSidebarPanel() {
+  const LL = getLL();
   // UI 状态
   const isFlowListCollapsed = useUIStore((state) => state.isFlowListCollapsed);
   
@@ -64,7 +66,7 @@ export function LeftSidebarPanel() {
               }}
               disabled={isDebugging}
               className="h-6 w-6 rounded-md hover:bg-accent disabled:opacity-50"
-              title={isDebugging ? "调试中不可创建文件夹" : "新建文件夹"}
+              title={isDebugging ? LL.flow.debug_no_create_folder() : LL.flow.new_folder()}
             >
               <FolderPlus className="w-3.5 h-3.5" />
             </Button>
@@ -79,7 +81,7 @@ export function LeftSidebarPanel() {
               }}
               disabled={isDebugging}
               className="h-6 w-6 rounded-md hover:bg-accent disabled:opacity-50"
-              title={isDebugging ? "调试中不可新建流程" : "新建流程"}
+              title={isDebugging ? LL.flow.debug_no_new_flow() : LL.flow.new_flow()}
             >
               <Plus className="w-3.5 h-3.5" />
             </Button>

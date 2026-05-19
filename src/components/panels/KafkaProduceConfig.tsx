@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, Info, Plus, Trash2 } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { KafkaProduceConfig as KafkaProduceConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isKafkaConnectConfig } from '@/types/node';
@@ -204,10 +205,10 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
             <Send className="h-4 w-4" />
-            Kafka 生产节点
+            {getLL().panels.kafkaProduce.title()}
           </h4>
           <p className="text-sm leading-relaxed text-orange-700/90 whitespace-normal break-words">
-            向 Kafka 主题发送消息，支持多种序列化格式和压缩算法。
+            {getLL().panels.kafkaProduce.description()}
           </p>
         </div>
       </div>
@@ -215,7 +216,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.connection()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -226,7 +227,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 Kafka 连接" />
+              <SelectValue placeholder="{getLL().panels.selectConnection()}" />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -243,7 +244,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder="{getLL().panels.enterConnectionId()}"
             className="font-mono text-sm"
           />
         )}
@@ -262,8 +263,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
         <p className="text-xs font-semibold text-foreground uppercase tracking-wider">消息配置</p>
 
         <div className="space-y-2">
-          <Label htmlFor="topic" className="text-sm font-medium text-foreground">
-            主题 <span className="text-rose-500">*</span>
+          <Label htmlFor="topic" className="text-sm font-medium text-foreground">{getLL().panels.kafkaProduce.topic()} <span className="text-rose-500">*</span>
           </Label>
           <Input
             id="topic"
@@ -278,7 +278,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
 
         <div className="space-y-2">
           <Label htmlFor="key" className="text-sm font-medium text-foreground">
-            消息键
+            {getLL().panels.kafkaProduce.key()}
           </Label>
           <Input
             id="key"
@@ -290,7 +290,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
 
         <div className="space-y-2">
           <Label htmlFor="value" className="text-sm font-medium text-foreground">
-            消息值
+            {getLL().panels.kafkaProduce.value()}
           </Label>
           <Textarea
             id="value"
@@ -305,7 +305,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
       {/* 消息头 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">消息头（可选）</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaProduce.headers()}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -313,9 +313,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
             onClick={handleAddHeader}
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
-            <Plus className="h-3 w-3" />
-            添加
-          </Button>
+            <Plus className="h-3 w-3" />{getLL().panels.add()}</Button>
         </div>
         <div className="space-y-2">
           {headerPairs.length === 0 ? (
@@ -397,11 +395,11 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
 
       {/* 高级设置 */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">高级设置</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.advancedSettings()}</p>
 
         <div className="space-y-2">
           <Label htmlFor="partition" className="text-sm font-medium text-foreground">
-            目标分区
+            {getLL().panels.kafkaProduce.partition()}
           </Label>
           <Input
             id="partition"

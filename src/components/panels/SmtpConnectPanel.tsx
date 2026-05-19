@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Mail, Info, ChevronDown, Shield, Loader2 } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { SmtpConnectConfig as SmtpConnectConfigType } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -228,10 +229,10 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
             <Mail className="h-4 w-4" />
-            SMTP 连接节点
+            {getLL().panels.smtpConnect.title()}
           </h4>
           <p className="text-sm leading-relaxed text-orange-700/90 whitespace-normal break-words">
-            建立 SMTP 服务器连接，支持 STARTTLS 和隐式 TLS。
+            {getLL().panels.smtpConnect.description()}
           </p>
         </div>
       </div>
@@ -239,7 +240,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
       {/* 服务器地址 */}
       <div className="space-y-2">
         <Label htmlFor="host" className="text-sm font-medium text-foreground">
-          服务器地址 <span className="text-rose-500">*</span>
+          {getLL().panels.smtpConnect.host()} <span className="text-rose-500">*</span>
         </Label>
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
@@ -258,7 +259,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
       {/* 端口 */}
       <div className="space-y-2">
         <Label htmlFor="port" className="text-sm font-medium text-foreground">
-          端口
+          {getLL().panels.smtpConnect.port()}
         </Label>
         <Input
           id="port"
@@ -275,7 +276,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
       {/* TLS 模式 */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">
-          TLS 模式
+          {getLL().panels.smtpConnect.tlsMode()}
         </Label>
         <Select
           value={currentTlsMode}
@@ -288,15 +289,15 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">无加密 (None)</SelectItem>
-            <SelectItem value="starttls">STARTTLS</SelectItem>
-            <SelectItem value="implicit">隐式 TLS (SMTPS)</SelectItem>
+            <SelectItem value="none">{getLL().panels.smtpConnect.tlsNone()}</SelectItem>
+            <SelectItem value="starttls">{getLL().panels.smtpConnect.tlsStarttls()}</SelectItem>
+            <SelectItem value="implicit">{getLL().panels.smtpConnect.tlsTls()}</SelectItem>
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          {currentTlsMode === 'none' && '不使用加密，仅适用于受信任网络'}
-          {currentTlsMode === 'starttls' && '先明文连接，再升级为 TLS（推荐）'}
-          {currentTlsMode === 'implicit' && '从一开始就使用 TLS 加密（端口 465）'}
+          {currentTlsMode === 'none' && getLL().panels.smtpConnect.connectionDesc()}
+          {currentTlsMode === 'starttls' && getLL().panels.smtpConnect.connectionDesc()}
+          {currentTlsMode === 'implicit' && getLL().panels.smtpConnect.connectionDesc()}
         </p>
       </div>
 
@@ -309,7 +310,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
         >
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-orange-600" />
-            <span className="text-sm font-medium text-foreground">认证配置</span>
+            <span className="text-sm font-medium text-foreground">{getLL().panels.smtpConnect.authType()}</span>
           </div>
           <ChevronDown className={cn(
             "h-3.5 w-3.5 text-muted-foreground transition-transform",
@@ -320,7 +321,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
           <div className="border-t bg-muted/20 px-3 py-3 space-y-3">
             {/* 认证类型 */}
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-foreground">认证类型</Label>
+              <Label className="text-xs font-medium text-foreground">{getLL().panels.smtpConnect.authType()}</Label>
               <Select
                 value={currentAuthType}
                 onValueChange={(value) => {
@@ -332,10 +333,10 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">无需认证</SelectItem>
+                  <SelectItem value="none">{getLL().panels.smtpConnect.authNone()}</SelectItem>
                   <SelectItem value="plain">PLAIN</SelectItem>
                   <SelectItem value="login">LOGIN</SelectItem>
-                  <SelectItem value="xoauth2">XOAUTH2</SelectItem>
+                  <SelectItem value="xoauth2">{getLL().panels.smtpConnect.authXoauth2()}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -343,7 +344,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
             {currentAuthType !== 'none' && currentAuthType !== 'xoauth2' && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-xs font-medium text-foreground">用户名</Label>
+                  <Label htmlFor="username" className="text-xs font-medium text-foreground">{getLL().panels.smtpConnect.username()}</Label>
                   <Input
                     id="username"
                     {...register('username')}
@@ -352,7 +353,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-xs font-medium text-foreground">密码</Label>
+                  <Label htmlFor="password" className="text-xs font-medium text-foreground">{getLL().panels.smtpConnect.password()}</Label>
                   <Input
                     id="password"
                     type="password"
@@ -367,7 +368,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
             {currentAuthType === 'xoauth2' && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-xs font-medium text-foreground">用户名（邮箱）</Label>
+                  <Label htmlFor="username" className="text-xs font-medium text-foreground">{getLL().panels.smtpConnect.username()}</Label>
                   <Input
                     id="username"
                     {...register('username')}
@@ -376,7 +377,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="oauth2_access_token" className="text-xs font-medium text-foreground">Access Token</Label>
+                  <Label htmlFor="oauth2_access_token" className="text-xs font-medium text-foreground">{getLL().panels.smtpConnect.oauth2AccessToken()}</Label>
                   <Input
                     id="oauth2_access_token"
                     type="password"
@@ -386,7 +387,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="oauth2_provider" className="text-xs font-medium text-foreground">邮件服务商</Label>
+                  <Label htmlFor="oauth2_provider" className="text-xs font-medium text-foreground">{getLL().panels.smtpConnect.oauth2Provider()}</Label>
                   <Select
                     value={watch('oauth2_provider') || ''}
                     onValueChange={(value) => {
@@ -395,7 +396,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
                     }}
                   >
                     <SelectTrigger className="h-8 text-xs font-mono">
-                      <SelectValue placeholder="选择服务商" />
+                      <SelectValue placeholder={getLL().panels.selectConnection()} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="gmail">Gmail</SelectItem>
@@ -414,12 +415,12 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
       {/* 连接 ID */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 ID（可选）
+          {getLL().panels.smtpConnect.connectionDesc()}
         </Label>
         <Input
           id="connection_id"
           {...register('connection_id')}
-          placeholder="留空自动生成"
+          placeholder={getLL().panels.smtpConnect.oauth2Desc()}
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
@@ -442,7 +443,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
           ) : (
             <Mail className="h-4 w-4" />
           )}
-          {isTesting ? '正在测试连接...' : '测试连接'}
+          {isTesting ? getLL().panels.sseConnect.testing() : getLL().panels.sseConnect.testConnection()}
         </Button>
 
         {testResult && (

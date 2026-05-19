@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GraphQL Disconnect 节点配置组件
  * 支持连接 ID
  */
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Unplug, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { GraphqlDisconnectConfig as GraphqlDisconnectConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isGraphqlConnectConfig } from '@/types/node';
@@ -133,10 +134,10 @@ export function GraphqlDisconnectConfig({ data, onSave }: GraphqlDisconnectConfi
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
             <Unplug className="h-4 w-4" />
-            GraphQL 断开连接节点
+            {getLL().panels.graphqlClose.title()}
           </h4>
           <p className="text-sm leading-relaxed text-indigo-700/90 whitespace-normal break-words">
-            断开指定的 GraphQL 连接，释放相关资源。
+            {getLL().panels.graphqlClose.description()}
           </p>
         </div>
       </div>
@@ -144,7 +145,7 @@ export function GraphqlDisconnectConfig({ data, onSave }: GraphqlDisconnectConfi
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-indigo-500">*</span>
+          {getLL().panels.connection()} <span className="text-indigo-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -155,7 +156,7 @@ export function GraphqlDisconnectConfig({ data, onSave }: GraphqlDisconnectConfi
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 GraphQL 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -172,7 +173,7 @@ export function GraphqlDisconnectConfig({ data, onSave }: GraphqlDisconnectConfi
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -181,7 +182,7 @@ export function GraphqlDisconnectConfig({ data, onSave }: GraphqlDisconnectConfi
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 GraphQL Connect 节点，请手动输入连接 ID
+            {getLL().panels.graphqlClose.noConnectNode()}
           </p>
         )}
       </div>
@@ -190,9 +191,9 @@ export function GraphqlDisconnectConfig({ data, onSave }: GraphqlDisconnectConfi
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">断开说明：</p>
-          <p>断开连接后将无法执行查询或订阅操作</p>
-          <p>如需重新使用，需先建立新的 GraphQL 连接</p>
+          <p className="font-medium text-foreground">{getLL().panels.closeInfo()}</p>
+          <p>{getLL().panels.graphqlClose.closeInfoLine1()}</p>
+          <p>{getLL().panels.closeInfoLine2()}</p>
         </div>
       </div>
     </form>

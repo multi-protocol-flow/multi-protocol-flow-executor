@@ -17,6 +17,7 @@ import type { MqttPublishConfig as MqttPublishConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isMqttConnectConfig } from '@/types/node';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface MqttPublishConfigProps {
   data: MqttPublishConfigType;
@@ -207,10 +208,10 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-cyan-900 flex items-center gap-2">
             <Send className="h-4 w-4" />
-            MQTT 发布节点
+            {getLL().panels.mqttPublish.title()}
           </h4>
           <p className="text-sm leading-relaxed text-cyan-700/90 whitespace-normal break-words">
-            向 MQTT Broker 发布消息到指定主题。
+            {getLL().panels.mqttPublish.description()}
           </p>
         </div>
       </div>
@@ -229,7 +230,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 MQTT 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -246,7 +247,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -255,7 +256,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 MQTT Connect 节点，请手动输入连接 ID
+            {getLL().panels.mqttPublish.noConnectNode()}
           </p>
         )}
       </div>
@@ -263,7 +264,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
       {/* 主题 */}
       <div className="space-y-2">
         <Label htmlFor="topic" className="text-sm font-medium text-foreground">
-          主题 <span className="text-rose-500">*</span>
+          {getLL().panels.mqttPublish.topicLabel()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="topic"
@@ -279,7 +280,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
       {/* 载荷 */}
       <div className="space-y-2">
         <Label htmlFor="payload" className="text-sm font-medium text-foreground">
-          载荷
+          {getLL().panels.mqttPublish.payload()}
         </Label>
         <Textarea
           id="payload"
@@ -429,7 +430,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加
+            {getLL().panels.add()}
           </Button>
         </div>
         <div className="space-y-2">

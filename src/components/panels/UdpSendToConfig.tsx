@@ -1,4 +1,4 @@
-/**
+﻿/**
  * UDP SendTo 节点配置组件
  * 支持连接选择、数据输入、编码方式、目标地址/端口、发送超时
  */
@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, Info } from 'lucide-react';
 import type { UdpSendToConfig as UdpSendToConfigType } from '@/types';
+import { getLL } from '@/i18n/i18n-lazy';
 import { useFlowStore } from '@/stores';
 import { isUdpBindConfig } from '@/types/node';
 
@@ -179,10 +180,10 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
             <Send className="h-4 w-4" />
-            UDP 发送节点
+            {getLL().panels.udpSendTo.title()}
           </h4>
           <p className="text-sm leading-relaxed text-orange-700/90 whitespace-normal break-words">
-            通过已绑定的 UDP 套接字发送数据报到指定目标地址，支持文本、十六进制、Base64 编码。
+            {getLL().panels.udpSendTo.description()}
           </p>
         </div>
       </div>
@@ -190,7 +191,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.connection()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -201,7 +202,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 UDP 绑定" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -218,7 +219,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -227,7 +228,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 UDP Bind 节点，请手动输入连接 ID
+            {getLL().panels.udpSendTo.noConnectNode()}
           </p>
         )}
       </div>
@@ -235,7 +236,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
       {/* 目标地址 */}
       <div className="space-y-2">
         <Label htmlFor="target_addr" className="text-sm font-medium text-foreground">
-          目标地址 <span className="text-rose-500">*</span>
+          {getLL().panels.udpSendTo.targetAddr()} <span className="text-rose-500">*</span>
         </Label>
         <div className="relative">
           <Send className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
@@ -255,7 +256,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
       {/* 目标端口 */}
       <div className="space-y-2">
         <Label htmlFor="target_port" className="text-sm font-medium text-foreground">
-          目标端口 <span className="text-rose-500">*</span>
+          {getLL().panels.udpSendTo.targetPort()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="target_port"
@@ -274,7 +275,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
       {/* 数据编码方式 */}
       <div className="space-y-2">
         <Label htmlFor="data_encoding" className="text-sm font-medium text-foreground">
-          编码方式
+          {getLL().panels.udpSendTo.dataEncoding()}
         </Label>
         <Select
           value={watch('data_encoding') || 'text'}
@@ -302,7 +303,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
       {/* 数据输入 */}
       <div className="space-y-2">
         <Label htmlFor="data" className="text-sm font-medium text-foreground">
-          发送数据
+          {getLL().panels.udpSendTo.dataInput()}
         </Label>
         <Textarea
           id="data"
@@ -332,7 +333,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
       {/* 发送超时 */}
       <div className="space-y-2">
         <Label htmlFor="send_timeout_ms" className="text-sm font-medium text-foreground">
-          发送超时
+          {getLL().panels.udpSendTo.sendTimeout()}
         </Label>
         <Input
           id="send_timeout_ms"
@@ -342,18 +343,17 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
           {...register('send_timeout_ms', { valueAsNumber: true })}
           className="font-mono text-sm"
         />
-        <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.udpSendTo.sendTimeoutHint()}</p>
       </div>
 
       {/* 提示信息 */}
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">发送说明：</p>
-          <p>UDP 是无连接协议，每次发送都需要指定目标地址和端口</p>
-          <p>数据报大小受 MTU 限制，建议不超过 1472 字节（避免分片）</p>
-          <p>数据会根据编码方式自动转换为原始字节发送</p>
-        </div>
+          <p className="font-medium text-foreground">{getLL().panels.udpSendTo.senderInfo()}</p>
+          <p>{getLL().panels.udpSendTo.senderInfo1()}</p>
+          <p>{getLL().panels.udpSendTo.senderInfo2()}</p>
+</div>
       </div>
     </form>
   );

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Trash2, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { AmqpExchangeDeleteConfig as ConfigType } from '@/types';
 
 interface Props {
@@ -97,15 +98,15 @@ export function AmqpExchangeDeleteConfigPanel({ data, onSave }: Props) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <Trash2 className="h-4 w-4" />
-            AMQP Exchange 删除节点
+            {getLL().panels.amqpExchange.title()}
           </h4>
-          <p className="text-sm leading-relaxed text-violet-700/90">删除 AMQP Exchange 交换器。</p>
+          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqpExchange.description()}</p>
         </div>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">连接 ID <span className="text-rose-500">*</span></Label>
-        <Input id="connection_id" {...register('connection_id')} placeholder="输入连接 ID" className="font-mono text-sm" />
+        <Input id="connection_id" {...register('connection_id')} placeholder={getLL().panels.enterConnectionId()} className="font-mono text-sm" />
         {errors.connection_id && <p className="text-xs text-rose-500">{errors.connection_id.message}</p>}
       </div>
 

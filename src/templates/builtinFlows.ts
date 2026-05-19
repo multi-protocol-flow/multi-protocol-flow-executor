@@ -2,6 +2,7 @@
  * 内置流程模板
  */
 import type { Flow } from '@/types/flow';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /**
  * HTTP 节点示例流程
@@ -296,7 +297,7 @@ export const GRPC_DEMO_FLOW: Flow = {
 export const MQTT_BASIC_FLOW: Flow = {
   uuid: 'demo-mqtt-basic',
   name: 'MQTT 基础连接测试',
-  description: '演示 MQTT 连接、订阅、发布和断开的基本工作流',
+  description: getLL().flow.mqtt_basic_desc(),
   initial_variables: { "timestamp": "" },
   nodes: [
     // 节点 1: Entry 节点
@@ -411,7 +412,7 @@ export const MQTT_BASIC_FLOW: Flow = {
 export const MQTT_REQUEST_RESPONSE_FLOW: Flow = {
   uuid: 'demo-mqtt-request-response',
   name: 'MQTT 请求/响应模式',
-  description: '演示 MQTT 5.0 请求/响应模式，使用 correlation_data 自动匹配',
+  description: getLL().flow.mqtt_request_response_desc(),
   initial_variables: {},
   nodes: [
     // 节点 1: Entry 节点

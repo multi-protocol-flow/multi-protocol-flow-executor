@@ -2,25 +2,34 @@
  * 执行组件共享常量
  */
 
+import { i18nObject } from '@/i18n/i18n-util';
+import { baseLocale } from '@/i18n/i18n-util';
+import type { TranslationFunctions } from '@/i18n/i18n-types';
 import type { NodeMetadata } from '@/types/nodeRegistry';
+
+let _LL: TranslationFunctions | null = null;
+const getLL = () => {
+  if (!_LL) _LL = i18nObject(baseLocale);
+  return _LL;
+};
 
 /** 节点类型标签映射 — 静态回退值 */
 const FALLBACK_NODE_TYPE_NAMES: Record<string, string> = {
-  entry: '入口',
-  http: 'HTTP',
-  conditional: '条件',
-  script: '脚本',
-  assertion: '断言',
-  end: '终止',
-  ws_connect: 'WS-连接',
-  ws_send_collect: 'WS-发送采集',
-  ws_close: 'WS-关闭',
-  db_connect: 'DB-连接',
-  db_query: 'DB-查询',
-  db_begin: 'DB-开始事务',
-  db_commit: 'DB-提交',
-  db_rollback: 'DB-回滚',
-  db_close: 'DB-关闭',
+  entry: getLL().execution.node_types.entry(),
+  http: getLL().execution.node_types.http(),
+  conditional: getLL().execution.node_types.conditional(),
+  script: getLL().execution.node_types.script(),
+  assertion: getLL().execution.node_types.assertion(),
+  end: getLL().execution.node_types.end(),
+  ws_connect: getLL().execution.node_types.ws_connect(),
+  ws_send_collect: getLL().execution.node_types.ws_send_collect(),
+  ws_close: getLL().execution.node_types.ws_close(),
+  db_connect: getLL().execution.node_types.db_connect(),
+  db_query: getLL().execution.node_types.db_query(),
+  db_begin: getLL().execution.node_types.db_begin(),
+  db_commit: getLL().execution.node_types.db_commit(),
+  db_rollback: getLL().execution.node_types.db_rollback(),
+  db_close: getLL().execution.node_types.db_close(),
 };
 
 /** 节点类型颜色映射 — 静态回退值 */
@@ -102,71 +111,71 @@ import type { AssertionOperator, AssertionMode, OnFailureMode, AssertionFormData
 
 /** 断言操作符选项 (15 种) */
 export const ASSERTION_OPERATOR_OPTIONS: { value: AssertionOperator; label: string }[] = [
-  { value: 'equal', label: '等于' },
-  { value: 'not_equal', label: '不等于' },
-  { value: 'greater', label: '大于' },
-  { value: 'greater_or_equal', label: '大于等于' },
-  { value: 'less', label: '小于' },
-  { value: 'less_or_equal', label: '小于等于' },
-  { value: 'contains', label: '包含' },
-  { value: 'not_contains', label: '不包含' },
-  { value: 'starts_with', label: '以...开始' },
-  { value: 'ends_with', label: '以...结束' },
-  { value: 'exists', label: '存在' },
-  { value: 'not_exists', label: '不存在' },
-  { value: 'is_empty', label: '为空' },
-  { value: 'is_not_empty', label: '不为空' },
-  { value: 'matches_regex', label: '匹配正则' },
+  { value: 'equal', label: getLL().execution.assertion.operators.equal() },
+  { value: 'not_equal', label: getLL().execution.assertion.operators.not_equal() },
+  { value: 'greater', label: getLL().execution.assertion.operators.greater() },
+  { value: 'greater_or_equal', label: getLL().execution.assertion.operators.greater_or_equal() },
+  { value: 'less', label: getLL().execution.assertion.operators.less() },
+  { value: 'less_or_equal', label: getLL().execution.assertion.operators.less_or_equal() },
+  { value: 'contains', label: getLL().execution.assertion.operators.contains() },
+  { value: 'not_contains', label: getLL().execution.assertion.operators.not_contains() },
+  { value: 'starts_with', label: getLL().execution.assertion.operators.starts_with() },
+  { value: 'ends_with', label: getLL().execution.assertion.operators.ends_with() },
+  { value: 'exists', label: getLL().execution.assertion.operators.exists() },
+  { value: 'not_exists', label: getLL().execution.assertion.operators.not_exists() },
+  { value: 'is_empty', label: getLL().execution.assertion.operators.is_empty() },
+  { value: 'is_not_empty', label: getLL().execution.assertion.operators.is_not_empty() },
+  { value: 'matches_regex', label: getLL().execution.assertion.operators.matches_regex() },
 ];
 
 /** 断言组合模式选项 */
 export const ASSERTION_MODE_OPTIONS: { value: AssertionMode; label: string }[] = [
-  { value: 'all', label: '全部通过 (AND)' },
-  { value: 'any', label: '任一通过 (OR)' },
+  { value: 'all', label: getLL().execution.assertion.modes.all() },
+  { value: 'any', label: getLL().execution.assertion.modes.any() },
 ];
 
 /** 失败处理模式选项 */
 export const ON_FAILURE_MODE_OPTIONS: { value: OnFailureMode; label: string }[] = [
-  { value: 'route_false', label: '路由到 false 分支' },
-  { value: 'throw', label: '抛出异常终止流程' },
+  { value: 'route_false', label: getLL().execution.assertion.failure_modes.route_false() },
+  { value: 'throw', label: getLL().execution.assertion.failure_modes.throw() },
 ];
 
 /** 断言预设模板 (5 种) */
 export const ASSERTION_PRESET_OPTIONS: { value: string; label: string; assertions: AssertionFormData[] }[] = [
   {
     value: 'http_status',
-    label: 'HTTP 状态码检查',
+    label: getLL().execution.assertion.presets.http_status(),
     assertions: [
-      { target: '$.status', operator: 'equal', expected: '200', enabled: true, description: '状态码为 200' },
+      { target: '$.status', operator: 'equal', expected: '200', enabled: true, description: getLL().execution.assertion.descriptions.status_200() },
     ],
   },
   {
     value: 'http_success',
-    label: 'HTTP 成功响应',
+    label: getLL().execution.assertion.presets.http_success(),
     assertions: [
-      { target: '$.status', operator: 'greater_or_equal', expected: '200', enabled: true, description: '状态码 >= 200' },
-      { target: '$.status', operator: 'less', expected: '300', enabled: true, description: '状态码 < 300' },
+      { target: '$.status', operator: 'greater_or_equal', expected: '200', enabled: true, description: getLL().execution.assertion.descriptions.status_ge_200() },
+      { target: '$.status', operator: 'less', expected: '300', enabled: true, description: getLL().execution.assertion.descriptions.status_lt_300() },
     ],
   },
   {
     value: 'response_body_exists',
-    label: '响应体存在',
+    label: getLL().execution.assertion.presets.response_body_exists(),
     assertions: [
-      { target: '$.body', operator: 'exists', expected: '', enabled: true, description: '响应体存在' },
+      { target: '$.body', operator: 'exists', expected: '', enabled: true, description: getLL().execution.assertion.descriptions.body_exists() },
     ],
   },
   {
     value: 'json_field_exists',
-    label: 'JSON 字段存在',
+    label: getLL().execution.assertion.presets.json_field_exists(),
     assertions: [
-      { target: '$.body.data', operator: 'exists', expected: '', enabled: true, description: 'data 字段存在' },
+      { target: '$.body.data', operator: 'exists', expected: '', enabled: true, description: getLL().execution.assertion.descriptions.data_field_exists() },
     ],
   },
   {
     value: 'empty_check',
-    label: '非空检查',
+    label: getLL().execution.assertion.presets.empty_check(),
     assertions: [
-      { target: '$.body', operator: 'is_not_empty', expected: '', enabled: true, description: '响应体不为空' },
+      { target: '$.body', operator: 'is_not_empty', expected: '', enabled: true, description: getLL().execution.assertion.descriptions.body_not_empty() },
     ],
   },
 ];

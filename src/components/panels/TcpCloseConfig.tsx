@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Unplug, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { TcpCloseConfig as TcpCloseConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isTcpConnectConfig } from '@/types/node';
@@ -156,10 +157,10 @@ export function TcpCloseConfig({ data, onSave }: TcpCloseConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-emerald-900 flex items-center gap-2">
             <Unplug className="h-4 w-4" />
-            TCP 关闭连接节点
+            {getLL().panels.tcpClose.title()}
           </h4>
           <p className="text-sm leading-relaxed text-emerald-700/90 whitespace-normal break-words">
-            关闭指定的 TCP 连接，释放网络资源。
+            {getLL().panels.tcpClose.description()}
           </p>
         </div>
       </div>
@@ -167,7 +168,7 @@ export function TcpCloseConfig({ data, onSave }: TcpCloseConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.tcpClose.connectionId()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -178,7 +179,7 @@ export function TcpCloseConfig({ data, onSave }: TcpCloseConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 TCP 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -195,7 +196,7 @@ export function TcpCloseConfig({ data, onSave }: TcpCloseConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -204,7 +205,7 @@ export function TcpCloseConfig({ data, onSave }: TcpCloseConfigProps) {
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 TCP Connect 节点，请手动输入连接 ID
+            {getLL().panels.tcpClose.noConnectNode()}
           </p>
         )}
       </div>
@@ -212,7 +213,7 @@ export function TcpCloseConfig({ data, onSave }: TcpCloseConfigProps) {
       {/* 关闭超时 */}
       <div className="space-y-2">
         <Label htmlFor="close_timeout_ms" className="text-sm font-medium text-foreground">
-          关闭超时
+          {getLL().panels.tcpClose.closeTimeout()}
         </Label>
         <Input
           id="close_timeout_ms"
@@ -222,16 +223,16 @@ export function TcpCloseConfig({ data, onSave }: TcpCloseConfigProps) {
           {...register('close_timeout_ms', { valueAsNumber: true })}
           className="font-mono text-sm"
         />
-        <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.tcpClose.closeTimeoutHint()}</p>
       </div>
 
       {/* 提示信息 */}
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">关闭说明：</p>
-          <p>关闭连接后将释放 TCP 套接字资源</p>
-          <p>后续发送操作将无法使用该连接，需重新建立</p>
+          <p className="font-medium text-foreground">{getLL().panels.closeInfo()}</p>
+          <p>{getLL().panels.tcpClose.closeInfoLine1()}</p>
+          <p>{getLL().panels.tcpClose.closeInfoLine2()}</p>
         </div>
       </div>
     </form>

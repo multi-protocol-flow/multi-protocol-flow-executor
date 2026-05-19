@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { XCircle, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { AmqpCloseConfig as AmqpCloseConfigType } from '@/types';
 
 interface AmqpCloseConfigPanelProps {
@@ -117,10 +118,10 @@ export function AmqpCloseConfigPanel({ data, onSave }: AmqpCloseConfigPanelProps
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <XCircle className="h-4 w-4" />
-            AMQP 关闭连接节点
+            {getLL().panels.amqpClose.title()}
           </h4>
           <p className="text-sm leading-relaxed text-violet-700/90 whitespace-normal break-words">
-            关闭 AMQP 连接并释放资源。
+            {getLL().panels.amqpClose.description()}
           </p>
         </div>
       </div>
@@ -132,7 +133,7 @@ export function AmqpCloseConfigPanel({ data, onSave }: AmqpCloseConfigPanelProps
         <Input
           id="connection_id"
           {...register('connection_id')}
-          placeholder="输入连接 ID"
+          placeholder={getLL().panels.enterConnectionId()}
           className="font-mono text-sm"
         />
         {errors.connection_id && (
@@ -168,7 +169,7 @@ export function AmqpCloseConfigPanel({ data, onSave }: AmqpCloseConfigPanelProps
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">关闭说明：</p>
+          <p className="font-medium text-foreground">{getLL().panels.closeInfo()}</p>
           <p>选择要关闭的 AMQP 连接 ID</p>
           <p>回复码 200 表示正常关闭</p>
         </div>

@@ -15,6 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Cable, Info, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { TcpConnectConfig as TcpConnectConfigType, TcpFramingMode } from '@/types';
 
 interface TcpConnectConfigProps {
@@ -81,7 +82,7 @@ function fromFormData(formData: TcpConnectConfigFormData): TcpConnectConfigType 
  * 获取成帧模式的显示名称
  */
 function getFramingModeLabel(mode: TcpFramingMode | undefined): string {
-  if (!mode) return '未设置';
+  if (!mode) return getLL().panels.tcpConnect.notSet();
   return FRAMING_MODE_OPTIONS.find(o => o.value === mode.type)?.label ?? mode.type;
 }
 
@@ -239,10 +240,10 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-emerald-900 flex items-center gap-2">
             <Cable className="h-4 w-4" />
-            TCP 连接节点
+            {getLL().panels.tcpConnect.title()}
           </h4>
           <p className="text-sm leading-relaxed text-emerald-700/90 whitespace-normal break-words">
-            建立 TCP 连接，支持 TLS 加密、自定义成帧协议。
+            {getLL().panels.tcpConnect.description()}
           </p>
         </div>
       </div>
@@ -250,14 +251,14 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
       {/* 主机地址 */}
       <div className="space-y-2">
         <Label htmlFor="host" className="text-sm font-medium text-foreground">
-          主机地址 <span className="text-rose-500">*</span>
+          {getLL().panels.tcpConnect.host()} <span className="text-rose-500">*</span>
         </Label>
         <div className="relative">
           <Cable className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
           <Input
             id="host"
             {...register('host')}
-            placeholder="127.0.0.1 或 example.com"
+            placeholder={getLL().panels.tcpConnect.hostPlaceholder()}
             className="pl-9 font-mono text-sm"
           />
         </div>
@@ -269,7 +270,7 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
       {/* 端口 */}
       <div className="space-y-2">
         <Label htmlFor="port" className="text-sm font-medium text-foreground">
-          端口 <span className="text-rose-500">*</span>
+          {getLL().panels.tcpConnect.port()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="port"
@@ -282,7 +283,7 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
         {errors.port && (
           <p className="text-xs text-rose-500">{errors.port.message}</p>
         )}
-        <p className="text-xs text-muted-foreground">范围 1-65535</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.tcpConnect.portRange()}</p>
       </div>
 
       {/* TLS 配置 */}
@@ -300,7 +301,7 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
             }}
           />
           <Label htmlFor="use_tls" className="text-sm font-medium text-foreground cursor-pointer">
-            启用 TLS
+            {getLL().panels.tcpConnect.enableTls()}
           </Label>
         </div>
 
@@ -316,14 +317,14 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
                 }}
               />
               <Label htmlFor="tls_skip_verify" className="text-sm font-medium text-foreground cursor-pointer">
-                跳过证书验证
+                {getLL().panels.tcpConnect.skipCertVerify()}
               </Label>
             </div>
             {watch('tls_skip_verify') && (
               <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-800/60 dark:bg-amber-950/30">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
                 <p className="text-xs leading-relaxed text-amber-700 dark:text-amber-400">
-                  跳过证书验证会使连接面临中间人攻击风险，数据仍会加密传输，但无法确认服务端身份。仅建议在开发/测试环境使用。
+                  {getLL().panels.tcpConnect.skipCertVerifyWarning()}
                 </p>
               </div>
             )}
@@ -334,7 +335,7 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
       {/* 连接超时 */}
       <div className="space-y-2">
         <Label htmlFor="connect_timeout_ms" className="text-sm font-medium text-foreground">
-          连接超时
+          {getLL().panels.tcpConnect.connectTimeout()}
         </Label>
         <Input
           id="connect_timeout_ms"
@@ -344,12 +345,12 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
           {...register('connect_timeout_ms', { valueAsNumber: true })}
           className="font-mono text-sm"
         />
-        <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.tcpConnect.timeoutHint()}</p>
       </div>
 
       {/* 高级选项 */}
       <div className="space-y-3 rounded-md border bg-muted/30 p-3">
-        <Label className="text-sm font-medium text-foreground">高级选项</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.advancedSettings()}</Label>
 
         {/* NoDelay 开关 */}
         <div className="flex items-center space-x-2">
@@ -362,11 +363,11 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
             }}
           />
           <Label htmlFor="no_delay" className="text-sm font-medium text-foreground cursor-pointer">
-            禁用 Nagle 算法 (NoDelay)
+            {getLL().panels.tcpConnect.noDelay()}
           </Label>
         </div>
         <p className="text-xs text-muted-foreground">
-          启用后立即发送小包，降低延迟，适用于实时交互场景
+          {getLL().panels.tcpConnect.noDelayDesc()}
         </p>
 
         {/* Keepalive 配置 */}
@@ -391,13 +392,13 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
             ) : (
               <ChevronRight className="h-3.5 w-3.5" />
             )}
-            Keepalive 配置
+            {getLL().panels.tcpConnect.keepaliveConfig()}
           </button>
 
           {keepaliveExpanded && (
             <div className="space-y-3 pl-2 border-l-2 border-muted">
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">空闲时间 (秒)</Label>
+                <Label className="text-xs text-muted-foreground">{getLL().panels.tcpConnect.keepaliveIdleSecs()}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -411,7 +412,7 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">探测间隔 (秒)</Label>
+                <Label className="text-xs text-muted-foreground">{getLL().panels.tcpConnect.keepaliveIntervalSecs()}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -425,7 +426,7 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">探测次数</Label>
+                <Label className="text-xs text-muted-foreground">{getLL().panels.tcpConnect.keepaliveProbeCount()}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -446,7 +447,7 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
         {useTls && (
           <div className="space-y-2">
             <Label htmlFor="tls_ca_cert" className="text-sm font-medium text-foreground">
-              自定义 CA 证书 (PEM)
+              {getLL().panels.tcpConnect.caCertPem()}
             </Label>
             <Textarea
               id="tls_ca_cert"
@@ -456,7 +457,7 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
               rows={5}
             />
             <p className="text-xs text-muted-foreground">
-              粘贴 PEM 格式的 CA 证书内容，用于验证服务端证书链
+              {getLL().panels.tcpConnect.caCertDesc()}
             </p>
           </div>
         )}
@@ -464,9 +465,9 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
 
       {/* 成帧配置 */}
       <div className="space-y-3 rounded-md border bg-muted/30 p-3">
-        <Label className="text-sm font-medium text-foreground">成帧配置（可选）</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.tcpConnect.framingConfig()}</Label>
         <p className="text-xs text-muted-foreground">
-          定义 TCP 数据流的帧定界方式，用于正确解析接收到的数据
+          {getLL().panels.tcpConnect.framingDesc()}
         </p>
 
         {/* 成帧模式选择 */}
@@ -477,10 +478,10 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
               onValueChange={handleFramingTypeChange}
             >
               <SelectTrigger className="font-mono text-sm">
-                <SelectValue placeholder="不使用成帧" />
+                <SelectValue placeholder={getLL().panels.tcpConnect.noFraming()} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">不使用成帧</SelectItem>
+                <SelectItem value="none">{getLL().panels.tcpConnect.noFraming()}</SelectItem>
                 {FRAMING_MODE_OPTIONS.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
@@ -494,7 +495,7 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
         {/* 成帧子字段：根据选中模式动态显示 */}
         {selectedFramingType === 'length_prefix' && (
           <div className="space-y-2 pl-2">
-            <Label className="text-xs text-muted-foreground">前缀字节数</Label>
+            <Label className="text-xs text-muted-foreground">{getLL().panels.tcpConnect.prefixBytes()}</Label>
             <Select
               value={String(currentFramingMode?.type === 'length_prefix' ? (currentFramingMode as { type: 'length_prefix'; prefix_bytes: number }).prefix_bytes : 4)}
               onValueChange={(val) => updateFramingSubField('prefix_bytes', Number(val))}
@@ -504,30 +505,30 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
               </SelectTrigger>
               <SelectContent>
                 {[1, 2, 4, 8].map((n) => (
-                  <SelectItem key={n} value={String(n)}>{n} 字节</SelectItem>
+                  <SelectItem key={n} value={String(n)}>{getLL().panels.tcpConnect.bytes({ n })}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">用于表示消息长度的字节数</p>
+            <p className="text-xs text-muted-foreground">{getLL().panels.tcpConnect.prefixBytesDesc()}</p>
           </div>
         )}
 
         {selectedFramingType === 'delimiter' && (
           <div className="space-y-2 pl-2">
-            <Label className="text-xs text-muted-foreground">分隔符</Label>
+            <Label className="text-xs text-muted-foreground">{getLL().panels.tcpConnect.delimiter()}</Label>
             <Input
               value={currentFramingMode?.type === 'delimiter' ? (currentFramingMode as { type: 'delimiter'; delimiter: string }).delimiter : '\n'}
               onChange={(e) => updateFramingSubField('delimiter', e.target.value)}
               className="h-8 font-mono text-xs"
               placeholder="\n"
             />
-            <p className="text-xs text-muted-foreground">遇到此分隔符时视为一帧结束</p>
+            <p className="text-xs text-muted-foreground">{getLL().panels.tcpConnect.delimiterDesc()}</p>
           </div>
         )}
 
         {selectedFramingType === 'fixed_length' && (
           <div className="space-y-2 pl-2">
-            <Label className="text-xs text-muted-foreground">固定帧长度</Label>
+            <Label className="text-xs text-muted-foreground">{getLL().panels.tcpConnect.fixedLength()}</Label>
             <Input
               type="number"
               min={1}
@@ -535,13 +536,13 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
               onChange={(e) => updateFramingSubField('length', Number(e.target.value))}
               className="h-8 font-mono text-xs"
             />
-            <p className="text-xs text-muted-foreground">每次读取的固定字节数</p>
+            <p className="text-xs text-muted-foreground">{getLL().panels.tcpConnect.fixedLengthDesc()}</p>
           </div>
         )}
 
         {selectedFramingType === 'timeout' && (
           <div className="space-y-2 pl-2">
-            <Label className="text-xs text-muted-foreground">读取超时 (ms)</Label>
+            <Label className="text-xs text-muted-foreground">{getLL().panels.tcpConnect.readTimeout()}</Label>
             <Input
               type="number"
               min={100}
@@ -549,13 +550,13 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
               onChange={(e) => updateFramingSubField('timeout_ms', Number(e.target.value))}
               className="h-8 font-mono text-xs"
             />
-            <p className="text-xs text-muted-foreground">超时后视为一帧结束</p>
+            <p className="text-xs text-muted-foreground">{getLL().panels.tcpConnect.readTimeoutDesc()}</p>
           </div>
         )}
 
         {selectedFramingType === 'manual' && (
           <p className="text-xs text-muted-foreground pl-2">
-            手动模式下，连接建立后不会自动读取数据，需由 Send 节点控制读写
+            {getLL().panels.tcpConnect.manualModeDesc()}
           </p>
         )}
       </div>
@@ -564,10 +565,10 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">连接说明：</p>
-          <p>建立原始 TCP 连接，支持可选的 TLS 加密</p>
-          <p>成帧配置决定了如何从 TCP 流中切分出完整的消息帧</p>
-          <p>当前成帧: <code className="rounded bg-muted px-1">{getFramingModeLabel(currentFramingMode)}</code></p>
+          <p className="font-medium text-foreground">{getLL().panels.connection()}</p>
+          <p>{getLL().panels.tcpConnect.connectionDesc()}</p>
+          <p>{getLL().panels.tcpConnect.framingExplanation()}</p>
+          <p>{getLL().panels.tcpConnect.currentFraming()} <code className="rounded bg-muted px-1">{getFramingModeLabel(currentFramingMode)}</code></p>
         </div>
       </div>
     </form>

@@ -2,6 +2,15 @@
  * 节点配置表单校验 Schema
  */
 import { z } from 'zod';
+import { i18nObject } from '@/i18n/i18n-util';
+import { baseLocale } from '@/i18n/i18n-util';
+import type { TranslationFunctions } from '@/i18n/i18n-types';
+
+let _LL: TranslationFunctions | null = null;
+const getLL = () => {
+  if (!_LL) _LL = i18nObject(baseLocale);
+  return _LL;
+};
 
 // ============================================================================
 // HTTP 配置 Schema
@@ -41,11 +50,11 @@ export const formFieldSchema = z.object({
  * 输出映射 Schema
  */
 export const outputMappingSchema = z.object({
-  source: z.string().min(1, '源字段不能为空'),
+  source: z.string().min(1, getLL().validation.source_field_required()),
   target: z.string()
-    .min(1, '变量名不能为空')
-    .max(64, '变量名不能超过64个字符')
-    .regex(/^[a-zA-Z0-9_]+$/, '变量名只能包含字母、数字和下划线'),
+    .min(1, getLL().validation.variable_name_required())
+    .max(64, getLL().validation.variable_name_max())
+    .regex(/^[a-zA-Z0-9_]+$/, getLL().validation.variable_name_regex()),
   description: z.string().optional(),
   enabled: z.boolean().optional(),
 });
@@ -82,7 +91,7 @@ export const cookieEntrySchema = z.object({
 });
 
 export const httpConfigSchema = z.object({
-  url: z.string().url('请输入有效的 URL').min(1, 'URL 不能为空'),
+  url: z.string().url(getLL().validation.invalid_url()).min(1, getLL().validation.url_required()),
   method: httpMethodSchema,
   headers: z.array(headerEntrySchema).optional(),
   body_type: httpBodyTypeSchema.optional(),
@@ -163,16 +172,16 @@ export type ConditionalConfigFormData = z.infer<typeof conditionalConfigSchema>;
 // ============================================================================
 
 export const OPERATOR_OPTIONS = [
-  { value: 'equal', label: '等于 (=)' },
-  { value: 'not_equal', label: '不等于 (!=)' },
-  { value: 'greater', label: '大于 (>)' },
-  { value: 'greater_or_equal', label: '大于等于 (>=)' },
-  { value: 'less', label: '小于 (<)' },
-  { value: 'less_or_equal', label: '小于等于 (<=)' },
-  { value: 'contains', label: '包含' },
-  { value: 'starts_with', label: '以...开始' },
-  { value: 'ends_with', label: '以...结束' },
-  { value: 'exists', label: '存在' },
+  { value: 'equal', label: getLL().validation.operator_equal() },
+  { value: 'not_equal', label: getLL().validation.operator_not_equal() },
+  { value: 'greater', label: getLL().validation.operator_greater() },
+  { value: 'greater_or_equal', label: getLL().validation.operator_greater_or_equal() },
+  { value: 'less', label: getLL().validation.operator_less() },
+  { value: 'less_or_equal', label: getLL().validation.operator_less_or_equal() },
+  { value: 'contains', label: getLL().validation.operator_contains() },
+  { value: 'starts_with', label: getLL().validation.operator_starts_with() },
+  { value: 'ends_with', label: getLL().validation.operator_ends_with() },
+  { value: 'exists', label: getLL().validation.operator_exists() },
 ] as const;
 
 // ============================================================================
@@ -184,9 +193,9 @@ export const OPERATOR_OPTIONS = [
  */
 export const initialVariableSchema = z.object({
   name: z.string()
-    .min(1, '变量名不能为空')
-    .max(64, '变量名不能超过64个字符')
-    .regex(/^[a-zA-Z0-9_]+$/, '变量名只能包含字母、数字和下划线'),
+    .min(1, getLL().validation.variable_name_required())
+    .max(64, getLL().validation.variable_name_max())
+    .regex(/^[a-zA-Z0-9_]+$/, getLL().validation.variable_name_regex()),
   value: z.unknown(),
   description: z.string().optional(),
 });
@@ -203,8 +212,8 @@ const hookTriggerSchema = z.enum(['on_success', 'on_failure', 'on_cancel', 'on_c
 /** Webhook 动作 schema */
 const webhookHookActionSchema = z.object({
   type: z.literal('webhook'),
-  url: z.string().min(1, 'URL 不能为空'),
-  method: z.string().min(1, '方法不能为空'),
+  url: z.string().min(1, getLL().validation.url_required()),
+  method: z.string().min(1, getLL().validation.webhook_method_required()),
   headers: z.record(z.string(), z.string()),
   body_template: z.string().optional(),
   timeout_ms: z.number().min(1000).max(300000).optional(),
@@ -213,15 +222,15 @@ const webhookHookActionSchema = z.object({
 /** Script 动作 schema */
 const scriptHookActionSchema = z.object({
   type: z.literal('script'),
-  code: z.string().min(1, '代码不能为空'),
+  code: z.string().min(1, getLL().validation.script_code_required()),
   timeout_ms: z.number().min(1000).max(300000).optional(),
 });
 
 /** Notify 动作 schema */
 const notifyHookActionSchema = z.object({
   type: z.literal('notify'),
-  title_template: z.string().min(1, '标题模板不能为空'),
-  message_template: z.string().min(1, '消息模板不能为空'),
+  title_template: z.string().min(1, getLL().validation.notify_title_required()),
+  message_template: z.string().min(1, getLL().validation.notify_message_required()),
 });
 
 /** 钩子动作 discriminated union */
@@ -234,14 +243,14 @@ const hookActionSchema = z.discriminatedUnion('type', [
 /** 单个钩子 schema */
 const flowHookSchema = z.object({
   uuid: z.string(),
-  name: z.string().min(1, '名称不能为空'),
+  name: z.string().min(1, getLL().validation.hook_name_required()),
   enabled: z.boolean(),
   trigger: hookTriggerSchema,
   action: hookActionSchema,
 });
 
 /** 钩子列表 schema */
-const hooksSchema = z.array(flowHookSchema).max(10, '最多 10 个钩子').optional();
+const hooksSchema = z.array(flowHookSchema).max(10, getLL().validation.hooks_max()).optional();
 
 /**
  * Entry 配置表单 Schema
@@ -263,7 +272,7 @@ export const entryConfigSchema = z.object({
     return names.length === uniqueNames.size;
   },
   {
-    message: '变量名必须唯一',
+    message: getLL().validation.variable_name_unique(),
     path: ['initial_variables'],
   }
 );
@@ -306,7 +315,7 @@ export type WsBinaryInputMode = z.infer<typeof wsBinaryInputModeSchema>;
  */
 export const wsCollectConditionSchema = z.object({
   match_type: wsMatchTypeSchema,
-  expression: z.string().min(1, '匹配表达式不能为空'),
+  expression: z.string().min(1, getLL().validation.match_expression_required()),
 });
 
 export type WsCollectConditionFormData = z.infer<typeof wsCollectConditionSchema>;
@@ -316,7 +325,7 @@ export type WsCollectConditionFormData = z.infer<typeof wsCollectConditionSchema
  */
 export const wsConnectConfigSchema = z.object({
   type: z.literal('ws_connect'),
-  url: z.string().min(1, 'URL 不能为空'),
+  url: z.string().min(1, getLL().validation.url_required()),
   headers: z.array(formFieldSchema).optional(),
   subprotocols: z.array(z.string()).optional(),
   connect_timeout_ms: z.number().min(1000).max(300000).optional(),
@@ -343,8 +352,8 @@ export type WsConnectConfigFormData = z.infer<typeof wsConnectConfigSchema>;
  */
 export const wsSendCollectConfigSchema = z.object({
   type: z.literal('ws_send_collect'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  message: z.string().min(1, '消息内容不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  message: z.string().min(1, getLL().validation.ws_message_required()),
   message_type: wsMessageTypeSchema.optional(),
   /** 二进制消息输入模式，仅当 message_type === 'binary' 时生效 */
   binary_input_mode: wsBinaryInputModeSchema,
@@ -364,7 +373,7 @@ export type WsSendCollectConfigFormData = z.infer<typeof wsSendCollectConfigSche
  */
 export const wsCloseConfigSchema = z.object({
   type: z.literal('ws_close'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   close_code: z.number().optional(),
   close_reason: z.string().optional(),
   close_timeout_ms: z.number().min(1000).max(300000).optional(),
@@ -415,7 +424,7 @@ export type OnFailureMode = z.infer<typeof onFailureModeSchema>;
  * 单条断言 Schema
  */
 export const assertionSchema = z.object({
-  target: z.string().min(1, '目标字段不能为空'),
+  target: z.string().min(1, getLL().validation.target_field_required()),
   operator: assertionOperatorSchema,
   expected: z.string(),
   enabled: z.boolean().default(true),
@@ -486,7 +495,7 @@ export type DbConnectConfigFormData = z.infer<typeof dbConnectConfigSchema>;
  */
 export const dbQueryConfigSchema = z.object({
   type: z.literal('db_query'),
-  connection_uuid: z.string().min(1, '连接 UUID 不能为空'),
+  connection_uuid: z.string().min(1, getLL().validation.db_connection_uuid_required()),
   sql: z.string().optional(),
   params: z.array(z.string()).optional(),
   redis_command: z.string().optional(),
@@ -505,7 +514,7 @@ export type DbQueryConfigFormData = z.infer<typeof dbQueryConfigSchema>;
  */
 export const dbBeginConfigSchema = z.object({
   type: z.literal('db_begin'),
-  connection_uuid: z.string().min(1, '连接 UUID 不能为空'),
+  connection_uuid: z.string().min(1, getLL().validation.db_connection_uuid_required()),
   isolation_level: dbIsolationLevelSchema.optional(),
 });
 
@@ -516,7 +525,7 @@ export type DbBeginConfigFormData = z.infer<typeof dbBeginConfigSchema>;
  */
 export const dbCommitConfigSchema = z.object({
   type: z.literal('db_commit'),
-  connection_uuid: z.string().min(1, '连接 UUID 不能为空'),
+  connection_uuid: z.string().min(1, getLL().validation.db_connection_uuid_required()),
 });
 
 export type DbCommitConfigFormData = z.infer<typeof dbCommitConfigSchema>;
@@ -526,7 +535,7 @@ export type DbCommitConfigFormData = z.infer<typeof dbCommitConfigSchema>;
  */
 export const dbRollbackConfigSchema = z.object({
   type: z.literal('db_rollback'),
-  connection_uuid: z.string().min(1, '连接 UUID 不能为空'),
+  connection_uuid: z.string().min(1, getLL().validation.db_connection_uuid_required()),
 });
 
 export type DbRollbackConfigFormData = z.infer<typeof dbRollbackConfigSchema>;
@@ -536,7 +545,7 @@ export type DbRollbackConfigFormData = z.infer<typeof dbRollbackConfigSchema>;
  */
 export const dbCloseConfigSchema = z.object({
   type: z.literal('db_close'),
-  connection_uuid: z.string().min(1, '连接 UUID 不能为空'),
+  connection_uuid: z.string().min(1, getLL().validation.db_connection_uuid_required()),
 });
 
 export type DbCloseConfigFormData = z.infer<typeof dbCloseConfigSchema>;
@@ -586,8 +595,8 @@ export type ScriptConfigFormData = z.infer<typeof scriptConfigSchema>;
  * Proto 文件 Schema
  */
 export const protoFileSchema = z.object({
-  path: z.string().min(1, '文件路径不能为空'),
-  content: z.string().min(1, '文件内容不能为空'),
+  path: z.string().min(1, getLL().validation.proto_file_path_required()),
+  content: z.string().min(1, getLL().validation.proto_file_content_required()),
 });
 
 export type ProtoFileFormData = z.infer<typeof protoFileSchema>;
@@ -630,7 +639,7 @@ export type GrpcServiceInfoFormData = z.infer<typeof grpcServiceInfoSchema>;
  */
 export const grpcConnectConfigSchema = z.object({
   type: z.literal('grpc_connect'),
-  url: z.string().min(1, 'gRPC 服务器地址不能为空'),
+  url: z.string().min(1, getLL().validation.grpc_server_url_required()),
   use_tls: z.boolean().optional(),
   tls_skip_verify: z.boolean().optional(),
   enable_reflection: z.boolean().optional(),
@@ -674,9 +683,9 @@ export type StreamMessageFormData = z.infer<typeof streamMessageSchema>;
  */
 export const grpcCallConfigSchema = z.object({
   type: z.literal('grpc_call'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  service_name: z.string().min(1, '服务名称不能为空'),
-  method_name: z.string().min(1, '方法名称不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  service_name: z.string().min(1, getLL().validation.grpc_service_name_required()),
+  method_name: z.string().min(1, getLL().validation.grpc_method_name_required()),
   request_json: z.string(),
   timeout_ms: z.number().min(1000).max(300000).optional(),
   metadata: z.array(grpcMetadataEntrySchema).optional(),
@@ -695,7 +704,7 @@ export type GrpcCallConfigFormData = z.infer<typeof grpcCallConfigSchema>;
  */
 export const grpcCloseConfigSchema = z.object({
   type: z.literal('grpc_close'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
 });
 
 export type GrpcCloseConfigFormData = z.infer<typeof grpcCloseConfigSchema>;
@@ -734,7 +743,7 @@ export const mcpConnectConfigSchema = z.object({
     }
     return true;
   },
-  { message: 'Streamable HTTP 模式下 MCP 服务器地址不能为空', path: ['url'] },
+  { message: getLL().validation.mcp_server_url_required(), path: ['url'] },
 ).refine(
   (data) => {
     const transport = data.transport || 'streamable_http';
@@ -743,7 +752,7 @@ export const mcpConnectConfigSchema = z.object({
     }
     return true;
   },
-  { message: 'Stdio 模式下命令不能为空', path: ['command'] },
+  { message: getLL().validation.mcp_command_required(), path: ['command'] },
 );
 
 export type McpConnectConfigFormData = z.infer<typeof mcpConnectConfigSchema>;
@@ -753,8 +762,8 @@ export type McpConnectConfigFormData = z.infer<typeof mcpConnectConfigSchema>;
  */
 export const mcpCallToolConfigSchema = z.object({
   type: z.literal('mcp_call_tool'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  tool_name: z.string().min(1, '工具名称不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  tool_name: z.string().min(1, getLL().validation.mcp_tool_name_required()),
   arguments: z.any().optional(),
 });
 
@@ -765,8 +774,8 @@ export type McpCallToolConfigFormData = z.infer<typeof mcpCallToolConfigSchema>;
  */
 export const mcpReadResourceConfigSchema = z.object({
   type: z.literal('mcp_read_resource'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  resource_uri: z.string().min(1, '资源 URI 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  resource_uri: z.string().min(1, getLL().validation.mcp_resource_uri_required()),
 });
 
 export type McpReadResourceConfigFormData = z.infer<typeof mcpReadResourceConfigSchema>;
@@ -776,7 +785,7 @@ export type McpReadResourceConfigFormData = z.infer<typeof mcpReadResourceConfig
  */
 export const mcpCloseConfigSchema = z.object({
   type: z.literal('mcp_close'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
 });
 
 export type McpCloseConfigFormData = z.infer<typeof mcpCloseConfigSchema>;
@@ -786,8 +795,8 @@ export type McpCloseConfigFormData = z.infer<typeof mcpCloseConfigSchema>;
  */
 export const mcpGetPromptConfigSchema = z.object({
   type: z.literal('mcp_get_prompt'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  prompt_name: z.string().min(1, '提示词名称不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  prompt_name: z.string().min(1, getLL().validation.mcp_prompt_name_required()),
   arguments: z.record(z.string(), z.string()).optional(),
 });
 
@@ -819,8 +828,8 @@ export type TcpFramingConfigFormData = z.infer<typeof tcpFramingConfigSchema>;
  */
 export const tcpConnectConfigSchema = z.object({
   type: z.literal('tcp_connect'),
-  host: z.string().min(1, '请输入主机地址'),
-  port: z.number().int().min(1).max(65535, '端口范围 1-65535'),
+  host: z.string().min(1, getLL().validation.host_required()),
+  port: z.number().int().min(1).max(65535, getLL().validation.port_range()),
   use_tls: z.boolean().optional(),
   tls_skip_verify: z.boolean().optional(),
   connect_timeout_ms: z.number().int().positive().optional(),
@@ -845,7 +854,7 @@ export type TcpConnectConfigFormData = z.infer<typeof tcpConnectConfigSchema>;
  */
 export const tcpSendConfigSchema = z.object({
   type: z.literal('tcp_send'),
-  connection_id: z.string().min(1, '请选择连接'),
+  connection_id: z.string().min(1, getLL().validation.connection_select_required()),
   data: z.string(),
   data_encoding: z.enum(['text', 'hex', 'base64']).optional(),
   framing_mode: tcpFramingConfigSchema.shape.mode.optional(),
@@ -862,7 +871,7 @@ export type TcpSendConfigFormData = z.infer<typeof tcpSendConfigSchema>;
  */
 export const tcpCloseConfigSchema = z.object({
   type: z.literal('tcp_close'),
-  connection_id: z.string().min(1, '请选择连接'),
+  connection_id: z.string().min(1, getLL().validation.connection_select_required()),
   close_timeout_ms: z.number().int().positive().optional(),
 });
 
@@ -873,7 +882,7 @@ export type TcpCloseConfigFormData = z.infer<typeof tcpCloseConfigSchema>;
  */
 export const tcpReceiveConfigSchema = z.object({
   type: z.literal('tcp_receive'),
-  connection_id: z.string().min(1, '请选择连接'),
+  connection_id: z.string().min(1, getLL().validation.connection_select_required()),
   receive_timeout_ms: z.number().int().positive(),
   framing_mode: tcpFramingConfigSchema.shape.mode.optional(),
   framing_config: tcpFramingConfigSchema.optional(),
@@ -908,11 +917,11 @@ export type UdpBindConfigFormData = z.infer<typeof udpBindConfigSchema>;
  */
 export const udpSendToConfigSchema = z.object({
   type: z.literal('udp_send_to'),
-  connection_id: z.string().min(1, '请选择连接'),
+  connection_id: z.string().min(1, getLL().validation.connection_select_required()),
   data: z.string(),
   data_encoding: z.enum(['text', 'hex', 'base64']).optional(),
-  target_addr: z.string().min(1, '请输入目标地址'),
-  target_port: z.number().int().min(1).max(65535, '端口范围 1-65535'),
+  target_addr: z.string().min(1, getLL().validation.target_addr_required()),
+  target_port: z.number().int().min(1).max(65535, getLL().validation.port_range()),
   send_timeout_ms: z.number().int().positive().optional(),
 });
 
@@ -923,7 +932,7 @@ export type UdpSendToConfigFormData = z.infer<typeof udpSendToConfigSchema>;
  */
 export const udpRecvFromConfigSchema = z.object({
   type: z.literal('udp_recv_from'),
-  connection_id: z.string().min(1, '请选择连接'),
+  connection_id: z.string().min(1, getLL().validation.connection_select_required()),
   receive_timeout_ms: z.number().int().positive().optional(),
   max_size: z.number().int().positive().optional(),
 });
@@ -935,7 +944,7 @@ export type UdpRecvFromConfigFormData = z.infer<typeof udpRecvFromConfigSchema>;
  */
 export const udpCloseConfigSchema = z.object({
   type: z.literal('udp_close'),
-  connection_id: z.string().min(1, '请选择连接'),
+  connection_id: z.string().min(1, getLL().validation.connection_select_required()),
 });
 
 export type UdpCloseConfigFormData = z.infer<typeof udpCloseConfigSchema>;
@@ -1008,8 +1017,8 @@ export type MqttConnectConfigFormData = z.infer<typeof mqttConnectConfigSchema>;
  */
 export const mqttPublishConfigSchema = z.object({
   type: z.literal('mqtt_publish'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  topic: z.string().min(1, '主题不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  topic: z.string().min(1, getLL().validation.mqtt_topic_required()),
   payload: z.string().optional(),
   qos: z.number().int().min(0).max(2).optional(),
   retain: z.boolean().optional(),
@@ -1029,8 +1038,8 @@ export type MqttPublishConfigFormData = z.infer<typeof mqttPublishConfigSchema>;
  */
 export const mqttSubscribeConfigSchema = z.object({
   type: z.literal('mqtt_subscribe'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  topic: z.string().min(1, '主题不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  topic: z.string().min(1, getLL().validation.mqtt_topic_required()),
   qos: z.number().int().min(0).max(2).optional(),
   max_messages: z.number().int().positive().optional(),
   collect_timeout_ms: z.number().int().positive().optional(),
@@ -1049,8 +1058,8 @@ export type MqttSubscribeConfigFormData = z.infer<typeof mqttSubscribeConfigSche
  */
 export const mqttUnsubscribeConfigSchema = z.object({
   type: z.literal('mqtt_unsubscribe'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  topic: z.string().min(1, '主题不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  topic: z.string().min(1, getLL().validation.mqtt_topic_required()),
 });
 
 export type MqttUnsubscribeConfigFormData = z.infer<typeof mqttUnsubscribeConfigSchema>;
@@ -1060,7 +1069,7 @@ export type MqttUnsubscribeConfigFormData = z.infer<typeof mqttUnsubscribeConfig
  */
 export const mqttDisconnectConfigSchema = z.object({
   type: z.literal('mqtt_disconnect'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   reason_code: z.number().int().optional(),
   session_expiry_interval: z.number().int().positive().optional(),
 });
@@ -1072,8 +1081,8 @@ export type MqttDisconnectConfigFormData = z.infer<typeof mqttDisconnectConfigSc
  */
 export const mqttWaitMessageConfigSchema = z.object({
   type: z.literal('mqtt_wait_message'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  topic: z.string().min(1, '主题不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  topic: z.string().min(1, getLL().validation.mqtt_topic_required()),
   match_condition: z.any().optional(),
   timeout_ms: z.number().int().positive().optional(),
   max_messages: z.number().int().positive().optional(),
@@ -1086,9 +1095,9 @@ export type MqttWaitMessageConfigFormData = z.infer<typeof mqttWaitMessageConfig
  */
 export const mqttRequestConfigSchema = z.object({
   type: z.literal('mqtt_request'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  request_topic: z.string().min(1, '请求主题不能为空'),
-  response_topic: z.string().min(1, '响应主题不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  request_topic: z.string().min(1, getLL().validation.mqtt_request_topic_required()),
+  response_topic: z.string().min(1, getLL().validation.mqtt_response_topic_required()),
   payload: z.string().optional(),
   qos: z.number().int().min(0).max(2).optional(),
   correlation_data: z.string().optional(),
@@ -1106,7 +1115,7 @@ export type MqttRequestConfigFormData = z.infer<typeof mqttRequestConfigSchema>;
  */
 export const sseConnectConfigSchema = z.object({
   type: z.literal('sse_connect'),
-  url: z.string().min(1, 'URL 不能为空'),
+  url: z.string().min(1, getLL().validation.url_required()),
   headers: z.record(z.string(), z.string()).optional(),
   last_event_id: z.string().optional(),
   timeout_ms: z.number().min(1000).max(300000).optional(),
@@ -1123,7 +1132,7 @@ export type SseConnectConfigFormData = z.infer<typeof sseConnectConfigSchema>;
  */
 export const sseListenConfigSchema = z.object({
   type: z.literal('sse_listen'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   event_filter: z.string().optional(),
   max_events: z.number().min(0).optional(),
   timeout_ms: z.number().min(0).optional(),
@@ -1138,7 +1147,7 @@ export type SseListenConfigFormData = z.infer<typeof sseListenConfigSchema>;
  */
 export const sseDisconnectConfigSchema = z.object({
   type: z.literal('sse_disconnect'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
 });
 
 export type SseDisconnectConfigFormData = z.infer<typeof sseDisconnectConfigSchema>;
@@ -1152,7 +1161,7 @@ export type SseDisconnectConfigFormData = z.infer<typeof sseDisconnectConfigSche
  */
 export const graphqlConnectConfigSchema = z.object({
   type: z.literal('graphql_connect'),
-  endpoint: z.string().min(1, '端点 URL 不能为空'),
+  endpoint: z.string().min(1, getLL().validation.graphql_endpoint_required()),
   ws_endpoint: z.string().optional(),
   headers: z.record(z.string(), z.string()).optional(),
   connection_timeout_ms: z.number().min(1000).max(300000).optional(),
@@ -1166,8 +1175,8 @@ export type GraphqlConnectConfigFormData = z.infer<typeof graphqlConnectConfigSc
  */
 export const graphqlQueryConfigSchema = z.object({
   type: z.literal('graphql_query'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  query: z.string().min(1, '查询不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  query: z.string().min(1, getLL().validation.graphql_query_required()),
   variables: z.string().optional(),
   operation_name: z.string().optional(),
   files: z.array(z.object({
@@ -1184,8 +1193,8 @@ export type GraphqlQueryConfigFormData = z.infer<typeof graphqlQueryConfigSchema
  */
 export const graphqlSubscribeConfigSchema = z.object({
   type: z.literal('graphql_subscribe'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  subscription: z.string().min(1, '订阅不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  subscription: z.string().min(1, getLL().validation.graphql_subscription_required()),
   variables: z.string().optional(),
   operation_name: z.string().optional(),
   max_events: z.number().min(0).optional(),
@@ -1199,7 +1208,7 @@ export type GraphqlSubscribeConfigFormData = z.infer<typeof graphqlSubscribeConf
  */
 export const graphqlIntrospectConfigSchema = z.object({
   type: z.literal('graphql_introspect'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   timeout_ms: z.number().min(1000).max(300000).optional(),
 });
 
@@ -1210,7 +1219,7 @@ export type GraphqlIntrospectConfigFormData = z.infer<typeof graphqlIntrospectCo
  */
 export const graphqlDisconnectConfigSchema = z.object({
   type: z.literal('graphql_disconnect'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
 });
 
 export type GraphqlDisconnectConfigFormData = z.infer<typeof graphqlDisconnectConfigSchema>;
@@ -1229,7 +1238,7 @@ export const variableExtractorConfigSchema = z.object({
 }).refine(data => {
   const targets = (data.output_mappings || []).map(m => m.target).filter(Boolean);
   return new Set(targets).size === targets.length;
-}, { message: '变量名不能重复', path: ['output_mappings'] });
+}, { message: getLL().validation.variable_name_duplicate(), path: ['output_mappings'] });
 
 export type VariableExtractorConfigFormData = z.infer<typeof variableExtractorConfigSchema>;
 
@@ -1344,7 +1353,7 @@ export type AmqpConnectConfigFormData = z.infer<typeof amqpConnectConfigSchema>;
  */
 export const amqpCloseConfigSchema = z.object({
   type: z.literal('amqp_close'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   reply_code: z.number().int().optional(),
   reply_text: z.string().optional(),
 });
@@ -1356,8 +1365,8 @@ export type AmqpCloseConfigFormData = z.infer<typeof amqpCloseConfigSchema>;
  */
 export const amqpExchangeDeclareConfigSchema = z.object({
   type: z.literal('amqp_exchange_declare'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  exchange: z.string().min(1, 'Exchange 名称不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  exchange: z.string().min(1, getLL().validation.amqp_exchange_required()),
   exchange_type: amqpExchangeTypeSchema,
   custom_type: z.string().optional(),
   passive: z.boolean().optional(),
@@ -1374,8 +1383,8 @@ export type AmqpExchangeDeclareConfigFormData = z.infer<typeof amqpExchangeDecla
  */
 export const amqpExchangeDeleteConfigSchema = z.object({
   type: z.literal('amqp_exchange_delete'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  exchange: z.string().min(1, 'Exchange 名称不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  exchange: z.string().min(1, getLL().validation.amqp_exchange_required()),
   if_unused: z.boolean().optional(),
 });
 
@@ -1386,7 +1395,7 @@ export type AmqpExchangeDeleteConfigFormData = z.infer<typeof amqpExchangeDelete
  */
 export const amqpQueueDeclareConfigSchema = z.object({
   type: z.literal('amqp_queue_declare'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   queue: z.string().optional(),
   passive: z.boolean().optional(),
   durable: z.boolean().optional(),
@@ -1402,8 +1411,8 @@ export type AmqpQueueDeclareConfigFormData = z.infer<typeof amqpQueueDeclareConf
  */
 export const amqpQueueDeleteConfigSchema = z.object({
   type: z.literal('amqp_queue_delete'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  queue: z.string().min(1, '队列名称不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  queue: z.string().min(1, getLL().validation.amqp_queue_required()),
   action: amqpQueueActionSchema.optional(),
   if_unused: z.boolean().optional(),
   if_empty: z.boolean().optional(),
@@ -1416,9 +1425,9 @@ export type AmqpQueueDeleteConfigFormData = z.infer<typeof amqpQueueDeleteConfig
  */
 export const amqpQueueBindConfigSchema = z.object({
   type: z.literal('amqp_queue_bind'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  queue: z.string().min(1, '队列名称不能为空'),
-  exchange: z.string().min(1, 'Exchange 名称不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  queue: z.string().min(1, getLL().validation.amqp_queue_required()),
+  exchange: z.string().min(1, getLL().validation.amqp_exchange_required()),
   routing_key: z.string().optional(),
   arguments: z.string().optional(),
 });
@@ -1430,7 +1439,7 @@ export type AmqpQueueBindConfigFormData = z.infer<typeof amqpQueueBindConfigSche
  */
 export const amqpPublishConfigSchema = z.object({
   type: z.literal('amqp_publish'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   exchange: z.string().optional(),
   routing_key: z.string().optional(),
   body: z.string().optional(),
@@ -1460,8 +1469,8 @@ export type AmqpPublishConfigFormData = z.infer<typeof amqpPublishConfigSchema>;
  */
 export const amqpConsumeConfigSchema = z.object({
   type: z.literal('amqp_consume'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  queue: z.string().min(1, '队列名称不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  queue: z.string().min(1, getLL().validation.amqp_queue_required()),
   consumer_tag: z.string().optional(),
   ack_mode: amqpAckModeSchema.optional(),
   exclusive: z.boolean().optional(),
@@ -1481,8 +1490,8 @@ export type AmqpConsumeConfigFormData = z.infer<typeof amqpConsumeConfigSchema>;
  */
 export const amqpGetConfigSchema = z.object({
   type: z.literal('amqp_get'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  queue: z.string().min(1, '队列名称不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  queue: z.string().min(1, getLL().validation.amqp_queue_required()),
   no_ack: z.boolean().optional(),
 });
 
@@ -1493,7 +1502,7 @@ export type AmqpGetConfigFormData = z.infer<typeof amqpGetConfigSchema>;
  */
 export const amqpAckConfigSchema = z.object({
   type: z.literal('amqp_ack'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   action: amqpAckActionSchema,
   delivery_tag: z.number().int().positive(),
   multiple: z.boolean().optional(),
@@ -1564,8 +1573,8 @@ export type Amqp10ConnectConfigFormData = z.infer<typeof amqp10ConnectConfigSche
  */
 export const amqp10SendConfigSchema = z.object({
   type: z.literal('amqp10_send'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  address: z.string().min(1, '目标地址不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  address: z.string().min(1, getLL().validation.amqp_address_required()),
   message_body: z.string().optional(),
   message_properties: amqp10MessagePropertiesSchema.optional(),
   message_annotations: z.string().optional(),
@@ -1578,8 +1587,8 @@ export type Amqp10SendConfigFormData = z.infer<typeof amqp10SendConfigSchema>;
  */
 export const amqp10ReceiveConfigSchema = z.object({
   type: z.literal('amqp10_receive'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  address: z.string().min(1, '源地址不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  address: z.string().min(1, getLL().validation.amqp_source_address_required()),
   credit: z.number().int().positive().optional(),
   max_messages: z.number().int().positive().optional(),
   timeout_ms: z.number().int().positive().optional(),
@@ -1593,7 +1602,7 @@ export type Amqp10ReceiveConfigFormData = z.infer<typeof amqp10ReceiveConfigSche
  */
 export const amqp10AcceptConfigSchema = z.object({
   type: z.literal('amqp10_accept'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   delivery_id: z.number().int().positive(),
 });
 
@@ -1604,7 +1613,7 @@ export type Amqp10AcceptConfigFormData = z.infer<typeof amqp10AcceptConfigSchema
  */
 export const amqp10RejectConfigSchema = z.object({
   type: z.literal('amqp10_reject'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
   delivery_id: z.number().int().positive(),
   error_condition: z.string().optional(),
   error_description: z.string().optional(),
@@ -1617,7 +1626,7 @@ export type Amqp10RejectConfigFormData = z.infer<typeof amqp10RejectConfigSchema
  */
 export const amqp10DisconnectConfigSchema = z.object({
   type: z.literal('amqp10_disconnect'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
 });
 
 export type Amqp10DisconnectConfigFormData = z.infer<typeof amqp10DisconnectConfigSchema>;
@@ -1632,7 +1641,7 @@ export type Amqp10DisconnectConfigFormData = z.infer<typeof amqp10DisconnectConf
 export const smtpConnectConfigSchema = z.object({
   type: z.literal('smtp_connect'),
   connection_id: z.string().optional(),
-  host: z.string().min(1, '服务器地址不能为空'),
+  host: z.string().min(1, getLL().validation.smtp_host_required()),
   port: z.number().int().min(1).max(65535),
   tls_mode: z.enum(['none', 'starttls', 'implicit']),
   auth_type: z.enum(['none', 'plain', 'login', 'xoauth2']).optional(),
@@ -1651,12 +1660,12 @@ export type SmtpConnectConfigFormData = z.infer<typeof smtpConnectConfigSchema>;
  */
 export const smtpSendConfigSchema = z.object({
   type: z.literal('smtp_send'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
-  from: z.string().min(1, '发件人不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
+  from: z.string().min(1, getLL().validation.smtp_from_required()),
   to: z.string(), // 逗号分隔的邮箱地址，解析为数组
   cc: z.string().optional(),
   bcc: z.string().optional(),
-  subject: z.string().min(1, '主题不能为空'),
+  subject: z.string().min(1, getLL().validation.smtp_subject_required()),
   body: z.string(),
   body_type: z.enum(['text', 'html']),
   reply_to: z.string().optional(),
@@ -1671,7 +1680,7 @@ export type SmtpSendConfigFormData = z.infer<typeof smtpSendConfigSchema>;
  */
 export const smtpDisconnectConfigSchema = z.object({
   type: z.literal('smtp_disconnect'),
-  connection_id: z.string().min(1, '连接 ID 不能为空'),
+  connection_id: z.string().min(1, getLL().validation.connection_id_required()),
 });
 
 export type SmtpDisconnectConfigFormData = z.infer<typeof smtpDisconnectConfigSchema>;

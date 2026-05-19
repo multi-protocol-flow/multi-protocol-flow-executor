@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Unplug, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { KafkaCloseConfig as KafkaCloseConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isKafkaConnectConfig } from '@/types/node';
@@ -133,10 +134,10 @@ export function KafkaCloseConfig({ data, onSave }: KafkaCloseConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
             <Unplug className="h-4 w-4" />
-            Kafka 关闭连接节点
+            {getLL().panels.kafkaClose.title()}
           </h4>
           <p className="text-sm leading-relaxed text-orange-700/90 whitespace-normal break-words">
-            关闭指定的 Kafka 连接，释放生产者/消费者资源。
+            {getLL().panels.kafkaClose.description()}
           </p>
         </div>
       </div>
@@ -144,7 +145,7 @@ export function KafkaCloseConfig({ data, onSave }: KafkaCloseConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.connection()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -155,7 +156,7 @@ export function KafkaCloseConfig({ data, onSave }: KafkaCloseConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 Kafka 连接" />
+              <SelectValue placeholder="{getLL().panels.selectConnection()}" />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -172,7 +173,7 @@ export function KafkaCloseConfig({ data, onSave }: KafkaCloseConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder="{getLL().panels.enterConnectionId()}"
             className="font-mono text-sm"
           />
         )}
@@ -190,9 +191,9 @@ export function KafkaCloseConfig({ data, onSave }: KafkaCloseConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">关闭说明：</p>
-          <p>关闭连接后将释放 Kafka 生产者/消费者资源</p>
-          <p>后续操作将无法使用该连接，需重新建立</p>
+          <p className="font-medium text-foreground">{getLL().panels.closeInfo()}</p>
+          <p>{getLL().panels.kafkaClose.closeInfoLine1()}</p>
+          <p>{getLL().panels.closeInfoLine2()}</p>
           <p>建议在流程结束时关闭不再使用的连接</p>
         </div>
       </div>

@@ -13,6 +13,7 @@ import { MessageSquare, Info } from 'lucide-react';
 import type { McpGetPromptConfig as McpGetPromptConfigType, McpPromptInfo } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isMcpConnectConfig } from '@/types/node';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface McpGetPromptConfigProps {
   /** 当前节点数据 */
@@ -243,10 +244,10 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-amber-900 flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
-            MCP 获取提示词节点
+            {getLL().panels.mcpGetPrompt.title()}
           </h4>
           <p className="text-sm leading-relaxed text-amber-700/90 whitespace-normal break-words">
-            从 MCP 服务器获取预定义的提示词模板，可传入参数进行定制。
+            {getLL().panels.mcpGetPrompt.description()}
           </p>
         </div>
       </div>
@@ -254,7 +255,7 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.connection()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -269,7 +270,7 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 MCP 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -286,7 +287,7 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -295,7 +296,7 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 MCP Connect 节点，请手动输入连接 ID
+            {getLL().panels.mcpGetPrompt.noConnectNodeDetected()}
           </p>
         )}
       </div>
@@ -304,7 +305,7 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="prompt_name" className="text-sm font-medium text-foreground">
-            提示词名称 <span className="text-rose-500">*</span>
+            {getLL().panels.mcpGetPrompt.promptName()} <span className="text-rose-500">*</span>
           </Label>
           {discoveredPrompts.length > 0 && (
             <button
@@ -312,7 +313,7 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
               onClick={() => setPromptInputMode(prev => prev === 'select' ? 'manual' : 'select')}
               className="text-xs text-amber-600 hover:text-amber-800 hover:underline transition-colors"
             >
-              {promptInputMode === 'select' ? '手动输入' : '下拉选择'}
+              {promptInputMode === 'select' ? getLL().panels.manualInput() : getLL().panels.dropdownSelect()}
             </button>
           )}
         </div>
@@ -323,7 +324,7 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
               onValueChange={handlePromptChange}
             >
               <SelectTrigger id="prompt_name" className="font-mono">
-                <SelectValue placeholder="选择提示词" />
+                <SelectValue placeholder={getLL().panels.mcpGetPrompt.selectPrompt()} />
               </SelectTrigger>
               <SelectContent>
                 {discoveredPrompts.map((prompt) => (
@@ -356,13 +357,13 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
             />
             {discoveredPrompts.length > 0 && (
               <p className="text-xs text-muted-foreground">
-                当前为手动输入模式，
+                {getLL().panels.manualInput()}，
                 <button
                   type="button"
                   onClick={() => setPromptInputMode('select')}
                   className="text-amber-600 hover:underline"
                 >
-                  切换到下拉选择
+                  {getLL().panels.switchToDropdown()}
                 </button>
               </p>
             )}
@@ -373,7 +374,7 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
         )}
         {discoveredPrompts.length === 0 && currentConnectionId && (
           <p className="text-xs text-muted-foreground">
-            连接节点未发现提示词，请手动输入提示词名称
+            {getLL().panels.mcpGetPrompt.noDiscoveredPrompts()}
           </p>
         )}
       </div>
@@ -419,11 +420,11 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">提示词说明：</p>
-          <p>选择已建立的 MCP 连接，选择或输入提示词名称</p>
-          <p>参数以键值对形式传入，具体参数取决于提示词定义</p>
+          <p className="font-medium text-foreground">{getLL().panels.mcpGetPrompt.promptExplanation()}</p>
+          <p>{getLL().panels.mcpGetPrompt.promptExplanation1()}</p>
+          <p>{getLL().panels.mcpGetPrompt.promptExplanation2()}</p>
           {discoveredPrompts.length === 0 && currentConnectionId && (
-            <p className="text-amber-600">提示：连接节点尚未发现提示词，请先在连接节点中执行提示词发现</p>
+            <p className="text-amber-600">{getLL().panels.mcpGetPrompt.noDiscoveryHint()}</p>
           )}
         </div>
       </div>

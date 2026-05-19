@@ -38,6 +38,7 @@ import { loadReport } from '@/services/storage/reportStorage';
 import { stressTestStorage } from '@/services/storage/stressTestStorage';
 import { flowStorage } from '@/services/storage/flowStorage';
 import type { Flow } from '@/types';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /**
  * 确认对话框处理器组件
@@ -125,9 +126,9 @@ export function MainLayout() {
   // 清空控制台（带确认）
   const handleClearConsole = useCallback(() => {
     showConfirm({
-      title: '清空控制台',
-      description: '确定要清空所有日志吗？清空后无法恢复。',
-      confirmText: '清空',
+      title: getLL().flow.clear_console(),
+      description: getLL().flow.clear_logs_confirm_desc(),
+      confirmText: getLL().common.clear(),
       onConfirm: () => {
         clearLogs();
       },
@@ -172,7 +173,7 @@ export function MainLayout() {
       // 压测报告加载失败
       console.warn('加载压测报告失败:', reportUuid);
     }
-    toast.error('该报告不包含流程快照，无法对比');
+    toast.error(getLL().flow.report_no_snapshot());
   }, [reportDir]);
 
   // 底部面板拖拽调整高度相关状态
@@ -353,7 +354,7 @@ export function MainLayout() {
             </div>
             <div>
               <h1 className="text-base font-semibold tracking-tight text-foreground">
-                多协议流程执行器
+                {getLL().common.APP_NAME()}
               </h1>
               <p className="text-[10px] text-muted-foreground leading-none">
                 Flow Executor
@@ -366,7 +367,7 @@ export function MainLayout() {
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent border border-border">
               <span className="text-sm text-muted-foreground">{flow.name}</span>
               {isDirty && (
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title="未保存" />
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title={getLL().flow.unsaved()} />
               )}
             </div>
           )}
@@ -383,7 +384,7 @@ export function MainLayout() {
               size="icon"
               onClick={zoomOut}
               className="h-7 w-7"
-              title="缩小 (Ctrl+-)"
+              title={getLL().common.zoom_out()}
             >
               <ZoomOut className="h-4 w-4" />
             </Button>
@@ -392,7 +393,7 @@ export function MainLayout() {
               size="sm"
               onClick={resetZoom}
               className="h-7 min-w-[3.5rem] px-1 text-xs text-muted-foreground"
-              title="重置缩放 (Ctrl+0)"
+              title={getLL().common.zoom_reset()}
             >
               {Math.round(zoom * 100)}%
             </Button>
@@ -401,7 +402,7 @@ export function MainLayout() {
               size="icon"
               onClick={zoomIn}
               className="h-7 w-7"
-              title="放大 (Ctrl+=)"
+              title={getLL().common.zoom_in()}
             >
               <ZoomIn className="h-4 w-4" />
             </Button>
@@ -413,7 +414,7 @@ export function MainLayout() {
             variant="ghost"
             size="icon"
             onClick={openSettingsDialog}
-            title="设置"
+            title={getLL().common.settings_label()}
           >
             <Settings className="h-5 w-5" />
           </Button>
@@ -467,7 +468,7 @@ export function MainLayout() {
                 'transition-colors duration-150',
                 isLeftPanelDragging && 'bg-input'
               )}
-              title="拖拽调整面板宽度"
+              title={getLL().common.drag_resize_width()}
             >
               <GripVertical className="w-2.5 h-6 text-muted-foreground" />
             </div>
@@ -490,7 +491,7 @@ export function MainLayout() {
             'transition-colors duration-150'
           )}
           style={{ left: isFlowListPanelOpen ? sidebarWidth : 0 }}
-          title={isFlowListPanelOpen ? '收起侧边栏' : '展开侧边栏'}
+          title={isFlowListPanelOpen ? getLL().common.toggle_sidebar_collapse() : getLL().common.toggle_sidebar_expand()}
         >
           {isFlowListPanelOpen ? (
             <ChevronLeft className="w-4 h-4 text-muted-foreground" />
@@ -525,7 +526,7 @@ export function MainLayout() {
                 'transition-colors duration-150',
                 isDragging && 'bg-input'
               )}
-              title="拖拽调整面板高度"
+              title={getLL().common.drag_resize_height()}
             >
               <GripHorizontal className="w-6 h-2.5 text-muted-foreground" />
             </div>
@@ -537,13 +538,13 @@ export function MainLayout() {
                     <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as BottomPanelTab)} className="w-auto">
                       <TabsList className="h-7 p-0.5">
                         <TabsTrigger value="history" className="h-6 px-3 text-xs">
-                          执行历史
+                          {getLL().flow.execution_history()}
                         </TabsTrigger>
                         <TabsTrigger value="running" className="h-6 px-3 text-xs">
-                          运行
+                          {getLL().flow.running()}
                         </TabsTrigger>
                         <TabsTrigger value="console" className="h-6 px-3 text-xs">
-                          控制台
+                          {getLL().flow.console()}
                         </TabsTrigger>
                       </TabsList>
                     </Tabs>
@@ -552,7 +553,7 @@ export function MainLayout() {
                       size="icon"
                       onClick={toggleHistoryPanel}
                       className="h-7 w-7 hover:bg-accent"
-                      title="收起面板"
+                      title={getLL().flow.collapse_panel()}
                     >
                       <ChevronDown className="w-4 h-4 text-muted-foreground" />
                     </Button>
@@ -571,10 +572,10 @@ export function MainLayout() {
                       <div className="flex items-center gap-2 px-2 py-1.5 border-b border-border shrink-0">
                         <Select value={filter.level} onValueChange={(v) => setFilter({ level: v as 'ALL' | 'INFO' | 'DEBUG' | 'WARN' | 'ERROR' })}>
                           <SelectTrigger className="w-20 h-7 text-xs">
-                            <SelectValue placeholder="级别" />
+                            <SelectValue placeholder={getLL().flow.level()} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="ALL">全部</SelectItem>
+                            <SelectItem value="ALL">{getLL().flow.all()}</SelectItem>
                             <SelectItem value="INFO">INFO</SelectItem>
                             <SelectItem value="DEBUG">DEBUG</SelectItem>
                             <SelectItem value="WARN">WARN</SelectItem>
@@ -583,10 +584,10 @@ export function MainLayout() {
                         </Select>
                         <Select value={filter.nodeUuid} onValueChange={(v) => setFilter({ nodeUuid: v })}>
                           <SelectTrigger className="w-28 h-7 text-xs">
-                            <SelectValue placeholder="节点" />
+                            <SelectValue placeholder={getLL().flow.node()} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="ALL">全部节点</SelectItem>
+                            <SelectItem value="ALL">{getLL().flow.all_nodes()}</SelectItem>
                             {getUniqueNodes().map((node) => (
                               <SelectItem key={node.uuid} value={node.uuid}>
                                 {node.name}
@@ -595,7 +596,7 @@ export function MainLayout() {
                           </SelectContent>
                         </Select>
                         <Input
-                          placeholder="搜索..."
+                          placeholder={getLL().flow.search_placeholder()}
                           value={filter.searchKeyword}
                           onChange={(e) => setSearchKeyword(e.target.value)}
                           className="h-7 w-32 text-xs"
@@ -605,10 +606,10 @@ export function MainLayout() {
                           size="sm"
                           onClick={handleClearConsole}
                           className="h-7 px-2 text-xs text-muted-foreground hover:text-accent-foreground"
-                          title="清空日志"
+                          title={getLL().flow.clear_logs()}
                         >
                           <Trash2 className="w-3.5 h-3.5 mr-1" />
-                          清空
+                          {getLL().common.clear()}
                         </Button>
                       </div>
                       {/* 控制台内容 */}
@@ -633,10 +634,10 @@ export function MainLayout() {
                 'bg-background hover:bg-accent border border-b-0 border-border',
                 'text-xs text-muted-foreground hover:text-accent-foreground'
               )}
-              title="展开底部面板"
+              title={getLL().flow.expand_bottom_panel()}
             >
               <ChevronUp className="w-3.5 h-3.5 mr-1" />
-              底部面板
+              {getLL().flow.bottom_panel()}
             </Button>
           )}
         </main>
@@ -662,7 +663,7 @@ export function MainLayout() {
                 'transition-colors duration-150',
                 isRightPanelDragging && 'bg-input'
               )}
-              title="拖拽调整面板宽度"
+              title={getLL().common.drag_resize_width()}
             >
               <GripVertical className="w-2.5 h-6 text-muted-foreground" />
             </div>
@@ -689,7 +690,7 @@ export function MainLayout() {
             'transition-colors duration-150'
           )}
           style={{ right: isConfigPanelOpen ? configPanelWidth : 0 }}
-          title={isConfigPanelOpen ? '收起配置面板' : '展开配置面板'}
+          title={isConfigPanelOpen ? getLL().common.toggle_config_collapse() : getLL().common.toggle_config_expand()}
         >
           {isConfigPanelOpen ? (
             <ChevronRight className="w-4 h-4 text-muted-foreground" />

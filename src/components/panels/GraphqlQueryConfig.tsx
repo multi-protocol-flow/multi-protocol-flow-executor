@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GraphQL Query 节点配置组件
  * 支持连接 ID、查询编辑器、变量编辑器、操作名称、文件上传、超时
  */
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2, Info, Send } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { GraphqlQueryConfig as GraphqlQueryConfigType, GraphqlConnectConfig as GraphqlConnectConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isGraphqlConnectConfig } from '@/types/node';
@@ -235,10 +236,10 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
             <Send className="h-4 w-4" />
-            GraphQL 查询节点
+            {getLL().panels.graphqlQuery.title()}
           </h4>
           <p className="text-sm leading-relaxed text-indigo-700/90 whitespace-normal break-words">
-            执行 GraphQL 查询 (Query) 或变更 (Mutation)。
+            {getLL().panels.graphqlQuery.description()}
           </p>
         </div>
       </div>
@@ -246,7 +247,7 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-indigo-500">*</span>
+          {getLL().panels.connection()} <span className="text-indigo-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -257,7 +258,7 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 GraphQL 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -274,7 +275,7 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -283,7 +284,7 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 GraphQL Connect 节点，请手动输入连接 ID
+            {getLL().panels.graphqlQuery.noConnectNode()}
           </p>
         )}
       </div>
@@ -335,7 +336,7 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
       {/* 查询编辑器 */}
       <div className="space-y-2">
         <Label htmlFor="query" className="text-sm font-medium text-foreground">
-          GraphQL 查询 <span className="text-indigo-500">*</span>
+          {getLL().panels.graphqlQuery.query()} <span className="text-indigo-500">*</span>
         </Label>
         <Textarea
           id="query"
@@ -352,7 +353,7 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
       {/* 变量编辑器 */}
       <div className="space-y-2">
         <Label htmlFor="variables" className="text-sm font-medium text-foreground">
-          查询变量 (JSON)
+          {getLL().panels.graphqlQuery.variables()}
         </Label>
         <Textarea
           id="variables"
@@ -395,7 +396,7 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加文件
+            {getLL().panels.add()}
           </Button>
         </div>
         <div className="space-y-2">

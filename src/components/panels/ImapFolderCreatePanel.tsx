@@ -1,4 +1,4 @@
-/**
+﻿/**
  * IMAP Folder Create 节点配置组件
  * 支持连接选择、文件夹名称
  */
@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FolderPlus, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { ImapFolderCreateConfig } from '@/types';
 import { ImapConnectionSelector, useImapConnections } from './shared/ImapShared';
 
@@ -56,9 +57,9 @@ export function ImapFolderCreatePanel({ data, onSave }: ImapFolderCreatePanelPro
       <div className="rounded-lg border border-blue-200/50 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 p-4">
         <h4 className="text-sm font-semibold text-blue-900 flex items-center gap-2">
           <FolderPlus className="h-4 w-4" />
-          IMAP 创建文件夹节点
+          {getLL().panels.imapFolder.titleCreate()}
         </h4>
-        <p className="text-sm text-blue-700/90 mt-1">在邮箱中创建新的文件夹。</p>
+        <p className="text-sm text-blue-700/90 mt-1">{getLL().panels.imapFolder.descriptionCreate()}</p>
       </div>
 
       <ImapConnectionSelector
@@ -69,7 +70,7 @@ export function ImapFolderCreatePanel({ data, onSave }: ImapFolderCreatePanelPro
 
       <div className="space-y-2">
         <Label htmlFor="imap-folder-name" className="text-sm font-medium text-foreground">
-          文件夹名称 <span className="text-rose-500">*</span>
+          {getLL().panels.imapFolder.folderName()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="imap-folder-name"
@@ -78,16 +79,16 @@ export function ImapFolderCreatePanel({ data, onSave }: ImapFolderCreatePanelPro
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          支持层级路径，如: Projects/2024
+          {getLL().panels.imapFolder.hierarchyHint()}
         </p>
       </div>
 
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">创建文件夹说明：</p>
-          <p>文件夹名称不能与已有文件夹重名</p>
-          <p>层级分隔符取决于服务器配置（通常为 / 或 .）</p>
+          <p className="font-medium text-foreground">{getLL().panels.imapFolder.helpTitleCreate()}</p>
+          <p>{getLL().panels.imapFolder.helpLine1Create()}</p>
+          <p>{getLL().panels.imapFolder.helpLine2Create()}</p>
         </div>
       </div>
     </div>

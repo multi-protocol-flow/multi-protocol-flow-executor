@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Layers, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { KafkaConsumeBatchConfig as KafkaConsumeBatchConfigType } from '@/types/node';
 import { useFlowStore } from '@/stores';
 import { isKafkaConnectConfig } from '@/types/node';
@@ -171,10 +172,10 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
             <Layers className="h-4 w-4" />
-            Kafka 批量消费节点
+            {getLL().panels.kafkaConsumeBatch.title()}
           </h4>
           <p className="text-sm leading-relaxed text-orange-700/90 whitespace-normal break-words">
-            从 Kafka 主题批量消费消息，支持消费者组、偏移量控制、多种反序列化格式和灵活的批量策略。
+            {getLL().panels.kafkaConsumeBatch.description()}
           </p>
         </div>
       </div>
@@ -182,7 +183,7 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.connection()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -193,7 +194,7 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 Kafka 连接" />
+              <SelectValue placeholder="{getLL().panels.selectConnection()}" />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -210,7 +211,7 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder="{getLL().panels.enterConnectionId()}"
             className="font-mono text-sm"
           />
         )}
@@ -372,11 +373,11 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
 
       {/* 高级设置 */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">高级设置</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.advancedSettings()}</p>
 
         <div className="space-y-2">
           <Label htmlFor="max_messages" className="text-sm font-medium text-foreground">
-            最大消息数
+            {getLL().panels.kafkaConsumeBatch.maxRecords()}
           </Label>
           <Input
             id="max_messages"
@@ -392,7 +393,7 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
 
         <div className="space-y-2">
           <Label htmlFor="poll_timeout_ms" className="text-sm font-medium text-foreground">
-            拉取超时（毫秒）
+            {getLL().panels.kafkaConsumeBatch.pollTimeout()}
           </Label>
           <Input
             id="poll_timeout_ms"

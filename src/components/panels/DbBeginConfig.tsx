@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowRight } from 'lucide-react';
 import type { DbBeginConfig as DbBeginConfigType, DbConnectConfig as DbConnectConfigType } from '@/types/node';
 import { useFlowStore } from '@/stores/flow';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface DbBeginConfigProps {
   /** 当前节点数据 */
@@ -205,10 +206,10 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
             <ArrowRight className="h-4 w-4" />
-            开始事务节点
+            {getLL().panels.dbBegin.title()}
           </h4>
           <p className="text-sm leading-relaxed text-orange-700/90 whitespace-normal break-words">
-            开始一个数据库事务。可以指定事务隔离级别，默认使用数据库默认隔离级别。
+            {getLL().panels.dbBegin.description()}
           </p>
         </div>
       </div>
@@ -216,19 +217,19 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
       {/* 连接选择下拉框 */}
       <div className="space-y-2">
         <Label htmlFor="connection_uuid" className="text-sm font-medium text-foreground">
-          数据库连接 <span className="text-rose-500">*</span>
+          {getLL().panels.dbCommon.databaseConnection()} <span className="text-rose-500">*</span>
         </Label>
         <Select
           value={selectedConnectionUuid || ''}
           onValueChange={handleConnectionChange}
         >
           <SelectTrigger id="connection_uuid" className="font-mono">
-            <SelectValue placeholder="选择流程中的数据库连接节点" />
+            <SelectValue placeholder={getLL().panels.dbCommon.selectConnectionPlaceholder()} />
           </SelectTrigger>
           <SelectContent>
             {dbConnectNodes.length === 0 ? (
               <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                无可用连接节点
+                {getLL().panels.dbCommon.noConnectionNodes()}
               </div>
             ) : (
               dbConnectNodes.map((node) => {
@@ -241,7 +242,7 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
                     <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
                       <span className="shrink-0">{node.name}</span>
                       <span className={`shrink-0 font-medium text-xs ${getDriverColor(driver)}`}>
-                        [{getDriverLabel(driver || '未设置')}]
+                        [{getDriverLabel(driver || getLL().panels.notSet())}]
                       </span>
                       {host && (
                         <span className="text-muted-foreground text-xs truncate" title={`${host}${port}`}>
@@ -260,7 +261,7 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
         )}
         {dbConnectNodes.length === 0 && (
           <p className="text-xs text-amber-600">
-            请先在流程中添加数据库连接节点
+            {getLL().panels.dbCommon.addConnectionNodeFirst()}
           </p>
         )}
       </div>
@@ -268,14 +269,14 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
       {/* 隔离级别选择 */}
       <div className="space-y-2">
         <Label htmlFor="isolation_level" className="text-sm font-medium text-foreground">
-          隔离级别
+          {getLL().panels.dbBegin.isolationLevel()}
         </Label>
         <Select
           value={watch('isolation_level') || 'default'}
           onValueChange={handleIsolationLevelChange}
         >
           <SelectTrigger id="isolation_level">
-            <SelectValue placeholder="选择事务隔离级别" />
+            <SelectValue placeholder={getLL().panels.dbBegin.selectIsolationLevel()} />
           </SelectTrigger>
           <SelectContent>
             {ISOLATION_LEVEL_OPTIONS.map((option) => (
@@ -286,7 +287,7 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          设置事务的隔离级别，默认使用数据库默认级别
+          {getLL().panels.dbBegin.isolationLevelHelp()}
         </p>
       </div>
 

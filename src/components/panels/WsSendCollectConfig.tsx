@@ -26,6 +26,7 @@ import type { WsSendCollectConfig as WsSendCollectConfigType } from '@/types';
 import { useFlowVariables } from '@/hooks';
 import { useFlowStore } from '@/stores';
 import { isWsConnectConfig } from '@/types/node';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface WsSendCollectConfigProps {
   /** 当前节点数据 */
@@ -280,10 +281,10 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-teal-900 flex items-center gap-2">
             <Send className="h-4 w-4" />
-            WebSocket 发送+采集节点
+            {getLL().panels.wsSendCollect.title()}
           </h4>
           <p className="text-sm leading-relaxed text-teal-700/90 dark:text-teal-300/90 whitespace-normal break-words">
-            通过已建立的 WebSocket 连接发送消息，可选择采集响应或条件满足后继续流程。
+            {getLL().panels.wsSendCollect.description()}
           </p>
         </div>
       </div>
@@ -291,7 +292,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
       {/* 连接 ID */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 ID <span className="text-rose-500">*</span>
+          {getLL().panels.wsSendCollect.connectionId()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnectionIds.length > 0 ? (
           <Select
@@ -302,7 +303,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnectionIds.map((conn) => (
@@ -336,7 +337,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
         />
         {availableConnectionIds.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 WS Connect 节点，请手动输入连接 ID 或使用变量引用
+            {getLL().panels.wsSendCollect.noConnectNode()}
           </p>
         )}
       </div>
@@ -344,7 +345,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
       {/* 消息内容 */}
       <div className="space-y-2">
         <Label htmlFor="message" className="text-sm font-medium text-foreground">
-          消息内容 <span className="text-rose-500">*</span>
+          {getLL().panels.wsSendCollect.message()} <span className="text-rose-500">*</span>
         </Label>
 
         {/* 二进制模式工具栏：仅当 message_type === 'binary' 时显示 */}
@@ -377,7 +378,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
               title="从文件读取二进制内容（自动转换为 Hex）"
             >
               <FolderOpen className="h-3 w-3 mr-1" />
-              上传文件
+              {getLL().panels.wsSendCollect.binaryUploadFile()}
             </Button>
             {/* 隐藏的浏览器文件 input */}
             <input
@@ -410,7 +411,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
         )}
         {messageType === 'binary' && binaryInputMode === 'text' && (
           <p className="text-xs text-orange-600 dark:text-orange-400">
-            ⚠️ 文本转二进制模式：内容将按 UTF-8 字节编码，通过二进制帧（Binary Frame）发送
+            {getLL().panels.wsSendCollect.binaryTextToBinary()}
           </p>
         )}
       </div>
@@ -418,7 +419,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
       {/* 消息类型 */}
       <div className="space-y-2">
         <Label htmlFor="message_type" className="text-sm font-medium text-foreground">
-          消息类型
+          {getLL().panels.wsSendCollect.messageType()}
         </Label>
         <Select
           value={watch('message_type') || 'text'}
@@ -440,7 +441,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
       {/* 发送超时 */}
       <div className="space-y-2">
         <Label htmlFor="send_timeout_ms" className="text-sm font-medium text-foreground">
-          发送超时
+          {getLL().panels.wsSendCollect.sendTimeout()}
         </Label>
         <Input
           id="send_timeout_ms"
@@ -469,7 +470,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
           }}
         />
         <Label htmlFor="collect_response" className="text-sm font-medium text-foreground cursor-pointer">
-          发送后采集响应
+          {getLL().panels.wsSendCollect.collectAfterSend()}
         </Label>
       </div>
 

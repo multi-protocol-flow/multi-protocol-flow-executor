@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GraphQL Subscribe 节点配置组件
  * 支持连接 ID、订阅编辑器、变量编辑器、操作名称、最大事件数、超时
  */
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Activity, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { GraphqlSubscribeConfig as GraphqlSubscribeConfigType, GraphqlConnectConfig as GraphqlConnectConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
 import { isGraphqlConnectConfig } from '@/types/node';
@@ -208,10 +209,10 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
             <Activity className="h-4 w-4" />
-            GraphQL 订阅节点
+            {getLL().panels.graphqlSubscribe.title()}
           </h4>
           <p className="text-sm leading-relaxed text-indigo-700/90 whitespace-normal break-words">
-            通过 WebSocket 订阅 GraphQL 实时数据，支持事件数量和超时控制。
+            {getLL().panels.graphqlSubscribe.description()}
           </p>
         </div>
       </div>
@@ -219,7 +220,7 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-indigo-500">*</span>
+          {getLL().panels.connection()} <span className="text-indigo-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -230,7 +231,7 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 GraphQL 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -247,7 +248,7 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -256,7 +257,7 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 GraphQL Connect 节点，请手动输入连接 ID
+            {getLL().panels.graphqlSubscribe.noConnectNode()}
           </p>
         )}
       </div>
@@ -287,7 +288,7 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
       {/* 订阅编辑器 */}
       <div className="space-y-2">
         <Label htmlFor="subscription" className="text-sm font-medium text-foreground">
-          GraphQL 订阅 <span className="text-indigo-500">*</span>
+          {getLL().panels.graphqlSubscribe.subscription()} <span className="text-indigo-500">*</span>
         </Label>
         <Textarea
           id="subscription"
@@ -304,7 +305,7 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
       {/* 变量编辑器 */}
       <div className="space-y-2">
         <Label htmlFor="variables" className="text-sm font-medium text-foreground">
-          查询变量 (JSON)
+          {getLL().panels.graphqlQuery.variables()}
         </Label>
         <Textarea
           id="variables"

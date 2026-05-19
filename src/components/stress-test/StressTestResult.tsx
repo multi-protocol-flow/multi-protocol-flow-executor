@@ -29,6 +29,7 @@ import {
 } from '@/stores/stressTest';
 import { StressTestCharts } from './StressTestCharts';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /** 统计卡片组件 */
 function StatCard({
@@ -165,7 +166,7 @@ export function StressTestResult() {
               )}
             </div>
             {/* 标题文字 */}
-            <span>压测结果</span>
+            <span>{getLL().flow.stress_result_title()}</span>
 
             {/* 状态标签 */}
             <Badge
@@ -177,7 +178,7 @@ export function StressTestResult() {
                   : 'bg-red-50 text-red-700 border-red-200'
               )}
             >
-              {isSuccess ? '成功' : '有错误'}
+              {isSuccess ? getLL().flow.stress_result_success() : getLL().flow.stress_result_error()}
             </Badge>
 
             {/* 关闭按钮 */}
@@ -203,8 +204,7 @@ export function StressTestResult() {
                   : 'bg-background text-muted-foreground hover:bg-accent'
               )}
               onClick={() => setStatLevel('flow')}
-            >
-              流程级
+            >               {getLL().flow.stress_result_flow_level()}
             </button>
             <button
               className={cn(
@@ -214,15 +214,14 @@ export function StressTestResult() {
                   : 'bg-background text-muted-foreground hover:bg-accent'
               )}
               onClick={() => setStatLevel('node')}
-            >
-              节点级
+            >               {getLL().flow.stress_result_node_level()}
             </button>
           </div>
 
           {/* 节点类型筛选 */}
           {allNodeTypes.length > 1 && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">筛选:</span>
+              <span className="text-xs text-muted-foreground">{getLL().flow.stress_result_filter()}</span>
               <div className="flex flex-wrap gap-1">
                 {allNodeTypes.map((type) => (
                   <Badge
@@ -251,14 +250,14 @@ export function StressTestResult() {
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4" />
-                <span>流程: </span>
+                <span>{getLL().flow.stress_result_flow_name()}</span>
                 <span className="font-medium text-foreground">
                   {report.flowName}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
-                <span>持续: </span>
+                <span>{getLL().flow.stress_result_duration()}</span>
                 <span className="font-medium text-foreground">
                   {(report.durationMs / 1000).toFixed(1)}s
                 </span>
@@ -271,7 +270,7 @@ export function StressTestResult() {
                 <div className="grid grid-cols-3 gap-3">
                   <StatCard
                     icon={BarChart3}
-                    label="总执行次数"
+                    label={getLL().flow.stress_result_total_exec()}
                     value={displayStats.totalIterations}
                     iconColor="text-blue-500"
                     valueColor="text-blue-600"
@@ -281,14 +280,14 @@ export function StressTestResult() {
                   />
                   <StatCard
                     icon={CheckCircle2}
-                    label="成功率"
+                    label={getLL().flow.stress_result_success_rate()}
                     value={`${(displayStats.successRate * 100).toFixed(1)}%`}
                     iconColor="text-emerald-500"
                     valueColor="text-emerald-600"
                   />
                   <StatCard
                     icon={Timer}
-                    label="实际 RPS"
+                    label={getLL().flow.stress_result_actual_rps()}
                     value={displayStats.rps.toFixed(2)}
                     iconColor="text-violet-500"
                     valueColor="text-violet-600"
@@ -298,13 +297,12 @@ export function StressTestResult() {
                 {/* 响应时间分布 */}
                 <div className="flex flex-col gap-3">
                   <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <Timer className="w-4 h-4" />
-                    响应时间分布
+                    <Timer className="w-4 h-4" />                     {getLL().flow.stress_result_response_dist()}
                   </h3>
                   <div className="grid grid-cols-2 gap-2">
-                    <MetricItem label="平均" value={report.responseTimeDistribution.avgMs} />
-                    <MetricItem label="最小" value={report.responseTimeDistribution.minMs} />
-                    <MetricItem label="最大" value={report.responseTimeDistribution.maxMs} />
+                    <MetricItem label={getLL().flow.stress_result_avg()} value={report.responseTimeDistribution.avgMs} />
+                    <MetricItem label={getLL().flow.stress_result_min()} value={report.responseTimeDistribution.minMs} />
+                    <MetricItem label={getLL().flow.stress_result_max()} value={report.responseTimeDistribution.maxMs} />
                     <MetricItem label="P50" value={report.responseTimeDistribution.p50Ms} />
                     <MetricItem label="P90" value={report.responseTimeDistribution.p90Ms} />
                     <MetricItem label="P95" value={report.responseTimeDistribution.p95Ms} />
@@ -361,7 +359,7 @@ export function StressTestResult() {
                     </div>
                     {errorStatistics.length > 5 && (
                       <p className="text-xs text-muted-foreground text-center">
-                        显示前 5 种错误类型，共 {errorStatistics.length} 种
+                        {getLL().flow.stress_result_error_show_top({ count: errorStatistics.length })}
                       </p>
                     )}
                   </div>
@@ -369,9 +367,9 @@ export function StressTestResult() {
 
                 {/* 配置信息 */}
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span>并发用户: {report.config.concurrentUsers}</span>
-                  <span>爬升时间: {report.config.rampUpSeconds}s</span>
-                  <span>计划时长: {report.config.durationSeconds}s</span>
+                  <span>{getLL().flow.stress_result_config_concurrent({ count: report.config.concurrentUsers })}</span>
+                  <span>{getLL().flow.stress_result_config_rampup({ seconds: report.config.rampUpSeconds })}</span>
+                  <span>{getLL().flow.stress_result_config_duration({ seconds: report.config.durationSeconds })}</span>
                 </div>
               </>
             ) : (
@@ -382,32 +380,23 @@ export function StressTestResult() {
                      <table className="w-full min-w-max whitespace-nowrap text-sm">
                        <thead>
                          <tr className="bg-muted/50">
-                           <th className="sticky left-0 z-20 bg-muted text-left py-2 px-3 font-medium text-muted-foreground">
-                             节点名称
+                           <th className="sticky left-0 z-20 bg-muted text-left py-2 px-3 font-medium text-muted-foreground">                              {getLL().flow.stress_result_node_name()}
                            </th>
-                           <th className="sticky left-[120px] z-10 bg-muted text-left py-2 px-3 font-medium text-muted-foreground border-r border-border/50">
-                             类型
+                           <th className="sticky left-[120px] z-10 bg-muted text-left py-2 px-3 font-medium text-muted-foreground border-r border-border/50">                              {getLL().flow.stress_result_node_type()}
                            </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                            执行次数
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_exec_count()}
                           </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                            成功
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_success()}
                           </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                            失败
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_fail()}
                           </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                            成功率
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_success_rate()}
                           </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                            最小
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_min()}
                           </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                            平均
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_avg()}
                           </th>
-                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                            最大
+                          <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_max()}
                           </th>
                           <th className="text-right py-2 px-3 font-medium text-muted-foreground">
                             P50
@@ -478,7 +467,7 @@ export function StressTestResult() {
                   </div>
                 ) : (
                   <div className="text-center text-sm text-muted-foreground py-6">
-                    暂无节点级别统计数据
+                    {getLL().flow.stress_result_no_node_stats()}
                   </div>
                 )}
 
@@ -486,27 +475,21 @@ export function StressTestResult() {
                 {report.nodeTypeStatistics && report.nodeTypeStatistics.length > 0 && (
                   <div className="flex flex-col gap-3">
                     <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4" />
-                      节点类型聚合
+                      <BarChart3 className="w-4 h-4" />                       {getLL().flow.stress_result_node_aggregate()}
                     </h3>
                     <div className="rounded-xl border border-border/50 overflow-x-auto">
                       <table className="w-full min-w-max whitespace-nowrap text-sm">
                         <thead>
                           <tr className="bg-muted/50">
-                            <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                              节点类型
+                            <th className="text-left py-2 px-3 font-medium text-muted-foreground">                               {getLL().flow.stress_result_node_type()}
                             </th>
-                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                              节点数
+                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">                               {getLL().flow.stress_result_node_count()}
                             </th>
-                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                              总执行
+                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">                               {getLL().flow.stress_result_total_exec()}
                             </th>
-                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                              成功率
+                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">                             {getLL().flow.stress_result_success_rate()}
                             </th>
-                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                              平均响应
+                            <th className="text-right py-2 px-3 font-medium text-muted-foreground">                               {getLL().flow.stress_result_avg_response()}
                             </th>
                           </tr>
                         </thead>
@@ -546,9 +529,9 @@ export function StressTestResult() {
 
                 {/* 配置信息 */}
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span>并发用户: {report.config.concurrentUsers}</span>
-                  <span>爬升时间: {report.config.rampUpSeconds}s</span>
-                  <span>计划时长: {report.config.durationSeconds}s</span>
+                  <span>{getLL().flow.stress_result_config_concurrent({ count: report.config.concurrentUsers })}</span>
+                  <span>{getLL().flow.stress_result_config_rampup({ seconds: report.config.rampUpSeconds })}</span>
+                  <span>{getLL().flow.stress_result_config_duration({ seconds: report.config.durationSeconds })}</span>
                 </div>
               </>
             )}

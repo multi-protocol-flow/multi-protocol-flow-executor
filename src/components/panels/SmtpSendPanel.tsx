@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, Info, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import type { SmtpSendConfig as SmtpSendConfigType, EmailAttachment } from '@/types';
+import { getLL } from '@/i18n/i18n-lazy';
 import { useFlowStore } from '@/stores';
 import { isSmtpConnectConfig } from '@/types/node';
 import { cn } from '@/lib/utils';
@@ -245,10 +246,10 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-orange-900 flex items-center gap-2">
             <Send className="h-4 w-4" />
-            SMTP 发送节点
+            {getLL().panels.smtpSend.title()}
           </h4>
           <p className="text-sm leading-relaxed text-orange-700/90 whitespace-normal break-words">
-            通过已建立的 SMTP 连接发送邮件。
+            {getLL().panels.smtpSend.description()}
           </p>
         </div>
       </div>
@@ -256,7 +257,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.connection()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -267,7 +268,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="选择 SMTP 连接" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -284,7 +285,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -293,7 +294,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 SMTP Connect 节点，请手动输入连接 ID
+            {getLL().panels.smtpSend.noConnectNode()}
           </p>
         )}
       </div>
@@ -301,7 +302,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
       {/* 发件人 */}
       <div className="space-y-2">
         <Label htmlFor="from" className="text-sm font-medium text-foreground">
-          发件人 <span className="text-rose-500">*</span>
+          {getLL().panels.smtpSend.from()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="from"
@@ -317,7 +318,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
       {/* 收件人 */}
       <div className="space-y-2">
         <Label htmlFor="to" className="text-sm font-medium text-foreground">
-          收件人 <span className="text-rose-500">*</span>
+          {getLL().panels.smtpSend.to()} <span className="text-rose-500">*</span>
         </Label>
         <Textarea
           id="to"
@@ -341,7 +342,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
         >
           <div className="flex items-center gap-2">
             <Send className="h-4 w-4 text-orange-600" />
-            <span className="text-sm font-medium text-foreground">抄送 / 密送（可选）</span>
+            <span className="text-sm font-medium text-foreground">{getLL().panels.smtpSend.cc()} / {getLL().panels.smtpSend.bcc()} ({getLL().panels.optional()})</span>
           </div>
           <ChevronDown className={cn(
             "h-3.5 w-3.5 text-muted-foreground transition-transform",
@@ -351,7 +352,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
         {expandedSections.has('recipients') && (
           <div className="border-t bg-muted/20 px-3 py-3 space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="cc" className="text-xs font-medium text-foreground">抄送 (CC)</Label>
+              <Label htmlFor="cc" className="text-xs font-medium text-foreground">{getLL().panels.smtpSend.cc()}</Label>
               <Input
                 id="cc"
                 {...register('cc')}
@@ -360,7 +361,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bcc" className="text-xs font-medium text-foreground">密送 (BCC)</Label>
+              <Label htmlFor="bcc" className="text-xs font-medium text-foreground">{getLL().panels.smtpSend.bcc()}</Label>
               <Input
                 id="bcc"
                 {...register('bcc')}
@@ -375,7 +376,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
       {/* 主题 */}
       <div className="space-y-2">
         <Label htmlFor="subject" className="text-sm font-medium text-foreground">
-          主题 <span className="text-rose-500">*</span>
+          {getLL().panels.smtpSend.subject()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="subject"
@@ -390,7 +391,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
 
       {/* 正文类型 */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">正文类型</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.smtpSend.contentType()}</Label>
         <Select
           value={watch('body_type') || 'text'}
           onValueChange={(value) => {
@@ -402,8 +403,8 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="text">纯文本 (Text)</SelectItem>
-            <SelectItem value="html">HTML</SelectItem>
+            <SelectItem value="text">{getLL().panels.smtpSend.contentTypeText()}</SelectItem>
+            <SelectItem value="html">{getLL().panels.smtpSend.contentTypeHtml()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -411,7 +412,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
       {/* 正文 */}
       <div className="space-y-2">
         <Label htmlFor="body" className="text-sm font-medium text-foreground">
-          正文
+          {getLL().panels.smtpSend.body()}
         </Label>
         <Textarea
           id="body"
@@ -494,10 +495,10 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">发送说明：</p>
-          <p>选择已建立的 SMTP 连接并填写邮件信息</p>
-          <p>收件人支持多个地址，用逗号或分号分隔</p>
-          <p>HTML 正文需要手动编写 HTML 标记</p>
+          <p className="font-medium text-foreground">{getLL().panels.smtpSend.senderInfo()}</p>
+          <p>{getLL().panels.smtpSend.senderInfo1()}</p>
+          <p>{getLL().panels.smtpSend.senderInfo2()}</p>
+          <p>{getLL().panels.smtpSend.senderInfo3()}</p>
         </div>
       </div>
     </form>

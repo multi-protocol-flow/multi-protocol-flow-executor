@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 变量选择器组件
  * 下拉框显示所有可用变量，支持搜索过滤和按节点分组
  */
@@ -9,6 +9,9 @@ import { cn } from "@/lib/utils";
 import { Input } from "./input";
 import { ScrollArea } from "./scroll-area";
 import { Braces, Search, X } from "lucide-react";
+import { getLL } from '@/i18n/i18n-lazy';
+
+const LL = getLL();
 
 // ============================================================================
 // Popover 基础组件 (shadcn/ui 风格)
@@ -86,9 +89,11 @@ export function VariableSelector({
   nodeLabels = {},
   triggerClassName,
   triggerChildren,
-  placeholder = "搜索变量...",
-  emptyText = "暂无变量",
+  placeholder = LL.flow.variable_selector_search(),
+  emptyText = LL.flow.variable_selector_empty(),
 }: VariableSelectorProps) {
+  const LL = getLL();
+
   // 搜索状态
   const [searchQuery, setSearchQuery] = React.useState("");
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
@@ -166,7 +171,7 @@ export function VariableSelector({
             )}
           >
             <Braces className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-foreground">变量</span>
+            <span className="text-foreground">{LL.flow.variable_selector_label()}</span>
           </button>
         )}
       </PopoverTrigger>
@@ -220,7 +225,7 @@ export function VariableSelector({
         {/* 底部提示 */}
         <div className="px-3 py-2 border-t border-border bg-muted/50">
           <p className="text-[10px] text-muted-foreground">
-            点击变量名插入 <code className="px-1 py-0.5 bg-muted rounded text-muted-foreground">{"{{变量名}}"}</code>
+            {LL.flow.variable_selector_hint()} <code className="px-1 py-0.5 bg-muted rounded text-muted-foreground">{"{{变量名}}"}</code>
           </p>
         </div>
       </PopoverContent>

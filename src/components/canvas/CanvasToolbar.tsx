@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CanvasToolbar - 画布悬浮工具栏
  * 位于画布顶部居中，包含撤销/重做、执行按钮、变量按钮
  */
@@ -23,6 +23,7 @@ import { useDatasetExecutionStore } from '@/stores/datasetExecution';
 import { EnvironmentSelector } from '@/components/panels/EnvironmentManager';
 
 import { VariablePanel, extractVariableGroups } from '@/components/panels/VariablePanel';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /**
  * 画布悬浮工具栏组件
@@ -199,7 +200,7 @@ export function CanvasToolbar() {
           type="button"
           onClick={undo}
           disabled={!canUndo}
-          title="撤销 (Ctrl+Z)"
+          title={getLL().flow.undo()}
           className={cn(
             'flex items-center justify-center transition-all duration-150',
             canUndo && 'text-muted-foreground hover:text-foreground hover:scale-110 cursor-pointer',
@@ -212,7 +213,7 @@ export function CanvasToolbar() {
           type="button"
           onClick={redo}
           disabled={!canRedo}
-          title="重做 (Ctrl+Shift+Z)"
+          title={getLL().flow.redo()}
           className={cn(
             'flex items-center justify-center transition-all duration-150',
             canRedo && 'text-muted-foreground hover:text-foreground hover:scale-110 cursor-pointer',
@@ -230,7 +231,7 @@ export function CanvasToolbar() {
           <button
             type="button"
             onClick={() => useExecutionStore.getState().cancelExecution()}
-            title="停止执行"
+            title={getLL().flow.stop_execution()}
             className="flex items-center justify-center transition-all duration-150 text-red-600 hover:text-red-700 hover:scale-110 cursor-pointer"
           >
             <Square className="w-6 h-6" fill="currentColor" />
@@ -240,7 +241,7 @@ export function CanvasToolbar() {
             type="button"
             onClick={handleExecute}
             disabled={isDisabled}
-            title="执行流程"
+            title={getLL().flow.execute_flow()}
             className={cn(
               'flex items-center justify-center',
               'transition-all duration-150',
@@ -265,10 +266,10 @@ export function CanvasToolbar() {
           disabled={!canStartDebug}
           title={
             isExecuting
-              ? '调试（执行中不可用）'
+              ? getLL().flow.debug_unavailable_executing()
               : isStressTestRunning
-              ? '调试（压测进行中不可用）'
-              : '开始调试'
+              ? getLL().flow.debug_unavailable_stress_test()
+              : getLL().flow.start_debug()
           }
           className={cn(
             'flex items-center justify-center',
@@ -293,12 +294,12 @@ export function CanvasToolbar() {
           disabled={!canStartStressTest}
           title={
             isExecuting
-              ? '压测（执行中不可用）'
+              ? getLL().flow.stress_test_unavailable_executing()
               : isDebugging
-              ? '压测（调试中不可用）'
+              ? getLL().flow.stress_test_unavailable_debugging()
               : isStressTestRunning
-              ? '压测（已运行）'
-              : '压力测试'
+              ? getLL().flow.stress_test_running()
+              : getLL().flow.stress_test()
           }
           className={cn(
             'flex items-center justify-center',
@@ -323,14 +324,14 @@ export function CanvasToolbar() {
           disabled={!canStartDatasetExecution && !isDatasetExecuting}
           title={
             isExecuting
-              ? '数据驱动（执行中不可用）'
+              ? getLL().flow.dataset_unavailable_executing()
               : isDebugging
-              ? '数据驱动（调试中不可用）'
+              ? getLL().flow.dataset_unavailable_debugging()
               : isStressTestRunning
-              ? '数据驱动（压测中不可用）'
+              ? getLL().flow.dataset_unavailable_stress_test()
               : isDatasetExecuting
-              ? '数据驱动（执行中）'
-              : '数据驱动'
+              ? getLL().flow.dataset_running()
+              : getLL().flow.dataset()
           }
           className={cn(
             'flex items-center justify-center',
@@ -370,7 +371,7 @@ export function CanvasToolbar() {
                       'select-none',
                       isVariableDrawerOpen && 'bg-accent text-violet-600',
                     )}
-                    title={isVariableDrawerOpen ? '收起变量面板' : `变量 (${totalVariables})`}
+                    title={isVariableDrawerOpen ? getLL().flow.collapse_variable_panel() : getLL().flow.variable_count({count: totalVariables})}
                   >
                     <div className="relative">
                       <VariableIcon className="w-3.5 h-3.5" />
@@ -379,7 +380,7 @@ export function CanvasToolbar() {
                       </span>
                     </div>
                     <span className="text-[9px] text-muted-foreground leading-none mt-0.5">
-                      变量
+                      {getLL().flow.variable_panel()}
                     </span>
                   </button>
                 </Popover.Trigger>
@@ -404,7 +405,7 @@ export function CanvasToolbar() {
                     <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
                       <div className="flex items-center gap-2">
                         <VariableIcon className="w-4 h-4 text-violet-600" />
-                        <span className="text-sm font-semibold text-foreground">变量</span>
+                        <span className="text-sm font-semibold text-foreground">{getLL().flow.variable_panel()}</span>
                         <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
                           {totalVariables}
                         </span>
@@ -413,7 +414,7 @@ export function CanvasToolbar() {
                         type="button"
                         onClick={toggleVariableDrawer}
                         className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                        title="收起"
+                        title={getLL().flow.toggle_variable_panel()}
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>

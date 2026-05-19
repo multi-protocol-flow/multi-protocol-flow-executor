@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AMQP 1.0 Connect 节点配置组件
  */
 import { useForm } from 'react-hook-form';
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Radio, Shield, ChevronDown, Info } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { Amqp10ConnectConfig as ConfigType } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -104,47 +105,47 @@ export function Amqp10ConnectConfigPanel({ data, onSave }: Props) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <Radio className="h-4 w-4" />
-            AMQP 1.0 连接节点
+            {getLL().panels.amqp10Connect.title()}
           </h4>
-          <p className="text-sm leading-relaxed text-violet-700/90">建立 AMQP 1.0 协议连接。</p>
+          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqp10Connect.description()}</p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="url" className="text-sm font-medium text-foreground">服务器 URL</Label>
+        <Label htmlFor="url" className="text-sm font-medium text-foreground">{getLL().panels.url()}</Label>
         <Input id="url" {...register('url')} placeholder="amqp://localhost:5672" className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">连接 ID</Label>
+        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.connection()}</Label>
         <Input id="connection_id" {...register('connection_id')} placeholder="留空自动生成" className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="container_id" className="text-sm font-medium text-foreground">容器 ID</Label>
-        <Input id="container_id" {...register('container_id')} placeholder="可选" className="font-mono text-sm" />
+        <Label htmlFor="container_id" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Connect.containerId()}</Label>
+        <Input id="container_id" {...register('container_id')} placeholder={getLL().panels.optional()} className="font-mono text-sm" />
       </div>
 
       <div className="border rounded-lg overflow-hidden">
         <button type="button" onClick={() => toggleSection('tls')} className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-muted/50 transition-colors">
-          <div className="flex items-center gap-2"><Shield className="h-4 w-4 text-violet-600" /><span className="text-sm font-medium text-foreground">TLS 与认证</span></div>
+          <div className="flex items-center gap-2"><Shield className="h-4 w-4 text-violet-600" /><span className="text-sm font-medium text-foreground">{getLL().panels.advancedSettings()}</span></div>
           <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", expandedSections.has('tls') && "rotate-180")} />
         </button>
         {expandedSections.has('tls') && (
           <div className="border-t bg-muted/20 px-3 py-3 space-y-3">
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-foreground">TLS 模式</Label>
+              <Label className="text-xs font-medium text-foreground">{getLL().panels.smtpConnect.tlsMode()}</Label>
               <Select value={watch('tls_mode') || 'none'} onValueChange={(v) => { setValue('tls_mode', v as 'none' | 'standard' | 'skip-verify', { shouldDirty: true }); saveData(); }}>
                 <SelectTrigger className="h-8 text-xs font-mono"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">不使用 TLS</SelectItem>
-                  <SelectItem value="standard">标准 TLS</SelectItem>
-                  <SelectItem value="skip-verify">跳过证书验证</SelectItem>
+                  <SelectItem value="none">{getLL().panels.none()}</SelectItem>
+                  <SelectItem value="standard">{getLL().panels.sseConnect.tlsStandard()}</SelectItem>
+                  <SelectItem value="skip-verify">{getLL().panels.skipCertVerify()}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-foreground">认证机制</Label>
+              <Label className="text-xs font-medium text-foreground">{getLL().panels.smtpConnect.authType()}</Label>
               <Select value={watch('auth_mechanism') || 'PLAIN'} onValueChange={(v) => { setValue('auth_mechanism', v as 'PLAIN' | 'ANONYMOUS' | 'EXTERNAL', { shouldDirty: true }); saveData(); }}>
                 <SelectTrigger className="h-8 text-xs font-mono"><SelectValue /></SelectTrigger>
                 <SelectContent>
