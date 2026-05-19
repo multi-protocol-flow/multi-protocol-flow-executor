@@ -3,7 +3,8 @@
  */
 import type { Node, Edge } from '@xyflow/react';
 import type { Flow, Connection, NodeData, NodeType } from '@/types';
-import { getCachedDefaultConfig, getCachedDisplayName } from '@/lib/NodeRegistry';
+import { getCachedDefaultConfig } from '@/lib/NodeRegistry';
+import { getNodeDisplayName } from '@/lib/nodeMeta';
 
 /** React Flow 节点数据类型 */
 export type FlowNodeData = Record<string, unknown> & {
@@ -18,12 +19,14 @@ export function convertFlowToReactFlow(flow: Flow): {
   nodes: Node[];
   edges: Edge[];
 } {
+  // 旧版自动生成的节点名格式为 "中文类型名 数字"，匹配则清除以启用 i18n 动态名称
+  const autoNameRe = /\s+\d+$/;
   const nodes: Node[] = flow.nodes.map((node) => ({
     id: node.uuid,
     type: node.type,
     position: { x: node.position.x, y: node.position.y },
     data: {
-      label: node.name,
+      label: autoNameRe.test(node.name) ? '' : node.name,
       config: node.data,
     } as FlowNodeData,
   }));
@@ -305,111 +308,15 @@ export function createDefaultNodeData(type: NodeType): NodeData {
 }
 
 /**
- * 节点类型对应的显示名称
- * 优先从后端缓存获取，兜底使用静态映射
- */
-const STATIC_NODE_TYPE_LABELS: Record<NodeType, string> = {
-  http: 'HTTP 请求',
-  conditional: '条件判断',
-  ws_connect: 'WS 连接',
-  ws_send_collect: 'WS 发送采集',
-  ws_close: 'WS 关闭',
-  assertion: '断言',
-  db_connect: 'DB 连接',
-  db_query: 'DB 查询',
-  db_begin: 'DB 开始事务',
-  db_commit: 'DB 提交',
-  db_rollback: 'DB 回滚',
-  db_close: 'DB 关闭',
-  script: '脚本',
-  entry: '入口',
-  grpc_connect: 'gRPC 连接',
-  grpc_call: 'gRPC 调用',
-  grpc_close: 'gRPC 关闭',
-  mcp_connect: 'MCP 连接',
-  mcp_call_tool: 'MCP 调用工具',
-  mcp_read_resource: 'MCP 读取资源',
-  mcp_get_prompt: 'MCP 获取提示词',
-  mcp_close: 'MCP 关闭',
-  tcp_connect: 'TCP 连接',
-  tcp_send: 'TCP 发送',
-  tcp_receive: 'TCP 接收',
-  tcp_close: 'TCP 关闭',
-  udp_bind: 'UDP 绑定',
-  udp_send_to: 'UDP 发送',
-  udp_recv_from: 'UDP 接收',
-  udp_close: 'UDP 关闭',
-  mqtt_connect: 'MQTT 连接',
-  mqtt_publish: 'MQTT 发布',
-  mqtt_subscribe: 'MQTT 订阅',
-  mqtt_unsubscribe: 'MQTT 取消订阅',
-  mqtt_disconnect: 'MQTT 断开',
-  mqtt_wait_message: 'MQTT 等待消息',
-  mqtt_request: 'MQTT 请求',
-  kafka_connect: 'Kafka 连接',
-  kafka_produce: 'Kafka 生产',
-  kafka_consume: 'Kafka 消费',
-  kafka_consume_batch: 'Kafka 批量消费',
-  kafka_admin: 'Kafka 管理',
-  kafka_schema_registry: 'Kafka Schema',
-  kafka_close: 'Kafka 关闭',
-  sse_connect: 'SSE 连接',
-  sse_listen: 'SSE 监听',
-  sse_disconnect: 'SSE 断开',
-  graphql_connect: 'GraphQL 连接',
-  graphql_query: 'GraphQL 查询',
-  graphql_subscribe: 'GraphQL 订阅',
-  graphql_introspect: 'GraphQL 内省',
-  graphql_disconnect: 'GraphQL 断开',
-  amqp_connect: 'AMQP 连接',
-  amqp_close: 'AMQP 关闭',
-  amqp_exchange_declare: 'AMQP 声明交换器',
-  amqp_exchange_delete: 'AMQP 删除交换器',
-  amqp_queue_declare: 'AMQP 声明队列',
-  amqp_queue_delete: 'AMQP 删除队列',
-  amqp_queue_bind: 'AMQP 绑定队列',
-  amqp_publish: 'AMQP 发布',
-  amqp_consume: 'AMQP 消费',
-  amqp_get: 'AMQP 获取',
-  amqp_ack: 'AMQP 确认',
-  amqp_management: 'AMQP 管理',
-  amqp10_connect: 'AMQP1.0 连接',
-  amqp10_send: 'AMQP1.0 发送',
-  amqp10_receive: 'AMQP1.0 接收',
-  amqp10_accept: 'AMQP1.0 确认',
-  amqp10_reject: 'AMQP1.0 拒绝',
-  amqp10_disconnect: 'AMQP1.0 断开',
-  smtp_connect: 'SMTP 连接',
-  smtp_send: 'SMTP 发送',
-  smtp_disconnect: 'SMTP 断开',
-  imap_connect: 'IMAP 连接',
-  imap_select: 'IMAP 选择邮箱',
-  imap_search: 'IMAP 搜索',
-  imap_fetch: 'IMAP 获取',
-  imap_store_flags: 'IMAP 设置标志',
-  imap_copy: 'IMAP 复制',
-  imap_move: 'IMAP 移动',
-  imap_expunge: 'IMAP 清除',
-  imap_list: 'IMAP 列表',
-  imap_folder_create: 'IMAP 创建文件夹',
-  imap_folder_delete: 'IMAP 删除文件夹',
-  imap_idle: 'IMAP 空闲等待',
-  imap_close: 'IMAP 关闭',
-  variable_extractor: '变量提取',
-  proxy: '代理设置',
-};
-
-/**
- * 获取节点类型的显示名称（动态，优先后端缓存）
+ * 获取节点类型的显示名称（跟随当前语言自动切换）
  */
 export function getNodeTypeName(type: NodeType): string {
-  const cached = getCachedDisplayName(type);
-  return cached ?? STATIC_NODE_TYPE_LABELS[type] ?? type;
+  return getNodeDisplayName(type);
 }
 
 /**
  * 创建默认节点显示名称
  */
-export function createDefaultNodeName(type: NodeType, count: number): string {
-  return `${getNodeTypeName(type)} ${count}`;
+export function createDefaultNodeName(_type: NodeType, count: number): string {
+  return `${getNodeTypeName(_type)} ${count}`;
 }
