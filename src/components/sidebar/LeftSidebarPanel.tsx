@@ -47,7 +47,7 @@ export function LeftSidebarPanel() {
     <div ref={containerRef} className="h-full flex flex-col bg-background overflow-hidden">
       {/* ===== 顶部：流程列表（自动扩展填充剩余空间） ===== */}
       <CollapsiblePanel
-        title="流程列表"
+        title={LL.flow.flow_list_title()}
         isCollapsed={isFlowListCollapsed}
         onToggle={toggleFlowListCollapsed}
         collapsedHeight={FLOW_LIST_COLLAPSED_HEIGHT}
