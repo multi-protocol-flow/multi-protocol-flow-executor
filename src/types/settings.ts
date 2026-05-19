@@ -9,6 +9,15 @@
 /** 主题模式 */
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+/** 语言区域 */
+export type Locale = 'zh-CN' | 'en-US';
+
+/** 支持的语言区域列表 */
+export const SUPPORTED_LOCALES: Locale[] = ['zh-CN', 'en-US'];
+
+/** 默认语言区域 */
+export const DEFAULT_LOCALE: Locale = 'zh-CN';
+
 /**
  * 应用设置
  */
@@ -21,6 +30,8 @@ export interface Settings {
   flowsDir: string;
   /** 主题模式 */
   theme: ThemeMode;
+  /** 语言区域 */
+  locale?: Locale;
 }
 
 // ============================================================================
@@ -39,6 +50,8 @@ export interface SettingsState {
   flowsDir: string;
   /** 主题模式 */
   theme: ThemeMode;
+  /** 语言区域 */
+  locale?: Locale;
   /** 是否正在加载 */
   isLoading: boolean;
   /** 错误信息 */
@@ -63,6 +76,8 @@ export interface SettingsActions {
   setFlowsDir: (dir: string) => Promise<void>;
   /** 设置主题模式 */
   setTheme: (theme: ThemeMode) => Promise<void>;
+  /** 设置语言区域 */
+  setLocale: (locale: Locale) => Promise<void>;
   /** 打开报告目录 */
   openReportDir: () => Promise<void>;
   /** 打开日志目录 */

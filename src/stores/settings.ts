@@ -4,7 +4,8 @@
  */
 
 import { create } from 'zustand';
-import type { SettingsStore, ThemeMode } from '@/types/settings';
+import type { SettingsStore, ThemeMode, Locale } from '@/types/settings';
+import { switchLocale } from '@/i18n';
 
 // 检测是否在 Tauri 环境中
 function isTauriEnv(): boolean {
@@ -31,6 +32,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   logDir: '',
   flowsDir: '',
   theme: 'system' as ThemeMode,
+  locale: 'zh-CN' as Locale,
   isLoading: true,
   error: null,
 
@@ -44,6 +46,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         logDir: settings.logDir,
         flowsDir: settings.flowsDir,
         theme: settings.theme,
+        locale: settings.locale,
         isLoading: false,
       });
     } catch (e) {
@@ -89,6 +92,17 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       const service = await getSettingsService();
       await service.saveSettings({ theme });
       set({ theme });
+    } catch (e) {
+      set({ error: formatErrorMessage(e) });
+    }
+  },
+
+  setLocale: async (locale: Locale) => {
+    try {
+      const service = await getSettingsService();
+      await service.saveSettings({ locale });
+      switchLocale(locale);
+      set({ locale });
     } catch (e) {
       set({ error: formatErrorMessage(e) });
     }
