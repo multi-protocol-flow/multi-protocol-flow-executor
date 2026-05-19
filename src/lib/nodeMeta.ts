@@ -55,15 +55,7 @@ import {
 } from 'lucide-react';
 import { getCachedDisplayName } from '@/lib/NodeRegistry';
 import { i18nObject, baseLocale } from '@/i18n/i18n-util';
-import type { TranslationFunctions } from '@/i18n/i18n-types';
-
-let _LL: TranslationFunctions | null = null;
-function getLL(): TranslationFunctions {
-  if (!_LL) {
-    _LL = i18nObject(baseLocale);
-  }
-  return _LL;
-}
+import type { Locales } from '@/i18n/i18n-types';
 
 /** 节点类型元数据 */
 export interface NodeTypeMeta {
@@ -191,121 +183,139 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
   proxy: { icon: Shield, iconBg: 'bg-lime-500', labelColor: 'text-lime-600', badge: 'bg-lime-100 text-lime-700' },
 };
 
-/** 静态显示名称兜底映射 */
-const STATIC_DISPLAY_NAMES: Record<string, string> = {
-  entry: getLL().nodes.entry(),
-  http: getLL().nodes.http(),
-  conditional: getLL().nodes.conditional(),
-  script: getLL().nodes.script(),
-  assertion: getLL().nodes.assertion(),
-  ws_connect: getLL().nodes.ws_connect(),
-  ws_send_collect: getLL().nodes.ws_send_collect(),
-  ws_close: getLL().nodes.ws_close(),
-  db_connect: getLL().nodes.db_connect(),
-  db_query: getLL().nodes.db_query(),
-  db_begin: getLL().nodes.db_begin(),
-  db_commit: getLL().nodes.db_commit(),
-  db_rollback: getLL().nodes.db_rollback(),
-  db_close: getLL().nodes.db_close(),
-  grpc_connect: getLL().nodes.grpc_connect(),
-  grpc_call: getLL().nodes.grpc_call(),
-  grpc_close: getLL().nodes.grpc_close(),
-  mcp_connect: getLL().nodes.mcp_connect(),
-  mcp_call_tool: getLL().nodes.mcp_call_tool(),
-  mcp_read_resource: getLL().nodes.mcp_read_resource(),
-  mcp_get_prompt: getLL().nodes.mcp_get_prompt(),
-  mcp_close: getLL().nodes.mcp_close(),
-  tcp_connect: getLL().nodes.tcp_connect(),
-  tcp_send: getLL().nodes.tcp_send(),
-  tcp_close: getLL().nodes.tcp_close(),
-  udp_bind: getLL().nodes.udp_bind(),
-  udp_send_to: getLL().nodes.udp_send_to(),
-  udp_recv_from: getLL().nodes.udp_recv_from(),
-  udp_close: getLL().nodes.udp_close(),
-  // TCP
-  tcp_receive: getLL().nodes.tcp_receive(),
-  // MQTT
-  mqtt_connect: getLL().nodes.mqtt_connect(),
-  mqtt_publish: getLL().nodes.mqtt_publish(),
-  mqtt_subscribe: getLL().nodes.mqtt_subscribe(),
-  mqtt_unsubscribe: getLL().nodes.mqtt_unsubscribe(),
-  mqtt_disconnect: getLL().nodes.mqtt_disconnect(),
-  mqtt_wait_message: getLL().nodes.mqtt_wait_message(),
-  mqtt_request: getLL().nodes.mqtt_request(),
-  // Kafka
-  kafka_connect: getLL().nodes.kafka_connect(),
-  kafka_produce: getLL().nodes.kafka_produce(),
-  kafka_consume: getLL().nodes.kafka_consume(),
-  kafka_consume_batch: getLL().nodes.kafka_consume_batch(),
-  kafka_admin: getLL().nodes.kafka_admin(),
-  kafka_schema_registry: getLL().nodes.kafka_schema_registry(),
-  kafka_close: getLL().nodes.kafka_close(),
-  // SSE
-  sse_connect: getLL().nodes.sse_connect(),
-  sse_listen: getLL().nodes.sse_listen(),
-  sse_disconnect: getLL().nodes.sse_disconnect(),
-  // GraphQL
-  graphql_connect: getLL().nodes.graphql_connect(),
-  graphql_query: getLL().nodes.graphql_query(),
-  graphql_subscribe: getLL().nodes.graphql_subscribe(),
-  graphql_introspect: getLL().nodes.graphql_introspect(),
-  graphql_disconnect: getLL().nodes.graphql_disconnect(),
-  // AMQP 0-9-1
-  amqp_connect: getLL().nodes.amqp_connect(),
-  amqp_exchange_declare: getLL().nodes.amqp_exchange_declare(),
-  amqp_exchange_delete: getLL().nodes.amqp_exchange_delete(),
-  amqp_queue_declare: getLL().nodes.amqp_queue_declare(),
-  amqp_queue_delete: getLL().nodes.amqp_queue_delete(),
-  amqp_queue_bind: getLL().nodes.amqp_queue_bind(),
-  amqp_publish: getLL().nodes.amqp_publish(),
-  amqp_consume: getLL().nodes.amqp_consume(),
-  amqp_get: getLL().nodes.amqp_get(),
-  amqp_ack: getLL().nodes.amqp_ack(),
-  amqp_management: getLL().nodes.amqp_management(),
-  amqp_close: getLL().nodes.amqp_close(),
-  // AMQP 1.0
-  amqp10_connect: getLL().nodes.amqp10_connect(),
-  amqp10_send: getLL().nodes.amqp10_send(),
-  amqp10_receive: getLL().nodes.amqp10_receive(),
-  amqp10_accept: getLL().nodes.amqp10_accept(),
-  amqp10_reject: getLL().nodes.amqp10_reject(),
-  amqp10_disconnect: getLL().nodes.amqp10_disconnect(),
-  // SMTP
-  smtp_connect: getLL().nodes.smtp_connect(),
-  smtp_send: getLL().nodes.smtp_send(),
-  smtp_disconnect: getLL().nodes.smtp_disconnect(),
-  // IMAP
-  imap_connect: getLL().nodes.imap_connect(),
-  imap_select: getLL().nodes.imap_select(),
-  imap_search: getLL().nodes.imap_search(),
-  imap_fetch: getLL().nodes.imap_fetch(),
-  imap_store_flags: getLL().nodes.imap_store_flags(),
-  imap_copy: getLL().nodes.imap_copy(),
-  imap_move: getLL().nodes.imap_move(),
-  imap_expunge: getLL().nodes.imap_expunge(),
-  imap_list: getLL().nodes.imap_list(),
-  imap_folder_create: getLL().nodes.imap_folder_create(),
-  imap_folder_delete: getLL().nodes.imap_folder_delete(),
-  imap_idle: getLL().nodes.imap_idle(),
-  imap_close: getLL().nodes.imap_close(),
-  // 工具
-  variable_extractor: getLL().nodes.variable_extractor(),
-  proxy: getLL().nodes.proxy(),
-};
+/** 静态显示名称映射（按当前 locale 动态构建，切换语言后自动重建） */
+let _staticDisplayNames: Record<string, string> | null = null;
+let _staticDisplayNamesLocale: string | null = null;
+
+function getStaticDisplayNames(): Record<string, string> {
+  const currentLocale = (localStorage.getItem('locale') as string | null) || baseLocale;
+  if (_staticDisplayNames && _staticDisplayNamesLocale === currentLocale) {
+    return _staticDisplayNames;
+  }
+  const LL = i18nObject(currentLocale as Locales);
+  _staticDisplayNames = {
+    entry: LL.nodes.entry(),
+    http: LL.nodes.http(),
+    conditional: LL.nodes.conditional(),
+    script: LL.nodes.script(),
+    assertion: LL.nodes.assertion(),
+    ws_connect: LL.nodes.ws_connect(),
+    ws_send_collect: LL.nodes.ws_send_collect(),
+    ws_close: LL.nodes.ws_close(),
+    db_connect: LL.nodes.db_connect(),
+    db_query: LL.nodes.db_query(),
+    db_begin: LL.nodes.db_begin(),
+    db_commit: LL.nodes.db_commit(),
+    db_rollback: LL.nodes.db_rollback(),
+    db_close: LL.nodes.db_close(),
+    grpc_connect: LL.nodes.grpc_connect(),
+    grpc_call: LL.nodes.grpc_call(),
+    grpc_close: LL.nodes.grpc_close(),
+    mcp_connect: LL.nodes.mcp_connect(),
+    mcp_call_tool: LL.nodes.mcp_call_tool(),
+    mcp_read_resource: LL.nodes.mcp_read_resource(),
+    mcp_get_prompt: LL.nodes.mcp_get_prompt(),
+    mcp_close: LL.nodes.mcp_close(),
+    tcp_connect: LL.nodes.tcp_connect(),
+    tcp_send: LL.nodes.tcp_send(),
+    tcp_close: LL.nodes.tcp_close(),
+    udp_bind: LL.nodes.udp_bind(),
+    udp_send_to: LL.nodes.udp_send_to(),
+    udp_recv_from: LL.nodes.udp_recv_from(),
+    udp_close: LL.nodes.udp_close(),
+    // TCP
+    tcp_receive: LL.nodes.tcp_receive(),
+    // MQTT
+    mqtt_connect: LL.nodes.mqtt_connect(),
+    mqtt_publish: LL.nodes.mqtt_publish(),
+    mqtt_subscribe: LL.nodes.mqtt_subscribe(),
+    mqtt_unsubscribe: LL.nodes.mqtt_unsubscribe(),
+    mqtt_disconnect: LL.nodes.mqtt_disconnect(),
+    mqtt_wait_message: LL.nodes.mqtt_wait_message(),
+    mqtt_request: LL.nodes.mqtt_request(),
+    // Kafka
+    kafka_connect: LL.nodes.kafka_connect(),
+    kafka_produce: LL.nodes.kafka_produce(),
+    kafka_consume: LL.nodes.kafka_consume(),
+    kafka_consume_batch: LL.nodes.kafka_consume_batch(),
+    kafka_admin: LL.nodes.kafka_admin(),
+    kafka_schema_registry: LL.nodes.kafka_schema_registry(),
+    kafka_close: LL.nodes.kafka_close(),
+    // SSE
+    sse_connect: LL.nodes.sse_connect(),
+    sse_listen: LL.nodes.sse_listen(),
+    sse_disconnect: LL.nodes.sse_disconnect(),
+    // GraphQL
+    graphql_connect: LL.nodes.graphql_connect(),
+    graphql_query: LL.nodes.graphql_query(),
+    graphql_subscribe: LL.nodes.graphql_subscribe(),
+    graphql_introspect: LL.nodes.graphql_introspect(),
+    graphql_disconnect: LL.nodes.graphql_disconnect(),
+    // AMQP 0-9-1
+    amqp_connect: LL.nodes.amqp_connect(),
+    amqp_exchange_declare: LL.nodes.amqp_exchange_declare(),
+    amqp_exchange_delete: LL.nodes.amqp_exchange_delete(),
+    amqp_queue_declare: LL.nodes.amqp_queue_declare(),
+    amqp_queue_delete: LL.nodes.amqp_queue_delete(),
+    amqp_queue_bind: LL.nodes.amqp_queue_bind(),
+    amqp_publish: LL.nodes.amqp_publish(),
+    amqp_consume: LL.nodes.amqp_consume(),
+    amqp_get: LL.nodes.amqp_get(),
+    amqp_ack: LL.nodes.amqp_ack(),
+    amqp_management: LL.nodes.amqp_management(),
+    amqp_close: LL.nodes.amqp_close(),
+    // AMQP 1.0
+    amqp10_connect: LL.nodes.amqp10_connect(),
+    amqp10_send: LL.nodes.amqp10_send(),
+    amqp10_receive: LL.nodes.amqp10_receive(),
+    amqp10_accept: LL.nodes.amqp10_accept(),
+    amqp10_reject: LL.nodes.amqp10_reject(),
+    amqp10_disconnect: LL.nodes.amqp10_disconnect(),
+    // SMTP
+    smtp_connect: LL.nodes.smtp_connect(),
+    smtp_send: LL.nodes.smtp_send(),
+    smtp_disconnect: LL.nodes.smtp_disconnect(),
+    // IMAP
+    imap_connect: LL.nodes.imap_connect(),
+    imap_select: LL.nodes.imap_select(),
+    imap_search: LL.nodes.imap_search(),
+    imap_fetch: LL.nodes.imap_fetch(),
+    imap_store_flags: LL.nodes.imap_store_flags(),
+    imap_copy: LL.nodes.imap_copy(),
+    imap_move: LL.nodes.imap_move(),
+    imap_expunge: LL.nodes.imap_expunge(),
+    imap_list: LL.nodes.imap_list(),
+    imap_folder_create: LL.nodes.imap_folder_create(),
+    imap_folder_delete: LL.nodes.imap_folder_delete(),
+    imap_idle: LL.nodes.imap_idle(),
+    imap_close: LL.nodes.imap_close(),
+    // 工具
+    variable_extractor: LL.nodes.variable_extractor(),
+    proxy: LL.nodes.proxy(),
+  };
+  _staticDisplayNamesLocale = currentLocale;
+  return _staticDisplayNames;
+}
 
 
 
 
 /**
- * 获取节点显示名称：优先从后端缓存获取
+ * 获取节点显示名称：优先使用当前语言翻译，支持中/英文动态切换
+ *
+ * 查找优先级：前端 i18n（当前 locale）→ 后端缓存（兜底）→ typeId
  *
  * @param typeId - 节点类型标识
  * @returns 显示名称，兜底返回 typeId 本身
  */
 export function getNodeDisplayName(typeId: string): string {
+  // 优先：当前 locale 的 i18n 翻译（支持中/英文动态切换）
+  const i18nName = getStaticDisplayNames()[typeId];
+  if (i18nName) return i18nName;
+  // 兜底：后端缓存（未知类型时使用）
   const cached = getCachedDisplayName(typeId);
   if (cached) return cached;
-  return STATIC_DISPLAY_NAMES[typeId] ?? typeId;
+  return typeId;
 }
 
 /**
