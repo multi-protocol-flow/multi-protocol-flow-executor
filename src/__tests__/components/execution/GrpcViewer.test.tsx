@@ -394,7 +394,7 @@ describe('GrpcViewer', () => {
       const report = createMockReport('grpc_unknown', {});
       render(<GrpcViewer report={report} />);
 
-      expect(screen.getByText(/未知的 gRPC 节点类型/)).toBeDefined();
+      expect(screen.getByText(/未知 gRPC 节点类型/)).toBeDefined();
     });
   });
 });

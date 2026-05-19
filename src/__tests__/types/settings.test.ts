@@ -64,6 +64,7 @@ describe('Settings types', () => {
       openReportDir: async () => {},
       openLogDir: async () => {},
       openFlowsDir: async () => {},
+      setLocale: async (_locale: 'zh-CN' | 'en-US') => {},
     };
 
     expect(typeof actions.loadSettings).toBe('function');
@@ -71,6 +72,7 @@ describe('Settings types', () => {
     expect(typeof actions.setLogDir).toBe('function');
     expect(typeof actions.setFlowsDir).toBe('function');
     expect(typeof actions.setTheme).toBe('function');
+    expect(typeof actions.setLocale).toBe('function');
     expect(typeof actions.openReportDir).toBe('function');
     expect(typeof actions.openLogDir).toBe('function');
     expect(typeof actions.openFlowsDir).toBe('function');
@@ -92,6 +94,7 @@ describe('Settings types', () => {
       openReportDir: async () => {},
       openLogDir: async () => {},
       openFlowsDir: async () => {},
+      setLocale: async (_locale: 'zh-CN' | 'en-US') => {},
     };
 
     expect(store.reportDir).toBe('/path/to/reports');

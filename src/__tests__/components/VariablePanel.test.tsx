@@ -23,13 +23,14 @@ describe('VariablePanel', () => {
     },
     {
       uuid: 'http-1',
-      type: 'http',
+      type: 'variable_extractor',
       name: 'HTTP请求',
       position: { x: 200, y: 0 },
       data: {
-        type: 'http',
-        url: '{{api_base}}/users',
-        method: 'get',
+        type: 'variable_extractor',
+        output_mappings: [
+          { target: 'user_status', source: '$.status', description: '状态码' },
+        ],
       },
     },
   ];
@@ -224,13 +225,15 @@ describe('VariablePanel', () => {
         mockNodes[0],
         {
           uuid: 'http-2',
-          type: 'http',
+          type: 'variable_extractor',
           name: 'HTTP请求2',
           position: { x: 200, y: 0 },
           data: {
-            type: 'http',
-            url: 'https://example.com',
-            method: 'get',
+            type: 'variable_extractor',
+            output_mappings: [
+              { target: 'status_var', source: '$.status', description: '状态码' },
+              { target: 'body_var', source: '$.body', description: '响应体' },
+            ],
           },
         },
       ],

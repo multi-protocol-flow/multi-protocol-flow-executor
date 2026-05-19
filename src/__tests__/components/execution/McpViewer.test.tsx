@@ -107,18 +107,18 @@ describe('McpViewer', () => {
       render(<McpViewer report={report} />);
 
       // 工具列表
-      expect(screen.getByText(/工具列表/)).toBeDefined();
-      await expandSection(user, '工具列表');
+      expect(screen.getByText(/可用工具/)).toBeDefined();
+      await expandSection(user, '可用工具');
       expect(screen.getByText('get_weather')).toBeDefined();
 
       // 资源列表
-      expect(screen.getByText(/资源列表/)).toBeDefined();
-      await expandSection(user, '资源列表');
+      expect(screen.getByText(/可用资源/)).toBeDefined();
+      await expandSection(user, '可用资源');
       expect(screen.getByText('config')).toBeDefined();
 
       // 提示词列表
-      expect(screen.getByText(/提示词列表/)).toBeDefined();
-      await expandSection(user, '提示词列表');
+      expect(screen.getByText(/可用提示词/)).toBeDefined();
+      await expandSection(user, '可用提示词');
       expect(screen.getByText('greet')).toBeDefined();
     });
   });
@@ -300,7 +300,7 @@ describe('McpViewer', () => {
       const report = createMockReport('mcp_unknown', {});
       render(<McpViewer report={report} />);
 
-      expect(screen.getByText(/未知的 MCP 节点类型/)).toBeDefined();
+      expect(screen.getByText(/未知 MCP 节点类型/)).toBeDefined();
     });
   });
 

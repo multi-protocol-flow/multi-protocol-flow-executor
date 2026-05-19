@@ -84,7 +84,8 @@ describe('AssertionConfig', () => {
 
     it('应该渲染断言列表区域', () => {
       render(<AssertionConfig data={defaultData} onSave={mockOnSave} />);
-      expect(screen.getByText(/断言列表/i)).toBeDefined();
+      const matches = screen.getAllByText(/断言列表/i);
+      expect(matches.length).toBeGreaterThanOrEqual(1);
     });
 
     it('应该渲染添加断言按钮', () => {

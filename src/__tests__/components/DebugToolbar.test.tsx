@@ -96,8 +96,8 @@ describe('DebugToolbar', () => {
       expect(screen.getByTestId('skip-dialog')).toBeInTheDocument();
       expect(screen.getByTestId('skip-dialog')).toHaveAttribute('data-node-type', 'conditional');
       expect(screen.getByTestId('port-count')).toHaveTextContent('2');
-      expect(screen.getByTestId('port-true')).toHaveTextContent('True 分支');
-      expect(screen.getByTestId('port-false')).toHaveTextContent('False 分支');
+      expect(screen.getByTestId('port-true')).toHaveTextContent('True Branch');
+      expect(screen.getByTestId('port-false')).toHaveTextContent('False Branch');
     });
   });
 
