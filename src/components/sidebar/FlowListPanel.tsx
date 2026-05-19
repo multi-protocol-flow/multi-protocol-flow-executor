@@ -39,6 +39,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const { setFlow, flow: currentFlow, isDirty, markSaved } = useFlowStore();
   const { openNewFlowDialog, showConfirm } = useUIStore();
   const flowsDir = useSettingsStore((state) => state.flowsDir);
+  const settingsLoading = useSettingsStore((state) => state.isLoading);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -94,6 +95,9 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
 
   // 加载流程列表 + 自动更新内置模板
   useEffect(() => {
+    // 等待全局设置加载完毕，避免在 flowsDir 初始空值下先加载系统默认路径
+    if (settingsLoading) return;
+
     let cancelled = false;
 
     const init = async () => {
@@ -160,7 +164,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     init();
 
     return () => { cancelled = true; };
-  }, [flowsDir, setFlows, setFlow, currentFlow?.uuid, loadFlowList, loadFolders, mapMetadata]);
+  }, [settingsLoading, flowsDir, setFlows, setFlow, currentFlow?.uuid, loadFlowList, loadFolders, mapMetadata]);
 
   // 窗口聚焦时刷新流程列表
   useEffect(() => {

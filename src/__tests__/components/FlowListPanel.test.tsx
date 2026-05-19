@@ -8,6 +8,7 @@ import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FlowListPanel } from '@/components/sidebar/FlowListPanel';
 import { useUIStore, useFlowStore, useFlowListStore } from '@/stores';
+import { useSettingsStore } from '@/stores/settings';
 import type { Flow } from '@/types';
 
 // Mock flowStorage - 使用 vi.hoisted 确保在 vi.mock 之前可用
@@ -62,6 +63,13 @@ describe('FlowListPanel', () => {
     useFlowListStore.getState().reset();
     useUIStore.getState().closeNewFlowDialog();
     useUIStore.getState().hideConfirm();
+
+    // 模拟设置已加载完成，避免 FlowListPanel 等待 settingsLoading
+    useSettingsStore.setState({
+      isLoading: false,
+      flowsDir: '/test-flows/',
+      error: null,
+    });
     
     // 默认存储状态 - 返回非空数组避免触发内置模板加载
     mockFlowStorage.listFlows.mockResolvedValue([
