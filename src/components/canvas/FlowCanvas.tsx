@@ -491,13 +491,14 @@ function FlowCanvasInner() {
     setConfigPanelOpen(false);
   }, [selectNode, setConfigPanelOpen]);
 
-  // 处理画布空白处点击 - 取消选中，保持面板打开显示节点列表，同时关闭节点选择器
+  // 处理画布空白处点击 - 取消选中，切换到节点面板显示节点列表，同时关闭节点选择器
   const onPaneClick = useCallback(() => {
     selectNode(null);
     setConfigPanelOpen(true);
+    setConfigPanelMode('node');
     setContextMenu(null);
     useUIStore.getState().closeNodePalette();
-  }, [selectNode, setConfigPanelOpen]);
+  }, [selectNode, setConfigPanelOpen, setConfigPanelMode]);
 
   // 处理画布右键 - 弹出节点选择器
   const onPaneContextMenu = useCallback(
