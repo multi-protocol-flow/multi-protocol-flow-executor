@@ -43,6 +43,7 @@ import {
   createDefaultNodeName,
 } from './utils';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 import { flowStorage } from '@/services/storage';
 
 /**
@@ -240,6 +241,7 @@ function FlowCanvasInner() {
   } = useFlowStore();
   const { setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen, showMinimap, toggleMinimap } = useUIStore();
   const { resolvedTheme } = useTheme();
+  const ll = getLL();
 
   // 动态节点元数据
   const [nodeMetadata, setNodeMetadata] = useState<NodeMetadata[]>([]);
@@ -723,10 +725,10 @@ function FlowCanvasInner() {
         <div className="text-center">
           <div className="text-6xl mb-4">📋</div>
           <h2 className="text-xl font-semibold text-muted-foreground">
-            暂无流程
+            {ll.flow.no_flow_title()}
           </h2>
           <p className="text-sm text-muted-foreground mt-2">
-            请创建或打开一个流程文件
+            {ll.flow.no_flow_desc()}
           </p>
         </div>
       </div>
@@ -853,14 +855,14 @@ function FlowCanvasInner() {
           {/* 小地图开关 */}
           <ControlButton
             onClick={toggleMinimap}
-            title={showMinimap ? '关闭小地图' : '打开小地图'}
+            title={showMinimap ? ll.flow.close_minimap() : ll.flow.open_minimap()}
           >
             <MapIcon className="w-4 h-4" />
           </ControlButton>
           {/* 水平自动布局 */}
           <ControlButton
             onClick={() => handleAutoLayout('LR')}
-            title="水平自动布局"
+            title={ll.flow.auto_layout_horizontal()}
           >
             <ArrowRightLeft className="w-4 h-4" />
           </ControlButton>

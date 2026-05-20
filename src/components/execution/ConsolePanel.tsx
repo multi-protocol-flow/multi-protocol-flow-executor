@@ -5,6 +5,7 @@
 import { useEffect, useRef } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useConsoleStore } from '@/stores/console';
+import { useVT } from '@/i18n/viewer-translations';
 import { Terminal, Info, AlertTriangle, Bug, XCircle } from 'lucide-react';
 import type { LogLevel } from '@/types/events';
 
@@ -39,6 +40,7 @@ interface ConsolePanelProps {
 }
 
 export function ConsolePanel({ flowUuid: _flowUuid }: ConsolePanelProps) {
+  const vt = useVT();
   const scrollRef = useRef<HTMLDivElement>(null);
   const logs = useConsoleStore((state) => state.logs);
   const getFilteredLogs = useConsoleStore((state) => state.getFilteredLogs);
@@ -56,7 +58,7 @@ export function ConsolePanel({ flowUuid: _flowUuid }: ConsolePanelProps) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
         <Terminal className="h-8 w-8 mb-2 opacity-50" />
-        <span className="text-sm">暂无日志</span>
+        <span className="text-sm">{vt('console.no_logs')}</span>
       </div>
     );
   }
