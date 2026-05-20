@@ -14,6 +14,7 @@ import {
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
 
@@ -85,6 +86,7 @@ interface WsConnectConfig {
 }
 
 export function WsConnectViewer({ report }: WsConnectViewerProps) {
+  const ll = getLL();
   const output = report.output_data as WsConnectOutput | undefined;
   const resolvedConfig = report.resolved_config as WsConnectConfig | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
@@ -105,7 +107,7 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
     <div className="space-y-3">
       {/* 连接配置 */}
       <CollapsibleSection
-        title="连接配置"
+        title={ll.execution.viewers.connection_config()}
         icon={<Wifi className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -116,13 +118,13 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
               WS
             </Badge>
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {configUrl || <span className="text-muted-foreground italic">未配置 URL</span>}
+              {configUrl || <span className="text-muted-foreground italic">{ll.execution.viewers.config_url()}</span>}
             </code>
           </div>
 
           {/* 采集模式 */}
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">采集模式:</span>
+            <span className="text-muted-foreground">{ll.execution.viewers.collect_config()}:</span>
             <Badge variant="outline" className="font-mono text-xs">
               {(() => {
                 switch (collectMode) {
@@ -138,7 +140,7 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
           {/* 超时设置 */}
           {timeoutMs !== undefined && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">超时时间:</span>
+              <span className="text-muted-foreground">{ll.execution.viewers.timeout_label()}:</span>
               <Badge variant="secondary" className="font-mono text-xs">
                 {timeoutMs}ms
               </Badge>
@@ -149,7 +151,7 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
 
       {/* 连接状态 */}
       <CollapsibleSection
-        title="连接状态"
+        title={ll.execution.viewers.connection_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -160,7 +162,7 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
                'font-mono text-xs px-2 py-0.5',
               isSuccess ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50' : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
              )}>
-              {isSuccess ? '已连接' : '连接失败'}
+              {isSuccess ? ll.execution.viewers.connected() : ll.execution.viewers.disconnected()}
             </Badge>
             <span className="text-sm text-muted-foreground">
               {isSuccess ? 'WebSocket 连接建立成功' : '无法建立 WebSocket 连接'}
@@ -170,7 +172,7 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
           {/* 连接 ID */}
           {connectionId && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{ll.execution.viewers.connection_id_label()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {connectionId}
               </code>
@@ -195,7 +197,7 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
             {/* 消息类型 */}
             {message.type && (
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">类型:</span>
+                <span className="text-muted-foreground">{ll.execution.viewers.type_label_single()}:</span>
                 <Badge variant="outline" className="font-mono text-xs">
                   {message.type}
                 </Badge>
@@ -204,7 +206,7 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
             {/* 消息数据 */}
             {message.data !== undefined && (
               <div>
-                <div className="text-xs font-medium text-muted-foreground mb-1.5">数据</div>
+                <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.execution.viewers.data_label()}</div>
                 <div className="bg-muted rounded p-2">
                   {typeof message.data === 'string' ? (
                     <pre className="text-xs text-foreground whitespace-pre-wrap break-all">
@@ -218,19 +220,19 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
             )}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground italic">无首条消息</p>
+          <p className="text-sm text-muted-foreground italic">{ll.execution.viewers.no_first_message()}</p>
         )}
       </CollapsibleSection>
 
       {/* 耗时分解 */}
       {(connectDuration !== undefined || collectDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.execution.viewers.timing_breakdown_short()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration > 0 && (
             <span className="text-xs font-mono text-violet-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.execution.viewers.total_label()} {totalDuration}ms
             </span>
           )}
         >

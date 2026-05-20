@@ -6,6 +6,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ConditionalViewer } from '@/components/execution/viewers/ConditionalViewer';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { NodeExecutionReport } from '@/types';
 
 // Mock react-json-view-lite
@@ -107,8 +108,8 @@ describe('ConditionalViewer', () => {
       render(<ConditionalViewer report={report} />);
 
       // 评估值面板默认展开
-      // 有两个"未设置"提示（字段值和评估值）
-      const unsetTexts = screen.getAllByText('未设置');
+      // 有两个"无数据"提示（字段值和评估值）
+      const unsetTexts = screen.getAllByText(getLL().execution.viewers.no_data());
       expect(unsetTexts.length).toBe(2);
     });
 

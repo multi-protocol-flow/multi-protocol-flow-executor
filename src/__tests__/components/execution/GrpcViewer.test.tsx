@@ -10,6 +10,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GrpcViewer } from '@/components/execution/viewers/GrpcViewer';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { NodeExecutionReport } from '@/types';
 
 // Mock react-json-view-lite
@@ -83,7 +84,7 @@ describe('GrpcViewer', () => {
       render(<GrpcViewer report={report} />);
 
       await expandSection(user, '连接状态');
-      expect(screen.getByText('连接失败')).toBeDefined();
+      expect(screen.getByText(getLL().execution.viewers.disconnected())).toBeDefined();
       // 错误信息出现在两个地方（span + p），使用 getAllByText
       const errorElements = screen.getAllByText('连接被拒绝');
       expect(errorElements.length).toBeGreaterThanOrEqual(1);
@@ -105,8 +106,8 @@ describe('GrpcViewer', () => {
       });
       render(<GrpcViewer report={report} />);
 
-      expect(screen.getByText('服务发现')).toBeDefined();
-      await expandSection(user, '服务发现');
+      expect(screen.getByText('可用服务')).toBeDefined();
+      await expandSection(user, '可用服务');
       expect(screen.getByText('test.Greeter')).toBeDefined();
       expect(screen.getByText('SayHello')).toBeDefined();
       expect(screen.getByText('StreamGreetings')).toBeDefined();

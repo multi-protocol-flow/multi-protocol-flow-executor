@@ -7,6 +7,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { WsConnectViewer } from '@/components/execution/viewers/WsConnectViewer';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { NodeExecutionReport } from '@/types';
 
 // Mock react-json-view-lite
@@ -55,12 +56,12 @@ describe('WsConnectViewer', () => {
 
       // 展开连接状态面板
       const buttons = screen.getAllByRole('button');
-      const statusButton = buttons.find(btn => btn.textContent?.includes('连接状态'));
+      const statusButton = buttons.find(btn => btn.textContent?.includes(getLL().execution.viewers.connection_status()));
       if (statusButton && statusButton.getAttribute('aria-expanded') === 'false') {
         await user.click(statusButton);
       }
 
-      expect(screen.getByText('连接失败')).toBeDefined();
+      expect(screen.getByText(getLL().execution.viewers.disconnected())).toBeDefined();
     });
 
     it('根据 report.status 判断状态（无 success 字段时）', async () => {
@@ -71,18 +72,18 @@ describe('WsConnectViewer', () => {
 
       // 展开连接状态面板
       const buttons = screen.getAllByRole('button');
-      const statusButton = buttons.find(btn => btn.textContent?.includes('连接状态'));
+      const statusButton = buttons.find(btn => btn.textContent?.includes(getLL().execution.viewers.connection_status()));
       if (statusButton && statusButton.getAttribute('aria-expanded') === 'false') {
         await user.click(statusButton);
       }
 
-      expect(screen.getByText('已连接')).toBeDefined();
+      expect(screen.getByText(getLL().execution.viewers.connected())).toBeDefined();
 
       const failedReport = createMockReport({});
       failedReport.status = 'failed';
       rerender(<WsConnectViewer report={failedReport} />);
 
-      expect(screen.getByText('连接失败')).toBeDefined();
+      expect(screen.getByText(getLL().execution.viewers.disconnected())).toBeDefined();
     });
   });
 

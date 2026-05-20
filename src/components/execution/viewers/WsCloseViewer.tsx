@@ -14,6 +14,7 @@ import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface WsCloseViewerProps {
   /** 节点执行报告 */
@@ -95,6 +96,7 @@ interface WsCloseOutputData {
 }
 
 export function WsCloseViewer({ report }: WsCloseViewerProps) {
+  const ll = getLL();
   // 从 output_data 提取 WS Close 数据
   const outputData = report.output_data as WsCloseOutputData | undefined;
   
@@ -107,7 +109,7 @@ export function WsCloseViewer({ report }: WsCloseViewerProps) {
     <div className="space-y-3">
       {/* 连接信息 */}
       <CollapsibleSection
-        title="连接信息"
+        title={ll.execution.viewers.connection_info()}
         icon={<Link className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -120,14 +122,14 @@ export function WsCloseViewer({ report }: WsCloseViewerProps) {
               </code>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground italic">无连接 URL</p>
+            <p className="text-sm text-muted-foreground italic">{ll.execution.viewers.connection_id_unknown()}</p>
           )}
         </div>
       </CollapsibleSection>
 
       {/* 关闭状态 */}
       <CollapsibleSection
-        title="关闭状态"
+        title={ll.execution.viewers.close_status()}
         icon={<XCircle className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -140,7 +142,7 @@ export function WsCloseViewer({ report }: WsCloseViewerProps) {
                    'font-mono text-base px-3 py-1',
                   success ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50' : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
                  )}>
-                  {success ? '成功' : '失败'}
+                  {success ? ll.execution.viewers.success() : ll.execution.viewers.fail()}
                 </Badge>
                 <div className="text-muted-foreground">
                   {success ? (
@@ -151,14 +153,14 @@ export function WsCloseViewer({ report }: WsCloseViewerProps) {
                 </div>
               </>
             ) : (
-              <span className="text-sm text-muted-foreground italic">无执行状态</span>
+              <span className="text-sm text-muted-foreground italic">{ll.execution.viewers.no_execution_status()}</span>
             )}
           </div>
 
           {/* 关闭码 */}
           {closeCode !== undefined && (
             <div className="flex items-start gap-3">
-              <span className="text-xs font-medium text-muted-foreground shrink-0 mt-1">关闭码</span>
+              <span className="text-xs font-medium text-muted-foreground shrink-0 mt-1">{ll.execution.viewers.close_code()}</span>
               <div className="flex-1">
                 <Badge className={cn('font-mono text-sm px-2 py-0.5', getCloseCodeColor(closeCode))}>
                   {closeCode}
@@ -173,7 +175,7 @@ export function WsCloseViewer({ report }: WsCloseViewerProps) {
           {/* 关闭原因 */}
           {closeReason && (
             <div className="flex items-start gap-3">
-              <span className="text-xs font-medium text-muted-foreground shrink-0 mt-1">关闭原因</span>
+              <span className="text-xs font-medium text-muted-foreground shrink-0 mt-1">{ll.execution.viewers.close_reason()}</span>
               <div className="flex-1 bg-muted rounded px-3 py-2">
                 <p className="text-sm text-foreground">{closeReason}</p>
               </div>

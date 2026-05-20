@@ -7,6 +7,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { WsSendCollectViewer } from '@/components/execution/viewers/WsSendCollectViewer';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { NodeExecutionReport } from '@/types';
 
 // Mock react-json-view-lite
@@ -44,7 +45,7 @@ describe('WsSendCollectViewer', () => {
       report.status = 'failed';
       render(<WsSendCollectViewer report={report} />);
 
-      expect(screen.getByText('执行错误')).toBeDefined();
+      expect(screen.getByText(getLL().execution.viewers.execution_failed())).toBeDefined();
       expect(screen.getByText('连接已关闭')).toBeDefined();
     });
 
@@ -52,7 +53,7 @@ describe('WsSendCollectViewer', () => {
       const report = createMockReport();
       render(<WsSendCollectViewer report={report} />);
 
-      expect(screen.queryByText('执行错误')).toBeNull();
+      expect(screen.queryByText(getLL().execution.viewers.execution_failed())).toBeNull();
     });
   });
 

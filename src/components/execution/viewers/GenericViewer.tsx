@@ -14,6 +14,7 @@ import {
 import type { NodeExecutionReport } from '@/types';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface GenericViewerProps {
   /** 节点执行报告 */
@@ -60,9 +61,10 @@ interface DataSectionProps {
   emptyText?: string;
 }
 
-function DataSection({ data, emptyText = '无数据' }: DataSectionProps) {
+function DataSection({ data, emptyText }: DataSectionProps) {
+  const ll = getLL();
   if (data === null || data === undefined) {
-    return <p className="text-sm text-muted-foreground italic">{emptyText}</p>;
+    return <p className="text-sm text-muted-foreground italic">{emptyText ?? ll.execution.viewers.no_data()}</p>;
   }
 
   return (
@@ -73,23 +75,23 @@ function DataSection({ data, emptyText = '无数据' }: DataSectionProps) {
 }
 
 export function GenericViewer({ report }: GenericViewerProps) {
+  const ll = getLL();
   const { node_name, node_type, input_data, output_data, variable_changes } = report;
 
   return (
     <div className="space-y-3">
-      {/* 节点信息 */}
       <CollapsibleSection
-        title="节点信息"
+        title={ll.execution.viewers.node_info()}
         icon={<Layers className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-start gap-2">
-            <span className="text-xs font-medium text-muted-foreground shrink-0 min-w-12">名称</span>
+            <span className="text-xs font-medium text-muted-foreground shrink-0 min-w-12">{ll.execution.viewers.name_label()}</span>
             <span className="text-sm text-foreground">{node_name}</span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-xs font-medium text-muted-foreground shrink-0 min-w-12">类型</span>
+            <span className="text-xs font-medium text-muted-foreground shrink-0 min-w-12">{ll.execution.viewers.type_label()}</span>
             <code className="text-sm font-mono text-foreground bg-muted px-2 py-0.5 rounded">
               {node_type}
             </code>
@@ -97,25 +99,22 @@ export function GenericViewer({ report }: GenericViewerProps) {
         </div>
       </CollapsibleSection>
 
-      {/* 输入数据 */}
       <CollapsibleSection
-        title="输入数据"
+        title={ll.execution.viewers.input_data()}
         icon={<ArrowUpFromLine className="w-4 h-4" />}
         defaultOpen={true}
       >
-        <DataSection data={input_data} emptyText="无输入数据" />
+        <DataSection data={input_data} emptyText={ll.execution.viewers.no_input_data()} />
       </CollapsibleSection>
 
-      {/* 输出数据 */}
       <CollapsibleSection
-        title="输出数据"
+        title={ll.execution.viewers.output_data()}
         icon={<ArrowDownToLine className="w-4 h-4" />}
         defaultOpen={true}
       >
-        <DataSection data={output_data} emptyText="无输出数据" />
+        <DataSection data={output_data} emptyText={ll.execution.viewers.no_output_data()} />
       </CollapsibleSection>
 
-      {/* 变量变更 */}
       <VariableChangesCard changes={variable_changes} defaultOpen={true} />
     </div>
   );

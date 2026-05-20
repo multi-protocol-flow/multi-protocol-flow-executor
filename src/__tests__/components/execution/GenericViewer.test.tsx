@@ -7,6 +7,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { GenericViewer } from '@/components/execution/viewers/GenericViewer';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { NodeExecutionReport } from '@/types';
 
 // Mock react-json-view-lite
@@ -188,8 +189,8 @@ describe('GenericViewer', () => {
       });
       render(<GenericViewer report={report} />);
 
-      // 简化格式：显示 "变量变更" + 变更数量（如 "1 项"）
-      expect(screen.getByRole('button', { name: /变量变更.*项/ })).toBeDefined();
+      // 简化格式：显示 "变量变更" + 变更数量
+      expect(screen.getByRole('button', { name: new RegExp(getLL().execution.viewers.variable_changes()) })).toBeDefined();
     });
 
     it('显示变量变更数量', () => {

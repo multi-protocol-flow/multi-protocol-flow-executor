@@ -16,6 +16,7 @@ import type { TcpUdpRecording, RecordingEntry, RecordingDirection } from '@/type
 import { Badge } from '@/components/ui/badge';
 
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 import { HexViewer } from '@/components/common/HexViewer';
 
 // ============================================================================
@@ -64,13 +65,13 @@ function base64ToUint8Array(base64: string): Uint8Array {
 
 /** 获取文本预览（尝试 UTF-8 解码，截断至 80 字符） */
 function getTextPreview(entry: RecordingEntry): string {
-  if (!entry.data_base64 || entry.data_size === 0) return '(空数据)';
+  if (!entry.data_base64 || entry.data_size === 0) return `(${getLL().execution.viewers.no_data()})`;
   try {
     const bytes = base64ToUint8Array(entry.data_base64);
     const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
     return text.length > 80 ? text.slice(0, 80) + '…' : text;
   } catch {
-    return `(${entry.data_size} 字节二进制数据)`;
+    return `(${entry.data_size} ${getLL().execution.viewers.recording_receive()})`;
   }
 }
 
@@ -95,7 +96,7 @@ function DirectionBadge({ direction }: { direction: RecordingDirection }) {
           : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
       )}
     >
-      {isSend ? '发送' : '接收'}
+      {isSend ? getLL().execution.viewers.recording_send() : getLL().execution.viewers.recording_receive()}
     </Badge>
   );
 }
@@ -164,7 +165,7 @@ function RecordingEntryRow({ entry, index }: { entry: RecordingEntry; index: num
               连接: {entry.connection_id}
             </Badge>
             <Badge variant="outline" className="font-mono text-xs">
-              {entry.data_size} 字节
+              {entry.data_size} bytes
             </Badge>
             <Badge variant="outline" className="font-mono text-xs">
               +{entry.timestamp_ms}ms
@@ -175,7 +176,7 @@ function RecordingEntryRow({ entry, index }: { entry: RecordingEntry; index: num
           {entry.data_size > 0 && entry.data_base64 ? (
             <HexViewer data={base64ToUint8Array(entry.data_base64)} height={300} />
           ) : (
-            <p className="text-sm text-muted-foreground italic">无数据</p>
+            <p className="text-sm text-muted-foreground italic">{getLL().execution.viewers.no_data()}</p>
           )}
         </div>
       )}
@@ -188,22 +189,23 @@ function RecordingEntryRow({ entry, index }: { entry: RecordingEntry; index: num
 // ============================================================================
 
 function RecordingMetaCard({ recording }: { recording: TcpUdpRecording }) {
+  const ll = getLL();
   const totalSent = recording.entries.filter(e => e.direction === 'send').reduce((sum, e) => sum + e.data_size, 0);
   const totalReceived = recording.entries.filter(e => e.direction === 'receive').reduce((sum, e) => sum + e.data_size, 0);
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-muted/30 rounded-lg border border-border">
       <div className="space-y-1">
-        <div className="text-xs text-muted-foreground">录制名称</div>
+        <div className="text-xs text-muted-foreground">{ll.execution.viewers.recording_name()}</div>
         <div className="text-sm font-medium text-foreground truncate">{recording.name}</div>
       </div>
       <div className="space-y-1">
-        <div className="text-xs text-muted-foreground">录制时长</div>
+        <div className="text-xs text-muted-foreground">{ll.execution.viewers.recording_duration()}</div>
         <div className="text-sm font-mono text-foreground">{formatRelativeTime(recording.duration_ms)}</div>
       </div>
       <div className="space-y-1">
         <div className="text-xs text-muted-foreground flex items-center gap-1">
-          <ArrowUpFromLine className="w-3 h-3" /> 发送
+          <ArrowUpFromLine className="w-3 h-3" /> {ll.execution.viewers.recording_send()}
         </div>
         <div className="text-sm font-mono text-sky-600 dark:text-sky-400">
           {recording.entries.filter(e => e.direction === 'send').length} 条 / {formatBytes(totalSent)}
@@ -211,7 +213,7 @@ function RecordingMetaCard({ recording }: { recording: TcpUdpRecording }) {
       </div>
       <div className="space-y-1">
         <div className="text-xs text-muted-foreground flex items-center gap-1">
-          <ArrowDownToLine className="w-3 h-3" /> 接收
+          <ArrowDownToLine className="w-3 h-3" /> {ll.execution.viewers.recording_receive()}
         </div>
         <div className="text-sm font-mono text-emerald-600 dark:text-emerald-400">
           {recording.entries.filter(e => e.direction === 'receive').length} 条 / {formatBytes(totalReceived)}
@@ -226,6 +228,7 @@ function RecordingMetaCard({ recording }: { recording: TcpUdpRecording }) {
 // ============================================================================
 
 export function RecordingViewer({ recording }: RecordingViewerProps) {
+  const ll = getLL();
   const [filter, setFilter] = useState<FilterMode>('all');
 
   const filteredEntries = useMemo(() => {
@@ -249,10 +252,10 @@ export function RecordingViewer({ recording }: RecordingViewerProps) {
         <Filter className="w-4 h-4 text-muted-foreground" />
         {(
           [
-            { key: 'all', label: '全部' },
-            { key: 'send', label: '发送' },
-            { key: 'receive', label: '接收' },
-          ] as const
+            { key: 'all' as const, label: ll.execution.viewers.filter_all() },
+            { key: 'send' as const, label: ll.execution.viewers.filter_send() },
+            { key: 'receive' as const, label: ll.execution.viewers.filter_receive() },
+          ]
         ).map(({ key, label }) => (
           <button
             key={key}
@@ -273,7 +276,7 @@ export function RecordingViewer({ recording }: RecordingViewerProps) {
       {/* 条目列表 */}
       {filteredEntries.length === 0 ? (
         <div className="text-sm text-muted-foreground italic p-4 text-center">
-          无{filter === 'all' ? '' : filter === 'send' ? '发送' : '接收'}条目
+          {ll.execution.viewers.no_entries()}
         </div>
       ) : (
         <div className="space-y-2 max-h-[600px] overflow-y-auto">
@@ -287,12 +290,10 @@ export function RecordingViewer({ recording }: RecordingViewerProps) {
       <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
         <Database className="w-3.5 h-3.5" />
         <span>
-          共 {recording.entries.length} 条录制 · 总数据量 {formatBytes(
-            recording.entries.reduce((sum, e) => sum + e.data_size, 0)
-          )}
+          {ll.execution.viewers.total_data({ count: recording.entries.length, bytes: formatBytes(recording.entries.reduce((sum, e) => sum + e.data_size, 0)) })}
         </span>
         <Clock className="w-3.5 h-3.5 ml-2" />
-        <span>时长 {formatRelativeTime(recording.duration_ms)}</span>
+        <span>{ll.execution.viewers.duration_label()} {formatRelativeTime(recording.duration_ms)}</span>
       </div>
     </div>
   );

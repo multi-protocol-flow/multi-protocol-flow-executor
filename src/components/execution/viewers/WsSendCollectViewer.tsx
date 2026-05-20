@@ -17,6 +17,7 @@ import {
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
 import { HexViewer, dataToBytes } from '@/components/common/HexViewer';
@@ -148,6 +149,7 @@ function getMatchTypeLabel(matchType: string | undefined): string {
 }
 
 export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
+  const ll = getLL();
   const outputData = report.output_data as WsSendCollectOutput | undefined;
   const resolvedConfig = report.resolved_config as WsSendCollectConfig | undefined;
   
@@ -182,7 +184,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
         <div className="rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 p-3">
           <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
             <AlertTriangle className="w-4 h-4" />
-            <span className="font-medium text-sm">执行错误</span>
+            <span className="font-medium text-sm">{getLL().execution.viewers.execution_failed()}</span>
           </div>
           <p className="text-red-600 dark:text-red-400 text-sm mt-1">{outputData.error}</p>
         </div>
@@ -193,24 +195,24 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
         <div className="rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 p-3">
           <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
             <Timer className="w-4 h-4" />
-            <span className="font-medium text-sm">采集响应超时</span>
+            <span className="font-medium text-sm">{ll.execution.viewers.collection_timed_out()}</span>
           </div>
           <p className="text-amber-600/80 dark:text-amber-400/80 text-xs mt-1">
-            在指定时间内未收到匹配的响应消息
+            {ll.execution.viewers.collect_timeout_desc()}
           </p>
         </div>
       )}
 
       {/* 连接信息 */}
       <CollapsibleSection
-        title="连接信息"
+        title={ll.execution.viewers.connection_info()}
         icon={<Link className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           {/* 连接 ID */}
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">连接 ID:</span>
+            <span className="text-muted-foreground">{ll.execution.viewers.connection_id_label()}:</span>
             <Badge variant="secondary" className="font-mono text-xs">
               {connectionId || '-'}
             </Badge>
@@ -232,7 +234,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
 
       {/* 采集配置（独立面板，更醒目） */}
       <CollapsibleSection
-        title="采集配置"
+        title={ll.execution.viewers.collect_config()}
         icon={<Clock className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -292,19 +294,19 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
         </div>
       </CollapsibleSection>
 
-      {/* 发送配置 */}
+{/* 发送配置 */}
       <CollapsibleSection
-        title="发送配置"
+        title={ll.execution.viewers.send_config()}
         icon={<Send className="w-4 h-4" />}
         defaultOpen={false}
         extra={sentData?.type && (
            <Badge variant="outline" className={cn(
              'font-mono text-xs',
              sentData.type === 'binary'
-              ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50'
-               : 'text-muted-foreground bg-muted'
+               ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50'
+                : 'text-muted-foreground bg-muted'
            )}>
-            {sentData.type === 'binary' ? '二进制' : '文本'}
+            {sentData.type === 'binary' ? ll.execution.viewers.binary_label() : ll.execution.viewers.text_label()}
           </Badge>
         )}
       >
@@ -314,7 +316,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">消息类型:</span>
               <Badge variant="outline" className="font-mono text-xs">
-                {configMessageType === 'binary' ? '二进制' : '文本'}
+                {configMessageType === 'binary' ? ll.execution.viewers.binary_label() : ll.execution.viewers.text_label()}
               </Badge>
             </div>
           )}
@@ -332,7 +334,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
           {/* 实际发送的内容 */}
           {sentData && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">发送内容</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.execution.viewers.send_content()}</div>
               {sentData.type === 'binary' ? (
                 <div className="rounded-md border border-orange-200 dark:border-orange-800 overflow-hidden">
                   <div className="px-2 py-1 bg-orange-50 dark:bg-orange-950/50 border-b border-orange-200 dark:border-orange-800 flex items-center gap-2">
@@ -356,7 +358,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
           {/* 配置的消息（当没有实际发送数据时显示） */}
           {!sentData && configMessage && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">配置消息</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.execution.viewers.config_message()}</div>
               <pre className="text-xs bg-muted border border-border rounded p-2 overflow-x-auto text-foreground whitespace-pre-wrap break-all">
                 {configMessage}
               </pre>
@@ -368,7 +370,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
       {/* 收集消息列表 */}
       {collectedMessages.length > 0 && (
         <CollapsibleSection
-          title="收集消息"
+          title={ll.execution.viewers.matched_message()}
           icon={<List className="w-4 h-4" />}
           defaultOpen={true}
           extra={(
@@ -397,13 +399,13 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
                         ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50'
                          : 'text-muted-foreground bg-muted'
                      )}>
-                      {msg.type === 'binary' ? '二进制' : '文本'}
+                      {msg.type === 'binary' ? ll.execution.viewers.binary_label() : ll.execution.viewers.text_label()}
                     </Badge>
                     <span className="text-xs text-muted-foreground">#{idx + 1}</span>
                     {isMatched && (
-                      <Badge className="font-mono text-xs bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-0">
-                        匹配
-                      </Badge>
+<Badge className="font-mono text-xs bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-0">
+                         {ll.execution.viewers.matched_label()}
+                       </Badge>
                     )}
                   </div>
                   {msg.type === 'binary' ? (
@@ -437,7 +439,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
       {/* 匹配消息 */}
       {messageData ? (
         <CollapsibleSection
-          title="匹配消息"
+          title={ll.execution.viewers.matched_message()}
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={true}
           extra={(
@@ -447,14 +449,14 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
                 ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50'
                 : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
              )}>
-              {messageData.type === 'binary' ? '二进制' : '文本'}
+              {messageData.type === 'binary' ? ll.execution.viewers.binary_label() : ll.execution.viewers.text_label()}
             </Badge>
           )}
         >
           <div className="space-y-2">
             {/* 原始数据 */}
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">原始数据</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.execution.viewers.raw_data()}</div>
               {messageData.type === 'binary' ? (
                 <div className="rounded-md border border-orange-200 dark:border-orange-800 overflow-hidden">
                   <div className="px-2 py-1 bg-orange-50 dark:bg-orange-950/50 border-b border-orange-200 dark:border-orange-800 flex items-center gap-2">
@@ -477,7 +479,7 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
             {/* 解析后的 JSON */}
             {messageData.parsed !== null && messageData.parsed !== undefined && (
               <div>
-                <div className="text-xs font-medium text-muted-foreground mb-1.5">解析后的 JSON</div>
+                <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.execution.viewers.parsed_json()}</div>
                 <div className="bg-muted rounded p-2">
                   <RawJsonViewer data={messageData.parsed} />
                 </div>
@@ -487,22 +489,22 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
         </CollapsibleSection>
       ) : !isTimedOut && !hasError && (
         <CollapsibleSection
-          title="匹配消息"
+          title={ll.execution.viewers.matched_message()}
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
         >
-          <p className="text-sm text-muted-foreground italic">未采集响应或无匹配消息</p>
+          <p className="text-sm text-muted-foreground italic">{ll.execution.viewers.no_matched_message()}</p>
         </CollapsibleSection>
       )}
 
       {/* 耗时分解 */}
       <CollapsibleSection
-        title="耗时分解"
+        title={ll.execution.viewers.timing_breakdown_short()}
         icon={<Clock className="w-4 h-4" />}
         defaultOpen={false}
         extra={(
           <span className="text-xs font-mono text-violet-600 font-medium">
-            总计 {report.duration_ms}ms
+            {ll.execution.viewers.total_label()} {report.duration_ms}ms
           </span>
         )}
       >

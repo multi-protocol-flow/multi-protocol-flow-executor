@@ -14,6 +14,7 @@ import {
 import type { NodeExecutionReport, ErrorDetail } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { VariableChangesCard } from './VariableChangesCard';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface ConditionalViewerProps {
   /** 节点执行报告 */
@@ -90,7 +91,7 @@ function ValueDisplay({ label, value }: ValueDisplayProps) {
     return (
       <div className="flex items-start gap-2 text-sm">
         <span className="text-muted-foreground min-w-0 shrink-0">{label}:</span>
-        <span className="text-muted-foreground italic">未设置</span>
+        <span className="text-muted-foreground italic">{getLL().execution.viewers.no_data()}</span>
       </div>
     );
   }
@@ -173,11 +174,11 @@ function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: Con
       {/* 原始条件配置 */}
       {configData && (
         <div className="p-3 bg-red-50/50 dark:bg-red-950/30">
-          <div className="text-xs font-medium text-red-600 dark:text-red-400 mb-2">原始条件配置:</div>
+          <div className="text-xs font-medium text-red-600 dark:text-red-400 mb-2">{getLL().execution.viewers.raw_data()}:</div>
           <div className="space-y-1.5 text-sm">
             {configData.condition_type && (
               <div className="flex gap-2">
-                <span className="text-muted-foreground shrink-0">条件类型:</span>
+                <span className="text-muted-foreground shrink-0">{getLL().execution.viewers.condition_result()}:</span>
                 <span className="font-mono text-red-700 dark:text-red-300">
                   {configData.condition_type === 'simple' ? '简单条件' : '高级表达式'}
                 </span>
@@ -237,7 +238,7 @@ function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: Con
       {error.stack_trace && (
         <details className="border-t border-red-200 dark:border-red-800">
           <summary className="p-2 text-xs text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/30">
-            堆栈跟踪
+            {getLL().execution.viewers.stack_trace()}
           </summary>
           <pre className="p-2 text-xs text-red-600 dark:text-red-400 bg-red-100/50 dark:bg-red-900/30 overflow-x-auto max-h-32">
             {error.stack_trace}
@@ -249,6 +250,7 @@ function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: Con
 }
 
 export function ConditionalViewer({ report }: ConditionalViewerProps) {
+  const ll = getLL();
   // 从 output_data 提取 Conditional 数据
   const outputData = report.output_data as ConditionalOutputData | undefined;
   
@@ -287,7 +289,7 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
           <>
             {expression && (
               <CollapsibleSection
-                title="条件表达式"
+                title={ll.execution.viewers.condition_expression()}
                 icon={<Code2 className="w-4 h-4" />}
                 defaultOpen={false}
               >
@@ -298,7 +300,7 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
             )}
             {fieldValue !== undefined && (
               <CollapsibleSection
-                title="评估值"
+                title={ll.execution.viewers.eval_value()}
                 icon={<GitBranch className="w-4 h-4" />}
                 defaultOpen={false}
               >
@@ -319,7 +321,7 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
     <div className="space-y-3">
       {/* 条件表达式 */}
       <CollapsibleSection
-        title="条件表达式"
+        title={ll.execution.viewers.condition_expression()}
         icon={<Code2 className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -328,13 +330,13 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
             {expression}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground italic">未配置条件表达式</p>
+          <p className="text-sm text-muted-foreground italic">{ll.execution.viewers.condition_not_configured()}</p>
         )}
       </CollapsibleSection>
 
       {/* 评估值 */}
       <CollapsibleSection
-        title="评估值"
+        title={ll.execution.viewers.eval_value()}
         icon={<GitBranch className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -346,7 +348,7 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
 
       {/* 评估结果 */}
       <CollapsibleSection
-        title="评估结果"
+        title={ll.execution.viewers.eval_result()}
         icon={<GitBranch className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -356,7 +358,7 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-red-600" />
               <Badge className="font-mono text-sm px-3 py-1 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50">
-                评估失败
+                {ll.execution.viewers.evaluation_failed()}
               </Badge>
             </div>
             {outputError && (
@@ -373,19 +375,19 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
                 <Badge className="font-mono text-xs px-2 py-0.5 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/50">
                   true
                 </Badge>
-                <span className="text-sm text-muted-foreground">条件成立</span>
+                <span className="text-sm text-muted-foreground">{ll.execution.viewers.condition_match()}</span>
               </>
             ) : (
               <>
                 <Badge className="font-mono text-xs px-2 py-0.5 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50">
                   false
                 </Badge>
-                <span className="text-sm text-muted-foreground">条件不成立</span>
+                <span className="text-sm text-muted-foreground">{ll.execution.viewers.condition_no_match()}</span>
               </>
             )}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground italic">无评估结果</p>
+          <p className="text-sm text-muted-foreground italic">{ll.execution.viewers.no_evaluation_result()}</p>
         )}
       </CollapsibleSection>
 

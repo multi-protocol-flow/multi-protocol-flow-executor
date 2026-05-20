@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface HttpNodeViewerProps {
   /** 节点执行报告 */
@@ -88,8 +89,9 @@ interface KeyValueListProps {
 }
 
 function KeyValueList({ data }: KeyValueListProps) {
+  const ll = getLL();
   if (!data || Object.keys(data).length === 0) {
-    return <p className="text-sm text-muted-foreground italic">无数据</p>;
+    return <p className="text-sm text-muted-foreground italic">{ll.execution.viewers.no_data()}</p>;
   }
 
   return (
@@ -157,6 +159,7 @@ function formatFileSize(bytes: number): string {
  * Form-Data 字段表格
  */
 function FormDataFieldsTable({ fields }: { fields: FormField[] }) {
+  const ll = getLL();
   return (
     <div className="border border-border rounded overflow-hidden text-sm">
       <div className="grid grid-cols-[1fr_70px_2fr] bg-muted/50">
@@ -177,7 +180,7 @@ function FormDataFieldsTable({ fields }: { fields: FormField[] }) {
           </div>
           <div className="px-2.5 py-1.5 border-b border-border break-all">
             {field.type === 'file' ? (
-              <span className="font-mono text-muted-foreground">{field.file_path || '未选择文件'}</span>
+              <span className="font-mono text-muted-foreground">{field.file_path || ll.execution.viewers.file_not_selected()}</span>
             ) : (
               <span className="text-foreground">{field.value}</span>
             )}
@@ -208,22 +211,23 @@ function UrlEncodedFieldsList({ fields }: { fields: Array<{ key: string; value: 
  * 二进制文件信息展示
  */
 function BinaryFileDisplay({ path, size }: { path?: string; size?: number }) {
+  const ll = getLL();
   return (
     <div className="bg-muted rounded p-2 space-y-1 text-sm">
       {path && (
         <div className="flex items-start gap-2">
-          <span className="text-muted-foreground shrink-0">文件路径:</span>
+          <span className="text-muted-foreground shrink-0">{ll.execution.viewers.file_path()}</span>
           <code className="text-foreground break-all">{path}</code>
         </div>
       )}
       {size !== undefined && (
         <div className="flex items-start gap-2">
-          <span className="text-muted-foreground shrink-0">文件大小:</span>
+          <span className="text-muted-foreground shrink-0">{ll.execution.viewers.file_size()}</span>
           <span className="text-foreground">{formatFileSize(size)}</span>
         </div>
       )}
       {!path && size === undefined && (
-        <span className="text-muted-foreground italic">无文件信息</span>
+        <span className="text-muted-foreground italic">{ll.execution.viewers.no_file_info()}</span>
       )}
     </div>
   );
@@ -269,6 +273,7 @@ interface HttpOutputData {
 }
 
 export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
+  const ll = getLL();
   // 从 output_data 提取 HTTP 数据
   const outputData = report.output_data as HttpOutputData | undefined;
   const requestData = outputData?.request;
@@ -317,7 +322,7 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
     <div className="space-y-3">
       {/* 请求配置 */}
       <CollapsibleSection
-        title="请求配置"
+        title={ll.execution.viewers.request_config()}
         icon={<Send className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -328,14 +333,14 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
               {config.method}
             </Badge>
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {config.url || <span className="text-muted-foreground italic">未配置 URL</span>}
+              {config.url || <span className="text-muted-foreground italic">{ll.execution.viewers.not_configured_url()}</span>}
             </code>
           </div>
 
           {/* Headers */}
           {config.headers && Object.keys(config.headers).length > 0 && (
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1.5">请求头</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">{ll.execution.viewers.request_headers()}</div>
               <KeyValueList data={config.headers} />
             </div>
           )}
@@ -344,7 +349,7 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
           {showBody && (
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1.5">
-                请求体 <span className="font-normal">({bodyLabel})</span>
+                {ll.execution.viewers.request_body()} <span className="font-normal">({bodyLabel})</span>
               </div>
               {bodyType === 'body' && hasBody && (
                 <div className="bg-muted rounded p-2">
@@ -376,9 +381,9 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
           {/* 重试信息 */}
           {outputData?.retry_count != null && outputData.retry_count > 0 && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">重试:</span>
+              <span className="text-muted-foreground">{ll.execution.viewers.retry_label()}</span>
               <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                {outputData.retry_count} 次
+                {ll.execution.viewers.retry_count({ count: outputData.retry_count })}
               </Badge>
             </div>
           )}
@@ -387,7 +392,7 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
 
       {/* 响应状态 */}
       <CollapsibleSection
-        title="响应状态"
+        title={ll.execution.viewers.response_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -398,14 +403,14 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
                 {status}
               </Badge>
               <span className="text-sm text-muted-foreground">
-                {status >= 200 && status < 300 && '请求成功'}
-                {status >= 300 && status < 400 && '重定向'}
-                {status >= 400 && status < 500 && '客户端错误'}
-                {status >= 500 && '服务器错误'}
+                {status >= 200 && status < 300 && ll.execution.viewers.status_text.success()}
+                {status >= 300 && status < 400 && ll.execution.viewers.status_text.redirect()}
+                {status >= 400 && status < 500 && ll.execution.viewers.status_text.client_error()}
+                {status >= 500 && ll.execution.viewers.status_text.server_error()}
               </span>
             </>
           ) : (
-            <span className="text-sm text-muted-foreground italic">无响应状态</span>
+            <span className="text-sm text-muted-foreground italic">{ll.execution.viewers.no_response_status()}</span>
           )}
         </div>
       </CollapsibleSection>
@@ -413,7 +418,7 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
       {/* 重定向历史 */}
       {outputData?.redirect_history && outputData.redirect_history.length > 0 && (
         <CollapsibleSection
-          title={`重定向链 (${outputData.redirect_history.length} 次)`}
+          title={ll.execution.viewers.redirect_chain({ count: outputData.redirect_history.length })}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={false}
         >
@@ -435,7 +440,7 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
 
       {/* 响应头 */}
       <CollapsibleSection
-        title="响应头"
+        title={ll.execution.viewers.response_headers()}
         icon={<ArrowDownToLine className="w-4 h-4" />}
         defaultOpen={false}
       >
@@ -445,16 +450,16 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
       {/* 响应 Cookie */}
       {outputData?.cookies_received && outputData.cookies_received.length > 0 && (
         <CollapsibleSection
-          title={`响应 Cookie (${outputData.cookies_received.length})`}
+          title={ll.execution.viewers.response_cookie({ count: outputData.cookies_received.length })}
           icon={<ArrowDownToLine className="w-4 h-4" />}
           defaultOpen={false}
         >
           <div className="border border-border rounded overflow-hidden text-sm">
             <div className="grid grid-cols-[1fr_1.5fr_0.8fr_0.5fr] bg-muted/50">
-              <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground">名称</div>
-              <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground">值</div>
-              <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground">域名</div>
-              <div className="px-2.5 py-1.5 font-medium border-b border-border text-xs text-muted-foreground">路径</div>
+              <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground">{ll.execution.viewers.cookie_name()}</div>
+              <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground">{ll.execution.viewers.cookie_value()}</div>
+              <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground">{ll.execution.viewers.cookie_domain()}</div>
+              <div className="px-2.5 py-1.5 font-medium border-b border-border text-xs text-muted-foreground">{ll.execution.viewers.cookie_path()}</div>
             </div>
             {outputData.cookies_received.map((cookie, index) => (
               <div key={index} className="grid grid-cols-[1fr_1.5fr_0.8fr_0.5fr]">
@@ -471,7 +476,7 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
       {/* 响应体 */}
       {body !== undefined && (
         <CollapsibleSection
-          title="响应体"
+          title={ll.execution.viewers.response_body()}
           icon={<ArrowDownToLine className="w-4 h-4" />}
           defaultOpen={false}
         >
@@ -484,43 +489,43 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
       {/* 耗时分解 */}
       {timing && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.execution.viewers.timing_breakdown()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={timing.total_ms !== undefined && (
             <span className="text-xs font-mono text-violet-600 font-medium">
-              总计 {timing.total_ms}ms
+              {ll.execution.viewers.timing_total({ total: timing.total_ms })}
             </span>
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
             {timing.dns_ms !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">DNS 解析</span>
+                <span className="text-muted-foreground">{ll.execution.viewers.timing_dns()}</span>
                 <span className="font-mono text-foreground">{timing.dns_ms}ms</span>
               </div>
             )}
             {timing.connect_ms !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">TCP 连接</span>
+                <span className="text-muted-foreground">{ll.execution.viewers.timing_tcp()}</span>
                 <span className="font-mono text-foreground">{timing.connect_ms}ms</span>
               </div>
             )}
             {timing.tls_ms !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">TLS 握手</span>
+                <span className="text-muted-foreground">{ll.execution.viewers.timing_tls()}</span>
                 <span className="font-mono text-foreground">{timing.tls_ms}ms</span>
               </div>
             )}
             {timing.ttfb_ms !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">首字节时间</span>
+                <span className="text-muted-foreground">{ll.execution.viewers.timing_ttfb()}</span>
                 <span className="font-mono text-foreground">{timing.ttfb_ms}ms</span>
               </div>
             )}
             {timing.download_ms !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">下载耗时</span>
+                <span className="text-muted-foreground">{ll.execution.viewers.timing_download()}</span>
                 <span className="font-mono text-foreground">{timing.download_ms}ms</span>
               </div>
             )}

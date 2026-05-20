@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
 import { useVT } from '@/i18n/viewer-translations';
+import { getLL } from '@/i18n/i18n-lazy';
 import { VariableChangesCard } from './VariableChangesCard';
 
 interface McpViewerProps {
@@ -439,7 +440,7 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-2">
             <McpBadge />
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {configUrl || <span className="text-muted-foreground italic">未配置 URL</span>}
+              {configUrl || <span className="text-muted-foreground italic">{getLL().execution.viewers.config_url()}</span>}
             </code>
           </div>
 
@@ -472,7 +473,7 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={t('mcp.status_connected')} failText={t('mcp.status_connection_failed')} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `MCP 连接建立成功`
+                ? t('mcp.connect_success')
                 : output?.error ?? t('mcp.connect_error')}
             </span>
           </div>
@@ -480,7 +481,7 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
           {/* 连接 ID */}
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{getLL().execution.viewers.connection_id_label()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>
@@ -491,14 +492,14 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
           {isSuccess && serverInfo && (
             <div className="flex flex-wrap gap-2">
               {serverInfo.name && (
-                <Badge variant="outline" className="font-mono text-xs">
-                  服务器: {serverInfo.name}
-                </Badge>
+<Badge variant="outline" className="font-mono text-xs">
+                   {getLL().execution.viewers.mcp_server()}: {serverInfo.name}
+                 </Badge>
               )}
               {serverInfo.version && (
-                <Badge variant="outline" className="font-mono text-xs">
-                  版本: {serverInfo.version}
-                </Badge>
+<Badge variant="outline" className="font-mono text-xs">
+                   Version: {serverInfo.version}
+                 </Badge>
               )}
             </div>
           )}

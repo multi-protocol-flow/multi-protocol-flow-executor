@@ -16,6 +16,7 @@ import type { AssertionOutput, AssertionResult, AssertionNodeConfig } from '@/ty
 import { Badge } from '@/components/ui/badge';
 import { VariableChangesCard } from './VariableChangesCard';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface AssertionViewerProps {
   /** 节点执行报告 */
@@ -130,13 +131,13 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
           {/* 目标和操作符 */}
           <div className="space-y-1.5">
             <div className="flex items-start gap-2 text-sm">
-              <span className="text-muted-foreground shrink-0 min-w-16">目标:</span>
+              <span className="text-muted-foreground shrink-0 min-w-16">{getLL().execution.viewers.target_label()}:</span>
               <code className="font-mono text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-1.5 py-0.5 rounded text-xs break-all">
                 {result.target}
               </code>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground shrink-0 min-w-16">操作符:</span>
+              <span className="text-muted-foreground shrink-0 min-w-16">{getLL().execution.viewers.operator_label()}:</span>
               <span className="font-mono text-red-700 dark:text-red-300">
                 {getOperatorDisplay(result.operator)}
               </span>
@@ -146,13 +147,13 @@ function FailedAssertionCard({ result, index }: { result: AssertionResult; index
           {/* 期望值 vs 实际值 */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <div className="text-xs font-medium text-muted-foreground">期望值</div>
+              <div className="text-xs font-medium text-muted-foreground">{getLL().execution.viewers.assertion_expected()}</div>
               <div className="bg-background/60 rounded p-2 font-mono text-sm text-foreground break-all">
                 {formatValue(result.expected)}
               </div>
             </div>
             <div className="space-y-1">
-              <div className="text-xs font-medium text-muted-foreground">实际值</div>
+              <div className="text-xs font-medium text-muted-foreground">{getLL().execution.viewers.assertion_actual()}</div>
               <div className="bg-background/60 rounded p-2 font-mono text-sm text-foreground break-all">
                 {formatValue(result.actual)}
               </div>
@@ -185,7 +186,7 @@ function ErrorCard({ error }: { error: ErrorDetail }) {
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
           <Badge className="font-mono text-xs bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700">
-            执行错误
+            {getLL().execution.viewers.execution_failed()}
           </Badge>
           {error.error_code && (
             <Badge variant="outline" className="font-mono text-xs text-red-600 dark:text-red-400 border-red-300 dark:border-red-700">
@@ -204,7 +205,7 @@ function ErrorCard({ error }: { error: ErrorDetail }) {
       {error.stack_trace && (
         <details className="border-t border-red-200 dark:border-red-800">
           <summary className="p-2 text-xs text-red-500 dark:text-red-400 cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/30">
-            堆栈跟踪
+            {getLL().execution.viewers.stack_trace()}
           </summary>
           <pre className="p-2 text-xs text-red-600 dark:text-red-300 bg-red-100/50 dark:bg-red-900/30 overflow-x-auto max-h-32">
             {error.stack_trace}
@@ -234,7 +235,7 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
         {/* 如果有 output_data，也显示部分信息 */}
         {outputData && (
           <CollapsibleSection
-            title="断言结果"
+            title={getLL().execution.viewers.assertion_result()}
             icon={<FileCheck className="w-4 h-4" />}
             defaultOpen={false}
           >
@@ -242,7 +243,7 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
               <div className="flex items-center gap-2">
                 <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
                 <Badge className="font-mono text-sm px-3 py-1 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40">
-                  执行失败
+                  {getLL().execution.viewers.execution_failed()}
                 </Badge>
               </div>
               {outputData.total !== undefined && (
@@ -265,7 +266,7 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
     return (
       <div className="space-y-3">
         <div className="text-sm text-muted-foreground italic p-3 bg-muted/30 rounded-lg">
-          无断言执行数据
+          {getLL().execution.viewers.no_assertion_data()}
         </div>
         <VariableChangesCard changes={report.variable_changes} />
       </div>
@@ -299,7 +300,7 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
                 'font-semibold',
                 passed ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
               )}>
-                {passed ? '全部通过' : '断言失败'}
+                {passed ? getLL().execution.viewers.assertion_all_passed() : getLL().execution.viewers.assertion_fail()}
               </span>
               <Badge className={cn(
                 'font-mono text-xs',
@@ -315,8 +316,8 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
               passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
             )}>
               {hasFailures
-                ? `${failed_count} 条断言失败`
-                : '所有断言均已通过验证'
+                ? getLL().execution.viewers.assertion_failed({ count: failed_count })
+                : getLL().execution.viewers.assertion_all_passed_desc()
               }
             </p>
           </div>
@@ -324,7 +325,7 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
           {/* 组合模式 */}
           {configData?.mode && (
             <Badge variant="outline" className="text-xs">
-              {configData.mode === 'all' ? '全部满足' : '任一满足'}
+              {configData.mode === 'all' ? getLL().execution.viewers.assertion_mode_all() : getLL().execution.viewers.assertion_mode_any()}
             </Badge>
           )}
         </div>
@@ -333,7 +334,7 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
       {/* 失败详情区域 (可折叠) */}
       {hasFailures && failed_assertions && failed_assertions.length > 0 && (
         <CollapsibleSection
-          title="失败详情"
+          title={getLL().execution.viewers.assertion_fail_details()}
           icon={<AlertTriangle className="w-4 h-4 text-red-500" />}
           defaultOpen={true}
           badge={
@@ -357,7 +358,7 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
       {/* 全部断言列表 (可折叠，默认关闭) */}
       {results && results.length > 0 && (
         <CollapsibleSection
-          title="全部断言"
+          title={getLL().execution.viewers.assertion_all_list()}
           icon={<FileCheck className="w-4 h-4" />}
           defaultOpen={false}
           badge={

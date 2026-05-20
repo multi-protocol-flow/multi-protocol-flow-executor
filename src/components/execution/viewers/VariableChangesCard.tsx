@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { VariableChange } from '@/types';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 
 import { RawJsonViewer } from './RawJsonViewer';
 
@@ -46,6 +47,7 @@ function formatValue(value: unknown): string {
 }
 
 export function VariableChangesCard({ changes, defaultOpen = false }: VariableChangesCardProps) {
+  const ll = getLL();
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   // 无变更时不渲染
@@ -70,9 +72,9 @@ export function VariableChangesCard({ changes, defaultOpen = false }: VariableCh
           )}
         </div>
         <Variable className="w-4 h-4 text-violet-500" />
-        <span className="font-medium text-foreground text-sm">变量变更</span>
+        <span className="font-medium text-foreground text-sm">{ll.execution.viewers.variable_changes()}</span>
         <span className="ml-auto text-xs text-muted-foreground">
-          {changes.length} 项
+          {changes.length}
         </span>
       </button>
 
@@ -104,7 +106,7 @@ export function VariableChangesCard({ changes, defaultOpen = false }: VariableCh
                         ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' 
                         : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
                     )}>
-                      {isNewVariable ? '新增' : '更新'}
+                      {isNewVariable ? ll.execution.viewers.var_created() : ll.execution.viewers.var_updated()}
                     </span>
                   </div>
 
@@ -112,7 +114,7 @@ export function VariableChangesCard({ changes, defaultOpen = false }: VariableCh
                   <div className="flex items-center gap-3 text-sm">
                     {/* 当前值 */}
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-muted-foreground mb-0.5">当前值</div>
+                      <div className="text-xs text-muted-foreground mb-0.5">{ll.execution.viewers.var_new_value()}</div>
                       {typeof change.new_value === 'object' && change.new_value !== null ? (
                         <div className="bg-background/60 rounded p-1.5 max-h-32 overflow-auto">
                           <RawJsonViewer data={change.new_value} />
@@ -129,7 +131,7 @@ export function VariableChangesCard({ changes, defaultOpen = false }: VariableCh
                       <>
                         <span className="text-muted-foreground shrink-0">←</span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs text-muted-foreground mb-0.5">旧值</div>
+                          <div className="text-xs text-muted-foreground mb-0.5">{ll.execution.viewers.var_old_value()}</div>
                           {typeof change.old_value === 'object' && change.old_value !== null ? (
                             <div className="bg-background/60 rounded p-1.5 max-h-32 overflow-auto">
                               <RawJsonViewer data={change.old_value} />

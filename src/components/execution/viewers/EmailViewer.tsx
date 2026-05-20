@@ -158,10 +158,10 @@ function ImapMessageCard({ message, index, onSelect, isSelected }: {
         )}
       </div>
       <div className="text-sm font-medium text-foreground truncate">
-        {message.subject || '(无主题)'}
+        {message.subject || '(No Subject)'}
       </div>
       <div className="text-xs text-muted-foreground truncate">
-        {message.from || '(未知发件人)'}
+        {message.from || '(Unknown Sender)'}
         {message.attachments && message.attachments.length > 0 && (
           <span className="ml-2 inline-flex items-center gap-0.5">
             <Paperclip className="w-3 h-3" />
@@ -181,16 +181,16 @@ function ImapMessageDetail({ message }: { message: ImapMessage }) {
     <div className="space-y-3">
       {/* 邮件头 */}
       <div className="space-y-1.5">
-        <InfoRow label="主题" value={message.subject} />
-        <InfoRow label="发件人" value={message.from} mono />
+        <InfoRow label="Subject" value={message.subject} />
+        <InfoRow label="From" value={message.from} mono />
         {message.to && message.to.length > 0 && (
-          <InfoRow label="收件人" value={message.to.join(', ')} mono />
+          <InfoRow label="To" value={message.to.join(', ')} mono />
         )}
-        <InfoRow label="日期" value={message.date} />
+        <InfoRow label="Date" value={message.date} />
         <InfoRow label="UID" value={message.uid} mono />
         {message.flags && message.flags.length > 0 && (
           <div className="flex items-start gap-2 text-sm">
-            <span className="text-muted-foreground shrink-0 min-w-16">标志</span>
+            <span className="text-muted-foreground shrink-0 min-w-16">Flags</span>
             <div className="flex flex-wrap gap-1">
               {message.flags.map((flag, i) => (
                 <Badge key={i} variant="outline" className="text-[10px] px-1 py-0 font-mono">
@@ -205,7 +205,7 @@ function ImapMessageDetail({ message }: { message: ImapMessage }) {
       {/* 正文 */}
       {message.body_text && (
         <div className="space-y-1">
-          <p className="text-xs font-medium text-foreground">纯文本正文</p>
+          <p className="text-xs font-medium text-foreground">Plain Text</p>
           <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-60 overflow-auto bg-muted rounded p-2">
             {message.body_text}
           </pre>
@@ -216,13 +216,13 @@ function ImapMessageDetail({ message }: { message: ImapMessage }) {
       {message.body_html && (
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-foreground">HTML 正文</p>
+            <p className="text-xs font-medium text-foreground">HTML Body</p>
             <button
               type="button"
               onClick={() => setShowHtml(!showHtml)}
               className="text-[10px] text-blue-600 hover:underline"
             >
-              {showHtml ? '隐藏渲染' : '渲染 HTML'}
+              {showHtml ? 'Hide Render' : 'Render HTML'}
             </button>
           </div>
           {showHtml ? (
@@ -231,7 +231,7 @@ function ImapMessageDetail({ message }: { message: ImapMessage }) {
               className="w-full border rounded bg-white"
               style={{ height: '300px' }}
               sandbox="allow-same-origin"
-              title="邮件 HTML 内容"
+              title="Email HTML Content"
             />
           ) : (
             <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-40 overflow-auto bg-muted rounded p-2">
@@ -248,13 +248,13 @@ function ImapMessageDetail({ message }: { message: ImapMessage }) {
         <div className="space-y-1">
           <p className="text-xs font-medium text-foreground flex items-center gap-1">
             <Paperclip className="w-3 h-3" />
-            附件 ({message.attachments.length})
+            Attachments ({message.attachments.length})
           </p>
           <div className="space-y-1">
             {message.attachments.map((att, i) => (
               <div key={i} className="flex items-center gap-2 text-xs bg-muted rounded px-2 py-1">
                 <Paperclip className="w-3 h-3 text-muted-foreground shrink-0" />
-                <span className="text-foreground truncate">{att.filename || '(未命名)'}</span>
+                <span className="text-foreground truncate">{att.filename || '(unnamed)'}</span>
                 <span className="text-muted-foreground font-mono shrink-0">{att.content_type}</span>
                 {att.size > 0 && (
                   <span className="text-muted-foreground font-mono shrink-0 ml-auto">
@@ -282,7 +282,7 @@ function ImapFolderList({ folders }: { folders: ImapFolder[] }) {
           <Inbox className="w-3.5 h-3.5 text-blue-500 shrink-0" />
           <code className="text-xs font-mono text-foreground break-all">{folder.name}</code>
           {folder.delimiter && (
-            <span className="text-[10px] text-muted-foreground">分隔符: {folder.delimiter}</span>
+            <span className="text-[10px] text-muted-foreground">Delimiter: {folder.delimiter}</span>
           )}
           {folder.attributes.length > 0 && (
             <div className="flex gap-1 ml-auto">
@@ -324,21 +324,21 @@ function getNodeIcon(nodeType: string) {
 
 function getNodeTitle(nodeType: string): string {
   const titleMap: Record<string, string> = {
-    imap_connect: 'IMAP 连接',
-    imap_select: 'IMAP 选择邮箱',
-    imap_search: 'IMAP 搜索',
-    imap_fetch: 'IMAP 获取邮件',
-    imap_store_flags: 'IMAP 修改标志',
-    imap_copy: 'IMAP 复制邮件',
-    imap_move: 'IMAP 移动邮件',
-    imap_expunge: 'IMAP 清除已删除',
-    imap_list: 'IMAP 列出邮箱',
-    imap_folder_create: 'IMAP 创建文件夹',
-    imap_folder_delete: 'IMAP 删除文件夹',
-    imap_idle: 'IMAP IDLE 监听',
-    imap_close: 'IMAP 关闭连接',
+    imap_connect: 'IMAP Connect',
+    imap_select: 'IMAP Select Mailbox',
+    imap_search: 'IMAP Search',
+    imap_fetch: 'IMAP Fetch Messages',
+    imap_store_flags: 'IMAP Modify Flags',
+    imap_copy: 'IMAP Copy Messages',
+    imap_move: 'IMAP Move Messages',
+    imap_expunge: 'IMAP Expunge',
+    imap_list: 'IMAP List Mailboxes',
+    imap_folder_create: 'IMAP Create Folder',
+    imap_folder_delete: 'IMAP Delete Folder',
+    imap_idle: 'IMAP IDLE',
+    imap_close: 'IMAP Close Connection',
   };
-  return titleMap[nodeType] || 'IMAP 操作';
+  return titleMap[nodeType] || 'IMAP Operation';
 }
 
 // ============================================================================
@@ -354,7 +354,7 @@ export function EmailViewer({ report }: EmailViewerProps) {
   // 通用状态面板
   const renderStatus = (successText: string, failText: string) => (
     <CollapsibleSection
-      title="执行状态"
+      title="Execution Status"
       icon={getNodeIcon(nodeType)}
       defaultOpen={true}
     >
@@ -362,7 +362,7 @@ export function EmailViewer({ report }: EmailViewerProps) {
         <div className="flex items-center gap-3">
           <StatusBadge isSuccess={isSuccess} successText={successText} failText={failText} />
           <span className="text-sm text-muted-foreground">
-            {isSuccess ? getNodeTitle(nodeType) + ' 执行成功' : (error || '执行失败')}
+            {isSuccess ? getNodeTitle(nodeType) + ' Succeeded' : (error || 'Execution Failed')}
           </span>
         </div>
         <ErrorBlock error={!isSuccess ? error : undefined} />
@@ -376,16 +376,16 @@ export function EmailViewer({ report }: EmailViewerProps) {
       const result = output as ImapConnectResult | undefined;
       return (
         <div className="space-y-3">
-          {renderStatus('已连接', '连接失败')}
+          {renderStatus('Connected', 'Connection Failed')}
           {isSuccess && result && (
             <>
               {result.server_info && (
-                <CollapsibleSection title="服务器信息" icon={<Info className="w-4 h-4" />} defaultOpen={true}>
-                  <InfoRow label="服务器" value={result.server_info} />
+                <CollapsibleSection title="Server Info" icon={<Info className="w-4 h-4" />} defaultOpen={true}>
+                  <InfoRow label="Server" value={result.server_info} />
                 </CollapsibleSection>
               )}
               {result.capabilities && result.capabilities.length > 0 && (
-                <CollapsibleSection title="服务器能力" icon={<Cable className="w-4 h-4" />} defaultOpen={false}
+                <CollapsibleSection title="Server Capabilities" icon={<Cable className="w-4 h-4" />} defaultOpen={false}
                   extra={<Badge variant="outline" className="font-mono text-xs">{result.capabilities.length} 项</Badge>}
                 >
                   <div className="flex flex-wrap gap-1">
@@ -407,10 +407,10 @@ export function EmailViewer({ report }: EmailViewerProps) {
       const uids = result?.uids ?? [];
       return (
         <div className="space-y-3">
-          {renderStatus('搜索完成', '搜索失败')}
+          {renderStatus('Search Complete', 'Search Failed')}
           {isSuccess && result && (
-            <CollapsibleSection title="搜索结果" icon={<Search className="w-4 h-4" />} defaultOpen={true}
-              extra={<Badge variant="outline" className="font-mono text-xs">{result.count ?? uids.length} 条匹配</Badge>}
+            <CollapsibleSection title="Search Results" icon={<Search className="w-4 h-4" />} defaultOpen={true}
+              extra={<Badge variant="outline" className="font-mono text-xs">{result.count ?? uids.length} matches</Badge>}
             >
               {uids.length > 0 ? (
                 <div className="flex flex-wrap gap-1">
@@ -421,7 +421,7 @@ export function EmailViewer({ report }: EmailViewerProps) {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground italic">未找到匹配的邮件</p>
+                <p className="text-sm text-muted-foreground italic">No matching emails found</p>
               )}
             </CollapsibleSection>
           )}
@@ -437,12 +437,12 @@ export function EmailViewer({ report }: EmailViewerProps) {
 
       return (
         <div className="space-y-3">
-          {renderStatus('获取完成', '获取失败')}
+          {renderStatus('Fetch Complete', 'Fetch Failed')}
           {isSuccess && messages.length > 0 && (
             <>
               {/* 邮件列表 */}
-              <CollapsibleSection title="邮件列表" icon={<Mail className="w-4 h-4" />} defaultOpen={true}
-                extra={<Badge variant="outline" className="font-mono text-xs">{result?.count ?? messages.length} 封</Badge>}
+              <CollapsibleSection title="Message List" icon={<Mail className="w-4 h-4" />} defaultOpen={true}
+                extra={<Badge variant="outline" className="font-mono text-xs">{result?.count ?? messages.length}</Badge>}
               >
                 <div className="space-y-1.5 max-h-60 overflow-auto">
                   {messages.map((msg, idx) => (
@@ -458,7 +458,7 @@ export function EmailViewer({ report }: EmailViewerProps) {
               </CollapsibleSection>
               {/* 邮件详情 */}
               {messages[selectedIdx] && (
-                <CollapsibleSection title="邮件详情" icon={<Info className="w-4 h-4" />} defaultOpen={true}>
+                <CollapsibleSection title="Message Detail" icon={<Info className="w-4 h-4" />} defaultOpen={true}>
                   <ImapMessageDetail message={messages[selectedIdx]} />
                 </CollapsibleSection>
               )}
@@ -474,10 +474,10 @@ export function EmailViewer({ report }: EmailViewerProps) {
       const folders = result?.folders ?? [];
       return (
         <div className="space-y-3">
-          {renderStatus('列表完成', '列表失败')}
+          {renderStatus('List Complete', 'List Failed')}
           {isSuccess && folders.length > 0 && (
-            <CollapsibleSection title="邮箱文件夹" icon={<Inbox className="w-4 h-4" />} defaultOpen={true}
-              extra={<Badge variant="outline" className="font-mono text-xs">{folders.length} 个</Badge>}
+            <CollapsibleSection title="Mailbox Folders" icon={<Inbox className="w-4 h-4" />} defaultOpen={true}
+              extra={<Badge variant="outline" className="font-mono text-xs">{folders.length}</Badge>}
             >
               <ImapFolderList folders={folders} />
             </CollapsibleSection>
@@ -491,7 +491,7 @@ export function EmailViewer({ report }: EmailViewerProps) {
       // 通用操作结果（select, store_flags, copy, move, expunge, folder_create, folder_delete, idle, close）
       return (
         <div className="space-y-3">
-          {renderStatus('执行成功', '执行失败')}
+          {renderStatus('Success', 'Failed')}
           <VariableChangesCard changes={report.variable_changes} />
         </div>
       );

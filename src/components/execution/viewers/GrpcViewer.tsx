@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
 import { useVT } from '@/i18n/viewer-translations';
+import { getLL } from '@/i18n/i18n-lazy';
 import { useDebugStore } from '@/stores/debug';
 
 interface GrpcViewerProps {
@@ -253,6 +254,8 @@ export function GrpcViewer({ report }: GrpcViewerProps) {
 // ============================================================================
 
 function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
+  const t = useVT();
   const output = report.output_data as GrpcConnectOutput | undefined;
   const resolvedConfig = report.resolved_config as GrpcConnectOutput['request'] | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
@@ -269,7 +272,7 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 连接配置 */}
       <CollapsibleSection
-        title="连接配置"
+        title={ll.execution.viewers.connection_config()}
         icon={<Cable className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -283,7 +286,7 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
               gRPC
             </Badge>
             <code className="flex-1 text-sm font-mono text-foreground break-all bg-muted px-2 py-1 rounded">
-              {configUrl || <span className="text-muted-foreground italic">未配置 URL</span>}
+              {configUrl || <span className="text-muted-foreground italic">{ll.execution.viewers.config_url()}</span>}
             </code>
           </div>
 
@@ -292,27 +295,27 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
             <div className="flex flex-wrap gap-2">
               {requestConfig.use_tls !== undefined && (
                 <Badge variant="outline" className="font-mono text-xs">
-                  TLS: {requestConfig.use_tls ? '启用' : '关闭'}
+                  TLS: {requestConfig.use_tls ? ll.execution.viewers.tls_enabled() : ll.execution.viewers.tls_disabled()}
                 </Badge>
               )}
               {requestConfig.tls_skip_verify && (
                 <Badge variant="outline" className="font-mono text-xs text-amber-600 dark:text-amber-400">
-                  跳过证书验证
+                  {ll.execution.viewers.skip_cert_verify()}
                 </Badge>
               )}
               {requestConfig.enable_reflection !== undefined && (
                 <Badge variant="outline" className="font-mono text-xs">
-                  Reflection: {requestConfig.enable_reflection ? '启用' : '关闭'}
+                  Reflection: {requestConfig.enable_reflection ? ll.execution.viewers.reflection_enabled() : ll.execution.viewers.reflection_disabled()}
                 </Badge>
               )}
               {requestConfig.proto_files_count !== undefined && requestConfig.proto_files_count > 0 && (
                 <Badge variant="outline" className="font-mono text-xs">
-                  Proto 文件: {requestConfig.proto_files_count}
+                  {ll.execution.viewers.proto_files()}: {requestConfig.proto_files_count}
                 </Badge>
               )}
               {requestConfig.connect_timeout_ms !== undefined && (
                 <Badge variant="secondary" className="font-mono text-xs">
-                  超时: {requestConfig.connect_timeout_ms}ms
+                  {ll.execution.viewers.timeout_label()}: {requestConfig.connect_timeout_ms}ms
                 </Badge>
               )}
             </div>
@@ -322,7 +325,7 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 连接状态 */}
       <CollapsibleSection
-        title="连接状态"
+        title={ll.execution.viewers.connection_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -336,19 +339,19 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
                   : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
               )}
             >
-              {isSuccess ? '已连接' : '连接失败'}
+              {isSuccess ? ll.execution.viewers.connected() : ll.execution.viewers.disconnected()}
             </Badge>
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `gRPC 连接建立成功，发现 ${serviceCount} 个服务`
-                : output?.error ?? '无法建立 gRPC 连接'}
+                ? ll.execution.viewers.services_discovered({ count: serviceCount })
+                : output?.error ?? ll.execution.viewers.error_message()}
             </span>
           </div>
 
           {/* 连接 ID */}
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">连接 ID:</span>
+              <span className="text-muted-foreground">{ll.execution.viewers.connection_id_label()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>
@@ -367,12 +370,12 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
       {/* 服务发现 */}
       {isSuccess && services && services.length > 0 && (
         <CollapsibleSection
-          title="服务发现"
+          title={t('grpc.section_services')}
           icon={<Server className="w-4 h-4" />}
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {serviceCount} 个服务
+              {t('grpc.services_count', { count: serviceCount })}
             </Badge>
           }
         >
@@ -397,21 +400,21 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
                             variant="outline"
                             className="text-[10px] px-1 py-0 text-purple-600 dark:text-purple-400 border-purple-300 dark:border-purple-700"
                           >
-                            双向流式
+                            {ll.execution.viewers.bidi_streaming()}
                           </Badge>
                         ) : method.is_server_streaming ? (
                           <Badge
                             variant="outline"
                             className="text-[10px] px-1 py-0 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700"
                           >
-                            服务端流式
+                            {ll.execution.viewers.server_streaming()}
                           </Badge>
                         ) : method.is_client_streaming ? (
                           <Badge
                             variant="outline"
                             className="text-[10px] px-1 py-0 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700"
                           >
-                            客户端流式
+                            {ll.execution.viewers.client_streaming()}
                           </Badge>
                         ) : (
                           <Badge
@@ -425,7 +428,7 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground italic">无方法</p>
+                  <p className="text-xs text-muted-foreground italic">{ll.execution.viewers.no_methods()}</p>
                 )}
               </div>
             ))}
@@ -436,12 +439,12 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(connectDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.execution.viewers.timing_breakdown_short()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
             <span className="text-xs font-mono text-violet-600 font-medium">
-              总计 {totalDuration}ms
+              {ll.execution.viewers.total_label()} {totalDuration}ms
             </span>
           )}
         >
