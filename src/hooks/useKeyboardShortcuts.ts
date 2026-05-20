@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useFlowStore, useUIStore } from '@/stores';
 import { flowStorage } from '@/services/storage';
 import { useZoomStore } from '@/stores/zoom';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /**
  * 键盘快捷键 Hook
@@ -55,10 +56,11 @@ export function useKeyboardShortcuts() {
 
         // 弹出确认对话框，与 NodeConfigPanel 的删除按钮行为一致
         const { showConfirm } = useUIStore.getState();
+        const LL = getLL();
         showConfirm({
-          title: '删除节点',
-          description: `确定要删除节点「${selectedNode.name}」吗？`,
-          confirmText: '删除',
+          title: LL.flow.delete_node_title(),
+          description: LL.flow.delete_node_desc({ name: selectedNode.name }),
+          confirmText: LL.flow.delete_node_confirm(),
           onConfirm: () => {
             removeNode(selectedNode.uuid);
             selectNode(null);

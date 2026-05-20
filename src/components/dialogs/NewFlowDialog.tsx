@@ -12,12 +12,14 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { getLL } from '@/i18n/i18n-lazy';
 import { useUIStore, useFlowStore, useFlowListStore } from '@/stores';
 import { createFlow } from '@/services/tauri';
 import { flowStorage } from '@/services/storage';
 import type { FolderInfo } from '@/services/storage';
 
 export function NewFlowDialog() {
+  const LL = getLL();
   const showNewFlowDialog = useUIStore((state) => state.showNewFlowDialog);
   const newFlowDialogFolderPath = useUIStore((state) => state.newFlowDialogFolderPath);
   const closeNewFlowDialog = useUIStore((state) => state.closeNewFlowDialog);
@@ -83,11 +85,11 @@ export function NewFlowDialog() {
     <Dialog open={showNewFlowDialog} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="w-full max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>新建流程</DialogTitle>
+          <DialogTitle>{LL.flow.new_flow_dialog_title()}</DialogTitle>
         </DialogHeader>
         <div className="py-4 space-y-3">
           <Input
-            placeholder="请输入流程名称"
+            placeholder={LL.flow.flow_name_placeholder()}
             value={flowName}
             onChange={(e) => setFlowName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
@@ -96,7 +98,7 @@ export function NewFlowDialog() {
           />
           <div className="space-y-1.5">
             <label htmlFor="folder-select" className="text-sm text-muted-foreground">
-              所属文件夹
+              {LL.flow.parent_folder()}
             </label>
             <select
               id="folder-select"
@@ -105,7 +107,7 @@ export function NewFlowDialog() {
               disabled={isLoading}
               className="w-full h-9 rounded-md border border-border bg-background px-3 py-1 text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <option value="">根目录</option>
+              <option value="">{LL.flow.root_directory()}</option>
               {folders.map(folder => (
                 <option key={folder.path} value={folder.path}>
                   {folder.name}
@@ -116,10 +118,10 @@ export function NewFlowDialog() {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={isLoading}>
-            取消
+            {LL.flow.cancel()}
           </Button>
           <Button onClick={handleCreate} disabled={isLoading || !flowName.trim()}>
-            {isLoading ? '创建中...' : '创建'}
+            {isLoading ? LL.flow.creating() : LL.flow.create()}
           </Button>
         </DialogFooter>
       </DialogContent>

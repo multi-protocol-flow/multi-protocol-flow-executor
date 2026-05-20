@@ -1189,7 +1189,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
                         <Folder className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                         <span className="truncate">{folder.name}</span>
                         {isCurrentFlowFolder && (
-                          <span className="text-[10px] text-muted-foreground shrink-0">(当前)</span>
+                          <span className="text-[10px] text-muted-foreground shrink-0">{getLL().flow.current_label()}</span>
                         )}
                       </button>
                     </div>,
@@ -1224,7 +1224,7 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
               className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
             >
               <FileJson className="w-3.5 h-3.5 shrink-0" />
-              根目录
+              {getLL().flow.root_dir()}
             </button>
             {(() => {
               const renderFolderItems = (folderPaths: string[], depth: number): ReactNode[] => {
