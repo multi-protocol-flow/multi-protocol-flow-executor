@@ -320,6 +320,11 @@ const en_US_flow = {
   variable_selector_hint: 'Click variable name to insert ',
   variable_node_prefix: 'Node {id}',
 
+  // Node palette
+  add_node_tooltip: 'Add node (right-click on canvas also works)',
+  right_click_hint: 'Right-click on empty canvas area to add nodes',
+  no_matching_nodes: 'No matching nodes',
+
   // Variable validation
   var_ref_invalid: 'Invalid variable references:',
 };

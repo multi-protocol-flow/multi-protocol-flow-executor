@@ -1,9 +1,8 @@
 ﻿/**
- * NodePalette - 画布底部浮动节点工具条（二级分组 UI）
+ * NodePalette - 节点选择器浮动弹窗
  *
- * 收起状态：底部只显示 4 个大类别按钮（协议/数据/工具/邮件）
- * 展开状态：向上弹出面板，搜索框 + Tab 二级分类 + 节点网格
- *
+ * 由工具栏按钮或右键画布触发，以浮动弹窗形式展示所有可用节点类型。
+ * 支持搜索、超级分类/二级分类 Tab 切换、拖拽/点击添加节点。
  * 动态从后端 NodeRegistry 获取节点分组，回退到静态分组。
  */
 import { type LucideIcon } from 'lucide-react';
@@ -29,6 +28,7 @@ import {
   Unplug,
   Mail,
   Search,
+  X,
   Download,
   Eye,
   EyeOff,
@@ -51,7 +51,7 @@ import {
   MessageSquare,
   ArrowDownLeft,
 } from 'lucide-react';
-import { useFlowStore } from '@/stores';
+import { useFlowStore, useUIStore } from '@/stores';
 import type { NodeType } from '@/types';
 import type { NodeMetadata } from '@/types/nodeRegistry';
 import {
@@ -61,10 +61,10 @@ import {
   getCategoryOrder,
   getNodeTypeOrder,
 } from '@/lib/NodeRegistry';
-import { ICON_MAP as NODE_TYPE_ICON_MAP } from '@/lib/nodeMeta';
+import { ICON_MAP as NODE_TYPE_ICON_MAP, getNodeDisplayName } from '@/lib/nodeMeta';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
-import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 
 // ============================================================================
 // 导出的类型和常量（供外部引用，不可删除）
@@ -248,7 +248,8 @@ export function buildGroupsFromMetadata(metadata: NodeMetadata[]): NodeGroup[] {
         icon: CATEGORY_ICONS[category] ?? Wrench,
         items: filtered.map((m) => ({
           type: m.type_id as NodeType,
-          name: m.display_name,
+          // 使用 i18n 翻译名称，回退到后端 display_name
+          name: getNodeDisplayName(m.type_id),
           // 优先使用 nodeMeta.ts 的 type_id 映射（与画布节点一致），回退到后端 icon 字段映射
           icon: NODE_TYPE_ICON_MAP[m.type_id]?.icon ?? ICON_MAP[m.icon] ?? Wrench,
         })),
@@ -267,10 +268,6 @@ export function buildGroupsFromMetadata(metadata: NodeMetadata[]): NodeGroup[] {
 interface SuperCategory {
   /** 分类键 */
   key: string;
-  /** 显示名称 */
-  label: string;
-  /** 图标 */
-  icon: LucideIcon;
   /** 包含的二级分类 key */
   categories: string[];
 }
@@ -279,32 +276,22 @@ interface SuperCategory {
 const SUPER_CATEGORIES: SuperCategory[] = [
   {
     key: 'network',
-    label: 'Network',
-    icon: Globe,
     categories: ['http', 'websocket', 'sse', 'graphql'],
   },
   {
-    key: 'service',
-    label: 'Services',
-    icon: Network,
+    key: 'services',
     categories: ['grpc', 'mcp'],
   },
   {
     key: 'messaging',
-    label: 'Messaging',
-    icon: Send,
     categories: ['mqtt', 'kafka', 'amqp'],
   },
   {
     key: 'tools',
-    label: 'Tools',
-    icon: Wrench,
     categories: ['tools', 'script', 'assertion'],
   },
   {
     key: 'other',
-    label: 'Other',
-    icon: Layers,
     categories: ['database', 'email', 'tcp', 'udp'],
   },
 ];
@@ -350,29 +337,42 @@ function NodeCard({
   );
 }
 
-// ============================================================================
-// 主组件
-// ============================================================================
+// 超级分类标签（绕过 typesafe-i18n 代理链，直接按 locale 取）
+function getSuperCategoryLabel(key: string): string {
+  const locale = (typeof localStorage !== 'undefined' ? localStorage.getItem('locale') : null) || 'zh-CN';
+  const isEn = locale === 'en-US';
+  const labels: Record<string, string> = {
+    network: isEn ? 'Network' : '网络协议',
+    services: isEn ? 'Services' : '服务',
+    messaging: isEn ? 'Messaging' : '消息队列',
+    tools: isEn ? 'Tools' : '工具',
+    other: isEn ? 'Other' : '其他',
+  };
+  return labels[key] ?? key;
+}
+
+/** 面板宽高常量 */
+const PALETTE_WIDTH = 400;
+const PALETTE_MAX_HEIGHT = 420;
 
 /**
- * 节点工具条组件
- * 悬浮在画布底部居中，二级分组展示可用节点类型
+ * 节点选择器浮动弹窗组件
  */
 export function NodePalette() {
-  const LL = getLL();
   const setPendingAddNodeType = useFlowStore((s) => s.setPendingAddNodeType);
   const flow = useFlowStore((s) => s.flow);
+  const isOpen = useUIStore((s) => s.isNodePaletteOpen);
+  const palettePosition = useUIStore((s) => s.nodePalettePosition);
+  const closePalette = useUIStore((s) => s.closeNodePalette);
 
   // 动态元数据状态
   const [metadata, setMetadata] = useState<NodeMetadata[]>([]);
-  // 展开状态：当前激活的超级分类 key，null 表示收起
-  const [activeSuperKey, setActiveSuperKey] = useState<string | null>(null);
+  // 当前激活的超级分类 key，默认 'network'
+  const [activeSuperKey, setActiveSuperKey] = useState<string>('network');
   // 当前激活的二级分类 Tab key
   const [activeTabKey, setActiveTabKey] = useState<string | null>(null);
   // 搜索关键词
   const [searchQuery, setSearchQuery] = useState('');
-  // 面板 ref，用于点击外部关闭
-  const panelRef = useRef<HTMLDivElement>(null);
 
   // 挂载时获取元数据
   useEffect(() => {
@@ -391,7 +391,6 @@ export function NodePalette() {
     for (const sc of SUPER_CATEGORIES) {
       map[sc.key] = [];
     }
-    // 未被超级分类覆盖的分组归入"工具"
     for (const group of nodeGroups) {
       let matched = false;
       for (const sc of SUPER_CATEGORIES) {
@@ -402,24 +401,32 @@ export function NodePalette() {
         }
       }
       if (!matched) {
-        // 未匹配的归入工具分类
         map['tools'].push(group);
       }
     }
     return map;
   }, [nodeGroups]);
 
-  // 当前激活的超级分类下的分组
-  const currentGroups = activeSuperKey ? (groupedBySuper[activeSuperKey] ?? []) : [];
+  const currentGroups = useMemo(
+    () => (activeSuperKey ? (groupedBySuper[activeSuperKey] ?? []) : []),
+    [activeSuperKey, groupedBySuper]
+  );
 
   // 当切换超级分类时，自动选中第一个 Tab
   useEffect(() => {
-    if (activeSuperKey) {
-      const groups = groupedBySuper[activeSuperKey] ?? [];
-      setActiveTabKey(groups.length > 0 ? groups[0].key : null);
-      setSearchQuery('');
-    }
+    if (!activeSuperKey) return;
+    const groups = groupedBySuper[activeSuperKey] ?? [];
+    setActiveTabKey(groups.length > 0 ? groups[0].key : null);
+    setSearchQuery('');
   }, [activeSuperKey, groupedBySuper]);
+
+  // 打开时重置状态
+  useEffect(() => {
+    if (isOpen) {
+      setSearchQuery('');
+      setActiveSuperKey('network');
+    }
+  }, [isOpen]);
 
   // 当前 Tab 下的节点
   const currentTabItems = useMemo(() => {
@@ -428,7 +435,6 @@ export function NodePalette() {
     return group?.items ?? [];
   }, [activeTabKey, currentGroups]);
 
-  // 搜索过滤结果（跨当前超级分类的所有二级分类）
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase().trim();
@@ -446,10 +452,14 @@ export function NodePalette() {
   // 实际展示的节点列表
   const displayItems = searchQuery.trim() ? searchResults : currentTabItems;
 
-  /** 拖拽开始：设置 dataTransfer */
+  /** 拖拽开始：设置 dataTransfer，延迟关闭弹窗释放画布 */
   const handleDragStart = useCallback((e: React.DragEvent, type: NodeType) => {
     e.dataTransfer.setData('application/reactflow/nodeType', type);
     e.dataTransfer.effectAllowed = 'move';
+    // 延迟到下一帧关闭弹窗，确保 dragstart 完成后再移除遮罩
+    requestAnimationFrame(() => {
+      useUIStore.getState().closeNodePalette();
+    });
   }, []);
 
   /** 点击添加节点：设置待添加类型，由 FlowCanvas 在视口中心处理 */
@@ -458,187 +468,199 @@ export function NodePalette() {
     setPendingAddNodeType(type);
   }, [flow, setPendingAddNodeType]);
 
-  /** 切换超级分类 */
-  const handleSuperClick = (key: string) => {
-    setActiveSuperKey((prev) => prev === key ? null : key);
-  };
-
-  /** 点击外部关闭面板 */
+  /** Esc 关闭 */
   useEffect(() => {
-    if (!activeSuperKey) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setActiveSuperKey(null);
-      }
-    };
-
-    // 延迟绑定，避免本次点击立即触发
-    const timer = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside);
-    }, 0);
-
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [activeSuperKey]);
-
-  /** Esc 关闭面板 */
-  useEffect(() => {
-    if (!activeSuperKey) return;
+    if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setActiveSuperKey(null);
+        closePalette();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [activeSuperKey]);
+  }, [isOpen, closePalette]);
 
   // 是否显示搜索（只在有搜索词时隐藏 Tab）
   const isSearching = searchQuery.trim().length > 0;
 
+  // 计算弹窗位置：有指定位置则靠右偏移；否则屏幕居中
+  const popupStyle: React.CSSProperties = useMemo(() => {
+    if (palettePosition) {
+      // 右键触发：弹窗出现在光标右下，避免溢出视口
+      const left = Math.min(palettePosition.x + 12, window.innerWidth - PALETTE_WIDTH - 20);
+      const top = Math.min(palettePosition.y + 8, window.innerHeight - PALETTE_MAX_HEIGHT - 20);
+      return {
+        position: 'fixed',
+        left: `${Math.max(left, 20)}px`,
+        top: `${Math.max(top, 20)}px`,
+        width: `${PALETTE_WIDTH}px`,
+      };
+    }
+    // 工具栏按钮触发：屏幕居中
+    return {
+      position: 'fixed',
+      left: '50%',
+      top: '50%',
+      transform: 'translate(-50%, -50%)',
+      width: `${PALETTE_WIDTH}px`,
+    };
+  }, [palettePosition]);
+
+  if (!isOpen) return null;
+
   return (
-    <div
-      ref={panelRef}
-      className={cn(
-        'absolute bottom-6 left-1/2 -translate-x-1/2 z-10',
-        'flex flex-col items-center',
-      )}
-    >
-      {/* 展开面板（向上弹出） */}
-      {activeSuperKey && (
-        <div
-          className={cn(
-            'mb-2 w-[360px]',
-            'bg-background/95 backdrop-blur-md rounded-2xl',
-            'shadow-xl border border-border/50',
-            'animate-in fade-in-0 slide-in-from-bottom-2 duration-200',
-            'overflow-hidden',
-          )}
-        >
-          {/* 搜索框 */}
-          <div className="px-3 pt-3 pb-1">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={LL.flow.search_placeholder()}
-                className={cn(
-                  'w-full pl-8 pr-3 py-2 text-sm',
-                  'bg-muted/50 rounded-xl',
-                  'border border-border/40',
-                  'placeholder:text-muted-foreground/60',
-                  'focus:outline-none focus:ring-1 focus:ring-ring/40 focus:border-border',
-                  'transition-all duration-150',
-                )}
-              />
-            </div>
+    <>
+      {/* 半透明遮罩 */}
+      <div
+        className="fixed inset-0 z-[60] bg-black/20 cursor-default"
+        onClick={closePalette}
+      />
+
+      {/* 弹窗 */}
+      <div
+        style={popupStyle}
+        className={cn(
+          'z-[70]',
+          'bg-background/98 backdrop-blur-md rounded-2xl',
+          'shadow-2xl border border-border/50',
+          'animate-in fade-in-0 zoom-in-95 duration-150',
+          'overflow-hidden',
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 标题栏 */}
+        <div className="flex items-center justify-between px-3 pt-3 pb-1">
+          <div className="flex items-center gap-1.5">
+            <Search className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">
+              {(typeof localStorage !== 'undefined' && localStorage.getItem('locale') === 'en-US') ? 'Add Node' : '添加节点'}
+            </span>
           </div>
+          <button
+            type="button"
+            onClick={closePalette}
+            className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            title="关闭"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
-          {/* Tab 栏（搜索时隐藏） */}
-          {!isSearching && currentGroups.length > 1 && (
-            <div className="px-2 py-1">
-              <div className="flex gap-0.5 overflow-x-auto scrollbar-none">
-                {currentGroups.map((group) => {
-                  const TabIcon = group.icon;
-                  const isActive = activeTabKey === group.key;
-                  return (
-                    <button
-                      key={group.key}
-                      type="button"
-                      onClick={() => setActiveTabKey(group.key)}
-                      className={cn(
-                        'flex items-center gap-1 px-2.5 py-1.5 rounded-lg',
-                        'text-xs whitespace-nowrap shrink-0',
-                        'transition-all duration-150 cursor-pointer',
-                        isActive
-                          ? 'bg-accent text-accent-foreground font-medium'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-                      )}
-                    >
-                      <TabIcon className="w-3 h-3" />
-                      {group.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* 分隔线 */}
-          <div className="mx-3 border-t border-border/30" />
-
-          {/* 节点网格 */}
-          <div className="p-2 max-h-[280px] overflow-y-auto">
-            {displayItems.length > 0 ? (
-              <div
-                className="grid gap-1"
-                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))' }}
-              >
-                {displayItems.map((item) => (
-                  <NodeCard
-                    key={item.type}
-                    item={item}
-                    onDragStart={handleDragStart}
-                    onClick={handleClick}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="py-6 text-center text-xs text-muted-foreground">
-                {isSearching ? 'No matching nodes' : 'No nodes available'}
-              </div>
-            )}
+        {/* 搜索框 */}
+        <div className="px-3 pt-1 pb-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={LL.flow.search_placeholder()}
+              className={cn(
+                'w-full pl-8 pr-3 py-2 text-sm',
+                'bg-muted/50 rounded-xl',
+                'border border-border/40',
+                'placeholder:text-muted-foreground/60',
+                'focus:outline-none focus:ring-1 focus:ring-ring/40 focus:border-border',
+                'transition-all duration-150',
+              )}
+              autoFocus
+            />
           </div>
         </div>
-      )}
 
-      {/* 底部工具条 */}
-      <div
-        className={cn(
-          'flex items-center gap-0',
-          'bg-background/90 backdrop-blur-sm rounded-2xl px-1 py-1',
-          'shadow-lg border border-border/50',
+        {/* 超级分类 Tab 栏 */}
+        <div className="px-2 py-1">
+          <div className="flex gap-0.5 overflow-x-auto scrollbar-none">
+            {SUPER_CATEGORIES.map((sc) => {
+              const hasGroups = (groupedBySuper[sc.key] ?? []).length > 0;
+              if (!hasGroups) return null;
+              const isActive = activeSuperKey === sc.key;
+              return (
+                <button
+                  key={sc.key}
+                  type="button"
+                  onClick={() => setActiveSuperKey(sc.key)}
+                  className={cn(
+                    'px-2.5 py-1.5 rounded-lg',
+                    'text-xs whitespace-nowrap shrink-0',
+                    'transition-all duration-150 cursor-pointer',
+                    isActive
+                      ? 'bg-accent text-accent-foreground font-medium'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                  )}
+                >
+                  {getSuperCategoryLabel(sc.key)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 二级分类 Tab 栏（搜索时隐藏） */}
+        {!isSearching && currentGroups.length > 1 && (
+          <div className="px-2 py-1">
+            <div className="flex gap-0.5 overflow-x-auto scrollbar-none">
+              {currentGroups.map((group) => {
+                const TabIcon = group.icon;
+                const isActive = activeTabKey === group.key;
+                return (
+                  <button
+                    key={group.key}
+                    type="button"
+                    onClick={() => setActiveTabKey(group.key)}
+                    className={cn(
+                      'flex items-center gap-1 px-2.5 py-1.5 rounded-lg',
+                      'text-xs whitespace-nowrap shrink-0',
+                      'transition-all duration-150 cursor-pointer',
+                      isActive
+                        ? 'bg-accent text-accent-foreground font-medium'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                    )}
+                  >
+                    <TabIcon className="w-3 h-3" />
+                    {group.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         )}
-      >
-        {SUPER_CATEGORIES.map((sc) => {
-          const Icon = sc.icon;
-          const isActive = activeSuperKey === sc.key;
-          // 检查该超级分类下是否有分组数据
-          const hasGroups = (groupedBySuper[sc.key] ?? []).length > 0;
-          if (!hasGroups) return null;
 
-          return (
-            <button
-              key={sc.key}
-              type="button"
-              onClick={() => handleSuperClick(sc.key)}
-              title={sc.label}
-              className={cn(
-                'flex flex-col items-center justify-center',
-                'w-14 h-12 rounded-xl',
-                'transition-all duration-150 cursor-pointer',
-                'select-none',
-                isActive
-                  ? 'bg-accent text-accent-foreground scale-[1.02]'
-                  : 'text-foreground hover:bg-accent/50 hover:scale-105',
-                'active:scale-95',
-              )}
+        {/* 分隔线 */}
+        <div className="mx-3 border-t border-border/30" />
+
+        {/* 节点网格 */}
+        <div className="p-2 max-h-[280px] overflow-y-auto">
+          {displayItems.length > 0 ? (
+            <div
+              className="grid gap-1"
+              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))' }}
             >
-              <Icon className="w-5 h-5" />
-              <span className="text-[10px] text-muted-foreground mt-0.5 leading-none">
-                {sc.label}
-              </span>
-            </button>
-          );
-        })}
+              {displayItems.map((item) => (
+                <NodeCard
+                  key={item.type}
+                  item={item}
+                  onDragStart={handleDragStart}
+                  onClick={handleClick}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="py-6 text-center text-xs text-muted-foreground">
+              {isSearching ? LL.flow.no_matching_nodes() : LL.nodes.no_nodes_available()}
+            </div>
+          )}
+        </div>
+
+        {/* 右键提示 */}
+        {!palettePosition && (
+          <div className="px-3 pb-2 pt-0 text-[10px] text-muted-foreground/70 text-center">
+            {LL.flow.right_click_hint()}
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }

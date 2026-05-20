@@ -18,6 +18,14 @@ const en_US_nodes = {
     tcp: 'TCP',
     udp: 'UDP'
   },
+  superCategory: {
+    network: 'Network',
+    services: 'Services',
+    messaging: 'Messaging',
+    tools: 'Tools',
+    other: 'Other',
+  },
+  no_nodes_available: 'No nodes available',
   entry: 'Entry',
   http: 'HTTP Request',
   conditional: 'Conditional',

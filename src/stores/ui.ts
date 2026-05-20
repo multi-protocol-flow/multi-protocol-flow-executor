@@ -14,6 +14,12 @@ export type BottomPanelTab = 'history' | 'console' | 'running';
 /** 页面导航类型 */
 export type PageType = 'canvas' | 'dataset-reports';
 
+/** 节点选择器位置 */
+export interface NodePalettePosition {
+  x: number;
+  y: number;
+}
+
 /** 数据集报告子页面状态 */
 export interface DatasetReportPageState {
   /** 当前报告 ID（查看详情时设置） */
@@ -111,6 +117,12 @@ interface UIState {
   /** 小地图是否显示 */
   showMinimap: boolean;
 
+  // ===== 节点选择器状态 =====
+  /** 节点选择器是否打开 */
+  isNodePaletteOpen: boolean;
+  /** 节点选择器弹出位置（null 时使用默认位置） */
+  nodePalettePosition: NodePalettePosition | null;
+
   // ===== Actions =====
   /** 切换流程列表面板 */
   toggleFlowListPanel: () => void;
@@ -192,6 +204,12 @@ interface UIState {
   /** 切换小地图显隐 */
   toggleMinimap: () => void;
 
+  // ===== 节点选择器 Actions =====
+  /** 打开节点选择器（可指定位置，不指定则默认居中） */
+  openNodePalette: (position?: NodePalettePosition) => void;
+  /** 关闭节点选择器 */
+  closeNodePalette: () => void;
+
   // ===== 工具方法 =====
   /** 重置所有面板状态 */
   resetPanels: () => void;
@@ -263,6 +281,9 @@ const initialState = {
   bottomPanelHeight: 208,
   canvasZoom: 1,
       showMinimap: false,
+      // 节点选择器
+      isNodePaletteOpen: false,
+      nodePalettePosition: null,
 };
 
 export const useUIStore = create<UIState>((set) => ({
@@ -412,6 +433,19 @@ export const useUIStore = create<UIState>((set) => ({
       showMinimap: !state.showMinimap,
     })),
 
+  // ===== 节点选择器 Actions =====
+  openNodePalette: (position) =>
+    set({
+      isNodePaletteOpen: true,
+      nodePalettePosition: position ?? null,
+    }),
+
+  closeNodePalette: () =>
+    set({
+      isNodePaletteOpen: false,
+      nodePalettePosition: null,
+    }),
+
   // ===== 页面导航 Actions =====
   navigateTo: (page: PageType) => set({ currentPage: page }),
 
@@ -450,6 +484,8 @@ export const useUIStore = create<UIState>((set) => ({
       isFlowListCollapsed: false,
       isVariableDrawerOpen: false,
       showMinimap: false,
+      isNodePaletteOpen: false,
+      nodePalettePosition: null,
     }),
 }));
 

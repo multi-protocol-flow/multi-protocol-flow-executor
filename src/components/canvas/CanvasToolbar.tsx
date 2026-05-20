@@ -3,7 +3,7 @@
  * 位于画布顶部居中，包含撤销/重做、执行按钮、变量按钮
  */
 import { useState, useMemo } from 'react';
-import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Undo2, Redo2, Database } from 'lucide-react';
+import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Undo2, Redo2, Database, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import * as Popover from '@radix-ui/react-popover';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging, selectCanUndo, selectCanRedo } from '@/stores';
@@ -196,6 +196,27 @@ export function CanvasToolbar() {
           <div className="w-px h-5 bg-border" />
         )}
 
+        {/* 添加节点按钮 */}
+        {!isAnyActive && (
+          <>
+            <button
+              type="button"
+              onClick={() => useUIStore.getState().openNodePalette()}
+              title={getLL().flow.add_node_tooltip()}
+              className={cn(
+                'flex items-center justify-center w-9 h-9 rounded-lg',
+                'text-foreground',
+                'hover:bg-accent hover:scale-110',
+                'active:scale-95',
+                'transition-all duration-150 cursor-pointer',
+              )}
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            <div className="w-px h-5 bg-border" />
+          </>
+        )}
+
         {/* 撤销/重做按钮 */}
         <button
           type="button"
@@ -380,9 +401,6 @@ export function CanvasToolbar() {
                         {totalVariables}
                       </span>
                     </div>
-                    <span className="text-[9px] text-muted-foreground leading-none mt-0.5">
-                      {getLL().flow.variable_panel()}
-                    </span>
                   </button>
                 </Popover.Trigger>
 

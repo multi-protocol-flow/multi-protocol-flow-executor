@@ -469,12 +469,13 @@ function FlowCanvasInner() {
     [updateNode]
   );
 
-  // 处理节点点击 - 选中节点并展开面板
+  // 处理节点点击 - 选中节点并展开面板，同时关闭节点选择器
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
       selectNode(node.id);
       setConfigPanelOpen(true);
       setConfigPanelMode('node');
+      useUIStore.getState().closeNodePalette();
       // 调试模式下自动展开左侧面板（显示节点只读配置）
       const debugStore = useDebugStore.getState();
       if (debugStore.status !== 'idle' && debugStore.status !== 'ended') {
@@ -490,12 +491,25 @@ function FlowCanvasInner() {
     setConfigPanelOpen(false);
   }, [selectNode, setConfigPanelOpen]);
 
-  // 处理画布空白处点击 - 取消选中，保持面板打开显示节点列表
+  // 处理画布空白处点击 - 取消选中，保持面板打开显示节点列表，同时关闭节点选择器
   const onPaneClick = useCallback(() => {
     selectNode(null);
     setConfigPanelOpen(true);
     setContextMenu(null);
+    useUIStore.getState().closeNodePalette();
   }, [selectNode, setConfigPanelOpen]);
+
+  // 处理画布右键 - 弹出节点选择器
+  const onPaneContextMenu = useCallback(
+    (event: React.MouseEvent | MouseEvent) => {
+      event.preventDefault();
+      // 使用 clientX/Y 获取相对于视口的坐标用于 fixed 定位
+      const x = 'clientX' in event ? event.clientX : 0;
+      const y = 'clientY' in event ? event.clientY : 0;
+      useUIStore.getState().openNodePalette({ x, y });
+    },
+    []
+  );
 
   // 自动布局处理
   const handleAutoLayout = useCallback((direction: LayoutDirection) => {
@@ -715,8 +729,9 @@ function FlowCanvasInner() {
       data,
     });
 
-    // 清除待添加节点状态
+    // 清除待添加节点状态，并关闭节点选择器
     clearPendingAddNodeType();
+    useUIStore.getState().closeNodePalette();
   }, [pendingAddNodeType, flow, addNode, screenToFlowPosition, clearPendingAddNodeType, canvasRef]);
   // 没有流程时显示空状态
   if (!flow) {
@@ -820,6 +835,7 @@ function FlowCanvasInner() {
         onDragOver={onDragOver}
         onDrop={onDrop}
         onPaneClick={onPaneClick}
+        onPaneContextMenu={onPaneContextMenu}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         // Backspace 和 Delete 键触发删除操作

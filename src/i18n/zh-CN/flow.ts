@@ -320,6 +320,11 @@ const zh_CN_flow: BaseTranslation = {
   variable_selector_hint: '点击变量名插入 ',
   variable_node_prefix: '节点 {id}',
 
+  // 节点选择器
+  add_node_tooltip: '添加节点（也可右键画布空白处）',
+  right_click_hint: '右键画布空白处也可添加节点',
+  no_matching_nodes: '无匹配节点',
+
   // 变量引用验证
   var_ref_invalid: '变量引用失效:',
 };

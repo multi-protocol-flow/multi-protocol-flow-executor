@@ -18,6 +18,14 @@ const zh_CN_nodes = {
     tcp: 'TCP',
     udp: 'UDP'
   },
+  superCategory: {
+    network: '网络协议',
+    services: '服务',
+    messaging: '消息队列',
+    tools: '工具',
+    other: '其他',
+  },
+  no_nodes_available: '暂无可用节点',
   entry: '入口',
   http: 'HTTP 请求',
   conditional: '条件判断',
