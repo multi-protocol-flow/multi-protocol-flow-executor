@@ -2,106 +2,37 @@
  * 执行组件共享常量
  */
 
-import { i18nObject } from '@/i18n/i18n-util';
-import { baseLocale } from '@/i18n/i18n-util';
-import type { TranslationFunctions } from '@/i18n/i18n-types';
-import type { NodeMetadata } from '@/types/nodeRegistry';
-
-let _LL: TranslationFunctions | null = null;
-const getLL = () => {
-  if (!_LL) _LL = i18nObject(baseLocale);
-  return _LL;
-};
-
-/** 节点类型标签映射 — 静态回退值 */
-const FALLBACK_NODE_TYPE_NAMES: Record<string, string> = {
-  entry: getLL().execution.node_types.entry(),
-  http: getLL().execution.node_types.http(),
-  conditional: getLL().execution.node_types.conditional(),
-  script: getLL().execution.node_types.script(),
-  assertion: getLL().execution.node_types.assertion(),
-  end: getLL().execution.node_types.end(),
-  ws_connect: getLL().execution.node_types.ws_connect(),
-  ws_send_collect: getLL().execution.node_types.ws_send_collect(),
-  ws_close: getLL().execution.node_types.ws_close(),
-  db_connect: getLL().execution.node_types.db_connect(),
-  db_query: getLL().execution.node_types.db_query(),
-  db_begin: getLL().execution.node_types.db_begin(),
-  db_commit: getLL().execution.node_types.db_commit(),
-  db_rollback: getLL().execution.node_types.db_rollback(),
-  db_close: getLL().execution.node_types.db_close(),
-};
-
-/** 节点类型颜色映射 — 静态回退值 */
-const FALLBACK_NODE_TYPE_COLORS: Record<string, string> = {
-  entry: 'bg-emerald-100 text-emerald-700',
-  http: 'bg-blue-100 text-blue-700',
-  conditional: 'bg-orange-100 text-orange-700',
-  script: 'bg-indigo-100 text-indigo-700',
-  assertion: 'bg-purple-100 text-purple-700',
-  end: 'bg-slate-100 text-slate-700',
-  ws_connect: 'bg-amber-100 text-amber-700',
-  ws_send_collect: 'bg-teal-100 text-teal-700',
-  ws_close: 'bg-rose-100 text-rose-700',
-  db_connect: 'bg-violet-100 text-violet-700',
-  db_query: 'bg-violet-100 text-violet-700',
-  db_begin: 'bg-violet-100 text-violet-700',
-  db_commit: 'bg-violet-100 text-violet-700',
-  db_rollback: 'bg-violet-100 text-violet-700',
-  db_close: 'bg-violet-100 text-violet-700',
-};
+import { getLL } from '@/i18n/i18n-lazy';
+import { getNodeDisplayName, getNodeMeta } from '@/lib/nodeMeta';
 
 /**
- * 动态构建节点类型标签映射
+ * 节点类型标签映射 — 动态代理
  *
- * 优先使用后端元数据的 display_name，回退到静态映射。
- *
- * @param metadata - 从后端获取的节点元数据
- * @returns 合并后的标签映射
+ * 通过 getNodeDisplayName() 获取运行时当前 locale 的显示名称，
+ * 覆盖全部 ~70 种节点类型，支持 zh-CN / en-US 动态切换。
  */
-export function buildNodeTypeNames(
-  metadata: NodeMetadata[]
-): Record<string, string> {
-  const dynamic: Record<string, string> = {};
-  for (const m of metadata) {
-    dynamic[m.type_id] = m.display_name;
+export const NODE_TYPE_NAMES: Record<string, string> = new Proxy(
+  {} as Record<string, string>,
+  {
+    get(_target, prop: string) {
+      return getNodeDisplayName(prop);
+    },
   }
-  return { ...FALLBACK_NODE_TYPE_NAMES, ...dynamic };
-}
+);
 
 /**
- * 动态构建节点类型颜色映射
+ * 节点类型颜色映射 — 动态代理
  *
- * 优先使用后端元数据的 color 转换为 Tailwind class，回退到静态映射。
- *
- * @param metadata - 从后端获取的节点元数据
- * @returns 合并后的颜色映射
+ * 通过 getNodeMeta() 获取每个节点类型的 badge 颜色 class。
  */
-export function buildNodeTypeColors(
-  _metadata: NodeMetadata[]
-): Record<string, string> {
-  // 后端返回十六进制颜色，需要转为 Tailwind class
-  // 目前保留静态映射确保视觉一致性
-  return { ...FALLBACK_NODE_TYPE_COLORS };
-}
-
-/**
- * 节点类型标签映射（与画布节点标签保持一致）
- *
- * 初始使用静态值，可由组件调用 buildNodeTypeNames 动态更新。
- */
-export const NODE_TYPE_NAMES: Record<string, string> = {
-  ...FALLBACK_NODE_TYPE_NAMES,
-};
-
-/**
- * 节点类型颜色映射（与画布节点主题色保持一致）
- *
- * 初始使用静态值，可由组件调用 buildNodeTypeColors 动态更新。
- */
-export const NODE_TYPE_COLORS: Record<string, string> = {
-  ...FALLBACK_NODE_TYPE_COLORS,
-};
+export const NODE_TYPE_COLORS: Record<string, string> = new Proxy(
+  {} as Record<string, string>,
+  {
+    get(_target, prop: string) {
+      return getNodeMeta(prop)?.badge ?? '';
+    },
+  }
+);
 
 // ============================================================================
 // 断言节点常量

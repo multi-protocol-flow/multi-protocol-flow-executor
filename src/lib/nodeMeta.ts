@@ -54,8 +54,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { getCachedDisplayName } from '@/lib/NodeRegistry';
-import { i18nObject, baseLocale } from '@/i18n/i18n-util';
-import type { Locales } from '@/i18n/i18n-types';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /** 节点类型元数据 */
 export interface NodeTypeMeta {
@@ -183,17 +182,10 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
   proxy: { icon: Shield, iconBg: 'bg-lime-500', labelColor: 'text-lime-600', badge: 'bg-lime-100 text-lime-700' },
 };
 
-/** 静态显示名称映射（按当前 locale 动态构建，切换语言后自动重建） */
-let _staticDisplayNames: Record<string, string> | null = null;
-let _staticDisplayNamesLocale: string | null = null;
-
+/** 静态显示名称映射（通过 getLL() 获取当前 locale 的翻译） */
 function getStaticDisplayNames(): Record<string, string> {
-  const currentLocale = (localStorage.getItem('locale') as string | null) || baseLocale;
-  if (_staticDisplayNames && _staticDisplayNamesLocale === currentLocale) {
-    return _staticDisplayNames;
-  }
-  const LL = i18nObject(currentLocale as Locales);
-  _staticDisplayNames = {
+  const LL = getLL();
+  return {
     entry: LL.nodes.entry(),
     http: LL.nodes.http(),
     conditional: LL.nodes.conditional(),
@@ -293,8 +285,6 @@ function getStaticDisplayNames(): Record<string, string> {
     variable_extractor: LL.nodes.variable_extractor(),
     proxy: LL.nodes.proxy(),
   };
-  _staticDisplayNamesLocale = currentLocale;
-  return _staticDisplayNames;
 }
 
 
