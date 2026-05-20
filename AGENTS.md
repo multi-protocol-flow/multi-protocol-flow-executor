@@ -137,6 +137,35 @@ Layer 4:         app (src-tauri/)                                    (→ flow-e
 - shadcn/ui 使用 "new-york" 风格，无 RSC (`rsc: false`)，图标库 lucide
 - Vite dev server 绑定 `0.0.0.0:5173`，`strictPort: true` 端口不自动递增
 
+### 国际化（i18n）— 关键约定
+
+**框架**: `typesafe-i18n` v5.26.2，编译时类型安全，baseLocale: `zh-CN`，支持 `en-US`。
+
+**翻译文件位置**: `src/i18n/{zh-CN,en-US}/` 下按领域分 7 个模块（common / nodes / panels / execution / settings / flow / validation），类型定义在 `src/i18n/i18n-types.ts`（自动生成）。
+
+**⚠️ 获取翻译的正确方式：`getLL()`，禁止使用 `useI18nContext()` / `contextLL`**
+
+```typescript
+// ✅ 正确 — 模块级非响应式函数，读取 localStorage 获取当前 locale
+import { getLL } from '@/i18n/i18n-lazy';
+const ll = getLL();
+ll.settings.panel_title()     // → '全局设置' 或 'Global Settings'
+ll.common.settings_label()    // → '设置' 或 'Settings'
+
+// ❌ 错误 — 不要用这个！虽然类型兼容但不会随 locale 切换而更新
+import { useI18nContext } from '@/i18n/i18n-react';
+const { LL: contextLL } = useI18nContext();
+```
+
+**为什么 `useI18nContext` 不行？**
+
+项目架构中 `getLL()` 通过 `localStorage` 读取 locale，locale 切换由 `App.tsx` 中的 `I18nBridge` 组件触发全树重渲染来驱动 `getLL()` 重新计算。`useI18nContext()` 依赖 React Context 的响应式更新，与这套机制不兼容——切换语言后 `contextLL` 拿到的仍是旧 locale 的翻译。
+
+**新增翻译 key 的步骤**:
+1. 在 `src/i18n/zh-CN/<module>.ts` 中添加中文 key
+2. 在 `src/i18n/en-US/<module>.ts` 中添加对应的英文 key
+3. 同步更新 `src/i18n/i18n-types.ts` 中对应的类型块（该文件虽有 "auto-generated" 注释，但项目未配置自动生成脚本）
+
 ### 架构约定
 - NodePlugin trait + NodeRegistry 替代旧的 match 分发模式，新增节点类型只需实现 trait 并注册
 - 前端 3 个注册表: NodeRegistry (后端元数据), configPanelRegistry (配置面板), viewerRegistry (结果查看器)

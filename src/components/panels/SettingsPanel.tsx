@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSettingsStore } from '@/stores/settings';
 import type { ThemeMode, Locale } from '@/types/settings';
-import { useI18nContext } from '@/i18n/i18n-react';
+import { getLL } from '@/i18n/i18n-lazy';
 
 
 // 动态导入设置服务（根据环境）
@@ -42,8 +42,8 @@ export function SettingsPanel() {
     openFlowsDir,
   } = useSettingsStore();
 
-  // 从 React context 获取响应式翻译（跟随 TypesafeI18n 的 locale prop 自动更新）
-  const { LL: contextLL } = useI18nContext();
+  // 获取翻译函数（模块级，locale 变化时由 I18nBridge 触发重渲染后重新计算）
+  const ll = getLL();
 
   // 配置文件存储路径
   const [configFilePath, setConfigFilePath] = useState<string>('');
@@ -100,11 +100,11 @@ export function SettingsPanel() {
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <Settings2 className="h-4 w-4 text-muted-foreground shrink-0" />
             <CardTitle className="text-base font-semibold text-foreground truncate cursor-default">
-              全局设置
+              {ll?.settings?.panel_title() ?? '全局设置'}
             </CardTitle>
           </div>
           <Badge variant="outline" className="border-border text-muted-foreground shrink-0">
-            设置
+            {ll?.common?.settings_label() ?? '设置'}
           </Badge>
         </div>
       </CardHeader>
@@ -116,39 +116,39 @@ export function SettingsPanel() {
             <div className="text-xs text-muted-foreground py-2 px-3 rounded-lg bg-muted border border-border space-y-1">
               <div className="flex items-center gap-1.5">
                 <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="font-medium text-foreground">配置文件</span>
+                <span className="font-medium text-foreground">{ll?.settings?.config_file() ?? '配置文件'}</span>
               </div>
               <code className="block text-foreground break-all leading-relaxed">
-                {isLoading ? '加载中...' : configFilePath || '未知'}
+                {isLoading ? (ll?.settings?.loading() ?? '加载中...') : configFilePath || (ll?.settings?.unknown() ?? '未知')}
               </code>
             </div>
 
             {/* 主题 */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                主题
+                {ll?.settings?.theme() ?? '主题'}
               </Label>
               <Select value={theme} onValueChange={(value) => setTheme(value as ThemeMode)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="选择主题" />
+                  <SelectValue placeholder={ll?.settings?.select_theme() ?? '选择主题'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="light">
                     <span className="flex items-center gap-2">
                       <Sun className="h-4 w-4" />
-                      浅色
+                      {ll?.settings?.theme_light() ?? '浅色'}
                     </span>
                   </SelectItem>
                   <SelectItem value="dark">
                     <span className="flex items-center gap-2">
                       <Moon className="h-4 w-4" />
-                      暗黑
+                      {ll?.settings?.theme_dark() ?? '暗黑'}
                     </span>
                   </SelectItem>
                   <SelectItem value="system">
                     <span className="flex items-center gap-2">
                       <Monitor className="h-4 w-4" />
-                      跟随系统
+                      {ll?.settings?.theme_system() ?? '跟随系统'}
                     </span>
                   </SelectItem>
                 </SelectContent>
@@ -159,15 +159,15 @@ export function SettingsPanel() {
             <div className="space-y-2">
               <Label className="text-sm font-medium text-foreground flex items-center gap-2">
                 <Globe className="h-4 w-4 text-muted-foreground" />
-                {contextLL?.settings?.language() ?? '语言'}
+                {ll?.settings?.language() ?? '语言'}
               </Label>
               <Select value={locale} onValueChange={(value) => setLocale(value as Locale)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-<SelectItem value="zh-CN">{contextLL?.settings?.zh_CN() ?? '简体中文'}</SelectItem>
-<SelectItem value="en-US">{contextLL?.settings?.en_US() ?? 'English'}</SelectItem>
+<SelectItem value="zh-CN">{ll?.settings?.zh_CN() ?? '简体中文'}</SelectItem>
+<SelectItem value="en-US">{ll?.settings?.en_US() ?? 'English'}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -176,17 +176,17 @@ export function SettingsPanel() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-sm">
                 <FolderInput className="h-4 w-4 text-muted-foreground" />
-                流程保存目录
+                {ll?.settings?.flows_dir() ?? '流程保存目录'}
               </Label>
               <div className="text-sm text-foreground bg-muted border border-border rounded-md px-3 py-2 break-all leading-relaxed">
-                {isLoading ? '加载中...' : flowsDir || '未设置'}
+                {isLoading ? (ll?.settings?.loading() ?? '加载中...') : flowsDir || (ll?.settings?.not_set() ?? '未设置')}
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleSelectFlowsDir} className="flex-1">
-                  选择目录
+                  {ll?.settings?.select_dir() ?? '选择目录'}
                 </Button>
                 <Button variant="outline" size="sm" onClick={openFlowsDir} className="flex-1">
-                  打开目录
+                  {ll?.settings?.open_dir() ?? '打开目录'}
                 </Button>
               </div>
             </div>
@@ -195,19 +195,19 @@ export function SettingsPanel() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-sm">
                 <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                报告目录
+                {ll?.settings?.reports_dir() ?? '报告目录'}
               </Label>
               {/* 路径显示 - 允许换行 */}
               <div className="text-sm text-foreground bg-muted border border-border rounded-md px-3 py-2 break-all leading-relaxed">
-                {isLoading ? '加载中...' : reportDir || '未设置'}
+                {isLoading ? (ll?.settings?.loading() ?? '加载中...') : reportDir || (ll?.settings?.not_set() ?? '未设置')}
               </div>
               {/* 按钮行 */}
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleSelectReportDir} className="flex-1">
-                  选择目录
+                  {ll?.settings?.select_dir() ?? '选择目录'}
                 </Button>
                 <Button variant="outline" size="sm" onClick={openReportDir} className="flex-1">
-                  打开目录
+                  {ll?.settings?.open_dir() ?? '打开目录'}
                 </Button>
               </div>
             </div>
@@ -216,19 +216,19 @@ export function SettingsPanel() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-sm">
                 <FolderCog className="h-4 w-4 text-muted-foreground" />
-                日志目录
+                {ll?.settings?.logs_dir() ?? '日志目录'}
               </Label>
               {/* 路径显示 - 允许换行 */}
               <div className="text-sm text-foreground bg-muted border border-border rounded-md px-3 py-2 break-all leading-relaxed">
-                {isLoading ? '加载中...' : logDir || '未设置'}
+                {isLoading ? (ll?.settings?.loading() ?? '加载中...') : logDir || (ll?.settings?.not_set() ?? '未设置')}
               </div>
               {/* 按钮行 */}
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleSelectLogDir} className="flex-1">
-                  选择目录
+                  {ll?.settings?.select_dir() ?? '选择目录'}
                 </Button>
                 <Button variant="outline" size="sm" onClick={openLogDir} className="flex-1">
-                  打开目录
+                  {ll?.settings?.open_dir() ?? '打开目录'}
                 </Button>
               </div>
             </div>
