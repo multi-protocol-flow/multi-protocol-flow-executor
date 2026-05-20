@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { getLL } from '@/i18n/i18n-lazy';
 import {
   Plus,
   Minus,
@@ -68,9 +69,9 @@ interface FlowCompareDialogProps {
 }
 
 /** 格式化字段值为可读字符串 */
-function formatValue(value: unknown): string {
-  if (value === undefined) return '(未定义)';
-  if (value === null) return '(空)';
+function formatValue(value: unknown, ll: ReturnType<typeof getLL>): string {
+  if (value === undefined) return ll.execution.compare.undefined_value();
+  if (value === null) return ll.execution.compare.null_value();
   if (typeof value === 'object') {
     try {
       return JSON.stringify(value, null, 2);
@@ -82,7 +83,7 @@ function formatValue(value: unknown): string {
 }
 
 /** 统计栏组件 */
-function StatisticsBar({ diff }: { diff: FlowDiffResult }) {
+function StatisticsBar({ diff, ll }: { diff: FlowDiffResult; ll: ReturnType<typeof getLL> }) {
   const added = diff.addedNodes.length + diff.addedConnections.length;
   const removed = diff.removedNodes.length + diff.removedConnections.length;
   const modified = diff.modifiedNodes.length;
@@ -93,25 +94,25 @@ function StatisticsBar({ diff }: { diff: FlowDiffResult }) {
       {added > 0 && (
         <Badge variant="outline" className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-700">
           <Plus className="w-3 h-3 mr-1" />
-          {added} 新增
+          {ll.execution.compare.stat_added({ count: added })}
         </Badge>
       )}
       {removed > 0 && (
         <Badge variant="outline" className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700">
           <Minus className="w-3 h-3 mr-1" />
-          {removed} 删除
+          {ll.execution.compare.stat_removed({ count: removed })}
         </Badge>
       )}
       {modified > 0 && (
         <Badge variant="outline" className="bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-700">
           <Pencil className="w-3 h-3 mr-1" />
-          {modified} 修改
+          {ll.execution.compare.stat_modified({ count: modified })}
         </Badge>
       )}
       {unchanged > 0 && (
         <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
           <Equal className="w-3 h-3 mr-1" />
-          {unchanged} 无变化
+          {ll.execution.compare.stat_unchanged({ count: unchanged })}
         </Badge>
       )}
     </div>
@@ -119,17 +120,17 @@ function StatisticsBar({ diff }: { diff: FlowDiffResult }) {
 }
 
 /** 字段变化行：旧值 → 新值 */
-function FieldChangeRow({ change }: { change: FieldChange }) {
+function FieldChangeRow({ change, ll }: { change: FieldChange; ll: ReturnType<typeof getLL> }) {
   return (
     <div className="flex items-start gap-2 text-sm py-1.5 px-3 border-b border-border/30 last:border-b-0">
       <span className="font-medium text-foreground min-w-[120px] shrink-0">{change.field}</span>
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <span className="text-red-600 dark:text-red-400 line-through break-all">
-          {formatValue(change.oldValue)}
+          {formatValue(change.oldValue, ll)}
         </span>
         <span className="text-muted-foreground shrink-0">→</span>
         <span className="text-green-600 dark:text-green-400 break-all">
-          {formatValue(change.newValue)}
+          {formatValue(change.newValue, ll)}
         </span>
       </div>
     </div>
@@ -137,7 +138,7 @@ function FieldChangeRow({ change }: { change: FieldChange }) {
 }
 
 /** 流程信息对比区：名称变化 */
-function FlowInfoSection({ diff }: { diff: FlowDiffResult }) {
+function FlowInfoSection({ diff, ll }: { diff: FlowDiffResult; ll: ReturnType<typeof getLL> }) {
   const nameChange = diff.flowChanges.name;
   if (!nameChange) return null;
 
@@ -145,7 +146,7 @@ function FlowInfoSection({ diff }: { diff: FlowDiffResult }) {
     <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20 p-3">
       <div className="flex items-center gap-2 mb-2 text-sm font-medium text-amber-700 dark:text-amber-400">
         <GitCompare className="w-4 h-4" />
-        流程名称变更
+        {ll.execution.compare.flow_name_changed()}
       </div>
       <div className="flex items-center gap-2 text-sm">
         <span className="text-red-600 dark:text-red-400 line-through">{String(nameChange.oldValue)}</span>
@@ -157,7 +158,7 @@ function FlowInfoSection({ diff }: { diff: FlowDiffResult }) {
 }
 
 /** 初始变量对比区 */
-function InitialVariablesSection({ diff }: { diff: FlowDiffResult }) {
+function InitialVariablesSection({ diff, ll }: { diff: FlowDiffResult; ll: ReturnType<typeof getLL> }) {
   const vars = diff.flowChanges.initialVariables;
   if (!vars) return null;
 
@@ -166,25 +167,25 @@ function InitialVariablesSection({ diff }: { diff: FlowDiffResult }) {
 
   return (
     <div className="rounded-lg border border-border/50 p-3">
-      <h4 className="text-sm font-semibold text-foreground mb-2">初始变量变更</h4>
+      <h4 className="text-sm font-semibold text-foreground mb-2">{ll.execution.compare.initial_vars_changed()}</h4>
       <div className="space-y-1.5">
         {vars.added.map((key) => (
           <div key={key} className="flex items-center gap-2 text-sm px-2 py-1 rounded bg-green-50 dark:bg-green-900/20">
             <Plus className="w-3.5 h-3.5 text-green-600 dark:text-green-400 shrink-0" />
             <span className="text-green-700 dark:text-green-400">{key}</span>
-            <span className="text-muted-foreground">(新增)</span>
+            <span className="text-muted-foreground">{ll.execution.compare.added_label()}</span>
           </div>
         ))}
         {vars.removed.map((key) => (
           <div key={key} className="flex items-center gap-2 text-sm px-2 py-1 rounded bg-red-50 dark:bg-red-900/20">
             <Minus className="w-3.5 h-3.5 text-red-600 dark:text-red-400 shrink-0" />
             <span className="text-red-700 dark:text-red-400">{key}</span>
-            <span className="text-muted-foreground">(删除)</span>
+            <span className="text-muted-foreground">{ll.execution.compare.removed_label()}</span>
           </div>
         ))}
         {vars.modified.map((change) => (
           <div key={change.field} className="px-2 py-1">
-            <FieldChangeRow change={change} />
+            <FieldChangeRow change={change} ll={ll} />
           </div>
         ))}
       </div>
@@ -193,7 +194,7 @@ function InitialVariablesSection({ diff }: { diff: FlowDiffResult }) {
 }
 
 /** 单个节点变化项 */
-function NodeDiffItem({ node, status }: { node: NodeDiff; status: 'added' | 'removed' | 'modified' | 'unchanged' }) {
+function NodeDiffItem({ node, status, ll }: { node: NodeDiff; status: 'added' | 'removed' | 'modified' | 'unchanged'; ll: ReturnType<typeof getLL> }) {
   const [expanded, setExpanded] = useState(status === 'modified');
 
   const config = {
@@ -202,7 +203,7 @@ function NodeDiffItem({ node, status }: { node: NodeDiff; status: 'added' | 'rem
       iconBg: 'bg-green-100 dark:bg-green-900/50',
       iconColor: 'text-green-600 dark:text-green-400',
       borderColor: 'border-green-300 dark:border-green-700',
-      label: '新增',
+      label: ll.execution.compare.node_status_added(),
       labelColor: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-50/50 dark:bg-green-900/10',
     },
@@ -211,7 +212,7 @@ function NodeDiffItem({ node, status }: { node: NodeDiff; status: 'added' | 'rem
       iconBg: 'bg-red-100 dark:bg-red-900/50',
       iconColor: 'text-red-600 dark:text-red-400',
       borderColor: 'border-red-300 dark:border-red-700',
-      label: '删除',
+      label: ll.execution.compare.node_status_removed(),
       labelColor: 'text-red-600 dark:text-red-400',
       bgColor: 'bg-red-50/50 dark:bg-red-900/10',
     },
@@ -220,7 +221,7 @@ function NodeDiffItem({ node, status }: { node: NodeDiff; status: 'added' | 'rem
       iconBg: 'bg-amber-100 dark:bg-amber-900/50',
       iconColor: 'text-amber-600 dark:text-amber-400',
       borderColor: 'border-amber-300 dark:border-amber-700',
-      label: '修改',
+      label: ll.execution.compare.node_status_modified(),
       labelColor: 'text-amber-600 dark:text-amber-400',
       bgColor: 'bg-amber-50/50 dark:bg-amber-900/10',
     },
@@ -229,7 +230,7 @@ function NodeDiffItem({ node, status }: { node: NodeDiff; status: 'added' | 'rem
       iconBg: 'bg-muted',
       iconColor: 'text-muted-foreground',
       borderColor: 'border-border/50',
-      label: '无变化',
+      label: ll.execution.compare.node_status_unchanged(),
       labelColor: 'text-muted-foreground',
       bgColor: '',
     },
@@ -265,9 +266,9 @@ function NodeDiffItem({ node, status }: { node: NodeDiff; status: 'added' | 'rem
 
       {hasDetails && expanded && (
         <div className="border-t border-border/30 px-3 py-2 space-y-1">
-          {node.nameChange && <FieldChangeRow change={node.nameChange} />}
+          {node.nameChange && <FieldChangeRow change={node.nameChange} ll={ll} />}
           {node.dataChanges?.fieldChanges.map((fc) => (
-            <FieldChangeRow key={fc.field} change={fc} />
+            <FieldChangeRow key={fc.field} change={fc} ll={ll} />
           ))}
         </div>
       )}
@@ -276,17 +277,17 @@ function NodeDiffItem({ node, status }: { node: NodeDiff; status: 'added' | 'rem
 }
 
 /** 节点对比区 */
-function NodesSection({ diff }: { diff: FlowDiffResult }) {
+function NodesSection({ diff, ll }: { diff: FlowDiffResult; ll: ReturnType<typeof getLL> }) {
   const hasAny = diff.addedNodes.length > 0 || diff.removedNodes.length > 0 || diff.modifiedNodes.length > 0 || diff.unchangedNodes.length > 0;
   if (!hasAny) return null;
 
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-semibold text-foreground">节点变更</h4>
-      {diff.addedNodes.map((n) => <NodeDiffItem key={n.uuid} node={n} status="added" />)}
-      {diff.removedNodes.map((n) => <NodeDiffItem key={n.uuid} node={n} status="removed" />)}
-      {diff.modifiedNodes.map((n) => <NodeDiffItem key={n.uuid} node={n} status="modified" />)}
-      {diff.unchangedNodes.map((n) => <NodeDiffItem key={n.uuid} node={n} status="unchanged" />)}
+      <h4 className="text-sm font-semibold text-foreground">{ll.execution.compare.nodes_changed()}</h4>
+      {diff.addedNodes.map((n) => <NodeDiffItem key={n.uuid} node={n} status="added" ll={ll} />)}
+      {diff.removedNodes.map((n) => <NodeDiffItem key={n.uuid} node={n} status="removed" ll={ll} />)}
+      {diff.modifiedNodes.map((n) => <NodeDiffItem key={n.uuid} node={n} status="modified" ll={ll} />)}
+      {diff.unchangedNodes.map((n) => <NodeDiffItem key={n.uuid} node={n} status="unchanged" ll={ll} />)}
     </div>
   );
 }
@@ -313,13 +314,13 @@ function ConnectionRow({ conn, status }: { conn: ConnectionDiff; status: 'added'
 }
 
 /** 连接对比区 */
-function ConnectionsSection({ diff }: { diff: FlowDiffResult }) {
+function ConnectionsSection({ diff, ll }: { diff: FlowDiffResult; ll: ReturnType<typeof getLL> }) {
   const hasChanges = diff.addedConnections.length > 0 || diff.removedConnections.length > 0;
   if (!hasChanges) return null;
 
   return (
     <div className="rounded-lg border border-border/50 p-3">
-      <h4 className="text-sm font-semibold text-foreground mb-2">连接变更</h4>
+      <h4 className="text-sm font-semibold text-foreground mb-2">{ll.execution.compare.connections_changed()}</h4>
       <div className="space-y-1.5">
         {diff.addedConnections.map((c) => <ConnectionRow key={c.id} conn={c} status="added" />)}
         {diff.removedConnections.map((c) => <ConnectionRow key={c.id} conn={c} status="removed" />)}
@@ -329,13 +330,13 @@ function ConnectionsSection({ diff }: { diff: FlowDiffResult }) {
 }
 
 /** 字段对比 Tab 内容 */
-function FieldDiffContent({ diff }: { diff: FlowDiffResult }) {
+function FieldDiffContent({ diff, ll }: { diff: FlowDiffResult; ll: ReturnType<typeof getLL> }) {
   return (
     <div className="space-y-4">
-      <FlowInfoSection diff={diff} />
-      <InitialVariablesSection diff={diff} />
-      <NodesSection diff={diff} />
-      <ConnectionsSection diff={diff} />
+      <FlowInfoSection diff={diff} ll={ll} />
+      <InitialVariablesSection diff={diff} ll={ll} />
+      <NodesSection diff={diff} ll={ll} />
+      <ConnectionsSection diff={diff} ll={ll} />
     </div>
   );
 }
@@ -374,10 +375,12 @@ function NodeConfigDiffPanel({
   nodeDiff,
   status,
   onClose,
+  ll,
 }: {
   nodeDiff: NodeDiff;
   status: DiffNodeStatus;
   onClose: () => void;
+  ll: ReturnType<typeof getLL>;
 }) {
   return (
     <div className="border-t border-border bg-muted/30">
@@ -391,7 +394,7 @@ function NodeConfigDiffPanel({
             'text-amber-600 dark:text-amber-400': status === 'modified',
             'text-muted-foreground': status === 'unchanged',
           })}>
-            {status === 'added' ? '(新增节点)' : status === 'removed' ? '(已删除节点)' : status === 'modified' ? '(已修改)' : '(无变化)'}
+            {status === 'added' ? ll.execution.compare.node_added_label() : status === 'removed' ? ll.execution.compare.node_removed_label() : status === 'modified' ? ll.execution.compare.node_modified_label() : ll.execution.compare.node_unchanged_label()}
           </span>
         </div>
         <button
@@ -405,24 +408,24 @@ function NodeConfigDiffPanel({
       <ScrollArea className="max-h-[200px]">
         <div className="px-4 py-2">
           {status === 'added' && (
-            <p className="text-sm text-green-600 dark:text-green-400">该节点在当前流程中新增</p>
+            <p className="text-sm text-green-600 dark:text-green-400">{ll.execution.compare.node_added_desc()}</p>
           )}
           {status === 'removed' && (
-            <p className="text-sm text-red-600 dark:text-red-400">该节点在当前流程中已被删除</p>
+            <p className="text-sm text-red-600 dark:text-red-400">{ll.execution.compare.node_removed_desc()}</p>
           )}
           {status === 'modified' && (
             <div className="space-y-1">
-              {nodeDiff.nameChange && <FieldChangeRow change={nodeDiff.nameChange} />}
+              {nodeDiff.nameChange && <FieldChangeRow change={nodeDiff.nameChange} ll={ll} />}
               {nodeDiff.dataChanges?.fieldChanges.map((fc) => (
-                <FieldChangeRow key={fc.field} change={fc} />
+                <FieldChangeRow key={fc.field} change={fc} ll={ll} />
               ))}
               {(!nodeDiff.nameChange && !nodeDiff.dataChanges?.fieldChanges.length) && (
-                <p className="text-sm text-muted-foreground">无详细配置变化</p>
+                <p className="text-sm text-muted-foreground">{ll.execution.compare.no_config_changes()}</p>
               )}
             </div>
           )}
           {status === 'unchanged' && (
-            <p className="text-sm text-muted-foreground">该节点配置无变化</p>
+            <p className="text-sm text-muted-foreground">{ll.execution.compare.no_changes()}</p>
           )}
         </div>
       </ScrollArea>
@@ -434,9 +437,11 @@ function NodeConfigDiffPanel({
 function CanvasDiffTabInner({
   snapshotFlow,
   diffResult,
+  ll,
 }: {
   snapshotFlow: Flow;
   diffResult: FlowDiffResult;
+  ll: ReturnType<typeof getLL>;
 }) {
   const [selectedNodeDiff, setSelectedNodeDiff] = useState<{
     diff: NodeDiff;
@@ -536,6 +541,7 @@ function CanvasDiffTabInner({
           nodeDiff={selectedNodeDiff.diff}
           status={selectedNodeDiff.status}
           onClose={() => setSelectedNodeDiff(null)}
+          ll={ll}
         />
       )}
     </div>
@@ -546,13 +552,15 @@ function CanvasDiffTabInner({
 function CanvasDiffTab({
   snapshotFlow,
   diffResult,
+  ll,
 }: {
   snapshotFlow: Flow;
   diffResult: FlowDiffResult;
+  ll: ReturnType<typeof getLL>;
 }) {
   return (
     <ReactFlowProvider>
-      <CanvasDiffTabInner snapshotFlow={snapshotFlow} diffResult={diffResult} />
+      <CanvasDiffTabInner snapshotFlow={snapshotFlow} diffResult={diffResult} ll={ll} />
     </ReactFlowProvider>
   );
 }
@@ -565,6 +573,7 @@ export function FlowCompareDialog({
   snapshotName,
   currentName,
 }: FlowCompareDialogProps) {
+  const ll = getLL();
   const [activeTab, setActiveTab] = useState('field');
 
   const diff = useMemo(() => {
@@ -606,28 +615,28 @@ export function FlowCompareDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GitCompare className="w-5 h-5" />
-            对比: {snapshotName} vs {currentName}
+            {ll.execution.compare.title({ snapshot: snapshotName, current: currentName })}
           </DialogTitle>
         </DialogHeader>
 
         {diff ? (
           <>
-            <StatisticsBar diff={diff} />
+            <StatisticsBar diff={diff} ll={ll} />
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col">
               <TabsList className="shrink-0 self-start">
-                <TabsTrigger value="canvas">画布对比</TabsTrigger>
-                <TabsTrigger value="field">字段对比</TabsTrigger>
+                <TabsTrigger value="canvas">{ll.execution.compare.tab_canvas()}</TabsTrigger>
+                <TabsTrigger value="field">{ll.execution.compare.tab_field()}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="canvas" className="flex-1 min-h-0">
-                <CanvasDiffTab snapshotFlow={snapshotFlow} diffResult={diff} />
+                <CanvasDiffTab snapshotFlow={snapshotFlow} diffResult={diff} ll={ll} />
               </TabsContent>
 
               <TabsContent value="field" className="flex-1 min-h-0">
                 <ScrollArea className="h-full">
                   <div className="pr-4 pb-4">
-                    <FieldDiffContent diff={diff} />
+                    <FieldDiffContent diff={diff} ll={ll} />
                   </div>
                 </ScrollArea>
               </TabsContent>
@@ -635,17 +644,17 @@ export function FlowCompareDialog({
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            <p>无法加载当前流程</p>
+            <p>{ll.execution.compare.cannot_load()}</p>
           </div>
         )}
 
         <DialogFooter>
           <Button variant="outline" onClick={handleRestore}>
             <RotateCcw className="w-4 h-4 mr-1" />
-            恢复流程...
+            {ll.execution.compare.restore_flow()}
           </Button>
           <Button variant="default" onClick={() => onOpenChange(false)}>
-            关闭
+            {ll.execution.compare.close()}
           </Button>
         </DialogFooter>
       </DialogContent>

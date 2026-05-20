@@ -31,6 +31,7 @@ import { getNodeMeta } from '@/lib/nodeMeta';
 import { cn } from '@/lib/utils';
 import { sendDebugCommand } from '@/services/tauri';
 import { toast } from 'sonner';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { Node } from '@/types';
 
 // ============================================================================
@@ -138,6 +139,7 @@ type DetailTab = 'output' | 'ws' | 'variables' | 'stack';
 const EMPTY_NODES: Node[] = [];
 
 export function ExecutionPanel() {
+  const ll = getLL();
   // ===== Store 数据 =====
   const nodes = useFlowStore((state) => state.flow?.nodes ?? EMPTY_NODES);
   const isExecuting = useExecutionStore(selectIsExecuting);
@@ -288,7 +290,7 @@ export function ExecutionPanel() {
       <div className="h-full flex items-center justify-center text-muted-foreground">
         <div className="flex flex-col items-center gap-2">
           <MousePointerClick className="w-6 h-6 opacity-40" />
-          <span className="text-sm">点击「执行」开始运行流程</span>
+          <span className="text-sm">{ll.execution.panel.click_to_run()}</span>
         </div>
       </div>
     );
@@ -301,7 +303,7 @@ export function ExecutionPanel() {
         {/* 进度条 */}
         <div className="px-3 py-1.5 border-b border-border shrink-0 flex items-center gap-2">
           <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-            {completedNodeCount}/{totalNodes} 节点
+            {ll.execution.panel.node_count({ completed: completedNodeCount, total: totalNodes })}
           </span>
           <span className="text-xs text-muted-foreground/60 shrink-0">·</span>
           <span className="text-xs text-muted-foreground tabular-nums shrink-0">
@@ -358,22 +360,22 @@ export function ExecutionPanel() {
         <div className="border-b border-border shrink-0">
           <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as DetailTab)}>
             <TabsList className="h-7 p-0.5 bg-transparent">
-              <TabsTrigger value="output" className="h-6 px-3 text-xs">
-                输出
-              </TabsTrigger>
+<TabsTrigger value="output" className="h-6 px-3 text-xs">
+                 {ll.execution.panel.tab_output()}
+                </TabsTrigger>
               {hasWsNodes && (
                 <TabsTrigger value="ws" className="h-6 px-3 text-xs">
-                  WS消息
+                  {ll.execution.panel.tab_ws()}
                 </TabsTrigger>
               )}
               {showDebugTabs && (
                 <>
-                  <TabsTrigger value="variables" className="h-6 px-3 text-xs">
-                    变量
-                  </TabsTrigger>
-                  <TabsTrigger value="stack" className="h-6 px-3 text-xs">
-                    栈
-                  </TabsTrigger>
+<TabsTrigger value="variables" className="h-6 px-3 text-xs">
+                     {ll.execution.panel.tab_variables()}
+                    </TabsTrigger>
+<TabsTrigger value="stack" className="h-6 px-3 text-xs">
+                     {ll.execution.panel.tab_stack()}
+                    </TabsTrigger>
                 </>
               )}
             </TabsList>
@@ -386,13 +388,13 @@ export function ExecutionPanel() {
             {/* 输出标签页 - 原有逻辑 */}
             {!selectedNodeUuid && (
               <div className="h-full flex items-center justify-center text-muted-foreground">
-                <span className="text-sm">选择节点查看详情</span>
+                <span className="text-sm">{ll.execution.panel.select_node_hint()}</span>
               </div>
             )}
 
             {selectedNodeUuid && selectedStatus === 'pending' && (
               <div className="h-full flex items-center justify-center text-muted-foreground">
-                <span className="text-sm">等待执行</span>
+                <span className="text-sm">{ll.execution.panel.waiting()}</span>
               </div>
             )}
 
@@ -400,7 +402,7 @@ export function ExecutionPanel() {
               <div className="h-full flex flex-col overflow-hidden">
                 <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border shrink-0">
                   <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
-                  <span className="text-xs text-muted-foreground">执行中...</span>
+                  <span className="text-xs text-muted-foreground">{ll.execution.panel.executing()}</span>
                 </div>
                 {selectedReport && (
                   <div className="flex-1 min-h-0 overflow-y-auto p-3">
@@ -431,7 +433,7 @@ export function ExecutionPanel() {
                 />
               ) : (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
-                  <span className="text-sm">选择 WebSocket 节点查看消息</span>
+                  <span className="text-sm">{ll.execution.panel.select_ws_node()}</span>
                 </div>
               )}
             </TabsContent>

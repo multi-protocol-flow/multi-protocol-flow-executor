@@ -20,6 +20,7 @@ import { useUIStore } from '@/stores';
 import { useDatasetExecutionStore } from '@/stores/datasetExecution';
 import { listDatasetReports, deleteDatasetReport } from '@/services/tauri';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 
 // ============================================================================
 // 类型定义
@@ -87,13 +88,13 @@ function formatDuration(ms: number): string {
 }
 
 /** 获取过滤类型的显示名称 */
-function getFilterLabel(filter: FilterType): string {
+function getFilterLabel(filter: FilterType, ll: ReturnType<typeof getLL>): string {
   switch (filter) {
-    case 'all': return '全部';
-    case 'normal': return '普通';
-    case 'debug': return '调试';
-    case 'stress_test': return '压测';
-    case 'dataset': return '数据驱动';
+    case 'all': return ll.execution.history.filter_all();
+    case 'normal': return ll.execution.history.filter_normal();
+    case 'debug': return ll.execution.history.filter_debug();
+    case 'stress_test': return ll.execution.history.filter_stress_test();
+    case 'dataset': return ll.execution.history.filter_dataset();
   }
 }
 
@@ -111,6 +112,7 @@ interface ExecutionHistoryProps {
 }
 
 export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare }: ExecutionHistoryProps) {
+  const ll = getLL();
   const [unifiedHistory, setUnifiedHistory] = useState<UnifiedHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -182,8 +184,8 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
       } catch (error) {
         if (cancelled) return;
         console.error('加载历史列表失败:', error);
-        toast.error('加载历史列表失败', {
-          description: error instanceof Error ? error.message : '未知错误',
+        toast.error(ll.execution.history.toast_load_failed(), {
+          description: error instanceof Error ? error.message : ll.execution.history.toast_unknown_error(),
         });
       } finally {
         if (!cancelled) setLoading(false);
@@ -227,8 +229,8 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
       onSelectReport?.(item.uuid);
     } catch (error) {
       console.error('加载报告失败:', error);
-      toast.error('加载报告失败', {
-        description: error instanceof Error ? error.message : '未知错误',
+      toast.error(ll.execution.history.toast_load_report_failed(), {
+        description: error instanceof Error ? error.message : ll.execution.history.toast_unknown_error(),
       });
     }
   }, [openReportDialog, onSelectReport, reportDir]);
@@ -236,9 +238,9 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
   // 删除单个报告（带确认）
   const handleDelete = useCallback((item: UnifiedHistoryItem) => {
     showConfirm({
-      title: '删除报告',
-      description: '确定要删除此执行报告吗？删除后无法恢复。',
-      confirmText: '删除',
+      title: ll.execution.history.delete_dialog_title(),
+      description: ll.execution.history.delete_dialog_description(),
+      confirmText: ll.execution.history.delete(),
       onConfirm: async () => {
         try {
           if (item.type === 'stress_test' && item.stressMetadata) {
@@ -250,37 +252,37 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
           }
           // 从本地状态移除
           setUnifiedHistory((prev) => prev.filter((h) => h.uuid !== item.uuid));
-          toast.success('报告已删除');
+          toast.success(ll.execution.history.toast_report_deleted());
         } catch (error) {
           console.error('删除报告失败:', error);
-          const errorMessage = error instanceof Error ? error.message : '未知错误';
+          const errorMessage = error instanceof Error ? error.message : ll.execution.history.toast_unknown_error();
           if (errorMessage.includes('not found') || errorMessage.includes('不存在')) {
-            toast.error('报告文件已删除', {
-              description: '该报告文件可能已被手动删除',
+            toast.error(ll.execution.history.toast_report_not_found(), {
+              description: ll.execution.history.toast_report_not_found_desc(),
             });
           } else if (errorMessage.includes('permission') || errorMessage.includes('权限')) {
-            toast.error('删除报告失败', {
-              description: '没有足够的权限删除该文件',
+            toast.error(ll.execution.history.toast_delete_failed(), {
+              description: ll.execution.history.toast_delete_permission(),
             });
           } else {
-            toast.error('删除报告失败', {
+            toast.error(ll.execution.history.toast_delete_failed(), {
               description: errorMessage,
             });
           }
         }
       },
     });
-  }, [reportDir, showConfirm]);
+  }, [reportDir, showConfirm, ll]);
 
   // 清空历史（带确认，按过滤类型操作）
   const handleClearHistory = useCallback(() => {
-    const label = getFilterLabel(filter);
+    const label = getFilterLabel(filter, ll);
     const count = filteredHistory.length;
 
     showConfirm({
-      title: `清空${label}执行历史`,
-      description: `确定要清空所有${label}执行历史吗？共 ${count} 条记录，删除后无法恢复。`,
-      confirmText: '清空',
+      title: ll.execution.history.clear_dialog_title({ filter: label }),
+      description: ll.execution.history.clear_dialog_description({ filter: label, count }),
+      confirmText: ll.execution.history.clear(),
       onConfirm: async () => {
         try {
           if (filter === 'stress_test') {
@@ -336,23 +338,23 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
           }
           // 重新加载全部历史
           reloadHistory();
-          toast.success(`${label}执行历史已清空`);
+          toast.success(ll.execution.history.toast_clear_success({ filter: label }));
         } catch (error) {
           console.error('清空执行历史失败:', error);
-          toast.error('清空执行历史失败', {
-            description: error instanceof Error ? error.message : '未知错误',
+          toast.error(ll.execution.history.toast_clear_failed(), {
+            description: error instanceof Error ? error.message : ll.execution.history.toast_unknown_error(),
           });
         }
       },
     });
-  }, [filter, filteredHistory, reportDir, showConfirm, reloadHistory]);
+  }, [filter, filteredHistory, reportDir, showConfirm, reloadHistory, ll]);
 
   // 加载中状态（初次加载）
   if (loading && unifiedHistory.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-8 text-muted-foreground">
         <Loader2 className="w-10 h-10 mb-3 animate-spin" />
-        <p className="text-sm">加载中...</p>
+        <p className="text-sm">{ll.execution.history.loading()}</p>
       </div>
     );
   }
@@ -362,8 +364,8 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
     return (
       <div className="flex flex-col items-center justify-center h-full py-8 text-muted-foreground">
         <History className="w-10 h-10 mb-3 opacity-40" />
-        <p className="text-sm">暂无执行历史</p>
-        <p className="text-xs mt-1 opacity-70">执行流程后记录将显示在这里</p>
+        <p className="text-sm">{ll.execution.history.empty_title()}</p>
+        <p className="text-xs mt-1 opacity-70">{ll.execution.history.empty_subtitle()}</p>
       </div>
     );
   }
@@ -371,11 +373,11 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
   // 过滤后空状态
   if (filteredHistory.length === 0) {
     const emptyTextMap: Record<FilterType, { title: string; subtitle: string }> = {
-      all: { title: '暂无执行历史', subtitle: '执行流程后记录将显示在这里' },
-      normal: { title: '暂无普通执行历史', subtitle: '' },
-      debug: { title: '暂无调试执行历史', subtitle: '' },
-      stress_test: { title: '暂无压测执行历史', subtitle: '执行压力测试后记录将显示在这里' },
-      dataset: { title: '暂无数据驱动执行历史', subtitle: '执行数据驱动测试后记录将显示在这里' },
+      all: { title: ll.execution.history.empty_title(), subtitle: ll.execution.history.empty_subtitle() },
+      normal: { title: ll.execution.history.empty_normal_title(), subtitle: '' },
+      debug: { title: ll.execution.history.empty_debug_title(), subtitle: '' },
+      stress_test: { title: ll.execution.history.empty_stress_title(), subtitle: ll.execution.history.empty_stress_subtitle() },
+      dataset: { title: ll.execution.history.empty_dataset_title(), subtitle: ll.execution.history.empty_dataset_subtitle() },
     };
     const { title, subtitle } = emptyTextMap[filter];
 
@@ -386,17 +388,17 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
           <div className="flex items-center gap-2">
             <Select value={filter} onValueChange={(v) => setFilter(v as FilterType)}>
               <SelectTrigger className="w-20 h-7 text-xs">
-                <SelectValue placeholder="全部" />
+                <SelectValue placeholder={ll.execution.history.filter_all()} />
               </SelectTrigger>
                 <SelectContent>
-                <SelectItem value="all">全部</SelectItem>
-                <SelectItem value="normal">普通</SelectItem>
-                <SelectItem value="debug">调试</SelectItem>
-                <SelectItem value="stress_test">压测</SelectItem>
-                <SelectItem value="dataset">数据驱动</SelectItem>
+                <SelectItem value="all">{ll.execution.history.filter_all()}</SelectItem>
+                <SelectItem value="normal">{ll.execution.history.filter_normal()}</SelectItem>
+                <SelectItem value="debug">{ll.execution.history.filter_debug()}</SelectItem>
+                <SelectItem value="stress_test">{ll.execution.history.filter_stress_test()}</SelectItem>
+                <SelectItem value="dataset">{ll.execution.history.filter_dataset()}</SelectItem>
               </SelectContent>
             </Select>
-            <span className="text-xs text-muted-foreground">共 0 条记录</span>
+            <span className="text-xs text-muted-foreground">{ll.execution.history.record_count({ count: 0 })}</span>
           </div>
         </div>
         {/* 空内容 */}
@@ -416,18 +418,18 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
         <div className="flex items-center gap-2">
           <Select value={filter} onValueChange={(v) => setFilter(v as FilterType)}>
             <SelectTrigger className="w-20 h-7 text-xs">
-              <SelectValue placeholder="全部" />
+              <SelectValue placeholder={ll.execution.history.filter_all()} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">全部</SelectItem>
-              <SelectItem value="normal">普通</SelectItem>
-              <SelectItem value="debug">调试</SelectItem>
-              <SelectItem value="stress_test">压测</SelectItem>
-              <SelectItem value="dataset">数据驱动</SelectItem>
+              <SelectItem value="all">{ll.execution.history.filter_all()}</SelectItem>
+              <SelectItem value="normal">{ll.execution.history.filter_normal()}</SelectItem>
+              <SelectItem value="debug">{ll.execution.history.filter_debug()}</SelectItem>
+              <SelectItem value="stress_test">{ll.execution.history.filter_stress_test()}</SelectItem>
+              <SelectItem value="dataset">{ll.execution.history.filter_dataset()}</SelectItem>
             </SelectContent>
           </Select>
           <span className="text-xs text-muted-foreground">
-            共 {filteredHistory.length} 条记录
+            {ll.execution.history.record_count({ count: filteredHistory.length })}
           </span>
         </div>
         <Button
@@ -436,7 +438,7 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
           onClick={handleClearHistory}
           className="h-7 text-xs text-muted-foreground hover:text-red-500"
         >
-          清空
+          {ll.execution.history.clear()}
         </Button>
       </div>
 
@@ -496,21 +498,21 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
                       {item.type === 'debug' && (
                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
                           <Bug className="w-3 h-3" />
-                          Debug
+                          {ll.execution.history.badge_debug()}
                         </span>
                       )}
                       {/* 压测标识 */}
                       {item.type === 'stress_test' && (
                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700">
                           <BarChart3 className="w-3 h-3" />
-                          压测
+                          {ll.execution.history.badge_stress_test()}
                         </span>
                       )}
                       {/* 数据驱动标识 */}
                       {item.type === 'dataset' && (
                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-teal-100 text-teal-700">
                           <Database className="w-3 h-3" />
-                          数据驱动
+                          {ll.execution.history.badge_dataset()}
                         </span>
                       )}
                     </div>
@@ -542,7 +544,7 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
                       'w-8 h-8 opacity-0 group-hover:opacity-100',
                       'transition-opacity duration-150 text-muted-foreground hover:text-red-500'
                     )}
-                    title="删除"
+                    title={ll.execution.history.delete()}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
@@ -560,7 +562,7 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
                         'w-8 h-8 opacity-0 group-hover:opacity-100',
                         'transition-opacity duration-150 text-muted-foreground hover:text-blue-500'
                       )}
-                      title="对比"
+                      title={ll.execution.history.compare()}
                     >
                       <GitCompare className="w-3.5 h-3.5" />
                     </Button>

@@ -16,6 +16,7 @@ import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { getLL } from '@/i18n/i18n-lazy';
 import { NODE_TYPE_NAMES, NODE_TYPE_COLORS } from './constants';
 import { RawJsonViewer } from './viewers/RawJsonViewer';
 import { getViewerComponent } from '@/lib/viewerRegistry';
@@ -43,6 +44,7 @@ function NodeViewerSelector({ report }: NodeExecutionDetailsProps) {
 
 
 export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
+  const ll = getLL();
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<'structured' | 'raw'>('structured');
   const [copied, setCopied] = useState(false);
@@ -51,10 +53,10 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
     try {
       await navigator.clipboard.writeText(JSON.stringify(report, null, 2));
       setCopied(true);
-      toast.success('已复制到剪贴板');
+      toast.success(ll.execution.report.copied_to_clipboard());
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('复制失败');
+      toast.error(ll.execution.report.copy_failed());
     }
   };
 
@@ -133,7 +135,7 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               )}
             >
-              结构化
+              {ll.execution.report.tab_structured()}
             </button>
             <button
               type="button"
@@ -146,7 +148,7 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               )}
             >
-              原始 JSON
+              {ll.execution.report.tab_raw_json()}
             </button>
           </div>
 
@@ -168,7 +170,7 @@ export function NodeExecutionDetails({ report }: NodeExecutionDetailsProps) {
                     ) : (
                       <Copy className="w-3.5 h-3.5" />
                     )}
-                    {copied ? '已复制' : '复制全部'}
+                    {copied ? ll.execution.report.copied() : ll.execution.report.copy_all()}
                   </button>
                 </div>
                 <div className="overflow-x-auto">

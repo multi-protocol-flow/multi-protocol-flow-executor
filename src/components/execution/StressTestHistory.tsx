@@ -11,6 +11,7 @@ import { useStressTestStore, selectStressTestHistory } from '@/stores/stressTest
 import { stressTestStorage } from '@/services/storage/stressTestStorage';
 import { useUIStore } from '@/stores';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { StressTestReport } from '@/types/stressTest';
 
 /** 格式化时间戳为可读字符串 */
@@ -36,6 +37,7 @@ function formatTimestamp(timestamp: number): string {
 }
 
 export function StressTestHistory() {
+  const ll = getLL();
   const history = useStressTestStore(selectStressTestHistory);
   const loadHistory = useStressTestStore((state) => state.loadHistory);
   const openReportDialog = useStressTestStore((state) => state.openReportDialog);
@@ -51,7 +53,7 @@ export function StressTestHistory() {
       try {
         await loadHistory();
       } catch (error) {
-        console.error('加载压测历史列表失败:', error);
+        console.error(ll.execution.history.toast_load_failed(), error);
       } finally {
         setLoading(false);
       }
@@ -75,9 +77,9 @@ export function StressTestHistory() {
       });
       openReportDialog();
     } catch (error) {
-      console.error('加载压测报告失败:', error);
-      toast.error('加载压测报告失败', {
-        description: error instanceof Error ? error.message : '未知错误',
+      console.error(ll.execution.history.toast_load_report_failed(), error);
+      toast.error(ll.execution.history.toast_load_report_failed(), {
+        description: error instanceof Error ? error.message : ll.execution.history.toast_unknown_error(),
       });
     }
   }, [openReportDialog]);
@@ -85,19 +87,19 @@ export function StressTestHistory() {
   // 删除单个报告（带确认）
   const handleDelete = useCallback((item: { uuid: string; filePath: string }) => {
     showConfirm({
-      title: '删除压测报告',
-      description: '确定要删除此压测报告吗？删除后无法恢复。',
-      confirmText: '删除',
+      title: ll.execution.history.delete_dialog_stress_title(),
+      description: ll.execution.history.delete_dialog_stress_description(),
+      confirmText: ll.execution.history.delete(),
       onConfirm: async () => {
         try {
           await stressTestStorage.deleteReport(item.filePath);
-          toast.success('报告已删除');
+          toast.success(ll.execution.history.toast_report_deleted());
           // 重新加载历史列表
           await loadHistory();
         } catch (error) {
-          console.error('删除压测报告失败:', error);
-          toast.error('删除压测报告失败', {
-            description: error instanceof Error ? error.message : '未知错误',
+          console.error(ll.execution.history.toast_delete_failed(), error);
+          toast.error(ll.execution.history.toast_delete_failed(), {
+            description: error instanceof Error ? error.message : ll.execution.history.toast_unknown_error(),
           });
         }
       },
@@ -109,7 +111,7 @@ export function StressTestHistory() {
     return (
       <div className="flex flex-col items-center justify-center h-full py-8 text-muted-foreground">
         <Loader2 className="w-10 h-10 mb-3 animate-spin" />
-        <p className="text-sm">加载中...</p>
+        <p className="text-sm">{ll.execution.history.loading()}</p>
       </div>
     );
   }
@@ -119,8 +121,8 @@ export function StressTestHistory() {
     return (
       <div className="flex flex-col items-center justify-center h-full py-8 text-muted-foreground">
         <History className="w-10 h-10 mb-3 opacity-40" />
-        <p className="text-sm">暂无压测历史</p>
-        <p className="text-xs mt-1 opacity-70">执行压力测试后记录将显示在这里</p>
+        <p className="text-sm">{ll.execution.history.empty_stress_title()}</p>
+        <p className="text-xs mt-1 opacity-70">{ll.execution.history.empty_stress_subtitle()}</p>
       </div>
     );
   }
@@ -129,9 +131,9 @@ export function StressTestHistory() {
     <div className="flex flex-col h-full">
       {/* 头部 */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <span className="text-xs text-muted-foreground">
-          共 {localHistory.length} 条记录
-        </span>
+<span className="text-xs text-muted-foreground">
+           {ll.execution.history.record_count({ count: localHistory.length })}
+         </span>
       </div>
 
       {/* 历史列表 */}
@@ -168,9 +170,9 @@ export function StressTestHistory() {
                       <p className="text-sm font-medium text-foreground truncate">
                         {item.flowName}
                       </p>
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700">
-                        压测
-                      </span>
+<span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700">
+                         {ll.execution.history.badge_stress_test()}
+                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                       <Clock className="w-3 h-3" />
@@ -193,7 +195,7 @@ export function StressTestHistory() {
                       'w-8 h-8 opacity-0 group-hover:opacity-100',
                       'transition-opacity duration-150 text-muted-foreground hover:text-red-500'
                     )}
-                    title="删除"
+                    title={ll.execution.history.delete()}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>

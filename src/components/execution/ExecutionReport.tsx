@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /**
  * 执行报告弹窗组件
@@ -71,6 +72,8 @@ export function ExecutionReport() {
 
   const displayReport = selectedHistoryReport ?? report;
 
+  const ll = getLL();
+
   const [selectedNodeUuid, setSelectedNodeUuid] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
   const [isWsStreamCollapsed, setIsWsStreamCollapsed] = useState(false);
@@ -123,7 +126,7 @@ export function ExecutionReport() {
               )}
             </div>
             {/* 标题文字 */}
-            <span>{isDebugMode ? '调试报告' : '执行报告'}</span>
+            <span>{isDebugMode ? ll.execution.report.debug_title() : ll.execution.report.title()}</span>
 
             {/* 调试模式标签 */}
             {isDebugMode && (
@@ -131,7 +134,7 @@ export function ExecutionReport() {
                 variant="outline"
                 className="bg-purple-50 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700 font-medium"
               >
-                调试
+                {ll.execution.report.badge_debug()}
               </Badge>
             )}
 
@@ -144,7 +147,7 @@ export function ExecutionReport() {
                   ? 'bg-emerald-50 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700'
                   : 'bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700'
             )}>
-              {isSuccess ? '成功' : '失败'}
+              {isSuccess ? ll.execution.status.success() : ll.execution.status.failed()}
             </Badge>
 
             {/* 最大化按钮 */}
@@ -179,7 +182,7 @@ export function ExecutionReport() {
             {/* 流程名称 */}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Activity className="w-4 h-4" />
-              <span>流程: </span>
+              <span>{ll.execution.report.flow_label()}</span>
                <span className="font-medium text-foreground">{displayReport.flow_name}</span>
             </div>
 
@@ -187,28 +190,28 @@ export function ExecutionReport() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <StatCard
                 icon={Timer}
-                label="总耗时"
+                label={ll.execution.report.total_duration()}
                  value={`${displayReport.duration_ms}ms`}
                 iconColor="text-violet-500"
                 valueColor="text-violet-600"
               />
               <StatCard
                 icon={BarChart3}
-                label="执行节点"
+                label={ll.execution.report.executed_nodes()}
                  value={`${displayReport.executed_count}/${displayReport.total_nodes}`}
                 iconColor="text-blue-500"
                 valueColor="text-blue-600"
               />
               <StatCard
                 icon={CheckCircle2}
-                label="成功"
+                label={ll.execution.status.success()}
                  value={displayReport.statistics.success_count}
                 iconColor="text-emerald-500"
                 valueColor="text-emerald-600"
               />
               <StatCard
                 icon={XCircle}
-                label="失败"
+                label={ll.execution.status.failed()}
                  value={displayReport.statistics.failed_count}
                 iconColor="text-red-500"
                 valueColor="text-red-600"
@@ -219,12 +222,12 @@ export function ExecutionReport() {
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50">
                 <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-muted-foreground">成功率:</span>
+                <span className="text-muted-foreground">{ll.execution.report.success_rate()}</span>
                 <span className="font-semibold text-foreground">{successRate}%</span>
               </div>
               {displayReport.statistics.avg_node_duration_ms != null && (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50">
-                  <span className="text-muted-foreground">平均耗时:</span>
+                  <span className="text-muted-foreground">{ll.execution.report.avg_duration()}</span>
                   <span className="font-semibold text-foreground">
                     {displayReport.statistics.avg_node_duration_ms!.toFixed(1)}ms
                   </span>
@@ -237,7 +240,7 @@ export function ExecutionReport() {
               <div className="rounded-xl bg-red-50 dark:bg-red-950/50 p-4 border border-red-200/50 dark:border-red-800/50">
                 <div className="flex items-center gap-2 mb-2 text-red-600 dark:text-red-400">
                   <AlertCircle className="w-4 h-4" />
-                  <span className="font-medium">流程错误</span>
+                  <span className="font-medium">{ll.execution.report.flow_error()}</span>
                 </div>
                 <p className="text-red-600 dark:text-red-400">{displayReport.flow_error.message}</p>
               </div>
@@ -258,8 +261,8 @@ export function ExecutionReport() {
                       <ChevronDown className="w-4 h-4 text-muted-foreground" />
                     )}
                     <Wifi className="w-4 h-4 text-violet-500" />
-                    <span className="text-sm font-semibold">WebSocket 消息流</span>
-                    <Badge variant="outline" className="text-xs font-normal">{displayReport.ws_streams.length} 个连接</Badge>
+                    <span className="text-sm font-semibold">{ll.execution.report.ws_stream_title()}</span>
+                    <Badge variant="outline" className="text-xs font-normal">{ll.execution.report.ws_connections({ count: displayReport.ws_streams.length })}</Badge>
                   </div>
                 </button>
                 {!isWsStreamCollapsed && (
@@ -274,7 +277,7 @@ export function ExecutionReport() {
             <div className="min-h-[280px] flex flex-col overflow-hidden">
               <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
-                节点执行详情
+{ll.execution.report.node_details()}
               </h3>
               <div className="flex-1 min-h-0">
                 <ResizablePanel
@@ -282,7 +285,7 @@ export function ExecutionReport() {
                     displayReport.node_reports.length === 0 ? (
                       <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
                         <Inbox className="w-12 h-12" />
-                        <span>暂无执行节点</span>
+                        <span>{ll.execution.report.no_nodes()}</span>
                       </div>
                     ) : (
                       <ScrollArea className="h-full w-full">
@@ -303,7 +306,7 @@ export function ExecutionReport() {
                     displayReport.node_reports.length === 0 ? (
                       <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
                         <Inbox className="w-12 h-12" />
-                        <span>暂无执行节点</span>
+                        <span>{ll.execution.report.no_nodes()}</span>
                       </div>
                     ) : selectedNodeUuid ? (
                       <ScrollArea className="h-full w-full">
@@ -315,7 +318,7 @@ export function ExecutionReport() {
                       </ScrollArea>
                     ) : (
                       <div className="flex items-center justify-center h-full text-muted-foreground">
-                        请选择节点查看详情
+                        {ll.execution.report.select_node_hint()}
                       </div>
                     )
                   }
