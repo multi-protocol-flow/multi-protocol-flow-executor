@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getLL } from '@/i18n/i18n-lazy';
 
 import { getConfigComponent, isSchemaDriven } from '@/lib/configPanelRegistry';
 import { SchemaConfigPanel } from '@/components/panels/SchemaConfigPanel';
@@ -41,6 +42,7 @@ export function DebugNodeConfigDialog({
   onSave,
   onCancel,
 }: DebugNodeConfigDialogProps) {
+  const ll = getLL();
   // 内部编辑状态（用于跟踪修改）
   const [editedData, setEditedData] = useState<NodeData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -79,10 +81,10 @@ export function DebugNodeConfigDialog({
       if (!latestData) return;
 
       await onSave(latestData);
-      toast.success('节点配置已临时修改');
+      toast.success(ll.flow.debug_config_save_success());
       onCancel(); // 关闭弹窗
     } catch (error) {
-      toast.error(`修改配置失败: ${(error as Error).message}`);
+      toast.error(ll.flow.debug_config_save_fail({ msg: (error as Error).message }));
     } finally {
       setIsSaving(false);
     }

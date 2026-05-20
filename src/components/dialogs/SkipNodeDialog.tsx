@@ -24,6 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { SkipForward, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { NodeType } from '@/types/node';
 
 export interface SkipNodeDialogProps {
@@ -49,6 +50,7 @@ export function SkipNodeDialog({
   onConfirm,
   onCancel,
 }: SkipNodeDialogProps) {
+  const ll = getLL();
   // 选中的输出端口
   const [selectedPort, setSelectedPort] = useState<string>('');
   // 模拟输出 JSON 字符串
@@ -102,21 +104,21 @@ export function SkipNodeDialog({
   // 确认跳过
   const handleConfirm = () => {
     if (!selectedPort) {
-      toast.error('请选择输出分支');
+      toast.error(ll.flow.skip_select_branch_error());
       return;
     }
 
     // 如果需要模拟输出，验证 JSON
     if (needsSimulatedOutput && simulatedOutputText.trim()) {
       if (!validateJson(simulatedOutputText)) {
-        toast.error('模拟输出 JSON 格式错误');
+        toast.error(ll.flow.skip_json_format_error());
         return;
       }
       try {
         const simulatedOutput = JSON.parse(simulatedOutputText);
         onConfirm(selectedPort, simulatedOutput);
       } catch {
-        toast.error('模拟输出 JSON 解析失败');
+        toast.error(ll.flow.skip_json_parse_error());
         return;
       }
     } else {

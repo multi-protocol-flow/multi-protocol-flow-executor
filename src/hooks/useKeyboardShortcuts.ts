@@ -9,6 +9,8 @@ import { flowStorage } from '@/services/storage';
 import { useZoomStore } from '@/stores/zoom';
 import { getLL } from '@/i18n/i18n-lazy';
 
+const ll = getLL();
+
 /**
  * 键盘快捷键 Hook
  * 
@@ -124,15 +126,15 @@ export function useKeyboardShortcuts() {
         
         const { flow, isDirty, markSaved } = useFlowStore.getState();
         if (!flow || !isDirty) {
-          toast.info('无需保存', { description: '流程没有未保存的修改' });
+          toast.info(ll.execution.toast.no_changes(), { description: ll.execution.toast.no_unsaved_changes() });
           return;
         }
         try {
           await flowStorage.saveFlow(flow);
           markSaved();
-          toast.success('保存成功', { description: flow.name });
+          toast.success(ll.execution.toast.save_success(), { description: flow.name });
         } catch (err) {
-          toast.error('保存失败', { description: (err as Error).message });
+          toast.error(ll.execution.toast.save_failed(), { description: (err as Error).message });
         }
         return;
       }

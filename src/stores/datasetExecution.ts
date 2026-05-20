@@ -4,6 +4,7 @@
  * 管理数据驱动执行的状态、进度和报告
  */
 import { create } from 'zustand';
+import { getLL } from '@/i18n/i18n-lazy';
 import type {
   DatasetExecutionReport,
   DatasetEvent,
@@ -18,6 +19,8 @@ import {
 } from '@/services/tauri';
 import { useSettingsStore } from './settings';
 import { toast } from 'sonner';
+
+const ll = getLL();
 
 // ============================================================================
 // 类型定义
@@ -179,9 +182,9 @@ export const useDatasetExecutionStore = create<DatasetExecutionState>((set, get)
           }
         })();
         // 显示完成通知
-        toast.success('数据集执行完成', {
-          description: `${event.report.total_rows} 行 · 成功 ${event.report.success_count} · 失败 ${event.report.fail_count + event.report.error_count}`,
-          action: { label: '查看报告', onClick: () => get().openReportDialog(event.report.uuid) },
+        toast.success(ll.execution.toast.dataset_completed(), {
+          description: `${event.report.total_rows} ${ll.execution.dataset.label_row()} · ${ll.execution.dataset.success()} ${event.report.success_count} · ${ll.execution.dataset.fail()} ${event.report.fail_count + event.report.error_count}`,
+          action: { label: ll.execution.toast.view_report(), onClick: () => get().openReportDialog(event.report.uuid) },
           duration: 10000,
         });
         break;
@@ -190,7 +193,7 @@ export const useDatasetExecutionStore = create<DatasetExecutionState>((set, get)
           isExecuting: false,
           currentReport: event.report,
         });
-        toast.info('数据集执行已取消');
+        toast.info(ll.execution.toast.dataset_cancelled());
         break;
     }
   },

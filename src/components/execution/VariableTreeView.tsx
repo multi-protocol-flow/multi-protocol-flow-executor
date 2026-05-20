@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronRight, Copy, Edit2, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface VariableTreeViewProps {
   /** 变量数据 */
@@ -27,6 +28,7 @@ function VariableItem({
   depth?: number;
   onEdit?: (name: string, value: unknown) => void;
 }) {
+  const ll = getLL();
   const [isExpanded, setIsExpanded] = useState(depth < 1);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
@@ -38,9 +40,9 @@ function VariableItem({
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(JSON.stringify(value, null, 2));
-      toast.success('已复制到剪贴板');
+      toast.success(ll.execution.report.copied_to_clipboard());
     } catch {
-      toast.error('复制失败');
+      toast.error(ll.execution.report.copy_failed());
     }
   };
 
@@ -54,9 +56,9 @@ function VariableItem({
       const parsed = JSON.parse(editValue);
       onEdit?.(name, parsed);
       setIsEditing(false);
-      toast.success('变量已修改');
+      toast.success(ll.execution.toast.variable_modified());
     } catch {
-      toast.error('JSON 格式错误');
+      toast.error(ll.flow.skip_json_error());
     }
   };
 

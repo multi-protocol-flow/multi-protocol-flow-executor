@@ -3,7 +3,10 @@
  * 从快照恢复流程到画布，处理 UUID 冲突和脏画布保护
  */
 
+import { getLL } from '@/i18n/i18n-lazy';
 import type { Flow } from '@/types';
+
+const ll = getLL();
 
 /** 恢复结果 */
 export type RestoreResult =
@@ -59,7 +62,7 @@ export async function restoreFlowFromSnapshot(
       cancelText: '取消',
     });
     if (!confirmed) {
-      toast.error('已取消恢复');
+      toast.error(ll.execution.toast.restore_cancelled());
       return { success: false, reason: 'dirty_cancelled' };
     }
   }
@@ -81,11 +84,11 @@ export async function restoreFlowFromSnapshot(
       try {
         await saveFlow(snapshot);
         setFlow(snapshot);
-        toast.success('流程已覆盖恢复');
+        toast.success(ll.execution.toast.restore_overwritten());
         return { success: true, action: 'overwritten', flow: snapshot };
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
-        toast.error(`恢复失败: ${errorMsg}`);
+        toast.error(ll.execution.toast.restore_failed() + ': ' + errorMsg);
         return { success: false, reason: 'load_failed', error: errorMsg };
       }
     } else {
@@ -99,11 +102,11 @@ export async function restoreFlowFromSnapshot(
       try {
         await saveFlow(copiedFlow);
         setFlow(copiedFlow);
-        toast.success('已创建恢复副本');
+        toast.success(ll.execution.toast.restore_copy_created());
         return { success: true, action: 'created_copy', flow: copiedFlow };
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
-        toast.error(`恢复失败: ${errorMsg}`);
+        toast.error(ll.execution.toast.restore_failed() + ': ' + errorMsg);
         return { success: false, reason: 'load_failed', error: errorMsg };
       }
     }
@@ -113,11 +116,11 @@ export async function restoreFlowFromSnapshot(
   try {
     await saveFlow(snapshot);
     setFlow(snapshot);
-    toast.success('流程已恢复');
+    toast.success(ll.execution.toast.restore_completed());
     return { success: true, action: 'restored', flow: snapshot };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    toast.error(`恢复失败: ${errorMsg}`);
+    toast.error(ll.execution.toast.restore_failed() + ': ' + errorMsg);
     return { success: false, reason: 'load_failed', error: errorMsg };
   }
 }

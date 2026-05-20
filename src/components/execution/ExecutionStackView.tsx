@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronRight, Copy, Pause, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { ExecutionStackEntry } from '@/types/debug';
 
 interface ExecutionStackViewProps {
@@ -28,15 +29,16 @@ function StackEntryItem({
   isCurrentNode: boolean;
   onNavigateToNode: (uuid: string) => void;
 }) {
+  const ll = getLL();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleCopyData = async (data: unknown, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-      toast.success('已复制到剪贴板');
+      toast.success(ll.execution.report.copied_to_clipboard());
     } catch {
-      toast.error('复制失败');
+      toast.error(ll.execution.report.copy_failed());
     }
   };
 

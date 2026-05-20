@@ -13,6 +13,7 @@ import {
   FileSpreadsheet,
   ArrowRight,
 } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -52,6 +53,7 @@ interface DatasetReportListProps {
 }
 
 export function DatasetReportList({ onViewReport }: DatasetReportListProps) {
+  const ll = getLL();
   const [reports, setReports] = useState<DatasetReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const reportDir = useSettingsStore((state) => state.reportDir);
@@ -67,8 +69,8 @@ export function DatasetReportList({ onViewReport }: DatasetReportListProps) {
       setReports(list.sort((a, b) => b.executed_at - a.executed_at));
     } catch (error) {
       console.error('加载数据集报告列表失败:', error);
-      toast.error('加载报告列表失败', {
-        description: error instanceof Error ? error.message : '未知错误',
+      toast.error(ll.execution.toast.load_report_list_failed(), {
+        description: error instanceof Error ? error.message : ll.execution.datasetReport.unknown_error(),
       });
     } finally {
       setLoading(false);
@@ -83,18 +85,18 @@ export function DatasetReportList({ onViewReport }: DatasetReportListProps) {
   const handleDelete = useCallback(
     (report: DatasetReportSummary) => {
       showConfirm({
-        title: '删除报告',
-        description: `确定要删除「${report.flow_name}」的报告吗？删除后无法恢复。`,
-        confirmText: '删除',
+        title: ll.execution.datasetReport.delete_title(),
+        description: ll.execution.datasetReport.delete_confirm(),
+        confirmText: ll.common.DELETE(),
         onConfirm: async () => {
           try {
             await deleteDatasetReport(report.report_id, reportDir);
             setReports((prev) => prev.filter((r) => r.report_id !== report.report_id));
-            toast.success('报告已删除');
+            toast.success(ll.execution.toast.report_deleted());
           } catch (error) {
             console.error('删除报告失败:', error);
-            toast.error('删除报告失败', {
-              description: error instanceof Error ? error.message : '未知错误',
+            toast.error(ll.execution.toast.delete_report_failed(), {
+              description: error instanceof Error ? error.message : ll.execution.datasetReport.unknown_error(),
             });
           }
         },
@@ -108,7 +110,7 @@ export function DatasetReportList({ onViewReport }: DatasetReportListProps) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-16 text-muted-foreground">
         <Loader2 className="w-10 h-10 mb-3 animate-spin" />
-        <p className="text-sm">加载中...</p>
+        <p className="text-sm">{ll.execution.datasetReport.loading()}</p>
       </div>
     );
   }
@@ -118,8 +120,8 @@ export function DatasetReportList({ onViewReport }: DatasetReportListProps) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-16 text-muted-foreground">
         <FileSpreadsheet className="w-12 h-12 mb-3 opacity-40" />
-        <p className="text-sm font-medium">暂无数据集报告</p>
-        <p className="text-xs mt-1 opacity-70">执行数据驱动测试后报告将显示在这里</p>
+        <p className="text-sm font-medium">{ll.execution.datasetReport.no_reports()}</p>
+        <p className="text-xs mt-1 opacity-70">{ll.execution.datasetReport.empty_desc()}</p>
       </div>
     );
   }
@@ -129,14 +131,14 @@ export function DatasetReportList({ onViewReport }: DatasetReportListProps) {
       {/* 标题栏 */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">数据驱动报告</h2>
+          <h2 className="text-lg font-semibold text-foreground">{ll.execution.datasetReport.title()}</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            共 {reports.length} 份报告
+            {ll.execution.datasetReport.report_count({ count: reports.length })}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={loadReports}>
-          刷新
-        </Button>
+<Button variant="outline" size="sm" onClick={loadReports}>
+           {ll.execution.datasetReport.refresh()}
+         </Button>
       </div>
 
       {/* 表格 */}
@@ -144,29 +146,29 @@ export function DatasetReportList({ onViewReport }: DatasetReportListProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[180px]">流程名称</TableHead>
-              <TableHead className="w-[150px]">数据集</TableHead>
-              <TableHead className="w-[160px]">执行时间</TableHead>
-              <TableHead className="w-[80px] text-center">总行数</TableHead>
+              <TableHead className="w-[180px]">{ll.execution.datasetReport.label_flow_name()}</TableHead>
+              <TableHead className="w-[150px]">{ll.execution.datasetReport.label_dataset_name()}</TableHead>
+              <TableHead className="w-[160px]">{ll.execution.datasetReport.label_time()}</TableHead>
+              <TableHead className="w-[80px] text-center">{ll.execution.datasetReport.label_total_rows()}</TableHead>
               <TableHead className="w-[80px] text-center">
                 <span className="inline-flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                  通过
+                  {ll.execution.datasetReport.success()}
                 </span>
               </TableHead>
               <TableHead className="w-[80px] text-center">
                 <span className="inline-flex items-center gap-1">
                   <XCircle className="w-3.5 h-3.5 text-red-600" />
-                  失败
+                  {ll.execution.datasetReport.fail()}
                 </span>
               </TableHead>
               <TableHead className="w-[80px] text-center">
                 <span className="inline-flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5 text-yellow-600" />
-                  错误
+                  {ll.execution.datasetReport.error()}
                 </span>
               </TableHead>
-              <TableHead className="w-[100px] text-right">操作</TableHead>
+              <TableHead className="w-[100px] text-right">{ll.execution.datasetReport.actions()}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -229,8 +231,8 @@ export function DatasetReportList({ onViewReport }: DatasetReportListProps) {
                           onViewReport(report.report_id);
                         }}
                       >
-                        详情
-                        <ArrowRight className="w-3.5 h-3.5 ml-1" />
+{ll.execution.datasetReport.detail()}
+                         <ArrowRight className="w-3.5 h-3.5 ml-1" />
                       </Button>
                     </div>
                   </TableCell>

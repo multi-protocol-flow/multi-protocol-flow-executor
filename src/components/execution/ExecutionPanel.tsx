@@ -257,7 +257,7 @@ export function ExecutionPanel() {
         ModifyVariable: { name, value },
       });
     } catch (error) {
-      toast.error(`修改变量失败: ${(error as Error).message}`);
+      toast.error(ll.execution.toast.variable_modify_failed() + ': ' + (error as Error).message);
     }
   }, []);
 

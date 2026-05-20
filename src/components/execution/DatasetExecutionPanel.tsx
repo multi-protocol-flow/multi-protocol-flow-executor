@@ -17,6 +17,7 @@ import {
   ChevronUp,
   Download,
 } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import { open } from '@tauri-apps/plugin-dialog';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
@@ -150,9 +151,10 @@ function FileSelectionArea({
   onFileSelect: () => void;
   onDownloadTemplate: () => void;
 }) {
+  const ll = getLL();
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-medium">数据文件</Label>
+      <Label className="text-sm font-medium">{ll.execution.dataset.data_file()}</Label>
       {csvPath && csvInfo ? (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-border/50">
           <FileSpreadsheet className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -161,7 +163,7 @@ function FileSelectionArea({
               {csvPath.split(/[\\/]/).pop()}
             </p>
             <p className="text-xs text-muted-foreground">
-              {csvInfo.row_count} 行 × {csvInfo.column_names.length} 列 · {csvInfo.detected_encoding}
+              {csvInfo.row_count}{ll.execution.dataset.label_row()} × {csvInfo.column_names.length} 列 · {csvInfo.detected_encoding}
             </p>
           </div>
           <Button
@@ -171,19 +173,19 @@ function FileSelectionArea({
             disabled={isLoading}
             className="shrink-0"
           >
-            重新选择
+            {ll.execution.dataset.re_select()}
           </Button>
         </div>
       ) : fileNotFound ? (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
           <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
           <div className="flex-1">
-            <p className="text-sm text-amber-700 dark:text-amber-400">
-              关联的 CSV 文件未找到
-            </p>
-            <p className="text-xs text-amber-600/70 dark:text-amber-500/70">
-              Entry 节点关联的文件可能已移动或删除
-            </p>
+<p className="text-sm text-amber-700 dark:text-amber-400">
+               {ll.execution.dataset.csv_not_found()}
+             </p>
+             <p className="text-xs text-amber-600/70 dark:text-amber-500/70">
+               {ll.execution.dataset.csv_not_found_hint()}
+             </p>
           </div>
           <Button
             variant="outline"
@@ -192,7 +194,7 @@ function FileSelectionArea({
             disabled={isLoading}
             className="shrink-0"
           >
-            选择文件
+            {ll.execution.dataset.select_file()}
           </Button>
         </div>
       ) : (
@@ -208,7 +210,7 @@ function FileSelectionArea({
             ) : (
               <FileSpreadsheet className="w-5 h-5" />
             )}
-            {isLoading ? '正在读取...' : '选择 CSV 文件'}
+            {isLoading ? ll.execution.dataset.reading() : ll.execution.dataset.select_csv()}
           </Button>
           <Button
             variant="ghost"
@@ -216,8 +218,8 @@ function FileSelectionArea({
             onClick={onDownloadTemplate}
             className="w-full gap-1.5 text-xs text-muted-foreground hover:text-foreground"
           >
-            <Download className="w-3.5 h-3.5" />
-            下载 CSV 模板
+<Download className="w-3.5 h-3.5" />
+             {ll.execution.dataset.download_template()}
           </Button>
         </div>
       )}
@@ -230,6 +232,7 @@ function FileSelectionArea({
 // ============================================================================
 
 function DataPreviewTable({ csvInfo }: { csvInfo: CsvInfo }) {
+  const ll = getLL();
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Mock 前 20 行数据用于预览（真实数据在执行时从后端读取）
@@ -246,7 +249,7 @@ function DataPreviewTable({ csvInfo }: { csvInfo: CsvInfo }) {
         ) : (
           <ChevronDown className="w-4 h-4" />
         )}
-        列预览
+        {ll.execution.dataset.column_preview()}
         <Badge variant="secondary" className="text-xs">
           {csvInfo.column_names.length}
         </Badge>
@@ -279,6 +282,7 @@ function VariableMatchOverview({
 }: {
   matches: VariableMatch[];
 }) {
+  const ll = getLL();
   if (matches.length === 0) return null;
 
   const matchedCount = matches.filter((m) => m.matched).length;
@@ -287,9 +291,9 @@ function VariableMatchOverview({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium">变量匹配</Label>
+        <Label className="text-sm font-medium">{ll.execution.dataset.variable_match()}</Label>
         <span className="text-xs text-muted-foreground">
-          {matchedCount}/{matches.length} 匹配
+          {matchedCount}/{matches.length} {ll.execution.dataset.match()}
         </span>
       </div>
       <div className="rounded-lg border border-border/50 overflow-hidden">
@@ -307,14 +311,14 @@ function VariableMatchOverview({
                     className="text-xs gap-1 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400"
                   >
                     <Check className="w-3 h-3" />
-                    匹配
+                    {ll.execution.dataset.matched()}
                   </Badge>
                 ) : (
                   <Badge
                     variant="outline"
                     className="text-xs border-muted text-muted-foreground"
                   >
-                    未匹配
+                    {ll.execution.dataset.unmatched()}
                   </Badge>
                 )}
               </div>
@@ -324,7 +328,7 @@ function VariableMatchOverview({
       </div>
       {unmatchedCount > 0 && (
         <p className="text-xs text-muted-foreground">
-          {unmatchedCount} 个列未匹配到流程变量，将在执行时作为独立变量传入
+          {ll.execution.dataset.unmatched_hint({ count: unmatchedCount })}
         </p>
       )}
     </div>
@@ -336,6 +340,7 @@ function VariableMatchOverview({
 // ============================================================================
 
 function ExecutionProgress() {
+  const ll = getLL();
   const isExecuting = useDatasetExecutionStore((s) => s.isExecuting);
   const totalRows = useDatasetExecutionStore((s) => s.totalRows);
   const completedRows = useDatasetExecutionStore((s) => s.completedRows);
@@ -356,7 +361,7 @@ function ExecutionProgress() {
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">
-            {completedRows}/{totalRows} 行
+            {completedRows}/{totalRows} {ll.execution.dataset.label_row()}
           </span>
           <span className="text-muted-foreground">{progressPercent}%</span>
         </div>
@@ -372,18 +377,18 @@ function ExecutionProgress() {
       <div className="grid grid-cols-3 gap-2">
         <div className="flex items-center gap-1.5 text-xs">
           <div className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-muted-foreground">成功</span>
-          <span className="font-medium tabular-nums">{successCount}</span>
+<span className="text-muted-foreground">{ll.execution.dataset.success()}</span>
+           <span className="font-medium tabular-nums">{successCount}</span>
         </div>
         <div className="flex items-center gap-1.5 text-xs">
           <div className="w-2 h-2 rounded-full bg-amber-500" />
-          <span className="text-muted-foreground">失败</span>
-          <span className="font-medium tabular-nums">{failCount}</span>
+<span className="text-muted-foreground">{ll.execution.dataset.fail()}</span>
+           <span className="font-medium tabular-nums">{failCount}</span>
         </div>
         <div className="flex items-center gap-1.5 text-xs">
           <div className="w-2 h-2 rounded-full bg-red-500" />
-          <span className="text-muted-foreground">错误</span>
-          <span className="font-medium tabular-nums">{errorCount}</span>
+<span className="text-muted-foreground">{ll.execution.dataset.error()}</span>
+           <span className="font-medium tabular-nums">{errorCount}</span>
         </div>
       </div>
 
@@ -391,10 +396,10 @@ function ExecutionProgress() {
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-1">
           <Clock className="w-3 h-3" />
-          <span>已用时 {formatDuration(elapsedTimeMs)}</span>
+          <span>{ll.execution.dataset.elapsed()} {formatDuration(elapsedTimeMs)}</span>
         </div>
         {estimatedRemainingMs !== null && estimatedRemainingMs > 0 && (
-          <span>预计剩余 {formatDuration(estimatedRemainingMs)}</span>
+          <span>{ll.execution.dataset.estimated_remaining()} {formatDuration(estimatedRemainingMs)}</span>
         )}
       </div>
     </div>
@@ -409,6 +414,7 @@ export function DatasetExecutionPanel({
   open: isOpen,
   onOpenChange,
 }: DatasetExecutionPanelProps) {
+  const ll = getLL();
   const flow = useFlowStore((s) => s.flow);
 
   // Store 状态
@@ -456,11 +462,11 @@ export function DatasetExecutionPanel({
       const savedPath = await downloadCsvTemplate(content, filename);
       // 获取目录路径（去掉文件名）
       const dirPath = savedPath.replace(/[/\\][^/\\]+$/, '');
-      toast.success('CSV 模板已下载', {
+      toast.success(ll.execution.toast.csv_template_downloaded(), {
         description: filename,
         duration: 8000,
         action: {
-          label: '打开目录',
+          label: ll.execution.toast.open_dir(),
           onClick: async () => {
             try {
               const isTauriEnv = typeof window !== 'undefined' && '__TAURI__' in window;
@@ -469,13 +475,13 @@ export function DatasetExecutionPanel({
                 await openDirectory(dirPath);
               }
             } catch {
-              toast.error('打开目录失败');
+              toast.error(ll.execution.toast.open_dir_failed());
             }
           },
         },
       });
     } catch (err) {
-      toast.error('下载模板失败', {
+      toast.error(ll.execution.toast.download_template_failed(), {
         description: (err as Error).message,
       });
     }
@@ -525,8 +531,8 @@ export function DatasetExecutionPanel({
       const selected = await open({
         multiple: false,
         filters: [
-          { name: 'CSV 文件', extensions: ['csv'] },
-          { name: '所有文件', extensions: ['*'] },
+          { name: ll.execution.dataset.csv_filter(), extensions: ['csv'] },
+          { name: ll.execution.dataset.all_files(), extensions: ['*'] },
         ],
       });
       if (selected && typeof selected === 'string') {
@@ -582,13 +588,13 @@ export function DatasetExecutionPanel({
         <div className="flex items-center justify-between mb-4 shrink-0">
           <div className="flex items-center gap-2">
             <Database className="w-5 h-5 text-violet-500" />
-            <span className="font-semibold">数据驱动执行</span>
+            <span className="font-semibold">{ll.execution.dataset.title()}</span>
             {isExecuting && (
               <Badge
                 variant="outline"
                 className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800"
               >
-                执行中
+                {ll.execution.dataset.status_running()}
               </Badge>
             )}
             {isCompleted && (
@@ -596,7 +602,7 @@ export function DatasetExecutionPanel({
                 variant="outline"
                 className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-800"
               >
-                已完成
+                {ll.execution.dataset.status_completed()}
               </Badge>
             )}
           </div>
@@ -605,7 +611,7 @@ export function DatasetExecutionPanel({
               type="button"
               onClick={handleClose}
               className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              title="关闭"
+              title={ll.execution.dataset.close()}
             >
               <X className="w-4 h-4" />
             </button>
@@ -647,19 +653,19 @@ export function DatasetExecutionPanel({
             {/* 完成摘要 */}
             {isCompleted && currentReport && (
               <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-2">
-                <p className="text-sm font-medium">执行完成</p>
+                <p className="text-sm font-medium">{ll.execution.dataset.completed()}</p>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                  <span className="text-muted-foreground">总行数</span>
+                  <span className="text-muted-foreground">{ll.execution.dataset.total_rows()}</span>
                   <span className="tabular-nums">{currentReport.total_rows}</span>
-                  <span className="text-muted-foreground">总耗时</span>
+                  <span className="text-muted-foreground">{ll.execution.dataset.total_duration()}</span>
                   <span className="tabular-nums">{formatDuration(currentReport.total_duration_ms)}</span>
-                  <span className="text-emerald-600">成功</span>
+                  <span className="text-emerald-600">{ll.execution.dataset.success()}</span>
                   <span className="tabular-nums text-emerald-600">{currentReport.success_count}</span>
-                  <span className="text-amber-600">失败</span>
+                  <span className="text-amber-600">{ll.execution.dataset.fail()}</span>
                   <span className="tabular-nums text-amber-600">{currentReport.fail_count}</span>
-                  <span className="text-red-600">错误</span>
+                  <span className="text-red-600">{ll.execution.dataset.error()}</span>
                   <span className="tabular-nums text-red-600">{currentReport.error_count}</span>
-                  <span className="text-muted-foreground">平均耗时</span>
+                  <span className="text-muted-foreground">{ll.execution.dataset.avg_duration()}</span>
                   <span className="tabular-nums">{currentReport.avg_duration_ms}ms</span>
                   <span className="text-muted-foreground">P95</span>
                   <span className="tabular-nums">{currentReport.p95_duration_ms}ms</span>
@@ -674,9 +680,9 @@ export function DatasetExecutionPanel({
           <div className="shrink-0 space-y-3 pt-3 border-t border-border mt-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="ds-concurrency" className="text-sm font-medium">
-                  并发数
-                </Label>
+<Label htmlFor="ds-concurrency" className="text-sm font-medium">
+                   {ll.execution.dataset.concurrency()}
+                 </Label>
                 <Input
                   id="ds-concurrency"
                   type="number"
@@ -691,12 +697,12 @@ export function DatasetExecutionPanel({
                   }}
                   className="h-8"
                 />
-                <p className="text-xs text-muted-foreground">
-                  1 = 顺序执行，最大 100
-                </p>
+<p className="text-xs text-muted-foreground">
+                   {ll.execution.dataset.concurrency_hint()}
+                 </p>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium">失败策略</Label>
+                <Label className="text-sm font-medium">{ll.execution.dataset.failure_strategy()}</Label>
                 <Select
                   value={failureStrategy}
                   onValueChange={(v) => setFailureStrategy(v as FailureStrategy)}
@@ -705,8 +711,8 @@ export function DatasetExecutionPanel({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="continue">继续执行</SelectItem>
-                    <SelectItem value="stop_on_first">遇失败停止</SelectItem>
+                    <SelectItem value="continue">{ll.execution.dataset.strategy_continue()}</SelectItem>
+                    <SelectItem value="stop_on_first">{ll.execution.dataset.strategy_stop()}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -723,13 +729,13 @@ export function DatasetExecutionPanel({
               onClick={handleCancel}
               className="gap-1.5"
             >
-              <Square className="w-4 h-4" />
-              取消执行
+<Square className="w-4 h-4" />
+               {ll.execution.dataset.cancel_execution()}
             </Button>
           ) : isCompleted ? (
-            <Button variant="outline" size="sm" onClick={handleClose}>
-              关闭
-            </Button>
+<Button variant="outline" size="sm" onClick={handleClose}>
+               {ll.execution.dataset.close()}
+             </Button>
           ) : (
             <Button
               size="sm"
@@ -737,8 +743,8 @@ export function DatasetExecutionPanel({
               disabled={!canStart}
               className="gap-1.5"
             >
-              <Play className="w-4 h-4" />
-              开始执行
+<Play className="w-4 h-4" />
+               {ll.execution.dataset.start()}
             </Button>
           )}
         </div>

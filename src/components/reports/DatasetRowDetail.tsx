@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Loader2,
 } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,27 +22,27 @@ import type { FlowExecutionReport } from '@/types/report';
 import { cn } from '@/lib/utils';
 
 /** 行状态配置 */
-function getStatusConfig(status: RowStatus) {
+function getStatusConfig(status: RowStatus, ll: ReturnType<typeof getLL>) {
   switch (status) {
     case 'success':
       return {
         bg: 'bg-green-100 dark:bg-green-900/50',
         text: 'text-green-700 dark:text-green-300',
-        label: '通过',
+        label: ll.execution.datasetReport.success(),
         icon: CheckCircle2,
       };
     case 'fail':
       return {
         bg: 'bg-red-100 dark:bg-red-900/50',
         text: 'text-red-700 dark:text-red-300',
-        label: '失败',
+        label: ll.execution.datasetReport.fail(),
         icon: XCircle,
       };
     case 'error':
       return {
         bg: 'bg-yellow-100 dark:bg-yellow-900/50',
         text: 'text-yellow-700 dark:text-yellow-300',
-        label: '错误',
+        label: ll.execution.datasetReport.error(),
         icon: AlertTriangle,
       };
   }
@@ -68,6 +69,7 @@ export function DatasetRowDetail({
   rowIndex,
   onBack,
 }: DatasetRowDetailProps) {
+  const ll = getLL();
   const [rowSummary, setRowSummary] = useState<RowSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -109,8 +111,8 @@ export function DatasetRowDetail({
       } catch (error) {
         if (!cancelled) {
           console.error('加载行详情失败:', error);
-          toast.error('加载行详情失败', {
-            description: error instanceof Error ? error.message : '未知错误',
+          toast.error(ll.execution.toast.load_row_detail_failed(), {
+            description: error instanceof Error ? error.message : ll.execution.datasetReport.unknown_error(),
           });
         }
       } finally {
@@ -130,7 +132,7 @@ export function DatasetRowDetail({
     return (
       <div className="flex flex-col items-center justify-center h-full py-16 text-muted-foreground">
         <Loader2 className="w-10 h-10 mb-3 animate-spin" />
-        <p className="text-sm">加载行详情...</p>
+        <p className="text-sm">{ll.execution.datasetReport.loading_row()}</p>
       </div>
     );
   }
@@ -138,15 +140,15 @@ export function DatasetRowDetail({
   if (!rowSummary) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-16 text-muted-foreground">
-        <p className="text-sm">行数据不存在</p>
+        <p className="text-sm">{ll.execution.datasetReport.row_not_exist()}</p>
         <Button variant="outline" size="sm" className="mt-4" onClick={onBack}>
-          返回
+          {ll.execution.datasetReport.back()}
         </Button>
       </div>
     );
   }
 
-  const statusConfig = getStatusConfig(rowSummary.status);
+  const statusConfig = getStatusConfig(rowSummary.status, ll);
   const StatusIcon = statusConfig.icon;
 
   // 构建输入数据摘要（显示前几个字段）
@@ -159,12 +161,12 @@ export function DatasetRowDetail({
       <div className="flex items-center gap-3 px-6 py-3 border-b border-border shrink-0">
         <Button variant="ghost" size="sm" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-1" />
-          返回
+          {ll.execution.datasetReport.back()}
         </Button>
         <div className="h-4 w-px bg-border" />
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-sm font-medium text-foreground">
-            第 {rowSummary.row_index + 1} 行
+            {ll.execution.datasetReport.row_n({ n: rowSummary.row_index + 1 })}
           </span>
           <Badge
             variant="outline"
@@ -193,7 +195,7 @@ export function DatasetRowDetail({
           ))}
           {inputEntries.length > 5 && (
             <span className="text-muted-foreground/60">
-              +{inputEntries.length - 5} 更多
+              {ll.execution.datasetReport.n_more({ n: inputEntries.length - 5 })}
             </span>
           )}
         </div>
@@ -206,7 +208,7 @@ export function DatasetRowDetail({
             <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
             <div>
               <p className="text-sm font-medium text-red-600 dark:text-red-400">
-                错误信息
+                {ll.execution.datasetReport.error_message()}
               </p>
               <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-0.5">
                 {rowSummary.error_message}
@@ -219,10 +221,10 @@ export function DatasetRowDetail({
       {/* 提示：详情在弹窗中展示 */}
       <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
         <p className="text-sm">
-          流程执行详情已在弹窗中打开，请查看弹窗内容
+          {ll.execution.datasetReport.detail_in_popup()}
         </p>
         <Button variant="outline" size="sm" onClick={onBack}>
-          返回报告详情
+          {ll.execution.datasetReport.back_to_report()}
         </Button>
       </div>
     </div>

@@ -17,6 +17,9 @@ import { startStressTest as startStressTestService, stopStressTest as stopStress
 import { stressTestStorage } from '@/services/storage/stressTestStorage';
 import { useSettingsStore } from './settings';
 import { toast } from 'sonner';
+import { getLL } from '@/i18n/i18n-lazy';
+
+const ll = getLL();
 
 // ============================================================================
 // 类型定义
@@ -187,9 +190,9 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
       // 显示 toast 通知
       const successRate = event.report.statistics.successRate;
       const toastFn = successRate < 0.99 ? toast.error : toast.success;
-      toastFn('压力测试完成', {
-        description: `${event.report.statistics.totalIterations} 次迭代 · 成功率 ${(successRate * 100).toFixed(1)}%`,
-        action: { label: '查看报告', onClick: () => get().openReportDialog() },
+      toastFn(ll.execution.toast.stress_completed(), {
+        description: `${event.report.statistics.totalIterations} ${ll.execution.toast.iterations()} · ${ll.execution.toast.success_rate()} ${(successRate * 100).toFixed(1)}%`,
+        action: { label: ll.execution.toast.view_report(), onClick: () => get().openReportDialog() },
         duration: 10000,
       });
     }

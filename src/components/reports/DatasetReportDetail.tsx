@@ -13,6 +13,7 @@ import {
   Loader2,
   ExternalLink,
 } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -66,14 +67,14 @@ function StatCard({
 }
 
 /** 行状态标签颜色映射 */
-function getStatusStyle(status: RowStatus) {
+function getStatusStyle(status: RowStatus, ll: ReturnType<typeof getLL>) {
   switch (status) {
     case 'success':
       return {
         bg: 'bg-green-100 dark:bg-green-900/50',
         text: 'text-green-700 dark:text-green-300',
         border: 'border-green-200 dark:border-green-700',
-        label: '通过',
+        label: ll.execution.datasetReport.success(),
         icon: CheckCircle2,
       };
     case 'fail':
@@ -81,7 +82,7 @@ function getStatusStyle(status: RowStatus) {
         bg: 'bg-red-100 dark:bg-red-900/50',
         text: 'text-red-700 dark:text-red-300',
         border: 'border-red-200 dark:border-red-700',
-        label: '失败',
+        label: ll.execution.datasetReport.fail(),
         icon: XCircle,
       };
     case 'error':
@@ -89,7 +90,7 @@ function getStatusStyle(status: RowStatus) {
         bg: 'bg-yellow-100 dark:bg-yellow-900/50',
         text: 'text-yellow-700 dark:text-yellow-300',
         border: 'border-yellow-200 dark:border-yellow-700',
-        label: '错误',
+        label: ll.execution.datasetReport.error(),
         icon: AlertTriangle,
       };
   }
@@ -106,6 +107,7 @@ export function DatasetReportDetail({
   reportId,
   onViewRowDetail,
 }: DatasetReportDetailProps) {
+  const ll = getLL();
   const [report, setReport] = useState<DatasetExecutionReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -127,8 +129,8 @@ export function DatasetReportDetail({
       } catch (error) {
         if (!cancelled) {
           console.error('加载报告详情失败:', error);
-          toast.error('加载报告详情失败', {
-            description: error instanceof Error ? error.message : '未知错误',
+          toast.error(ll.execution.toast.load_report_detail_failed(), {
+            description: error instanceof Error ? error.message : ll.execution.datasetReport.unknown_error(),
           });
         }
       } finally {
@@ -172,7 +174,7 @@ export function DatasetReportDetail({
     return (
       <div className="flex flex-col items-center justify-center h-full py-16 text-muted-foreground">
         <Loader2 className="w-10 h-10 mb-3 animate-spin" />
-        <p className="text-sm">加载报告详情...</p>
+        <p className="text-sm">{ll.execution.datasetReport.loading_detail()}</p>
       </div>
     );
   }
@@ -180,7 +182,7 @@ export function DatasetReportDetail({
   if (!report) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-16 text-muted-foreground">
-        <p className="text-sm">报告不存在或加载失败</p>
+        <p className="text-sm">{ll.execution.datasetReport.not_found()}</p>
       </div>
     );
   }
@@ -203,42 +205,42 @@ export function DatasetReportDetail({
           <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             <StatCard
               icon={CheckCircle2}
-              label="通过"
+              label={ll.execution.datasetReport.success()}
               value={report.success_count}
               iconColor="text-green-500"
               valueColor="text-green-600"
             />
             <StatCard
               icon={XCircle}
-              label="失败"
+              label={ll.execution.datasetReport.fail()}
               value={report.fail_count}
               iconColor="text-red-500"
               valueColor="text-red-600"
             />
             <StatCard
               icon={AlertTriangle}
-              label="错误"
+              label={ll.execution.datasetReport.error()}
               value={report.error_count}
               iconColor="text-yellow-500"
               valueColor="text-yellow-600"
             />
             <StatCard
               icon={Timer}
-              label="平均耗时"
+              label={ll.execution.datasetReport.avg_duration()}
               value={formatDuration(report.avg_duration_ms)}
               iconColor="text-violet-500"
               valueColor="text-violet-600"
             />
             <StatCard
               icon={BarChart3}
-              label="P95 耗时"
+              label={ll.execution.datasetReport.p95()}
               value={formatDuration(report.p95_duration_ms)}
               iconColor="text-blue-500"
               valueColor="text-blue-600"
             />
             <StatCard
               icon={Clock}
-              label="总耗时"
+              label={ll.execution.datasetReport.total_duration()}
               value={formatDuration(report.total_duration_ms)}
               iconColor="text-orange-500"
               valueColor="text-orange-600"
@@ -249,10 +251,10 @@ export function DatasetReportDetail({
           <div className="flex items-center gap-2">
             {(
               [
-                { key: 'all', label: '全部' },
-                { key: 'success', label: '✅ 通过' },
-                { key: 'fail', label: '❌ 失败' },
-                { key: 'error', label: '⚠️ 错误' },
+                { key: 'all', label: ll.execution.datasetReport.filter_all() },
+                { key: 'success', label: ll.execution.datasetReport.filter_pass() },
+                { key: 'fail', label: ll.execution.datasetReport.filter_fail() },
+                { key: 'error', label: ll.execution.datasetReport.filter_error() },
               ] as const
             ).map(({ key, label }) => (
               <Button
@@ -281,10 +283,10 @@ export function DatasetReportDetail({
                       {col}
                     </TableHead>
                   ))}
-                  <TableHead className="w-[80px] text-center">状态</TableHead>
-                  <TableHead className="w-[100px] text-right">耗时</TableHead>
-                  <TableHead className="w-[200px]">错误信息</TableHead>
-                  <TableHead className="w-[60px] text-center">详情</TableHead>
+                  <TableHead className="w-[80px] text-center">{ll.execution.datasetReport.label_status()}</TableHead>
+                  <TableHead className="w-[100px] text-right">{ll.execution.datasetReport.label_duration()}</TableHead>
+                  <TableHead className="w-[200px]">{ll.execution.datasetReport.label_error()}</TableHead>
+                  <TableHead className="w-[60px] text-center">{ll.execution.datasetReport.detail()}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -294,12 +296,12 @@ export function DatasetReportDetail({
                       colSpan={csvColumns.length + 5}
                       className="text-center py-8 text-muted-foreground"
                     >
-                      没有匹配的行
+                      {ll.execution.datasetReport.no_matching_rows()}
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredRows.map((row) => {
-                    const style = getStatusStyle(row.status);
+                    const style = getStatusStyle(row.status, ll);
                     const StatusIcon = style.icon;
                     const canDrillDown =
                       row.status !== 'success' && row.has_detail_report;

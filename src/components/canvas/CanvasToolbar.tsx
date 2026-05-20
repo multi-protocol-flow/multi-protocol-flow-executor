@@ -29,6 +29,7 @@ import { getLL } from '@/i18n/i18n-lazy';
  * 画布悬浮工具栏组件
  */
 export function CanvasToolbar() {
+  const ll = getLL();
   const [isExecuting, setIsExecuting] = useState(false);
   const flow = useFlowStore((state) => state.flow);
   const undo = useFlowStore((state) => state.undo);
@@ -102,30 +103,30 @@ export function CanvasToolbar() {
         } catch (saveError) {
           // 保存失败不影响 UI 显示，但提示用户
           console.error('保存报告失败:', saveError);
-          toast.warning('报告保存失败', {
-            description: `${(saveError as Error).message}，报告仅在当前会话可见`,
+          toast.warning(ll.execution.toast.report_save_failed(), {
+            description: `${(saveError as Error).message}，${ll.execution.toast.report_local_only()}`,
             duration: 8000,
           });
         }
 
-        toast.success('流程执行完成', {
-          description: `总耗时: ${result.flow_report.duration_ms}ms | 成功节点: ${result.flow_report.statistics.success_count}/${result.flow_report.total_nodes}`,
+        toast.success(ll.execution.toast.flow_completed(), {
+          description: `${ll.execution.report.total_duration()}: ${result.flow_report.duration_ms}ms | ${ll.execution.toast.success_nodes()}: ${result.flow_report.statistics.success_count}/${result.flow_report.total_nodes}`,
           duration: 10000,
           action: {
-            label: '查看报告',
+            label: ll.execution.toast.view_report(),
             onClick: () => useExecutionStore.getState().openReportDialog(),
           },
         });
       } else {
         setError(result.error || '执行失败');
-        toast.error('流程执行失败', {
-          description: result.error || '未知错误',
+        toast.error(ll.execution.toast.flow_failed(), {
+          description: result.error || ll.execution.toast.unknown_error(),
           duration: 10000,
         });
       }
     } catch (error) {
       setError((error as Error).message);
-      toast.error('执行异常', {
+      toast.error(ll.execution.toast.flow_exception(), {
         description: (error as Error).message,
       });
     } finally {

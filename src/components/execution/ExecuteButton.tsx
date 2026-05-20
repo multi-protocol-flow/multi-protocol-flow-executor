@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { Play, Loader2, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+import { getLL } from '@/i18n/i18n-lazy';
 import { Button } from '@/components/ui/button';
 import { useFlowStore, useUIStore, useExecutionStore, useDebugStore } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
@@ -15,6 +16,7 @@ import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
 
 export function ExecuteButton() {
+  const ll = getLL();
   const [isExecuting, setIsExecuting] = useState(false);
   const flow = useFlowStore((state) => state.flow);
   const setReport = useExecutionStore((state) => state.setReport);
@@ -68,27 +70,27 @@ export function ExecuteButton() {
         } catch (saveError) {
           // 保存失败不影响 UI 显示，但提示用户
           console.error('保存报告失败:', saveError);
-          toast.warning('报告保存失败', {
-            description: `${(saveError as Error).message}，报告仅在当前会话可见`,
+          toast.warning(ll.execution.toast.report_save_failed(), {
+            description: `${(saveError as Error).message}，${ll.execution.toast.report_local_only()}`,
             duration: 8000,
           });
         }
 
-        toast.success('执行完成', {
-          description: `${result.flow_report.flow_name} · 耗时 ${result.flow_report.duration_ms}ms · ${result.flow_report.statistics.success_count} 成功 · ${result.flow_report.statistics.failed_count} 失败`,
-          action: { label: '查看报告', onClick: () => useExecutionStore.getState().openReportDialog() },
+        toast.success(ll.execution.toast.flow_completed(), {
+          description: `${result.flow_report.flow_name} · ${ll.execution.toast.duration_label()} ${result.flow_report.duration_ms}ms · ${result.flow_report.statistics.success_count} ${ll.execution.status.success()} · ${result.flow_report.statistics.failed_count} ${ll.execution.status.failed()}`,
+          action: { label: ll.execution.toast.view_report(), onClick: () => useExecutionStore.getState().openReportDialog() },
           duration: 10000,
         });
       } else {
         setError(result.error || '执行失败');
-        toast.error('执行失败', {
-          description: result.error || '未知错误',
+        toast.error(ll.execution.toast.flow_failed(), {
+          description: result.error || ll.execution.toast.unknown_error(),
           duration: 10000,
         });
       }
     } catch (error) {
       setError((error as Error).message);
-      toast.error('执行失败', {
+      toast.error(ll.execution.toast.flow_failed(), {
         description: (error as Error).message,
         duration: 10000,
       });

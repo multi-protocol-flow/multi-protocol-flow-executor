@@ -15,6 +15,9 @@ import { useConsoleStore } from './console';
 import { useWsStreamStore } from './wsStream';
 import { useUIStore } from './ui';
 import { toast } from 'sonner';
+import { getLL } from '@/i18n/i18n-lazy';
+
+const ll = getLL();
 
 // ============================================================================
 // 类型定义
@@ -552,9 +555,9 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         useExecutionStore.getState().setReport(report);
 
         // 3. 显示 toast 通知
-        toast.success('调试完成', {
-          description: `耗时 ${report.duration_ms}ms · ${report.statistics.success_count} 成功 · ${report.statistics.failed_count} 失败`,
-          action: { label: '查看报告', onClick: () => useExecutionStore.getState().openReportDialog() },
+        toast.success(ll.execution.toast.debug_completed(), {
+          description: `${ll.execution.toast.duration_label()} ${report.duration_ms}ms · ${report.statistics.success_count} ${ll.execution.status.success()} · ${report.statistics.failed_count} ${ll.execution.status.failed()}`,
+          action: { label: ll.execution.toast.view_report(), onClick: () => useExecutionStore.getState().openReportDialog() },
           duration: 10000,
         });
       } else {
