@@ -172,21 +172,25 @@ describe('CanvasToolbar', () => {
       expect(toolbar).toBeInTheDocument();
 
       const children = toolbar?.children;
-      expect(children).toHaveLength(7);
+      // 无流程时：添加节点按钮 + 分隔线 + 撤销 + 重做 + 分隔线 + 执行 + 调试 + 压测 + 数据驱动 = 9
+      expect(children).toHaveLength(9);
 
-      // 前两个是撤销/重做按钮
-      expect(children?.[0]).toHaveAttribute('title', '撤销 (Ctrl+Z)');
-      expect(children?.[1]).toHaveAttribute('title', '重做 (Ctrl+Shift+Z)');
-      // 第三个是分隔线
-      expect(children?.[2]).toHaveClass('bg-border');
-      // 第四个是执行按钮
-      expect(children?.[3]).toHaveAttribute('title', '执行流程');
-      // 第五个是调试按钮
-      expect(children?.[4]).toHaveAttribute('title', '开始调试');
-      // 第六个是压测按钮
-      expect(children?.[5]).toHaveAttribute('title', '压力测试');
-      // 第七个是数据驱动按钮
-      expect(children?.[6]).toHaveAttribute('title', '数据驱动');
+      // 前两个是添加节点按钮和分隔线
+      expect(children?.[0]).toHaveAttribute('title', '添加节点（也可右键画布空白处）');
+      expect(children?.[1]).toHaveClass('bg-border');
+      // 第三/四个是撤销/重做按钮
+      expect(children?.[2]).toHaveAttribute('title', '撤销 (Ctrl+Z)');
+      expect(children?.[3]).toHaveAttribute('title', '重做 (Ctrl+Shift+Z)');
+      // 第五个是分隔线
+      expect(children?.[4]).toHaveClass('bg-border');
+      // 第六个是执行按钮
+      expect(children?.[5]).toHaveAttribute('title', '执行流程');
+      // 第七个是调试按钮
+      expect(children?.[6]).toHaveAttribute('title', '开始调试');
+      // 第八个是压测按钮
+      expect(children?.[7]).toHaveAttribute('title', '压力测试');
+      // 第九个是数据驱动按钮
+      expect(children?.[8]).toHaveAttribute('title', '数据驱动');
     });
   });
 
