@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import type { Flow, Node } from '@/types';
 import type { Variable } from '@/types/variable';
 import { isEntryConfig, isVariableExtractorConfig } from '@/types/node';
-import { getActiveVariables } from '@/types/flow';
 import { getLL } from '@/i18n/i18n-lazy';
 
 interface VariablePanelProps {
@@ -95,22 +94,23 @@ export function extractVariableGroups(flow: Flow): VariableGroup[] {
       });
     }
 
-    // 激活环境的变量
-    const activeEnvVars = getActiveVariables(flow);
-    if (activeEnvVars && Object.keys(activeEnvVars).length > 0) {
-      const envName = flow.active_environment || '';
-      const envVars: Variable[] = Object.entries(activeEnvVars).map(([key, value]) => ({
-        name: key,
-        value,
-        sourceNodeUuid: '__environment__',
-        description: ll.environmentVariables({ name: envName }),
-      }));
-      groups.push({
-        nodeUuid: '__environment__',
-        nodeName: ll.environmentVariables({ name: envName }),
-        nodeType: 'environment',
-        variables: envVars,
-      });
+// 激活环境的变量 — 仅在明确选择环境时才显示，避免与流程变量重复
+    if (flow.active_environment && flow.environments) {
+      const env = flow.environments.find((e) => e.name === flow.active_environment);
+      if (env && Object.keys(env.variables).length > 0) {
+        const envVars: Variable[] = Object.entries(env.variables).map(([key, value]) => ({
+          name: key,
+          value,
+          sourceNodeUuid: '__environment__',
+          description: ll.environmentVariables({ name: env.name }),
+        }));
+        groups.push({
+          nodeUuid: '__environment__',
+          nodeName: ll.environmentVariables({ name: env.name }),
+          nodeType: 'environment',
+          variables: envVars,
+        });
+      }
     }
 
     return groups;
