@@ -219,7 +219,7 @@ export function DatasetRowDetail({
       )}
 
       {/* 提示：详情在弹窗中展示 */}
-      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
+      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3 py-8">
         <p className="text-sm">
           {ll.execution.datasetReport.detail_in_popup()}
         </p>

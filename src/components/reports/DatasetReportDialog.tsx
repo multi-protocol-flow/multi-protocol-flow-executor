@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { getLL } from '@/i18n/i18n-lazy';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Maximize2, Minimize2 } from 'lucide-react';
+import { Maximize2, Minimize2, X } from 'lucide-react';
 import { useDatasetExecutionStore } from '@/stores/datasetExecution';
 import { DatasetReportDetail } from './DatasetReportDetail';
 import { DatasetRowDetail } from './DatasetRowDetail';
@@ -58,6 +58,14 @@ export function DatasetReportDialog() {
               title={isMaximized ? ll.execution.datasetReport.restore() : ll.execution.datasetReport.maximize()}
             >
               {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={handleClose}
+            >
+              <X className="h-4 w-4" />
             </Button>
           </div>
         </div>

@@ -22,6 +22,17 @@ import { toast } from 'sonner';
 
 const ll = getLL();
 
+/** 当前数据集执行事件监听器的清理函数（模块级） */
+let currentDatasetUnlisten: (() => void) | null = null;
+
+/** 清理当前事件监听器 */
+function cleanupDatasetListener() {
+  if (currentDatasetUnlisten) {
+    currentDatasetUnlisten();
+    currentDatasetUnlisten = null;
+  }
+}
+
 // ============================================================================
 // 类型定义
 // ============================================================================
@@ -104,6 +115,9 @@ export const useDatasetExecutionStore = create<DatasetExecutionState>((set, get)
 
   startExecution: async (flow: Flow, config: DatasetExecutionConfig) => {
     try {
+      // 清理之前残留的监听器
+      cleanupDatasetListener();
+
       set({
         isExecuting: true,
         totalRows: 0,
@@ -117,13 +131,20 @@ export const useDatasetExecutionStore = create<DatasetExecutionState>((set, get)
         error: null,
       });
 
-      await executeFlowWithDatasetService(flow, config, (event) => {
+      const unlisten = await executeFlowWithDatasetService(flow, config, (event) => {
         get().handleEvent(event);
       });
+      currentDatasetUnlisten = unlisten;
     } catch (err) {
+      const errorMsg = (err as Error).message;
       set({
         isExecuting: false,
-        error: (err as Error).message,
+        error: errorMsg,
+      });
+      cleanupDatasetListener();
+      toast.error(getLL().execution.toast.flow_failed(), {
+        description: errorMsg,
+        duration: 8000,
       });
     }
   },
@@ -165,6 +186,8 @@ export const useDatasetExecutionStore = create<DatasetExecutionState>((set, get)
         });
         break;
       case 'ended':
+        // 清理事件监听器
+        cleanupDatasetListener();
         set({
           isExecuting: false,
           currentReport: event.report,
@@ -189,6 +212,7 @@ export const useDatasetExecutionStore = create<DatasetExecutionState>((set, get)
         });
         break;
       case 'cancelled':
+        cleanupDatasetListener();
         set({
           isExecuting: false,
           currentReport: event.report,
@@ -222,7 +246,10 @@ export const useDatasetExecutionStore = create<DatasetExecutionState>((set, get)
     selectedReportId: null,
   }),
 
-  reset: () => set(initialState),
+  reset: () => {
+    cleanupDatasetListener();
+    set(initialState);
+  },
 }));
 
 // ============================================================================

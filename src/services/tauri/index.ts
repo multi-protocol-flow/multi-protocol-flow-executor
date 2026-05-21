@@ -700,18 +700,20 @@ export async function validateDatasetCsv(
  * @param flow 流程对象
  * @param config 数据集执行配置
  * @param onEvent 事件回调函数
+ * @returns 取消监听的函数
  */
 export async function executeFlowWithDataset(
   flow: import('@/types/flow').Flow,
   config: DatasetExecutionConfig,
   onEvent: (event: DatasetEvent) => void
-): Promise<void> {
+): Promise<() => void> {
   if (isTauriEnv()) {
     const { datasetService } = await import('../dataset');
     return datasetService.executeWithDataset(flow, config, onEvent);
   } else {
     const { executeFlowWithDataset: executeFlowWithDatasetImpl } = await import('./mock');
-    return executeFlowWithDatasetImpl(flow, config, onEvent);
+    await executeFlowWithDatasetImpl(flow, config, onEvent);
+    return () => {};
   }
 }
 

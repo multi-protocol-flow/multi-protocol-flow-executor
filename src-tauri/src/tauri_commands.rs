@@ -3374,12 +3374,12 @@ pub fn validate_dataset_csv(
 /// 启动数据驱动执行
 ///
 /// 从 CSV 文件逐行读取数据，每行注入为 `runtime_variables` 执行流程。
-/// 通过 Channel 实时向前端发送执行事件。
+/// 通过 Tauri 事件系统实时向前端发送执行事件。
+/// 使用 `app.emit` 代替 `Channel`，因为数据集执行是长时间后台任务。
 #[tauri::command]
 pub async fn execute_flow_with_dataset(
     app: tauri::AppHandle,
     input: ExecuteDatasetInput,
-    on_dataset_event: Channel<serde_json::Value>,
     state: State<'_, DatasetExecutionSessionManager>,
 ) -> Result<(), String> {
     // 获取应用数据目录（用于保存失败行详情）
@@ -3397,18 +3397,14 @@ pub async fn execute_flow_with_dataset(
         *guard = Some(cancel_tx);
     }
 
-    // 创建事件通道（mpsc → Channel 转发）
+    // 创建事件通道（mpsc → Tauri 全局事件）
     let (event_sender, mut event_receiver) = mpsc::unbounded_channel::<DatasetEvent>();
 
-    // 启动事件转发任务：mpsc → Tauri Channel
-    let on_dataset_event_for_spawn = on_dataset_event;
+    // 启动事件转发任务：mpsc → Tauri 全局事件
+    let app_clone = app.clone();
     tokio::spawn(async move {
         while let Some(event) = event_receiver.recv().await {
-            let json = match serde_json::to_value(&event) {
-                Ok(v) => v,
-                Err(_) => continue,
-            };
-            let _ = on_dataset_event_for_spawn.send(json);
+            let _ = app_clone.emit("dataset-event", event);
         }
     });
 
