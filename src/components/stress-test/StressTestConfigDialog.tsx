@@ -334,7 +334,7 @@ export function StressTestConfigDialog({
                           {getLL().flow.stress_validating()}
                         </>
                       ) : (
-                        '{getLL().flow.stress_select_csv()}'
+                        getLL().flow.stress_select_csv()
                       )}
                     </Button>
                   </div>
