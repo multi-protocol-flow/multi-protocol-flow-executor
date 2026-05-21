@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { sendDebugCommand } from '@/services/tauri';
 import { toast } from 'sonner';
 import { getLL } from '@/i18n/i18n-lazy';
+import { ResizablePanel } from '@/components/ui/ResizablePanel';
 import type { Node } from '@/types';
 
 // ============================================================================
@@ -296,171 +297,175 @@ export function ExecutionPanel() {
     );
   }
 
-  return (
-    <div className="h-full flex">
-      {/* ===== 左侧：节点列表 (~35%) ===== */}
-      <div className="w-[35%] min-w-[200px] max-w-[360px] border-r border-border flex flex-col">
-        {/* 进度条 */}
-        <div className="px-3 py-1.5 border-b border-border shrink-0 flex items-center gap-2">
-          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-            {ll.execution.panel.node_count({ completed: completedNodeCount, total: totalNodes })}
-          </span>
-          <span className="text-xs text-muted-foreground/60 shrink-0">·</span>
-          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-            {progressPercent}%
-          </span>
-          <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden min-w-[40px]">
-            <div
-              className={cn(
-                'h-full rounded-full transition-all duration-500 ease-out',
-                !isExecuting && completedNodeCount > 0
-                  ? 'bg-emerald-500'
-                  : 'bg-blue-500',
-              )}
-              style={{ width: `${progressPercent}%` }}
-            />
+return (
+    <ResizablePanel
+      defaultWidth={280}
+      minWidth={200}
+      maxWidth={360}
+      leftPanel={
+        <div className="h-full flex flex-col">
+          {/* 进度条 */}
+          <div className="px-3 py-1.5 border-b border-border shrink-0 flex items-center gap-2">
+            <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+              {ll.execution.panel.node_count({ completed: completedNodeCount, total: totalNodes })}
+            </span>
+            <span className="text-xs text-muted-foreground/60 shrink-0">·</span>
+            <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+              {progressPercent}%
+            </span>
+            <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden min-w-[40px]">
+              <div
+                className={cn(
+                  'h-full rounded-full transition-all duration-500 ease-out',
+                  !isExecuting && completedNodeCount > 0
+                    ? 'bg-emerald-500'
+                    : 'bg-blue-500',
+                )}
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+
+          {/* 节点列表 */}
+          <div
+            ref={nodeListRef}
+            className="flex-1 min-h-0 overflow-y-auto"
+          >
+            {orderedNodes.map((node) => {
+              const status = getNodeExecutionStatus(node.uuid);
+              const nodeReport = getNodeExecutionReport(node.uuid);
+              const durationMs = nodeReport?.duration_ms ?? null;
+
+              return (
+                <div key={node.uuid} data-status={status}>
+                  <NodeStatusItem
+                    node={node}
+                    status={status}
+                    isSelected={selectedNodeUuid === node.uuid}
+                    durationMs={durationMs}
+                    onClick={() => {
+                      const newUuid = selectedNodeUuid === node.uuid ? null : node.uuid;
+                      setSelectedNodeUuid(newUuid);
+                      if (newUuid) {
+                        useFlowStore.getState().selectNode(newUuid);
+                        useFlowStore.getState().focusOnNode(newUuid);
+                      }
+                    }}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
-
-        {/* 节点列表 */}
-        <div
-          ref={nodeListRef}
-          className="flex-1 min-h-0 overflow-y-auto"
-        >
-          {orderedNodes.map((node) => {
-            const status = getNodeExecutionStatus(node.uuid);
-            const nodeReport = getNodeExecutionReport(node.uuid);
-            const durationMs = nodeReport?.duration_ms ?? null;
-
-            return (
-              <div key={node.uuid} data-status={status}>
-                <NodeStatusItem
-                  node={node}
-                  status={status}
-                  isSelected={selectedNodeUuid === node.uuid}
-                  durationMs={durationMs}
-                  onClick={() => {
-                    const newUuid = selectedNodeUuid === node.uuid ? null : node.uuid;
-                    setSelectedNodeUuid(newUuid);
-                    if (newUuid) {
-                      useFlowStore.getState().selectNode(newUuid);
-                      useFlowStore.getState().focusOnNode(newUuid);
-                    }
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ===== 右侧：详情区域 (~65%) ===== */}
-      <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
-        {/* 子标签栏 */}
-        <div className="border-b border-border shrink-0">
-          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as DetailTab)}>
-            <TabsList className="h-7 p-0.5 bg-transparent">
+      }
+      rightPanel={
+        <div className="h-full flex flex-col">
+          {/* 子标签栏 */}
+          <div className="border-b border-border shrink-0">
+            <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as DetailTab)}>
+              <TabsList className="h-7 p-0.5 bg-transparent">
 <TabsTrigger value="output" className="h-6 px-3 text-xs">
-                 {ll.execution.panel.tab_output()}
-                </TabsTrigger>
-              {hasWsNodes && (
-                <TabsTrigger value="ws" className="h-6 px-3 text-xs">
-                  {ll.execution.panel.tab_ws()}
-                </TabsTrigger>
-              )}
-              {showDebugTabs && (
-                <>
+                   {ll.execution.panel.tab_output()}
+                  </TabsTrigger>
+                {hasWsNodes && (
+                  <TabsTrigger value="ws" className="h-6 px-3 text-xs">
+                    {ll.execution.panel.tab_ws()}
+                  </TabsTrigger>
+                )}
+                {showDebugTabs && (
+                  <>
 <TabsTrigger value="variables" className="h-6 px-3 text-xs">
-                     {ll.execution.panel.tab_variables()}
-                    </TabsTrigger>
+                       {ll.execution.panel.tab_variables()}
+                      </TabsTrigger>
 <TabsTrigger value="stack" className="h-6 px-3 text-xs">
-                     {ll.execution.panel.tab_stack()}
-                    </TabsTrigger>
-                </>
-              )}
-            </TabsList>
-          </Tabs>
-        </div>
+                       {ll.execution.panel.tab_stack()}
+                      </TabsTrigger>
+                  </>
+                )}
+              </TabsList>
+            </Tabs>
+          </div>
 
-        {/* 子标签内容 */}
-        <Tabs value={detailTab} className="flex-1 min-h-0 overflow-hidden">
-          <TabsContent value="output" className="m-0 h-full overflow-hidden">
-            {/* 输出标签页 - 原有逻辑 */}
-            {!selectedNodeUuid && (
-              <div className="h-full flex items-center justify-center text-muted-foreground">
-                <span className="text-sm">{ll.execution.panel.select_node_hint()}</span>
-              </div>
-            )}
-
-            {selectedNodeUuid && selectedStatus === 'pending' && (
-              <div className="h-full flex items-center justify-center text-muted-foreground">
-                <span className="text-sm">{ll.execution.panel.waiting()}</span>
-              </div>
-            )}
-
-            {selectedNodeUuid && selectedStatus === 'running' && (
-              <div className="h-full flex flex-col overflow-hidden">
-                <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border shrink-0">
-                  <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
-                  <span className="text-xs text-muted-foreground">{ll.execution.panel.executing()}</span>
+          {/* 子标签内容 */}
+          <Tabs value={detailTab} className="flex-1 min-h-0 overflow-hidden">
+            <TabsContent value="output" className="m-0 h-full overflow-hidden">
+              {/* 输出标签页 - 原有逻辑 */}
+              {!selectedNodeUuid && (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  <span className="text-sm">{ll.execution.panel.select_node_hint()}</span>
                 </div>
-                {selectedReport && (
-                  <div className="flex-1 min-h-0 overflow-y-auto p-3">
-                    <NodeExecutionDetails report={selectedReport} />
+              )}
+
+              {selectedNodeUuid && selectedStatus === 'pending' && (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  <span className="text-sm">{ll.execution.panel.waiting()}</span>
+                </div>
+              )}
+
+              {selectedNodeUuid && selectedStatus === 'running' && (
+                <div className="h-full flex flex-col overflow-hidden">
+                  <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border shrink-0">
+                    <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
+                    <span className="text-xs text-muted-foreground">{ll.execution.panel.executing()}</span>
+                  </div>
+                  {selectedReport && (
+                    <div className="flex-1 min-h-0 overflow-y-auto p-3">
+                      <NodeExecutionDetails report={selectedReport} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedNodeUuid &&
+                (selectedStatus === 'success' || selectedStatus === 'failed') && (
+                  <div className="h-full overflow-y-auto">
+                    <div className="p-3">
+                      {selectedReport && (
+                        <NodeExecutionDetails report={selectedReport} />
+                      )}
+                    </div>
                   </div>
                 )}
-              </div>
+            </TabsContent>
+
+            {hasWsNodes && (
+              <TabsContent value="ws" className="m-0 h-full overflow-hidden">
+                {selectedWsStreams.length > 0 ? (
+                  <WsMessageTimeline
+                    streams={selectedWsStreams}
+                    live={isExecuting}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    <span className="text-sm">{ll.execution.panel.select_ws_node()}</span>
+                  </div>
+                )}
+              </TabsContent>
             )}
 
-            {selectedNodeUuid &&
-              (selectedStatus === 'success' || selectedStatus === 'failed') && (
-                <div className="h-full overflow-y-auto">
-                  <div className="p-3">
-                    {selectedReport && (
-                      <NodeExecutionDetails report={selectedReport} />
-                    )}
-                  </div>
-                </div>
-              )}
-          </TabsContent>
+            {showDebugTabs && (
+              <>
+                <TabsContent value="variables" className="m-0 h-full overflow-hidden">
+                  <VariableTreeView
+                    variables={variables}
+                    canEdit={canEditVariables}
+                    onEdit={handleModifyVariable}
+                  />
+                </TabsContent>
 
-          {hasWsNodes && (
-            <TabsContent value="ws" className="m-0 h-full overflow-hidden">
-              {selectedWsStreams.length > 0 ? (
-                <WsMessageTimeline
-                  streams={selectedWsStreams}
-                  live={isExecuting}
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center text-muted-foreground">
-                  <span className="text-sm">{ll.execution.panel.select_ws_node()}</span>
-                </div>
-              )}
-            </TabsContent>
-          )}
-
-          {showDebugTabs && (
-            <>
-              <TabsContent value="variables" className="m-0 h-full overflow-hidden">
-                <VariableTreeView
-                  variables={variables}
-                  canEdit={canEditVariables}
-                  onEdit={handleModifyVariable}
-                />
-              </TabsContent>
-
-              <TabsContent value="stack" className="m-0 h-full overflow-hidden">
-                <ExecutionStackView
-                  executionStack={executionStack}
-                  currentNodeUuid={debugCurrentNodeUuid}
-                  isReadOnly={false}
-                  onNavigateToNode={focusOnNode}
-                />
-              </TabsContent>
-            </>
-          )}
-        </Tabs>
-      </div>
-    </div>
+                <TabsContent value="stack" className="m-0 h-full overflow-hidden">
+                  <ExecutionStackView
+                    executionStack={executionStack}
+                    currentNodeUuid={debugCurrentNodeUuid}
+                    isReadOnly={false}
+                    onNavigateToNode={focusOnNode}
+                  />
+                </TabsContent>
+              </>
+            )}
+          </Tabs>
+        </div>
+      }
+    />
   );
 }
