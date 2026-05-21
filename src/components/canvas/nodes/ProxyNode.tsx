@@ -9,6 +9,7 @@ import type { ProxyConfig } from '@/types/node';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /** Proxy 节点数据类型 */
 export interface ProxyNodeData {
@@ -16,12 +17,11 @@ export interface ProxyNodeData {
   config?: ProxyConfig;
 }
 
-/** 代理模式显示文本 */
-const MODE_LABELS: Record<string, string> = {
-  clear: '清除',
-  http: 'HTTP',
-  socks5: 'SOCKS5',
-};
+/** Proxy 节点数据类型 */
+export interface ProxyNodeData {
+  label?: string;
+  config?: ProxyConfig;
+}
 
 /**
  * Proxy 节点 - 代理设置
@@ -37,8 +37,11 @@ export function ProxyNode({ id, data, selected }: NodeProps) {
   const isDebugPausedAtThisNode = (isPaused || isExecuting) && currentNodeUuid === id;
   const isDebugging = useDebugStore(selectIsDebugging);
 
+  const LL = getLL();
   const config = nodeData.config;
-  const modeLabel = MODE_LABELS[config?.mode ?? 'clear'] ?? '清除';
+  const modeLabel = config?.mode === 'clear'
+    ? LL.nodes.proxy_mode.clear()
+    : config?.mode?.toUpperCase() ?? LL.nodes.proxy_mode.clear();
 
   return (
     <div

@@ -9,6 +9,7 @@ import type { AssertionNodeConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /** Assertion 节点数据类型 */
 export interface AssertionNodeData {
@@ -26,6 +27,7 @@ export function AssertionNode({ id, data, selected }: NodeProps) {
   const assertionCount = config?.assertions?.length ?? 0;
   const mode = config?.mode ?? 'all';
   const onFailure = config?.on_failure ?? 'route_false';
+  const LL = getLL();
   
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -92,13 +94,13 @@ export function AssertionNode({ id, data, selected }: NodeProps) {
               'text-[10px] px-1 py-0.5 rounded',
               mode === 'all' ? 'bg-purple-100 text-purple-700' : 'bg-purple-100 text-purple-700'
             )}>
-              {mode === 'all' ? '全部通过' : '任一通过'}
+              {mode === 'all' ? LL.nodes.assertion_mode.all_pass() : LL.nodes.assertion_mode.any_pass()}
             </span>
             <span className={cn(
               'text-[10px] px-1 py-0.5 rounded',
               onFailure === 'route_false' ? 'bg-gray-100 text-gray-600' : 'bg-red-100 text-red-600'
             )}>
-              {onFailure === 'route_false' ? '路由' : '抛出'}
+              {onFailure === 'route_false' ? LL.nodes.assertion_on_failure.route() : LL.nodes.assertion_on_failure.throw()}
             </span>
           </div>
         </div>

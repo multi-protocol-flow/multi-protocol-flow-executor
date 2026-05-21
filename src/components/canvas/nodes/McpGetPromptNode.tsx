@@ -9,6 +9,7 @@ import type { McpGetPromptConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /** McpGetPrompt 节点数据类型 */
 export interface McpGetPromptNodeData {
@@ -29,6 +30,7 @@ export function McpGetPromptNode({ id, data, selected }: NodeProps) {
   const isExecuting = useExecutionStore(s => s.isExecuting);
   const isDebugPausedAtThisNode = (isPaused || isExecuting) && currentNodeUuid === id;
   const isDebugging = useDebugStore(selectIsDebugging);
+  const LL = getLL();
   
   return (
     <div
@@ -82,7 +84,7 @@ export function McpGetPromptNode({ id, data, selected }: NodeProps) {
             </span>
           ) : (
             <span className="text-[10px] text-muted-foreground truncate">
-              未配置
+              {LL.common.not_configured()}
             </span>
           )}
         </div>

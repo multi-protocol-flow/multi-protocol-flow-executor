@@ -17,7 +17,9 @@ const zh_CN_common: Partial<BaseTranslation> = {
   toggle_config_expand: '展开配置面板',
   drag_resize_width: '拖拽调整面板宽度',
   drag_resize_height: '拖拽调整面板高度',
-  clear: '清空'
+  clear: '清空',
+  /** 未配置 */
+  not_configured: '未配置'
 };
 
 export default zh_CN_common;

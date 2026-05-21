@@ -115,6 +115,20 @@ const en_US_nodes = {
   imap_close: 'IMAP Close',
   variable_extractor: 'Variable Extractor',
   proxy: 'Proxy Settings',
+  /** Assertion node mode labels */
+  assertion_mode: {
+    all_pass: 'All Pass',
+    any_pass: 'Any Pass',
+  },
+  /** Assertion node on-failure labels */
+  assertion_on_failure: {
+    route: 'Route',
+    throw: 'Throw',
+  },
+  /** Proxy node mode labels */
+  proxy_mode: {
+    clear: 'Clear',
+  },
 };
 
 export default en_US_nodes;

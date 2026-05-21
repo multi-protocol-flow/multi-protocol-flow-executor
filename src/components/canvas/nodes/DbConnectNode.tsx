@@ -9,6 +9,7 @@ import type { DbConnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /** DbConnect 节点数据类型 */
 export interface DbConnectNodeData {
@@ -52,6 +53,7 @@ export function DbConnectNode({ id, data, selected }: NodeProps) {
   const config = nodeData.config;
   const driverLabel = config?.driver ? (DRIVER_LABELS[config.driver] ?? config.driver) : null;
   const connectionSummary = getConnectionSummary(config);
+  const LL = getLL();
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
   const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
@@ -60,6 +62,8 @@ export function DbConnectNode({ id, data, selected }: NodeProps) {
   const isDebugPausedAtThisNode = (isPaused || isExecuting) && currentNodeUuid === id;
   const isDebugging = useDebugStore(selectIsDebugging);
   
+  const notConfiguredLabel = LL.common.not_configured();
+
   return (
     <div
       className={cn(
@@ -108,10 +112,10 @@ export function DbConnectNode({ id, data, selected }: NodeProps) {
           </span>
           {driverLabel ? (
             <span className="text-[10px] text-muted-foreground truncate">
-              {connectionSummary ?? '未配置'}
+              {connectionSummary ?? notConfiguredLabel}
             </span>
           ) : (
-            <span className="text-[10px] text-muted-foreground">未配置</span>
+            <span className="text-[10px] text-muted-foreground">{notConfiguredLabel}</span>
           )}
         </div>
       </div>

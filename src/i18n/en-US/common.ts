@@ -16,7 +16,9 @@ const en_US_common: Partial<Translation['common']> = {
   toggle_config_expand: 'Expand Config Panel',
   drag_resize_width: 'Drag to resize width',
   drag_resize_height: 'Drag to resize height',
-  clear: 'Clear'
+  clear: 'Clear',
+  /** Not configured */
+  not_configured: 'Not configured'
 };
 
 export default en_US_common;

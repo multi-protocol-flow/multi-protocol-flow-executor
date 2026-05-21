@@ -115,6 +115,20 @@ const zh_CN_nodes = {
   imap_close: 'IMAP 关闭',
   variable_extractor: '变量提取',
   proxy: '代理设置',
+  /** 断言节点模式标签 */
+  assertion_mode: {
+    all_pass: '全部通过',
+    any_pass: '任一通过',
+  },
+  /** 断言节点失败处理标签 */
+  assertion_on_failure: {
+    route: '路由',
+    throw: '抛出',
+  },
+  /** 代理节点模式标签 */
+  proxy_mode: {
+    clear: '清除',
+  },
 };
 
 export default zh_CN_nodes;
