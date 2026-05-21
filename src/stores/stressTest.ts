@@ -70,6 +70,8 @@ interface StressTestState {
   openReportDialog: () => void;
   /** 关闭报告 Dialog（不清除报告数据） */
   closeReportDialog: () => void;
+  /** 从文件加载压测报告并打开弹窗 */
+  loadAndOpenReport: (filePath: string) => Promise<void>;
   /** 加载压测报告历史列表 */
   loadHistory: () => Promise<void>;
 
@@ -159,6 +161,25 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
 
   openReportDialog: () => set({ isReportDialogOpen: true }),
   closeReportDialog: () => set({ isReportDialogOpen: false }),
+
+  /** 从文件加载压测报告并打开弹窗 */
+  loadAndOpenReport: async (filePath: string) => {
+    try {
+      const report = await stressTestStorage.loadReport(filePath);
+      set({
+        report: report as StressTestReport,
+        progressHistory: (report as StressTestReport).progressHistory ?? [],
+        isReportDialogOpen: true,
+      });
+    } catch (e) {
+      console.error('加载压测报告失败:', e);
+      toast.error(getLL().execution.history.toast_load_report_failed(), {
+        description: (e as Error).message,
+        duration: 8000,
+      });
+    }
+  },
+
   loadHistory: async () => {
     set({ isLoadingHistory: true });
     try {

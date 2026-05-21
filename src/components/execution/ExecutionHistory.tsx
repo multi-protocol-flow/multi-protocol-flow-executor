@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { loadReport, listReports, deleteReport } from '@/services/storage/reportStorage';
 import { stressTestStorage } from '@/services/storage/stressTestStorage';
 import type { ReportMetadata } from '@/types/ipc';
-import type { StressTestReportMetadata, StressTestReport } from '@/types/stressTest';
+import type { StressTestReportMetadata } from '@/types/stressTest';
 import type { DatasetReportSummary } from '@/types/dataset';
 import { useExecutionStore } from '@/stores/execution';
 import { useStressTestStore } from '@/stores/stressTest';
@@ -211,13 +211,8 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
   const handleSelectReport = useCallback(async (item: UnifiedHistoryItem) => {
     try {
       if (item.type === 'stress_test' && item.stressMetadata) {
-        // 压测报告：加载后写入 stressTest store 并打开弹窗
-        const report = await stressTestStorage.loadReport(item.stressMetadata.filePath);
-        useStressTestStore.setState({
-          report: report as StressTestReport,
-          progressHistory: (report as StressTestReport).progressHistory ?? [],
-          isReportDialogOpen: true,
-        });
+        // 压测报告：通过 store 内部 set 加载并打开弹窗
+        await useStressTestStore.getState().loadAndOpenReport(item.stressMetadata.filePath);
       } else if (item.type === 'dataset') {
         // 数据驱动报告：打开报告弹窗
         useDatasetExecutionStore.getState().openReportDialog(item.uuid);
