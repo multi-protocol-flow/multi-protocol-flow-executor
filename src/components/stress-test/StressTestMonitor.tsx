@@ -72,6 +72,20 @@ export function StressTestMonitor() {
   // 已完成（有数据可供查看）
   const isCompleted = status === 'stopped' && (progressHistory.length > 0 || report !== null);
 
+  // 完成后的汇总数据（progress 在 ended 后被置为 null，需要从 report 读取）
+  const displayTotalIterations = isCompleted && report
+    ? report.statistics.totalIterations
+    : (progress?.totalIterations ?? 0);
+  const displayRps = isCompleted && report
+    ? report.statistics.rps.toFixed(2)
+    : (progress?.currentRps?.toFixed(2) ?? '0.00');
+  const displayAvgLatency = isCompleted && report
+    ? report.responseTimeDistribution.avgMs.toFixed(0)
+    : (progress?.avgLatencyMs?.toFixed(0) ?? 0);
+  const displaySuccessDetail = isCompleted && report
+    ? `${getLL().flow.stress_monitor_exec_detail({ success: String(report.statistics.successful), fail: String(report.statistics.failed) })}`
+    : (progress ? `${getLL().flow.stress_monitor_exec_detail({ success: String(progress.successfulIterations), fail: String(progress.failedIterations) })}` : undefined);
+
   // 节点类型筛选状态
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 
@@ -178,24 +192,20 @@ export function StressTestMonitor() {
           <MetricCard
             icon={Activity}
             label={getLL().flow.stress_monitor_exec_count()}
-            value={progress?.totalIterations ?? 0}
-            subValue={
-              progress
-                ? `${getLL().flow.stress_monitor_exec_detail({ success: String(progress.successfulIterations), fail: String(progress.failedIterations) })}`
-                : undefined
-            }
+            value={displayTotalIterations}
+            subValue={displaySuccessDetail}
             iconColor="text-blue-500"
           />
           <MetricCard
             icon={Gauge}
             label={getLL().flow.stress_monitor_current_rps()}
-            value={progress?.currentRps?.toFixed(2) ?? '0.00'}
+            value={displayRps}
             iconColor="text-violet-500"
           />
           <MetricCard
             icon={Timer}
             label={getLL().flow.stress_monitor_avg_response()}
-            value={progress?.avgLatencyMs?.toFixed(0) ?? 0}
+            value={displayAvgLatency}
             subValue="ms"
             iconColor="text-emerald-500"
           />

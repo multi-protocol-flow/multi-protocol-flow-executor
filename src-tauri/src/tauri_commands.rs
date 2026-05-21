@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 use tauri::ipc::Channel;
+use tauri::Emitter;
 use tauri::Manager;
 
 use flow_engine::command::{
@@ -3132,21 +3133,22 @@ pub async fn force_end_debug(
 
 /// 启动压力测试
 ///
-/// 开始压力测试指定的流程，并通过 Channel 发送压测事件
+/// 开始压力测试指定的流程，通过 Tauri 事件系统发送压测事件。
+/// 使用 `app_handle.emit` 代替 `Channel`，因为压测是长时间后台任务——
+/// IPC Channel 在命令返回后会被清理，导致事件无法送达前端。
 #[tauri::command]
 pub async fn start_stress_test(
+    app_handle: tauri::AppHandle,
     input: StartStressTestInput,
-    on_event: Channel<StressTestEvent>,
     state: State<'_, Arc<StressTestSessionManager>>,
 ) -> Result<(), String> {
-    // 创建事件发送器（包装 Channel）
+    // 创建事件发送器
     let (event_sender, mut event_receiver) = mpsc::unbounded_channel::<StressTestEvent>();
 
-    // 启动事件转发任务
-    let on_event_for_spawn = on_event;
+    // 启动事件转发任务：mpsc 事件 → Tauri 全局事件
     tokio::spawn(async move {
         while let Some(event) = event_receiver.recv().await {
-            let _ = on_event_for_spawn.send(event);
+            let _ = app_handle.emit("stress-test-event", event);
         }
     });
 

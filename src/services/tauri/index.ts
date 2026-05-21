@@ -547,18 +547,20 @@ export async function cancelFlow(): Promise<void> {
  * @param flow - 要压测的流程对象
  * @param config - 压测配置
  * @param onEvent - 压测事件回调函数
+ * @returns 取消监听的函数
  */
 export async function startStressTest(
   flow: import('@/types/flow').Flow,
   config: import('@/types/stressTest').StressTestConfig,
   onEvent: (event: import('@/types/stressTest').StressTestEvent) => void
-): Promise<void> {
+): Promise<() => void> {
   if (isTauriEnv()) {
     const { startStressTest: startStressTestImpl } = await import('./stressTest');
     return startStressTestImpl(flow, config, onEvent);
   } else {
     // Mock 环境 - 暂不实现
     console.warn('压力测试功能在 Mock 环境下不可用');
+    return () => {};
   }
 }
 

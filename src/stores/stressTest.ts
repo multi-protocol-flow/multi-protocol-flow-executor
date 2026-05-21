@@ -21,6 +21,17 @@ import { getLL } from '@/i18n/i18n-lazy';
 
 const ll = getLL();
 
+/** 当前压测事件监听器的清理函数（模块级，与组件生命周期解耦） */
+let currentStressUnlisten: (() => void) | null = null;
+
+/** 清理当前事件监听器 */
+function cleanupStressListener() {
+  if (currentStressUnlisten) {
+    currentStressUnlisten();
+    currentStressUnlisten = null;
+  }
+}
+
 // ============================================================================
 // 类型定义
 // ============================================================================
@@ -94,6 +105,9 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
   // ===== Actions =====
   startStressTest: async (flow: Flow, config: StressTestConfig) => {
     try {
+      // 清理之前残留的监听器
+      cleanupStressListener();
+
       // 设置加载状态，清除之前的错误和报告
       set({
         isLoading: true,
@@ -103,19 +117,28 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
         progressHistory: [],
       });
 
-      // 调用 IPC 服务，传入事件处理器回调
-      await startStressTestService(flow, config, (event) => {
+      // 调用 IPC 服务，传入事件处理器回调，返回 unlisten 函数
+      const unlisten = await startStressTestService(flow, config, (event) => {
         get().handleStressTestEvent(event);
       });
+      currentStressUnlisten = unlisten;
 
       // IPC 调用返回后设置 isLoading 为 false
       // 注意：状态变化由事件处理器负责
       set({ isLoading: false });
     } catch (error) {
+      const errorMsg = (error as Error).message;
       set({
         isLoading: false,
         status: 'stopped',
-        error: (error as Error).message,
+        error: errorMsg,
+      });
+
+      // 启动失败时 show toast，让用户感知到错误
+      cleanupStressListener();
+      toast.error(getLL().execution.toast.flow_failed(), {
+        description: errorMsg,
+        duration: 8000,
       });
     }
   },
@@ -130,6 +153,7 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
   },
 
   reset: () => {
+    cleanupStressListener();
     set(initialState);
   },
 
@@ -173,6 +197,9 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
         report: event.report,
         progress: null,
       });
+
+      // 清理事件监听器
+      cleanupStressListener();
 
       // 自动保存压测报告
       try {
