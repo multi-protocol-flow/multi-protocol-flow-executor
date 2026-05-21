@@ -648,19 +648,9 @@ impl DebuggableFlowExecutor {
                         log::error!("[调试 {}] 发送 NodeExecuted 事件失败 (节点 {}): {}", context.flow_uuid, node.uuid, e);
                     }
 
-                    // 协议节点：Http, WsConnect, WsSendCollect
-                    // 工具节点：Entry, Conditional, WsClose（不更新，延续上游）
-                    let type_id = node.data.type_name();
-                    let is_protocol_node = self.registry.get(&type_id)
-                        .map(|p| p.is_protocol_node())
-                        .unwrap_or(false);
-                    if is_protocol_node {
-                        context.last_node_output = output_data.clone();
-                        log::debug!(
-                            "[调试 {}] 更新 last_node_output（协议节点 {}）",
-                            context.flow_uuid,
-                            node.name
-                        );
+                    // 更新 last_node_output（所有节点均更新，供下游节点通过 jsonpath 访问）
+                    if let Some(ref data) = output_data {
+                        context.last_node_output = Some(data.clone());
                     }
 
                     // 查找下一个节点

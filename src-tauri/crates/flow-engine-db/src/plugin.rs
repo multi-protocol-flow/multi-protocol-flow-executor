@@ -181,6 +181,10 @@ impl NodePlugin for DbConnectPlugin {
             .execute(node, context, connections, node_map)
             .await
     }
+
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
 }
 
 // ============================================================================
@@ -284,6 +288,10 @@ impl NodePlugin for DbQueryPlugin {
             .execute(node, context, connections, node_map)
             .await
     }
+
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
 }
 
 // ============================================================================
@@ -370,6 +378,10 @@ impl NodePlugin for DbBeginPlugin {
             .execute(node, context, connections, node_map)
             .await
     }
+
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
 }
 
 // ============================================================================
@@ -453,6 +465,10 @@ impl NodePlugin for DbCommitPlugin {
         executor
             .execute(node, context, connections, node_map)
             .await
+    }
+
+    fn is_protocol_node(&self) -> bool {
+        true
     }
 }
 
@@ -538,6 +554,10 @@ impl NodePlugin for DbRollbackPlugin {
             .execute(node, context, connections, node_map)
             .await
     }
+
+    fn is_protocol_node(&self) -> bool {
+        true
+    }
 }
 
 // ============================================================================
@@ -608,6 +628,10 @@ impl NodePlugin for DbClosePlugin {
         executor
             .execute(node, context, connections, node_map)
             .await
+    }
+
+    fn is_protocol_node(&self) -> bool {
+        true
     }
 }
 

@@ -175,10 +175,12 @@ impl ScriptExecutionContext {
         let vars_set = self.variables.clone();
         vars_obj.set(
             "set",
-            Func::from(move |key: String, value: String| {
-                vars_set
-                    .borrow_mut()
-                    .insert(key, serde_json::Value::String(value));
+            Func::from(move |key: String, value: Option<String>| {
+                let val = match value {
+                    Some(s) => serde_json::Value::String(s),
+                    None => serde_json::Value::Null,
+                };
+                vars_set.borrow_mut().insert(key, val);
             }),
         )?;
 
