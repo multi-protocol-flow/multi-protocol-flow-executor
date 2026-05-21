@@ -216,8 +216,8 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
         useStressTestStore.setState({
           report: report as StressTestReport,
           progressHistory: (report as StressTestReport).progressHistory ?? [],
+          isReportDialogOpen: true,
         });
-        useStressTestStore.getState().openReportDialog();
       } else if (item.type === 'dataset') {
         // 数据驱动报告：打开报告弹窗
         useDatasetExecutionStore.getState().openReportDialog(item.uuid);
