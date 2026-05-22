@@ -36,6 +36,7 @@ use flow_engine_core::registry::NodeRegistry;
 /// | MCP | McpClosePlugin | `mcp_close` |
 /// | TCP | TcpConnectPlugin | `tcp_connect` |
 /// | TCP | TcpSendPlugin | `tcp_send` |
+/// | TCP | TcpReceivePlugin | `tcp_receive` |
 /// | TCP | TcpClosePlugin | `tcp_close` |
 /// | UDP | UdpBindPlugin | `udp_bind` |
 /// | UDP | UdpSendToPlugin | `udp_send_to` |
@@ -63,6 +64,41 @@ use flow_engine_core::registry::NodeRegistry;
 /// | GraphQL | GraphqlSubscribePlugin | `graphql_subscribe` |
 /// | GraphQL | GraphqlIntrospectPlugin | `graphql_introspect` |
 /// | GraphQL | GraphqlDisconnectPlugin | `graphql_disconnect` |
+/// | AMQP | AmqpConnectPlugin | `amqp_connect` |
+/// | AMQP | AmqpClosePlugin | `amqp_close` |
+/// | AMQP | AmqpExchangeDeclarePlugin | `amqp_exchange_declare` |
+/// | AMQP | AmqpExchangeDeletePlugin | `amqp_exchange_delete` |
+/// | AMQP | AmqpQueueDeclarePlugin | `amqp_queue_declare` |
+/// | AMQP | AmqpQueueDeletePlugin | `amqp_queue_delete` |
+/// | AMQP | AmqpQueueBindPlugin | `amqp_queue_bind` |
+/// | AMQP | AmqpPublishPlugin | `amqp_publish` |
+/// | AMQP | AmqpConsumePlugin | `amqp_consume` |
+/// | AMQP | AmqpGetPlugin | `amqp_get` |
+/// | AMQP | AmqpAckPlugin | `amqp_ack` |
+/// | AMQP 1.0 | Amqp10ConnectPlugin | `amqp10_connect` |
+/// | AMQP 1.0 | Amqp10SendPlugin | `amqp10_send` |
+/// | AMQP 1.0 | Amqp10ReceivePlugin | `amqp10_receive` |
+/// | AMQP 1.0 | Amqp10AcceptPlugin | `amqp10_accept` |
+/// | AMQP 1.0 | Amqp10RejectPlugin | `amqp10_reject` |
+/// | AMQP 1.0 | Amqp10DisconnectPlugin | `amqp10_disconnect` |
+/// | SMTP | SmtpConnectPlugin | `smtp_connect` |
+/// | SMTP | SmtpSendPlugin | `smtp_send` |
+/// | SMTP | SmtpDisconnectPlugin | `smtp_disconnect` |
+/// | IMAP | ImapConnectPlugin | `imap_connect` |
+/// | IMAP | ImapSelectPlugin | `imap_select` |
+/// | IMAP | ImapSearchPlugin | `imap_search` |
+/// | IMAP | ImapFetchPlugin | `imap_fetch` |
+/// | IMAP | ImapStoreFlagsPlugin | `imap_store_flags` |
+/// | IMAP | ImapCopyPlugin | `imap_copy` |
+/// | IMAP | ImapMovePlugin | `imap_move` |
+/// | IMAP | ImapExpungePlugin | `imap_expunge` |
+/// | IMAP | ImapListPlugin | `imap_list` |
+/// | IMAP | ImapFolderCreatePlugin | `imap_folder_create` |
+/// | IMAP | ImapFolderDeletePlugin | `imap_folder_delete` |
+/// | IMAP | ImapIdlePlugin | `imap_idle` |
+/// | IMAP | ImapClosePlugin | `imap_close` |
+/// | Utility | VariableExtractorPlugin | `variable_extractor` |
+/// | Utility | ProxyPlugin | `proxy` |
 pub fn default_registry() -> NodeRegistry {
     let mut registry = NodeRegistry::new();
 
@@ -94,7 +130,7 @@ pub fn default_registry() -> NodeRegistry {
     // gRPC (flow-engine-grpc) — 批量注册 3 个插件
     flow_engine_grpc::plugin::GrpcPluginGroup::register_all(&mut registry);
 
-    // TCP (flow-engine-tcp) — 批量注册 3 个插件
+    // TCP (flow-engine-tcp) — 批量注册 4 个插件
     flow_engine_tcp::plugin::TcpPluginGroup::register_all(&mut registry);
 
     // UDP (flow-engine-tcp) — 批量注册 4 个插件
@@ -169,6 +205,7 @@ mod tests {
             "grpc_close",
             "tcp_connect",
             "tcp_send",
+            "tcp_receive",
             "tcp_close",
             "udp_bind",
             "udp_send_to",
@@ -212,6 +249,22 @@ mod tests {
             "amqp_consume",
             "amqp_get",
             "amqp_ack",
+            "smtp_connect",
+            "smtp_send",
+            "smtp_disconnect",
+            "imap_connect",
+            "imap_select",
+            "imap_search",
+            "imap_fetch",
+            "imap_store_flags",
+            "imap_copy",
+            "imap_move",
+            "imap_expunge",
+            "imap_list",
+            "imap_folder_create",
+            "imap_folder_delete",
+            "imap_idle",
+            "imap_close",
             "amqp10_connect",
             "amqp10_send",
             "amqp10_receive",

@@ -264,10 +264,10 @@ pub enum FlowEditCommands {
         #[arg(long)]
         target: String,
         /// 源端口
-        #[arg(long, default_value = "output")]
+#[arg(long, default_value = "out")]
         source_port: String,
-        /// 目标端口
-        #[arg(long, default_value = "input")]
+        /// 目标端口（固定为 "in"）
+        #[arg(long, default_value = "in")]
         target_port: String,
     },
     /// 移除连接

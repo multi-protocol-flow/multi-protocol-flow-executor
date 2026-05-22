@@ -11,8 +11,6 @@ pub const CONDITIONAL: &str = "conditional";
 pub const WS_CONNECT: &str = "ws_connect";
 /// WebSocket 发送采集节点
 pub const WS_SEND_COLLECT: &str = "ws_send_collect";
-/// WebSocket 发送等待节点
-pub const WS_SEND_WAIT: &str = "ws_send_wait";
 /// WebSocket 关闭节点
 pub const WS_CLOSE: &str = "ws_close";
 /// 断言节点
