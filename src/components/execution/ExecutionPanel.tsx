@@ -329,7 +329,7 @@ return (
           {/* 节点列表 */}
           <div
             ref={nodeListRef}
-            className="flex-1 min-h-0 overflow-y-auto"
+            className="flex-1 min-h-0 overflow-y-auto scrollbar-thin"
           >
             {orderedNodes.map((node) => {
               const status = getNodeExecutionStatus(node.uuid);
@@ -409,7 +409,7 @@ return (
                     <span className="text-xs text-muted-foreground">{ll.execution.panel.executing()}</span>
                   </div>
                   {selectedReport && (
-                    <div className="flex-1 min-h-0 overflow-y-auto p-3">
+                    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3">
                       <NodeExecutionDetails report={selectedReport} />
                     </div>
                   )}
@@ -418,7 +418,7 @@ return (
 
               {selectedNodeUuid &&
                 (selectedStatus === 'success' || selectedStatus === 'failed') && (
-                  <div className="h-full overflow-y-auto">
+                  <div className="h-full overflow-y-auto scrollbar-thin">
                     <div className="p-3">
                       {selectedReport && (
                         <NodeExecutionDetails report={selectedReport} />
