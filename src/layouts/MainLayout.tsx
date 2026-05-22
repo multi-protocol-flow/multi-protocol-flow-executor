@@ -490,7 +490,7 @@ export function MainLayout() {
           size="icon"
           onClick={toggleFlowListPanel}
           className={cn(
-            'absolute z-20 h-8 w-6 rounded-l-none rounded-r-lg top-[calc(50%-16px)]',
+            'absolute z-20 h-8 w-6 rounded-l-none rounded-r-lg top-0',
             'bg-background hover:bg-accent border border-l-0 border-border',
             'transition-colors duration-150'
           )}
@@ -689,7 +689,7 @@ export function MainLayout() {
           size="icon"
           onClick={toggleConfigPanel}
           className={cn(
-            'absolute z-20 h-8 w-6 rounded-r-none rounded-l-lg top-[calc(50%-16px)]',
+            'absolute z-20 h-8 w-6 rounded-r-none rounded-l-lg top-0',
             'bg-background hover:bg-accent border border-r-0 border-border',
             'transition-colors duration-150'
           )}
