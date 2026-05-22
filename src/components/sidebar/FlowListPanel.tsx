@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import {
   Plus, FileJson, MoreVertical, Copy, Trash2, Pencil, Bug, RefreshCw,
   FolderPlus, Folder, FolderOpen, ChevronDown, ChevronRight, Move,
+  Search, ArrowUpDown, Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useFlowListStore, useFlowStore, useUIStore } from '@/stores';
@@ -225,6 +226,11 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const [expandedMoveMenuFolders, setExpandedMoveMenuFolders] = useState<Set<string>>(new Set());
   const [expandedMoveFolderMenuFolders, setExpandedMoveFolderMenuFolders] = useState<Set<string>>(new Set());
 
+  // 排序下拉菜单状态
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
+  const [sortMenuPosition, setSortMenuPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
   /**
    * 计算菜单定位，考虑视口边界自动翻转方向
    * @param anchorRect 触发元素的 boundingClientRect
@@ -283,10 +289,13 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       if (moveFolderMenuPath !== null && moveFolderMenuRef.current && !moveFolderMenuRef.current.contains(e.target as Node)) {
         setMoveFolderMenuPath(null);
       }
+      if (sortMenuOpen && sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
+        setSortMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openMenuUuid, openFolderMenuPath, moveMenuUuid, moveFolderMenuPath]);
+  }, [openMenuUuid, openFolderMenuPath, moveMenuUuid, moveFolderMenuPath, sortMenuOpen]);
 
   // ===== 文件夹操作 =====
 
@@ -566,14 +575,33 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const flows = useFlowListStore((state) => state.flows);
   const expandedFolders = useFlowListStore((state) => state.expandedFolders);
   const toggleFolder = useFlowListStore((state) => state.toggleFolder);
+  const searchKeyword = useFlowListStore((state) => state.searchKeyword);
+  const setSearchKeyword = useFlowListStore((state) => state.setSearchKeyword);
+  const sortBy = useFlowListStore((state) => state.sortBy);
+  const setSortBy = useFlowListStore((state) => state.setSortBy);
+  const sortOrder = useFlowListStore((state) => state.sortOrder);
+  const setSortOrder = useFlowListStore((state) => state.setSortOrder);
+
+  const handleSelectSort = useCallback((newSortBy: 'name' | 'updated_at', newSortOrder: 'asc' | 'desc') => {
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
+    setSortMenuOpen(false);
+  }, [setSortBy, setSortOrder]);
 
   // ===== 构建树形结构 =====
   const treeData = useMemo(() => {
+    // 过滤流程
+    let filteredFlows = flows;
+    if (searchKeyword.trim()) {
+      const keyword = searchKeyword.toLowerCase();
+      filteredFlows = flows.filter((f) => f.name.toLowerCase().includes(keyword));
+    }
+
     // 按文件夹分组
     const folderMap = new Map<string, typeof flows>();
     const rootFlows: typeof flows = [];
 
-    for (const flow of flows) {
+    for (const flow of filteredFlows) {
       const folderPath = flow.folder_path || '';
       if (folderPath === '') {
         rootFlows.push(flow);
@@ -587,18 +615,27 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       }
     }
 
-    // 排序根目录流程
-    rootFlows.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
-
-    // 排序每个文件夹内的流程
+    // 排序
+    const sortFn = (a: typeof flows[number], b: typeof flows[number]) => {
+      let comparison: number;
+      if (sortBy === 'name') {
+        comparison = a.name.localeCompare(b.name, undefined, { numeric: true });
+      } else {
+        comparison = a.updated_at - b.updated_at;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    };
+    rootFlows.sort(sortFn);
     for (const [, folderFlows] of folderMap) {
-      folderFlows.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+      folderFlows.sort(sortFn);
     }
 
-    // 合并所有文件夹路径（包括空文件夹）
+    // 合并所有文件夹路径（搜索时隐藏空文件夹）
     const allFolderPaths = new Set(folderMap.keys());
-    for (const folder of folders) {
-      allFolderPaths.add(folder.path);
+    if (!searchKeyword.trim()) {
+      for (const folder of folders) {
+        allFolderPaths.add(folder.path);
+      }
     }
 
     // 构建文件夹树结构
@@ -617,14 +654,14 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
     }
 
     // 排序
-    const sortPaths = (paths: string[]) => paths.sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    const sortPaths = (paths: string[]) => paths.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
     sortPaths(rootFolderPaths);
     for (const [, children] of folderChildrenMap) {
       sortPaths(children);
     }
 
     return { rootFlows, folderMap, rootFolderPaths, folderChildrenMap };
-  }, [flows, folders]);
+  }, [flows, folders, searchKeyword, sortBy, sortOrder]);
 
   // ===== 构建文件夹树（用于移动菜单） =====
   const folderTree = useMemo(() => {
@@ -989,6 +1026,38 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       {/* 流程列表 */}
       {!isLoading && (
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin">
+          {/* 搜索和排序栏 */}
+          <div className="px-2 pt-2 pb-1 flex items-center gap-1.5">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                placeholder={getLL().flow.flow_search_placeholder()}
+                className="w-full h-7 pl-7 pr-2 text-xs rounded-md border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            {/* 排序下拉按钮 */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                if (sortMenuOpen) {
+                  setSortMenuOpen(false);
+                } else {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setSortMenuPosition(computeMenuPosition(rect, 140, 132));
+                  setSortMenuOpen(true);
+                }
+              }}
+              className="h-7 px-1.5 rounded-md hover:bg-accent text-xs gap-0.5 shrink-0"
+              title={`${sortBy === 'name' ? getLL().flow.sort_by_name() : getLL().flow.sort_by_time()} ${sortOrder === 'asc' ? '↑' : '↓'}`}
+            >
+              <ArrowUpDown className="w-3 h-3" />
+              <ChevronDown className="w-2.5 h-2.5 text-muted-foreground" />
+            </Button>
+          </div>
           <div className="p-2 space-y-1">
             {/* 新建文件夹输入框（始终可见，不依赖 showHeader） */}
             {isCreatingFolder && !newFolderParentPath && (
@@ -1049,6 +1118,37 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
             )}
           </div>
         </div>
+      )}
+
+      {/* 排序下拉菜单 Portal */}
+      {sortMenuOpen && createPortal(
+        <div
+          ref={sortMenuRef}
+          className="fixed z-[9999] min-w-[140px] rounded-md border border-border bg-background shadow-md animate-in fade-in-0 zoom-in-95 py-1"
+          style={{ top: sortMenuPosition.top, left: sortMenuPosition.left }}
+        >
+          <button type="button" onClick={() => handleSelectSort('name', 'asc')}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors">
+            <Check className={sortBy === 'name' && sortOrder === 'asc' ? 'w-3.5 h-3.5' : 'w-3.5 h-3.5 invisible'} />
+            <span>{getLL().flow.sort_by_name()} {getLL().flow.sort_asc()}</span>
+          </button>
+          <button type="button" onClick={() => handleSelectSort('name', 'desc')}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors">
+            <Check className={sortBy === 'name' && sortOrder === 'desc' ? 'w-3.5 h-3.5' : 'w-3.5 h-3.5 invisible'} />
+            <span>{getLL().flow.sort_by_name()} {getLL().flow.sort_desc()}</span>
+          </button>
+          <button type="button" onClick={() => handleSelectSort('updated_at', 'asc')}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors">
+            <Check className={sortBy === 'updated_at' && sortOrder === 'asc' ? 'w-3.5 h-3.5' : 'w-3.5 h-3.5 invisible'} />
+            <span>{getLL().flow.sort_by_time()} {getLL().flow.sort_asc()}</span>
+          </button>
+          <button type="button" onClick={() => handleSelectSort('updated_at', 'desc')}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors">
+            <Check className={sortBy === 'updated_at' && sortOrder === 'desc' ? 'w-3.5 h-3.5' : 'w-3.5 h-3.5 invisible'} />
+            <span>{getLL().flow.sort_by_time()} {getLL().flow.sort_desc()}</span>
+          </button>
+        </div>,
+        document.body
       )}
 
       {/* 文件夹上下文菜单 Portal */}

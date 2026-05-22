@@ -69,8 +69,37 @@ const initialState = {
   expandedFolders: new Set<string>(),
 };
 
+/** localStorage 中排序偏好的 key */
+const SORT_PREF_KEY = 'mpe_flow_list_sort';
+
+/** 从 localStorage 读取排序偏好 */
+function loadSortPref(): { sortBy: 'name' | 'updated_at'; sortOrder: 'asc' | 'desc' } {
+  try {
+    const raw = localStorage.getItem(SORT_PREF_KEY);
+    if (raw) {
+      const pref = JSON.parse(raw);
+      if ((pref.sortBy === 'name' || pref.sortBy === 'updated_at') &&
+          (pref.sortOrder === 'asc' || pref.sortOrder === 'desc')) {
+        return pref;
+      }
+    }
+  } catch { /* ignore */ }
+  return { sortBy: 'name', sortOrder: 'asc' };
+}
+
+/** 保存排序偏好到 localStorage */
+function saveSortPref(sortBy: string, sortOrder: string): void {
+  try {
+    localStorage.setItem(SORT_PREF_KEY, JSON.stringify({ sortBy, sortOrder }));
+  } catch { /* ignore */ }
+}
+
+const initialSortPref = loadSortPref();
+
 export const useFlowListStore = create<FlowListState>((set, get) => ({
   ...initialState,
+  sortBy: initialSortPref.sortBy,
+  sortOrder: initialSortPref.sortOrder,
 
   // ===== Actions =====
   setFlows: (flows) => set({ flows }),
@@ -96,9 +125,15 @@ export const useFlowListStore = create<FlowListState>((set, get) => ({
 
   setSearchKeyword: (searchKeyword) => set({ searchKeyword }),
 
-  setSortBy: (sortBy) => set({ sortBy }),
+  setSortBy: (sortBy) => {
+    saveSortPref(sortBy, get().sortOrder);
+    set({ sortBy });
+  },
 
-  setSortOrder: (sortOrder) => set({ sortOrder }),
+  setSortOrder: (sortOrder) => {
+    saveSortPref(get().sortBy, sortOrder);
+    set({ sortOrder });
+  },
 
   toggleFolder: (folderPath) =>
     set((state) => {
@@ -130,7 +165,7 @@ export const useFlowListStore = create<FlowListState>((set, get) => ({
     const sorted = [...filtered].sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'name') {
-        comparison = a.name.localeCompare(b.name);
+        comparison = a.name.localeCompare(b.name, undefined, { numeric: true });
       } else {
         comparison = a.updated_at - b.updated_at;
       }
