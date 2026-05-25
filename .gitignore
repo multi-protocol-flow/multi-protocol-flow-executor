@@ -56,6 +56,9 @@ qa-*.png
 src-tauri/test_*.json
 .playwright-mcp/
 
+# MPE Echo Service (独立 GitHub 项目: multi-protocol-flow/echo)
+/echo/
+
 # GraphQL subscription test server (node_modules)
 /tests/graphql-subscription-server/
 
