@@ -22,7 +22,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpReceiveNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode, MqttConnectNode, MqttPublishNode, MqttSubscribeNode, MqttUnsubscribeNode, MqttDisconnectNode, MqttWaitMessageNode, MqttRequestNode, VariableExtractorNode, KafkaConnectNode, KafkaProduceNode, KafkaConsumeNode, KafkaConsumeBatchNode, KafkaAdminNode, KafkaSchemaRegistryNode, KafkaCloseNode, SseConnectNode, SseListenNode, SseDisconnectNode, GraphqlConnectNode, GraphqlQueryNode, GraphqlSubscribeNode, GraphqlIntrospectNode, GraphqlDisconnectNode, ImapConnectNode, ImapSelectNode, ImapSearchNode, ImapFetchNode, ImapStoreFlagsNode, ImapCopyNode, ImapMoveNode, ImapExpungeNode, ImapListNode, ImapFolderCreateNode, ImapFolderDeleteNode, ImapIdleNode, ImapCloseNode, SmtpConnectNode, SmtpSendNode, SmtpDisconnectNode, ProxyNode } from './nodes';
+import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpReceiveNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode, MqttConnectNode, MqttPublishNode, MqttSubscribeNode, MqttUnsubscribeNode, MqttDisconnectNode, MqttWaitMessageNode, MqttRequestNode, VariableExtractorNode, KafkaConnectNode, KafkaProduceNode, KafkaConsumeNode, KafkaConsumeBatchNode, KafkaAdminNode, KafkaSchemaRegistryNode, KafkaCloseNode, SseConnectNode, SseListenNode, SseDisconnectNode, GraphqlConnectNode, GraphqlQueryNode, GraphqlSubscribeNode, GraphqlIntrospectNode, GraphqlDisconnectNode, ImapConnectNode, ImapSelectNode, ImapSearchNode, ImapFetchNode, ImapStoreFlagsNode, ImapCopyNode, ImapMoveNode, ImapExpungeNode, ImapListNode, ImapFolderCreateNode, ImapFolderDeleteNode, ImapIdleNode, ImapCloseNode, SmtpConnectNode, SmtpSendNode, SmtpDisconnectNode, ProxyNode, AmqpConnectNode, AmqpCloseNode, AmqpExchangeDeclareNode, AmqpExchangeDeleteNode, AmqpQueueDeclareNode, AmqpQueueDeleteNode, AmqpQueueBindNode, AmqpPublishNode, AmqpConsumeNode, AmqpGetNode, AmqpAckNode, AmqpManagementNode, Amqp10ConnectNode, Amqp10SendNode, Amqp10ReceiveNode, Amqp10AcceptNode, Amqp10RejectNode, Amqp10DisconnectNode } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
 import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
@@ -154,6 +154,24 @@ const nodeTypes = {
   smtp_send: SmtpSendNode,
   smtp_disconnect: SmtpDisconnectNode,
   proxy: ProxyNode,
+  amqp_connect: AmqpConnectNode,
+  amqp_exchange_declare: AmqpExchangeDeclareNode,
+  amqp_exchange_delete: AmqpExchangeDeleteNode,
+  amqp_queue_declare: AmqpQueueDeclareNode,
+  amqp_queue_delete: AmqpQueueDeleteNode,
+  amqp_queue_bind: AmqpQueueBindNode,
+  amqp_publish: AmqpPublishNode,
+  amqp_consume: AmqpConsumeNode,
+  amqp_get: AmqpGetNode,
+  amqp_ack: AmqpAckNode,
+  amqp_management: AmqpManagementNode,
+  amqp_close: AmqpCloseNode,
+  amqp10_connect: Amqp10ConnectNode,
+  amqp10_send: Amqp10SendNode,
+  amqp10_receive: Amqp10ReceiveNode,
+  amqp10_accept: Amqp10AcceptNode,
+  amqp10_reject: Amqp10RejectNode,
+  amqp10_disconnect: Amqp10DisconnectNode,
   default: DynamicPluginNode,
 };
 
@@ -216,6 +234,24 @@ const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
   graphql_introspect: '#6366f1',
   graphql_disconnect: '#6366f1',
   proxy: '#84cc16',
+  amqp_connect: '#8b5cf6',
+  amqp_exchange_declare: '#8b5cf6',
+  amqp_exchange_delete: '#8b5cf6',
+  amqp_queue_declare: '#8b5cf6',
+  amqp_queue_delete: '#8b5cf6',
+  amqp_queue_bind: '#8b5cf6',
+  amqp_publish: '#8b5cf6',
+  amqp_consume: '#8b5cf6',
+  amqp_get: '#8b5cf6',
+  amqp_ack: '#8b5cf6',
+  amqp_management: '#8b5cf6',
+  amqp_close: '#8b5cf6',
+  amqp10_connect: '#a855f7',
+  amqp10_send: '#a855f7',
+  amqp10_receive: '#a855f7',
+  amqp10_accept: '#a855f7',
+  amqp10_reject: '#a855f7',
+  amqp10_disconnect: '#a855f7',
 };
 
 /**
