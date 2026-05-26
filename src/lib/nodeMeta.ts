@@ -94,16 +94,16 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
   mcp_read_resource: { icon: FileSearch, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
   mcp_get_prompt: { icon: MessageSquare, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
   mcp_close: { icon: Unplug, iconBg: 'bg-fuchsia-500', labelColor: 'text-fuchsia-600', badge: 'bg-fuchsia-100 text-fuchsia-700' },
-  tcp_connect: { icon: Cable, iconBg: 'bg-emerald-100', labelColor: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700' },
-  tcp_send: { icon: Send, iconBg: 'bg-emerald-100', labelColor: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700' },
-  tcp_close: { icon: Unplug, iconBg: 'bg-emerald-100', labelColor: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700' },
-  udp_bind: { icon: Radio, iconBg: 'bg-orange-100', labelColor: 'text-orange-700', badge: 'bg-orange-100 text-orange-700' },
-  udp_send_to: { icon: ArrowUpRight, iconBg: 'bg-orange-100', labelColor: 'text-orange-700', badge: 'bg-orange-100 text-orange-700' },
-  udp_recv_from: { icon: ArrowDownLeft, iconBg: 'bg-orange-100', labelColor: 'text-orange-700', badge: 'bg-orange-100 text-orange-700' },
-  udp_close: { icon: Unplug, iconBg: 'bg-orange-100', labelColor: 'text-orange-700', badge: 'bg-orange-100 text-orange-700' },
+  tcp_connect: { icon: Cable, iconBg: 'bg-emerald-500', labelColor: 'text-emerald-600', badge: 'bg-emerald-100 text-emerald-700' },
+  tcp_send: { icon: Send, iconBg: 'bg-emerald-500', labelColor: 'text-emerald-600', badge: 'bg-emerald-100 text-emerald-700' },
+  tcp_close: { icon: Unplug, iconBg: 'bg-emerald-500', labelColor: 'text-emerald-600', badge: 'bg-emerald-100 text-emerald-700' },
+  udp_bind: { icon: Radio, iconBg: 'bg-orange-500', labelColor: 'text-orange-600', badge: 'bg-orange-100 text-orange-700' },
+  udp_send_to: { icon: ArrowUpRight, iconBg: 'bg-orange-500', labelColor: 'text-orange-600', badge: 'bg-orange-100 text-orange-700' },
+  udp_recv_from: { icon: ArrowDownLeft, iconBg: 'bg-orange-500', labelColor: 'text-orange-600', badge: 'bg-orange-100 text-orange-700' },
+  udp_close: { icon: Unplug, iconBg: 'bg-orange-500', labelColor: 'text-orange-600', badge: 'bg-orange-100 text-orange-700' },
 
   // TCP (补充)
-  tcp_receive: { icon: Download, iconBg: 'bg-emerald-100', labelColor: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700' },
+  tcp_receive: { icon: Download, iconBg: 'bg-emerald-500', labelColor: 'text-emerald-600', badge: 'bg-emerald-100 text-emerald-700' },
 
   // MQTT (7个) — cyan 色
   mqtt_connect: { icon: Radio, iconBg: 'bg-cyan-500', labelColor: 'text-cyan-600', badge: 'bg-cyan-100 text-cyan-700' },
