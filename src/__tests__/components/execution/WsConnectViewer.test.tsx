@@ -56,7 +56,7 @@ describe('WsConnectViewer', () => {
 
       // 展开连接状态面板
       const buttons = screen.getAllByRole('button');
-      const statusButton = buttons.find(btn => btn.textContent?.includes(getLL().execution.viewers.connection_status()));
+      const statusButton = buttons.find(btn => btn.textContent?.includes(getLL().execution.viewers.ws_connect_status()));
       if (statusButton && statusButton.getAttribute('aria-expanded') === 'false') {
         await user.click(statusButton);
       }
@@ -72,7 +72,7 @@ describe('WsConnectViewer', () => {
 
       // 展开连接状态面板
       const buttons = screen.getAllByRole('button');
-      const statusButton = buttons.find(btn => btn.textContent?.includes(getLL().execution.viewers.connection_status()));
+      const statusButton = buttons.find(btn => btn.textContent?.includes(getLL().execution.viewers.ws_connect_status()));
       if (statusButton && statusButton.getAttribute('aria-expanded') === 'false') {
         await user.click(statusButton);
       }

@@ -325,7 +325,7 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 连接状态 */}
       <CollapsibleSection
-        title={ll.execution.viewers.connection_status()}
+        title={ll.execution.viewers.ws_connect_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
