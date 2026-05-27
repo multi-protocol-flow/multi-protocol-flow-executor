@@ -50,6 +50,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Generate i18n types
+        run: npm run typesafe-i18n
+
       - name: Build
         uses: tauri-apps/tauri-action@v0
         env:
