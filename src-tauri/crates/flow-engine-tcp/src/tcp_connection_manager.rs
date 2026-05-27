@@ -330,33 +330,15 @@ impl TcpConnectionManager {
 
                 // 设置 Keepalive
                 if let Some(ref ka) = keepalive {
-                    #[cfg(not(target_os = "windows"))]
-                    {
-                        let socket = socket2::SockRef::from(&tcp_stream);
-                        let keepalive_cfg = socket2::TcpKeepalive::new()
-                            .with_time(std::time::Duration::from_secs(ka.idle_secs))
-                            .with_interval(std::time::Duration::from_secs(ka.interval_secs))
-                            .with_retries(ka.probe_count);
-                        socket.set_keepalive(&keepalive_cfg).map_err(|e| {
-                            let error_msg = format!("设置 Keepalive 失败: {}", e);
-                            self.update_connection_error(&uuid, &error_msg);
-                            error_msg
-                        })?;
-                    }
-                    #[cfg(target_os = "windows")]
-                    {
-                        // Windows 通过 socket2 仅支持启用/禁用 keepalive
-                        let socket = socket2::SockRef::from(&tcp_stream);
-                        socket.set_keepalive(true).map_err(|e| {
-                            let error_msg = format!("设置 Keepalive 失败: {}", e);
-                            self.update_connection_error(&uuid, &error_msg);
-                            error_msg
-                        })?;
-                        // idle_secs / interval_secs / probe_count 在 Windows 上通过
-                        // setsockopt 实现，但 socket2 0.5 不直接暴露。
-                        // 保留配置以备将来使用。
-                        let _ = (ka.idle_secs, ka.interval_secs, ka.probe_count);
-                    }
+                    let socket = socket2::SockRef::from(&tcp_stream);
+                    let keepalive_cfg = socket2::TcpKeepalive::new()
+                        .with_time(std::time::Duration::from_secs(ka.idle_secs))
+                        .with_interval(std::time::Duration::from_secs(ka.interval_secs));
+                    socket.set_tcp_keepalive(&keepalive_cfg).map_err(|e| {
+                        let error_msg = format!("设置 Keepalive 失败: {}", e);
+                        self.update_connection_error(&uuid, &error_msg);
+                        error_msg
+                    })?;
                 }
 
                 // 6. 根据 TLS 配置处理流
