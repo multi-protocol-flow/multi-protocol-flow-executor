@@ -6,9 +6,10 @@
 
 ## 概述
 
-多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 工具。支持 HTTP、WebSocket、数据库（PostgreSQL/MySQL/SQLite/Redis）、gRPC、MCP、TCP/UDP、MQTT 协议，具备调试模式和压力测试功能。
+多协议流程编排与执行引擎。Tauri 2.x 桌面应用，同时支持 CLI 模式（同一二进制，无参数启动 GUI，有参数启动 CLI）。支持 HTTP、WebSocket、数据库（PostgreSQL/MySQL/SQLite/Redis）、gRPC、MCP、TCP/UDP、MQTT 协议，具备调试模式和压力测试功能。
 - **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + React Flow
 - **后端:** Rust Workspace (19 crates) + Tauri 2.x
+- **单一二进制:** `mpe` — 无参数启动桌面 GUI，有参数启动 CLI（如 `mpe run -f flow.json`）
 
 ## 结构
 
@@ -27,6 +28,9 @@ multi-protocol-flow-executor/
 │   └── __tests__/          # Vitest 单元测试 (~76 文件)
 ├── src-tauri/              # Rust 后端 (Workspace)
 │   ├── src/                # Tauri 适配层 + IPC 命令 (49 命令)
+│   │   ├── main.rs         # 统一入口：无参数→GUI，有参数→CLI
+│   │   ├── cli.rs          # CLI 子命令定义 (run/validate/debug/stress/flow/report)
+│   │   └── cli/            # CLI 子命令实现
 │   ├── crates/             # 19 个子 crate
 │   │   ├── flow-engine/    # 门面 crate (re-export)
 │   │   ├── flow-engine-core/       # 基础类型、traits、插件注册
@@ -47,7 +51,6 @@ multi-protocol-flow-executor/
 │   │   ├── flow-engine-kafka/      # Kafka 客户端 (支持生产/消费/Schema Registry)
 │   │   ├── flow-engine-smtp/       # SMTP 客户端 (支持 SASL/OAuth2 认证)
 │   │   └── flow-engine-sse/        # SSE 客户端 (支持连接/监听/断开)
-│   └── bin/mpe/            # CLI 工具 (6 子命令, mpe run/validate/debug/stress/flow/report)
 ├── tests/                  # CLI 测试数据 + fixtures
 └── docs/                   # 架构文档
 ```
@@ -381,7 +384,7 @@ npm run tauri build  # 构建安装包
 
 4. **Tauri IPC Mock**: `src/services/tauri/mock.ts` 用于非 Tauri 环境测试
 
-5. **缺失 CI/CD**: 无 `.github/workflows`，需手动运行测试
+5. **CI/CD**: 已配置 `.github/workflows/build.yml`，push 到 master/main 或 PR 时自动构建 Windows + Linux 版本
 
 6. **HTTP Body Types**: 支持 `none`、`body`、`form-data`、x-www-form-urlencoded`、`binary`，Content-Type 自动设置，用户手动设置优先
 
