@@ -61,9 +61,9 @@ describe('GenericViewer', () => {
   });
 
   describe('输入数据显示', () => {
-    it('显示输入数据', () => {
+    it('显示输入数据（取自 resolved_config）', () => {
       const report = createMockReport({
-        input_data: { url: 'https://api.example.com' }
+        resolved_config: { url: 'https://api.example.com' }
       });
       render(<GenericViewer report={report} />);
 
@@ -72,7 +72,7 @@ describe('GenericViewer', () => {
     });
 
     it('无输入数据时显示提示', () => {
-      const report = createMockReport({ input_data: null });
+      const report = createMockReport({ resolved_config: null });
       render(<GenericViewer report={report} />);
 
       // 输入数据面板默认展开
@@ -80,7 +80,7 @@ describe('GenericViewer', () => {
     });
 
     it('输入数据为 undefined 时显示提示', () => {
-      const report = createMockReport({ input_data: undefined });
+      const report = createMockReport({ resolved_config: undefined });
       render(<GenericViewer report={report} />);
 
       // 输入数据面板默认展开
@@ -153,7 +153,7 @@ describe('GenericViewer', () => {
       const report = createMockReport({
         node_type: 'end',
         node_name: '结束',
-        input_data: { final_result: 'done' }
+        resolved_config: { final_result: 'done' }
       });
       render(<GenericViewer report={report} />);
 

@@ -76,7 +76,7 @@ function DataSection({ data, emptyText }: DataSectionProps) {
 
 export function GenericViewer({ report }: GenericViewerProps) {
   const ll = getLL();
-  const { node_name, node_type, input_data, output_data, variable_changes } = report;
+  const { node_name, node_type, resolved_config, output_data, variable_changes } = report;
 
   return (
     <div className="space-y-3">
@@ -104,7 +104,7 @@ export function GenericViewer({ report }: GenericViewerProps) {
         icon={<ArrowUpFromLine className="w-4 h-4" />}
         defaultOpen={true}
       >
-        <DataSection data={input_data} emptyText={ll.execution.viewers.no_input_data()} />
+        <DataSection data={resolved_config} emptyText={ll.execution.viewers.no_input_data()} />
       </CollapsibleSection>
 
       <CollapsibleSection

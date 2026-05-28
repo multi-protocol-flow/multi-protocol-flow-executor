@@ -8,6 +8,7 @@ use crate::connection::Connection;
 use crate::context::ExecutionContext;
 use crate::node::Node;
 use async_trait::async_trait;
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 
 /// 替换模板中的变量
@@ -95,6 +96,45 @@ pub fn replace_variables(template: &str, context: &ExecutionContext) -> Result<S
     }
 
     Ok(result)
+}
+
+/// 递归解析 JSON 值中的所有变量占位符
+///
+/// 遍历 JSON 树，对每个字符串值尝试进行变量替换：
+/// - 字符串值包含 `{{path}}` 的会被替换为实际变量值
+/// - 如果变量不存在，保留原始值（不报错）
+/// - 对象/数组/数值/布尔值原样保留
+pub fn resolve_variables_in_json(
+    value: &serde_json::Value,
+    context: &ExecutionContext,
+) -> serde_json::Value {
+    match value {
+        Value::String(s) => {
+            if s.contains("{{") {
+                match replace_variables(s, context) {
+                    Ok(resolved) => Value::String(resolved),
+                    Err(_) => value.clone(),
+                }
+            } else {
+                value.clone()
+            }
+        }
+        Value::Object(map) => {
+            let resolved: Map<String, Value> = map
+                .iter()
+                .map(|(k, v)| (k.clone(), resolve_variables_in_json(v, context)))
+                .collect();
+            Value::Object(resolved)
+        }
+        Value::Array(arr) => {
+            let resolved: Vec<Value> = arr
+                .iter()
+                .map(|v| resolve_variables_in_json(v, context))
+                .collect();
+            Value::Array(resolved)
+        }
+        other => other.clone(),
+    }
 }
 
 /// 节点执行器 trait

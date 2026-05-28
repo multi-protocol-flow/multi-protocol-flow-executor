@@ -494,8 +494,11 @@ impl FlowExecutor {
                     let variables_after = context.variables.get_merged_variables();
                     let variable_changes = compute_variable_changes(&variables_before, &variables_after);
 
-                    // 解析 resolved_config（Task 13）：将节点配置序列化后存储
-                    let resolved_config = Some(serde_json::to_value(&node.data).unwrap_or(json!(null)));
+                    // 解析 resolved_config：递归替换节点配置中的变量占位符
+                    let raw_config = serde_json::to_value(&node.data).unwrap_or(json!(null));
+                    let resolved_config = Some(
+                        flow_engine_core::executor::resolve_variables_in_json(&raw_config, &context)
+                    );
 
                     // 追踪执行路径（Task 14）：记录成功执行的节点 UUID
                     execution_path.push(node.uuid.clone());
@@ -634,8 +637,11 @@ impl FlowExecutor {
                         );
 
                         // 创建节点执行报告（Success状态 - 条件评估完成）
-                        // 解析 resolved_config
-                        let resolved_config = Some(serde_json::to_value(&node.data).unwrap_or(json!(null)));
+                        // 解析 resolved_config：递归替换节点配置中的变量占位符
+                        let raw_config = serde_json::to_value(&node.data).unwrap_or(json!(null));
+                        let resolved_config = Some(
+                            flow_engine_core::executor::resolve_variables_in_json(&raw_config, &context)
+                        );
 
                         let node_report = flow_engine_core::report::NodeExecutionReport {
                             node_uuid: node.uuid.clone(),
@@ -678,8 +684,11 @@ impl FlowExecutor {
                         );
 
                         // 创建节点执行报告（Success状态 - 优雅终止）
-                        // 解析 resolved_config
-                        let resolved_config = Some(serde_json::to_value(&node.data).unwrap_or(json!(null)));
+                        // 解析 resolved_config：递归替换节点配置中的变量占位符
+                        let raw_config = serde_json::to_value(&node.data).unwrap_or(json!(null));
+                        let resolved_config = Some(
+                            flow_engine_core::executor::resolve_variables_in_json(&raw_config, &context)
+                        );
 
                         let node_report = flow_engine_core::report::NodeExecutionReport {
                             node_uuid: node.uuid.clone(),
@@ -746,8 +755,11 @@ impl FlowExecutor {
                     };
 
                     // 创建节点执行报告（Failed状态）
-                    // 解析 resolved_config
-                    let resolved_config = Some(serde_json::to_value(&node.data).unwrap_or(json!(null)));
+                    // 解析 resolved_config：递归替换节点配置中的变量占位符
+                    let raw_config = serde_json::to_value(&node.data).unwrap_or(json!(null));
+                    let resolved_config = Some(
+                        flow_engine_core::executor::resolve_variables_in_json(&raw_config, &context)
+                    );
 
                     let node_report = flow_engine_core::report::NodeExecutionReport {
                         node_uuid: node.uuid.clone(),
