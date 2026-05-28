@@ -71,3 +71,5 @@ src/i18n/i18n-util.ts
 src/i18n/i18n-util.async.ts
 src/i18n/i18n-util.sync.ts
 src/i18n/i18n-react.tsx
+
+.omo/
