@@ -228,6 +228,8 @@ const en_US_flow = {
   db_conn_test_fail: 'Connection test failed',
   db_conn_test_btn: 'Test Connection',
   db_conn_save: 'Save',
+  db_conn_connection_string: 'Connection String',
+  db_conn_connection_string_hint: 'When set, this connection string will be used directly. Leave empty to auto-build from fields below.',
 
 // Stress test
   stress_config_title: 'Stress Test Configuration',

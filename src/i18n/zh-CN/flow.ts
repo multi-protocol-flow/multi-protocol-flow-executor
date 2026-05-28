@@ -229,6 +229,8 @@ const zh_CN_flow: BaseTranslation = {
   db_conn_test_fail: '连接测试失败',
   db_conn_test_btn: '测试连接',
   db_conn_save: '保存',
+  db_conn_connection_string: '连接字符串',
+  db_conn_connection_string_hint: '设置后将直接使用此连接字符串，留空则从下方字段自动构建',
 
   // 压力测试
   stress_config_title: '压力测试配置',
