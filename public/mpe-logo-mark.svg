@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144" fill="none">
+  <defs>
+    <linearGradient id="mark-grad" x1="0" y1="0" x2="144" y2="144">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="mark-ring" x1="0" y1="0" x2="144" y2="144">
+      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0.18"/>
+    </linearGradient>
+  </defs>
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .port-fill { fill: #0F172A; }
+    }
+    @media (prefers-color-scheme: light) {
+      .port-fill { fill: #FFFFFF; }
+    }
+  </style>
+
+  <g transform="translate(72, 72)">
+    <!-- 外圈光晕 (加大) -->
+    <circle r="48" fill="url(#mark-ring)"/>
+
+    <!-- 4 条连接线 (加粗) -->
+    <line x1="0" y1="-22" x2="0" y2="-50" stroke="#818CF8" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+    <line x1="22" y1="0" x2="50" y2="0" stroke="#22D3EE" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+    <line x1="0" y1="22" x2="0" y2="50" stroke="#818CF8" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+    <line x1="-22" y1="0" x2="-50" y2="0" stroke="#22D3EE" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+
+    <!-- 流量箭头 (加大加粗) -->
+    <polygon points="-6,-38 0,-48 6,-38" fill="#818CF8" opacity="0.8"/>
+    <polygon points="38,-6 48,0 38,6" fill="#22D3EE" opacity="0.8"/>
+    <polygon points="6,38 0,48 -6,38" fill="#818CF8" opacity="0.8"/>
+    <polygon points="-38,6 -48,0 -38,-6" fill="#22D3EE" opacity="0.8"/>
+
+    <!-- 4 个协议端口 (加大加粗) -->
+    <circle cx="0" cy="-56" r="8" class="port-fill" stroke="#818CF8" stroke-width="4"/>
+    <circle cx="56" cy="0" r="8" class="port-fill" stroke="#22D3EE" stroke-width="4"/>
+    <circle cx="0" cy="56" r="8" class="port-fill" stroke="#818CF8" stroke-width="4"/>
+    <circle cx="-56" cy="0" r="8" class="port-fill" stroke="#22D3EE" stroke-width="4"/>
+
+    <!-- 中心引擎 (加粗加大) -->
+    <circle r="22" fill="url(#mark-grad)" opacity="0.15"/>
+    <circle r="17" stroke="url(#mark-grad)" stroke-width="4" class="port-fill"/>
+    <circle r="9" fill="url(#mark-grad)"/>
+  </g>
+</svg>

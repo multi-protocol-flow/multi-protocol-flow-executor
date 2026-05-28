@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -3 600 136" fill="none">
+  <defs>
+    <linearGradient id="logo-grad" x1="0" y1="0" x2="100" y2="100">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="logo-ring" x1="0" y1="0" x2="100" y2="100">
+      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0.18"/>
+    </linearGradient>
+  </defs>
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .logo-text { fill: #F1F5F9; }
+      .logo-sub { fill: #94A3B8; }
+      .port-fill { fill: #0F172A; }
+    }
+    @media (prefers-color-scheme: light) {
+      .logo-text { fill: #0F172A; }
+      .logo-sub { fill: #64748B; }
+      .port-fill { fill: #FFFFFF; }
+    }
+  </style>
+
+  <!-- Logo Mark -->
+  <g transform="translate(68, 65)">
+    <circle r="48" fill="url(#logo-ring)"/>
+    <line x1="0" y1="-22" x2="0" y2="-50" stroke="#818CF8" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+    <line x1="22" y1="0" x2="50" y2="0" stroke="#22D3EE" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+    <line x1="0" y1="22" x2="0" y2="50" stroke="#818CF8" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+    <line x1="-22" y1="0" x2="-50" y2="0" stroke="#22D3EE" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+    <polygon points="-6,-38 0,-48 6,-38" fill="#818CF8" opacity="0.8"/>
+    <polygon points="38,-6 48,0 38,6" fill="#22D3EE" opacity="0.8"/>
+    <polygon points="6,38 0,48 -6,38" fill="#818CF8" opacity="0.8"/>
+    <polygon points="-38,6 -48,0 -38,-6" fill="#22D3EE" opacity="0.8"/>
+    <circle cx="0" cy="-56" r="8" class="port-fill" stroke="#818CF8" stroke-width="4"/>
+    <circle cx="56" cy="0" r="8" class="port-fill" stroke="#22D3EE" stroke-width="4"/>
+    <circle cx="0" cy="56" r="8" class="port-fill" stroke="#818CF8" stroke-width="4"/>
+    <circle cx="-56" cy="0" r="8" class="port-fill" stroke="#22D3EE" stroke-width="4"/>
+    <circle r="22" fill="url(#logo-grad)" opacity="0.15"/>
+    <circle r="17" stroke="url(#logo-grad)" stroke-width="4" class="port-fill"/>
+    <circle r="9" fill="url(#logo-grad)"/>
+  </g>
+
+  <!-- Typography (加大字号) -->
+  <text x="148" y="65" font-family="'Inter','SF Pro Display',system-ui,-apple-system,sans-serif" font-size="46" font-weight="800" class="logo-text" letter-spacing="-0.5">MPE</text>
+  <text x="148" y="96" font-family="system-ui,-apple-system,sans-serif" font-size="15" font-weight="600" class="logo-sub" letter-spacing="3">MULTI-PROTOCOL FLOW EXECUTOR</text>
+</svg>

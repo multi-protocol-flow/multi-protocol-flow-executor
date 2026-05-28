@@ -26,7 +26,7 @@ import { useSettingsStore } from '@/stores/settings';
 import type { BottomPanelTab } from '@/stores/ui';
 import { useConsoleStore } from '@/stores/console';
 import { useZoomStore } from '@/stores/zoom';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Zap, Trash2, Settings, GripVertical, GripHorizontal, ZoomIn, ZoomOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, GripVertical, GripHorizontal, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -349,22 +349,40 @@ export function MainLayout() {
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
       {/* ===== 顶部工具栏 ===== */}
       <header className="h-14 shrink-0 border-b border-border flex items-center justify-between px-4 bg-background">
-        {/* 左侧：标题 */}
+        {/* 左侧：Logo */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2.5">
-            {/* Logo/图标 */}
-            <div className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center">
-              <Zap className="w-4 h-4 text-foreground" />
-            </div>
-            <div>
-              <h1 className="text-base font-semibold tracking-tight text-foreground">
-                {getLL().common.APP_NAME()}
-              </h1>
-              <p className="text-[10px] text-muted-foreground leading-none">
-                Flow Executor
-              </p>
-            </div>
-          </div>
+          <svg viewBox="0 -3 600 136" className="h-10 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg" style={{color: 'inherit'}}>
+            <defs>
+              <linearGradient id="hdr-grad" x1="0" y1="0" x2="100" y2="100">
+                <stop offset="0%" stopColor="#818CF8"/>
+                <stop offset="100%" stopColor="#22D3EE"/>
+              </linearGradient>
+              <linearGradient id="hdr-ring" x1="0" y1="0" x2="100" y2="100">
+                <stop offset="0%" stopColor="#818CF8" stopOpacity="0.18"/>
+                <stop offset="100%" stopColor="#22D3EE" stopOpacity="0.18"/>
+              </linearGradient>
+            </defs>
+            <g transform="translate(68, 65)">
+              <circle r="48" fill="url(#hdr-ring)"/>
+              <line x1="0" y1="-22" x2="0" y2="-50" stroke="#818CF8" strokeWidth="4" strokeLinecap="round" opacity="0.5"/>
+              <line x1="22" y1="0" x2="50" y2="0" stroke="#22D3EE" strokeWidth="4" strokeLinecap="round" opacity="0.5"/>
+              <line x1="0" y1="22" x2="0" y2="50" stroke="#818CF8" strokeWidth="4" strokeLinecap="round" opacity="0.5"/>
+              <line x1="-22" y1="0" x2="-50" y2="0" stroke="#22D3EE" strokeWidth="4" strokeLinecap="round" opacity="0.5"/>
+              <polygon points="-6,-38 0,-48 6,-38" fill="#818CF8" opacity="0.8"/>
+              <polygon points="38,-6 48,0 38,6" fill="#22D3EE" opacity="0.8"/>
+              <polygon points="6,38 0,48 -6,38" fill="#818CF8" opacity="0.8"/>
+              <polygon points="-38,6 -48,0 -38,-6" fill="#22D3EE" opacity="0.8"/>
+              <circle cx="0" cy="-56" r="8" fill="currentColor" stroke="#818CF8" strokeWidth="4"/>
+              <circle cx="56" cy="0" r="8" fill="currentColor" stroke="#22D3EE" strokeWidth="4"/>
+              <circle cx="0" cy="56" r="8" fill="currentColor" stroke="#818CF8" strokeWidth="4"/>
+              <circle cx="-56" cy="0" r="8" fill="currentColor" stroke="#22D3EE" strokeWidth="4"/>
+              <circle r="22" fill="url(#hdr-grad)" opacity="0.15"/>
+              <circle r="17" stroke="url(#hdr-grad)" strokeWidth="4" fill="currentColor"/>
+              <circle r="9" fill="url(#hdr-grad)"/>
+            </g>
+            <text x="148" y="65" fill="currentColor" fontFamily="'Inter','SF Pro Display',system-ui,-apple-system,sans-serif" fontSize="46" fontWeight="800" letterSpacing="-0.5">MPE</text>
+            <text x="148" y="96" fill="currentColor" fontFamily="system-ui,-apple-system,sans-serif" fontSize="15" fontWeight="600" letterSpacing="3" opacity="0.6">MULTI-PROTOCOL FLOW EXECUTOR</text>
+          </svg>
 
           {/* 当前流程名称 */}
           {flow && (
