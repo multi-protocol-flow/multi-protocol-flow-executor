@@ -77,6 +77,7 @@ export function ExecutionReport() {
   const [selectedNodeUuid, setSelectedNodeUuid] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
   const [isWsStreamCollapsed, setIsWsStreamCollapsed] = useState(false);
+  const [isStatsCollapsed, setIsStatsCollapsed] = useState(false);
 
   // 默认选中第一个节点
   useEffect(() => {
@@ -176,160 +177,195 @@ export function ExecutionReport() {
           </DialogTitle>
         </DialogHeader>
 
-        {/* 主滚动容器：包裹所有内容 */}
-        <ScrollArea className="flex-1">
-          <div className="flex flex-col gap-5 pr-4 min-w-0 overflow-hidden">
-            {/* 流程名称 */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Activity className="w-4 h-4" />
-              <span>{ll.execution.report.flow_label()}</span>
-               <span className="font-medium text-foreground">{displayReport.flow_name}</span>
-            </div>
-
-            {/* 统计卡片网格 */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <StatCard
-                icon={Timer}
-                label={ll.execution.report.total_duration()}
-                 value={`${displayReport.duration_ms}ms`}
-                iconColor="text-violet-500"
-                valueColor="text-violet-600"
-              />
-              <StatCard
-                icon={BarChart3}
-                label={ll.execution.report.executed_nodes()}
-                 value={`${displayReport.executed_count}/${displayReport.total_nodes}`}
-                iconColor="text-blue-500"
-                valueColor="text-blue-600"
-              />
-              <StatCard
-                icon={CheckCircle2}
-                label={ll.execution.status.success()}
-                 value={displayReport.statistics.success_count}
-                iconColor="text-emerald-500"
-                valueColor="text-emerald-600"
-              />
-              <StatCard
-                icon={XCircle}
-                label={ll.execution.status.failed()}
-                 value={displayReport.statistics.failed_count}
-                iconColor="text-red-500"
-                valueColor="text-red-600"
-              />
-            </div>
-
-            {/* 额外统计信息 */}
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50">
-                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-muted-foreground">{ll.execution.report.success_rate()}</span>
-                <span className="font-semibold text-foreground">{successRate}%</span>
-              </div>
-              {displayReport.statistics.avg_node_duration_ms != null && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50">
-                  <span className="text-muted-foreground">{ll.execution.report.avg_duration()}</span>
-                  <span className="font-semibold text-foreground">
-                    {displayReport.statistics.avg_node_duration_ms!.toFixed(1)}ms
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* 流程级错误 */}
-            {displayReport.flow_error && (
-              <div className="rounded-xl bg-red-50 dark:bg-red-950/50 p-4 border border-red-200/50 dark:border-red-800/50">
-                <div className="flex items-center gap-2 mb-2 text-red-600 dark:text-red-400">
-                  <AlertCircle className="w-4 h-4" />
-                  <span className="font-medium">{ll.execution.report.flow_error()}</span>
-                </div>
-                <p className="text-red-600 dark:text-red-400">{displayReport.flow_error.message}</p>
-              </div>
-            )}
-
-            {/* WebSocket 消息流 */}
-            {displayReport.ws_streams && displayReport.ws_streams.length > 0 && (
-              <div className="rounded-xl border border-border/50 overflow-hidden">
+        {/* 主容器：固定布局 */}
+        <div className="flex-1 flex flex-col overflow-hidden gap-4">
+          {/* 上半部分：统计信息（可滚动） */}
+          <ScrollArea className={cn("flex-shrink-0", isStatsCollapsed ? "max-h-[80px]" : "max-h-[45%]")}>
+            <div className="flex flex-col gap-4 pr-4 min-w-0">
+              {/* 流程名称 + 折叠按钮 */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <button
                   type="button"
-                  onClick={() => setIsWsStreamCollapsed(!isWsStreamCollapsed)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors text-left"
+                  onClick={() => setIsStatsCollapsed(!isStatsCollapsed)}
+                  className="flex items-center gap-1 hover:text-foreground transition-colors"
                 >
-                  <div className="flex items-center gap-2.5">
-                    {isWsStreamCollapsed ? (
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    )}
-                    <Wifi className="w-4 h-4 text-violet-500" />
-                    <span className="text-sm font-semibold">{ll.execution.report.ws_stream_title()}</span>
-                    <Badge variant="outline" className="text-xs font-normal">{ll.execution.report.ws_connections({ count: displayReport.ws_streams.length })}</Badge>
-                  </div>
+                  {isStatsCollapsed ? (
+                    <ChevronRight className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                  <Activity className="w-4 h-4" />
                 </button>
-                {!isWsStreamCollapsed && (
-                  <div className="border-t border-border/50">
-                    <WsMessageTimeline streams={displayReport.ws_streams} maxHeight="320px" />
+                <span>{ll.execution.report.flow_label()}</span>
+                 <span className="font-medium text-foreground">{displayReport.flow_name}</span>
+
+                {/* 折叠时显示摘要信息 */}
+                {isStatsCollapsed && (
+                  <div className="flex items-center gap-3 ml-auto text-xs">
+                    <span className="text-muted-foreground">{displayReport.duration_ms}ms</span>
+                    <span className="text-muted-foreground">
+                      {displayReport.executed_count}/{displayReport.total_nodes}
+                    </span>
+                    <span className={cn(
+                      "font-medium",
+                      isSuccess ? "text-emerald-600" : "text-red-600"
+                    )}>
+                      {successRate}%
+                    </span>
                   </div>
                 )}
               </div>
-            )}
 
-            {/* 节点执行详情 */}
-            <div className="min-h-[280px] flex flex-col overflow-hidden">
-              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
+              {/* 展开时显示完整统计 */}
+              {!isStatsCollapsed && (
+                <>
+                  {/* 统计卡片网格 */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <StatCard
+                      icon={Timer}
+                      label={ll.execution.report.total_duration()}
+                       value={`${displayReport.duration_ms}ms`}
+                      iconColor="text-violet-500"
+                      valueColor="text-violet-600"
+                    />
+                    <StatCard
+                      icon={BarChart3}
+                      label={ll.execution.report.executed_nodes()}
+                       value={`${displayReport.executed_count}/${displayReport.total_nodes}`}
+                      iconColor="text-blue-500"
+                      valueColor="text-blue-600"
+                    />
+                    <StatCard
+                      icon={CheckCircle2}
+                      label={ll.execution.status.success()}
+                       value={displayReport.statistics.success_count}
+                      iconColor="text-emerald-500"
+                      valueColor="text-emerald-600"
+                    />
+                    <StatCard
+                      icon={XCircle}
+                      label={ll.execution.status.failed()}
+                       value={displayReport.statistics.failed_count}
+                      iconColor="text-red-500"
+                      valueColor="text-red-600"
+                    />
+                  </div>
+
+                  {/* 额外统计信息 */}
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50">
+                      <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="text-muted-foreground">{ll.execution.report.success_rate()}</span>
+                      <span className="font-semibold text-foreground">{successRate}%</span>
+                    </div>
+                    {displayReport.statistics.avg_node_duration_ms != null && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50">
+                        <span className="text-muted-foreground">{ll.execution.report.avg_duration()}</span>
+                        <span className="font-semibold text-foreground">
+                          {displayReport.statistics.avg_node_duration_ms!.toFixed(1)}ms
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 流程级错误 */}
+                  {displayReport.flow_error && (
+                    <div className="rounded-xl bg-red-50 dark:bg-red-950/50 p-4 border border-red-200/50 dark:border-red-800/50">
+                      <div className="flex items-center gap-2 mb-2 text-red-600 dark:text-red-400">
+                        <AlertCircle className="w-4 h-4" />
+                        <span className="font-medium">{ll.execution.report.flow_error()}</span>
+                      </div>
+                      <p className="text-red-600 dark:text-red-400">{displayReport.flow_error.message}</p>
+                    </div>
+                  )}
+
+                  {/* WebSocket 消息流 */}
+                  {displayReport.ws_streams && displayReport.ws_streams.length > 0 && (
+                    <div className="rounded-xl border border-border/50 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsWsStreamCollapsed(!isWsStreamCollapsed)}
+                        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          {isWsStreamCollapsed ? (
+                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          <Wifi className="w-4 h-4 text-violet-500" />
+                          <span className="text-sm font-semibold">{ll.execution.report.ws_stream_title()}</span>
+                          <Badge variant="outline" className="text-xs font-normal">{ll.execution.report.ws_connections({ count: displayReport.ws_streams.length })}</Badge>
+                        </div>
+                      </button>
+                      {!isWsStreamCollapsed && (
+                        <div className="border-t border-border/50">
+                          <WsMessageTimeline streams={displayReport.ws_streams} maxHeight="320px" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </ScrollArea>
+
+          {/* 下半部分：节点执行详情（固定高度，独立滚动） */}
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2 flex-shrink-0">
+              <BarChart3 className="w-4 h-4" />
 {ll.execution.report.node_details()}
-              </h3>
-              <div className="flex-1 min-h-0">
-                <ResizablePanel
-                  leftPanel={
-                    displayReport.node_reports.length === 0 ? (
-                      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
-                        <Inbox className="w-12 h-12" />
-                        <span>{ll.execution.report.no_nodes()}</span>
-                      </div>
-                    ) : (
-                      <ScrollArea className="h-full w-full">
-                        <div className="space-y-1 p-1">
-                          {displayReport.node_reports.map((nodeReport) => (
-                            <NodeListItem
-                              key={nodeReport.node_uuid}
-                              report={nodeReport}
-                              isSelected={selectedNodeUuid === nodeReport.node_uuid}
-                              onClick={() => setSelectedNodeUuid(nodeReport.node_uuid)}
-                            />
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )
-                  }
-                  rightPanel={
-                    displayReport.node_reports.length === 0 ? (
-                      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
-                        <Inbox className="w-12 h-12" />
-                        <span>{ll.execution.report.no_nodes()}</span>
-                      </div>
-                    ) : selectedNodeUuid ? (
-                      <ScrollArea className="h-full w-full">
-                        <div className="p-2 min-w-0">
-                          <NodeExecutionDetails
-                            report={displayReport.node_reports.find(r => r.node_uuid === selectedNodeUuid)!}
+            </h3>
+            <div className="flex-1 min-h-0">
+              <ResizablePanel
+                leftPanel={
+                  displayReport.node_reports.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
+                      <Inbox className="w-12 h-12" />
+                      <span>{ll.execution.report.no_nodes()}</span>
+                    </div>
+                  ) : (
+                    <ScrollArea className="h-full w-full">
+                      <div className="space-y-1 p-1">
+                        {displayReport.node_reports.map((nodeReport) => (
+                          <NodeListItem
+                            key={nodeReport.node_uuid}
+                            report={nodeReport}
+                            isSelected={selectedNodeUuid === nodeReport.node_uuid}
+                            onClick={() => setSelectedNodeUuid(nodeReport.node_uuid)}
                           />
-                        </div>
-                      </ScrollArea>
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-muted-foreground">
-                        {ll.execution.report.select_node_hint()}
+                        ))}
                       </div>
-                    )
-                  }
-                  defaultWidth={300}
-                  minWidth={200}
-                  maxWidth={500}
-                />
-              </div>
+                    </ScrollArea>
+                  )
+                }
+                rightPanel={
+                  displayReport.node_reports.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
+                      <Inbox className="w-12 h-12" />
+                      <span>{ll.execution.report.no_nodes()}</span>
+                    </div>
+                  ) : selectedNodeUuid ? (
+                    <ScrollArea className="h-full w-full">
+                      <div className="p-2 min-w-0">
+                        <NodeExecutionDetails
+                          report={displayReport.node_reports.find(r => r.node_uuid === selectedNodeUuid)!}
+                        />
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      {ll.execution.report.select_node_hint()}
+                    </div>
+                  )
+                }
+                defaultWidth={300}
+                minWidth={200}
+                maxWidth={500}
+              />
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
