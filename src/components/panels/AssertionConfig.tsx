@@ -21,36 +21,36 @@ import { useFlowStore } from "@/stores";
 import { getLL } from "@/i18n/i18n-lazy";
 
 /**
- * 断言操作符选项 (15种)
+ * 断言操作符选项 (15种) — 已国际化
  */
 const ASSERTION_OPERATOR_OPTIONS: { value: AssertionFormData["operator"]; label: string }[] = [
-  { value: "equal", label: "等于 (=)" },
-  { value: "not_equal", label: "不等于 (!=)" },
-  { value: "greater", label: "大于 (>)" },
-  { value: "greater_or_equal", label: "大于等于 (>=)" },
-  { value: "less", label: "小于 (<)" },
-  { value: "less_or_equal", label: "小于等于 (<=)" },
-  { value: "contains", label: "包含" },
-  { value: "not_contains", label: "不包含" },
-  { value: "starts_with", label: "以...开始" },
-  { value: "ends_with", label: "以...结束" },
-  { value: "exists", label: "存在" },
-  { value: "not_exists", label: "不存在" },
-  { value: "is_empty", label: "为空" },
-  { value: "is_not_empty", label: "不为空" },
-  { value: "matches_regex", label: "匹配正则" },
+  { value: "equal", label: getLL().panels.assertion.operators.equal() },
+  { value: "not_equal", label: getLL().panels.assertion.operators.not_equal() },
+  { value: "greater", label: getLL().panels.assertion.operators.greater() },
+  { value: "greater_or_equal", label: getLL().panels.assertion.operators.greater_or_equal() },
+  { value: "less", label: getLL().panels.assertion.operators.less() },
+  { value: "less_or_equal", label: getLL().panels.assertion.operators.less_or_equal() },
+  { value: "contains", label: getLL().panels.assertion.operators.contains() },
+  { value: "not_contains", label: getLL().panels.assertion.operators.not_contains() },
+  { value: "starts_with", label: getLL().panels.assertion.operators.starts_with() },
+  { value: "ends_with", label: getLL().panels.assertion.operators.ends_with() },
+  { value: "exists", label: getLL().panels.assertion.operators.exists() },
+  { value: "not_exists", label: getLL().panels.assertion.operators.not_exists() },
+  { value: "is_empty", label: getLL().panels.assertion.operators.is_empty() },
+  { value: "is_not_empty", label: getLL().panels.assertion.operators.is_not_empty() },
+  { value: "matches_regex", label: getLL().panels.assertion.operators.matches_regex() },
 ];
 
 /**
- * 预设配置
+ * 预设配置 — 已国际化
  */
 const ASSERTION_PRESETS = [
-  { value: "none", label: "无预设" },
-  { value: "http_success", label: "HTTP 成功响应 (2xx)" },
-  { value: "http_client_error", label: "HTTP 客户端错误 (4xx)" },
-  { value: "http_server_error", label: "HTTP 服务端错误 (5xx)" },
-  { value: "json_response", label: "JSON 响应格式" },
-  { value: "response_fast", label: "快速响应 (<1s)" },
+  { value: "none", label: getLL().panels.assertion.presets.none() },
+  { value: "http_success", label: getLL().panels.assertion.presets.http_success() },
+  { value: "http_client_error", label: getLL().panels.assertion.presets.http_client_error() },
+  { value: "http_server_error", label: getLL().panels.assertion.presets.http_server_error() },
+  { value: "json_response", label: getLL().panels.assertion.presets.json_response() },
+  { value: "response_fast", label: getLL().panels.assertion.presets.response_fast() },
 ];
 
 /**
