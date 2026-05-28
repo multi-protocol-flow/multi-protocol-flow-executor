@@ -20,6 +20,7 @@ import {
   type ConnectionFormData,
 } from '@/components/dialogs/ConnectionDialog';
 import { getLL } from '@/i18n/i18n-lazy';
+import { useFlowStore } from '@/stores';
 
 interface DbConnectConfigProps {
   /** 当前节点数据 */
@@ -128,13 +129,26 @@ function getConnectionTarget(data: DbConnectConfigType): string | null {
 }
 
 /**
+ * 从 store 中获取当前选中节点的显示名称
+ */
+function getCurrentNodeName(): string | undefined {
+  try {
+    const node = useFlowStore.getState().getSelectedNode();
+    return node?.name;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * 将 DbConnectConfigType 转换为 ConnectionDialog 的 initialData
  */
 function toConnectionInitialData(data: DbConnectConfigType): Partial<ConnectionFormData> {
-  // 生成默认名称，避免 ConnectionDialog 因 name 为空禁用保存按钮
-  const defaultName = data.driver
+  // 优先使用节点现有的显示名称，否则生成默认名称
+  const existingName = getCurrentNodeName();
+  const defaultName = existingName || (data.driver
     ? `${getDriverLabel(data.driver)}${data.host ? `@${data.host}` : ''}${data.database ? `/${data.database}` : ''}`
-    : '数据库连接';
+    : getLL().panels.dbConnect.defaultName());
   return {
     name: defaultName,
     driver: (data.driver as ConnectionFormData['driver']) || 'postgres',
@@ -268,7 +282,7 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
   }, [saveData]);
 
   /**
-   * ConnectionDialog 保存回调 — 将对话框数据合并到节点配置
+   * ConnectionDialog 保存回调 — 将对话框数据合并到节点配置并更新节点名称
    */
   const handleDialogSave = useCallback((dialogData: ConnectionFormData) => {
     const config: DbConnectConfigType = {
@@ -287,6 +301,11 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
       connect_timeout_ms: data.connect_timeout_ms,
     };
     onSave(config);
+    // 同步更新节点名称（从 dialog 传回）
+    const currentNode = useFlowStore.getState().getSelectedNode();
+    if (currentNode?.uuid && dialogData.name) {
+      useFlowStore.getState().updateNode(currentNode.uuid, { name: dialogData.name });
+    }
     // 同步重置表单
     reset(toFormData(config));
   }, [data.test_query, data.connect_timeout_ms, onSave, reset]);

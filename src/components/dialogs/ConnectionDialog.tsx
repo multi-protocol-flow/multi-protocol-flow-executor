@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { Loader2, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 import { VariableInput } from '@/components/ui/VariableInput';
 import { useFlowVariables } from '@/hooks';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /**
  * 检查是否在 Tauri 环境
@@ -116,6 +117,7 @@ function buildInitialFormData(initialData?: Partial<ConnectionFormData>): Connec
 }
 
 export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: ConnectionDialogProps) {
+  const LL = getLL();
   const [formData, setFormData] = useState<ConnectionFormData>(buildInitialFormData(initialData));
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
@@ -256,7 +258,7 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
       <DialogContent className="w-full max-w-[550px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {initialData ? '编辑数据库连接' : '配置数据库连接'}
+            {initialData ? LL.flow.db_conn_edit_title() : LL.flow.db_conn_new_title()}
           </DialogTitle>
         </DialogHeader>
 
@@ -264,29 +266,29 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
           {/* 基本信息区 */}
           <div className="space-y-4">
             <h4 className="text-sm font-medium text-foreground border-b border-border pb-1">
-              基本信息
+              {LL.flow.db_conn_basic()}
             </h4>
 
             {/* 连接名称 */}
             <div className="space-y-2">
-              <Label htmlFor="conn-name">连接名称 <span className="text-rose-500">*</span></Label>
+              <Label htmlFor="conn-name">{LL.flow.db_conn_name()} <span className="text-rose-500">*</span></Label>
               <Input
                 id="conn-name"
                 value={formData.name}
                 onChange={(e) => updateField('name', e.target.value)}
-                placeholder="例如：生产环境 MySQL"
+                placeholder={LL.flow.db_conn_name_placeholder_name()}
               />
             </div>
 
             {/* 数据库类型 */}
             <div className="space-y-2">
-              <Label htmlFor="conn-driver">数据库类型</Label>
+              <Label htmlFor="conn-driver">{LL.flow.db_conn_driver()}</Label>
               <Select
                 value={formData.driver}
                 onValueChange={(v) => handleDriverChange(v as DbDriver)}
               >
                 <SelectTrigger id="conn-driver">
-                  <SelectValue placeholder="选择数据库类型" />
+                  <SelectValue placeholder={LL.flow.db_conn_driver_placeholder()} />
                 </SelectTrigger>
                 <SelectContent>
                   {DB_DRIVERS.map((d) => (
@@ -303,69 +305,87 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
           {!isSqlite && (
             <div className="space-y-4">
               <h4 className="text-sm font-medium text-foreground border-b border-border pb-1">
-                连接参数
+                {LL.flow.db_conn_params()}
               </h4>
 
-              {/* 主机和端口 */}
+              {/* 连接字符串（对所有数据库类型可见，允许用户重置此字段） */}
+              <div className="space-y-2">
+                <Label htmlFor="conn-connection-string-non-sqlite">
+                  {LL.flow.db_conn_connection_string()}
+                </Label>
+                <VariableInput
+                  id="conn-connection-string-non-sqlite"
+                  variables={variables}
+                  nodeLabels={nodeLabels}
+                  value={formData.connection_string || ''}
+                  onValueChange={(value) => updateField('connection_string', value)}
+                  placeholder={isSqlite ? '/path/to/database.db' : 'mysql://user:pass@host:3306/db'}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {LL.flow.db_conn_connection_string_hint()}
+                </p>
+              </div>
+
+              {/* 主机和端口（SQLite 不使用） */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2 space-y-2">
-                  <Label htmlFor="conn-host">主机地址</Label>
+                  <Label htmlFor="conn-host">{LL.flow.db_conn_host()}</Label>
                   <VariableInput
                     id="conn-host"
                     variables={variables}
                     nodeLabels={nodeLabels}
                     value={formData.host || ''}
                     onValueChange={(value) => updateField('host', value)}
-                    placeholder="localhost"
+                    placeholder={LL.flow.db_conn_host_placeholder()}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="conn-port">端口</Label>
+                  <Label htmlFor="conn-port">{LL.flow.db_conn_port()}</Label>
                   <Input
                     id="conn-port"
                     type="number"
                     value={formData.port || ''}
                     onChange={(e) => updateField('port', parseInt(e.target.value) || 0)}
-                    placeholder="5432"
+                    placeholder={LL.flow.db_conn_port_placeholder()}
                   />
                 </div>
               </div>
 
               {/* 数据库名 */}
               <div className="space-y-2">
-                <Label htmlFor="conn-database">数据库名</Label>
+                <Label htmlFor="conn-database">{LL.flow.db_conn_database()}</Label>
                 <VariableInput
                   id="conn-database"
                   variables={variables}
                   nodeLabels={nodeLabels}
                   value={formData.database || ''}
                   onValueChange={(value) => updateField('database', value)}
-                  placeholder="mydb"
+                    placeholder={LL.flow.db_conn_database_placeholder()}
                 />
               </div>
 
               {/* 用户名和密码 */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="conn-username">用户名</Label>
+                  <Label htmlFor="conn-username">{LL.flow.db_conn_username()}</Label>
                   <VariableInput
                     id="conn-username"
                     variables={variables}
                     nodeLabels={nodeLabels}
                     value={formData.username || ''}
                     onValueChange={(value) => updateField('username', value)}
-                    placeholder="root"
+                    placeholder={LL.flow.db_conn_username_placeholder()}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="conn-password">密码</Label>
+                  <Label htmlFor="conn-password">{LL.flow.db_conn_password()}</Label>
                   <div className="relative">
                     <Input
                       id="conn-password"
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password || ''}
                       onChange={(e) => updateField('password', e.target.value)}
-                      placeholder="••••••••"
+                      placeholder={LL.flow.db_conn_password_placeholder()}
                       className="pr-10"
                     />
                     <Button
@@ -387,15 +407,15 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
 
               {/* 环境变量引用 */}
               <div className="space-y-2">
-                <Label htmlFor="conn-password-env">密码环境变量名（可选）</Label>
+                <Label htmlFor="conn-password-env">{LL.flow.db_conn_password_env()}</Label>
                 <Input
                   id="conn-password-env"
                   value={formData.password_from_env || ''}
                   onChange={(e) => updateField('password_from_env', e.target.value)}
-                  placeholder="DB_PASSWORD（优先于密码字段）"
+                  placeholder={LL.flow.db_conn_password_env_placeholder()}
                 />
                 <p className="text-xs text-muted-foreground">
-                  填写后将从环境变量读取密码，优先于上方密码字段
+                  {LL.flow.db_conn_password_env_hint()}
                 </p>
               </div>
             </div>
@@ -405,20 +425,20 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
               {isSqlite && (
                 <div className="space-y-4">
                   <h4 className="text-sm font-medium text-foreground border-b border-border pb-1">
-                    连接参数
+                    {LL.flow.db_conn_params()}
                   </h4>
                   <div className="space-y-2">
-                    <Label htmlFor="conn-connection-string">数据库文件路径</Label>
+                    <Label htmlFor="conn-connection-string">{LL.flow.db_conn_sqlite_path()}</Label>
                     <VariableInput
                       id="conn-connection-string"
                       variables={variables}
                       nodeLabels={nodeLabels}
                       value={formData.connection_string || ''}
                       onValueChange={(value) => updateField('connection_string', value)}
-                      placeholder="/path/to/database.db"
+                      placeholder={LL.flow.db_conn_sqlite_path_placeholder()}
                     />
                     <p className="text-xs text-muted-foreground">
-                      SQLite 数据库文件的绝对路径或相对路径
+                      {LL.flow.db_conn_sqlite_hint()}
                     </p>
                   </div>
                 </div>
@@ -427,11 +447,11 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
           {/* 连接池配置 */}
           <div className="space-y-4">
             <h4 className="text-sm font-medium text-foreground border-b border-border pb-1">
-              连接池配置
+              {LL.flow.db_conn_pool()}
             </h4>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="conn-min-conn">最小连接数</Label>
+                <Label htmlFor="conn-min-conn">{LL.flow.db_conn_min_conn()}</Label>
                 <Input
                   id="conn-min-conn"
                   type="number"
@@ -441,7 +461,7 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="conn-max-conn">最大连接数</Label>
+                <Label htmlFor="conn-max-conn">{LL.flow.db_conn_max_conn()}</Label>
                 <Input
                   id="conn-max-conn"
                   type="number"
@@ -464,13 +484,13 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
               {testResult === 'success' ? (
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-5 h-5" />
-                  <span>连接测试成功</span>
+                  <span>{LL.flow.db_conn_test_success()}</span>
                 </div>
               ) : (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <XCircle className="w-5 h-5" />
-                    <span>连接测试失败</span>
+                    <span>{LL.flow.db_conn_test_fail()}</span>
                   </div>
                   {testError && (
                     <div className="text-sm bg-red-100 dark:bg-red-900/50 rounded p-2 font-mono break-all">
@@ -486,13 +506,13 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={handleTest} disabled={isTesting}>
             {isTesting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            测试连接
+            {LL.flow.db_conn_test_btn()}
           </Button>
           <Button variant="outline" onClick={handleClose}>
-            取消
+            {LL.common.CANCEL()}
           </Button>
           <Button onClick={handleSave} disabled={!formData.name.trim()}>
-            保存
+            {LL.flow.db_conn_save()}
           </Button>
         </DialogFooter>
       </DialogContent>
