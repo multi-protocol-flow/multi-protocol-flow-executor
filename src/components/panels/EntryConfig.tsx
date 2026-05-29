@@ -630,7 +630,12 @@ interface HookConfigProps {
  * 独立于 react-hook-form 管理，通过 onHooksChange 直接同步到父组件
  */
 function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
-  const localHooks = hooks || [];
+  const [localHooks, setLocalHooks] = useState<FlowHook[]>(hooks || []);
+
+  // 同步外部 hooks 变更（节点切换、undo/redo 时从 props 同步）
+  useEffect(() => {
+    setLocalHooks(hooks || []);
+  }, [hooks]);
 
   /** 触发条件选项 */
   const triggerOptions = [
@@ -656,18 +661,22 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
       trigger: 'on_complete',
       action: { type: 'notify', title_template: '', message_template: '' },
     };
-    onHooksChange([...localHooks, newHook]);
+    const updated = [...localHooks, newHook];
+    setLocalHooks(updated);
+    onHooksChange(updated);
   }, [localHooks, onHooksChange]);
 
   /** 删除钩子 */
   const handleRemoveHook = useCallback((index: number) => {
     const updated = localHooks.filter((_, i) => i !== index);
+    setLocalHooks(updated);
     onHooksChange(updated);
   }, [localHooks, onHooksChange]);
 
   /** 更新钩子字段 */
   const handleUpdateHook = useCallback((index: number, updates: Partial<FlowHook>) => {
     const updated = localHooks.map((h, i) => (i === index ? { ...h, ...updates } : h));
+    setLocalHooks(updated);
     onHooksChange(updated);
   }, [localHooks, onHooksChange]);
 
@@ -676,6 +685,7 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
     const updated = localHooks.map((h, i) =>
       i === index ? { ...h, action: { ...h.action, ...actionUpdates } as FlowHook['action'] } : h
     );
+    setLocalHooks(updated);
     onHooksChange(updated);
   }, [localHooks, onHooksChange]);
 
@@ -695,6 +705,7 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
         break;
     }
     const updated = localHooks.map((h, i) => (i === index ? { ...h, action: newAction } : h));
+    setLocalHooks(updated);
     onHooksChange(updated);
   }, [localHooks, onHooksChange]);
 
@@ -814,7 +825,7 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
                   <Textarea
                     value={hook.action.body_template || ''}
                     onChange={(e) => handleUpdateAction(index, { body_template: e.target.value || undefined })}
-                    placeholder={'{getLL().panels.entryNode.hookBodyPlaceholder()}'}
+                    placeholder={getLL().panels.entryNode.hookBodyPlaceholder()}
                     className="text-xs font-mono min-h-[48px] resize-y"
                     rows={2}
                   />
@@ -836,13 +847,13 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
                   <Input
                     value={hook.action.title_template}
                     onChange={(e) => handleUpdateAction(index, { title_template: e.target.value })}
-                    placeholder="{getLL().panels.entryNode.hookTitlePlaceholder()}"
+                    placeholder={getLL().panels.entryNode.hookTitlePlaceholder()}
                     className="h-7 text-xs"
                   />
                   <Input
                     value={hook.action.message_template}
                     onChange={(e) => handleUpdateAction(index, { message_template: e.target.value })}
-                    placeholder="{getLL().panels.entryNode.hookMessagePlaceholder()}"
+                    placeholder={getLL().panels.entryNode.hookMessagePlaceholder()}
                     className="h-7 text-xs"
                   />
                 </div>
