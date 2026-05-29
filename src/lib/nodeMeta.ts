@@ -52,6 +52,7 @@ import {
   Copy,
   FolderPlus,
   Shield,
+  Square,
 } from 'lucide-react';
 import { getCachedDisplayName } from '@/lib/NodeRegistry';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -180,6 +181,7 @@ export const ICON_MAP: Record<string, { icon: LucideIcon; iconBg: string; labelC
   // 工具
   variable_extractor: { icon: Braces, iconBg: 'bg-amber-500', labelColor: 'text-amber-600', badge: 'bg-amber-100 text-amber-700' },
   proxy: { icon: Shield, iconBg: 'bg-lime-500', labelColor: 'text-lime-600', badge: 'bg-lime-100 text-lime-700' },
+  end: { icon: Square, iconBg: 'bg-purple-500', labelColor: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' },
 };
 
 /** 静态显示名称映射（通过 getLL() 获取当前 locale 的翻译） */
@@ -284,6 +286,7 @@ function getStaticDisplayNames(): Record<string, string> {
     // 工具
     variable_extractor: LL.nodes.variable_extractor(),
     proxy: LL.nodes.proxy(),
+    end: LL.nodes.end(),
   };
 }
 
