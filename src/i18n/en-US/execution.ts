@@ -466,7 +466,6 @@ const en_US_execution = {
     proto_files: 'Proto Files',
     timeout_label: 'Timeout',
     services_discovered: 'Discovered {count} service(s)',
-    end_node_reached: 'Flow has reached the end node',
   },
   // ===== General Toast Messages =====
   toast: {

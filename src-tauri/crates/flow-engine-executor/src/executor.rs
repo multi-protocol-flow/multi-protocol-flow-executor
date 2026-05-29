@@ -340,10 +340,14 @@ impl FlowExecutor {
                 flow_report: None,
             };
         }
-        let flow_warning: Option<String> = if validation.warnings.is_empty() {
-            None
-        } else {
-            Some(validation.warnings.join("; "))
+        // 过滤 flow_warning：排除已由前端通过 end_node_reached i18n 处理的"无 End 节点"提示
+        let flow_warning: Option<String> = {
+            let has_end_nodes = flow.nodes.iter().any(|n| n.node_type == node_types::END);
+            let warnings: Vec<String> = validation.warnings.iter()
+                .filter(|w| has_end_nodes || !w.contains("End"))
+                .cloned()
+                .collect();
+            if warnings.is_empty() { None } else { Some(warnings.join("; ")) }
         };
 
         // 查找开始节点

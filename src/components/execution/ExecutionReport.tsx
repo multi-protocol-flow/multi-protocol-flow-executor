@@ -280,8 +280,14 @@ export function ExecutionReport() {
                     </div>
                   )}
 
-                  {/* End 节点状态 */}
-                  {displayReport.end_node_reached !== undefined ? (
+                  {/* End 节点状态 / 流程级警告 */}
+                  {/* 当有 flow_warning（如"无 End 节点"）时，只显示 flow_warning 避免重复提示 */}
+                  {displayReport.flow_warning ? (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      <span>{displayReport.flow_warning}</span>
+                    </div>
+                  ) : displayReport.end_node_reached !== undefined ? (
                     <div className={cn(
                       'flex items-center gap-2 px-3 py-2 rounded-md text-sm',
                       displayReport.end_node_reached
@@ -295,14 +301,6 @@ export function ExecutionReport() {
                     <div className="flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
                       <span className="text-lg">🟡</span>
                       <span>{ll.execution.report.no_end_node_hint()}</span>
-                    </div>
-                  )}
-
-                  {/* 流程级警告 */}
-                  {displayReport.flow_warning && (
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
-                      <AlertTriangle className="w-4 h-4" />
-                      <span>{displayReport.flow_warning}</span>
                     </div>
                   )}
 

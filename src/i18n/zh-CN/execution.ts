@@ -467,7 +467,6 @@ const zh_CN_execution: BaseTranslation = {
     proto_files: 'Proto 文件',
     timeout_label: '超时',
     services_discovered: '发现 {count} 个服务',
-    end_node_reached: '流程已到达结束节点',
   },
   // ===== 通用 Toast 消息 =====
   toast: {
