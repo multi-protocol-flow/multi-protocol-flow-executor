@@ -11,8 +11,8 @@
 ```
 flow-engine-core/src/
 ├── lib.rs                 # 模块导出
-├── node.rs                # Node/NodeType/Port 定义 (15 variants)
-├── node_config.rs         # NodeData 配置枚举 (29 种节点 + Plugin 兜底, ~1,771 行)
+├── node.rs                # Node/NodeType/Port 定义 (16 variants)
+├── node_config.rs         # NodeData 配置枚举 (30 种节点 + Plugin 兜底, ~1,771 行)
 ├── node_types.rs          # 辅助节点类型
 ├── flow.rs                # Flow 结构体
 ├── connection.rs          # Connection 定义

@@ -1,6 +1,6 @@
 # TypeScript 类型定义
 
-**生成时间:** 2026-04-23
+**生成时间:** 2026-05-29
 
 ## 概述
 
@@ -11,7 +11,7 @@
 ```
 src/types/
 ├── index.ts          # 统一导出入口
-├── node.ts           # 节点类型 + 配置 (判别联合，29 种节点)
+├── node.ts           # 节点类型 + 配置 (判别联合，30 种节点)
 ├── nodeRegistry.ts   # 后端节点元数据 (PortDef, NodeMetadata)
 ├── flow.ts           # 流程结构
 ├── connection.ts     # 节点连接
@@ -92,7 +92,8 @@ type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | As
   | ImapConnectConfig | ImapFetchConfig | ImapSearchConfig | ImapFolderConfig | ImapIdleConfig
   | KafkaProduceConfig | KafkaConsumeConfig | KafkaBatchConsumeConfig | KafkaAdminConfig
   | SmtpConnectConfig | SmtpSendConfig | SmtpCloseConfig
-  | SseConnectConfig | SseListenConfig | SseCloseConfig;
+  | SseConnectConfig | SseListenConfig | SseCloseConfig
+  | EndConfig;
 ```
 
 ### 可选字段
@@ -101,11 +102,12 @@ type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | As
 - 必须与 Rust 端 `Option<T>` 对应
 - 默认值在 Rust 端实现，前端仅声明类型
 
-## 节点类型 (29 种)
+## 节点类型 (30 种)
 
 | 类型 | 配置类型 | 用途 |
 |------|----------|------|
 | `entry` | EntryConfig | 流程入口 |
+| `end` | EndConfig | 流程终点 |
 | `http` | HttpConfig | HTTP 请求 |
 | `conditional` | ConditionalConfig | 条件分支 |
 | `script` | ScriptConfig | JavaScript 脚本 |
@@ -167,4 +169,4 @@ type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | As
 | 位置 | 内容 | 优先级 |
 |------|------|--------|
 | 无 | 前后端类型已完全对齐 | — |
-| `node.ts` | 36 种节点的 NodeData 判别联合过于庞大，考虑拆分 | 低 |
+| `node.ts` | 37 种节点的 NodeData 判别联合过于庞大，考虑拆分 | 低 |

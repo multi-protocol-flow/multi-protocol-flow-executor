@@ -12,8 +12,9 @@
 flow-engine-executor/src/
 ├── lib.rs                  # 模块导出
 ├── executor.rs             # FlowExecutor 主执行循环 (~1,702 行)
-├── default_registry.rs     # 默认节点注册表，注册 29 个插件 (153 行)
+├── default_registry.rs     # 默认节点注册表，注册 30 个插件 (153 行)
 ├── plugin_entry.rs         # Entry 节点 NodePlugin (60 行)
+├── plugin_end.rs           # End 节点 NodePlugin (50 行)
 ├── plugin_conditional.rs   # 条件分支 NodePlugin (84 行)
 ├── entry_executor.rs       # 入口节点执行器
 ├── conditional_executor.rs # 条件分支执行器 (~2,100 行)
@@ -61,7 +62,7 @@ flow-engine-executor/src/
 
 ### 插件架构
 - **NodePlugin trait** (core): 每种节点类型实现一个 Plugin
-- **default_registry.rs**: 注册全部 29 个插件 (entry, conditional, http, ws×3, db×6, script, assertion, grpc×3, mcp×5, tcp×3, udp×4)
+- **default_registry.rs**: 注册全部 30 个插件 (entry, end, conditional, http, ws×3, db×6, script, assertion, grpc×3, mcp×5, tcp×3, udp×4)
 - **NodeRegistry**: 替代旧 match 分发模式，通过 `registry.get_executor(node_type)` 查找执行器
 
 ### FlowExecutor (executor.rs)

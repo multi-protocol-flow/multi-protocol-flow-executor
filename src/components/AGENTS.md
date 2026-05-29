@@ -1,6 +1,6 @@
 # 前端组件
 
-**生成时间:** 2026-04-23
+**生成时间:** 2026-05-29
 
 ## OVERVIEW
 
@@ -15,7 +15,7 @@ components/
 │   ├── CanvasToolbar.tsx # 工具栏
 │   ├── DebugToolbar.tsx  # 调试工具栏 (继续/单步/跳过/结束)
 │   ├── BreakpointMarker.tsx # 断点标记
-│   ├── nodes/            # 36 种节点: Entry, Http, Conditional, Script, Assertion, Ws*, Db*, Grpc*, Mcp*, Tcp*, Udp*, Mqtt*, Amqp*, Graphql*, Imap*, Kafka*, Smtp*, Sse* + DynamicPluginNode
+│   ├── nodes/            # 37 种节点: Entry, End, Http, Conditional, Script, Assertion, Ws*, Db*, Grpc*, Mcp*, Tcp*, Udp*, Mqtt*, Amqp*, Graphql*, Imap*, Kafka*, Smtp*, Sse* + DynamicPluginNode
 │   ├── edges/CustomEdge.tsx
 │   └── utils.ts          # Flow ↔ ReactFlow 转换
 ├── panels/               # 节点配置面板 (~22 文件)
@@ -109,11 +109,12 @@ components/
 - **节点注册**: `FlowCanvas.tsx` 中 `nodeTypes` 对象
 - **断点**: 通过 `useFlowStore().toggleBreakpoint()` 管理，`BreakpointMarker` 组件渲染
 
-## 节点类型 (29 种)
+## 节点类型 (30 种)
 
 | 类型 | 组件 | 配置面板 | 颜色 |
 |------|------|----------|------|
 | Entry | EntryNode.tsx | EntryConfig.tsx | 绿色 |
+| End | EndNode.tsx | EndConfigPanel.tsx | 紫色 |
 | Http | HttpNode.tsx | HttpConfig.tsx | 蓝色 |
 | Conditional | ConditionalNode.tsx | ConditionalConfig.tsx | 橙色 |
 | Script | ScriptNode.tsx | ScriptConfig.tsx | 紫色 |

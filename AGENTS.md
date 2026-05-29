@@ -1,7 +1,7 @@
 # 项目知识库
 
-**生成时间:** 2026-05-21
-**Commit:** dd3608d
+**生成时间:** 2026-05-29
+**Commit:** d28dca2
 **Branch:** master
 
 ## 概述
@@ -19,7 +19,7 @@ multi-protocol-flow-executor/
 │   ├── components/         # UI 组件 (~111 文件)
 │   ├── stores/             # Zustand 状态管理 (10 stores)
 │   ├── services/           # Tauri IPC 服务 + Mock + Storage
-│   ├── types/              # TypeScript 类型 (36 种节点)
+│   ├── types/              # TypeScript 类型 (37 种节点)
 │   ├── hooks/              # 自定义 React Hooks (3 个)
 │   ├── layouts/            # 布局组件 (MainLayout)
 │   ├── lib/                # 工具函数 + 注册表 (7 个模块)
@@ -27,7 +27,7 @@ multi-protocol-flow-executor/
 │   ├── test-utils/         # 测试工厂函数
 │   └── __tests__/          # Vitest 单元测试 (~76 文件)
 ├── src-tauri/              # Rust 后端 (Workspace)
-│   ├── src/                # Tauri 适配层 + IPC 命令 (49 命令)
+│   ├── src/                # Tauri 适配层 + IPC 命令 (50 命令)
 │   │   ├── main.rs         # 统一入口：无参数→GUI，有参数→CLI
 │   │   ├── cli.rs          # CLI 子命令定义 (run/validate/debug/stress/flow/report)
 │   │   └── cli/            # CLI 子命令实现
@@ -44,7 +44,7 @@ multi-protocol-flow-executor/
 │   │   ├── flow-engine-mcp/        # MCP 客户端 + 5 个执行器
 │   │   ├── flow-engine-tcp/        # TCP/UDP 客户端 + 3 TCP + 4 UDP 执行器
 │   │   ├── flow-engine-mqtt/        # MQTT 5.0 客户端 (rumqttc-next) + 7 个执行器
-│   │   ├── flow-engine-executor/   # 主执行器、调试模式、压力测试、插件注册
+│   │   ├── flow-engine-executor/   # 主执行器、调试模式、压力测试、插件注册 (30 个插件)
 │   │   ├── flow-engine-amqp/       # AMQP 0-9-1 + 1.0 客户端 + 2 个子模块
 │   │   ├── flow-engine-graphql/    # GraphQL 客户端 (支持内省/查询/订阅)
 │   │   ├── flow-engine-imap/       # IMAP 客户端 (支持收发/搜索/文件夹管理)
@@ -76,12 +76,13 @@ Layer 4:         app (src-tauri/)                                    (→ flow-e
 
 | 任务 | 位置 |
 |------|------|
-| 添加新节点类型 | `src-tauri/crates/flow-engine-core/src/` (类型+插件) + `src-tauri/crates/flow-engine-executor/src/` (执行器) + `src/types/node.ts` + `src/components/canvas/nodes/` + `src/lib/NodeRegistry.ts` |
+| 添加新节点类型 | `src-tauri/crates/flow-engine-core/src/` (类型+插件) + `src-tauri/crates/flow-engine-executor/src/` (执行器+EndPlugin) + `src/types/node.ts` + `src/components/canvas/nodes/` + `src/lib/NodeRegistry.ts` |
 | 修改执行逻辑 | `src-tauri/crates/flow-engine-executor/src/executor.rs` |
 | 添加前端组件 | `src/components/` (~111 组件) |
 | 修改状态管理 | `src/stores/` (10 stores) |
 | HTTP 请求节点 | `src-tauri/crates/flow-engine-http/` (详见该 crate 的 AGENTS.md) |
 | 条件分支节点 | `src-tauri/crates/flow-engine-executor/src/conditional_executor.rs` |
+| End 节点 | `src-tauri/crates/flow-engine-core/src/` (类型) + `src-tauri/crates/flow-engine-executor/src/plugin_end.rs` (EndPlugin) + `src/components/canvas/nodes/EndNode.tsx` (组件) |
 | 脚本节点 | `src-tauri/crates/flow-engine-script/` (详见该 crate 的 AGENTS.md) |
 | 断言节点 | `src-tauri/crates/flow-engine-assertion/` (详见该 crate 的 AGENTS.md) |
 | WebSocket 节点 | `src-tauri/crates/flow-engine-ws/` (详见该 crate 的 AGENTS.md) |
@@ -102,7 +103,7 @@ Layer 4:         app (src-tauri/)                                    (→ flow-e
 | 前端注册表 | `src/lib/NodeRegistry.ts` + `configPanelRegistry.ts` + `viewerRegistry.tsx` |
 | 调试模式 | `src-tauri/crates/flow-engine-executor/src/debug/` + `src/stores/debug.ts` |
 | 压力测试 | `src-tauri/crates/flow-engine-executor/src/stress_test/` + `src/stores/stressTest.ts` |
-| IPC 命令 | `src-tauri/src/tauri_commands.rs` (49 命令) |
+| IPC 命令 | `src-tauri/src/tauri_commands.rs` (50 命令) |
 | 加密模块 | `src-tauri/crates/flow-engine-crypto/` |
 | 节点类型定义 | `src-tauri/crates/flow-engine-core/src/node.rs` + `node_config.rs` |
 | 执行上下文/变量 | `src-tauri/crates/flow-engine-core/src/context.rs` + `variable.rs` |
@@ -352,7 +353,7 @@ npm run tauri dev    # 开发模式
 npm run tauri build  # 构建安装包
 ```
 
-## IPC 命令 (49)
+## IPC 命令 (50)
 
 | 分类 | 命令 |
 |------|------|
