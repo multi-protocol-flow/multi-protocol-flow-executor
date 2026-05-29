@@ -248,6 +248,14 @@ pub struct FlowExecutionReport {
     /// Flow 快照（执行时的流程完整副本）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flow_snapshot: Option<crate::flow::Flow>,
+
+    /// 结束节点到达状态：None=无End节点, Some(true)=已到达, Some(false)=未到达
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_node_reached: Option<bool>,
+
+    /// 流程级警告信息（如缺少 End 节点）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flow_warning: Option<String>,
 }
 
 #[cfg(test)]
@@ -442,6 +450,8 @@ mod tests {
             skipped_nodes: vec![],
             ws_streams: vec![],
             flow_snapshot: None,
+            end_node_reached: None,
+            flow_warning: None,
         };
 
         let json = serde_json::to_string(&report).expect("序列化失败");
@@ -475,6 +485,8 @@ mod tests {
             skipped_nodes: vec![],
             ws_streams: vec![ws_stream],
             flow_snapshot: None,
+            end_node_reached: None,
+            flow_warning: None,
         };
 
         let json = serde_json::to_string(&report).expect("序列化失败");
@@ -536,6 +548,8 @@ mod tests {
             skipped_nodes: vec![],
             ws_streams: vec![],
             flow_snapshot: Some(flow.clone()),
+            end_node_reached: None,
+            flow_warning: None,
         };
 
         let json = serde_json::to_string(&report).expect("序列化失败");
@@ -604,6 +618,8 @@ mod tests {
             skipped_nodes: vec![],
             ws_streams: vec![],
             flow_snapshot: None,
+            end_node_reached: None,
+            flow_warning: None,
         };
 
         let json = serde_json::to_string(&report).expect("序列化失败");

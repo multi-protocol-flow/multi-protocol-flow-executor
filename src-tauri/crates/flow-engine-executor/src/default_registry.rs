@@ -97,6 +97,7 @@ use flow_engine_core::registry::NodeRegistry;
 /// | IMAP | ImapFolderDeletePlugin | `imap_folder_delete` |
 /// | IMAP | ImapIdlePlugin | `imap_idle` |
 /// | IMAP | ImapClosePlugin | `imap_close` |
+/// | Tools | EndPlugin | `end` |
 /// | Utility | VariableExtractorPlugin | `variable_extractor` |
 /// | Utility | ProxyPlugin | `proxy` |
 pub fn default_registry() -> NodeRegistry {
@@ -160,6 +161,9 @@ pub fn default_registry() -> NodeRegistry {
     // IMAP (flow-engine-imap) — 批量注册 13 个插件
     flow_engine_imap::plugin::ImapPluginGroup::register_all(&mut registry);
 
+    // End (flow-engine-executor 内置)
+    registry.register(std::sync::Arc::new(crate::plugin_end::EndPlugin));
+
     // Variable Extractor (flow-engine-executor 内置)
     registry.register(std::sync::Arc::new(
         crate::plugin_variable_extractor::VariableExtractorPlugin,
@@ -178,10 +182,10 @@ mod tests {
     #[test]
     fn test_default_registry_has_18_plugins() {
         let registry = default_registry();
-        assert_eq!(registry.len(), 87);
+        assert_eq!(registry.len(), 88);
 
         let metadata = registry.all_metadata();
-        assert_eq!(metadata.len(), 87);
+        assert_eq!(metadata.len(), 88);
 
         // 验证每个 type_id 都已注册
         let type_ids: Vec<&str> = metadata.iter().map(|m| m.type_id.as_str()).collect();
@@ -271,6 +275,7 @@ mod tests {
             "amqp10_accept",
             "amqp10_reject",
             "amqp10_disconnect",
+            "end",
             "variable_extractor",
             "proxy",
         ];

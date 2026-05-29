@@ -32,6 +32,7 @@ const en_US_nodes = {
   script: 'Script',
   assertion: 'Assertion',
   end: 'End',
+  end_config_hint: 'This node requires no configuration. It marks the end of the flow.',
   ws_connect: 'WS-Connect',
   ws_send_collect: 'WS-Send/Collect',
   ws_close: 'WS-Close',

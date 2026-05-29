@@ -13,6 +13,7 @@ import {
   Timer,
   Activity,
   AlertCircle,
+  AlertTriangle,
   Maximize2,
   Minimize2,
   Inbox,
@@ -276,6 +277,32 @@ export function ExecutionReport() {
                         <span className="font-medium">{ll.execution.report.flow_error()}</span>
                       </div>
                       <p className="text-red-600 dark:text-red-400">{displayReport.flow_error.message}</p>
+                    </div>
+                  )}
+
+                  {/* End 节点状态 */}
+                  {displayReport.end_node_reached !== undefined ? (
+                    <div className={cn(
+                      'flex items-center gap-2 px-3 py-2 rounded-md text-sm',
+                      displayReport.end_node_reached
+                        ? 'bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400 border border-green-200 dark:border-green-800'
+                        : 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400 border border-red-200 dark:border-red-800'
+                    )}>
+                      <span className="text-lg">{displayReport.end_node_reached ? '🟢' : '🔴'}</span>
+                      <span>{displayReport.end_node_reached ? ll.execution.report.end_node_reached() : ll.execution.report.end_node_not_reached()}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
+                      <span className="text-lg">🟡</span>
+                      <span>{ll.execution.report.no_end_node_hint()}</span>
+                    </div>
+                  )}
+
+                  {/* 流程级警告 */}
+                  {displayReport.flow_warning && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-yellow-50 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>{displayReport.flow_warning}</span>
                     </div>
                   )}
 

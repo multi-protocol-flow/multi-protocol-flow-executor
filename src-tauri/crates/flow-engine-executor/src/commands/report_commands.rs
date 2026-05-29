@@ -111,6 +111,8 @@ mod tests {
             skipped_nodes: vec![],
             ws_streams: vec![],
             flow_snapshot: None,
+            end_node_reached: None,
+            flow_warning: None,
         }
     }
 

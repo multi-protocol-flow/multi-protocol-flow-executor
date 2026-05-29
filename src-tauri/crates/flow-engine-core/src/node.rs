@@ -8,6 +8,9 @@ use crate::node_config::NodeData;
 pub enum NodeType {
     /// 入口节点
     Entry,
+    /// 结束节点
+    #[serde(rename = "end")]
+    End,
     /// HTTP 请求节点
     Http,
     /// 条件分支节点

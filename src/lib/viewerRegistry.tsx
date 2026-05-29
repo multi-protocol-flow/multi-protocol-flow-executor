@@ -4,6 +4,7 @@
  */
 import type { ComponentType } from 'react';
 import type { NodeExecutionReport } from '@/types';
+import { getLL } from '@/i18n/i18n-lazy';
 import { HttpNodeViewer } from '@/components/execution/viewers/HttpNodeViewer';
 import { WsConnectViewer } from '@/components/execution/viewers/WsConnectViewer';
 import { WsSendCollectViewer } from '@/components/execution/viewers/WsSendCollectViewer';
@@ -25,11 +26,27 @@ interface ViewerProps {
   report: NodeExecutionReport;
 }
 
+/** End 节点查看器 — 显示流程结束信息 */
+function EndNodeViewer({ report }: ViewerProps) {
+  const ll = getLL();
+  return (
+    <div className="p-4 text-center">
+      <div className="text-green-600 text-lg font-semibold mb-2">
+        {ll.execution.report.end_node_reached()}
+      </div>
+      <p className="text-sm text-muted-foreground">
+        {report.node_name}
+      </p>
+    </div>
+  );
+}
+
 /**
  * 节点类型 → 专用 Viewer 组件映射
  * 未注册的类型将使用 GenericViewer 兜底
  */
 export const viewerRegistry: Record<string, ComponentType<ViewerProps>> = {
+  end: EndNodeViewer,
   http: HttpNodeViewer,
   ws_connect: WsConnectViewer,
   ws_send_collect: WsSendCollectViewer,

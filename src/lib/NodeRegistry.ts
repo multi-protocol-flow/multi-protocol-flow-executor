@@ -233,12 +233,13 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   db_rollback: 4,
   db_close: 5,
 
-  // 工具: 条件判断 → 脚本 → 断言 → 变量提取 → 代理
+  // 工具: 条件判断 → 脚本 → 断言 → 变量提取 → 代理 → 结束
   conditional: 0,
   script: 1,
   assertion: 2,
   variable_extractor: 3,
   proxy: 4,
+  end: 5,
 };
 
 /**
@@ -290,6 +291,7 @@ export function getBadgeClassForType(typeId: string): string {
     kafka_close: 'bg-rose-100 text-rose-700',
     variable_extractor: 'bg-amber-100 text-amber-700',
     proxy: 'bg-lime-100 text-lime-700',
+    end: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',
     tcp_connect: 'bg-emerald-100 text-emerald-700',
     tcp_send: 'bg-emerald-100 text-emerald-700',
     tcp_receive: 'bg-emerald-100 text-emerald-700',

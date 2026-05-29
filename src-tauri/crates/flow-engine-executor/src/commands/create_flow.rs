@@ -30,8 +30,19 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
         has_breakpoint: None,
     };
 
+    // 创建结束节点
+    let end_node = Node {
+        uuid: format!("end-{}", flow_id),
+        node_type: "end".to_string(),
+        name: "结束".to_string(),
+        position: NodePosition { x: 400.0, y: 0.0 },
+        data: NodeData::end(),
+        ports: None,
+        has_breakpoint: None,
+    };
+
     // 创建流程对象
-    let flow = Flow { uuid: flow_id.clone(), name: input.name, nodes: vec![start_node], connections: vec![], initial_variables: None, environments: vec![], active_environment: None, hooks: None };
+    let flow = Flow { uuid: flow_id.clone(), name: input.name, nodes: vec![start_node, end_node], connections: vec![], initial_variables: None, environments: vec![], active_environment: None, hooks: None };
 
     CreateFlowCommandOutput { flow }
 }
@@ -62,8 +73,8 @@ mod tests {
         };
         let output = create_flow(input);
 
-        // 应该有一个节点
-        assert_eq!(output.flow.nodes.len(), 1);
+        // 应该有两个节点：入口和结束
+        assert_eq!(output.flow.nodes.len(), 2);
 
         let start_node = &output.flow.nodes[0];
         assert_eq!(start_node.node_type, "entry");
@@ -72,6 +83,14 @@ mod tests {
         assert_eq!(start_node.position.y, 0.0);
         assert!(start_node.ports.is_none());
         assert!(start_node.has_breakpoint.is_none());
+
+        let end_node = &output.flow.nodes[1];
+        assert_eq!(end_node.node_type, "end");
+        assert_eq!(end_node.name, "结束");
+        assert_eq!(end_node.position.x, 400.0);
+        assert_eq!(end_node.position.y, 0.0);
+        assert!(end_node.ports.is_none());
+        assert!(end_node.has_breakpoint.is_none());
     }
 
     /// 测试流程 UUID 格式有效性
@@ -120,7 +139,7 @@ mod tests {
 
         assert_eq!(output.flow.name, "");
         assert!(!output.flow.uuid.is_empty());
-        assert_eq!(output.flow.nodes.len(), 1);
+        assert_eq!(output.flow.nodes.len(), 2);
     }
 
     /// 测试 Unicode 名称流程创建
@@ -133,7 +152,7 @@ mod tests {
 
         assert_eq!(output.flow.name, "测试流程🚀Тестαβγ");
         assert!(!output.flow.uuid.is_empty());
-        assert_eq!(output.flow.nodes.len(), 1);
+        assert_eq!(output.flow.nodes.len(), 2);
     }
 
     /// 测试多次调用生成不同 UUID
@@ -171,11 +190,12 @@ mod tests {
         assert!(json.contains(&output.flow.uuid));
         assert!(json.contains("序列化测试"));
         assert!(json.contains("start-"));
+        assert!(json.contains("end-"));
 
         // 反序列化验证
         let deserialized: flow_engine_core::flow::Flow = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.uuid, output.flow.uuid);
         assert_eq!(deserialized.name, "序列化测试");
-        assert_eq!(deserialized.nodes.len(), 1);
+        assert_eq!(deserialized.nodes.len(), 2);
     }
 }

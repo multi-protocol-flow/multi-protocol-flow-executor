@@ -32,6 +32,7 @@ const zh_CN_nodes = {
   script: '脚本',
   assertion: '断言',
   end: '终止',
+  end_config_hint: '此节点无需配置，仅用于标记流程终点。',
   ws_connect: 'WS-连接',
   ws_send_collect: 'WS-发送采集',
   ws_close: 'WS-关闭',

@@ -259,6 +259,20 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
     flow_engine::commands::delete_node(input, flow)
 }
 
+/// 验证流程
+///
+/// 检查流程结构是否正确，返回验证结果（valid/errors/warnings）。
+#[tauri::command]
+pub fn validate_flow(flow: Flow) -> serde_json::Value {
+    let validator = flow_engine::validator::FlowValidator::new();
+    let result = validator.validate(&flow);
+    serde_json::json!({
+        "valid": result.valid,
+        "errors": result.errors,
+        "warnings": result.warnings,
+    })
+}
+
 // ============================================================================
 // 报告存储命令
 // ============================================================================

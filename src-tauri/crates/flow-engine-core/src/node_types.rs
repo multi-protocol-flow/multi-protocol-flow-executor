@@ -7,6 +7,8 @@ pub const ENTRY: &str = "entry";
 pub const HTTP: &str = "http";
 /// 条件分支节点
 pub const CONDITIONAL: &str = "conditional";
+/// 结束节点
+pub const END: &str = "end";
 /// WebSocket 连接节点
 pub const WS_CONNECT: &str = "ws_connect";
 /// WebSocket 发送采集节点

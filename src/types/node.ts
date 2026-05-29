@@ -38,6 +38,7 @@ import type {
  */
 export type NodeType =
   | 'entry'
+  | 'end'
   | 'http'
   | 'conditional'
   | 'ws_connect'
@@ -261,6 +262,13 @@ export interface EntryConfig {
   dataset_encoding?: string;
   /** 流程钩子列表（入口节点配置中可编辑） */
   hooks?: FlowHook[];
+}
+
+/**
+ * End 节点配置
+ */
+export interface EndConfig {
+  type: 'end';
 }
 
 export interface HttpConfig {
@@ -2298,6 +2306,7 @@ export interface ScriptNodeOutput {
  */
 export type NodeData =
   | EntryConfig
+  | EndConfig
   | HttpConfig
   | ConditionalConfig
   | WsConnectConfig

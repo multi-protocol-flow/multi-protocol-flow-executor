@@ -1182,6 +1182,8 @@ impl DebuggableFlowExecutor {
                 streams.values().cloned().collect()
             },
             flow_snapshot: Some(flow_snapshot),
+            end_node_reached: None,
+            flow_warning: None,
         }
     }
 }

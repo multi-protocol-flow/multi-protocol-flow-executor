@@ -245,4 +245,8 @@ export interface FlowExecutionReport {
   ws_streams?: WsConnectionStream[];
   /** Flow 快照（执行时的流程完整副本） */
   flow_snapshot?: Flow;
+  /** 结束节点到达状态：undefined=无End节点, true=已到达, false=未到达 */
+  end_node_reached?: boolean;
+  /** 流程级警告信息 */
+  flow_warning?: string;
 }

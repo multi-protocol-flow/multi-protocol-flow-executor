@@ -3382,6 +3382,14 @@ fn default_variable_extractor_type() -> String {
 }
 
 // ============================================================================
+// End 节点配置
+// ============================================================================
+
+/// 结束节点配置（无字段，标记流程结束）
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct EndConfig;
+
+// ============================================================================
 // 节点数据配置统一枚举
 // ============================================================================
 
@@ -3659,6 +3667,8 @@ pub enum NodeData {
     /// 变量提取节点配置
     #[serde(rename = "variable_extractor")]
     VariableExtractor(VariableExtractorConfig),
+    /// 结束节点配置
+    End(EndConfig),
     /// 插件节点配置（未知类型的兜底捕获）
     ///
     /// 当反序列化遇到不认识的 `type` 值时，整个 JSON 对象会被保留在此变体中。
@@ -3952,6 +3962,7 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "variable_extractor" => serde_json::from_value::<VariableExtractorConfig>(value.clone())
                 .map(NodeData::VariableExtractor)
                 .map_err(serde::de::Error::custom),
+            "end" => Ok(NodeData::End(EndConfig)),
             // 未知 type → 兜底到 Plugin
             _ => Ok(NodeData::Plugin(value)),
         }
@@ -4056,6 +4067,7 @@ impl NodeData {
             NodeData::ImapClose(_) => "imap_close".to_string(),
             NodeData::Proxy(_) => "proxy".to_string(),
             NodeData::VariableExtractor(_) => "variable_extractor".to_string(),
+            NodeData::End(_) => "end".to_string(),
             NodeData::Plugin(val) => val
                 .get("type")
                 .and_then(|v| v.as_str())
@@ -4274,6 +4286,11 @@ impl NodeData {
     /// 创建 `Proxy` 节点配置
     pub fn proxy() -> Self {
         Self::Proxy(ProxyConfig::default())
+    }
+
+    /// 创建空的 End 节点配置
+    pub fn end() -> Self {
+        Self::End(EndConfig)
     }
 }
 

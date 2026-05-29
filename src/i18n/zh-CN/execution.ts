@@ -198,6 +198,9 @@ const zh_CN_execution: BaseTranslation = {
     copied: '已复制',
     copied_to_clipboard: '已复制到剪贴板',
     copy_failed: '复制失败',
+    end_node_reached: '流程已到达结束节点',
+    end_node_not_reached: '流程未到达任何结束节点',
+    no_end_node_hint: '此流程没有结束节点',
   },
   compare: {
     title: '对比: {snapshot} vs {current}',
@@ -464,6 +467,7 @@ const zh_CN_execution: BaseTranslation = {
     proto_files: 'Proto 文件',
     timeout_label: '超时',
     services_discovered: '发现 {count} 个服务',
+    end_node_reached: '流程已到达结束节点',
   },
   // ===== 通用 Toast 消息 =====
   toast: {

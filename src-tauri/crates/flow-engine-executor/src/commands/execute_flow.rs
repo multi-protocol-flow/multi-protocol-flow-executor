@@ -238,7 +238,7 @@ mod tests {
         // 验证错误结果
         assert!(!result.success, "流程应该失败");
         assert!(result.error.is_some(), "应该有错误信息");
-        assert!(result.error.unwrap().contains("缺少开始节点"), "错误信息应该说明缺少开始节点");
+        assert!(result.error.unwrap().contains("流程验证失败"), "错误信息应该说明验证失败");
         // 错误情况下 executed_count 为 0（没有 flow_report 或报告中的 executed_count 为 0）
         if let Some(ref report) = result.flow_report {
             assert_eq!(report.executed_count, 0, "不应该执行任何节点");

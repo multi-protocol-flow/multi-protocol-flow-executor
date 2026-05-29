@@ -130,6 +130,7 @@ pub use tauri_commands::{
     ExecutionSessionManager,
     DatasetExecutionSessionManager,
     GrpcCancelSessionManager,
+    validate_flow,
 };
 
 // 导出适配器（供测试使用）
@@ -274,6 +275,8 @@ pub fn run() {
     kafka_discover_schema,
     // 执行会话管理
     cancel_flow,
+    // 流程验证命令
+    validate_flow,
     // 流程文件存储命令
     list_flow_files,
     load_flow_file,

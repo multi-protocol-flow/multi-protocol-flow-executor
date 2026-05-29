@@ -327,6 +327,25 @@ impl FlowExecutor {
             providers: std::collections::HashMap::new(),
         };
 
+        // 集成流程验证器
+        let validator = crate::validator::FlowValidator::new();
+        let validation = validator.validate(flow);
+        if !validation.valid {
+            return ExecutionResult {
+                success: false,
+                data: None,
+                error: Some(format!("流程验证失败: {}", validation.errors.join("; "))),
+                executed_count: 0,
+                node_reports: vec![],
+                flow_report: None,
+            };
+        }
+        let flow_warning: Option<String> = if validation.warnings.is_empty() {
+            None
+        } else {
+            Some(validation.warnings.join("; "))
+        };
+
         // 查找开始节点
         let start_node = match flow
             .nodes
@@ -866,6 +885,8 @@ impl FlowExecutor {
                             skipped_nodes: skipped_nodes.clone(),
                             ws_streams,
                             flow_snapshot: Some(flow.clone()),
+                            end_node_reached: None,
+                            flow_warning: None,
                         };
 
                         return ExecutionResult {
@@ -934,12 +955,18 @@ impl FlowExecutor {
             context.db_manager = None;
         }
 
+        // End 节点检测
+        let has_end_nodes = flow.nodes.iter().any(|n| n.node_type == node_types::END);
+        let reached_end_node = has_end_nodes && execution_path.iter().any(|uuid| {
+            flow.nodes.iter().any(|n| n.uuid == *uuid && n.node_type == node_types::END)
+        });
+
+        #[allow(clippy::if_same_then_else)]
         let flow_status = if is_cancelled {
             flow_engine_core::report::ExecutionStatus::Cancelled
-        } else if node_reports
-            .iter()
-            .any(|r| r.status == flow_engine_core::report::ExecutionStatus::Failed)
-        {
+        } else if node_reports.iter().any(|r| r.status == flow_engine_core::report::ExecutionStatus::Failed) {
+            flow_engine_core::report::ExecutionStatus::Failed
+        } else if has_end_nodes && !reached_end_node {
             flow_engine_core::report::ExecutionStatus::Failed
         } else {
             flow_engine_core::report::ExecutionStatus::Success
@@ -950,6 +977,8 @@ impl FlowExecutor {
 
         let flow_error = if is_cancelled {
             Some(ErrorDetail::new(ErrorKind::Cancelled, "流程执行被用户取消".to_string()))
+        } else if has_end_nodes && !reached_end_node {
+            Some(ErrorDetail::new(ErrorKind::Execution, "流程存在 End 节点但执行路径未到达任何 End 节点".to_string()))
         } else {
             None
         };
@@ -977,6 +1006,8 @@ impl FlowExecutor {
             skipped_nodes,
             ws_streams,
             flow_snapshot: Some(flow.clone()),
+            end_node_reached: if has_end_nodes { Some(reached_end_node) } else { None },
+            flow_warning,
         };
 
         // 发送流程结束事件
@@ -1197,7 +1228,7 @@ mod tests {
         // 验证执行失败
         assert!(!result.success);
         assert!(result.error.is_some());
-        assert!(result.error.unwrap().contains("流程缺少开始节点"));
+        assert!(result.error.unwrap().contains("流程验证失败"));
         assert_eq!(result.executed_count, 0);
     }
 

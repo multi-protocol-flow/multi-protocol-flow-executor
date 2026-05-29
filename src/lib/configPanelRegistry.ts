@@ -6,6 +6,7 @@
 import type { ComponentType } from 'react';
 
 import { EntryConfig } from '@/components/panels/EntryConfig';
+import { EndConfigPanel } from '@/components/panels/EndConfigPanel';
 import { HttpConfig } from '@/components/panels/HttpConfig';
 import { ConditionalConfig } from '@/components/panels/ConditionalConfig';
 import { WsConnectConfig } from '@/components/panels/WsConnectConfig';
@@ -96,6 +97,7 @@ import { ProxyConfig as ProxyConfigPanel } from '@/components/panels/ProxyConfig
 
 export const configPanelRegistry: Record<string, ComponentType<any>> = {
   entry: EntryConfig,
+  end: EndConfigPanel,
   http: HttpConfig,
   conditional: ConditionalConfig,
   ws_connect: WsConnectConfig,

@@ -12,6 +12,8 @@ pub struct ValidationResult {
     pub valid: bool,
     /// 错误信息列表
     pub errors: Vec<String>,
+    /// 警告信息列表（不影响 valid 状态）
+    pub warnings: Vec<String>,
 }
 
 impl ValidationResult {
@@ -20,6 +22,7 @@ impl ValidationResult {
         ValidationResult {
             valid: true,
             errors: Vec::new(),
+            warnings: Vec::new(),
         }
     }
 
@@ -28,6 +31,7 @@ impl ValidationResult {
         ValidationResult {
             valid: false,
             errors: vec![message.into()],
+            warnings: Vec::new(),
         }
     }
 
@@ -36,6 +40,16 @@ impl ValidationResult {
         ValidationResult {
             valid: false,
             errors: messages,
+            warnings: Vec::new(),
+        }
+    }
+
+    /// 创建带警告的验证结果（valid 仍为 true）
+    pub fn warning(message: impl Into<String>) -> Self {
+        ValidationResult {
+            valid: true,
+            errors: Vec::new(),
+            warnings: vec![message.into()],
         }
     }
 }
@@ -68,6 +82,7 @@ impl FlowValidator {
     /// - `ValidationResult`: 验证结果
     pub fn validate(&self, flow: &Flow) -> ValidationResult {
         let mut errors = Vec::new();
+        let mut warnings = Vec::new();
 
         // 规则 1: 必须有至少一个 Entry 节点（流程入口）
         let entry_nodes: Vec<&Node> = flow
@@ -90,10 +105,43 @@ impl FlowValidator {
             errors.extend(ws_validation.errors);
         }
 
+        // 规则 3: 检查 End 节点
+        let end_nodes: Vec<&Node> = flow
+            .nodes
+            .iter()
+            .filter(|node| node.node_type == node_types::END)
+            .collect();
+
+        if end_nodes.is_empty() {
+            // 仅在流程有 Entry 节点（非空流程）时发出警告
+            let has_entry = flow
+                .nodes
+                .iter()
+                .any(|n| n.node_type == node_types::ENTRY);
+            if has_entry {
+                warnings.push(
+                    "流程没有 End 节点，执行完成后的状态始终为 success。建议添加 End 节点来明确流程终点。"
+                        .to_string(),
+                );
+            }
+        }
+
         if errors.is_empty() {
-            ValidationResult::success()
+            if warnings.is_empty() {
+                ValidationResult::success()
+            } else {
+                ValidationResult {
+                    valid: true,
+                    errors: vec![],
+                    warnings,
+                }
+            }
         } else {
-            ValidationResult::errors(errors)
+            ValidationResult {
+                valid: false,
+                errors,
+                warnings,
+            }
         }
     }
 
@@ -231,14 +279,14 @@ mod tests {
         }
     }
 
-    /// 创建测试用的结束节点（使用 Http 节点类型，因为 Entry 被视为开始节点）
+    /// 创建测试用的结束节点
     fn create_end_node() -> Node {
         Node {
             uuid: Uuid::new_v4().to_string(),
-            node_type: "http".to_string(),
+            node_type: "end".to_string(),
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::http("https://example.com/end"),
+            data: NodeData::end(),
             ports: None,
             has_breakpoint: None,
         }
@@ -593,10 +641,10 @@ mod tests {
 
         let end_node = Node {
             uuid: "specific-end-uuid-002".to_string(),
-            node_type: "http".to_string(),
+            node_type: "end".to_string(),
             name: "结束".to_string(),
             position: NodePosition { x: 100.0, y: 0.0 },
-            data: NodeData::http("https://example.com/end"),
+            data: NodeData::end(),
             ports: None,
             has_breakpoint: None,
         };
@@ -617,5 +665,105 @@ mod tests {
 
         // 验证通过
         assert!(result.valid);
+    }
+
+    // ========================================================================
+    // End 节点警告测试
+    // ========================================================================
+
+    #[test]
+    fn test_validator_no_end_node_warning() {
+        // 只有 Entry 节点，没有 End 节点 → 产生警告
+        let start_node = create_entry_node();
+        let http_node = Node {
+            uuid: Uuid::new_v4().to_string(),
+            node_type: "http".to_string(),
+            name: "HTTP 请求".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::http("https://example.com"),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "无 End 节点流程".to_string(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![start_node, http_node],
+            connections: vec![],
+            hooks: None,
+        };
+
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+
+        // 验证通过但有警告
+        assert!(result.valid);
+        assert!(result.errors.is_empty());
+        assert!(!result.warnings.is_empty());
+        eprintln!("Warning: {}", result.warnings[0]);
+        assert!(result.warnings[0].contains("End 节点"));
+    }
+
+    #[test]
+    fn test_validator_with_end_node_no_warning() {
+        // 有 Entry 节点和 End 节点 → 没有警告
+        let start_node = create_entry_node();
+        let end_node = create_end_node();
+        let connection = create_connection(&start_node.uuid, &end_node.uuid);
+
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "有 End 节点流程".to_string(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![start_node, end_node],
+            connections: vec![connection],
+            hooks: None,
+        };
+
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+
+        // 验证通过且无警告
+        assert!(result.valid);
+        assert!(result.errors.is_empty());
+        assert!(result.warnings.is_empty());
+    }
+
+    #[test]
+    fn test_validator_warnings_do_not_affect_valid() {
+        // 验证 warnings 存在时 valid 仍然为 true
+        let start_node = create_entry_node();
+        let http_node = Node {
+            uuid: Uuid::new_v4().to_string(),
+            node_type: "http".to_string(),
+            name: "HTTP 节点".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::http("https://example.com"),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "警告测试".to_string(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![start_node, http_node],
+            connections: vec![],
+            hooks: None,
+        };
+
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+
+        // 验证 warnings 不影响 valid
+        assert!(result.valid);
+        assert!(!result.warnings.is_empty());
     }
 }
