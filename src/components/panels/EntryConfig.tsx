@@ -825,7 +825,7 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
                   <Textarea
                     value={hook.action.body_template || ''}
                     onChange={(e) => handleUpdateAction(index, { body_template: e.target.value || undefined })}
-                    placeholder={getLL().panels.entryNode.hookBodyPlaceholder()}
+                    placeholder={getLL().panels.entryNode.hookBodyPlaceholder('')}
                     className="text-xs font-mono min-h-[48px] resize-y"
                     rows={2}
                   />
@@ -847,13 +847,13 @@ function HookConfigSection({ hooks, onHooksChange }: HookConfigProps) {
                   <Input
                     value={hook.action.title_template}
                     onChange={(e) => handleUpdateAction(index, { title_template: e.target.value })}
-                    placeholder={getLL().panels.entryNode.hookTitlePlaceholder()}
+                    placeholder={getLL().panels.entryNode.hookTitlePlaceholder('')}
                     className="h-7 text-xs"
                   />
                   <Input
                     value={hook.action.message_template}
                     onChange={(e) => handleUpdateAction(index, { message_template: e.target.value })}
-                    placeholder={getLL().panels.entryNode.hookMessagePlaceholder()}
+                    placeholder={getLL().panels.entryNode.hookMessagePlaceholder('')}
                     className="h-7 text-xs"
                   />
                 </div>
