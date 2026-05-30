@@ -89,6 +89,7 @@ cargo clippy -p flow-engine-db           # 仅 Lint DB
 
 - [flow-engine/src/AGENTS.md](./flow-engine/src/AGENTS.md) - 门面 crate
 - [flow-engine-core/src/AGENTS.md](./flow-engine-core/src/AGENTS.md) - 基础类型
+- [flow-engine-crypto/src/AGENTS.md](./flow-engine-crypto/src/AGENTS.md) - 加密/Keychain
 - [flow-engine-executor/src/AGENTS.md](./flow-engine-executor/src/AGENTS.md) - 执行器
 - [flow-engine-http/src/AGENTS.md](./flow-engine-http/src/AGENTS.md) - HTTP
 - [flow-engine-db/src/AGENTS.md](./flow-engine-db/src/AGENTS.md) - 数据库

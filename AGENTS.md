@@ -453,7 +453,10 @@ npm run tauri build  # 构建安装包
 - [src-tauri/crates/flow-engine-imap/src/AGENTS.md](./src-tauri/crates/flow-engine-imap/src/AGENTS.md) - IMAP crate
 - [src-tauri/crates/flow-engine-kafka/src/AGENTS.md](./src-tauri/crates/flow-engine-kafka/src/AGENTS.md) - Kafka crate
 - [src-tauri/crates/flow-engine-smtp/src/AGENTS.md](./src-tauri/crates/flow-engine-smtp/src/AGENTS.md) - SMTP crate
+- [src-tauri/crates/flow-engine-crypto/src/AGENTS.md](./src-tauri/crates/flow-engine-crypto/src/AGENTS.md) - 加密/Keychain crate
 - [src-tauri/crates/flow-engine-sse/src/AGENTS.md](./src-tauri/crates/flow-engine-sse/src/AGENTS.md) - SSE crate
+- [src/i18n/AGENTS.md](./src/i18n/AGENTS.md) - 国际化
+- [src/components/execution/AGENTS.md](./src/components/execution/AGENTS.md) - 执行结果组件
 - [src/stores/AGENTS.md](./src/stores/AGENTS.md) - Zustand 状态管理
 - [src/services/AGENTS.md](./src/services/AGENTS.md) - Tauri IPC 服务
 - [src/types/AGENTS.md](./src/types/AGENTS.md) - TypeScript 类型定义
