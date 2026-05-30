@@ -35,6 +35,7 @@ import { useExecutionStore } from '@/stores';
 import { NodeExecutionDetails } from './NodeExecutionDetails';
 import { NodeListItem } from './NodeListItem';
 import { WsMessageTimeline } from './WsMessageTimeline';
+import { CanvasReportViewer } from './CanvasReportViewer';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -79,6 +80,8 @@ export function ExecutionReport() {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isWsStreamCollapsed, setIsWsStreamCollapsed] = useState(false);
   const [isStatsCollapsed, setIsStatsCollapsed] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'canvas'>('list');
+  const [canvasSelectedUuid, setCanvasSelectedUuid] = useState<string | null>(null);
 
   // 默认选中第一个节点
   useEffect(() => {
@@ -151,6 +154,38 @@ export function ExecutionReport() {
             )}>
               {isSuccess ? ll.execution.status.success() : ll.execution.status.failed()}
             </Badge>
+
+            {/* 视图模式切换 */}
+            <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5 ml-auto">
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  'px-3 py-1 text-xs font-medium rounded-md transition-all',
+                  viewMode === 'list'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                disabled={!displayReport?.flow_snapshot && viewMode === 'canvas'}
+                title={!displayReport?.flow_snapshot ? '无拓扑数据' : undefined}
+              >
+                {ll.execution.report.list_view()}
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('canvas')}
+                className={cn(
+                  'px-3 py-1 text-xs font-medium rounded-md transition-all',
+                  viewMode === 'canvas'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                disabled={!displayReport?.flow_snapshot}
+                title={!displayReport?.flow_snapshot ? '无拓扑数据' : undefined}
+              >
+                {ll.execution.report.canvas_view()}
+              </button>
+            </div>
 
             {/* 最大化按钮 */}
             <Button
@@ -336,60 +371,70 @@ export function ExecutionReport() {
           </ScrollArea>
 
           {/* 下半部分：节点执行详情（固定高度，独立滚动） */}
-          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2 flex-shrink-0">
-              <BarChart3 className="w-4 h-4" />
-{ll.execution.report.node_details()}
-            </h3>
+          {viewMode === 'canvas' ? (
             <div className="flex-1 min-h-0">
-              <ResizablePanel
-                leftPanel={
-                  displayReport.node_reports.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
-                      <Inbox className="w-12 h-12" />
-                      <span>{ll.execution.report.no_nodes()}</span>
-                    </div>
-                  ) : (
-                    <ScrollArea className="h-full w-full">
-                      <div className="space-y-1 p-1">
-                        {displayReport.node_reports.map((nodeReport) => (
-                          <NodeListItem
-                            key={nodeReport.node_uuid}
-                            report={nodeReport}
-                            isSelected={selectedNodeUuid === nodeReport.node_uuid}
-                            onClick={() => setSelectedNodeUuid(nodeReport.node_uuid)}
-                          />
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  )
-                }
-                rightPanel={
-                  displayReport.node_reports.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
-                      <Inbox className="w-12 h-12" />
-                      <span>{ll.execution.report.no_nodes()}</span>
-                    </div>
-                  ) : selectedNodeUuid ? (
-                    <ScrollArea className="h-full w-full">
-                      <div className="p-2 min-w-0">
-                        <NodeExecutionDetails
-                          report={displayReport.node_reports.find(r => r.node_uuid === selectedNodeUuid)!}
-                        />
-                      </div>
-                    </ScrollArea>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      {ll.execution.report.select_node_hint()}
-                    </div>
-                  )
-                }
-                defaultWidth={300}
-                minWidth={200}
-                maxWidth={500}
+              <CanvasReportViewer
+                report={displayReport}
+                selectedNodeUuid={canvasSelectedUuid}
+                onNodeSelect={setCanvasSelectedUuid}
               />
             </div>
-          </div>
+          ) : (
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2 flex-shrink-0">
+                <BarChart3 className="w-4 h-4" />
+{ll.execution.report.node_details()}
+              </h3>
+              <div className="flex-1 min-h-0">
+                <ResizablePanel
+                  leftPanel={
+                    displayReport.node_reports.length === 0 ? (
+                      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
+                        <Inbox className="w-12 h-12" />
+                        <span>{ll.execution.report.no_nodes()}</span>
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-full w-full">
+                        <div className="space-y-1 p-1">
+                          {displayReport.node_reports.map((nodeReport) => (
+                            <NodeListItem
+                              key={nodeReport.node_uuid}
+                              report={nodeReport}
+                              isSelected={selectedNodeUuid === nodeReport.node_uuid}
+                              onClick={() => setSelectedNodeUuid(nodeReport.node_uuid)}
+                            />
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )
+                  }
+                  rightPanel={
+                    displayReport.node_reports.length === 0 ? (
+                      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 h-full">
+                        <Inbox className="w-12 h-12" />
+                        <span>{ll.execution.report.no_nodes()}</span>
+                      </div>
+                    ) : selectedNodeUuid ? (
+                      <ScrollArea className="h-full w-full">
+                        <div className="p-2 min-w-0">
+                          <NodeExecutionDetails
+                            report={displayReport.node_reports.find(r => r.node_uuid === selectedNodeUuid)!}
+                          />
+                        </div>
+                      </ScrollArea>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-muted-foreground">
+                        {ll.execution.report.select_node_hint()}
+                      </div>
+                    )
+                  }
+                  defaultWidth={300}
+                  minWidth={200}
+                  maxWidth={500}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
