@@ -201,6 +201,8 @@ const zh_CN_execution: BaseTranslation = {
     end_node_reached: '流程已到达结束节点',
     end_node_not_reached: '流程未到达任何结束节点',
     no_end_node_hint: '此流程没有结束节点',
+    canvas_view: '画布模式',
+    list_view: '列表模式',
   },
   compare: {
     title: '对比: {snapshot} vs {current}',

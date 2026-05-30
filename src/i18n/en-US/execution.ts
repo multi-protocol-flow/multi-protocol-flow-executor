@@ -199,6 +199,8 @@ const en_US_execution = {
     end_node_reached: 'Flow reached the End node',
     end_node_not_reached: 'Flow did not reach any End node',
     no_end_node_hint: 'This flow has no End node',
+    canvas_view: 'Canvas View',
+    list_view: 'List View',
   },
   compare: {
     title: 'Compare: {snapshot} vs {current}',
