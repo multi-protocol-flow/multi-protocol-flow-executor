@@ -2,15 +2,7 @@
  * 节点配置表单校验 Schema
  */
 import { z } from 'zod';
-import { i18nObject } from '@/i18n/i18n-util';
-import { baseLocale } from '@/i18n/i18n-util';
-import type { TranslationFunctions } from '@/i18n/i18n-types';
-
-let _LL: TranslationFunctions | null = null;
-const getLL = () => {
-  if (!_LL) _LL = i18nObject(baseLocale);
-  return _LL;
-};
+import { getLL } from '@/i18n/i18n-lazy';
 
 // ============================================================================
 // HTTP 配置 Schema

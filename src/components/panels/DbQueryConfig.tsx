@@ -117,15 +117,6 @@ function getDriverColor(driver: string): string {
   return colors[driver] || 'text-purple-600';
 }
 
-/**
- * fetch_mode 选项
- */
-const FETCH_MODE_OPTIONS = [
-  { value: 'all', label: '获取所有行 (all)' },
-  { value: 'one', label: '获取单行 (one)' },
-  { value: 'scalar', label: '获取单个值 (scalar)' },
-] as const;
-
 export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
   const {
     register,
@@ -448,11 +439,9 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {FETCH_MODE_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
+            <SelectItem value="all">{getLL().panels.dbQuery.fetchModeAll()}</SelectItem>
+            <SelectItem value="one">{getLL().panels.dbQuery.fetchModeOne()}</SelectItem>
+            <SelectItem value="scalar">{getLL().panels.dbQuery.fetchModeScalar()}</SelectItem>
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
