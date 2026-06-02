@@ -24,6 +24,7 @@ const customStyles = {
   numberValue: 'json-viewer-number',
   booleanValue: 'json-viewer-boolean',
   otherValue: 'json-viewer-other',
+  quotesForFieldNames: true,
 };
 
 /**
