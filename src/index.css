@@ -110,8 +110,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+  input, button, select, textarea {
+    @apply outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
@@ -127,26 +127,10 @@
   0%, 100% {
     outline: 2px solid rgba(59, 130, 246, 0.5);
     outline-offset: 2px;
-    border-color: rgb(59, 130, 246);
   }
   50% {
     outline: 6px solid rgba(59, 130, 246, 0);
     outline-offset: 2px;
-    border-color: rgb(37, 99, 235);
-  }
-}
-
-@keyframes edge-flow-particle {
-  0% {
-    offset-distance: 0%;
-    opacity: 1;
-  }
-  85% {
-    opacity: 0.6;
-  }
-  100% {
-    offset-distance: 100%;
-    opacity: 0;
   }
 }
 
