@@ -9,6 +9,7 @@ import type { HttpConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** HTTP 节点数据类型 */
 export interface HttpNodeData {
@@ -20,7 +21,7 @@ export interface HttpNodeData {
  * HTTP 节点 - 网络请求
  * 输入端口 "in"，两个输出端口 "true"(上，2xx成功) 和 "false"(下，失败)
  */
-export function HttpNode({ id, data, selected }: NodeProps) {
+export const HttpNode = memo(function HttpNode({ id, data, selected }: NodeProps) {
   const nodeData = data as HttpNodeData;
   const method = nodeData.config?.method?.toUpperCase() || 'GET';
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
@@ -109,4 +110,4 @@ export function HttpNode({ id, data, selected }: NodeProps) {
       />
     </div>
   );
-}
+});

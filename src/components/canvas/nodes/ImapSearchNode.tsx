@@ -9,6 +9,7 @@ import type { ImapSearchConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** ImapSearch 节点数据类型 */
 export interface ImapSearchNodeData {
@@ -16,7 +17,7 @@ export interface ImapSearchNodeData {
   config?: ImapSearchConfig;
 }
 
-export function ImapSearchNode({ id, data, selected }: NodeProps) {
+export const ImapSearchNode = memo(function ImapSearchNode({ id, data, selected }: NodeProps) {
   const nodeData = data as ImapSearchNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -86,4 +87,4 @@ export function ImapSearchNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

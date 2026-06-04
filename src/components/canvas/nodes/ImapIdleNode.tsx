@@ -9,13 +9,14 @@ import type { ImapIdleConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 export interface ImapIdleNodeData {
   label?: string;
   config?: ImapIdleConfig;
 }
 
-export function ImapIdleNode({ id, data, selected }: NodeProps) {
+export const ImapIdleNode = memo(function ImapIdleNode({ id, data, selected }: NodeProps) {
   const nodeData = data as ImapIdleNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -81,4 +82,4 @@ export function ImapIdleNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

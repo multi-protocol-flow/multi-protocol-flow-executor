@@ -9,13 +9,14 @@ import type { ImapFolderCreateConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 export interface ImapFolderCreateNodeData {
   label?: string;
   config?: ImapFolderCreateConfig;
 }
 
-export function ImapFolderCreateNode({ id, data, selected }: NodeProps) {
+export const ImapFolderCreateNode = memo(function ImapFolderCreateNode({ id, data, selected }: NodeProps) {
   const nodeData = data as ImapFolderCreateNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -79,4 +80,4 @@ export function ImapFolderCreateNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

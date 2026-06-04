@@ -9,6 +9,7 @@ import type { TcpConnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** TcpConnect 节点数据类型 */
 export interface TcpConnectNodeData {
@@ -20,7 +21,7 @@ export interface TcpConnectNodeData {
  * TcpConnect 节点 - TCP 连接
  * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function TcpConnectNode({ id, data, selected }: NodeProps) {
+export const TcpConnectNode = memo(function TcpConnectNode({ id, data, selected }: NodeProps) {
   const nodeData = data as TcpConnectNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -110,4 +111,4 @@ export function TcpConnectNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

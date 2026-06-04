@@ -9,13 +9,14 @@ import type { ImapMoveConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 export interface ImapMoveNodeData {
   label?: string;
   config?: ImapMoveConfig;
 }
 
-export function ImapMoveNode({ id, data, selected }: NodeProps) {
+export const ImapMoveNode = memo(function ImapMoveNode({ id, data, selected }: NodeProps) {
   const nodeData = data as ImapMoveNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -79,4 +80,4 @@ export function ImapMoveNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

@@ -9,13 +9,14 @@ import type { ImapFolderDeleteConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 export interface ImapFolderDeleteNodeData {
   label?: string;
   config?: ImapFolderDeleteConfig;
 }
 
-export function ImapFolderDeleteNode({ id, data, selected }: NodeProps) {
+export const ImapFolderDeleteNode = memo(function ImapFolderDeleteNode({ id, data, selected }: NodeProps) {
   const nodeData = data as ImapFolderDeleteNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -79,4 +80,4 @@ export function ImapFolderDeleteNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

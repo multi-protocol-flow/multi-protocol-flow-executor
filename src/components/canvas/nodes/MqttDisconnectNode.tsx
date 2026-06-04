@@ -9,6 +9,7 @@ import type { MqttDisconnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** MqttDisconnect 节点数据类型 */
 export interface MqttDisconnectNodeData {
@@ -20,7 +21,7 @@ export interface MqttDisconnectNodeData {
  * MqttDisconnect 节点 - MQTT 断开
  * 输入端口 "in"，单输出端口 "out"
  */
-export function MqttDisconnectNode({ id, data, selected }: NodeProps) {
+export const MqttDisconnectNode = memo(function MqttDisconnectNode({ id, data, selected }: NodeProps) {
   const nodeData = data as MqttDisconnectNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -93,4 +94,4 @@ export function MqttDisconnectNode({ id, data, selected }: NodeProps) {
       />
     </div>
   );
-}
+});

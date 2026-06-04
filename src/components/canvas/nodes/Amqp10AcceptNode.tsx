@@ -9,6 +9,7 @@ import type { Amqp10AcceptConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** Amqp10Accept 节点数据类型 */
 export interface Amqp10AcceptNodeData {
@@ -20,7 +21,7 @@ export interface Amqp10AcceptNodeData {
  * Amqp10Accept 节点 - AMQP 1.0 确认消息
  * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function Amqp10AcceptNode({ id, data, selected }: NodeProps) {
+export const Amqp10AcceptNode = memo(function Amqp10AcceptNode({ id, data, selected }: NodeProps) {
   const nodeData = data as Amqp10AcceptNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -105,4 +106,4 @@ export function Amqp10AcceptNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

@@ -9,6 +9,7 @@ import type { Amqp10DisconnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** Amqp10Disconnect 节点数据类型 */
 export interface Amqp10DisconnectNodeData {
@@ -20,7 +21,7 @@ export interface Amqp10DisconnectNodeData {
  * Amqp10Disconnect 节点 - AMQP 1.0 断开连接
  * 输入端口 "in"，输出端口 "out"
  */
-export function Amqp10DisconnectNode({ id, data, selected }: NodeProps) {
+export const Amqp10DisconnectNode = memo(function Amqp10DisconnectNode({ id, data, selected }: NodeProps) {
   const nodeData = data as Amqp10DisconnectNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -98,4 +99,4 @@ export function Amqp10DisconnectNode({ id, data, selected }: NodeProps) {
       />
     </div>
   );
-}
+});

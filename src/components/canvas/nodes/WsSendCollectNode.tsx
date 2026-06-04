@@ -9,6 +9,7 @@ import type { WsSendCollectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** WsSendCollect 节点数据类型 */
 export interface WsSendCollectNodeData {
@@ -20,7 +21,7 @@ export interface WsSendCollectNodeData {
  * WsSendCollect 节点 - WebSocket 发送采集
  * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function WsSendCollectNode({ id, data, selected }: NodeProps) {
+export const WsSendCollectNode = memo(function WsSendCollectNode({ id, data, selected }: NodeProps) {
   const nodeData = data as WsSendCollectNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -105,4 +106,4 @@ export function WsSendCollectNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

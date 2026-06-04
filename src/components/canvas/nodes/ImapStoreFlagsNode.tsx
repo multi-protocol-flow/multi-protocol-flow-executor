@@ -9,6 +9,7 @@ import type { ImapStoreFlagsConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** ImapStoreFlags 节点数据类型 */
 export interface ImapStoreFlagsNodeData {
@@ -16,7 +17,7 @@ export interface ImapStoreFlagsNodeData {
   config?: ImapStoreFlagsConfig;
 }
 
-export function ImapStoreFlagsNode({ id, data, selected }: NodeProps) {
+export const ImapStoreFlagsNode = memo(function ImapStoreFlagsNode({ id, data, selected }: NodeProps) {
   const nodeData = data as ImapStoreFlagsNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -82,4 +83,4 @@ export function ImapStoreFlagsNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

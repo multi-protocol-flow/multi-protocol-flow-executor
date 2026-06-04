@@ -9,6 +9,7 @@ import type { VariableExtractorConfig } from '@/types/node';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** VariableExtractor 节点数据类型 */
 export interface VariableExtractorNodeData {
@@ -20,7 +21,7 @@ export interface VariableExtractorNodeData {
  * VariableExtractor 节点 - 变量提取
  * 单输入端口 "in"，单输出端口 "out"
  */
-export function VariableExtractorNode({ id, data, selected }: NodeProps) {
+export const VariableExtractorNode = memo(function VariableExtractorNode({ id, data, selected }: NodeProps) {
   const nodeData = data as VariableExtractorNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -93,4 +94,4 @@ export function VariableExtractorNode({ id, data, selected }: NodeProps) {
       />
     </div>
   );
-}
+});

@@ -9,6 +9,7 @@ import type { ImapSelectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** ImapSelect 节点数据类型 */
 export interface ImapSelectNodeData {
@@ -16,7 +17,7 @@ export interface ImapSelectNodeData {
   config?: ImapSelectConfig;
 }
 
-export function ImapSelectNode({ id, data, selected }: NodeProps) {
+export const ImapSelectNode = memo(function ImapSelectNode({ id, data, selected }: NodeProps) {
   const nodeData = data as ImapSelectNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -100,4 +101,4 @@ export function ImapSelectNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

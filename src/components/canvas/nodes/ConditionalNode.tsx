@@ -9,6 +9,7 @@ import type { ConditionalConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** Conditional 节点数据类型 */
 export interface ConditionalNodeData {
@@ -20,7 +21,7 @@ export interface ConditionalNodeData {
  * Conditional 节点 - 条件分支
  * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function ConditionalNode({ id, data, selected }: NodeProps) {
+export const ConditionalNode = memo(function ConditionalNode({ id, data, selected }: NodeProps) {
   const nodeData = data as ConditionalNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -106,4 +107,4 @@ export function ConditionalNode({ id, data, selected }: NodeProps) {
       />
     </div>
   );
-}
+});

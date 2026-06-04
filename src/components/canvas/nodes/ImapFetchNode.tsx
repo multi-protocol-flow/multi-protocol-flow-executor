@@ -9,6 +9,7 @@ import type { ImapFetchConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** ImapFetch 节点数据类型 */
 export interface ImapFetchNodeData {
@@ -16,7 +17,7 @@ export interface ImapFetchNodeData {
   config?: ImapFetchConfig;
 }
 
-export function ImapFetchNode({ id, data, selected }: NodeProps) {
+export const ImapFetchNode = memo(function ImapFetchNode({ id, data, selected }: NodeProps) {
   const nodeData = data as ImapFetchNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -80,4 +81,4 @@ export function ImapFetchNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, 
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { getLL } from '@/i18n/i18n-lazy';
+import { memo } from 'react';
 
 /** McpGetPrompt 节点数据类型 */
 export interface McpGetPromptNodeData {
@@ -21,7 +22,7 @@ export interface McpGetPromptNodeData {
  * McpGetPrompt 节点 - MCP 获取提示词
  * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function McpGetPromptNode({ id, data, selected }: NodeProps) {
+export const McpGetPromptNode = memo(function McpGetPromptNode({ id, data, selected }: NodeProps) {
   const nodeData = data as McpGetPromptNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -116,4 +117,4 @@ export function McpGetPromptNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

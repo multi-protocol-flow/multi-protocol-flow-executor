@@ -9,6 +9,7 @@ import type { DbCloseConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** DbClose 节点数据类型 */
 export interface DbCloseNodeData {
@@ -20,7 +21,7 @@ export interface DbCloseNodeData {
  * DbClose 节点 - 关闭连接
  * 输入端口 "in"，单输出端口 "out"（关闭操作幂等始终成功，无需 false 分支）
  */
-export function DbCloseNode({ id, data, selected }: NodeProps) {
+export const DbCloseNode = memo(function DbCloseNode({ id, data, selected }: NodeProps) {
   const nodeData = data as DbCloseNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -93,4 +94,4 @@ export function DbCloseNode({ id, data, selected }: NodeProps) {
       />
     </div>
   );
-}
+});

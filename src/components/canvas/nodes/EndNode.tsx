@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** End 节点数据类型 */
 export interface EndNodeData {
@@ -19,7 +20,7 @@ export interface EndNodeData {
  * End 节点 - 流程终点
  * 左侧输入端口，无输出端口
  */
-export function EndNode({ id, data, selected }: NodeProps) {
+export const EndNode = memo(function EndNode({ id, data, selected }: NodeProps) {
   const nodeData = data as EndNodeData;
   const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
   const isPaused = useDebugStore(selectIsPaused);
@@ -73,4 +74,4 @@ export function EndNode({ id, data, selected }: NodeProps) {
       />
     </div>
   );
-}
+});

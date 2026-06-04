@@ -9,6 +9,7 @@ import type { SmtpDisconnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** SmtpDisconnect 节点数据类型 */
 export interface SmtpDisconnectNodeData {
@@ -20,7 +21,7 @@ export interface SmtpDisconnectNodeData {
  * SmtpDisconnect 节点 - SMTP 断开连接
  * 输入端口 "in"，单输出端口 "out"
  */
-export function SmtpDisconnectNode({ id, data, selected }: NodeProps) {
+export const SmtpDisconnectNode = memo(function SmtpDisconnectNode({ id, data, selected }: NodeProps) {
   const nodeData = data as SmtpDisconnectNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -93,4 +94,4 @@ export function SmtpDisconnectNode({ id, data, selected }: NodeProps) {
       />
     </div>
   );
-}
+});

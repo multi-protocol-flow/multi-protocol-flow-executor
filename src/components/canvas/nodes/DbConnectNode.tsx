@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, 
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { getLL } from '@/i18n/i18n-lazy';
+import { memo } from 'react';
 
 /** DbConnect 节点数据类型 */
 export interface DbConnectNodeData {
@@ -18,7 +19,7 @@ export interface DbConnectNodeData {
 }
 
 /** 驱动显示名称映射 */
-const DRIVER_LABELS: Record<string, string> = {
+export const DRIVER_LABELS: Record<string, string> = {
   postgres: 'PostgreSQL',
   mysql: 'MySQL',
   sqlite: 'SQLite',
@@ -48,7 +49,7 @@ function getConnectionSummary(config?: DbConnectConfig): string | null {
   return parts.length > 0 ? parts.join('/') : null;
 }
 
-export function DbConnectNode({ id, data, selected }: NodeProps) {
+export const DbConnectNode = memo(function DbConnectNode({ id, data, selected }: NodeProps) {
   const nodeData = data as DbConnectNodeData;
   const config = nodeData.config;
   const driverLabel = config?.driver ? (DRIVER_LABELS[config.driver] ?? config.driver) : null;
@@ -146,4 +147,4 @@ export function DbConnectNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

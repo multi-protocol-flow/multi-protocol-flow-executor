@@ -10,6 +10,7 @@ import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, 
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { getLL } from '@/i18n/i18n-lazy';
+import { memo } from 'react';
 
 /** Assertion 节点数据类型 */
 export interface AssertionNodeData {
@@ -21,7 +22,7 @@ export interface AssertionNodeData {
  * Assertion 节点 - 断言验证
  * 输入端口 "in"，两个输出端口 "true"(上，断言通过) 和 "false"(下，断言失败)
  */
-export function AssertionNode({ id, data, selected }: NodeProps) {
+export const AssertionNode = memo(function AssertionNode({ id, data, selected }: NodeProps) {
   const nodeData = data as AssertionNodeData;
   const config = nodeData.config;
   const assertionCount = config?.assertions?.length ?? 0;
@@ -133,4 +134,4 @@ export function AssertionNode({ id, data, selected }: NodeProps) {
       />
     </div>
   );
-}
+});

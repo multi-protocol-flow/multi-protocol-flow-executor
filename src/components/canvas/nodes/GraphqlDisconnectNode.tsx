@@ -9,6 +9,7 @@ import type { GraphqlDisconnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** GraphqlDisconnect 节点数据类型 */
 export interface GraphqlDisconnectNodeData {
@@ -20,7 +21,7 @@ export interface GraphqlDisconnectNodeData {
  * GraphqlDisconnect 节点 - GraphQL 断开
  * 输入端口 "in"，单输出端口 "out"
  */
-export function GraphqlDisconnectNode({ id, data, selected }: NodeProps) {
+export const GraphqlDisconnectNode = memo(function GraphqlDisconnectNode({ id, data, selected }: NodeProps) {
   const nodeData = data as GraphqlDisconnectNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -98,4 +99,4 @@ export function GraphqlDisconnectNode({ id, data, selected }: NodeProps) {
       />
     </div>
   );
-}
+});

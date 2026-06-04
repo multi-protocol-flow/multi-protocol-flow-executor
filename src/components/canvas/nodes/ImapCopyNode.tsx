@@ -9,13 +9,14 @@ import type { ImapCopyConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 export interface ImapCopyNodeData {
   label?: string;
   config?: ImapCopyConfig;
 }
 
-export function ImapCopyNode({ id, data, selected }: NodeProps) {
+export const ImapCopyNode = memo(function ImapCopyNode({ id, data, selected }: NodeProps) {
   const nodeData = data as ImapCopyNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -79,4 +80,4 @@ export function ImapCopyNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

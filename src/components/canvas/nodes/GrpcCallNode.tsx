@@ -9,6 +9,7 @@ import type { GrpcCallConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** GrpcCall 节点数据类型 */
 export interface GrpcCallNodeData {
@@ -20,7 +21,7 @@ export interface GrpcCallNodeData {
  * GrpcCall 节点 - gRPC 调用
  * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function GrpcCallNode({ id, data, selected }: NodeProps) {
+export const GrpcCallNode = memo(function GrpcCallNode({ id, data, selected }: NodeProps) {
   const nodeData = data as GrpcCallNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -115,4 +116,4 @@ export function GrpcCallNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

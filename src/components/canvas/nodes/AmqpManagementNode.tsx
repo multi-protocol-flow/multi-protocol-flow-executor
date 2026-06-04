@@ -9,6 +9,7 @@ import type { AmqpManagementConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** AmqpManagement 节点数据类型 */
 export interface AmqpManagementNodeData {
@@ -20,7 +21,7 @@ export interface AmqpManagementNodeData {
  * AmqpManagement 节点 - AMQP 0-9-1 管理
  * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function AmqpManagementNode({ id, data, selected }: NodeProps) {
+export const AmqpManagementNode = memo(function AmqpManagementNode({ id, data, selected }: NodeProps) {
   const nodeData = data as AmqpManagementNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -110,4 +111,4 @@ export function AmqpManagementNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

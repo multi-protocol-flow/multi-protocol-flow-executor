@@ -9,6 +9,7 @@ import type { ScriptNodeConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** Script 节点数据类型 */
 export interface ScriptNodeData {
@@ -20,7 +21,7 @@ export interface ScriptNodeData {
  * Script 节点 - 脚本执行
  * 输入端口 "input"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function ScriptNode({ id, data, selected }: NodeProps) {
+export const ScriptNode = memo(function ScriptNode({ id, data, selected }: NodeProps) {
   const nodeData = data as ScriptNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -106,4 +107,4 @@ export function ScriptNode({ id, data, selected }: NodeProps) {
       />
     </div>
   );
-}
+});

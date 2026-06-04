@@ -10,13 +10,14 @@ import type { ImapCloseConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 export interface ImapCloseNodeData {
   label?: string;
   config?: ImapCloseConfig;
 }
 
-export function ImapCloseNode({ id, data, selected }: NodeProps) {
+export const ImapCloseNode = memo(function ImapCloseNode({ id, data, selected }: NodeProps) {
   const nodeData = data as ImapCloseNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -68,4 +69,4 @@ export function ImapCloseNode({ id, data, selected }: NodeProps) {
       />
     </div>
   );
-}
+});

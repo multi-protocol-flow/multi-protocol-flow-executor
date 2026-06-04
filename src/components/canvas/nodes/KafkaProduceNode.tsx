@@ -9,6 +9,7 @@ import type { KafkaProduceConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** KafkaProduce 节点数据类型 */
 export interface KafkaProduceNodeData {
@@ -20,7 +21,7 @@ export interface KafkaProduceNodeData {
  * KafkaProduce 节点 - Kafka 生产
  * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function KafkaProduceNode({ id, data, selected }: NodeProps) {
+export const KafkaProduceNode = memo(function KafkaProduceNode({ id, data, selected }: NodeProps) {
   const nodeData = data as KafkaProduceNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -110,4 +111,4 @@ export function KafkaProduceNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});

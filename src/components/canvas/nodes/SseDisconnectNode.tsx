@@ -9,6 +9,7 @@ import type { SseDisconnectConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** SseDisconnect 节点数据类型 */
 export interface SseDisconnectNodeData {
@@ -20,7 +21,7 @@ export interface SseDisconnectNodeData {
  * SseDisconnect 节点 - SSE 断开
  * 输入端口 "in"，单输出端口 "out"
  */
-export function SseDisconnectNode({ id, data, selected }: NodeProps) {
+export const SseDisconnectNode = memo(function SseDisconnectNode({ id, data, selected }: NodeProps) {
   const nodeData = data as SseDisconnectNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -98,4 +99,4 @@ export function SseDisconnectNode({ id, data, selected }: NodeProps) {
       />
     </div>
   );
-}
+});

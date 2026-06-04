@@ -9,6 +9,7 @@ import type { TcpSendConfig } from '@/types';
 import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
+import { memo } from 'react';
 
 /** TcpSend 节点数据类型 */
 export interface TcpSendNodeData {
@@ -20,7 +21,7 @@ export interface TcpSendNodeData {
  * TcpSend 节点 - TCP 发送
  * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
  */
-export function TcpSendNode({ id, data, selected }: NodeProps) {
+export const TcpSendNode = memo(function TcpSendNode({ id, data, selected }: NodeProps) {
   const nodeData = data as TcpSendNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
@@ -105,4 +106,4 @@ export function TcpSendNode({ id, data, selected }: NodeProps) {
         )}
       /></div>
   );
-}
+});
