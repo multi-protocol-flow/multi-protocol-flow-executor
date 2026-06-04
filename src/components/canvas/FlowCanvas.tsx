@@ -28,7 +28,8 @@ import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
 import { NodeContextMenu } from './NodeContextMenu';
 import { CustomEdge } from './edges/CustomEdge';
-import { useFlowStore, useUIStore, useDebugStore } from '@/stores';
+import { NodeVariableTooltip } from './NodeVariableTooltip';
+import { useFlowStore, useUIStore, useDebugStore, useExecutionStore, useFlowListStore } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
 import { MapIcon, ArrowRightLeft } from 'lucide-react';
 import type { NodeType } from '@/types';
@@ -257,6 +258,75 @@ const FALLBACK_MINIMAP_COLORS: Record<string, string> = {
 };
 
 /**
+ * ImportFlowCard - 导入流程文件卡片（拖放 + 点击选择文件）
+ */
+function ImportFlowCard({ wc, onImport }: { wc: ReturnType<typeof getLL>['welcome']; onImport: (flow: import('@/types/flow').Flow) => void }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleFile = useCallback((file: File) => {
+    if (!file.name.endsWith('.mpf') && !file.name.endsWith('.json')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const data = JSON.parse(text);
+        // 支持两种格式：直接 Flow 对象和 FlowFile 包装格式
+        const flowData = data.flow ?? data;
+        if (flowData && flowData.uuid && flowData.nodes) {
+          onImport(flowData as import('@/types/flow').Flow);
+        }
+      } catch (err) {
+        console.error('[ImportFlow] 解析流程文件失败:', err);
+      }
+    };
+    reader.readAsText(file);
+  }, [onImport]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  }, [handleFile]);
+
+  return (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".mpf,.json"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFile(file);
+          e.target.value = '';
+        }}
+      />
+      <div
+        onClick={() => fileInputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={handleDrop}
+        className={`flex flex-col items-center gap-2 p-5 rounded-xl border transition-all cursor-pointer w-36 group ${
+          isDragOver
+            ? 'border-primary bg-primary/5'
+            : 'border-dashed border-border hover:border-primary/50 hover:bg-accent/50'
+        }`}
+      >
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+          <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+        </div>
+        <span className="text-sm font-medium text-foreground">{wc.empty_import_flow?.() || '导入流程文件'}</span>
+        <span className="text-xs text-muted-foreground">{wc.empty_import_flow_desc?.() || '拖入或选择 .mpf 文件'}</span>
+      </div>
+    </>
+  );
+}
+
+/**
  * 画布内部组件（在 ReactFlowProvider 内部）
  */
 function FlowCanvasInner() {
@@ -280,6 +350,7 @@ function FlowCanvasInner() {
   const { setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen, showMinimap, toggleMinimap } = useUIStore();
   const { resolvedTheme } = useTheme();
   const ll = getLL();
+  const wc = ll.welcome;
 
   // 动态节点元数据
   const [nodeMetadata, setNodeMetadata] = useState<NodeMetadata[]>([]);
@@ -306,6 +377,11 @@ function FlowCanvasInner() {
   // 跟踪已触发 fitView 的流程，避免重复触发
   const fittedFlowUuidRef = useRef<string | null>(null);
 
+  // ===== 执行状态跟踪 =====
+  const currentNodeUuid = useExecutionStore(s => s.currentNodeUuid);
+  const nodeReportsMap = useExecutionStore(s => s.nodeReportsMap);
+  const isExecuting = useExecutionStore(s => s.isExecuting);
+
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -320,6 +396,25 @@ function FlowCanvasInner() {
   const [renamingValue, setRenamingValue] = useState('');
   const [renamingPosition, setRenamingPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const renameInputRef = useRef<HTMLInputElement>(null);
+
+  // ===== 节点变量浮窗状态 =====
+  const [hoveredNode, setHoveredNode] = useState<Node | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+  // 处理节点鼠标进入 - 显示变量浮窗
+  const onNodeMouseEnter = useCallback((_event: React.MouseEvent, node: Node) => {
+    setHoveredNode(node);
+  }, []);
+
+  // 处理节点鼠标移动 - 更新浮窗位置（跟随光标）
+  const onNodeMouseMove = useCallback((event: React.MouseEvent, _node: Node) => {
+    setTooltipPosition({ x: event.clientX, y: event.clientY });
+  }, []);
+
+  // 处理节点鼠标离开 - 隐藏变量浮窗
+  const onNodeMouseLeave = useCallback(() => {
+    setHoveredNode(null);
+  }, []);
 
   // 转换 Flow 数据为 React Flow 格式
   const initialData = useMemo(() => {
@@ -454,6 +549,32 @@ function FlowCanvasInner() {
       clearCenterOnNode();
     }
   }, [centerOnNodeUuid, getNode, setCenter, clearCenterOnNode]);
+
+  // 执行节点高亮 - 根据执行状态为节点添加 CSS class
+  useEffect(() => {
+    if (!isExecuting && Object.keys(nodeReportsMap).length === 0) return;
+
+    setNodes(nds => nds.map(node => {
+      const nodeUuid = node.id;
+      const isRunning = isExecuting && currentNodeUuid === nodeUuid;
+      const report = nodeReportsMap[nodeUuid];
+      const status = report?.status;
+
+      // 移除已有的执行相关 class
+      const baseClasses = (node.className || '')
+        .replace(/\s*node-executing\s*/g, ' ')
+        .replace(/\s*node-succeeded\s*/g, ' ')
+        .replace(/\s*node-failed\s*/g, ' ')
+        .trim();
+
+      let newClass = baseClasses;
+      if (isRunning) newClass += ' node-executing';
+      if (status === 'success') newClass += ' node-succeeded';
+      if (status === 'failed') newClass += ' node-failed';
+
+      return { ...node, className: newClass || undefined };
+    }));
+  }, [currentNodeUuid, nodeReportsMap, isExecuting, setNodes]);
 
   // 处理连接创建
   const onConnect = useCallback(
@@ -775,15 +896,68 @@ function FlowCanvasInner() {
   // 没有流程时显示空状态
   if (!flow) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="text-6xl mb-4">📋</div>
-          <h2 className="text-xl font-semibold text-muted-foreground">
+      <div className="w-full h-full flex items-center justify-center bg-background" data-guide="canvas-area">
+        <div className="text-center max-w-lg">
+          <h2 className="text-xl font-semibold text-muted-foreground mb-6">
             {ll.flow.no_flow_title()}
           </h2>
-          <p className="text-sm text-muted-foreground mt-2">
-            {ll.flow.no_flow_desc()}
-          </p>
+
+          {/* Three action cards */}
+          <div className="flex gap-4 justify-center mb-8">
+            {/* New blank flow */}
+            <button
+              onClick={() => useUIStore.getState().openNewFlowDialog()}
+              className="flex flex-col items-center gap-2 p-5 rounded-xl border border-border hover:border-primary/50 hover:bg-accent/50 transition-all cursor-pointer w-36 group"
+            >
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-foreground">{ll.flow.new_flow()}</span>
+              <span className="text-xs text-muted-foreground">{wc.empty_new_flow_desc?.() || '从零开始搭建你的流程'}</span>
+            </button>
+
+            {/* From template */}
+            <button
+              onClick={() => useUIStore.getState().openNewFlowDialog('', true)}
+              className="flex flex-col items-center gap-2 p-5 rounded-xl border border-border hover:border-primary/50 hover:bg-accent/50 transition-all cursor-pointer w-36 group"
+            >
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <span className="text-sm font-medium text-foreground">{wc.empty_from_template?.() || '从模板创建'}</span>
+              <span className="text-xs text-muted-foreground">{wc.empty_from_template_desc?.() || '选择预置模板快速开始'}</span>
+            </button>
+
+            {/* Import flow file - drag & drop and click to open */}
+            <ImportFlowCard
+              wc={wc}
+              onImport={(importedFlow) => {
+                // 设置导入的流程并持久化
+                flowStorage.saveFlow(importedFlow).then(() => {
+                  const { addFlow: addToList } = useFlowListStore.getState();
+                  addToList({
+                    uuid: importedFlow.uuid,
+                    name: importedFlow.name,
+                    updated_at: Date.now(),
+                    folder_path: '',
+                  });
+                  useFlowStore.getState().setFlow(importedFlow);
+                }).catch(console.error);
+              }}
+            />
+          </div>
+
+          {/* Keyboard shortcuts hint */}
+          <div className="text-xs text-muted-foreground/60">
+            <span className="inline-flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">{wc.empty_right_click_key?.() || '右键'}</kbd>
+              <span>{wc.empty_right_click_desc?.() || '画布打开节点选择器'}</span>
+            </span>
+          </div>
         </div>
       </div>
     );
@@ -794,6 +968,7 @@ function FlowCanvasInner() {
       ref={canvasRef}
       className={cn('w-full h-full', 'bg-background')}
       style={CANVAS_CURSOR_STYLE}
+      data-guide="canvas-area"
     >
       {/* 全局样式：节点上显示 pointer */}
       <style>{`
@@ -875,6 +1050,9 @@ function FlowCanvasInner() {
         onDrop={onDrop}
         onPaneClick={onPaneClick}
         onPaneContextMenu={onPaneContextMenu}
+        onNodeMouseEnter={onNodeMouseEnter}
+        onNodeMouseMove={onNodeMouseMove}
+        onNodeMouseLeave={onNodeMouseLeave}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         // Backspace 和 Delete 键触发删除操作
@@ -985,6 +1163,12 @@ function FlowCanvasInner() {
           </div>
         </div>
       )}
+
+      {/* 节点变量浮窗 */}
+      <NodeVariableTooltip
+        hoveredNode={hoveredNode}
+        position={tooltipPosition}
+      />
     </div>
   );
 }

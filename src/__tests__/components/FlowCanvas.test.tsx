@@ -86,7 +86,10 @@ describe('FlowCanvas', () => {
       );
 
       expect(screen.getByText('暂无流程')).toBeDefined();
-      expect(screen.getByText('请创建或打开一个流程文件')).toBeDefined();
+      expect(screen.getByText('从零开始搭建你的流程')).toBeDefined();
+      expect(screen.getByText('新建流程')).toBeDefined();
+      expect(screen.getByText('从模板创建')).toBeDefined();
+      expect(screen.getByText('导入流程文件')).toBeDefined();
     });
   });
 

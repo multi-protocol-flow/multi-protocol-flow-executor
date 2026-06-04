@@ -25,6 +25,8 @@ interface ExecutionState {
   completedNodeCount: number;
   /** 总节点数 */
   totalNodes: number;
+  /** 执行完成的节点及其结果 (从 nodeReportsMap 衍生的便捷查询) */
+  executedNodes: Map<string, 'success' | 'fail' | 'skipped'>;
   /** 报告对话框是否打开 */
   isReportDialogOpen: boolean;
   /** 选中的历史报告（用于对话框展示） */
@@ -76,6 +78,7 @@ const initialState = {
   currentNodeUuid: null as string | null,
   completedNodeCount: 0,
   totalNodes: 0,
+  executedNodes: new Map<string, 'success' | 'fail' | 'skipped'>(),
   isReportDialogOpen: false,
   selectedHistoryReport: null as FlowExecutionReport | null,
 };
@@ -136,6 +139,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
         currentNodeUuid: null,
         completedNodeCount: 0,
         totalNodes,
+        executedNodes: new Map(),
         report: null,
         error: null,
       });
@@ -150,7 +154,11 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
           [report.node_uuid]: report,
         },
         completedNodeCount: state.completedNodeCount + 1,
-        currentNodeUuid: null, // Node finished, no longer running
+        currentNodeUuid: null,
+        executedNodes: new Map(state.executedNodes).set(report.node_uuid,
+          report.status === 'success' ? 'success' :
+          report.status === 'failed' ? 'fail' : 'skipped'
+        ),
       }));
     } else if ('flowCompleted' in event) {
       const { report } = event.flowCompleted;
@@ -174,6 +182,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
       currentNodeUuid: null,
       completedNodeCount: 0,
       totalNodes: 0,
+      executedNodes: new Map(),
       report: null,
       error: null,
     });

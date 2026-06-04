@@ -12,6 +12,7 @@ import {
 } from '@xyflow/react';
 import { cn } from '@/lib/utils';
 import { useDebugStore } from '@/stores/debug';
+import { useExecutionStore } from '@/stores/execution';
 
 /** 默认边颜色（跟随主题） */
 const DEFAULT_EDGE_COLOR = 'var(--canvas-edge)';
@@ -50,6 +51,16 @@ export function CustomEdge({
   const debugStatus = useDebugStore((state) => state.status);
   const currentNodeUuid = useDebugStore((state) => state.currentNodeUuid);
 
+  // 获取正常执行状态
+  const isExecuting = useExecutionStore((state) => state.isExecuting);
+  const execCurrentNodeUuid = useExecutionStore((state) => state.currentNodeUuid);
+  const nodeReportsMap = useExecutionStore((state) => state.nodeReportsMap);
+
+  // 判断数据是否正在通过此边流动（正常执行模式）
+  const isActiveEdge = isExecuting && (
+    execCurrentNodeUuid === source || nodeReportsMap[source]?.status === 'success'
+  );
+
   // 判断边是否在执行路径上
   const isExecutedEdge = useMemo(() => {
     // 非调试模式下，不改变边颜色
@@ -71,8 +82,10 @@ export function CustomEdge({
     return executedNodeUuids.has(target) || target === currentNodeUuid;
   }, [executionStack, debugStatus, source, target, currentNodeUuid]);
 
-  // 连接线颜色：执行路径用绿色，否则用黑色
-  const edgeColor = isExecutedEdge ? EXECUTED_EDGE_COLOR : DEFAULT_EDGE_COLOR;
+  // 连接线颜色：数据流动中 → 协议主题色，调试执行路径 → 绿色，否则默认
+  const edgeColor = isActiveEdge
+    ? (data?.sourceHandle === 'true' ? '#f97316' : '#3b82f6')
+    : (isExecutedEdge ? EXECUTED_EDGE_COLOR : DEFAULT_EDGE_COLOR);
 
   return (
     <>
@@ -85,7 +98,39 @@ export function CustomEdge({
           stroke: edgeColor,
         }}
       />
-      
+
+      {/* 数据流动画 - 执行中激活 */}
+      {isActiveEdge && (
+        <>
+          {/* 主粒子 */}
+          <circle r="3" fill={data?.sourceHandle === 'true' ? '#f97316' : '#3b82f6'}>
+            <animateMotion
+              dur="1s"
+              repeatCount="indefinite"
+              path={edgePath}
+            />
+          </circle>
+          {/* 偏移粒子 1 */}
+          <circle r="2" fill={data?.sourceHandle === 'true' ? '#fbbf24' : '#60a5fa'}>
+            <animateMotion
+              dur="1s"
+              repeatCount="indefinite"
+              path={edgePath}
+              begin="0.33s"
+            />
+          </circle>
+          {/* 偏移粒子 2 */}
+          <circle r="2.5" fill={data?.sourceHandle === 'true' ? '#fed7aa' : '#93c5fd'}>
+            <animateMotion
+              dur="1s"
+              repeatCount="indefinite"
+              path={edgePath}
+              begin="0.66s"
+            />
+          </circle>
+        </>
+      )}
+
       {/* 选中时显示标签 */}
       {selected && (
         <EdgeLabelRenderer>

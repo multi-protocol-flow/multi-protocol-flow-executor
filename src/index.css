@@ -122,6 +122,29 @@
   }
 }
 
+/* 节点执行状态动画 */
+@keyframes node-executing-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+    border-color: rgb(59, 130, 246);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+    border-color: rgb(37, 99, 235);
+  }
+}
+
+@keyframes edge-flow-particle {
+  0% {
+    offset-distance: 0%;
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
 /* 调试节点呼吸动画 */
 @keyframes debug-breathing {
   0%, 100% {
@@ -137,6 +160,21 @@
 }
 
 @layer utilities {
+  .node-executing {
+    animation: node-executing-pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    z-index: 10;
+  }
+
+  .node-succeeded {
+    border-color: rgb(34, 197, 94) !important;
+    background: rgba(34, 197, 94, 0.05);
+  }
+
+  .node-failed {
+    border-color: rgb(239, 68, 68) !important;
+    background: rgba(239, 68, 68, 0.05);
+  }
+
   .debug-breathing-sky {
     --breathing-color: rgba(14, 165, 233, 0.9);
     --breathing-color-end: rgba(14, 165, 233, 0);
