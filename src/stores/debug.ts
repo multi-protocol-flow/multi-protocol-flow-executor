@@ -791,6 +791,8 @@ export const useDebugStore = create<DebugState>((set, get) => ({
 export const selectDebugStatus = (state: DebugState) => state.status;
 /** 选择当前节点 UUID */
 export const selectCurrentNodeUuid = (state: DebugState) => state.currentNodeUuid;
+/** 选择调试当前节点 UUID（命名别名，用于与节点 ID 做相等性比较） */
+export const selectDebugCurrentNodeUuid = (state: DebugState) => state.currentNodeUuid;
 /** 选择是否正在调试 */
 export const selectIsDebugging = (state: DebugState) => state.status !== 'idle' && state.status !== 'ended';
 /** 选择是否已暂停 */

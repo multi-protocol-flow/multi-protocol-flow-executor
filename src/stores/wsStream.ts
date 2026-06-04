@@ -3,6 +3,40 @@
  *
  * 从 executionStore 和 debugStore 中提取的共享 WS 流逻辑。
  * 处理所有 DebugEvent 中的 WS 变体。
+ *
+ * T20: 性能优化分析
+ * 当前 handleWsEvent 中每个事件都创建新的 Map（new Map(state.wsStreams)），
+ * 高频 WS 消息时 Map 克隆开销较大。
+ *
+ * 方案一：Immer 中间件
+ *   使用 zustand immer 中间件可消除手动 Map 克隆：
+ *   import { immer } from 'zustand/middleware/immer';
+ *   const handleWsEvent = (event) => {
+ *     set(produce((state) => {
+ *       const stream = state.wsStreams.get(connection_id);
+ *       if (!stream) return;
+ *       stream.segments.at(-1)?.messages.push(message);
+ *     }));
+ *   };
+ *   优点：代码更简洁，避免冗余克隆
+ *   缺点：immer 的 Proxy 在 Map 上的性能不如普通对象；增加 bundle 体积
+ *
+ * 方案二：消息缓冲 + 节流
+ *   引入 messageBuffer 队列，每 50ms 批量 flush：
+ *   let msgBuffer: { connection_id: string; message: WsMessage }[] = [];
+ *   let flushTimer: ReturnType<typeof setInterval> | null = null;
+ *   const startBatchFlush = (set, interval = 50) => {
+ *     flushTimer = setInterval(() => {
+ *       if (msgBuffer.length === 0) return;
+ *       const batch = msgBuffer.splice(0);
+ *       set((state) => { /* 批量处理 batch *\/ });
+ *     }, interval);
+ *   };
+ *   优点：减少 setState 频率，合并 DOM 更新
+ *   缺点：消息展示有 50ms 延迟；WS 流面板需要兼容延迟更新
+ *
+ * 建议：当前实现可接受（HTTP 场景下 WS 消息频率通常不高），
+ * 若未来需要处理高频 WS 流场景，推荐方案二（消息缓冲）以最小化侵入性改动。
  */
 import { create } from 'zustand';
 import type { DebugEvent } from '@/types/debug';

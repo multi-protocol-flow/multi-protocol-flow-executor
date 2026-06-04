@@ -209,7 +209,7 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
       set((state) => ({
         status: event.progress.status,
         progress: event.progress,
-        progressHistory: [...state.progressHistory, event.progress],
+        progressHistory: [...state.progressHistory, event.progress].slice(-200),
       }));
     } else if (event.type === 'ended') {
       // 压测结束事件：设置状态为已停止，存储报告
