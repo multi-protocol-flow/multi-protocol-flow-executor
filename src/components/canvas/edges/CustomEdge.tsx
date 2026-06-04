@@ -54,11 +54,12 @@ export const CustomEdge = memo(function CustomEdge({
   // 获取正常执行状态
   const isExecuting = useExecutionStore((state) => state.isExecuting);
   const execCurrentNodeUuid = useExecutionStore((state) => state.currentNodeUuid);
-  const nodeReportsMap = useExecutionStore((state) => state.nodeReportsMap);
+  // 只订阅 source 节点的状态，而非整个 nodeReportsMap，避免任意节点完成时全量重渲染
+  const sourceStatus = useExecutionStore((state) => state.nodeReportsMap[source]?.status);
 
   // 判断数据是否正在通过此边流动（正常执行模式）
   const isActiveEdge = isExecuting && (
-    execCurrentNodeUuid === source || nodeReportsMap[source]?.status === 'success'
+    execCurrentNodeUuid === source || sourceStatus === 'success'
   );
 
   // 判断边是否在执行路径上

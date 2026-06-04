@@ -29,7 +29,7 @@ import { NodePalette } from './NodePalette';
 import { NodeContextMenu } from './NodeContextMenu';
 import { CustomEdge } from './edges/CustomEdge';
 import { NodeVariableTooltip } from './NodeVariableTooltip';
-import { useFlowStore, useUIStore, useDebugStore, useExecutionStore, useFlowListStore } from '@/stores';
+import { useFlowStore, useUIStore, useDebugStore, useExecutionStore, useFlowListStore, selectIsExecuting } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
 import { MapIcon, ArrowRightLeft } from 'lucide-react';
 import type { NodeType } from '@/types';
@@ -404,6 +404,9 @@ function FlowCanvasInner() {
   const { resolvedTheme } = useTheme();
   const ll = getLL();
   const wc = ll.welcome;
+
+  // 执行状态（用于控制画布交互）
+  const isExecuting = useExecutionStore(selectIsExecuting);
 
   // 动态节点元数据
   const [nodeMetadata, setNodeMetadata] = useState<NodeMetadata[]>([]);
@@ -1088,9 +1091,13 @@ function FlowCanvasInner() {
         minZoom={0.1}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
+        // 执行期间禁止拖拽和连线，避免干扰
+        nodesDraggable={!isExecuting}
+        nodesConnectable={!isExecuting}
         defaultEdgeOptions={{
           type: 'custom',
-          animated: true,
+          // 自定义边已自带粒子动画（<animateMotion>），不需要 React Flow 内置动画
+          animated: false,
         }}
       >
         {/* 背景网格 */}
