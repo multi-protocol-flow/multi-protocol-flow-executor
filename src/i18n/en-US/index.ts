@@ -6,6 +6,7 @@ import execution from './execution';
 import settings from './settings';
 import flow from './flow';
 import validation from './validation';
+import welcome from './welcome';
 
 const en_US: Translation = {
   common: common as Translation['common'],
@@ -15,6 +16,7 @@ const en_US: Translation = {
   settings: settings as Translation['settings'],
   flow: flow as Translation['flow'],
   validation: validation as Translation['validation'],
+  welcome: welcome as Translation['welcome'],
 };
 
 export default en_US;

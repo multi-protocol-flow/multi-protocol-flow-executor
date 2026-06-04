@@ -6,6 +6,7 @@ import execution from './execution';
 import settings from './settings';
 import flow from './flow';
 import validation from './validation';
+import welcome from './welcome';
 
 const zh_CN = {
   common,
@@ -14,7 +15,8 @@ const zh_CN = {
   execution,
   settings,
   flow,
-  validation
+  validation,
+  welcome
 } as BaseTranslation;
 
 export default zh_CN;
