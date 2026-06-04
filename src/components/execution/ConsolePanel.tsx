@@ -3,6 +3,7 @@
  * 显示实时日志，支持级别过滤和自动滚动
  */
 import { useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useConsoleStore } from '@/stores/console';
 import { useVT } from '@/i18n/viewer-translations';
@@ -42,7 +43,7 @@ interface ConsolePanelProps {
 export function ConsolePanel({ flowUuid: _flowUuid }: ConsolePanelProps) {
   const vt = useVT();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const logs = useConsoleStore((state) => state.logs);
+  const logs = useConsoleStore(useShallow((state) => state.logs));
   const getFilteredLogs = useConsoleStore((state) => state.getFilteredLogs);
 
   const filteredLogs = getFilteredLogs();

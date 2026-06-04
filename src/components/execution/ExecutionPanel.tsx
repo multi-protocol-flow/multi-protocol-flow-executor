@@ -13,6 +13,7 @@ import {
   MousePointerClick,
   Ban,
 } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { useExecutionStore, useFlowStore, useDebugStore, useUIStore } from '@/stores';
 import {
   selectIsExecuting,
@@ -154,8 +155,8 @@ export function ExecutionPanel() {
   const getNodeExecutionReport = useExecutionStore(
     (state) => state.getNodeExecutionReport,
   );
-  const wsStreams = useWsStreamStore((state) => state.wsStreams);
-  const nodeReportsMap = useExecutionStore((state) => state.nodeReportsMap);
+  const wsStreams = useWsStreamStore(useShallow((state) => state.wsStreams));
+  const nodeReportsMap = useExecutionStore(useShallow((state) => state.nodeReportsMap));
 
   // ===== 调试状态 =====
   const isDebugging = useDebugStore(selectIsDebugging);
