@@ -3,7 +3,7 @@
  * 左右分栏：左侧节点列表（含状态），右侧选中节点详情
  * 右侧详情区域包含子标签：[输出] [WS消息] [变量] [栈]
  */
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { memo, useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   Loader2,
   CheckCircle2,
@@ -47,7 +47,7 @@ interface NodeStatusItemProps {
   onClick: () => void;
 }
 
-function NodeStatusItem({
+const NodeStatusItem = memo(function NodeStatusItem({
   node,
   status,
   isSelected,
@@ -116,7 +116,7 @@ function NodeStatusItem({
       )}
     </button>
   );
-}
+});
 
 // ============================================================================
 // 判断节点是否为 WebSocket 类型

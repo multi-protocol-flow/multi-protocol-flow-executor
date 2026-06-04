@@ -3,7 +3,7 @@
  * 使用内置动画表示方向
  * 调试模式下，执行路径的边会变成绿色
  */
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -23,7 +23,7 @@ const EXECUTED_EDGE_COLOR = '#22c55e';
  * 自定义连接线组件
  * 提供贝塞尔曲线 + 流动动画效果
  */
-export function CustomEdge({
+export const CustomEdge = memo(function CustomEdge({
   id,
   source,
   target,
@@ -153,4 +153,4 @@ export function CustomEdge({
       )}
     </>
   );
-}
+});

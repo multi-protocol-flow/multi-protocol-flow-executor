@@ -83,6 +83,59 @@ const CANVAS_CURSOR_STYLE: React.CSSProperties = {
   cursor: `url("${CUSTOM_CURSOR_SVG}") 12 12, crosshair`,
 };
 
+/** 画布全局样式字符串（静态，避免每次渲染重新创建 <style> 标签） */
+const CANVAS_STYLE_STRING = `
+  /* 节点和交互元素显示 pointer */
+  .react-flow__node,
+  .react-flow__node *,
+  .react-flow__handle,
+  .react-flow__edge-path,
+  .react-flow__controls,
+  .react-flow__controls *,
+  .react-flow__minimap,
+  .react-flow__minimap * {
+    cursor: pointer !important;
+  }
+  .react-flow__controls-button svg {
+    fill: var(--controls-icon) !important;
+    stroke: var(--controls-icon) !important;
+  }
+  .react-flow__controls-button:hover svg {
+    fill: var(--foreground) !important;
+    stroke: var(--foreground) !important;
+  }
+  .react-flow__controls-button {
+    background-color: var(--background) !important;
+    border-color: var(--border) !important;
+  }
+  .react-flow__controls-button:hover {
+    background-color: var(--accent) !important;
+  }
+  .react-flow__controls,
+  .react-flow__minimap {
+    border-width: 1px !important;
+    border-style: solid !important;
+    border-color: var(--border) !important;
+  }
+  .dark .react-flow__controls,
+  .dark .react-flow__minimap {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+  }
+  .dark .react-flow__controls-button {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+  .react-flow__node.dragging,
+  .react-flow__node.dragging * {
+    cursor: url("${GRABBING_CURSOR_SVG}") 8 8, grabbing !important;
+  }
+  .react-flow__node {
+    transition: transform 300ms ease-out;
+  }
+  .react-flow__node.dragging {
+    transition: none !important;
+  }
+`;
+
 /** 节点类型映射 */
 const nodeTypes = {
   entry: EntryNode,
@@ -377,10 +430,8 @@ function FlowCanvasInner() {
   // 跟踪已触发 fitView 的流程，避免重复触发
   const fittedFlowUuidRef = useRef<string | null>(null);
 
-  // ===== 执行状态跟踪 =====
-  const currentNodeUuid = useExecutionStore(s => s.currentNodeUuid);
-  const nodeReportsMap = useExecutionStore(s => s.nodeReportsMap);
-  const isExecuting = useExecutionStore(s => s.isExecuting);
+  // ===== 执行状态跟踪（非响应式，通过 ref + subscribe 避免画布整体重渲染） =====
+  const execStateRef = useRef({ currentNodeUuid: null as string | null, nodeReportsMap: {} as Record<string, import('@/types/report').NodeExecutionReport>, isExecuting: false });
 
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState<{
@@ -550,31 +601,61 @@ function FlowCanvasInner() {
     }
   }, [centerOnNodeUuid, getNode, setCenter, clearCenterOnNode]);
 
-  // 执行节点高亮 - 根据执行状态为节点添加 CSS class
+  // 执行节点高亮 - 通过 Zustand subscribe 直接订阅（不触发 React 重渲染）
+  // 避免每次 nodeStarted/nodeCompleted 时 FlowCanvasInner 整体重渲染
   useEffect(() => {
-    if (!isExecuting && Object.keys(nodeReportsMap).length === 0) return;
+    // 初始化 ref
+    const init = useExecutionStore.getState();
+    execStateRef.current = {
+      currentNodeUuid: init.currentNodeUuid,
+      nodeReportsMap: init.nodeReportsMap,
+      isExecuting: init.isExecuting,
+    };
 
-    setNodes(nds => nds.map(node => {
-      const nodeUuid = node.id;
-      const isRunning = isExecuting && currentNodeUuid === nodeUuid;
-      const report = nodeReportsMap[nodeUuid];
-      const status = report?.status;
+    const updateNodeClasses = () => {
+      const { currentNodeUuid, nodeReportsMap, isExecuting } = execStateRef.current;
+      if (!isExecuting && Object.keys(nodeReportsMap).length === 0) return;
 
-      // 移除已有的执行相关 class
-      const baseClasses = (node.className || '')
-        .replace(/\s*node-executing\s*/g, ' ')
-        .replace(/\s*node-succeeded\s*/g, ' ')
-        .replace(/\s*node-failed\s*/g, ' ')
-        .trim();
+      setNodes(nds => {
+        let changed = false;
+        const updated = nds.map(node => {
+          const nodeUuid = node.id;
+          const isRunning = isExecuting && currentNodeUuid === nodeUuid;
+          const report = nodeReportsMap[nodeUuid];
+          const status = report?.status;
 
-      let newClass = baseClasses;
-      if (isRunning) newClass += ' node-executing';
-      if (status === 'success') newClass += ' node-succeeded';
-      if (status === 'failed') newClass += ' node-failed';
+          const baseClasses = (node.className || '')
+            .replace(/\s*node-executing\s*/g, ' ')
+            .replace(/\s*node-succeeded\s*/g, ' ')
+            .replace(/\s*node-failed\s*/g, ' ')
+            .trim();
 
-      return { ...node, className: newClass || undefined };
-    }));
-  }, [currentNodeUuid, nodeReportsMap, isExecuting, setNodes]);
+          let newClass = baseClasses;
+          if (isRunning) newClass += ' node-executing';
+          if (status === 'success') newClass += ' node-succeeded';
+          if (status === 'failed') newClass += ' node-failed';
+
+          const finalClass = newClass || undefined;
+          if (node.className !== finalClass) {
+            changed = true;
+            return { ...node, className: finalClass };
+          }
+          return node;
+        });
+        return changed ? updated : nds;
+      });
+    };
+
+    const unsub = useExecutionStore.subscribe(() => {
+      execStateRef.current = {
+        currentNodeUuid: useExecutionStore.getState().currentNodeUuid,
+        nodeReportsMap: useExecutionStore.getState().nodeReportsMap,
+        isExecuting: useExecutionStore.getState().isExecuting,
+      };
+      updateNodeClasses();
+    });
+    return unsub;
+  }, []);
 
   // 处理连接创建
   const onConnect = useCallback(
@@ -970,65 +1051,8 @@ function FlowCanvasInner() {
       style={CANVAS_CURSOR_STYLE}
       data-guide="canvas-area"
     >
-      {/* 全局样式：节点上显示 pointer */}
-      <style>{`
-        /* 节点和交互元素显示 pointer */
-        .react-flow__node,
-        .react-flow__node *,
-        .react-flow__handle,
-        .react-flow__edge-path,
-        .react-flow__controls,
-        .react-flow__controls *,
-        .react-flow__minimap,
-        .react-flow__minimap * {
-          cursor: pointer !important;
-        }
-        {/* Controls 按钮图标颜色 - 使用 CSS 变量跟随主题 */}
-        .react-flow__controls-button svg {
-          fill: var(--controls-icon) !important;
-          stroke: var(--controls-icon) !important;
-        }
-        .react-flow__controls-button:hover svg {
-          fill: var(--foreground) !important;
-          stroke: var(--foreground) !important;
-        }
-        /* Controls 按钮背景 - 跟随主题 */
-        .react-flow__controls-button {
-          background-color: var(--background) !important;
-          border-color: var(--border) !important;
-        }
-        .react-flow__controls-button:hover {
-          background-color: var(--accent) !important;
-        }
-        /* Controls / MiniMap 边框 - 强制显示 */
-        .react-flow__controls,
-        .react-flow__minimap {
-          border-width: 1px !important;
-          border-style: solid !important;
-          border-color: var(--border) !important;
-        }
-        /* 暗黑模式边框增强 - 浅色默认的 10% 白太淡 */
-        .dark .react-flow__controls,
-        .dark .react-flow__minimap {
-          border-color: rgba(255, 255, 255, 0.15) !important;
-        }
-        .dark .react-flow__controls-button {
-          border-color: rgba(255, 255, 255, 0.1) !important;
-        }
-        /* 拖拽时显示自定义 grabbing 光标 */
-        .react-flow__node.dragging,
-        .react-flow__node.dragging * {
-          cursor: url("${GRABBING_CURSOR_SVG}") 8 8, grabbing !important;
-        }
-        /* 节点自动布局动画 */
-        .react-flow__node {
-          transition: transform 300ms ease-out;
-        }
-        /* 拖拽时禁用过渡动画，避免拖拽卡顿 */
-        .react-flow__node.dragging {
-          transition: none !important;
-        }
-      `}</style>
+      {/* 全局样式（静态字符串，避免每次渲染重新创建 <style> 标签） */}
+      <style>{CANVAS_STYLE_STRING}</style>
 
       {/* 画布悬浮工具栏 */}
       <CanvasToolbar />
