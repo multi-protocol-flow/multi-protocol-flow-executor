@@ -163,16 +163,21 @@
   .node-executing {
     animation: node-executing-pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     z-index: 10;
+    /* 禁用节点自带的 transition-all，避免 className 变化时触发属性动画 */
+    transition: none !important;
   }
 
   .node-succeeded {
     border-color: rgb(34, 197, 94) !important;
     background: rgba(34, 197, 94, 0.05);
+    /* 禁用 transition-all，防止 border-color/background 触发过渡动画 */
+    transition: none !important;
   }
 
   .node-failed {
     border-color: rgb(239, 68, 68) !important;
     background: rgba(239, 68, 68, 0.05);
+    transition: none !important;
   }
 
   .debug-breathing-sky {

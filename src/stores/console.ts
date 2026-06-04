@@ -19,6 +19,8 @@ interface ConsoleState {
   // 状态
   logs: LogEntry[];
   filter: LogFilter;
+  /** 日志最大条数 */
+  MAX_LOGS: number;
 
   // Actions
   addLog: (log: LogEvent) => void;
@@ -48,11 +50,19 @@ const initialState = {
 export const useConsoleStore = create<ConsoleState>((set, get) => ({
   ...initialState,
 
+  /** 日志最大条数 */
+  MAX_LOGS: 1000,
+
   // 添加日志
   addLog: (log) =>
-    set((state) => ({
-      logs: [...state.logs, { ...log, id: generateId() }],
-    })),
+    set((state) => {
+      const newLogs = [...state.logs, { ...log, id: generateId() }];
+      // 超出上限时丢弃最早的日志
+      if (newLogs.length > state.MAX_LOGS) {
+        return { logs: newLogs.slice(newLogs.length - state.MAX_LOGS) };
+      }
+      return { logs: newLogs };
+    }),
 
   // 清空日志
   clearLogs: () => set({ logs: [] }),
