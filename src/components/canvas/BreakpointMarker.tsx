@@ -2,6 +2,7 @@
  * 断点标记组件
  * 显示在节点左上角，用于设置/取消断点
  */
+import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 
@@ -20,7 +21,7 @@ export interface BreakpointMarkerProps {
  * - 无断点：灰色空心圆点（悬停显示红色）
  * - 锁定：红色实心圆点，不可点击（入口节点专用）
  */
-export function BreakpointMarker({ hasBreakpoint, onToggle, locked }: BreakpointMarkerProps) {
+export const BreakpointMarker = memo(function BreakpointMarker({ hasBreakpoint, onToggle, locked }: BreakpointMarkerProps) {
   // 锁定状态：始终显示红色实心，不可点击
   if (locked) {
     return (
@@ -85,4 +86,4 @@ export function BreakpointMarker({ hasBreakpoint, onToggle, locked }: Breakpoint
       aria-label={hasBreakpoint ? getLL().flow.breakpoint_set_aria() : getLL().flow.breakpoint_unset_aria()}
     />
   );
-}
+});

@@ -2,8 +2,12 @@
  * 自定义连接线组件
  * 使用内置动画表示方向
  * 调试模式下，执行路径的边会变成绿色
+ *
+ * 性能优化：使用 ref + subscribe 模式替代直接 Zustand hook 订阅，
+ * 避免全部边在每次节点状态变化时全量重渲染。
+ * 只有当前边的视觉状态（颜色/动画）真正变化时才触发 React 重渲染。
  */
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -18,6 +22,60 @@ import { useExecutionStore } from '@/stores/execution';
 const DEFAULT_EDGE_COLOR = 'var(--canvas-edge)';
 /** 调试模式下执行路径的边颜色（绿色） */
 const EXECUTED_EDGE_COLOR = '#22c55e';
+
+/** 边的视觉状态 */
+interface EdgeVisualState {
+  /** 是否处于数据流动状态（粒子动画） */
+  isActive: boolean;
+  /** 是否在调试执行路径上 */
+  isExecutedEdge: boolean;
+  /** 边颜色 */
+  edgeColor: string;
+}
+
+/**
+ * 从 store 中计算当前边的视觉状态
+ * 每次执行/调试事件触发时调用
+ */
+function computeEdgeVisualState(
+  source: string,
+  target: string,
+  sourceHandle: string | undefined,
+): EdgeVisualState {
+  const execState = useExecutionStore.getState();
+  const debugState = useDebugStore.getState();
+
+  const isExecuting = execState.isExecuting;
+  const execNodeUuid = execState.currentNodeUuid;
+  const sourceStatus = execState.nodeReportsMap[source]?.status;
+
+  const debugStatus = debugState.status;
+  const executionStack = debugState.executionStack;
+  const debugNodeUuid = debugState.currentNodeUuid;
+
+  // 正常执行模式下：数据是否正在通过此边流动
+  const isActiveEdge = isExecuting && (
+    execNodeUuid === source || sourceStatus === 'success'
+  );
+
+  // 调试模式下：边是否在执行路径上
+  const isExecutedEdge = (() => {
+    if (debugStatus === 'idle' || debugStatus === 'ended') {
+      return false;
+    }
+    const executedNodeUuids = new Set(executionStack.map((entry) => entry.node_uuid));
+    if (!executedNodeUuids.has(source)) {
+      return false;
+    }
+    return executedNodeUuids.has(target) || target === debugNodeUuid;
+  })();
+
+  const edgeColor = isActiveEdge
+    ? (sourceHandle === 'true' ? '#f97316' : '#3b82f6')
+    : (isExecutedEdge ? EXECUTED_EDGE_COLOR : DEFAULT_EDGE_COLOR);
+
+  return { isActive: isActiveEdge, isExecutedEdge, edgeColor };
+}
 
 /**
  * 自定义连接线组件
@@ -46,47 +104,42 @@ export const CustomEdge = memo(function CustomEdge({
     targetPosition: _targetPosition,
   });
 
-  // 获取调试状态
-  const executionStack = useDebugStore((state) => state.executionStack);
-  const debugStatus = useDebugStore((state) => state.status);
-  const currentNodeUuid = useDebugStore((state) => state.currentNodeUuid);
+  const sourceHandle = data?.sourceHandle as string | undefined;
 
-  // 获取正常执行状态
-  const isExecuting = useExecutionStore((state) => state.isExecuting);
-  const execCurrentNodeUuid = useExecutionStore((state) => state.currentNodeUuid);
-  // 只订阅 source 节点的状态，而非整个 nodeReportsMap，避免任意节点完成时全量重渲染
-  const sourceStatus = useExecutionStore((state) => state.nodeReportsMap[source]?.status);
-
-  // 判断数据是否正在通过此边流动（正常执行模式）
-  const isActiveEdge = isExecuting && (
-    execCurrentNodeUuid === source || sourceStatus === 'success'
+  // 视觉状态 — 只在真正变化时更新，避免全部边在每步全量重渲染
+  const [visualState, setVisualState] = useState<EdgeVisualState>(() =>
+    computeEdgeVisualState(source, target, sourceHandle),
   );
+  const visualStateRef = useRef(visualState);
 
-  // 判断边是否在执行路径上
-  const isExecutedEdge = useMemo(() => {
-    // 非调试模式下，不改变边颜色
-    if (debugStatus === 'idle' || debugStatus === 'ended') {
-      return false;
-    }
+  // 订阅 store 变化，只有当前边的状态变化时才触发重渲染
+  useEffect(() => {
+    const update = () => {
+      const newState = computeEdgeVisualState(source, target, sourceHandle);
+      const oldState = visualStateRef.current;
 
-    // 获取已执行节点的 UUID 集合
-    const executedNodeUuids = new Set(executionStack.map((entry) => entry.node_uuid));
+      if (
+        newState.isActive !== oldState.isActive ||
+        newState.isExecutedEdge !== oldState.isExecutedEdge ||
+        newState.edgeColor !== oldState.edgeColor
+      ) {
+        visualStateRef.current = newState;
+        setVisualState(newState);
+      }
+    };
 
-    // 源节点必须已执行
-    if (!executedNodeUuids.has(source)) {
-      return false;
-    }
+    // 初始化
+    update();
 
-    // 目标节点满足以下任一条件：
-    // 1. 目标节点也已执行完成（在 executionStack 中）
-    // 2. 目标节点是当前暂停的节点（正在走这条路）
-    return executedNodeUuids.has(target) || target === currentNodeUuid;
-  }, [executionStack, debugStatus, source, target, currentNodeUuid]);
+    const unsubExec = useExecutionStore.subscribe(update);
+    const unsubDebug = useDebugStore.subscribe(update);
+    return () => {
+      unsubExec();
+      unsubDebug();
+    };
+  }, [source, target, sourceHandle]);
 
-  // 连接线颜色：数据流动中 → 协议主题色，调试执行路径 → 绿色，否则默认
-  const edgeColor = isActiveEdge
-    ? (data?.sourceHandle === 'true' ? '#f97316' : '#3b82f6')
-    : (isExecutedEdge ? EXECUTED_EDGE_COLOR : DEFAULT_EDGE_COLOR);
+  const { isActive: isActiveEdge, edgeColor } = visualState;
 
   return (
     <>
@@ -100,35 +153,29 @@ export const CustomEdge = memo(function CustomEdge({
         }}
       />
 
-      {/* 数据流动画 - 执行中激活 */}
+      {/* 数据流动画 - 执行中激活
+          使用 CSS offset-path 动画替代 SVG animateMotion（运行在合成器线程，
+          不占用主线程，不会影响画布拖拽和节点交互） */}
       {isActiveEdge && (
         <>
-          {/* 主粒子 */}
-          <circle r="3" fill={data?.sourceHandle === 'true' ? '#f97316' : '#3b82f6'}>
-            <animateMotion
-              dur="1s"
-              repeatCount="indefinite"
-              path={edgePath}
-            />
-          </circle>
-          {/* 偏移粒子 1 */}
-          <circle r="2" fill={data?.sourceHandle === 'true' ? '#fbbf24' : '#60a5fa'}>
-            <animateMotion
-              dur="1s"
-              repeatCount="indefinite"
-              path={edgePath}
-              begin="0.33s"
-            />
-          </circle>
-          {/* 偏移粒子 2 */}
-          <circle r="2.5" fill={data?.sourceHandle === 'true' ? '#fed7aa' : '#93c5fd'}>
-            <animateMotion
-              dur="1s"
-              repeatCount="indefinite"
-              path={edgePath}
-              begin="0.66s"
-            />
-          </circle>
+          <circle
+            r="3"
+            fill={sourceHandle === 'true' ? '#f97316' : '#3b82f6'}
+            className="edge-particle"
+            style={{ offsetPath: `path("${edgePath}")`, offsetDistance: '0%' } as React.CSSProperties}
+          />
+          <circle
+            r="2"
+            fill={sourceHandle === 'true' ? '#fbbf24' : '#60a5fa'}
+            className="edge-particle"
+            style={{ offsetPath: `path("${edgePath}")`, offsetDistance: '0%', animationDelay: '-0.33s' } as React.CSSProperties}
+          />
+          <circle
+            r="2.5"
+            fill={sourceHandle === 'true' ? '#fed7aa' : '#93c5fd'}
+            className="edge-particle"
+            style={{ offsetPath: `path("${edgePath}")`, offsetDistance: '0%', animationDelay: '-0.66s' } as React.CSSProperties}
+          />
         </>
       )}
 
@@ -146,9 +193,9 @@ export const CustomEdge = memo(function CustomEdge({
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
             }}
           >
-            {data?.sourceHandle === 'true' && '✓ True'}
-            {data?.sourceHandle === 'false' && '✗ False'}
-            {!data?.sourceHandle && '→'}
+            {sourceHandle === 'true' && '✓ True'}
+            {sourceHandle === 'false' && '✗ False'}
+            {!sourceHandle && '→'}
           </div>
         </EdgeLabelRenderer>
       )}

@@ -127,7 +127,7 @@ const CANVAS_STYLE_STRING = `
   .react-flow__node.dragging * {
     cursor: url("${GRABBING_CURSOR_SVG}") 8 8, grabbing !important;
   }
-  .react-flow__node {
+  .react-flow__node:not(.dragging) {
     transition: transform 300ms ease-out;
   }
   .react-flow__node.dragging {
@@ -434,6 +434,7 @@ function FlowCanvasInner() {
 
   // ===== 执行状态跟踪（非响应式，通过 ref + subscribe 避免画布整体重渲染） =====
   const execStateRef = useRef({ currentNodeUuid: null as string | null, nodeReportsMap: {} as Record<string, import('@/types/report').NodeExecutionReport>, isExecuting: false });
+  const classNameUpdateRafRef = useRef<number | null>(null);
 
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState<{
@@ -635,9 +636,22 @@ function FlowCanvasInner() {
         nodeReportsMap: useExecutionStore.getState().nodeReportsMap,
         isExecuting: useExecutionStore.getState().isExecuting,
       };
-      updateNodeClasses();
+      // RAF 节流：合并多次连续事件的 setNodes 调用到下一帧，
+      // 避免每次 nodeStarted/nodeCompleted 都触发全量 reconcile
+      if (classNameUpdateRafRef.current !== null) {
+        cancelAnimationFrame(classNameUpdateRafRef.current);
+      }
+      classNameUpdateRafRef.current = requestAnimationFrame(() => {
+        classNameUpdateRafRef.current = null;
+        updateNodeClasses();
+      });
     });
-    return unsub;
+    return () => {
+      unsub();
+      if (classNameUpdateRafRef.current !== null) {
+        cancelAnimationFrame(classNameUpdateRafRef.current);
+      }
+    };
   }, []);
 
   // 处理连接创建
