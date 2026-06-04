@@ -795,6 +795,9 @@ export const selectCurrentNodeUuid = (state: DebugState) => state.currentNodeUui
 export const selectIsDebugging = (state: DebugState) => state.status !== 'idle' && state.status !== 'ended';
 /** 选择是否已暂停 */
 export const selectIsPaused = (state: DebugState) => state.status === 'paused';
+/** 选择指定节点是否处于调试暂停状态（isPaused && currentNodeUuid === nodeId） */
+export const selectIsNodeDebugPaused = (nodeId: string) => (state: DebugState) =>
+  state.status === 'paused' && state.currentNodeUuid === nodeId;
 /** 选择健康状态 */
 export const selectHealthStatus = (state: DebugState) => state.healthStatus;
 /** 选择是否正在等待命令响应 */

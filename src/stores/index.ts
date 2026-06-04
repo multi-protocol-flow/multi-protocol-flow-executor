@@ -40,6 +40,7 @@ export {
   selectError,
   selectHistory,
   selectExecutionStatus,
+  selectIsNodeRunning,
 } from './execution';
 
 // UI store selectors
@@ -62,6 +63,7 @@ export {
   selectCurrentNodeUuid,
   selectIsDebugging,
   selectIsPaused,
+  selectIsNodeDebugPaused,
   selectIsDebugDataReadOnly,
 } from './debug';
 

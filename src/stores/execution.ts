@@ -244,6 +244,9 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
 // ===== Selectors =====
 /** 选择执行状态 */
 export const selectIsExecuting = (state: ExecutionState) => state.isExecuting;
+/** 选择指定节点是否正在执行中（isExecuting && currentNodeUuid === nodeId） */
+export const selectIsNodeRunning = (nodeId: string) => (state: ExecutionState) =>
+  state.isExecuting && state.currentNodeUuid === nodeId;
 /** 选择执行报告 */
 export const selectReport = (state: ExecutionState) => state.report;
 /** 选择错误信息 */
