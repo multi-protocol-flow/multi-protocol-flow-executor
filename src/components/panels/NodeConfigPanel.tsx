@@ -34,7 +34,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData, Node } from '@/types';
-import { Settings2, MousePointerClick, Lock, PencilLine } from 'lucide-react';
+import { Settings2, MousePointerClick, Lock, PencilLine, CircleHelp } from 'lucide-react';
+import { HelpDrawer } from './HelpDrawer';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 
@@ -70,6 +71,9 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
 
   // 调试模式下编辑配置弹窗状态
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  // 帮助抽屉状态
+  const [isHelpDrawerOpen, setIsHelpDrawerOpen] = useState(false);
 
   // 未选中节点时显示流程节点列表
   if (!selectedNode) {
@@ -129,6 +133,18 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             </CardTitle>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsHelpDrawerOpen(true);
+              }}
+              title="帮助"
+            >
+              <CircleHelp className="h-4 w-4 text-muted-foreground hover:text-primary" />
+            </Button>
             {readOnly && (
               <>
                 <span className="inline-flex items-center rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
@@ -192,6 +208,12 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
           onCancel={() => setIsEditDialogOpen(false)}
         />
       )}
+
+      <HelpDrawer
+        nodeTypeId={selectedNode.type}
+        open={isHelpDrawerOpen}
+        onClose={() => setIsHelpDrawerOpen(false)}
+      />
     </Card>
   );
 }
