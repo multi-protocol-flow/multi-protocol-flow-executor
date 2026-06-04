@@ -28,7 +28,6 @@ import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
 import { NodeContextMenu } from './NodeContextMenu';
 import { CustomEdge } from './edges/CustomEdge';
-import { NodeVariableTooltip } from './NodeVariableTooltip';
 import { useFlowStore, useUIStore, useDebugStore, useExecutionStore, useFlowListStore, selectIsExecuting } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
 import { MapIcon, ArrowRightLeft } from 'lucide-react';
@@ -450,25 +449,6 @@ function FlowCanvasInner() {
   const [renamingValue, setRenamingValue] = useState('');
   const [renamingPosition, setRenamingPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const renameInputRef = useRef<HTMLInputElement>(null);
-
-  // ===== 节点变量浮窗状态 =====
-  const [hoveredNode, setHoveredNode] = useState<Node | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-
-  // 处理节点鼠标进入 - 显示变量浮窗
-  const onNodeMouseEnter = useCallback((_event: React.MouseEvent, node: Node) => {
-    setHoveredNode(node);
-  }, []);
-
-  // 处理节点鼠标移动 - 更新浮窗位置（跟随光标）
-  const onNodeMouseMove = useCallback((event: React.MouseEvent, _node: Node) => {
-    setTooltipPosition({ x: event.clientX, y: event.clientY });
-  }, []);
-
-  // 处理节点鼠标离开 - 隐藏变量浮窗
-  const onNodeMouseLeave = useCallback(() => {
-    setHoveredNode(null);
-  }, []);
 
   // 转换 Flow 数据为 React Flow 格式
   const initialData = useMemo(() => {
@@ -1077,9 +1057,6 @@ function FlowCanvasInner() {
         onDrop={onDrop}
         onPaneClick={onPaneClick}
         onPaneContextMenu={onPaneContextMenu}
-        onNodeMouseEnter={onNodeMouseEnter}
-        onNodeMouseMove={onNodeMouseMove}
-        onNodeMouseLeave={onNodeMouseLeave}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         // Backspace 和 Delete 键触发删除操作
@@ -1195,11 +1172,6 @@ function FlowCanvasInner() {
         </div>
       )}
 
-      {/* 节点变量浮窗 */}
-      <NodeVariableTooltip
-        hoveredNode={hoveredNode}
-        position={tooltipPosition}
-      />
     </div>
   );
 }
