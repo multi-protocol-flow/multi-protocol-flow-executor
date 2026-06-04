@@ -6,7 +6,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { McpGetPromptConfig } from '@/types';
-import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
+import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, selectIsNodeDebugPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -26,10 +26,9 @@ export const McpGetPromptNode = memo(function McpGetPromptNode({ id, data, selec
   const nodeData = data as McpGetPromptNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
-  const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
-  const isPaused = useDebugStore(selectIsPaused);
-  const isExecuting = useExecutionStore(s => s.isExecuting);
-  const isDebugPausedAtThisNode = (isPaused || isExecuting) && currentNodeUuid === id;
+  const isRunning = useExecutionStore(selectIsNodeRunning(id));
+  const isDebugPaused = useDebugStore(selectIsNodeDebugPaused(id));
+  const isDebugPausedAtThisNode = isRunning || isDebugPaused;
   const isDebugging = useDebugStore(selectIsDebugging);
   const LL = getLL();
   

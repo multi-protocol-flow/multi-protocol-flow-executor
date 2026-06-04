@@ -6,7 +6,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { CirclePlay } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DbBeginConfig } from '@/types';
-import { useFlowStore, useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
+import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, selectIsNodeDebugPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
@@ -25,10 +25,9 @@ export const DbBeginNode = memo(function DbBeginNode({ id, data, selected }: Nod
   const nodeData = data as DbBeginNodeData;
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
-  const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
-  const isPaused = useDebugStore(selectIsPaused);
-  const isExecuting = useExecutionStore(s => s.isExecuting);
-  const isDebugPausedAtThisNode = (isPaused || isExecuting) && currentNodeUuid === id;
+  const isRunning = useExecutionStore(selectIsNodeRunning(id));
+  const isDebugPaused = useDebugStore(selectIsNodeDebugPaused(id));
+  const isDebugPausedAtThisNode = isRunning || isDebugPaused;
   const isDebugging = useDebugStore(selectIsDebugging);
   
   return (

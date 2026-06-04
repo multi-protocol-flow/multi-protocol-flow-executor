@@ -5,7 +5,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useDebugStore, useExecutionStore, selectCurrentNodeUuid, selectIsPaused, selectIsDebugging } from '@/stores';
+import { useDebugStore, useExecutionStore, selectIsNodeRunning, selectIsNodeDebugPaused, selectIsDebugging } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { memo } from 'react';
@@ -22,10 +22,9 @@ export interface EndNodeData {
  */
 export const EndNode = memo(function EndNode({ id, data, selected }: NodeProps) {
   const nodeData = data as EndNodeData;
-  const currentNodeUuid = useDebugStore(selectCurrentNodeUuid);
-  const isPaused = useDebugStore(selectIsPaused);
-  const isExecuting = useExecutionStore(s => s.isExecuting);
-  const isDebugPausedAtThisNode = (isPaused || isExecuting) && currentNodeUuid === id;
+  const isRunning = useExecutionStore(selectIsNodeRunning(id));
+  const isDebugPaused = useDebugStore(selectIsNodeDebugPaused(id));
+  const isDebugPausedAtThisNode = isRunning || isDebugPaused;
   const isDebugging = useDebugStore(selectIsDebugging);
 
   return (
