@@ -29,7 +29,7 @@ import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
 import { NodeContextMenu } from './NodeContextMenu';
 import { CustomEdge } from './edges/CustomEdge';
-import { useFlowStore, useUIStore, useDebugStore, useExecutionStore, useFlowListStore, selectIsExecuting } from '@/stores';
+import { useFlowStore, useUIStore, useDebugStore, useExecutionStore, useFlowListStore, selectIsExecuting, selectFlow, selectIsDirty } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
 import { MapIcon, ArrowRightLeft } from 'lucide-react';
 import type { NodeType } from '@/types';
@@ -133,6 +133,10 @@ const CANVAS_STYLE_STRING = `
   }
   .react-flow__node.dragging {
     transition: none !important;
+  }
+  .react-flow__node {
+    /* contain: paint 会裁剪溢出内容（包括节点出入口圆圈），所以只保留 layout style */
+    contain: layout style;
   }
 `;
 
@@ -383,24 +387,26 @@ function ImportFlowCard({ wc, onImport }: { wc: ReturnType<typeof getLL>['welcom
  * 画布内部组件（在 ReactFlowProvider 内部）
  */
 function FlowCanvasInner() {
-  const { 
-    flow, 
-    addConnection, 
-    updateNode, 
-    selectNode, 
-    addNode, 
-    removeConnection,
-    pendingAddNodeType,
-    clearPendingAddNodeType,
-    isDirty,
-    markSaved,
-    focusNodeUuid,
-    clearFocusNode,
-    centerOnNodeUuid,
-    clearCenterOnNode,
-    batchUpdateNodePositions,
-  } = useFlowStore();
-  const { setConfigPanelOpen, setConfigPanelMode, setFlowListPanelOpen, showMinimap, toggleMinimap } = useUIStore();
+  const flow = useFlowStore(selectFlow);
+  const addConnection = useFlowStore((s) => s.addConnection);
+  const updateNode = useFlowStore((s) => s.updateNode);
+  const selectNode = useFlowStore((s) => s.selectNode);
+  const addNode = useFlowStore((s) => s.addNode);
+  const removeConnection = useFlowStore((s) => s.removeConnection);
+  const pendingAddNodeType = useFlowStore((s) => s.pendingAddNodeType);
+  const clearPendingAddNodeType = useFlowStore((s) => s.clearPendingAddNodeType);
+  const isDirty = useFlowStore(selectIsDirty);
+  const markSaved = useFlowStore((s) => s.markSaved);
+  const focusNodeUuid = useFlowStore((s) => s.focusNodeUuid);
+  const clearFocusNode = useFlowStore((s) => s.clearFocusNode);
+  const centerOnNodeUuid = useFlowStore((s) => s.centerOnNodeUuid);
+  const clearCenterOnNode = useFlowStore((s) => s.clearCenterOnNode);
+  const batchUpdateNodePositions = useFlowStore((s) => s.batchUpdateNodePositions);
+  const setConfigPanelOpen = useUIStore((s) => s.setConfigPanelOpen);
+  const setConfigPanelMode = useUIStore((s) => s.setConfigPanelMode);
+  const setFlowListPanelOpen = useUIStore((s) => s.setFlowListPanelOpen);
+  const showMinimap = useUIStore((s) => s.showMinimap);
+  const toggleMinimap = useUIStore((s) => s.toggleMinimap);
   const { resolvedTheme } = useTheme();
   const ll = getLL();
   const wc = ll.welcome;
@@ -1111,6 +1117,14 @@ function FlowCanvasInner() {
         maxZoom={2}
         onlyRenderVisibleElements={true}
         proOptions={{ hideAttribution: true }}
+        // → React Flow v12 性能/交互 props
+        // panOnDrag 默认左键(0)可拖拽平移，如需中/右键平移可改为 {[1, 2]}
+        // selectionOnDrag 启用左键框选（与左键平移互斥，默认关闭）
+        colorMode={resolvedTheme === 'dark' ? 'dark' : 'light'}
+        elevateNodesOnSelect={true}
+        autoPanOnNodeDrag={true}
+        autoPanOnConnect={true}
+        connectionRadius={30}
         // 执行期间禁止拖拽和连线，避免干扰
         nodesDraggable={!isExecuting}
         nodesConnectable={!isExecuting}

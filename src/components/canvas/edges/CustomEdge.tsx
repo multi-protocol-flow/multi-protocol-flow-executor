@@ -131,11 +131,10 @@ export const CustomEdge = memo(function CustomEdge({
     // 初始化
     update();
 
-    const unsubExec = useExecutionStore.subscribe(update);
-    const unsubDebug = useDebugStore.subscribe(update);
+    // 单订阅即可，computeEdgeVisualState 内部通过 getState() 读取两个 store
+    const unsub = useExecutionStore.subscribe(update);
     return () => {
-      unsubExec();
-      unsubDebug();
+      unsub();
     };
   }, [source, target, sourceHandle]);
 
