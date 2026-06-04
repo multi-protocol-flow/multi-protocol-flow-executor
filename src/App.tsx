@@ -3,6 +3,7 @@
  */
 import { useEffect, useState } from 'react';
 import { MainLayout } from '@/layouts/MainLayout';
+import { WelcomeWizard } from '@/components/welcome/WelcomeWizard';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useTheme } from '@/hooks/useTheme';
 import { useSettingsStore } from '@/stores/settings';
@@ -118,7 +119,9 @@ function App() {
   return (
     <TypesafeI18n locale={currentLocale}>
       <I18nBridge>
-        <MainLayout />
+        <WelcomeWizard>
+          <MainLayout />
+        </WelcomeWizard>
       </I18nBridge>
     </TypesafeI18n>
   );

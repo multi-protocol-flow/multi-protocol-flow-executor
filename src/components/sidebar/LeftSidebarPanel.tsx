@@ -82,6 +82,7 @@ export function LeftSidebarPanel() {
               disabled={isDebugging}
               className="h-6 w-6 rounded-md hover:bg-accent disabled:opacity-50"
               title={isDebugging ? LL.flow.debug_no_new_flow() : LL.flow.new_flow()}
+              data-guide="new-flow-btn"
             >
               <Plus className="w-3.5 h-3.5" />
             </Button>

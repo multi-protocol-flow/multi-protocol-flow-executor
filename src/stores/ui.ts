@@ -73,6 +73,8 @@ interface UIState {
   showNewFlowDialog: boolean;
   /** 新建流程对话框预选的文件夹路径 */
   newFlowDialogFolderPath: string;
+  /** 新建流程对话框是否默认打开模板 Tab */
+  newFlowDialogDefaultTemplate: boolean;
   /** 是否显示删除确认对话框 */
   showDeleteConfirmDialog: boolean;
   /** 待删除的流程 UUID（用于删除确认） */
@@ -142,8 +144,8 @@ interface UIState {
   setBottomPanelTab: (tab: BottomPanelTab) => void;
 
   // ===== 模态框 Actions =====
-  /** 显示新建流程对话框（可指定预选的文件夹路径） */
-  openNewFlowDialog: (folderPath?: string) => void;
+  /** 显示新建流程对话框（可指定预选的文件夹路径，以及是否默认打开模板 Tab） */
+  openNewFlowDialog: (folderPath?: string, defaultTemplate?: boolean) => void;
   /** 关闭新建流程对话框 */
   closeNewFlowDialog: () => void;
   /** 显示删除确认对话框 */
@@ -210,6 +212,12 @@ interface UIState {
   /** 关闭节点选择器 */
   closeNodePalette: () => void;
 
+  // ===== 欢迎引导状态 =====
+  /** 当前引导步骤（0 表示未激活） */
+  welcomeStep: number;
+  /** 设置引导步骤 */
+  setWelcomeStep: (step: number) => void;
+
   // ===== 工具方法 =====
   /** 重置所有面板状态 */
   resetPanels: () => void;
@@ -254,6 +262,7 @@ const initialState = {
   // 模态框状态
   showNewFlowDialog: false,
   newFlowDialogFolderPath: '',
+  newFlowDialogDefaultTemplate: false,
   showDeleteConfirmDialog: false,
   pendingDeleteFlowUuid: null,
   showSettingsDialog: false,
@@ -284,6 +293,8 @@ const initialState = {
       // 节点选择器
       isNodePaletteOpen: false,
       nodePalettePosition: null,
+      // 欢迎引导
+      welcomeStep: 0,
 };
 
 export const useUIStore = create<UIState>((set) => ({
@@ -319,7 +330,12 @@ export const useUIStore = create<UIState>((set) => ({
   setBottomPanelTab: (bottomPanelTab) => set({ bottomPanelTab }),
 
   // ===== 模态框 Actions =====
-  openNewFlowDialog: (folderPath?: string) => set({ showNewFlowDialog: true, newFlowDialogFolderPath: folderPath ?? '' }),
+  openNewFlowDialog: (folderPath?: string, defaultTemplate?: boolean) =>
+    set({
+      showNewFlowDialog: true,
+      newFlowDialogFolderPath: folderPath ?? '',
+      newFlowDialogDefaultTemplate: defaultTemplate ?? false,
+    }),
 
   closeNewFlowDialog: () => set({ showNewFlowDialog: false, newFlowDialogFolderPath: '' }),
 
@@ -473,6 +489,9 @@ export const useUIStore = create<UIState>((set) => ({
       datasetReportPage: { reportId: null, rowIndex: null },
     }),
 
+  // ===== 欢迎引导 Actions =====
+  setWelcomeStep: (welcomeStep) => set({ welcomeStep }),
+
   // ===== 工具方法 =====
   resetPanels: () =>
     set({
@@ -515,3 +534,7 @@ export const selectShowSettingsDialog = (state: UIState) =>
 /** 选择底部面板 Tab */
 export const selectBottomPanelTab = (state: UIState) =>
   state.bottomPanelTab;
+
+/** 选择欢迎引导步骤 */
+export const selectWelcomeStep = (state: UIState) =>
+  state.welcomeStep;
