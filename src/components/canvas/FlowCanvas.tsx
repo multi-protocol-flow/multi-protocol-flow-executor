@@ -24,6 +24,7 @@ import '@xyflow/react/dist/style.css';
 
 import { EntryNode, HttpNode, ConditionalNode, WsConnectNode, WsSendCollectNode, WsCloseNode, AssertionNode, DbConnectNode, DbQueryNode, DbBeginNode, DbCommitNode, DbRollbackNode, DbCloseNode, ScriptNode, GrpcConnectNode, GrpcCallNode, GrpcCloseNode, TcpConnectNode, TcpSendNode, TcpReceiveNode, TcpCloseNode, UdpBindNode, UdpSendToNode, UdpRecvFromNode, UdpCloseNode, McpConnectNode, McpCallToolNode, McpReadResourceNode, McpGetPromptNode, McpCloseNode, MqttConnectNode, MqttPublishNode, MqttSubscribeNode, MqttUnsubscribeNode, MqttDisconnectNode, MqttWaitMessageNode, MqttRequestNode, VariableExtractorNode, KafkaConnectNode, KafkaProduceNode, KafkaConsumeNode, KafkaConsumeBatchNode, KafkaAdminNode, KafkaSchemaRegistryNode, KafkaCloseNode, SseConnectNode, SseListenNode, SseDisconnectNode, GraphqlConnectNode, GraphqlQueryNode, GraphqlSubscribeNode, GraphqlIntrospectNode, GraphqlDisconnectNode, ImapConnectNode, ImapSelectNode, ImapSearchNode, ImapFetchNode, ImapStoreFlagsNode, ImapCopyNode, ImapMoveNode, ImapExpungeNode, ImapListNode, ImapFolderCreateNode, ImapFolderDeleteNode, ImapIdleNode, ImapCloseNode, SmtpConnectNode, SmtpSendNode, SmtpDisconnectNode, ProxyNode, AmqpConnectNode, AmqpCloseNode, AmqpExchangeDeclareNode, AmqpExchangeDeleteNode, AmqpQueueDeclareNode, AmqpQueueDeleteNode, AmqpQueueBindNode, AmqpPublishNode, AmqpConsumeNode, AmqpGetNode, AmqpAckNode, AmqpManagementNode, Amqp10ConnectNode, Amqp10SendNode, Amqp10ReceiveNode, Amqp10AcceptNode, Amqp10RejectNode, Amqp10DisconnectNode, EndNode } from './nodes';
 import DynamicPluginNode from './nodes/DynamicPluginNode';
+import { ExecutionOverlay } from './ExecutionOverlay';
 import { CanvasToolbar } from './CanvasToolbar';
 import { NodePalette } from './NodePalette';
 import { NodeContextMenu } from './NodeContextMenu';
@@ -435,6 +436,10 @@ function FlowCanvasInner() {
   // ===== 执行状态跟踪（非响应式，通过 ref + subscribe 避免画布整体重渲染） =====
   const execStateRef = useRef({ currentNodeUuid: null as string | null, nodeReportsMap: {} as Record<string, import('@/types/report').NodeExecutionReport>, isExecuting: false });
   const classNameUpdateRafRef = useRef<number | null>(null);
+  // 执行结束后只做一次 className 回写，避免执行期间反复 setNodes
+  const finalClassNameDoneRef = useRef(false);
+  // 叠加层视口变换 ref — 通过 onMove 直接写 DOM，不触发 React 渲染
+  const overlayInnerRef = useRef<HTMLDivElement>(null);
 
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState<{
@@ -597,14 +602,24 @@ function FlowCanvasInner() {
     };
 
     const updateNodeClasses = () => {
-      const { currentNodeUuid, nodeReportsMap, isExecuting } = execStateRef.current;
-      if (!isExecuting && Object.keys(nodeReportsMap).length === 0) return;
+      const { nodeReportsMap, isExecuting } = execStateRef.current;
+      const nodeReportsCount = Object.keys(nodeReportsMap).length;
+
+      if (!isExecuting && nodeReportsCount === 0) return;
+
+      // === 极致性能优化 ===
+      // 执行期间：不调用 setNodes，节点视觉状态由 ExecutionOverlay 叠加层提供
+      // 执行结束后：一次 setNodes 写回最终 className，使节点呈现绿/红边框
+      if (isExecuting) return;
+
+      // 执行已结束，仅做一次 className 写回
+      if (finalClassNameDoneRef.current) return;
+      finalClassNameDoneRef.current = true;
 
       setNodes(nds => {
         let changed = false;
         const updated = nds.map(node => {
           const nodeUuid = node.id;
-          const isRunning = isExecuting && currentNodeUuid === nodeUuid;
           const report = nodeReportsMap[nodeUuid];
           const status = report?.status;
 
@@ -615,7 +630,6 @@ function FlowCanvasInner() {
             .trim();
 
           let newClass = baseClasses;
-          if (isRunning) newClass += ' node-executing';
           if (status === 'success') newClass += ' node-succeeded';
           if (status === 'failed') newClass += ' node-failed';
 
@@ -631,11 +645,16 @@ function FlowCanvasInner() {
     };
 
     const unsub = useExecutionStore.subscribe(() => {
+      const s = useExecutionStore.getState();
       execStateRef.current = {
-        currentNodeUuid: useExecutionStore.getState().currentNodeUuid,
-        nodeReportsMap: useExecutionStore.getState().nodeReportsMap,
-        isExecuting: useExecutionStore.getState().isExecuting,
+        currentNodeUuid: s.currentNodeUuid,
+        nodeReportsMap: s.nodeReportsMap,
+        isExecuting: s.isExecuting,
       };
+      // 新执行开始时重置「最终 className 写回」标记
+      if (s.isExecuting) {
+        finalClassNameDoneRef.current = false;
+      }
       // RAF 节流：合并多次连续事件的 setNodes 调用到下一帧，
       // 避免每次 nodeStarted/nodeCompleted 都触发全量 reconcile
       if (classNameUpdateRafRef.current !== null) {
@@ -736,6 +755,14 @@ function FlowCanvasInner() {
     setContextMenu(null);
     useUIStore.getState().closeNodePalette();
   }, [selectNode, setConfigPanelOpen, setConfigPanelMode]);
+
+  // 视口变换回调 — 同步到叠加层容器，直接写 DOM style.transform，不触发 React 渲染
+  const onMove = useCallback((_event: unknown, viewport: { x: number; y: number; zoom: number }) => {
+    const el = overlayInnerRef.current;
+    if (el) {
+      el.style.transform = `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`;
+    }
+  }, []);
 
   // 处理画布右键 - 弹出节点选择器
   const onPaneContextMenu = useCallback(
@@ -1071,6 +1098,7 @@ function FlowCanvasInner() {
         onDrop={onDrop}
         onPaneClick={onPaneClick}
         onPaneContextMenu={onPaneContextMenu}
+        onMove={onMove}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         // Backspace 和 Delete 键触发删除操作
@@ -1081,6 +1109,7 @@ function FlowCanvasInner() {
         fitViewOptions={{ padding: 0.4 }}
         minZoom={0.1}
         maxZoom={2}
+        onlyRenderVisibleElements={true}
         proOptions={{ hideAttribution: true }}
         // 执行期间禁止拖拽和连线，避免干扰
         nodesDraggable={!isExecuting}
@@ -1133,6 +1162,20 @@ function FlowCanvasInner() {
             zoomable
           />
         )}
+
+        {/* 执行状态叠加层 — 独立渲染，执行期间不触发 React Flow reconcile */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 5 }}>
+          <div
+            ref={overlayInnerRef}
+            className="absolute left-0 top-0"
+            style={{
+              transformOrigin: '0 0',
+              willChange: 'transform',
+            }}
+          >
+            <ExecutionOverlay />
+          </div>
+        </div>
       </ReactFlow>
 
       {/* 节点右键菜单 */}
