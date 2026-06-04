@@ -28,6 +28,19 @@ pub struct FlowFile {
     pub _meta: Option<serde_json::Value>,
 }
 
+/// 轻量级流程元数据，仅用于列表时快速提取 id 和名称（不验证完整 Flow 结构）
+#[derive(Debug, Clone, serde::Deserialize)]
+struct FlowFileMeta {
+    flow: FlowMeta,
+}
+
+/// 轻量级流程信息
+#[derive(Debug, Clone, serde::Deserialize)]
+struct FlowMeta {
+    uuid: String,
+    name: String,
+}
+
 /// 流程元数据，用于列表展示
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -315,32 +328,59 @@ pub fn save_flow_file_with_meta(
 
 /// 从 .mpf 文件加载流程文件（按 UUID 查找）
 ///
-/// 递归扫描 `flows_dir` 下所有 `.mpf` 文件，找到匹配 UUID 的流程文件并返回完整的 `FlowFile`。
+/// 先轻量扫描定位文件，再完整验证 Flow 结构。
+/// 如果文件格式损坏，返回明确的错误提示而不是"流程不存在"。
 pub fn load_flow_file_raw(uuid: &str, flows_dir: &Path) -> Result<FlowFile, String> {
     let mut mpf_files = Vec::new();
     collect_mpf_files(flows_dir, &mut mpf_files)?;
 
-    for path in mpf_files {
-        let mut content = String::new();
-        let read_ok = (|| -> Result<(), String> {
-            let mut file = File::open(&path).map_err(|e| format!("打开文件失败: {}", e))?;
-            file.read_to_string(&mut content)
-                .map_err(|e| format!("读取文件失败: {}", e))?;
-            Ok(())
-        })();
-
-        if read_ok.is_err() {
-            continue;
-        }
-
-        if let Ok(flow_file) = serde_json::from_str::<FlowFile>(&content) {
-            if flow_file.flow.uuid == uuid {
-                return Ok(flow_file);
+    // 第一遍：轻量扫描，只找文件名（不验证完整 Flow 结构）
+    let target_path = {
+        let mut found = None::<PathBuf>;
+        for path in &mpf_files {
+            let mut content = String::new();
+            if (|| -> Result<(), String> {
+                let mut file =
+                    File::open(path).map_err(|e| format!("打开文件失败: {}", e))?;
+                file.read_to_string(&mut content)
+                    .map_err(|e| format!("读取文件失败: {}", e))?;
+                Ok(())
+            })()
+            .is_err()
+            {
+                continue;
+            }
+            if let Ok(meta) = serde_json::from_str::<FlowFileMeta>(&content) {
+                if meta.flow.uuid == uuid {
+                    found = Some(path.clone());
+                    break;
+                }
             }
         }
-    }
+        found
+    };
 
-    Err(format!("流程不存在: {}", uuid))
+    match target_path {
+        Some(path) => {
+            // 第二遍：读取并完整验证该文件
+            let mut content = String::new();
+            let mut file =
+                File::open(&path).map_err(|e| format!("打开文件失败: {}", e))?;
+            file.read_to_string(&mut content)
+                .map_err(|e| format!("读取文件失败: {}", e))?;
+
+            let flow_file: FlowFile = serde_json::from_str(&content).map_err(|e| {
+                format!(
+                    "流程文件已损坏: {} - {}",
+                    path.display(),
+                    e
+                )
+            })?;
+
+            Ok(flow_file)
+        }
+        None => Err(format!("流程不存在: {}", uuid)),
+    }
 }
 
 /// 从 .mpf 文件加载流程（按 UUID 查找），仅返回 Flow 部分
@@ -353,16 +393,14 @@ pub fn load_flow_file(uuid: &str, flows_dir: &Path) -> Result<Flow, String> {
 
 /// 列出所有 .mpf 流程文件的元数据
 ///
-/// 递归扫描目录下所有 `.mpf` 文件，提取元数据。
+/// 仅检查 `.mpf` 后缀，使用轻量 JSON 解析提取 UUID 和流程名称，不验证完整 Flow 结构。
 /// 损坏的文件（JSON 解析失败）会被跳过并记录警告日志。
-/// UUID 冲突时会自动重新分配 UUID 并写回文件。
-/// 结果按流程名称字母序排序。
+/// 结果按文件夹路径排序，同文件夹内按名称排序。
 pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
     let mut mpf_files = Vec::new();
     collect_mpf_files(flows_dir, &mut mpf_files)?;
 
     let mut metadata_list = Vec::new();
-    let mut seen_uuids = HashSet::new();
 
     for path in &mpf_files {
         let mut content = String::new();
@@ -377,36 +415,13 @@ pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
             continue;
         }
 
-        let flow_file: FlowFile = match serde_json::from_str(&content) {
-            Ok(f) => f,
+        // 轻量解析：仅提取 uuid 和 name，不验证完整 Flow 结构
+        let flow_meta: FlowFileMeta = match serde_json::from_str(&content) {
+            Ok(m) => m,
             Err(e) => {
                 log::warn!("跳过损坏的流程文件: {} - {}", path.display(), e);
                 continue;
             }
-        };
-
-        let original_uuid = flow_file.flow.uuid.clone();
-
-        // UUID 冲突检测
-        let final_uuid = if seen_uuids.contains(&original_uuid) {
-            let new_uuid = uuid::Uuid::new_v4().to_string();
-            log::warn!(
-                "检测到 UUID 冲突: {}，自动重分配为: {}",
-                original_uuid,
-                new_uuid
-            );
-            // 用新 UUID 写回文件
-            let mut fixed_flow = flow_file.flow.clone();
-            fixed_flow.uuid = new_uuid.clone();
-            if save_flow_file(&fixed_flow, flows_dir).is_ok() {
-                // 删除旧文件
-                let _ = fs::remove_file(path);
-            }
-            seen_uuids.insert(new_uuid.clone());
-            new_uuid
-        } else {
-            seen_uuids.insert(original_uuid.clone());
-            original_uuid
         };
 
         // 从文件系统元数据获取修改时间
@@ -425,8 +440,8 @@ pub fn list_flow_files(flows_dir: &Path) -> Result<Vec<FlowMetadata>, String> {
             .unwrap_or_default();
 
         metadata_list.push(FlowMetadata {
-            uuid: final_uuid,
-            name: flow_file.flow.name.clone(),
+            uuid: flow_meta.flow.uuid,
+            name: flow_meta.flow.name,
             file_path: path.to_string_lossy().to_string(),
             updated_at,
             folder_path,
@@ -463,8 +478,8 @@ pub fn delete_flow_file(uuid: &str, flows_dir: &Path) -> Result<(), String> {
             continue;
         }
 
-        if let Ok(flow_file) = serde_json::from_str::<FlowFile>(&content) {
-            if flow_file.flow.uuid == uuid {
+        if let Ok(meta) = serde_json::from_str::<FlowFileMeta>(&content) {
+            if meta.flow.uuid == uuid {
                 fs::remove_file(&path)
                     .map_err(|e| format!("删除流程文件 {:?} 失败: {}", path, e))?;
                 return Ok(());
@@ -1975,7 +1990,7 @@ mod tests {
         assert_eq!(list[0].name, "正常流程");
     }
 
-    /// 测试 UUID 冲突检测和自动修复
+    /// 测试 UUID 冲突时列表不会自动修复（列表不做验证）
     #[test]
     fn test_uuid_collision_detection() {
         use tempfile::TempDir;
@@ -2004,24 +2019,18 @@ mod tests {
         let json2 = serde_json::to_string_pretty(&flow_file2).expect("序列化失败");
         fs::write(flows_dir.join("flow_b.mpf"), json2).expect("写入文件 B 失败");
 
-        // 列出 — 应触发 UUID 冲突修复
+        // 列出 — 列表不做验证，两个文件都会出现（UUID 可能重复）
         let list = list_flow_files(flows_dir).expect("列出流程文件应成功");
         assert_eq!(list.len(), 2, "应返回 2 个流程");
-
-        // 验证 UUID 不再冲突
-        let uuids: Vec<&str> = list.iter().map(|m| m.uuid.as_str()).collect();
-        let uuid_set: HashSet<&str> = uuids.iter().copied().collect();
-        assert_eq!(
-            uuid_set.len(),
-            2,
-            "UUID 应全部唯一，不应有冲突: {:?}",
-            uuids
-        );
 
         // 验证名称仍然正确
         let names: Vec<&str> = list.iter().map(|m| m.name.as_str()).collect();
         assert!(names.contains(&"流程A"), "应包含流程A");
         assert!(names.contains(&"流程B"), "应包含流程B");
+
+        // UUID 冲突不再自动修复 — 两个文件显示相同 UUID
+        let uuids: Vec<&str> = list.iter().map(|m| m.uuid.as_str()).collect();
+        assert_eq!(uuids.iter().filter(|&&u| u == duplicate_uuid).count(), 2);
     }
 
     /// 测试 copy_flow_file 复制流程
