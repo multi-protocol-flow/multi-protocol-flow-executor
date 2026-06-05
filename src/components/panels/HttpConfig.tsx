@@ -621,18 +621,15 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
         <Label htmlFor="url" className="text-sm font-medium text-foreground">
           URL <span className="text-rose-500">*</span>
         </Label>
-        <div className="relative">
-          <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
-          <VariableInput
-            id="url"
-            variables={variables}
-            nodeLabels={nodeLabels}
-            value={watch('url') || ''}
-            onValueChange={(value) => setValue('url', value, { shouldDirty: true })}
-            placeholder="https://api.example.com/endpoint"
-            className="pl-9 font-mono text-sm text-left"
-          />
-        </div>
+        <VariableInput
+          id="url"
+          variables={variables}
+          nodeLabels={nodeLabels}
+          value={watch('url') || ''}
+          onValueChange={(value) => setValue('url', value, { shouldDirty: true })}
+          placeholder="https://api.example.com/endpoint"
+          className="font-mono text-sm text-left"
+        />
         {errors.url && (
           <p className="text-xs text-rose-500">{errors.url.message}</p>
         )}

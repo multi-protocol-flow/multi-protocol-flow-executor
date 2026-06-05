@@ -83,7 +83,7 @@ export const cookieEntrySchema = z.object({
 });
 
 export const httpConfigSchema = z.object({
-  url: z.string().url(getLL().validation.invalid_url()).min(1, getLL().validation.url_required()),
+  url: z.string().min(1, getLL().validation.url_required()),
   method: httpMethodSchema,
   headers: z.array(headerEntrySchema).optional(),
   body_type: httpBodyTypeSchema.optional(),

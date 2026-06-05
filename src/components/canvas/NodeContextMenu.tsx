@@ -1,9 +1,9 @@
 /**
  * NodeContextMenu - 节点右键上下文菜单
- * 在鼠标右键点击节点时显示，支持复制、重命名、删除操作
+ * 在鼠标右键点击节点时显示，支持复制、重命名、删除、配置复制/粘贴操作
  */
-import { useEffect, useRef } from 'react';
-import { Copy, Trash2, Pencil } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Copy, Trash2, Pencil, ClipboardCopy, ClipboardPaste } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 
@@ -25,6 +25,12 @@ export interface NodeContextMenuProps {
   onDelete: (nodeId: string) => void;
   /** 重命名回调 */
   onRename: (nodeId: string) => void;
+  /** 复制节点配置回调 */
+  onCopyConfig: (nodeId: string) => void;
+  /** 粘贴节点配置回调 */
+  onPasteConfig: (nodeId: string) => void;
+  /** 是否有可粘贴的兼容配置 */
+  hasClipboardConfig: boolean;
 }
 
 /** 菜单项定义 */
@@ -39,6 +45,8 @@ interface MenuItem {
   action: () => void;
   /** 是否为危险操作 */
   danger?: boolean;
+  /** 是否禁用 */
+  disabled?: boolean;
 }
 
 /**
@@ -54,6 +62,9 @@ export function NodeContextMenu({
   onCopy,
   onDelete,
   onRename,
+  onCopyConfig,
+  onPasteConfig,
+  hasClipboardConfig,
 }: NodeContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -66,6 +77,25 @@ export function NodeContextMenu({
       icon: <Copy className="w-4 h-4" />,
       action: () => {
         onCopy(nodeId);
+        onClose();
+      },
+    },
+    {
+      key: 'copy-config',
+      label: LL.flow.context_copy_config(),
+      icon: <ClipboardCopy className="w-4 h-4" />,
+      action: () => {
+        onCopyConfig(nodeId);
+        onClose();
+      },
+    },
+    {
+      key: 'paste-config',
+      label: LL.flow.context_paste_config(),
+      icon: <ClipboardPaste className="w-4 h-4" />,
+      disabled: !hasClipboardConfig,
+      action: () => {
+        onPasteConfig(nodeId);
         onClose();
       },
     },
@@ -148,13 +178,17 @@ export function NodeContextMenu({
             key={item.key}
             type="button"
             onClick={item.action}
+            disabled={item.disabled}
             className={cn(
               'flex items-center gap-2.5 w-full px-3 py-1.5',
               'text-sm transition-colors duration-100',
-              'cursor-pointer outline-none',
-              item.danger
+              'outline-none',
+              item.disabled
+                ? 'text-muted-foreground/40 cursor-not-allowed'
+                : 'cursor-pointer',
+              !item.disabled && item.danger
                 ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30'
-                : 'text-foreground hover:bg-accent',
+                : !item.disabled && 'text-foreground hover:bg-accent',
             )}
           >
             <span className={cn(

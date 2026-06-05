@@ -31,7 +31,7 @@ import { NodeContextMenu } from './NodeContextMenu';
 import { CustomEdge } from './edges/CustomEdge';
 import { useFlowStore, useUIStore, useDebugStore, useExecutionStore, useFlowListStore, selectIsExecuting, selectFlow, selectIsDirty } from '@/stores';
 import { useTheme } from '@/hooks/useTheme';
-import { MapIcon, ArrowRightLeft } from 'lucide-react';
+import { MapIcon, ArrowRightLeft, Search } from 'lucide-react';
 import type { NodeType } from '@/types';
 import type { NodeMetadata } from '@/types/nodeRegistry';
 import { getNodeMetadata } from '@/lib/NodeRegistry';
@@ -46,6 +46,18 @@ import {
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 import { flowStorage } from '@/services/storage';
+import { inferDefaults } from '@/lib/nodeDefaults';
+
+/** 节点配置剪贴板 key */
+const NODE_CONFIG_CLIPBOARD_KEY = 'node-config-clipboard';
+
+/** 节点配置剪贴板数据类型 */
+interface NodeConfigClipboard {
+  nodeType: string;
+  data: Record<string, unknown>;
+  copiedAt: number;
+  sourceNodeName: string;
+}
 
 /**
  * 自定义十字准星光标 SVG (data URI)
@@ -827,7 +839,7 @@ function FlowCanvasInner() {
       addNewNode({
         uuid: newUuid,
         type: sourceNode.type,
-        name: `${sourceNode.name} (副本)`,
+        name: `${sourceNode.name} (${getLL().flow.duplicate_suffix()})`,
         position: {
           x: sourceNode.position.x + offset,
           y: sourceNode.position.y + offset,
@@ -838,6 +850,68 @@ function FlowCanvasInner() {
     []
   );
 
+  // 复制节点配置到剪贴板
+  const handleCopyNodeConfig = useCallback(
+    (nodeId: string) => {
+      const { flow: currentFlow } = useFlowStore.getState();
+      if (!currentFlow) return;
+
+      const sourceNode = currentFlow.nodes.find((n) => n.uuid === nodeId);
+      if (!sourceNode) return;
+
+      const clipData: NodeConfigClipboard = {
+        nodeType: sourceNode.type,
+        data: JSON.parse(JSON.stringify(sourceNode.data)),
+        copiedAt: Date.now(),
+        sourceNodeName: sourceNode.name,
+      };
+
+      try {
+        localStorage.setItem(NODE_CONFIG_CLIPBOARD_KEY, JSON.stringify(clipData));
+      } catch {
+        // 忽略写入错误
+      }
+    },
+    []
+  );
+
+  // 从剪贴板粘贴节点配置
+  const handlePasteNodeConfig = useCallback(
+    (nodeId: string) => {
+      const { flow: currentFlow, updateNode: modifyNode } = useFlowStore.getState();
+      if (!currentFlow) return;
+
+      const targetNode = currentFlow.nodes.find((n) => n.uuid === nodeId);
+      if (!targetNode) return;
+
+      let clipData: NodeConfigClipboard | null = null;
+      try {
+        const raw = localStorage.getItem(NODE_CONFIG_CLIPBOARD_KEY);
+        if (raw) clipData = JSON.parse(raw);
+      } catch {
+        return;
+      }
+
+      if (!clipData) return;
+      if (clipData.nodeType !== targetNode.type) return;
+
+      modifyNode(nodeId, { data: JSON.parse(JSON.stringify(clipData.data)) });
+    },
+    []
+  );
+
+  /** 检查是否有可粘贴的兼容配置 */
+  const hasClipboardConfigFor = useCallback((nodeType: string): boolean => {
+    try {
+      const raw = localStorage.getItem(NODE_CONFIG_CLIPBOARD_KEY);
+      if (!raw) return false;
+      const clipData: NodeConfigClipboard = JSON.parse(raw);
+      return clipData.nodeType === nodeType && Date.now() - clipData.copiedAt < 86400000; // 24h 过期
+    } catch {
+      return false;
+    }
+  }, []);
+
   // 删除节点（通过确认弹窗）
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
@@ -847,11 +921,12 @@ function FlowCanvasInner() {
       const node = currentFlow.nodes.find((n) => n.uuid === nodeId);
       if (!node || node.type === 'entry') return;
 
+      const LL = getLL();
       const { showConfirm } = useUIStore.getState();
       showConfirm({
-        title: '删除节点',
-        description: `确定要删除节点「${node.name}」吗？`,
-        confirmText: '删除',
+        title: LL.flow.delete_node_title(),
+        description: LL.flow.delete_node_desc({ name: node.name }),
+        confirmText: LL.flow.delete_node_confirm(),
         onConfirm: () => {
           removeNodeById(node.uuid);
           deselectNode(null);
@@ -939,7 +1014,6 @@ function FlowCanvasInner() {
   }, []);
 
   // 处理拖放 - 使用鼠标实际位置
-  // 处理拖放 - 使用鼠标实际位置
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
@@ -953,10 +1027,21 @@ function FlowCanvasInner() {
         y: event.clientY,
       });
 
+      // 获取上游节点（当前选中的节点作为上游推断上下文）
+      const { getSelectedNode } = useFlowStore.getState();
+      const selectedNode = getSelectedNode();
+      const inferred = selectedNode
+        ? inferDefaults(
+            { id: selectedNode.uuid, type: selectedNode.type, data: selectedNode.data as Record<string, unknown> },
+            nodeType as NodeType
+          )
+        : {};
+
       // 根据节点类型创建节点配置
       const nodeCount = flow.nodes.length + 1;
       const newNodeUuid = crypto.randomUUID();
-      const data = createDefaultNodeData(nodeType as NodeType);
+      const defaultData = createDefaultNodeData(nodeType as NodeType);
+      const data = { ...defaultData, ...inferred };
       const name = createDefaultNodeName(nodeType as NodeType, nodeCount);
       addNode({
         uuid: newNodeUuid,
@@ -987,10 +1072,21 @@ function FlowCanvasInner() {
     // 将视口中心转换为流程坐标
     const position = screenToFlowPosition({ x: centerX, y: centerY });
 
+    // 获取上游节点（当前选中的节点作为上游推断上下文）
+    const { getSelectedNode } = useFlowStore.getState();
+    const selectedNode = getSelectedNode();
+    const inferred = selectedNode
+      ? inferDefaults(
+          { id: selectedNode.uuid, type: selectedNode.type, data: selectedNode.data as Record<string, unknown> },
+          pendingAddNodeType
+        )
+      : {};
+
     // 根据节点类型创建节点
     const nodeCount = flow.nodes.length + 1;
     const newNodeUuid = crypto.randomUUID();
-    const data = createDefaultNodeData(pendingAddNodeType);
+    const defaultData = createDefaultNodeData(pendingAddNodeType);
+    const data = { ...defaultData, ...inferred };
     const name = createDefaultNodeName(pendingAddNodeType, nodeCount);
     addNode({
       uuid: newNodeUuid,
@@ -1004,6 +1100,29 @@ function FlowCanvasInner() {
     clearPendingAddNodeType();
     useUIStore.getState().closeNodePalette();
   }, [pendingAddNodeType, flow, addNode, screenToFlowPosition, clearPendingAddNodeType, canvasRef]);
+
+  // 监听 F 键适应画布
+  useEffect(() => {
+    const handler = () => {
+      if (flow) {
+        fitView({ padding: 0.4, duration: 300 });
+      }
+    };
+    window.addEventListener('trigger-fit-view', handler);
+    return () => window.removeEventListener('trigger-fit-view', handler);
+  }, [flow, fitView]);
+
+  // 监听 Ctrl+Enter 执行流程
+  useEffect(() => {
+    const handler = () => {
+      // 触发主工具栏的执行按钮点击
+      const executeBtn = document.querySelector('[data-execute-btn]') as HTMLButtonElement;
+      executeBtn?.click();
+    };
+    window.addEventListener('trigger-execute-flow', handler);
+    return () => window.removeEventListener('trigger-execute-flow', handler);
+  }, []);
+
   // 没有流程时显示空状态
   if (!flow) {
     return (
@@ -1164,14 +1283,21 @@ function FlowCanvasInner() {
           >
             <ArrowRightLeft className="w-4 h-4" />
           </ControlButton>
+          {/* 搜索流程 */}
+          <ControlButton
+            onClick={() => useUIStore.getState().openSearchOverlay()}
+            title={`${getLL().flow.search_flow?.() || '搜索流程'} (Ctrl+Shift+F)`}
+          >
+            <Search className="w-4 h-4" />
+          </ControlButton>
         </Controls>
 
         {/* 小地图 */}
         {showMinimap && (
           <MiniMap
             nodeColor={minimapNodeColor}
-            maskColor={resolvedTheme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.1)'}
-            className="!bg-background !border-border"
+            maskColor={resolvedTheme === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'}
+            className="!bg-background !border-border dark:!bg-neutral-900"
             pannable
             zoomable
           />
@@ -1204,6 +1330,9 @@ function FlowCanvasInner() {
           onCopy={handleCopyNode}
           onDelete={handleDeleteNode}
           onRename={handleRenameNode}
+          onCopyConfig={handleCopyNodeConfig}
+          onPasteConfig={handlePasteNodeConfig}
+          hasClipboardConfig={hasClipboardConfigFor(contextMenu.nodeType)}
         />
       )}
 
@@ -1238,7 +1367,7 @@ function FlowCanvasInner() {
             )}
           />
           <div className="text-[10px] text-muted-foreground mt-0.5 px-1">
-            Enter 确认 · Esc 取消
+            {getLL().flow.rename_hint()}
           </div>
         </div>
       )}
