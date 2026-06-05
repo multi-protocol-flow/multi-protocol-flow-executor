@@ -765,14 +765,14 @@ function FlowCanvasInner() {
     setConfigPanelOpen(false);
   }, [selectNode, setConfigPanelOpen]);
 
-  // 处理画布空白处点击 - 取消选中，切换到节点面板显示节点列表，同时关闭节点选择器
+  // 处理画布空白处点击 - 取消选中
+  // 不自动展开配置面板：如果面板已打开，取消选中后会显示节点列表；
+  // 如果面板已关闭，保持关闭。用户可点击右侧抽屉图标手动打开。
   const onPaneClick = useCallback(() => {
     selectNode(null);
-    setConfigPanelOpen(true);
-    setConfigPanelMode('node');
     setContextMenu(null);
     useUIStore.getState().closeNodePalette();
-  }, [selectNode, setConfigPanelOpen, setConfigPanelMode]);
+  }, [selectNode]);
 
   // 视口变换回调 — 同步到叠加层容器，直接写 DOM style.transform，不触发 React 渲染
   const onMove = useCallback((_event: unknown, viewport: { x: number; y: number; zoom: number }) => {
