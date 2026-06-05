@@ -345,11 +345,13 @@ return (
                     isSelected={selectedNodeUuid === node.uuid}
                     durationMs={durationMs}
                     onClick={() => {
-                      const newUuid = selectedNodeUuid === node.uuid ? null : node.uuid;
-                      setSelectedNodeUuid(newUuid);
-                      if (newUuid) {
-                        useFlowStore.getState().selectNode(newUuid);
-                        useFlowStore.getState().focusOnNode(newUuid);
+                      if (selectedNodeUuid === node.uuid) {
+                        // 已选中：直接定位到画布，不取消选择
+                        useFlowStore.getState().focusOnNode(node.uuid);
+                      } else {
+                        setSelectedNodeUuid(node.uuid);
+                        useFlowStore.getState().selectNode(node.uuid);
+                        useFlowStore.getState().focusOnNode(node.uuid);
                       }
                     }}
                   />
