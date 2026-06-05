@@ -3,9 +3,9 @@
  * 合并普通执行、调试执行和压力测试历史，支持类型过滤
  */
 import { toast } from 'sonner';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { CheckCircle2, XCircle, GitCompare, Clock, History, Loader2, Trash2, Bug, BarChart3, Database } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { loadReport, listReports, deleteReport } from '@/services/storage/reportStorage';
@@ -121,8 +121,9 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
   const openReportDialog = useExecutionStore((state) => state.openReportDialog);
   const reportDir = useSettingsStore((state) => state.reportDir);
   const showConfirm = useUIStore((state) => state.showConfirm);
-  // 监听压测报告变化，压测完成后自动刷新历史列表
-  const stressTestReport = useStressTestStore((state) => state.report);
+
+  // 虚拟化滚动容器引用
+  const listParentRef = useRef<HTMLDivElement>(null);
 
   // 加载并合并历史列表
   useEffect(() => {
@@ -195,7 +196,7 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reportDir, refreshKey, stressTestReport]);
+  }, [reportDir, refreshKey]);
 
   // 重新加载历史
   const reloadHistory = useCallback(() => {
@@ -206,6 +207,14 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
   const filteredHistory = filter === 'all'
     ? unifiedHistory
     : unifiedHistory.filter((item) => item.type === filter);
+
+  // 虚拟化：只渲染可视区域内的列表项
+  const rowVirtualizer = useVirtualizer({
+    count: filteredHistory.length,
+    getScrollElement: () => listParentRef.current,
+    estimateSize: () => 72, // 每项约 72px 高度
+    overscan: 8, // 视口外额外渲染 8 项，保证快速滚动时无空白
+  });
 
   // 点击普通/调试报告 - 加载完整报告
   const handleSelectReport = useCallback(async (item: UnifiedHistoryItem) => {
@@ -437,10 +446,20 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
         </Button>
       </div>
 
-      {/* 历史列表 */}
-      <ScrollArea className="flex-1">
-        <div className="space-y-1 p-2">
-          {filteredHistory.map((item) => {
+      {/* 历史列表（虚拟化滚动） */}
+      <div
+        ref={listParentRef}
+        className="flex-1 overflow-y-auto"
+        style={{ contain: 'strict' }}
+      >
+        <div
+          style={{
+            height: `${rowVirtualizer.getTotalSize()}px`,
+            position: 'relative',
+          }}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+            const item = filteredHistory[virtualItem.index];
             const isStress = item.type === 'stress_test';
             const isDataset = item.type === 'dataset';
             const isSuccess = item.status === 'success' || item.status === 'completed';
@@ -461,6 +480,14 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
                   'border border-transparent hover:border-border',
                   'hover:bg-accent cursor-pointer transition-all duration-150 text-left'
                 )}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: `${virtualItem.size}px`,
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   {/* 状态图标 */}
@@ -486,26 +513,26 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
                   {/* 流程信息 */}
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-medium text-foreground truncate">
+                      <p className="text-sm font-medium text-foreground truncate max-w-[140px] sm:max-w-[200px] md:max-w-[300px]">
                         {item.flowName}
                       </p>
                       {/* 调试模式标识 */}
                       {item.type === 'debug' && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700 shrink-0">
                           <Bug className="w-3 h-3" />
                           {ll.execution.history.badge_debug()}
                         </span>
                       )}
                       {/* 压测标识 */}
                       {item.type === 'stress_test' && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700">
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700 shrink-0">
                           <BarChart3 className="w-3 h-3" />
                           {ll.execution.history.badge_stress_test()}
                         </span>
                       )}
                       {/* 数据驱动标识 */}
                       {item.type === 'dataset' && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-teal-100 text-teal-700">
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-teal-100 text-teal-700 shrink-0">
                           <Database className="w-3 h-3" />
                           {ll.execution.history.badge_dataset()}
                         </span>
@@ -567,7 +594,7 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
             );
           })}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

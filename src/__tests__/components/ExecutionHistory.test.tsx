@@ -13,6 +13,22 @@ import { useDatasetExecutionStore } from '@/stores/datasetExecution';
 import type { ReportMetadata } from '@/types/ipc';
 import type { StressTestReportMetadata } from '@/types/stressTest';
 
+// Mock @tanstack/react-virtual 用于 JSDOM 环境（无实际布局尺寸）
+vi.mock('@tanstack/react-virtual', () => {
+  const mockUseVirtualizer = vi.fn(({ count, estimateSize }) => {
+    const size = typeof estimateSize === 'function' ? estimateSize(0) : (estimateSize ?? 72);
+    const items = [];
+    for (let i = 0; i < count; i++) {
+      items.push({ index: i, start: i * size, size, key: i, lane: 0 });
+    }
+    return {
+      getVirtualItems: () => items,
+      getTotalSize: () => count * size,
+    };
+  });
+  return { useVirtualizer: mockUseVirtualizer };
+});
+
 // Mock stores
 vi.mock('@/stores/settings', () => ({
   useSettingsStore: vi.fn(),
