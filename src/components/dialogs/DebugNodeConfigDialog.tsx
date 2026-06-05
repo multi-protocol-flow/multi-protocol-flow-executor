@@ -13,7 +13,7 @@ import { AlertTriangle, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getLL } from '@/i18n/i18n-lazy';
 
-import { getConfigComponent, isSchemaDriven } from '@/lib/configPanelRegistry';
+import { getPanelLoader, isSchemaDriven } from '@/lib/configPanelRegistry';
 import { SchemaConfigPanel } from '@/components/panels/SchemaConfigPanel';
 import { NODE_META } from '@/lib/nodeMeta';
 
@@ -33,7 +33,39 @@ export interface DebugNodeConfigDialogProps {
   onCancel: () => void;
 }
 
+/** 调试弹窗懒加载面板组件 — 手动加载，避免 React.lazy 动态创建的身份丢失问题 */
+function DebugLazyConfigPanel({ nodeType, data, onSave: onConfigSave }: { nodeType: string; data: NodeData; onSave: (data: NodeData) => void }) {
+  const loader = getPanelLoader(nodeType);
+  const [Component, setComponent] = useState<React.ComponentType<any> | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!loader) {
+      setComponent(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    loader().then(comp => {
+      if (!cancelled) {
+        setComponent(() => comp);
+        setIsLoading(false);
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [nodeType, loader]);
+
+  if (!loader) return <div className="text-muted-foreground">不支持的节点类型</div>;
+
+  if (isLoading || !Component) {
+    return <div className="space-y-4 p-4 animate-pulse"><div className="h-24 bg-muted rounded-md" /></div>;
+  }
+
+  return <Component data={data} onSave={onConfigSave} />;
+}
 
 export function DebugNodeConfigDialog({
   open,
@@ -100,17 +132,13 @@ export function DebugNodeConfigDialog({
   // 获取节点类型标签
   const nodeTypeLabel = nodeData ? (NODE_META[nodeData.type as keyof typeof NODE_META]?.name ?? nodeData.type) : '';
 
-  // 渲染配置组件
+  // 渲染配置组件（懒加载）
   const renderConfigComponent = () => {
     if (!editedData) return null;
 
     const nodeType = editedData.type;
-    const ConfigComponent = getConfigComponent(nodeType);
-    if (ConfigComponent) {
-      return <ConfigComponent data={editedData} onSave={(data: NodeData) => handleConfigSave(data)} />;
-    }
 
-    // 未知节点类型 → SchemaConfigPanel fallback
+    // 未知节点类型 → SchemaConfigPanel fallback（同步渲染）
     if (isSchemaDriven(nodeType)) {
       return (
         <SchemaConfigPanel
@@ -121,8 +149,13 @@ export function DebugNodeConfigDialog({
       );
     }
 
-    return <div className="text-muted-foreground">不支持的节点类型</div>;
+    // 已知节点类型 → 懒加载对应的配置面板
+    return (
+      <DebugLazyConfigPanel nodeType={nodeType} data={editedData} onSave={handleConfigSave} />
+    );
   };
+
+
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

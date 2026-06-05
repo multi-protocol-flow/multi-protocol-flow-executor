@@ -28,7 +28,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
 import { useFlowStore, useDebugStore, selectHistoryVersion } from '@/stores';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
 import { FlowNodeList } from './FlowNodeList';
-import { getConfigComponent, isSchemaDriven } from '@/lib/configPanelRegistry';
+import { getPanelLoader, isSchemaDriven } from '@/lib/configPanelRegistry';
 import { SchemaConfigPanel } from '@/components/panels/SchemaConfigPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -44,6 +44,45 @@ interface NodeConfigPanelProps {
   readOnly?: boolean;
   /** 指定要显示的节点（用于只读模式，不使用 store 中的选中节点） */
   node?: Node | null;
+}
+
+/** 懒加载配置面板包装组件 — 手动加载，避免 React.lazy 动态创建的身份丢失问题 */
+function LazyConfigPanel({ nodeType, data, onSave }: { nodeType: string; data: NodeData; onSave: (data: NodeData) => void }) {
+  const [Component, setComponent] = useState<React.ComponentType<any> | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loader = getPanelLoader(nodeType);
+    if (!loader) {
+      setComponent(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    loader().then(comp => {
+      if (!cancelled) {
+        setComponent(() => comp);
+        setIsLoading(false);
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [nodeType]);
+
+  if (isLoading || !Component) {
+    return (
+      <div className="space-y-4 p-4 animate-pulse" aria-label="加载中">
+        <div className="h-8 bg-muted rounded-md w-3/4" />
+        <div className="h-24 bg-muted rounded-md" />
+        <div className="h-8 bg-muted rounded-md w-1/2" />
+        <div className="h-8 bg-muted rounded-md" />
+      </div>
+    );
+  }
+
+  return <Component data={data} onSave={onSave} />;
 }
 
 export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeConfigPanelProps) {
@@ -173,14 +212,10 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
             "w-full min-w-0 max-w-full overflow-hidden px-6 py-4",
             readOnly && "pointer-events-none select-none opacity-80"
           )}>
-            {/* 根据节点类型注册表渲染对应的配置组件 */}
+            {/* 根据节点类型注册表渲染对应的配置组件（懒加载） */}
             {(() => {
               const nodeType = selectedNode.type;
-              const ConfigComponent = getConfigComponent(nodeType);
-              if (ConfigComponent) {
-                return <ConfigComponent data={nodeData} onSave={(data: NodeData) => handleSave(data)} />;
-              }
-              // 未知节点类型 → SchemaConfigPanel fallback
+              // 未知节点类型 → SchemaConfigPanel fallback（同步渲染）
               if (isSchemaDriven(nodeType)) {
                 return (
                   <SchemaConfigPanel
@@ -190,7 +225,14 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                   />
                 );
               }
-              return null;
+              // 已知节点类型 → 懒加载对应的配置面板
+              return (
+                <LazyConfigPanel
+                  nodeType={nodeType}
+                  data={nodeData}
+                  onSave={handleSave}
+                />
+              );
             })()}
           </div>
         </ScrollArea>
