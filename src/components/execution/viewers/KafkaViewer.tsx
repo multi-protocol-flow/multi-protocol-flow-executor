@@ -9,7 +9,7 @@
  * SchemaRegistry: Schema 操作结果、耗时
  * Close: 关闭连接状态
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -301,7 +301,7 @@ function KafkaMessageCard({ message, index }: { message: KafkaMessage; index: nu
 // 主组件
 // ============================================================================
 
-export function KafkaViewer({ report }: KafkaViewerProps) {
+export const KafkaViewer = memo(function KafkaViewer({ report }: KafkaViewerProps) {
   const nodeType = report.node_type;
   const t = useVT();
 
@@ -327,7 +327,7 @@ export function KafkaViewer({ report }: KafkaViewerProps) {
         </div>
       );
   }
-}
+});
 
 // ============================================================================
 // Kafka Connect 查看器

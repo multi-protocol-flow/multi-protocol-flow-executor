@@ -2,7 +2,7 @@
  * ConditionalViewer - Conditional 节点执行详情查看器
  * 结构化展示条件表达式、评估值和结果
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -249,7 +249,7 @@ function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: Con
   );
 }
 
-export function ConditionalViewer({ report }: ConditionalViewerProps) {
+export const ConditionalViewer = memo(function ConditionalViewer({ report }: ConditionalViewerProps) {
   const ll = getLL();
   // 从 output_data 提取 Conditional 数据
   const outputData = report.output_data as ConditionalOutputData | undefined;
@@ -395,4 +395,4 @@ export function ConditionalViewer({ report }: ConditionalViewerProps) {
       <VariableChangesCard changes={report.variable_changes} />
     </div>
   );
-}
+});

@@ -11,7 +11,7 @@
  * UDP RecvFrom: 接收数据（含 hex 预览）、来源地址、耗时
  * UDP Close: 关闭配置、关闭状态、耗时
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -273,7 +273,7 @@ function ProtocolBadge({ protocol }: { protocol: 'TCP' | 'UDP' }) {
   );
 }
 
-export function TcpUdpViewer({ report, recording }: TcpUdpViewerProps) {
+export const TcpUdpViewer = memo(function TcpUdpViewer({ report, recording }: TcpUdpViewerProps) {
   const t = useVT();
   const nodeType = report.node_type;
 
@@ -298,10 +298,10 @@ export function TcpUdpViewer({ report, recording }: TcpUdpViewerProps) {
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
           {t('tcp.unknown_node_type', { type: nodeType })}
-        </div>
-      );
+    </div>
+  );
   }
-}
+});
 
 // ============================================================================
 // TCP Connect 查看器

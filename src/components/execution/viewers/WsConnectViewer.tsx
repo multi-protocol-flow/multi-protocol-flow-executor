@@ -2,7 +2,7 @@
  * WsConnectViewer - WebSocket Connect 节点执行详情查看器
  * 结构化展示连接配置、连接状态、首条消息和耗时分解
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -85,7 +85,7 @@ interface WsConnectConfig {
   timeout_ms?: number;
 }
 
-export function WsConnectViewer({ report }: WsConnectViewerProps) {
+export const WsConnectViewer = memo(function WsConnectViewer({ report }: WsConnectViewerProps) {
   const ll = getLL();
   const output = report.output_data as WsConnectOutput | undefined;
   const resolvedConfig = report.resolved_config as WsConnectConfig | undefined;
@@ -257,4 +257,4 @@ export function WsConnectViewer({ report }: WsConnectViewerProps) {
       <VariableChangesCard changes={report.variable_changes} />
     </div>
   );
-}
+});

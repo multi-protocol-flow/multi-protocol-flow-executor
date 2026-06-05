@@ -23,7 +23,7 @@
  *   Reject: 拒绝状态
  *   Disconnect: 断开状态
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -478,7 +478,7 @@ function Amqp10MessageCard({ message, index }: { message: Amqp10Message; index: 
 // 主组件
 // ============================================================================
 
-export function AmqpViewer({ report }: AmqpViewerProps) {
+export const AmqpViewer = memo(function AmqpViewer({ report }: AmqpViewerProps) {
   const t = useVT();
   const nodeType = report.node_type;
 
@@ -527,7 +527,7 @@ export function AmqpViewer({ report }: AmqpViewerProps) {
         </div>
       );
   }
-}
+});
 
 // ============================================================================
 // AMQP 0-9-1 Connect 查看器

@@ -2,7 +2,7 @@
  * WsCloseViewer - WebSocket Close 节点执行详情查看器
  * 结构化展示 WS Close 连接信息和关闭状态
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -95,7 +95,7 @@ interface WsCloseOutputData {
   close_reason?: string;
 }
 
-export function WsCloseViewer({ report }: WsCloseViewerProps) {
+export const WsCloseViewer = memo(function WsCloseViewer({ report }: WsCloseViewerProps) {
   const ll = getLL();
   // 从 output_data 提取 WS Close 数据
   const outputData = report.output_data as WsCloseOutputData | undefined;
@@ -188,4 +188,4 @@ export function WsCloseViewer({ report }: WsCloseViewerProps) {
       <VariableChangesCard changes={report.variable_changes} />
     </div>
   );
-}
+});

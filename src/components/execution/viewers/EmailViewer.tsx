@@ -7,7 +7,7 @@
  * List: 文件夹列表
  * 其他: 通用操作结果
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -345,7 +345,7 @@ function getNodeTitle(nodeType: string): string {
 // 主组件
 // ============================================================================
 
-export function EmailViewer({ report }: EmailViewerProps) {
+export const EmailViewer = memo(function EmailViewer({ report }: EmailViewerProps) {
   const nodeType = report.node_type;
   const output = report.output_data as Record<string, unknown> | undefined;
   const isSuccess = (output?.success as boolean) ?? report.status === 'success';
@@ -497,4 +497,4 @@ export function EmailViewer({ report }: EmailViewerProps) {
       );
     }
   }
-}
+});

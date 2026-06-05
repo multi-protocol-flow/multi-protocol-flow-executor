@@ -4,7 +4,7 @@
  * 
  * 简化格式：变量名 → 当前值 → 旧值（可选）
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -46,7 +46,7 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
-export function VariableChangesCard({ changes, defaultOpen = false }: VariableChangesCardProps) {
+export const VariableChangesCard = memo(function VariableChangesCard({ changes, defaultOpen = false }: VariableChangesCardProps) {
   const ll = getLL();
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -153,4 +153,4 @@ export function VariableChangesCard({ changes, defaultOpen = false }: VariableCh
       )}
     </div>
   );
-}
+});

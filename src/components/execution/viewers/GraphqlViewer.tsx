@@ -7,7 +7,7 @@
  * Introspect: Schema 类型列表、查询模板
  * Disconnect: 断开状态
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -224,7 +224,7 @@ function GraphqlEventCard({ event, index }: { event: GraphqlSubscriptionEvent; i
 // 主组件
 // ============================================================================
 
-export function GraphqlViewer({ report }: GraphqlViewerProps) {
+export const GraphqlViewer = memo(function GraphqlViewer({ report }: GraphqlViewerProps) {
   const nodeType = report.node_type;
   const t = useVT();
 
@@ -246,7 +246,7 @@ export function GraphqlViewer({ report }: GraphqlViewerProps) {
         </div>
       );
   }
-}
+});
 
 // ============================================================================
 // GraphQL Connect 查看器

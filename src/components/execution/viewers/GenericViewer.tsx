@@ -3,7 +3,7 @@
  * 用于 Entry、End 及其他未实现专用 Viewer 的节点类型
  * 简洁展示输入数据、输出数据和变量变更
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -74,7 +74,7 @@ function DataSection({ data, emptyText }: DataSectionProps) {
   );
 }
 
-export function GenericViewer({ report }: GenericViewerProps) {
+export const GenericViewer = memo(function GenericViewer({ report }: GenericViewerProps) {
   const ll = getLL();
   const { node_name, node_type, resolved_config, output_data, variable_changes } = report;
 
@@ -118,4 +118,4 @@ export function GenericViewer({ report }: GenericViewerProps) {
       <VariableChangesCard changes={variable_changes} defaultOpen={true} />
     </div>
   );
-}
+});

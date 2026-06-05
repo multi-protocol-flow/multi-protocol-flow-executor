@@ -8,7 +8,7 @@
  * Get Prompt: 提示词名称、消息列表（role + content）、耗时
  * Close: 关闭配置、关闭状态、耗时
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -384,7 +384,7 @@ function ContentBlockLabel({ type }: { type: ContentBlockType }) {
 // 主组件
 // ============================================================================
 
-export function McpViewer({ report }: McpViewerProps) {
+export const McpViewer = memo(function McpViewer({ report }: McpViewerProps) {
   const t = useVT();
   const nodeType = report.node_type;
 
@@ -403,10 +403,10 @@ export function McpViewer({ report }: McpViewerProps) {
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
           {t('mcp.unknown_node_type', { type: nodeType })}
-        </div>
-      );
+    </div>
+  );
   }
-}
+});
 
 // ============================================================================
 // MCP Connect 查看器

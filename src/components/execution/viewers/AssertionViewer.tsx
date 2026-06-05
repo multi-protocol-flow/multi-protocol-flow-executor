@@ -2,7 +2,7 @@
  * AssertionViewer - Assertion 节点执行详情查看器
  * 结构化展示断言执行结果、统计信息和失败详情
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -216,7 +216,7 @@ function ErrorCard({ error }: { error: ErrorDetail }) {
   );
 }
 
-export function AssertionViewer({ report }: AssertionViewerProps) {
+export const AssertionViewer = memo(function AssertionViewer({ report }: AssertionViewerProps) {
   // 从 output_data 提取 Assertion 数据
   const outputData = report.output_data as AssertionOutput | undefined;
   
@@ -399,4 +399,4 @@ export function AssertionViewer({ report }: AssertionViewerProps) {
       <VariableChangesCard changes={report.variable_changes} />
     </div>
   );
-}
+});

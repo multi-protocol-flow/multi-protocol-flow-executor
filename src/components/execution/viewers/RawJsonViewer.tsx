@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { JsonView, allExpanded, defaultStyles } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
 
@@ -32,7 +33,7 @@ const customStyles = {
  * 使用 react-json-view-lite 提供语法高亮和折叠/展开功能
  * 支持多种数据类型：对象/数组（JSON 树）、字符串（纯文本/JSON 解析）、原始值
  */
-export function RawJsonViewer({ data }: RawJsonViewerProps) {
+export const RawJsonViewer = memo(function RawJsonViewer({ data }: RawJsonViewerProps) {
   // null 值
   if (data === null) {
     return (
@@ -120,4 +121,4 @@ export function RawJsonViewer({ data }: RawJsonViewerProps) {
       <span data-testid="primitive-value" className="text-sm font-mono text-gray-500">{String(data)}</span>
     </div>
   );
-}
+});

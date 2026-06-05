@@ -2,7 +2,7 @@
  * WsSendCollectViewer - WebSocket Send+Collect 节点执行详情查看器
  * 结构化展示发送配置、发送内容、收集消息列表、匹配消息、连接信息和耗时分解
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -148,7 +148,7 @@ function getMatchTypeLabel(matchType: string | undefined): string {
   }
 }
 
-export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
+export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
   const ll = getLL();
   const outputData = report.output_data as WsSendCollectOutput | undefined;
   const resolvedConfig = report.resolved_config as WsSendCollectConfig | undefined;
@@ -524,4 +524,4 @@ export function WsSendCollectViewer({ report }: WsSendCollectViewerProps) {
       <VariableChangesCard changes={report.variable_changes} />
     </div>
   );
-}
+});

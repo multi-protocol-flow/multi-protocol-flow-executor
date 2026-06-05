@@ -9,7 +9,7 @@
  * WaitMessage: 等待消息配置、匹配消息列表、耗时
  * Request: 请求-响应配置、响应消息、耗时
  */
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -278,7 +278,7 @@ function MqttMessageCard({ message, index }: { message: MqttMessage; index: numb
 // 主组件
 // ============================================================================
 
-export function MqttViewer({ report }: MqttViewerProps) {
+export const MqttViewer = memo(function MqttViewer({ report }: MqttViewerProps) {
   const nodeType = report.node_type;
   const t = useVT();
 
@@ -301,10 +301,10 @@ export function MqttViewer({ report }: MqttViewerProps) {
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
           {t("mqtt.unknown_node_type", { type: nodeType })}
-        </div>
-      );
+    </div>
+  );
   }
-}
+});
 
 // ============================================================================
 // MQTT Connect 查看器
