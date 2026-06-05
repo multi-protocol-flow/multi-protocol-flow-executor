@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, Globe, X, Terminal, ChevronDown, ChevronRight, Shield, Settings2 } from 'lucide-react';
+import { Plus, Trash2, X, Terminal, ChevronDown, ChevronRight, Shield, Settings2 } from 'lucide-react';
 import type { HttpConfig as HttpConfigType } from '@/types';
 import { useFlowVariables } from '@/hooks';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { parseCurlToFormData } from '@/lib/curlParser';
+import { generateCurlCommand, type CurlExportOptions } from '@/lib/curlExporter';
 /** 检测是否在 Tauri 环境中运行 */
 const isTauriEnv = () => {
   return typeof window !== 'undefined' && '__TAURI__' in window;
@@ -385,6 +386,82 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
     // 延迟保存，确保表单值已更新
     safeSetTimeout(saveData, 100);
   }, [curlText, getValues, reset, safeSetTimeout, saveData]);
+
+  /**
+   * 复制为 cURL 命令
+   */
+  const handleCopyCurl = useCallback(() => {
+    const formValues = getValues();
+
+    // 构建选项
+    const options: CurlExportOptions = {
+      url: formValues.url,
+      method: formValues.method,
+      headers: formValues.headers?.filter(h => h.key.trim()) || [],
+      bodyType: formValues.body_type || 'none',
+      contentType: formValues.content_type,
+    };
+
+    // 根据 Body 类型填充内容
+    switch (formValues.body_type) {
+      case 'body':
+        options.bodyContent = formValues.body;
+        break;
+      case 'form-data':
+      case 'x-www-form-urlencoded':
+        options.formData = (formValues.form_fields || [])
+          .filter(f => f.key.trim())
+          .map(f => ({
+            key: f.key,
+            value: f.type === 'file' ? (f.file_path || '') : f.value,
+            type: (f.type || 'text') as 'text' | 'file',
+          }));
+        break;
+      case 'binary':
+        options.bodyContent = formValues.file_path;
+        break;
+    }
+
+    // 处理认证信息
+    if (formValues.auth && formValues.auth.auth_type !== 'none') {
+      const auth = formValues.auth;
+      switch (auth.auth_type) {
+        case 'basic': {
+          const encoded = btoa(`${auth.username || ''}:${auth.password || ''}`);
+          (options.headers as { key: string; value: string }[]).push({
+            key: 'Authorization',
+            value: `Basic ${encoded}`,
+          });
+          break;
+        }
+        case 'bearer':
+          (options.headers as { key: string; value: string }[]).push({
+            key: 'Authorization',
+            value: `Bearer ${auth.token || ''}`,
+          });
+          break;
+        case 'api_key_header':
+          (options.headers as { key: string; value: string }[]).push({
+            key: auth.api_key_name || 'X-API-Key',
+            value: auth.api_key_value || '',
+          });
+          break;
+        case 'api_key_query': {
+          // 将 API Key 追加到 URL 查询参数
+          const separator = options.url.includes('?') ? '&' : '?';
+          options.url = `${options.url}${separator}${encodeURIComponent(auth.api_key_name || 'api_key')}=${encodeURIComponent(auth.api_key_value || '')}`;
+          break;
+        }
+      }
+    }
+
+    const command = generateCurlCommand(options);
+    navigator.clipboard.writeText(command).then(() => {
+      toast.success('cURL 命令已复制到剪贴板');
+    }).catch(() => {
+      toast.error('复制失败');
+    });
+  }, [getValues]);
 
   /**
    * 选择 Binary 文件
@@ -1499,6 +1576,20 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
             </div>
           </div>
         )}
+      </div>
+
+      {/* 复制为 cURL 命令 */}
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          onClick={handleCopyCurl}
+        >
+          <Terminal className="h-3 w-3" />
+          复制为 cURL 命令
+        </Button>
       </div>
 
     </form>

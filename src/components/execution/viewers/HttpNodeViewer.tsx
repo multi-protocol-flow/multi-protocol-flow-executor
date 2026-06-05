@@ -2,7 +2,7 @@
  * HttpNodeViewer - HTTP 节点执行详情查看器
  * 结构化展示 HTTP 请求配置、响应状态、响应头、响应体和耗时分解
  */
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -10,6 +10,7 @@ import {
   Globe,
   Clock,
   ArrowDownToLine,
+  Copy,
 } from 'lucide-react';
 import type { NodeExecutionReport, FormField } from '@/types';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +18,8 @@ import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
 import { getLL } from '@/i18n/i18n-lazy';
+import { generateCurlCommand, type CurlExportOptions } from '@/lib/curlExporter';
+import { toast } from 'sonner';
 
 interface HttpNodeViewerProps {
   /** 节点执行报告 */
@@ -272,7 +275,7 @@ interface HttpOutputData {
   retry_count?: number;
 }
 
-export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
+export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeViewerProps) {
   const ll = getLL();
   // 从 output_data 提取 HTTP 数据
   const outputData = report.output_data as HttpOutputData | undefined;
@@ -318,6 +321,66 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
     || binaryInfo !== null
   );
 
+  /** 复制 Curl 命令 */
+  const handleViewerCopyCurl = useCallback(() => {
+    const method = (config.method || 'GET').toUpperCase();
+    const headersArr: { key: string; value: string }[] = [];
+    if (config.headers) {
+      for (const [key, value] of Object.entries(config.headers)) {
+        headersArr.push({ key, value: String(value) });
+      }
+    }
+
+    let bodyTypeViewer: CurlExportOptions['bodyType'] = 'none';
+    let bodyContent: string | undefined;
+    let formDataArr: CurlExportOptions['formData'] | undefined;
+
+    switch (config.body_type) {
+      case 'body':
+        bodyTypeViewer = 'body';
+        bodyContent = config.body !== null && config.body !== undefined
+          ? (typeof config.body === 'string' ? config.body : JSON.stringify(config.body))
+          : undefined;
+        break;
+      case 'form-data':
+        bodyTypeViewer = 'form-data';
+        formDataArr = extractFormFields(config.body, config.form_fields).map(f => ({
+          key: f.key,
+          value: f.type === 'file' ? (f.file_path || f.value) : f.value,
+          type: f.type === 'file' ? ('file' as const) : ('text' as const),
+        }));
+        break;
+      case 'x-www-form-urlencoded':
+        bodyTypeViewer = 'x-www-form-urlencoded';
+        formDataArr = extractUrlEncodedFields(config.body).map(f => ({
+          key: f.key,
+          value: f.value,
+          type: 'text' as const,
+        }));
+        break;
+      case 'binary':
+        bodyTypeViewer = 'binary';
+        bodyContent = config.file_path;
+        break;
+    }
+
+    const cmd = generateCurlCommand({
+      url: config.url || '',
+      method,
+      headers: headersArr,
+      bodyType: bodyTypeViewer,
+      bodyContent,
+      formData: formDataArr,
+      contentType: config.content_type,
+    });
+
+    navigator.clipboard.writeText(cmd).then(() => {
+      toast.success('cURL 命令已复制到剪贴板');
+    }).catch(() => {
+      toast.error('复制失败');
+    });
+  }, [config]);
+
   return (
     <div className="space-y-3">
       {/* 请求配置 */}
@@ -325,6 +388,16 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
         title={ll.execution.viewers.request_config()}
         icon={<Send className="w-4 h-4" />}
         defaultOpen={true}
+        extra={
+          <button
+            type="button"
+            onClick={handleViewerCopyCurl}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Copy className="h-3 w-3" />
+            复制 Curl
+          </button>
+        }
       >
         <div className="space-y-3">
           {/* URL 和 Method */}
@@ -537,4 +610,4 @@ export function HttpNodeViewer({ report }: HttpNodeViewerProps) {
       <VariableChangesCard changes={report.variable_changes} />
     </div>
   );
-}
+});
