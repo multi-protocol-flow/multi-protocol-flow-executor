@@ -9,7 +9,6 @@ const en_US_flow = {
   all: 'All',
   node: 'Node',
   all_nodes: 'All Nodes',
-  search_placeholder: 'Search...',
   clear_logs: 'Clear Logs',
   clear_console: 'Clear Console',
   clear_logs_confirm_desc: 'Are you sure you want to clear all logs? This cannot be undone.',

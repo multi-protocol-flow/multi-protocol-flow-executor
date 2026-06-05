@@ -11,7 +11,6 @@ const zh_CN_flow: BaseTranslation = {
   all: '全部',
   node: '节点',
   all_nodes: '全部节点',
-  search_placeholder: '搜索...',
   clear_logs: '清空日志',
   clear_console: '清空控制台',
   clear_logs_confirm_desc: '确定要清空所有日志吗？清空后无法恢复。',
