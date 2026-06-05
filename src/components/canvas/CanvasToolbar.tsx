@@ -24,6 +24,7 @@ import { EnvironmentSelector } from '@/components/panels/EnvironmentManager';
 
 import { VariablePanel, extractVariableGroups } from '@/components/panels/VariablePanel';
 import { getLL } from '@/i18n/i18n-lazy';
+import { hotkeyLabel } from '@/lib/hotkeyLabels';
 
 /**
  * 画布悬浮工具栏组件
@@ -222,7 +223,7 @@ export function CanvasToolbar() {
           type="button"
           onClick={undo}
           disabled={!canUndo}
-          title={getLL().flow.undo()}
+          title={`${getLL().flow.undo()} (${hotkeyLabel(['Ctrl+Z'])})`}
           className={cn(
             'flex items-center justify-center transition-all duration-150',
             canUndo && 'text-muted-foreground hover:text-foreground hover:scale-110 cursor-pointer',
@@ -235,7 +236,7 @@ export function CanvasToolbar() {
           type="button"
           onClick={redo}
           disabled={!canRedo}
-          title={getLL().flow.redo()}
+          title={`${getLL().flow.redo()} (${hotkeyLabel(['Ctrl+Shift+Z'])})`}
           className={cn(
             'flex items-center justify-center transition-all duration-150',
             canRedo && 'text-muted-foreground hover:text-foreground hover:scale-110 cursor-pointer',
@@ -261,9 +262,10 @@ export function CanvasToolbar() {
         ) : (
           <button
             type="button"
+            data-execute-btn
             onClick={handleExecute}
             disabled={isDisabled}
-            title={getLL().flow.execute_flow()}
+            title={`${getLL().flow.execute_flow()} (${hotkeyLabel(['Ctrl+Enter'])})`}
             className={cn(
               'flex items-center justify-center',
               'transition-all duration-150',
@@ -449,6 +451,7 @@ export function CanvasToolbar() {
             </div>
           </>
         )}
+
       </div>
     </div>
   );

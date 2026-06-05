@@ -89,6 +89,10 @@ interface UIState {
   showDatasetExecutionPanel: boolean;
   /** 是否显示环境管理对话框 */
   showEnvironmentManagerDialog: boolean;
+  /** 是否显示快捷键面板 */
+  showShortcutsDialog: boolean;
+  /** 是否显示搜索面板 */
+  showSearchOverlay: boolean;
 
   // ===== 连接对话框状态 =====
   /** 是否显示数据库连接对话框 */
@@ -170,6 +174,14 @@ interface UIState {
   openEnvironmentManagerDialog: () => void;
   /** 关闭环境管理对话框 */
   closeEnvironmentManagerDialog: () => void;
+  /** 打开快捷键面板 */
+  openShortcutsDialog: () => void;
+  /** 关闭快捷键面板 */
+  closeShortcutsDialog: () => void;
+  /** 打开搜索面板 */
+  openSearchOverlay: () => void;
+  /** 关闭搜索面板 */
+  closeSearchOverlay: () => void;
 
   // ===== 连接对话框 Actions =====
   /** 打开连接对话框（新建模式） */
@@ -270,6 +282,8 @@ const initialState = {
   showStressTestConfigDialog: false,
   showDatasetExecutionPanel: false,
   showEnvironmentManagerDialog: false,
+  showShortcutsDialog: false,
+  showSearchOverlay: false,
 
   // 连接对话框状态
   showConnectionDialog: false,
@@ -379,6 +393,12 @@ export const useUIStore = create<UIState>((set) => ({
 
   openEnvironmentManagerDialog: () => set({ showEnvironmentManagerDialog: true }),
   closeEnvironmentManagerDialog: () => set({ showEnvironmentManagerDialog: false }),
+
+  openShortcutsDialog: () => set({ showShortcutsDialog: true }),
+  closeShortcutsDialog: () => set({ showShortcutsDialog: false }),
+
+  openSearchOverlay: () => set({ showSearchOverlay: true }),
+  closeSearchOverlay: () => set({ showSearchOverlay: false }),
 
   // ===== 连接对话框 Actions =====
   openConnectionDialog: () =>

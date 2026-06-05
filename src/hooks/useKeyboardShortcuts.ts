@@ -174,6 +174,65 @@ export function useKeyboardShortcuts() {
         e.preventDefault();
         useZoomStore.getState().resetZoom();
       }
+
+      // Ctrl/Cmd + /: 打开快捷键面板
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        useUIStore.getState().openShortcutsDialog();
+      }
+
+      // Ctrl/Cmd + Shift + F: 打开全流程搜索
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        useUIStore.getState().openSearchOverlay();
+      }
+
+      // Ctrl/Cmd + ,: 打开设置
+      if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+        e.preventDefault();
+        useUIStore.getState().openSettingsDialog();
+      }
+
+      // Ctrl/Cmd + Enter: 执行流程
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        // 派发自定义事件，由 CanvasToolbar 监听
+        window.dispatchEvent(new CustomEvent('trigger-execute-flow'));
+      }
+
+      // Ctrl/Cmd + D: 复制选中节点
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        const state = useFlowStore.getState();
+        const selectedNode = state.getSelectedNode();
+        if (selectedNode && selectedNode.type !== 'entry') {
+          const newUuid = crypto.randomUUID();
+          const offset = 50;
+          state.addNode({
+            uuid: newUuid,
+            type: selectedNode.type,
+            name: `${selectedNode.name} (副本)`,
+            position: {
+              x: selectedNode.position.x + offset,
+              y: selectedNode.position.y + offset,
+            },
+            data: JSON.parse(JSON.stringify(selectedNode.data)),
+          });
+          state.selectNode(newUuid);
+        }
+      }
+
+      // Ctrl/Cmd + L: 聚焦到节点列表
+      if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+        e.preventDefault();
+        useUIStore.getState().setFlowListPanelOpen(true);
+      }
+
+      // F: 适应画布到窗口（非输入状态）
+      if (!isInputting && e.key === 'f') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('trigger-fit-view'));
+      }
     },
     [selectedNodeId, selectNode, toggleFlowListPanel, toggleHistoryPanel, toggleConfigPanel]
   );
