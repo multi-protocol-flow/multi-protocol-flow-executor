@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Database, Info, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 import type { DbQueryConfig as DbQueryConfigType, DbConnectConfig as DbConnectConfigType } from '@/types/node';
-import { useFlowStore } from '@/stores/flow';
+import { useFlowStore, selectNodes } from '@/stores/flow';
 import { getLL } from '@/i18n/i18n-lazy';
 
 interface DbQueryConfigProps {
@@ -134,7 +134,7 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
   });
 
   // 获取当前流程中的 db_connect 节点
-  const nodes = useFlowStore((state) => state.flow?.nodes ?? []);
+  const nodes = useFlowStore(selectNodes);
   const dbConnectNodes = useMemo(
     () => nodes.filter((n) => n.data?.type === 'db_connect'),
     [nodes],

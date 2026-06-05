@@ -6,7 +6,7 @@ import { useState, useMemo } from 'react';
 import { Play, Square, Bug, Activity, Variable as VariableIcon, X, Undo2, Redo2, Database, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import * as Popover from '@radix-ui/react-popover';
-import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging, selectCanUndo, selectCanRedo } from '@/stores';
+import { useFlowStore, useUIStore, useExecutionStore, useDebugStore, selectIsDebugging, selectCanUndo, selectCanRedo, selectFlow, selectNodes } from '@/stores';
 import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
 import { useWsStreamStore } from '@/stores/wsStream';
@@ -32,7 +32,7 @@ import { hotkeyLabel } from '@/lib/hotkeyLabels';
 export function CanvasToolbar() {
   const ll = getLL();
   const [isExecuting, setIsExecuting] = useState(false);
-  const flow = useFlowStore((state) => state.flow);
+  const flow = useFlowStore(selectFlow);
   const undo = useFlowStore((state) => state.undo);
   const redo = useFlowStore((state) => state.redo);
   const canUndo = useFlowStore(selectCanUndo);
@@ -156,8 +156,9 @@ export function CanvasToolbar() {
     await startDebugSession(flow, breakpoints);
   };
 
-  const hasValidFlow = flow && flow.nodes.length > 0;
-  const hasEntryNode = flow?.nodes.some((n) => n.type === 'entry');
+  const nodes = useFlowStore(selectNodes);
+  const hasValidFlow = nodes.length > 0;
+  const hasEntryNode = nodes.some((n) => n.type === 'entry');
   // 压测运行时禁用执行和调试
   const isDisabled = !hasValidFlow || !hasEntryNode || isExecuting || isStressTestRunning || isDatasetExecuting;
 
