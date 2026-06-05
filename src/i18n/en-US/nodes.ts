@@ -1,4 +1,5 @@
 const en_US_nodes = {
+  add_node_title: 'Add Node',
   category: {
     all: 'All',
     http: 'HTTP',

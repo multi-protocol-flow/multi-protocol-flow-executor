@@ -1,4 +1,5 @@
 const zh_CN_nodes = {
+  add_node_title: '添加节点',
   category: {
     all: '全部',
     http: 'HTTP',

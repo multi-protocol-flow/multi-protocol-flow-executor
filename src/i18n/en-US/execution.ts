@@ -185,6 +185,9 @@ const en_US_execution = {
     success_rate: 'Success Rate:',
     avg_duration: 'Avg Duration:',
     flow_error: 'Flow Error',
+    search_match_name: 'Name',
+    search_match_config: 'Config',
+    search_match_variable: 'Variable',
     ws_stream_title: 'WebSocket Stream',
     ws_connections: '{count} Connection(s)',
     node_details: 'Node Execution Details',
@@ -507,6 +510,11 @@ const en_US_execution = {
     success_rate: 'Success rate',
     unknown_error: 'Unknown error',
   },
+  // ===== Canvas Report Viewer =====
+  canvasReport: {
+    select_node_hint: 'Select an executed node to view details',
+  },
+
   // ===== Dataset Execution Panel =====
   dataset: {
     title: 'Dataset Execution',

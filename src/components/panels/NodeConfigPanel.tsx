@@ -141,7 +141,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                 e.stopPropagation();
                 setIsHelpDrawerOpen(true);
               }}
-              title="帮助"
+              title={getLL().panels.nodeConfig.help()}
             >
               <CircleHelp className="h-4 w-4 text-muted-foreground hover:text-primary" />
             </Button>

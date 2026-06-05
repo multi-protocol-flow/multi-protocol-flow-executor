@@ -187,6 +187,9 @@ const zh_CN_execution: BaseTranslation = {
     success_rate: '成功率:',
     avg_duration: '平均耗时:',
     flow_error: '流程错误',
+    search_match_name: '名称',
+    search_match_config: '配置',
+    search_match_variable: '变量',
     ws_stream_title: 'WebSocket 消息流',
     ws_connections: '{count} 个连接',
     node_details: '节点执行详情',
@@ -508,6 +511,11 @@ const zh_CN_execution: BaseTranslation = {
     success_rate: '成功率',
     unknown_error: '未知错误',
   },
+  // ===== 画布报告查看器 =====
+  canvasReport: {
+    select_node_hint: '请选择已执行节点查看详情',
+  },
+
   // ===== 数据集执行面板 =====
   dataset: {
     title: '数据驱动执行',

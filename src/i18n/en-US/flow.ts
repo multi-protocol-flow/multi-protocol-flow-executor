@@ -36,6 +36,15 @@ const en_US_flow = {
   folder_name_placeholder: 'Folder name...',
   loading: 'Loading...',
   no_flows: 'No flows',
+  search_flow: 'Search Flow',
+  search_placeholder: 'Search node name, config fields, variable references...',
+  search_no_results: 'No matching results',
+  search_try_other: 'Try different keywords',
+  search_hint: 'Search the current flow',
+  search_hint_detail: 'Search node names, config fields, variable references',
+  search_close_hint: 'Press Esc to close · Click result to jump',
+  search_match_count: '{count} matches',
+  search_more_matches: '{count} more matches',
   create_flow_hint: 'Click + to create a new flow',
   root_dir: 'Root',
   current_label: '(current)',
@@ -106,8 +115,14 @@ const en_US_flow = {
   breakpoint_set_aria: 'Remove breakpoint',
   breakpoint_unset_aria: 'Set breakpoint',
 
+  // Copy / Rename
+  duplicate_suffix: 'Copy',
+  rename_hint: 'Enter to confirm · Esc to cancel',
+
   // Context menu
   context_copy_node: 'Copy Node',
+  context_copy_config: 'Copy Config',
+  context_paste_config: 'Paste Config',
   context_rename: 'Rename',
   context_delete_node: 'Delete Node',
 

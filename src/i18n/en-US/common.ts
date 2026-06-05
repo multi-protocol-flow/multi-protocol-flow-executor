@@ -18,7 +18,11 @@ const en_US_common: Partial<Translation['common']> = {
   drag_resize_height: 'Drag to resize height',
   clear: 'Clear',
   /** Not configured */
-  not_configured: 'Not configured'
+  not_configured: 'Not configured',
+  or: 'or',
+  space_drag: 'Space + Drag',
+  ctrl_scroll: 'Ctrl+Scroll',
+  ctrl_zoom: 'Ctrl + - / =',
 };
 
 export default en_US_common;

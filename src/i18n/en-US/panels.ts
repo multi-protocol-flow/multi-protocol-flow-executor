@@ -503,7 +503,7 @@
   },
 
   environment: {
-    label: 'Environment',
+    label: 'Env',
     currentEnv: 'Current: {name}',
     selectEnv: 'Select Environment',
     defaultVars: 'Default Variables',

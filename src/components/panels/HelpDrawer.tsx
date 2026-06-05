@@ -91,14 +91,14 @@ export function HelpDrawer({ nodeTypeId, open, onClose }: HelpDrawerProps) {
                           </code>
                           <span className="text-xs text-muted-foreground">{param.type}</span>
                           {param.required && (
-                            <span className="text-xs text-destructive">必填</span>
+                            <span className="text-xs text-destructive">{getLL().panels.helpDrawer.required()}</span>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mb-1">
                           {param.description}
                         </p>
                         <div className="text-xs">
-                          <span className="text-muted-foreground">示例: </span>
+                          <span className="text-muted-foreground">{getLL().panels.helpDrawer.example()}: </span>
                           <code className="bg-muted/50 px-1 rounded text-foreground/80">
                             {param.example}
                           </code>

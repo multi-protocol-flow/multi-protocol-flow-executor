@@ -7,6 +7,7 @@ import settings from './settings';
 import flow from './flow';
 import validation from './validation';
 import welcome from './welcome';
+import shortcuts from './shortcuts';
 
 const en_US: Translation = {
   common: common as Translation['common'],
@@ -17,6 +18,7 @@ const en_US: Translation = {
   flow: flow as Translation['flow'],
   validation: validation as Translation['validation'],
   welcome: welcome as Translation['welcome'],
+  shortcuts: shortcuts as Translation['shortcuts'],
 };
 
 export default en_US;

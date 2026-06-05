@@ -19,7 +19,11 @@ const zh_CN_common: Partial<BaseTranslation> = {
   drag_resize_height: '拖拽调整面板高度',
   clear: '清空',
   /** 未配置 */
-  not_configured: '未配置'
+  not_configured: '未配置',
+  or: '或',
+  space_drag: 'Space + 拖拽',
+  ctrl_scroll: 'Ctrl+滚轮',
+  ctrl_zoom: 'Ctrl + - / =',
 };
 
 export default zh_CN_common;

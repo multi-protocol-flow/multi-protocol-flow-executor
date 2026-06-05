@@ -525,11 +525,16 @@ const zh_CN_panels: BaseTranslation = {
     deleteEnv: '删除环境',
   },
 
+  helpDrawer: {
+    required: '必填',
+    example: '示例',
+  },
   nodeConfig: {
     debugMode: '调试模式',
     debugHint: '点击画布上的节点查看其配置信息',
     readOnly: '只读',
     editConfig: '编辑配置',
+    help: '帮助',
   },
 
 

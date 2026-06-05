@@ -38,6 +38,15 @@ const zh_CN_flow: BaseTranslation = {
   folder_name_placeholder: '文件夹名称...',
   loading: '加载中...',
   no_flows: '暂无流程',
+  search_flow: '搜索流程',
+  search_placeholder: '搜索节点名称、配置字段、变量引用...',
+  search_no_results: '未找到匹配结果',
+  search_try_other: '尝试使用不同的关键词搜索',
+  search_hint: '输入关键词搜索当前流程',
+  search_hint_detail: '可搜索节点名称、配置字段值、变量引用',
+  search_close_hint: '按 Esc 关闭 · 点击结果跳转到对应节点',
+  search_match_count: '{count} 个匹配',
+  search_more_matches: '还有 {count} 个匹配项',
   create_flow_hint: '点击 + 创建新流程',
   root_dir: '根目录',
   current_label: '(当前)',
@@ -110,8 +119,14 @@ const zh_CN_flow: BaseTranslation = {
 
   // 右键菜单
   context_copy_node: '复制节点',
+  context_copy_config: '复制配置',
+  context_paste_config: '粘贴配置',
   context_rename: '重命名',
   context_delete_node: '删除节点',
+
+  // 复制/重命名
+  duplicate_suffix: '副本',
+  rename_hint: 'Enter 确认 · Esc 取消',
 
   // 确认对话框
   delete_node_title: '删除节点',
