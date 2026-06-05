@@ -97,7 +97,7 @@ function generateId(): string {
  * 将 AssertionNodeConfig 转换为表单数据
  */
 function toFormData(data: AssertionNodeConfig): AssertionConfigFormData {
-  const assertions: AssertionFormData[] = data.assertions.map((a) => ({
+  const assertions: AssertionFormData[] = (data.assertions || []).map((a) => ({
     target: a.target,
     operator: mapOperatorToForm(a.operator),
     expected: typeof a.expected === "string" ? a.expected : JSON.stringify(a.expected),
