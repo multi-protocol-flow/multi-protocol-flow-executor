@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useEffect, useRef, useMemo } from 'react';
 import { variableExtractorConfigSchema, type VariableExtractorConfigFormData } from './schemas';
 import { Label } from '@/components/ui/label';
+import { SearchableNodeSelect } from '@/components/ui/SearchableNodeSelect';
 import { OutputMappingsEditor } from '@/components/panels/shared/OutputMappingsEditor';
 import type { VariableExtractorConfig as VariableExtractorConfigType } from '@/types';
 import { useFlowStore } from '@/stores';
@@ -80,6 +81,19 @@ export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfi
     (node) => node.uuid !== selectedNodeId && !EXCLUDED_SOURCE_TYPES.has(node.type)
   ) ?? [];
 
+  // 数据来源下拉选项：自动 + 所有上游节点
+  const sourceSelectItems = useMemo(() => {
+    const _ll = getLL().panels.variableExtractor;
+    return [
+      { uuid: "", name: _ll.sourceAuto(), type: "" },
+      ...sourceNodes.map((node) => ({
+        uuid: node.uuid,
+        name: node.name,
+        type: node.type,
+      })),
+    ];
+  }, [sourceNodes]);
+
   /** JSONPath 预设列表 */
   const jsonPathPresets = useMemo(() => [
     { value: '$.status', label: presetsLL.statusCode() },
@@ -138,8 +152,7 @@ export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfi
   /**
    * 处理数据来源选择变更
    */
-  const handleSourceNodeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
+  const handleSourceNodeChange = useCallback((value: string) => {
     setValue('source_node_id', value || undefined, { shouldDirty: true });
     // 延迟保存，确保表单值已更新
     setTimeout(saveData, 100);
@@ -152,19 +165,13 @@ export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfi
         <Label htmlFor="source_node_id" className="text-sm font-medium text-foreground">
           {ll.dataSource()}
         </Label>
-        <select
-          id="source_node_id"
+        <SearchableNodeSelect
           value={watch('source_node_id') || ''}
-          onChange={handleSourceNodeChange}
-          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        >
-          <option value="">{ll.sourceAuto()}</option>
-          {sourceNodes.map((node) => (
-            <option key={node.uuid} value={node.uuid}>
-              {node.name} ({node.type})
-            </option>
-          ))}
-        </select>
+          onValueChange={handleSourceNodeChange}
+          items={sourceSelectItems}
+          placeholder={ll.sourceAuto()}
+          noResultsText={ll.sourceHelp()}
+        />
         <p className="text-xs text-muted-foreground">
           {ll.sourceHelp()}
         </p>

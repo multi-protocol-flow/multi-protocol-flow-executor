@@ -4,7 +4,7 @@
  */
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   assertionConfigSchema,
   type AssertionConfigFormData,
@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableNodeSelect } from "@/components/ui/SearchableNodeSelect";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Trash2, CheckCircle, XCircle, Zap } from "lucide-react";
@@ -245,6 +246,19 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
     (node) => node.uuid !== selectedNodeId && !EXCLUDED_SOURCE_TYPES.has(node.type)
   ) ?? [];
 
+  // 数据来源下拉选项：自动 + 所有上游节点
+  const sourceSelectItems = useMemo(() => {
+    const ll = getLL();
+    return [
+      { uuid: "all", name: ll.panels.assertion.sourceAuto(), type: "" },
+      ...sourceNodes.map((node) => ({
+        uuid: node.uuid,
+        name: node.name,
+        type: node.type,
+      })),
+    ];
+  }, [sourceNodes]);
+
   // 当外部数据变化时，重置表单
   useEffect(() => {
     reset(toFormData(data));
@@ -415,24 +429,14 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
         <Label htmlFor="source_node_id" className="text-sm font-medium text-foreground">
           {getLL().panels.assertion.sourceNode()}
         </Label>
-        <Select
+        <SearchableNodeSelect
           value={watchedSourceNodeId || ""}
           onValueChange={handleSourceNodeChange}
-        >
-          <SelectTrigger id="source_node_id" className="font-mono">
-            <SelectValue placeholder={getLL().panels.assertion.sourcePlaceholder()} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">
-              {getLL().panels.assertion.sourceAuto()}
-            </SelectItem>
-            {sourceNodes.map((node) => (
-              <SelectItem key={node.uuid} value={node.uuid}>
-                {node.name} ({node.type})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          items={sourceSelectItems}
+          placeholder={getLL().panels.assertion.sourcePlaceholder()}
+          emptyText={getLL().panels.assertion.sourceHelp()}
+          noResultsText={getLL().panels.assertion.sourceHelp()}
+        />
         <p className="text-xs text-muted-foreground">
           {getLL().panels.assertion.sourceHelp()}
         </p>

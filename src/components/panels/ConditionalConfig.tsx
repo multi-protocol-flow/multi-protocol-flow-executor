@@ -4,7 +4,7 @@
  */
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   conditionalConfigSchema,
   type ConditionalConfigFormData,
@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { VariableInput } from "@/components/ui/VariableInput";
 import { VariableValidationWarning } from "@/components/ui/VariableValidationWarning";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableNodeSelect } from "@/components/ui/SearchableNodeSelect";
 import { Textarea } from "@/components/ui/textarea";
 import { Code2, Split } from "lucide-react";
 import type { ConditionalConfig as ConditionalConfigType, ConditionOperator } from "@/types";
@@ -122,6 +123,19 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
     (node) => node.uuid !== selectedNodeId && !EXCLUDED_SOURCE_TYPES.has(node.type)
   ) ?? [];
 
+  // 数据来源下拉选项：自动 + 所有上游节点
+  const sourceSelectItems = useMemo(() => {
+    const _ll = getLL().panels.conditional;
+    return [
+      { uuid: "", name: _ll.sourceAuto(), type: "" },
+      ...sourceNodes.map((node) => ({
+        uuid: node.uuid,
+        name: node.name,
+        type: node.type,
+      })),
+    ];
+  }, [sourceNodes]);
+
   // 当外部数据变化时，重置表单
   useEffect(() => {
     reset(toFormData(data));
@@ -209,8 +223,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
   /**
    * 处理数据来源选择变更
    */
-  const handleSourceNodeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
+  const handleSourceNodeChange = useCallback((value: string) => {
     setValue("source_node_id", value || undefined, { shouldDirty: true });
     setTimeout(saveData, 100);
   }, [setValue, saveData]);
@@ -224,19 +237,13 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
         <Label htmlFor="source_node_id" className="text-sm font-medium text-foreground">
           {ll.sourceNode()}
         </Label>
-        <select
-          id="source_node_id"
+        <SearchableNodeSelect
           value={watch("source_node_id") || ""}
-          onChange={handleSourceNodeChange}
-          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        >
-          <option value="">{ll.sourceAuto()}</option>
-          {sourceNodes.map((node) => (
-            <option key={node.uuid} value={node.uuid}>
-              {node.name} ({node.type})
-            </option>
-          ))}
-        </select>
+          onValueChange={handleSourceNodeChange}
+          items={sourceSelectItems}
+          placeholder={ll.sourceAuto()}
+          noResultsText={ll.sourceHelp()}
+        />
         <p className="text-xs text-muted-foreground">
           {ll.sourceHelp()}
         </p>
