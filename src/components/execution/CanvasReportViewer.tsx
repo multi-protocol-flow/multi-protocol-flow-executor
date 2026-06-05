@@ -5,6 +5,7 @@
  * 已执行节点高亮，未执行节点灰显。
  */
 import { useMemo, useEffect, useCallback, type ComponentType } from 'react';
+import { getLL } from '@/i18n/i18n-lazy';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -517,7 +518,7 @@ function CanvasReportViewerInner({
       >
         {/* 面板头 */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <h3 className="text-sm font-semibold text-foreground">节点详情</h3>
+          <h3 className="text-sm font-semibold text-foreground">{getLL().execution.report.node_details()}</h3>
           <button
             type="button"
             onClick={() => onNodeSelect(null)}
@@ -537,7 +538,7 @@ function CanvasReportViewerInner({
             <NodeExecutionDetails report={selectedReport} />
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-              请选择已执行节点查看详情
+              {getLL().execution.canvasReport.select_node_hint()}
             </div>
           )}
         </div>

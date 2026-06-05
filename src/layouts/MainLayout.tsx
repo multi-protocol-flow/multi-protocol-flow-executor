@@ -13,6 +13,8 @@ import { StressTestResult } from '@/components/stress-test/StressTestResult';
 import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
+import { ShortcutsDialog } from '@/components/dialogs/ShortcutsDialog';
+import { SearchOverlay } from '@/components/dialogs/SearchOverlay';
 import { EnvironmentManagerDialog } from '@/components/panels/EnvironmentManager';
 import {
   DatasetReportList,
@@ -26,7 +28,7 @@ import { useSettingsStore } from '@/stores/settings';
 import type { BottomPanelTab } from '@/stores/ui';
 import { useConsoleStore } from '@/stores/console';
 import { useZoomStore } from '@/stores/zoom';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, GripVertical, GripHorizontal, ZoomIn, ZoomOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -70,6 +72,24 @@ function ConfirmDialogHandler() {
       onCancel={() => {
         confirmDialogConfig.onCancel?.();
         hideConfirm();
+      }}
+    />
+  );
+}
+
+/**
+ * 搜索面板处理器组件
+ * 从 store 读取状态并渲染 SearchOverlay
+ */
+function SearchOverlayHandler() {
+  const showSearchOverlay = useUIStore((state) => state.showSearchOverlay);
+  const closeSearchOverlay = useUIStore((state) => state.closeSearchOverlay);
+
+  return (
+    <SearchOverlay
+      open={showSearchOverlay}
+      onOpenChange={(open) => {
+        if (!open) closeSearchOverlay();
       }}
     />
   );
@@ -431,6 +451,17 @@ export function MainLayout() {
           </div>
           )}
 
+          {/* 快捷键按钮 */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => useUIStore.getState().openShortcutsDialog()}
+            title={`快捷键 (Ctrl+/)`}
+            className="hidden sm:inline-flex"
+          >
+            <Keyboard className="h-5 w-5" />
+          </Button>
+
           {/* 设置按钮 */}
           <Button
             variant="ghost"
@@ -759,6 +790,12 @@ export function MainLayout() {
 
       {/* ===== 通用确认对话框 ===== */}
       <ConfirmDialogHandler />
+
+      {/* ===== 快捷键面板 ===== */}
+      <ShortcutsDialog />
+
+      {/* ===== 全流程搜索面板 ===== */}
+      <SearchOverlayHandler />
     </div>
   );
 }

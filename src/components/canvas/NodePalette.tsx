@@ -355,6 +355,91 @@ function getSuperCategoryLabel(key: string): string {
 const PALETTE_WIDTH = 400;
 const PALETTE_MAX_HEIGHT = 420;
 
+// ============================================================================
+// 搜索增强工具
+// ============================================================================
+
+/** 关键词别名映射 */
+const SEARCH_ALIASES: Record<string, string[]> = {
+  rest: ['http'],
+  pubsub: ['mqtt', 'kafka'],
+  stream: ['kafka_consume', 'kafka_produce', 'sse_listen'],
+  queue: ['mqtt_subscribe', 'amqp_consume'],
+  trigger: ['mqtt_subscribe', 'sse_listen'],
+  sql: ['db_query'],
+  nosql: ['db_query'],
+  rpc: ['grpc_call'],
+  tool: ['mcp_call_tool'],
+  email: ['smtp_send', 'imap_fetch'],
+  realtime: ['ws_connect', 'sse_listen', 'mqtt_subscribe'],
+  schedule: ['mqtt_subscribe', 'kafka_consume'],
+  crud: ['http', 'db_query'],
+};
+
+/** 别名 → 所有展开的节点类型 */
+function expandAliases(query: string): string[] {
+  const q = query.toLowerCase().trim();
+  return SEARCH_ALIASES[q] ?? [];
+}
+
+/** 简单编辑距离（Levenshtein） */
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+/** 模糊匹配评分（0=不匹配，值越高越匹配） */
+function fuzzyScore(query: string, target: string): number {
+  const q = query.toLowerCase();
+  const t = target.toLowerCase();
+  // 完全包含：最高分
+  if (t.includes(q)) return 100;
+  // 编辑距离 ≤ 2：次高分（距离越小越高）
+  const dist = levenshtein(q, t);
+  if (dist <= 2) return 50 - dist * 15;
+  return 0;
+}
+
+// ============================================================================
+// 使用频率追踪
+// ============================================================================
+
+const USAGE_KEY = 'node-palette-usage';
+
+/** 记录节点使用 */
+function recordNodeUsage(type: NodeType) {
+  try {
+    const raw = localStorage.getItem(USAGE_KEY);
+    const counts: Record<string, number> = raw ? JSON.parse(raw) : {};
+    counts[type] = (counts[type] || 0) + 1;
+    // 只保留最近 50 条，防止无限增长
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 50);
+    localStorage.setItem(USAGE_KEY, JSON.stringify(Object.fromEntries(sorted)));
+  } catch { /* ignore */ }
+}
+
+/** 获取使用频率排序（高频在前） */
+function getUsageOrder(type: NodeType): number {
+  try {
+    const raw = localStorage.getItem(USAGE_KEY);
+    if (!raw) return 0;
+    const counts: Record<string, number> = JSON.parse(raw);
+    return -(counts[type] || 0);
+  } catch {
+    return 0;
+  }
+}
+
 /**
  * 节点选择器浮动弹窗组件
  */
@@ -435,19 +520,51 @@ export function NodePalette() {
     return group?.items ?? [];
   }, [activeTabKey, currentGroups]);
 
+  // 搜索时跨所有分类
+  const allItems = useMemo(() => {
+    const items: NodeItem[] = [];
+    for (const group of nodeGroups) {
+      for (const item of group.items) {
+        items.push(item);
+      }
+    }
+    return items;
+  }, [nodeGroups]);
+
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase().trim();
-    const results: NodeItem[] = [];
-    for (const group of currentGroups) {
-      for (const item of group.items) {
-        if (item.name.toLowerCase().includes(query) || item.type.toLowerCase().includes(query)) {
-          results.push(item);
-        }
+    const scored: { item: NodeItem; score: number }[] = [];
+
+    // 1. 别名展开
+    const aliasTypes = expandAliases(query);
+
+    for (const item of allItems) {
+      let bestScore = 0;
+
+      // 2. 精确包含匹配
+      const nameScore = fuzzyScore(query, item.name);
+      const typeScore = fuzzyScore(query, item.type);
+      bestScore = Math.max(nameScore, typeScore);
+
+      // 3. 别名匹配
+      if (aliasTypes.includes(item.type)) {
+        bestScore = Math.max(bestScore, 90);
+      }
+
+      if (bestScore > 0) {
+        scored.push({ item, score: bestScore });
       }
     }
-    return results;
-  }, [searchQuery, currentGroups]);
+
+    // 4. 按分数排序（同分时按使用频率排序）
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return getUsageOrder(a.item.type) - getUsageOrder(b.item.type);
+    });
+
+    return scored.map((s) => s.item);
+  }, [searchQuery, allItems]);
 
   // 实际展示的节点列表
   const displayItems = searchQuery.trim() ? searchResults : currentTabItems;
@@ -456,6 +573,8 @@ export function NodePalette() {
   const handleDragStart = useCallback((e: React.DragEvent, type: NodeType) => {
     e.dataTransfer.setData('application/reactflow/nodeType', type);
     e.dataTransfer.effectAllowed = 'move';
+    // 更新使用频率
+    recordNodeUsage(type);
     // 延迟到下一帧关闭弹窗，确保 dragstart 完成后再移除遮罩
     requestAnimationFrame(() => {
       useUIStore.getState().closeNodePalette();
@@ -465,6 +584,7 @@ export function NodePalette() {
   /** 点击添加节点：设置待添加类型，由 FlowCanvas 在视口中心处理 */
   const handleClick = useCallback((type: NodeType) => {
     if (!flow) return;
+    recordNodeUsage(type);
     setPendingAddNodeType(type);
   }, [flow, setPendingAddNodeType]);
 
@@ -535,14 +655,14 @@ export function NodePalette() {
           <div className="flex items-center gap-1.5">
             <Search className="w-3.5 h-3.5 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">
-              {(typeof localStorage !== 'undefined' && localStorage.getItem('locale') === 'en-US') ? 'Add Node' : '添加节点'}
+              {getLL().nodes.add_node_title()}
             </span>
           </div>
           <button
             type="button"
             onClick={closePalette}
             className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            title="关闭"
+            title={getLL().common.CANCEL()}
           >
             <X className="w-3.5 h-3.5" />
           </button>
