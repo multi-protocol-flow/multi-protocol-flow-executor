@@ -2,6 +2,7 @@
  * 带变量选择器的输入框组件
  * 在输入框右侧显示变量选择按钮，点击后弹出 VariableSelector
  * 选择变量后，将 {{变量名}} 插入到光标位置
+ * 支持 {{var}} 高亮预览：有效变量紫色，无效变量红色删除线
  */
 import * as React from "react";
 import { Variable } from "@/types/variable";
@@ -159,41 +160,98 @@ export const VariableInput = React.forwardRef<
     const isVariableSelectorEnabled =
       !disableVariableSelector && variables.length > 0 && !disabled;
 
-    return (
-      <div className={cn("relative flex items-center", containerClassName)}>
-        <Input
-          {...props}
-          ref={setInputRef}
-          type={props.type ?? "text"}
-          value={value}
-          onChange={handleInputChange}
-          placeholder={placeholder}
-          disabled={disabled}
-          className={cn(
-            // 右侧预留空间给变量按钮
-            isVariableSelectorEnabled && "pr-10",
-            className
-          )}
-        />
+    // 渲染变量引用高亮预览（将 {{var}} 替换为紫色标记）
+    const varHighlightPreview = React.useMemo(() => {
+      if (!value) return null;
+      const parts: React.ReactNode[] = [];
+      const regex = /\{\{([^}]+)\}\}/g;
+      let lastIndex = 0;
+      let match: RegExpExecArray | null;
+      let hasMatch = false;
 
-        {/* 变量选择按钮 */}
-        {isVariableSelectorEnabled && (
-          <VariableSelector
-            variables={variables}
-            nodeLabels={nodeLabels}
-            onSelect={handleVariableSelect}
-            triggerClassName={cn(
-              // 绝对定位在输入框右侧内部
-              "absolute right-1 top-1/2 -translate-y-1/2",
-              "p-1.5 rounded-sm",
-              "border-0 bg-violet-500/10",
-              "hover:bg-violet-500/20 focus:bg-violet-500/20",
-              "text-violet-600 hover:text-violet-700 focus:text-violet-700",
-              "transition-colors duration-150",
-              variableButtonClassName
+      while ((match = regex.exec(value)) !== null) {
+        hasMatch = true;
+        if (match.index > lastIndex) {
+          parts.push(
+            <span key={`t-${lastIndex}`} className="text-foreground">
+              {value.slice(lastIndex, match.index)}
+            </span>
+          );
+        }
+        const varPath = match[1];
+        const isValid = variables.some((v) => v.name === varPath);
+        parts.push(
+          <span
+            key={`v-${match.index}`}
+            className={
+              isValid
+                ? "text-violet-600 dark:text-violet-400 font-medium"
+                : "text-red-500 dark:text-red-400 line-through"
+            }
+          >
+            {match[0]}
+          </span>
+        );
+        lastIndex = match.index + match[0].length;
+      }
+
+      if (!hasMatch) return null;
+
+      if (lastIndex < value.length) {
+        parts.push(
+          <span key={`t-end`} className="text-foreground">
+            {value.slice(lastIndex)}
+          </span>
+        );
+      }
+
+      return parts;
+    }, [value, variables]);
+
+    return (
+      <div className={cn("relative flex flex-col", containerClassName)}>
+        <div className="relative flex items-center">
+          <Input
+            {...props}
+            ref={setInputRef}
+            type={props.type ?? "text"}
+            value={value}
+            onChange={handleInputChange}
+            placeholder={placeholder}
+            disabled={disabled}
+            className={cn(
+              // 右侧预留空间给变量按钮
+              isVariableSelectorEnabled && "pr-10",
+              className
             )}
-            triggerChildren={<VariableIcon className="h-4 w-4" />}
           />
+
+          {/* 变量选择按钮 */}
+          {isVariableSelectorEnabled && (
+            <VariableSelector
+              variables={variables}
+              nodeLabels={nodeLabels}
+              onSelect={handleVariableSelect}
+              triggerClassName={cn(
+                // 绝对定位在输入框右侧内部
+                "absolute right-1 top-1/2 -translate-y-1/2",
+                "p-1.5 rounded-sm",
+                "border-0 bg-violet-500/10",
+                "hover:bg-violet-500/20 focus:bg-violet-500/20",
+                "text-violet-600 hover:text-violet-700 focus:text-violet-700",
+                "transition-colors duration-150",
+                variableButtonClassName
+              )}
+              triggerChildren={<VariableIcon className="h-4 w-4" />}
+            />
+          )}
+        </div>
+
+        {/* 变量引用高亮预览 */}
+        {varHighlightPreview && (
+          <div className="mt-1 px-2 py-1 text-xs font-mono bg-muted/30 rounded border border-border/50 break-all leading-relaxed select-none">
+            {varHighlightPreview}
+          </div>
         )}
       </div>
     );
