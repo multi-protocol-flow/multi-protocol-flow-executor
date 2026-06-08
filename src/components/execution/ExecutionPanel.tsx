@@ -3,7 +3,7 @@
  * 左右分栏：左侧节点列表（含状态），右侧选中节点详情
  * 右侧详情区域包含子标签：[输出] [WS消息] [变量] [栈]
  */
-import { memo, useState, useMemo, useEffect, useRef, useCallback, useDeferredValue } from 'react';
+import { memo, useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   Loader2,
   CheckCircle2,
@@ -14,6 +14,7 @@ import {
   Ban,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
+import { useThrottledValue } from '@/hooks/useThrottledValue';
 import { useExecutionStore, useFlowStore, useDebugStore, useUIStore } from '@/stores';
 import {
   selectIsExecuting,
@@ -146,7 +147,7 @@ export function ExecutionPanel() {
   const nodes = useFlowStore((state) => state.flow?.nodes ?? EMPTY_NODES);
   const isExecuting = useExecutionStore(selectIsExecuting);
   const rawCurrentNodeUuid = useExecutionStore((state) => state.currentNodeUuid);
-  const currentNodeUuid = useDeferredValue(rawCurrentNodeUuid);
+  const currentNodeUuid = useThrottledValue(rawCurrentNodeUuid);
   const completedNodeCount = useExecutionStore(selectCompletedNodeCount);
   const totalNodes = useExecutionStore(selectTotalNodes);
   const report = useExecutionStore(selectReport);
@@ -158,7 +159,7 @@ export function ExecutionPanel() {
   );
   const wsStreams = useWsStreamStore(useShallow((state) => state.wsStreams));
   const rawNodeReportsMap = useExecutionStore(useShallow((state) => state.nodeReportsMap));
-  const nodeReportsMap = useDeferredValue(rawNodeReportsMap);
+  const nodeReportsMap = useThrottledValue(rawNodeReportsMap);
 
   // ===== 调试状态 =====
   const isDebugging = useDebugStore(selectIsDebugging);
