@@ -3,7 +3,7 @@
  * 左右分栏：左侧节点列表（含状态），右侧选中节点详情
  * 右侧详情区域包含子标签：[输出] [WS消息] [变量] [栈]
  */
-import { memo, useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { memo, useState, useMemo, useEffect, useRef, useCallback, useDeferredValue } from 'react';
 import {
   Loader2,
   CheckCircle2,
@@ -145,7 +145,8 @@ export function ExecutionPanel() {
   // ===== Store 数据 =====
   const nodes = useFlowStore((state) => state.flow?.nodes ?? EMPTY_NODES);
   const isExecuting = useExecutionStore(selectIsExecuting);
-  const currentNodeUuid = useExecutionStore((state) => state.currentNodeUuid);
+  const rawCurrentNodeUuid = useExecutionStore((state) => state.currentNodeUuid);
+  const currentNodeUuid = useDeferredValue(rawCurrentNodeUuid);
   const completedNodeCount = useExecutionStore(selectCompletedNodeCount);
   const totalNodes = useExecutionStore(selectTotalNodes);
   const report = useExecutionStore(selectReport);
@@ -156,7 +157,8 @@ export function ExecutionPanel() {
     (state) => state.getNodeExecutionReport,
   );
   const wsStreams = useWsStreamStore(useShallow((state) => state.wsStreams));
-  const nodeReportsMap = useExecutionStore(useShallow((state) => state.nodeReportsMap));
+  const rawNodeReportsMap = useExecutionStore(useShallow((state) => state.nodeReportsMap));
+  const nodeReportsMap = useDeferredValue(rawNodeReportsMap);
 
   // ===== 调试状态 =====
   const isDebugging = useDebugStore(selectIsDebugging);
