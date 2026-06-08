@@ -194,8 +194,8 @@ export function ExecutionPanel() {
         .filter((n): n is Node => n !== undefined);
     }
 
-    // 执行中：显示已完成节点 + 当前正在执行的节点（保持执行顺序）
-    if (isExecuting) {
+    // 执行中或已取消（有已完成节点）：显示已完成节点 + 当前节点
+    if (isExecuting || Object.keys(nodeReportsMap).length > 0) {
       const completedUuids = Object.keys(nodeReportsMap);
       const uuids = [...completedUuids];
       if (currentNodeUuid && !uuids.includes(currentNodeUuid)) {
