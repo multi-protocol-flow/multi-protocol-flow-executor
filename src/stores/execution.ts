@@ -257,15 +257,25 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
     },
 
     getNodeExecutionStatus: (nodeUuid: string) => {
-      const { nodeReportsMap, currentNodeUuid, isExecuting } = get();
+      const { nodeReportsMap, currentNodeUuid, isExecuting, report } = get();
+      // 1. 优先从增量 map 读取（节流期间可能缺失最新条目）
       if (nodeReportsMap[nodeUuid]) {
         const status = nodeReportsMap[nodeUuid].status;
-        // 'skipped' 也是终止状态，映射为 'pending'（未执行）
         if (status === 'skipped') return 'pending';
         return status;
       }
+      // 2. 正在执行中的节点
       if (isExecuting && currentNodeUuid === nodeUuid) {
         return 'running';
+      }
+      // 3. fallback 到最终报告（flowCompleted 后 report 已完整但 nodeReportsMap 可能尚未 catch up）
+      if (report) {
+        const nodeReport = report.node_reports.find((r) => r.node_uuid === nodeUuid);
+        if (nodeReport) {
+          const status = nodeReport.status;
+          if (status === 'skipped') return 'pending';
+          return status;
+        }
       }
       return 'pending';
     },
