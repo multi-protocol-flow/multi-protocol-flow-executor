@@ -6,7 +6,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DbConnectConfig } from '@/types';
-import { useFlowStore, useDebugStore, useExecutionStore, selectRunningNodeUuid, selectIsExecutingFlag, selectIsDebugging, selectDebugCurrentNodeUuid } from '@/stores';
+import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, selectIsDebugging, selectIsNodeDebugPaused } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 import { getNodeDisplayName } from '@/lib/nodeMeta';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -57,14 +57,10 @@ export const DbConnectNode = memo(function DbConnectNode({ id, data, selected }:
   const LL = getLL();
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
-  const runningNodeUuid = useExecutionStore(selectRunningNodeUuid);
-  const isExecuting = useExecutionStore(selectIsExecutingFlag);
-  const isRunning = isExecuting && runningNodeUuid === id;
-  const debugPausedNodeUuid = useDebugStore(selectDebugCurrentNodeUuid);
-  const isDebuggingStatus = useDebugStore(selectIsDebugging);
-  const isDebugPaused = isDebuggingStatus && debugPausedNodeUuid === id;
-  const isDebugPausedAtThisNode = isRunning || isDebugPaused;
+  const isRunning = useExecutionStore(selectIsNodeRunning(id));
   const isDebugging = useDebugStore(selectIsDebugging);
+  const isDebugPaused = useDebugStore(selectIsNodeDebugPaused(id));
+  const isDebugPausedAtThisNode = isRunning || isDebugPaused;
   
   const notConfiguredLabel = LL.common.not_configured();
 

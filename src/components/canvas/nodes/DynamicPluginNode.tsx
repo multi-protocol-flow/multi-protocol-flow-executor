@@ -8,7 +8,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Box } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ICON_MAP, getNodeDisplayName } from '@/lib/nodeMeta';
-import { useFlowStore, useDebugStore, useExecutionStore, selectRunningNodeUuid, selectIsExecutingFlag, selectIsDebugging, selectDebugCurrentNodeUuid } from '@/stores';
+import { useFlowStore, useDebugStore, useExecutionStore, selectIsNodeRunning, selectIsDebugging, selectIsNodeDebugPaused } from '@/stores';
 import { BreakpointMarker } from '../BreakpointMarker';
 
 /** 动态节点数据类型 */
@@ -37,14 +37,10 @@ function DynamicPluginNode({ id, type, data, selected }: NodeProps) {
 
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
-  const runningNodeUuid = useExecutionStore(selectRunningNodeUuid);
-  const isExecuting = useExecutionStore(selectIsExecutingFlag);
-  const isRunning = isExecuting && runningNodeUuid === id;
-  const debugPausedNodeUuid = useDebugStore(selectDebugCurrentNodeUuid);
-  const isDebuggingStatus = useDebugStore(selectIsDebugging);
-  const isDebugPaused = isDebuggingStatus && debugPausedNodeUuid === id;
-  const isDebugPausedAtThisNode = isRunning || isDebugPaused;
+  const isRunning = useExecutionStore(selectIsNodeRunning(id));
   const isDebugging = useDebugStore(selectIsDebugging);
+  const isDebugPaused = useDebugStore(selectIsNodeDebugPaused(id));
+  const isDebugPausedAtThisNode = isRunning || isDebugPaused;
 
   return (
     <div
