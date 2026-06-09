@@ -8,8 +8,8 @@ export type PanelType = 'flowList' | 'history' | 'config' | 'execution';
 
 /** 右侧配置面板模式 */
 export type ConfigPanelMode = 'node' | 'settings' | 'debug';
-/** 底部面板 Tab 类型 */
-export type BottomPanelTab = 'history' | 'console' | 'running';
+/** 底部面板 Tab 类型（空字符串表示未选中） */
+export type BottomPanelTab = '' | 'history' | 'console' | 'running';
 
 /** 页面导航类型 */
 export type PageType = 'canvas' | 'dataset-reports';
@@ -51,6 +51,8 @@ interface UIState {
   isFlowListPanelOpen: boolean;
   /** 历史面板是否展开 */
   isHistoryPanelOpen: boolean;
+  /** 底部面板内容区是否展开 */
+  isBottomPanelExpanded: boolean;
   /** 配置面板是否展开 */
   isConfigPanelOpen: boolean;
   /** 执行结果面板是否展开 */
@@ -134,6 +136,10 @@ interface UIState {
   toggleFlowListPanel: () => void;
   /** 切换历史面板 */
   toggleHistoryPanel: () => void;
+  /** 切换底部面板展开/收起 */
+  toggleBottomPanel: () => void;
+  /** 设置底部面板展开状态 */
+  setBottomPanelExpanded: (expanded: boolean) => void;
   /** 切换配置面板 */
   toggleConfigPanel: () => void;
   /** 切换执行结果面板 */
@@ -260,10 +266,11 @@ const initialState = {
   // 面板状态
   isFlowListPanelOpen: true,
   isHistoryPanelOpen: false,
+  isBottomPanelExpanded: false,
   isConfigPanelOpen: true,
   isExecutionPanelOpen: false,
   // 底部面板 Tab
-  bottomPanelTab: 'history' as BottomPanelTab,
+      bottomPanelTab: '' as BottomPanelTab,
 
   // 左侧栏面板折叠状态
   isFlowListCollapsed: false,
@@ -324,6 +331,13 @@ export const useUIStore = create<UIState>((set) => ({
     set((state) => ({
       isHistoryPanelOpen: !state.isHistoryPanelOpen,
     })),
+
+  toggleBottomPanel: () =>
+    set((state) => ({
+      isBottomPanelExpanded: !state.isBottomPanelExpanded,
+    })),
+
+  setBottomPanelExpanded: (isBottomPanelExpanded) => set({ isBottomPanelExpanded }),
 
   toggleConfigPanel: () =>
     set((state) => ({
@@ -517,9 +531,10 @@ export const useUIStore = create<UIState>((set) => ({
     set({
       isFlowListPanelOpen: true,
       isHistoryPanelOpen: false,
+      isBottomPanelExpanded: false,
       isConfigPanelOpen: true,
       isExecutionPanelOpen: false,
-      bottomPanelTab: 'history' as BottomPanelTab,
+  bottomPanelTab: '' as BottomPanelTab,
       isFlowListCollapsed: false,
       isVariableDrawerOpen: false,
       showMinimap: false,

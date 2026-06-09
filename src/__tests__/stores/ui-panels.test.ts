@@ -21,7 +21,7 @@ describe('UIStore - 面板切换', () => {
       isHistoryPanelOpen: false,
       isConfigPanelOpen: true,
       isExecutionPanelOpen: false,
-      bottomPanelTab: 'history',
+      bottomPanelTab: '',
     });
   });
 
@@ -46,6 +46,28 @@ describe('UIStore - 面板切换', () => {
 
       useUIStore.getState().toggleHistoryPanel();
       expect(useUIStore.getState().isHistoryPanelOpen).toBe(false);
+    });
+  });
+
+  describe('toggleBottomPanel', () => {
+    it('切换底部面板展开/收起状态', () => {
+      expect(useUIStore.getState().isBottomPanelExpanded).toBe(false);
+
+      useUIStore.getState().toggleBottomPanel();
+      expect(useUIStore.getState().isBottomPanelExpanded).toBe(true);
+
+      useUIStore.getState().toggleBottomPanel();
+      expect(useUIStore.getState().isBottomPanelExpanded).toBe(false);
+    });
+  });
+
+  describe('setBottomPanelExpanded', () => {
+    it('直接设置底部面板展开状态', () => {
+      useUIStore.getState().setBottomPanelExpanded(true);
+      expect(useUIStore.getState().isBottomPanelExpanded).toBe(true);
+
+      useUIStore.getState().setBottomPanelExpanded(false);
+      expect(useUIStore.getState().isBottomPanelExpanded).toBe(false);
     });
   });
 
@@ -148,7 +170,7 @@ describe('UIStore - 面板切换', () => {
 
     it('selectBottomPanelTab 返回正确值', () => {
       const state = useUIStore.getState();
-      expect(selectBottomPanelTab(state)).toBe('history');
+      expect(selectBottomPanelTab(state)).toBe('');
     });
   });
 });
@@ -443,6 +465,7 @@ describe('UIStore - resetPanels 完整测试', () => {
     useUIStore.setState({
       isFlowListPanelOpen: false,
       isHistoryPanelOpen: true,
+      isBottomPanelExpanded: true,
       isConfigPanelOpen: false,
       isExecutionPanelOpen: true,
       bottomPanelTab: 'console',
@@ -457,9 +480,10 @@ describe('UIStore - resetPanels 完整测试', () => {
     // 主面板状态
     expect(state.isFlowListPanelOpen).toBe(true);
     expect(state.isHistoryPanelOpen).toBe(false);
+    expect(state.isBottomPanelExpanded).toBe(false);
     expect(state.isConfigPanelOpen).toBe(true);
     expect(state.isExecutionPanelOpen).toBe(false);
-    expect(state.bottomPanelTab).toBe('history');
+    expect(state.bottomPanelTab).toBe('');
 
     // 左侧栏面板状态
     expect(state.isFlowListCollapsed).toBe(false);

@@ -279,7 +279,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       useExecutionStore.getState().clearExecutionState();
 
       // 打开底部面板并切换到运行标签
-      useUIStore.setState({ isHistoryPanelOpen: true, bottomPanelTab: 'running' });
+      useUIStore.setState({ isBottomPanelExpanded: true, bottomPanelTab: 'running' });
 
       // 启动心跳检查
       startHeartbeatCheck();
