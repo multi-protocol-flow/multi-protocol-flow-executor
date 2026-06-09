@@ -25,12 +25,11 @@ import {
 
 import { useUIStore, useFlowStore, useDebugStore, selectIsDebugging, selectIsDebugDataReadOnly } from '@/stores';
 import { useSettingsStore } from '@/stores/settings';
-import type { BottomPanelTab } from '@/stores/ui';
 import { useConsoleStore } from '@/stores/console';
 import { useZoomStore } from '@/stores/zoom';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, Settings, GripVertical, GripHorizontal, ZoomIn, ZoomOut, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -97,7 +96,7 @@ function SearchOverlayHandler() {
 
 export function MainLayout() {
   const isFlowListPanelOpen = useUIStore((state) => state.isFlowListPanelOpen);
-  const isHistoryPanelOpen = useUIStore((state) => state.isHistoryPanelOpen);
+  const isBottomPanelExpanded = useUIStore((state) => state.isBottomPanelExpanded);
   const isConfigPanelOpen = useUIStore((state) => state.isConfigPanelOpen);
   const configPanelMode = useUIStore((state) => state.configPanelMode);
   const bottomPanelTab = useUIStore((state) => state.bottomPanelTab);
@@ -105,7 +104,8 @@ export function MainLayout() {
   const configPanelWidth = useUIStore((state) => state.configPanelWidth);
   const sidebarWidth = useUIStore((state) => state.sidebarWidth);
   const toggleFlowListPanel = useUIStore((state) => state.toggleFlowListPanel);
-  const toggleHistoryPanel = useUIStore((state) => state.toggleHistoryPanel);
+  const toggleBottomPanel = useUIStore((state) => state.toggleBottomPanel);
+  const setBottomPanelExpanded = useUIStore((state) => state.setBottomPanelExpanded);
   const toggleConfigPanel = useUIStore((state) => state.toggleConfigPanel);
   const setBottomPanelTab = useUIStore((state) => state.setBottomPanelTab);
   const setBottomPanelHeight = useUIStore((state) => state.setBottomPanelHeight);
@@ -158,6 +158,21 @@ export function MainLayout() {
       },
     });
   }, [clearLogs, showConfirm]);
+
+  // 底部面板 Tab 点击：点击相同 tab 收起并取消选中，不同 tab 切换并展开
+  const handleTabClick = useCallback((tab: 'console' | 'history' | 'running') => {
+    if (tab === bottomPanelTab && isBottomPanelExpanded) {
+      // 点击当前激活的 tab → 收起并取消选中
+      setBottomPanelTab('');
+      setBottomPanelExpanded(false);
+    } else {
+      // 点击不同 tab 或当前收起 → 切换到目标 tab 并展开
+      setBottomPanelTab(tab);
+      if (!isBottomPanelExpanded) {
+        setBottomPanelExpanded(true);
+      }
+    }
+  }, [bottomPanelTab, isBottomPanelExpanded, setBottomPanelTab, setBottomPanelExpanded]);
 
   // 对比回调：加载报告快照并打开对比对话框
   const handleCompare = useCallback(async (reportUuid: string) => {
@@ -213,7 +228,7 @@ export function MainLayout() {
   const [compareCurrentName, setCompareCurrentName] = useState('');
 
   // 底部面板内容延迟渲染：展开动画结束后再渲染内容
-  const [bottomPanelContentReady, setBottomPanelContentReady] = useState(isHistoryPanelOpen);
+  const [bottomPanelContentReady, setBottomPanelContentReady] = useState(isBottomPanelExpanded);
   const bottomPanelTransitionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 右侧面板拖拽调整宽度相关状态
@@ -348,7 +363,7 @@ export function MainLayout() {
       bottomPanelTransitionRef.current = null;
     }
 
-    if (isHistoryPanelOpen) {
+    if (isBottomPanelExpanded) {
       // 展开：等待动画结束后渲染内容
       bottomPanelTransitionRef.current = setTimeout(() => {
         setBottomPanelContentReady(true);
@@ -363,7 +378,7 @@ export function MainLayout() {
         clearTimeout(bottomPanelTransitionRef.current);
       }
     };
-  }, [isHistoryPanelOpen]);
+  }, [isBottomPanelExpanded]);
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
@@ -560,67 +575,101 @@ export function MainLayout() {
             <FlowCanvas />
           </div>
 
-          {/* ===== 底部面板（历史/控制台） ===== */}
-          <div
-            className={cn(
-              'shrink-0 border-t border-border bg-background overflow-hidden relative',
-              'transition-all duration-300 ease-out',
-              isDragging && '!transition-none'
+          {/* ===== 底部面板（Tab Bar + 可折叠内容区） ===== */}
+          <div className="shrink-0 border-t border-border bg-background flex flex-col">
+            {/* 拖拽调整高度的 handle - 只在展开时显示 */}
+            {isBottomPanelExpanded && (
+              <div
+                onMouseDown={handleMouseDown}
+                className={cn(
+                  'h-2 shrink-0',
+                  'bg-transparent hover:bg-border active:bg-input',
+                  'cursor-row-resize flex items-center justify-center',
+                  'transition-colors duration-150',
+                  isDragging && 'bg-input'
+                )}
+                title={getLL().common.drag_resize_height()}
+              >
+                <GripHorizontal className="w-6 h-2.5 text-muted-foreground" />
+              </div>
             )}
-            style={{ height: isHistoryPanelOpen ? bottomPanelHeight : 0 }}
-          >
-            {/* 可拖拽调整高度的 handle - 放在面板内部上边缘 */}
-            <div
-              onMouseDown={handleMouseDown}
-              className={cn(
-                'absolute left-0 right-0 top-0 h-2 z-10',
-                'bg-transparent hover:bg-border active:bg-input',
-                'cursor-row-resize flex items-center justify-center',
-                'transition-colors duration-150',
-                isDragging && 'bg-input'
-              )}
-              title={getLL().common.drag_resize_height()}
-            >
-              <GripHorizontal className="w-6 h-2.5 text-muted-foreground" />
-            </div>
-            {/* 内容延迟渲染：展开动画结束后再渲染，避免卡顿 */}
-            {bottomPanelContentReady && (
-              <div className="h-full flex flex-col pt-2">
-                {/* 面板头部：Tab 切换 + 关闭按钮 */}
-                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
-                    <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as BottomPanelTab)} className="w-auto">
-                      <TabsList className="h-7 p-0.5">
-                        <TabsTrigger value="history" className="h-6 px-3 text-xs">
-                          {getLL().flow.execution_history()}
-                        </TabsTrigger>
-                        <TabsTrigger value="running" className="h-6 px-3 text-xs">
-                          {getLL().flow.running()}
-                        </TabsTrigger>
-                        <TabsTrigger value="console" className="h-6 px-3 text-xs">
-                          {getLL().flow.console()}
-                        </TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={toggleHistoryPanel}
-                      className="h-7 w-7 hover:bg-accent"
-                      title={getLL().flow.collapse_panel()}
-                    >
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    </Button>
-                  </div>
 
-                  {/* Tab 内容 */}
-                  <Tabs value={bottomPanelTab} onValueChange={(v) => setBottomPanelTab(v as BottomPanelTab)} className="flex-1 min-h-0">
-                    <TabsContent value="history" className="m-0 h-full overflow-hidden">
+            {/* Tab Bar - 始终可见 */}
+            <div className="flex items-center h-9 px-2 shrink-0">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleTabClick('console')}
+                  className={cn(
+                    'px-3 py-1 text-xs rounded-md transition-colors',
+                    bottomPanelTab === 'console'
+                      ? 'bg-accent text-accent-foreground font-medium'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                  )}
+                >
+                  {getLL().flow.console()}
+                </button>
+                <button
+                  onClick={() => handleTabClick('history')}
+                  className={cn(
+                    'px-3 py-1 text-xs rounded-md transition-colors',
+                    bottomPanelTab === 'history'
+                      ? 'bg-accent text-accent-foreground font-medium'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                  )}
+                >
+                  {getLL().flow.execution_history()}
+                </button>
+                <button
+                  onClick={() => handleTabClick('running')}
+                  className={cn(
+                    'px-3 py-1 text-xs rounded-md transition-colors',
+                    bottomPanelTab === 'running'
+                      ? 'bg-accent text-accent-foreground font-medium'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                  )}
+                >
+                  {getLL().flow.running()}
+                </button>
+              </div>
+              <div className="flex-1" />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleBottomPanel}
+                className="h-7 w-7 hover:bg-accent"
+                title={isBottomPanelExpanded ? getLL().flow.collapse_panel() : getLL().flow.expand_bottom_panel()}
+              >
+                {isBottomPanelExpanded ? (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+
+            {/* Content Area - 可折叠 */}
+            <div
+              className={cn(
+                'overflow-hidden transition-all duration-300 ease-out',
+                isDragging && '!transition-none'
+              )}
+              style={{ height: isBottomPanelExpanded ? bottomPanelHeight : 0 }}
+            >
+              {bottomPanelContentReady && bottomPanelTab && (
+                <div className="h-full flex flex-col">
+                  {/* 根据选中 Tab 渲染内容 */}
+                  {bottomPanelTab === 'history' && (
+                    <div className="flex-1 min-h-0 overflow-hidden">
                       <ExecutionHistory onCompare={handleCompare} />
-                    </TabsContent>
-                    <TabsContent value="running" className="m-0 h-full overflow-hidden">
+                    </div>
+                  )}
+                  {bottomPanelTab === 'running' && (
+                    <div className="flex-1 min-h-0 overflow-hidden">
                       <ExecutionPanel />
-                    </TabsContent>
-                    <TabsContent value="console" className="m-0 h-full overflow-hidden flex flex-col">
+                    </div>
+                  )}
+                  {bottomPanelTab === 'console' && (
+                    <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
                       {/* 过滤控件 */}
                       <div className="flex items-center gap-2 px-2 py-1.5 border-b border-border shrink-0">
                         <Select value={filter.level} onValueChange={(v) => setFilter({ level: v as 'ALL' | 'INFO' | 'DEBUG' | 'WARN' | 'ERROR' })}>
@@ -669,30 +718,12 @@ export function MainLayout() {
                       <div className="flex-1 min-h-0 overflow-hidden">
                         <ConsolePanel />
                       </div>
-                    </TabsContent>
-                  </Tabs>
+                    </div>
+                  )}
                 </div>
-            )}
-          </div>
-
-          {/* 底部历史按钮（面板收起时显示）- 在画布底部 */}
-          {!isHistoryPanelOpen && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleHistoryPanel}
-              className={cn(
-                'absolute bottom-0 left-1/2 -translate-x-1/2 z-10',
-                'h-6 px-3 rounded-t-lg rounded-b-none',
-                'bg-background hover:bg-accent border border-b-0 border-border',
-                'text-xs text-muted-foreground hover:text-accent-foreground'
               )}
-              title={getLL().flow.expand_bottom_panel()}
-            >
-              <ChevronUp className="w-3.5 h-3.5 mr-1" />
-              {getLL().flow.bottom_panel()}
-            </Button>
-          )}
+            </div>
+          </div>
         </main>
 
         {/* ===== 右侧配置面板 ===== */}
