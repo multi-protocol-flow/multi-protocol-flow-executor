@@ -14,8 +14,10 @@ jobs:
         include:
           - platform: windows-latest
             label: windows-x64
-          - platform: ubuntu-22.04
-            label: linux-x64
+          # - platform: ubuntu-22.04
+          #   label: linux-x64
+          - platform: macos-latest
+            label: macos-universal
 
     runs-on: ${{ matrix.platform }}
 
@@ -51,7 +53,7 @@ jobs:
         run: npm run typesafe-i18n
 
       - name: Build
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -73,4 +75,13 @@ jobs:
           path: |
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/appimage/*.AppImage
+          if-no-files-found: warn
+
+      - name: Upload artifacts (macOS)
+        if: matrix.platform == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpe-${{ matrix.label }}
+          path: |
+            src-tauri/target/release/bundle/dmg/*.dmg
           if-no-files-found: warn

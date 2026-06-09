@@ -8656,6 +8656,60 @@ type RootTranslation = {
 		 * 打​开​目​录
 		 */
 		open_dir: string
+		update: {
+			/**
+			 * 更新
+			 */
+			title: string
+			/**
+			 * 检查更新
+			 */
+			check_updates: string
+			/**
+			 * 当前版本
+			 */
+			current_version: string
+			/**
+			 * 正在检查更新...
+			 */
+			checking: string
+			/**
+			 * 发现新版本 {version}
+			 */
+			update_available: RequiredParams<'version'>
+			/**
+			 * 已是最新版本
+			 */
+			up_to_date: string
+			/**
+			 * 下载并安装
+			 */
+			download_and_install: string
+			/**
+			 * 稍后提醒
+			 */
+			later: string
+			/**
+			 * 跳过此版本
+			 */
+			skip_version: string
+			/**
+			 * 正在下载... ({progress}%)
+			 */
+			downloading: RequiredParams<'progress'>
+			/**
+			 * 更新失败: {error}
+			 */
+			update_error: RequiredParams<'error'>
+			/**
+			 * 更新说明
+			 */
+			release_notes: string
+			/**
+			 * 发布于 {date}
+			 */
+			released_at: RequiredParams<'date'>
+		}
 	}
 	flow: {
 		/**
@@ -19180,6 +19234,21 @@ export type TranslationFunctions = {
 		 * 打开目录
 		 */
 		open_dir: () => LocalizedString
+		update: {
+			title: () => LocalizedString
+			check_updates: () => LocalizedString
+			current_version: () => LocalizedString
+			checking: () => LocalizedString
+			update_available: (arg: { version: unknown }) => LocalizedString
+			up_to_date: () => LocalizedString
+			download_and_install: () => LocalizedString
+			later: () => LocalizedString
+			skip_version: () => LocalizedString
+			downloading: (arg: { progress: unknown }) => LocalizedString
+			update_error: (arg: { error: unknown }) => LocalizedString
+			release_notes: () => LocalizedString
+			released_at: (arg: { date: unknown }) => LocalizedString
+		}
 	}
 	flow: {
 		/**

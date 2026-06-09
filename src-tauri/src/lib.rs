@@ -153,6 +153,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             // 注册调试会话管理器状态
             app.manage(Arc::new(Mutex::new(DebugSessionManager::default())));
@@ -201,6 +202,12 @@ pub fn run() {
                     ))
                     .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
                     .build()
+            );
+            
+            // 注册更新插件（仅桌面平台）
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            let _ = app.handle().plugin(
+                tauri_plugin_updater::Builder::new().build()
             );
             
             Ok(())

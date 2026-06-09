@@ -16,7 +16,22 @@ const en_US_settings = {
   logs_dir: 'Logs Directory',
   not_set: 'Not Set',
   select_dir: 'Select Directory',
-  open_dir: 'Open Directory'
+  open_dir: 'Open Directory',
+  update: {
+    title: 'Updates',
+    check_updates: 'Check for Updates',
+    current_version: 'Current version',
+    checking: 'Checking for updates...',
+    update_available: 'Update {version} available',
+    up_to_date: "You're up to date",
+    download_and_install: 'Download & Install',
+    later: 'Remind Me Later',
+    skip_version: 'Skip This Version',
+    downloading: 'Downloading... ({progress}%)',
+    update_error: 'Update failed: {error}',
+    release_notes: 'Release Notes',
+    released_at: 'Released {date}',
+  },
 };
 
 export default en_US_settings;

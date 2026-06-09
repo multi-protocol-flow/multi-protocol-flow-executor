@@ -12,6 +12,7 @@ import { FlowCompareDialog } from '@/components/execution/FlowCompareDialog';
 import { StressTestResult } from '@/components/stress-test/StressTestResult';
 import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
 import { NewFlowDialog } from '@/components/dialogs/NewFlowDialog';
+import { UpdateDialog } from '@/components/dialogs/UpdateDialog';
 import { ConfirmDialog } from '@/components/dialogs/ConfirmDialog';
 import { ShortcutsDialog } from '@/components/dialogs/ShortcutsDialog';
 import { SearchOverlay } from '@/components/dialogs/SearchOverlay';
@@ -800,6 +801,9 @@ export function MainLayout() {
 
       {/* ===== 新建流程对话框 ===== */}
       <NewFlowDialog />
+
+      {/* ===== 应用更新对话框 ===== */}
+      <UpdateDialog />
 
       {/* ===== 流程对比对话框 ===== */}
       {compareSnapshotFlow && (

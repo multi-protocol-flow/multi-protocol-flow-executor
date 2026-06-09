@@ -804,3 +804,41 @@ export async function saveDatasetReport(report: DatasetExecutionReport, reportsD
     return saveDatasetReportImpl(report, reportsDir);
   }
 }
+
+// ============================================================================
+// 更新命令
+// ============================================================================
+
+/**
+ * 检查更新
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @returns 更新信息或 null
+ */
+export async function checkForUpdates(): Promise<import('@/types/updater').UpdateInfo | null> {
+  if (isTauriEnv()) {
+    const { checkForUpdates: checkForUpdatesImpl } = await import('./updater');
+    return checkForUpdatesImpl();
+  } else {
+    const { checkForUpdates: checkForUpdatesImpl } = await import('./updater.mock');
+    return checkForUpdatesImpl();
+  }
+}
+
+/**
+ * 下载并安装更新
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @param onEvent - 下载进度事件回调
+ */
+export async function downloadAndInstallUpdate(
+  onEvent?: (event: import('@/types/updater').DownloadEvent) => void
+): Promise<void> {
+  if (isTauriEnv()) {
+    const { downloadAndInstallUpdate: downloadAndInstallUpdateImpl } = await import('./updater');
+    return downloadAndInstallUpdateImpl(onEvent);
+  } else {
+    const { downloadAndInstallUpdate: downloadAndInstallUpdateImpl } = await import('./updater.mock');
+    return downloadAndInstallUpdateImpl();
+  }
+}

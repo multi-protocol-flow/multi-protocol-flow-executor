@@ -95,6 +95,10 @@ interface UIState {
   showShortcutsDialog: boolean;
   /** 是否显示搜索面板 */
   showSearchOverlay: boolean;
+  /** 是否显示更新对话框 */
+  showUpdateDialog: boolean;
+  /** 是否已执行启动时更新检查 */
+  autoChecked: boolean;
 
   // ===== 连接对话框状态 =====
   /** 是否显示数据库连接对话框 */
@@ -188,6 +192,12 @@ interface UIState {
   openSearchOverlay: () => void;
   /** 关闭搜索面板 */
   closeSearchOverlay: () => void;
+  /** 打开更新对话框 */
+  openUpdateDialog: () => void;
+  /** 关闭更新对话框 */
+  closeUpdateDialog: () => void;
+  /** 标记启动时更新检查已完成 */
+  setAutoChecked: () => void;
 
   // ===== 连接对话框 Actions =====
   /** 打开连接对话框（新建模式） */
@@ -291,6 +301,8 @@ const initialState = {
   showEnvironmentManagerDialog: false,
   showShortcutsDialog: false,
   showSearchOverlay: false,
+  showUpdateDialog: false,
+  autoChecked: false,
 
   // 连接对话框状态
   showConnectionDialog: false,
@@ -413,6 +425,10 @@ export const useUIStore = create<UIState>((set) => ({
 
   openSearchOverlay: () => set({ showSearchOverlay: true }),
   closeSearchOverlay: () => set({ showSearchOverlay: false }),
+
+  openUpdateDialog: () => set({ showUpdateDialog: true }),
+  closeUpdateDialog: () => set({ showUpdateDialog: false }),
+  setAutoChecked: () => set({ autoChecked: true }),
 
   // ===== 连接对话框 Actions =====
   openConnectionDialog: () =>
@@ -540,6 +556,7 @@ export const useUIStore = create<UIState>((set) => ({
       showMinimap: false,
       isNodePaletteOpen: false,
       nodePalettePosition: null,
+      showUpdateDialog: false,
     }),
 }));
 
