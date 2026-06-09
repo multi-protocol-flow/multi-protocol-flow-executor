@@ -9,7 +9,7 @@ import * as stores from '@/stores';
 // Mock stores
 const mockSelectNode = vi.fn();
 const mockToggleFlowListPanel = vi.fn();
-const mockToggleHistoryPanel = vi.fn();
+const mockToggleBottomPanel = vi.fn();
 const mockToggleConfigPanel = vi.fn();
 
 vi.mock('@/stores', () => ({
@@ -19,7 +19,7 @@ vi.mock('@/stores', () => ({
   })),
   useUIStore: vi.fn(() => ({
     toggleFlowListPanel: mockToggleFlowListPanel,
-    toggleHistoryPanel: mockToggleHistoryPanel,
+    toggleBottomPanel: mockToggleBottomPanel,
     toggleConfigPanel: mockToggleConfigPanel,
   })),
 }));
@@ -168,8 +168,8 @@ describe('useKeyboardShortcuts', () => {
     });
   });
 
-  describe('Ctrl+H 切换历史面板', () => {
-    it('Ctrl+H 调用 toggleHistoryPanel', () => {
+  describe('Ctrl+H 切换底部面板', () => {
+    it('Ctrl+H 调用 toggleBottomPanel', () => {
       renderHook(() => useKeyboardShortcuts());
 
       const handler = addEventListenerSpy.mock.calls
@@ -181,10 +181,10 @@ describe('useKeyboardShortcuts', () => {
 
       handler(event);
 
-      expect(mockToggleHistoryPanel).toHaveBeenCalledTimes(1);
+      expect(mockToggleBottomPanel).toHaveBeenCalledTimes(1);
     });
 
-    it('Cmd+H (metaKey) 也调用 toggleHistoryPanel', () => {
+    it('Cmd+H (metaKey) 也调用 toggleBottomPanel', () => {
       renderHook(() => useKeyboardShortcuts());
 
       const handler = addEventListenerSpy.mock.calls
@@ -196,7 +196,7 @@ describe('useKeyboardShortcuts', () => {
 
       handler(event);
 
-      expect(mockToggleHistoryPanel).toHaveBeenCalledTimes(1);
+      expect(mockToggleBottomPanel).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -262,7 +262,7 @@ describe('useKeyboardShortcuts', () => {
 
       handler(event);
 
-      expect(mockToggleHistoryPanel).not.toHaveBeenCalled();
+      expect(mockToggleBottomPanel).not.toHaveBeenCalled();
     });
 
     it('在 isContentEditable 元素中不响应快捷键', () => {
@@ -335,7 +335,7 @@ describe('useKeyboardShortcuts', () => {
       handler(event);
 
       expect(mockToggleFlowListPanel).not.toHaveBeenCalled();
-      expect(mockToggleHistoryPanel).not.toHaveBeenCalled();
+      expect(mockToggleBottomPanel).not.toHaveBeenCalled();
       expect(mockToggleConfigPanel).not.toHaveBeenCalled();
     });
   });

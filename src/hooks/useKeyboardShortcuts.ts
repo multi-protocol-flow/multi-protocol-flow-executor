@@ -29,7 +29,7 @@ const ll = getLL();
  */
 export function useKeyboardShortcuts() {
   const { selectedNodeId, selectNode } = useFlowStore();
-  const { toggleFlowListPanel, toggleHistoryPanel, toggleConfigPanel } = useUIStore();
+  const { toggleFlowListPanel, toggleBottomPanel, toggleConfigPanel } = useUIStore();
 
   /**
    * Delete / Backspace 处理（capture 阶段）
@@ -145,10 +145,10 @@ export function useKeyboardShortcuts() {
         toggleFlowListPanel();
       }
 
-      // Ctrl/Cmd + H: 切换历史面板
+      // Ctrl/Cmd + H: 切换底部面板展开/收起
       if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
         e.preventDefault();
-        toggleHistoryPanel();
+        toggleBottomPanel();
       }
 
       // Ctrl/Cmd + J: 切换配置面板
@@ -234,7 +234,7 @@ export function useKeyboardShortcuts() {
         window.dispatchEvent(new CustomEvent('trigger-fit-view'));
       }
     },
-    [selectedNodeId, selectNode, toggleFlowListPanel, toggleHistoryPanel, toggleConfigPanel]
+    [selectedNodeId, selectNode, toggleFlowListPanel, toggleBottomPanel, toggleConfigPanel]
   );
 
   // Delete/Backspace: capture 阶段拦截，优先于 ReactFlow 处理
