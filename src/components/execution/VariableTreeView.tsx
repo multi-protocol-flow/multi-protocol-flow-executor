@@ -4,7 +4,7 @@
  * 支持监视模式：执行过程中实时显示变量值变化
  */
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronRight, Copy, Edit2, Check, X, Eye, EyeOff, Pin, PinOff } from 'lucide-react';
+import { ChevronDown, ChevronRight, Copy, Edit2, Check, X, Pin, PinOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -219,7 +219,6 @@ function VariableItem({
 
 export function VariableTreeView({ variables, canEdit, onEdit, watchMode = false }: VariableTreeViewProps) {
   const editHandler = canEdit ? onEdit : undefined;
-  const nodeReportsMap = useExecutionStore((s) => s.nodeReportsMap);
   const isExecuting = useExecutionStore((s) => s.isExecuting);
 
   // 监视模式：追踪变量变化
@@ -238,7 +237,6 @@ export function VariableTreeView({ variables, canEdit, onEdit, watchMode = false
 
     for (const [key, newValue] of Object.entries(variables)) {
       if (JSON.stringify(prev[key]) !== JSON.stringify(newValue)) {
-        const existing = changes.get(key);
         changes.set(key, {
           name: key,
           newValue,

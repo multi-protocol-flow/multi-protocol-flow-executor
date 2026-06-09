@@ -1032,7 +1032,7 @@ function FlowCanvasInner() {
       const selectedNode = getSelectedNode();
       const inferred = selectedNode
         ? inferDefaults(
-            { id: selectedNode.uuid, type: selectedNode.type, data: selectedNode.data as Record<string, unknown> },
+            { id: selectedNode.uuid, type: selectedNode.type, data: selectedNode.data as unknown as Record<string, unknown> },
             nodeType as NodeType
           )
         : {};
@@ -1077,7 +1077,7 @@ function FlowCanvasInner() {
     const selectedNode = getSelectedNode();
     const inferred = selectedNode
       ? inferDefaults(
-          { id: selectedNode.uuid, type: selectedNode.type, data: selectedNode.data as Record<string, unknown> },
+          { id: selectedNode.uuid, type: selectedNode.type, data: selectedNode.data as unknown as Record<string, unknown> },
           pendingAddNodeType
         )
       : {};

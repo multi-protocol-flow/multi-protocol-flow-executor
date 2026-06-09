@@ -7,7 +7,8 @@ import { Search, Variable, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import type { Flow, Node } from '@/types/flow';
+import type { Flow } from '@/types/flow';
+import type { Node } from '@/types';
 
 /** 变量定义 */
 interface VarDefinition {
@@ -60,7 +61,7 @@ function extractVariableRefs(data: Record<string, unknown>): string[] {
 /** 获取节点定义的输出变量 */
 function getNodeOutputVariables(node: Node): string[] {
   const vars: string[] = [];
-  const data = node.data as Record<string, unknown>;
+  const data = node.data as unknown as Record<string, unknown>;
 
   // Entry 节点的 initial_variables
   if (node.type === 'entry') {
@@ -109,7 +110,7 @@ function buildVariableDependencyGraph(flow: Flow): DependencyGraph {
     }
 
     // 2. 找出该节点使用的变量（配置中的 {{}} 引用）
-    const refs = extractVariableRefs(node.data as Record<string, unknown>);
+    const refs = extractVariableRefs(node.data as unknown as Record<string, unknown>);
     for (const ref of refs) {
       graph.usages.push({
         nodeId: node.uuid,

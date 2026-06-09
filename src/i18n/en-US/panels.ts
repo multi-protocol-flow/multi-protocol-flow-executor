@@ -525,11 +525,16 @@
     deleteEnv: 'Delete Environment',
   },
 
+  helpDrawer: {
+    required: 'Required',
+    example: 'Example',
+  },
   nodeConfig: {
     debugMode: 'Debug Mode',
     debugHint: 'Click a node on the canvas to view its configuration',
     readOnly: 'Read-only',
     editConfig: 'Edit Config',
+    help: 'Help',
   },
 
 

@@ -17,7 +17,7 @@ import type { StressTestReportMetadata } from '@/types/stressTest';
 vi.mock('@tanstack/react-virtual', () => {
   const mockUseVirtualizer = vi.fn(({ count, estimateSize }) => {
     const size = typeof estimateSize === 'function' ? estimateSize(0) : (estimateSize ?? 72);
-    const items = [];
+    const items: Array<{ index: number; start: number; size: number; key: number; lane: number }> = [];
     for (let i = 0; i < count; i++) {
       items.push({ index: i, start: i * size, size, key: i, lane: 0 });
     }

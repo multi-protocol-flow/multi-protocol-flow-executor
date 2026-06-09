@@ -2,7 +2,7 @@
  * NodeContextMenu - 节点右键上下文菜单
  * 在鼠标右键点击节点时显示，支持复制、重命名、删除、配置复制/粘贴操作
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Copy, Trash2, Pencil, ClipboardCopy, ClipboardPaste } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';

@@ -3,7 +3,6 @@
  * 根据上下文（上游节点类型、已有配置）自动推断新节点的合理默认值
  */
 import type { NodeType } from '@/types';
-import type { Node } from 'reactflow';
 
 /**
  * 从 URL 中提取 base URL（协议 + 主机 + 端口）
@@ -27,7 +26,7 @@ function extractBaseUrl(url: string): string | null {
  * @returns 需要覆盖的默认值
  */
 export function inferDefaults(
-  upstreamNode: Pick<Node, 'id' | 'type'> & { data: Record<string, unknown> } | null,
+  upstreamNode: { id: string; type: string; data: Record<string, unknown> } | null,
   targetType: NodeType
 ): Record<string, unknown> {
   if (!upstreamNode) return {};
@@ -47,7 +46,7 @@ export function inferDefaults(
     // ========== Kafka ==========
     case 'kafka_produce':
     case 'kafka_consume':
-    case 'kafka_batch_consume':
+    case 'kafka_consume_batch':
       if (upType === 'kafka_connect') {
         return {
           brokers: upstreamNode.data.brokers,
@@ -134,7 +133,8 @@ export function inferDefaults(
     // ========== IMAP ==========
     case 'imap_fetch':
     case 'imap_search':
-    case 'imap_folder':
+    case 'imap_folder_create':
+    case 'imap_folder_delete':
     case 'imap_idle':
       if (upType === 'imap_connect') {
         return {

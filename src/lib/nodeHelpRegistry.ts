@@ -2,8 +2,6 @@
  * 节点帮助内容注册表
  * 支持双语（zh-CN / en-US），根据当前 locale 返回对应内容
  */
-import { getLL } from '@/i18n/i18n-lazy';
-
 export interface NodeHelpParam {
   name: string;
   type: string;

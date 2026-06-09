@@ -161,7 +161,7 @@ function _searchFlow(flow: Flow, query: string): SearchResult[] {
     }
 
     // 2. 深度递归匹配节点配置
-    const configMatches = deepSearchConfig(node.data as Record<string, unknown>, query, '');
+    const configMatches = deepSearchConfig(node.data as unknown as Record<string, unknown>, query, '');
     for (const m of configMatches) {
       m.nodeUuid = node.uuid;
       m.nodeName = node.name;
@@ -170,7 +170,7 @@ function _searchFlow(flow: Flow, query: string): SearchResult[] {
     results.push(...configMatches);
 
     // 3. 匹配变量引用 {{...}}
-    const variableMatches = searchVariableRefs(node.data as Record<string, unknown>, query);
+    const variableMatches = searchVariableRefs(node.data as unknown as Record<string, unknown>, query);
     for (const m of variableMatches) {
       m.nodeUuid = node.uuid;
       m.nodeName = node.name;
