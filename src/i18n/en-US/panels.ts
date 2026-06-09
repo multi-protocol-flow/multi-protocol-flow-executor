@@ -304,6 +304,8 @@
     },
   },
 
+  nodeSearchPlaceholder: 'Search by node name or type...',
+
   entryNode: {
     title: 'Entry Node',
     description: 'The entry node is the starting point of the flow. Every flow must have exactly one entry node. Execution starts here and progresses along connections.',

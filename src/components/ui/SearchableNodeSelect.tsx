@@ -31,6 +31,8 @@ interface SearchableNodeSelectProps {
   emptyText?: string;
   /** 搜索无结果显示文本 */
   noResultsText?: string;
+  /** 搜索框占位文本 */
+  searchPlaceholder?: string;
   /** 是否禁用 */
   disabled?: boolean;
 }
@@ -42,6 +44,7 @@ export function SearchableNodeSelect({
   placeholder = "选择节点...",
   emptyText = "无可用节点",
   noResultsText = "未找到匹配节点",
+  searchPlaceholder = "搜索节点名称或类型...",
   disabled = false,
 }: SearchableNodeSelectProps) {
   const [open, setOpen] = useState(false);
@@ -193,7 +196,7 @@ export function SearchableNodeSelect({
                 setSearch(e.target.value);
                 setHighlightedIndex(-1);
               }}
-              placeholder="搜索节点名称或类型..."
+              placeholder={searchPlaceholder}
               className="flex h-9 w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
             />
             {search && (

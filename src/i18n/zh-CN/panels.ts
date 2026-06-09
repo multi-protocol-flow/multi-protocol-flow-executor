@@ -306,6 +306,8 @@ const zh_CN_panels: BaseTranslation = {
     },
   },
 
+  nodeSearchPlaceholder: '搜索节点名称或类型...',
+
   entryNode: {
     title: '入口节点',
     description: '入口节点是流程的起点。每个流程必须有且仅有一个入口节点，流程执行将从这里开始，沿着连接线依次执行各个节点。',
