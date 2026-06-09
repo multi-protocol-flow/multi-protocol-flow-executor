@@ -5,27 +5,12 @@ on:
     tags:
       - 'v*'
 
-jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create-release.outputs.upload_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Create Release
-        id: create-release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: true
-          prerelease: false
+permissions:
+  contents: write
 
+jobs:
   build-windows:
     runs-on: windows-latest
-    needs: create-release
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -59,7 +44,6 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
-    needs: create-release
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
