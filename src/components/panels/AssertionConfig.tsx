@@ -436,6 +436,7 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
           placeholder={getLL().panels.assertion.sourcePlaceholder()}
           emptyText={getLL().panels.assertion.sourceHelp()}
           noResultsText={getLL().panels.assertion.sourceHelp()}
+          searchPlaceholder={getLL().panels.nodeSearchPlaceholder()}
         />
         <p className="text-xs text-muted-foreground">
           {getLL().panels.assertion.sourceHelp()}

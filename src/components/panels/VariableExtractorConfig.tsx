@@ -171,6 +171,7 @@ export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfi
           items={sourceSelectItems}
           placeholder={ll.sourceAuto()}
           noResultsText={ll.sourceHelp()}
+          searchPlaceholder={getLL().panels.nodeSearchPlaceholder()}
         />
         <p className="text-xs text-muted-foreground">
           {ll.sourceHelp()}

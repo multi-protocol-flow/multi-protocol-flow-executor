@@ -243,6 +243,7 @@ export function ConditionalConfig({ data, onSave }: ConditionalConfigProps) {
           items={sourceSelectItems}
           placeholder={ll.sourceAuto()}
           noResultsText={ll.sourceHelp()}
+          searchPlaceholder={getLL().panels.nodeSearchPlaceholder()}
         />
         <p className="text-xs text-muted-foreground">
           {ll.sourceHelp()}
