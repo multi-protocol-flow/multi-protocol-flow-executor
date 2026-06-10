@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableNodeSelect } from "@/components/ui/SearchableNodeSelect";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Trash2, CheckCircle, XCircle, Zap } from "lucide-react";
@@ -623,22 +624,16 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
 
                   {/* 第二行：操作符 + 期望值 */}
                   <div className="flex items-center gap-2">
-                    <Select
+                    <SearchableSelect
                       value={operator}
                       onValueChange={(value) => handleOperatorChange(index, value)}
+                      options={ASSERTION_OPERATOR_OPTIONS}
+                      placeholder={getLL().panels.assertion.operatorPlaceholder()}
+                      searchPlaceholder={getLL().panels.nodeSearchPlaceholder()}
+                      noResultsText={getLL().panels.assertion.operatorPlaceholder()}
                       disabled={!isEnabled}
-                    >
-                      <SelectTrigger className={`h-8 w-40 font-mono text-xs ${!isEnabled ? "bg-muted/50" : ""}`}>
-                        <SelectValue placeholder={getLL().panels.assertion.operatorPlaceholder()} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ASSERTION_OPERATOR_OPTIONS.map((op) => (
-                          <SelectItem key={op.value} value={op.value}>
-                            {op.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      className={`w-40 font-mono text-xs ${!isEnabled ? "bg-muted/50" : ""}`}
+                    />
 
                     {operatorNeedsExpected(operator) && (
                       <Input

@@ -164,7 +164,7 @@ export function SearchableNodeSelect({
           !selectedItem && "text-muted-foreground"
         )}
       >
-        <span className="truncate min-w-0">
+        <span className="truncate min-w-0" title={selectedItem ? `${selectedItem.name} (${selectedItem.type})` : placeholder}>
           {selectedItem
             ? `${selectedItem.name} (${selectedItem.type})`
             : placeholder}
@@ -231,6 +231,7 @@ export function SearchableNodeSelect({
                   <button
                     key={item.uuid}
                     type="button"
+                    title={`${item.name} (${item.type})`}
                     data-index={index}
                     onClick={() => selectItem(item.uuid)}
                     onMouseEnter={() => setHighlightedIndex(index)}
