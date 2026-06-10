@@ -183,13 +183,12 @@ pub async fn execute_flow(
         Arc::new(TauriDebugEventSender::new(on_ws_event))
     );
 
-    // 执行流程（传入取消信号 receiver + 共享的 grpc_manager）
+    // 执行流程
     let flow_uuid = flow.uuid.clone();
     let flow_name = flow.name.clone();
     let input_variables = input.variables.clone();
 
-    let mut executor = flow_engine::executor::FlowExecutor::new()
-        .with_grpc_manager(grpc_manager);
+    let mut executor = flow_engine::executor::FlowExecutor::new();
     if let Some(sender) = execution_event_sender {
         executor = executor.with_execution_event_sender(sender);
     }

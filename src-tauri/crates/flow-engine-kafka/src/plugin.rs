@@ -109,9 +109,9 @@ impl NodePlugin for KafkaConnectPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let kafka_manager = context.kafka_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new())
-        });
+        let kafka_manager = context
+            .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
+            .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));
         let executor = crate::kafka_connect_executor::KafkaConnectExecutor::new(kafka_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -213,9 +213,9 @@ impl NodePlugin for KafkaProducePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let kafka_manager = context.kafka_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new())
-        });
+        let kafka_manager = context
+            .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
+            .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));
         let executor = crate::kafka_produce_executor::KafkaProduceExecutor::new(kafka_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -318,9 +318,9 @@ impl NodePlugin for KafkaConsumePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let kafka_manager = context.kafka_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new())
-        });
+        let kafka_manager = context
+            .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
+            .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));
         let executor = crate::kafka_consume_executor::KafkaConsumeExecutor::new(kafka_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -423,9 +423,9 @@ impl NodePlugin for KafkaConsumeBatchPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let kafka_manager = context.kafka_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new())
-        });
+        let kafka_manager = context
+            .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
+            .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));
         let executor =
             crate::kafka_consume_batch_executor::KafkaConsumeBatchExecutor::new(kafka_manager);
         executor
@@ -527,9 +527,9 @@ impl NodePlugin for KafkaAdminPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let kafka_manager = context.kafka_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new())
-        });
+        let kafka_manager = context
+            .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
+            .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));
         let executor = crate::kafka_admin_executor::KafkaAdminExecutor::new(kafka_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -631,9 +631,9 @@ impl NodePlugin for KafkaSchemaRegistryPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let kafka_manager = context.kafka_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new())
-        });
+        let kafka_manager = context
+            .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
+            .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));
         let executor =
             crate::kafka_schema_registry_executor::KafkaSchemaRegistryExecutor::new(kafka_manager);
         executor
@@ -711,9 +711,9 @@ impl NodePlugin for KafkaClosePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let kafka_manager = context.kafka_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new())
-        });
+        let kafka_manager = context
+            .get_provider::<crate::kafka_connection_manager::KafkaConnectionManager>("kafka")
+            .unwrap_or_else(|| Arc::new(crate::kafka_connection_manager::KafkaConnectionManager::new()));
         let executor = crate::kafka_close_executor::KafkaCloseExecutor::new(kafka_manager);
         executor
             .execute(node, context, connections, node_map)

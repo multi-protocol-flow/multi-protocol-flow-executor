@@ -103,9 +103,9 @@ impl NodePlugin for SmtpConnectPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let smtp_manager = context.smtp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::smtp_connection_manager::SmtpConnectionManager::new())
-        });
+        let smtp_manager = context
+            .get_provider::<crate::smtp_connection_manager::SmtpConnectionManager>("smtp")
+            .unwrap_or_else(|| Arc::new(crate::smtp_connection_manager::SmtpConnectionManager::new()));
         let executor = crate::smtp_connect_executor::SmtpConnectExecutor::new(smtp_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -211,9 +211,9 @@ impl NodePlugin for SmtpSendPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let smtp_manager = context.smtp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::smtp_connection_manager::SmtpConnectionManager::new())
-        });
+        let smtp_manager = context
+            .get_provider::<crate::smtp_connection_manager::SmtpConnectionManager>("smtp")
+            .unwrap_or_else(|| Arc::new(crate::smtp_connection_manager::SmtpConnectionManager::new()));
         let executor = crate::smtp_send_executor::SmtpSendExecutor::new(smtp_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -290,9 +290,9 @@ impl NodePlugin for SmtpDisconnectPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let smtp_manager = context.smtp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::smtp_connection_manager::SmtpConnectionManager::new())
-        });
+        let smtp_manager = context
+            .get_provider::<crate::smtp_connection_manager::SmtpConnectionManager>("smtp")
+            .unwrap_or_else(|| Arc::new(crate::smtp_connection_manager::SmtpConnectionManager::new()));
         let executor = crate::smtp_disconnect_executor::SmtpDisconnectExecutor::new(smtp_manager);
         executor
             .execute(node, context, connections, node_map)

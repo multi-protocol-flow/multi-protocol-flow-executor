@@ -152,10 +152,8 @@ pub struct FlowExecutor {
     cancel_receiver: Option<tokio::sync::watch::Receiver<bool>>,
     /// 节点插件注册表（通过 registry 查找替代 match 分发）
     registry: Arc<NodeRegistry>,
-    /// 钩子执行器（流程完成时触发）
+    /// 钩子执行器（流程完成时触发预定义动作）
     hook_executor: Option<Arc<dyn flow_engine_core::traits::HookExecutor>>,
-    /// 外部注入的 gRPC manager（用于 IPC `cancel_stream`）
-    grpc_manager: Option<Arc<dyn flow_engine_core::traits::GrpcProvider>>,
 }
 
 impl Default for FlowExecutor {
@@ -174,7 +172,6 @@ impl FlowExecutor {
             cancel_receiver: None,
             registry: Arc::new(crate::default_registry::default_registry()),
             hook_executor: None,
-            grpc_manager: None,
         }
     }
 
@@ -224,12 +221,6 @@ impl FlowExecutor {
         self
     }
 
-    /// 设置外部注入的 gRPC manager（用于 IPC `cancel_stream` 等外部操作）
-    pub fn with_grpc_manager(mut self, manager: Arc<dyn flow_engine_core::traits::GrpcProvider>) -> Self {
-        self.grpc_manager = Some(manager);
-        self
-    }
-
 /// 执行流程
     ///
     /// 从开始节点开始，按连接顺序遍历节点
@@ -273,22 +264,8 @@ impl FlowExecutor {
                 .as_millis() as u64,
             log_sender,
             flow_file_path: self.flow_file_path.clone(),
-            ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None,
-            redis_manager: None,
             last_node_output: None,
             debug_event_sender: self.debug_event_sender.clone(),
             execution_event_sender: self.execution_event_sender.clone(),
@@ -296,7 +273,7 @@ impl FlowExecutor {
             providers: std::collections::HashMap::new(),
         }
         .with_default_providers()
-        .with_default_providers_and_grpc(self.grpc_manager.clone());
+        .with_default_providers_and_grpc(None);
 
         // 集成流程验证器
         let validator = crate::validator::FlowValidator::new();
@@ -925,9 +902,9 @@ impl FlowExecutor {
         // 取消时清理资源：关闭所有 WS 连接和 DB 连接
         if is_cancelled {
             // 关闭所有 WebSocket 连接（drop 管理器触发连接清理）
-            context.ws_manager = None;
+            context.remove_provider("ws");
             // 关闭所有数据库连接（drop 连接池即可）
-            context.db_manager = None;
+            context.remove_provider("db");
         }
 
         // End 节点检测
@@ -1606,7 +1583,7 @@ mod tests {
             json!("test-key"),
             String::new(),
         );
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Bearer test-key");
@@ -1626,7 +1603,7 @@ mod tests {
             }),
             String::new(),
         );
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
         let result = replace_variables(template, &context);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Hello Alice");
@@ -1637,7 +1614,7 @@ mod tests {
         // 测试严格模式（变量不存在时报错）
         let template = "{{nonexistent.var}}";
         let variables = VariableStorage::new();
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("未找到"));
@@ -1649,7 +1626,7 @@ mod tests {
         let template = "{{items[0]}}";
         let mut variables = VariableStorage::new();
         variables.set_variable("items".to_string(), json!(["a", "b", "c"]), String::new());
-        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
+        let context = ExecutionContext { flow_uuid: "test-flow".to_string(), current_node_uuid: None, variables, node_reports: vec![], flow_trigger_time: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64, log_sender: None, flow_file_path: None, ws_connection_urls: std::collections::HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())), last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: std::collections::HashMap::new(), };
         let result = replace_variables(template, &context);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("不支持索引访问"));
@@ -1686,22 +1663,9 @@ mod tests {
                 flow_trigger_time: 0,
                 log_sender: None,
                 flow_file_path: None,
-                ws_manager: None,
+
                 ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None,
-            redis_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -1729,22 +1693,9 @@ mod tests {
                 flow_trigger_time: 0,
                 log_sender: None,
                 flow_file_path: None,
-                ws_manager: None,
+
                 ws_connection_urls: std::collections::HashMap::new(),
                 ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-                db_manager: None,
-                grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None,
-            redis_manager: None,
             last_node_output: None,
                 debug_event_sender: None,
                 execution_event_sender: None,
@@ -1772,22 +1723,9 @@ mod tests {
                 flow_trigger_time: 0,
                 log_sender: None,
                 flow_file_path: None,
-                ws_manager: None,
+
                 ws_connection_urls: std::collections::HashMap::new(),
                 ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-                db_manager: None,
-                grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None,
-            redis_manager: None,
             last_node_output: None,
                 debug_event_sender: None,
                 execution_event_sender: None,
@@ -1815,22 +1753,9 @@ mod tests {
                 flow_trigger_time: 0,
                 log_sender: None,
                 flow_file_path: None,
-                ws_manager: None,
+
                 ws_connection_urls: std::collections::HashMap::new(),
                 ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-                db_manager: None,
-                grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None,
-            redis_manager: None,
             last_node_output: None,
                 debug_event_sender: None,
                 execution_event_sender: None,

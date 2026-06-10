@@ -27,9 +27,9 @@ use std::sync::Arc;
 /// 获取 IMAP manager 的辅助宏
 macro_rules! get_imap_manager {
     ($context:expr) => {
-        $context.imap_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::imap_connection_manager::ImapConnectionManager::new())
-        })
+        $context
+            .get_provider::<crate::imap_connection_manager::ImapConnectionManager>("imap")
+            .unwrap_or_else(|| Arc::new(crate::imap_connection_manager::ImapConnectionManager::new()))
     };
 }
 

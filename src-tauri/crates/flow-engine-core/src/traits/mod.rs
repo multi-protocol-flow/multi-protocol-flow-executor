@@ -8,6 +8,7 @@ mod db_provider;
 mod debug_event_sender;
 mod execution_event_sender;
 mod directory_opener;
+mod provider_key;
 mod graphql_provider;
 mod hook_executor;
 mod imap_provider;
@@ -23,6 +24,10 @@ mod mqtt_provider;
 mod tcp_provider;
 mod udp_provider;
 
+pub use provider_key::{
+    Amqp, Db, Grpc, Imap, Kafka, Mcp, Mqtt, ProviderKey, Redis, Smtp, Sse, Tcp, Udp, Ws,
+    Graphql,
+};
 pub use amqp_provider::{
     Amqp10AcceptOutput, Amqp10ConnectOutput, Amqp10Message, Amqp10ReceiveOutput,
     Amqp10RejectOutput, Amqp10SendOutput, AmqpAckOutput, AmqpConnectOutput, AmqpConsumeOutput,

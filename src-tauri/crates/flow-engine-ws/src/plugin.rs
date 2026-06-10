@@ -111,9 +111,9 @@ impl NodePlugin for WsConnectPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let ws_manager = context.ws_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::websocket_manager::WebSocketConnectionManager::new())
-        });
+        let ws_manager = context
+            .get_provider::<crate::websocket_manager::WebSocketConnectionManager>("ws")
+            .unwrap_or_else(|| Arc::new(crate::websocket_manager::WebSocketConnectionManager::new()));
         let executor = crate::ws_connect_executor::WsConnectExecutor::new(ws_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -214,9 +214,9 @@ impl NodePlugin for WsSendCollectPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let ws_manager = context.ws_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::websocket_manager::WebSocketConnectionManager::new())
-        });
+        let ws_manager = context
+            .get_provider::<crate::websocket_manager::WebSocketConnectionManager>("ws")
+            .unwrap_or_else(|| Arc::new(crate::websocket_manager::WebSocketConnectionManager::new()));
         let executor = crate::ws_send_collect_executor::WsSendCollectExecutor::new(ws_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -307,9 +307,9 @@ impl NodePlugin for WsClosePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let ws_manager = context.ws_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::websocket_manager::WebSocketConnectionManager::new())
-        });
+        let ws_manager = context
+            .get_provider::<crate::websocket_manager::WebSocketConnectionManager>("ws")
+            .unwrap_or_else(|| Arc::new(crate::websocket_manager::WebSocketConnectionManager::new()));
         let executor = crate::ws_close_executor::WsCloseExecutor::new(ws_manager);
         executor
             .execute(node, context, connections, node_map)

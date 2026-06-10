@@ -1063,9 +1063,9 @@ mod tests {
     }
 
     /// 创建带 gRPC manager 的执行上下文
-    fn create_context_with_grpc(flow_id: &str, grpc_manager: Arc<dyn GrpcProvider>) -> ExecutionContext {
+    fn create_context_with_grpc<T: 'static + Send + Sync>(flow_id: &str, grpc_manager: Arc<T>) -> ExecutionContext {
         let mut ctx = create_context(flow_id);
-        ctx.grpc_manager = Some(grpc_manager);
+        ctx.set_provider("grpc", grpc_manager);
         ctx
     }
 
@@ -1507,7 +1507,7 @@ mod tests {
 
         let node = create_test_node("node-debug", "调试事件测试", "conn-1");
         let mut context = create_context_with_debug("flow-debug", debug_sender.clone());
-        context.grpc_manager = Some(mock.clone());
+        context.set_provider("grpc", mock.clone());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())
@@ -1551,7 +1551,7 @@ mod tests {
 
         let node = create_test_node("node-fail", "失败无事件测试", "conn-1");
         let mut context = create_context_with_debug("flow-fail", debug_sender.clone());
-        context.grpc_manager = Some(mock.clone());
+        context.set_provider("grpc", mock.clone());
 
         let result = executor
             .execute(&node, &mut context, &[], &HashMap::new())

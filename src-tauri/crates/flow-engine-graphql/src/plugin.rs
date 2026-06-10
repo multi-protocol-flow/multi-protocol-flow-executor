@@ -104,9 +104,9 @@ impl NodePlugin for GraphqlConnectPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let graphql_manager = context.graphql_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new())
-        });
+        let graphql_manager = context
+            .get_provider::<crate::graphql_connection_manager::GraphqlConnectionManager>("graphql")
+            .unwrap_or_else(|| Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new()));
         let executor = crate::graphql_connect_executor::GraphqlConnectExecutor::new(graphql_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -201,9 +201,9 @@ impl NodePlugin for GraphqlQueryPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let graphql_manager = context.graphql_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new())
-        });
+        let graphql_manager = context
+            .get_provider::<crate::graphql_connection_manager::GraphqlConnectionManager>("graphql")
+            .unwrap_or_else(|| Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new()));
         let executor = crate::graphql_query_executor::GraphqlQueryExecutor::new(graphql_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -298,9 +298,9 @@ impl NodePlugin for GraphqlSubscribePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let graphql_manager = context.graphql_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new())
-        });
+        let graphql_manager = context
+            .get_provider::<crate::graphql_connection_manager::GraphqlConnectionManager>("graphql")
+            .unwrap_or_else(|| Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new()));
         let executor = crate::graphql_subscribe_executor::GraphqlSubscribeExecutor::new(graphql_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -393,9 +393,9 @@ impl NodePlugin for GraphqlIntrospectPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let graphql_manager = context.graphql_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new())
-        });
+        let graphql_manager = context
+            .get_provider::<crate::graphql_connection_manager::GraphqlConnectionManager>("graphql")
+            .unwrap_or_else(|| Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new()));
         let executor = crate::graphql_introspect_executor::GraphqlIntrospectExecutor::new(graphql_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -472,9 +472,9 @@ impl NodePlugin for GraphqlDisconnectPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let graphql_manager = context.graphql_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new())
-        });
+        let graphql_manager = context
+            .get_provider::<crate::graphql_connection_manager::GraphqlConnectionManager>("graphql")
+            .unwrap_or_else(|| Arc::new(crate::graphql_connection_manager::GraphqlConnectionManager::new()));
         let executor = crate::graphql_disconnect_executor::GraphqlDisconnectExecutor::new(graphql_manager);
         executor
             .execute(node, context, connections, node_map)

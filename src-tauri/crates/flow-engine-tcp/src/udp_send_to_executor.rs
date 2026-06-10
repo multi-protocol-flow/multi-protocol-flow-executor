@@ -418,12 +418,12 @@ mod tests {
         ExecutionContext::new(flow_id.to_string(), 0)
     }
 
-    fn create_context_with_udp(
+    fn create_context_with_udp<T: 'static + Send + Sync>(
         flow_id: &str,
-        udp_manager: Arc<dyn UdpProvider>,
+        udp_manager: Arc<T>,
     ) -> ExecutionContext {
         let mut ctx = create_context(flow_id);
-        ctx.udp_manager = Some(udp_manager);
+        ctx.set_provider("udp", udp_manager);
         ctx
     }
 

@@ -396,12 +396,12 @@ mod tests {
         }
     }
 
-    fn create_context_with_tcp(
+    fn create_context_with_tcp<T: 'static + Send + Sync>(
         flow_id: &str,
-        tcp_manager: Arc<dyn TcpProvider>,
+        tcp_manager: Arc<T>,
     ) -> ExecutionContext {
         let mut ctx = create_context(flow_id);
-        ctx.tcp_manager = Some(tcp_manager);
+        ctx.set_provider("tcp", tcp_manager);
         ctx
     }
 

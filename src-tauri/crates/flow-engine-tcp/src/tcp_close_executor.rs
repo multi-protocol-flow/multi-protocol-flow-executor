@@ -283,9 +283,9 @@ mod tests {
     }
 
     /// 创建执行上下文（带 TCP 管理器）
-    fn create_context(flow_id: &str, tcp_manager: Arc<dyn TcpProvider>) -> ExecutionContext {
+    fn create_context<T: 'static + Send + Sync>(flow_id: &str, tcp_manager: Arc<T>) -> ExecutionContext {
         let mut ctx = ExecutionContext::new(flow_id.to_string(), 0);
-        ctx.tcp_manager = Some(tcp_manager);
+        ctx.set_provider("tcp", tcp_manager);
         ctx
     }
 

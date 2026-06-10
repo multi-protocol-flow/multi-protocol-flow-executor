@@ -18,7 +18,7 @@ use serde_json::json;
 /// GraphQL 查询/变更节点执行器
 ///
 /// 处理 GraphQL Query 和 Mutation 操作。
-/// 从 `context.graphql_manager` 获取 `GraphqlProvider` 来执行请求。
+/// 从 `context.get_provider::<GraphqlConnectionManager>("graphql")` 获取连接管理器来执行请求。
 pub struct GraphqlQueryExecutor {
     graphql_manager: Arc<dyn GraphqlProvider>,
 }

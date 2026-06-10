@@ -112,9 +112,9 @@ impl NodePlugin for MqttConnectPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let mqtt_manager = context.mqtt_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
-        });
+        let mqtt_manager = context
+            .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
+            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
         let executor = crate::mqtt_connect_executor::MqttConnectExecutor::new(mqtt_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -214,9 +214,9 @@ impl NodePlugin for MqttPublishPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let mqtt_manager = context.mqtt_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
-        });
+        let mqtt_manager = context
+            .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
+            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
         let executor = crate::mqtt_publish_executor::MqttPublishExecutor::new(mqtt_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -318,9 +318,9 @@ impl NodePlugin for MqttSubscribePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let mqtt_manager = context.mqtt_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
-        });
+        let mqtt_manager = context
+            .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
+            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
         let executor = crate::mqtt_subscribe_executor::MqttSubscribeExecutor::new(mqtt_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -415,9 +415,9 @@ impl NodePlugin for MqttUnsubscribePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let mqtt_manager = context.mqtt_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
-        });
+        let mqtt_manager = context
+            .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
+            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
         let executor = crate::mqtt_unsubscribe_executor::MqttUnsubscribeExecutor::new(mqtt_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -494,9 +494,9 @@ impl NodePlugin for MqttDisconnectPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let mqtt_manager = context.mqtt_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
-        });
+        let mqtt_manager = context
+            .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
+            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
         let executor = crate::mqtt_disconnect_executor::MqttDisconnectExecutor::new(mqtt_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -595,9 +595,9 @@ impl NodePlugin for MqttWaitMessagePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let mqtt_manager = context.mqtt_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
-        });
+        let mqtt_manager = context
+            .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
+            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
         let executor = crate::mqtt_wait_message_executor::MqttWaitMessageExecutor::new(mqtt_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -699,9 +699,9 @@ impl NodePlugin for MqttRequestPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let mqtt_manager = context.mqtt_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new())
-        });
+        let mqtt_manager = context
+            .get_provider::<crate::mqtt_connection_manager::MqttConnectionManager>("mqtt")
+            .unwrap_or_else(|| Arc::new(crate::mqtt_connection_manager::MqttConnectionManager::new()));
         let executor = crate::mqtt_request_executor::MqttRequestExecutor::new(mqtt_manager);
         executor
             .execute(node, context, connections, node_map)

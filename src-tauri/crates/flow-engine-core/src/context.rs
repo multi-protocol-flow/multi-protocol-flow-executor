@@ -4,7 +4,7 @@ use crate::log_event::LogEvent;
 use crate::node_config::ProxyMode;
 use crate::report::NodeExecutionReport;
 use crate::variable::Variable;
-use crate::traits::{LogSender, DebugEventSender, ExecutionEventSender, WsProvider, DbProvider, GrpcProvider, McpProvider, MqttProvider, TcpProvider, UdpProvider, KafkaProvider, SseProvider, GraphqlProvider, AmqpProvider, SmtpProvider, ImapProvider, RedisProvider};
+use crate::traits::{LogSender, DebugEventSender, ExecutionEventSender};
 use crate::execution_event::ExecutionEvent;
 use crate::ws_stream::{WsConnectionStream, WsMessage};
 use serde::{Deserialize, Serialize};
@@ -65,12 +65,6 @@ pub struct ExecutionContext {
     #[serde(skip)]
     pub flow_file_path: Option<PathBuf>,
 
-    /// WebSocket 连接管理器（通过 `WsProvider` trait 解耦）
-    /// 用于管理 WebSocket 连接的生命周期（连接、发送、接收、关闭）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `WsProvider` 不支持序列化
-    #[serde(skip)]
-    pub ws_manager: Option<Arc<dyn WsProvider>>,
-
     /// WebSocket 连接 ID → URL 映射（用于反查）
     /// 存储每个连接 ID 对应的 WebSocket URL，供后续节点（如 WS Send+Wait）反查使用
     #[serde(skip)]
@@ -81,84 +75,6 @@ pub struct ExecutionContext {
     /// 使用 `tokio::sync::RwLock` 实现异步安全的并发访问
     #[serde(skip)]
     pub ws_streams: Arc<RwLock<HashMap<String, WsConnectionStream>>>,
-
-    /// 数据库连接池管理器（通过 `DbProvider` trait 解耦）
-    /// 用于管理数据库连接的生命周期（连接、查询、关闭）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `DbProvider` 不支持序列化
-    #[serde(skip)]
-    pub db_manager: Option<Arc<dyn DbProvider>>,
-
-    /// gRPC 连接管理器（通过 `GrpcProvider` trait 解耦）
-    /// 用于管理 gRPC 连接的生命周期（连接、调用、关闭）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `GrpcProvider` 不支持序列化
-    #[serde(skip)]
-    pub grpc_manager: Option<Arc<dyn GrpcProvider>>,
-
-    /// MCP 连接管理器（通过 `McpProvider` trait 解耦）
-    /// 用于管理 MCP 连接的生命周期（连接、工具调用、资源读取、关闭）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `McpProvider` 不支持序列化
-    #[serde(skip)]
-    pub mcp_manager: Option<Arc<dyn McpProvider>>,
-
-    /// TCP 连接管理器（通过 `TcpProvider` trait 解耦）
-    /// 用于管理 TCP 连接的生命周期（连接、发送、接收、关闭）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `TcpProvider` 不支持序列化
-    #[serde(skip)]
-    pub tcp_manager: Option<Arc<dyn TcpProvider>>,
-
-    /// UDP Socket 管理器（通过 `UdpProvider` trait 解耦）
-    /// 用于管理 UDP Socket 的生命周期（绑定、发送、接收、关闭）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `UdpProvider` 不支持序列化
-    #[serde(skip)]
-    pub udp_manager: Option<Arc<dyn UdpProvider>>,
-
-    /// MQTT 连接管理器（通过 `MqttProvider` trait 解耦）
-    /// 用于管理 MQTT 连接的生命周期（连接、发布、订阅、取消订阅、关闭）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `MqttProvider` 不支持序列化
-    #[serde(skip)]
-    pub mqtt_manager: Option<Arc<dyn MqttProvider>>,
-
-    /// Kafka 连接管理器（通过 `KafkaProvider` trait 解耦）
-    /// 用于管理 Kafka 连接的生命周期（连接、生产、消费、管理、关闭）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `KafkaProvider` 不支持序列化
-    #[serde(skip)]
-    pub kafka_manager: Option<Arc<dyn KafkaProvider>>,
-
-    /// SSE 连接管理器（通过 `SseProvider` trait 解耦）
-    /// 用于管理 SSE 连接的生命周期（连接、监听、断开）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `SseProvider` 不支持序列化
-    #[serde(skip)]
-    pub sse_manager: Option<Arc<dyn SseProvider>>,
-
-    /// GraphQL 连接管理器（通过 `GraphqlProvider` trait 解耦）
-    /// 用于管理 GraphQL 连接的生命周期（连接、查询、订阅、探索、断开）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `GraphqlProvider` 不支持序列化
-    #[serde(skip)]
-    pub graphql_manager: Option<Arc<dyn GraphqlProvider>>,
-
-    /// AMQP 连接管理器（通过 `AmqpProvider` trait 解耦）
-    /// 用于管理 AMQP 连接的生命周期（连接、发布、消费、管理、断开）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `AmqpProvider` 不支持序列化
-    #[serde(skip)]
-    pub amqp_manager: Option<Arc<dyn AmqpProvider>>,
-
-    /// SMTP 连接管理器（通过 `SmtpProvider` trait 解耦）
-    /// 用于管理 SMTP 连接的生命周期（连接、发送、断开）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `SmtpProvider` 不支持序列化
-    #[serde(skip)]
-    pub smtp_manager: Option<Arc<dyn SmtpProvider>>,
-
-    /// IMAP 连接管理器（通过 `ImapProvider` trait 解耦）
-    /// 用于管理 IMAP 连接的生命周期（连接、搜索、获取、关闭等）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `ImapProvider` 不支持序列化
-    #[serde(skip)]
-    pub imap_manager: Option<Arc<dyn ImapProvider>>,
-
-    /// Redis 连接管理器（通过 `RedisProvider` trait 解耦）
-    /// 用于管理 Redis 连接的生命周期（连接、命令执行、关闭）
-    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `RedisProvider` 不支持序列化
-    #[serde(skip)]
-    pub redis_manager: Option<Arc<dyn RedisProvider>>,
 
     /// 最近一个节点的输出数据
     /// 每个节点执行后均更新此字段
@@ -210,22 +126,10 @@ impl ExecutionContext {
             flow_trigger_time,
             log_sender: None,
             flow_file_path: None,
-            ws_manager: None,
+
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(RwLock::new(HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None,
-            redis_manager: None,
+
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -282,86 +186,6 @@ impl ExecutionContext {
     /// Updated `ExecutionContext` with `flow_file_path` set
     pub fn with_flow_file_path(mut self, path: PathBuf) -> Self {
         self.flow_file_path = Some(path);
-        self
-    }
-
-    /// 设置 WebSocket 连接管理器
-    ///
-    /// # 参数
-    ///
-    /// * `ws_manager` - WebSocket 连接管理器（封装在 Arc 中）
-    ///
-    /// # 返回
-    ///
-    /// 更新后的 `ExecutionContext`
-    pub fn with_ws_manager(mut self, ws_manager: Arc<dyn WsProvider>) -> Self {
-        self.ws_manager = Some(ws_manager);
-        self
-    }
-
-    /// 设置 gRPC 连接管理器
-    pub fn with_grpc_manager(mut self, grpc_manager: Arc<dyn GrpcProvider>) -> Self {
-        self.grpc_manager = Some(grpc_manager);
-        self
-    }
-
-    /// 设置 MCP 连接管理器
-    pub fn with_mcp_manager(mut self, mcp_manager: Arc<dyn McpProvider>) -> Self {
-        self.mcp_manager = Some(mcp_manager);
-        self
-    }
-
-    /// 设置 TCP 连接管理器
-    pub fn with_tcp_manager(mut self, tcp_manager: Arc<dyn TcpProvider>) -> Self {
-        self.tcp_manager = Some(tcp_manager);
-        self
-    }
-
-    /// 设置 UDP Socket 管理器
-    pub fn with_udp_manager(mut self, udp_manager: Arc<dyn UdpProvider>) -> Self {
-        self.udp_manager = Some(udp_manager);
-        self
-    }
-
-    /// 设置 MQTT 连接管理器
-    pub fn with_mqtt_manager(mut self, mqtt_manager: Arc<dyn MqttProvider>) -> Self {
-        self.mqtt_manager = Some(mqtt_manager);
-        self
-    }
-
-    /// 设置 Kafka 连接管理器
-    pub fn with_kafka_manager(mut self, kafka_manager: Arc<dyn KafkaProvider>) -> Self {
-        self.kafka_manager = Some(kafka_manager);
-        self
-    }
-
-    /// 设置 SSE 连接管理器
-    pub fn with_sse_manager(mut self, sse_manager: Arc<dyn SseProvider>) -> Self {
-        self.sse_manager = Some(sse_manager);
-        self
-    }
-
-    /// 设置 GraphQL 连接管理器
-    pub fn with_graphql_manager(mut self, graphql_manager: Arc<dyn GraphqlProvider>) -> Self {
-        self.graphql_manager = Some(graphql_manager);
-        self
-    }
-
-    /// 设置 AMQP 连接管理器
-    pub fn with_amqp_manager(mut self, amqp_manager: Arc<dyn AmqpProvider>) -> Self {
-        self.amqp_manager = Some(amqp_manager);
-        self
-    }
-
-    /// 设置 SMTP 连接管理器
-    pub fn with_smtp_manager(mut self, smtp_manager: Arc<dyn SmtpProvider>) -> Self {
-        self.smtp_manager = Some(smtp_manager);
-        self
-    }
-
-    /// 设置 IMAP 连接管理器
-    pub fn with_imap_manager(mut self, imap_manager: Arc<dyn ImapProvider>) -> Self {
-        self.imap_manager = Some(imap_manager);
         self
     }
 

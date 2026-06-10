@@ -18,7 +18,7 @@ use serde_json::json;
 /// GraphQL 订阅节点执行器
 ///
 /// 处理 GraphQL Subscription 操作。
-/// 从 `context.graphql_manager` 获取 `GraphqlProvider` 来执行订阅。
+/// 从 `context.get_provider::<GraphqlConnectionManager>("graphql")` 获取连接管理器来执行订阅。
 pub struct GraphqlSubscribeExecutor {
     graphql_manager: Arc<dyn GraphqlProvider>,
 }

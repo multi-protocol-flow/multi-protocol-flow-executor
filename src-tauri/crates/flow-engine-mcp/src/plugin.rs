@@ -110,9 +110,9 @@ impl NodePlugin for McpConnectPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let mcp_manager = context.mcp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::mcp_connection_manager::McpConnectionManager::new())
-        });
+        let mcp_manager = context
+            .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
+            .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
         let executor = crate::mcp_connect_executor::McpConnectExecutor::new(mcp_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -205,9 +205,9 @@ impl NodePlugin for McpCallToolPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let mcp_manager = context.mcp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::mcp_connection_manager::McpConnectionManager::new())
-        });
+        let mcp_manager = context
+            .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
+            .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
         let executor = crate::mcp_call_tool_executor::McpCallToolExecutor::new(mcp_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -298,9 +298,9 @@ impl NodePlugin for McpReadResourcePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let mcp_manager = context.mcp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::mcp_connection_manager::McpConnectionManager::new())
-        });
+        let mcp_manager = context
+            .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
+            .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
         let executor = crate::mcp_read_resource_executor::McpReadResourceExecutor::new(mcp_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -373,9 +373,9 @@ impl NodePlugin for McpClosePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let mcp_manager = context.mcp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::mcp_connection_manager::McpConnectionManager::new())
-        });
+        let mcp_manager = context
+            .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
+            .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
         let executor = crate::mcp_close_executor::McpCloseExecutor::new(mcp_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -468,9 +468,9 @@ impl NodePlugin for McpGetPromptPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let mcp_manager = context.mcp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::mcp_connection_manager::McpConnectionManager::new())
-        });
+        let mcp_manager = context
+            .get_provider::<crate::mcp_connection_manager::McpConnectionManager>("mcp")
+            .unwrap_or_else(|| Arc::new(crate::mcp_connection_manager::McpConnectionManager::new()));
         let executor = crate::mcp_get_prompt_executor::McpGetPromptExecutor::new(mcp_manager);
         executor
             .execute(node, context, connections, node_map)

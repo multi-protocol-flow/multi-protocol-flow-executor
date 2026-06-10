@@ -103,9 +103,9 @@ impl NodePlugin for RedisConnectPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let redis_manager = context.redis_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::redis_connection_manager::RedisConnectionManager::new())
-        });
+        let redis_manager = context
+            .get_provider::<crate::redis_connection_manager::RedisConnectionManager>("redis")
+            .unwrap_or_else(|| Arc::new(crate::redis_connection_manager::RedisConnectionManager::new()));
         let executor = crate::redis_connect_executor::RedisConnectExecutor::new(redis_manager);
         executor.execute(node, context, connections, node_map).await
     }
@@ -199,9 +199,9 @@ impl NodePlugin for RedisCommandPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let redis_manager = context.redis_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::redis_connection_manager::RedisConnectionManager::new())
-        });
+        let redis_manager = context
+            .get_provider::<crate::redis_connection_manager::RedisConnectionManager>("redis")
+            .unwrap_or_else(|| Arc::new(crate::redis_connection_manager::RedisConnectionManager::new()));
         let executor = crate::redis_command_executor::RedisCommandExecutor::new(redis_manager);
         executor.execute(node, context, connections, node_map).await
     }
@@ -275,9 +275,9 @@ impl NodePlugin for RedisClosePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let redis_manager = context.redis_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::redis_connection_manager::RedisConnectionManager::new())
-        });
+        let redis_manager = context
+            .get_provider::<crate::redis_connection_manager::RedisConnectionManager>("redis")
+            .unwrap_or_else(|| Arc::new(crate::redis_connection_manager::RedisConnectionManager::new()));
         let executor = crate::redis_close_executor::RedisCloseExecutor::new(redis_manager);
         executor.execute(node, context, connections, node_map).await
     }

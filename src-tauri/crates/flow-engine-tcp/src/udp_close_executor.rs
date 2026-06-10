@@ -264,9 +264,9 @@ mod tests {
     }
 
     /// 创建执行上下文（带 UDP 管理器）
-    fn create_context(flow_id: &str, udp_manager: Arc<dyn UdpProvider>) -> ExecutionContext {
+    fn create_context<T: 'static + Send + Sync>(flow_id: &str, udp_manager: Arc<T>) -> ExecutionContext {
         let mut ctx = ExecutionContext::new(flow_id.to_string(), 0);
-        ctx.udp_manager = Some(udp_manager);
+        ctx.set_provider("udp", udp_manager);
         ctx
     }
 

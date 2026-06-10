@@ -17,8 +17,8 @@ use std::sync::Arc;
 /// 如果上下文中没有设置 `db_manager，则创建一个新的空管理器`。
 fn get_db_manager(context: &ExecutionContext) -> Arc<dyn flow_engine_core::traits::DbProvider> {
     context
-        .db_manager
-        .clone()
+        .get_provider::<crate::db::pool::DatabaseConnectionManager>("db")
+        .map(|m| m as Arc<dyn flow_engine_core::traits::DbProvider>)
         .unwrap_or_else(|| Arc::new(crate::db::pool::DatabaseConnectionManager::new()))
 }
 

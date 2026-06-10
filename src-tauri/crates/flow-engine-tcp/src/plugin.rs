@@ -174,8 +174,8 @@ impl NodePlugin for TcpConnectPlugin {
             )
             .await;
 
-        // 6. 更新 context.tcp_manager 供后续 TCP 节点使用
-        context.tcp_manager = Some(tcp_manager.clone() as Arc<dyn flow_engine_core::traits::TcpProvider>);
+        // 6. 更新 providers["tcp"] 供后续 TCP 节点使用
+        context.set_provider("tcp", tcp_manager.clone());
 
         match connect_result {
             Ok(()) => {
@@ -315,9 +315,9 @@ impl NodePlugin for TcpSendPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let tcp_manager = context.tcp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new())
-        });
+        let tcp_manager = context
+            .get_provider::<crate::tcp_connection_manager::TcpConnectionManager>("tcp")
+            .unwrap_or_else(|| Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new()));
         let executor = crate::tcp_send_executor::TcpSendExecutor::new(tcp_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -410,9 +410,9 @@ impl NodePlugin for TcpReceivePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let tcp_manager = context.tcp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new())
-        });
+        let tcp_manager = context
+            .get_provider::<crate::tcp_connection_manager::TcpConnectionManager>("tcp")
+            .unwrap_or_else(|| Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new()));
         let executor = crate::tcp_receive_executor::TcpReceiveExecutor::new(tcp_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -508,9 +508,9 @@ impl NodePlugin for TcpClosePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let tcp_manager = context.tcp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new())
-        });
+        let tcp_manager = context
+            .get_provider::<crate::tcp_connection_manager::TcpConnectionManager>("tcp")
+            .unwrap_or_else(|| Arc::new(crate::tcp_connection_manager::TcpConnectionManager::new()));
         let executor = crate::tcp_close_executor::TcpCloseExecutor::new(tcp_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -629,16 +629,9 @@ impl NodePlugin for UdpBindPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let udp_manager = context.udp_manager.clone()
-            .and_then(|_m| {
-                // UdpSocketManager 需要 Arc<UdpSocketManager> 具体类型，
-                // context.udp_manager 是 Arc<dyn UdpProvider>，无法直接向下转型，
-                // 因此始终创建新实例
-                None::<Arc<crate::udp_socket_manager::UdpSocketManager>>
-            })
-            .unwrap_or_else(|| {
-                Arc::new(crate::udp_socket_manager::UdpSocketManager::new())
-            });
+        let udp_manager = context
+            .get_provider::<crate::udp_socket_manager::UdpSocketManager>("udp")
+            .unwrap_or_else(|| Arc::new(crate::udp_socket_manager::UdpSocketManager::new()));
         let executor = crate::udp_bind_executor::UdpBindExecutor::new(udp_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -738,9 +731,9 @@ impl NodePlugin for UdpSendToPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let udp_manager = context.udp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::udp_socket_manager::UdpSocketManager::new())
-        });
+        let udp_manager = context
+            .get_provider::<crate::udp_socket_manager::UdpSocketManager>("udp")
+            .unwrap_or_else(|| Arc::new(crate::udp_socket_manager::UdpSocketManager::new()));
         let executor = crate::udp_send_to_executor::UdpSendToExecutor::new(udp_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -835,9 +828,9 @@ impl NodePlugin for UdpRecvFromPlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let udp_manager = context.udp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::udp_socket_manager::UdpSocketManager::new())
-        });
+        let udp_manager = context
+            .get_provider::<crate::udp_socket_manager::UdpSocketManager>("udp")
+            .unwrap_or_else(|| Arc::new(crate::udp_socket_manager::UdpSocketManager::new()));
         let executor = crate::udp_recv_from_executor::UdpRecvFromExecutor::new(udp_manager);
         executor
             .execute(node, context, connections, node_map)
@@ -928,9 +921,9 @@ impl NodePlugin for UdpClosePlugin {
         connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
-        let udp_manager = context.udp_manager.clone().unwrap_or_else(|| {
-            Arc::new(crate::udp_socket_manager::UdpSocketManager::new())
-        });
+        let udp_manager = context
+            .get_provider::<crate::udp_socket_manager::UdpSocketManager>("udp")
+            .unwrap_or_else(|| Arc::new(crate::udp_socket_manager::UdpSocketManager::new()));
         let executor = crate::udp_close_executor::UdpCloseExecutor::new(udp_manager);
         executor
             .execute(node, context, connections, node_map)
