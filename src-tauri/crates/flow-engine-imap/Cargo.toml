@@ -11,9 +11,9 @@ async-imap = { version = "0.11", default-features = false, features = ["runtime-
 # MIME 解析（IMAP fetch 结果解析）
 mail-parser = "0.11"
 # TLS 依赖（自定义 TLS 配置，支持 skip_verify）
-rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "tls12"] }
-webpki-roots = "0.26"
-tokio-rustls = "0.26"
+rustls = { workspace = true, features = ["logging", "tls12"] }
+webpki-roots = { workspace = true }
+tokio-rustls = { workspace = true }
 # Workspace 共享依赖
 async-trait = { workspace = true }
 serde = { workspace = true }
@@ -22,8 +22,9 @@ tokio = { workspace = true }
 log = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true }
-base64 = "0.22"
-futures-util = "0.3"
+base64 = { workspace = true }
+futures-util = { workspace = true }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [lints]
 workspace = true

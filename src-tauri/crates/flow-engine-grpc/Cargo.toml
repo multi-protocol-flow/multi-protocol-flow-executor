@@ -14,12 +14,12 @@ protox = "0.7"
 tonic-reflection = "0.12"
 tonic-health = "0.12"
 tokio-stream = "0.1"
-http = "1"
+http = { workspace = true }
 # TLS 依赖（用于 tls_skip_verify 的自定义 ClientConfig）
-rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "tls12"] }
-rustls-pemfile = "2.2"
-tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "tls12", "ring"] }
-webpki-roots = "0.26"
+rustls = { workspace = true, features = ["logging", "tls12"] }
+rustls-pemfile = { workspace = true }
+tokio-rustls = { workspace = true, features = ["logging", "tls12", "ring"] }
+webpki-roots = { workspace = true }
 hyper-util = "0.1"
 tower = { version = "0.4", default-features = false }
 # Workspace 共享依赖
@@ -33,6 +33,7 @@ chrono = { workspace = true }
 rand = "0.8"
 tempfile = "3.0"
 tokio-util = "0.7"
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [lints]
 workspace = true

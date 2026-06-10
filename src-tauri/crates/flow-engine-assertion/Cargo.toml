@@ -12,7 +12,8 @@ tokio = { workspace = true }
 log = { workspace = true }
 thiserror = { workspace = true }
 regex = { workspace = true }
-jsonpath-rust = "1.0.4"
+jsonpath-rust = { workspace = true }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [lints]
 workspace = true

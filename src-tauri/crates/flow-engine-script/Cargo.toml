@@ -15,14 +15,15 @@ thiserror = { workspace = true }
 chrono = { workspace = true }
 
 # util API 依赖
-base64 = "0.22"
+base64 = { workspace = true }
 urlencoding = "2.1"
 sha2 = "0.10"
 md-5 = "0.10"
 hmac = "0.12"
 hex = "0.4"
 uuid = { workspace = true }
-jsonpath-rust = "1.0.4"
+jsonpath-rust = { workspace = true }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [lints]
 workspace = true

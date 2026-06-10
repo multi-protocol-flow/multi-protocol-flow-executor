@@ -7,20 +7,21 @@ edition = "2021"
 flow-engine-core = { path = "../flow-engine-core" }
 async-trait = { workspace = true }
 tokio-tungstenite = { version = "0.28", features = ["rustls-tls-webpki-roots"] }
-futures-util = "0.3"
+futures-util = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 log = { workspace = true }
 thiserror = { workspace = true }
-http = "1.3"
+http = { workspace = true }
 chrono = { workspace = true }
 evalexpr = "11.0.0"
 regex = { workspace = true }
 serde_json_path = "0.7"
 # TLS 依赖（用于 tls_skip_verify 的自定义 ClientConfig）
-rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "tls12"] }
-webpki-roots = "0.26"
+rustls = { workspace = true, features = ["logging", "tls12"] }
+webpki-roots = { workspace = true }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [lints]
 workspace = true

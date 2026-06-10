@@ -27,6 +27,7 @@ flow-engine-executor = { path = "../flow-engine-executor" }
 # facade 自身代码需要的最小依赖（仅用于 re-export 类型的序列化边界）
 serde = { workspace = true }
 serde_json = { workspace = true }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [dev-dependencies]
 tokio = { workspace = true }
@@ -35,7 +36,7 @@ wiremock = "0.6"
 proptest = "1.4"
 assert_cmd = "2.0"
 predicates = "3"
-futures-util = "0.3"
+futures-util = { workspace = true }
 
 [lints]
 workspace = true

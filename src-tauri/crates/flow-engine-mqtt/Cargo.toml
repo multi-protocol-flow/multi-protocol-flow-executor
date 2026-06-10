@@ -8,8 +8,8 @@ flow-engine-core = { path = "../flow-engine-core" }
 # MQTT 5.0 客户端（use-rustls-ring 自动安装 ring CryptoProvider）
 rumqttc-next = { version = "0.30", default-features = false, features = ["use-rustls-ring", "websocket"] }
 # TLS 依赖（自定义 TLS 配置，支持 skip_verify）
-rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "tls12"] }
-webpki-roots = "0.26"
+rustls = { workspace = true, features = ["logging", "tls12"] }
+webpki-roots = { workspace = true }
 # Workspace 共享依赖
 async-trait = { workspace = true }
 serde = { workspace = true }
@@ -19,6 +19,7 @@ log = { workspace = true }
 thiserror = { workspace = true }
 chrono = { workspace = true }
 uuid = { workspace = true }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
 
 [lints]
 workspace = true

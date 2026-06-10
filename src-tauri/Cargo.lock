@@ -250,6 +250,7 @@ dependencies = [
  "uuid",
  "windows 0.58.0",
  "wiremock",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2151,6 +2152,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "wiremock",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2168,6 +2170,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-stream",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2183,6 +2186,7 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "tokio",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2197,6 +2201,7 @@ dependencies = [
  "serde_json",
  "serde_json_path",
  "tokio",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2210,6 +2215,7 @@ dependencies = [
  "once_cell",
  "rand 0.8.6",
  "thiserror 1.0.69",
+ "workspace-hack",
  "zeroize",
 ]
 
@@ -2229,6 +2235,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "uuid",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2272,6 +2279,7 @@ dependencies = [
  "tokio",
  "uuid",
  "wiremock",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2288,6 +2296,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-tungstenite",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2320,6 +2329,7 @@ dependencies = [
  "tonic-reflection",
  "tower 0.4.13",
  "webpki-roots 0.26.11",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2349,6 +2359,7 @@ dependencies = [
  "tower-service",
  "url",
  "webpki-roots 0.26.11",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2371,6 +2382,7 @@ dependencies = [
  "tokio-rustls",
  "uuid",
  "webpki-roots 0.26.11",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2389,6 +2401,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "uuid",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2403,6 +2416,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2421,6 +2435,7 @@ dependencies = [
  "tokio",
  "uuid",
  "webpki-roots 0.26.11",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2444,6 +2459,7 @@ dependencies = [
  "tokio",
  "urlencoding",
  "uuid",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2465,6 +2481,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "webpki-roots 0.26.11",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2482,6 +2499,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tokio-util",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2503,6 +2521,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "webpki-roots 0.26.11",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2525,6 +2544,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "webpki-roots 0.26.11",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -9420,6 +9440,100 @@ dependencies = [
  "serde_json",
  "unicode-xid",
  "wasmparser",
+]
+
+[[package]]
+name = "workspace-hack"
+version = "0.1.0"
+dependencies = [
+ "backon",
+ "base64 0.22.1",
+ "bit-vec",
+ "bitflags 2.13.0",
+ "byteorder",
+ "cc",
+ "chrono",
+ "cipher",
+ "concurrent-queue",
+ "const-oid",
+ "crossbeam-utils",
+ "crypto-common",
+ "der",
+ "digest",
+ "displaydoc",
+ "either",
+ "event-listener 5.4.1",
+ "fastrand",
+ "form_urlencoded",
+ "futures-channel",
+ "futures-core",
+ "futures-executor",
+ "futures-io",
+ "futures-sink",
+ "futures-task",
+ "futures-util",
+ "getrandom 0.2.17",
+ "getrandom 0.4.2",
+ "hmac",
+ "hyper",
+ "hyper-util",
+ "idna",
+ "indexmap 1.9.3",
+ "indexmap 2.14.0",
+ "inout",
+ "lazy_static",
+ "log",
+ "md-5",
+ "memchr",
+ "mime_guess",
+ "miniz_oxide",
+ "num-integer",
+ "num-traits",
+ "once_cell",
+ "parking_lot",
+ "percent-encoding",
+ "phf_shared",
+ "proc-macro2",
+ "rand 0.8.6",
+ "regex-automata",
+ "reqwest",
+ "rustls",
+ "rustls-webpki",
+ "schemars 0.8.22",
+ "serde",
+ "serde_core",
+ "serde_json",
+ "sha1",
+ "sha2",
+ "simd-adler32",
+ "slab",
+ "smallvec",
+ "socket2 0.5.10",
+ "socket2 0.6.4",
+ "spki",
+ "sqlx-core",
+ "sqlx-mysql",
+ "sqlx-postgres",
+ "sqlx-sqlite",
+ "stable_deref_trait",
+ "syn 2.0.117",
+ "sync_wrapper",
+ "tauri-utils",
+ "time",
+ "tokio",
+ "tokio-rustls",
+ "tokio-stream",
+ "tokio-util",
+ "toml_datetime 1.1.1+spec-1.1.0",
+ "toml_parser",
+ "tower 0.5.3",
+ "tracing",
+ "tracing-core",
+ "url",
+ "uuid",
+ "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
+ "winnow 1.0.3",
 ]
 
 [[package]]
