@@ -3,25 +3,61 @@ name = "flow-engine-executor"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["all-protocols"]
+all-protocols = [
+    "protocol-http",
+    "protocol-db",
+    "protocol-ws",
+    "protocol-script",
+    "protocol-assertion",
+    "protocol-grpc",
+    "protocol-mcp",
+    "protocol-tcp",
+    "protocol-mqtt",
+    "protocol-kafka",
+    "protocol-sse",
+    "protocol-graphql",
+    "protocol-amqp",
+    "protocol-smtp",
+    "protocol-imap",
+    "protocol-redis",
+]
+protocol-http = ["dep:flow-engine-http"]
+protocol-db = ["dep:flow-engine-db"]
+protocol-ws = ["dep:flow-engine-ws"]
+protocol-script = ["dep:flow-engine-script"]
+protocol-assertion = ["dep:flow-engine-assertion"]
+protocol-grpc = ["dep:flow-engine-grpc"]
+protocol-mcp = ["dep:flow-engine-mcp"]
+protocol-tcp = ["dep:flow-engine-tcp"]
+protocol-mqtt = ["dep:flow-engine-mqtt"]
+protocol-kafka = ["dep:flow-engine-kafka"]
+protocol-sse = ["dep:flow-engine-sse"]
+protocol-graphql = ["dep:flow-engine-graphql"]
+protocol-amqp = ["dep:flow-engine-amqp"]
+protocol-smtp = ["dep:flow-engine-smtp"]
+protocol-imap = ["dep:flow-engine-imap"]
+protocol-redis = ["dep:flow-engine-redis"]
+
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }
-flow-engine-http = { path = "../flow-engine-http" }
-flow-engine-db = { path = "../flow-engine-db" }
-flow-engine-ws = { path = "../flow-engine-ws" }
-flow-engine-script = { path = "../flow-engine-script" }
-flow-engine-assertion = { path = "../flow-engine-assertion" }
-flow-engine-crypto = { path = "../flow-engine-crypto" }
-flow-engine-grpc = { path = "../flow-engine-grpc" }
-flow-engine-mcp = { path = "../flow-engine-mcp" }
-flow-engine-tcp = { path = "../flow-engine-tcp" }
-flow-engine-mqtt = { path = "../flow-engine-mqtt" }
-flow-engine-kafka = { path = "../flow-engine-kafka" }
-flow-engine-sse = { path = "../flow-engine-sse" }
-flow-engine-graphql = { path = "../flow-engine-graphql" }
-flow-engine-amqp = { path = "../flow-engine-amqp" }
-flow-engine-smtp = { path = "../flow-engine-smtp" }
-flow-engine-imap = { path = "../flow-engine-imap" }
-flow-engine-redis = { path = "../flow-engine-redis" }
+flow-engine-http = { path = "../flow-engine-http", optional = true }
+flow-engine-db = { path = "../flow-engine-db", optional = true }
+flow-engine-ws = { path = "../flow-engine-ws", optional = true }
+flow-engine-script = { path = "../flow-engine-script", optional = true }
+flow-engine-assertion = { path = "../flow-engine-assertion", optional = true }
+flow-engine-grpc = { path = "../flow-engine-grpc", optional = true }
+flow-engine-mcp = { path = "../flow-engine-mcp", optional = true }
+flow-engine-tcp = { path = "../flow-engine-tcp", optional = true }
+flow-engine-mqtt = { path = "../flow-engine-mqtt", optional = true }
+flow-engine-kafka = { path = "../flow-engine-kafka", optional = true }
+flow-engine-sse = { path = "../flow-engine-sse", optional = true }
+flow-engine-graphql = { path = "../flow-engine-graphql", optional = true }
+flow-engine-amqp = { path = "../flow-engine-amqp", optional = true }
+flow-engine-smtp = { path = "../flow-engine-smtp", optional = true }
+flow-engine-imap = { path = "../flow-engine-imap", optional = true }
+flow-engine-redis = { path = "../flow-engine-redis", optional = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

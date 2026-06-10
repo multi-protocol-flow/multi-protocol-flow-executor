@@ -39,3 +39,39 @@ pub mod plugin_variable_extractor;
 pub mod plugin_proxy;
 /// 默认钩子执行器，提供 Webhook/Script/Notify 三种动作的日志执行
 pub mod hook_runner;
+
+// ============================================================================
+// 协议 crate 公共 re-export（供 facade 层条件转发）
+// ============================================================================
+#[cfg(feature = "protocol-http")]
+pub use flow_engine_http;
+#[cfg(feature = "protocol-ws")]
+pub use flow_engine_ws;
+#[cfg(feature = "protocol-db")]
+pub use flow_engine_db;
+#[cfg(feature = "protocol-script")]
+pub use flow_engine_script;
+#[cfg(feature = "protocol-assertion")]
+pub use flow_engine_assertion;
+#[cfg(feature = "protocol-grpc")]
+pub use flow_engine_grpc;
+#[cfg(feature = "protocol-mcp")]
+pub use flow_engine_mcp;
+#[cfg(feature = "protocol-tcp")]
+pub use flow_engine_tcp;
+#[cfg(feature = "protocol-mqtt")]
+pub use flow_engine_mqtt;
+#[cfg(feature = "protocol-kafka")]
+pub use flow_engine_kafka;
+#[cfg(feature = "protocol-sse")]
+pub use flow_engine_sse;
+#[cfg(feature = "protocol-graphql")]
+pub use flow_engine_graphql;
+#[cfg(feature = "protocol-amqp")]
+pub use flow_engine_amqp;
+#[cfg(feature = "protocol-smtp")]
+pub use flow_engine_smtp;
+#[cfg(feature = "protocol-imap")]
+pub use flow_engine_imap;
+#[cfg(feature = "protocol-redis")]
+pub use flow_engine_redis;
