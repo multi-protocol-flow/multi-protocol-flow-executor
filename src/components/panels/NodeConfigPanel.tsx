@@ -2,7 +2,7 @@
  * 节点配置面板主组件
  * 根据节点类型显示不同的配置表单
  */
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 
 /** 深度比较两个值是否相等（属性顺序无关，undefined 值视为缺失） */
 function deepEqual(a: unknown, b: unknown): boolean {
@@ -34,10 +34,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { NodeData, Node } from '@/types';
-import { Settings2, MousePointerClick, Lock, PencilLine, CircleHelp } from 'lucide-react';
+import { MousePointerClick, PencilLine, CircleHelp } from 'lucide-react';
 import { HelpDrawer } from './HelpDrawer';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
+import { toast } from 'sonner';
 
 interface NodeConfigPanelProps {
   /** 只读模式（调试时查看节点配置） */
@@ -114,6 +115,27 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   // 帮助抽屉状态
   const [isHelpDrawerOpen, setIsHelpDrawerOpen] = useState(false);
 
+  // 面板边界（用于帮助面板定位）— 必须在所有条件 return 之前声明
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelBounds, setPanelBounds] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    if (isHelpDrawerOpen && panelRef.current) {
+      const rect = panelRef.current.getBoundingClientRect();
+      setPanelBounds({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+    }
+  }, [isHelpDrawerOpen]);
+
+  // 右键复制标题
+  const handleCopyTitle = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const name = selectedNode?.name;
+    if (!name) return;
+    navigator.clipboard.writeText(name).then(() => {
+      toast.success(`${getLL().execution.report.copied()}: ${name}`, { duration: 1500 });
+    });
+  }, [selectedNode?.name]);
+
   // 未选中节点时显示流程节点列表
   if (!selectedNode) {
     if (readOnly) {
@@ -158,16 +180,15 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
   };
 
   return (
-    <Card className="flex h-full flex-col overflow-hidden border-0 shadow-none w-full min-w-0">
+    <Card ref={panelRef} className="flex h-full flex-col overflow-hidden border-0 shadow-none w-full min-w-0">
       <CardHeader className="shrink-0 border-b border-muted bg-background pb-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            {readOnly ? (
-              <Lock className="h-4 w-4 text-amber-500 shrink-0" />
-            ) : (
-              <Settings2 className="h-4 w-4 text-muted-foreground shrink-0" />
-            )}
-            <CardTitle className="text-base font-semibold text-foreground truncate">
+          <div className="flex items-center flex-1 min-w-0">
+            <CardTitle
+              className="text-base font-semibold text-foreground truncate cursor-default"
+              title={selectedNode.name}
+              onContextMenu={handleCopyTitle}
+            >
               {selectedNode.name}
             </CardTitle>
           </div>
@@ -255,6 +276,7 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
         nodeTypeId={selectedNode.type}
         open={isHelpDrawerOpen}
         onClose={() => setIsHelpDrawerOpen(false)}
+        panelBounds={panelBounds}
       />
     </Card>
   );

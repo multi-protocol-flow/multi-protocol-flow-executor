@@ -18,9 +18,11 @@ interface HelpDrawerProps {
   open: boolean;
   /** Close handler */
   onClose: () => void;
+  /** 当前节点面板的边界（用于定位，保持与面板同宽高） */
+  panelBounds?: { top: number; left: number; width: number; height: number } | null;
 }
 
-export function HelpDrawer({ nodeTypeId, open, onClose }: HelpDrawerProps) {
+export function HelpDrawer({ nodeTypeId, open, onClose, panelBounds }: HelpDrawerProps) {
   const [helpContent, setHelpContent] = useState<NodeHelpContent | null>(null);
   const ll = getLL();
 
@@ -32,21 +34,54 @@ export function HelpDrawer({ nodeTypeId, open, onClose }: HelpDrawerProps) {
 
   if (!open) return null;
 
+  // 用 panelBounds 定位，保持与节点面板同宽高
+  const drawerStyle: React.CSSProperties | undefined = panelBounds
+    ? {
+        position: 'fixed',
+        top: panelBounds.top,
+        left: panelBounds.left,
+        width: panelBounds.width,
+        height: panelBounds.height,
+        zIndex: 50,
+      }
+    : undefined;
+
+  // 当有 panelBounds 时，使用固定定位严格与节点面板重叠；无则回退全屏遮罩
+  const hasBounds = !!panelBounds;
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-      <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+    <>
+      {/* Backdrop - 只在有 panelBounds 时用面板尺寸的遮罩，否则全屏 */}
+      {hasBounds ? (
+        /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
+        <div
+          style={{
+            position: 'fixed',
+            top: panelBounds!.top,
+            left: panelBounds!.left,
+            width: panelBounds!.width,
+            height: panelBounds!.height,
+            zIndex: 49,
+          }}
+          className="bg-black/20"
+          onClick={onClose}
+        />
+      ) : (
+        /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
+        <div className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />
+      )}
 
       {/* Drawer panel */}
       <div
+        style={drawerStyle}
         className={cn(
-          'relative w-96 h-full bg-background border-l border-border shadow-xl',
+          'flex flex-col bg-background shadow-xl overflow-hidden',
+          hasBounds ? 'border border-border rounded-lg' : 'fixed inset-0 z-50',
           'animate-in slide-in-from-right duration-300',
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-muted-foreground" />
             <h3 className="text-sm font-semibold">
@@ -61,7 +96,7 @@ export function HelpDrawer({ nodeTypeId, open, onClose }: HelpDrawerProps) {
           </Button>
         </div>
 
-        <ScrollArea className="h-[calc(100%-49px)]">
+        <ScrollArea className="flex-1">
           {helpContent ? (
             <div className="p-4 space-y-6">
               {/* Summary */}
@@ -154,6 +189,6 @@ export function HelpDrawer({ nodeTypeId, open, onClose }: HelpDrawerProps) {
           )}
         </ScrollArea>
       </div>
-    </div>
+    </>
   );
 }
