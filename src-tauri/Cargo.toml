@@ -145,6 +145,26 @@ strip = true          # 剥离调试符号
 panic = "abort"       # abort 替代 unwind，减小二进制体积
 opt-level = "z"       # 体积优先优化
 
+# Debug 编译优化（不经常修改的重依赖预编译为 O3 加速日常开发）
+[profile.dev.package.tonic]
+opt-level = 3
+[profile.dev.package.prost]
+opt-level = 3
+[profile.dev.package."fe2o3-amqp"]
+opt-level = 3
+[profile.dev.package.rdkafka]
+opt-level = 3
+[profile.dev.package.sqlx]
+opt-level = 3
+[profile.dev.package.lapin]
+opt-level = 3
+[profile.dev.package.rmcp]
+opt-level = 3
+[profile.dev.package.rquickjs]
+opt-level = 3
+[profile.dev.package."tokio-tungstenite"]
+opt-level = 3
+
 [lints.rust]
 # 允许 unsafe（FreeConsole 等平台 API 需要）
 unsafe_code = "allow"
