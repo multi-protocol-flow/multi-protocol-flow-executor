@@ -20,6 +20,7 @@ members = [
     "crates/flow-engine-sse",
     "crates/flow-engine-graphql",
     "crates/flow-engine-amqp",
+    "crates/workspace-hack",
 ]
 resolver = "2"
 
@@ -27,7 +28,7 @@ resolver = "2"
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "sync", "net", "time", "io-util", "io-std", "signal", "fs"] }
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "sync", "net", "time", "io-util", "io-std"] }
 async-trait = "0.1"
 uuid = { version = "1.0", features = ["v4", "serde"] }
 chrono = "0.4"
@@ -35,6 +36,14 @@ log = "0.4"
 regex = "1.10"
 thiserror = "1.0"
 anyhow = "1.0"
+base64 = "0.22"
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
+webpki-roots = "0.26"
+tokio-rustls = "0.26"
+futures-util = "0.3"
+http = "1"
+rustls-pemfile = "2"
+jsonpath-rust = "1.0.4"
 lettre = { version = "0.11", default-features = false, features = ["tokio1", "tokio1-rustls", "ring", "webpki-roots", "smtp-transport", "builder", "pool", "hostname"] }
 async-imap = { version = "0.11", default-features = false, features = ["runtime-tokio"] }
 mail-parser = "0.11"
@@ -92,7 +101,7 @@ tauri-build = { version = "2.5.4", features = [] }
 flow-engine = { path = "crates/flow-engine" }
 
 # TLS 加密后端（HTTP/gRPC 的 rustls 0.23 需要显式安装 CryptoProvider）
-rustls = { version = "0.23", features = ["ring"] }
+rustls = { workspace = true, features = ["ring"] }
 
 # Tauri 框架
 tauri = { version = "2.10.0", features = [] }
@@ -112,7 +121,7 @@ serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 uuid = { version = "1.0", features = ["v4", "serde"] }
 async-trait = "0.1"
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["signal"] }
 
 # CLI 日志
 fern = { version = "0.7", default-features = false }
@@ -121,6 +130,7 @@ chrono = "0.4"
 # CLI 框架 + 配置解析
 clap = { version = "4", features = ["derive"] }
 toml = "0.8"
+workspace-hack = { version = "0.1", path = "crates/workspace-hack" }
 
 # Windows API（FreeConsole 用于分离控制台）
 [target.'cfg(windows)'.dependencies]
@@ -135,7 +145,7 @@ wiremock = "0.6"
 tempfile = "3.0"
 # WebSocket 依赖测试
 tokio-tungstenite = { version = "0.28", features = ["rustls-tls-webpki-roots"] }
-futures-util = "0.3"
+futures-util = { workspace = true }
 
 # Release 构建优化（减小二进制体积）
 [profile.release]
@@ -164,6 +174,58 @@ opt-level = 3
 opt-level = 3
 [profile.dev.package."tokio-tungstenite"]
 opt-level = 3
+# Tauri 框架链
+[profile.dev.package.tauri]
+opt-level = 3
+[profile.dev.package.tauri-runtime-wry]
+opt-level = 3
+[profile.dev.package.wry]
+opt-level = 3
+# HTTP 栈
+[profile.dev.package.reqwest]
+opt-level = 3
+[profile.dev.package.hyper]
+opt-level = 3
+[profile.dev.package.h2]
+opt-level = 3
+# TLS 栈
+[profile.dev.package.rustls]
+opt-level = 3
+[profile.dev.package.rustls-webpki]
+opt-level = 3
+# Tokio 栈
+[profile.dev.package.tokio]
+opt-level = 3
+[profile.dev.package.tokio-util]
+opt-level = 3
+[profile.dev.package.tokio-stream]
+opt-level = 3
+[profile.dev.package.tokio-rustls]
+opt-level = 3
+# 序列化栈
+[profile.dev.package.syn]
+opt-level = 3
+[profile.dev.package.proc-macro2]
+opt-level = 3
+[profile.dev.package.quote]
+opt-level = 3
+[profile.dev.package.serde]
+opt-level = 3
+[profile.dev.package.serde_json]
+opt-level = 3
+# 编译耗时大户
+[profile.dev.package.regex]
+opt-level = 3
+[profile.dev.package.chrono]
+opt-level = 3
+
+# 开发 profile 优化
+[profile.dev]
+debug = "line-tables-only"      # 保留行号回溯，去掉变量级调试信息
+split-debuginfo = "unpacked"    # Windows 上加速链接
+
+[profile.dev.package."*"]
+debug = false                   # 依赖项去掉调试符号，加速编译
 
 [lints.rust]
 # 允许 unsafe（FreeConsole 等平台 API 需要）
