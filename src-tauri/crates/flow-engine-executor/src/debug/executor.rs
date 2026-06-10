@@ -13,10 +13,8 @@ use flow_engine_core::report::{ExecutionStatus, NodeExecutionReport};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
-use flow_engine_ws::websocket_manager::WebSocketConnectionManager;
 use flow_engine_core::node_types;
 use flow_engine_core::traits::LogSender;
-use flow_engine_db::db::DatabaseConnectionManager;
 use flow_engine_core::registry::NodeRegistry;
 use serde_json::json;
 use std::collections::HashMap;
@@ -159,32 +157,7 @@ impl DebuggableFlowExecutor {
             }
         }
 
-        // 初始化 WebSocket 连接管理器
-        let ws_manager = Arc::new(WebSocketConnectionManager::new());
-
-        // 初始化数据库连接池管理器
-        let db_manager = Arc::new(DatabaseConnectionManager::new());
-
-        // 初始化 gRPC 连接管理器（流程级别的单例）
-        let grpc_manager = Arc::new(flow_engine_grpc::grpc_connection_manager::GrpcConnectionManager::new());
-
-        // 初始化 MCP 连接管理器（流程级别的单例）
-        let mcp_manager = Arc::new(flow_engine_mcp::McpConnectionManager::new());
-
-        // 初始化 MQTT 连接管理器（流程级别的单例）
-        let mqtt_manager = Arc::new(flow_engine_mqtt::mqtt_connection_manager::MqttConnectionManager::new());
-
-        // 初始化 Kafka 连接管理器（流程级别的单例）
-        let kafka_manager = Arc::new(flow_engine_kafka::kafka_connection_manager::KafkaConnectionManager::new());
-
-        // 初始化 SSE 连接管理器（流程级别的单例）
-        let sse_manager = Arc::new(flow_engine_sse::sse_connection_manager::SseConnectionManager::new());
-
-        // 初始化 GraphQL 连接管理器（流程级别的单例）
-        let graphql_manager = Arc::new(flow_engine_graphql::graphql_connection_manager::GraphqlConnectionManager::new());
-
-        // 初始化 AMQP 连接管理器（流程级别的单例）
-        let amqp_manager = Arc::new(flow_engine_amqp::AmqpConnectionManager::new());
+        use crate::provider_builder::ProviderBuilderExt;
 
         let mut context = ExecutionContext {
             flow_uuid: flow.uuid.clone(),
@@ -197,30 +170,29 @@ impl DebuggableFlowExecutor {
                 .as_millis() as u64,
             log_sender,
             flow_file_path: self.flow_file_path.clone(),
-            ws_manager: Some(ws_manager),
+            ws_manager: None,
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: Some(db_manager),
-            grpc_manager: Some(grpc_manager),
-            mcp_manager: Some(mcp_manager),
-            tcp_manager: Some(Arc::new(flow_engine_tcp::tcp_connection_manager::TcpConnectionManager::new())),
-            udp_manager: Some(Arc::new(flow_engine_tcp::udp_socket_manager::UdpSocketManager::new())),
-            mqtt_manager: Some(mqtt_manager),
-            kafka_manager: Some(kafka_manager),
-            sse_manager: Some(sse_manager),
-            graphql_manager: Some(graphql_manager),
-            amqp_manager: Some(amqp_manager),
-            // 初始化 SMTP 连接管理器（流程级别的单例）
-            smtp_manager: Some(Arc::new(flow_engine_smtp::SmtpConnectionManager::new())),
-            // 初始化 IMAP 连接管理器（流程级别的单例）
-            imap_manager: Some(Arc::new(flow_engine_imap::ImapConnectionManager::new())),
-            redis_manager: Some(Arc::new(flow_engine_redis::RedisConnectionManager::new())),
+            db_manager: None,
+            grpc_manager: None,
+            mcp_manager: None,
+            tcp_manager: None,
+            udp_manager: None,
+            mqtt_manager: None,
+            kafka_manager: None,
+            sse_manager: None,
+            graphql_manager: None,
+            amqp_manager: None,
+            smtp_manager: None,
+            imap_manager: None,
+            redis_manager: None,
             last_node_output: None,
             debug_event_sender: Some(Arc::new(crate::debug_event_adapter::MpscDebugEventSender::new(event_sender.clone()))),
             execution_event_sender: None,
             cancel_receiver: None,
             providers: HashMap::new(),
-        };
+        }
+        .with_default_providers();
 
         // 记录调试开始时间（用于报告生成）
         let debug_start_time_ms = context.flow_trigger_time;

@@ -39,6 +39,8 @@ pub mod plugin_variable_extractor;
 pub mod plugin_proxy;
 /// 默认钩子执行器，提供 Webhook/Script/Notify 三种动作的日志执行
 pub mod hook_runner;
+/// 协议 provider 构造（DRY: 共享给 executor 和 debug executor）
+pub mod provider_builder;
 
 // ============================================================================
 // 协议 crate 公共 re-export（供 facade 层条件转发）
