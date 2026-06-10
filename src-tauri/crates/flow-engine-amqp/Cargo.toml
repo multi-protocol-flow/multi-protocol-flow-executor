@@ -23,7 +23,7 @@ tokio = { workspace = true }
 log = { workspace = true }
 chrono = { workspace = true }
 # Management HTTP API 客户端（可选 feature）
-reqwest = { version = "0.12", features = ["json"], optional = true }
+reqwest = { version = "0.13", default-features = false, features = ["json"], optional = true }
 
 [lints]
 workspace = true

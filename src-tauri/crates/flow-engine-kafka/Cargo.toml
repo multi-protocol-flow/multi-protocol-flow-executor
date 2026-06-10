@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }
 rdkafka = { version = "0.39", features = ["cmake-build"] }
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.13", default-features = false, features = ["json"] }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -6,9 +6,9 @@ edition = "2021"
 [dependencies]
 flow-engine-core = { path = "../flow-engine-core" }
 # GraphQL HTTP 客户端（query/mutation/introspection）
-reqwest = { version = "0.12", features = ["json", "stream", "multipart"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "stream", "multipart"] }
 # WebSocket 依赖
-tokio-tungstenite = { version = "0.28", features = ["native-tls"] }
+tokio-tungstenite = { version = "0.28", features = ["rustls-tls-webpki-roots"] }
 futures-util = "0.3"
 # Workspace 共享依赖
 async-trait = { workspace = true }

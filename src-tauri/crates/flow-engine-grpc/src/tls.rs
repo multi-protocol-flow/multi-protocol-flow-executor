@@ -2,7 +2,7 @@
 //!
 //! 提供 gRPC 连接的 TLS 配置，支持以下模式：
 //! - **明文**: 不使用 TLS
-//! - **标准 TLS**: webpki-roots + 系统原生证书
+//! - **标准 TLS**: webpki-roots 根证书
 //! - **自定义 CA**: 加载自定义 CA 证书
 //! - **mTLS**: 客户端证书认证
 //! - **SNI 覆盖**: 自定义 TLS 服务器名称
@@ -71,13 +71,12 @@ fn ensure_crypto_provider() {
 
 /// 配置端点的 TLS（标准验证模式）
 ///
-/// 使用 tonic 内置的 webpki-roots + 系统原生证书信任链。
+/// 使用 tonic 内置的 webpki-roots 根证书信任链。
 fn apply_standard_tls(
     endpoint: tonic::transport::Endpoint,
 ) -> Result<tonic::transport::Endpoint, String> {
     let tls_config = tonic::transport::ClientTlsConfig::new()
-        .with_webpki_roots()
-        .with_native_roots();
+        .with_webpki_roots();
     endpoint
         .tls_config(tls_config)
         .map_err(|e| format!("TLS 配置失败: {}", e))
@@ -476,7 +475,7 @@ pub(crate) fn create_balanced_channel(
 /// 1. `!use_tls` → 明文连接
 /// 2. `use_tls && tls_skip_verify` → 跳过证书验证
 /// 3. `use_tls && (tls_ca_cert | tls_client_cert)` → 自定义 TLS（CA/mTLS/SNI）
-/// 4. `use_tls` → 标准 TLS（webpki-roots + 系统原生证书）
+/// 4. `use_tls` → 标准 TLS（webpki-roots 根证书）
 pub(crate) fn create_channel(
     url_with_scheme: &str,
     use_tls: bool,
