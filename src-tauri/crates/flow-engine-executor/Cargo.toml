@@ -30,7 +30,6 @@ uuid = { workspace = true }
 evalexpr = "11.0.0"
 regex = { workspace = true }
 log = { workspace = true }
-serde_json_path = "0.7"
 jsonpath-rust = "1.0.4"
 thiserror = { workspace = true }
 tempfile = "3.0"
