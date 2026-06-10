@@ -5,7 +5,8 @@
 
 ## 概述
 
-19 个 crate 组成的 Rust Workspace。`flow-engine` 为门面 crate (re-export 全部)，`app` (src-tauri/src/) 仅依赖 `flow-engine`。
+20 个 crate 组成的 Rust Workspace。`flow-engine` 为门面 crate (re-export 全部)，`app` (src-tauri/src/) 仅依赖 `flow-engine`。
+新增 `workspace-hack` crate（自动管理，统一所有外部依赖的 feature 集）。
 
 ## 依赖图
 
@@ -20,6 +21,7 @@ Layer 1 (协议):   flow-engine-http, flow-engine-ws, flow-engine-db,
 Layer 2 (编排):   flow-engine-executor                          (→ core + 全部 Layer 1 + crypto)
 Layer 3 (门面):   flow-engine                                   (re-export 全部)
 Layer 4 (应用):   app (src-tauri/)                              (→ flow-engine)
+Extra (工具):     workspace-hack                                (所有 crate 依赖)
 ```
 
 **增量编译关键**: 修改 Layer N 的 crate 会触发 Layer N+1 及以上重编译。

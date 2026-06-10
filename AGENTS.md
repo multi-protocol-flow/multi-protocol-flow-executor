@@ -6,7 +6,7 @@
 
 多协议流程编排与执行引擎。Tauri 2.x 桌面应用 + CLI 模式（同一二进制 `mpe`，无参数启动 GUI，有参数启动 CLI）。
 - **前端:** React 19 + TypeScript + Vite 6 + TailwindCSS 4 + Zustand 5 + @xyflow/react
-- **后端:** Rust Workspace (19 crates) + Tauri 2.x
+- **后端:** Rust Workspace (20 crates) + Tauri 2.x
 
 ## 开发命令
 
@@ -39,15 +39,15 @@ npm run tauri build             # 构建安装包
 ```
 Windows GUI 模式下调用 `FreeConsole()` 分离控制台。
 
-### Crate 分层 (19 crates + 1 app)
+### Crate 分层 (20 crates + 1 app)
 
 ```
-Layer 0 (叶子):   flow-engine-core, flow-engine-crypto
-Layer 1 (协议):   15 个协议 crate (http/ws/db/script/assertion/grpc/mcp/tcp/udp/
-                  mqtt/amqp/graphql/imap/kafka/smtp/sse) → 依赖 core
-Layer 2 (编排):   flow-engine-executor → 依赖 Layer 0 + 全部 Layer 1
-Layer 3 (门面):   flow-engine → re-export 全部
-Layer 4 (应用):   app (src-tauri/) → 依赖 flow-engine
+Layer 0 (叶子):     flow-engine-core, flow-engine-crypto
+Layer 1 (协议):     15 个协议 crate → 依赖 core
+Layer 2 (编排):     flow-engine-executor → 依赖 Layer 0 + 全部 Layer 1
+Layer 3 (门面):     flow-engine → re-export 全部
+Layer 4 (应用):     app (src-tauri/) → 依赖 flow-engine
+Extra (工具):       workspace-hack → 所有 crate 依赖（自动管理）
 ```
 
 **增量编译关键**: 修改 Layer N 触发 Layer N+1 及以上重编译。修改 core 触发全量。
@@ -114,11 +114,74 @@ Layer 4 (应用):   app (src-tauri/) → 依赖 flow-engine
 - 无 `unwrap()` 生产代码（使用 `?` 或 `expect`）
 - Edition 2021, min rust 1.77.2
 
-### Release 编译优化
+## 编译优化（2026-06-10 实施）
+
+### 1. Linker 优化（Windows）
+创建 `.cargo/config.toml`，用 `rust-lld.exe` 替代默认的 MSVC `link.exe`，链接阶段加速 **15-25%**。
+
+```toml
+# src-tauri/.cargo/config.toml
+[target.x86_64-pc-windows-msvc]
+linker = "rust-lld.exe"
+```
+
+### 2. Dev Profile 优化
+
+```toml
+[profile.dev]
+debug = "line-tables-only"      # 保留行号回溯，去掉变量级调试信息
+split-debuginfo = "unpacked"    # Windows 上加速链接
+
+[profile.dev.package."*"]
+debug = false                   # 依赖项去掉调试符号
+```
+
+重依赖预编译为 O3（共 26 个 crate 覆盖）：tonic, prost, fe2o3-amqp, rdkafka, sqlx, lapin, rmcp, rquickjs, tokio-tungstenite, tauri, tauri-runtime-wry, wry, reqwest, hyper, h2, rustls, rustls-webpki, tokio, tokio-util, tokio-stream, tokio-rustls, syn, proc-macro2, quote, serde, serde_json, regex, chrono。
+
+### 3. Release 编译优化
 
 ```toml
 lto = true, codegen-units = 1, strip = true, panic = "abort", opt-level = "z"
 ```
+
+### 4. 统一 workspace 依赖
+将公共依赖纳入 `[workspace.dependencies]`，避免多版本重复编译：
+
+| 新增依赖 | 覆盖 crate 数 | 版本 |
+|---------|--------------|------|
+| base64 | 8 | 0.22 |
+| rustls | 7 | 0.23 |
+| webpki-roots | 7 | 0.26 |
+| tokio-rustls | 4 | 0.26 |
+| futures-util | 7 | 0.3 |
+| http | 3 | 1 |
+| rustls-pemfile | 3 | 2 |
+| jsonpath-rust | 3 | 1.0.4 |
+
+### 5. tokio 特性按需声明
+从 workspace 全局移除了 `signal` 和 `fs` 特性，改为由实际使用的 crate 自行声明：
+- `flow-engine-http`: `features = ["fs"]`
+- `app crate`: `features = ["signal"]`
+- `flow-engine-mcp`: `features = ["process"]`（补充声明）
+
+### 6. cargo-hakari (workspace-hack)
+通过 `cargo-hakari` 生成 `crates/workspace-hack` crate，统一所有外部依赖的 feature 集，避免跨 crate 构建时因 feature 不一致触发的重复编译。
+
+```bash
+# 重新生成 workspace-hack（feature 变更后需执行）
+cd src-tauri
+cargo hakari generate
+```
+
+### 当前编译现状
+
+| 指标 | 优化前 | 优化后 |
+|------|--------|--------|
+| Cargo.lock 包数 | 870 | 870 |
+| target/debug 体积 | 22.88 GB | — |
+| 项目级 .cargo/config | 无 | ✅ |
+| sccache | 用户级 | 用户级（不变） |
+| workspace 管理的依赖 | 13 | 21 |
 
 ### 测试
 
@@ -137,7 +200,7 @@ lto = true, codegen-units = 1, strip = true, panic = "abort", opt-level = "z"
 | 位置 | 内容 | 优先级 |
 |------|------|--------|
 | `src/types/error.ts` | 缺少 WebSocket 错误类型 (与 Rust 不对齐) | 中 |
-| Workspace 依赖 | 部分 crate 硬编码版本号，未统一用 workspace = true | 中 |
+| ~~Workspace 依赖~~ | ~~部分 crate 硬编码版本号，未统一用 workspace = true~~ | ~~中~~ ✅ 已修复 |
 | 生产代码 unwrap() | `core/executor.rs:32-33` (regex captures) | 中 |
 | 无 ESLint/Prettier | 前端无 lint/format 配置，但有 eslint-disable 残留 | 中 |
 | `components.json` | 引用不存在的 `tailwind.config.js` (TailwindCSS 4 用 CSS config) | 低 |
@@ -147,7 +210,7 @@ lto = true, codegen-units = 1, strip = true, panic = "abort", opt-level = "z"
 
 ## 子目录知识库
 
-所有 19 个 crate 和主要前端模块均有 AGENTS.md：
+所有 20 个 crate 和主要前端模块均有 AGENTS.md：
 
 - [src/components/AGENTS.md](./src/components/AGENTS.md)
 - [src/stores/AGENTS.md](./src/stores/AGENTS.md)
