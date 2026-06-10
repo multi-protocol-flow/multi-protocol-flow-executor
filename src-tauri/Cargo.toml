@@ -99,24 +99,7 @@ tauri-build = { version = "2.5.4", features = [] }
 
 [dependencies]
 # 业务逻辑引擎
-flow-engine = { path = "crates/flow-engine", features = [
-    "protocol-http",
-    "protocol-db",
-    "protocol-ws",
-    "protocol-script",
-    "protocol-assertion",
-    "protocol-grpc",
-    "protocol-mcp",
-    "protocol-tcp",
-    "protocol-mqtt",
-    "protocol-kafka",
-    "protocol-sse",
-    "protocol-graphql",
-    "protocol-amqp",
-    "protocol-smtp",
-    "protocol-imap",
-    "protocol-redis",
-] }
+flow-engine = { path = "crates/flow-engine" }
 
 # TLS 加密后端（HTTP/gRPC 的 rustls 0.23 需要显式安装 CryptoProvider）
 rustls = { workspace = true, features = ["ring"] }
@@ -152,6 +135,44 @@ chrono = "0.4"
 clap = { version = "4", features = ["derive"] }
 toml = "0.8"
 workspace-hack = { version = "0.1", path = "crates/workspace-hack" }
+
+# 协议特性开关（每个协议对应一个 feature，通过 flow-engine 转发）
+[features]
+default = ["all-protocols"]
+all-protocols = [
+    "protocol-http",
+    "protocol-db",
+    "protocol-ws",
+    "protocol-script",
+    "protocol-assertion",
+    "protocol-grpc",
+    "protocol-mcp",
+    "protocol-tcp",
+    "protocol-mqtt",
+    "protocol-kafka",
+    "protocol-sse",
+    "protocol-graphql",
+    "protocol-amqp",
+    "protocol-smtp",
+    "protocol-imap",
+    "protocol-redis",
+]
+protocol-http = ["flow-engine/protocol-http"]
+protocol-db = ["flow-engine/protocol-db"]
+protocol-ws = ["flow-engine/protocol-ws"]
+protocol-script = ["flow-engine/protocol-script"]
+protocol-assertion = ["flow-engine/protocol-assertion"]
+protocol-grpc = ["flow-engine/protocol-grpc"]
+protocol-mcp = ["flow-engine/protocol-mcp"]
+protocol-tcp = ["flow-engine/protocol-tcp"]
+protocol-mqtt = ["flow-engine/protocol-mqtt"]
+protocol-kafka = ["flow-engine/protocol-kafka"]
+protocol-sse = ["flow-engine/protocol-sse"]
+protocol-graphql = ["flow-engine/protocol-graphql"]
+protocol-amqp = ["flow-engine/protocol-amqp"]
+protocol-smtp = ["flow-engine/protocol-smtp"]
+protocol-imap = ["flow-engine/protocol-imap"]
+protocol-redis = ["flow-engine/protocol-redis"]
 
 # Windows API（FreeConsole 用于分离控制台）
 [target.'cfg(windows)'.dependencies]

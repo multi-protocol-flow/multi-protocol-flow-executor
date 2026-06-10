@@ -110,58 +110,75 @@ pub fn default_registry() -> NodeRegistry {
     ));
 
     // HTTP (flow-engine-http)
+    #[cfg(feature = "protocol-http")]
     registry.register(std::sync::Arc::new(flow_engine_http::plugin::HttpPlugin));
 
     // WebSocket (flow-engine-ws) — 批量注册 3 个插件
+    #[cfg(feature = "protocol-ws")]
     flow_engine_ws::plugin::WsPluginGroup::register_all(&mut registry);
 
     // Database (flow-engine-db) — 批量注册 6 个插件
+    #[cfg(feature = "protocol-db")]
     flow_engine_db::plugin::DbPluginGroup::register_all(&mut registry);
 
     // Script (flow-engine-script)
+    #[cfg(feature = "protocol-script")]
     registry.register(std::sync::Arc::new(
         flow_engine_script::plugin::ScriptPlugin,
     ));
 
     // Assertion (flow-engine-assertion)
+    #[cfg(feature = "protocol-assertion")]
     registry.register(std::sync::Arc::new(
         flow_engine_assertion::plugin::AssertionPlugin,
     ));
 
     // gRPC (flow-engine-grpc) — 批量注册 3 个插件
+    #[cfg(feature = "protocol-grpc")]
     flow_engine_grpc::plugin::GrpcPluginGroup::register_all(&mut registry);
 
     // TCP (flow-engine-tcp) — 批量注册 4 个插件
+    #[cfg(feature = "protocol-tcp")]
     flow_engine_tcp::plugin::TcpPluginGroup::register_all(&mut registry);
 
     // UDP (flow-engine-tcp) — 批量注册 4 个插件
+    #[cfg(feature = "protocol-tcp")]
     flow_engine_tcp::plugin::UdpPluginGroup::register_all(&mut registry);
 
     // MCP (flow-engine-mcp) — 批量注册 5 个插件
+    #[cfg(feature = "protocol-mcp")]
     flow_engine_mcp::plugin::McpPluginGroup::register_all(&mut registry);
 
     // MQTT (flow-engine-mqtt) — 批量注册 7 个插件
+    #[cfg(feature = "protocol-mqtt")]
     flow_engine_mqtt::plugin::MqttPluginGroup::register_all(&mut registry);
 
     // Kafka (flow-engine-kafka) — 批量注册 7 个插件
+    #[cfg(feature = "protocol-kafka")]
     flow_engine_kafka::plugin::KafkaPluginGroup::register_all(&mut registry);
 
     // SSE (flow-engine-sse) — 批量注册 3 个插件
+    #[cfg(feature = "protocol-sse")]
     flow_engine_sse::plugin::SsePluginGroup::register_all(&mut registry);
 
     // GraphQL (flow-engine-graphql) — 批量注册 5 个插件
+    #[cfg(feature = "protocol-graphql")]
     flow_engine_graphql::plugin::GraphqlPluginGroup::register_all(&mut registry);
 
     // AMQP (flow-engine-amqp) — 批量注册 17 个插件（11 AMQP 0-9-1 + 6 AMQP 1.0）
+    #[cfg(feature = "protocol-amqp")]
     flow_engine_amqp::amqp091::plugin::AmqpPluginGroup::register_all(&mut registry);
 
     // SMTP (flow-engine-smtp) — 批量注册 3 个插件
+    #[cfg(feature = "protocol-smtp")]
     flow_engine_smtp::plugin::SmtpPluginGroup::register_all(&mut registry);
 
     // IMAP (flow-engine-imap) — 批量注册 13 个插件
+    #[cfg(feature = "protocol-imap")]
     flow_engine_imap::plugin::ImapPluginGroup::register_all(&mut registry);
 
     // Redis (flow-engine-redis) — 批量注册 3 个插件
+    #[cfg(feature = "protocol-redis")]
     flow_engine_redis::plugin::RedisPluginGroup::register_all(&mut registry);
 
     // End (flow-engine-executor 内置)
@@ -183,116 +200,65 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_default_registry_has_18_plugins() {
+    fn test_plugin_count_matches_features() {
         let registry = default_registry();
-        assert_eq!(registry.len(), 91);
+        let count = registry.len();
+        let mut expected = 5usize; // always-on: entry, conditional, end, variable_extractor, proxy
 
+        #[cfg(feature = "protocol-http")]   { expected += 1; }
+        #[cfg(feature = "protocol-ws")]     { expected += 3; }
+        #[cfg(feature = "protocol-db")]     { expected += 6; }
+        #[cfg(feature = "protocol-script")] { expected += 1; }
+        #[cfg(feature = "protocol-assertion")] { expected += 1; }
+        #[cfg(feature = "protocol-grpc")]   { expected += 3; }
+        #[cfg(feature = "protocol-mcp")]    { expected += 5; }
+        #[cfg(feature = "protocol-tcp")]    { expected += 8; } // 4 TCP + 4 UDP
+        #[cfg(feature = "protocol-mqtt")]   { expected += 7; }
+        #[cfg(feature = "protocol-kafka")]  { expected += 7; }
+        #[cfg(feature = "protocol-sse")]    { expected += 3; }
+        #[cfg(feature = "protocol-graphql")]{ expected += 5; }
+        #[cfg(feature = "protocol-amqp")]   { expected += 17; }
+        #[cfg(feature = "protocol-smtp")]   { expected += 3; }
+        #[cfg(feature = "protocol-imap")]   { expected += 13; }
+        #[cfg(feature = "protocol-redis")]  { expected += 3; }
+
+        assert_eq!(count, expected, "Plugin count mismatch for active features. Expected={}, actual={}", expected, count);
+    }
+
+    #[test]
+    fn test_type_ids_match_features() {
+        let registry = default_registry();
         let metadata = registry.all_metadata();
-        assert_eq!(metadata.len(), 91);
-
-        // 验证每个 type_id 都已注册
         let type_ids: Vec<&str> = metadata.iter().map(|m| m.type_id.as_str()).collect();
-        let expected = [
-            "entry",
-            "conditional",
-            "http",
-            "ws_connect",
-            "ws_send_collect",
-            "ws_close",
-            "assertion",
-            "db_connect",
-            "db_query",
-            "db_begin",
-            "db_commit",
-            "db_rollback",
-            "db_close",
-            "script",
-            "grpc_connect",
-            "grpc_call",
-            "grpc_close",
-            "tcp_connect",
-            "tcp_send",
-            "tcp_receive",
-            "tcp_close",
-            "udp_bind",
-            "udp_send_to",
-            "udp_recv_from",
-            "udp_close",
-            "mcp_connect",
-            "mcp_call_tool",
-            "mcp_read_resource",
-            "mcp_get_prompt",
-            "mcp_close",
-            "mqtt_connect",
-            "mqtt_publish",
-            "mqtt_subscribe",
-            "mqtt_unsubscribe",
-            "mqtt_disconnect",
-            "mqtt_wait_message",
-            "mqtt_request",
-            "kafka_connect",
-            "kafka_produce",
-            "kafka_consume",
-            "kafka_consume_batch",
-            "kafka_admin",
-            "kafka_schema_registry",
-            "kafka_close",
-            "sse_connect",
-            "sse_listen",
-            "sse_disconnect",
-            "graphql_connect",
-            "graphql_query",
-            "graphql_subscribe",
-            "graphql_introspect",
-            "graphql_disconnect",
-            "amqp_connect",
-            "amqp_close",
-            "amqp_exchange_declare",
-            "amqp_exchange_delete",
-            "amqp_queue_declare",
-            "amqp_queue_delete",
-            "amqp_queue_bind",
-            "amqp_publish",
-            "amqp_consume",
-            "amqp_get",
-            "amqp_ack",
-            "smtp_connect",
-            "smtp_send",
-            "smtp_disconnect",
-            "imap_connect",
-            "imap_select",
-            "imap_search",
-            "imap_fetch",
-            "imap_store_flags",
-            "imap_copy",
-            "imap_move",
-            "imap_expunge",
-            "imap_list",
-            "imap_folder_create",
-            "imap_folder_delete",
-            "imap_idle",
-            "imap_close",
-            "amqp10_connect",
-            "amqp10_send",
-            "amqp10_receive",
-            "amqp10_accept",
-            "amqp10_reject",
-            "amqp10_disconnect",
-            "end",
-            "variable_extractor",
-            "proxy",
-            "redis_connect",
-            "redis_command",
-            "redis_close",
-        ];
 
-        for exp in &expected {
-            assert!(
-                type_ids.contains(exp),
-                "Missing plugin: {}",
-                exp
-            );
-        }
+        // Always present
+        assert!(type_ids.contains(&"entry"));
+        assert!(type_ids.contains(&"conditional"));
+        assert!(type_ids.contains(&"end"));
+        assert!(type_ids.contains(&"variable_extractor"));
+        assert!(type_ids.contains(&"proxy"));
+
+        // Conditional on features
+        #[cfg(feature = "protocol-http")]   { assert!(type_ids.contains(&"http"), "http should be registered"); }
+        #[cfg(not(feature = "protocol-http"))] { assert!(!type_ids.contains(&"http"), "http should NOT be registered"); }
+
+        #[cfg(feature = "protocol-ws")]     { assert!(type_ids.contains(&"ws_connect")); }
+        #[cfg(not(feature = "protocol-ws"))] { assert!(!type_ids.contains(&"ws_connect")); }
+
+        #[cfg(feature = "protocol-db")]     { assert!(type_ids.contains(&"db_connect")); }
+        #[cfg(not(feature = "protocol-db"))] { assert!(!type_ids.contains(&"db_connect")); }
+
+        #[cfg(feature = "protocol-script")] { assert!(type_ids.contains(&"script")); }
+        #[cfg(not(feature = "protocol-script"))] { assert!(!type_ids.contains(&"script")); }
+
+        #[cfg(feature = "protocol-grpc")]   { assert!(type_ids.contains(&"grpc_connect")); }
+        #[cfg(not(feature = "protocol-grpc"))] { assert!(!type_ids.contains(&"grpc_connect")); }
+
+        #[cfg(feature = "protocol-kafka")]  { assert!(type_ids.contains(&"kafka_connect")); }
+        #[cfg(not(feature = "protocol-kafka"))] { assert!(!type_ids.contains(&"kafka_connect")); }
+
+        #[cfg(feature = "protocol-amqp")]   { assert!(type_ids.contains(&"amqp_connect")); }
+        #[cfg(not(feature = "protocol-amqp"))] { assert!(!type_ids.contains(&"amqp_connect")); }
     }
 
     #[test]

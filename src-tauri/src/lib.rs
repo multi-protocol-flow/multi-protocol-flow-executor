@@ -54,50 +54,6 @@ pub use tauri_commands::{
     load_stress_test_report,
     list_stress_test_reports,
     delete_stress_test_report,
-    // 数据库连接命令
-    test_db_connection,
-    // gRPC 服务发现命令
-    grpc_discover_services,
-    // gRPC 请求骨架生成命令
-    grpc_generate_request_skeleton,
-    // gRPC 请求骨架生成命令（Reflection 模式）
-    grpc_generate_request_skeleton_from_reflection,
-    // gRPC 请求 JSON 预验证命令
-    grpc_validate_request,
-    // gRPC Proto 目录扫描命令
-    grpc_scan_proto_directory,
-    // gRPC 读取 Proto 文件命令
-    grpc_read_proto_files,
-    // gRPC Descriptor Set 解析命令
-    grpc_parse_descriptor_set,
-    // gRPC Channelz 内省命令（EXPERIMENTAL）
-    grpc_channelz_info,
-    // MCP 工具发现命令
-    mcp_discover_tools,
-    // MQTT 连接测试命令
-    mqtt_test_connection,
-    // SSE 连接测试命令
-    sse_test_connection,
-    // AMQP 连接测试命令
-    amqp_test_connection,
-    // SMTP 连接测试命令
-    test_smtp_connection,
-    // IMAP 连接测试命令
-    test_imap_connection,
-    // Email OAuth2 命令
-    email_oauth2_authorize,
-    email_oauth2_refresh,
-    email_oauth2_revoke,
-    // TCP 协议模板命令
-    tcp_list_templates,
-    tcp_get_template,
-    // GraphQL 内省命令
-    graphql_introspect_schema,
-    // Kafka 命令
-    kafka_test_connection,
-    kafka_list_topics,
-    kafka_list_consumer_groups,
-    kafka_discover_schema,
     // 执行会话管理
     cancel_flow,
     // 流程文件存储命令
@@ -132,6 +88,72 @@ pub use tauri_commands::{
     DatasetExecutionSessionManager,
     GrpcCancelSessionManager,
     validate_flow,
+};
+
+// 数据库连接命令
+#[cfg(feature = "protocol-db")]
+pub use tauri_commands::test_db_connection;
+
+// gRPC 命令
+#[cfg(feature = "protocol-grpc")]
+pub use tauri_commands::{
+    grpc_discover_services,
+    grpc_generate_request_skeleton,
+    grpc_generate_request_skeleton_from_reflection,
+    grpc_validate_request,
+    grpc_scan_proto_directory,
+    grpc_read_proto_files,
+    grpc_parse_descriptor_set,
+    grpc_channelz_info,
+};
+
+// MCP 工具发现命令
+#[cfg(feature = "protocol-mcp")]
+pub use tauri_commands::mcp_discover_tools;
+
+// MQTT 连接测试命令
+#[cfg(feature = "protocol-mqtt")]
+pub use tauri_commands::mqtt_test_connection;
+
+// SSE 连接测试命令
+#[cfg(feature = "protocol-sse")]
+pub use tauri_commands::sse_test_connection;
+
+// AMQP 连接测试命令
+#[cfg(feature = "protocol-amqp")]
+pub use tauri_commands::amqp_test_connection;
+
+// SMTP 连接测试 + Email OAuth2 命令
+#[cfg(feature = "protocol-smtp")]
+pub use tauri_commands::{
+    test_smtp_connection,
+    email_oauth2_authorize,
+    email_oauth2_refresh,
+    email_oauth2_revoke,
+};
+
+// IMAP 连接测试命令
+#[cfg(feature = "protocol-imap")]
+pub use tauri_commands::test_imap_connection;
+
+// TCP 协议模板命令
+#[cfg(feature = "protocol-tcp")]
+pub use tauri_commands::{
+    tcp_list_templates,
+    tcp_get_template,
+};
+
+// GraphQL 内省命令
+#[cfg(feature = "protocol-graphql")]
+pub use tauri_commands::graphql_introspect_schema;
+
+// Kafka 命令
+#[cfg(feature = "protocol-kafka")]
+pub use tauri_commands::{
+    kafka_test_connection,
+    kafka_list_topics,
+    kafka_list_consumer_groups,
+    kafka_discover_schema,
 };
 
 // 导出适配器（供测试使用）
@@ -236,50 +258,75 @@ pub fn run() {
             save_stress_test_report,
             load_stress_test_report,
             list_stress_test_reports,
-            delete_stress_test_report,
+    delete_stress_test_report,
     // 数据库连接命令
+    #[cfg(feature = "protocol-db")]
     test_db_connection,
     // gRPC 服务发现命令
+    #[cfg(feature = "protocol-grpc")]
     grpc_discover_services,
     // gRPC 请求骨架生成命令
+    #[cfg(feature = "protocol-grpc")]
     grpc_generate_request_skeleton,
     // gRPC 请求骨架生成命令（Reflection 模式）
+    #[cfg(feature = "protocol-grpc")]
     grpc_generate_request_skeleton_from_reflection,
     // gRPC 请求 JSON 预验证命令
+    #[cfg(feature = "protocol-grpc")]
     grpc_validate_request,
     // gRPC Proto 目录扫描命令
+    #[cfg(feature = "protocol-grpc")]
     grpc_scan_proto_directory,
     // gRPC 读取 Proto 文件命令
+    #[cfg(feature = "protocol-grpc")]
     grpc_read_proto_files,
     // gRPC Descriptor Set 解析命令
+    #[cfg(feature = "protocol-grpc")]
     grpc_parse_descriptor_set,
     // gRPC Channelz 内省命令（EXPERIMENTAL）
+    #[cfg(feature = "protocol-grpc")]
     grpc_channelz_info,
     // MCP 工具发现命令
+    #[cfg(feature = "protocol-mcp")]
     mcp_discover_tools,
     // MQTT 连接测试命令
+    #[cfg(feature = "protocol-mqtt")]
     mqtt_test_connection,
     // SSE 连接测试命令
+    #[cfg(feature = "protocol-sse")]
     sse_test_connection,
     // AMQP 连接测试命令
+    #[cfg(feature = "protocol-amqp")]
     amqp_test_connection,
     // SMTP 连接测试命令
+    #[cfg(feature = "protocol-smtp")]
     test_smtp_connection,
     // IMAP 连接测试命令
+    #[cfg(feature = "protocol-imap")]
     test_imap_connection,
     // Email OAuth2 命令
+    #[cfg(feature = "protocol-smtp")]
     email_oauth2_authorize,
+    #[cfg(feature = "protocol-smtp")]
     email_oauth2_refresh,
+    #[cfg(feature = "protocol-smtp")]
     email_oauth2_revoke,
     // TCP 协议模板命令
+    #[cfg(feature = "protocol-tcp")]
     tcp_list_templates,
+    #[cfg(feature = "protocol-tcp")]
     tcp_get_template,
     // GraphQL 内省命令
+    #[cfg(feature = "protocol-graphql")]
     graphql_introspect_schema,
     // Kafka 命令
+    #[cfg(feature = "protocol-kafka")]
     kafka_test_connection,
+    #[cfg(feature = "protocol-kafka")]
     kafka_list_topics,
+    #[cfg(feature = "protocol-kafka")]
     kafka_list_consumer_groups,
+    #[cfg(feature = "protocol-kafka")]
     kafka_discover_schema,
     // 执行会话管理
             cancel_flow,
