@@ -1569,6 +1569,30 @@ const zh_CN_panels: BaseTranslation = {
     closeCode1013: '1013 稍后重试',
     closeCode1015: '1015 TLS 握手失败',
   },
+  // Redis
+  redisConnect: {
+    title: 'Redis 连接节点',
+    description: '建立 Redis 服务器连接。',
+    host: '服务器地址',
+    port: '端口',
+    password: '密码',
+    dbIndex: '数据库索引',
+    connectTimeout: '连接超时（毫秒）',
+  },
+  redisCommand: {
+    title: 'Redis 命令节点',
+    description: '执行 Redis 命令（GET, SET, SMEMBERS 等）。',
+    connectionId: '连接 ID',
+    command: '命令',
+    args: '参数',
+    noConnectNode: '未检测到 Redis Connect 节点，请手动输入连接 ID',
+    commandHint: '支持的命令:\nString: GET, SET, DEL, INCR, DECR\nHash: HGET, HSET, HDEL, HGETALL\nList: LPUSH, RPUSH, LRANGE\nSet: SADD, SMEMBERS, SREM\nKey: TTL, EXPIRE, KEYS, DBSIZE\nUtility: PING, INFO',
+  },
+  redisClose: {
+    title: 'Redis 关闭节点',
+    description: '关闭 Redis 连接。',
+    connectionId: '连接 ID',
+  },
 };
 
 export default zh_CN_panels;

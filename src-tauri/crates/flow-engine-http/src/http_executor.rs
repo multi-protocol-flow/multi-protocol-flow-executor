@@ -844,7 +844,7 @@ mod tests {
             graphql_manager: None,
             amqp_manager: None,
             smtp_manager: None,
-            imap_manager: None,
+            imap_manager: None, redis_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -1660,7 +1660,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1707,7 +1707,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1745,7 +1745,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1784,7 +1784,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1822,7 +1822,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1869,7 +1869,7 @@ mod tests {
         storage.set_variable("test_param".to_string(), json!("value123"), String::new());
         storage.set_variable("test_header".to_string(), json!("header_value"), String::new());
         storage.set_variable("test_body".to_string(), json!("body_value"), String::new());
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: storage, node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: storage, node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1917,7 +1917,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -1972,7 +1972,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -2013,7 +2013,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -2058,7 +2058,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -2096,7 +2096,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -2138,7 +2138,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;
@@ -2176,7 +2176,7 @@ mod tests {
         has_breakpoint: None,
         };
 
-        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
+        let mut context = ExecutionContext { flow_uuid: flow_id.clone(), current_node_uuid: Some(http_node.uuid.clone()), variables: VariableStorage::new(), node_reports: Vec::new(), flow_trigger_time: 1000, log_sender: None, flow_file_path: None, ws_manager: None, ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())), db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None, mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None, smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None, execution_event_sender: None, cancel_receiver: None, providers: HashMap::new(), };
 
         let executor = HttpNodeExecutor::new();
         let result = executor.execute(&http_node, &mut context, &[], &HashMap::new()).await;

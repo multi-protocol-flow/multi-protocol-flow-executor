@@ -77,7 +77,6 @@ function getDriverLabel(driver: string): string {
     postgres: 'PostgreSQL',
     mysql: 'MySQL',
     sqlite: 'SQLite',
-    redis: 'Redis',
   };
   return labels[driver] || driver;
 }
@@ -90,7 +89,6 @@ function getDriverColor(driver: string): string {
     postgres: 'text-blue-600',
     mysql: 'text-orange-600',
     sqlite: 'text-green-600',
-    redis: 'text-red-600',
   };
   return colors[driver] || 'text-purple-600';
 }
@@ -103,7 +101,6 @@ function getDriverBadgeBg(driver: string): string {
     postgres: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800',
     mysql: 'bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800',
     sqlite: 'bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800',
-    redis: 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800',
   };
   return colors[driver] || 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800';
 }
@@ -320,23 +317,11 @@ export function DbConnectConfig({ data, onSave }: DbConnectConfigProps) {
         {hasConnection ? (
           <div className="rounded-lg border border-indigo-200/60 dark:border-indigo-800/60 bg-gradient-to-br from-indigo-50/80 dark:from-indigo-950/40 to-sky-50/50 dark:to-sky-950/30 p-4 space-y-3 overflow-hidden">
             {/* 驱动类型徽标 */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-semibold ${getDriverBadgeBg(displayConfig.driver!)}`}>
-                  <Database className={`h-3.5 w-3.5 ${getDriverColor(displayConfig.driver!)}`} />
-                  <span className={getDriverColor(displayConfig.driver!)}>{getDriverLabel(displayConfig.driver!)}</span>
-                </div>
+            <div className="flex items-center gap-2">
+              <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-semibold ${getDriverBadgeBg(displayConfig.driver!)}`}>
+                <Database className={`h-3.5 w-3.5 ${getDriverColor(displayConfig.driver!)}`} />
+                <span className={getDriverColor(displayConfig.driver!)}>{getDriverLabel(displayConfig.driver!)}</span>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDialog(true)}
-                className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <Settings2 className="h-3.5 w-3.5" />
-                {getLL().panels.dbConnect.modifyConfig()}
-              </Button>
             </div>
 
             {/* 连接详情 */}

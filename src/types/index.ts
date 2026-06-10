@@ -122,6 +122,9 @@ export type {
   ScriptNodeConfig,
   NodeData,
   Node,
+  RedisConnectConfig,
+  RedisCommandConfig,
+  RedisCloseConfig,
 } from './node';
 export {
   isEntryConfig,
@@ -210,6 +213,9 @@ export {
   isImapFolderDeleteConfig,
   isImapIdleConfig,
   isImapCloseConfig,
+  isRedisConnectConfig,
+  isRedisCommandConfig,
+  isRedisCloseConfig,
 } from './node';
 
 // SMTP 类型

@@ -6,7 +6,7 @@
 pub mod db;
 /// 数据库连接节点执行器，建立与数据库的连接并存入连接池
 pub mod db_connect_executor;
-/// 数据库查询节点执行器，执行 SQL 语句或 Redis 命令并返回结果
+/// 数据库查询节点执行器，执行 SQL 语句并返回结果
 pub mod db_query_executor;
 /// 事务开始节点执行器，在指定连接上开启事务并设置隔离级别
 pub mod db_begin_executor;

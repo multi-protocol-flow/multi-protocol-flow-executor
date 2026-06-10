@@ -161,6 +161,9 @@ pub fn default_registry() -> NodeRegistry {
     // IMAP (flow-engine-imap) — 批量注册 13 个插件
     flow_engine_imap::plugin::ImapPluginGroup::register_all(&mut registry);
 
+    // Redis (flow-engine-redis) — 批量注册 3 个插件
+    flow_engine_redis::plugin::RedisPluginGroup::register_all(&mut registry);
+
     // End (flow-engine-executor 内置)
     registry.register(std::sync::Arc::new(crate::plugin_end::EndPlugin));
 
@@ -182,10 +185,10 @@ mod tests {
     #[test]
     fn test_default_registry_has_18_plugins() {
         let registry = default_registry();
-        assert_eq!(registry.len(), 88);
+        assert_eq!(registry.len(), 91);
 
         let metadata = registry.all_metadata();
-        assert_eq!(metadata.len(), 88);
+        assert_eq!(metadata.len(), 91);
 
         // 验证每个 type_id 都已注册
         let type_ids: Vec<&str> = metadata.iter().map(|m| m.type_id.as_str()).collect();
@@ -278,6 +281,9 @@ mod tests {
             "end",
             "variable_extractor",
             "proxy",
+            "redis_connect",
+            "redis_command",
+            "redis_close",
         ];
 
         for exp in &expected {

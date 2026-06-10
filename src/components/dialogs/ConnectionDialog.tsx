@@ -88,7 +88,7 @@ const DB_DRIVERS: { value: DbDriver; label: string; defaultPort: number }[] = [
   { value: 'postgres', label: 'PostgreSQL', defaultPort: 5432 },
   { value: 'mysql', label: 'MySQL', defaultPort: 3306 },
   { value: 'sqlite', label: 'SQLite', defaultPort: 0 },
-  { value: 'redis', label: 'Redis', defaultPort: 6379 },
+
 ];
 
 /** 默认连接配置 */

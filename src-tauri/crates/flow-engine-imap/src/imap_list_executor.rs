@@ -105,7 +105,7 @@ mod tests {
             ws_connection_urls: HashMap::new(), ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             db_manager: None, grpc_manager: None, mcp_manager: None, tcp_manager: None, udp_manager: None,
             mqtt_manager: None, kafka_manager: None, sse_manager: None, graphql_manager: None, amqp_manager: None,
-            smtp_manager: None, imap_manager: None, last_node_output: None, debug_event_sender: None,
+            smtp_manager: None, imap_manager: None, redis_manager: None, last_node_output: None, debug_event_sender: None,
             execution_event_sender: None, cancel_receiver: None, providers: HashMap::new() }
     }
 

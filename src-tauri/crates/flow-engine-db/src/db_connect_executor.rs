@@ -2,7 +2,7 @@
 //
 // 实现数据库连接建立、连接池创建和测试查询功能。
 // Wave 2: 与执行器集成
-// Wave 5: SQLite/Redis/MySQL/PostgreSQL 支持
+// Wave 5: SQLite/MySQL/PostgreSQL 支持
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -203,76 +203,7 @@ impl NodeExecutor for DbConnectExecutor {
                     }
                 }
             }
-            Some("redis") => {
-                // 构建 DbConnection 配置（使用变量替换后的值）
-                let db_config = DbConnection {
-                    id: pool_key.clone(),
-                    name: node.name.clone(),
-                    driver: DbDriver::Redis,
-                    host: replaced_host.clone(),
-                    port: config.port,
-                    database: replaced_database.clone(),
-                    username: replaced_username.clone(),
-                    password: replaced_password.clone(),
-                    password_from_env: None,
-                    connection_string: replaced_connection_string.clone(),
-                    min_connections: config.min_connections,
-                    max_connections: config.max_connections,
-                    connect_timeout_ms: config.connect_timeout_ms.unwrap_or(10000),
-                    idle_timeout_ms: 300000,
-                    status: DbConnectionStatus::Disconnected,
-                    last_error: None,
-                    last_tested_at: None,
-                };
 
-                log::info!(
-                    "[Database] 创建 Redis 连接池: uuid={}, host={:?}",
-                    pool_key,
-                    replaced_host
-                );
-
-                // 创建 Redis 连接池
-                match crate::db::RedisConnection::from_config(&db_config).await {
-                    Ok(conn) => {
-                        log::info!(
-                            "[Database] Redis 连接池创建成功: uuid={}",
-                            pool_key
-                        );
-                        Arc::new(conn) as Arc<dyn DatabasePool>
-                    }
-                    Err(e) => {
-                        log::error!(
-                            "[Database] Redis 连接池创建失败: uuid={}, error={}",
-                            pool_key,
-                            e
-                        );
-
-                        context
-                            .emit_log(LogEvent {
-                                level: LogLevel::Error,
-                                message: format!("Redis 连接失败: {}", e),
-                                timestamp: std::time::SystemTime::now()
-                                    .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间错误")
-                                    .as_millis() as u64,
-                                node_uuid: Some(node.uuid.clone()),
-                                node_name: Some(node.name.clone()),
-                                flow_uuid: context.flow_uuid.clone(),
-                            })
-                            .await;
-
-                        return Ok((
-                            self.get_false_port_nodes(node, connections),
-                            Some(self.build_error_output(
-                                &config,
-                                &pool_key,
-                                &format!("Redis 连接失败: {}", e),
-                                start_time.elapsed().as_millis() as u64,
-                            )),
-                        ));
-                    }
-                }
-            }
             Some("mysql") => {
                 // 构建 DbConnection 配置（使用变量替换后的值）
                 let db_config = DbConnection {
@@ -814,7 +745,7 @@ mod tests {
             graphql_manager: None,
             amqp_manager: None,
             smtp_manager: None,
-            imap_manager: None,
+            imap_manager: None, redis_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,

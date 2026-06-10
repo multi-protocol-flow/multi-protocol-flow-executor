@@ -137,3 +137,10 @@ pub const AMQP10_DISCONNECT: &str = "amqp10_disconnect";
 pub const VARIABLE_EXTRACTOR: &str = "variable_extractor";
 /// 代理设置节点
 pub const PROXY: &str = "proxy";
+// Redis 节点类型
+/// Redis 连接节点
+pub const REDIS_CONNECT: &str = "redis_connect";
+/// Redis 命令节点
+pub const REDIS_COMMAND: &str = "redis_command";
+/// Redis 关闭连接节点
+pub const REDIS_CLOSE: &str = "redis_close";

@@ -1,9 +1,9 @@
 // 数据库连接池管理器
 //
-// 管理多个数据库连接池，支持 PostgreSQL、MySQL、SQLite、Redis。
+// 管理多个数据库连接池，支持 PostgreSQL、MySQL、SQLite。
 // Wave 1: 基础连接池管理
 // Wave 2: 与执行器集成
-// Wave 5: SQLite/Redis 支持
+// Wave 5: SQLite/MySQL/PostgreSQL 支持
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -19,7 +19,7 @@ pub struct ActivePool {
     pub connection_uuid: String,
     /// 连接名称
     pub name: String,
-    /// 数据库类型（postgres/mysql/sqlite/redis）
+    /// 数据库类型（postgres/mysql/sqlite）
     pub db_type: String,
     /// 创建时间戳（Unix 时间戳，毫秒）
     pub created_at: u64,

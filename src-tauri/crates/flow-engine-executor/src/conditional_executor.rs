@@ -914,6 +914,7 @@ mod tests {
             amqp_manager: None,
             smtp_manager: None,
             imap_manager: None,
+            redis_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,

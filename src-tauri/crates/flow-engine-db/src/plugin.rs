@@ -117,7 +117,7 @@ impl NodePlugin for DbConnectPlugin {
                 "driver": {
                     "type": "string",
                     "title": "数据库驱动",
-                    "enum": ["postgresql", "mysql", "sqlite", "redis"]
+                    "enum": ["postgresql", "mysql", "sqlite"]
                 },
                 "connection_string": {
                     "type": "string",
@@ -236,10 +236,6 @@ impl NodePlugin for DbQueryPlugin {
             "connection_uuid": "",
             "sql": null,
             "params": null,
-            "redis_command": null,
-            "redis_key": null,
-            "redis_value": null,
-            "redis_ttl": null,
             "fetch_mode": "all",
             "result_to": null,
             "timeout_ms": null,
@@ -264,10 +260,6 @@ impl NodePlugin for DbQueryPlugin {
             "connection_uuid": config.get("connection_uuid"),
             "sql": config.get("sql"),
             "params": config.get("params"),
-            "redis_command": config.get("redis_command"),
-            "redis_key": config.get("redis_key"),
-            "redis_value": config.get("redis_value"),
-            "redis_ttl": config.get("redis_ttl"),
             "fetch_mode": config.get("fetch_mode"),
             "result_to": config.get("result_to"),
             "timeout_ms": config.get("timeout_ms"),

@@ -22,6 +22,7 @@ flow-engine-graphql = { path = "../flow-engine-graphql" }
 flow-engine-amqp = { path = "../flow-engine-amqp" }
 flow-engine-imap = { path = "../flow-engine-imap" }
 flow-engine-smtp = { path = "../flow-engine-smtp" }
+flow-engine-redis = { path = "../flow-engine-redis" }
 flow-engine-executor = { path = "../flow-engine-executor" }
 
 # facade 自身代码需要的最小依赖（仅用于 re-export 类型的序列化边界）

@@ -1584,6 +1584,30 @@
     closeCode1013: '1013 Try Again Later',
     closeCode1015: '1015 TLS Handshake Failure',
   },
+  // Redis
+  redisConnect: {
+    title: 'Redis Connect Node',
+    description: 'Establish a connection to Redis server.',
+    host: 'Host',
+    port: 'Port',
+    password: 'Password',
+    dbIndex: 'Database Index',
+    connectTimeout: 'Connect Timeout (ms)',
+  },
+  redisCommand: {
+    title: 'Redis Command Node',
+    description: 'Execute a Redis command (GET, SET, SMEMBERS, etc.).',
+    connectionId: 'Connection ID',
+    command: 'Command',
+    args: 'Arguments',
+    noConnectNode: 'No Redis Connect node detected, enter connection ID manually',
+    commandHint: 'Supported commands:\nString: GET, SET, DEL, INCR, DECR\nHash: HGET, HSET, HDEL, HGETALL\nList: LPUSH, RPUSH, LRANGE\nSet: SADD, SMEMBERS, SREM\nKey: TTL, EXPIRE, KEYS, DBSIZE\nUtility: PING, INFO',
+  },
+  redisClose: {
+    title: 'Redis Close Node',
+    description: 'Close a Redis connection.',
+    connectionId: 'Connection ID',
+  },
 };
 
 export default en_US_panels;

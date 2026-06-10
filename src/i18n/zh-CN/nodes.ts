@@ -17,7 +17,8 @@ const zh_CN_nodes = {
     database: 'DB',
     email: 'Email',
     tcp: 'TCP',
-    udp: 'UDP'
+    udp: 'UDP',
+    redis: 'Redis'
   },
   superCategory: {
     network: '网络协议',
@@ -115,6 +116,9 @@ const zh_CN_nodes = {
   imap_folder_delete: 'IMAP 删除文件夹',
   imap_idle: 'IMAP 等待',
   imap_close: 'IMAP 关闭',
+  redis_connect: 'Redis 连接',
+  redis_command: 'Redis 命令',
+  redis_close: 'Redis 关闭',
   variable_extractor: '变量提取',
   proxy: '代理设置',
   /** 断言节点模式标签 */

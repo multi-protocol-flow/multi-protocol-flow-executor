@@ -272,6 +272,16 @@ pub enum NodeType {
     /// IMAP 关闭连接节点
     #[serde(rename = "imap_close")]
     ImapClose,
+    // Redis 节点
+    /// Redis 连接节点
+    #[serde(rename = "redis_connect")]
+    RedisConnect,
+    /// Redis 命令节点
+    #[serde(rename = "redis_command")]
+    RedisCommand,
+    /// Redis 关闭连接节点
+    #[serde(rename = "redis_close")]
+    RedisClose,
 }
 
 /// 节点位置结构体

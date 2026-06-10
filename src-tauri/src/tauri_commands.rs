@@ -316,7 +316,7 @@ pub fn delete_flow_report(
 
 use flow_engine::db::{
     DbConnection, DatabasePool, DbDriver, PostgresConnection, MySqlConnection, SqliteConnection,
-    RedisConnection, TestDbConnectionResult,
+    TestDbConnectionResult,
 };
 
 /// 测试数据库连接
@@ -369,17 +369,8 @@ pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionRes
                 }
             }
         }
-        DbDriver::Redis => {
-            match RedisConnection::from_config(&connection).await {
-                Ok(p) => {
-                    log::info!("[数据库] Redis 连接池创建成功: id={}", connection.id);
-                    Arc::new(p) as Arc<dyn DatabasePool>
-                }
-                Err(e) => {
-                    log::error!("[数据库] Redis 连接池创建失败: id={}, error={}", connection.id, e);
-                    return TestDbConnectionResult::failure(format!("Redis 连接失败: {}", e));
-                }
-            }
+        _ => {
+            return TestDbConnectionResult::failure(format!("不支持的数据库驱动"));
         }
     };
 
@@ -1529,6 +1520,74 @@ pub async fn amqp_test_connection(url: String) -> Result<bool, String> {
     if !url.starts_with("amqp://") && !url.starts_with("amqps://") {
         return Err("URL 必须以 amqp:// 或 amqps:// 开头".to_string());
     }
+    Ok(true)
+}
+
+// ============================================================================
+// Redis 连接测试命令
+// ============================================================================
+
+/// 测试 Redis 连接
+///
+/// 设计时调用：创建临时 Redis 连接验证服务器可达性，连接后自动关闭。
+#[tauri::command]
+pub async fn test_redis_connection(
+    host: String,
+    port: u16,
+    password: Option<String>,
+    db_index: i64,
+) -> Result<bool, String> {
+    use std::time::Duration;
+
+    if host.is_empty() {
+        return Err("服务器地址不能为空".to_string());
+    }
+    if port == 0 {
+        return Err("端口号无效".to_string());
+    }
+
+    // 使用 ConnectionInfo 避免 URL 特殊字符解析问题
+    use redis::{ConnectionAddr, ConnectionInfo, RedisConnectionInfo};
+    let connection_info = ConnectionInfo {
+        addr: ConnectionAddr::Tcp(host.clone(), port),
+        redis: RedisConnectionInfo {
+            db: db_index,
+            username: None,
+            password: password.clone(),
+            protocol: redis::ProtocolVersion::RESP2,
+        },
+    };
+    let client = redis::Client::open(connection_info)
+        .map_err(|e| format!("Redis 客户端创建失败: {}", e))?;
+
+    let config = redis::aio::ConnectionManagerConfig::new()
+        .set_connection_timeout(Duration::from_secs(5))
+        .set_number_of_retries(1);
+
+    let mut manager = redis::aio::ConnectionManager::new_with_config(client, config)
+        .await
+        .map_err(|e| format!("Redis 连接失败: {}", e))?;
+
+    // 选库
+    if db_index != 0 {
+        redis::cmd("SELECT")
+            .arg(db_index)
+            .query_async::<()>(&mut manager)
+            .await
+            .map_err(|e| format!("Redis SELECT {} 失败: {}", db_index, e))?;
+    }
+
+    // PING 验证
+    let pong: String = redis::cmd("PING")
+        .query_async(&mut manager)
+        .await
+        .map_err(|e| format!("Redis PING 失败: {}", e))?;
+
+    log::info!(
+        "[Redis] 连接测试成功: {}:{}, db={}, PING={}",
+        host, port, db_index, pong
+    );
+
     Ok(true)
 }
 

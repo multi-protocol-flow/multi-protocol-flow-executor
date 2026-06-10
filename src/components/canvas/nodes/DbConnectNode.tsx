@@ -23,7 +23,6 @@ export const DRIVER_LABELS: Record<string, string> = {
   postgres: 'PostgreSQL',
   mysql: 'MySQL',
   sqlite: 'SQLite',
-  redis: 'Redis',
 };
 
 /** 根据配置生成连接摘要 */

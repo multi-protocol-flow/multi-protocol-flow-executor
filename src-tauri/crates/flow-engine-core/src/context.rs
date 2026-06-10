@@ -4,7 +4,7 @@ use crate::log_event::LogEvent;
 use crate::node_config::ProxyMode;
 use crate::report::NodeExecutionReport;
 use crate::variable::Variable;
-use crate::traits::{LogSender, DebugEventSender, ExecutionEventSender, WsProvider, DbProvider, GrpcProvider, McpProvider, MqttProvider, TcpProvider, UdpProvider, KafkaProvider, SseProvider, GraphqlProvider, AmqpProvider, SmtpProvider, ImapProvider};
+use crate::traits::{LogSender, DebugEventSender, ExecutionEventSender, WsProvider, DbProvider, GrpcProvider, McpProvider, MqttProvider, TcpProvider, UdpProvider, KafkaProvider, SseProvider, GraphqlProvider, AmqpProvider, SmtpProvider, ImapProvider, RedisProvider};
 use crate::execution_event::ExecutionEvent;
 use crate::ws_stream::{WsConnectionStream, WsMessage};
 use serde::{Deserialize, Serialize};
@@ -154,6 +154,12 @@ pub struct ExecutionContext {
     #[serde(skip)]
     pub imap_manager: Option<Arc<dyn ImapProvider>>,
 
+    /// Redis 连接管理器（通过 `RedisProvider` trait 解耦）
+    /// 用于管理 Redis 连接的生命周期（连接、命令执行、关闭）
+    /// 使用 #[serde(skip)] 跳过序列化，因为 dyn `RedisProvider` 不支持序列化
+    #[serde(skip)]
+    pub redis_manager: Option<Arc<dyn RedisProvider>>,
+
     /// 最近一个节点的输出数据
     /// 每个节点执行后均更新此字段
     /// 下游节点通过 jsonpath（如 $.body.xxx）访问此数据
@@ -219,6 +225,7 @@ impl ExecutionContext {
             amqp_manager: None,
             smtp_manager: None,
             imap_manager: None,
+            redis_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,

@@ -90,4 +90,7 @@ export { Amqp10ReceiveNode, type Amqp10ReceiveNodeData } from './Amqp10ReceiveNo
 export { Amqp10AcceptNode, type Amqp10AcceptNodeData } from './Amqp10AcceptNode';
 export { Amqp10RejectNode, type Amqp10RejectNodeData } from './Amqp10RejectNode';
 export { Amqp10DisconnectNode, type Amqp10DisconnectNodeData } from './Amqp10DisconnectNode';
+export { RedisConnectNode, type RedisConnectNodeData } from './RedisConnectNode';
+export { RedisCommandNode, type RedisCommandNodeData } from './RedisCommandNode';
+export { RedisCloseNode, type RedisCloseNodeData } from './RedisCloseNode';
 export { EndNode, type EndNodeData } from './EndNode';

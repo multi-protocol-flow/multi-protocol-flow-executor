@@ -85,6 +85,7 @@ export const CATEGORY_NAMES: Record<string, string> = {
   get tcp() { return getLL().nodes.category.tcp(); },
   get udp() { return getLL().nodes.category.udp(); },
   get email() { return getLL().nodes.category.email(); },
+  get redis() { return getLL().nodes.category.redis(); },
 };
 
 /**
@@ -114,6 +115,7 @@ export const CATEGORY_ORDER: Record<string, number> = {
   email: 41,
   tcp: 42,
   udp: 43,
+  redis: 23,
 };
 
 /**
@@ -224,6 +226,11 @@ const NODE_TYPE_ORDER: Record<string, number> = {
   imap_folder_delete: 10,
   imap_idle: 11,
   imap_close: 12,
+
+  // Redis: 连接 → 命令 → 关闭
+  redis_connect: 0,
+  redis_command: 1,
+  redis_close: 2,
 
   // 数据库: 连接 → 开启事务 → 查询 → 提交 → 回滚 → 关闭
   db_connect: 0,
@@ -344,6 +351,10 @@ export function getBadgeClassForType(typeId: string): string {
     imap_folder_delete: 'bg-blue-100 text-blue-700',
     imap_idle: 'bg-blue-100 text-blue-700',
     imap_close: 'bg-blue-100 text-blue-700',
+    // Redis (红色)
+    redis_connect: 'bg-red-100 text-red-700',
+    redis_command: 'bg-red-100 text-red-700',
+    redis_close: 'bg-red-100 text-red-700',
   };
   return badgeMap[typeId] ?? 'bg-slate-100 text-slate-700';
 }

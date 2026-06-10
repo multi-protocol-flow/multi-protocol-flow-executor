@@ -162,6 +162,12 @@ pub use flow_engine_executor::csv_parser;
 pub use flow_engine_core::hook;
 pub use flow_engine_executor::hook_runner;
 
+// Redis (flow-engine-redis)
+pub use flow_engine_redis::redis_connect_executor;
+pub use flow_engine_redis::redis_command_executor;
+pub use flow_engine_redis::redis_close_executor;
+pub use flow_engine_redis::redis_connection_manager;
+
 // Re-exports
 pub use traits::{
     AppDirProvider, ConsoleLogSender, DefaultAppDirProvider, DirectoryOpener, ExecutionEventSender,

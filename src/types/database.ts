@@ -6,7 +6,7 @@
 /**
  * 数据库驱动类型
  */
-export type DbDriver = 'postgres' | 'mysql' | 'sqlite' | 'redis';
+export type DbDriver = 'postgres' | 'mysql' | 'sqlite';
 
 /**
  * 查询获取模式

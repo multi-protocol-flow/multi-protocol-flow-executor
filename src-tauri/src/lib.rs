@@ -29,6 +29,7 @@ pub use flow_engine::storage::{
 
 // 导出 Tauri 命令供 main.rs 使用
 pub use tauri_commands::{
+    test_redis_connection,
     create_flow,
     execute_flow,
     update_node,
@@ -281,9 +282,10 @@ pub fn run() {
     kafka_list_consumer_groups,
     kafka_discover_schema,
     // 执行会话管理
-    cancel_flow,
-    // 流程验证命令
-    validate_flow,
+            cancel_flow,
+            test_redis_connection,
+            // 流程验证命令
+            validate_flow,
     // 流程文件存储命令
     list_flow_files,
     load_flow_file,

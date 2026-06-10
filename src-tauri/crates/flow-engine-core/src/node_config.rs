@@ -3306,6 +3306,56 @@ pub struct ImapCloseConfig {
 }
 
 // ============================================================================
+// Redis 节点配置
+// ============================================================================
+
+fn default_redis_port() -> u16 {
+    6379
+}
+
+fn default_redis_connect_timeout() -> u64 {
+    10000
+}
+
+/// Redis Connect 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct RedisConnectConfig {
+    /// 服务器地址
+    pub host: String,
+    /// 端口
+    #[serde(default = "default_redis_port")]
+    pub port: u16,
+    /// 密码
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+    /// 数据库索引
+    #[serde(default)]
+    pub db_index: i64,
+    /// 连接超时（毫秒）
+    #[serde(default = "default_redis_connect_timeout")]
+    pub connect_timeout_ms: u64,
+}
+
+/// Redis Command 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct RedisCommandConfig {
+    /// 连接 ID
+    pub connection_id: String,
+    /// Redis 命令
+    pub command: String,
+    /// 命令参数
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub args: Vec<String>,
+}
+
+/// Redis Close 配置
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct RedisCloseConfig {
+    /// 连接 ID
+    pub connection_id: String,
+}
+
+// ============================================================================
 // 代理设置节点配置
 // ============================================================================
 
@@ -3661,6 +3711,16 @@ pub enum NodeData {
     /// IMAP 关闭连接节点配置
     #[serde(rename = "imap_close")]
     ImapClose(ImapCloseConfig),
+    // Redis 节点
+    /// Redis 连接节点配置
+    #[serde(rename = "redis_connect")]
+    RedisConnect(RedisConnectConfig),
+    /// Redis 命令节点配置
+    #[serde(rename = "redis_command")]
+    RedisCommand(RedisCommandConfig),
+    /// Redis 关闭连接节点配置
+    #[serde(rename = "redis_close")]
+    RedisClose(RedisCloseConfig),
     /// 代理设置节点配置
     #[serde(rename = "proxy")]
     Proxy(ProxyConfig),
@@ -3956,6 +4016,16 @@ impl<'de> serde::Deserialize<'de> for NodeData {
             "imap_close" => serde_json::from_value::<ImapCloseConfig>(value.clone())
                 .map(NodeData::ImapClose)
                 .map_err(serde::de::Error::custom),
+            // Redis 节点
+            "redis_connect" => serde_json::from_value::<RedisConnectConfig>(value.clone())
+                .map(NodeData::RedisConnect)
+                .map_err(serde::de::Error::custom),
+            "redis_command" => serde_json::from_value::<RedisCommandConfig>(value.clone())
+                .map(NodeData::RedisCommand)
+                .map_err(serde::de::Error::custom),
+            "redis_close" => serde_json::from_value::<RedisCloseConfig>(value.clone())
+                .map(NodeData::RedisClose)
+                .map_err(serde::de::Error::custom),
             "proxy" => serde_json::from_value::<ProxyConfig>(value.clone())
                 .map(NodeData::Proxy)
                 .map_err(serde::de::Error::custom),
@@ -4065,6 +4135,10 @@ impl NodeData {
             NodeData::ImapFolderDelete(_) => "imap_folder_delete".to_string(),
             NodeData::ImapIdle(_) => "imap_idle".to_string(),
             NodeData::ImapClose(_) => "imap_close".to_string(),
+            // Redis 节点
+            NodeData::RedisConnect(_) => "redis_connect".to_string(),
+            NodeData::RedisCommand(_) => "redis_command".to_string(),
+            NodeData::RedisClose(_) => "redis_close".to_string(),
             NodeData::Proxy(_) => "proxy".to_string(),
             NodeData::VariableExtractor(_) => "variable_extractor".to_string(),
             NodeData::End(_) => "end".to_string(),

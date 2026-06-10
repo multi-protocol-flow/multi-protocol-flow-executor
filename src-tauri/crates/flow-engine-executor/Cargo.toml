@@ -21,6 +21,7 @@ flow-engine-graphql = { path = "../flow-engine-graphql" }
 flow-engine-amqp = { path = "../flow-engine-amqp" }
 flow-engine-smtp = { path = "../flow-engine-smtp" }
 flow-engine-imap = { path = "../flow-engine-imap" }
+flow-engine-redis = { path = "../flow-engine-redis" }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

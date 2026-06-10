@@ -231,6 +231,7 @@ dependencies = [
  "mockito",
  "predicates",
  "proptest",
+ "redis",
  "reqwest",
  "rustls",
  "serde",
@@ -2139,6 +2140,7 @@ dependencies = [
  "flow-engine-kafka",
  "flow-engine-mcp",
  "flow-engine-mqtt",
+ "flow-engine-redis",
  "flow-engine-script",
  "flow-engine-smtp",
  "flow-engine-sse",
@@ -2228,7 +2230,6 @@ dependencies = [
  "chrono",
  "flow-engine-core",
  "log",
- "redis",
  "serde",
  "serde_json",
  "sqlx",
@@ -2260,6 +2261,7 @@ dependencies = [
  "flow-engine-kafka",
  "flow-engine-mcp",
  "flow-engine-mqtt",
+ "flow-engine-redis",
  "flow-engine-script",
  "flow-engine-smtp",
  "flow-engine-sse",
@@ -2435,6 +2437,23 @@ dependencies = [
  "tokio",
  "uuid",
  "webpki-roots 0.26.11",
+ "workspace-hack",
+]
+
+[[package]]
+name = "flow-engine-redis"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "flow-engine-core",
+ "log",
+ "redis",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "uuid",
  "workspace-hack",
 ]
 

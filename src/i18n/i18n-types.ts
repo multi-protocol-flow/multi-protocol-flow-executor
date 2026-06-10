@@ -170,11 +170,15 @@ type RootTranslation = {
 			 * T​C​P
 			 */
 			tcp: string
-			/**
-			 * U​D​P
-			 */
-			udp: string
-		}
+		/**
+		 * U​D​P
+		 */
+		udp: string
+		/**
+		 * Redis
+		 */
+		redis: string
+	}
 		superCategory: {
 			/**
 			 * 网​络​协​议
@@ -553,6 +557,18 @@ type RootTranslation = {
 		 * I​M​A​P​ ​关​闭
 		 */
 		imap_close: string
+		/**
+		 * Redis 连接
+		 */
+		redis_connect: string
+		/**
+		 * Redis 命令
+		 */
+		redis_command: string
+		/**
+		 * Redis 关闭
+		 */
+		redis_close: string
 		/**
 		 * 变​量​提​取
 		 */
@@ -6267,6 +6283,29 @@ type RootTranslation = {
 			 */
 			closeCode1015: string
 		}
+		redisConnect: {
+			title: string
+			description: string
+			host: string
+			port: string
+			password: string
+			dbIndex: string
+			connectTimeout: string
+		}
+		redisCommand: {
+			title: string
+			description: string
+			connectionId: string
+			command: string
+			args: string
+			noConnectNode: string
+			commandHint: string
+		}
+		redisClose: {
+			title: string
+			description: string
+			connectionId: string
+		}
 	}
 	execution: {
 		node_types: {
@@ -6618,6 +6657,18 @@ type RootTranslation = {
 			 * I​M​A​P​ ​关​闭
 			 */
 			imap_close: string
+			/**
+			 * Redis 连接
+			 */
+			redis_connect: string
+			/**
+			 * Redis 命令
+			 */
+			redis_command: string
+			/**
+			 * Redis 关闭
+			 */
+			redis_close: string
 			/**
 			 * 变​量​提​取
 			 */
@@ -10822,6 +10873,7 @@ export type TranslationFunctions = {
 			 * UDP
 			 */
 			udp: () => LocalizedString
+			redis: () => LocalizedString
 		}
 		superCategory: {
 			/**
@@ -11201,6 +11253,18 @@ export type TranslationFunctions = {
 		 * IMAP 关闭
 		 */
 		imap_close: () => LocalizedString
+		/**
+		 * Redis 连接
+		 */
+		redis_connect: () => LocalizedString
+		/**
+		 * Redis 命令
+		 */
+		redis_command: () => LocalizedString
+		/**
+		 * Redis 关闭
+		 */
+		redis_close: () => LocalizedString
 		/**
 		 * 变量提取
 		 */
@@ -16882,6 +16946,29 @@ export type TranslationFunctions = {
 			 */
 			closeCode1015: () => LocalizedString
 		}
+		redisConnect: {
+			title: () => LocalizedString
+			description: () => LocalizedString
+			host: () => LocalizedString
+			port: () => LocalizedString
+			password: () => LocalizedString
+			dbIndex: () => LocalizedString
+			connectTimeout: () => LocalizedString
+		}
+		redisCommand: {
+			title: () => LocalizedString
+			description: () => LocalizedString
+			connectionId: () => LocalizedString
+			command: () => LocalizedString
+			args: () => LocalizedString
+			noConnectNode: () => LocalizedString
+			commandHint: () => LocalizedString
+		}
+		redisClose: {
+			title: () => LocalizedString
+			description: () => LocalizedString
+			connectionId: () => LocalizedString
+		}
 	}
 	execution: {
 		node_types: {
@@ -17233,6 +17320,18 @@ export type TranslationFunctions = {
 			 * IMAP 关闭
 			 */
 			imap_close: () => LocalizedString
+			/**
+			 * Redis 连接
+			 */
+			redis_connect: () => LocalizedString
+			/**
+			 * Redis 命令
+			 */
+			redis_command: () => LocalizedString
+			/**
+			 * Redis 关闭
+			 */
+			redis_close: () => LocalizedString
 			/**
 			 * 变量提取
 			 */

@@ -7,7 +7,6 @@ edition = "2021"
 flow-engine-core = { path = "../flow-engine-core" }
 async-trait = { workspace = true }
 sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "mysql", "postgres", "chrono", "uuid"] }
-redis = { version = "0.29", features = ["tokio-comp", "connection-manager"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

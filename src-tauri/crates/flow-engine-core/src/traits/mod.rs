@@ -12,6 +12,7 @@ mod graphql_provider;
 mod hook_executor;
 mod imap_provider;
 mod kafka_provider;
+mod redis_provider;
 mod log_sender;
 mod smtp_provider;
 mod sse_provider;
@@ -64,6 +65,9 @@ pub use mcp_provider::{
 pub use mqtt_provider::{
     MqttBrokerInfo, MqttConnectOutput, MqttConnectionInfo, MqttMessageOutput, MqttProvider,
     MqttPublishOutput, MqttReceivedMessage, MqttSubscribeOutput, MqttTimingInfo,
+};
+pub use redis_provider::{
+    RedisCloseOutput, RedisConnectOutput, RedisCommandOutput, RedisConnectionInfo, RedisProvider,
 };
 pub use log_sender::{
     ConsoleLogSender, LogSender, LogWorker, NoopLogSender, QueuedLogSender, UnderlyingLogSender,
