@@ -18,7 +18,7 @@ Layer 1 (协议):   flow-engine-http, flow-engine-ws, flow-engine-db,
                   flow-engine-mqtt, flow-engine-amqp, flow-engine-graphql,
                   flow-engine-imap, flow-engine-kafka, flow-engine-smtp,
                   flow-engine-sse  (→ core)
-Layer 2 (编排):   flow-engine-executor                          (→ core + 全部 Layer 1 + crypto)
+Layer 2 (编排):   flow-engine-executor                          (→ core + (optional) 16 protocol crates + crypto)
 Layer 3 (门面):   flow-engine                                   (re-export 全部)
 Layer 4 (应用):   app (src-tauri/)                              (→ flow-engine)
 Extra (工具):     workspace-hack                                (所有 crate 依赖)
@@ -45,7 +45,7 @@ Extra (工具):     workspace-hack                                (所有 crate 
 | flow-engine-kafka | 1 | core | 12 | ~3,600 |
 | flow-engine-smtp | 1 | core | 8 | ~2,400 |
 | flow-engine-sse | 1 | core | 7 | ~2,100 |
-| flow-engine-executor | 2 | core + 全部 Layer 1 + crypto | 28 | ~15,717 |
+| flow-engine-executor | 2 | core + (optional) 16 protocol crates + crypto | 28 | ~15,717 |
 | flow-engine | 3 | 全部 18 个 crate | 2 | ~205 |
 
 ## 快速定位

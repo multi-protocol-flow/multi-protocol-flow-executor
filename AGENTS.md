@@ -173,6 +173,25 @@ cd src-tauri
 cargo hakari generate
 ```
 
+### P3: Protocol Crate Feature Gates (2026-06-10)
+
+16 个协议 crate 从硬依赖改为可选 feature flags，加速日常增量编译。
+
+**Features**: 16 个 `protocol-xxx` feature + `all-protocols` meta-feature
+
+**架构切换**:
+- `flow-engine-executor/Cargo.toml` — 16 个协议 crate 改为 `optional = true`
+- `flow-engine/Cargo.toml` — 移除直接协议依赖，改为 forwarding features
+- `src-tauri/Cargo.toml` — 添加 forwarding features
+- `flow-engine-core/src/context.rs` — 13 个类型化 provider 字段 → HashMap + ProviderKey 模式
+- `flow-engine-executor/src/provider_builder.rs` — DRY manager 构造
+
+**编译验证**:
+cargo test --all-features
+cargo test --no-default-features
+cargo test --no-default-features --features "protocol-http,protocol-db,protocol-script"
+cargo hakari generate --diff
+
 ### 当前编译现状
 
 | 指标 | 优化前 | 优化后 |
