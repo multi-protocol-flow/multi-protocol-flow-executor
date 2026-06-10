@@ -7,6 +7,7 @@ import { Plus, Trash2, ArrowRightFromLine, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { getLL } from '@/i18n/i18n-lazy';
 
 export interface OutputMappingsEditorProps {
   /** react-hook-form control */
@@ -61,13 +62,14 @@ export function OutputMappingsEditor({
 
   // 监听当前映射值
   const outputMappingsList = watch('output_mappings') || [];
+  const panelsLL = getLL().panels;
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ArrowRightFromLine className="h-4 w-4 text-muted-foreground" />
-          <Label className="text-sm font-medium text-foreground">输出变量映射</Label>
+          <Label className="text-sm font-medium text-foreground">{panelsLL.outputMappings()}</Label>
         </div>
         <Button
           type="button"
@@ -77,7 +79,7 @@ export function OutputMappingsEditor({
           className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
           <Plus className="h-3 w-3" />
-          添加映射
+          {panelsLL.addMapping()}
         </Button>
       </div>
 
@@ -85,9 +87,9 @@ export function OutputMappingsEditor({
       <div className="space-y-2">
         {fields.length === 0 ? (
           <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-            <p className="text-xs text-muted-foreground">暂无输出映射</p>
+            <p className="text-xs text-muted-foreground">{panelsLL.noOutputMappings()}</p>
             <p className="mt-1 text-xs text-muted-foreground/60">
-              点击「添加映射」从节点执行结果的 output_data 中提取变量
+              {panelsLL.addMappingHint()}
             </p>
           </div>
         ) : (
@@ -110,7 +112,7 @@ export function OutputMappingsEditor({
                 <div className="flex items-center gap-2">
                   <Input
                     {...register(`output_mappings.${index}.target`)}
-                    placeholder="变量名（字母、数字、下划线）"
+                    placeholder={panelsLL.mappingTargetPlaceholder()}
                     className={`h-8 flex-1 font-mono text-xs ${targetError || hasDuplicate ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
                   />
                   <Button
@@ -128,7 +130,7 @@ export function OutputMappingsEditor({
                 <div className="relative">
                   <Input
                     {...register(`output_mappings.${index}.source`)}
-                    placeholder="源字段（如 $.status、$.body.data.token）"
+                    placeholder={panelsLL.mappingSourcePlaceholder()}
                     className={`h-8 w-full font-mono text-xs ${sourceError ? 'border-rose-500 focus-visible:ring-rose-500' : ''}`}
                     list={`jsonpath-presets-${index}`}
                   />
@@ -147,13 +149,13 @@ export function OutputMappingsEditor({
                   <p className="text-xs text-rose-500">{targetError.message}</p>
                 )}
                 {hasDuplicate && !targetError && (
-                  <p className="text-xs text-rose-500">变量名已存在</p>
+                  <p className="text-xs text-rose-500">{panelsLL.variableNameExists()}</p>
                 )}
 
                 {/* 第三行：说明 */}
                 <Input
                   {...register(`output_mappings.${index}.description`)}
-                  placeholder="说明（可选）"
+                  placeholder={panelsLL.descriptionOptional()}
                   className="h-8 w-full text-xs"
                 />
               </div>
@@ -167,12 +169,12 @@ export function OutputMappingsEditor({
         <div className="flex items-start gap-2 rounded-md bg-muted/30 p-2">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
           <div className="text-xs text-muted-foreground space-y-1">
-            <p className="font-medium text-foreground">JSONPath 语法（从所选数据来源节点的 <code className="rounded bg-muted px-1">output_data</code> 中提取）：</p>
-            <p><code className="rounded bg-muted px-1">$.status</code> 状态码</p>
-            <p><code className="rounded bg-muted px-1">$.body.data.token</code> 嵌套字段</p>
-            <p><code className="rounded bg-muted px-1">$.body.items[0]</code> 数组索引</p>
-            <p><code className="rounded bg-muted px-1">$.headers.content-type</code> 响应头</p>
-            <p className="text-muted-foreground/70 mt-1">变量名：字母、数字、下划线，1-64 字符</p>
+            <p className="font-medium text-foreground">{panelsLL.jsonpathSyntax()}</p>
+            <p><code className="rounded bg-muted px-1">$.status</code> {panelsLL.jsonpathExampleStatusCode()}</p>
+            <p><code className="rounded bg-muted px-1">$.body.data.token</code> {panelsLL.jsonpathExampleNestedField()}</p>
+            <p><code className="rounded bg-muted px-1">$.body.items[0]</code> {panelsLL.jsonpathExampleArrayIndex()}</p>
+            <p><code className="rounded bg-muted px-1">$.headers.content-type</code> {panelsLL.jsonpathExampleResponseHeader()}</p>
+            <p className="text-muted-foreground/70 mt-1">{panelsLL.variableNameRules()}</p>
           </div>
         </div>
       )}
