@@ -301,7 +301,7 @@ if (JSON.parse(fn.response.body).skip) { fn.flow.skip(); }`} />
             'hmacSha256(key, data)', 'hmacSha512(key, data)',
           ]} />
           <UtilSubCategory title={getLL().flow.script_sub_time()} items={[
-            'timestamp()', 'now()', 'formatTime(format)', 'parseTime(dateStr, format)',
+            'timestamp()', 'now()', 'formatTime(format)', 'parseTime(dateStr, format)', 'sleep(ms)',
           ]} />
           <UtilSubCategory title={getLL().flow.script_sub_uuid()} items={['uuid()', 'uuidv4()']} />
           <UtilSubCategory title={getLL().flow.script_sub_json()} items={[

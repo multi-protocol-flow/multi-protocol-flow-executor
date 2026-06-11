@@ -163,6 +163,8 @@ function fnApiCompletions(context: CompletionContext) {
       { label: 'fn.util.formatTime', type: 'function', detail: '(format: string) => string', info: ll.utilFormatTime() },
       { label: 'fn.util.parseTime', type: 'function', detail: '(dateStr: string, format: string) => number', info: ll.utilParseTime() },
 
+      { label: 'fn.util.sleep', type: 'function', detail: '(ms: number) => void', info: ll.utilSleep() },
+
       // fn.util - UUID 函数
       { label: 'fn.util.uuid', type: 'function', detail: '() => string', info: ll.utilUuid() },
       { label: 'fn.util.uuidv4', type: 'function', detail: '() => string', info: ll.utilUuidv4() },
