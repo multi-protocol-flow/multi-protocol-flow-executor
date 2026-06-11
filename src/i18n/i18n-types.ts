@@ -11415,14 +11415,858 @@ type RootTranslation = {
 }
 
 export interface TranslationsViewer {
-	/**
-	 * 占位符
-	 */
-	placeholder: string
-	/**
-	 * 时间戳
-	 */
-	timestamp: string
+	common: {
+		duration_ms: string
+		variable_changes: string
+		no_data: string
+		unknown_type: string
+		not_available: string
+		success: string
+		failed: string
+		error: string
+		response: string
+		request: string
+		empty: string
+		none: string
+		export: string
+		copied: string
+		copy: string
+		detail: string
+		running: string
+		pending: string
+		skipped: string
+		cancelled: string
+		completed: string
+		partial: string
+		paused: string
+		resume: string
+		start: string
+		stop: string
+		clear: string
+		delete: string
+		retry: string
+		edit: string
+		view: string
+		rows: RequiredParams<'count'>
+		columns: RequiredParams<'count'>
+		messages: RequiredParams<'count'>
+		items: RequiredParams<'count'>
+		confirm_clear: string
+		confirm_clear_desc: string
+	}
+	amqp: {
+		section_connection: string
+		section_server_properties: string
+		section_close: string
+		section_exchange: string
+		section_exchange_delete: string
+		section_queue_declare: string
+		section_queue_delete: string
+		section_queue_bind: string
+		section_publish_config: string
+		section_publish_status: string
+		section_consume_status: string
+		section_message_list: string
+		section_get_status: string
+		section_message_detail: string
+		section_ack_status: string
+		section_management: string
+		section_overview: string
+		section_api_response: string
+		section_send_status: string
+		section_receive_status: string
+		section_accept_status: string
+		section_reject_status: string
+		section_disconnect_status: string
+		status_connected: string
+		status_connection_failed: string
+		status_closed: string
+		status_close_failed: string
+		status_declared: string
+		status_declare_failed: string
+		status_deleted: string
+		status_delete_failed: string
+		status_bound: string
+		status_bind_failed: string
+		status_published: string
+		status_publish_failed: string
+		status_consume_complete: string
+		status_consume_failed: string
+		status_fetched: string
+		status_fetch_failed: string
+		status_acknowledged: string
+		status_ack_failed: string
+		status_operation_ok: string
+		status_operation_failed: string
+		status_sent: string
+		status_send_failed: string
+		status_received: string
+		status_receive_failed: string
+		status_accepted: string
+		status_accept_failed: string
+		status_rejected: string
+		status_reject_failed: string
+		status_disconnected: string
+		status_disconnect_failed: string
+		connect_success: string
+		connect_error: string
+		close_success: string
+		close_error: string
+		exchange_declare_success: RequiredParams<'name'>
+		exchange_delete_success: RequiredParams<'name'>
+		exchange_declare_error: string
+		exchange_delete_error: string
+		queue_declare_success: RequiredParams<'name'>
+		queue_declare_error: string
+		queue_delete_success: RequiredParams<'name'>
+		queue_delete_error: string
+		queue_bind_success: string
+		queue_bind_error: string
+		publish_success: string
+		publish_error: string
+		consume_success: RequiredParams<'count'>
+		consume_error: string
+		fetch_success: string
+		fetch_empty: string
+		fetch_error: string
+		ack_success: string
+		ack_error: string
+		ack_success_with_tag: RequiredParams<'tag'>
+		management_success: string
+		management_error: string
+		send_success: string
+		send_error: string
+		receive_success: RequiredParams<'count'>
+		receive_error: string
+		accept_success: string
+		accept_error: string
+		reject_success: string
+		reject_error: string
+		disconnect_success: string
+		disconnect_error: string
+		connect_success_10: string
+		connect_error_10: string
+		label_connection_id: string
+		label_server_product: string
+		label_server_version: string
+		label_server_host: string
+		label_channel_max: string
+		label_frame_max: string
+		label_exchange: string
+		label_exchange_type: string
+		label_queue_name: string
+		label_message_count: string
+		label_consumer_count: string
+		label_deleted_messages: string
+		label_queue: string
+		label_routing_key: string
+		label_confirm_status: string
+		label_message_id: string
+		label_delivery_status: string
+		label_container_id: string
+		label_session_info: string
+		label_connection_count: string
+		label_channel_count: string
+		label_queue_count: string
+		label_publish_rate: string
+		label_deliver_rate: string
+		label_queue_messages: string
+		label_duration: string
+		unknown_node_type: RequiredParams<'type'>
+		no_routing_key: string
+		messages_count: RequiredParams<'count'>
+		label_application_properties: string
+		label_message_annotations: string
+		protocol_amqp10: string
+	}
+	tcp: {
+		section_connection_info: string
+		section_connection_status: string
+		section_send_data: string
+		section_receive_data: string
+		section_close_config: string
+		section_close_status: string
+		section_bind_config: string
+		section_bind_status: string
+		section_send_to: string
+		section_recv_from: string
+		status_connected: string
+		status_connection_failed: string
+		status_closed: string
+		status_close_failed: string
+		status_bound: string
+		status_bind_failed: string
+		status_sent: string
+		status_send_failed: string
+		status_received: string
+		status_receive_failed: string
+		connect_success: string
+		connect_error: string
+		close_success: string
+		close_error: string
+		bind_success: string
+		bind_error: string
+		send_data_info: RequiredParams<'size'>
+		receive_data_info: RequiredParams<'size'>
+		label_host: string
+		label_port: string
+		label_tls: string
+		label_enabled: string
+		label_disabled: string
+		label_local_address: string
+		label_target_address: string
+		label_bytes_sent: string
+		label_bytes_received: string
+		label_duration: string
+		label_encoding: string
+		label_protocol: string
+		label_hex_preview: string
+		label_recording: string
+		label_messages_sent: string
+		label_messages_received: string
+		unknown_node_type: RequiredParams<'type'>
+	}
+	mcp: {
+		section_connection: string
+		section_server_info: string
+		section_available_tools: string
+		section_available_resources: string
+		section_available_prompts: string
+		section_tool_result: string
+		section_resource_content: string
+		section_prompt_content: string
+		section_close: string
+		section_call_result: string
+		status_connected: string
+		status_connection_failed: string
+		status_call_success: string
+		status_call_failed: string
+		status_closed: string
+		status_close_failed: string
+		connect_success: string
+		connect_error: string
+		close_success: string
+		close_error: string
+		call_tool_success: string
+		call_tool_error: string
+		read_resource_success: string
+		read_resource_error: string
+		get_prompt_success: string
+		get_prompt_error: string
+		label_server_name: string
+		label_tool_name: string
+		label_tool_description: string
+		label_input_schema: string
+		label_uri: string
+		label_mime_type: string
+		label_prompt_name: string
+		label_arguments: string
+		label_result: string
+		label_content_type: string
+		label_text: string
+		label_blob: string
+		tools_count: RequiredParams<'count'>
+		resources_count: RequiredParams<'count'>
+		prompts_count: RequiredParams<'count'>
+		is_fallback: string
+		no_tools: string
+		no_resources: string
+		no_prompts: string
+		unknown_node_type: RequiredParams<'type'>
+		label_duration: string
+	}
+	mqtt: {
+		section_connection: string
+		section_publish_status: string
+		section_subscription: string
+		section_message: string
+		section_received_messages: string
+		section_disconnect: string
+		section_request_config: string
+		section_response: string
+		section_unsubscribe: string
+		status_connected: string
+		status_connection_failed: string
+		status_published: string
+		status_publish_failed: string
+		status_subscribed: string
+		status_subscribe_failed: string
+		status_unsubscribed: string
+		status_unsubscribe_failed: string
+		status_disconnected: string
+		status_disconnect_failed: string
+		connect_success: string
+		connect_error: string
+		publish_success: string
+		publish_error: string
+		subscribe_success: string
+		subscribe_error: string
+		unsubscribe_success: string
+		unsubscribe_error: string
+		disconnect_success: string
+		disconnect_error: string
+		label_broker: string
+		label_client_id: string
+		label_topic: string
+		label_qos: string
+		label_retain: string
+		label_payload: string
+		label_message_id: string
+		label_timestamp: string
+		label_duration: string
+		label_subscriptions: string
+		label_response_topic: string
+		label_correlation_data: string
+		label_request_topic: string
+		received_messages: RequiredParams<'count'>
+		no_messages: string
+		unknown_node_type: RequiredParams<'type'>
+	}
+	kafka: {
+		section_produce_status: string
+		section_consume_status: string
+		section_batch_consume: string
+		section_messages: string
+		section_admin_result: string
+		section_topic_detail: string
+		section_partition_info: string
+		section_consumer_group: string
+		section_schema: string
+		section_cluster_info: string
+		status_produced: string
+		status_produce_failed: string
+		status_consumed: string
+		status_consume_failed: string
+		status_admin_success: string
+		status_admin_failed: string
+		produce_success: string
+		produce_error: string
+		consume_success: RequiredParams<'count'>
+		consume_error: string
+		admin_success: string
+		admin_error: string
+		label_topic: string
+		label_partition: string
+		label_offset: string
+		label_key: string
+		label_value: string
+		label_timestamp: string
+		label_headers: string
+		label_message_count: string
+		label_bytes_produced: string
+		label_bytes_consumed: string
+		label_duration: string
+		label_group_id: string
+		label_brokers: string
+		label_schema_id: string
+		label_schema_type: string
+		label_schema_version: string
+		label_operation: string
+		label_result: string
+		label_cluster_id: string
+		label_controller: string
+		messages_count: RequiredParams<'count'>
+		no_messages: string
+		unknown_node_type: RequiredParams<'type'>
+	}
+	grpc: {
+		section_connection: string
+		section_server_info: string
+		section_services: string
+		section_call_config: string
+		section_request: string
+		section_response: string
+		section_metadata: string
+		section_trailers: string
+		section_close: string
+		status_connected: string
+		status_connection_failed: string
+		status_call_success: string
+		status_call_failed: string
+		status_closed: string
+		status_close_failed: string
+		connect_success: string
+		connect_error: string
+		close_success: string
+		close_error: string
+		call_success: string
+		call_error: string
+		label_server_address: string
+		label_service_name: string
+		label_method_name: string
+		label_call_type: string
+		label_deadline: string
+		label_duration: string
+		label_status_code: string
+		label_status_message: string
+		label_request_payload: string
+		label_response_payload: string
+		unary_call: string
+		server_streaming: string
+		client_streaming: string
+		bidi_streaming: string
+		services_count: RequiredParams<'count'>
+		methods_count: RequiredParams<'count'>
+		no_services: string
+		unknown_node_type: RequiredParams<'type'>
+	}
+	graphql: {
+		section_query_result: string
+		section_schema: string
+		section_types: string
+		section_subscription: string
+		section_subscription_data: string
+		status_success: string
+		status_failed: string
+		status_subscribed: string
+		status_unsubscribed: string
+		query_success: string
+		query_error: string
+		subscribe_success: string
+		subscribe_error: string
+		unsubscribe_success: string
+		unsubscribe_error: string
+		label_operation_name: string
+		label_query: string
+		label_variables: string
+		label_response: string
+		label_data: string
+		label_errors: string
+		label_type_name: string
+		label_kind: string
+		label_fields: string
+		label_description: string
+		label_duration: string
+		types_count: RequiredParams<'count'>
+		no_types: string
+		unknown_node_type: RequiredParams<'type'>
+	}
+	ws: {
+		section_connection_info: string
+		connection_status: string
+		send_collect_status: string
+		close_status: string
+		status_connected: string
+		status_connection_failed: string
+		status_closed: string
+		status_close_failed: string
+		connect_success: string
+		connect_error: string
+		close_success: string
+		close_error: string
+		send_collect_success: RequiredParams<'count'>
+		send_collect_error: string
+		send_collect_partial: RequiredParams<'sent' | 'received'>
+		label_url: string
+		label_protocol: string
+		label_duration: string
+		label_messages_received: string
+		label_messages_sent: string
+		label_message: string
+		label_timestamp: string
+		label_direction: string
+		direction_sent: string
+		direction_received: string
+		no_messages: string
+		messages_count: RequiredParams<'count'>
+		unknown_node_type: RequiredParams<'type'>
+	}
+	sse: {
+		section_connection: string
+		section_listen: string
+		section_events: string
+		section_close: string
+		status_connected: string
+		status_connection_failed: string
+		status_listening: string
+		status_listen_failed: string
+		status_disconnected: string
+		status_disconnect_failed: string
+		connect_success: string
+		connect_error: string
+		listen_success: RequiredParams<'count'>
+		listen_error: string
+		disconnect_success: string
+		disconnect_error: string
+		label_url: string
+		label_last_event_id: string
+		label_event: string
+		label_event_id: string
+		label_event_type: string
+		label_data: string
+		label_duration: string
+		events_count: RequiredParams<'count'>
+		no_events: string
+		unknown_node_type: RequiredParams<'type'>
+	}
+	email: {
+		section_connection: string
+		section_send_status: string
+		section_close: string
+		section_fetch: string
+		section_search: string
+		section_folder: string
+		section_idle: string
+		status_connected: string
+		status_connection_failed: string
+		status_sent: string
+		status_send_failed: string
+		status_disconnected: string
+		status_disconnect_failed: string
+		connect_success: string
+		connect_error: string
+		send_success: string
+		send_error: string
+		disconnect_success: string
+		disconnect_error: string
+		label_server: string
+		label_port: string
+		label_tls: string
+		label_from: string
+		label_to: string
+		label_cc: string
+		label_bcc: string
+		label_subject: string
+		label_attachments: string
+		label_body_preview: string
+		label_smtp_host: string
+		label_imap_host: string
+		label_mailbox: string
+		label_search_query: string
+		label_email_count: string
+		label_unread: string
+		label_folder: string
+		label_action: string
+		label_result: string
+		label_duration: string
+		folder_create_success: string
+		folder_create_error: string
+		folder_delete_success: string
+		folder_delete_error: string
+		search_results: RequiredParams<'count'>
+		no_results: string
+		unknown_node_type: RequiredParams<'type'>
+	}
+	http: {
+		section_request: string
+		section_response: string
+		section_headers: string
+		section_response_headers: string
+		section_body: string
+		section_response_body: string
+		section_timing: string
+		label_url: string
+		label_method: string
+		label_status_code: string
+		label_status_text: string
+		label_duration: string
+		label_content_type: string
+		label_content_length: string
+		label_redirect_count: string
+		label_tls_version: string
+		label_remote_address: string
+		label_query_params: string
+		label_body: string
+		response_received: string
+		request_failed: string
+		no_response: string
+		unknown_node_type: RequiredParams<'type'>
+	}
+	cond: {
+		section_condition: string
+		section_evaluation: string
+		status_passed: string
+		status_failed: string
+		condition_true: string
+		condition_false: string
+		label_expression: string
+		label_result: string
+		label_routed_to: string
+		branch_true: string
+		branch_false: string
+		unknown_node_type: RequiredParams<'type'>
+	}
+	assert: {
+		section_assertions: string
+		section_results: string
+		status_all_passed: string
+		status_some_failed: string
+		status_all_failed: string
+		label_assertion: string
+		label_expected: string
+		label_actual: string
+		label_operator: string
+		label_result: string
+		passed: string
+		failed: string
+		count: RequiredParams<'count'>
+		mode_all: string
+		mode_any: string
+		unknown_node_type: RequiredParams<'type'>
+	}
+	varChanges: {
+		title: string
+		no_changes: string
+		label_variable: string
+		label_old_value: string
+		label_new_value: string
+		label_change_type: string
+		added: string
+		modified: string
+		removed: string
+	}
+	recording: {
+		title: string
+		no_data: string
+		label_direction: string
+		label_timestamp: string
+		label_data: string
+		label_size: string
+		direction_sent: string
+		direction_received: string
+		size_bytes: RequiredParams<'bytes'>
+		play: string
+		pause: string
+		clear: string
+		active: string
+		inactive: string
+	}
+	generic: {
+		section_output: string
+		section_variables: string
+		label_node_type: string
+		label_node_name: string
+		label_status: string
+		no_output: string
+		execution_time: string
+	}
+	history: {
+		title: string
+		no_history: string
+		empty_desc: string
+		label_status: string
+		label_duration: string
+		label_nodes: string
+		label_time: string
+		label_flow_name: string
+		clear: string
+		confirm_clear: string
+		confirm_clear_desc: string
+		delete: string
+		running: string
+		status_success: string
+		status_failed: string
+		status_cancelled: string
+		view_detail: string
+		re_run: string
+		execution_count: RequiredParams<'count'>
+		recent: string
+		all: string
+	}
+	dataset: {
+		title: string
+		no_data: string
+		empty_desc: string
+		import_csv: string
+		select_dataset: string
+		row_count: RequiredParams<'count'>
+		column_count: RequiredParams<'count'>
+		execution_status: string
+		status_running: string
+		status_completed: string
+		status_failed: string
+		status_partial: string
+		label_row: string
+		label_status: string
+		label_duration: string
+		label_result: string
+		label_error: string
+		current_row: string
+		total_rows: string
+		progress: string
+		start: string
+		stop: string
+		retry: string
+		pause: string
+		resume: string
+		export_results: string
+		clear_results: string
+		confirm_clear: string
+		confirm_clear_desc: string
+		no_results: string
+		row_success: RequiredParams<'count'>
+		row_failed: RequiredParams<'count'>
+		view_detail: string
+		column_variable: string
+		column_value: string
+		execution_time: string
+	}
+	wsTimeline: {
+		title: string
+		no_messages: string
+		empty_desc: string
+		label_direction: string
+		label_timestamp: string
+		label_message: string
+		label_type: string
+		direction_sent: string
+		direction_received: string
+		filter_all: string
+		filter_sent: string
+		filter_received: string
+		message_text: string
+		message_binary: string
+		message_json: string
+		message_unknown: string
+		message_detail: string
+		clear: string
+		confirm_clear: string
+		confirm_clear_desc: string
+		copy: string
+		copied: string
+	}
+	console: {
+		title: string
+		placeholder: string
+		filter_info: string
+		filter_warn: string
+		filter_error: string
+		filter_debug: string
+		filter_all: string
+		label_level: string
+		label_node: string
+		label_time: string
+		label_message: string
+		no_logs: string
+		clear: string
+		confirm_clear: string
+		confirm_clear_desc: string
+		auto_scroll: string
+		export: string
+		log_count: RequiredParams<'count'>
+	}
+	details: {
+		title: string
+		label_node_type: string
+		label_node_name: string
+		label_status: string
+		label_duration: string
+		label_start_time: string
+		label_end_time: string
+		label_variables: string
+		label_output: string
+		status_success: string
+		status_failed: string
+		status_running: string
+		status_skipped: string
+		status_pending: string
+		no_output: string
+		execution_time: string
+	}
+	compare: {
+		title: string
+		label_current: string
+		label_previous: string
+		label_changes: string
+		label_added: string
+		label_removed: string
+		label_modified: string
+		label_unchanged: string
+		no_changes: string
+		no_snapshot: string
+		label_node: string
+		label_connection: string
+		label_property: string
+		change_count: RequiredParams<'count'>
+	}
+	stress: {
+		title: string
+		no_history: string
+		label_status: string
+		label_concurrent: string
+		label_duration: string
+		label_total_requests: string
+		label_rps: string
+		label_p50: string
+		label_p95: string
+		label_p99: string
+		status_running: string
+		status_completed: string
+		status_stopped: string
+		status_failed: string
+		view_report: string
+		re_run: string
+		delete: string
+		clear: string
+		confirm_clear: string
+		confirm_clear_desc: string
+	}
+	datasetReport: {
+		title: string
+		no_reports: string
+		label_flow_name: string
+		label_dataset_name: string
+		label_total_rows: string
+		label_success_rows: string
+		label_failed_rows: string
+		label_duration: string
+		label_status: string
+		label_time: string
+		status_completed: string
+		status_partial: string
+		status_failed: string
+		view: string
+		delete: string
+		clear: string
+		confirm_clear: string
+		confirm_clear_desc: string
+	}
+	report: {
+		title: string
+		label_flow_name: string
+		label_status: string
+		label_duration: string
+		label_node_count: string
+		label_start_time: string
+		label_end_time: string
+		label_variables: string
+		label_node_results: string
+		status_success: string
+		status_failed: string
+		status_cancelled: string
+		re_run: string
+		save: string
+		export: string
+		node_success: RequiredParams<'count'>
+		node_failed: RequiredParams<'count'>
+		no_report: string
+		empty_desc: string
+	}
+	wsStreams: {
+		title: string
+		no_streams: string
+		label_connection: string
+		label_message: string
+		label_timestamp: string
+		label_direction: string
+		direction_sent: string
+		direction_received: string
+		clear: string
+		auto_scroll: string
+	}
+	varTree: {
+		title: string
+		no_variables: string
+		label_variable: string
+		label_value: string
+		label_scope: string
+		local: string
+		global: string
+		expand_all: string
+		collapse_all: string
+		copy_value: string
+		copied: string
+	}
 }
 
 export type TranslationFunctions = {
@@ -22613,14 +23457,858 @@ export type TranslationFunctions = {
 		openShortcuts: () => LocalizedString
 	}
 	viewer: {
-		/**
-		 * 占位符
-		 */
-		placeholder: () => LocalizedString
-		/**
-		 * 时间戳
-		 */
-		timestamp: () => LocalizedString
+		common: {
+			duration_ms: () => LocalizedString
+			variable_changes: () => LocalizedString
+			no_data: () => LocalizedString
+			unknown_type: () => LocalizedString
+			not_available: () => LocalizedString
+			success: () => LocalizedString
+			failed: () => LocalizedString
+			error: () => LocalizedString
+			response: () => LocalizedString
+			request: () => LocalizedString
+			empty: () => LocalizedString
+			none: () => LocalizedString
+			export: () => LocalizedString
+			copied: () => LocalizedString
+			copy: () => LocalizedString
+			detail: () => LocalizedString
+			running: () => LocalizedString
+			pending: () => LocalizedString
+			skipped: () => LocalizedString
+			cancelled: () => LocalizedString
+			completed: () => LocalizedString
+			partial: () => LocalizedString
+			paused: () => LocalizedString
+			resume: () => LocalizedString
+			start: () => LocalizedString
+			stop: () => LocalizedString
+			clear: () => LocalizedString
+			delete: () => LocalizedString
+			retry: () => LocalizedString
+			edit: () => LocalizedString
+			view: () => LocalizedString
+			rows: (arg: { count: unknown }) => LocalizedString
+			columns: (arg: { count: unknown }) => LocalizedString
+			messages: (arg: { count: unknown }) => LocalizedString
+			items: (arg: { count: unknown }) => LocalizedString
+			confirm_clear: () => LocalizedString
+			confirm_clear_desc: () => LocalizedString
+		}
+		amqp: {
+			section_connection: () => LocalizedString
+			section_server_properties: () => LocalizedString
+			section_close: () => LocalizedString
+			section_exchange: () => LocalizedString
+			section_exchange_delete: () => LocalizedString
+			section_queue_declare: () => LocalizedString
+			section_queue_delete: () => LocalizedString
+			section_queue_bind: () => LocalizedString
+			section_publish_config: () => LocalizedString
+			section_publish_status: () => LocalizedString
+			section_consume_status: () => LocalizedString
+			section_message_list: () => LocalizedString
+			section_get_status: () => LocalizedString
+			section_message_detail: () => LocalizedString
+			section_ack_status: () => LocalizedString
+			section_management: () => LocalizedString
+			section_overview: () => LocalizedString
+			section_api_response: () => LocalizedString
+			section_send_status: () => LocalizedString
+			section_receive_status: () => LocalizedString
+			section_accept_status: () => LocalizedString
+			section_reject_status: () => LocalizedString
+			section_disconnect_status: () => LocalizedString
+			status_connected: () => LocalizedString
+			status_connection_failed: () => LocalizedString
+			status_closed: () => LocalizedString
+			status_close_failed: () => LocalizedString
+			status_declared: () => LocalizedString
+			status_declare_failed: () => LocalizedString
+			status_deleted: () => LocalizedString
+			status_delete_failed: () => LocalizedString
+			status_bound: () => LocalizedString
+			status_bind_failed: () => LocalizedString
+			status_published: () => LocalizedString
+			status_publish_failed: () => LocalizedString
+			status_consume_complete: () => LocalizedString
+			status_consume_failed: () => LocalizedString
+			status_fetched: () => LocalizedString
+			status_fetch_failed: () => LocalizedString
+			status_acknowledged: () => LocalizedString
+			status_ack_failed: () => LocalizedString
+			status_operation_ok: () => LocalizedString
+			status_operation_failed: () => LocalizedString
+			status_sent: () => LocalizedString
+			status_send_failed: () => LocalizedString
+			status_received: () => LocalizedString
+			status_receive_failed: () => LocalizedString
+			status_accepted: () => LocalizedString
+			status_accept_failed: () => LocalizedString
+			status_rejected: () => LocalizedString
+			status_reject_failed: () => LocalizedString
+			status_disconnected: () => LocalizedString
+			status_disconnect_failed: () => LocalizedString
+			connect_success: () => LocalizedString
+			connect_error: () => LocalizedString
+			close_success: () => LocalizedString
+			close_error: () => LocalizedString
+			exchange_declare_success: (arg: { name: unknown }) => LocalizedString
+			exchange_delete_success: (arg: { name: unknown }) => LocalizedString
+			exchange_declare_error: () => LocalizedString
+			exchange_delete_error: () => LocalizedString
+			queue_declare_success: (arg: { name: unknown }) => LocalizedString
+			queue_declare_error: () => LocalizedString
+			queue_delete_success: (arg: { name: unknown }) => LocalizedString
+			queue_delete_error: () => LocalizedString
+			queue_bind_success: () => LocalizedString
+			queue_bind_error: () => LocalizedString
+			publish_success: () => LocalizedString
+			publish_error: () => LocalizedString
+			consume_success: (arg: { count: unknown }) => LocalizedString
+			consume_error: () => LocalizedString
+			fetch_success: () => LocalizedString
+			fetch_empty: () => LocalizedString
+			fetch_error: () => LocalizedString
+			ack_success: () => LocalizedString
+			ack_error: () => LocalizedString
+			ack_success_with_tag: (arg: { tag: unknown }) => LocalizedString
+			management_success: () => LocalizedString
+			management_error: () => LocalizedString
+			send_success: () => LocalizedString
+			send_error: () => LocalizedString
+			receive_success: (arg: { count: unknown }) => LocalizedString
+			receive_error: () => LocalizedString
+			accept_success: () => LocalizedString
+			accept_error: () => LocalizedString
+			reject_success: () => LocalizedString
+			reject_error: () => LocalizedString
+			disconnect_success: () => LocalizedString
+			disconnect_error: () => LocalizedString
+			connect_success_10: () => LocalizedString
+			connect_error_10: () => LocalizedString
+			label_connection_id: () => LocalizedString
+			label_server_product: () => LocalizedString
+			label_server_version: () => LocalizedString
+			label_server_host: () => LocalizedString
+			label_channel_max: () => LocalizedString
+			label_frame_max: () => LocalizedString
+			label_exchange: () => LocalizedString
+			label_exchange_type: () => LocalizedString
+			label_queue_name: () => LocalizedString
+			label_message_count: () => LocalizedString
+			label_consumer_count: () => LocalizedString
+			label_deleted_messages: () => LocalizedString
+			label_queue: () => LocalizedString
+			label_routing_key: () => LocalizedString
+			label_confirm_status: () => LocalizedString
+			label_message_id: () => LocalizedString
+			label_delivery_status: () => LocalizedString
+			label_container_id: () => LocalizedString
+			label_session_info: () => LocalizedString
+			label_connection_count: () => LocalizedString
+			label_channel_count: () => LocalizedString
+			label_queue_count: () => LocalizedString
+			label_publish_rate: () => LocalizedString
+			label_deliver_rate: () => LocalizedString
+			label_queue_messages: () => LocalizedString
+			label_duration: () => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+			no_routing_key: () => LocalizedString
+			messages_count: (arg: { count: unknown }) => LocalizedString
+			label_application_properties: () => LocalizedString
+			label_message_annotations: () => LocalizedString
+			protocol_amqp10: () => LocalizedString
+		}
+		tcp: {
+			section_connection_info: () => LocalizedString
+			section_connection_status: () => LocalizedString
+			section_send_data: () => LocalizedString
+			section_receive_data: () => LocalizedString
+			section_close_config: () => LocalizedString
+			section_close_status: () => LocalizedString
+			section_bind_config: () => LocalizedString
+			section_bind_status: () => LocalizedString
+			section_send_to: () => LocalizedString
+			section_recv_from: () => LocalizedString
+			status_connected: () => LocalizedString
+			status_connection_failed: () => LocalizedString
+			status_closed: () => LocalizedString
+			status_close_failed: () => LocalizedString
+			status_bound: () => LocalizedString
+			status_bind_failed: () => LocalizedString
+			status_sent: () => LocalizedString
+			status_send_failed: () => LocalizedString
+			status_received: () => LocalizedString
+			status_receive_failed: () => LocalizedString
+			connect_success: () => LocalizedString
+			connect_error: () => LocalizedString
+			close_success: () => LocalizedString
+			close_error: () => LocalizedString
+			bind_success: () => LocalizedString
+			bind_error: () => LocalizedString
+			send_data_info: (arg: { size: unknown }) => LocalizedString
+			receive_data_info: (arg: { size: unknown }) => LocalizedString
+			label_host: () => LocalizedString
+			label_port: () => LocalizedString
+			label_tls: () => LocalizedString
+			label_enabled: () => LocalizedString
+			label_disabled: () => LocalizedString
+			label_local_address: () => LocalizedString
+			label_target_address: () => LocalizedString
+			label_bytes_sent: () => LocalizedString
+			label_bytes_received: () => LocalizedString
+			label_duration: () => LocalizedString
+			label_encoding: () => LocalizedString
+			label_protocol: () => LocalizedString
+			label_hex_preview: () => LocalizedString
+			label_recording: () => LocalizedString
+			label_messages_sent: () => LocalizedString
+			label_messages_received: () => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+		}
+		mcp: {
+			section_connection: () => LocalizedString
+			section_server_info: () => LocalizedString
+			section_available_tools: () => LocalizedString
+			section_available_resources: () => LocalizedString
+			section_available_prompts: () => LocalizedString
+			section_tool_result: () => LocalizedString
+			section_resource_content: () => LocalizedString
+			section_prompt_content: () => LocalizedString
+			section_close: () => LocalizedString
+			section_call_result: () => LocalizedString
+			status_connected: () => LocalizedString
+			status_connection_failed: () => LocalizedString
+			status_call_success: () => LocalizedString
+			status_call_failed: () => LocalizedString
+			status_closed: () => LocalizedString
+			status_close_failed: () => LocalizedString
+			connect_success: () => LocalizedString
+			connect_error: () => LocalizedString
+			close_success: () => LocalizedString
+			close_error: () => LocalizedString
+			call_tool_success: () => LocalizedString
+			call_tool_error: () => LocalizedString
+			read_resource_success: () => LocalizedString
+			read_resource_error: () => LocalizedString
+			get_prompt_success: () => LocalizedString
+			get_prompt_error: () => LocalizedString
+			label_server_name: () => LocalizedString
+			label_tool_name: () => LocalizedString
+			label_tool_description: () => LocalizedString
+			label_input_schema: () => LocalizedString
+			label_uri: () => LocalizedString
+			label_mime_type: () => LocalizedString
+			label_prompt_name: () => LocalizedString
+			label_arguments: () => LocalizedString
+			label_result: () => LocalizedString
+			label_content_type: () => LocalizedString
+			label_text: () => LocalizedString
+			label_blob: () => LocalizedString
+			tools_count: (arg: { count: unknown }) => LocalizedString
+			resources_count: (arg: { count: unknown }) => LocalizedString
+			prompts_count: (arg: { count: unknown }) => LocalizedString
+			is_fallback: () => LocalizedString
+			no_tools: () => LocalizedString
+			no_resources: () => LocalizedString
+			no_prompts: () => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+			label_duration: () => LocalizedString
+		}
+		mqtt: {
+			section_connection: () => LocalizedString
+			section_publish_status: () => LocalizedString
+			section_subscription: () => LocalizedString
+			section_message: () => LocalizedString
+			section_received_messages: () => LocalizedString
+			section_disconnect: () => LocalizedString
+			section_request_config: () => LocalizedString
+			section_response: () => LocalizedString
+			section_unsubscribe: () => LocalizedString
+			status_connected: () => LocalizedString
+			status_connection_failed: () => LocalizedString
+			status_published: () => LocalizedString
+			status_publish_failed: () => LocalizedString
+			status_subscribed: () => LocalizedString
+			status_subscribe_failed: () => LocalizedString
+			status_unsubscribed: () => LocalizedString
+			status_unsubscribe_failed: () => LocalizedString
+			status_disconnected: () => LocalizedString
+			status_disconnect_failed: () => LocalizedString
+			connect_success: () => LocalizedString
+			connect_error: () => LocalizedString
+			publish_success: () => LocalizedString
+			publish_error: () => LocalizedString
+			subscribe_success: () => LocalizedString
+			subscribe_error: () => LocalizedString
+			unsubscribe_success: () => LocalizedString
+			unsubscribe_error: () => LocalizedString
+			disconnect_success: () => LocalizedString
+			disconnect_error: () => LocalizedString
+			label_broker: () => LocalizedString
+			label_client_id: () => LocalizedString
+			label_topic: () => LocalizedString
+			label_qos: () => LocalizedString
+			label_retain: () => LocalizedString
+			label_payload: () => LocalizedString
+			label_message_id: () => LocalizedString
+			label_timestamp: () => LocalizedString
+			label_duration: () => LocalizedString
+			label_subscriptions: () => LocalizedString
+			label_response_topic: () => LocalizedString
+			label_correlation_data: () => LocalizedString
+			label_request_topic: () => LocalizedString
+			received_messages: (arg: { count: unknown }) => LocalizedString
+			no_messages: () => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+		}
+		kafka: {
+			section_produce_status: () => LocalizedString
+			section_consume_status: () => LocalizedString
+			section_batch_consume: () => LocalizedString
+			section_messages: () => LocalizedString
+			section_admin_result: () => LocalizedString
+			section_topic_detail: () => LocalizedString
+			section_partition_info: () => LocalizedString
+			section_consumer_group: () => LocalizedString
+			section_schema: () => LocalizedString
+			section_cluster_info: () => LocalizedString
+			status_produced: () => LocalizedString
+			status_produce_failed: () => LocalizedString
+			status_consumed: () => LocalizedString
+			status_consume_failed: () => LocalizedString
+			status_admin_success: () => LocalizedString
+			status_admin_failed: () => LocalizedString
+			produce_success: () => LocalizedString
+			produce_error: () => LocalizedString
+			consume_success: (arg: { count: unknown }) => LocalizedString
+			consume_error: () => LocalizedString
+			admin_success: () => LocalizedString
+			admin_error: () => LocalizedString
+			label_topic: () => LocalizedString
+			label_partition: () => LocalizedString
+			label_offset: () => LocalizedString
+			label_key: () => LocalizedString
+			label_value: () => LocalizedString
+			label_timestamp: () => LocalizedString
+			label_headers: () => LocalizedString
+			label_message_count: () => LocalizedString
+			label_bytes_produced: () => LocalizedString
+			label_bytes_consumed: () => LocalizedString
+			label_duration: () => LocalizedString
+			label_group_id: () => LocalizedString
+			label_brokers: () => LocalizedString
+			label_schema_id: () => LocalizedString
+			label_schema_type: () => LocalizedString
+			label_schema_version: () => LocalizedString
+			label_operation: () => LocalizedString
+			label_result: () => LocalizedString
+			label_cluster_id: () => LocalizedString
+			label_controller: () => LocalizedString
+			messages_count: (arg: { count: unknown }) => LocalizedString
+			no_messages: () => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+		}
+		grpc: {
+			section_connection: () => LocalizedString
+			section_server_info: () => LocalizedString
+			section_services: () => LocalizedString
+			section_call_config: () => LocalizedString
+			section_request: () => LocalizedString
+			section_response: () => LocalizedString
+			section_metadata: () => LocalizedString
+			section_trailers: () => LocalizedString
+			section_close: () => LocalizedString
+			status_connected: () => LocalizedString
+			status_connection_failed: () => LocalizedString
+			status_call_success: () => LocalizedString
+			status_call_failed: () => LocalizedString
+			status_closed: () => LocalizedString
+			status_close_failed: () => LocalizedString
+			connect_success: () => LocalizedString
+			connect_error: () => LocalizedString
+			close_success: () => LocalizedString
+			close_error: () => LocalizedString
+			call_success: () => LocalizedString
+			call_error: () => LocalizedString
+			label_server_address: () => LocalizedString
+			label_service_name: () => LocalizedString
+			label_method_name: () => LocalizedString
+			label_call_type: () => LocalizedString
+			label_deadline: () => LocalizedString
+			label_duration: () => LocalizedString
+			label_status_code: () => LocalizedString
+			label_status_message: () => LocalizedString
+			label_request_payload: () => LocalizedString
+			label_response_payload: () => LocalizedString
+			unary_call: () => LocalizedString
+			server_streaming: () => LocalizedString
+			client_streaming: () => LocalizedString
+			bidi_streaming: () => LocalizedString
+			services_count: (arg: { count: unknown }) => LocalizedString
+			methods_count: (arg: { count: unknown }) => LocalizedString
+			no_services: () => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+		}
+		graphql: {
+			section_query_result: () => LocalizedString
+			section_schema: () => LocalizedString
+			section_types: () => LocalizedString
+			section_subscription: () => LocalizedString
+			section_subscription_data: () => LocalizedString
+			status_success: () => LocalizedString
+			status_failed: () => LocalizedString
+			status_subscribed: () => LocalizedString
+			status_unsubscribed: () => LocalizedString
+			query_success: () => LocalizedString
+			query_error: () => LocalizedString
+			subscribe_success: () => LocalizedString
+			subscribe_error: () => LocalizedString
+			unsubscribe_success: () => LocalizedString
+			unsubscribe_error: () => LocalizedString
+			label_operation_name: () => LocalizedString
+			label_query: () => LocalizedString
+			label_variables: () => LocalizedString
+			label_response: () => LocalizedString
+			label_data: () => LocalizedString
+			label_errors: () => LocalizedString
+			label_type_name: () => LocalizedString
+			label_kind: () => LocalizedString
+			label_fields: () => LocalizedString
+			label_description: () => LocalizedString
+			label_duration: () => LocalizedString
+			types_count: (arg: { count: unknown }) => LocalizedString
+			no_types: () => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+		}
+		ws: {
+			section_connection_info: () => LocalizedString
+			connection_status: () => LocalizedString
+			send_collect_status: () => LocalizedString
+			close_status: () => LocalizedString
+			status_connected: () => LocalizedString
+			status_connection_failed: () => LocalizedString
+			status_closed: () => LocalizedString
+			status_close_failed: () => LocalizedString
+			connect_success: () => LocalizedString
+			connect_error: () => LocalizedString
+			close_success: () => LocalizedString
+			close_error: () => LocalizedString
+			send_collect_success: (arg: { count: unknown }) => LocalizedString
+			send_collect_error: () => LocalizedString
+			send_collect_partial: (arg: { sent: unknown, received: unknown }) => LocalizedString
+			label_url: () => LocalizedString
+			label_protocol: () => LocalizedString
+			label_duration: () => LocalizedString
+			label_messages_received: () => LocalizedString
+			label_messages_sent: () => LocalizedString
+			label_message: () => LocalizedString
+			label_timestamp: () => LocalizedString
+			label_direction: () => LocalizedString
+			direction_sent: () => LocalizedString
+			direction_received: () => LocalizedString
+			no_messages: () => LocalizedString
+			messages_count: (arg: { count: unknown }) => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+		}
+		sse: {
+			section_connection: () => LocalizedString
+			section_listen: () => LocalizedString
+			section_events: () => LocalizedString
+			section_close: () => LocalizedString
+			status_connected: () => LocalizedString
+			status_connection_failed: () => LocalizedString
+			status_listening: () => LocalizedString
+			status_listen_failed: () => LocalizedString
+			status_disconnected: () => LocalizedString
+			status_disconnect_failed: () => LocalizedString
+			connect_success: () => LocalizedString
+			connect_error: () => LocalizedString
+			listen_success: (arg: { count: unknown }) => LocalizedString
+			listen_error: () => LocalizedString
+			disconnect_success: () => LocalizedString
+			disconnect_error: () => LocalizedString
+			label_url: () => LocalizedString
+			label_last_event_id: () => LocalizedString
+			label_event: () => LocalizedString
+			label_event_id: () => LocalizedString
+			label_event_type: () => LocalizedString
+			label_data: () => LocalizedString
+			label_duration: () => LocalizedString
+			events_count: (arg: { count: unknown }) => LocalizedString
+			no_events: () => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+		}
+		email: {
+			section_connection: () => LocalizedString
+			section_send_status: () => LocalizedString
+			section_close: () => LocalizedString
+			section_fetch: () => LocalizedString
+			section_search: () => LocalizedString
+			section_folder: () => LocalizedString
+			section_idle: () => LocalizedString
+			status_connected: () => LocalizedString
+			status_connection_failed: () => LocalizedString
+			status_sent: () => LocalizedString
+			status_send_failed: () => LocalizedString
+			status_disconnected: () => LocalizedString
+			status_disconnect_failed: () => LocalizedString
+			connect_success: () => LocalizedString
+			connect_error: () => LocalizedString
+			send_success: () => LocalizedString
+			send_error: () => LocalizedString
+			disconnect_success: () => LocalizedString
+			disconnect_error: () => LocalizedString
+			label_server: () => LocalizedString
+			label_port: () => LocalizedString
+			label_tls: () => LocalizedString
+			label_from: () => LocalizedString
+			label_to: () => LocalizedString
+			label_cc: () => LocalizedString
+			label_bcc: () => LocalizedString
+			label_subject: () => LocalizedString
+			label_attachments: () => LocalizedString
+			label_body_preview: () => LocalizedString
+			label_smtp_host: () => LocalizedString
+			label_imap_host: () => LocalizedString
+			label_mailbox: () => LocalizedString
+			label_search_query: () => LocalizedString
+			label_email_count: () => LocalizedString
+			label_unread: () => LocalizedString
+			label_folder: () => LocalizedString
+			label_action: () => LocalizedString
+			label_result: () => LocalizedString
+			label_duration: () => LocalizedString
+			folder_create_success: () => LocalizedString
+			folder_create_error: () => LocalizedString
+			folder_delete_success: () => LocalizedString
+			folder_delete_error: () => LocalizedString
+			search_results: (arg: { count: unknown }) => LocalizedString
+			no_results: () => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+		}
+		http: {
+			section_request: () => LocalizedString
+			section_response: () => LocalizedString
+			section_headers: () => LocalizedString
+			section_response_headers: () => LocalizedString
+			section_body: () => LocalizedString
+			section_response_body: () => LocalizedString
+			section_timing: () => LocalizedString
+			label_url: () => LocalizedString
+			label_method: () => LocalizedString
+			label_status_code: () => LocalizedString
+			label_status_text: () => LocalizedString
+			label_duration: () => LocalizedString
+			label_content_type: () => LocalizedString
+			label_content_length: () => LocalizedString
+			label_redirect_count: () => LocalizedString
+			label_tls_version: () => LocalizedString
+			label_remote_address: () => LocalizedString
+			label_query_params: () => LocalizedString
+			label_body: () => LocalizedString
+			response_received: () => LocalizedString
+			request_failed: () => LocalizedString
+			no_response: () => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+		}
+		cond: {
+			section_condition: () => LocalizedString
+			section_evaluation: () => LocalizedString
+			status_passed: () => LocalizedString
+			status_failed: () => LocalizedString
+			condition_true: () => LocalizedString
+			condition_false: () => LocalizedString
+			label_expression: () => LocalizedString
+			label_result: () => LocalizedString
+			label_routed_to: () => LocalizedString
+			branch_true: () => LocalizedString
+			branch_false: () => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+		}
+		assert: {
+			section_assertions: () => LocalizedString
+			section_results: () => LocalizedString
+			status_all_passed: () => LocalizedString
+			status_some_failed: () => LocalizedString
+			status_all_failed: () => LocalizedString
+			label_assertion: () => LocalizedString
+			label_expected: () => LocalizedString
+			label_actual: () => LocalizedString
+			label_operator: () => LocalizedString
+			label_result: () => LocalizedString
+			passed: () => LocalizedString
+			failed: () => LocalizedString
+			count: (arg: { count: unknown }) => LocalizedString
+			mode_all: () => LocalizedString
+			mode_any: () => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+		}
+		varChanges: {
+			title: () => LocalizedString
+			no_changes: () => LocalizedString
+			label_variable: () => LocalizedString
+			label_old_value: () => LocalizedString
+			label_new_value: () => LocalizedString
+			label_change_type: () => LocalizedString
+			added: () => LocalizedString
+			modified: () => LocalizedString
+			removed: () => LocalizedString
+		}
+		recording: {
+			title: () => LocalizedString
+			no_data: () => LocalizedString
+			label_direction: () => LocalizedString
+			label_timestamp: () => LocalizedString
+			label_data: () => LocalizedString
+			label_size: () => LocalizedString
+			direction_sent: () => LocalizedString
+			direction_received: () => LocalizedString
+			size_bytes: (arg: { bytes: unknown }) => LocalizedString
+			play: () => LocalizedString
+			pause: () => LocalizedString
+			clear: () => LocalizedString
+			active: () => LocalizedString
+			inactive: () => LocalizedString
+		}
+		generic: {
+			section_output: () => LocalizedString
+			section_variables: () => LocalizedString
+			label_node_type: () => LocalizedString
+			label_node_name: () => LocalizedString
+			label_status: () => LocalizedString
+			no_output: () => LocalizedString
+			execution_time: () => LocalizedString
+		}
+		history: {
+			title: () => LocalizedString
+			no_history: () => LocalizedString
+			empty_desc: () => LocalizedString
+			label_status: () => LocalizedString
+			label_duration: () => LocalizedString
+			label_nodes: () => LocalizedString
+			label_time: () => LocalizedString
+			label_flow_name: () => LocalizedString
+			clear: () => LocalizedString
+			confirm_clear: () => LocalizedString
+			confirm_clear_desc: () => LocalizedString
+			delete: () => LocalizedString
+			running: () => LocalizedString
+			status_success: () => LocalizedString
+			status_failed: () => LocalizedString
+			status_cancelled: () => LocalizedString
+			view_detail: () => LocalizedString
+			re_run: () => LocalizedString
+			execution_count: (arg: { count: unknown }) => LocalizedString
+			recent: () => LocalizedString
+			all: () => LocalizedString
+		}
+		dataset: {
+			title: () => LocalizedString
+			no_data: () => LocalizedString
+			empty_desc: () => LocalizedString
+			import_csv: () => LocalizedString
+			select_dataset: () => LocalizedString
+			row_count: (arg: { count: unknown }) => LocalizedString
+			column_count: (arg: { count: unknown }) => LocalizedString
+			execution_status: () => LocalizedString
+			status_running: () => LocalizedString
+			status_completed: () => LocalizedString
+			status_failed: () => LocalizedString
+			status_partial: () => LocalizedString
+			label_row: () => LocalizedString
+			label_status: () => LocalizedString
+			label_duration: () => LocalizedString
+			label_result: () => LocalizedString
+			label_error: () => LocalizedString
+			current_row: () => LocalizedString
+			total_rows: () => LocalizedString
+			progress: () => LocalizedString
+			start: () => LocalizedString
+			stop: () => LocalizedString
+			retry: () => LocalizedString
+			pause: () => LocalizedString
+			resume: () => LocalizedString
+			export_results: () => LocalizedString
+			clear_results: () => LocalizedString
+			confirm_clear: () => LocalizedString
+			confirm_clear_desc: () => LocalizedString
+			no_results: () => LocalizedString
+			row_success: (arg: { count: unknown }) => LocalizedString
+			row_failed: (arg: { count: unknown }) => LocalizedString
+			view_detail: () => LocalizedString
+			column_variable: () => LocalizedString
+			column_value: () => LocalizedString
+			execution_time: () => LocalizedString
+		}
+		wsTimeline: {
+			title: () => LocalizedString
+			no_messages: () => LocalizedString
+			empty_desc: () => LocalizedString
+			label_direction: () => LocalizedString
+			label_timestamp: () => LocalizedString
+			label_message: () => LocalizedString
+			label_type: () => LocalizedString
+			direction_sent: () => LocalizedString
+			direction_received: () => LocalizedString
+			filter_all: () => LocalizedString
+			filter_sent: () => LocalizedString
+			filter_received: () => LocalizedString
+			message_text: () => LocalizedString
+			message_binary: () => LocalizedString
+			message_json: () => LocalizedString
+			message_unknown: () => LocalizedString
+			message_detail: () => LocalizedString
+			clear: () => LocalizedString
+			confirm_clear: () => LocalizedString
+			confirm_clear_desc: () => LocalizedString
+			copy: () => LocalizedString
+			copied: () => LocalizedString
+		}
+		console: {
+			title: () => LocalizedString
+			placeholder: () => LocalizedString
+			filter_info: () => LocalizedString
+			filter_warn: () => LocalizedString
+			filter_error: () => LocalizedString
+			filter_debug: () => LocalizedString
+			filter_all: () => LocalizedString
+			label_level: () => LocalizedString
+			label_node: () => LocalizedString
+			label_time: () => LocalizedString
+			label_message: () => LocalizedString
+			no_logs: () => LocalizedString
+			clear: () => LocalizedString
+			confirm_clear: () => LocalizedString
+			confirm_clear_desc: () => LocalizedString
+			auto_scroll: () => LocalizedString
+			export: () => LocalizedString
+			log_count: (arg: { count: unknown }) => LocalizedString
+		}
+		details: {
+			title: () => LocalizedString
+			label_node_type: () => LocalizedString
+			label_node_name: () => LocalizedString
+			label_status: () => LocalizedString
+			label_duration: () => LocalizedString
+			label_start_time: () => LocalizedString
+			label_end_time: () => LocalizedString
+			label_variables: () => LocalizedString
+			label_output: () => LocalizedString
+			status_success: () => LocalizedString
+			status_failed: () => LocalizedString
+			status_running: () => LocalizedString
+			status_skipped: () => LocalizedString
+			status_pending: () => LocalizedString
+			no_output: () => LocalizedString
+			execution_time: () => LocalizedString
+		}
+		compare: {
+			title: () => LocalizedString
+			label_current: () => LocalizedString
+			label_previous: () => LocalizedString
+			label_changes: () => LocalizedString
+			label_added: () => LocalizedString
+			label_removed: () => LocalizedString
+			label_modified: () => LocalizedString
+			label_unchanged: () => LocalizedString
+			no_changes: () => LocalizedString
+			no_snapshot: () => LocalizedString
+			label_node: () => LocalizedString
+			label_connection: () => LocalizedString
+			label_property: () => LocalizedString
+			change_count: (arg: { count: unknown }) => LocalizedString
+		}
+		stress: {
+			title: () => LocalizedString
+			no_history: () => LocalizedString
+			label_status: () => LocalizedString
+			label_concurrent: () => LocalizedString
+			label_duration: () => LocalizedString
+			label_total_requests: () => LocalizedString
+			label_rps: () => LocalizedString
+			label_p50: () => LocalizedString
+			label_p95: () => LocalizedString
+			label_p99: () => LocalizedString
+			status_running: () => LocalizedString
+			status_completed: () => LocalizedString
+			status_stopped: () => LocalizedString
+			status_failed: () => LocalizedString
+			view_report: () => LocalizedString
+			re_run: () => LocalizedString
+			delete: () => LocalizedString
+			clear: () => LocalizedString
+			confirm_clear: () => LocalizedString
+			confirm_clear_desc: () => LocalizedString
+		}
+		datasetReport: {
+			title: () => LocalizedString
+			no_reports: () => LocalizedString
+			label_flow_name: () => LocalizedString
+			label_dataset_name: () => LocalizedString
+			label_total_rows: () => LocalizedString
+			label_success_rows: () => LocalizedString
+			label_failed_rows: () => LocalizedString
+			label_duration: () => LocalizedString
+			label_status: () => LocalizedString
+			label_time: () => LocalizedString
+			status_completed: () => LocalizedString
+			status_partial: () => LocalizedString
+			status_failed: () => LocalizedString
+			view: () => LocalizedString
+			delete: () => LocalizedString
+			clear: () => LocalizedString
+			confirm_clear: () => LocalizedString
+			confirm_clear_desc: () => LocalizedString
+		}
+		report: {
+			title: () => LocalizedString
+			label_flow_name: () => LocalizedString
+			label_status: () => LocalizedString
+			label_duration: () => LocalizedString
+			label_node_count: () => LocalizedString
+			label_start_time: () => LocalizedString
+			label_end_time: () => LocalizedString
+			label_variables: () => LocalizedString
+			label_node_results: () => LocalizedString
+			status_success: () => LocalizedString
+			status_failed: () => LocalizedString
+			status_cancelled: () => LocalizedString
+			re_run: () => LocalizedString
+			save: () => LocalizedString
+			export: () => LocalizedString
+			node_success: (arg: { count: unknown }) => LocalizedString
+			node_failed: (arg: { count: unknown }) => LocalizedString
+			no_report: () => LocalizedString
+			empty_desc: () => LocalizedString
+		}
+		wsStreams: {
+			title: () => LocalizedString
+			no_streams: () => LocalizedString
+			label_connection: () => LocalizedString
+			label_message: () => LocalizedString
+			label_timestamp: () => LocalizedString
+			label_direction: () => LocalizedString
+			direction_sent: () => LocalizedString
+			direction_received: () => LocalizedString
+			clear: () => LocalizedString
+			auto_scroll: () => LocalizedString
+		}
+		varTree: {
+			title: () => LocalizedString
+			no_variables: () => LocalizedString
+			label_variable: () => LocalizedString
+			label_value: () => LocalizedString
+			label_scope: () => LocalizedString
+			local: () => LocalizedString
+			global: () => LocalizedString
+			expand_all: () => LocalizedString
+			collapse_all: () => LocalizedString
+			copy_value: () => LocalizedString
+			copied: () => LocalizedString
+		}
 	}
 }
 
