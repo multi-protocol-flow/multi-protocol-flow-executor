@@ -399,6 +399,14 @@ const en_US_flow = {
 
   // Variable validation
   var_ref_invalid: 'Invalid variable references:',
+
+  // Flow validation
+  validation_error_title: 'Flow Validation Failed',
+  validation_error_desc: 'The flow has the following validation issues. Please fix them before proceeding.',
+  validation_port_duplicate: 'Duplicate connection on node output port',
+  validation_cycle_detected: 'Circular dependency detected in flow',
+  file_corrupted_title: 'File Corrupted',
+  file_corrupted_desc: 'Unable to load this flow file. The file format may be corrupted.',
 };
 
 export default en_US_flow;

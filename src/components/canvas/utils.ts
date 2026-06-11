@@ -89,19 +89,84 @@ export function createConnection(
 /**
  * 验证连接是否有效
  * - 不能连接到自己
+ * - 源节点的输出端口不能已有出边（每个输出端口只能连一个下游节点）
+ * - 不能形成循环依赖（检测从 target 到 source 的路径）
+ *
+ * @param sourceId - 源节点 UUID
+ * @param targetId - 目标节点 UUID
+ * @param sourcePort - 源端口 ID
+ * @param _targetPort - 目标端口 ID
+ * @param connections - 当前流程所有连接（可选，传入后会执行完整校验）
+ * @returns 连接是否有效
  */
 export function isValidConnection(
   sourceId: string,
   targetId: string,
-  _sourcePort: string,
-  _targetPort: string
+  sourcePort: string,
+  _targetPort: string,
+  connections?: Connection[],
 ): boolean {
-  // 不能连接到自己
+  // 规则 1: 不能连接到自己
   if (sourceId === targetId) {
     return false;
   }
-  
+
+  // 以下检查需要 connections 数据
+  if (!connections) {
+    return true;
+  }
+
+  // 规则 2: 每个输出端口只能有一条出边
+  const portAlreadyUsed = connections.some(
+    (c) => c.source_node_uuid === sourceId && c.source_port_id === sourcePort
+  );
+  if (portAlreadyUsed) {
+    return false;
+  }
+
+  // 规则 3: 不能形成循环依赖
+  // 检查从 target 到 source 是否存在路径（如果添加了 source→target，会不会有循环）
+  if (hasPath(targetId, sourceId, connections)) {
+    return false;
+  }
+
   return true;
+}
+
+/**
+ * 检查在有向图中是否存在从 from 到 to 的路径（BFS）
+ */
+function hasPath(
+  from: string,
+  to: string,
+  connections: Connection[]
+): boolean {
+  // 构建邻接表
+  const adj = new Map<string, string[]>();
+  for (const conn of connections) {
+    const neighbors = adj.get(conn.source_node_uuid) || [];
+    neighbors.push(conn.target_node_uuid);
+    adj.set(conn.source_node_uuid, neighbors);
+  }
+
+  // BFS
+  const visited = new Set<string>();
+  const queue = [from];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (current === to) return true;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    const neighbors = adj.get(current);
+    if (neighbors) {
+      for (const n of neighbors) {
+        if (!visited.has(n)) {
+          queue.push(n);
+        }
+      }
+    }
+  }
+  return false;
 }
 
 /**

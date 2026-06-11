@@ -399,6 +399,14 @@ const zh_CN_flow: BaseTranslation = {
 
   // 变量引用验证
   var_ref_invalid: '变量引用失效:',
+
+  // 流程验证
+  validation_error_title: '流程验证未通过',
+  validation_error_desc: '该流程存在以下验证问题，请修复后再操作',
+  validation_port_duplicate: '节点输出端口存在重复连接',
+  validation_cycle_detected: '流程中存在循环依赖',
+  file_corrupted_title: '文件损坏',
+  file_corrupted_desc: '无法加载该流程文件，文件格式可能已损坏',
 };
 
 export default zh_CN_flow;

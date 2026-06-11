@@ -19,6 +19,8 @@ import { cn } from '@/lib/utils';
 import type { Flow } from '@/types/flow';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useCurrentLocale } from '@/hooks/useLocale';
+import { validateFlow } from '@/services/tauri/flow';
+import { ValidationErrorDialog } from '@/components/dialogs/ValidationErrorDialog';
 
 export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUuid, onCreateFolderTrigger }: { showHeader?: boolean; disabled?: boolean; debugFlowUuid?: string | null; onCreateFolderTrigger?: (fn: () => void) => void }) {
   const { setFlows, addFlow: addFlowToList, removeFlow: removeFlowFromList } = useFlowListStore();
@@ -45,6 +47,12 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // 验证错误对话框状态
+  const [validationErrors, setValidationErrors] = useState<{ code: string; message: string }[]>([]);
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
+  const [validationType, setValidationType] = useState<'validation' | 'corrupted'>('validation');
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
 
   // 文件夹相关状态
   const [folders, setFolders] = useState<FolderInfo[]>([]);
@@ -197,9 +205,29 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       setFlows(flowMetas.map(mapMetadata));
     }
 
-    const flow = await flowStorage.loadFlow(uuid);
-    if (flow) {
-      setFlow(flow);
+    try {
+      const flow = await flowStorage.loadFlow(uuid);
+      if (flow) {
+        setFlow(flow);
+        // 验证流程结构
+        try {
+          const result = await validateFlow(flow);
+          if (!result.valid && result.errors.length > 0) {
+            setValidationErrors(result.errors);
+            setValidationWarnings(result.warnings || []);
+            setValidationType('validation');
+            setShowValidationDialog(true);
+          }
+        } catch {
+          // 验证调用失败（如非 Tauri 环境）静默忽略
+        }
+      }
+    } catch (err) {
+      // 加载流程文件失败，透传后端原始错误消息
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setValidationErrors([{ code: 'file_corrupted', message: errMsg }]);
+      setValidationType('corrupted');
+      setShowValidationDialog(true);
     }
   };
 
@@ -1389,6 +1417,15 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
         </div>,
         document.body
       )}
+
+      {/* 验证错误对话框 */}
+      <ValidationErrorDialog
+        open={showValidationDialog}
+        type={validationType}
+        errors={validationErrors}
+        warnings={validationWarnings}
+        onClose={() => setShowValidationDialog(false)}
+      />
     </div>
   );
 }

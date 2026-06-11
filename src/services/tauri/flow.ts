@@ -10,6 +10,7 @@ import type {
   CreateFlowCommandOutput,
   ExecuteFlowCommandInput,
   ExecuteFlowCommandOutput,
+  ValidationResult,
 } from '@/types/ipc';
 import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
@@ -120,5 +121,21 @@ export async function cancelFlow(): Promise<void> {
     await invoke<void>('cancel_flow');
   } catch (error) {
     throw formatError(error, 'cancel_flow');
+  }
+}
+
+/**
+ * 验证流程结构
+ * 调用后端 validate_flow IPC 命令
+ *
+ * @param flow - 要验证的流程
+ * @returns 验证结果（valid/errors/warnings）
+ * @throws IpcError 如果验证调用失败
+ */
+export async function validateFlow(flow: Flow): Promise<ValidationResult> {
+  try {
+    return await invoke<ValidationResult>('validate_flow', { flow });
+  } catch (error) {
+    throw formatError(error, 'validate_flow');
   }
 }

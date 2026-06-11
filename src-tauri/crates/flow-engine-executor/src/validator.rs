@@ -99,13 +99,25 @@ impl FlowValidator {
         // 1. 多个 Entry 节点（Entry 节点可以用于流程入口和终止点）
         // 2. Entry 节点可以没有输出连接（正常流程终止）
 
-        // 规则 2: 验证 WebSocket 节点配置
+        // 规则 2: 验证输出端口唯一性（每个输出端口只能有一条出边）
+        let port_validation = self.validate_output_port_uniqueness(flow);
+        if !port_validation.valid {
+            errors.extend(port_validation.errors);
+        }
+
+        // 规则 3: 验证无循环（DAG 约束）
+        let cycle_validation = self.validate_no_cycles(flow);
+        if !cycle_validation.valid {
+            errors.extend(cycle_validation.errors);
+        }
+
+        // 规则 4: 验证 WebSocket 节点配置
         let ws_validation = self.validate_ws_nodes(flow);
         if !ws_validation.valid {
             errors.extend(ws_validation.errors);
         }
 
-        // 规则 3: 检查 End 节点
+        // 规则 5: 检查 End 节点
         let end_nodes: Vec<&Node> = flow
             .nodes
             .iter()
@@ -246,6 +258,148 @@ impl FlowValidator {
                     }
                 }
                 _ => {}
+            }
+        }
+
+        if errors.is_empty() {
+            ValidationResult::success()
+        } else {
+            ValidationResult::errors(errors)
+        }
+    }
+
+    /// 验证输出端口唯一性
+    ///
+    /// 每个节点的每个输出端口（source_port_id）只能有一条出边。
+    /// 一个节点可以有多个输出端口（如 conditional 的 "true"/"false"），
+    /// 但每个端口最多只能连接到一个下游节点。
+    /// 输入端口（target_port_id）不受此限制，可以接收多条入边。
+    pub fn validate_output_port_uniqueness(&self, flow: &Flow) -> ValidationResult {
+        let mut errors = Vec::new();
+
+        // 检查是否有重复的 (source_node_uuid, source_port_id) 组合
+        let mut seen: std::collections::HashSet<(String, String)> = std::collections::HashSet::new();
+        for conn in &flow.connections {
+            let key = (conn.source_node_uuid.clone(), conn.source_port_id.clone());
+            if !seen.insert(key.clone()) {
+                // 查找节点名称以便提供有意义的错误信息
+                let node_name = flow
+                    .nodes
+                    .iter()
+                    .find(|n| n.uuid == conn.source_node_uuid)
+                    .map(|n| n.name.as_str())
+                    .unwrap_or("未知节点");
+                errors.push(format!(
+                    "节点「{}」的「{}」端口只能连接一个下游节点，检测到重复连接",
+                    node_name, conn.source_port_id
+                ));
+            }
+        }
+
+        if errors.is_empty() {
+            ValidationResult::success()
+        } else {
+            ValidationResult::errors(errors)
+        }
+    }
+
+    /// 验证无循环（DAG 约束）
+    ///
+    /// 使用 DFS 染色法检测有向图中是否存在环。
+    /// 白色（未访问）、灰色（正在访问）、黑色（已访问完成）。
+    /// 如果在遍历过程中遇到灰色节点，说明存在环。
+    pub fn validate_no_cycles(&self, flow: &Flow) -> ValidationResult {
+        let mut errors = Vec::new();
+
+        if flow.nodes.is_empty() || flow.connections.is_empty() {
+            return ValidationResult::success();
+        }
+
+        // 构建邻接表：source_node_uuid -> Vec<target_node_uuid>
+        let mut adj: std::collections::HashMap<String, Vec<String>> =
+            std::collections::HashMap::new();
+        for conn in &flow.connections {
+            adj.entry(conn.source_node_uuid.clone())
+                .or_default()
+                .push(conn.target_node_uuid.clone());
+        }
+
+        // 找到所有节点 UUID 集合
+        let all_uuids: Vec<String> = flow
+            .nodes
+            .iter()
+            .map(|n| n.uuid.clone())
+            .collect();
+
+        // DFS 染色法检测环
+        // 使用 index 映射避免引用生命周期问题
+        // 0 = 未访问 (白色), 1 = 正在访问 (灰色), 2 = 已访问完成 (黑色)
+        let idx_of: std::collections::HashMap<String, usize> = all_uuids
+            .iter()
+            .enumerate()
+            .map(|(i, u)| (u.clone(), i))
+            .collect();
+        let n = all_uuids.len();
+        let mut color = vec![0u8; n];
+
+        // 构建邻接索引表
+        let mut adj_idx: Vec<Vec<usize>> = vec![Vec::new(); n];
+        for (src, targets) in &adj {
+            if let Some(&si) = idx_of.get(src) {
+                for t in targets {
+                    if let Some(&ti) = idx_of.get(t) {
+                        adj_idx[si].push(ti);
+                    }
+                }
+            }
+        }
+
+        // 构建节点名称映射（按索引）
+        let node_names: Vec<&str> = flow.nodes.iter().map(|n| n.name.as_str()).collect();
+
+        fn dfs_idx(
+            u: usize,
+            adj: &[Vec<usize>],
+            color: &mut Vec<u8>,
+            node_names: &[&str],
+            path: &mut Vec<usize>,
+        ) -> Option<String> {
+            color[u] = 1; // 灰色：正在访问
+            path.push(u);
+
+            for &v in &adj[u] {
+                match color[v] {
+                    1 => {
+                        // 找到环
+                        let cycle_start = path.iter().position(|&n| n == v).unwrap_or(0);
+                        let cycle_path: Vec<&str> = path[cycle_start..]
+                            .iter()
+                            .map(|&idx| node_names[idx])
+                            .collect();
+                        let cycle_str = cycle_path.join(" → ");
+                        return Some(format!("流程中存在循环依赖：{}", cycle_str));
+                    }
+                    0 => {
+                        if let Some(err) = dfs_idx(v, adj, color, node_names, path) {
+                            return Some(err);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            color[u] = 2; // 黑色：已访问完成
+            path.pop();
+            None
+        }
+
+        // 对所有节点执行 DFS
+        for i in 0..n {
+            if color[i] == 0 {
+                let mut path = Vec::new();
+                if let Some(err) = dfs_idx(i, &adj_idx, &mut color, &node_names, &mut path) {
+                    errors.push(err);
+                }
             }
         }
 
@@ -608,7 +762,7 @@ mod tests {
 
     #[test]
     fn test_validator_multiple_connections_same_source() {
-        // 测试多个连接从同一个源节点发出
+        // 测试多个连接从同一个源节点同一个端口发出 → 应失败
         let start_node = create_entry_node();
         let end_node_1 = create_end_node();
         let end_node_2 = create_end_node();
@@ -621,9 +775,9 @@ mod tests {
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 验证通过（开始节点有输出连接）
-        assert!(result.valid);
-        assert!(result.errors.is_empty());
+        // 新规则：同一输出端口只能有一条出边
+        assert!(!result.valid);
+        assert!(result.errors.iter().any(|e| e.contains("只能连接一个下游节点")));
     }
 
     #[test]
@@ -765,5 +919,225 @@ mod tests {
         // 验证 warnings 不影响 valid
         assert!(result.valid);
         assert!(!result.warnings.is_empty());
+    }
+
+    // ========================================================================
+    // 输出端口唯一性测试
+    // ========================================================================
+
+    #[test]
+    fn test_output_port_uniqueness_duplicate() {
+        // 同一个输出端口连接两个不同节点 → 应该失败
+        let entry = create_entry_node();
+        let end1 = create_end_node();
+        let end2 = create_end_node();
+
+        let conn1 = create_connection(&entry.uuid, &end1.uuid);
+        let conn2 = Connection {
+            id: "dup-conn".to_string(),
+            source_node_uuid: entry.uuid.clone(),
+            target_node_uuid: end2.uuid.clone(),
+            source_port_id: "output".to_string(), // 同一个端口
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "重复端口测试".to_string(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![entry, end1, end2],
+            connections: vec![conn1, conn2],
+            hooks: None,
+        };
+
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+
+        assert!(!result.valid);
+        assert!(result.errors.iter().any(|e| e.contains("只能连接一个下游节点")));
+    }
+
+    #[test]
+    fn test_output_port_uniqueness_different_ports() {
+        // 条件节点的 true 和 false 端口各自连接不同节点 → 应该通过
+        let entry = create_entry_node();
+        let conditional = Node {
+            uuid: Uuid::new_v4().to_string(),
+            node_type: "conditional".to_string(),
+            name: "条件分支".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::conditional_simple("status", flow_engine_core::node_config::ConditionOperator::Equal, serde_json::json!("ok")),
+            ports: None,
+            has_breakpoint: None,
+        };
+        let http_node = Node {
+            uuid: Uuid::new_v4().to_string(),
+            node_type: "http".to_string(),
+            name: "HTTP 成功".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::http("https://example.com/success"),
+            ports: None,
+            has_breakpoint: None,
+        };
+        let end_node = create_end_node();
+
+        let conn_true = Connection {
+            id: "conn-true".to_string(),
+            source_node_uuid: conditional.uuid.clone(),
+            target_node_uuid: http_node.uuid.clone(),
+            source_port_id: "true".to_string(),
+            target_port_id: "input".to_string(),
+        };
+        let conn_false = Connection {
+            id: "conn-false".to_string(),
+            source_node_uuid: conditional.uuid.clone(),
+            target_node_uuid: end_node.uuid.clone(),
+            source_port_id: "false".to_string(),
+            target_port_id: "input".to_string(),
+        };
+
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "多端口测试".to_string(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![entry, conditional, http_node, end_node],
+            connections: vec![conn_true, conn_false],
+            hooks: None,
+        };
+
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+
+        // 应该通过（不同端口各自出边是允许的）
+        assert!(result.valid, "不同端口各自出边应该允许，但错误: {:?}", result.errors);
+    }
+
+    // ========================================================================
+    // 循环检测测试
+    // ========================================================================
+
+    #[test]
+    fn test_cycle_detection_simple_cycle() {
+        // A → B → A 简单循环
+        let node_a = Node {
+            uuid: "node-a".to_string(),
+            node_type: "entry".to_string(),
+            name: "节点A".to_string(),
+            position: NodePosition { x: 0.0, y: 0.0 },
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+        };
+        let node_b = Node {
+            uuid: "node-b".to_string(),
+            node_type: "http".to_string(),
+            name: "节点B".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::http("https://example.com"),
+            ports: None,
+            has_breakpoint: None,
+        };
+
+        let conn1 = create_connection(&node_a.uuid, &node_b.uuid);
+        let conn2 = create_connection(&node_b.uuid, &node_a.uuid);
+
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "循环测试".to_string(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![node_a, node_b],
+            connections: vec![conn1, conn2],
+            hooks: None,
+        };
+
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+
+        assert!(!result.valid);
+        assert!(result.errors.iter().any(|e| e.contains("循环依赖")));
+    }
+
+    #[test]
+    fn test_cycle_detection_no_cycle() {
+        // A → B → C  无循环
+        let node_a = create_entry_node();
+        let node_b = Node {
+            uuid: Uuid::new_v4().to_string(),
+            node_type: "http".to_string(),
+            name: "节点B".to_string(),
+            position: NodePosition { x: 100.0, y: 0.0 },
+            data: NodeData::http("https://example.com"),
+            ports: None,
+            has_breakpoint: None,
+        };
+        let node_c = create_end_node();
+
+        let conn1 = create_connection(&node_a.uuid, &node_b.uuid);
+        let conn2 = create_connection(&node_b.uuid, &node_c.uuid);
+
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "无循环测试".to_string(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes: vec![node_a, node_b, node_c],
+            connections: vec![conn1, conn2],
+            hooks: None,
+        };
+
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+
+        assert!(result.valid, "线性流程不应有循环，但错误: {:?}", result.errors);
+    }
+
+    #[test]
+    fn test_cycle_detection_complex_cycle() {
+        // A → B → C → D → B  复杂循环
+        let names = ["入口", "节点B", "节点C", "节点D"];
+        let nodes: Vec<Node> = names
+            .iter()
+            .enumerate()
+            .map(|(i, name)| Node {
+                uuid: format!("node-{}", i),
+                node_type: if i == 0 { "entry".to_string() } else { "http".to_string() },
+                name: name.to_string(),
+                position: NodePosition { x: (i as f64) * 100.0, y: 0.0 },
+                data: if i == 0 { NodeData::entry() } else { NodeData::http("https://example.com") },
+                ports: None,
+                has_breakpoint: None,
+            })
+            .collect();
+
+        let connections = vec![
+            create_connection(&nodes[0].uuid, &nodes[1].uuid), // A → B
+            create_connection(&nodes[1].uuid, &nodes[2].uuid), // B → C
+            create_connection(&nodes[2].uuid, &nodes[3].uuid), // C → D
+            create_connection(&nodes[3].uuid, &nodes[1].uuid), // D → B (循环)
+        ];
+
+        let flow = Flow {
+            uuid: Uuid::new_v4().to_string(),
+            name: "复杂循环测试".to_string(),
+            initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            nodes,
+            connections,
+            hooks: None,
+        };
+
+        let validator = FlowValidator::new();
+        let result = validator.validate(&flow);
+
+        assert!(!result.valid);
+        assert!(result.errors.iter().any(|e| e.contains("循环依赖")));
     }
 }

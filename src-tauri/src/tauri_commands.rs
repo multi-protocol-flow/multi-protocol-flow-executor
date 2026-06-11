@@ -260,14 +260,42 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
 
 /// 验证流程
 ///
-/// 检查流程结构是否正确，返回验证结果（valid/errors/warnings）。
+/// 检查流程结构是否正确，返回带有错误码的结构化验证结果。
+/// 每个错误项包含 `code`（错误码，前端用于 i18n 映射）和 `message`（详细描述）。
 #[tauri::command]
 pub fn validate_flow(flow: Flow) -> serde_json::Value {
     let validator = flow_engine::validator::FlowValidator::new();
     let result = validator.validate(&flow);
+
+    /// 根据错误消息内容推断错误码
+    fn infer_error_code(msg: &str) -> &str {
+        if msg.contains("只能连接一个下游节点") {
+            "port_duplicate"
+        } else if msg.contains("循环依赖") {
+            "cycle_detected"
+        } else if msg.contains("缺少 Entry") || msg.contains("缺少开始节点") {
+            "missing_entry"
+        } else if msg.contains("URL") || msg.contains("超时") {
+            "ws_config_error"
+        } else {
+            "unknown"
+        }
+    }
+
+    let structured_errors: Vec<serde_json::Value> = result
+        .errors
+        .iter()
+        .map(|msg| {
+            serde_json::json!({
+                "code": infer_error_code(msg),
+                "message": msg,
+            })
+        })
+        .collect();
+
     serde_json::json!({
         "valid": result.valid,
-        "errors": result.errors,
+        "errors": structured_errors,
         "warnings": result.warnings,
     })
 }

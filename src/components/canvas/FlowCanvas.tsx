@@ -697,16 +697,20 @@ function FlowCanvasInner() {
     };
   }, []);
 
+  // 获取当前流程连接列表（用于连接验证）
+  const currentConnections = flow?.connections ?? [];
+
   // 处理连接创建
   const onConnect = useCallback(
     (connection: Connection) => {
-      // 验证连接
+      // 验证连接（传入当前连接列表进行完整校验）
       if (
         !isValidConnection(
           connection.source || '',
           connection.target || '',
           connection.sourceHandle || 'out',
-          connection.targetHandle || 'in'
+          connection.targetHandle || 'in',
+          currentConnections
         )
       ) {
         return;
@@ -736,7 +740,7 @@ function FlowCanvasInner() {
         addConnection(newConnection);
       }
     },
-    [setEdges, addConnection]
+    [setEdges, addConnection, currentConnections]
   );
 
   // 处理节点拖拽结束
@@ -1253,6 +1257,16 @@ function FlowCanvasInner() {
         // 执行期间禁止拖拽和连线，避免干扰
         nodesDraggable={!isExecuting}
         nodesConnectable={!isExecuting}
+        // 拖拽连线时的实时校验：端口唯一性 + 无循环
+        isValidConnection={(connection) =>
+          isValidConnection(
+            connection.source || '',
+            connection.target || '',
+            connection.sourceHandle || 'out',
+            connection.targetHandle || 'in',
+            currentConnections
+          )
+        }
         defaultEdgeOptions={{
           type: 'custom',
           // 自定义边已自带粒子动画（<animateMotion>），不需要 React Flow 内置动画

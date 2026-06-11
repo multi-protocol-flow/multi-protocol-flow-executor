@@ -536,6 +536,23 @@ export async function cancelFlow(): Promise<void> {
   }
 }
 
+/**
+ * 验证流程结构
+ * 根据运行环境自动选择真实 IPC 或 Mock 服务
+ *
+ * @param flow - 要验证的流程
+ * @returns 验证结果
+ */
+export async function validateFlow(flow: Flow): Promise<{ valid: boolean; errors: { code: string; message: string }[]; warnings: string[] }> {
+  if (isTauriEnv()) {
+    const { validateFlow: validateFlowImpl } = await import('./flow');
+    return validateFlowImpl(flow);
+  } else {
+    const { validateFlow: validateFlowMock } = await import('./mock');
+    return validateFlowMock();
+  }
+}
+
 // ============================================================================
 // 压力测试命令
 // ============================================================================

@@ -12212,6 +12212,30 @@ type RootTranslation = {
 		 * 变​量​引​用​失​效​:
 		 */
 		var_ref_invalid: string
+		/**
+		 * 流​程​验​证​未​通​过
+		 */
+		validation_error_title: string
+		/**
+		 * 该​流​程​存​在​以​下​验​证​问​题​，​请​修​复​后​再​操​作
+		 */
+		validation_error_desc: string
+		/**
+		 * 节​点​输​出​端​口​存​在​重​复​连​接
+		 */
+		validation_port_duplicate: string
+		/**
+		 * 流​程​中​存​在​循​环​依​赖
+		 */
+		validation_cycle_detected: string
+		/**
+		 * 文​件​损​坏
+		 */
+		file_corrupted_title: string
+		/**
+		 * 无​法​加​载​该​流​程​文​件​，​文​件​格​式​可​能​已​损​坏
+		 */
+		file_corrupted_desc: string
 	}
 	validation: {
 		/**
@@ -28704,6 +28728,30 @@ export type TranslationFunctions = {
 		 * 变量引用失效:
 		 */
 		var_ref_invalid: () => LocalizedString
+		/**
+		 * 流程验证未通过
+		 */
+		validation_error_title: () => LocalizedString
+		/**
+		 * 该流程存在以下验证问题，请修复后再操作
+		 */
+		validation_error_desc: () => LocalizedString
+		/**
+		 * 节点输出端口存在重复连接
+		 */
+		validation_port_duplicate: () => LocalizedString
+		/**
+		 * 流程中存在循环依赖
+		 */
+		validation_cycle_detected: () => LocalizedString
+		/**
+		 * 文件损坏
+		 */
+		file_corrupted_title: () => LocalizedString
+		/**
+		 * 无法加载该流程文件，文件格式可能已损坏
+		 */
+		file_corrupted_desc: () => LocalizedString
 	}
 	validation: {
 		/**

@@ -11,10 +11,11 @@ import { useConsoleStore } from '@/stores/console';
 import { useSettingsStore } from '@/stores/settings';
 import { useWsStreamStore } from '@/stores/wsStream';
 import { useStressTestStore, selectIsStressTestRunning } from '@/stores/stressTest';
-import { executeFlowWithChannel, saveFlowReport } from '@/services/tauri';
+import { executeFlowWithChannel, saveFlowReport, validateFlow } from '@/services/tauri';
 import { cn } from '@/lib/utils';
 import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
+import { ValidationErrorDialog } from '@/components/dialogs/ValidationErrorDialog';
 import { DebugToolbar } from './DebugToolbar';
 import { StressTestConfigDialog } from '@/components/stress-test/StressTestConfigDialog';
 import { StressTestMonitor } from '@/components/stress-test/StressTestMonitor';
@@ -33,6 +34,10 @@ export function CanvasToolbar() {
   const ll = getLL();
   const [isExecuting, setIsExecuting] = useState(false);
   const flow = useFlowStore(selectFlow);
+
+  // 验证错误对话框状态
+  const [validationErrors, setValidationErrors] = useState<{ code: string; message: string }[]>([]);
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
   const undo = useFlowStore((state) => state.undo);
   const redo = useFlowStore((state) => state.redo);
   const canUndo = useFlowStore(selectCanUndo);
@@ -63,6 +68,19 @@ export function CanvasToolbar() {
 
   const handleExecute = async () => {
     if (!flow || isExecuting) return;
+
+    // 执行前验证流程结构
+    try {
+      const validation = await validateFlow(flow);
+      if (!validation.valid && validation.errors.length > 0) {
+        setValidationErrors(validation.errors);
+        setShowValidationDialog(true);
+        setIsExecuting(false);
+        return;
+      }
+    } catch {
+      // 验证调用失败（如非 Tauri 环境）继续执行，后端会在执行时再次验证
+    }
 
     setIsExecuting(true);
     setConfigPanelOpen(false);
@@ -474,6 +492,14 @@ export function CanvasToolbar() {
       <DatasetExecutionPanel
         open={showDatasetExecutionPanel}
         onOpenChange={(open) => !open && closeDatasetExecutionPanel()}
+      />
+
+      {/* 验证错误对话框 */}
+      <ValidationErrorDialog
+        open={showValidationDialog}
+        type="validation"
+        errors={validationErrors}
+        onClose={() => setShowValidationDialog(false)}
       />
     </>
   );

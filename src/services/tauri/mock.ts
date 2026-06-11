@@ -329,6 +329,14 @@ export async function cancelFlow(): Promise<void> {
 }
 
 /**
+ * Mock 验证流程结构
+ * Mock 环境中默认返回验证通过
+ */
+export async function validateFlow(): Promise<{ valid: boolean; errors: { code: string; message: string }[]; warnings: string[] }> {
+  return { valid: true, errors: [], warnings: [] };
+}
+
+/**
  * Mock 获取节点配置 JSON Schema
  * 模拟后端 get_node_config_schema 命令行为
  *
