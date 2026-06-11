@@ -274,7 +274,7 @@ describe('WsSendCollectViewer', () => {
 
       // 展开后应该能看到耗时详情
       expect(screen.getByText('发送耗时')).toBeDefined();
-      expect(screen.getByText('收集耗时')).toBeDefined();
+      expect(screen.getByText('采集消息')).toBeDefined();
       expect(screen.getByText('15ms')).toBeDefined();
       expect(screen.getByText('100ms')).toBeDefined();
     });

@@ -178,7 +178,7 @@ describe('HttpConfig', () => {
   it('渲染 Headers 编辑区域', () => {
     render(<HttpConfig data={defaultData} onSave={mockOnSave} />);
 
-    expect(screen.getByText('Headers')).toBeDefined();
+    expect(screen.getByText('请求头')).toBeDefined();
     expect(screen.getByText('暂无自定义 Headers')).toBeDefined();
   });
 
@@ -194,8 +194,8 @@ describe('HttpConfig', () => {
     const addButton = screen.getByText('添加');
     fireEvent.click(addButton);
 
-    expect(screen.getByPlaceholderText('Header Name')).toBeDefined();
-    expect(screen.getByPlaceholderText('Value')).toBeDefined();
+    expect(screen.getByPlaceholderText('Header 名称')).toBeDefined();
+    expect(screen.getByPlaceholderText('值')).toBeDefined();
   });
 
   it('显示预设数据', () => {
