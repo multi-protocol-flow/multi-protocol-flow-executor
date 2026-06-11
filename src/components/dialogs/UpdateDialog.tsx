@@ -74,15 +74,15 @@ export function UpdateDialog() {
             <DialogFooter className="flex gap-2">
               {!downloading && (
                 <>
-                  <Button onClick={downloadAndInstall}>
+                  <Button size="sm" onClick={downloadAndInstall}>
                     {LL.settings.update.download_and_install()}
                   </Button>
-                  <Button variant="outline" onClick={dismissUpdate}>
+                  <Button size="sm" variant="outline" onClick={dismissUpdate}>
                     {LL.settings.update.skip_version()}
                   </Button>
                 </>
               )}
-              <Button variant="ghost" onClick={closeUpdateDialog}>
+              <Button size="sm" variant="ghost" onClick={closeUpdateDialog}>
                 {LL.settings.update.later()}
               </Button>
             </DialogFooter>
