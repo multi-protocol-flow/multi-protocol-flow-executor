@@ -926,6 +926,14 @@ impl ScriptExecutionContext {
             }),
         )?;
 
+        // sleep(ms) - 阻塞延迟指定毫秒数
+        util_obj.set(
+            "sleep",
+            Func::from(move |ms: u64| {
+                std::thread::sleep(std::time::Duration::from_millis(ms));
+            }),
+        )?;
+
         // === UUID 函数 ===
 
         // uuid() - 生成 UUID v4 字符串
