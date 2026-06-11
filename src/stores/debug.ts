@@ -183,7 +183,7 @@ function startCommandTimeout() {
         status: state.previousStatus,
         isCommandPending: false,
         previousStatus: null,
-        error: 'Command response timeout, restored to previous state',
+        error: ll.execution.toast.debug_command_timeout(),
       });
     }
   }, DEBUG_HEALTH_CONFIG.COMMAND_TIMEOUT_MS);
@@ -329,7 +329,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         status: currentStatus,
         isCommandPending: false,
         previousStatus: null,
-        error: `Continue execution failed: ${(error as Error).message}`,
+        error: `${ll.execution.toast.debug_continue_failed()}: ${(error as Error).message}`,
       });
     }
   },
@@ -352,7 +352,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         status: currentStatus,
         isCommandPending: false,
         previousStatus: null,
-        error: `Step over failed: ${(error as Error).message}`,
+        error: `${ll.execution.toast.debug_step_over_failed()}: ${(error as Error).message}`,
       });
     }
   },
@@ -380,7 +380,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         status: currentStatus,
         isCommandPending: false,
         previousStatus: null,
-        error: `Skip node failed: ${(error as Error).message}`,
+        error: `${ll.execution.toast.debug_skip_node_failed()}: ${(error as Error).message}`,
       });
     }
   },
@@ -403,7 +403,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         status: currentStatus,
         isCommandPending: false,
         previousStatus: null,
-        error: `Run to end failed: ${(error as Error).message}`,
+        error: `${ll.execution.toast.debug_run_to_end_failed()}: ${(error as Error).message}`,
       });
     }
   },
@@ -436,7 +436,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         },
       }));
     } catch (error) {
-      set({ error: `Modify config failed: ${(error as Error).message}` });
+      set({ error: `${ll.execution.toast.debug_modify_config_failed()}: ${(error as Error).message}` });
     }
   },
 
@@ -448,7 +448,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       // 注意：本地断点状态由 flow store 管理，这里只发送命令到后端
       // 后端会返回 BreakpointModified 事件，但前端断点显示由 flow store 控制
     } catch (error) {
-      set({ error: `Set breakpoint failed: ${(error as Error).message}` });
+      set({ error: `${ll.execution.toast.debug_set_breakpoint_failed()}: ${(error as Error).message}` });
     }
   },
 
@@ -755,7 +755,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       set({
         status: 'ended',
         healthStatus: 'dead',
-        error: 'Debug session unresponsive (heartbeat timeout)',
+        error: ll.execution.toast.debug_heartbeat_timeout(),
         isCommandPending: false,
         previousStatus: null,
       });

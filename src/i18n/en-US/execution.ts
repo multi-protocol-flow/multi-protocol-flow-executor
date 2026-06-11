@@ -585,6 +585,14 @@ const en_US_execution = {
     iterations: 'iterations',
     success_rate: 'Success rate',
     unknown_error: 'Unknown error',
+    debug_continue_failed: 'Continue execution failed',
+    debug_step_over_failed: 'Step over failed',
+    debug_skip_node_failed: 'Skip node failed',
+    debug_run_to_end_failed: 'Run to end failed',
+    debug_set_breakpoint_failed: 'Set breakpoint failed',
+    debug_modify_config_failed: 'Modify config failed',
+    debug_command_timeout: 'Command response timeout, restored to previous state',
+    debug_heartbeat_timeout: 'Debug session unresponsive (heartbeat timeout)',
   },
   // ===== Canvas Report Viewer =====
   canvasReport: {

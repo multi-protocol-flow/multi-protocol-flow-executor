@@ -220,7 +220,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
           <Input
             id="client_id"
             {...register('client_id')}
-            placeholder="Auto-generate if empty"
+            placeholder={getLL().panels.autoGenerateIfEmpty()}
             className="font-mono text-sm"
           />
         </div>

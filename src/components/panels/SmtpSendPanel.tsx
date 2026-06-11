@@ -381,7 +381,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
         <Input
           id="subject"
           {...register('subject')}
-          placeholder="Email Subject"
+          placeholder={getLL().panels.emailSubject()}
           className="text-sm"
         />
         {errors.subject && (

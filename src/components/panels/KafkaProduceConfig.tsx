@@ -268,7 +268,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
           <Input
             id="topic"
             {...register('topic')}
-            placeholder="my-topic"
+            placeholder={getLL().panels.topicPatternPlaceholder()}
             className="font-mono text-sm"
           />
           {errors.topic && (
@@ -283,7 +283,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
           <Input
             id="key"
             {...register('key')}
-            placeholder="Optional, for partition routing"
+            placeholder={getLL().panels.partitionRoutingHint()}
             className="font-mono text-sm"
           />
         </div>
@@ -405,7 +405,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
             id="partition"
             type="number"
             {...register('partition', { valueAsNumber: true })}
-            placeholder="-1 = Auto select"
+            placeholder={getLL().panels.autoSelectHint()}
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">

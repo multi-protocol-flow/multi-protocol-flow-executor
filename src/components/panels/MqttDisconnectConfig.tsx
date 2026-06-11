@@ -197,7 +197,7 @@ export function MqttDisconnectConfig({ data, onSave }: MqttDisconnectConfigProps
             id="reason_code"
             type="number"
             {...register('reason_code', { valueAsNumber: true })}
-            placeholder="Optional, e.g. 0 (Normal disconnection)"
+            placeholder={getLL().panels.closeCodeExample()}
             className="h-8 text-xs font-mono"
           />
         </div>

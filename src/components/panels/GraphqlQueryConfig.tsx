@@ -376,7 +376,7 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
         <Input
           id="operation_name"
           {...register('operation_name')}
-          placeholder="Optional, e.g. GetUsers"
+          placeholder={getLL().panels.methodNameExample()}
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
@@ -411,14 +411,14 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
                   value={entry.field_name}
                   onChange={(e) => handleFileChange(index, 'field_name', e.target.value)}
                   onBlur={() => safeSetTimeout(saveData, 100)}
-                  placeholder="Field name (e.g. file0)"
+                  placeholder={getLL().panels.fieldNameExample()}
                   className="h-8 w-32 font-mono text-xs"
                 />
                 <Input
                   value={entry.file_path}
                   onChange={(e) => handleFileChange(index, 'file_path', e.target.value)}
                   onBlur={() => safeSetTimeout(saveData, 100)}
-                  placeholder="File Path"
+                  placeholder={getLL().panels.filePath()}
                   className="h-8 flex-1 font-mono text-xs"
                 />
                 <Button

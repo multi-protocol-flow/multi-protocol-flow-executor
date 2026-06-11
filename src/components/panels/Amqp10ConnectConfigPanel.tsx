@@ -118,7 +118,7 @@ export function Amqp10ConnectConfigPanel({ data, onSave }: Props) {
 
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.connection()}</Label>
-        <Input id="connection_id" {...register('connection_id')} placeholder="Auto-generate if empty" className="font-mono text-sm" />
+        <Input id="connection_id" {...register('connection_id')} placeholder={getLL().panels.autoGenerateIfEmpty()} className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">

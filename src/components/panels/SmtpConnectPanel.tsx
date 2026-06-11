@@ -382,7 +382,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
                     id="oauth2_access_token"
                     type="password"
                     {...register('oauth2_access_token')}
-                    placeholder="OAuth2 Access Token"
+                    placeholder={getLL().panels.oauthAccessToken()}
                     className="h-8 text-xs font-mono"
                   />
                 </div>

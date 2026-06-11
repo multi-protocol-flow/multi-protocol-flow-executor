@@ -310,7 +310,7 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
         <Input
           id="share_group"
           {...register('share_group')}
-          placeholder="Optional, e.g. group1"
+          placeholder={getLL().panels.groupIdExample()}
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">

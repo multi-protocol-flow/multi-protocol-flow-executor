@@ -586,6 +586,14 @@ const zh_CN_execution: BaseTranslation = {
     iterations: '次迭代',
     success_rate: '成功率',
     unknown_error: '未知错误',
+    debug_continue_failed: '继续执行失败',
+    debug_step_over_failed: '单步执行失败',
+    debug_skip_node_failed: '跳过节点失败',
+    debug_run_to_end_failed: '执行到底失败',
+    debug_set_breakpoint_failed: '设置断点失败',
+    debug_modify_config_failed: '修改配置失败',
+    debug_command_timeout: '命令响应超时，已恢复到之前的状态',
+    debug_heartbeat_timeout: '调试会话无响应（心跳超时）',
   },
   // ===== 画布报告查看器 =====
   canvasReport: {

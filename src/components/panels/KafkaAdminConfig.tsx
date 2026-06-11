@@ -340,7 +340,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
               <Input
                 id="topic_name"
                 {...register('topic_name')}
-                placeholder="my-topic"
+                placeholder={getLL().panels.topicPatternPlaceholder()}
                 className="font-mono text-sm"
               />
             </div>
@@ -377,7 +377,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
               <textarea
                 id="topic_config"
                 {...register('topic_config')}
-                placeholder={"key=value format, one per line\ne.g.:\nretention.ms=604800000\ncleanup.policy=delete"}
+                placeholder={getLL().panels.keyValueFormatHint()}
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 rows={4}
               />
@@ -446,7 +446,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
               }}
             >
               <SelectTrigger className="font-mono text-sm">
-                <SelectValue placeholder="Select operation" />
+                <SelectValue placeholder={getLL().panels.selectOperation()} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Read">Read</SelectItem>
@@ -470,7 +470,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
               }}
             >
               <SelectTrigger className="font-mono text-sm">
-                <SelectValue placeholder="Select permission type" />
+                <SelectValue placeholder={getLL().panels.selectPermissionType()} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Allow">Allow</SelectItem>
@@ -489,7 +489,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
               }}
             >
               <SelectTrigger className="font-mono text-sm">
-                <SelectValue placeholder="Select resource type" />
+                <SelectValue placeholder={getLL().panels.selectResourceType()} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Topic">Topic</SelectItem>
@@ -505,7 +505,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
             <Input
               id="acl_resource_name"
               {...register('acl_resource_name')}
-              placeholder="my-topic or *"
+              placeholder={getLL().panels.topicPatternPlaceholder()}
               className="font-mono text-sm"
             />
           </div>

@@ -158,7 +158,7 @@ export function AmqpPublishConfigPanel({ data, onSave }: Props) {
 
       <div className="space-y-2">
         <Label htmlFor="exchange" className="text-sm font-medium text-foreground">Exchange</Label>
-        <Input id="exchange" {...register('exchange')} placeholder="Leave empty to use default Exchange" className="font-mono text-sm" />
+        <Input id="exchange" {...register('exchange')} placeholder={getLL().panels.leaveEmptyDefaultExchange()} className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">

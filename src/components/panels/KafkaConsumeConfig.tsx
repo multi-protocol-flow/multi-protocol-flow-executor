@@ -239,7 +239,7 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
           <Input
             id="topic"
             {...register('topic')}
-            placeholder="my-topic"
+            placeholder={getLL().panels.topicPatternPlaceholder()}
             className="font-mono text-sm"
           />
           {errors.topic && (
@@ -255,7 +255,7 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
             id="partition"
             type="number"
             {...register('partition', { valueAsNumber: true })}
-            placeholder="-1 = Subscribe all partitions"
+            placeholder={getLL().panels.subscribeAllPartitions()}
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
@@ -271,7 +271,7 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
             id="offset"
             type="number"
             {...register('offset', { valueAsNumber: true })}
-            placeholder="-1 = Use offset reset policy"
+            placeholder={getLL().panels.useOffsetResetPolicy()}
             className="font-mono text-sm"
           />
         </div>
@@ -310,7 +310,7 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
           <Input
             id="group_id"
             {...register('group_id')}
-            placeholder="Optional, leave empty for auto-assignment"
+            placeholder={getLL().panels.autoAssignHint()}
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">

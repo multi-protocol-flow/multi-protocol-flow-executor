@@ -243,7 +243,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
           <Input
             id="target_addr"
             {...register('target_addr')}
-            placeholder="192.168.1.100 or example.com"
+            placeholder={getLL().panels.hostExample()}
             className="pl-9 font-mono text-sm"
           />
         </div>

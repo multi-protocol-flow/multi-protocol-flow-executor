@@ -276,7 +276,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
               id="version"
               type="number"
               {...register('version', { valueAsNumber: true })}
-              placeholder="-1 = Latest version"
+              placeholder={getLL().panels.latestVersionHint()}
               className="font-mono text-sm"
             />
             <p className="text-xs text-muted-foreground">
@@ -295,7 +295,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
             <textarea
               id="schema_definition"
               {...register('schema_definition')}
-              placeholder={'Enter Schema definition (JSON format)\ne.g.:\n{"type": "record", "name": "User", "fields": [...]}'}
+              placeholder={getLL().panels.schemaDefinitionHint()}
               className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               rows={6}
             />

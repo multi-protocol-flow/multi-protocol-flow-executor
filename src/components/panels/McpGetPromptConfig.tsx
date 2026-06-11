@@ -352,7 +352,7 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
             <Input
               id="prompt_name"
               {...register('prompt_name')}
-              placeholder="e.g. code_review, summarize"
+              placeholder={getLL().panels.toolNameExample()}
               className="font-mono text-sm"
             />
             {discoveredPrompts.length > 0 && (

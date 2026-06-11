@@ -77,7 +77,7 @@ export function ImapMovePanel({ data, onSave }: ImapMovePanelProps) {
         <Input
           id="imap-move-uid"
           defaultValue={data.uid_set ?? ''}
-          placeholder="1:10 or 1,3,5"
+          placeholder={getLL().panels.partitionRangeFormat()}
           className="font-mono text-sm"
         />
       </div>

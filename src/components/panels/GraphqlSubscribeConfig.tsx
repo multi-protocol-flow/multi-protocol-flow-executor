@@ -328,7 +328,7 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
         <Input
           id="operation_name"
           {...register('operation_name')}
-          placeholder="Optional, e.g. OnMessage"
+          placeholder={getLL().panels.handlerNameExample()}
           className="font-mono text-sm"
         />
       </div>
@@ -342,7 +342,7 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
           id="max_events"
           type="number"
           {...register('max_events', { valueAsNumber: true })}
-          placeholder="0 = Unlimited"
+          placeholder={getLL().panels.unlimitedHint()}
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">

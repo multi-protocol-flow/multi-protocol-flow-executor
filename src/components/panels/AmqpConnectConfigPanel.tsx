@@ -215,7 +215,7 @@ export function AmqpConnectConfigPanel({ data, onSave }: AmqpConnectConfigPanelP
         <Input
           id="connection_id"
           {...register('connection_id')}
-          placeholder="Auto-generate if empty"
+          placeholder={getLL().panels.autoGenerateIfEmpty()}
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">留空时将自动生成唯一连接 ID</p>

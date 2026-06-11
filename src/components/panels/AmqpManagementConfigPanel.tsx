@@ -143,7 +143,7 @@ export function AmqpManagementConfigPanel({ data, onSave }: Props) {
       {(currentAction === 'list-queues') && (
         <div className="space-y-2">
           <Label htmlFor="queue_name" className="text-sm font-medium text-foreground">队列名称</Label>
-          <Input id="queue_name" {...register('queue_name')} placeholder="Leave empty to query all" className="font-mono text-sm" />
+          <Input id="queue_name" {...register('queue_name')} placeholder={getLL().panels.leaveEmptyQueryAll()} className="font-mono text-sm" />
         </div>
       )}
 

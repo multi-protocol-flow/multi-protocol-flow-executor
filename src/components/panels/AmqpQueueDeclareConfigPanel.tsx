@@ -117,7 +117,7 @@ export function AmqpQueueDeclareConfigPanel({ data, onSave }: Props) {
 
       <div className="space-y-2">
         <Label htmlFor="queue" className="text-sm font-medium text-foreground">队列名称</Label>
-        <Input id="queue" {...register('queue')} placeholder="Auto-generate if empty" className="font-mono text-sm" />
+        <Input id="queue" {...register('queue')} placeholder={getLL().panels.autoGenerateIfEmpty()} className="font-mono text-sm" />
         <p className="text-xs text-muted-foreground">留空时由 Broker 自动生成队列名称</p>
       </div>
 
