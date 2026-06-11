@@ -223,7 +223,7 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
           id="max_events"
           type="number"
           {...register('max_events', { valueAsNumber: true })}
-          placeholder="0 = 不限制"
+          placeholder="0 = Unlimited"
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">

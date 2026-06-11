@@ -624,7 +624,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
                     onValueChange={(val) => handleFormValueChange(field.name, val)}
                   >
                     <SelectTrigger className="h-8 text-xs font-mono">
-                      <SelectValue placeholder={`选择 ${field.name}`} />
+                      <SelectValue placeholder={getLL().panels.selectFieldName({ name: field.name })} />
                     </SelectTrigger>
             <SelectContent className="max-h-[280px]">
                       {field.enum.map((opt) => (
@@ -658,17 +658,17 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
                         handleFormValueChange(field.name, Number(val));
                       }
                     }}
-                    placeholder={field.description || `输入 ${field.name}`}
+                    placeholder={field.description || getLL().panels.enterArg({ name: field.name })}
                     className="h-8 text-xs font-mono"
                   />
                 ) : field.type === 'array' ? (
-                  /* array → 逗号分隔输入 */
+                  /* array → comma-separated input */
                   <Input
                     value={Array.isArray(formValues[field.name])
                       ? (formValues[field.name] as unknown[]).join(', ')
                       : String(formValues[field.name] ?? '')}
                     onChange={(e) => handleArrayValueChange(field.name, e.target.value)}
-                    placeholder={field.description || `逗号分隔输入 ${field.name}`}
+                    placeholder={field.description || getLL().panels.commaSeparatedInput({ name: field.name })}
                     className="h-8 text-xs font-mono"
                   />
                 ) : (
@@ -676,7 +676,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
                   <Input
                     value={String(formValues[field.name] ?? '')}
                     onChange={(e) => handleFormValueChange(field.name, e.target.value)}
-                    placeholder={field.description || `输入 ${field.name}`}
+                    placeholder={field.description || getLL().panels.enterArg({ name: field.name })}
                     className="h-8 text-xs font-mono"
                   />
                 )}

@@ -178,12 +178,12 @@ function startCommandTimeout() {
     
     // 如果命令仍在等待响应，执行回滚
     if (state.isCommandPending && state.previousStatus) {
-      console.warn('[调试] 命令超时，回滚状态');
+      console.warn('[Debug] Command timeout, rolling back state');
       useDebugStore.setState({
         status: state.previousStatus,
         isCommandPending: false,
         previousStatus: null,
-        error: '命令响应超时，已恢复到之前状态',
+        error: 'Command response timeout, restored to previous state',
       });
     }
   }, DEBUG_HEALTH_CONFIG.COMMAND_TIMEOUT_MS);
@@ -329,7 +329,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         status: currentStatus,
         isCommandPending: false,
         previousStatus: null,
-        error: `继续执行失败: ${(error as Error).message}`,
+        error: `Continue execution failed: ${(error as Error).message}`,
       });
     }
   },
@@ -352,7 +352,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         status: currentStatus,
         isCommandPending: false,
         previousStatus: null,
-        error: `单步执行失败: ${(error as Error).message}`,
+        error: `Step over failed: ${(error as Error).message}`,
       });
     }
   },
@@ -380,7 +380,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         status: currentStatus,
         isCommandPending: false,
         previousStatus: null,
-        error: `跳过节点失败: ${(error as Error).message}`,
+        error: `Skip node failed: ${(error as Error).message}`,
       });
     }
   },
@@ -403,7 +403,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         status: currentStatus,
         isCommandPending: false,
         previousStatus: null,
-        error: `执行到底失败: ${(error as Error).message}`,
+        error: `Run to end failed: ${(error as Error).message}`,
       });
     }
   },
@@ -436,7 +436,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         },
       }));
     } catch (error) {
-      set({ error: `修改配置失败: ${(error as Error).message}` });
+      set({ error: `Modify config failed: ${(error as Error).message}` });
     }
   },
 
@@ -448,7 +448,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       // 注意：本地断点状态由 flow store 管理，这里只发送命令到后端
       // 后端会返回 BreakpointModified 事件，但前端断点显示由 flow store 控制
     } catch (error) {
-      set({ error: `设置断点失败: ${(error as Error).message}` });
+      set({ error: `Set breakpoint failed: ${(error as Error).message}` });
     }
   },
 
@@ -548,7 +548,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         // 1. 保存报告到后端
         const reportDir = useSettingsStore.getState().reportDir;
         saveFlowReport(report, reportDir).catch((err) => {
-          console.error('[调试] 保存报告失败:', err);
+          console.error('[Debug] Failed to save report:', err);
         });
 
         // 2. 设置到 executionStore 触发报告弹窗
@@ -610,7 +610,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       // 如果前端状态是 running 但后端状态是 paused，可能是 PausedAtNode 事件丢失
       // 此时需要同步前端状态，让工具栏变为可用
       if (currentStatus === 'running' && backendStatus === 'paused') {
-        console.warn('[调试] 检测到状态不一致，后端为 paused，同步前端状态');
+        console.warn('[Debug] State mismatch detected, backend is paused, syncing frontend state');
         set({
           status: 'paused',
           currentNodeUuid: current_node_uuid || null,
@@ -747,7 +747,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
     
     if (timeSinceLastHeartbeat > DEBUG_HEALTH_CONFIG.HEARTBEAT_TIMEOUT_MS) {
       // 心跳超时，会话可能已死
-      console.error('[调试] 心跳超时，会话可能已死');
+      console.error('[Debug] Heartbeat timeout, session may be dead');
       
       // 清理定时器
       clearAllTimers();
@@ -755,7 +755,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       set({
         status: 'ended',
         healthStatus: 'dead',
-        error: '调试会话失去响应（心跳超时）',
+        error: 'Debug session unresponsive (heartbeat timeout)',
         isCommandPending: false,
         previousStatus: null,
       });
@@ -763,7 +763,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       // 心跳延迟，标记为降级状态
       if (state.healthStatus !== 'degraded') {
         set({ healthStatus: 'degraded' });
-        console.warn('[调试] 心跳延迟，健康状态降级');
+        console.warn('[Debug] Heartbeat delayed, health degraded');
       }
     } else {
       // 心跳正常

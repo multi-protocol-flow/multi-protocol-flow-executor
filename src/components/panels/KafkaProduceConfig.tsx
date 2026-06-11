@@ -283,7 +283,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
           <Input
             id="key"
             {...register('key')}
-            placeholder="可选，用于分区路由"
+            placeholder="Optional, for partition routing"
             className="font-mono text-sm"
           />
         </div>
@@ -405,7 +405,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
             id="partition"
             type="number"
             {...register('partition', { valueAsNumber: true })}
-            placeholder="-1 表示自动选择"
+            placeholder="-1 = Auto select"
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">

@@ -21,6 +21,7 @@ import { useDatasetExecutionStore } from '@/stores/datasetExecution';
 import { listDatasetReports, deleteDatasetReport } from '@/services/tauri';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
+import { useCurrentLocale } from '@/hooks/useLocale';
 
 // ============================================================================
 // 类型定义
@@ -57,28 +58,6 @@ interface UnifiedHistoryItem {
 // ============================================================================
 // 辅助函数
 // ============================================================================
-
-/** 格式化时间戳为可读字符串 */
-function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
-
-  if (isToday) {
-    return date.toLocaleTimeString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  }
-
-  return date.toLocaleDateString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 /** 格式化耗时 */
 function formatDuration(ms: number): string {
@@ -121,6 +100,28 @@ export function ExecutionHistory({ onSelectReport, onRerun: _onRerun, onCompare 
   const openReportDialog = useExecutionStore((state) => state.openReportDialog);
   const reportDir = useSettingsStore((state) => state.reportDir);
   const showConfirm = useUIStore((state) => state.showConfirm);
+  const locale = useCurrentLocale();
+
+  const formatTimestamp = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+
+    if (isToday) {
+      return date.toLocaleTimeString(locale, {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+    }
+
+    return date.toLocaleDateString(locale, {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   // 虚拟化滚动容器引用
   const listParentRef = useRef<HTMLDivElement>(null);

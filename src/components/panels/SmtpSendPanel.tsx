@@ -381,7 +381,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
         <Input
           id="subject"
           {...register('subject')}
-          placeholder="邮件主题"
+          placeholder="Email Subject"
           className="text-sm"
         />
         {errors.subject && (
@@ -417,7 +417,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
         <Textarea
           id="body"
           {...register('body')}
-          placeholder={watch('body_type') === 'html' ? '<h1>Hello</h1><p>邮件内容...</p>' : '邮件正文内容...'}
+          placeholder={watch('body_type') === 'html' ? '<h1>Hello</h1><p>Email body...</p>' : 'Email body...'}
           className={cn(
             "min-h-[120px] resize-y text-xs",
             watch('body_type') === 'html' ? 'font-mono' : ''

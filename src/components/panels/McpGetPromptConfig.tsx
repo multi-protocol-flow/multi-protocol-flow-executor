@@ -352,7 +352,7 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
             <Input
               id="prompt_name"
               {...register('prompt_name')}
-              placeholder="例如：code_review、summarize"
+              placeholder="e.g. code_review, summarize"
               className="font-mono text-sm"
             />
             {discoveredPrompts.length > 0 && (
@@ -404,7 +404,7 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
                 <Input
                   value={argValues[arg.name] ?? ''}
                   onChange={(e) => handleArgValueChange(arg.name, e.target.value)}
-                  placeholder={`输入 ${arg.name}`}
+                  placeholder={getLL().panels.enterArg({ name: arg.name })}
                   className="h-8 text-xs font-mono"
                 />
                 {arg.description && (

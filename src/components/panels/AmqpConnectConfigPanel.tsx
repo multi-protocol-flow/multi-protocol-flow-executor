@@ -215,7 +215,7 @@ export function AmqpConnectConfigPanel({ data, onSave }: AmqpConnectConfigPanelP
         <Input
           id="connection_id"
           {...register('connection_id')}
-          placeholder="留空自动生成"
+          placeholder="Auto-generate if empty"
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">留空时将自动生成唯一连接 ID</p>
@@ -312,7 +312,7 @@ export function AmqpConnectConfigPanel({ data, onSave }: AmqpConnectConfigPanelP
                 id="channel_max"
                 type="number"
                 {...register('channel_max', { valueAsNumber: true })}
-                placeholder="可选"
+                placeholder={getLL().panels.optional()}
                 className="h-8 text-xs font-mono"
               />
             </div>
@@ -322,7 +322,7 @@ export function AmqpConnectConfigPanel({ data, onSave }: AmqpConnectConfigPanelP
                 id="frame_max"
                 type="number"
                 {...register('frame_max', { valueAsNumber: true })}
-                placeholder="可选"
+                placeholder={getLL().panels.optional()}
                 className="h-8 text-xs font-mono"
               />
             </div>

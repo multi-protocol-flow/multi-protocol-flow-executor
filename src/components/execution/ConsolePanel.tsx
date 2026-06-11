@@ -10,6 +10,7 @@ import { useVT } from '@/i18n/viewer-translations';
 import { useThrottledValue } from '@/hooks/useThrottledValue';
 import { Terminal, Info, AlertTriangle, Bug, XCircle } from 'lucide-react';
 import type { LogLevel } from '@/types/events';
+import { useCurrentLocale } from '@/hooks/useLocale';
 
 // 日志级别颜色映射
 const levelColors: Record<LogLevel, string> = {
@@ -27,22 +28,21 @@ const levelIcons: Record<LogLevel, React.ElementType> = {
   ERROR: XCircle,
 };
 
-// 格式化时间戳
-function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-}
-
 interface ConsolePanelProps {
   flowUuid?: string;
 }
 
 export function ConsolePanel({ flowUuid: _flowUuid }: ConsolePanelProps) {
   const vt = useVT();
+  const locale = useCurrentLocale();
+  const formatTimestamp = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  };
   const scrollRef = useRef<HTMLDivElement>(null);
   const rawLogs = useConsoleStore(useShallow((state) => state.logs));
   const logs = useThrottledValue(rawLogs);

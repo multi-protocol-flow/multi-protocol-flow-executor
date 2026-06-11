@@ -197,7 +197,7 @@ export function MqttDisconnectConfig({ data, onSave }: MqttDisconnectConfigProps
             id="reason_code"
             type="number"
             {...register('reason_code', { valueAsNumber: true })}
-            placeholder="可选，如 0（正常断开）"
+            placeholder="Optional, e.g. 0 (Normal disconnection)"
             className="h-8 text-xs font-mono"
           />
         </div>
@@ -207,7 +207,7 @@ export function MqttDisconnectConfig({ data, onSave }: MqttDisconnectConfigProps
             id="session_expiry_interval"
             type="number"
             {...register('session_expiry_interval', { valueAsNumber: true })}
-            placeholder="可选"
+            placeholder={getLL().panels.optional()}
             className="h-8 text-xs font-mono"
           />
         </div>

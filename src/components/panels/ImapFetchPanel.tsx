@@ -79,7 +79,7 @@ export function ImapFetchPanel({ data, onSave }: ImapFetchPanelProps) {
         <Input
           id="imap-uid-set"
           defaultValue={data.uid_set ?? ''}
-          placeholder="1:10 或 1,3,5,7"
+          placeholder="1:10 or 1,3,5,7"
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">

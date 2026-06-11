@@ -8,6 +8,7 @@ import { isImapConnectConfig } from '@/types/node';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /**
  * 获取当前流程中所有 IMAP Connect 节点
@@ -47,7 +48,7 @@ export function ImapConnectionSelector({ value, onChange, connections, error }: 
       {connections.length > 0 ? (
         <Select value={value || ''} onValueChange={onChange}>
           <SelectTrigger className="font-mono">
-            <SelectValue placeholder="选择 IMAP 连接" />
+            <SelectValue placeholder={getLL().panels.selectConnection()} />
           </SelectTrigger>
           <SelectContent>
             {connections.map((conn) => (
@@ -65,7 +66,7 @@ export function ImapConnectionSelector({ value, onChange, connections, error }: 
           <Input
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="输入连接 ID"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">

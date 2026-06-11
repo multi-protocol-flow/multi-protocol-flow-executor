@@ -328,7 +328,7 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
         <Input
           id="operation_name"
           {...register('operation_name')}
-          placeholder="可选，如 OnMessage"
+          placeholder="Optional, e.g. OnMessage"
           className="font-mono text-sm"
         />
       </div>
@@ -342,7 +342,7 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
           id="max_events"
           type="number"
           {...register('max_events', { valueAsNumber: true })}
-          placeholder="0 = 不限制"
+          placeholder="0 = Unlimited"
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">

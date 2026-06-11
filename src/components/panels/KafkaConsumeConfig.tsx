@@ -255,7 +255,7 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
             id="partition"
             type="number"
             {...register('partition', { valueAsNumber: true })}
-            placeholder="-1 表示订阅所有分区"
+            placeholder="-1 = Subscribe all partitions"
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
@@ -271,7 +271,7 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
             id="offset"
             type="number"
             {...register('offset', { valueAsNumber: true })}
-            placeholder="-1 使用偏移重置策略"
+            placeholder="-1 = Use offset reset policy"
             className="font-mono text-sm"
           />
         </div>
@@ -310,7 +310,7 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
           <Input
             id="group_id"
             {...register('group_id')}
-            placeholder="可选，留空使用自动分配"
+            placeholder="Optional, leave empty for auto-assignment"
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">

@@ -286,7 +286,7 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
             id="max_messages"
             type="number"
             {...register('max_messages', { valueAsNumber: true })}
-            placeholder="可选"
+            placeholder={getLL().panels.optional()}
             className="h-8 text-xs font-mono"
           />
         </div>
@@ -296,7 +296,7 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
             id="collect_timeout_ms"
             type="number"
             {...register('collect_timeout_ms', { valueAsNumber: true })}
-            placeholder="可选"
+            placeholder={getLL().panels.optional()}
             className="h-8 text-xs font-mono"
           />
         </div>
@@ -310,7 +310,7 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
         <Input
           id="share_group"
           {...register('share_group')}
-          placeholder="可选，如 group1"
+          placeholder="Optional, e.g. group1"
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
@@ -387,7 +387,7 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
                 id="subscription_identifier"
                 type="number"
                 {...register('subscription_identifier', { valueAsNumber: true })}
-                placeholder="可选"
+                placeholder={getLL().panels.optional()}
                 className="h-8 text-xs font-mono"
               />
             </div>

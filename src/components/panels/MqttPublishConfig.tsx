@@ -382,7 +382,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
                 id="message_expiry_interval"
                 type="number"
                 {...register('message_expiry_interval', { valueAsNumber: true })}
-                placeholder="可选"
+                placeholder={getLL().panels.optional()}
                 className="h-8 text-xs font-mono"
               />
             </div>
@@ -400,7 +400,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
               <Input
                 id="correlation_data"
                 {...register('correlation_data')}
-                placeholder="可选"
+                placeholder={getLL().panels.optional()}
                 className="h-8 text-xs font-mono"
               />
             </div>
@@ -410,7 +410,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
                 id="topic_alias"
                 type="number"
                 {...register('topic_alias', { valueAsNumber: true })}
-                placeholder="可选"
+                placeholder={getLL().panels.optional()}
                 className="h-8 text-xs font-mono"
               />
             </div>

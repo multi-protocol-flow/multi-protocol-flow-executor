@@ -77,7 +77,7 @@ export function ImapCopyPanel({ data, onSave }: ImapCopyPanelProps) {
         <Input
           id="imap-copy-uid"
           defaultValue={data.uid_set ?? ''}
-          placeholder="1:10 或 1,3,5"
+          placeholder="1:10 or 1,3,5"
           className="font-mono text-sm"
         />
       </div>

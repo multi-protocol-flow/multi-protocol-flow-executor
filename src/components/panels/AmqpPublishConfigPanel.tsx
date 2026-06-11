@@ -158,7 +158,7 @@ export function AmqpPublishConfigPanel({ data, onSave }: Props) {
 
       <div className="space-y-2">
         <Label htmlFor="exchange" className="text-sm font-medium text-foreground">Exchange</Label>
-        <Input id="exchange" {...register('exchange')} placeholder="留空使用默认 Exchange" className="font-mono text-sm" />
+        <Input id="exchange" {...register('exchange')} placeholder="Leave empty to use default Exchange" className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">
@@ -233,15 +233,15 @@ export function AmqpPublishConfigPanel({ data, onSave }: Props) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="message_id" className="text-xs font-medium text-foreground">消息 ID</Label>
-              <Input id="message_id" {...register('message_id')} placeholder="可选" className="h-8 text-xs font-mono" />
+              <Input id="message_id" {...register('message_id')} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="correlation_id" className="text-xs font-medium text-foreground">关联 ID</Label>
-              <Input id="correlation_id" {...register('correlation_id')} placeholder="可选" className="h-8 text-xs font-mono" />
+              <Input id="correlation_id" {...register('correlation_id')} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="reply_to" className="text-xs font-medium text-foreground">回复队列</Label>
-              <Input id="reply_to" {...register('reply_to')} placeholder="可选" className="h-8 text-xs font-mono" />
+              <Input id="reply_to" {...register('reply_to')} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="expiration" className="text-xs font-medium text-foreground">过期时间</Label>
@@ -249,15 +249,15 @@ export function AmqpPublishConfigPanel({ data, onSave }: Props) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="message_type" className="text-xs font-medium text-foreground">消息类型</Label>
-              <Input id="message_type" {...register('message_type')} placeholder="可选" className="h-8 text-xs font-mono" />
+              <Input id="message_type" {...register('message_type')} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="user_id" className="text-xs font-medium text-foreground">用户 ID</Label>
-              <Input id="user_id" {...register('user_id')} placeholder="可选" className="h-8 text-xs font-mono" />
+              <Input id="user_id" {...register('user_id')} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="app_id" className="text-xs font-medium text-foreground">应用 ID</Label>
-              <Input id="app_id" {...register('app_id')} placeholder="可选" className="h-8 text-xs font-mono" />
+              <Input id="app_id" {...register('app_id')} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
           </div>
         )}

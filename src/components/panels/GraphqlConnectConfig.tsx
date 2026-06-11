@@ -276,7 +276,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
         <Input
           id="ws_endpoint"
           {...register('ws_endpoint')}
-          placeholder="wss://api.example.com/graphql (用于订阅)"
+          placeholder="wss://api.example.com/graphql (for subscriptions)"
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
@@ -358,7 +358,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
         <Input
           id="connection_id"
           {...register('connection_id')}
-          placeholder="可选，自动生成"
+          placeholder="Optional, auto-generated"
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">

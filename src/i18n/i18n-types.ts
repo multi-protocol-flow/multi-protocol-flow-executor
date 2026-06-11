@@ -734,6 +734,18 @@ type RootTranslation = {
 		 */
 		none: string
 		/**
+		 * 输​入​ ​{​n​a​m​e​}
+		 */
+		enterArg: RequiredParams<'name'>
+		/**
+		 * 逗​号​分​隔​输​入​ ​{​n​a​m​e​}
+		 */
+		commaSeparatedInput: RequiredParams<'name'>
+		/**
+		 * 选​择​ ​{​n​a​m​e​}
+		 */
+		selectFieldName: RequiredParams<'name'>
+		/**
 		 * 关​闭
 		 */
 		close: string
@@ -12130,6 +12142,18 @@ export type TranslationFunctions = {
 		 * 无
 		 */
 		none: () => LocalizedString
+		/**
+		 * 输入 {name}
+		 */
+		enterArg: (arg: { name: string }) => LocalizedString
+		/**
+		 * 逗号分隔输入 {name}
+		 */
+		commaSeparatedInput: (arg: { name: string }) => LocalizedString
+		/**
+		 * 选择 {name}
+		 */
+		selectFieldName: (arg: { name: string }) => LocalizedString
 		/**
 		 * 关闭
 		 */

@@ -308,7 +308,7 @@ export async function scanProtoDirectory(
     return scanProtoDirectoryImpl(dirPath);
   } else {
     // Mock 环境返回空结果
-    return { success: false, files: [], import_path: null, error: 'Mock 环境不支持目录扫描' };
+    return { success: false, files: [], import_path: null, error: 'Mock environment does not support directory scanning' };
   }
 }
 
@@ -326,7 +326,7 @@ export async function readProtoFiles(
     const { readProtoFiles: readProtoFilesImpl } = await import('./grpc');
     return readProtoFilesImpl(filePaths);
   } else {
-    return { success: false, files: [], error: 'Mock 环境不支持文件读取' };
+    return { success: false, files: [], error: 'Mock environment does not support file reading' };
   }
 }
 
@@ -345,7 +345,7 @@ export async function parseDescriptorSet(
     return parseDescriptorSetImpl(filePath);
   } else {
     // Mock 环境返回空结果
-    return { success: false, services: [], error: 'Mock 环境不支持 Descriptor Set 解析' };
+    return { success: false, services: [], error: 'Mock environment does not support Descriptor Set parsing' };
   }
 }
 
@@ -373,7 +373,7 @@ export async function validateGrpcRequest(
       if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
         return {
           success: true,
-          result: { valid: false, errors: [{ path: '', message: '期望 JSON 对象' }] },
+          result: { valid: false, errors: [{ path: '', message: 'Expected a JSON object' }] },
           error: null,
         };
       }
@@ -381,7 +381,7 @@ export async function validateGrpcRequest(
     } catch (e) {
       return {
         success: true,
-        result: { valid: false, errors: [{ path: '', message: `JSON 语法错误: ${e}` }] },
+        result: { valid: false, errors: [{ path: '', message: `JSON syntax error: ${e}` }] },
         error: null,
       };
     }

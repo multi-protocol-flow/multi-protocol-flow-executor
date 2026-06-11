@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { getLL } from '@/i18n/i18n-lazy';
+import { useCurrentLocale } from '@/hooks/useLocale';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,19 +35,6 @@ import {
 import type { DatasetReportSummary } from '@/types/dataset';
 import { cn } from '@/lib/utils';
 
-/** 格式化时间戳 */
-function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-}
-
 interface DatasetReportListProps {
   /** 查看报告详情 */
   onViewReport: (reportId: string) => void;
@@ -54,6 +42,20 @@ interface DatasetReportListProps {
 
 export function DatasetReportList({ onViewReport }: DatasetReportListProps) {
   const ll = getLL();
+  const locale = useCurrentLocale();
+
+  const formatTimestamp = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    return date.toLocaleString(locale, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  };
+
   const [reports, setReports] = useState<DatasetReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const reportDir = useSettingsStore((state) => state.reportDir);

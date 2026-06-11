@@ -12,36 +12,37 @@ import { stressTestStorage } from '@/services/storage/stressTestStorage';
 import { useUIStore } from '@/stores';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
+import { useCurrentLocale } from '@/hooks/useLocale';
 import type { StressTestReport } from '@/types/stressTest';
-
-/** 格式化时间戳为可读字符串 */
-function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
-
-  if (isToday) {
-    return date.toLocaleTimeString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  }
-
-  return date.toLocaleDateString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 export function StressTestHistory() {
   const ll = getLL();
+  const locale = useCurrentLocale();
   const history = useStressTestStore(selectStressTestHistory);
   const loadHistory = useStressTestStore((state) => state.loadHistory);
   const openReportDialog = useStressTestStore((state) => state.openReportDialog);
   const showConfirm = useUIStore((state) => state.showConfirm);
+
+  const formatTimestamp = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+
+    if (isToday) {
+      return date.toLocaleTimeString(locale, {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+    }
+
+    return date.toLocaleDateString(locale, {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   const [loading, setLoading] = useState(false);
   const [localHistory, setLocalHistory] = useState(history);

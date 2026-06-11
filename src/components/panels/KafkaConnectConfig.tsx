@@ -220,7 +220,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
           <Input
             id="client_id"
             {...register('client_id')}
-            placeholder="留空自动生成"
+            placeholder="Auto-generate if empty"
             className="font-mono text-sm"
           />
         </div>
@@ -291,22 +291,22 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
                 <Label htmlFor="sasl_username" className="text-sm font-medium text-foreground">
                   SASL 用户名
                 </Label>
-                <Input
-                  id="sasl_username"
-                  {...register('sasl_username')}
-                  placeholder="可选"
-                  className="font-mono text-sm"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sasl_password" className="text-sm font-medium text-foreground">
-                  SASL 密码
-                </Label>
-                <Input
-                  id="sasl_password"
-                  type="password"
-                  {...register('sasl_password')}
-                  placeholder="可选"
+                  <Input
+                    id="sasl_username"
+                    {...register('sasl_username')}
+                    placeholder={getLL().panels.optional()}
+                    className="font-mono text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sasl_password" className="text-sm font-medium text-foreground">
+                    SASL 密码
+                  </Label>
+                  <Input
+                    id="sasl_password"
+                    type="password"
+                    {...register('sasl_password')}
+                    placeholder={getLL().panels.optional()}
                   className="font-mono text-sm"
                 />
               </div>
@@ -402,20 +402,20 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
           <>
             <div className="space-y-2">
               <Label htmlFor="schema_registry_username" className="text-xs font-medium text-foreground">用户名</Label>
-              <Input
-                id="schema_registry_username"
-                {...register('schema_registry_username')}
-                placeholder="可选"
-                className="h-8 text-xs font-mono"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="schema_registry_password" className="text-xs font-medium text-foreground">密码</Label>
-              <Input
-                id="schema_registry_password"
-                type="password"
-                {...register('schema_registry_password')}
-                placeholder="可选"
+                <Input
+                    id="schema_registry_username"
+                    {...register('schema_registry_username')}
+                    placeholder={getLL().panels.optional()}
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="schema_registry_password" className="text-xs font-medium text-foreground">密码</Label>
+                  <Input
+                    id="schema_registry_password"
+                    type="password"
+                    {...register('schema_registry_password')}
+                    placeholder={getLL().panels.optional()}
                 className="h-8 text-xs font-mono"
               />
             </div>

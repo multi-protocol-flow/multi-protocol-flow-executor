@@ -142,7 +142,7 @@ export function AmqpConsumeConfigPanel({ data, onSave }: Props) {
 
       <div className="space-y-2">
         <Label htmlFor="consumer_tag" className="text-sm font-medium text-foreground">消费者标签</Label>
-        <Input id="consumer_tag" {...register('consumer_tag')} placeholder="留空自动生成" className="font-mono text-sm" />
+        <Input id="consumer_tag" {...register('consumer_tag')} placeholder="Auto-generate if empty" className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">

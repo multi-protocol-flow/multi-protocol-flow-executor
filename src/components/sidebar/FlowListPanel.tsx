@@ -18,22 +18,7 @@ import { DEMO_FLOW, WS_DEMO_FLOW, BUILTIN_FLOW_VERSION } from '@/templates/built
 import { cn } from '@/lib/utils';
 import type { Flow } from '@/types/flow';
 import { getLL } from '@/i18n/i18n-lazy';
-
-/** 格式化时间为相对时间 */
-function formatRelativeTime(timestamp: number, locale: string = 'zh-CN'): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return rtf.format(0, 'second');
-  if (minutes < 60) return rtf.format(-minutes, 'minute');
-  if (hours < 24) return rtf.format(-hours, 'hour');
-  if (days < 7) return rtf.format(-days, 'day');
-  return new Date(timestamp).toLocaleDateString(locale);
-}
+import { useCurrentLocale } from '@/hooks/useLocale';
 
 export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUuid, onCreateFolderTrigger }: { showHeader?: boolean; disabled?: boolean; debugFlowUuid?: string | null; onCreateFolderTrigger?: (fn: () => void) => void }) {
   const { setFlows, addFlow: addFlowToList, removeFlow: removeFlowFromList } = useFlowListStore();
@@ -41,6 +26,22 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
   const { openNewFlowDialog, showConfirm } = useUIStore();
   const flowsDir = useSettingsStore((state) => state.flowsDir);
   const settingsLoading = useSettingsStore((state) => state.isLoading);
+  const locale = useCurrentLocale();
+
+  const formatRelativeTime = (timestamp: number): string => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return rtf.format(0, 'second');
+    if (minutes < 60) return rtf.format(-minutes, 'minute');
+    if (hours < 24) return rtf.format(-hours, 'hour');
+    if (days < 7) return rtf.format(-days, 'day');
+    return new Date(timestamp).toLocaleDateString(locale);
+  };
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -682,13 +683,13 @@ export function FlowListPanel({ showHeader = true, disabled = false, debugFlowUu
       }
     }
 
-    rootPaths.sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    rootPaths.sort((a, b) => a.localeCompare(b, locale));
     for (const [, children] of childrenMap) {
-      children.sort((a, b) => a.localeCompare(b, 'zh-CN'));
+      children.sort((a, b) => a.localeCompare(b, locale));
     }
 
     return { rootPaths, childrenMap };
-  }, [folders]);
+  }, [folders, locale]);
 
   // ===== 渲染流程项 =====
   const renderFlowItem = (flowMeta: typeof flows[number], depth: number) => {
