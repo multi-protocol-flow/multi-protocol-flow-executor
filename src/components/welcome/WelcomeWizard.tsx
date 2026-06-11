@@ -48,17 +48,17 @@ export function WelcomeWizard({ children }: WelcomeWizardProps) {
           <GuideHighlighter targetSelector="[data-guide='app-logo']" tooltipPosition="bottom">
             <Card className="w-80 shadow-xl border-primary/20">
               <CardHeader>
-                <CardTitle>{welcome.welcome_step1_title?.() || '欢迎使用 MPE'}</CardTitle>
+                <CardTitle>                  {welcome.welcome_step1_title?.() || 'Welcome to MPE'}</CardTitle>
                 <CardDescription>
-                  {welcome.welcome_step1_desc?.() || '多协议流程编排与执行引擎'}
+                  {welcome.welcome_step1_desc?.() || 'Multi-Protocol Flow Orchestration & Execution Engine'}
                 </CardDescription>
               </CardHeader>
               <CardFooter className="flex justify-between">
                 <Button variant="ghost" size="sm" onClick={finishWizard}>
-                  {welcome.welcome_skip?.() || '跳过引导'}
+                  {welcome.welcome_skip?.() || 'Skip Tutorial'}
                 </Button>
                 <Button size="sm" onClick={() => setStep(2)}>
-                  {welcome.welcome_step1_action?.() || '开始使用'}
+                  {welcome.welcome_step1_action?.() || 'Get Started'}
                 </Button>
               </CardFooter>
             </Card>
@@ -69,17 +69,17 @@ export function WelcomeWizard({ children }: WelcomeWizardProps) {
           <GuideHighlighter targetSelector="[data-guide='new-flow-btn']" tooltipPosition="right">
             <Card className="w-80 shadow-xl border-primary/20">
               <CardHeader>
-                <CardTitle>{welcome.welcome_step2_title?.() || '创建你的第一个流程'}</CardTitle>
+                <CardTitle>{welcome.welcome_step2_title?.() || 'Create Your First Flow'}</CardTitle>
                 <CardDescription>
-                  {welcome.welcome_step2_desc?.() || '点击左侧「新建流程」按钮开始编排'}
+                  {welcome.welcome_step2_desc?.() || 'Click "New Flow" on the left to start building'}
                 </CardDescription>
               </CardHeader>
               <CardFooter className="flex justify-between">
                 <Button variant="ghost" size="sm" onClick={finishWizard}>
-                  {welcome.welcome_skip?.() || '跳过引导'}
+                  {welcome.welcome_skip?.() || 'Skip Tutorial'}
                 </Button>
                 <Button size="sm" onClick={finishWizard}>
-                  {welcome.welcome_step2_action?.() || '我知道了'}
+                  {welcome.welcome_step2_action?.() || 'Got It'}
                 </Button>
               </CardFooter>
             </Card>
@@ -90,14 +90,14 @@ export function WelcomeWizard({ children }: WelcomeWizardProps) {
           <GuideHighlighter targetSelector="[data-guide='canvas-area']" tooltipPosition="bottom">
             <Card className="w-80 shadow-xl border-primary/20">
               <CardHeader>
-                <CardTitle>{welcome.welcome_step3_title?.() || '配置并执行'}</CardTitle>
+                <CardTitle>{welcome.welcome_step3_title?.() || 'Configure & Execute'}</CardTitle>
                 <CardDescription>
-                  {welcome.welcome_step3_desc?.() || '选中节点配置参数并执行流程'}
+                  {welcome.welcome_step3_desc?.() || 'Select a node, configure parameters, and execute'}
                 </CardDescription>
               </CardHeader>
               <CardFooter className="flex justify-end">
                 <Button size="sm" onClick={finishWizard}>
-                  {welcome.welcome_step3_action?.() || '开始编排'}
+                  {welcome.welcome_step3_action?.() || 'Start Building'}
                 </Button>
               </CardFooter>
             </Card>

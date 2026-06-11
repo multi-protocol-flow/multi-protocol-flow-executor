@@ -133,6 +133,15 @@ const zh_CN_panels: BaseTranslation = {
     bodyTypeHtml: 'Body (HTML)',
     bodyTypeXml: 'Body (XML)',
     bodyTypeJavascript: 'Body (JavaScript)',
+    headersLabel: '请求头',
+    headerNamePlaceholder: 'Header 名称',
+    formFieldsLabel: 'Form Fields',
+    formFieldKeyPlaceholder: '键名',
+    formFieldTypeText: '文本',
+    formFieldTypeFile: '文件',
+    curlCopyButton: '复制为 cURL 命令',
+    curlCopySuccess: 'cURL 命令已复制到剪贴板',
+    curlCopyFailed: '复制失败',
   },
 
   dbCommon: {
@@ -1178,6 +1187,12 @@ const zh_CN_panels: BaseTranslation = {
     connectionId: '连接 ID',
     noConnectNode: '未检测到 GraphQL Connect 节点，请手动输入连接 ID',
     closeInfoLine1: '关闭连接后将释放 GraphQL 连接资源',
+  },
+  graphql_field: {
+    field_count: '{count} 个字段',
+    generate_query: '生成查询',
+    no_fields: '暂无可用字段',
+    required: '*必填',
   },
   kafkaConnect: {
     title: 'Kafka 连接节点',

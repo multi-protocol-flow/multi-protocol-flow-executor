@@ -142,14 +142,29 @@ const HTTP_METHODS = [
   { value: 'options', label: 'OPTIONS', color: 'text-gray-500' },
 ] as const;
 
-/** 根据 Content-Type 返回对应的 Body 标签和占位提示 */
-const BODY_CONTENT_TYPE_META: Record<string, { label: string; placeholder: string }> = {
-  json: { label: 'Body (JSON)', placeholder: '{"key": "value"}' },
-  text: { label: 'Body (Text)', placeholder: 'Enter text content...' },
-  html: { label: 'Body (HTML)', placeholder: '<div>...</div>' },
-  xml: { label: 'Body (XML)', placeholder: '<root>\n  <item>value</item>\n</root>' },
-  javascript: { label: 'Body (JavaScript)', placeholder: '// JavaScript code\n' },
-};
+/** 根据 Content-Type 返回对应的 Body 标签 */
+function getBodyTypeLabel(contentType: string): string {
+  const labels: Record<string, () => string> = {
+    json: () => getLL().panels.http.bodyTypeJson(),
+    text: () => getLL().panels.http.bodyTypeText(),
+    html: () => getLL().panels.http.bodyTypeHtml(),
+    xml: () => getLL().panels.http.bodyTypeXml(),
+    javascript: () => getLL().panels.http.bodyTypeJavascript(),
+  };
+  return (labels[contentType] ?? labels.json)();
+}
+
+/** 根据 Content-Type 返回对应的占位提示 */
+function getBodyPlaceholder(contentType: string): string {
+  const placeholders: Record<string, string> = {
+    json: '{"key": "value"}',
+    text: 'Enter text content...',
+    html: '<div>...</div>',
+    xml: '<root>\n  <item>value</item>\n</root>',
+    javascript: '// JavaScript code\n',
+  };
+  return placeholders[contentType] ?? placeholders.json;
+}
 
 export function HttpConfig({ data, onSave }: HttpConfigProps) {
   const {
@@ -457,9 +472,9 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
 
     const command = generateCurlCommand(options);
     navigator.clipboard.writeText(command).then(() => {
-      toast.success('cURL 命令已复制到剪贴板');
+      toast.success(getLL().panels.http.curlCopySuccess());
     }).catch(() => {
-      toast.error('复制失败');
+      toast.error(getLL().panels.http.curlCopyFailed());
     });
   }, [getValues]);
 
@@ -696,7 +711,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {/* URL 输入 */}
       <div className="space-y-2">
         <Label htmlFor="url" className="text-sm font-medium text-foreground">
-          URL <span className="text-rose-500">*</span>
+          {getLL().panels.url()} <span className="text-rose-500">*</span>
         </Label>
         <VariableInput
           id="url"
@@ -762,7 +777,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {/* Headers 编辑器 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">Headers</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.http.headersLabel()}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -785,7 +800,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                 <div className="flex items-center gap-2">
                   <Input
                     {...register(`headers.${index}.key`)}
-                    placeholder="Header Name"
+                    placeholder={getLL().panels.http.headerNamePlaceholder()}
                     className="h-8 flex-1 font-mono text-xs"
                   />
                   <Button
@@ -803,7 +818,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   nodeLabels={nodeLabels}
                   value={watch(`headers.${index}.value`) || ''}
                   onValueChange={(value) => setValue(`headers.${index}.value`, value, { shouldDirty: true })}
-                  placeholder="Value"
+                  placeholder={getLL().panels.http.value()}
                   className="h-8 flex-1 font-mono text-xs"
                 />
                 <VariableValidationWarning
@@ -845,12 +860,12 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {watchedBodyType === 'body' && (
         <div className="space-y-2">
           <Label htmlFor="body" className="text-sm font-medium text-foreground">
-            {(BODY_CONTENT_TYPE_META[watchedContentType] ?? BODY_CONTENT_TYPE_META.json).label}
+            {getBodyTypeLabel(watchedContentType)}
           </Label>
           <Textarea
             id="body"
             {...register('body')}
-            placeholder={(BODY_CONTENT_TYPE_META[watchedContentType] ?? BODY_CONTENT_TYPE_META.json).placeholder}
+            placeholder={getBodyPlaceholder(watchedContentType)}
             className="min-h-[120px] resize-y font-mono text-sm"
             rows={5}
           />
@@ -868,7 +883,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {watchedBodyType === 'body' && (
         <div className="space-y-2">
           <Label htmlFor="content_type" className="text-sm font-medium text-foreground">
-            Content-Type
+            {getLL().panels.http.contentType()}
           </Label>
           <Select
             value={watch('content_type') || 'json'}
@@ -881,11 +896,11 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
               <SelectValue placeholder={getLL().panels.http.selectContentType()} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="json">JSON</SelectItem>
-              <SelectItem value="text">Text</SelectItem>
-              <SelectItem value="html">HTML</SelectItem>
-              <SelectItem value="xml">XML</SelectItem>
-              <SelectItem value="javascript">JavaScript</SelectItem>
+              <SelectItem value="json">{getLL().panels.http.bodyTypeJson()}</SelectItem>
+              <SelectItem value="text">{getLL().panels.http.bodyTypeText()}</SelectItem>
+              <SelectItem value="html">{getLL().panels.http.bodyTypeHtml()}</SelectItem>
+              <SelectItem value="xml">{getLL().panels.http.bodyTypeXml()}</SelectItem>
+              <SelectItem value="javascript">{getLL().panels.http.bodyTypeJavascript()}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -895,7 +910,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
       {['form-data', 'x-www-form-urlencoded'].includes(watchedBodyType || '') && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium text-foreground">Form Fields</Label>
+            <Label className="text-sm font-medium text-foreground">{getLL().panels.http.formFieldsLabel()}</Label>
             <Button
               type="button"
               variant="ghost"
@@ -922,11 +937,11 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                     <div key={field.id} className="space-y-2 p-3 rounded-md border bg-muted/30">
                       {/* 第一行：Key + 类型 + 删除 */}
                       <div className="flex items-center gap-2">
-                        <Input
-                          {...register(`form_fields.${index}.key`)}
-                          placeholder="Key"
-                          className="h-8 flex-1 font-mono text-xs"
-                        />
+                          <Input
+                            {...register(`form_fields.${index}.key`)}
+                            placeholder={getLL().panels.http.formFieldKeyPlaceholder()}
+                            className="h-8 flex-1 font-mono text-xs"
+                          />
                         {/* 类型选择器：仅 form-data 显示 */}
                         {isFormData && (
                           <Select
@@ -945,8 +960,8 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="text">Text</SelectItem>
-                              <SelectItem value="file">File</SelectItem>
+                              <SelectItem value="text">{getLL().panels.http.formFieldTypeText()}</SelectItem>
+                              <SelectItem value="file">{getLL().panels.http.formFieldTypeFile()}</SelectItem>
                             </SelectContent>
                           </Select>
                         )}
@@ -992,7 +1007,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                           nodeLabels={nodeLabels}
                           value={watch(`form_fields.${index}.value`) || ''}
                           onValueChange={(value) => setValue(`form_fields.${index}.value`, value, { shouldDirty: true })}
-                          placeholder="Value"
+                          placeholder={getLL().panels.http.value()}
                           className="h-8 flex-1 font-mono text-xs"
                         />
                       )}
@@ -1358,7 +1373,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label className="text-xs text-muted-foreground">{getLL().panels.http.autoDecompress()}</Label>
-                      <p className="text-xs text-muted-foreground/60 mt-0.5">gzip / deflate / brotli</p>
+                      <p className="text-xs text-muted-foreground/60 mt-0.5">{getLL().panels.http.gzipDeflateBrotli()}</p>
                     </div>
                     <Switch
                       checked={watch('accept_encoding') ?? true}
@@ -1588,7 +1603,7 @@ export function HttpConfig({ data, onSave }: HttpConfigProps) {
           onClick={handleCopyCurl}
         >
           <Terminal className="h-3 w-3" />
-          复制为 cURL 命令
+          {getLL().panels.http.curlCopyButton()}
         </Button>
       </div>
 

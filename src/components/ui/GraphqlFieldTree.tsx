@@ -7,6 +7,7 @@
 import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
 import {
   generateQueryFromSelection,
   type FieldNode,
@@ -134,7 +135,7 @@ export function GraphqlFieldTree({
             {title}
           </span>
           <span className="text-muted-foreground font-normal normal-case text-[11px]">
-            {tree.length} 个字段
+            {getLL().panels.graphql_field.field_count({ count: tree.length })}
           </span>
         </span>
         <Button
@@ -146,7 +147,7 @@ export function GraphqlFieldTree({
           className="h-7 text-[11px] px-2.5 gap-1"
         >
           <SendIcon />
-          生成查询
+          {getLL().panels.graphql_field.generate_query()}
         </Button>
       </div>
 
@@ -154,7 +155,7 @@ export function GraphqlFieldTree({
       <div className="overflow-y-auto p-1.5 space-y-0.5" style={{ maxHeight }}>
         {tree.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-4">
-            暂无可用字段
+            {getLL().panels.graphql_field.no_fields()}
           </p>
         ) : (
           tree.map((node, idx) => (
@@ -298,7 +299,7 @@ function FieldTreeNode({
                   </span>
                   {arg.isRequired && (
                     <span className="text-red-500 dark:text-red-400">
-                      *必填
+                      {getLL().panels.graphql_field.required()}
                     </span>
                   )}
                   {arg.defaultValue !== null && (

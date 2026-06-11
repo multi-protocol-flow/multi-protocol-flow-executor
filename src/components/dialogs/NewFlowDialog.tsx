@@ -72,10 +72,10 @@ export function NewFlowDialog() {
 
   // 国际化分类标签
   const categories = useMemo(() => [
-    { value: 'all' as const, label: W.template_category_all?.() || '全部', color: CATEGORY_COLORS.all },
+    { value: 'all' as const, label: W.template_category_all?.() || 'All', color: CATEGORY_COLORS.all },
     { value: 'http' as const, label: W.template_category_http?.() || 'HTTP', color: CATEGORY_COLORS.http },
     { value: 'websocket' as const, label: W.template_category_websocket?.() || 'WebSocket', color: CATEGORY_COLORS.websocket },
-    { value: 'database' as const, label: W.template_category_database?.() || '数据库', color: CATEGORY_COLORS.database },
+    { value: 'database' as const, label: W.template_category_database?.() || 'Database', color: CATEGORY_COLORS.database },
     { value: 'mqtt' as const, label: W.template_category_mqtt?.() || 'MQTT', color: CATEGORY_COLORS.mqtt },
     { value: 'grpc' as const, label: W.template_category_grpc?.() || 'gRPC', color: CATEGORY_COLORS.grpc },
     { value: 'kafka' as const, label: W.template_category_kafka?.() || 'Kafka', color: CATEGORY_COLORS.kafka },
@@ -87,14 +87,14 @@ export function NewFlowDialog() {
     { value: 'imap' as const, label: W.template_category_imap?.() || 'IMAP', color: CATEGORY_COLORS.imap },
     { value: 'sse' as const, label: W.template_category_sse?.() || 'SSE', color: CATEGORY_COLORS.sse },
     { value: 'mcp' as const, label: W.template_category_mcp?.() || 'MCP', color: CATEGORY_COLORS.mcp },
-    { value: 'script' as const, label: W.template_category_script?.() || '脚本', color: CATEGORY_COLORS.script },
-    { value: 'combination' as const, label: W.template_category_combination?.() || '组合', color: CATEGORY_COLORS.combination },
+    { value: 'script' as const, label: W.template_category_script?.() || 'Script', color: CATEGORY_COLORS.script },
+    { value: 'combination' as const, label: W.template_category_combination?.() || 'Combined', color: CATEGORY_COLORS.combination },
   ], [W]);
 
   const difficultyLabel: Record<string, string> = useMemo(() => ({
-    beginner: W.template_difficulty_beginner?.() || '入门',
-    intermediate: W.template_difficulty_intermediate?.() || '进阶',
-    advanced: W.template_difficulty_advanced?.() || '高级',
+    beginner: W.template_difficulty_beginner?.() || 'Beginner',
+    intermediate: W.template_difficulty_intermediate?.() || 'Intermediate',
+    advanced: W.template_difficulty_advanced?.() || 'Advanced',
   }), [W]);
 
   // 筛选后的模板列表
@@ -204,8 +204,8 @@ export function NewFlowDialog() {
 
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as 'blank' | 'template'); setSelectedTemplate(null); }}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="blank">{W.blank_tab_title?.() || '空白'}</TabsTrigger>
-            <TabsTrigger value="template">{W.template_tab_title?.() || '模板'}</TabsTrigger>
+            <TabsTrigger value="blank">{W.blank_tab_title?.() || 'Blank'}</TabsTrigger>
+            <TabsTrigger value="template">{W.template_tab_title?.() || 'Templates'}</TabsTrigger>
           </TabsList>
 
           {/* ── 空白创建 Tab ── */}
@@ -245,7 +245,7 @@ export function NewFlowDialog() {
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder={W.template_search_placeholder?.() || '搜索模板...'}
+                placeholder={W.template_search_placeholder?.() || 'Search templates...'}
                 value={templateSearch}
                 onChange={(e) => setTemplateSearch(e.target.value)}
                 className="pl-8"
@@ -272,7 +272,7 @@ export function NewFlowDialog() {
             {/* 模板网格 */}
             {filteredTemplates.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">
-                {W.template_no_matches?.() || '没有找到匹配的模板'}
+                {W.template_no_matches?.() || 'No matching templates found'}
               </div>
             ) : (
               <ScrollArea className="h-[320px] rounded-md border">
@@ -332,7 +332,7 @@ export function NewFlowDialog() {
             </Button>
           ) : (
             <Button onClick={handleUseTemplate} disabled={isLoading || !selectedTemplate}>
-              {isLoading ? (W.template_creating?.() || '创建中...') : (W.template_use?.() || '使用此模板')}
+              {isLoading ? (W.template_creating?.() || 'Creating...') : (W.template_use?.() || 'Use this template')}
             </Button>
           )}
         </DialogFooter>

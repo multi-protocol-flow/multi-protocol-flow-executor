@@ -1132,6 +1132,42 @@ type RootTranslation = {
 			 * B​o​d​y​ ​(​J​a​v​a​S​c​r​i​p​t​)
 			 */
 			bodyTypeJavascript: string
+			/**
+			 * H​e​a​d​e​r​s
+			 */
+			headersLabel: string
+			/**
+			 * H​e​a​d​e​r​ ​N​a​m​e
+			 */
+			headerNamePlaceholder: string
+			/**
+			 * F​o​r​m​ ​F​i​e​l​d​s
+			 */
+			formFieldsLabel: string
+			/**
+			 * K​e​y
+			 */
+			formFieldKeyPlaceholder: string
+			/**
+			 * T​e​x​t
+			 */
+			formFieldTypeText: string
+			/**
+			 * F​i​l​e
+			 */
+			formFieldTypeFile: string
+			/**
+			 * C​o​p​y​ ​a​s​ ​c​U​R​L
+			 */
+			curlCopyButton: string
+			/**
+			 * c​U​R​L​ ​c​o​m​m​a​n​d​ ​c​o​p​i​e​d​ ​t​o​ ​c​l​i​p​b​o​a​r​d
+			 */
+			curlCopySuccess: string
+			/**
+			 * C​o​p​y​ ​f​a​i​l​e​d
+			 */
+			curlCopyFailed: string
 		}
 		dbCommon: {
 			/**
@@ -4922,6 +4958,25 @@ type RootTranslation = {
 			 * 关​闭​连​接​后​将​释​放​ ​G​r​a​p​h​Q​L​ ​连​接​资​源
 			 */
 			closeInfoLine1: string
+		}
+		graphql_field: {
+			/**
+			 * {count} 个字段
+			 * @param {unknown} count
+			 */
+			field_count: RequiredParams<'count'>
+			/**
+			 * 生成查询
+			 */
+			generate_query: string
+			/**
+			 * 暂无可用字段
+			 */
+			no_fields: string
+			/**
+			 * *必填
+			 */
+			required: string
 		}
 		kafkaConnect: {
 			/**
@@ -12468,6 +12523,42 @@ export type TranslationFunctions = {
 			 * Body (JavaScript)
 			 */
 			bodyTypeJavascript: () => LocalizedString
+			/**
+			 * Headers
+			 */
+			headersLabel: () => LocalizedString
+			/**
+			 * Header Name
+			 */
+			headerNamePlaceholder: () => LocalizedString
+			/**
+			 * Form Fields
+			 */
+			formFieldsLabel: () => LocalizedString
+			/**
+			 * Key
+			 */
+			formFieldKeyPlaceholder: () => LocalizedString
+			/**
+			 * Text
+			 */
+			formFieldTypeText: () => LocalizedString
+			/**
+			 * File
+			 */
+			formFieldTypeFile: () => LocalizedString
+			/**
+			 * Copy as cURL
+			 */
+			curlCopyButton: () => LocalizedString
+			/**
+			 * cURL command copied to clipboard
+			 */
+			curlCopySuccess: () => LocalizedString
+			/**
+			 * Copy failed
+			 */
+			curlCopyFailed: () => LocalizedString
 		}
 		dbCommon: {
 			/**
@@ -16227,6 +16318,25 @@ export type TranslationFunctions = {
 			 * 关闭连接后将释放 GraphQL 连接资源
 			 */
 			closeInfoLine1: () => LocalizedString
+		}
+		graphql_field: {
+			/**
+			 * {count} fields
+			 * @param {unknown} count
+			 */
+			field_count: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * Generate query
+			 */
+			generate_query: () => LocalizedString
+			/**
+			 * No fields available
+			 */
+			no_fields: () => LocalizedString
+			/**
+			 * *Required
+			 */
+			required: () => LocalizedString
 		}
 		kafkaConnect: {
 			/**

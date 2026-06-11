@@ -101,11 +101,11 @@ export function SettingsPanel() {
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <Settings2 className="h-4 w-4 text-muted-foreground shrink-0" />
             <CardTitle className="text-base font-semibold text-foreground truncate cursor-default">
-              {ll?.settings?.panel_title() ?? '全局设置'}
+              {ll?.settings?.panel_title() ?? 'Global Settings'}
             </CardTitle>
           </div>
           <Badge variant="outline" className="border-border text-muted-foreground shrink-0">
-            {ll?.common?.settings_label() ?? '设置'}
+            {ll?.common?.settings_label() ?? 'Settings'}
           </Badge>
         </div>
       </CardHeader>
@@ -117,39 +117,39 @@ export function SettingsPanel() {
             <div className="text-xs text-muted-foreground py-2 px-3 rounded-lg bg-muted border border-border space-y-1">
               <div className="flex items-center gap-1.5">
                 <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="font-medium text-foreground">{ll?.settings?.config_file() ?? '配置文件'}</span>
+                <span className="font-medium text-foreground">{ll?.settings?.config_file() ?? 'Config File'}</span>
               </div>
               <code className="block text-foreground break-all leading-relaxed">
-                {isLoading ? (ll?.settings?.loading() ?? '加载中...') : configFilePath || (ll?.settings?.unknown() ?? '未知')}
+                {isLoading ? (ll?.settings?.loading() ?? 'Loading...') : configFilePath || (ll?.settings?.unknown() ?? 'Unknown')}
               </code>
             </div>
 
             {/* 主题 */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                {ll?.settings?.theme() ?? '主题'}
+                {ll?.settings?.theme() ?? 'Theme'}
               </Label>
               <Select value={theme} onValueChange={(value) => setTheme(value as ThemeMode)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder={ll?.settings?.select_theme() ?? '选择主题'} />
+                  <SelectValue placeholder={ll?.settings?.select_theme() ?? 'Select Theme'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="light">
                     <span className="flex items-center gap-2">
                       <Sun className="h-4 w-4" />
-                      {ll?.settings?.theme_light() ?? '浅色'}
+                      {ll?.settings?.theme_light() ?? 'Light'}
                     </span>
                   </SelectItem>
                   <SelectItem value="dark">
                     <span className="flex items-center gap-2">
                       <Moon className="h-4 w-4" />
-                      {ll?.settings?.theme_dark() ?? '暗黑'}
+                      {ll?.settings?.theme_dark() ?? 'Dark'}
                     </span>
                   </SelectItem>
                   <SelectItem value="system">
                     <span className="flex items-center gap-2">
                       <Monitor className="h-4 w-4" />
-                      {ll?.settings?.theme_system() ?? '跟随系统'}
+                      {ll?.settings?.theme_system() ?? 'System'}
                     </span>
                   </SelectItem>
                 </SelectContent>
@@ -160,7 +160,7 @@ export function SettingsPanel() {
             <div className="space-y-2">
               <Label className="text-sm font-medium text-foreground flex items-center gap-2">
                 <Globe className="h-4 w-4 text-muted-foreground" />
-                {ll?.settings?.language() ?? '语言'}
+                {ll?.settings?.language() ?? 'Language'}
               </Label>
               <Select value={locale} onValueChange={(value) => setLocale(value as Locale)}>
                 <SelectTrigger className="w-full">
@@ -177,17 +177,17 @@ export function SettingsPanel() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-sm">
                 <FolderInput className="h-4 w-4 text-muted-foreground" />
-                {ll?.settings?.flows_dir() ?? '流程保存目录'}
+                {ll?.settings?.flows_dir() ?? 'Flows Directory'}
               </Label>
               <div className="text-sm text-foreground bg-muted border border-border rounded-md px-3 py-2 break-all leading-relaxed">
-                {isLoading ? (ll?.settings?.loading() ?? '加载中...') : flowsDir || (ll?.settings?.not_set() ?? '未设置')}
+                {isLoading ? (ll?.settings?.loading() ?? 'Loading...') : flowsDir || (ll?.settings?.not_set() ?? 'Not Set')}
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleSelectFlowsDir} className="flex-1">
-                  {ll?.settings?.select_dir() ?? '选择目录'}
+                  {ll?.settings?.select_dir() ?? 'Select Directory'}
                 </Button>
                 <Button variant="outline" size="sm" onClick={openFlowsDir} className="flex-1">
-                  {ll?.settings?.open_dir() ?? '打开目录'}
+                  {ll?.settings?.open_dir() ?? 'Open Directory'}
                 </Button>
               </div>
             </div>
@@ -196,19 +196,19 @@ export function SettingsPanel() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-sm">
                 <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                {ll?.settings?.reports_dir() ?? '报告目录'}
+                {ll?.settings?.reports_dir() ?? 'Reports Directory'}
               </Label>
               {/* 路径显示 - 允许换行 */}
               <div className="text-sm text-foreground bg-muted border border-border rounded-md px-3 py-2 break-all leading-relaxed">
-                {isLoading ? (ll?.settings?.loading() ?? '加载中...') : reportDir || (ll?.settings?.not_set() ?? '未设置')}
+                {isLoading ? (ll?.settings?.loading() ?? 'Loading...') : reportDir || (ll?.settings?.not_set() ?? 'Not Set')}
               </div>
               {/* 按钮行 */}
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleSelectReportDir} className="flex-1">
-                  {ll?.settings?.select_dir() ?? '选择目录'}
+                  {ll?.settings?.select_dir() ?? 'Select Directory'}
                 </Button>
                 <Button variant="outline" size="sm" onClick={openReportDir} className="flex-1">
-                  {ll?.settings?.open_dir() ?? '打开目录'}
+                  {ll?.settings?.open_dir() ?? 'Open Directory'}
                 </Button>
               </div>
             </div>
@@ -217,19 +217,19 @@ export function SettingsPanel() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-sm">
                 <FolderCog className="h-4 w-4 text-muted-foreground" />
-                {ll?.settings?.logs_dir() ?? '日志目录'}
+                {ll?.settings?.logs_dir() ?? 'Logs Directory'}
               </Label>
               {/* 路径显示 - 允许换行 */}
               <div className="text-sm text-foreground bg-muted border border-border rounded-md px-3 py-2 break-all leading-relaxed">
-                {isLoading ? (ll?.settings?.loading() ?? '加载中...') : logDir || (ll?.settings?.not_set() ?? '未设置')}
+                {isLoading ? (ll?.settings?.loading() ?? 'Loading...') : logDir || (ll?.settings?.not_set() ?? 'Not Set')}
               </div>
               {/* 按钮行 */}
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleSelectLogDir} className="flex-1">
-                  {ll?.settings?.select_dir() ?? '选择目录'}
+                  {ll?.settings?.select_dir() ?? 'Select Directory'}
                 </Button>
                 <Button variant="outline" size="sm" onClick={openLogDir} className="flex-1">
-                  {ll?.settings?.open_dir() ?? '打开目录'}
+                  {ll?.settings?.open_dir() ?? 'Open Directory'}
                 </Button>
               </div>
             </div>
@@ -238,10 +238,10 @@ export function SettingsPanel() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-sm">
                 <Download className="h-4 w-4 text-muted-foreground" />
-                {ll?.settings?.update?.title?.() ?? '更新'}
+                {ll?.settings?.update?.title?.() ?? 'Updates'}
               </Label>
               <div className="text-sm text-foreground bg-muted border border-border rounded-md px-3 py-2">
-                {ll?.settings?.update?.current_version?.() ?? '当前版本'}: v0.1.0
+                {ll?.settings?.update?.current_version?.() ?? 'Current version'}: v0.1.0
               </div>
               <div className="flex gap-2">
                 <Button
@@ -252,8 +252,8 @@ export function SettingsPanel() {
                   disabled={useUpdaterStore.getState().checking}
                 >
                   {useUpdaterStore.getState().checking
-                    ? (ll?.settings?.update?.checking?.() ?? '检查中...')
-                    : (ll?.settings?.update?.check_updates?.() ?? '检查更新')}
+                    ? (ll?.settings?.update?.checking?.() ?? 'Checking for updates...')
+                    : (ll?.settings?.update?.check_updates?.() ?? 'Check for Updates')}
                 </Button>
               </div>
             </div>

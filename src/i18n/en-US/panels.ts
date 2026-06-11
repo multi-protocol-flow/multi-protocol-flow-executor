@@ -131,6 +131,15 @@
     bodyTypeHtml: 'Body (HTML)',
     bodyTypeXml: 'Body (XML)',
     bodyTypeJavascript: 'Body (JavaScript)',
+    headersLabel: 'Headers',
+    headerNamePlaceholder: 'Header Name',
+    formFieldsLabel: 'Form Fields',
+    formFieldKeyPlaceholder: 'Key',
+    formFieldTypeText: 'Text',
+    formFieldTypeFile: 'File',
+    curlCopyButton: 'Copy as cURL',
+    curlCopySuccess: 'cURL command copied to clipboard',
+    curlCopyFailed: 'Copy failed',
   },
 
   dbCommon: {
@@ -1144,6 +1153,12 @@
     connectionId: 'Connection ID',
     noConnectNode: 'No GraphQL Connect node detected, enter connection ID manually',
     closeInfoLine1: 'Closing releases GraphQL connection resources',
+  },
+  graphql_field: {
+    field_count: '{count} fields',
+    generate_query: 'Generate Query',
+    no_fields: 'No fields available',
+    required: '*Required',
   },
   kafkaConnect: {
     title: 'Kafka Connect Node',
