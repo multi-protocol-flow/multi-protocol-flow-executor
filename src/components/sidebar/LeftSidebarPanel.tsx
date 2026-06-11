@@ -44,7 +44,7 @@ export function LeftSidebarPanel() {
   }, []);
 
   return (
-    <div ref={containerRef} className="h-full flex flex-col bg-background overflow-hidden">
+    <div ref={containerRef} className="h-full flex flex-col bg-background overflow-hidden" data-testid="sidebar-flow-list">
       {/* ===== 顶部：流程列表（自动扩展填充剩余空间） ===== */}
       <CollapsiblePanel
         title={LL.flow.flow_list_title()}

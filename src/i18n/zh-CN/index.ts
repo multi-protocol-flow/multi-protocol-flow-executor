@@ -8,6 +8,7 @@ import flow from './flow';
 import validation from './validation';
 import welcome from './welcome';
 import shortcuts from './shortcuts';
+import viewer from './viewer';
 
 const zh_CN = {
   common,
@@ -18,7 +19,8 @@ const zh_CN = {
   flow,
   validation,
   welcome,
-  shortcuts
+  shortcuts,
+  viewer
 } as BaseTranslation;
 
 export default zh_CN;

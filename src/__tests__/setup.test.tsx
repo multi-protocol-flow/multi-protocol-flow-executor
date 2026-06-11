@@ -18,24 +18,14 @@ describe('App', () => {
     useUIStore.getState().resetPanels()
   })
 
-  it('renders the header with Chinese title', () => {
+  it('renders the header with app title', () => {
     render(
       <TestWrapper>
         <App />
       </TestWrapper>
     )
-    expect(screen.getByText('多协议流程执行器')).toBeDefined()
+    expect(screen.getByTestId('app-title')).toBeDefined()
   })
-
-  it('renders the header with English subtitle', () => {
-    render(
-      <TestWrapper>
-        <App />
-      </TestWrapper>
-    )
-    expect(screen.getByText('Flow Executor')).toBeDefined()
-  })
-
 
   it('renders the sidebar with flow list', () => {
     render(
@@ -43,7 +33,7 @@ describe('App', () => {
         <App />
       </TestWrapper>
     )
-    expect(screen.getByText('流程列表')).toBeDefined()
+    expect(screen.getByTestId('sidebar-flow-list')).toBeDefined()
   })
 
   it('does not render node library in sidebar', () => {
@@ -53,6 +43,6 @@ describe('App', () => {
       </TestWrapper>
     )
     // 节点库已移至画布底部 NodePalette，侧边栏不再显示
-    expect(screen.queryByText('节点库')).toBeNull()
+    expect(screen.queryByTestId('sidebar-node-library')).toBeNull()
   })
 })

@@ -10710,6 +10710,18 @@ type RootTranslation = {
 		 */
 		openShortcuts: string
 	}
+	viewer: TranslationsViewer
+}
+
+export interface TranslationsViewer {
+	/**
+	 * 占位符
+	 */
+	placeholder: string
+	/**
+	 * 时间戳
+	 */
+	timestamp: string
 }
 
 export type TranslationFunctions = {
@@ -21274,6 +21286,16 @@ export type TranslationFunctions = {
 		 * 打开快捷键面板
 		 */
 		openShortcuts: () => LocalizedString
+	}
+	viewer: {
+		/**
+		 * 占位符
+		 */
+		placeholder: () => LocalizedString
+		/**
+		 * 时间戳
+		 */
+		timestamp: () => LocalizedString
 	}
 }
 

@@ -8,6 +8,7 @@ import flow from './flow';
 import validation from './validation';
 import welcome from './welcome';
 import shortcuts from './shortcuts';
+import viewer from './viewer';
 
 const en_US: Translation = {
   common: common as Translation['common'],
@@ -19,6 +20,7 @@ const en_US: Translation = {
   validation: validation as Translation['validation'],
   welcome: welcome as Translation['welcome'],
   shortcuts: shortcuts as Translation['shortcuts'],
+  viewer: viewer as Translation['viewer'],
 };
 
 export default en_US;

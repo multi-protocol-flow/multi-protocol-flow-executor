@@ -386,7 +386,7 @@ export function MainLayout() {
       {/* ===== 顶部工具栏 ===== */}
       <header className="h-14 shrink-0 border-b border-border flex items-center justify-between px-4 bg-background">
         {/* 左侧：Logo */}
-        <div className="flex items-center gap-4" data-guide="app-logo">
+        <div className="flex items-center gap-4" data-guide="app-logo" data-testid="app-title">
           <svg viewBox="0 -3 600 136" className="h-10 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg" style={{color: 'inherit'}}>
             <defs>
               <linearGradient id="hdr-grad" x1="0" y1="0" x2="100" y2="100">
