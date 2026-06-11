@@ -25,7 +25,7 @@ import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
-import { useVT } from '@/i18n/viewer-translations';
+import { getLL } from '@/i18n/i18n-lazy';
 import { RawJsonViewer } from './RawJsonViewer';
 
 interface GraphqlViewerProps {
@@ -226,7 +226,7 @@ function GraphqlEventCard({ event, index }: { event: GraphqlSubscriptionEvent; i
 
 export const GraphqlViewer = memo(function GraphqlViewer({ report }: GraphqlViewerProps) {
   const nodeType = report.node_type;
-  const t = useVT();
+  const ll = getLL();
 
   switch (nodeType) {
     case 'graphql_connect':
@@ -242,7 +242,7 @@ export const GraphqlViewer = memo(function GraphqlViewer({ report }: GraphqlView
     default:
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
-          {t("graphql.unknown_node_type", { type: nodeType })}
+          {ll.viewer.graphql.unknown_node_type({ type: nodeType })}
         </div>
       );
   }

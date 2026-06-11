@@ -23,7 +23,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
-import { useVT } from '@/i18n/viewer-translations';
 import { getLL } from '@/i18n/i18n-lazy';
 import { useDebugStore } from '@/stores/debug';
 
@@ -230,7 +229,7 @@ function isStreamingData(data: unknown): boolean {
 
 export function GrpcViewer({ report }: GrpcViewerProps) {
   const nodeType = report.node_type;
-  const t = useVT();
+  const ll = getLL();
 
   // 根据 node_type 分发到对应的子组件
   switch (nodeType) {
@@ -243,7 +242,7 @@ export function GrpcViewer({ report }: GrpcViewerProps) {
     default:
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
-          {t("grpc.unknown_node_type", { type: nodeType })}
+          {ll.viewer.grpc.unknown_node_type({ type: nodeType })}
         </div>
       );
   }
@@ -255,7 +254,6 @@ export function GrpcViewer({ report }: GrpcViewerProps) {
 
 function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
   const ll = getLL();
-  const t = useVT();
   const output = report.output_data as GrpcConnectOutput | undefined;
   const resolvedConfig = report.resolved_config as GrpcConnectOutput['request'] | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
@@ -370,12 +368,12 @@ function GrpcConnectSection({ report }: { report: NodeExecutionReport }) {
       {/* 服务发现 */}
       {isSuccess && services && services.length > 0 && (
         <CollapsibleSection
-          title={t('grpc.section_services')}
+          title={ll.viewer.grpc.section_services()}
           icon={<Server className="w-4 h-4" />}
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {t('grpc.services_count', { count: serviceCount })}
+              {ll.viewer.grpc.services_count({ count: serviceCount })}
             </Badge>
           }
         >

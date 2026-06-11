@@ -20,7 +20,7 @@ import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
-import { useVT } from '@/i18n/viewer-translations';
+
 
 interface RedisViewerProps {
   /** 节点执行报告 */
@@ -165,7 +165,6 @@ interface RedisCloseOutput {
 
 export const RedisViewer = memo(function RedisViewer({ report }: RedisViewerProps) {
   const nodeType = report.node_type;
-  const t = useVT();
 
   switch (nodeType) {
     case 'redis_connect':
@@ -177,7 +176,7 @@ export const RedisViewer = memo(function RedisViewer({ report }: RedisViewerProp
     default:
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
-          {t("redis.unknown_node_type", { type: nodeType })}
+          {`Unknown Redis node type: ${nodeType}`}
         </div>
       );
   }

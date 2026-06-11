@@ -30,7 +30,7 @@ import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
 import { HexViewer, dataToBytes } from '@/components/common/HexViewer';
 import { RecordingViewer } from './RecordingViewer';
-import { useVT } from '@/i18n/viewer-translations';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface TcpUdpViewerProps {
   /** 节点执行报告 */
@@ -274,7 +274,7 @@ function ProtocolBadge({ protocol }: { protocol: 'TCP' | 'UDP' }) {
 }
 
 export const TcpUdpViewer = memo(function TcpUdpViewer({ report, recording }: TcpUdpViewerProps) {
-  const t = useVT();
+  const ll = getLL();
   const nodeType = report.node_type;
 
   switch (nodeType) {
@@ -297,7 +297,7 @@ export const TcpUdpViewer = memo(function TcpUdpViewer({ report, recording }: Tc
     default:
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
-          {t('tcp.unknown_node_type', { type: nodeType })}
+          {ll.viewer.tcp.unknown_node_type({ type: nodeType })}
     </div>
   );
   }
@@ -308,7 +308,7 @@ export const TcpUdpViewer = memo(function TcpUdpViewer({ report, recording }: Tc
 // ============================================================================
 
 function TcpConnectSection({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as TcpConnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const totalDuration = output?.timing?.total_ms;
@@ -317,7 +317,7 @@ function TcpConnectSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 连接配置 */}
       <CollapsibleSection
-        title={t('tcp.section_connection_info')}
+        title={ll.viewer.tcp.section_connection_info()}
         icon={<Cable className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -350,17 +350,17 @@ function TcpConnectSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 连接状态 */}
       <CollapsibleSection
-        title={t('tcp.section_connection_status')}
+        title={ll.viewer.tcp.section_connection_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('tcp.status_connected')} failText={t('tcp.status_connection_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.tcp.status_connected()} failText={ll.viewer.tcp.status_connection_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('tcp.connect_success')
-                : output?.error ?? t('tcp.connect_error')}
+                ? ll.viewer.tcp.connect_success()
+                : output?.error ?? ll.viewer.tcp.connect_error()}
             </span>
           </div>
 
@@ -407,7 +407,7 @@ function TcpConnectSection({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function TcpSendSection({ report, recording }: { report: NodeExecutionReport; recording?: TcpUdpRecording }) {
-  const t = useVT();
+  const ll = getLL();
   const [showRecording, setShowRecording] = useState(false);
   const output = report.output_data as TcpSendOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
@@ -421,7 +421,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
     <div className="space-y-3">
       {/* 发送数据 */}
       <CollapsibleSection
-        title={t('tcp.section_send_data')}
+        title={ll.viewer.tcp.section_send_data()}
         icon={<ArrowUpFromLine className="w-4 h-4" />}
         defaultOpen={true}
         extra={sentData?.size !== undefined && (
@@ -467,7 +467,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
       {/* 接收数据 */}
       {receivedData && (
         <CollapsibleSection
-          title={t('tcp.section_receive_data')}
+          title={ll.viewer.tcp.section_receive_data()}
           icon={<ArrowDownToLine className="w-4 h-4" />}
           defaultOpen={true}
           extra={receivedData.size !== undefined && (
@@ -517,7 +517,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="发送成功" failText={t('tcp.status_send_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText="发送成功" failText={ll.viewer.tcp.status_send_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `数据发送${receivedData ? '并接收' : ''}完成`
@@ -585,7 +585,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
 // ============================================================================
 
 function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport; recording?: TcpUdpRecording }) {
-  const t = useVT();
+  const ll = getLL();
   const [showRecording, setShowRecording] = useState(false);
   const output = report.output_data as TcpReceiveOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
@@ -598,7 +598,7 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
     <div className="space-y-3">
       {/* 接收数据 */}
       <CollapsibleSection
-        title={t('tcp.section_receive_data')}
+        title={ll.viewer.tcp.section_receive_data()}
         icon={<ArrowDownToLine className="w-4 h-4" />}
         defaultOpen={true}
         extra={receivedData?.size !== undefined && (
@@ -658,7 +658,7 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('tcp.status_received')} failText={t('tcp.status_receive_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.tcp.status_received()} failText={ll.viewer.tcp.status_receive_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? receivedData
@@ -727,7 +727,7 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
 // ============================================================================
 
 function TcpCloseSection({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as TcpCloseOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const totalDuration = output?.timing?.total_ms;
@@ -736,7 +736,7 @@ function TcpCloseSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 关闭配置 */}
       <CollapsibleSection
-        title={t('tcp.section_close_config')}
+        title={ll.viewer.tcp.section_close_config()}
         icon={<Unplug className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -754,17 +754,17 @@ function TcpCloseSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 关闭状态 */}
       <CollapsibleSection
-        title={t('tcp.section_close_status')}
+        title={ll.viewer.tcp.section_close_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('tcp.status_closed')} failText={t('tcp.status_close_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.tcp.status_closed()} failText={ll.viewer.tcp.status_close_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('tcp.close_success')
-                : output?.error ?? t('tcp.close_error')}
+                ? ll.viewer.tcp.close_success()
+                : output?.error ?? ll.viewer.tcp.close_error()}
             </span>
           </div>
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -800,7 +800,7 @@ function TcpCloseSection({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function UdpBindSection({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as UdpBindOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const totalDuration = output?.timing?.total_ms;
@@ -809,7 +809,7 @@ function UdpBindSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 绑定配置 */}
       <CollapsibleSection
-        title={t('tcp.section_bind_config')}
+        title={ll.viewer.tcp.section_bind_config()}
         icon={<Router className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -837,17 +837,17 @@ function UdpBindSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 绑定状态 */}
       <CollapsibleSection
-        title={t('tcp.section_bind_status')}
+        title={ll.viewer.tcp.section_bind_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('tcp.status_bound')} failText={t('tcp.status_bind_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.tcp.status_bound()} failText={ll.viewer.tcp.status_bind_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `UDP 绑定成功 (${output?.local_addr ?? ''}:${output?.local_port ?? ''})`
-                : output?.error ?? t('tcp.bind_success')}
+                : output?.error ?? ll.viewer.tcp.bind_success()}
             </span>
           </div>
 
@@ -894,7 +894,7 @@ function UdpBindSection({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as UdpSendToOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const sentData = output?.sent;
@@ -904,7 +904,7 @@ function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 发送数据 */}
       <CollapsibleSection
-        title={t('tcp.section_send_data')}
+        title={ll.viewer.tcp.section_send_data()}
         icon={<ArrowUpFromLine className="w-4 h-4" />}
         defaultOpen={true}
         extra={sentData?.size !== undefined && (
@@ -962,7 +962,7 @@ function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="发送成功" failText={t('tcp.status_send_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText="发送成功" failText={ll.viewer.tcp.status_send_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `UDP 数据包已发送${sentData?.target ? `至 ${sentData.target}` : ''}`
@@ -1002,7 +1002,7 @@ function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as UdpRecvFromOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const receivedData = output?.received;
@@ -1017,7 +1017,7 @@ function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 接收数据 */}
       <CollapsibleSection
-        title={t('tcp.section_receive_data')}
+        title={ll.viewer.tcp.section_receive_data()}
         icon={<ArrowDownToLine className="w-4 h-4" />}
         defaultOpen={true}
         extra={receivedData?.size !== undefined && (
@@ -1076,7 +1076,7 @@ function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('tcp.status_received')} failText={t('tcp.status_receive_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.tcp.status_received()} failText={ll.viewer.tcp.status_receive_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `UDP 数据包接收成功${sourceAddr ? ` (来自 ${sourceAddr})` : ''}`
@@ -1116,7 +1116,7 @@ function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function UdpCloseSection({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as UdpCloseOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const totalDuration = output?.timing?.total_ms;
@@ -1125,7 +1125,7 @@ function UdpCloseSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 关闭配置 */}
       <CollapsibleSection
-        title={t('tcp.section_close_config')}
+        title={ll.viewer.tcp.section_close_config()}
         icon={<Unplug className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -1143,17 +1143,17 @@ function UdpCloseSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 关闭状态 */}
       <CollapsibleSection
-        title={t('tcp.section_close_status')}
+        title={ll.viewer.tcp.section_close_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('tcp.status_closed')} failText={t('tcp.status_close_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.tcp.status_closed()} failText={ll.viewer.tcp.status_close_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? 'UDP 连接已成功关闭'
-                : output?.error ?? t('tcp.close_error')}
+                : output?.error ?? ll.viewer.tcp.close_error()}
             </span>
           </div>
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />

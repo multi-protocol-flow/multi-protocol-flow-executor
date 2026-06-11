@@ -45,7 +45,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
 import { RawJsonViewer } from './RawJsonViewer';
-import { useVT } from '@/i18n/viewer-translations';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface AmqpViewerProps {
   /** 节点执行报告 */
@@ -479,7 +479,7 @@ function Amqp10MessageCard({ message, index }: { message: Amqp10Message; index: 
 // ============================================================================
 
 export const AmqpViewer = memo(function AmqpViewer({ report }: AmqpViewerProps) {
-  const t = useVT();
+  const ll = getLL();
   const nodeType = report.node_type;
 
   switch (nodeType) {
@@ -523,7 +523,7 @@ export const AmqpViewer = memo(function AmqpViewer({ report }: AmqpViewerProps) 
     default:
       return (
         <div className="p-4 text-sm text-muted-foreground italic">
-          {t('amqp.unknown_node_type', { type: nodeType })}
+          {ll.viewer.amqp.unknown_node_type({ type: nodeType })}
         </div>
       );
   }
@@ -534,7 +534,7 @@ export const AmqpViewer = memo(function AmqpViewer({ report }: AmqpViewerProps) 
 // ============================================================================
 
 function AmqpConnectView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as AmqpConnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const serverProps = output?.server_properties;
@@ -542,24 +542,24 @@ function AmqpConnectView({ report }: { report: NodeExecutionReport }) {
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_connection')}
+        title={ll.viewer.amqp.section_connection()}
         icon={<Cable className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_connected')} failText={t('amqp.status_connection_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_connected()} failText={ll.viewer.amqp.status_connection_failed()} />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.connect_success')
-                : output?.error ?? t('amqp.connect_error')}
+                ? ll.viewer.amqp.connect_success()
+                : output?.error ?? ll.viewer.amqp.connect_error()}
             </span>
           </div>
 
           {output?.connection_id && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">{t('amqp.label_connection_id')}:</span>
+              <span className="text-muted-foreground">{ll.viewer.amqp.label_connection_id()}:</span>
               <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                 {output.connection_id}
               </code>
@@ -572,34 +572,34 @@ function AmqpConnectView({ report }: { report: NodeExecutionReport }) {
 
       {isSuccess && serverProps && (
         <CollapsibleSection
-          title={t('amqp.section_server_properties')}
+          title={ll.viewer.amqp.section_server_properties()}
           icon={<Server className="w-4 h-4" />}
           defaultOpen={true}
         >
           <div className="flex flex-wrap gap-2">
             {serverProps.product && (
               <Badge variant="outline" className="font-mono text-xs">
-                {t('amqp.label_server_product')}: {serverProps.product}
+                {ll.viewer.amqp.label_server_product()}: {serverProps.product}
               </Badge>
             )}
             {serverProps.version && (
               <Badge variant="outline" className="font-mono text-xs">
-                {t('amqp.label_server_version')}: {serverProps.version}
+                {ll.viewer.amqp.label_server_version()}: {serverProps.version}
               </Badge>
             )}
             {serverProps.host && (
               <Badge variant="outline" className="font-mono text-xs">
-                {t('amqp.label_server_host')}: {serverProps.host}
+                {ll.viewer.amqp.label_server_host()}: {serverProps.host}
               </Badge>
             )}
             {output?.channel_max !== undefined && (
               <Badge variant="secondary" className="font-mono text-xs">
-                {t('amqp.label_channel_max')}: {output.channel_max}
+                {ll.viewer.amqp.label_channel_max()}: {output.channel_max}
               </Badge>
             )}
             {output?.frame_max !== undefined && (
               <Badge variant="secondary" className="font-mono text-xs">
-                {t('amqp.label_frame_max')}: {output.frame_max}
+                {ll.viewer.amqp.label_frame_max()}: {output.frame_max}
               </Badge>
             )}
           </div>
@@ -616,24 +616,24 @@ function AmqpConnectView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpCloseView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as AmqpCloseOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_close')}
+        title={ll.viewer.amqp.section_close()}
         icon={<Unplug className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_closed')} failText={t('amqp.status_close_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_closed()} failText={ll.viewer.amqp.status_close_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.close_success')
-                : output?.error ?? t('amqp.close_error')}
+                ? ll.viewer.amqp.close_success()
+                : output?.error ?? ll.viewer.amqp.close_error()}
             </span>
           </div>
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -650,7 +650,7 @@ function AmqpCloseView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpExchangeView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as AmqpExchangeOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const isDeclare = report.node_type === 'amqp_exchange_declare';
@@ -658,7 +658,7 @@ function AmqpExchangeView({ report }: { report: NodeExecutionReport }) {
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={isDeclare ? t('amqp.section_exchange') : t('amqp.section_exchange_delete')}
+        title={isDeclare ? ll.viewer.amqp.section_exchange() : ll.viewer.amqp.section_exchange_delete()}
         icon={<Layers className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -666,24 +666,24 @@ function AmqpExchangeView({ report }: { report: NodeExecutionReport }) {
           <div className="flex items-center gap-3">
             <StatusBadge
               isSuccess={isSuccess}
-              successText={isDeclare ? t('amqp.status_declared') : t('amqp.status_deleted')}
-              failText={isDeclare ? t('amqp.status_declare_failed') : t('amqp.status_delete_failed')}
+              successText={isDeclare ? ll.viewer.amqp.status_declared() : ll.viewer.amqp.status_deleted()}
+              failText={isDeclare ? ll.viewer.amqp.status_declare_failed() : ll.viewer.amqp.status_delete_failed()}
             />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? isDeclare
-                  ? t('amqp.exchange_declare_success', { name: output?.exchange ?? '' })
-                  : t('amqp.exchange_delete_success', { name: output?.exchange ?? '' })
-                : output?.error ?? (isDeclare ? t('amqp.exchange_declare_error') : t('amqp.exchange_delete_error'))}
+                  ? ll.viewer.amqp.exchange_declare_success({ name: output?.exchange ?? '' })
+                  : ll.viewer.amqp.exchange_delete_success({ name: output?.exchange ?? '' })
+                : output?.error ?? (isDeclare ? ll.viewer.amqp.exchange_declare_error() : ll.viewer.amqp.exchange_delete_error())}
             </span>
           </div>
 
           {output?.exchange && (
-            <KvRow label={t('amqp.label_exchange')} value={output.exchange} />
+            <KvRow label={ll.viewer.amqp.label_exchange()} value={output.exchange} />
           )}
           {output?.exchange_type && (
-            <KvRow label={t('amqp.label_exchange_type')} value={output.exchange_type} />
+            <KvRow label={ll.viewer.amqp.label_exchange_type()} value={output.exchange_type} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -700,42 +700,42 @@ function AmqpExchangeView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpQueueDeclareView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as AmqpQueueDeclareOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_queue_declare')}
+        title={ll.viewer.amqp.section_queue_declare()}
         icon={<Inbox className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_declared')} failText={t('amqp.status_declare_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_declared()} failText={ll.viewer.amqp.status_declare_failed()} />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.queue_declare_success', { name: output?.queue ?? '' })
-                : output?.error ?? t('amqp.queue_declare_error')}
+                ? ll.viewer.amqp.queue_declare_success({ name: output?.queue ?? '' })
+                : output?.error ?? ll.viewer.amqp.queue_declare_error()}
             </span>
           </div>
 
           {output?.queue && (
-            <KvRow label={t('amqp.label_queue_name')} value={output.queue} />
+            <KvRow label={ll.viewer.amqp.label_queue_name()} value={output.queue} />
           )}
 
           {isSuccess && (
             <div className="flex flex-wrap gap-2">
               {output?.message_count !== undefined && (
                 <Badge variant="outline" className="font-mono text-xs">
-                  {t('amqp.label_message_count')}: {output.message_count}
+                  {ll.viewer.amqp.label_message_count()}: {output.message_count}
                 </Badge>
               )}
               {output?.consumer_count !== undefined && (
                 <Badge variant="outline" className="font-mono text-xs">
-                  {t('amqp.label_consumer_count')}: {output.consumer_count}
+                  {ll.viewer.amqp.label_consumer_count()}: {output.consumer_count}
                 </Badge>
               )}
             </div>
@@ -755,34 +755,34 @@ function AmqpQueueDeclareView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpQueueDeleteView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as AmqpQueueDeleteOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_queue_delete')}
+        title={ll.viewer.amqp.section_queue_delete()}
         icon={<X className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_deleted')} failText={t('amqp.status_delete_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_deleted()} failText={ll.viewer.amqp.status_delete_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.queue_delete_success', { name: output?.queue ?? '' })
-                : output?.error ?? t('amqp.queue_delete_error')}
+                ? ll.viewer.amqp.queue_delete_success({ name: output?.queue ?? '' })
+                : output?.error ?? ll.viewer.amqp.queue_delete_error()}
             </span>
           </div>
 
           {output?.queue && (
-            <KvRow label={t('amqp.label_queue_name')} value={output.queue} />
+            <KvRow label={ll.viewer.amqp.label_queue_name()} value={output.queue} />
           )}
 
           {isSuccess && output?.deleted_message_count !== undefined && (
             <Badge variant="secondary" className="font-mono text-xs">
-              {t('amqp.label_deleted_messages')}: {output.deleted_message_count}
+              {ll.viewer.amqp.label_deleted_messages()}: {output.deleted_message_count}
             </Badge>
           )}
 
@@ -800,31 +800,31 @@ function AmqpQueueDeleteView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpQueueBindView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as AmqpQueueBindOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_queue_bind')}
+        title={ll.viewer.amqp.section_queue_bind()}
         icon={<Layers className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_bound')} failText={t('amqp.status_bind_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_bound()} failText={ll.viewer.amqp.status_bind_failed()} />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.queue_bind_success')
-                : output?.error ?? t('amqp.queue_bind_error')}
+                ? ll.viewer.amqp.queue_bind_success()
+                : output?.error ?? ll.viewer.amqp.queue_bind_error()}
             </span>
           </div>
 
-          {output?.queue && <KvRow label={t('amqp.label_queue')} value={output.queue} />}
-          {output?.exchange && <KvRow label={t('amqp.label_exchange')} value={output.exchange} />}
-          {output?.routing_key && <KvRow label={t('amqp.label_routing_key')} value={output.routing_key} />}
+          {output?.queue && <KvRow label={ll.viewer.amqp.label_queue()} value={output.queue} />}
+          {output?.exchange && <KvRow label={ll.viewer.amqp.label_exchange()} value={output.exchange} />}
+          {output?.routing_key && <KvRow label={ll.viewer.amqp.label_routing_key()} value={output.routing_key} />}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
         </div>
@@ -840,14 +840,14 @@ function AmqpQueueBindView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpPublishView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as AmqpPublishOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_publish_config')}
+        title={ll.viewer.amqp.section_publish_config()}
         icon={<Send className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -859,14 +859,14 @@ function AmqpPublishView({ report }: { report: NodeExecutionReport }) {
                 {output.routing_key}
               </code>
             ) : (
-              <span className="text-sm text-muted-foreground italic">{t('amqp.no_routing_key')}</span>
+              <span className="text-sm text-muted-foreground italic">{ll.viewer.amqp.no_routing_key()}</span>
             )}
           </div>
 
           <div className="flex flex-wrap gap-2">
             {output?.exchange && (
               <Badge variant="outline" className="font-mono text-xs">
-                {t('amqp.label_exchange')}: {output.exchange}
+                {ll.viewer.amqp.label_exchange()}: {output.exchange}
               </Badge>
             )}
           </div>
@@ -874,25 +874,25 @@ function AmqpPublishView({ report }: { report: NodeExecutionReport }) {
       </CollapsibleSection>
 
       <CollapsibleSection
-        title={t('amqp.section_publish_status')}
+        title={ll.viewer.amqp.section_publish_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_published')} failText={t('amqp.status_publish_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_published()} failText={ll.viewer.amqp.status_publish_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.publish_success')
-                : output?.error ?? t('amqp.publish_error')}
+                ? ll.viewer.amqp.publish_success()
+                : output?.error ?? ll.viewer.amqp.publish_error()}
             </span>
           </div>
 
           {isSuccess && output?.confirm_status && (
-            <KvRow label={t('amqp.label_confirm_status')} value={output.confirm_status} />
+            <KvRow label={ll.viewer.amqp.label_confirm_status()} value={output.confirm_status} />
           )}
           {isSuccess && output?.message_id && (
-            <KvRow label={t('amqp.label_message_id')} value={output.message_id} />
+            <KvRow label={ll.viewer.amqp.label_message_id()} value={output.message_id} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -909,7 +909,7 @@ function AmqpPublishView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpConsumeView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as AmqpConsumeOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const messages = output?.messages ?? [];
@@ -918,23 +918,23 @@ function AmqpConsumeView({ report }: { report: NodeExecutionReport }) {
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_consume_status')}
+        title={ll.viewer.amqp.section_consume_status()}
         icon={<Inbox className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_consume_complete')} failText={t('amqp.status_consume_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_consume_complete()} failText={ll.viewer.amqp.status_consume_failed()} />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.consume_success', { count: messageCount })
-                : output?.error ?? t('amqp.consume_error')}
+                ? ll.viewer.amqp.consume_success({ count: messageCount })
+                : output?.error ?? ll.viewer.amqp.consume_error()}
             </span>
           </div>
 
           {output?.duration_ms !== undefined && (
-            <KvRow label={t('amqp.label_duration')} value={`${output.duration_ms}ms`} />
+            <KvRow label={ll.viewer.amqp.label_duration()} value={`${output.duration_ms}ms`} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -943,12 +943,12 @@ function AmqpConsumeView({ report }: { report: NodeExecutionReport }) {
 
       {messages.length > 0 && (
         <CollapsibleSection
-          title={t('amqp.section_message_list')}
+          title={ll.viewer.amqp.section_message_list()}
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {t('amqp.messages_count', { count: messageCount })}
+              {ll.viewer.amqp.messages_count({ count: messageCount })}
             </Badge>
           }
         >
@@ -970,7 +970,7 @@ function AmqpConsumeView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpGetView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as AmqpGetOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const message = output?.message;
@@ -978,25 +978,25 @@ function AmqpGetView({ report }: { report: NodeExecutionReport }) {
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_get_status')}
+        title={ll.viewer.amqp.section_get_status()}
         icon={<Inbox className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_fetched')} failText={t('amqp.status_fetch_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_fetched()} failText={ll.viewer.amqp.status_fetch_failed()} />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? message
-                  ? t('amqp.fetch_success')
-                  : t('amqp.fetch_empty')
-                : output?.error ?? t('amqp.fetch_error')}
+                  ? ll.viewer.amqp.fetch_success()
+                  : ll.viewer.amqp.fetch_empty()
+                : output?.error ?? ll.viewer.amqp.fetch_error()}
             </span>
           </div>
 
           {output?.message_count !== undefined && (
-            <KvRow label={t('amqp.label_queue_messages')} value={output.message_count} />
+            <KvRow label={ll.viewer.amqp.label_queue_messages()} value={output.message_count} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -1005,7 +1005,7 @@ function AmqpGetView({ report }: { report: NodeExecutionReport }) {
 
       {message && (
         <CollapsibleSection
-          title={t('amqp.section_message_detail')}
+          title={ll.viewer.amqp.section_message_detail()}
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={true}
         >
@@ -1023,31 +1023,31 @@ function AmqpGetView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpAckView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as AmqpAckOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_ack_status')}
+        title={ll.viewer.amqp.section_ack_status()}
         icon={<Check className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_acknowledged')} failText={t('amqp.status_ack_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_acknowledged()} failText={ll.viewer.amqp.status_ack_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? output?.delivery_tag !== undefined
-                  ? t('amqp.ack_success_with_tag', { tag: output.delivery_tag })
-                  : t('amqp.ack_success')
-                : output?.error ?? t('amqp.ack_error')}
+                  ? ll.viewer.amqp.ack_success_with_tag({ tag: output.delivery_tag })
+                  : ll.viewer.amqp.ack_success()
+                : output?.error ?? ll.viewer.amqp.ack_error()}
             </span>
           </div>
 
           {output?.delivery_tag !== undefined && (
-            <KvRow label={t('amqp.label_delivery_tag')} value={output.delivery_tag} />
+            <KvRow label={'Delivery Tag'} value={output.delivery_tag} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -1064,7 +1064,7 @@ function AmqpAckView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function AmqpManagementView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as AmqpManagementOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const overview = output?.overview;
@@ -1073,18 +1073,18 @@ function AmqpManagementView({ report }: { report: NodeExecutionReport }) {
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_management')}
+        title={ll.viewer.amqp.section_management()}
         icon={<Settings className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_operation_ok')} failText={t('amqp.status_operation_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_operation_ok()} failText={ll.viewer.amqp.status_operation_failed()} />
             <AmqpBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.management_success')
-                : output?.error ?? t('amqp.management_error')}
+                ? ll.viewer.amqp.management_success()
+                : output?.error ?? ll.viewer.amqp.management_error()}
             </span>
           </div>
 
@@ -1094,34 +1094,34 @@ function AmqpManagementView({ report }: { report: NodeExecutionReport }) {
 
       {isSuccess && overview && (
         <CollapsibleSection
-          title={t('amqp.section_overview')}
+          title={ll.viewer.amqp.section_overview()}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={true}
         >
           <div className="flex flex-wrap gap-2">
             {overview.connection_count !== undefined && (
               <Badge variant="outline" className="font-mono text-xs">
-                {t('amqp.label_connection_count')}: {overview.connection_count}
+                {ll.viewer.amqp.label_connection_count()}: {overview.connection_count}
               </Badge>
             )}
             {overview.channel_count !== undefined && (
               <Badge variant="outline" className="font-mono text-xs">
-                {t('amqp.label_channel_count')}: {overview.channel_count}
+                {ll.viewer.amqp.label_channel_count()}: {overview.channel_count}
               </Badge>
             )}
             {overview.queue_count !== undefined && (
               <Badge variant="outline" className="font-mono text-xs">
-                {t('amqp.label_queue_count')}: {overview.queue_count}
+                {ll.viewer.amqp.label_queue_count()}: {overview.queue_count}
               </Badge>
             )}
             {overview.message_stats?.publish !== undefined && (
               <Badge variant="secondary" className="font-mono text-xs">
-                {t('amqp.label_publish_rate')}: {overview.message_stats.publish}
+                {ll.viewer.amqp.label_publish_rate()}: {overview.message_stats.publish}
               </Badge>
             )}
             {overview.message_stats?.deliver !== undefined && (
               <Badge variant="secondary" className="font-mono text-xs">
-                {t('amqp.label_deliver_rate')}: {overview.message_stats.deliver}
+                {ll.viewer.amqp.label_deliver_rate()}: {overview.message_stats.deliver}
               </Badge>
             )}
           </div>
@@ -1130,7 +1130,7 @@ function AmqpManagementView({ report }: { report: NodeExecutionReport }) {
 
       {hasResponse && (
         <CollapsibleSection
-          title={t('amqp.section_api_response')}
+          title={ll.viewer.amqp.section_api_response()}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={false}
         >
@@ -1150,41 +1150,41 @@ function AmqpManagementView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function Amqp10ConnectView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as Amqp10ConnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_connection')}
+        title={ll.viewer.amqp.section_connection()}
         icon={<Cable className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_connected')} failText={t('amqp.status_connection_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_connected()} failText={ll.viewer.amqp.status_connection_failed()} />
             <Badge
               variant="outline"
               className="font-mono text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50 border-0"
             >
-              {t('amqp.protocol_amqp10')}
+              {ll.viewer.amqp.protocol_amqp10()}
             </Badge>
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.connect_success_10')
-                : output?.error ?? t('amqp.connect_error_10')}
+                ? ll.viewer.amqp.connect_success_10()
+                : output?.error ?? ll.viewer.amqp.connect_error_10()}
             </span>
           </div>
 
           {output?.connection_id && (
-            <KvRow label={t('amqp.label_connection_id')} value={output.connection_id} />
+            <KvRow label={ll.viewer.amqp.label_connection_id()} value={output.connection_id} />
           )}
           {output?.container_id && (
-            <KvRow label={t('amqp.label_container_id')} value={output.container_id} />
+            <KvRow label={ll.viewer.amqp.label_container_id()} value={output.container_id} />
           )}
           {output?.session_info && (
-            <KvRow label={t('amqp.label_session_info')} value={output.session_info} />
+            <KvRow label={ll.viewer.amqp.label_session_info()} value={output.session_info} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -1201,32 +1201,32 @@ function Amqp10ConnectView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function Amqp10SendView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as Amqp10SendOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_send_status')}
+        title={ll.viewer.amqp.section_send_status()}
         icon={<Send className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_sent')} failText={t('amqp.status_send_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_sent()} failText={ll.viewer.amqp.status_send_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.send_success')
-                : output?.error ?? t('amqp.send_error')}
+                ? ll.viewer.amqp.send_success()
+                : output?.error ?? ll.viewer.amqp.send_error()}
             </span>
           </div>
 
           {isSuccess && output?.delivery_state && (
-            <KvRow label={t('amqp.label_delivery_status')} value={output.delivery_state} />
+            <KvRow label={ll.viewer.amqp.label_delivery_status()} value={output.delivery_state} />
           )}
           {isSuccess && output?.message_id && (
-            <KvRow label={t('amqp.label_message_id')} value={output.message_id} />
+            <KvRow label={ll.viewer.amqp.label_message_id()} value={output.message_id} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -1243,7 +1243,7 @@ function Amqp10SendView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function Amqp10ReceiveView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as Amqp10ReceiveOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const messages = output?.messages ?? [];
@@ -1252,28 +1252,28 @@ function Amqp10ReceiveView({ report }: { report: NodeExecutionReport }) {
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_receive_status')}
+        title={ll.viewer.amqp.section_receive_status()}
         icon={<Inbox className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_received')} failText={t('amqp.status_receive_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_received()} failText={ll.viewer.amqp.status_receive_failed()} />
             <Badge
               variant="outline"
               className="font-mono text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50 border-0"
             >
-              {t('amqp.protocol_amqp10')}
+              {ll.viewer.amqp.protocol_amqp10()}
             </Badge>
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.receive_success', { count: messageCount })
-                : output?.error ?? t('amqp.receive_error')}
+                ? ll.viewer.amqp.receive_success({ count: messageCount })
+                : output?.error ?? ll.viewer.amqp.receive_error()}
             </span>
           </div>
 
           {output?.duration_ms !== undefined && (
-            <KvRow label={t('amqp.label_duration')} value={`${output.duration_ms}ms`} />
+            <KvRow label={ll.viewer.amqp.label_duration()} value={`${output.duration_ms}ms`} />
           )}
 
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -1282,12 +1282,12 @@ function Amqp10ReceiveView({ report }: { report: NodeExecutionReport }) {
 
       {messages.length > 0 && (
         <CollapsibleSection
-          title={t('amqp.section_message_list')}
+          title={ll.viewer.amqp.section_message_list()}
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {t('amqp.messages_count', { count: messageCount })}
+              {ll.viewer.amqp.messages_count({ count: messageCount })}
             </Badge>
           }
         >
@@ -1309,24 +1309,24 @@ function Amqp10ReceiveView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function Amqp10AcceptView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as Amqp10AcceptOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_accept_status')}
+        title={ll.viewer.amqp.section_accept_status()}
         icon={<Check className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_accepted')} failText={t('amqp.status_accept_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_accepted()} failText={ll.viewer.amqp.status_accept_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.accept_success')
-                : output?.error ?? t('amqp.accept_error')}
+                ? ll.viewer.amqp.accept_success()
+                : output?.error ?? ll.viewer.amqp.accept_error()}
             </span>
           </div>
 
@@ -1344,24 +1344,24 @@ function Amqp10AcceptView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function Amqp10RejectView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as Amqp10RejectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_reject_status')}
+        title={ll.viewer.amqp.section_reject_status()}
         icon={<Ban className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_rejected')} failText={t('amqp.status_reject_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_rejected()} failText={ll.viewer.amqp.status_reject_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.reject_success')
-                : output?.error ?? t('amqp.reject_error')}
+                ? ll.viewer.amqp.reject_success()
+                : output?.error ?? ll.viewer.amqp.reject_error()}
             </span>
           </div>
 
@@ -1379,24 +1379,24 @@ function Amqp10RejectView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function Amqp10DisconnectView({ report }: { report: NodeExecutionReport }) {
-  const t = useVT();
+  const ll = getLL();
   const output = report.output_data as Amqp10DisconnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
   return (
     <div className="space-y-3">
       <CollapsibleSection
-        title={t('amqp.section_disconnect_status')}
+        title={ll.viewer.amqp.section_disconnect_status()}
         icon={<Unplug className="w-4 h-4" />}
         defaultOpen={true}
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText={t('amqp.status_disconnected')} failText={t('amqp.status_disconnect_failed')} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.amqp.status_disconnected()} failText={ll.viewer.amqp.status_disconnect_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? t('amqp.disconnect_success')
-                : output?.error ?? t('amqp.disconnect_error')}
+                ? ll.viewer.amqp.disconnect_success()
+                : output?.error ?? ll.viewer.amqp.disconnect_error()}
             </span>
           </div>
 
