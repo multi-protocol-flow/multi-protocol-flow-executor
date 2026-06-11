@@ -98,34 +98,34 @@ export function AmqpExchangeDeleteConfigPanel({ data, onSave }: Props) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <Trash2 className="h-4 w-4" />
-            {getLL().panels.amqpExchange.title()}
+            {getLL().panels.amqpExchangeDelete.title()}
           </h4>
-          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqpExchange.description()}</p>
+          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqpExchangeDelete.description()}</p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">连接 ID <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.amqpExchangeDelete.connectionId_label()} <span className="text-rose-500">*</span></Label>
         <Input id="connection_id" {...register('connection_id')} placeholder={getLL().panels.enterConnectionId()} className="font-mono text-sm" />
         {errors.connection_id && <p className="text-xs text-rose-500">{errors.connection_id.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="exchange" className="text-sm font-medium text-foreground">Exchange 名称 <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="exchange" className="text-sm font-medium text-foreground">{getLL().panels.amqpExchangeDelete.exchangeName_label()} <span className="text-rose-500">*</span></Label>
         <Input id="exchange" {...register('exchange')} placeholder="my.exchange" className="font-mono text-sm" />
         {errors.exchange && <p className="text-xs text-rose-500">{errors.exchange.message}</p>}
       </div>
 
       <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
-        <div><Label className="text-sm font-medium text-foreground">仅在未被使用时删除</Label><p className="text-xs text-muted-foreground">有队列绑定时拒绝删除</p></div>
+        <div><Label className="text-sm font-medium text-foreground">{getLL().panels.amqpExchangeDelete.ifUnused_label()}</Label><p className="text-xs text-muted-foreground">{getLL().panels.amqpExchangeDelete.ifUnused_desc()}</p></div>
         <Switch checked={watch('if_unused') ?? true} onCheckedChange={(v) => { setValue('if_unused', v, { shouldDirty: true }); saveData(); }} />
       </div>
 
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">Exchange 删除说明：</p>
-          <p>启用 if_unused 可安全删除，避免影响已有绑定</p>
+          <p className="font-medium text-foreground">{getLL().panels.amqpExchangeDelete.help_title()}</p>
+          <p>{getLL().panels.amqpExchangeDelete.help_line1()}</p>
         </div>
       </div>
     </form>

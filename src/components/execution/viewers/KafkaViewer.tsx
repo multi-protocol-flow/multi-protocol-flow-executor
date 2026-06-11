@@ -329,7 +329,7 @@ function KafkaConnectView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 连接状态 */}
       <CollapsibleSection
-        title="连接状态"
+        title={ll.viewer.kafka.section_connection()}
         icon={<Cable className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -360,7 +360,7 @@ function KafkaConnectView({ report }: { report: NodeExecutionReport }) {
       {/* Broker 信息 */}
       {isSuccess && brokerInfo && (
         <CollapsibleSection
-          title="Broker 信息"
+          title={ll.viewer.kafka.section_broker_info()}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={true}
         >
@@ -392,7 +392,7 @@ function KafkaConnectView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(connectDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -429,7 +429,7 @@ function KafkaProduceView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 发送配置 */}
       <CollapsibleSection
-        title="发送配置"
+        title={ll.viewer.kafka.section_send_config()}
         icon={<Send className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -470,7 +470,7 @@ function KafkaProduceView({ report }: { report: NodeExecutionReport }) {
 
       {/* 发送状态 */}
       <CollapsibleSection
-        title="发送状态"
+        title={ll.viewer.kafka.section_produce_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -501,7 +501,7 @@ function KafkaProduceView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(produceDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -540,7 +540,7 @@ function KafkaConsumeView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 消费配置 */}
       <CollapsibleSection
-        title="消费配置"
+        title={ll.viewer.kafka.section_consume_config()}
         icon={<Inbox className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -565,7 +565,7 @@ function KafkaConsumeView({ report }: { report: NodeExecutionReport }) {
 
       {/* 消费状态 */}
       <CollapsibleSection
-        title="消费状态"
+        title={ll.viewer.kafka.section_consume_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -586,8 +586,8 @@ function KafkaConsumeView({ report }: { report: NodeExecutionReport }) {
       {/* 消息列表 */}
       {messages.length > 0 && (
         <CollapsibleSection
-          title="消息列表"
-          icon={<MessageSquare className="w-4 h-4" />}
+        title={ll.viewer.kafka.section_messages()}
+        icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
@@ -606,7 +606,7 @@ function KafkaConsumeView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(consumeDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -645,7 +645,7 @@ function KafkaConsumeBatchView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 批量消费配置 */}
       <CollapsibleSection
-        title="批量消费配置"
+        title={ll.viewer.kafka.section_batch_consume_config()}
         icon={<Database className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -670,7 +670,7 @@ function KafkaConsumeBatchView({ report }: { report: NodeExecutionReport }) {
 
       {/* 批量消费状态 */}
       <CollapsibleSection
-        title="批量消费状态"
+        title={ll.viewer.kafka.section_batch_consume()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -691,8 +691,8 @@ function KafkaConsumeBatchView({ report }: { report: NodeExecutionReport }) {
       {/* 消息列表 */}
       {messages.length > 0 && (
         <CollapsibleSection
-          title="消息列表"
-          icon={<MessageSquare className="w-4 h-4" />}
+        title={ll.viewer.kafka.section_messages()}
+        icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
@@ -711,7 +711,7 @@ function KafkaConsumeBatchView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(consumeDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -748,7 +748,7 @@ function KafkaAdminView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 管理操作 */}
       <CollapsibleSection
-        title="管理操作"
+        title={ll.viewer.kafka.section_admin_result()}
         icon={<Settings className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -778,7 +778,7 @@ function KafkaAdminView({ report }: { report: NodeExecutionReport }) {
       {/* 操作结果 */}
       {isSuccess && output?.result && Object.keys(output.result).length > 0 && (
         <CollapsibleSection
-          title="操作结果"
+          title={ll.viewer.kafka.section_operation_result()}
           icon={<FileJson className="w-4 h-4" />}
           defaultOpen={false}
         >
@@ -791,7 +791,7 @@ function KafkaAdminView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(adminDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -828,7 +828,7 @@ function KafkaSchemaRegistryView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* Schema 操作 */}
       <CollapsibleSection
-        title="Schema 操作"
+        title={ll.viewer.kafka.section_schema()}
         icon={<FileJson className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -858,7 +858,7 @@ function KafkaSchemaRegistryView({ report }: { report: NodeExecutionReport }) {
       {/* Schema 结果 */}
       {isSuccess && output?.result && Object.keys(output.result).length > 0 && (
         <CollapsibleSection
-          title="Schema 详情"
+          title={ll.viewer.kafka.section_schema_detail()}
           icon={<FileJson className="w-4 h-4" />}
           defaultOpen={false}
         >
@@ -871,7 +871,7 @@ function KafkaSchemaRegistryView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(registryDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -908,7 +908,7 @@ function KafkaCloseView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 关闭状态 */}
       <CollapsibleSection
-        title="关闭状态"
+        title={ll.viewer.kafka.section_close_status()}
         icon={<X className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -939,7 +939,7 @@ function KafkaCloseView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(closeDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (

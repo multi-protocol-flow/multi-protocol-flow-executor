@@ -201,7 +201,7 @@ export const useDatasetExecutionStore = create<DatasetExecutionState>((set, get)
               await saveDatasetReport(event.report, reportsDir);
             }
           } catch (err) {
-            console.error('保存数据集报告失败:', err);
+            console.error(ll.execution.toast.report_save_failed(), err);
           }
         })();
         // 显示完成通知

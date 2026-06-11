@@ -364,7 +364,7 @@ function TcpConnectSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时 */}
       {totalDuration !== undefined && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -494,7 +494,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
 
       {/* 执行状态 */}
       <CollapsibleSection
-        title="执行状态"
+        title={ll.viewer.common.section_execution_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -514,7 +514,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
       {/* 耗时分解 */}
       {(sendDuration !== undefined || receiveDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -537,7 +537,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
       {/* 录制查看 */}
       {recording && (
         <CollapsibleSection
-          title="查看录制"
+          title={ll.viewer.tcp.section_view_recording()}
           icon={<CircleDot className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -635,7 +635,7 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
 
       {/* 执行状态 */}
       <CollapsibleSection
-        title="执行状态"
+        title={ll.viewer.common.section_execution_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -657,7 +657,7 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
       {/* 耗时分解 */}
       {(receiveDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -679,7 +679,7 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
       {/* 录制查看 */}
       {recording && (
         <CollapsibleSection
-          title="查看录制"
+          title={ll.viewer.tcp.section_view_recording()}
           icon={<CircleDot className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -757,7 +757,7 @@ function TcpCloseSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时 */}
       {totalDuration !== undefined && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -851,7 +851,7 @@ function UdpBindSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时 */}
       {totalDuration !== undefined && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -939,7 +939,7 @@ function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 执行状态 */}
       <CollapsibleSection
-        title="执行状态"
+        title={ll.viewer.common.section_execution_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -959,7 +959,7 @@ function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时 */}
       {totalDuration !== undefined && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -1053,7 +1053,7 @@ function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 执行状态 */}
       <CollapsibleSection
-        title="执行状态"
+        title={ll.viewer.common.section_execution_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -1073,7 +1073,7 @@ function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时 */}
       {totalDuration !== undefined && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -1146,7 +1146,7 @@ function UdpCloseSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时 */}
       {totalDuration !== undefined && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={

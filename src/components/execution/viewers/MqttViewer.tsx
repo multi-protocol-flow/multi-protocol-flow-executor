@@ -306,7 +306,7 @@ function MqttConnectView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 连接状态 */}
       <CollapsibleSection
-        title="连接状态"
+        title={ll.viewer.mqtt.section_connection()}
         icon={<Cable className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -337,7 +337,7 @@ function MqttConnectView({ report }: { report: NodeExecutionReport }) {
       {/* Broker 信息 */}
       {isSuccess && brokerInfo && (
         <CollapsibleSection
-          title="Broker 信息"
+          title={ll.viewer.mqtt.section_broker_info()}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={true}
         >
@@ -369,7 +369,7 @@ function MqttConnectView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(connectDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -406,7 +406,7 @@ function MqttPublishView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 发布配置 */}
       <CollapsibleSection
-        title="发布配置"
+        title={ll.viewer.mqtt.section_publish_config()}
         icon={<Send className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -442,7 +442,7 @@ function MqttPublishView({ report }: { report: NodeExecutionReport }) {
 
       {/* 发布状态 */}
       <CollapsibleSection
-        title="发布状态"
+        title={ll.viewer.mqtt.section_publish_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -473,7 +473,7 @@ function MqttPublishView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(publishDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -512,7 +512,7 @@ function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 订阅配置 */}
       <CollapsibleSection
-        title="订阅配置"
+        title={ll.viewer.mqtt.section_subscribe_config()}
         icon={<Inbox className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -537,7 +537,7 @@ function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
 
       {/* 订阅状态 */}
       <CollapsibleSection
-        title="订阅状态"
+        title={ll.viewer.mqtt.section_subscription()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -558,8 +558,8 @@ function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
       {/* 消息列表 */}
       {messages.length > 0 && (
         <CollapsibleSection
-          title="消息列表"
-          icon={<MessageSquare className="w-4 h-4" />}
+        title={ll.viewer.mqtt.section_received_messages()}
+        icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
@@ -578,7 +578,7 @@ function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(subscribeDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -613,7 +613,7 @@ function MqttUnsubscribeView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 取消订阅配置 */}
       <CollapsibleSection
-        title="取消订阅配置"
+        title={ll.viewer.mqtt.section_unsubscribe_config()}
         icon={<X className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -627,7 +627,7 @@ function MqttUnsubscribeView({ report }: { report: NodeExecutionReport }) {
 
       {/* 取消订阅状态 */}
       <CollapsibleSection
-        title="取消订阅状态"
+        title={ll.viewer.mqtt.section_unsubscribe_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -666,7 +666,7 @@ function MqttDisconnectView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 断开状态 */}
       <CollapsibleSection
-        title="断开状态"
+        title={ll.viewer.mqtt.section_disconnect()}
         icon={<Unplug className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -699,7 +699,7 @@ function MqttDisconnectView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(disconnectDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -738,7 +738,7 @@ function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 等待配置 */}
       <CollapsibleSection
-        title="等待配置"
+        title={ll.viewer.mqtt.section_wait_config()}
         icon={<Radio className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -763,7 +763,7 @@ function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
 
       {/* 等待状态 */}
       <CollapsibleSection
-        title="等待状态"
+        title={ll.viewer.mqtt.section_wait_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -784,7 +784,7 @@ function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
       {/* 匹配消息列表 */}
       {matchedMessages.length > 0 && (
         <CollapsibleSection
-          title="匹配消息"
+          title={ll.viewer.mqtt.section_matched_messages()}
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -804,7 +804,7 @@ function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(waitDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -843,7 +843,7 @@ function MqttRequestView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 请求配置 */}
       <CollapsibleSection
-        title="请求配置"
+        title={ll.viewer.mqtt.section_request_config()}
         icon={<Send className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -874,7 +874,7 @@ function MqttRequestView({ report }: { report: NodeExecutionReport }) {
 
       {/* 请求状态 */}
       <CollapsibleSection
-        title="请求状态"
+        title={ll.viewer.mqtt.section_request_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -895,7 +895,7 @@ function MqttRequestView({ report }: { report: NodeExecutionReport }) {
       {/* 响应消息列表 */}
       {responses.length > 0 && (
         <CollapsibleSection
-          title="响应消息"
+          title={ll.viewer.mqtt.section_response()}
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -915,7 +915,7 @@ function MqttRequestView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(requestDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (

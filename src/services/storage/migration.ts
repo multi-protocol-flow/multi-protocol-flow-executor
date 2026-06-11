@@ -47,7 +47,7 @@ export async function migrateFlowsToFiles(): Promise<void> {
   try {
     storage = JSON.parse(stored) as LegacyFlowStorage;
   } catch {
-    console.error('迁移失败: 无法解析 localStorage 中的流程数据');
+    console.error('Migration failed: unable to parse flow data in localStorage');
     return;
   }
 
@@ -61,10 +61,10 @@ export async function migrateFlowsToFiles(): Promise<void> {
       // 验证：读回并校验 UUID
       const loaded = await flowStorage.loadFlow(flow.uuid);
       if (!loaded || loaded.uuid !== flow.uuid) {
-        throw new Error(`验证失败: ${flow.name}`);
+        throw new Error(`Validation failed: ${flow.name}`);
       }
     } catch (e) {
-      const msg = `迁移流程 "${flow.name}" 失败: ${e}`;
+      const msg = `Migration of flow "${flow.name}" failed: ${e}`;
       errors.push(msg);
       console.error(msg, e);
     }
@@ -76,11 +76,11 @@ export async function migrateFlowsToFiles(): Promise<void> {
     localStorage.setItem(MIGRATION_FLAG_KEY, 'true');
     localStorage.removeItem(LEGACY_KEYS.FLOWS);
     localStorage.removeItem(LEGACY_KEYS.FLOW_LIST);
-    console.log(`成功迁移 ${flows.length} 个流程到文件存储`);
+    console.log(`Successfully migrated ${flows.length} flows to file storage`);
   } else {
     // 部分失败 — 保留 localStorage 数据，不设置标记，下次可重试
     console.error(
-      `迁移完成但有 ${errors.length} 个失败:`,
+      `Migration completed with ${errors.length} failure(s):`,
       errors,
     );
   }

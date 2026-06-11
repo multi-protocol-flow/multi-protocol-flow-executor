@@ -97,26 +97,26 @@ export function AmqpQueueDeleteConfigPanel({ data, onSave }: Props) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <Trash2 className="h-4 w-4" />
-            {getLL().panels.amqpQueue.title()}
+            {getLL().panels.amqpQueueDelete.title()}
           </h4>
-          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqpQueue.description()}</p>
+          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqpQueueDelete.description()}</p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">连接 ID <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.amqpQueueDelete.connectionId_label()} <span className="text-rose-500">*</span></Label>
         <Input id="connection_id" {...register('connection_id')} placeholder={getLL().panels.enterConnectionId()} className="font-mono text-sm" />
         {errors.connection_id && <p className="text-xs text-rose-500">{errors.connection_id.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="queue" className="text-sm font-medium text-foreground">队列名称 <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="queue" className="text-sm font-medium text-foreground">{getLL().panels.amqpQueueDelete.queueName_label()} <span className="text-rose-500">*</span></Label>
         <Input id="queue" {...register('queue')} placeholder="my.queue" className="font-mono text-sm" />
         {errors.queue && <p className="text-xs text-rose-500">{errors.queue.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">操作类型</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.amqpQueueDelete.action_label()}</Label>
         <Select
           value={currentAction}
           onValueChange={(value) => {
@@ -126,8 +126,8 @@ export function AmqpQueueDeleteConfigPanel({ data, onSave }: Props) {
         >
           <SelectTrigger className="font-mono text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="delete">删除队列</SelectItem>
-            <SelectItem value="purge">清空消息（保留队列）</SelectItem>
+            <SelectItem value="delete">{getLL().panels.amqpQueueDelete.deleteAction_option()}</SelectItem>
+            <SelectItem value="purge">{getLL().panels.amqpQueueDelete.purgeAction_option()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -135,11 +135,11 @@ export function AmqpQueueDeleteConfigPanel({ data, onSave }: Props) {
       {currentAction === 'delete' && (
         <>
           <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
-            <div><Label className="text-sm font-medium text-foreground">仅在未被使用时删除</Label></div>
+            <div><Label className="text-sm font-medium text-foreground">{getLL().panels.amqpQueueDelete.ifUnused_label()}</Label></div>
             <Switch checked={watch('if_unused') ?? false} onCheckedChange={(v) => { setValue('if_unused', v, { shouldDirty: true }); saveData(); }} />
           </div>
           <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
-            <div><Label className="text-sm font-medium text-foreground">仅在为空时删除</Label></div>
+            <div><Label className="text-sm font-medium text-foreground">{getLL().panels.amqpQueueDelete.ifEmpty_label()}</Label></div>
             <Switch checked={watch('if_empty') ?? false} onCheckedChange={(v) => { setValue('if_empty', v, { shouldDirty: true }); saveData(); }} />
           </div>
         </>
@@ -148,9 +148,9 @@ export function AmqpQueueDeleteConfigPanel({ data, onSave }: Props) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">Queue 操作说明：</p>
-          <p>删除: 永久删除队列及其所有消息</p>
-          <p>清空: 仅移除消息，保留队列本身</p>
+          <p className="font-medium text-foreground">{getLL().panels.amqpQueueDelete.help_title()}</p>
+          <p>{getLL().panels.amqpQueueDelete.help_line1()}</p>
+          <p>{getLL().panels.amqpQueueDelete.help_line2()}</p>
         </div>
       </div>
     </form>

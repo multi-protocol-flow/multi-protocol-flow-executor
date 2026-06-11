@@ -1,5 +1,6 @@
 const en_US_flow = {
   unsaved: 'Unsaved',
+  keyboard_shortcuts: 'Keyboard Shortcuts',
   run: 'Run',
   new_flow: 'New Flow',
   execution_history: 'History',

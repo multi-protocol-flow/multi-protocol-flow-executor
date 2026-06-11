@@ -226,7 +226,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-foreground">安全协议</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaConnect.securityProtocol_label()}</Label>
           <Select
             value={securityProtocol}
             onValueChange={(value) => {
@@ -250,10 +250,10 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
       {/* 认证配置 — 仅 SASL 模式显示 */}
       {isSasl && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">认证配置</p>
+          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaConnect.authConfig_sectionTitle()}</p>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">SASL 机制</Label>
+            <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaConnect.saslMechanism_label()}</Label>
             <Select
               value={saslMechanism}
               onValueChange={(value) => {
@@ -289,7 +289,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
             <>
               <div className="space-y-2">
                 <Label htmlFor="sasl_username" className="text-sm font-medium text-foreground">
-                  SASL 用户名
+                  {getLL().panels.kafkaConnect.saslUsername_label()}
                 </Label>
                   <Input
                     id="sasl_username"
@@ -299,9 +299,9 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="sasl_password" className="text-sm font-medium text-foreground">
-                    SASL 密码
-                  </Label>
+                <Label htmlFor="sasl_password" className="text-sm font-medium text-foreground">
+                  {getLL().panels.kafkaConnect.saslPassword_label()}
+                </Label>
                   <Input
                     id="sasl_password"
                     type="password"

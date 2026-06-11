@@ -56,10 +56,10 @@ export async function restoreFlowFromSnapshot(
   // 1. 脏画布检查
   if (isDirty) {
     const confirmed = await showConfirm({
-      title: '恢复流程',
-      description: '当前画布有未保存的修改，是否继续恢复？',
-      confirmText: '继续恢复',
-      cancelText: '取消',
+      title: 'Restore Flow',
+      description: 'The current canvas has unsaved changes. Continue restoring?',
+      confirmText: 'Continue Restore',
+      cancelText: 'Cancel',
     });
     if (!confirmed) {
       toast.error(ll.execution.toast.restore_cancelled());
@@ -73,10 +73,10 @@ export async function restoreFlowFromSnapshot(
 
   if (hasConflict) {
     const overwrite = await showConfirm({
-      title: 'UUID 冲突',
-      description: '已存在同 UUID 的流程，请选择操作',
-      confirmText: '覆盖',
-      cancelText: '新建副本',
+      title: 'UUID Conflict',
+      description: 'A flow with the same UUID already exists. Please choose an action:',
+      confirmText: 'Overwrite',
+      cancelText: 'Create Copy',
     });
 
     if (overwrite) {
@@ -97,7 +97,7 @@ export async function restoreFlowFromSnapshot(
       const copiedFlow: Flow = {
         ...snapshot,
         uuid: newUuid,
-        name: `${snapshot.name}(恢复副本)`,
+        name: `${snapshot.name} (Restored Copy)`,
       };
       try {
         await saveFlow(copiedFlow);

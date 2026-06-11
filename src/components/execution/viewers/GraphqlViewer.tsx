@@ -246,7 +246,7 @@ function GraphqlConnectView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 连接状态 */}
       <CollapsibleSection
-        title="连接状态"
+        title={ll.viewer.graphql.section_connection()}
         icon={<Cable className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -304,7 +304,7 @@ function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 请求状态 */}
       <CollapsibleSection
-        title="请求状态"
+        title={ll.viewer.graphql.section_query_status()}
         icon={<Send className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -343,7 +343,7 @@ function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
       {/* 响应数据 */}
       {hasData && (
         <CollapsibleSection
-          title="响应数据"
+          title={ll.viewer.graphql.section_response_data()}
           icon={<FileJson className="w-4 h-4" />}
           defaultOpen={true}
         >
@@ -356,7 +356,7 @@ function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
       {/* GraphQL 错误 */}
       {hasErrors && (
         <CollapsibleSection
-          title="GraphQL 错误"
+          title={ll.viewer.graphql.section_errors()}
           icon={<AlertTriangle className="w-4 h-4" />}
           defaultOpen={true}
           extra={
@@ -376,7 +376,7 @@ function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
       {/* 扩展信息 */}
       {hasExtensions && (
         <CollapsibleSection
-          title="扩展信息"
+          title={ll.viewer.graphql.section_extensions()}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={false}
         >
@@ -389,7 +389,7 @@ function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {timing && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -431,7 +431,7 @@ function GraphqlSubscribeView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 订阅状态 */}
       <CollapsibleSection
-        title="订阅状态"
+        title={ll.viewer.graphql.section_subscription_status()}
         icon={<Radio className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -460,7 +460,7 @@ function GraphqlSubscribeView({ report }: { report: NodeExecutionReport }) {
       {/* 事件列表 */}
       {events.length > 0 && (
         <CollapsibleSection
-          title="事件列表"
+          title={ll.viewer.graphql.section_events()}
           icon={<FileJson className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -498,7 +498,7 @@ function GraphqlIntrospectView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 探索状态 */}
       <CollapsibleSection
-        title="Schema 探索状态"
+        title={ll.viewer.graphql.section_explore_status()}
         icon={<Search className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -522,7 +522,7 @@ function GraphqlIntrospectView({ report }: { report: NodeExecutionReport }) {
       {/* Schema 完整数据 */}
       {hasSchema && (
         <CollapsibleSection
-          title="Schema 数据"
+          title={ll.viewer.graphql.section_schema_data()}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={false}
         >
@@ -535,7 +535,7 @@ function GraphqlIntrospectView({ report }: { report: NodeExecutionReport }) {
       {/* 查询模板 */}
       {templates.length > 0 && (
         <CollapsibleSection
-          title="查询模板"
+          title={ll.viewer.graphql.section_query_templates()}
           icon={<FileJson className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -593,7 +593,7 @@ function GraphqlDisconnectView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 断开状态 */}
       <CollapsibleSection
-        title="断开状态"
+        title={ll.viewer.graphql.section_disconnect()}
         icon={<Unplug className="w-4 h-4" />}
         defaultOpen={true}
       >

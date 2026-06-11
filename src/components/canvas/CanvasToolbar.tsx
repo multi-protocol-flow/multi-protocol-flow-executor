@@ -119,7 +119,7 @@ export function CanvasToolbar() {
           },
         });
       } else {
-        setError(result.error || '执行失败');
+        setError(result.error || ll.execution.viewers.execution_failed());
         toast.error(ll.execution.toast.flow_failed(), {
           description: result.error || ll.execution.toast.unknown_error(),
           duration: 10000,

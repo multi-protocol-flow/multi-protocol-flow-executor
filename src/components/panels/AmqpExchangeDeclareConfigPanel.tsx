@@ -118,26 +118,26 @@ export function AmqpExchangeDeclareConfigPanel({ data, onSave }: Props) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <Layers className="h-4 w-4" />
-            {getLL().panels.amqpExchange.title()}
+            {getLL().panels.amqpExchangeDeclare.title()}
           </h4>
-          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqpExchange.description()}</p>
+          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqpExchangeDeclare.description()}</p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">连接 ID <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.amqpExchangeDeclare.connectionId_label()} <span className="text-rose-500">*</span></Label>
         <Input id="connection_id" {...register('connection_id')} placeholder={getLL().panels.enterConnectionId()} className="font-mono text-sm" />
         {errors.connection_id && <p className="text-xs text-rose-500">{errors.connection_id.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="exchange" className="text-sm font-medium text-foreground">Exchange 名称 <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="exchange" className="text-sm font-medium text-foreground">{getLL().panels.amqpExchangeDeclare.exchangeName_label()} <span className="text-rose-500">*</span></Label>
         <Input id="exchange" {...register('exchange')} placeholder="my.exchange" className="font-mono text-sm" />
         {errors.exchange && <p className="text-xs text-rose-500">{errors.exchange.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">Exchange 类型</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.amqpExchangeDeclare.exchangeType_label()}</Label>
         <Select
           value={currentExchangeType}
           onValueChange={(value) => {
@@ -147,55 +147,55 @@ export function AmqpExchangeDeclareConfigPanel({ data, onSave }: Props) {
         >
           <SelectTrigger className="font-mono text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="direct">Direct</SelectItem>
-            <SelectItem value="fanout">Fanout</SelectItem>
-            <SelectItem value="topic">Topic</SelectItem>
-            <SelectItem value="headers">Headers</SelectItem>
-            <SelectItem value="custom">自定义</SelectItem>
+            <SelectItem value="direct">{getLL().panels.amqpExchangeDeclare.direct_option()}</SelectItem>
+            <SelectItem value="fanout">{getLL().panels.amqpExchangeDeclare.fanout_option()}</SelectItem>
+            <SelectItem value="topic">{getLL().panels.amqpExchangeDeclare.topic_option()}</SelectItem>
+            <SelectItem value="headers">{getLL().panels.amqpExchangeDeclare.headers_option()}</SelectItem>
+            <SelectItem value="custom">{getLL().panels.amqpExchangeDeclare.custom_option()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {currentExchangeType === 'custom' && (
         <div className="space-y-2">
-          <Label htmlFor="custom_type" className="text-sm font-medium text-foreground">自定义类型名称</Label>
+          <Label htmlFor="custom_type" className="text-sm font-medium text-foreground">{getLL().panels.amqpExchangeDeclare.customType_label()}</Label>
           <Input id="custom_type" {...register('custom_type')} placeholder="x-delayed-message" className="font-mono text-sm" />
         </div>
       )}
 
       <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
-        <div><Label className="text-sm font-medium text-foreground">持久化</Label><p className="text-xs text-muted-foreground">Broker 重启后保留</p></div>
+        <div><Label className="text-sm font-medium text-foreground">{getLL().panels.amqpExchangeDeclare.durable_label()}</Label><p className="text-xs text-muted-foreground">{getLL().panels.amqpExchangeDeclare.durable_desc()}</p></div>
         <Switch checked={watch('durable') ?? true} onCheckedChange={(v) => { setValue('durable', v, { shouldDirty: true }); saveData(); }} />
       </div>
 
       <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
-        <div><Label className="text-sm font-medium text-foreground">被动声明</Label><p className="text-xs text-muted-foreground">仅检查是否存在</p></div>
+        <div><Label className="text-sm font-medium text-foreground">{getLL().panels.amqpExchangeDeclare.passive_label()}</Label><p className="text-xs text-muted-foreground">{getLL().panels.amqpExchangeDeclare.passive_desc()}</p></div>
         <Switch checked={watch('passive') ?? false} onCheckedChange={(v) => { setValue('passive', v, { shouldDirty: true }); saveData(); }} />
       </div>
 
       <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
-        <div><Label className="text-sm font-medium text-foreground">自动删除</Label><p className="text-xs text-muted-foreground">无绑定时自动删除</p></div>
+        <div><Label className="text-sm font-medium text-foreground">{getLL().panels.amqpExchangeDeclare.autoDelete_label()}</Label><p className="text-xs text-muted-foreground">{getLL().panels.amqpExchangeDeclare.autoDelete_desc()}</p></div>
         <Switch checked={watch('auto_delete') ?? false} onCheckedChange={(v) => { setValue('auto_delete', v, { shouldDirty: true }); saveData(); }} />
       </div>
 
       <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
-        <div><Label className="text-sm font-medium text-foreground">内部 Exchange</Label><p className="text-xs text-muted-foreground">仅用于内部路由</p></div>
+        <div><Label className="text-sm font-medium text-foreground">{getLL().panels.amqpExchangeDeclare.internal_label()}</Label><p className="text-xs text-muted-foreground">{getLL().panels.amqpExchangeDeclare.internal_desc()}</p></div>
         <Switch checked={watch('internal') ?? false} onCheckedChange={(v) => { setValue('internal', v, { shouldDirty: true }); saveData(); }} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="arguments" className="text-sm font-medium text-foreground">额外参数（JSON）</Label>
+        <Label htmlFor="arguments" className="text-sm font-medium text-foreground">{getLL().panels.amqpExchangeDeclare.arguments_label()}</Label>
         <Textarea id="arguments" {...register('arguments')} placeholder='{"alternate-exchange": "my.ae"}' className="min-h-[60px] resize-y font-mono text-xs" rows={3} />
       </div>
 
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">Exchange 声明说明：</p>
-          <p>direct: 精确匹配路由键</p>
-          <p>fanout: 广播到所有绑定队列</p>
-          <p>topic: 通配符匹配路由键 (*, #)</p>
-          <p>headers: 基于 header 属性匹配</p>
+          <p className="font-medium text-foreground">{getLL().panels.amqpExchangeDeclare.help_title()}</p>
+          <p>{getLL().panels.amqpExchangeDeclare.help_line1()}</p>
+          <p>{getLL().panels.amqpExchangeDeclare.help_line2()}</p>
+          <p>{getLL().panels.amqpExchangeDeclare.help_line3()}</p>
+          <p>{getLL().panels.amqpExchangeDeclare.help_line4()}</p>
         </div>
       </div>
     </form>

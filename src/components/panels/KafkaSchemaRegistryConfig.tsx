@@ -56,13 +56,15 @@ function fromFormData(formData: KafkaSchemaRegistryFormData): KafkaSchemaRegistr
   };
 }
 
-const SCHEMA_OPERATIONS: Array<{ value: KafkaSchemaOperation; label: string }> = [
-  { value: 'list_subjects', label: '列出 Subjects' },
-  { value: 'get_subject_versions', label: '获取 Subject 版本列表' },
-  { value: 'get_schema_by_version', label: '按版本获取 Schema' },
-  { value: 'check_compatibility', label: '检查兼容性' },
-  { value: 'register_schema', label: '注册 Schema' },
-];
+function getSchemaOperations(): Array<{ value: KafkaSchemaOperation; label: string }> {
+  return [
+    { value: 'list_subjects', label: getLL().panels.kafkaSchemaRegistry.operations_listSubjects() },
+    { value: 'get_subject_versions', label: getLL().panels.kafkaSchemaRegistry.operations_getSubjectVersions() },
+    { value: 'get_schema_by_version', label: getLL().panels.kafkaSchemaRegistry.operations_getSchemaByVersion() },
+    { value: 'check_compatibility', label: getLL().panels.kafkaSchemaRegistry.operations_checkCompatibility() },
+    { value: 'register_schema', label: getLL().panels.kafkaSchemaRegistry.operations_registerSchema() },
+  ];
+}
 
 export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryConfigProps) {
   const {
@@ -153,6 +155,8 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
     return () => { window.removeEventListener('flush-config-panel', handleFlush); };
   }, [saveData]);
 
+  // Schema 操作选项（懒计算）
+  const schemaOperations = useMemo(() => getSchemaOperations(), []);
   // 监听操作类型
   const operation = watch('operation') || 'list_subjects';
   const showSubject = operation !== 'list_subjects';
@@ -190,7 +194,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="{getLL().panels.selectConnection()}" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -207,7 +211,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="{getLL().panels.enterConnectionId()}"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -216,16 +220,16 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 Kafka Connect 节点，请手动输入连接 ID
+            {getLL().panels.kafkaSchemaRegistry.noConnectNode()}
           </p>
         )}
       </div>
 
       {/* 操作选择 */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">操作类型</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.selectOperation()}</p>
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-foreground">操作 <span className="text-rose-500">*</span></Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.operation()} <span className="text-rose-500">*</span></Label>
           <Select
             value={operation}
             onValueChange={(value) => {
@@ -237,7 +241,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {SCHEMA_OPERATIONS.map((op) => (
+              {schemaOperations.map((op) => (
                 <SelectItem key={op.value} value={op.value}>
                   {op.label}
                 </SelectItem>
@@ -250,7 +254,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
       {/* Subject */}
       {showSubject && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Schema Subject</p>
+          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaSchemaRegistry.schemaSubject()}</p>
           <div className="space-y-2">
             <Label htmlFor="subject" className="text-sm font-medium text-foreground">{getLL().panels.kafkaSchemaRegistry.schemaSubject()}</Label>
             <Input
@@ -260,7 +264,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
               className="font-mono text-sm"
             />
             <p className="text-xs text-muted-foreground">
-              Schema Registry 中的 Subject 名称
+              {getLL().panels.kafkaSchemaRegistry.subjectDesc()}
             </p>
           </div>
         </div>
@@ -269,7 +273,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
       {/* 版本 */}
       {showVersion && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">版本信息</p>
+          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaSchemaRegistry.schemaVersion()}</p>
           <div className="space-y-2">
             <Label htmlFor="version" className="text-sm font-medium text-foreground">{getLL().panels.kafkaSchemaRegistry.schemaVersion()}</Label>
             <Input
@@ -280,7 +284,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
               className="font-mono text-sm"
             />
             <p className="text-xs text-muted-foreground">
-              设为 -1 获取最新版本
+              {getLL().panels.kafkaSchemaRegistry.versionHint()}
             </p>
           </div>
         </div>
@@ -289,7 +293,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
       {/* Schema 定义 */}
       {showSchemaDefinition && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Schema 定义</p>
+          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaSchemaRegistry.schemaSubject()}</p>
           <div className="space-y-2">
             <Label htmlFor="schema_definition" className="text-sm font-medium text-foreground">Schema 内容</Label>
             <textarea
@@ -334,7 +338,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
         <div className="space-y-3">
           <p className="text-xs font-semibold text-foreground uppercase tracking-wider">兼容性检查</p>
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">兼容性级别</Label>
+            <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaSchemaRegistry.compatLevel_label()}</Label>
             <Select
               value={watch('compatibility_level') || 'BACKWARD'}
               onValueChange={(value) => {
@@ -353,7 +357,7 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              指定检查 Schema 兼容性时使用的级别
+              {getLL().panels.kafkaSchemaRegistry.compatHint()}
             </p>
           </div>
         </div>

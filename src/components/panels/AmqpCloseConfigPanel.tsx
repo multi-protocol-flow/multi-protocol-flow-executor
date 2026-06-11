@@ -128,7 +128,7 @@ export function AmqpCloseConfigPanel({ data, onSave }: AmqpCloseConfigPanelProps
 
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 ID <span className="text-rose-500">*</span>
+          {getLL().panels.amqpClose.connectionId_label()} <span className="text-rose-500">*</span>
         </Label>
         <Input
           id="connection_id"
@@ -143,7 +143,7 @@ export function AmqpCloseConfigPanel({ data, onSave }: AmqpCloseConfigPanelProps
 
       <div className="space-y-2">
         <Label htmlFor="reply_code" className="text-sm font-medium text-foreground">
-          关闭回复码
+          {getLL().panels.amqpClose.replyCode_label()}
         </Label>
         <Input
           id="reply_code"
@@ -156,7 +156,7 @@ export function AmqpCloseConfigPanel({ data, onSave }: AmqpCloseConfigPanelProps
 
       <div className="space-y-2">
         <Label htmlFor="reply_text" className="text-sm font-medium text-foreground">
-          关闭回复文本
+          {getLL().panels.amqpClose.replyText_label()}
         </Label>
         <Input
           id="reply_text"
@@ -170,8 +170,8 @@ export function AmqpCloseConfigPanel({ data, onSave }: AmqpCloseConfigPanelProps
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-500" />
         <div className="text-xs text-muted-foreground space-y-1">
           <p className="font-medium text-foreground">{getLL().panels.closeInfo()}</p>
-          <p>选择要关闭的 AMQP 连接 ID</p>
-          <p>回复码 200 表示正常关闭</p>
+          <p>{getLL().panels.amqpClose.help_line1()}</p>
+          <p>{getLL().panels.amqpClose.help_line2()}</p>
         </div>
       </div>
     </form>

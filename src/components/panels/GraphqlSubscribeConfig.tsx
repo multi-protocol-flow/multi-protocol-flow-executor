@@ -272,7 +272,8 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
             勾选需要的订阅字段，点击"生成订阅"自动填充订阅编辑器
           </p>
           <GraphqlFieldTree
-            title="Subscription"
+            title="subscription"
+            displayTitle={getLL().panels.graphql_field.subscription_type()}
             fields={selectedSchema.subscriptionFields}
             onGenerate={(q) => {
               if (!q) return;

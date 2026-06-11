@@ -85,14 +85,14 @@ export function Amqp10DisconnectConfigPanel({ data, onSave }: Props) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <XCircle className="h-4 w-4" />
-            {getLL().panels.amqpClose.title()}
+            {getLL().panels.amqp10Disconnect.title()}
           </h4>
-          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqpClose.description()}</p>
+          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqp10Disconnect.description()}</p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.amqpClose.connectionId()} <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Disconnect.connectionId_label()} <span className="text-rose-500">*</span></Label>
         <Input id="connection_id" {...register('connection_id')} placeholder={getLL().panels.enterConnectionId()} className="font-mono text-sm" />
         {errors.connection_id && <p className="text-xs text-rose-500">{errors.connection_id.message}</p>}
       </div>
@@ -101,7 +101,7 @@ export function Amqp10DisconnectConfigPanel({ data, onSave }: Props) {
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-500" />
         <div className="text-xs text-muted-foreground space-y-1">
           <p className="font-medium text-foreground">{getLL().panels.closeInfo()}</p>
-          <p>{getLL().panels.amqpClose.closeInfoLine1()}</p>
+          <p>{getLL().panels.amqp10Disconnect.closeInfoLine1()}</p>
         </div>
       </div>
     </form>

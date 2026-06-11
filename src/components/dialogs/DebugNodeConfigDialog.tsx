@@ -58,7 +58,7 @@ function DebugLazyConfigPanel({ nodeType, data, onSave: onConfigSave }: { nodeTy
     return () => { cancelled = true; };
   }, [nodeType, loader]);
 
-  if (!loader) return <div className="text-muted-foreground">不支持的节点类型</div>;
+  if (!loader) return <div className="text-muted-foreground">{getLL().flow.debug_config_unsupported()}</div>;
 
   if (isLoading || !Component) {
     return <div className="space-y-4 p-4 animate-pulse"><div className="h-24 bg-muted rounded-md" /></div>;
@@ -170,7 +170,7 @@ export function DebugNodeConfigDialog({
               <Settings2 className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <DialogTitle className="text-lg">编辑节点配置</DialogTitle>
+              <DialogTitle className="text-lg">{ll.flow.debug_config_title()}</DialogTitle>
               <p className="text-sm text-muted-foreground mt-0.5">
                 {nodeName} · {nodeTypeLabel}
               </p>
@@ -185,7 +185,7 @@ export function DebugNodeConfigDialog({
             <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg">
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div className="text-sm text-amber-800">
-                <strong>仅调试会话生效：</strong>此修改仅影响当前调试会话，不会保存到流程数据中。调试结束后配置将自动丢弃。
+                <strong>{ll.flow.debug_config_only_session()}</strong>{ll.flow.debug_config_only_session_desc()}
               </div>
             </div>
           </div>
@@ -199,10 +199,10 @@ export function DebugNodeConfigDialog({
         {/* 固定底部区域 */}
         <div className="shrink-0 px-6 py-4 border-t border-border flex justify-end gap-2">
           <Button variant="outline" onClick={onCancel} disabled={isSaving}>
-            取消
+            {ll.flow.debug_config_cancel()}
           </Button>
           <Button onClick={handleSave} disabled={isSaving || !editedData}>
-            {isSaving ? '保存中...' : '保存修改'}
+            {isSaving ? ll.flow.debug_config_saving() : ll.flow.debug_config_save()}
           </Button>
         </div>
       </DialogContent>

@@ -327,7 +327,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
           className="min-h-[60px] resize-y font-mono text-xs"
           rows={2}
         />
-        <p className="text-xs text-muted-foreground">多个地址用逗号或分号分隔</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.smtpSend.toAddress_desc()}</p>
         {errors.to && (
           <p className="text-xs text-rose-500">{errors.to.message}</p>
         )}
@@ -429,7 +429,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
       {/* 回复地址 */}
       <div className="space-y-2">
         <Label htmlFor="reply_to" className="text-sm font-medium text-foreground">
-          回复地址（可选）
+          {getLL().panels.smtpSend.replyTo_label()}
         </Label>
         <Input
           id="reply_to"
@@ -442,7 +442,7 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
       {/* 自定义头 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">自定义头（可选）</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.smtpSend.customHeaders_label()}</Label>
           <Button
             type="button"
             variant="ghost"

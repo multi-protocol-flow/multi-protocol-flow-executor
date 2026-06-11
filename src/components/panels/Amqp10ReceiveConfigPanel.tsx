@@ -103,44 +103,44 @@ export function Amqp10ReceiveConfigPanel({ data, onSave }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Receive.connectionId()} <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Receive.connectionId_label()} <span className="text-rose-500">*</span></Label>
         <Input id="connection_id" {...register('connection_id')} placeholder={getLL().panels.enterConnectionId()} className="font-mono text-sm" />
         {errors.connection_id && <p className="text-xs text-rose-500">{errors.connection_id.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Receive.sourceAddress()} <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="address" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Receive.sourceAddress_label()} <span className="text-rose-500">*</span></Label>
         <Input id="address" {...register('address')} placeholder="my-queue" className="font-mono text-sm" />
         {errors.address && <p className="text-xs text-rose-500">{errors.address.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="credit" className="text-sm font-medium text-foreground">信用额度</Label>
+        <Label htmlFor="credit" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Receive.credit_label()}</Label>
         <Input id="credit" type="number" {...register('credit', { valueAsNumber: true })} placeholder="1" className="font-mono text-sm" />
-        <p className="text-xs text-muted-foreground">控制一次性能接收多少消息</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.amqp10Receive.credit_desc()}</p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="max_messages" className="text-sm font-medium text-foreground">最大接收消息数</Label>
+        <Label htmlFor="max_messages" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Receive.maxMessages_label()}</Label>
         <Input id="max_messages" type="number" {...register('max_messages', { valueAsNumber: true })} placeholder="1" className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Receive.timeout()}</Label>
+        <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Receive.timeout_label()}</Label>
         <Input id="timeout_ms" type="number" {...register('timeout_ms', { valueAsNumber: true })} placeholder="30000" className="font-mono text-sm" />
       </div>
 
       <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
-        <div><Label className="text-sm font-medium text-foreground">自动接受</Label><p className="text-xs text-muted-foreground">接收后自动确认消息</p></div>
+        <div><Label className="text-sm font-medium text-foreground">{getLL().panels.amqp10Receive.autoAccept_label()}</Label><p className="text-xs text-muted-foreground">{getLL().panels.amqp10Receive.autoAccept_desc()}</p></div>
         <Switch checked={watch('auto_accept') ?? true} onCheckedChange={(v) => { setValue('auto_accept', v, { shouldDirty: true }); saveData(); }} />
       </div>
 
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">AMQP 1.0 接收说明：</p>
-          <p>信用额度控制接收端的流量控制</p>
-          <p>禁用自动接受需配合 AMQP 1.0 Accept/Reject 节点</p>
+          <p className="font-medium text-foreground">{getLL().panels.amqp10Receive.help_title()}</p>
+          <p>{getLL().panels.amqp10Receive.help_line1()}</p>
+          <p>{getLL().panels.amqp10Receive.help_line2()}</p>
         </div>
       </div>
     </form>

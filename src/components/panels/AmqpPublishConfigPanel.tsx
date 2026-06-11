@@ -151,112 +151,112 @@ export function AmqpPublishConfigPanel({ data, onSave }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">连接 ID <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.amqpPublish.connectionId_label()} <span className="text-rose-500">*</span></Label>
         <Input id="connection_id" {...register('connection_id')} placeholder={getLL().panels.enterConnectionId()} className="font-mono text-sm" />
         {errors.connection_id && <p className="text-xs text-rose-500">{errors.connection_id.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="exchange" className="text-sm font-medium text-foreground">Exchange</Label>
+        <Label htmlFor="exchange" className="text-sm font-medium text-foreground">{getLL().panels.amqpPublish.exchange_label()}</Label>
         <Input id="exchange" {...register('exchange')} placeholder={getLL().panels.leaveEmptyDefaultExchange()} className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="routing_key" className="text-sm font-medium text-foreground">路由键</Label>
+        <Label htmlFor="routing_key" className="text-sm font-medium text-foreground">{getLL().panels.amqpPublish.routingKey_label()}</Label>
         <Input id="routing_key" {...register('routing_key')} placeholder="routing.key" className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="body" className="text-sm font-medium text-foreground">消息体</Label>
+        <Label htmlFor="body" className="text-sm font-medium text-foreground">{getLL().panels.amqpPublish.messageBody_label()}</Label>
         <Textarea id="body" {...register('body')} placeholder='{"message": "hello"}' className="min-h-[80px] resize-y font-mono text-xs" rows={4} />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">消息体类型</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.amqpPublish.bodyType_label()}</Label>
         <Select value={watch('body_type') || 'text'} onValueChange={(v) => { setValue('body_type', v as 'text' | 'json' | 'binary', { shouldDirty: true }); saveData(); }}>
           <SelectTrigger className="font-mono text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="text">文本 (Text)</SelectItem>
-            <SelectItem value="json">JSON</SelectItem>
-            <SelectItem value="binary">二进制 (Binary)</SelectItem>
+            <SelectItem value="text">{getLL().panels.amqpPublish.text_option()}</SelectItem>
+            <SelectItem value="json">{getLL().panels.amqpPublish.json_option()}</SelectItem>
+            <SelectItem value="binary">{getLL().panels.amqpPublish.binary_option()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">投递模式</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.amqpPublish.deliveryMode_label()}</Label>
         <Select value={String(watch('delivery_mode') ?? 2)} onValueChange={(v) => { setValue('delivery_mode', Number(v), { shouldDirty: true }); saveData(); }}>
           <SelectTrigger className="font-mono text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="1">1 — 非持久化</SelectItem>
-            <SelectItem value="2">2 — 持久化</SelectItem>
+            <SelectItem value="1">{getLL().panels.amqpPublish.nonPersistent_option()}</SelectItem>
+            <SelectItem value="2">{getLL().panels.amqpPublish.persistent_option()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">确认模式</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.amqpPublish.confirmMode_label()}</Label>
         <Select value={watch('confirm_mode') || 'none'} onValueChange={(v) => { setValue('confirm_mode', v as 'none' | 'publisher-confirms' | 'transaction', { shouldDirty: true }); saveData(); }}>
           <SelectTrigger className="font-mono text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">无确认</SelectItem>
-            <SelectItem value="publisher-confirms">Publisher Confirms</SelectItem>
-            <SelectItem value="transaction">事务</SelectItem>
+            <SelectItem value="none">{getLL().panels.amqpPublish.noConfirm_option()}</SelectItem>
+            <SelectItem value="publisher-confirms">{getLL().panels.amqpPublish.publisherConfirms_option()}</SelectItem>
+            <SelectItem value="transaction">{getLL().panels.amqpPublish.transaction_option()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
-        <div><Label className="text-sm font-medium text-foreground">Mandatory</Label><p className="text-xs text-muted-foreground">消息无法路由时返回给发送者</p></div>
+        <div><Label className="text-sm font-medium text-foreground">{getLL().panels.amqpPublish.mandatory_label()}</Label><p className="text-xs text-muted-foreground">{getLL().panels.amqpPublish.mandatory_desc()}</p></div>
         <Switch checked={watch('mandatory') ?? false} onCheckedChange={(v) => { setValue('mandatory', v, { shouldDirty: true }); saveData(); }} />
       </div>
 
       {/* 消息属性 */}
       <div className="border rounded-lg overflow-hidden">
         <button type="button" onClick={() => toggleSection('props')} className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-muted/50 transition-colors">
-          <div className="flex items-center gap-2"><Info className="h-4 w-4 text-violet-600" /><span className="text-sm font-medium text-foreground">消息属性</span></div>
+          <div className="flex items-center gap-2"><Info className="h-4 w-4 text-violet-600" /><span className="text-sm font-medium text-foreground">{getLL().panels.amqpPublish.messageProperties_sectionTitle()}</span></div>
           <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", expandedSections.has('props') && "rotate-180")} />
         </button>
         {expandedSections.has('props') && (
           <div className="border-t bg-muted/20 px-3 py-3 space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="content_type" className="text-xs font-medium text-foreground">Content-Type</Label>
+              <Label htmlFor="content_type" className="text-xs font-medium text-foreground">{getLL().panels.amqpPublish.contentType_label()}</Label>
               <Input id="content_type" {...register('content_type')} placeholder="application/json" className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="content_encoding" className="text-xs font-medium text-foreground">Content-Encoding</Label>
+              <Label htmlFor="content_encoding" className="text-xs font-medium text-foreground">{getLL().panels.amqpPublish.contentEncoding_label()}</Label>
               <Input id="content_encoding" {...register('content_encoding')} placeholder="utf-8" className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="priority" className="text-xs font-medium text-foreground">优先级 (0-9)</Label>
+              <Label htmlFor="priority" className="text-xs font-medium text-foreground">{getLL().panels.amqpPublish.priority_label()}</Label>
               <Input id="priority" type="number" {...register('priority', { valueAsNumber: true })} placeholder="0" className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="message_id" className="text-xs font-medium text-foreground">消息 ID</Label>
+              <Label htmlFor="message_id" className="text-xs font-medium text-foreground">{getLL().panels.amqpPublish.messageId_label()}</Label>
               <Input id="message_id" {...register('message_id')} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="correlation_id" className="text-xs font-medium text-foreground">关联 ID</Label>
+              <Label htmlFor="correlation_id" className="text-xs font-medium text-foreground">{getLL().panels.amqpPublish.correlationId_label()}</Label>
               <Input id="correlation_id" {...register('correlation_id')} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reply_to" className="text-xs font-medium text-foreground">回复队列</Label>
+              <Label htmlFor="reply_to" className="text-xs font-medium text-foreground">{getLL().panels.amqpPublish.replyQueue_label()}</Label>
               <Input id="reply_to" {...register('reply_to')} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="expiration" className="text-xs font-medium text-foreground">过期时间</Label>
-              <Input id="expiration" {...register('expiration')} placeholder="TTL (ms)" className="h-8 text-xs font-mono" />
+              <Label htmlFor="expiration" className="text-xs font-medium text-foreground">{getLL().panels.amqpPublish.expiration_label()}</Label>
+              <Input id="expiration" {...register('expiration')} placeholder={getLL().panels.amqpPublish.expirationPlaceholder()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="message_type" className="text-xs font-medium text-foreground">消息类型</Label>
+              <Label htmlFor="message_type" className="text-xs font-medium text-foreground">{getLL().panels.amqpPublish.messageType_label()}</Label>
               <Input id="message_type" {...register('message_type')} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="user_id" className="text-xs font-medium text-foreground">用户 ID</Label>
+              <Label htmlFor="user_id" className="text-xs font-medium text-foreground">{getLL().panels.amqpPublish.userId_label()}</Label>
               <Input id="user_id" {...register('user_id')} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="app_id" className="text-xs font-medium text-foreground">应用 ID</Label>
+              <Label htmlFor="app_id" className="text-xs font-medium text-foreground">{getLL().panels.amqpPublish.appId_label()}</Label>
               <Input id="app_id" {...register('app_id')} placeholder={getLL().panels.optional()} className="h-8 text-xs font-mono" />
             </div>
           </div>
@@ -264,16 +264,16 @@ export function AmqpPublishConfigPanel({ data, onSave }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="headers" className="text-sm font-medium text-foreground">消息头（JSON）</Label>
+        <Label htmlFor="headers" className="text-sm font-medium text-foreground">{getLL().panels.amqpPublish.headers_label()}</Label>
         <Textarea id="headers" {...register('headers')} placeholder='{"x-custom-header": "value"}' className="min-h-[60px] resize-y font-mono text-xs" rows={3} />
       </div>
 
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">发布说明：</p>
-          <p>Exchange 为空时使用默认 Exchange，路由键作为队列名</p>
-          <p>持久化消息需要队列也是持久化的才能在 Broker 重启后保留</p>
+          <p className="font-medium text-foreground">{getLL().panels.amqpPublish.help_title()}</p>
+          <p>{getLL().panels.amqpPublish.help_line1()}</p>
+          <p>{getLL().panels.amqpPublish.help_line2()}</p>
         </div>
       </div>
     </form>

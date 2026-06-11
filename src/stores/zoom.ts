@@ -48,7 +48,7 @@ async function applyNativeZoom(zoom: number): Promise<void> {
     const { getCurrentWebview } = await import('@tauri-apps/api/webview');
     await getCurrentWebview().setZoom(zoom);
   } catch (error) {
-    console.debug('[缩放] 设置原生缩放失败:', error);
+    console.debug('[Zoom] Failed to set native zoom:', error);
   }
 }
 

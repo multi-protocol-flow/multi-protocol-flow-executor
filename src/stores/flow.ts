@@ -392,7 +392,7 @@ export const useFlowStore = create<FlowState>((set, get) => {
         const debugStore = useDebugStore.getState();
         if (selectIsDebugging(debugStore)) {
           debugStore.setBreakpointDynamic(uuid, newBreakpoint).catch((err) => {
-            console.error('[Flow] 同步断点到后端失败:', err);
+            console.error('[Flow] Failed to sync breakpoint to backend:', err);
           });
         }
       });

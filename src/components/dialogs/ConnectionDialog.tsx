@@ -228,7 +228,7 @@ export function ConnectionDialog({ open, onOpenChange, onSave, initialData }: Co
         setTestResult('success');
       } else {
         setTestResult('error');
-        setTestError(result.error || '连接测试失败');
+        setTestError(result.error || LL.flow.db_conn_test_fail());
       }
     } catch (err) {
       console.error('[数据库连接测试] 异常:', err);

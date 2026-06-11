@@ -472,7 +472,7 @@ export function MainLayout() {
             variant="ghost"
             size="icon"
             onClick={() => useUIStore.getState().openShortcutsDialog()}
-            title={`快捷键 (Ctrl+/)`}
+            title={`${getLL().flow.keyboard_shortcuts()} (Ctrl+/)`}
             className="hidden sm:inline-flex"
           >
             <Keyboard className="h-5 w-5" />

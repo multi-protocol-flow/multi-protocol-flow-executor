@@ -41,10 +41,10 @@ export function SearchableNodeSelect({
   value,
   onValueChange,
   items,
-  placeholder = "选择节点...",
-  emptyText = "无可用节点",
-  noResultsText = "未找到匹配节点",
-  searchPlaceholder = "搜索节点名称或类型...",
+  placeholder = "Select a node...",
+  emptyText = "No nodes available",
+  noResultsText = "No matching nodes found",
+  searchPlaceholder = "Search node name or type...",
   disabled = false,
 }: SearchableNodeSelectProps) {
   const [open, setOpen] = useState(false);

@@ -2,6 +2,7 @@
 
 const zh_CN_flow: BaseTranslation = {
   unsaved: '未保存',
+  keyboard_shortcuts: '快捷键',
   run: '运行',
   new_flow: '新建流程',
   execution_history: '执行历史',

@@ -337,18 +337,17 @@ function NodeCard({
   );
 }
 
-// 超级分类标签（绕过 typesafe-i18n 代理链，直接按 locale 取）
+/** 获取超级分类标签（通过 i18n） */
 function getSuperCategoryLabel(key: string): string {
-  const locale = (typeof localStorage !== 'undefined' ? localStorage.getItem('locale') : null) || 'zh-CN';
-  const isEn = locale === 'en-US';
-  const labels: Record<string, string> = {
-    network: isEn ? 'Network' : '网络协议',
-    services: isEn ? 'Services' : '服务',
-    messaging: isEn ? 'Messaging' : '消息队列',
-    tools: isEn ? 'Tools' : '工具',
-    other: isEn ? 'Other' : '其他',
+  const ll = getLL();
+  const labels: Record<string, () => string> = {
+    network: () => ll.nodes.superCategory.network(),
+    services: () => ll.nodes.superCategory.services(),
+    messaging: () => ll.nodes.superCategory.messaging(),
+    tools: () => ll.nodes.superCategory.tools(),
+    other: () => ll.nodes.superCategory.other(),
   };
-  return labels[key] ?? key;
+  return labels[key]?.() ?? key;
 }
 
 /** 面板宽高常量 */

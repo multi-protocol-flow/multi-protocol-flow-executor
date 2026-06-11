@@ -351,7 +351,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
         {/* 二进制模式工具栏：仅当 message_type === 'binary' 时显示 */}
         {messageType === 'binary' && (
           <div className="flex items-center gap-2 p-2.5 rounded-md border border-orange-200/60 bg-orange-50/60 dark:border-orange-800/40 dark:bg-orange-950/30">
-            <span className="text-xs text-orange-700 dark:text-orange-300 font-medium shrink-0">输入格式</span>
+            <span className="text-xs text-orange-700 dark:text-orange-300 font-medium shrink-0">{getLL().panels.wsSendCollect.inputFormat_label()}</span>
             <Select
               value={binaryInputMode}
               onValueChange={(value) => {
@@ -363,9 +363,9 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="hex">Hex 十六进制 (如: 010203)</SelectItem>
-                <SelectItem value="base64">Base64 编码 (如: SGVsbG8=)</SelectItem>
-                <SelectItem value="text">文本转二进制 (UTF-8 字节)</SelectItem>
+                <SelectItem value="hex">{getLL().panels.wsSendCollect.hex_option()}</SelectItem>
+                <SelectItem value="base64">{getLL().panels.wsSendCollect.base64_option()}</SelectItem>
+                <SelectItem value="text">{getLL().panels.wsSendCollect.textToBinary_option()}</SelectItem>
               </SelectContent>
             </Select>
             {/* 文件上传按钮 */}
@@ -375,7 +375,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
               size="sm"
               className="h-7 px-2 text-xs shrink-0"
               onClick={handleFileSelect}
-              title="从文件读取二进制内容（自动转换为 Hex）"
+              title={getLL().panels.wsSendCollect.readFromFile_title()}
             >
               <FolderOpen className="h-3 w-3 mr-1" />
               {getLL().panels.wsSendCollect.binaryUploadFile()}
@@ -406,7 +406,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
         />
         {messageType !== 'binary' && (
           <p className="text-xs text-muted-foreground">
-            支持使用 <code className="rounded bg-muted px-1">{'{{变量名}}'}</code> 引用变量
+            {getLL().panels.wsSendCollect.variableRefHint()}
           </p>
         )}
         {messageType === 'binary' && binaryInputMode === 'text' && (
@@ -432,8 +432,8 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="text">文本 (Text)</SelectItem>
-            <SelectItem value="binary">二进制 (Binary)</SelectItem>
+            <SelectItem value="text">{getLL().panels.wsSendCollect.text_option()}</SelectItem>
+            <SelectItem value="binary">{getLL().panels.wsSendCollect.binary_option()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -480,7 +480,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
           {/* 采集模式 */}
           <div className="space-y-2">
             <Label htmlFor="collect_mode" className="text-sm font-medium text-foreground">
-              采集模式
+              {getLL().panels.wsSendCollect.collectMode_label()}
             </Label>
             <Select
               value={collectMode || 'first_match'}
@@ -500,9 +500,9 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="first_match">采集首条即停</SelectItem>
-                <SelectItem value="condition_match">匹配条件即停</SelectItem>
-                <SelectItem value="duration_collect">持续采集</SelectItem>
+                <SelectItem value="first_match">{getLL().panels.wsSendCollect.collectFirstStop_option()}</SelectItem>
+                <SelectItem value="condition_match">{getLL().panels.wsSendCollect.matchConditionStop_option()}</SelectItem>
+                <SelectItem value="duration_collect">{getLL().panels.wsSendCollect.continuousCollect_option()}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -510,7 +510,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
           {/* 采集条件（仅当 collect_mode 为 'condition_match' 时显示） */}
           {collectMode === 'condition_match' && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">采集条件</Label>
+              <Label className="text-sm font-medium text-foreground">{getLL().panels.wsSendCollect.condition_label()}</Label>
               <div className="space-y-2 p-3 rounded-md border bg-muted/30">
                 {/* 匹配类型 */}
                 <div className="space-y-2">
@@ -631,7 +631,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
               max={300000}
               {...register('collect_timeout_ms', { valueAsNumber: true })}
             />
-            <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.wsSendCollect.timeout_desc()}</p>
           </div>
         </>
       )}

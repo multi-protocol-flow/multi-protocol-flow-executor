@@ -27,7 +27,7 @@ export async function saveReport(report: FlowExecutionReport, _reportsDir: strin
 export async function loadReport(uuid: string, _reportsDir: string): Promise<FlowExecutionReport> {
   const report = reportStore.get(uuid);
   if (!report) {
-    throw new Error(`报告不存在: ${uuid}`);
+    throw new Error(`Report not found: ${uuid}`);
   }
   return report;
 }
@@ -61,7 +61,7 @@ export async function listReports(_reportsDir: string): Promise<ReportMetadata[]
  */
 export async function deleteReport(uuid: string, _reportsDir: string): Promise<void> {
   if (!reportStore.has(uuid)) {
-    throw new Error(`报告不存在: ${uuid}`);
+    throw new Error(`Report not found: ${uuid}`);
   }
   reportStore.delete(uuid);
 }

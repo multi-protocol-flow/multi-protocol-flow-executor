@@ -155,7 +155,7 @@ export async function startDebug(
     return startDebugImpl(flow, breakpoints, onEvent, onLog);
   } else {
     // Mock 环境 - 暂不实现
-    console.warn('调试功能在 Mock 环境下不可用');
+    console.warn('[Mock] Debug features are not available in mock environment');
   }
 }
 
@@ -170,7 +170,7 @@ export async function sendDebugCommand(command: import('@/types/debug').DebugCom
     return sendDebugCommandImpl(command);
   } else {
     // Mock 环境 - 暂不实现
-    console.warn('调试功能在 Mock 环境下不可用');
+    console.warn('[Mock] Debug features are not available in mock environment');
   }
 }
 
@@ -183,7 +183,7 @@ export async function endDebug(): Promise<void> {
     return endDebugImpl();
   } else {
     // Mock 环境 - 暂不实现
-    console.warn('调试功能在 Mock 环境下不可用');
+    console.warn('[Mock] Debug features are not available in mock environment');
   }
 }
 
@@ -214,7 +214,7 @@ export async function force_end_debug(): Promise<void> {
     return force_end_debugImpl();
   } else {
     // Mock 环境 - 暂不实现
-    console.warn('调试功能在 Mock 环境下不可用');
+    console.warn('[Mock] Debug features are not available in mock environment');
   }
 }
 
@@ -559,7 +559,7 @@ export async function startStressTest(
     return startStressTestImpl(flow, config, onEvent);
   } else {
     // Mock 环境 - 暂不实现
-    console.warn('压力测试功能在 Mock 环境下不可用');
+    console.warn('[Mock] Stress test features are not available in mock environment');
     return () => {};
   }
 }
@@ -573,7 +573,7 @@ export async function stopStressTest(): Promise<void> {
     return stopStressTestImpl();
   } else {
     // Mock 环境 - 暂不实现
-    console.warn('压力测试功能在 Mock 环境下不可用');
+    console.warn('[Mock] Stress test features are not available in mock environment');
   }
 }
 

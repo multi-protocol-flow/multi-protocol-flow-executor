@@ -39,7 +39,7 @@ export async function saveFlow(flow: Flow & { _meta?: FlowMeta }, _flowsDir?: st
 export async function loadFlow(uuid: string, _flowsDir?: string): Promise<Flow> {
   const entry = flowStore.get(uuid);
   if (!entry) {
-    throw new Error(`流程不存在: ${uuid}`);
+    throw new Error(`Flow not found: ${uuid}`);
   }
   // 将 _meta 附加到 flow 对象上
   const flow = { ...entry.flow } as Flow & { _meta?: FlowMeta };
@@ -71,7 +71,7 @@ export async function listFlows(_flowsDir?: string): Promise<FlowMetadata[]> {
  */
 export async function deleteFlow(uuid: string, _flowsDir?: string): Promise<void> {
   if (!flowStore.has(uuid)) {
-    throw new Error(`流程不存在: ${uuid}`);
+    throw new Error(`Flow not found: ${uuid}`);
   }
   flowStore.delete(uuid);
 }
@@ -85,7 +85,7 @@ export async function deleteFlow(uuid: string, _flowsDir?: string): Promise<void
 export async function copyFlow(uuid: string, _flowsDir?: string): Promise<Flow> {
   const source = flowStore.get(uuid);
   if (!source) {
-    throw new Error(`流程不存在: ${uuid}`);
+    throw new Error(`Flow not found: ${uuid}`);
   }
   const newUuid = `${uuid}-copy-${Date.now()}`;
   const copy: Flow = {

@@ -41,6 +41,7 @@ import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
+import { getLL } from '@/i18n/i18n-lazy';
 
 interface EmailViewerProps {
   report: NodeExecutionReport;
@@ -160,16 +161,17 @@ function ImapMessageCard({ message, index, onSelect, isSelected }: {
 
 /** 邮件详情视图 */
 function ImapMessageDetail({ message }: { message: ImapMessage }) {
+  const ll = getLL();
   const [showHtml, setShowHtml] = useState(false);
 
   return (
     <div className="space-y-3">
       {/* 邮件头 */}
       <div className="space-y-1.5">
-        <InfoRow label="Subject" value={message.subject} />
-        <InfoRow label="From" value={message.from} mono />
+        <InfoRow label={ll.viewer.email.label_subject()} value={message.subject} />
+        <InfoRow label={ll.viewer.email.label_from()} value={message.from} mono />
         {message.to && message.to.length > 0 && (
-          <InfoRow label="To" value={message.to.join(', ')} mono />
+          <InfoRow label={ll.viewer.email.label_to()} value={message.to.join(', ')} mono />
         )}
         <InfoRow label="Date" value={message.date} />
         <InfoRow label="UID" value={message.uid} mono />
@@ -190,7 +192,7 @@ function ImapMessageDetail({ message }: { message: ImapMessage }) {
       {/* 正文 */}
       {message.body_text && (
         <div className="space-y-1">
-          <p className="text-xs font-medium text-foreground">Plain Text</p>
+          <p className="text-xs font-medium text-foreground">{ll.viewer.email.label_plain_text()}</p>
           <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-60 overflow-auto bg-muted rounded p-2">
             {message.body_text}
           </pre>
@@ -201,13 +203,13 @@ function ImapMessageDetail({ message }: { message: ImapMessage }) {
       {message.body_html && (
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-foreground">HTML Body</p>
+            <p className="text-xs font-medium text-foreground">{ll.viewer.email.label_html_content()}</p>
             <button
               type="button"
               onClick={() => setShowHtml(!showHtml)}
               className="text-[10px] text-blue-600 hover:underline"
             >
-              {showHtml ? 'Hide Render' : 'Render HTML'}
+              {showHtml ? ll.viewer.email.label_hide_render() : ll.viewer.email.label_render_html()}
             </button>
           </div>
           {showHtml ? (
@@ -216,7 +218,7 @@ function ImapMessageDetail({ message }: { message: ImapMessage }) {
               className="w-full border rounded bg-white"
               style={{ height: '300px' }}
               sandbox="allow-same-origin"
-              title="Email HTML Content"
+              title={ll.viewer.email.label_html_content()}
             />
           ) : (
             <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all max-h-40 overflow-auto bg-muted rounded p-2">
@@ -331,6 +333,7 @@ function getNodeTitle(nodeType: string): string {
 // ============================================================================
 
 export const EmailViewer = memo(function EmailViewer({ report }: EmailViewerProps) {
+  const ll = getLL();
   const nodeType = report.node_type;
   const output = report.output_data as Record<string, unknown> | undefined;
   const isSuccess = (output?.success as boolean) ?? report.status === 'success';
@@ -339,7 +342,7 @@ export const EmailViewer = memo(function EmailViewer({ report }: EmailViewerProp
   // 通用状态面板
   const renderStatus = (successText: string, failText: string) => (
     <CollapsibleSection
-      title="Execution Status"
+      title={ll.viewer.common.section_execution_status()}
       icon={getNodeIcon(nodeType)}
       defaultOpen={true}
     >
@@ -365,12 +368,12 @@ export const EmailViewer = memo(function EmailViewer({ report }: EmailViewerProp
           {isSuccess && result && (
             <>
               {result.server_info && (
-                <CollapsibleSection title="Server Info" icon={<Info className="w-4 h-4" />} defaultOpen={true}>
+                <CollapsibleSection title={ll.viewer.email.section_server_info()} icon={<Info className="w-4 h-4" />} defaultOpen={true}>
                   <InfoRow label="Server" value={result.server_info} />
                 </CollapsibleSection>
               )}
               {result.capabilities && result.capabilities.length > 0 && (
-                <CollapsibleSection title="Server Capabilities" icon={<Cable className="w-4 h-4" />} defaultOpen={false}
+                <CollapsibleSection title={ll.viewer.email.section_capabilities()} icon={<Cable className="w-4 h-4" />} defaultOpen={false}
                   extra={<Badge variant="outline" className="font-mono text-xs">{result.capabilities.length} 项</Badge>}
                 >
                   <div className="flex flex-wrap gap-1">
@@ -394,7 +397,7 @@ export const EmailViewer = memo(function EmailViewer({ report }: EmailViewerProp
         <div className="space-y-3">
           {renderStatus('Search Complete', 'Search Failed')}
           {isSuccess && result && (
-            <CollapsibleSection title="Search Results" icon={<Search className="w-4 h-4" />} defaultOpen={true}
+            <CollapsibleSection title={ll.viewer.email.section_search()} icon={<Search className="w-4 h-4" />} defaultOpen={true}
               extra={<Badge variant="outline" className="font-mono text-xs">{result.count ?? uids.length} matches</Badge>}
             >
               {uids.length > 0 ? (
@@ -426,7 +429,7 @@ export const EmailViewer = memo(function EmailViewer({ report }: EmailViewerProp
           {isSuccess && messages.length > 0 && (
             <>
               {/* 邮件列表 */}
-              <CollapsibleSection title="Message List" icon={<Mail className="w-4 h-4" />} defaultOpen={true}
+              <CollapsibleSection title={ll.viewer.email.section_message_list()} icon={<Mail className="w-4 h-4" />} defaultOpen={true}
                 extra={<Badge variant="outline" className="font-mono text-xs">{result?.count ?? messages.length}</Badge>}
               >
                 <div className="space-y-1.5 max-h-60 overflow-auto">
@@ -443,7 +446,7 @@ export const EmailViewer = memo(function EmailViewer({ report }: EmailViewerProp
               </CollapsibleSection>
               {/* 邮件详情 */}
               {messages[selectedIdx] && (
-                <CollapsibleSection title="Message Detail" icon={<Info className="w-4 h-4" />} defaultOpen={true}>
+                <CollapsibleSection title={ll.viewer.email.section_message_detail()} icon={<Info className="w-4 h-4" />} defaultOpen={true}>
                   <ImapMessageDetail message={messages[selectedIdx]} />
                 </CollapsibleSection>
               )}
@@ -461,7 +464,7 @@ export const EmailViewer = memo(function EmailViewer({ report }: EmailViewerProp
         <div className="space-y-3">
           {renderStatus('List Complete', 'List Failed')}
           {isSuccess && folders.length > 0 && (
-            <CollapsibleSection title="Mailbox Folders" icon={<Inbox className="w-4 h-4" />} defaultOpen={true}
+            <CollapsibleSection title={ll.viewer.email.section_mailbox_folders()} icon={<Inbox className="w-4 h-4" />} defaultOpen={true}
               extra={<Badge variant="outline" className="font-mono text-xs">{folders.length}</Badge>}
             >
               <ImapFolderList folders={folders} />

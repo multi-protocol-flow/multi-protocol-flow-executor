@@ -249,7 +249,7 @@ function HeaderRow() {
       className="flex items-center whitespace-pre text-gray-500 bg-gray-800/80 border-b border-gray-700/50"
       style={{ height: ROW_HEIGHT }}
     >
-      <span className="w-[72px] shrink-0 select-none text-[10px]">Offset</span>
+      <span className="w-[72px] shrink-0 select-none text-[10px]">{getLL().panels.hex_offset_label()}</span>
       <span className="w-[16px] shrink-0 select-none" />
       <span className="text-[10px] tracking-wider">
         {'00 01 02 03 04 05 06 07  08 09 0a 0b 0c 0d 0e 0f'}

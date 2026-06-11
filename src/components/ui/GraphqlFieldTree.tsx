@@ -18,8 +18,10 @@ import {
 // ============================================================================
 
 export interface GraphqlFieldTreeProps {
-  /** 操作类型标题（如 "Query"、"Mutation"） */
+  /** 操作类型（用于逻辑判断：query/mutation/subscription） */
   title: string;
+  /** 显示用标题，不传则使用 title */
+  displayTitle?: string;
   /** 根字段列表 */
   fields: FieldNode[];
   /** 查询生成回调，参数为生成的 GraphQL 查询字符串 */
@@ -77,6 +79,7 @@ function collectRootsWithChecked(nodes: FieldNode[]): FieldNode[] {
 
 export function GraphqlFieldTree({
   title,
+  displayTitle,
   fields,
   onGenerate,
   maxHeight = '16rem',
@@ -132,7 +135,7 @@ export function GraphqlFieldTree({
                 : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
             )}
           >
-            {title}
+            {displayTitle || title}
           </span>
           <span className="text-muted-foreground font-normal normal-case text-[11px]">
             {getLL().panels.graphql_field.field_count({ count: tree.length })}

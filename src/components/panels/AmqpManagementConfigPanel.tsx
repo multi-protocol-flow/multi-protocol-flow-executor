@@ -107,42 +107,42 @@ export function AmqpManagementConfigPanel({ data, onSave }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="management_url" className="text-sm font-medium text-foreground">Management API URL</Label>
+        <Label htmlFor="management_url" className="text-sm font-medium text-foreground">{getLL().panels.amqpManagement.managementUrl_label()}</Label>
         <Input id="management_url" {...register('management_url')} placeholder="http://localhost:15672" className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="username" className="text-sm font-medium text-foreground">用户名</Label>
+        <Label htmlFor="username" className="text-sm font-medium text-foreground">{getLL().panels.amqpManagement.username_label()}</Label>
         <Input id="username" {...register('username')} placeholder="guest" className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password" className="text-sm font-medium text-foreground">密码</Label>
+        <Label htmlFor="password" className="text-sm font-medium text-foreground">{getLL().panels.amqpManagement.password_label()}</Label>
         <Input id="password" type="password" {...register('password')} placeholder="guest" className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">操作类型</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.amqpManagement.action_label()}</Label>
         <Select value={currentAction} onValueChange={(v) => { setValue('action', v as 'overview' | 'list-queues' | 'list-connections' | 'list-exchanges' | 'list-channels', { shouldDirty: true }); saveData(); }}>
           <SelectTrigger className="font-mono text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="overview">概览</SelectItem>
-            <SelectItem value="list-queues">列出队列</SelectItem>
-            <SelectItem value="list-connections">列出连接</SelectItem>
-            <SelectItem value="list-exchanges">列出 Exchange</SelectItem>
-            <SelectItem value="list-channels">列出通道</SelectItem>
+            <SelectItem value="overview">{getLL().panels.amqpManagement.overview_option()}</SelectItem>
+            <SelectItem value="list-queues">{getLL().panels.amqpManagement.listQueues_option()}</SelectItem>
+            <SelectItem value="list-connections">{getLL().panels.amqpManagement.listConnections_option()}</SelectItem>
+            <SelectItem value="list-exchanges">{getLL().panels.amqpManagement.listExchanges_option()}</SelectItem>
+            <SelectItem value="list-channels">{getLL().panels.amqpManagement.listChannels_option()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="vhost" className="text-sm font-medium text-foreground">VHost</Label>
+        <Label htmlFor="vhost" className="text-sm font-medium text-foreground">{getLL().panels.amqpManagement.vhost_label()}</Label>
         <Input id="vhost" {...register('vhost')} placeholder="/" className="font-mono text-sm" />
       </div>
 
       {(currentAction === 'list-queues') && (
         <div className="space-y-2">
-          <Label htmlFor="queue_name" className="text-sm font-medium text-foreground">队列名称</Label>
+          <Label htmlFor="queue_name" className="text-sm font-medium text-foreground">{getLL().panels.amqpManagement.queueName_label()}</Label>
           <Input id="queue_name" {...register('queue_name')} placeholder={getLL().panels.leaveEmptyQueryAll()} className="font-mono text-sm" />
         </div>
       )}
@@ -150,9 +150,9 @@ export function AmqpManagementConfigPanel({ data, onSave }: Props) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">Management API 说明：</p>
-          <p>需要 RabbitMQ 启用 management 插件</p>
-          <p>默认端口 15672，默认用户 guest/guest</p>
+          <p className="font-medium text-foreground">{getLL().panels.amqpManagement.help_title()}</p>
+          <p>{getLL().panels.amqpManagement.help_line1()}</p>
+          <p>{getLL().panels.amqpManagement.help_line2()}</p>
         </div>
       </div>
     </form>

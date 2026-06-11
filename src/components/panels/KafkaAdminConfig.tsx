@@ -99,41 +99,43 @@ function fromFormData(formData: KafkaAdminFormData): KafkaAdminConfigType {
   };
 }
 
-const OPERATION_GROUPS: Array<{ label: string; operations: Array<{ value: KafkaAdminOperation; label: string }> }> = [
-  {
-    label: '主题管理',
-    operations: [
-      { value: 'topic_create', label: '创建主题' },
-      { value: 'topic_delete', label: '删除主题' },
-      { value: 'topic_describe', label: '描述主题' },
-      { value: 'topic_list', label: '列出主题' },
-      { value: 'topic_alter_config', label: '修改主题配置' },
-    ],
-  },
-  {
-    label: '消费者组管理',
-    operations: [
-      { value: 'consumer_group_list', label: '列出消费者组' },
-      { value: 'consumer_group_describe', label: '描述消费者组' },
-      { value: 'consumer_group_reset_offset', label: '重置消费者偏移量' },
-    ],
-  },
-  {
-    label: 'Broker 管理',
-    operations: [
-      { value: 'broker_list', label: '列出 Broker' },
-      { value: 'broker_describe_config', label: '描述 Broker 配置' },
-    ],
-  },
-  {
-    label: 'ACL 管理',
-    operations: [
-      { value: 'acl_create', label: '创建 ACL' },
-      { value: 'acl_delete', label: '删除 ACL' },
-      { value: 'acl_list', label: '列出 ACL' },
-    ],
-  },
-];
+function getOperationGroups(): Array<{ label: string; operations: Array<{ value: KafkaAdminOperation; label: string }> }> {
+  return [
+    {
+      label: getLL().panels.kafkaAdmin.operations_topicManagement(),
+      operations: [
+        { value: 'topic_create', label: getLL().panels.kafkaAdmin.operations_createTopic() },
+        { value: 'topic_delete', label: getLL().panels.kafkaAdmin.operations_deleteTopic() },
+        { value: 'topic_describe', label: getLL().panels.kafkaAdmin.operations_describeTopic() },
+        { value: 'topic_list', label: getLL().panels.kafkaAdmin.operations_listTopics() },
+        { value: 'topic_alter_config', label: getLL().panels.kafkaAdmin.operations_modifyTopicConfig() },
+      ],
+    },
+    {
+      label: getLL().panels.kafkaAdmin.operations_consumerGroupManagement(),
+      operations: [
+        { value: 'consumer_group_list', label: getLL().panels.kafkaAdmin.operations_listConsumerGroups() },
+        { value: 'consumer_group_describe', label: getLL().panels.kafkaAdmin.operations_describeConsumerGroups() },
+        { value: 'consumer_group_reset_offset', label: getLL().panels.kafkaAdmin.operations_resetOffsets() },
+      ],
+    },
+    {
+      label: getLL().panels.kafkaAdmin.operations_brokerManagement(),
+      operations: [
+        { value: 'broker_list', label: getLL().panels.kafkaAdmin.operations_listBrokers() },
+        { value: 'broker_describe_config', label: getLL().panels.kafkaAdmin.operations_describeBrokerConfig() },
+      ],
+    },
+    {
+      label: getLL().panels.kafkaAdmin.operations_aclManagement(),
+      operations: [
+        { value: 'acl_create', label: getLL().panels.kafkaAdmin.operations_createAcl() },
+        { value: 'acl_delete', label: getLL().panels.kafkaAdmin.operations_deleteAcl() },
+        { value: 'acl_list', label: getLL().panels.kafkaAdmin.operations_listAcls() },
+      ],
+    },
+  ];
+}
 
 export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
   const {
@@ -224,6 +226,8 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
     return () => { window.removeEventListener('flush-config-panel', handleFlush); };
   }, [saveData]);
 
+  // 操作分组（懒计算，依赖 getLL）
+  const operationGroups = useMemo(() => getOperationGroups(), []);
   // 监听操作类型
   const operation = watch('operation') || 'topic_list';
 
@@ -263,7 +267,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
             }}
           >
             <SelectTrigger id="connection_id" className="font-mono">
-              <SelectValue placeholder="{getLL().panels.selectConnection()}" />
+              <SelectValue placeholder={getLL().panels.selectConnection()} />
             </SelectTrigger>
             <SelectContent>
               {availableConnections.map((conn) => (
@@ -280,7 +284,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
           <Input
             id="connection_id"
             {...register('connection_id')}
-            placeholder="{getLL().panels.enterConnectionId()}"
+            placeholder={getLL().panels.enterConnectionId()}
             className="font-mono text-sm"
           />
         )}
@@ -289,14 +293,14 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 Kafka Connect 节点，请手动输入连接 ID
+            {getLL().panels.kafkaAdmin.noConnectNode()}
           </p>
         )}
       </div>
 
       {/* 管理操作 */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">管理操作</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.selectOperation()}</p>
         <div className="space-y-2">
           <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.operation()} <span className="text-rose-500">*</span></Label>
           <Select
@@ -310,12 +314,12 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {OPERATION_GROUPS.map((group) => (
+              {operationGroups.map((group) => (
                 <SelectItem key={group.label} value={group.operations[0].value} disabled className="font-semibold">
                   — {group.label} —
                 </SelectItem>
               )).filter(() => false)}
-              {OPERATION_GROUPS.map((group) => (
+              {operationGroups.map((group) => (
                 <optgroup key={group.label} label={group.label}>
                   {group.operations.map((op) => (
                     <SelectItem key={op.value} value={op.value}>

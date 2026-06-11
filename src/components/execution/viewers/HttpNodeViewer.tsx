@@ -166,9 +166,9 @@ function FormDataFieldsTable({ fields }: { fields: FormField[] }) {
   return (
     <div className="border border-border rounded overflow-hidden text-sm">
       <div className="grid grid-cols-[1fr_70px_2fr] bg-muted/50">
-        <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground">Key</div>
-        <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground text-center">Type</div>
-        <div className="px-2.5 py-1.5 font-medium border-b border-border text-xs text-muted-foreground">Value</div>
+        <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground">{ll.viewer.http.label_key()}</div>
+        <div className="px-2.5 py-1.5 font-medium border-r border-b border-border text-xs text-muted-foreground text-center">{ll.viewer.http.label_type()}</div>
+        <div className="px-2.5 py-1.5 font-medium border-b border-border text-xs text-muted-foreground">{ll.viewer.http.label_value()}</div>
       </div>
       {fields.map((field, i) => (
         <div key={`${field.key}-${i}`} className="grid grid-cols-[1fr_70px_2fr]">

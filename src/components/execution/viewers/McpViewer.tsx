@@ -604,7 +604,7 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(connectDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -647,7 +647,7 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 调用配置 */}
       <CollapsibleSection
-        title="调用配置"
+        title={ll.viewer.mcp.section_call_config()}
         icon={<Wrench className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -710,7 +710,7 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
       {/* 内容块 */}
       {contentBlocks.length > 0 && (
         <CollapsibleSection
-          title="返回内容"
+          title={ll.viewer.mcp.section_content_result()}
           icon={<FileText className="w-4 h-4" />}
           defaultOpen={true}
           extra={
@@ -730,7 +730,7 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(callDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -772,7 +772,7 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 资源配置 */}
       <CollapsibleSection
-        title="资源配置"
+        title={ll.viewer.mcp.section_resource_config()}
         icon={<FileText className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -818,7 +818,7 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
       {/* 资源内容 */}
       {contents.length > 0 && (
         <CollapsibleSection
-          title="资源内容"
+          title={ll.viewer.mcp.section_resource_content()}
           icon={<Server className="w-4 h-4" />}
           defaultOpen={true}
           extra={
@@ -877,7 +877,7 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(readDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -920,7 +920,7 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 提示词配置 */}
       <CollapsibleSection
-        title="提示词配置"
+        title={ll.viewer.mcp.section_prompt_config()}
         icon={<MessageSquare className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -984,7 +984,7 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
       {/* 消息列表 */}
       {messages.length > 0 && (
         <CollapsibleSection
-          title="消息列表"
+          title={ll.viewer.mcp.section_message_list()}
           icon={<Server className="w-4 h-4" />}
           defaultOpen={true}
           extra={
@@ -1036,7 +1036,7 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(callDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -1077,7 +1077,7 @@ function McpCloseSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 关闭配置 */}
       <CollapsibleSection
-        title="关闭配置"
+        title={ll.viewer.mcp.section_close_config()}
         icon={<Unplug className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -1115,7 +1115,7 @@ function McpCloseSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(closeDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (

@@ -182,7 +182,7 @@ function RedisConnectView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 连接状态 */}
       <CollapsibleSection
-        title="连接状态"
+        title={ll.viewer.redis.section_connection()}
         icon={<Radio className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -213,7 +213,7 @@ function RedisConnectView({ report }: { report: NodeExecutionReport }) {
       {/* 服务器信息 */}
       {isSuccess && output?.server_info && (
         <CollapsibleSection
-          title="服务器信息"
+          title={ll.viewer.redis.section_server_info()}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={true}
         >
@@ -245,7 +245,7 @@ function RedisConnectView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(connectDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -282,7 +282,7 @@ function RedisCommandView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 命令信息 */}
       <CollapsibleSection
-        title="命令执行"
+        title={ll.viewer.redis.section_command_info()}
         icon={<Terminal className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -308,7 +308,7 @@ function RedisCommandView({ report }: { report: NodeExecutionReport }) {
 
       {/* 执行状态 */}
       <CollapsibleSection
-        title="执行状态"
+        title={ll.viewer.common.section_execution_status()}
         icon={<Database className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -329,7 +329,7 @@ function RedisCommandView({ report }: { report: NodeExecutionReport }) {
       {/* 返回结果 */}
       {isSuccess && output?.result !== undefined && (
         <CollapsibleSection
-          title="返回结果"
+          title={ll.viewer.redis.section_result_data()}
           icon={<Database className="w-4 h-4" />}
           defaultOpen={true}
         >
@@ -344,7 +344,7 @@ function RedisCommandView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(commandDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -381,7 +381,7 @@ function RedisCloseView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 关闭状态 */}
       <CollapsibleSection
-        title="关闭状态"
+        title={ll.viewer.redis.section_close()}
         icon={<X className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -412,7 +412,7 @@ function RedisCloseView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(closeDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (

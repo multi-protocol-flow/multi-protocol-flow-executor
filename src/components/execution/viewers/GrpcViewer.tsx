@@ -543,11 +543,12 @@ function formatTypeUrl(typeUrl: string): { shortName: string; fullName: string }
  * gRPC 错误详情卡片
  */
 function GrpcErrorDetailsCard({ details }: { details: GrpcErrorDetail[] }) {
+  const ll = getLL();
   if (details.length === 0) return null;
 
   return (
     <CollapsibleSection
-      title={`错误详情 (${details.length})`}
+      title={`${ll.viewer.grpc.section_errors()} (${details.length})`}
       icon={<AlertTriangle className="w-4 h-4" />}
       defaultOpen={true}
     >
@@ -591,6 +592,7 @@ function GrpcErrorDetailsCard({ details }: { details: GrpcErrorDetail[] }) {
 }
 
 function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as GrpcCallOutput | undefined;
   const resolvedConfig = report.resolved_config as GrpcCallOutput['request'] | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
@@ -660,7 +662,7 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 调用配置 */}
       <CollapsibleSection
-        title="调用配置"
+        title={ll.viewer.grpc.section_call_config()}
         icon={<Radio className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -712,7 +714,7 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 响应状态 */}
       <CollapsibleSection
-        title="响应状态"
+        title={ll.viewer.grpc.section_response_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -752,7 +754,7 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
       {/* Streaming Statistics */}
       {(output?.sent_count !== undefined || output?.received_count !== undefined) && (
         <CollapsibleSection
-          title="流式统计"
+          title={ll.viewer.grpc.section_streaming_stats()}
           icon={<Server className="w-4 h-4" />}
           defaultOpen={true}
         >
@@ -788,14 +790,14 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
       {/* 实时流式消息（来自 DebugEvent 通道） */}
       {showRealtimeMessages && !hasFinalResults && (
         <CollapsibleSection
-          title={`实时消息 (${realtimeMessages.length} 条)`}
+          title={`${ll.viewer.grpc.section_streaming_stats()} (${realtimeMessages.length})`}
           icon={<Activity className="w-4 h-4" />}
           defaultOpen={true}
           extra={
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-emerald-600 animate-pulse">实时</span>
               <Badge variant="outline" className="font-mono text-xs">
-                {realtimeMessages.length} 条
+                {realtimeMessages.length}{ll.viewer.common.items({ count: realtimeMessages.length })}
               </Badge>
             </div>
           }
@@ -817,7 +819,7 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
       {/* Response Data - Single Response (Unary/Client Streaming) */}
       {responseData !== undefined && responseData !== null && !hasStreamingResponses && (
         <CollapsibleSection
-          title="响应数据"
+          title={ll.viewer.grpc.section_response()}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={false}
         >
@@ -830,7 +832,7 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
       {/* Response Data - Streaming Responses (Server/Bidi Streaming) */}
       {hasStreamingResponses && (
         <CollapsibleSection
-          title={`响应消息 (${streamingResponses.length} 条)`}
+          title={`${ll.viewer.grpc.section_streaming_responses()} (${streamingResponses.length})`}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={false}
         >
@@ -864,7 +866,7 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
       {/* Legacy: array response data fallback (backward compatibility) */}
       {responseData !== undefined && responseData !== null && hasStreamingResponses && Array.isArray(responseData) && (
         <CollapsibleSection
-          title={`响应数据 (${responseData.length} 条消息)`}
+          title={`${ll.viewer.grpc.section_response()} (${responseData.length})`}
           icon={<Globe className="w-4 h-4" />}
           defaultOpen={false}
         >
@@ -877,7 +879,7 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
       {/* 响应 Metadata */}
       {responseMetadata && Object.keys(responseMetadata).length > 0 && (
         <CollapsibleSection
-          title="响应 Metadata"
+          title={ll.viewer.grpc.section_response_metadata()}
           icon={<Server className="w-4 h-4" />}
           defaultOpen={false}
         >
@@ -888,7 +890,7 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
       {/* Trailers */}
       {trailers && Object.keys(trailers).length > 0 && (
         <CollapsibleSection
-          title="Trailers"
+          title={ll.viewer.grpc.section_trailers()}
           icon={<Server className="w-4 h-4" />}
           defaultOpen={false}
         >
@@ -899,7 +901,7 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(callDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -945,7 +947,7 @@ function GrpcCloseSection({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 关闭配置 */}
       <CollapsibleSection
-        title="关闭配置"
+        title={ll.viewer.grpc.section_close_config()}
         icon={<Unplug className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -967,7 +969,7 @@ function GrpcCloseSection({ report }: { report: NodeExecutionReport }) {
 
       {/* 关闭状态 */}
       <CollapsibleSection
-        title="关闭状态"
+        title={ll.viewer.grpc.section_close()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -993,7 +995,7 @@ function GrpcCloseSection({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(closeDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (

@@ -345,7 +345,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
         >
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-cyan-600" />
-            <span className="text-sm font-medium text-foreground">认证（可选）</span>
+            <span className="text-sm font-medium text-foreground">{getLL().panels.mqttConnect.auth_sectionTitle()}</span>
           </div>
           <ChevronDown className={cn(
             "h-3.5 w-3.5 text-muted-foreground transition-transform",
@@ -355,7 +355,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
         {expandedSections.has('auth') && (
           <div className="border-t bg-muted/20 px-3 py-3 space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-xs font-medium text-foreground">用户名</Label>
+              <Label htmlFor="username" className="text-xs font-medium text-foreground">{getLL().panels.mqttConnect.auth_username()}</Label>
               <Input
                 id="username"
                 {...register('username')}
@@ -364,7 +364,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-xs font-medium text-foreground">密码</Label>
+              <Label htmlFor="password" className="text-xs font-medium text-foreground">{getLL().panels.mqttConnect.auth_password()}</Label>
               <Input
                 id="password"
                 type="password"
@@ -393,8 +393,8 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="5.0">MQTT 5.0</SelectItem>
-            <SelectItem value="3.1.1">MQTT 3.1.1</SelectItem>
+            <SelectItem value="5.0">{getLL().panels.mqttConnect.protocol_50_option()}</SelectItem>
+            <SelectItem value="3.1.1">{getLL().panels.mqttConnect.protocol_311_option()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -402,8 +402,8 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
       {/* Clean Session */}
       <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
         <div>
-          <Label className="text-sm font-medium text-foreground">清除会话</Label>
-          <p className="text-xs text-muted-foreground">连接时清除之前的会话状态</p>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.mqttConnect.cleanSession_label()}</Label>
+          <p className="text-xs text-muted-foreground">{getLL().panels.mqttConnect.cleanSession_desc()}</p>
         </div>
         <Switch
           checked={watch('clean_session') ?? true}
@@ -451,7 +451,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
         >
           <div className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4 text-cyan-600" />
-            <span className="text-sm font-medium text-foreground">遗嘱消息（可选）</span>
+            <span className="text-sm font-medium text-foreground">{getLL().panels.mqttConnect.willMessage_sectionTitle()}</span>
           </div>
           <ChevronDown className={cn(
             "h-3.5 w-3.5 text-muted-foreground transition-transform",
@@ -461,7 +461,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
         {expandedSections.has('will') && (
           <div className="border-t bg-muted/20 px-3 py-3 space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="will_topic" className="text-xs font-medium text-foreground">遗嘱主题</Label>
+              <Label htmlFor="will_topic" className="text-xs font-medium text-foreground">{getLL().panels.mqttConnect.willTopic_label()}</Label>
               <Input
                 id="will_topic"
                 {...register('will_topic')}
@@ -470,7 +470,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="will_payload" className="text-xs font-medium text-foreground">遗嘱载荷</Label>
+              <Label htmlFor="will_payload" className="text-xs font-medium text-foreground">{getLL().panels.mqttConnect.willPayload_label()}</Label>
               <Input
                 id="will_payload"
                 {...register('will_payload')}
@@ -479,7 +479,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-foreground">遗嘱 QoS</Label>
+              <Label className="text-xs font-medium text-foreground">{getLL().panels.mqttConnect.willQos_label()}</Label>
               <Select
                 value={String(watch('will_qos') ?? 0)}
                 onValueChange={(value) => {
@@ -520,7 +520,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
         >
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-cyan-600" />
-            <span className="text-sm font-medium text-foreground">TLS 选项</span>
+            <span className="text-sm font-medium text-foreground">{getLL().panels.enableTls()}</span>
           </div>
           <ChevronDown className={cn(
             "h-3.5 w-3.5 text-muted-foreground transition-transform",
@@ -651,7 +651,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
         <div className="space-y-2">
           {userProps.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无用户属性</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.noData()}</p>
             </div>
           ) : (
             userProps.map((pair, index) => (

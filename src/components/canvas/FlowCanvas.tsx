@@ -394,8 +394,8 @@ function ImportFlowCard({ wc, onImport }: { wc: ReturnType<typeof getLL>['welcom
             <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
         </div>
-        <span className="text-sm font-medium text-foreground">{wc.empty_import_flow?.() || '导入流程文件'}</span>
-        <span className="text-xs text-muted-foreground">{wc.empty_import_flow_desc?.() || '拖入或选择 .mpf 文件'}</span>
+        <span className="text-sm font-medium text-foreground">{wc.empty_import_flow()}</span>
+        <span className="text-xs text-muted-foreground">{wc.empty_import_flow_desc()}</span>
       </div>
     </>
   );
@@ -1151,7 +1151,7 @@ function FlowCanvasInner() {
                 </svg>
               </div>
               <span className="text-sm font-medium text-foreground">{ll.flow.new_flow()}</span>
-              <span className="text-xs text-muted-foreground">{wc.empty_new_flow_desc?.() || '从零开始搭建你的流程'}</span>
+              <span className="text-xs text-muted-foreground">{wc.empty_new_flow_desc()}</span>
             </button>
 
             {/* From template */}
@@ -1164,8 +1164,8 @@ function FlowCanvasInner() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
               </div>
-              <span className="text-sm font-medium text-foreground">{wc.empty_from_template?.() || '从模板创建'}</span>
-              <span className="text-xs text-muted-foreground">{wc.empty_from_template_desc?.() || '选择预置模板快速开始'}</span>
+              <span className="text-sm font-medium text-foreground">{wc.empty_from_template()}</span>
+              <span className="text-xs text-muted-foreground">{wc.empty_from_template_desc()}</span>
             </button>
 
             {/* Import flow file - drag & drop and click to open */}
@@ -1190,8 +1190,8 @@ function FlowCanvasInner() {
           {/* Keyboard shortcuts hint */}
           <div className="text-xs text-muted-foreground/60">
             <span className="inline-flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">{wc.empty_right_click_key?.() || '右键'}</kbd>
-              <span>{wc.empty_right_click_desc?.() || '画布打开节点选择器'}</span>
+              <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[10px] font-mono">{wc.empty_right_click_key()}</kbd>
+              <span>{wc.empty_right_click_desc()}</span>
             </span>
           </div>
         </div>
@@ -1292,7 +1292,7 @@ function FlowCanvasInner() {
           {/* 搜索流程 */}
           <ControlButton
             onClick={() => useUIStore.getState().openSearchOverlay()}
-            title={`${getLL().flow.search_flow?.() || '搜索流程'} (Ctrl+Shift+F)`}
+            title={`${getLL().flow.search_flow()} (Ctrl+Shift+F)`}
           >
             <Search className="w-4 h-4" />
           </ControlButton>

@@ -27,12 +27,12 @@ interface DbBeginConfigProps {
 /**
  * 隔离级别选项
  */
-const ISOLATION_LEVEL_OPTIONS: { value: DbIsolationLevelFormData; label: string }[] = [
-  { value: 'default', label: '默认' },
-  { value: 'read_uncommitted', label: '读未提交 (Read Uncommitted)' },
-  { value: 'read_committed', label: '读已提交 (Read Committed)' },
-  { value: 'repeatable_read', label: '可重复读 (Repeatable Read)' },
-  { value: 'serializable', label: '串行化 (Serializable)' },
+const ISOLATION_LEVEL_OPTIONS: { value: DbIsolationLevelFormData; label: () => string }[] = [
+  { value: 'default', label: () => getLL().panels.dbBegin.defaultLevel() },
+  { value: 'read_uncommitted', label: () => getLL().panels.dbBegin.isolation_readUncommitted() },
+  { value: 'read_committed', label: () => getLL().panels.dbBegin.isolation_readCommitted() },
+  { value: 'repeatable_read', label: () => getLL().panels.dbBegin.isolation_repeatableRead() },
+  { value: 'serializable', label: () => getLL().panels.dbBegin.isolation_serializable() },
 ];
 
 /**
@@ -281,7 +281,7 @@ export function DbBeginConfig({ data, onSave }: DbBeginConfigProps) {
           <SelectContent>
             {ISOLATION_LEVEL_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
-                {option.label}
+                {option.label()}
               </SelectItem>
             ))}
           </SelectContent>

@@ -229,7 +229,7 @@ function SseConnectView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 连接状态 */}
       <CollapsibleSection
-        title="连接状态"
+        title={ll.viewer.sse.section_connection()}
         icon={<Cable className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -259,7 +259,7 @@ function SseConnectView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(connectDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -298,7 +298,7 @@ function SseListenView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 监听配置 */}
       <CollapsibleSection
-        title="监听配置"
+        title={ll.viewer.sse.section_listen_config()}
         icon={<Ear className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -322,7 +322,7 @@ function SseListenView({ report }: { report: NodeExecutionReport }) {
 
       {/* 监听状态 */}
       <CollapsibleSection
-        title="监听状态"
+        title={ll.viewer.sse.section_listen_status()}
         icon={<Globe className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -343,7 +343,7 @@ function SseListenView({ report }: { report: NodeExecutionReport }) {
       {/* 事件列表 */}
       {events.length > 0 && (
         <CollapsibleSection
-          title="事件列表"
+          title={ll.viewer.sse.section_events()}
           icon={<MessageSquare className="w-4 h-4" />}
           defaultOpen={false}
           extra={
@@ -363,7 +363,7 @@ function SseListenView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(listenDuration !== undefined || totalDuration !== undefined || output?.duration_ms !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (
@@ -400,7 +400,7 @@ function SseDisconnectView({ report }: { report: NodeExecutionReport }) {
     <div className="space-y-3">
       {/* 断开状态 */}
       <CollapsibleSection
-        title="断开状态"
+        title={ll.viewer.sse.section_close()}
         icon={<Unplug className="w-4 h-4" />}
         defaultOpen={true}
       >
@@ -430,7 +430,7 @@ function SseDisconnectView({ report }: { report: NodeExecutionReport }) {
       {/* 耗时分解 */}
       {(disconnectDuration !== undefined || totalDuration !== undefined) && (
         <CollapsibleSection
-          title="耗时分解"
+          title={ll.viewer.common.duration_decomposition()}
           icon={<Clock className="w-4 h-4" />}
           defaultOpen={false}
           extra={totalDuration !== undefined && (

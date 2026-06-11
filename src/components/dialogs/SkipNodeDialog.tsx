@@ -73,8 +73,8 @@ export function SkipNodeDialog({
     if (needsSimulatedOutput && !simulatedOutputText) {
       // 提供一个示例 JSON
       const example = nodeType === 'http' 
-        ? { status: 200, body: { message: '模拟响应' }, headers: {} }
-        : { message: '模拟消息', timestamp: Date.now() };
+        ? { status: 200, body: { message: 'Simulated response' }, headers: {} }
+        : { message: 'Simulated message', timestamp: Date.now() };
       setSimulatedOutputText(JSON.stringify(example, null, 2));
     }
   }, [needsSimulatedOutput, nodeType, simulatedOutputText]);

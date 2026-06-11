@@ -302,7 +302,8 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
           {/* Query 字段 */}
           {selectedSchema.queryFields.length > 0 && (
             <GraphqlFieldTree
-              title="Query"
+              title="query"
+              displayTitle={getLL().panels.graphql_field.query_type()}
               fields={selectedSchema.queryFields}
               onGenerate={(q) => {
                 if (!q) return;
@@ -318,7 +319,8 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
           {/* Mutation 字段 */}
           {selectedSchema.mutationFields.length > 0 && (
             <GraphqlFieldTree
-              title="Mutation"
+              title="mutation"
+              displayTitle={getLL().panels.graphql_field.mutation_type()}
               fields={selectedSchema.mutationFields}
               onGenerate={(q) => {
                 if (!q) return;

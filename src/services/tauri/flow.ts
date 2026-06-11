@@ -39,7 +39,7 @@ export function formatError(error: unknown, command: string): IpcError {
   if (error instanceof Error) {
     return new IpcError(error.message, command, error);
   }
-  return new IpcError(`未知错误: ${String(error)}`, command, error);
+  return new IpcError(`Unknown error: ${String(error)}`, command, error);
 }
 
 /**

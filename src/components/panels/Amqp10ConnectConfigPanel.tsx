@@ -112,17 +112,17 @@ export function Amqp10ConnectConfigPanel({ data, onSave }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="url" className="text-sm font-medium text-foreground">{getLL().panels.url()}</Label>
+        <Label htmlFor="url" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Connect.brokerUrl_label()}</Label>
         <Input id="url" {...register('url')} placeholder="amqp://localhost:5672" className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.connection()}</Label>
+        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Connect.connectionId_label()}</Label>
         <Input id="connection_id" {...register('connection_id')} placeholder={getLL().panels.autoGenerateIfEmpty()} className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="container_id" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Connect.containerId()}</Label>
+        <Label htmlFor="container_id" className="text-sm font-medium text-foreground">{getLL().panels.amqp10Connect.containerId_label()}</Label>
         <Input id="container_id" {...register('container_id')} placeholder={getLL().panels.optional()} className="font-mono text-sm" />
       </div>
 
@@ -134,18 +134,18 @@ export function Amqp10ConnectConfigPanel({ data, onSave }: Props) {
         {expandedSections.has('tls') && (
           <div className="border-t bg-muted/20 px-3 py-3 space-y-3">
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-foreground">{getLL().panels.smtpConnect.tlsMode()}</Label>
+              <Label className="text-xs font-medium text-foreground">{getLL().panels.amqp10Connect.tlsMode_label()}</Label>
               <Select value={watch('tls_mode') || 'none'} onValueChange={(v) => { setValue('tls_mode', v as 'none' | 'standard' | 'skip-verify', { shouldDirty: true }); saveData(); }}>
                 <SelectTrigger className="h-8 text-xs font-mono"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">{getLL().panels.none()}</SelectItem>
-                  <SelectItem value="standard">{getLL().panels.sseConnect.tlsStandard()}</SelectItem>
-                  <SelectItem value="skip-verify">{getLL().panels.skipCertVerify()}</SelectItem>
+                  <SelectItem value="none">{getLL().panels.amqp10Connect.noTls_option()}</SelectItem>
+                  <SelectItem value="standard">{getLL().panels.amqp10Connect.standardTls_option()}</SelectItem>
+                  <SelectItem value="skip-verify">{getLL().panels.amqp10Connect.skipVerifyTls_option()}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-foreground">{getLL().panels.smtpConnect.authType()}</Label>
+              <Label className="text-xs font-medium text-foreground">{getLL().panels.amqp10Connect.authMechanism_label()}</Label>
               <Select value={watch('auth_mechanism') || 'PLAIN'} onValueChange={(v) => { setValue('auth_mechanism', v as 'PLAIN' | 'ANONYMOUS' | 'EXTERNAL', { shouldDirty: true }); saveData(); }}>
                 <SelectTrigger className="h-8 text-xs font-mono"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -162,9 +162,9 @@ export function Amqp10ConnectConfigPanel({ data, onSave }: Props) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">AMQP 1.0 连接说明：</p>
-          <p>AMQP 1.0 协议（Azure Service Bus, ActiveMQ 等兼容）</p>
-          <p>与 AMQP 0-9-1 是不同协议，不兼容</p>
+          <p className="font-medium text-foreground">{getLL().panels.amqp10Connect.help_title()}</p>
+          <p>{getLL().panels.amqp10Connect.help_line1()}</p>
+          <p>{getLL().panels.amqp10Connect.help_line2()}</p>
         </div>
       </div>
     </form>

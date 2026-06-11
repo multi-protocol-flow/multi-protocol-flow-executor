@@ -172,7 +172,7 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
         isReportDialogOpen: true,
       });
     } catch (e) {
-      console.error('加载压测报告失败:', e);
+      console.error(ll.execution.history.toast_load_report_failed(), e);
       toast.error(getLL().execution.history.toast_load_report_failed(), {
         description: (e as Error).message,
         duration: 8000,
@@ -232,7 +232,7 @@ export const useStressTestStore = create<StressTestState>((set, get) => ({
           set({ history });
         }
       } catch (e) {
-        console.error('保存压测报告失败:', e);
+        console.error(ll.execution.toast.report_save_failed(), e);
       }
 
       // 显示 toast 通知

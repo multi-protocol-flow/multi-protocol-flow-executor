@@ -98,46 +98,46 @@ export function AmqpQueueBindConfigPanel({ data, onSave }: Props) {
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-violet-900 flex items-center gap-2">
             <Link className="h-4 w-4" />
-            {getLL().panels.amqpQueue.title()}
+            {getLL().panels.amqpQueueBind.title()}
           </h4>
-          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqpQueue.description()}</p>
+          <p className="text-sm leading-relaxed text-violet-700/90">{getLL().panels.amqpQueueBind.description()}</p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">连接 ID <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">{getLL().panels.amqpQueueBind.connectionId_label()} <span className="text-rose-500">*</span></Label>
         <Input id="connection_id" {...register('connection_id')} placeholder={getLL().panels.enterConnectionId()} className="font-mono text-sm" />
         {errors.connection_id && <p className="text-xs text-rose-500">{errors.connection_id.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="queue" className="text-sm font-medium text-foreground">队列名称 <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="queue" className="text-sm font-medium text-foreground">{getLL().panels.amqpQueueBind.queueName_label()} <span className="text-rose-500">*</span></Label>
         <Input id="queue" {...register('queue')} placeholder="my.queue" className="font-mono text-sm" />
         {errors.queue && <p className="text-xs text-rose-500">{errors.queue.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="exchange" className="text-sm font-medium text-foreground">Exchange 名称 <span className="text-rose-500">*</span></Label>
+        <Label htmlFor="exchange" className="text-sm font-medium text-foreground">{getLL().panels.amqpQueueBind.exchangeName_label()} <span className="text-rose-500">*</span></Label>
         <Input id="exchange" {...register('exchange')} placeholder="my.exchange" className="font-mono text-sm" />
         {errors.exchange && <p className="text-xs text-rose-500">{errors.exchange.message}</p>}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="routing_key" className="text-sm font-medium text-foreground">路由键</Label>
+        <Label htmlFor="routing_key" className="text-sm font-medium text-foreground">{getLL().panels.amqpQueueBind.routingKey_label()}</Label>
         <Input id="routing_key" {...register('routing_key')} placeholder="routing.key" className="font-mono text-sm" />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="arguments" className="text-sm font-medium text-foreground">额外参数（JSON）</Label>
+        <Label htmlFor="arguments" className="text-sm font-medium text-foreground">{getLL().panels.amqpQueueBind.arguments_label()}</Label>
         <Textarea id="arguments" {...register('arguments')} placeholder='{}' className="min-h-[60px] resize-y font-mono text-xs" rows={3} />
       </div>
 
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">绑定说明：</p>
-          <p>路由键用于 direct/topic 类型 Exchange 的消息路由匹配</p>
-          <p>fanout 类型 Exchange 忽略路由键</p>
+          <p className="font-medium text-foreground">{getLL().panels.amqpQueueBind.help_title()}</p>
+          <p>{getLL().panels.amqpQueueBind.help_line1()}</p>
+          <p>{getLL().panels.amqpQueueBind.help_line2()}</p>
         </div>
       </div>
     </form>
