@@ -27,6 +27,9 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
         uuid: flow_uuid.to_string(),
         name: "WebSocket 调试测试流程".to_string(),
         initial_variables: None,
+        active_environment: None,
+        environments: vec![],
+        hooks: None,
         nodes: vec![
             // Entry 节点
             Node {
@@ -53,7 +56,7 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
                     collect_mode: WsCollectMode::FirstMatch,
                     collect_condition: None,
                     collect_timeout_ms: 5000,
-                    output_mappings: vec![],
+                    ..Default::default()
                 }),
                 ports: None,
                 has_breakpoint: None,
@@ -73,7 +76,6 @@ fn create_basic_ws_flow(flow_uuid: &str) -> Flow {
                     collect_mode: WsCollectMode::FirstMatch,
                     collect_condition: None,
                     collect_timeout_ms: 5000,
-                    output_mappings: vec![],
                 }),
                 ports: None,
                 has_breakpoint: None,
@@ -424,6 +426,8 @@ async fn test_report_includes_ws_streams() {
         skipped_nodes: vec![],
         ws_streams: ws_streams.clone(),
         flow_snapshot: None,
+        end_node_reached: None,
+        flow_warning: None,
     };
     
     // 验证报告序列化包含 ws_streams

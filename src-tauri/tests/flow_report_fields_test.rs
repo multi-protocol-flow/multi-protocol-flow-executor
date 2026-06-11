@@ -29,6 +29,8 @@ fn test_flow_report_fields_exist() {
         skipped_nodes: vec![],
         ws_streams: vec![],
         flow_snapshot: None,
+        end_node_reached: None,
+        flow_warning: None,
     };
 
     // 验证新字段可以正常访问
@@ -88,6 +90,8 @@ fn test_flow_report_empty_path() {
         skipped_nodes: vec![],
         ws_streams: vec![],
         flow_snapshot: None,
+        end_node_reached: None,
+        flow_warning: None,
     };
 
     // 验证空路径

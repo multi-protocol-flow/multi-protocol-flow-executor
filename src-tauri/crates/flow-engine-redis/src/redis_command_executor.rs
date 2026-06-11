@@ -19,6 +19,11 @@ pub struct RedisCommandExecutor {
 }
 
 impl RedisCommandExecutor {
+    /// Create a new `RedisCommandExecutor`.
+    ///
+    /// # Arguments
+    ///
+    /// * `redis_manager` - The Redis connection manager used to execute commands.
     pub fn new(redis_manager: Arc<dyn RedisProvider>) -> Self {
         Self { redis_manager }
     }

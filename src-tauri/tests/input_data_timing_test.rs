@@ -46,6 +46,9 @@ async fn test_input_data_timing_basic() {
         nodes: vec![entry_node],
         connections: vec![],
         initial_variables: None,
+        active_environment: None,
+        environments: vec![],
+        hooks: None,
     };
 
     // 执行流程
@@ -111,6 +114,9 @@ async fn test_input_data_timing_with_initial_variables() {
         nodes: vec![entry_node],
         connections: vec![],
         initial_variables: Some(initial_vars),
+        active_environment: None,
+        environments: vec![],
+        hooks: None,
     };
 
     // 执行流程
@@ -218,6 +224,9 @@ async fn test_input_data_timing_http_node() {
         nodes: vec![entry_node, http_node],
         connections: vec![connection],
         initial_variables: Some(initial_vars),
+        active_environment: None,
+        environments: vec![],
+        hooks: None,
     };
 
     // 执行流程

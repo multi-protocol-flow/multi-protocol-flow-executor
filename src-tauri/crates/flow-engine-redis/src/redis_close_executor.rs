@@ -19,6 +19,11 @@ pub struct RedisCloseExecutor {
 }
 
 impl RedisCloseExecutor {
+    /// Create a new `RedisCloseExecutor`.
+    ///
+    /// # Arguments
+    ///
+    /// * `redis_manager` - The Redis connection manager used to close connections.
     pub fn new(redis_manager: Arc<dyn RedisProvider>) -> Self {
         Self { redis_manager }
     }

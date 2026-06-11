@@ -291,6 +291,11 @@ impl NodePlugin for RedisClosePlugin {
 pub struct RedisPluginGroup;
 
 impl RedisPluginGroup {
+    /// Register all Redis node plugins into the given registry.
+    ///
+    /// # Arguments
+    ///
+    /// * `registry` - The node registry to register Redis plugins into.
     pub fn register_all(registry: &mut NodeRegistry) {
         registry.register(Arc::new(RedisConnectPlugin));
         registry.register(Arc::new(RedisCommandPlugin));
