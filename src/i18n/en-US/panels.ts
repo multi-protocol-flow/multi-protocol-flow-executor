@@ -657,6 +657,16 @@
     unary: 'Unary',
     compressionEncoding: 'Compression Encoding',
     compressionInheritHint: 'Inherit Default uses connection node compression',
+
+    // GrpcFormEditor
+    form_element_count: '{count} elements',
+    form_empty_list: 'Empty list, click "Add Element"',
+    form_entry_count: '{count} entries',
+    form_empty_map: 'Empty map, click "Add"',
+    form_no_message_def: 'Message type "{type}" not found',
+    form_no_proto_schema: 'No proto schema available, switch to JSON mode',
+    form_message_type_label: 'Message type:',
+    form_field_count: '({count} fields)',
   },
   grpcClose: {
     title: 'gRPC Close Connection Node',
@@ -1608,6 +1618,31 @@
     description: 'Close a Redis connection.',
     connectionId: 'Connection ID',
   },
+
+  // Hex Viewer
+  hex_empty: 'No data',
+  hex_search_placeholder: 'Search hex (e.g. 48 65 6c 6c 6f)',
+  hex_offset_placeholder: 'Offset (0x...)',
+  hex_copy_title: 'Copy hex data',
+  hex_copy: 'Copy',
+  hex_copied: 'Copied',
+  hex_prev_match: 'Previous',
+  hex_next_match: 'Next',
+  hex_match_count: '{count} match(es)',
+  hex_truncated_notice: 'Showing first {displayed} bytes (total {total} bytes)',
+
+  // DB Result Preview
+  db_no_results: 'No results yet',
+  db_query_error: 'Query Error',
+  db_copy: 'Copy',
+  db_copied: 'Copied',
+  db_execution_time: 'Execution time: {time}ms',
+  db_row_count: '{count} row(s)',
+  db_rows_affected: 'row(s) affected',
+  db_truncated_warning: 'Results truncated',
+  db_table_view: 'Table',
+  db_query_success_affected: 'Query succeeded, {count} row(s) affected',
+  db_query_empty_result: 'Query returned empty result',
 };
 
 export default en_US_panels;

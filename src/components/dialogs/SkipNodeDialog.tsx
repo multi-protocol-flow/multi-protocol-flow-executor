@@ -90,7 +90,7 @@ export function SkipNodeDialog({
       setJsonError(null);
       return true;
     } catch {
-      setJsonError('JSON 格式错误');
+      setJsonError(ll.flow.skip_json_error());
       return false;
     }
   };
@@ -130,15 +130,15 @@ export function SkipNodeDialog({
   const getNodeTypeName = () => {
     switch (nodeType) {
       case 'conditional':
-        return '条件分支';
+        return ll.flow.skip_node_type_conditional();
       case 'http':
-        return 'HTTP 请求';
+        return ll.flow.skip_node_type_http();
       case 'ws_connect':
-        return 'WebSocket 连接';
+        return ll.flow.skip_node_type_ws_connect();
       case 'ws_send_collect':
-        return 'WebSocket 发送采集';
+        return ll.flow.skip_node_type_ws_send_collect();
       case 'ws_close':
-        return 'WebSocket 关闭';
+        return ll.flow.skip_node_type_ws_close();
       default:
         return nodeType;
     }
@@ -152,21 +152,21 @@ export function SkipNodeDialog({
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
               <SkipForward className="w-5 h-5 text-blue-500" />
             </div>
-            <DialogTitle className="text-lg">跳过节点</DialogTitle>
+            <DialogTitle className="text-lg">{ll.flow.skip_node_title()}</DialogTitle>
           </div>
         </DialogHeader>
 
         <DialogDescription className="text-sm text-muted-foreground pt-2">
-          跳过节点「{nodeName}」({getNodeTypeName()})，不执行该节点
+          {ll.flow.skip_node_desc({ name: nodeName, type: getNodeTypeName() })}
         </DialogDescription>
 
         <div className="space-y-4 py-4">
           {/* 分支选择 */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">选择执行分支</Label>
+            <Label className="text-sm font-medium">{ll.flow.skip_select_branch()}</Label>
             <Select value={selectedPort} onValueChange={setSelectedPort}>
               <SelectTrigger>
-                <SelectValue placeholder="请选择分支" />
+                <SelectValue placeholder={ll.flow.skip_select_branch_placeholder()} />
               </SelectTrigger>
               <SelectContent>
                 {outputPorts.map((port) => (
@@ -182,15 +182,15 @@ export function SkipNodeDialog({
           {needsSimulatedOutput && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">
-                模拟输出 <span className="text-muted-foreground font-normal">(可选)</span>
+                {ll.flow.skip_simulated_output()} <span className="text-muted-foreground font-normal">({ll.flow.skip_simulated_output_optional()})</span>
               </Label>
               <p className="text-xs text-muted-foreground">
-                提供模拟输出数据，将注入到变量池供后续节点使用
+                {ll.flow.skip_simulated_output_hint()}
               </p>
               <Textarea
                 value={simulatedOutputText}
                 onChange={(e) => handleSimulatedOutputChange(e.target.value)}
-                placeholder='{"status": 200, "body": {}}'
+                placeholder={ll.flow.skip_http_example()}
                 className={cn(
                   'font-mono text-xs min-h-[120px]',
                   jsonError && 'border-red-500 focus:ring-red-500'
@@ -209,7 +209,7 @@ export function SkipNodeDialog({
           {nodeType === 'conditional' && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-xs text-amber-800">
-                <strong>注意：</strong>跳过条件节点不会产生任何输出变量，只会按照选择的分支继续执行
+                <strong>{ll.flow.skip_conditional_notice_title()}</strong>{ll.flow.skip_conditional_notice()}
               </p>
             </div>
           )}
@@ -217,10 +217,10 @@ export function SkipNodeDialog({
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={onCancel}>
-            取消
+            {ll.flow.cancel()}
           </Button>
           <Button onClick={handleConfirm} disabled={!selectedPort}>
-            确认跳过
+            {ll.flow.skip_confirm_label()}
           </Button>
         </DialogFooter>
       </DialogContent>

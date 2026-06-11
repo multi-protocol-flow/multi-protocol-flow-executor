@@ -4,6 +4,7 @@
  */
 import { useState, useCallback } from 'react';
 import { Table, Braces, Clock, Rows, AlertTriangle, Copy, Check } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -109,7 +110,7 @@ export function DbResultPreview({
   if (!data) {
     return (
       <div className={cn('flex items-center justify-center py-8 text-muted-foreground', className)}>
-        <span className="text-sm">暂无查询结果</span>
+        <span className="text-sm">{getLL().panels.db_no_results()}</span>
       </div>
     );
   }
@@ -122,7 +123,7 @@ export function DbResultPreview({
         <div className="flex items-center justify-between border-b border-border pb-2">
           <div className="flex items-center gap-2">
             <Badge variant="destructive" className="text-xs">
-              查询错误
+              {getLL().panels.db_query_error()}
             </Badge>
           </div>
           <Button
@@ -134,12 +135,12 @@ export function DbResultPreview({
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5 mr-1" />
-                已复制
+                {getLL().panels.db_copied()}
               </>
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5 mr-1" />
-                复制
+                {getLL().panels.db_copy()}
               </>
             )}
           </Button>
@@ -156,7 +157,7 @@ export function DbResultPreview({
         {data.timing_ms !== undefined && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="w-3.5 h-3.5" />
-            <span>执行时间: {data.timing_ms}ms</span>
+            <span>{getLL().panels.db_execution_time({ time: data.timing_ms })}</span>
           </div>
         )}
       </div>
@@ -172,7 +173,7 @@ export function DbResultPreview({
           {hasRows && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Rows className="w-3.5 h-3.5" />
-              <span>{rows.length} 行</span>
+              <span>{getLL().panels.db_row_count({ count: rows.length })}</span>
             </div>
           )}
           
@@ -180,7 +181,7 @@ export function DbResultPreview({
           {hasAffected && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="font-medium">{data.affected}</span>
-              <span>行受影响</span>
+              <span>{getLL().panels.db_rows_affected()}</span>
             </div>
           )}
           
@@ -196,7 +197,7 @@ export function DbResultPreview({
           {data.truncated && (
             <div className="flex items-center gap-1.5 text-xs text-amber-600">
               <AlertTriangle className="w-3.5 h-3.5" />
-              <span>结果已截断</span>
+              <span>{getLL().panels.db_truncated_warning()}</span>
             </div>
           )}
         </div>
@@ -211,12 +212,12 @@ export function DbResultPreview({
           {copied ? (
             <>
               <Check className="w-3.5 h-3.5 mr-1" />
-              已复制
+              {getLL().panels.db_copied()}
             </>
           ) : (
             <>
               <Copy className="w-3.5 h-3.5 mr-1" />
-              复制
+              {getLL().panels.db_copy()}
             </>
           )}
         </Button>
@@ -232,7 +233,7 @@ export function DbResultPreview({
           <TabsList className="h-8">
             <TabsTrigger value="table" className="h-6 px-2.5 text-xs">
               <Table className="w-3.5 h-3.5 mr-1" />
-              表格
+              {getLL().panels.db_table_view()}
             </TabsTrigger>
             <TabsTrigger value="json" className="h-6 px-2.5 text-xs">
               <Braces className="w-3.5 h-3.5 mr-1" />
@@ -292,14 +293,14 @@ export function DbResultPreview({
       {!hasRows && hasAffected && (
         <div className="flex items-center justify-center py-4 text-muted-foreground">
           <span className="text-sm">
-            查询成功，{data.affected} 行受影响
+            {getLL().panels.db_query_success_affected({ count: data.affected })}
           </span>
         </div>
       )}
 
       {!hasRows && !hasAffected && (
         <div className="flex items-center justify-center py-4 text-muted-foreground">
-          <span className="text-sm">查询返回空结果</span>
+          <span className="text-sm">{getLL().panels.db_query_empty_result()}</span>
         </div>
       )}
     </div>

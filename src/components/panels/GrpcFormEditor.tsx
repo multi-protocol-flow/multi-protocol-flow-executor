@@ -17,6 +17,7 @@ import type {
   ProtoParseResult,
 } from '@/lib/protoFieldParser';
 import { fieldDefaultValue, findMessageDescriptor } from '@/lib/protoFieldParser';
+import { getLL } from '@/i18n/i18n-lazy';
 
 // ============================================================================
 // 类型
@@ -255,6 +256,7 @@ interface RepeatedFieldEditorProps {
 }
 
 function RepeatedFieldEditor({ field, value, onChange, onBlur }: RepeatedFieldEditorProps) {
+  const ll = getLL();
   const items = useMemo(() => {
     if (Array.isArray(value)) return value;
     return [];
@@ -296,7 +298,7 @@ function RepeatedFieldEditor({ field, value, onChange, onBlur }: RepeatedFieldEd
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
-          {items.length} 个元素
+          {ll.panels.grpcCall.form_element_count({ count: items.length })}
         </span>
         <Button
           type="button"
@@ -306,12 +308,12 @@ function RepeatedFieldEditor({ field, value, onChange, onBlur }: RepeatedFieldEd
           className="h-6 gap-1 text-xs text-violet-600 hover:text-violet-800"
         >
           <Plus className="h-3 w-3" />
-          添加
+          {ll.panels.add()}
         </Button>
       </div>
       {items.length === 0 ? (
         <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-2 text-center">
-          <p className="text-xs text-muted-foreground">空列表，点击"添加"按钮</p>
+          <p className="text-xs text-muted-foreground">{ll.panels.grpcCall.form_empty_list()}</p>
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -368,6 +370,7 @@ interface MapFieldEditorProps {
 }
 
 function MapFieldEditor({ field: _field, value, onChange, onBlur }: MapFieldEditorProps) {
+  const ll = getLL();
   const entries = useMemo(() => {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       return Object.entries(value as Record<string, unknown>);
@@ -408,7 +411,7 @@ function MapFieldEditor({ field: _field, value, onChange, onBlur }: MapFieldEdit
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
-          {entries.length} 个条目
+          {ll.panels.grpcCall.form_entry_count({ count: entries.length })}
         </span>
         <Button
           type="button"
@@ -418,12 +421,12 @@ function MapFieldEditor({ field: _field, value, onChange, onBlur }: MapFieldEdit
           className="h-6 gap-1 text-xs text-violet-600 hover:text-violet-800"
         >
           <Plus className="h-3 w-3" />
-          添加
+          {ll.panels.add()}
         </Button>
       </div>
       {entries.length === 0 ? (
         <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-2 text-center">
-          <p className="text-xs text-muted-foreground">空映射，点击"添加"按钮</p>
+          <p className="text-xs text-muted-foreground">{ll.panels.grpcCall.form_empty_map()}</p>
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -467,6 +470,7 @@ function MapFieldEditor({ field: _field, value, onChange, onBlur }: MapFieldEdit
 // ============================================================================
 
 export function GrpcFormEditor({ value, onChange, parseResult, inputType, onBlur }: GrpcFormEditorProps) {
+  const ll = getLL();
   // 查找当前方法的 input message 描述
   const messageDesc = useMemo((): ProtoMessageDescriptor | null => {
     if (!parseResult || !inputType) return null;
@@ -552,8 +556,8 @@ export function GrpcFormEditor({ value, onChange, parseResult, inputType, onBlur
       <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
         <p className="text-xs text-muted-foreground">
           {parseResult
-            ? `未找到消息类型 "${inputType}" 的定义`
-            : '无 proto schema 可用，请切换到 JSON 模式编辑'}
+            ? ll.panels.grpcCall.form_no_message_def({ type: inputType! })
+            : ll.panels.grpcCall.form_no_proto_schema()}
         </p>
       </div>
     );
@@ -563,12 +567,12 @@ export function GrpcFormEditor({ value, onChange, parseResult, inputType, onBlur
     <div className="space-y-3">
       {/* 消息类型提示 */}
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <span>消息类型:</span>
+        <span>{ll.panels.grpcCall.form_message_type_label()}</span>
         <span className="font-mono text-violet-700 bg-violet-50 rounded px-1.5 py-0.5">
           {messageDesc.fullName}
         </span>
         <span className="text-muted-foreground/60">
-          ({messageDesc.fields.length} 个字段)
+          {ll.panels.grpcCall.form_field_count({ count: messageDesc.fields.length })}
         </span>
       </div>
 

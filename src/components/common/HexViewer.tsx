@@ -5,6 +5,7 @@
  */
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { Search, ArrowRightLeft, Copy, Check } from 'lucide-react';
+import { getLL } from '@/i18n/i18n-lazy';
 
 // ============================================================================
 // 常量
@@ -457,7 +458,7 @@ export function HexViewer({
         className="bg-gray-900 text-gray-100 font-mono text-xs rounded-lg flex items-center justify-center text-gray-500"
         style={{ height }}
       >
-        无数据
+        {getLL().panels.hex_empty()}
       </div>
     );
   }
@@ -482,7 +483,7 @@ export function HexViewer({
                   setCurrentMatchIndex(-1);
                 }
               }}
-              placeholder="搜索 hex（如 48 65 6c 6c 6f）"
+              placeholder={getLL().panels.hex_search_placeholder()}
               className="bg-gray-800 text-gray-200 text-xs px-2 py-1 rounded border border-gray-700
                          placeholder-gray-600 focus:outline-none focus:border-sky-500 flex-1 min-w-0"
             />
@@ -504,7 +505,7 @@ export function HexViewer({
                 if (e.key === 'Enter') handleGoToOffset();
                 if (e.key === 'Escape') setOffsetInput('');
               }}
-              placeholder="偏移量 (0x...)"
+              placeholder={getLL().panels.hex_offset_placeholder()}
               className="bg-gray-800 text-gray-200 text-xs px-2 py-1 rounded border border-gray-700
                          placeholder-gray-600 focus:outline-none focus:border-sky-500 w-24"
             />
@@ -516,14 +517,14 @@ export function HexViewer({
             onClick={handleCopy}
             className="flex items-center gap-1 px-2 py-1 rounded bg-gray-800 border border-gray-700
                        text-gray-400 hover:text-gray-200 hover:border-gray-500 transition-colors shrink-0"
-            title="复制十六进制数据"
+            title={getLL().panels.hex_copy_title()}
           >
             {copied ? (
               <Check className="w-3.5 h-3.5 text-emerald-400" />
             ) : (
               <Copy className="w-3.5 h-3.5" />
             )}
-            <span className="text-[10px]">{copied ? '已复制' : '复制'}</span>
+            <span className="text-[10px]">{copied ? getLL().panels.hex_copied() : getLL().panels.hex_copy()}</span>
           </button>
         </div>
       )}
@@ -536,17 +537,17 @@ export function HexViewer({
             onClick={handlePrevMatch}
             className="px-2 py-0.5 text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 rounded border border-gray-700 hover:border-gray-500 transition-colors"
           >
-            上一个
+            {getLL().panels.hex_prev_match()}
           </button>
           <button
             type="button"
             onClick={handleNextMatch}
             className="px-2 py-0.5 text-[10px] text-gray-400 hover:text-gray-200 bg-gray-800 rounded border border-gray-700 hover:border-gray-500 transition-colors"
           >
-            下一个
+            {getLL().panels.hex_next_match()}
           </button>
           <span className="text-[10px] text-gray-500 ml-2">
-            {matchOffsets.length} 处匹配
+            {getLL().panels.hex_match_count({ count: matchOffsets.length })}
           </span>
         </div>
       )}
@@ -554,7 +555,7 @@ export function HexViewer({
       {/* 截断提示 */}
       {maxDisplayBytes !== undefined && data.length > maxDisplayBytes && (
         <div className="px-3 py-1 bg-amber-950/30 border-b border-amber-800/30 text-amber-400 text-[10px]">
-          显示前 {maxDisplayBytes.toLocaleString()} 字节（共 {data.length.toLocaleString()} 字节）
+          {getLL().panels.hex_truncated_notice({ displayed: maxDisplayBytes.toLocaleString(), total: data.length.toLocaleString() })}
         </div>
       )}
 

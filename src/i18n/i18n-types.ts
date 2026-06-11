@@ -4146,10 +4146,46 @@ type RootTranslation = {
 			 * 压​缩​编​码
 			 */
 			compressionEncoding: string
-			/**
-			 * 继​承​默​认​ ​使​用​连​接​节​点​的​压​缩​配​置
-			 */
+		/**
+		 * 继​承​默​认​ ​使​用​连​接​节​点​的​压​缩​配​置
+		 */
 			compressionInheritHint: string
+			/**
+			 * {count} 个元素
+			 * @param {unknown} count
+			 */
+			form_element_count: RequiredParams<'count'>
+			/**
+			 * 空列表，点击"添加元素"按钮
+			 */
+			form_empty_list: string
+			/**
+			 * {count} 个条目
+			 * @param {unknown} count
+			 */
+			form_entry_count: RequiredParams<'count'>
+			/**
+			 * 空映射，点击"添加"按钮
+			 */
+			form_empty_map: string
+			/**
+			 * 未找到消息类型 "{type}" 的定义
+			 * @param {unknown} type
+			 */
+			form_no_message_def: RequiredParams<'type'>
+			/**
+			 * 无 proto schema 可用，请切换到 JSON 模式编辑
+			 */
+			form_no_proto_schema: string
+			/**
+			 * 消息类型:
+			 */
+			form_message_type_label: string
+			/**
+			 * ({count} 个字段)
+			 * @param {unknown} count
+			 */
+			form_field_count: RequiredParams<'count'>
 		}
 		grpcClose: {
 			/**
@@ -6306,6 +6342,96 @@ type RootTranslation = {
 			description: string
 			connectionId: string
 		}
+		/**
+		 * 无​数​据
+		 */
+		hex_empty: string
+		/**
+		 * 搜​索​ ​h​e​x​（​如​ ​4​8​ ​6​5​ ​6​c​ ​6​c​ ​6​f​）
+		 */
+		hex_search_placeholder: string
+		/**
+		 * 偏​移​量​ ​(​0​x​.​.​.​)
+		 */
+		hex_offset_placeholder: string
+		/**
+		 * 复​制​十​六​进​制​数​据
+		 */
+		hex_copy_title: string
+		/**
+		 * 复​制
+		 */
+		hex_copy: string
+		/**
+		 * 已​复​制
+		 */
+		hex_copied: string
+		/**
+		 * 上​一​个
+		 */
+		hex_prev_match: string
+		/**
+		 * 下​一​个
+		 */
+		hex_next_match: string
+		/**
+		 * {​c​o​u​n​t​}​ ​处​匹​配
+		 * @param {unknown} count
+		 */
+		hex_match_count: RequiredParams<'count'>
+		/**
+		 * 显​示​前​ ​{​d​i​s​p​l​a​y​e​d​}​ ​字​节​（​共​ ​{​t​o​t​a​l​}​ ​字​节​）
+		 * @param {unknown} displayed
+		 * @param {unknown} total
+		 */
+		hex_truncated_notice: RequiredParams<'displayed' | 'total'>
+		/**
+		 * 暂​无​查​询​结​果
+		 */
+		db_no_results: string
+		/**
+		 * 查​询​错​误
+		 */
+		db_query_error: string
+		/**
+		 * 复​制
+		 */
+		db_copy: string
+		/**
+		 * 已​复​制
+		 */
+		db_copied: string
+		/**
+		 * 执​行​时​间​:​ ​{​t​i​m​e​}​m​s
+		 * @param {unknown} time
+		 */
+		db_execution_time: RequiredParams<'time'>
+		/**
+		 * {​c​o​u​n​t​}​ ​行
+		 * @param {unknown} count
+		 */
+		db_row_count: RequiredParams<'count'>
+		/**
+		 * 行​受​影​响
+		 */
+		db_rows_affected: string
+		/**
+		 * 结​果​已​截​断
+		 */
+		db_truncated_warning: string
+		/**
+		 * 表​格
+		 */
+		db_table_view: string
+		/**
+		 * 查​询​成​功​，​{​c​o​u​n​t​}​ ​行​受​影​响
+		 * @param {unknown} count
+		 */
+		db_query_success_affected: RequiredParams<'count'>
+		/**
+		 * 查​询​返​回​空​结​果
+		 */
+		db_query_empty_result: string
 	}
 	execution: {
 		node_types: {
@@ -7505,6 +7631,61 @@ type RootTranslation = {
 			 * 关​闭​状​态
 			 */
 			ws_close_status: string
+			/**
+			 * {​c​o​u​n​t​}​ ​丢​弃
+			 * @param {unknown} count
+			 */
+			ws_dropped: RequiredParams<'count'>
+			/**
+			 * 搜​索​内​容​.​.​.
+			 */
+			ws_search_placeholder: string
+			/**
+			 * 搜​索
+			 */
+			ws_search_label: string
+			/**
+			 * 复​制​内​容
+			 */
+			ws_copy_content: string
+			/**
+			 * 关​闭
+			 */
+			ws_close_panel: string
+			/**
+			 * 暂​无​ ​W​e​b​S​o​c​k​e​t​ ​连​接
+			 */
+			ws_no_connections: string
+			/**
+			 * 调​试​或​执​行​时​ ​W​e​b​S​o​c​k​e​t​ ​消​息​将​在​此​显​示
+			 */
+			ws_no_connections_desc: string
+			/**
+			 * 连​接​成​功​后​消​息​将​在​此​显​示
+			 */
+			ws_no_messages_desc: string
+			/**
+			 * 自​动​滚​动
+			 */
+			ws_auto_scroll: string
+			/**
+			 * {​c​o​u​n​t​}​ ​字​节
+			 * @param {unknown} count
+			 */
+			ws_bytes_label: RequiredParams<'count'>
+			/**
+			 * {​c​o​u​n​t​}​ ​条​消​息
+			 * @param {unknown} count
+			 */
+			ws_message_count: RequiredParams<'count'>
+			/**
+			 * 无​消​息​记​录
+			 */
+			ws_no_records: string
+			/**
+			 * 无​消​息​流​段
+			 */
+			ws_no_segments: string
 			/**
 			 * 数​据​库​连​接
 			 */
@@ -9252,6 +9433,26 @@ type RootTranslation = {
 		 */
 		create: string
 		/**
+		 * 条​件​分​支
+		 */
+		skip_node_type_conditional: string
+		/**
+		 * H​T​T​P​ ​请​求
+		 */
+		skip_node_type_http: string
+		/**
+		 * W​e​b​S​o​c​k​e​t​ ​连​接
+		 */
+		skip_node_type_ws_connect: string
+		/**
+		 * W​e​b​S​o​c​k​e​t​ ​发​送​采​集
+		 */
+		skip_node_type_ws_send_collect: string
+		/**
+		 * W​e​b​S​o​c​k​e​t​ ​关​闭
+		 */
+		skip_node_type_ws_close: string
+		/**
 		 * 跳​过​节​点
 		 */
 		skip_node_title: string
@@ -9507,7 +9708,187 @@ type RootTranslation = {
 		 */
 		fn_get_all: string
 		/**
-		 * 编​辑​数​据​库​连​接
+		 * HTTP 状态码（非 HTTP 节点为 0）
+		 */
+		fn_response_code: string
+		/**
+		 * 状态文本（非 HTTP 节点为空）
+		 */
+		fn_response_status: string
+		/**
+		 * 响应头对象（非 HTTP 节点为空）
+		 */
+		fn_response_headers: string
+		/**
+		 * 响应体（JSON 字符串，HTTP 节点专用）
+		 */
+		fn_response_body: string
+		/**
+		 * 完整原始输出（JSON 字符串），含 status/headers/body 等全部字段
+		 */
+		fn_response_raw: string
+		/**
+		 * 响应大小（字节）
+		 */
+		fn_response_size: string
+		/**
+		 * 响应时间（毫秒）
+		 */
+		fn_response_time: string
+		/**
+		 * 获取原始文本
+		 */
+		fn_response_text: string
+		/**
+		 * 获取 JSON 对象（JSON 字符串）
+		 */
+		fn_response_json: string
+		/**
+		 * 请求 URL
+		 */
+		fn_request_url: string
+		/**
+		 * 请求方法
+		 */
+		fn_request_method: string
+		/**
+		 * 请求头对象
+		 */
+		fn_request_headers: string
+		/**
+		 * 请求体（JSON 字符串）
+		 */
+		fn_request_body: string
+		/**
+		 * 普通日志
+		 */
+		fn_console_log: string
+		/**
+		 * 信息日志
+		 */
+		fn_console_info: string
+		/**
+		 * 警告日志
+		 */
+		fn_console_warn: string
+		/**
+		 * 错误日志
+		 */
+		fn_console_error: string
+		/**
+		 * 调试日志
+		 */
+		fn_console_debug: string
+		/**
+		 * 表格数据
+		 */
+		fn_console_table: string
+		/**
+		 * 跳过后续节点，流程继续
+		 */
+		fn_flow_skip: string
+		/**
+		 * 终止流程并报错
+		 */
+		fn_flow_abort: string
+		/**
+		 * 正常终止流程
+		 */
+		fn_flow_stop: string
+		/**
+		 * 流程名称
+		 */
+		fn_info_flow_name: string
+		/**
+		 * 流程 ID
+		 */
+		fn_info_flow_id: string
+		/**
+		 * 当前节点 ID
+		 */
+		fn_info_node_id: string
+		/**
+		 * 当前节点名称
+		 */
+		fn_info_node_name: string
+		/**
+		 * 严格相等
+		 */
+		fn_expect_equal: string
+		/**
+		 * 深度相等
+		 */
+		fn_expect_eql: string
+		/**
+		 * 不相等
+		 */
+		fn_expect_not_equal: string
+		/**
+		 * 存在（非 null/undefined）
+		 */
+		fn_expect_exist: string
+		/**
+		 * 已定义
+		 */
+		fn_expect_be_defined: string
+		/**
+		 * 为 null
+		 */
+		fn_expect_be_null: string
+		/**
+		 * 不为 null
+		 */
+		fn_expect_not_be_null: string
+		/**
+		 * 为 true
+		 */
+		fn_expect_be_true: string
+		/**
+		 * 为 false
+		 */
+		fn_expect_be_false: string
+		/**
+		 * 为真值
+		 */
+		fn_expect_be_truthy: string
+		/**
+		 * 为假值
+		 */
+		fn_expect_be_falsy: string
+		/**
+		 * 包含（数组/字符串）
+		 */
+		fn_expect_contain: string
+		/**
+		 * 包含键
+		 */
+		fn_expect_contain_key: string
+		/**
+		 * 长度为 n
+		 */
+		fn_expect_have_length: string
+		/**
+		 * 正则匹配
+		 */
+		fn_expect_match: string
+		/**
+		 * 以指定字符串开头
+		 */
+		fn_expect_start_with: string
+		/**
+		 * 以指定字符串结尾
+		 */
+		fn_expect_end_with: string
+		/**
+		 * 大于 n
+		 */
+		fn_expect_above: string
+		/**
+		 * 小于 n
+		 */
+		fn_expect_below: string
+		/**
+		 * 编辑数据库连接
 		 */
 		db_conn_edit_title: string
 		/**
@@ -14825,10 +15206,42 @@ export type TranslationFunctions = {
 			 * 压缩编码
 			 */
 			compressionEncoding: () => LocalizedString
-			/**
-			 * 继承默认 使用连接节点的压缩配置
-			 */
+		/**
+		 * 继承默认 使用连接节点的压缩配置
+		 */
 			compressionInheritHint: () => LocalizedString
+			/**
+			 * {count} 个元素
+			 */
+			form_element_count: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 空列表，点击"添加元素"按钮
+			 */
+			form_empty_list: () => LocalizedString
+			/**
+			 * {count} 个条目
+			 */
+			form_entry_count: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 空映射，点击"添加"按钮
+			 */
+			form_empty_map: () => LocalizedString
+			/**
+			 * 未找到消息类型 "{type}" 的定义
+			 */
+			form_no_message_def: (arg: { type: unknown }) => LocalizedString
+			/**
+			 * 无 proto schema 可用，请切换到 JSON 模式编辑
+			 */
+			form_no_proto_schema: () => LocalizedString
+			/**
+			 * 消息类型:
+			 */
+			form_message_type_label: () => LocalizedString
+			/**
+			 * ({count} 个字段)
+			 */
+			form_field_count: (arg: { count: unknown }) => LocalizedString
 		}
 		grpcClose: {
 			/**
@@ -16981,6 +17394,27 @@ export type TranslationFunctions = {
 			description: () => LocalizedString
 			connectionId: () => LocalizedString
 		}
+		hex_empty: () => LocalizedString
+		hex_search_placeholder: () => LocalizedString
+		hex_offset_placeholder: () => LocalizedString
+		hex_copy_title: () => LocalizedString
+		hex_copy: () => LocalizedString
+		hex_copied: () => LocalizedString
+		hex_prev_match: () => LocalizedString
+		hex_next_match: () => LocalizedString
+		hex_match_count: (arg: { count: unknown }) => LocalizedString
+		hex_truncated_notice: (arg: { displayed: unknown; total: unknown }) => LocalizedString
+		db_no_results: () => LocalizedString
+		db_query_error: () => LocalizedString
+		db_copy: () => LocalizedString
+		db_copied: () => LocalizedString
+		db_execution_time: (arg: { time: unknown }) => LocalizedString
+		db_row_count: (arg: { count: unknown }) => LocalizedString
+		db_rows_affected: () => LocalizedString
+		db_truncated_warning: () => LocalizedString
+		db_table_view: () => LocalizedString
+		db_query_success_affected: (arg: { count: unknown }) => LocalizedString
+		db_query_empty_result: () => LocalizedString
 	}
 	execution: {
 		node_types: {
@@ -18158,6 +18592,58 @@ export type TranslationFunctions = {
 			 * 关闭状态
 			 */
 			ws_close_status: () => LocalizedString
+			/**
+			 * {count} 丢弃
+			 */
+			ws_dropped: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 搜索内容...
+			 */
+			ws_search_placeholder: () => LocalizedString
+			/**
+			 * 搜索
+			 */
+			ws_search_label: () => LocalizedString
+			/**
+			 * 复制内容
+			 */
+			ws_copy_content: () => LocalizedString
+			/**
+			 * 关闭
+			 */
+			ws_close_panel: () => LocalizedString
+			/**
+			 * 暂无 WebSocket 连接
+			 */
+			ws_no_connections: () => LocalizedString
+			/**
+			 * 调试或执行时 WebSocket 消息将在此显示
+			 */
+			ws_no_connections_desc: () => LocalizedString
+			/**
+			 * 连接成功后消息将在此显示
+			 */
+			ws_no_messages_desc: () => LocalizedString
+			/**
+			 * 自动滚动
+			 */
+			ws_auto_scroll: () => LocalizedString
+			/**
+			 * {count} 字节
+			 */
+			ws_bytes_label: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * {count} 条消息
+			 */
+			ws_message_count: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 无消息记录
+			 */
+			ws_no_records: () => LocalizedString
+			/**
+			 * 无消息流段
+			 */
+			ws_no_segments: () => LocalizedString
 			/**
 			 * 数据库连接
 			 */
@@ -19847,6 +20333,26 @@ export type TranslationFunctions = {
 		 */
 		create: () => LocalizedString
 		/**
+		 * 条件分支
+		 */
+		skip_node_type_conditional: () => LocalizedString
+		/**
+		 * HTTP 请求
+		 */
+		skip_node_type_http: () => LocalizedString
+		/**
+		 * WebSocket 连接
+		 */
+		skip_node_type_ws_connect: () => LocalizedString
+		/**
+		 * WebSocket 发送采集
+		 */
+		skip_node_type_ws_send_collect: () => LocalizedString
+		/**
+		 * WebSocket 关闭
+		 */
+		skip_node_type_ws_close: () => LocalizedString
+		/**
 		 * 跳过节点
 		 */
 		skip_node_title: () => LocalizedString
@@ -20098,6 +20604,186 @@ export type TranslationFunctions = {
 		 * 获取所有变量（JSON 字符串）
 		 */
 		fn_get_all: () => LocalizedString
+		/**
+		 * HTTP 状态码（非 HTTP 节点为 0）
+		 */
+		fn_response_code: () => LocalizedString
+		/**
+		 * 状态文本（非 HTTP 节点为空）
+		 */
+		fn_response_status: () => LocalizedString
+		/**
+		 * 响应头对象（非 HTTP 节点为空）
+		 */
+		fn_response_headers: () => LocalizedString
+		/**
+		 * 响应体（JSON 字符串，HTTP 节点专用）
+		 */
+		fn_response_body: () => LocalizedString
+		/**
+		 * 完整原始输出（JSON 字符串），含 status/headers/body 等全部字段
+		 */
+		fn_response_raw: () => LocalizedString
+		/**
+		 * 响应大小（字节）
+		 */
+		fn_response_size: () => LocalizedString
+		/**
+		 * 响应时间（毫秒）
+		 */
+		fn_response_time: () => LocalizedString
+		/**
+		 * 获取原始文本
+		 */
+		fn_response_text: () => LocalizedString
+		/**
+		 * 获取 JSON 对象（JSON 字符串）
+		 */
+		fn_response_json: () => LocalizedString
+		/**
+		 * 请求 URL
+		 */
+		fn_request_url: () => LocalizedString
+		/**
+		 * 请求方法
+		 */
+		fn_request_method: () => LocalizedString
+		/**
+		 * 请求头对象
+		 */
+		fn_request_headers: () => LocalizedString
+		/**
+		 * 请求体（JSON 字符串）
+		 */
+		fn_request_body: () => LocalizedString
+		/**
+		 * 普通日志
+		 */
+		fn_console_log: () => LocalizedString
+		/**
+		 * 信息日志
+		 */
+		fn_console_info: () => LocalizedString
+		/**
+		 * 警告日志
+		 */
+		fn_console_warn: () => LocalizedString
+		/**
+		 * 错误日志
+		 */
+		fn_console_error: () => LocalizedString
+		/**
+		 * 调试日志
+		 */
+		fn_console_debug: () => LocalizedString
+		/**
+		 * 表格数据
+		 */
+		fn_console_table: () => LocalizedString
+		/**
+		 * 跳过后续节点，流程继续
+		 */
+		fn_flow_skip: () => LocalizedString
+		/**
+		 * 终止流程并报错
+		 */
+		fn_flow_abort: () => LocalizedString
+		/**
+		 * 正常终止流程
+		 */
+		fn_flow_stop: () => LocalizedString
+		/**
+		 * 流程名称
+		 */
+		fn_info_flow_name: () => LocalizedString
+		/**
+		 * 流程 ID
+		 */
+		fn_info_flow_id: () => LocalizedString
+		/**
+		 * 当前节点 ID
+		 */
+		fn_info_node_id: () => LocalizedString
+		/**
+		 * 当前节点名称
+		 */
+		fn_info_node_name: () => LocalizedString
+		/**
+		 * 严格相等
+		 */
+		fn_expect_equal: () => LocalizedString
+		/**
+		 * 深度相等
+		 */
+		fn_expect_eql: () => LocalizedString
+		/**
+		 * 不相等
+		 */
+		fn_expect_not_equal: () => LocalizedString
+		/**
+		 * 存在（非 null/undefined）
+		 */
+		fn_expect_exist: () => LocalizedString
+		/**
+		 * 已定义
+		 */
+		fn_expect_be_defined: () => LocalizedString
+		/**
+		 * 为 null
+		 */
+		fn_expect_be_null: () => LocalizedString
+		/**
+		 * 不为 null
+		 */
+		fn_expect_not_be_null: () => LocalizedString
+		/**
+		 * 为 true
+		 */
+		fn_expect_be_true: () => LocalizedString
+		/**
+		 * 为 false
+		 */
+		fn_expect_be_false: () => LocalizedString
+		/**
+		 * 为真值
+		 */
+		fn_expect_be_truthy: () => LocalizedString
+		/**
+		 * 为假值
+		 */
+		fn_expect_be_falsy: () => LocalizedString
+		/**
+		 * 包含（数组/字符串）
+		 */
+		fn_expect_contain: () => LocalizedString
+		/**
+		 * 包含键
+		 */
+		fn_expect_contain_key: () => LocalizedString
+		/**
+		 * 长度为 n
+		 */
+		fn_expect_have_length: () => LocalizedString
+		/**
+		 * 正则匹配
+		 */
+		fn_expect_match: () => LocalizedString
+		/**
+		 * 以指定字符串开头
+		 */
+		fn_expect_start_with: () => LocalizedString
+		/**
+		 * 以指定字符串结尾
+		 */
+		fn_expect_end_with: () => LocalizedString
+		/**
+		 * 大于 n
+		 */
+		fn_expect_above: () => LocalizedString
+		/**
+		 * 小于 n
+		 */
+		fn_expect_below: () => LocalizedString
 		/**
 		 * 编辑数据库连接
 		 */

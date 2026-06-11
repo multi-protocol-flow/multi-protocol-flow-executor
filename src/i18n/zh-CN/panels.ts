@@ -955,6 +955,16 @@ const zh_CN_panels: BaseTranslation = {
     unary: 'Unary',
     compressionEncoding: '压缩编码',
     compressionInheritHint: '继承默认 使用连接节点的压缩配置',
+
+    // GrpcFormEditor
+    form_element_count: '{count} 个元素',
+    form_empty_list: '空列表，点击"添加元素"按钮',
+    form_entry_count: '{count} 个条目',
+    form_empty_map: '空映射，点击"添加"按钮',
+    form_no_message_def: '未找到消息类型 "{type}" 的定义',
+    form_no_proto_schema: '无 proto schema 可用，请切换到 JSON 模式编辑',
+    form_message_type_label: '消息类型:',
+    form_field_count: '({count} 个字段)',
   },
   grpcClose: {
     title: 'gRPC 关闭连接节点',
@@ -1593,6 +1603,31 @@ const zh_CN_panels: BaseTranslation = {
     description: '关闭 Redis 连接。',
     connectionId: '连接 ID',
   },
+
+  // Hex Viewer
+  hex_empty: '无数据',
+  hex_search_placeholder: '搜索 hex（如 48 65 6c 6c 6f）',
+  hex_offset_placeholder: '偏移量 (0x...)',
+  hex_copy_title: '复制十六进制数据',
+  hex_copy: '复制',
+  hex_copied: '已复制',
+  hex_prev_match: '上一个',
+  hex_next_match: '下一个',
+  hex_match_count: '{count} 处匹配',
+  hex_truncated_notice: '显示前 {displayed} 字节（共 {total} 字节）',
+
+  // DB Result Preview
+  db_no_results: '暂无查询结果',
+  db_query_error: '查询错误',
+  db_copy: '复制',
+  db_copied: '已复制',
+  db_execution_time: '执行时间: {time}ms',
+  db_row_count: '{count} 行',
+  db_rows_affected: '行受影响',
+  db_truncated_warning: '结果已截断',
+  db_table_view: '表格',
+  db_query_success_affected: '查询成功，{count} 行受影响',
+  db_query_empty_result: '查询返回空结果',
 };
 
 export default zh_CN_panels;

@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './viewers/RawJsonViewer';
 import { NODE_TYPE_NAMES } from './constants';
+import { getLL } from '@/i18n/i18n-lazy';
 import type { WsMessage, WsConnectionStream, WsStreamSegment } from '@/types/ws_stream';
 import {
   ArrowUp,
@@ -262,12 +263,12 @@ function TimelineHeader({
           {stream.is_closed ? (
             <>
               <WifiOff className="w-3 h-3" />
-              已关闭
+              {getLL().execution.viewers.ws_disconnected()}
             </>
           ) : (
             <>
               <Wifi className="w-3 h-3" />
-              已连接
+              {getLL().execution.viewers.ws_connected()}
             </>
           )}
         </Badge>
@@ -289,7 +290,7 @@ function TimelineHeader({
             {stats.received}
           </span>
           {stats.dropped > 0 && (
-            <span className="text-amber-600">({stats.dropped} 丢弃)</span>
+            <span className="text-amber-600">({getLL().execution.viewers.ws_dropped({ count: stats.dropped })})</span>
           )}
         </div>
 
@@ -299,9 +300,9 @@ function TimelineHeader({
         {/* 方向过滤按钮 */}
         <div className="flex items-center gap-0.5 shrink-0">
           {([
-            { key: 'all' as const, label: '全部' },
-            { key: 'sent' as const, label: '发送' },
-            { key: 'received' as const, label: '接收' },
+            { key: 'all' as const, label: getLL().execution.viewers.filter_all() },
+            { key: 'sent' as const, label: getLL().execution.viewers.filter_send() },
+            { key: 'received' as const, label: getLL().execution.viewers.filter_receive() },
           ]).map(({ key, label }) => (
             <button
               key={key}
@@ -336,7 +337,7 @@ function TimelineHeader({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchQueryChange(e.target.value)}
-                placeholder="搜索内容..."
+                placeholder={getLL().execution.viewers.ws_search_placeholder()}
                 className="h-6 w-40 rounded-md border border-input bg-background pl-7 pr-2 text-xs focus-visible:outline-none focus-visible:border-ring"
               />
             </div>
@@ -361,7 +362,7 @@ function TimelineHeader({
             type="button"
             onClick={() => setSearchVisible(true)}
             className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
-            title="搜索"
+            title={getLL().execution.viewers.ws_search_label()}
           >
             <Search className="w-3.5 h-3.5" />
           </button>
@@ -447,7 +448,7 @@ function MessageRow({ message, isSelected, onClick }: Omit<MessageRowProps, 'glo
           isSent ? 'text-emerald-600' : 'text-blue-600',
         )}
       >
-        {isSent ? '发送' : '接收'}
+        {isSent ? getLL().execution.viewers.filter_send() : getLL().execution.viewers.filter_receive()}
       </span>
 
       {/* 预览内容 */}
@@ -504,14 +505,14 @@ function MessageDetailPanel({ message, onClose, onMount }: MessageDetailPanelPro
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 shrink-0">
         <div className="flex items-center gap-3 text-xs min-w-0">
           <span className={cn('font-medium shrink-0', isSent ? 'text-emerald-600' : 'text-blue-600')}>
-            {isSent ? '发送' : '接收'}
+        {isSent ? getLL().execution.viewers.filter_send() : getLL().execution.viewers.filter_receive()}
           </span>
           <span className="font-mono text-muted-foreground tabular-nums shrink-0">
             {formatTimestampMs(message.timestamp)}
           </span>
           <span className="text-muted-foreground shrink-0">{formatSize(message.size)}</span>
           <span className="text-muted-foreground shrink-0">
-            {message.is_binary ? '二进制' : '文本'}
+            {message.is_binary ? getLL().execution.viewers.binary_label() : getLL().execution.viewers.text_label()}
           </span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -519,7 +520,7 @@ function MessageDetailPanel({ message, onClose, onMount }: MessageDetailPanelPro
             type="button"
             onClick={handleCopy}
             className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
-            title="复制内容"
+            title={getLL().execution.viewers.ws_copy_content()}
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
@@ -527,7 +528,7 @@ function MessageDetailPanel({ message, onClose, onMount }: MessageDetailPanelPro
             type="button"
             onClick={onClose}
             className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
-            title="关闭"
+            title={getLL().execution.viewers.ws_close_panel()}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -539,7 +540,7 @@ function MessageDetailPanel({ message, onClose, onMount }: MessageDetailPanelPro
         <div className="px-3 pt-1">
           <TabsList className="h-7 p-0.5">
             <TabsTrigger value="text" className="text-[11px] h-6 px-2.5">
-              文本
+              {getLL().execution.viewers.text_label()}
             </TabsTrigger>
             <TabsTrigger
               value="json"
@@ -585,12 +586,12 @@ function EmptyState({ hasConnections }: { hasConnections: boolean }) {
     <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-12">
       <WifiOff className="h-8 w-8 mb-2 opacity-40" />
       <span className="text-sm">
-        {hasConnections ? '暂无消息' : '暂无 WebSocket 连接'}
+        {hasConnections ? getLL().execution.viewers.no_messages() : getLL().execution.viewers.ws_no_connections()}
       </span>
       <span className="text-xs mt-1 opacity-60">
         {hasConnections
-          ? '连接成功后消息将在此显示'
-          : '调试或执行时 WebSocket 消息将在此显示'}
+          ? getLL().execution.viewers.ws_no_messages_desc()
+          : getLL().execution.viewers.ws_no_connections_desc()}
       </span>
     </div>
   );
@@ -841,7 +842,7 @@ export function WsMessageTimeline({
           className="absolute bottom-2 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background border border-border shadow-md text-xs text-muted-foreground hover:text-foreground hover:border-foreground/20 transition-colors"
         >
           <ArrowDownToLine className="w-3 h-3" />
-          自动滚动
+          {getLL().execution.viewers.ws_auto_scroll()}
         </button>
       )}
     </div>
