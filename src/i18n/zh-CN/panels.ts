@@ -325,6 +325,7 @@ const zh_CN_panels: BaseTranslation = {
       utilNow: '当前 ISO 8601 时间字符串',
       utilFormatTime: '格式化当前时间',
       utilParseTime: '解析时间为时间戳',
+      utilSleep: '阻塞延迟（毫秒）',
       utilUuid: '生成 UUID v4',
       utilUuidv4: '生成 UUID v4（别名）',
       utilJsonParse: '解析 JSON 字符串',

@@ -323,6 +323,7 @@
       utilNow: 'Current ISO 8601 time string',
       utilFormatTime: 'Format current time',
       utilParseTime: 'Parse time to timestamp',
+      utilSleep: 'Blocking sleep (ms)',
       utilUuid: 'Generate UUID v4',
       utilUuidv4: 'Generate UUID v4 (alias)',
       utilJsonParse: 'Parse JSON string',

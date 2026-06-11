@@ -1849,6 +1849,10 @@ type RootTranslation = {
 				 */
 				utilParseTime: string
 				/**
+				 * 阻​塞​延​迟​（​毫​秒​）
+				 */
+				utilSleep: string
+				/**
 				 * 生​成​ ​U​U​I​D​ ​v​4
 				 */
 				utilUuid: string
@@ -18439,6 +18443,10 @@ export type TranslationFunctions = {
 				 * 解析时间为时间戳
 				 */
 				utilParseTime: () => LocalizedString
+				/**
+				 * 阻塞延迟（毫秒）
+				 */
+				utilSleep: () => LocalizedString
 				/**
 				 * 生成 UUID v4
 				 */
