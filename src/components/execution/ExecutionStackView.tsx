@@ -70,7 +70,7 @@ function StackEntryItem({
                 ? 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400'
                 : 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
           )}
-          title={isCurrentNode ? '当前暂停' : entry.success ? '执行成功' : '执行失败'}
+          title={isCurrentNode ? ll.execution.viewers.execution_stack_current_paused() : entry.success ? ll.execution.viewers.execution_stack_success() : ll.execution.viewers.execution_stack_failed()}
         >
           {isCurrentNode ? (
             <Pause className="w-3 h-3" />
@@ -99,7 +99,7 @@ function StackEntryItem({
         <button
           onClick={() => onNavigateToNode(entry.node_uuid)}
           className="flex-1 min-w-0 text-left"
-          title="点击跳转到该节点"
+          title={ll.execution.viewers.execution_stack_click_to_jump()}
         >
           <div
             className={cn(
@@ -132,11 +132,11 @@ function StackEntryItem({
           {hasInput && (
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-muted-foreground">输入</span>
+                <span className="text-xs font-medium text-muted-foreground">{ll.execution.viewers.execution_stack_input_label()}</span>
                 <button
                   onClick={(e) => handleCopyData(entry.input, e)}
                   className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded"
-                  title="复制输入"
+                  title={ll.execution.viewers.execution_stack_copy_input()}
                 >
                   <Copy className="w-3 h-3 text-muted-foreground" />
                 </button>
@@ -150,11 +150,11 @@ function StackEntryItem({
           {hasOutput && (
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-muted-foreground">输出</span>
+                <span className="text-xs font-medium text-muted-foreground">{ll.execution.viewers.execution_stack_output_label()}</span>
                 <button
                   onClick={(e) => handleCopyData(entry.output, e)}
                   className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded"
-                  title="复制输出"
+                  title={ll.execution.viewers.execution_stack_copy_output()}
                 >
                   <Copy className="w-3 h-3 text-muted-foreground" />
                 </button>
@@ -176,6 +176,7 @@ export function ExecutionStackView({
   isReadOnly,
   onNavigateToNode,
 }: ExecutionStackViewProps) {
+  const ll = getLL();
   const navigateHandler = onNavigateToNode ?? (() => {});
 
   return (
@@ -190,7 +191,7 @@ export function ExecutionStackView({
           />
         ))
       ) : (
-        <div className="p-4 text-sm text-muted-foreground text-center">暂无执行记录</div>
+        <div className="p-4 text-sm text-muted-foreground text-center">{ll.execution.viewers.execution_stack_empty()}</div>
       )}
     </div>
   );

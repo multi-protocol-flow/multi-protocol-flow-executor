@@ -7211,10 +7211,14 @@ type RootTranslation = {
 			 * 画​布​模​式
 			 */
 			canvas_view: string
+		/**
+		 * 列​表​模​式
+		 */
+		list_view: string
 			/**
-			 * 列​表​模​式
+			 * 无​拓​扑​数​据
 			 */
-			list_view: string
+			no_topology_data: string
 		}
 		compare: {
 			/**
@@ -8336,6 +8340,243 @@ type RootTranslation = {
 			 * @param {unknown} count
 			 */
 			services_discovered: RequiredParams<'count'>
+			/**
+			 * c​U​R​L​ ​命​令​已​复​制​到​剪​贴​板
+			 */
+			http_curl_copied: string
+			/**
+			 * 复​制​失​败
+			 */
+			http_curl_copy_failed: string
+			/**
+			 * 复​制​ ​C​u​r​l
+			 */
+			http_copy_curl: string
+			/**
+			 * W​e​b​S​o​c​k​e​t​ ​建​立​成​功
+			 */
+			ws_connect_success_desc: string
+			/**
+			 * 无​法​建​立​ ​W​e​b​S​o​c​k​e​t​ ​连​接
+			 */
+			ws_connect_fail_desc: string
+			/**
+			 * 首​条​消​息
+			 */
+			ws_first_message: string
+			/**
+			 * 连​接​耗​时
+			 */
+			ws_timing_connect: string
+			/**
+			 * 采​集​耗​时
+			 */
+			ws_timing_collect: string
+			/**
+			 * 采​集​首​条​即​停
+			 */
+			ws_collect_mode_first_match: string
+			/**
+			 * 匹​配​条​件​即​停
+			 */
+			ws_collect_mode_condition_match: string
+			/**
+			 * 持​续​采​集
+			 */
+			ws_collect_mode_duration_collect: string
+			/**
+			 * 采​集​响​应​:
+			 */
+			ws_collect_response_label: string
+			/**
+			 * 是
+			 */
+			ws_yes: string
+			/**
+			 * 否
+			 */
+			ws_no: string
+			/**
+			 * 采​集​模​式​:
+			 */
+			ws_collect_mode_label: string
+			/**
+			 * 采​集​条​件
+			 */
+			ws_collect_condition_label: string
+			/**
+			 * 匹​配​类​型​:
+			 */
+			ws_match_type_label: string
+			/**
+			 * 正​则​表​达​式
+			 */
+			ws_match_type_regex: string
+			/**
+			 * 表​达​式
+			 */
+			ws_match_type_expression: string
+			/**
+			 * 采​集​超​时​:
+			 */
+			ws_collect_timeout_label: string
+			/**
+			 * 消​息​类​型​:
+			 */
+			ws_message_type_label: string
+			/**
+			 * 发​送​超​时​:
+			 */
+			ws_send_timeout_label: string
+			/**
+			 * {​c​o​u​n​t​}​ ​条
+			 * @param {unknown} count
+			 */
+			ws_message_count_label: RequiredParams<'count'>
+			/**
+			 * 解​析​ ​J​S​O​N
+			 */
+			ws_parse_json: string
+			/**
+			 * 表​达​式​:
+			 */
+			ws_expression_label: string
+			/**
+			 * 发​送​耗​时
+			 */
+			ws_timing_send: string
+			/**
+			 * 正​常​关​闭
+			 */
+			ws_close_code_normal: string
+			/**
+			 * 端​点​离​开
+			 */
+			ws_close_code_going_away: string
+			/**
+			 * 协​议​错​误
+			 */
+			ws_close_code_protocol_error: string
+			/**
+			 * 不​支​持​的​数​据​类​型
+			 */
+			ws_close_code_unsupported_data: string
+			/**
+			 * 无​状​态​码
+			 */
+			ws_close_code_no_status: string
+			/**
+			 * 连​接​异​常​关​闭
+			 */
+			ws_close_code_abnormal: string
+			/**
+			 * 数​据​类​型​不​一​致
+			 */
+			ws_close_code_invalid_data: string
+			/**
+			 * 违​反​策​略
+			 */
+			ws_close_code_policy_violation: string
+			/**
+			 * 消​息​过​大
+			 */
+			ws_close_code_message_too_big: string
+			/**
+			 * 缺​少​扩​展
+			 */
+			ws_close_code_missing_ext: string
+			/**
+			 * 内​部​错​误
+			 */
+			ws_close_code_internal_error: string
+			/**
+			 * 服​务​重​启
+			 */
+			ws_close_code_service_restart: string
+			/**
+			 * 稍​后​重​试
+			 */
+			ws_close_code_try_again: string
+			/**
+			 * T​L​S​ ​握​手​失​败
+			 */
+			ws_close_code_tls_failed: string
+			/**
+			 * 未​知​状​态​码
+			 */
+			ws_close_code_unknown: string
+			/**
+			 * Paused
+			 */
+			execution_stack_current_paused: string
+			/**
+			 * Succeeded
+			 */
+			execution_stack_success: string
+			/**
+			 * Failed
+			 */
+			execution_stack_failed: string
+			/**
+			 * Click to jump to this node
+			 */
+			execution_stack_click_to_jump: string
+			/**
+			 * Input
+			 */
+			execution_stack_input_label: string
+			/**
+			 * Copy input
+			 */
+			execution_stack_copy_input: string
+			/**
+			 * Output
+			 */
+			execution_stack_output_label: string
+			/**
+			 * Copy output
+			 */
+			execution_stack_copy_output: string
+			/**
+			 * No execution records
+			 */
+			execution_stack_empty: string
+			/**
+			 * Copy
+			 */
+			variable_tree_copy: string
+			/**
+			 * Edit
+			 */
+			variable_tree_edit: string
+			/**
+			 * Save
+			 */
+			variable_tree_save: string
+			/**
+			 * Enter JSON value
+			 */
+			variable_tree_placeholder: string
+			/**
+			 * No variables
+			 */
+			variable_tree_empty: string
+			/**
+			 * Search variables...
+			 */
+			variable_tree_search_placeholder: string
+			/**
+			 * No matching variables
+			 */
+			variable_tree_no_match: string
+			/**
+			 * Pin to top
+			 */
+			variable_tree_pin: string
+			/**
+			 * Unpin
+			 */
+			variable_tree_unpin: string
 		}
 		toast: {
 			/**
@@ -8484,6 +8725,18 @@ type RootTranslation = {
 			 * 请​选​择​已​执​行​节​点​查​看​详​情
 			 */
 			select_node_hint: string
+			/**
+			 * 已​跳​过
+			 */
+			skipped_tooltip: string
+			/**
+			 * 未​执​行
+			 */
+			unexecuted_label: string
+			/**
+			 * 该​报​告​没​有​拓​扑​数​据​，​请​使​用​列​表​模​式​查​看
+			 */
+			no_topology_data: string
 		}
 		dataset: {
 			/**
@@ -18192,6 +18445,10 @@ export type TranslationFunctions = {
 			 * 列表模式
 			 */
 			list_view: () => LocalizedString
+			/**
+			 * 无拓扑数据
+			 */
+			no_topology_data: () => LocalizedString
 		}
 		compare: {
 			/**
@@ -19284,6 +19541,242 @@ export type TranslationFunctions = {
 			 * 发现 {count} 个服务
 			 */
 			services_discovered: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * cURL command copied to clipboard
+			 */
+			http_curl_copied: () => LocalizedString
+			/**
+			 * Copy failed
+			 */
+			http_curl_copy_failed: () => LocalizedString
+			/**
+			 * Copy Curl
+			 */
+			http_copy_curl: () => LocalizedString
+			/**
+			 * WebSocket 建立成功
+			 */
+			ws_connect_success_desc: () => LocalizedString
+			/**
+			 * 无法建立 WebSocket 连接
+			 */
+			ws_connect_fail_desc: () => LocalizedString
+			/**
+			 * 首条消息
+			 */
+			ws_first_message: () => LocalizedString
+			/**
+			 * 连接耗时
+			 */
+			ws_timing_connect: () => LocalizedString
+			/**
+			 * 采集耗时
+			 */
+			ws_timing_collect: () => LocalizedString
+			/**
+			 * 采集首条即停
+			 */
+			ws_collect_mode_first_match: () => LocalizedString
+			/**
+			 * 匹配条件即停
+			 */
+			ws_collect_mode_condition_match: () => LocalizedString
+			/**
+			 * 持续采集
+			 */
+			ws_collect_mode_duration_collect: () => LocalizedString
+			/**
+			 * 采集响应:
+			 */
+			ws_collect_response_label: () => LocalizedString
+			/**
+			 * 是
+			 */
+			ws_yes: () => LocalizedString
+			/**
+			 * 否
+			 */
+			ws_no: () => LocalizedString
+			/**
+			 * 采集模式:
+			 */
+			ws_collect_mode_label: () => LocalizedString
+			/**
+			 * 采集条件
+			 */
+			ws_collect_condition_label: () => LocalizedString
+			/**
+			 * 匹配类型:
+			 */
+			ws_match_type_label: () => LocalizedString
+			/**
+			 * 正则表达式
+			 */
+			ws_match_type_regex: () => LocalizedString
+			/**
+			 * 表达式
+			 */
+			ws_match_type_expression: () => LocalizedString
+			/**
+			 * 采集超时:
+			 */
+			ws_collect_timeout_label: () => LocalizedString
+			/**
+			 * 消息类型:
+			 */
+			ws_message_type_label: () => LocalizedString
+			/**
+			 * 发送超时:
+			 */
+			ws_send_timeout_label: () => LocalizedString
+			/**
+			 * {count} 条
+			 */
+			ws_message_count_label: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 解析 JSON
+			 */
+			ws_parse_json: () => LocalizedString
+			/**
+			 * 表达式:
+			 */
+			ws_expression_label: () => LocalizedString
+			/**
+			 * 发送耗时
+			 */
+			ws_timing_send: () => LocalizedString
+			/**
+			 * 正常关闭
+			 */
+			ws_close_code_normal: () => LocalizedString
+			/**
+			 * 端点离开
+			 */
+			ws_close_code_going_away: () => LocalizedString
+			/**
+			 * 协议错误
+			 */
+			ws_close_code_protocol_error: () => LocalizedString
+			/**
+			 * 不支持的数据类型
+			 */
+			ws_close_code_unsupported_data: () => LocalizedString
+			/**
+			 * 无状态码
+			 */
+			ws_close_code_no_status: () => LocalizedString
+			/**
+			 * 连接异常关闭
+			 */
+			ws_close_code_abnormal: () => LocalizedString
+			/**
+			 * 数据类型不一致
+			 */
+			ws_close_code_invalid_data: () => LocalizedString
+			/**
+			 * 违反策略
+			 */
+			ws_close_code_policy_violation: () => LocalizedString
+			/**
+			 * 消息过大
+			 */
+			ws_close_code_message_too_big: () => LocalizedString
+			/**
+			 * 缺少扩展
+			 */
+			ws_close_code_missing_ext: () => LocalizedString
+			/**
+			 * 内部错误
+			 */
+			ws_close_code_internal_error: () => LocalizedString
+			/**
+			 * 服务重启
+			 */
+			ws_close_code_service_restart: () => LocalizedString
+			/**
+			 * 稍后重试
+			 */
+			ws_close_code_try_again: () => LocalizedString
+			/**
+			 * TLS 握手失败
+			 */
+			ws_close_code_tls_failed: () => LocalizedString
+			/**
+			 * 未知状态码
+			 */
+			ws_close_code_unknown: () => LocalizedString
+			/**
+			 * Paused
+			 */
+			execution_stack_current_paused: () => LocalizedString
+			/**
+			 * Succeeded
+			 */
+			execution_stack_success: () => LocalizedString
+			/**
+			 * Failed
+			 */
+			execution_stack_failed: () => LocalizedString
+			/**
+			 * Click to jump to this node
+			 */
+			execution_stack_click_to_jump: () => LocalizedString
+			/**
+			 * Input
+			 */
+			execution_stack_input_label: () => LocalizedString
+			/**
+			 * Copy input
+			 */
+			execution_stack_copy_input: () => LocalizedString
+			/**
+			 * Output
+			 */
+			execution_stack_output_label: () => LocalizedString
+			/**
+			 * Copy output
+			 */
+			execution_stack_copy_output: () => LocalizedString
+			/**
+			 * No execution records
+			 */
+			execution_stack_empty: () => LocalizedString
+			/**
+			 * Copy
+			 */
+			variable_tree_copy: () => LocalizedString
+			/**
+			 * Edit
+			 */
+			variable_tree_edit: () => LocalizedString
+			/**
+			 * Save
+			 */
+			variable_tree_save: () => LocalizedString
+			/**
+			 * Enter JSON value
+			 */
+			variable_tree_placeholder: () => LocalizedString
+			/**
+			 * No variables
+			 */
+			variable_tree_empty: () => LocalizedString
+			/**
+			 * Search variables...
+			 */
+			variable_tree_search_placeholder: () => LocalizedString
+			/**
+			 * No matching variables
+			 */
+			variable_tree_no_match: () => LocalizedString
+			/**
+			 * Pin to top
+			 */
+			variable_tree_pin: () => LocalizedString
+			/**
+			 * Unpin
+			 */
+			variable_tree_unpin: () => LocalizedString
 		}
 		toast: {
 			/**
@@ -19432,6 +19925,18 @@ export type TranslationFunctions = {
 			 * 请选择已执行节点查看详情
 			 */
 			select_node_hint: () => LocalizedString
+			/**
+			 * 已跳过
+			 */
+			skipped_tooltip: () => LocalizedString
+			/**
+			 * 未执行
+			 */
+			unexecuted_label: () => LocalizedString
+			/**
+			 * 该报告没有拓扑数据，请使用列表模式查看
+			 */
+			no_topology_data: () => LocalizedString
 		}
 		dataset: {
 			/**

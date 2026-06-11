@@ -134,7 +134,7 @@ function VariableItem({
             <button
               onClick={handleCopy}
               className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-accent-foreground hover:bg-accent rounded"
-              title="复制"
+              title={ll.execution.viewers.variable_tree_copy()}
             >
               <Copy className="w-3 h-3" />
             </button>
@@ -142,7 +142,7 @@ function VariableItem({
               <button
                 onClick={handleStartEdit}
                 className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-accent-foreground hover:bg-accent rounded"
-                title="编辑"
+                title={ll.execution.viewers.variable_tree_edit()}
               >
                 <Edit2 className="w-3 h-3" />
               </button>
@@ -155,14 +155,14 @@ function VariableItem({
             <button
               onClick={handleSaveEdit}
               className="w-6 h-6 flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50 rounded"
-              title="保存"
+              title={ll.execution.viewers.variable_tree_save()}
             >
               <Check className="w-3 h-3" />
             </button>
             <button
               onClick={handleCancelEdit}
               className="w-6 h-6 flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded"
-              title="取消"
+              title={ll.flow.cancel()}
             >
               <X className="w-3 h-3" />
             </button>
@@ -176,7 +176,7 @@ function VariableItem({
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             className="w-full h-24 px-2 py-1 text-xs font-mono border border-border rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="输入 JSON 格式的值"
+            placeholder={ll.execution.viewers.variable_tree_placeholder()}
           />
         </div>
       )}
@@ -218,6 +218,7 @@ function VariableItem({
 }
 
 export function VariableTreeView({ variables, canEdit, onEdit, watchMode = false }: VariableTreeViewProps) {
+  const ll = getLL();
   const editHandler = canEdit ? onEdit : undefined;
   const isExecuting = useExecutionStore((s) => s.isExecuting);
 
@@ -308,7 +309,7 @@ export function VariableTreeView({ variables, canEdit, onEdit, watchMode = false
             />
           ))
         ) : (
-          <div className="p-4 text-sm text-muted-foreground text-center">暂无变量</div>
+          <div className="p-4 text-sm text-muted-foreground text-center">{ll.execution.viewers.variable_tree_empty()}</div>
         )}
       </div>
     );
@@ -325,7 +326,7 @@ export function VariableTreeView({ variables, canEdit, onEdit, watchMode = false
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="搜索变量..."
+              placeholder={ll.execution.viewers.variable_tree_search_placeholder()}
               className="w-full h-7 pl-2 pr-2 text-xs rounded-md border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
@@ -354,9 +355,9 @@ export function VariableTreeView({ variables, canEdit, onEdit, watchMode = false
             );
           })
         ) : searchQuery ? (
-          <div className="p-4 text-sm text-muted-foreground text-center">未找到匹配变量</div>
+          <div className="p-4 text-sm text-muted-foreground text-center">{ll.execution.viewers.variable_tree_no_match()}</div>
         ) : (
-          <div className="p-4 text-sm text-muted-foreground text-center">暂无变量</div>
+          <div className="p-4 text-sm text-muted-foreground text-center">{ll.execution.viewers.variable_tree_empty()}</div>
         )}
       </div>
     </div>
@@ -381,6 +382,7 @@ function WatchVariableItem({
   onTogglePin: () => void;
   onEdit?: (name: string, value: unknown) => void;
 }) {
+  const ll = getLL();
   const isObject = value !== null && typeof value === 'object';
   const simpleDisplay = (() => {
     if (value === null) return 'null';
@@ -404,7 +406,7 @@ function WatchVariableItem({
         type="button"
         onClick={onTogglePin}
         className="w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-amber-500"
-        title={isPinned ? '取消固定' : '固定到顶部'}
+        title={isPinned ? ll.execution.viewers.variable_tree_unpin() : ll.execution.viewers.variable_tree_pin()}
       >
         {isPinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
       </button>
@@ -416,7 +418,7 @@ function WatchVariableItem({
         <button
           type="button"
           className="w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-          title="编辑"
+          title={ll.execution.viewers.variable_tree_edit()}
           onClick={() => onEdit(name, value)}
         >
           <Edit2 className="w-3 h-3" />

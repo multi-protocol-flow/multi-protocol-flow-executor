@@ -128,10 +128,10 @@ export const WsConnectViewer = memo(function WsConnectViewer({ report }: WsConne
             <Badge variant="outline" className="font-mono text-xs">
               {(() => {
                 switch (collectMode) {
-                  case 'first_match': return '采集首条即停';
-                  case 'condition_match': return '匹配条件即停';
-                  case 'duration_collect': return '持续采集';
-                  default: return '采集首条即停';
+                  case 'first_match': return ll.execution.viewers.ws_collect_mode_first_match();
+                  case 'condition_match': return ll.execution.viewers.ws_collect_mode_condition_match();
+                  case 'duration_collect': return ll.execution.viewers.ws_collect_mode_duration_collect();
+                  default: return ll.execution.viewers.ws_collect_mode_first_match();
                 }
               })()}
             </Badge>
@@ -165,7 +165,7 @@ export const WsConnectViewer = memo(function WsConnectViewer({ report }: WsConne
               {isSuccess ? ll.execution.viewers.connected() : ll.execution.viewers.disconnected()}
             </Badge>
             <span className="text-sm text-muted-foreground">
-              {isSuccess ? 'WebSocket 连接建立成功' : '无法建立 WebSocket 连接'}
+              {isSuccess ? ll.execution.viewers.ws_connect_success_desc() : ll.execution.viewers.ws_connect_fail_desc()}
             </span>
           </div>
 
@@ -183,7 +183,7 @@ export const WsConnectViewer = memo(function WsConnectViewer({ report }: WsConne
 
       {/* 首条消息 */}
       <CollapsibleSection
-        title="首条消息"
+        title={ll.execution.viewers.ws_first_message()}
         icon={<MessageSquare className="w-4 h-4" />}
         defaultOpen={false}
         extra={message?.type && (
@@ -239,13 +239,13 @@ export const WsConnectViewer = memo(function WsConnectViewer({ report }: WsConne
           <div className="grid grid-cols-2 gap-2 text-sm">
             {connectDuration !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">连接耗时</span>
+                <span className="text-muted-foreground">{ll.execution.viewers.ws_timing_connect()}</span>
                 <span className="font-mono text-foreground">{connectDuration}ms</span>
               </div>
             )}
             {collectDuration !== undefined && (
               <div className="flex justify-between items-center p-2 bg-muted rounded">
-                <span className="text-muted-foreground">采集消息</span>
+                <span className="text-muted-foreground">{ll.execution.viewers.ws_timing_collect()}</span>
                 <span className="font-mono text-foreground">{collectDuration}ms</span>
               </div>
             )}

@@ -375,9 +375,9 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
     });
 
     navigator.clipboard.writeText(cmd).then(() => {
-      toast.success('cURL 命令已复制到剪贴板');
+      toast.success(ll.execution.viewers.http_curl_copied());
     }).catch(() => {
-      toast.error('复制失败');
+      toast.error(ll.execution.viewers.http_curl_copy_failed());
     });
   }, [config]);
 
@@ -395,7 +395,7 @@ export const HttpNodeViewer = memo(function HttpNodeViewer({ report }: HttpNodeV
             className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <Copy className="h-3 w-3" />
-            复制 Curl
+            {ll.execution.viewers.http_copy_curl()}
           </button>
         }
       >

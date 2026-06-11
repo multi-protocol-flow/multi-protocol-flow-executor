@@ -127,23 +127,25 @@ function formatDuration(ms: number | null | undefined): string {
 /**
  * 获取收集模式的显示文本
  */
-function getCollectModeLabel(collectMode: string | undefined): string {
+function getCollectModeLabel(collectMode: string | undefined, ll: ReturnType<typeof getLL>): string {
+  const llViewers = ll.execution.viewers;
   switch (collectMode) {
-    case 'first_match': return '采集首条即停';
-    case 'condition_match': return '匹配条件即停';
-    case 'duration_collect': return '持续采集';
-    default: return '采集首条即停';
+    case 'first_match': return llViewers.ws_collect_mode_first_match();
+    case 'condition_match': return llViewers.ws_collect_mode_condition_match();
+    case 'duration_collect': return llViewers.ws_collect_mode_duration_collect();
+    default: return llViewers.ws_collect_mode_first_match();
   }
 }
 
 /**
  * 获取匹配类型的显示文本
  */
-function getMatchTypeLabel(matchType: string | undefined): string {
+function getMatchTypeLabel(matchType: string | undefined, ll: ReturnType<typeof getLL>): string {
+  const llViewers = ll.execution.viewers;
   switch (matchType) {
     case 'json_path': return 'JSONPath';
-    case 'regex': return '正则表达式';
-    case 'expression': return '表达式';
+    case 'regex': return llViewers.ws_match_type_regex();
+    case 'expression': return llViewers.ws_match_type_expression();
     default: return 'JSONPath';
   }
 }
@@ -241,9 +243,9 @@ export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }:
         <div className="space-y-3">
           {/* 收集响应 */}
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">采集响应:</span>
+            <span className="text-muted-foreground">{ll.execution.viewers.ws_collect_response_label()}</span>
             <Badge variant="outline" className="font-mono text-xs">
-              {collectResponse ? '是' : '否'}
+              {collectResponse ? ll.execution.viewers.ws_yes() : ll.execution.viewers.ws_no()}
             </Badge>
           </div>
 
@@ -251,26 +253,26 @@ export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }:
           {collectResponse && (
             <>
               <div className="flex items-center gap-2 text-sm">
-                 <span className="text-muted-foreground">采集模式:</span>
+                 <span className="text-muted-foreground">{ll.execution.viewers.ws_collect_mode_label()}</span>
                 <Badge variant="outline" className="font-mono text-xs">
-                  {getCollectModeLabel(collectMode)}
+                  {getCollectModeLabel(collectMode, ll)}
                 </Badge>
               </div>
 
                {/* 采集条件（仅当采集模式为 condition_match 时显示） */}
                {collectMode === 'condition_match' && collectCondition && (
                  <div className="space-y-1">
-                   <div className="text-xs font-medium text-muted-foreground">采集条件</div>
+                    <div className="text-xs font-medium text-muted-foreground">{ll.execution.viewers.ws_collect_condition_label()}</div>
                   <div className="bg-muted rounded p-2 space-y-1">
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="text-muted-foreground">匹配类型:</span>
+                      <span className="text-muted-foreground">{ll.execution.viewers.ws_match_type_label()}</span>
                       <Badge variant="secondary" className="font-mono text-xs">
-                        {getMatchTypeLabel(collectCondition.match_type)}
+                        {getMatchTypeLabel(collectCondition.match_type, ll)}
                       </Badge>
                     </div>
                     {collectCondition.expression && (
                       <div>
-                        <span className="text-xs text-muted-foreground">表达式: </span>
+                        <span className="text-xs text-muted-foreground">{ll.execution.viewers.ws_expression_label()}</span>
                         <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
                           {collectCondition.expression}
                         </code>
@@ -283,7 +285,7 @@ export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }:
                {/* 采集超时时间 */}
                {collectTimeoutMs !== undefined && (
                  <div className="flex items-center gap-2 text-sm">
-                   <span className="text-muted-foreground">采集超时:</span>
+                    <span className="text-muted-foreground">{ll.execution.viewers.ws_collect_timeout_label()}</span>
                   <Badge variant="secondary" className="font-mono text-xs">
                     {formatDuration(collectTimeoutMs)}
                   </Badge>
@@ -314,7 +316,7 @@ export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }:
           {/* 消息类型 */}
           {configMessageType && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">消息类型:</span>
+              <span className="text-muted-foreground">{ll.execution.viewers.ws_message_type_label()}</span>
               <Badge variant="outline" className="font-mono text-xs">
                 {configMessageType === 'binary' ? ll.execution.viewers.binary_label() : ll.execution.viewers.text_label()}
               </Badge>
@@ -324,7 +326,7 @@ export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }:
           {/* 发送超时时间 */}
           {sendTimeoutMs !== undefined && (
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">发送超时:</span>
+              <span className="text-muted-foreground">{ll.execution.viewers.ws_send_timeout_label()}</span>
               <Badge variant="secondary" className="font-mono text-xs">
                 {formatDuration(sendTimeoutMs)}
               </Badge>
@@ -375,7 +377,7 @@ export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }:
           defaultOpen={true}
           extra={(
             <Badge variant="secondary" className="font-mono text-xs">
-              {messageCount ?? collectedMessages.length} 条
+              {ll.execution.viewers.ws_message_count_label({ count: messageCount ?? collectedMessages.length })}
             </Badge>
           )}
         >
@@ -423,7 +425,7 @@ export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }:
                   )}
                   {msg.parsed !== null && msg.parsed !== undefined && (
                     <details className="mt-1">
-                      <summary className="text-xs text-muted-foreground cursor-pointer">解析 JSON</summary>
+                      <summary className="text-xs text-muted-foreground cursor-pointer">{ll.execution.viewers.ws_parse_json()}</summary>
                       <div className="mt-1">
                         <RawJsonViewer data={msg.parsed} />
                       </div>
@@ -510,11 +512,11 @@ export const WsSendCollectViewer = memo(function WsSendCollectViewer({ report }:
       >
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="flex justify-between items-center p-2 bg-muted rounded">
-            <span className="text-muted-foreground">发送耗时</span>
+            <span className="text-muted-foreground">{ll.execution.viewers.ws_timing_send()}</span>
             <span className="font-mono text-foreground">{formatDuration(sendDuration)}</span>
           </div>
           <div className="flex justify-between items-center p-2 bg-muted rounded">
-            <span className="text-muted-foreground">收集耗时</span>
+            <span className="text-muted-foreground">{ll.execution.viewers.ws_timing_collect()}</span>
             <span className="font-mono text-foreground">{formatDuration(collectDuration)}</span>
           </div>
         </div>

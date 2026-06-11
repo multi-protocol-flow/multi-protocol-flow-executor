@@ -24,24 +24,25 @@ interface WsCloseViewerProps {
 /**
  * 获取 WebSocket 关闭码对应的描述
  */
-const getCloseCodeDescription = (code: number): string => {
-  const descriptions: Record<number, string> = {
-    1000: '正常关闭',
-    1001: '端点离开',
-    1002: '协议错误',
-    1003: '不支持的数据类型',
-    1005: '无状态码',
-    1006: '连接异常关闭',
-    1007: '数据类型不一致',
-    1008: '违反策略',
-    1009: '消息过大',
-    1010: '缺少扩展',
-    1011: '内部错误',
-    1012: '服务重启',
-    1013: '稍后重试',
-    1015: 'TLS 握手失败',
-  };
-  return descriptions[code] || '未知状态码';
+const getCloseCodeDescription = (code: number, ll: ReturnType<typeof getLL>): string => {
+  const llViewers = ll.execution.viewers;
+  switch (code) {
+    case 1000: return llViewers.ws_close_code_normal();
+    case 1001: return llViewers.ws_close_code_going_away();
+    case 1002: return llViewers.ws_close_code_protocol_error();
+    case 1003: return llViewers.ws_close_code_unsupported_data();
+    case 1005: return llViewers.ws_close_code_no_status();
+    case 1006: return llViewers.ws_close_code_abnormal();
+    case 1007: return llViewers.ws_close_code_invalid_data();
+    case 1008: return llViewers.ws_close_code_policy_violation();
+    case 1009: return llViewers.ws_close_code_message_too_big();
+    case 1010: return llViewers.ws_close_code_missing_ext();
+    case 1011: return llViewers.ws_close_code_internal_error();
+    case 1012: return llViewers.ws_close_code_service_restart();
+    case 1013: return llViewers.ws_close_code_try_again();
+    case 1015: return llViewers.ws_close_code_tls_failed();
+    default: return llViewers.ws_close_code_unknown();
+  }
 };
 
 /**
@@ -166,7 +167,7 @@ export const WsCloseViewer = memo(function WsCloseViewer({ report }: WsCloseView
                   {closeCode}
                 </Badge>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {getCloseCodeDescription(closeCode)}
+                  {getCloseCodeDescription(closeCode, ll)}
                 </p>
               </div>
             </div>

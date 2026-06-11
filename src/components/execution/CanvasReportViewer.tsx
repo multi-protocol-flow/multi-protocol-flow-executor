@@ -324,7 +324,7 @@ function withExecBadge(Component: ComponentType<NodeProps>): ComponentType<NodeP
               'flex items-center justify-center',
               'shadow-md',
             )}
-            title="已跳过"
+            title={getLL().execution.canvasReport.skipped_tooltip()}
           >
             ⚠
           </div>
@@ -347,7 +347,7 @@ function withExecBadge(Component: ComponentType<NodeProps>): ComponentType<NodeP
                 'pointer-events-none',
               )}
             >
-              未执行
+              {getLL().execution.canvasReport.unexecuted_label()}
             </div>
           </>
         )}
@@ -572,7 +572,7 @@ export function CanvasReportViewer(props: CanvasReportViewerProps) {
       <div className="w-full h-full flex items-center justify-center bg-background">
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
-            该报告没有拓扑数据，请使用列表模式查看
+            {getLL().execution.canvasReport.no_topology_data()}
           </p>
         </div>
       </div>

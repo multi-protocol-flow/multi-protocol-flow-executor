@@ -11,17 +11,16 @@ import shortcuts from './shortcuts';
 import viewer from './viewer';
 
 const en_US: Translation = {
-  common: common as Translation['common'],
-  nodes: nodes as Translation['nodes'],
-  panels: panels as Translation['panels'],
-  execution: execution as Translation['execution'],
-  settings: settings as Translation['settings'],
-  flow: flow as Translation['flow'],
-  validation: validation as Translation['validation'],
-  welcome: welcome as Translation['welcome'],
-  shortcuts: shortcuts as Translation['shortcuts'],
-  viewer: viewer as Translation['viewer'],
-};
+  common,
+  nodes,
+  panels,
+  execution,
+  settings,
+  flow,
+  validation,
+  welcome,
+  shortcuts,
+  viewer,
+} as Translation;
 
 export default en_US;
-

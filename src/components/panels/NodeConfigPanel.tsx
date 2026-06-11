@@ -74,7 +74,7 @@ function LazyConfigPanel({ nodeType, data, onSave }: { nodeType: string; data: N
 
   if (isLoading || !Component) {
     return (
-      <div className="space-y-4 p-4 animate-pulse" aria-label="加载中">
+      <div className="space-y-4 p-4 animate-pulse" aria-label={getLL().panels.loading()}>
         <div className="h-8 bg-muted rounded-md w-3/4" />
         <div className="h-24 bg-muted rounded-md" />
         <div className="h-8 bg-muted rounded-md w-1/2" />

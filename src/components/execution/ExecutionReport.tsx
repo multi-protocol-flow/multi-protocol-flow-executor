@@ -167,7 +167,7 @@ export function ExecutionReport() {
                     : 'text-muted-foreground hover:text-foreground'
                 )}
                 disabled={!displayReport?.flow_snapshot && viewMode === 'canvas'}
-                title={!displayReport?.flow_snapshot ? '无拓扑数据' : undefined}
+                title={!displayReport?.flow_snapshot ? ll.execution.report.no_topology_data() : undefined}
               >
                 {ll.execution.report.list_view()}
               </button>
@@ -181,7 +181,7 @@ export function ExecutionReport() {
                     : 'text-muted-foreground hover:text-foreground'
                 )}
                 disabled={!displayReport?.flow_snapshot}
-                title={!displayReport?.flow_snapshot ? '无拓扑数据' : undefined}
+                title={!displayReport?.flow_snapshot ? ll.execution.report.no_topology_data() : undefined}
               >
                 {ll.execution.report.canvas_view()}
               </button>
