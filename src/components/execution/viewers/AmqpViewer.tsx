@@ -42,7 +42,7 @@ import {
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { VariableChangesCard } from './VariableChangesCard';
 import { RawJsonViewer } from './RawJsonViewer';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -98,22 +98,6 @@ function AmqpBadge() {
       className="font-mono text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50 border-0 shrink-0"
     >
       AMQP
-    </Badge>
-  );
-}
-
-/** 状态 Badge */
-function StatusBadge({ isSuccess, successText, failText }: { isSuccess: boolean; successText: string; failText: string }) {
-  return (
-    <Badge
-      className={cn(
-        'font-mono text-xs px-2 py-0.5',
-        isSuccess
-          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
-          : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
-      )}
-    >
-      {isSuccess ? successText : failText}
     </Badge>
   );
 }

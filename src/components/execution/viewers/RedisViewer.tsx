@@ -18,8 +18,9 @@ import {
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { VariableChangesCard } from './VariableChangesCard';
+import { getLL } from '@/i18n/i18n-lazy';
 
 
 interface RedisViewerProps {
@@ -73,22 +74,6 @@ function RedisBadge() {
       className="font-mono text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 border-0 shrink-0"
     >
       REDIS
-    </Badge>
-  );
-}
-
-/** 状态 Badge */
-function StatusBadge({ isSuccess, successText, failText }: { isSuccess: boolean; successText: string; failText: string }) {
-  return (
-    <Badge
-      className={cn(
-        'font-mono text-xs px-2 py-0.5',
-        isSuccess
-          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
-          : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
-      )}
-    >
-      {isSuccess ? successText : failText}
     </Badge>
   );
 }
@@ -187,6 +172,7 @@ export const RedisViewer = memo(function RedisViewer({ report }: RedisViewerProp
 // ============================================================================
 
 function RedisConnectView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as RedisConnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const connectDuration = output?.timing?.connect_ms;
@@ -202,7 +188,7 @@ function RedisConnectView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已连接" failText="连接失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.redis.status_connected()} failText={ll.viewer.redis.status_connection_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? 'Redis 连接建立成功'
@@ -286,6 +272,7 @@ function RedisConnectView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function RedisCommandView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as RedisCommandOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const commandDuration = output?.timing?.command_ms;
@@ -327,7 +314,7 @@ function RedisCommandView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="成功" failText="失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.redis.status_success()} failText={ll.viewer.redis.status_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `命令 ${output?.command ?? ''} 执行成功`
@@ -384,6 +371,7 @@ function RedisCommandView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function RedisCloseView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as RedisCloseOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const closeDuration = output?.timing?.close_ms;
@@ -399,7 +387,7 @@ function RedisCloseView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已关闭" failText="关闭失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.redis.status_closed()} failText={ll.viewer.redis.status_close_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? 'Redis 连接已成功关闭'

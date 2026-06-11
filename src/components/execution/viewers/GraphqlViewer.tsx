@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -76,22 +77,6 @@ function GraphqlBadge() {
       className="font-mono text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 border-0 shrink-0"
     >
       GraphQL
-    </Badge>
-  );
-}
-
-/** 状态 Badge */
-function StatusBadge({ isSuccess, successText, failText }: { isSuccess: boolean; successText: string; failText: string }) {
-  return (
-    <Badge
-      className={cn(
-        'font-mono text-xs px-2 py-0.5',
-        isSuccess
-          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
-          : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
-      )}
-    >
-      {isSuccess ? successText : failText}
     </Badge>
   );
 }
@@ -253,6 +238,7 @@ export const GraphqlViewer = memo(function GraphqlViewer({ report }: GraphqlView
 // ============================================================================
 
 function GraphqlConnectView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as GraphqlConnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
@@ -266,7 +252,7 @@ function GraphqlConnectView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已连接" failText="连接失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.graphql.status_connected()} failText={ll.viewer.graphql.status_connection_failed()} />
             <GraphqlBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
@@ -306,6 +292,7 @@ function GraphqlConnectView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as GraphqlQueryOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const hasData = output?.data !== undefined && output?.data !== null;
@@ -323,7 +310,7 @@ function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="成功" failText="失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.graphql.status_success()} failText={ll.viewer.graphql.status_failed()} />
             <GraphqlBadge />
             {output?.status_code !== undefined && (
               <Badge
@@ -434,6 +421,7 @@ function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function GraphqlSubscribeView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as GraphqlSubscribeOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const events = output?.events ?? [];
@@ -449,7 +437,7 @@ function GraphqlSubscribeView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已完成" failText="订阅失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.graphql.status_subscribed()} failText={ll.viewer.graphql.status_subscribe_failed()} />
             <GraphqlBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
@@ -500,6 +488,7 @@ function GraphqlSubscribeView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function GraphqlIntrospectView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as GraphqlIntrospectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const templates = output?.query_templates ?? [];
@@ -515,7 +504,7 @@ function GraphqlIntrospectView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="探索完成" failText="探索失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.graphql.status_explore_success()} failText={ll.viewer.graphql.status_explore_failed()} />
             <GraphqlBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
@@ -596,6 +585,7 @@ function GraphqlIntrospectView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function GraphqlDisconnectView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as GraphqlDisconnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
@@ -609,7 +599,7 @@ function GraphqlDisconnectView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已断开" failText="断开失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.graphql.status_disconnected()} failText={ll.viewer.graphql.status_disconnect_failed()} />
             <GraphqlBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess

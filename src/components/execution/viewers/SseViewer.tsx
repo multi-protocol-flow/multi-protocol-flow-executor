@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { VariableChangesCard } from './VariableChangesCard';
 import { getLL } from '@/i18n/i18n-lazy';
 
@@ -70,22 +70,6 @@ function SseBadge() {
       className="font-mono text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 border-0 shrink-0"
     >
       SSE
-    </Badge>
-  );
-}
-
-/** 状态 Badge */
-function StatusBadge({ isSuccess, successText, failText }: { isSuccess: boolean; successText: string; failText: string }) {
-  return (
-    <Badge
-      className={cn(
-        'font-mono text-xs px-2 py-0.5',
-        isSuccess
-          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
-          : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
-      )}
-    >
-      {isSuccess ? successText : failText}
     </Badge>
   );
 }
@@ -235,6 +219,7 @@ export function SseViewer({ report }: SseViewerProps) {
 // ============================================================================
 
 function SseConnectView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as SseConnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const connectDuration = output?.timing?.connect_ms;
@@ -250,7 +235,7 @@ function SseConnectView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已连接" failText="连接失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.sse.status_connected()} failText={ll.viewer.sse.status_connection_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? 'SSE 连接建立成功'
@@ -301,6 +286,7 @@ function SseConnectView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function SseListenView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as SseListenOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const events = output?.events ?? [];
@@ -342,7 +328,7 @@ function SseListenView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="监听完成" failText="监听失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.sse.status_listening()} failText={ll.viewer.sse.status_listen_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `收到 ${eventCount} 个事件`
@@ -404,6 +390,7 @@ function SseListenView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function SseDisconnectView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as SseDisconnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const disconnectDuration = output?.timing?.disconnect_ms;
@@ -419,7 +406,7 @@ function SseDisconnectView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已断开" failText="断开失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.sse.status_disconnected()} failText={ll.viewer.sse.status_disconnect_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? 'SSE 连接已成功断开'

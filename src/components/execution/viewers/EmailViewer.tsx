@@ -38,6 +38,7 @@ import type {
   ImapFolder,
 } from '@/types/imap';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
 
@@ -77,22 +78,6 @@ function CollapsibleSection({ title, icon, defaultOpen = false, extra, children 
       </button>
       {isOpen && <div className="p-3 border-t border-border bg-background">{children}</div>}
     </div>
-  );
-}
-
-/** 状态 Badge */
-function StatusBadge({ isSuccess, successText, failText }: { isSuccess: boolean; successText: string; failText: string }) {
-  return (
-    <Badge
-      className={cn(
-        'font-mono text-xs px-2 py-0.5',
-        isSuccess
-          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
-          : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
-      )}
-    >
-      {isSuccess ? successText : failText}
-    </Badge>
   );
 }
 

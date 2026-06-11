@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { VariableChangesCard } from './VariableChangesCard';
 import { getLL } from '@/i18n/i18n-lazy';
 
@@ -81,22 +81,6 @@ function KafkaBadge() {
       className="font-mono text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/50 border-0 shrink-0"
     >
       KAFKA
-    </Badge>
-  );
-}
-
-/** 状态 Badge */
-function StatusBadge({ isSuccess, successText, failText }: { isSuccess: boolean; successText: string; failText: string }) {
-  return (
-    <Badge
-      className={cn(
-        'font-mono text-xs px-2 py-0.5',
-        isSuccess
-          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
-          : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
-      )}
-    >
-      {isSuccess ? successText : failText}
     </Badge>
   );
 }
@@ -334,6 +318,7 @@ export const KafkaViewer = memo(function KafkaViewer({ report }: KafkaViewerProp
 // ============================================================================
 
 function KafkaConnectView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as KafkaConnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const brokerInfo = output?.broker_info;
@@ -350,7 +335,7 @@ function KafkaConnectView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已连接" failText="连接失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_connected()} failText={ll.viewer.kafka.status_connection_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? 'Kafka 连接建立成功'
@@ -434,6 +419,7 @@ function KafkaConnectView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function KafkaProduceView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as KafkaProduceOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const produceDuration = output?.timing?.produce_ms;
@@ -490,7 +476,7 @@ function KafkaProduceView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已发送" failText="发送失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_produced()} failText={ll.viewer.kafka.status_produce_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `消息已成功发送到 ${output?.topic ?? 'topic'} [P${output?.partition ?? 0}@${output?.offset ?? 0}]`
@@ -542,6 +528,7 @@ function KafkaProduceView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function KafkaConsumeView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as KafkaConsumeOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const messages = output?.messages ?? [];
@@ -584,7 +571,7 @@ function KafkaConsumeView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已消费" failText="消费失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_consumed()} failText={ll.viewer.kafka.status_consume_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `消费成功，收到 ${messageCount} 条消息`
@@ -646,6 +633,7 @@ function KafkaConsumeView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function KafkaConsumeBatchView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as KafkaConsumeBatchOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const messages = output?.messages ?? [];
@@ -688,7 +676,7 @@ function KafkaConsumeBatchView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已消费" failText="消费失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_consumed()} failText={ll.viewer.kafka.status_consume_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `批量消费成功，共 ${messageCount} 条消息`
@@ -750,6 +738,7 @@ function KafkaConsumeBatchView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function KafkaAdminView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as KafkaAdminOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const adminDuration = output?.timing?.admin_ms;
@@ -765,7 +754,7 @@ function KafkaAdminView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="成功" failText="失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_admin_success()} failText={ll.viewer.kafka.status_admin_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `管理操作${output?.operation ? ` (${output.operation})` : ''}执行成功`
@@ -829,6 +818,7 @@ function KafkaAdminView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function KafkaSchemaRegistryView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as KafkaSchemaRegistryOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const registryDuration = output?.timing?.registry_ms;
@@ -844,7 +834,7 @@ function KafkaSchemaRegistryView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="成功" failText="失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_admin_success()} failText={ll.viewer.kafka.status_admin_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `Schema 操作${output?.operation ? ` (${output.operation})` : ''}执行成功`
@@ -908,6 +898,7 @@ function KafkaSchemaRegistryView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function KafkaCloseView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as KafkaCloseOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const closeDuration = output?.timing?.close_ms;
@@ -923,7 +914,7 @@ function KafkaCloseView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已关闭" failText="关闭失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.kafka.status_closed()} failText={ll.viewer.kafka.status_close_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? 'Kafka 连接已成功关闭'

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
@@ -929,6 +930,7 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function GrpcCloseSection({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as GrpcCloseOutput | undefined;
   const resolvedConfig = report.resolved_config as GrpcCloseOutput['request'] | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
@@ -971,20 +973,11 @@ function GrpcCloseSection({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <Badge
-              className={cn(
-                'font-mono text-xs px-2 py-0.5',
-                isSuccess
-                  ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
-                  : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
-              )}
-            >
-              {isSuccess ? '已关闭' : '关闭失败'}
-            </Badge>
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.grpc.status_closed()} failText={ll.viewer.grpc.status_close_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'gRPC 连接已成功关闭'
-                : output?.error ?? '连接关闭失败'}
+                ? ll.viewer.grpc.close_success()
+                : output?.error ?? ll.viewer.grpc.close_error()}
             </span>
           </div>
 

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { getLL } from '@/i18n/i18n-lazy';
 import { RawJsonViewer } from './RawJsonViewer';
 import { VariableChangesCard } from './VariableChangesCard';
@@ -158,12 +158,7 @@ export const WsConnectViewer = memo(function WsConnectViewer({ report }: WsConne
         <div className="space-y-2">
           {/* 状态 */}
           <div className="flex items-center gap-3">
-             <Badge className={cn(
-               'font-mono text-xs px-2 py-0.5',
-              isSuccess ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50' : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
-             )}>
-              {isSuccess ? ll.execution.viewers.connected() : ll.execution.viewers.disconnected()}
-            </Badge>
+            <StatusBadge isSuccess={isSuccess} successText={ll.execution.viewers.connected()} failText={ll.execution.viewers.disconnected()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess ? ll.execution.viewers.ws_connect_success_desc() : ll.execution.viewers.ws_connect_fail_desc()}
             </span>

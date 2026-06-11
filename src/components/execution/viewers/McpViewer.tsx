@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/utils';
 import { RawJsonViewer } from './RawJsonViewer';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -306,22 +307,6 @@ function McpBadge() {
       className="font-mono text-xs text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/50 border-0 shrink-0"
     >
       MCP
-    </Badge>
-  );
-}
-
-/** 状态 Badge */
-function StatusBadge({ isSuccess, successText, failText }: { isSuccess: boolean; successText: string; failText: string }) {
-  return (
-    <Badge
-      className={cn(
-        'font-mono text-xs px-2 py-0.5',
-        isSuccess
-          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
-          : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
-      )}
-    >
-      {isSuccess ? successText : failText}
     </Badge>
   );
 }
@@ -818,7 +803,7 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="读取成功" failText="读取失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mcp.status_read_success()} failText={ll.viewer.mcp.status_read_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `资源读取成功，${contents.length} 个内容块`
@@ -976,7 +961,7 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="获取成功" failText="获取失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mcp.status_get_success()} failText={ll.viewer.mcp.status_get_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `提示词获取成功，${messages.length} 条消息`

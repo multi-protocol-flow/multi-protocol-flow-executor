@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import type { NodeExecutionReport, TcpUdpRecording } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/utils';
 import { VariableChangesCard } from './VariableChangesCard';
 import { HexViewer, dataToBytes } from '@/components/common/HexViewer';
@@ -215,24 +216,6 @@ interface UdpCloseOutput {
 // ============================================================================
 // Hex 预览工具 — 已迁移至 HexViewer 组件
 // ============================================================================
-
-/**
- * 状态 Badge 组件
- */
-function StatusBadge({ isSuccess, successText, failText }: { isSuccess: boolean; successText: string; failText: string }) {
-  return (
-    <Badge
-      className={cn(
-        'font-mono text-xs px-2 py-0.5',
-        isSuccess
-          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
-          : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
-      )}
-    >
-      {isSuccess ? successText : failText}
-    </Badge>
-  );
-}
 
 /**
  * 错误信息展示
@@ -517,7 +500,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="发送成功" failText={ll.viewer.tcp.status_send_failed()} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.tcp.status_sent()} failText={ll.viewer.tcp.status_send_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `数据发送${receivedData ? '并接收' : ''}完成`
@@ -962,7 +945,7 @@ function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="发送成功" failText={ll.viewer.tcp.status_send_failed()} />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.tcp.status_sent()} failText={ll.viewer.tcp.status_send_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `UDP 数据包已发送${sentData?.target ? `至 ${sentData.target}` : ''}`

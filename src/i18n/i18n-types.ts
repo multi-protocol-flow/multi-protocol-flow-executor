@@ -11643,6 +11643,10 @@ export interface TranslationsViewer {
 		status_call_failed: string
 		status_closed: string
 		status_close_failed: string
+		status_read_success: string
+		status_read_failed: string
+		status_get_success: string
+		status_get_failed: string
 		connect_success: string
 		connect_error: string
 		close_success: string
@@ -11695,6 +11699,10 @@ export interface TranslationsViewer {
 		status_unsubscribe_failed: string
 		status_disconnected: string
 		status_disconnect_failed: string
+		status_wait_success: string
+		status_wait_failed: string
+		status_request_success: string
+		status_request_failed: string
 		connect_success: string
 		connect_error: string
 		publish_success: string
@@ -11722,6 +11730,29 @@ export interface TranslationsViewer {
 		no_messages: string
 		unknown_node_type: RequiredParams<'type'>
 	}
+	redis: {
+		section_connection: string
+		section_command_result: string
+		section_close: string
+		status_connected: string
+		status_connection_failed: string
+		status_success: string
+		status_failed: string
+		status_closed: string
+		status_close_failed: string
+		connect_success: string
+		connect_error: string
+		command_success: string
+		command_error: string
+		close_success: string
+		close_error: string
+		label_server: string
+		label_command: string
+		label_result: string
+		label_duration: string
+		label_db_index: string
+		unknown_node_type: RequiredParams<'type'>
+	}
 	kafka: {
 		section_produce_status: string
 		section_consume_status: string
@@ -11733,6 +11764,10 @@ export interface TranslationsViewer {
 		section_consumer_group: string
 		section_schema: string
 		section_cluster_info: string
+		status_connected: string
+		status_connection_failed: string
+		status_closed: string
+		status_close_failed: string
 		status_produced: string
 		status_produce_failed: string
 		status_consumed: string
@@ -11818,14 +11853,23 @@ export interface TranslationsViewer {
 		section_subscription_data: string
 		status_success: string
 		status_failed: string
+		status_connected: string
+		status_connection_failed: string
 		status_subscribed: string
+		status_subscribe_failed: string
 		status_unsubscribed: string
+		status_explore_success: string
+		status_explore_failed: string
+		status_disconnected: string
+		status_disconnect_failed: string
 		query_success: string
 		query_error: string
 		subscribe_success: string
 		subscribe_error: string
 		unsubscribe_success: string
 		unsubscribe_error: string
+		explore_success: string
+		explore_error: string
 		label_operation_name: string
 		label_query: string
 		label_variables: string
@@ -23685,6 +23729,10 @@ export type TranslationFunctions = {
 			status_call_failed: () => LocalizedString
 			status_closed: () => LocalizedString
 			status_close_failed: () => LocalizedString
+			status_read_success: () => LocalizedString
+			status_read_failed: () => LocalizedString
+			status_get_success: () => LocalizedString
+			status_get_failed: () => LocalizedString
 			connect_success: () => LocalizedString
 			connect_error: () => LocalizedString
 			close_success: () => LocalizedString
@@ -23737,6 +23785,10 @@ export type TranslationFunctions = {
 			status_unsubscribe_failed: () => LocalizedString
 			status_disconnected: () => LocalizedString
 			status_disconnect_failed: () => LocalizedString
+			status_wait_success: () => LocalizedString
+			status_wait_failed: () => LocalizedString
+			status_request_success: () => LocalizedString
+			status_request_failed: () => LocalizedString
 			connect_success: () => LocalizedString
 			connect_error: () => LocalizedString
 			publish_success: () => LocalizedString
@@ -23764,6 +23816,29 @@ export type TranslationFunctions = {
 			no_messages: () => LocalizedString
 			unknown_node_type: (arg: { type: unknown }) => LocalizedString
 		}
+		redis: {
+			section_connection: () => LocalizedString
+			section_command_result: () => LocalizedString
+			section_close: () => LocalizedString
+			status_connected: () => LocalizedString
+			status_connection_failed: () => LocalizedString
+			status_success: () => LocalizedString
+			status_failed: () => LocalizedString
+			status_closed: () => LocalizedString
+			status_close_failed: () => LocalizedString
+			connect_success: () => LocalizedString
+			connect_error: () => LocalizedString
+			command_success: () => LocalizedString
+			command_error: () => LocalizedString
+			close_success: () => LocalizedString
+			close_error: () => LocalizedString
+			label_server: () => LocalizedString
+			label_command: () => LocalizedString
+			label_result: () => LocalizedString
+			label_duration: () => LocalizedString
+			label_db_index: () => LocalizedString
+			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+		}
 		kafka: {
 			section_produce_status: () => LocalizedString
 			section_consume_status: () => LocalizedString
@@ -23775,6 +23850,10 @@ export type TranslationFunctions = {
 			section_consumer_group: () => LocalizedString
 			section_schema: () => LocalizedString
 			section_cluster_info: () => LocalizedString
+			status_connected: () => LocalizedString
+			status_connection_failed: () => LocalizedString
+			status_closed: () => LocalizedString
+			status_close_failed: () => LocalizedString
 			status_produced: () => LocalizedString
 			status_produce_failed: () => LocalizedString
 			status_consumed: () => LocalizedString
@@ -23860,14 +23939,23 @@ export type TranslationFunctions = {
 			section_subscription_data: () => LocalizedString
 			status_success: () => LocalizedString
 			status_failed: () => LocalizedString
+			status_connected: () => LocalizedString
+			status_connection_failed: () => LocalizedString
 			status_subscribed: () => LocalizedString
+			status_subscribe_failed: () => LocalizedString
 			status_unsubscribed: () => LocalizedString
+			status_explore_success: () => LocalizedString
+			status_explore_failed: () => LocalizedString
+			status_disconnected: () => LocalizedString
+			status_disconnect_failed: () => LocalizedString
 			query_success: () => LocalizedString
 			query_error: () => LocalizedString
 			subscribe_success: () => LocalizedString
 			subscribe_error: () => LocalizedString
 			unsubscribe_success: () => LocalizedString
 			unsubscribe_error: () => LocalizedString
+			explore_success: () => LocalizedString
+			explore_error: () => LocalizedString
 			label_operation_name: () => LocalizedString
 			label_query: () => LocalizedString
 			label_variables: () => LocalizedString

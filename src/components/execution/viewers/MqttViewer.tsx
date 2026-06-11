@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import type { NodeExecutionReport } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { VariableChangesCard } from './VariableChangesCard';
 import { getLL } from '@/i18n/i18n-lazy';
 
@@ -80,22 +80,6 @@ function MqttBadge() {
       className="font-mono text-xs text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/50 border-0 shrink-0"
     >
       MQTT
-    </Badge>
-  );
-}
-
-/** 状态 Badge */
-function StatusBadge({ isSuccess, successText, failText }: { isSuccess: boolean; successText: string; failText: string }) {
-  return (
-    <Badge
-      className={cn(
-        'font-mono text-xs px-2 py-0.5',
-        isSuccess
-          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50'
-          : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50'
-      )}
-    >
-      {isSuccess ? successText : failText}
     </Badge>
   );
 }
@@ -311,6 +295,7 @@ export const MqttViewer = memo(function MqttViewer({ report }: MqttViewerProps) 
 // ============================================================================
 
 function MqttConnectView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as MqttConnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const brokerInfo = output?.broker_info;
@@ -327,7 +312,7 @@ function MqttConnectView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已连接" failText="连接失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mqtt.status_connected()} failText={ll.viewer.mqtt.status_connection_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? 'MQTT 连接建立成功'
@@ -411,6 +396,7 @@ function MqttConnectView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function MqttPublishView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as MqttPublishOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const publishDuration = output?.timing?.publish_ms;
@@ -462,7 +448,7 @@ function MqttPublishView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已发布" failText="发布失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mqtt.status_published()} failText={ll.viewer.mqtt.status_publish_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `消息已成功发布到 ${output?.topic ?? 'topic'}`
@@ -514,6 +500,7 @@ function MqttPublishView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as MqttSubscribeOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const messages = output?.messages ?? [];
@@ -556,7 +543,7 @@ function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已订阅" failText="订阅失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mqtt.status_subscribed()} failText={ll.viewer.mqtt.status_subscribe_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `订阅成功，收到 ${messageCount} 条消息`
@@ -618,6 +605,7 @@ function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function MqttUnsubscribeView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as MqttUnsubscribeOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
 
@@ -645,7 +633,7 @@ function MqttUnsubscribeView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已取消订阅" failText="取消订阅失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mqtt.status_unsubscribed()} failText={ll.viewer.mqtt.status_unsubscribe_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `已成功取消订阅 ${output?.topic ?? 'topic'}`
@@ -668,6 +656,7 @@ function MqttUnsubscribeView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function MqttDisconnectView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as MqttDisconnectOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const disconnectDuration = output?.timing?.disconnect_ms;
@@ -683,7 +672,7 @@ function MqttDisconnectView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已断开" failText="断开失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mqtt.status_disconnected()} failText={ll.viewer.mqtt.status_disconnect_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? output?.reason
@@ -737,6 +726,7 @@ function MqttDisconnectView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as MqttWaitMessageOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const matchedMessages = output?.matched_messages ?? [];
@@ -779,7 +769,7 @@ function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="已匹配" failText="等待失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mqtt.status_wait_success()} failText={ll.viewer.mqtt.status_wait_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `匹配到 ${matchedCount} 条消息`
@@ -841,6 +831,7 @@ function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
 // ============================================================================
 
 function MqttRequestView({ report }: { report: NodeExecutionReport }) {
+  const ll = getLL();
   const output = report.output_data as MqttRequestOutput | undefined;
   const isSuccess = output?.success ?? report.status === 'success';
   const responses = output?.responses ?? [];
@@ -889,7 +880,7 @@ function MqttRequestView({ report }: { report: NodeExecutionReport }) {
       >
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <StatusBadge isSuccess={isSuccess} successText="请求成功" failText="请求失败" />
+            <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mqtt.status_request_success()} failText={ll.viewer.mqtt.status_request_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `请求-响应完成，收到 ${responseCount} 条响应`
