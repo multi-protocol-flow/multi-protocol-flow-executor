@@ -1,57 +1,47 @@
 # flow-engine-smtp
 
-**Layer 1** | 8 文件 | ~2,400 行 | 依赖 core + crypto
+**Layer:** L1 (Protocol) | **Files:** 8 | **LOC:** ~4,056 | **Key dep:** lettre
 
-## 概述
+## OVERVIEW
 
-SMTP 邮件发送 crate (lettre)。支持连接池管理、多种认证方式 (SASL PLAIN/LOGIN、OAuth2 XOAUTH2)、TLS 加密、附件上传。
+SMTP email sending crate. Uses `lettre` (Tokio1Executor) for async SMTP transport. Connection pool via `Arc<RwLock<HashMap>>`, credential decryption via `flow-engine-crypto` (AES-256-GCM), OAuth2 token flows for Gmail and Outlook.
 
-## 结构
+## 3 NODE TYPES
 
-```
-flow-engine-smtp/src/
-├── lib.rs                       # 模块导出
-├── plugin.rs                    # NodePlugin 实现 (3 节点)
-├── smtp_connection_manager.rs   # 连接池 + SmtpProvider trait 实现
-├── smtp_connect_executor.rs     # SMTP 连接执行器
-├── smtp_send_executor.rs        # 发送邮件执行器
-├── smtp_disconnect_executor.rs  # 断开连接执行器
-├── sasl.rs                      # SASL 认证 (PLAIN/LOGIN → lettre Mechanism)
-└── oauth2.rs                    # OAuth2 流程 (PKCE、Device Flow、Token 刷新)
-```
+| Node | Ports | Purpose |
+|------|-------|---------|
+| `smtp_connect` | true/false | Build transport, test connection, store in pool |
+| `smtp_send` | true/false | Build MIME message (plain/HTML/both), send with optional base64 attachments |
+| `smtp_disconnect` | out | Remove connection from pool (non-blocking) |
 
-## 快速定位
+All 3 registered via `SmtpPluginGroup::register_all()` in `plugin.rs`.
 
-| 任务 | 文件 |
-|------|------|
-| SMTP 连接 | `smtp_connect_executor.rs` |
-| 发送邮件 | `smtp_send_executor.rs` |
-| 断开连接 | `smtp_disconnect_executor.rs` |
-| NodePlugin 注册 | `plugin.rs` |
-| 连接池管理 | `smtp_connection_manager.rs` |
-| SASL 认证 | `sasl.rs` |
-| OAuth2 (Gmail/Outlook) | `oauth2.rs` |
+## AUTHENTICATION
 
-## 认证方式
+- **SASL PLAIN / LOGIN** — passwords encrypted with AES-256-GCM via `flow-engine-crypto::encryption`. Decrypted at connect time in `SmtpConnectionManager::apply_auth()`.
+- **OAuth2 XOAUTH2** — for Gmail / Outlook. Two flows in `oauth2.rs`: PKCE (Tauri desktop, localhost callback listener) and Device Authorization Flow (CLI `mpe` binary, polling). Tokens encrypted via AES-256-GCM. Token refresh supported.
 
-- **SASL PLAIN/LOGIN**: 用户名+密码，密码加密存储 (AES-256-GCM)
-- **OAuth2 XOAUTH2**: Gmail/Outlook 支持，支持 PKCE 和 Device Flow
-- **TLS 模式**: Implicit (465)、StartTls (587)、None (25)
+## TLS MODES
 
-## 节点类型
+| Mode | Config value | Default port |
+|------|-------------|-------------|
+| Implicit TLS | `"implicit"` | 465 |
+| STARTTLS | `"starttls"` | 587 |
+| None (plaintext) | `"none"` | 25 |
 
-| 节点 | type_id | 端口 |
-|------|---------|------|
-| SMTP 连接 | `smtp_connect` | true/false |
-| SMTP 发送 | `smtp_send` | true/false |
-| SMTP 断开 | `smtp_disconnect` | out |
+## FILE MAP
 
-## 编译影响
+| File | Responsibility |
+|------|---------------|
+| `lib.rs` | Module declarations |
+| `smtp_connection_manager.rs` | Connection pool, transport builder, MIME message assembly, `SmtpProvider` impl |
+| `smtp_connect_executor.rs` | Connect node logic |
+| `smtp_send_executor.rs` | Send node logic |
+| `smtp_disconnect_executor.rs` | Disconnect node logic |
+| `oauth2.rs` | PKCE / Device Flow / token refresh / encrypted token storage |
+| `sasl.rs` | SASL mechanism resolution + lettre `Credentials` builders |
+| `plugin.rs` | 3 `NodePlugin` impls + `SmtpPluginGroup` + tests |
 
-修改此 crate → `flow-engine-executor` → `flow-engine` → `app` (~3 crate)
+## DEPENDENCIES
 
-```bash
-cd src-tauri
-cargo test -p flow-engine-smtp          # 仅测 SMTP
-cargo clippy -p flow-engine-smtp        # 仅 Lint SMTP
-```
+`flow-engine-core` (types, traits, `SmtpProvider`), `flow-engine-crypto` (AES-256-GCM password/token decryption).

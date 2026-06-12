@@ -1,29 +1,32 @@
 # flow-engine-sse
 
-SSE (Server-Sent Events) 协议支持 crate。
+**Layer 1 (Protocol)** | 7 files, ~3,000 LOC | Depends on `flow-engine-core`
 
-## 概述
+## Overview
 
-提供 SSE 客户端连接、事件监听、断线续传等功能。使用 reqwest 流式请求解析 SSE 协议格式，不依赖外部 SSE 库。
+SSE (Server-Sent Events) client crate. Uses `reqwest` streaming GET with no external SSE library. Directly parses the `text/event-stream` wire format: `event:`, `data:`, `id:`, `retry:` fields with multiline data support, comment skip (`:` prefix), and null-byte protection on `id`.
 
-## 文件映射
+## Node Types (3)
 
-| 执行器 | 文件 | 说明 |
-|--------|------|------|
-| `sse_connect` | `sse_connect_executor.rs` + `plugin.rs` | 建立 SSE 连接，支持 Last-Event-ID 断线续传 |
-| `sse_listen` | `sse_listen_executor.rs` + `plugin.rs` | 监听服务端推送事件，支持事件过滤/超时 |
-| `sse_disconnect` | `sse_disconnect_executor.rs` + `plugin.rs` | 关闭 SSE 连接，释放资源 |
-| 核心 | `sse_client.rs` | reqwest 流式客户端，解析 event/data/id/retry 字段 |
-| 管理 | `sse_connection_manager.rs` | 连接池生命周期管理，实现 `SseProvider` trait |
-| 入口 | `lib.rs` | 模块导出 |
+| Plugin | Type ID | Ports | Config |
+|--------|---------|-------|--------|
+| `SseConnectPlugin` | `sse_connect` | true / false | url, timeout_ms, auto_reconnect |
+| `SseListenPlugin` | `sse_listen` | true / false | connection_id, max_events, timeout_ms |
+| `SseDisconnectPlugin` | `sse_disconnect` | out | connection_id |
 
-## 节点类型
+## Core Files
 
-- `sse_connect`: 双端口 (true/false)，配置 url/timeout_ms/auto_reconnect
-- `sse_listen`: 双端口 (true/false)，配置 connection_id/max_events/timeout_ms
-- `sse_disconnect`: 单端口 (out)，配置 connection_id
+- **sse_client.rs** — Wire-format SSE parser. `SseEvent` struct (event/data/id/retry), `SseClient` with `connect()` and `spawn_event_reader()`. Broadcast channel dispatches parsed events. CancellationToken for graceful shutdown.
+- **sse_connection_manager.rs** — `SseProvider` trait impl. Connection lifecycle (Connecting/Connected/Disconnected/Error). Per-connection background reader tasks, connection pool via `HashMap<String, Arc<RwLock<SseConnection>>>`.
+- **plugin.rs** — `NodePlugin` trait impls for all 3 node types. `SsePluginGroup::register_all()` for batch registration.
+- **sse_connect_executor.rs** — Opens SSE connection, stores connection in manager.
+- **sse_listen_executor.rs** — Collects events from broadcast channel with timeout + event filter.
+- **sse_disconnect_executor.rs** — Cancels reader task, removes connection from pool.
 
-## 依赖
+## Features
 
-- `flow-engine-core` (Layer 0)
-- reqwest + futures-util + tokio
+- Last-Event-ID reconnection via `Last-Event-ID` header
+- Event type filtering on listen
+- Configurable read timeout and max event count
+- Broadcast-based multi-consumer dispatch
+- Graceful cancellation via `CancellationToken`
