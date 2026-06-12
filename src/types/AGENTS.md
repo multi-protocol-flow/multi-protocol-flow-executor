@@ -1,172 +1,69 @@
-# TypeScript 类型定义
+# 类型定义知识库
 
-**生成时间:** 2026-05-29
+**生成时间**: 2026-06-12 | **Branch**: dev
 
-## 概述
+## OVERVIEW
 
-前端 TypeScript 类型定义，与 Rust 后端结构体严格对齐。所有类型定义必须与后端保持同步。
+TypeScript 类型定义层，与 Rust 后端结构体严格对齐。核心是 `NodeData` 判别联合类型（tagged union，65 个变体覆盖全部 89+ 节点类型），每个变体的 `type` 字段与后端 `NodeType` 枚举一一对应。所有 IPC 调用、Store 状态、组件 Props 均依赖此目录下的类型。
 
-## 文件结构
+## STRUCTURE
 
-```
-src/types/
-├── index.ts          # 统一导出入口
-├── node.ts           # 节点类型 + 配置 (判别联合，30 种节点)
-├── nodeRegistry.ts   # 后端节点元数据 (PortDef, NodeMetadata)
-├── flow.ts           # 流程结构
-├── connection.ts     # 节点连接
-├── report.ts         # 执行报告 + 统计
-├── variable.ts       # 变量系统
-├── error.ts          # 错误类型
-├── debug.ts          # 调试系统类型
-├── ws_stream.ts      # WebSocket 消息流类型
-├── ipc.ts            # Tauri IPC 命令类型
-├── settings.ts       # 全局设置
-├── port.ts           # 端口定义
-├── database.ts       # 数据库连接类型
-├── stressTest.ts     # 压力测试类型
-├── events.ts         # 日志事件 (LogLevel, LogEvent)
-└── execution_event.ts # 执行事件 (ExecutionEvent discriminated union)
-```
+| 文件 | Rust 映射 |
+|------|-----------|
+| `node.ts` | `flow-engine-core/src/node.rs` (Node/NodeType/Port) + `node_config.rs` (NodeData 变体) |
+| `flow.ts` | `flow-engine-core/src/flow.rs` (Flow/EnvironmentSet) |
+| `connection.ts` | `flow-engine-core/src/connection.rs` |
+| `report.ts` | `flow-engine-core/src/report.rs` + `statistics.rs` |
+| `variable.ts` | `flow-engine-core/src/variable.rs` |
+| `error.ts` | `flow-engine-core/src/error.rs` |
+| `debug.ts` | `flow-engine/src/debug/types.rs` |
+| `ipc.ts` | `flow-engine/src/commands/*` (IPC 命令输入/输出类型) |
+| `port.ts` | `flow-engine-core/src/node.rs` (Port 结构体) |
+| `nodeRegistry.ts` | `flow-engine-core/src/plugin.rs` (NodeMetadata) |
+| `hook.ts` | `flow-engine-core/src/hook.rs` |
+| `database.ts` | `flow-engine-core/src/db_types.rs` |
+| `dataset.ts` | `flow-engine/src/dataset/types.rs` + events |
+| `events.ts` | `flow-engine-core/src/events.rs` (LogEvent) |
+| `execution_event.ts` | `flow-engine-core/src/events.rs` (ExecutionEvent, camelCase tagged union) |
+| `stressTest.ts` | `flow-engine/src/stress_test/types.rs` |
+| `ws_stream.ts` | `flow-engine/src/debug/ws_stream.rs` |
+| `smtp.ts` | `flow-engine-smtp/` crate 结构体 |
+| `imap.ts` | `flow-engine-imap/` crate 结构体 |
+| `redis.ts` | `flow-engine-core/src/node_config.rs` |
+| `settings.ts` | 前端独有（无 Rust 映射） |
+| `updater.ts` | 前端独有（Tauri updater events） |
+| `index.ts` | barrel re-export |
 
-## 快速定位
+## WHERE TO LOOK
 
-| 任务 | 文件 | 对应 Rust 文件 |
-|------|------|---------------|
-| 修改节点类型 | `node.ts` | `node.rs` + `node_config.rs` |
-| 修改节点元数据 | `nodeRegistry.ts` | core traits |
+| 任务 | 文件 | Rust 对应 |
+|------|------|-----------|
+| 新增节点类型 | `node.ts` (NodeType + NodeData 变体) | `node.rs` + `node_config.rs` |
 | 修改流程结构 | `flow.ts` | `flow.rs` |
-| 修改连接定义 | `connection.ts` | `connection.rs` |
-| 修改执行报告 | `report.ts` | `report.rs` + `statistics.rs` |
-| 修改变量系统 | `variable.ts` | `variable.rs` |
-| 添加 IPC 命令 | `ipc.ts` | `command.rs` |
-| 修改调试类型 | `debug.ts` | `debug/types.rs` |
-| 修改 WebSocket 消息流 | `ws_stream.ts` | `ws_stream.rs` |
-| 修改数据库类型 | `database.ts` | `db/types.rs` |
-| 修改压力测试类型 | `stressTest.ts` | `stress_test/types.rs` |
-| 修改日志事件 | `events.ts` | core `log_event.rs` |
-| 修改执行事件 | `execution_event.ts` | executor event types |
+| 调整连接模型 | `connection.ts` | `connection.rs` |
+| 执行报告字段 | `report.ts` | `report.rs` + `statistics.rs` |
+| 变量系统变更 | `variable.ts` | `variable.rs` |
+| 错误类型/处理 | `error.ts` | `error.rs` |
+| 调试会话 | `debug.ts` | `flow-engine/src/debug/types.rs` |
+| IPC 命令签名 | `ipc.ts` | `flow-engine/src/commands/*` |
+| 注册表元数据 | `nodeRegistry.ts` | `plugin.rs` (NodeMetadata) |
+| 协议特定配置 | `smtp.ts` / `imap.ts` / `redis.ts` | 对应 `flow-engine-*` crate |
+| 压力测试 | `stressTest.ts` | `flow-engine/src/stress_test/types.rs` |
+| 数据集执行 | `dataset.ts` | `flow-engine/src/dataset/types.rs` |
+| App 设置 | `settings.ts` | 无（前端唯一定义） |
 
-## 约定
+## CONVENTIONS
 
-### 前后端类型同步 (强制)
+- **判别联合优先**: `NodeData` 使用 `type: '<node_type>'` 字段做运行时区分。禁止揉合成一个松散的 `Record<string, any>`。
+- **可选字段**: 所有 `?` 标记的字段对应 Rust 的 `Option<T>`。不存在 Rust 侧有 `Option` 但 TS 侧无 `?` 的情况。
+- **类型守卫**: 用 `if (data.type === 'http')` 做窄化，禁用 `as any` 强制转换。
+- **导出统一**: 每个文件以 `export type { ... }` 或 `export interface` 为主。`index.ts` 是唯一 barrel file。
+- **序列化对齐**: `execution_event.ts` 使用 camelCase 匹配 Rust 的 `#[serde(rename_all = "camelCase")]`。
 
-**任何类型修改必须同时更新前后端。**
+## ANTI-PATTERNS
 
-对应关系（注意: 后端已拆分为多个 crate）：
-- `node.ts` ↔ `src-tauri/crates/flow-engine-core/src/node.rs` + `node_config.rs`
-- `nodeRegistry.ts` ↔ `src-tauri/crates/flow-engine-core/src/` (PortDef, NodeMetadata)
-- `flow.ts` ↔ `src-tauri/crates/flow-engine-core/src/flow.rs`
-- `connection.ts` ↔ `src-tauri/crates/flow-engine-core/src/connection.rs`
-- `report.ts` ↔ `src-tauri/crates/flow-engine-core/src/report.rs` + `statistics.rs`
-- `variable.ts` ↔ `src-tauri/crates/flow-engine-core/src/variable.rs`
-- `error.ts` ↔ `src-tauri/crates/flow-engine-core/src/error.rs`
-- `debug.ts` ↔ `src-tauri/crates/flow-engine-executor/src/debug/types.rs` + `src-tauri/crates/flow-engine-core/src/debug_types.rs`
-- `ws_stream.ts` ↔ `src-tauri/crates/flow-engine-core/src/ws_stream.rs`
-- `database.ts` ↔ `src-tauri/crates/flow-engine-core/src/db_types.rs`
-- `stressTest.ts` ↔ `src-tauri/crates/flow-engine-executor/src/stress_test/types.rs`
-- gRPC 类型 (`node.ts` 中) ↔ `src-tauri/crates/flow-engine-core/src/node_config.rs` + `core/traits/grpc_provider.rs`
-
-### 类型安全红线
-
-- **禁止** `as any` 类型断言
-- **禁止** `@ts-ignore` / `@ts-expect-error`
-- 使用判别联合类型 (`NodeData`) 代替松散类型
-- 类型守卫函数用于运行时判断 (`isHttpConfig` 等)
-
-### 判别联合类型
-
-`NodeData` 使用判别联合，通过 `type` 字段区分：
-```typescript
-type NodeData = EntryConfig | HttpConfig | ConditionalConfig | ScriptConfig | AssertionConfig
-  | WsConnectConfig | WsSendCollectConfig | WsCloseConfig
-  | DbConnectConfig | DbQueryConfig | DbBeginConfig | DbCommitConfig | DbRollbackConfig | DbCloseConfig
-  | GrpcConnectConfig | GrpcCallConfig | GrpcCloseConfig
-  | McpConnectConfig | McpCallToolConfig | McpReadResourceConfig | McpGetPromptConfig | McpCloseConfig
-  | TcpConnectConfig | TcpSendConfig | TcpCloseConfig
-  | UdpBindConfig | UdpSendToConfig | UdpRecvFromConfig | UdpCloseConfig
-  | MqttConnectConfig | MqttPublishConfig | MqttSubscribeConfig | MqttUnsubscribeConfig
-  | MqttDisconnectConfig | MqttWaitMessageConfig | MqttRequestConfig
-  | AmqpConnectConfig | AmqpPublishConfig | AmqpConsumeConfig
-  | GraphqlIntrospectConfig | GraphqlQueryConfig | GraphqlSubscribeConfig | GraphqlUnsubscribeConfig
-  | ImapConnectConfig | ImapFetchConfig | ImapSearchConfig | ImapFolderConfig | ImapIdleConfig
-  | KafkaProduceConfig | KafkaConsumeConfig | KafkaBatchConsumeConfig | KafkaAdminConfig
-  | SmtpConnectConfig | SmtpSendConfig | SmtpCloseConfig
-  | SseConnectConfig | SseListenConfig | SseCloseConfig
-  | EndConfig;
-```
-
-### 可选字段
-
-- 可选字段使用 `?:` 标记
-- 必须与 Rust 端 `Option<T>` 对应
-- 默认值在 Rust 端实现，前端仅声明类型
-
-## 节点类型 (30 种)
-
-| 类型 | 配置类型 | 用途 |
-|------|----------|------|
-| `entry` | EntryConfig | 流程入口 |
-| `end` | EndConfig | 流程终点 |
-| `http` | HttpConfig | HTTP 请求 |
-| `conditional` | ConditionalConfig | 条件分支 |
-| `script` | ScriptConfig | JavaScript 脚本 |
-| `assertion` | AssertionConfig | 断言验证 |
-| `ws_connect` | WsConnectConfig | WebSocket 连接 |
-| `ws_send_collect` | WsSendCollectConfig | WebSocket 发送收集 |
-| `ws_close` | WsCloseConfig | WebSocket 关闭 |
-| `db_connect` | DbConnectConfig | 数据库连接 |
-| `db_query` | DbQueryConfig | 数据库查询 |
-| `db_begin` | DbBeginConfig | 事务开始 |
-| `db_commit` | DbCommitConfig | 事务提交 |
-| `db_rollback` | DbRollbackConfig | 事务回滚 |
-| `db_close` | DbCloseConfig | 数据库关闭 |
-| `grpc_connect` | GrpcConnectConfig | gRPC 连接 |
-| `grpc_call` | GrpcCallConfig | gRPC 调用 |
-| `grpc_close` | GrpcCloseConfig | gRPC 关闭 |
-| `mcp_connect` | McpConnectConfig | MCP 连接 |
-| `mcp_call_tool` | McpCallToolConfig | MCP 调用工具 |
-| `mcp_read_resource` | McpReadResourceConfig | MCP 读取资源 |
-| `mcp_get_prompt` | McpGetPromptConfig | MCP 获取提示 |
-| `mcp_close` | McpCloseConfig | MCP 关闭 |
-| `tcp_connect` | TcpConnectConfig | TCP 连接 |
-| `tcp_send` | TcpSendConfig | TCP 发送 |
-| `tcp_close` | TcpCloseConfig | TCP 关闭 |
-| `udp_bind` | UdpBindConfig | UDP 绑定 |
-| `udp_send_to` | UdpSendToConfig | UDP 发送 |
-| `udp_recv_from` | UdpRecvFromConfig | UDP 接收 |
-| `udp_close` | UdpCloseConfig | UDP 关闭 |
-| `mqtt_connect` | MqttConnectConfig | MQTT 连接 |
-| `mqtt_publish` | MqttPublishConfig | MQTT 发布 |
-| `mqtt_subscribe` | MqttSubscribeConfig | MQTT 订阅 |
-| `mqtt_unsubscribe` | MqttUnsubscribeConfig | MQTT 取消订阅 |
-| `mqtt_disconnect` | MqttDisconnectConfig | MQTT 断开 |
-| `mqtt_wait_message` | MqttWaitMessageConfig | MQTT 等待消息 |
-| `mqtt_request` | MqttRequestConfig | MQTT 请求/响应 |
-| `amqp_connect` | AmqpConnectConfig | AMQP 连接 |
-| `amqp_publish` | AmqpPublishConfig | AMQP 发布 |
-| `amqp_consume` | AmqpConsumeConfig | AMQP 消费 |
-| `graphql_introspect` | GraphqlIntrospectConfig | GraphQL 内省 |
-| `graphql_query` | GraphqlQueryConfig | GraphQL 查询/变更 |
-| `graphql_subscribe` | GraphqlSubscribeConfig | GraphQL 订阅 |
-| `graphql_unsubscribe` | GraphqlUnsubscribeConfig | GraphQL 取消订阅 |
-| `imap_connect` | ImapConnectConfig | IMAP 连接 |
-| `imap_fetch` | ImapFetchConfig | IMAP 获取邮件 |
-| `imap_search` | ImapSearchConfig | IMAP 搜索 |
-| `imap_folder` | ImapFolderConfig | IMAP 文件夹管理 |
-| `imap_idle` | ImapIdleConfig | IMAP IDLE 监听 |
-| `kafka_produce` | KafkaProduceConfig | Kafka 生产 |
-| `kafka_consume` | KafkaConsumeConfig | Kafka 消费 |
-| `kafka_batch_consume` | KafkaBatchConsumeConfig | Kafka 批量消费 |
-| `kafka_admin` | KafkaAdminConfig | Kafka 管理 |
-| `smtp_connect` | SmtpConnectConfig | SMTP 连接 |
-| `smtp_send` | SmtpSendConfig | SMTP 发送 |
-| `smtp_close` | SmtpCloseConfig | SMTP 关闭 |
-| `sse_connect` | SseConnectConfig | SSE 连接 |
-| `sse_listen` | SseListenConfig | SSE 监听 |
-| `sse_close` | SseCloseConfig | SSE 关闭 |
-
-| 位置 | 内容 | 优先级 |
-|------|------|--------|
-| 无 | 前后端类型已完全对齐 | — |
-| `node.ts` | 37 种节点的 NodeData 判别联合过于庞大，考虑拆分 | 低 |
+- **单侧修改**: 在 `node.ts` 加了一个 `NodeType` 但忘记在后端 `node_config.rs` 添加对应结构体（或反之）→ 运行时反序列化失败。
+- **`as any` 逃逸**: 用 `(data as any).someField` 代替类型窄化 → 破坏 TypeScript 严格性，掩盖类型不匹配。
+- **`@ts-ignore` / `@ts-expect-error`**: 项目中已禁止。遇到类型错误应修正定义而非跳过检查。
+- **内联重复类型**: 在 Store 或组件中重复定义类型而非引用 `types/` → 两端不一致。所有跨组件类型都应在 `types/` 中定义。
+- **忘记更新 `index.ts`**: 新增文件后未在 `index.ts` 中 re-export → 导入路径不一致。

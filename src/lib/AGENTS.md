@@ -1,41 +1,58 @@
-# src/lib/
+# src/lib — Utility & Registry
 
-工具函数 + 三重注册表系统：节点元数据、配置面板、结果查看器。
+**生成时间:** 2026-06-12
 
-## 文件结构
+## OVERVIEW
 
-| 文件 | 职责 |
+Utility functions and the triple registry system that bridges backend node types with frontend rendering. The three registries work together: `NodeRegistry` fetches metadata from the backend via IPC, `configPanelRegistry` lazily loads config panel components, and `viewerRegistry` maps execution results to viewer components. Supporting utilities handle flow diff/restore/search, cURL import/export, grpcurl generation, proto field parsing, and GraphQL schema introspection.
+
+## STRUCTURE
+
+| File | Purpose |
+|------|---------|
+| `NodeRegistry.ts` | Backend-driven metadata registry (IPC `get_registered_node_types`), cached and grouped by category |
+| `configPanelRegistry.ts` | Lazy-loaded config panel loader, maps node type to dynamic `import()` |
+| `viewerRegistry.tsx` | Execution result viewer components, maps node type to viewer |
+| `nodeMeta.ts` | Icon map + color map (Lucide icons) + `getNodeDisplayName()` integration with registry |
+| `nodeDefaults.ts` | Context-aware default value inference for new nodes |
+| `nodeHelpRegistry.ts` | Bilingual (zh-CN/en-US) help content for node configuration |
+| `flowDiff.ts` | Deep field-level diff between two flows (nodes + connections) |
+| `flowSearch.ts` | Full-text search across node names, configs, and variable references |
+| `restoreFlow.ts` | Flow snapshot restore with dirty-canvas protection and conflict handling |
+| `utils.ts` | `cn()` — Tailwind class merge utility (`clsx` + `twMerge`) |
+| `curlParser.ts` | cURL string to `HttpConfigFormData` parser |
+| `curlExporter.ts` | HTTP config to cURL CLI command generator |
+| `grpcurlGenerator.ts` | gRPC call config to `grpcurl` CLI command generator |
+| `protoFieldParser.ts` | Lightweight `.proto` file parser (proto3 field declarations, enums, messages) |
+| `graphqlSchema.ts` | GraphQL introspection JSON to field tree (query builder support) |
+| `hotkeyLabels.ts` | Platform-aware shortcut labels (Cmd on macOS, Ctrl on Windows) |
+
+## WHERE TO LOOK
+
+| Task | File |
 |------|------|
-| `NodeRegistry.ts` | 后端节点元数据获取/缓存、分类排序、颜色映射 |
-| `configPanelRegistry.ts` | 节点类型 → 配置面板组件映射 |
-| `viewerRegistry.tsx` | 节点类型 → 结果查看器组件映射 |
-| `nodeMeta.ts` | 节点图标、显示名称、前端静态元数据 |
-| `flowDiff.ts` | 流程对比工具（节点/连接/字段级变化） |
-| `restoreFlow.ts` | 流程快照恢复（脏画布保护、UUID冲突处理） |
-| `utils.ts` | 通用工具（cn 函数合并 Tailwind class） |
-| `curlParser.ts` | cURL 命令解析 |
-| `grpcurlGenerator.ts` | grpcurl 命令生成 |
-| `protoFieldParser.ts` | Protobuf 字段解析 |
+| Add a new node type — register it | `NodeRegistry.ts` + `configPanelRegistry.ts` + `viewerRegistry.tsx` |
+| Map node type to icon/color | `nodeMeta.ts` |
+| Set reasonable defaults for a node | `nodeDefaults.ts` |
+| Write help text for a node config | `nodeHelpRegistry.ts` |
+| Compare two flows for changes | `flowDiff.ts` |
+| Search across the current flow | `flowSearch.ts` |
+| Restore a flow from snapshot | `restoreFlow.ts` |
+| Import/export cURL commands | `curlParser.ts`, `curlExporter.ts` |
+| Generate grpcurl command | `grpcurlGenerator.ts` |
+| Parse .proto files for form UI | `protoFieldParser.ts` |
+| Build GraphQL query from schema | `graphqlSchema.ts` |
+| Format platform-aware shortcuts | `hotkeyLabels.ts` |
 
-## 快速定位
+## CONVENTIONS
 
-| 任务 | 文件 |
-|------|------|
-| 注册新节点元数据 | `NodeRegistry.ts` |
-| 注册配置面板 | `configPanelRegistry.ts` |
-| 注册结果查看器 | `viewerRegistry.tsx` |
-| 流程对比 | `flowDiff.ts` |
-| 流程恢复 | `restoreFlow.ts` |
+- **Triple registry pattern**: Every new node type must register in all 3 files — `NodeRegistry.ts` (metadata), `configPanelRegistry.ts` (config panel), `viewerRegistry.tsx` (result viewer).
+- **Backend-first naming**: Display names in `nodeMeta.ts` prioritize names from `NodeRegistry` (backend) over hardcoded values. Use `getNodeDisplayName()` instead of direct string lookups.
+- **Lazy loading**: Config panels use `() => import()` for code splitting — only loaded when user first edits that node type.
+- **Bilingual help**: `nodeHelpRegistry.ts` entries provide both zh-CN and en-US content.
 
-## 约定
+## ANTI-PATTERNS
 
-**三重注册表模式**：新增节点类型必须同时在以下 3 个文件中注册：
-1. `NodeRegistry.ts` - 元数据/分类/排序
-2. `configPanelRegistry.ts` - 配置面板组件
-3. `viewerRegistry.tsx` - 结果查看器组件
-
-## 反模式
-
-- 跳过任一注册表导致节点无法完整渲染
-- 在 `nodeMeta.ts` 硬编码名称而不优先使用后端动态名称
-- `restoreFlow.ts` 中不注入依赖而直接调用外部服务
+- **Skipping one of the three registries** breaks the rendering pipeline. All three must be updated for a new node type.
+- **Hardcoding display names** in `nodeMeta.ts` instead of using `getNodeDisplayName()` — backend may update names dynamically.
+- **Direct panel imports** instead of lazy loading — defeats code splitting and increases initial bundle size.
