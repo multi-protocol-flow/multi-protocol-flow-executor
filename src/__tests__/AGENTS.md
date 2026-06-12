@@ -1,109 +1,56 @@
-# 测试知识库
+# 测试基础设施
 
-**生成时间:** 2026-04-23
+**生成时间:** 2026-06-12 | **Branch:** dev
 
-## 概述
+## OVERVIEW
 
-前端单元测试，Vitest 3.x + Testing Library 16.x。全局 jsdom 环境（vitest.config.ts 配置，无需逐文件标记）。共 ~74 个测试文件。
+Frontend unit test suite. Vitest 3.x + Testing Library 16.x, jsdom. ~74 test files across 11 subdirectories. Coverage thresholds: 80% statements, 75% branches, 80% functions, 80% lines.
 
-## 结构
+## STRUCTURE
 
 ```
-src/__tests__/
-├── components/   # React 组件测试 (~37 个文件)
-│   ├── canvas/   # 画布相关组件 (FlowCanvas, CanvasToolbar, DebugToolbar, BreakpointMarker)
-│   ├── panels/   # 配置面板 (AssertionConfig, ConditionalConfig, GrpcCallConfig)
-│   ├── execution/ # 执行相关 (HttpNodeViewer, ConditionalViewer, GenericViewer, WsConnectViewer, WsSendCollectViewer, WsCloseViewer, GrpcViewer, RawJsonViewer, NodeExecutionDetails)
-│   └── ui.test.tsx 等
-├── stores/       # Zustand Store 测试 (9 个文件: flow, execution, flowList, ui-panels, ui-settings, settings, debug, stressTest, console)
-├── services/     # 服务层测试 (7 个文件)
-│   ├── tauri/    # IPC 子模块测试 (flow, debug, settings)
-│   └── storage/events/reportStorage
-├── types/        # 类型测试 (12 个文件: node, flow, report, variable, connection, port, error, ipc, debug, settings, events, websocket)
-├── hooks/        # Hooks 测试 (2 个文件: useKeyboardShortcuts, useFullscreen)
-├── e2e/          # 端到端测试 (debug.e2e.test.ts, settings.test.ts)
-├── layouts/      # 布局测试 (1 个文件: MainLayout)
-├── lib/          # 工具函数测试 (flowDiff, restoreFlow)
-├── test-utils/factories/  # 测试工厂 (~3 文件: nodeFactory, flowFactory, connectionFactory)
-├── templates.test.ts
-├── setup.test.tsx
-└── setup.ts      # Polyfills (ResizeObserver, matchMedia, getComputedStyle)
+__tests__/
+├── components/       40 files (root 25 + execution/10 + panels/5)
+│   ├── execution/    viewers (HttpNodeViewer, GrpcViewer, etc.)
+│   └── panels/       config panels (Assertion, Conditional, Grpc*)
+├── stores/           10 files — one per Zustand store
+├── services/         8 files — Tauri IPC mock + command tests
+├── types/            13 files — type validation
+├── e2e/              2 files — debug.e2e.test.ts, settings.test.ts
+├── hooks/            1 file — useKeyboardShortcuts
+├── lib/              2 files — flowDiff, restoreFlow
+├── layouts/          1 file — MainLayout
+├── i18n/             1 file — viewer-skeleton
+├── setup.ts          global setup (i18n mock, ResizeObserver, matchMedia)
+├── setup.test.tsx    App rendering sanity test
+└── templates.test.ts DEMO_FLOW TDD contract
 ```
 
-## 快速定位
+## WHERE TO LOOK
 
-| 目标 | 位置 |
+| Task | File |
 |------|------|
-| 组件 | `components/*.test.tsx` |
-| Store | `stores/*.test.ts` |
-| IPC | `services/tauri/*.test.ts` |
-| 变量 | `types/variable.test.ts` |
-| E2E | `e2e/*.e2e.test.ts` |
-| gRPC 类型 | `types/node.test.ts` |
-| gRPC 配置面板 | `components/panels/GrpcCallConfig.test.tsx` |
-| 测试工厂 | `test-utils/factories/` (创建测试用 Node/Flow/Connection) |
-| gRPC 查看器 | `components/execution/GrpcViewer.test.tsx` |
+| Canvas interaction | `components/FlowCanvas.test.tsx`, `FlowCanvas.drop.test.tsx` |
+| Config panels | `components/panels/` |
+| Execution viewers | `components/execution/` |
+| Store logic | `stores/<name>.test.ts` |
+| Tauri IPC mock | `services/tauri.test.ts` + `services/tauri/` |
+| Type correctness | `types/` — one file per domain |
+| Settings journey | `e2e/settings.test.ts` |
+| New test | match subdirectory under `components/`, `stores/`, etc. |
 
-## 约定
+## CONVENTIONS
 
-### Mock 三层体系
+- **3-layer mocks:** (1) Global jsdom polyfills in `setup.ts` (ResizeObserver, matchMedia). (2) `vi.mock('@/i18n/i18n-util')` returns zh-CN translation proxy. (3) Tauri API mock at `@/services/tauri/mock.ts` covers IPC commands.
+- **Factory functions** in `src/test-utils/` (nodeFactory, connectionFactory, flowFactory).
+- **Store isolation**: `useXxxStore.getState().reset()` in `beforeEach`.
+- **Events**: prefer `userEvent` over `fireEvent`.
+- **E2E naming**: `*.e2e.test.ts`.
+- **Coverage exclusion**: `exclude: ['src/__tests__/**']`.
 
-| 层级 | 用途 | 方式 |
-|------|------|------|
-| Full mock service | 组件/Store 测试 | `import from '@/services/tauri/mock'` |
-| 模块级 vi.mock | 隔离服务层 | `vi.mock('@/services/tauri', () => ({...}))` |
-| Tauri API mock | 测试真实 IPC 包装 | `vi.mock('@tauri-apps/api/core', () => ({invoke: vi.fn()}))` |
+## NOTES
 
-### 工厂函数模式
-```ts
-// src/test-utils/factories/nodeFactory.ts
-export function createNode(overrides: Partial<Node> = {}): Node {
-  return { uuid: crypto.randomUUID(), ...overrides };
-}
-export const createHttpNode = (overrides?: Partial<Node>) => createNode({ type: 'http', ...overrides });
-```
-
-### E2E 测试模式
-```ts
-// 事件回调捕获 + act() 模拟异步事件
-const debugEventCallback = vi.fn();
-// 通过 Store getState() 直接读取状态验证
-expect(useDebugStore.getState().status).toBe('paused');
-```
-
-### Store 测试
-```ts
-beforeEach(() => {
-  useXxxStore.getState().reset();
-  vi.clearAllMocks();
-});
-```
-
-### React Flow Mock
-```ts
-vi.mock('@xyflow/react', async () => ({
-  ...await vi.importActual('@xyflow/react'),
-  useReactFlow: () => ({ screenToFlowPosition: vi.fn(), fitView: vi.fn() })
-}));
-```
-
-### 其他 Mock
-- sonner toast: `vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }))`
-- TestWrapper: `<ReactFlowProvider>{children}</ReactFlowProvider>`
-
-## 命令
-
-```bash
-npm run test       # 运行测试
-npm run typecheck  # 类型检查
-```
-
-## 注意
-
-1. jsdom 环境已全局配置，组件测试无需单独标记 `/** @vitest-environment jsdom */`
-2. Store 测试 `beforeEach` 调用 `reset()` + `vi.clearAllMocks()`
-3. 用 `userEvent` 不用 `fireEvent`
-4. E2E 测试文件命名 `*.e2e.test.ts`
-5. 覆盖率阈值: 80% statements, 75% branches, 80% functions, 80% lines
-6. gRPC 类型测试包含在 `types/node.test.ts` 中
-7. Mock 服务 (`src/services/tauri/mock.ts`) 覆盖全部 49 个 IPC 命令，含 gRPC/MCP/MQTT/SSE/AMQP/GraphQL 模拟
+- jsdom globals pre-configured in `setup.ts`.
+- i18n mock returns real zh-CN strings with `{param}` substitution.
+- Mock service covers 49 IPC commands (flow, debug, settings, dataset).
+- Adding a store? Add `stores/<name>.test.ts` and test `reset()`.
