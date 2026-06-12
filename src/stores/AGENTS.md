@@ -1,93 +1,32 @@
-# 状态管理 (Stores)
+# src/stores/
 
-**生成时间:** 2026-04-23
+## OVERVIEW
 
-## 概述
+Zustand 5 state management layer. 10 stores covering the full application state: flow (active flow graph), execution (runtime lifecycle), flowList (saved flows), ui (panel visibility, modals), settings (user preferences), debug (breakpoints, inspect), console (log output), stressTest (config + state), wsStream (WebSocket message buffer), zoom (canvas transform).
 
-Zustand 5.x 状态管理，每个 store 一个文件。使用 `create` + `selectors` 模式。共 10 个 stores。
+Each store is a single file with `create()` from Zustand and a `reset()` method returning state to initial values. Selectors are exported as memoized getter functions for render performance. Test isolation is achieved by calling `getState().reset()` in test setup.
 
-## 结构
+## WHERE TO LOOK
 
-```
-stores/
-├── index.ts          # 统一导出 (hooks + selectors + types)
-├── flow.ts           # 当前编辑流程 (flow, nodes, edges, isDirty, breakpoints)
-├── execution.ts      # 执行状态 (isExecuting, report, history)
-├── flowList.ts       # 流程列表 (flowMetas, isLoading)
-├── ui.ts             # UI 状态 (面板开关, 对话框)
-├── settings.ts       # 全局设置 (报告/日志目录)
-├── debug.ts          # 调试状态 (isPaused, currentNodeUuid, isDebugging)
-├── console.ts        # 控制台日志
-├── stressTest.ts     # 压力测试状态 (status, config, progress, report)
-├── wsStream.ts       # WebSocket 消息流 (sharedStreams, activeConnectionId)
-└── zoom.ts           # 页面缩放 (zoom, Tauri native WebView API, localStorage 持久化)
-```
+| Task | Store |
+|------|-------|
+| Active flow graph (nodes, edges, viewport) | `flowStore.ts` |
+| Flow execution state (running, paused, node statuses) | `executionStore.ts` |
+| Saved flow files list, search, sort | `flowListStore.ts` |
+| Sidebar visibility, modal dialogs, toast | `uiStore.ts` |
+| App settings (theme, language, editor prefs) | `settingsStore.ts` |
+| Debug session (breakpoints, variable inspector) | `debugStore.ts` |
+| Execution log stream (timestamped entries) | `consoleStore.ts` |
+| Stress test config, progress, results | `stressTestStore.ts` |
+| WebSocket message stream buffer | `wsStreamStore.ts` |
+| Canvas zoom level and pan offset | `zoomStore.ts` |
 
-## 快速定位
+## CONVENTIONS
 
-| 任务 | 文件 |
-|------|------|
-| 修改流程状态 | `flow.ts` |
-| 添加执行逻辑 | `execution.ts` |
-| 修改面板状态 | `ui.ts` |
-| 添加全局设置 | `settings.ts` |
-| 调试状态管理 | `debug.ts` |
-| 控制台日志 | `console.ts` |
-| 压力测试状态 | `stressTest.ts` |
-| WebSocket 消息流 | `wsStream.ts` |
-| 页面缩放 | `zoom.ts` |
+- All stores use `create<State>()` from Zustand 5 with an `initialState` constant and a `reset()` method that sets all keys back to initial values.
+- Selectors are exported as standalone functions (e.g. `selectNodes(s)`) for tree-shaking and to avoid inline selector re-creation.
+- Tests import the store directly and call `useXxxStore.getState().reset()` in `beforeEach` to guarantee isolation.
 
-## 约定
+## NOTES
 
-### Store 模式
-```typescript
-export const useXxxStore = create<XxxState>((set, get) => ({
-  // State
-  value: null,
-  
-  // Actions
-  setValue: (v) => set({ value: v }),
-  reset: () => set(initialState),
-  
-  // Computed
-  getValue: () => get().value,
-}));
-
-// Selectors (导出用于性能优化)
-export const selectValue = (state: XxxState) => state.value;
-```
-
-### 使用方式
-```typescript
-// 组件中
-const { flow, updateNode } = useFlowStore();
-const isExecuting = useExecutionStore(selectIsExecuting);
-const isPaused = useDebugStore(selectIsPaused);
-
-// 外部调用
-useFlowStore.getState().reset();
-useDebugStore.getState().continueExecution();
-```
-
-### 重置规则
-- 所有 store 必须实现 `reset()` 方法
-- 测试 `beforeEach` 必须调用 `reset()`
-
-## Stores 列表 (10 个)
-
-| Store | 用途 | 关键状态 |
-|-------|------|----------|
-| `flow` | 流程编辑 | flow, nodes, edges, breakpoints, selectedNodeId, isDirty, isLocked |
-| `execution` | 执行状态 | isExecuting, report, error, history (最近10条) |
-| `flowList` | 流程列表 | flowMetas, isLoading, searchKeyword, sortBy/sortOrder |
-| `ui` | UI 状态 | 面板开关、对话框、折叠状态、布局尺寸、canvasZoom |
-| `settings` | 全局设置 | reportsDir, logsDir (tauri-plugin-store 持久化) |
-| `debug` | 调试状态 | sessionId, status, currentNodeUuid, variables, executionStack, wsStreams, 健康检查 |
-| `console` | 控制台 | logs, 过滤条件 (level, nodeUuid, searchKeyword) |
-| `stressTest` | 压力测试 | status, config (concurrentUsers, rampUpSeconds, durationSeconds), progress, report |
-| `wsStream` | WebSocket 消息流 | wsStreams, activeConnectionId, WsDebugEvent 处理 |
-| `zoom` | 页面缩放 | zoom (0.5~2.0), ZOOM_MIN/MAX/STEP/DEFAULT 常量, Tauri WebView API + localStorage 持久化 |
-
-## 注意
-
-- `console` store 未在 `index.ts` 中 re-export，需直接 `import from './console'`
+The console store (`consoleStore.ts`) is NOT re-exported from `stores/index.ts` to keep the bundle lean for production. Import it directly: `import { useConsoleStore } from '@/stores/consoleStore'`.
