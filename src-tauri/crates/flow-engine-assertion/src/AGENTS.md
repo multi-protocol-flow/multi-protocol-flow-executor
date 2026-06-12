@@ -1,65 +1,26 @@
-# flow-engine-assertion
+# flow-engine-assertion 源码知识库
 
-**Layer 1** | 7 文件 | ~3,000 行 | 依赖 core
+**更新:** 2026-06-12 | **Layer:** 1 (协议) | **依赖:** flow-engine-core
 
 ## 概述
 
-15 种断言操作符 + 断言节点执行器 + NodePlugin 实现。支持 All/Any 模式和预设断言。
+Assertion 协议 crate。7 个源文件，约 3,000 行。提供断言节点的执行、15 种操作符求值、预设模板和 all/any 组合模式。
 
-## 结构
+## 文件结构
 
-```
-flow-engine-assertion/src/
-├── lib.rs                  # 模块导出
-├── plugin.rs               # NodePlugin 实现 (85 行)
-├── assertion_executor.rs   # AssertionNodeExecutor (实现 NodeExecutor, ~1,030 行)
-└── assertion/              # 断言引擎
-    ├── mod.rs              # 导出
-    ├── operator.rs         # 15 种操作符实现 (~841 行)
-    ├── evaluator.rs        # AssertionEvaluator 求值器 (~723 行)
-    └── preset.rs           # 预设断言模板 (~339 行)
-```
+| 文件 | 行数 | 职责 |
+|------|------|------|
+| `lib.rs` | 7 | 模块声明 |
+| `plugin.rs` | 98 | `NodePlugin` trait 实现，端口路由 (true/false)，默认配置 |
+| `assertion_executor.rs` | 1,226 | `NodeExecutor` 实现，预设合并、数据源解析、失败行为 (Throw/RouteFalse)、调试事件 |
+| `assertion/operator.rs` | 981 | 15 个操作符求值 + 正则 ReDoS 防护 (100ms) |
+| `assertion/evaluator.rs` | 818 | `AssertionEvaluator`，JSONPath 提取 (RFC 9535)，all/any 模式判断 |
+| `assertion/preset.rs` | 392 | 5 个预设模板 (http_success/client_error/server_error, json_response, response_fast) |
+| `assertion/mod.rs` | 16 | 子模块 re-export |
 
-## 快速定位
+## 核心逻辑
 
-| 任务 | 文件 |
-|------|------|
-| NodePlugin 注册 | `plugin.rs` |
-| 断言执行逻辑 | `assertion_executor.rs` |
-| 添加新操作符 | `assertion/operator.rs` |
-| 修改求值逻辑 | `assertion/evaluator.rs` |
-| 预设断言 | `assertion/preset.rs` |
-
-## 操作符 (15 种)
-
-| 类别 | 操作符 |
-|------|--------|
-| 比较 | `eq`, `ne`, `gt`, `gte`, `lt`, `lte` |
-| 字符串 | `contains`, `matches` (正则) |
-| 存在性 | `exists`, `not_exists` |
-| 集合 | `in`, `not_in` |
-| 范围 | `between` |
-| 类型 | `is_type` |
-| JSON | `json_path` |
-
-## All/Any 模式
-
-- **All**: 所有断言必须通过
-- **Any**: 任一断言通过即可
-- 结果路由到 true/false 端口
-
-## 关键实现
-
-- **操作符分发**: `evaluate_operator()` 按 Operator 枚举分发到各实现
-- **JSON 路径**: 支持 `json_path` 操作符提取嵌套值
-- **类型推断**: `get_json_type()` 判断值类型用于类型断言
-
-## 编译影响
-
-修改此 crate → `flow-engine-executor` → `flow-engine` → `app` (~3 crate)
-
-```bash
-cd src-tauri
-cargo test -p flow-engine-assertion       # 仅测断言
-cargo clippy -p flow-engine-assertion     # 仅 Lint 断言
-```
+- **操作符 (operator.rs):** `eq, ne, gt, gte, lt, lte, contains, not_contains, matches, exists, not_exists, in, not_in, type_is, between`。严格类型比较，无隐式转换。数值操作要求 f64；正则匹配带 100ms 超时防 ReDoS。
+- **求值器 (evaluator.rs):** `extract_target()` 支持完整 JSONPath 语法 (`$.a.b[0][*][?(@.x>1)]`)。`evaluate_all()` 按 mode 汇总：All 要求全部通过，Any 要求至少一个通过。`continue_on_failure` 控制失败后是否继续执行后续断言。
+- **执行器 (assertion_executor.rs):** 读取 `AssertionConfig`，合并 preset 和自定义断言，路由到 true/false 端口。`OnFailureMode::Throw` 直接中断流程，`RouteFalse` 走 false 端口。
+- **插件 (plugin.rs):** 从输出 `passed` 字段动态决定路由端口。

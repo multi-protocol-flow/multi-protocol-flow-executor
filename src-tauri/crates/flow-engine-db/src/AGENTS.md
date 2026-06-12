@@ -1,71 +1,46 @@
 # flow-engine-db
 
-**Layer 1** | 16 文件 | ~8,400 行 | 依赖 core
+**Generated:** 2026-06-12 | **Branch:** dev | **Layer:** L1 (Protocol)
+**Dependency:** flow-engine-core | **Files:** 16 | **LOC:** ~8,400
 
-## 概述
+## OVERVIEW
 
-数据库连接池 + 6 种数据库节点执行器 + NodePlugin 实现。支持 PostgreSQL、MySQL、SQLite、Redis。
+Database protocol crate. Provides 6 DB node types via NodePlugin trait + NodeExecutor impls. Backed by a pool abstraction over sqlx for PostgreSQL, MySQL, and SQLite.
 
-## 结构
+## ARCHITECTURE
 
 ```
-flow-engine-db/src/
-├── lib.rs                     # 模块导出
-├── plugin.rs                  # NodePlugin 实现 (555 行)
-├── db_connect_executor.rs     # 连接执行器 (~1,027 行)
-├── db_query_executor.rs       # 查询执行器 (~1,012 行)
-├── db_begin_executor.rs       # 事务开始
-├── db_commit_executor.rs      # 事务提交
-├── db_rollback_executor.rs    # 事务回滚
-├── db_close_executor.rs       # 关闭连接
-└── db/                        # 数据库子系统
-    ├── mod.rs
-    ├── traits.rs              # DatabasePool trait
-    ├── types.rs               # IsolationLevel, TransactionState, QueryResult
-    ├── pool.rs                # 连接池管理 (820 行)
-    ├── postgres.rs            # PostgreSQL 实现 (699 行)
-    ├── mysql.rs               # MySQL 实现 (894 行)
-    ├── sqlite.rs              # SQLite 实现 (620 行)
-    └── redis.rs               # Redis 实现 (835 行)
+plugin.rs          → DbPluginGroup::register_all (6 NodePlugin impls, delegates to executors)
+db_*_executor.rs   → 6 executor files (DbConnect/DbQuery/DbBegin/DbCommit/DbRollback/DbClose)
+db/pool.rs         → DatabaseConnectionManager — global pool registry (ActivePool HashMap)
+db/{postgres,mysql,sqlite}.rs → sqlx pool wrappers per driver
+db/traits.rs       → DatabasePool / IsolationLevel / QueryResult (re-exported from core)
+db/types.rs        → DbConnection / DbDriver / DbConnectionStatus
 ```
 
-## 快速定位
+## NODE TYPES
 
-| 任务 | 文件 |
+| Type | Executor | Ports | Purpose |
+|------|----------|-------|---------|
+| db_connect | db_connect_executor | success/failure | Create pool + test query |
+| db_query | db_query_executor | success/failure | Run SQL with params, configurable fetch |
+| db_begin | db_begin_executor | success/failure | Start transaction, isolation level |
+| db_commit | db_commit_executor | success/failure | Commit active transaction |
+| db_rollback | db_rollback_executor | success/failure | Rollback active transaction |
+| db_close | db_close_executor | out only | Remove pool (idempotent, single port) |
+
+## WHERE TO LOOK
+
+| Task | File |
 |------|------|
-| NodePlugin 注册 | `plugin.rs` |
-| 数据库连接 | `db_connect_executor.rs` |
-| SQL/Redis 查询 | `db_query_executor.rs` |
-| 连接池管理 | `db/pool.rs` |
-| PostgreSQL | `db/postgres.rs` |
-| MySQL | `db/mysql.rs` |
-| SQLite | `db/sqlite.rs` |
-| Redis | `db/redis.rs` |
-| 事务隔离级别 | `db/types.rs` |
-
-## 节点类型 (6 种)
-
-| 类型 | 执行器 | 端口 | 用途 |
-|------|--------|------|------|
-| DbConnect | `db_connect_executor.rs` | true/false | 建立连接 |
-| DbQuery | `db_query_executor.rs` | true/false | SQL/Redis 命令 |
-| DbBegin | `db_begin_executor.rs` | true/false | 开始事务 |
-| DbCommit | `db_commit_executor.rs` | true/false | 提交事务 |
-| DbRollback | `db_rollback_executor.rs` | true/false | 回滚事务 |
-| DbClose | `db_close_executor.rs` | out | 关闭连接 |
-
-## 关键依赖
-
-- **sqlx**: PostgreSQL/MySQL/SQLite 异步驱动
-- **redis**: Redis 异步客户端
-- **DatabasePool trait**: 抽象连接池接口，支持不同数据库后端
-
-## 编译影响
-
-修改此 crate → `flow-engine-executor` → `flow-engine` → `app` (~3 crate)
-
-```bash
-cd src-tauri
-cargo test -p flow-engine-db            # 仅测 DB
-cargo clippy -p flow-engine-db          # 仅 Lint DB
-```
+| DB node plugin definition | plugin.rs |
+| Connection logic (create pool, test query, driver dispatch) | db_connect_executor.rs |
+| Query execution (fetch modes, param binding, timing) | db_query_executor.rs |
+| Transaction begin/commit/rollback | db_begin_executor.rs / db_commit_executor.rs / db_rollback_executor.rs |
+| Pool close (remove from registry) | db_close_executor.rs |
+| Pool registry (ActivePool HashMap) | db/pool.rs |
+| Postgres driver (sqlx) | db/postgres.rs |
+| MySQL driver (sqlx) | db/mysql.rs |
+| SQLite driver (sqlx) | db/sqlite.rs |
+| Pool trait, IsolationLevel, QueryResult | db/traits.rs |
+| DbConnection, DbDriver enum | db/types.rs |

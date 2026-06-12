@@ -1,56 +1,46 @@
 # flow-engine-script
 
-**Layer 1** | 5 文件 | ~3,500 行 | 依赖 core
+**Generated:** 2026-06-12 | **Branch:** dev | **Layer:** 1 (Protocol) | **Depends on:** flow-engine-core
 
-## 概述
+## Overview
 
-QuickJS 运行时 + 脚本节点执行器 + NodePlugin 实现。提供 `fn.*` API 供脚本访问变量、响应、控制台等。
+Script protocol crate. Embeds a QuickJS (rquickjs) runtime to execute JavaScript in flow nodes. 5 source files, ~4,200 lines.
 
-## 结构
+## Files
 
-```
-flow-engine-script/src/
-├── lib.rs              # 模块导出
-├── plugin.rs           # NodePlugin 实现 (88 行)
-├── script_executor.rs  # ScriptNodeExecutor (实现 NodeExecutor, ~802 行)
-├── script_api.rs       # 脚本 API 绑定 (fn.* API，~2,456 行)
-└── script_poc.rs       # 概念验证 (开发参考)
-```
+| File | Lines | Role |
+|------|-------|------|
+| `lib.rs` | 10 | Crate root: exposes `plugin`, `script_api`, `script_executor`. `script_poc` behind `#[cfg(test)]`. |
+| `script_api.rs` | ~2,932 | Rust-JS bridge. `ScriptExecutionContext` holds variables, logs, response, request, flow control flags. Registers all `fn.*` functions into the QuickJS global scope. |
+| `script_executor.rs` | ~973 | `ScriptNodeExecutor` implementing `NodeExecutor`. Creates isolated QuickJS runtime per execution, injects context, enforces timeout/memory limits, parses script output. |
+| `plugin.rs` | ~100 | `ScriptPlugin` implementing `NodePlugin`. Two output ports: `"true"` (success) / `"false"` (failure). Resolves port from `$.success` boolean in output. Default config includes timeout, memory limit, error strategy. |
+| `script_poc.rs` | ~218 | `#[cfg(test)]` POC tests verifying QuickJS execution, global object registration, timeouts, JSON conversion, memory limits. |
 
-## 快速定位
+## Key APIs (fn.*)
 
-| 任务 | 文件 |
-|------|------|
-| NodePlugin 注册 | `plugin.rs` |
-| 脚本执行逻辑 | `script_executor.rs` |
-| API 绑定 (fn.*) | `script_api.rs` |
-| 变量操作 API | `script_api.rs` → `fn.variables.*` |
-| 响应访问 API | `script_api.rs` → `fn.response.*` |
-| 工具函数 API | `script_api.rs` → `fn.util.*` |
+Registered on the `fn` global object in QuickJS:
 
-## fn.* API 参考
+| Namespace | Functions |
+|-----------|-----------|
+| `fn.variables` | `get(key)`, `set(key, value)`, `has(key)`, `keys()`, `all()` |
+| `fn.response` | `status`, `body`, `headers`, `rawBody`, `size`, `time`, `rawOutput` |
+| `fn.request` | `url`, `method`, `headers`, `body` |
+| `fn.console` | `log()`, `info()`, `warn()`, `error()`, `debug()`, `table()` |
+| `fn.flow` | `skip()`, `abort(msg?)`, `stop(msg?)` |
+| `fn.info` | `nodeId`, `nodeName`, `flowId`, `flowName` |
+| `fn.util` | `base64.encode()`, `base64.decode()`, `hex.encode()`, `hex.decode()`, `json.parse()`, `json.stringify()`, `uuid.v4()`, `timestamp()`, `sleep(ms)`, `hash.md5()`, `hash.sha1()`, `hash.sha256()` |
+| `fn.expect` | `expect(actual)` — chain: `.toBe(expected)`, `.toEqual(expected)`, `.toContain(sub)`, `.toBeTruthy()`, `.toBeFalsy()`, `.toBeGreaterThan(n)`, `.toBeLessThan(n)`, `.toMatch(regex)`, `.not.*` |
 
-| API | 用途 |
-|-----|------|
-| `fn.variables.get/set/has` | 变量读写 |
-| `fn.response.status/body/headers` | 上一个节点响应 |
-| `fn.console.log/warn/error` | 日志输出 |
-| `fn.flow.stop/abort/skip` | 流程控制（终止/报错/跳过） |
-| `fn.util.encode/decode/hash/uuid/time` | 工具函数 |
-| `fn.expect()` | 链式断言 |
+## Execution Flow
 
-## 关键实现
+1. `plugin.rs::execute()` creates `ScriptNodeExecutor` and delegates.
+2. `script_executor` creates isolated QuickJS `Runtime` + `Context`.
+3. `script_api::register_all()` binds all `fn.*` functions onto the global scope.
+4. User script runs, reads/writes variables via `fn.variables.*`, logs via `fn.console.*`, controls flow via `fn.flow.*`.
+5. Executor collects modified variables, logs, test results, and flow signals.
+6. Output JSON includes `$.success` (bool) for port routing.
 
-- **QuickJS 运行时**: 每次脚本执行创建独立上下文，隔离变量
-- **超时控制**: 脚本执行有超时限制，防止无限循环
-- **变量桥接**: `fn.variables.*` 读写 `ExecutionContext` 中的变量存储
+## Error Strategies
 
-## 编译影响
-
-修改此 crate → `flow-engine-executor` → `flow-engine` → `app` (~3 crate)
-
-```bash
-cd src-tauri
-cargo test -p flow-engine-script          # 仅测脚本
-cargo clippy -p flow-engine-script        # 仅 Lint 脚本
-```
+- `fatal` — script failure propagates as node error.
+- `recoverable` — catches exceptions, sets `$.success = false`, continues to "false" port.

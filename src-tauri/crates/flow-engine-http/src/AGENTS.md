@@ -1,52 +1,46 @@
 # flow-engine-http
 
-**Layer 1** | 12 文件 | ~5,100 行 | 依赖 core
+**Generated:** 2026-06-12 | **Branch:** dev | **Layer:** L1 (Protocol)
 
-## 概述
+## OVERVIEW
 
-HTTP 客户端 (hyper 1.x + rustls) + HTTP 节点执行器 + NodePlugin 实现。支持多种请求体、超时、TLS、HTTP/2 ALPN。
+Layer 1 protocol crate. HTTP client built on hyper 1.x + tokio-rustls (rustls with ring) supporting HTTP/1.1 and HTTP/2 via ALPN. Provides DNS/TCP/TLS/TTFB/download phase-level timing. Contains `HttpNodeExecutor` (HTTP node execution) and `HttpPlugin` (NodePlugin trait implementation). 13 source files, ~5,900 lines.
 
-## 结构
+## STRUCTURE
 
 ```
-flow-engine-http/src/
-├── lib.rs                 # 模块导出
-├── http_executor.rs       # HTTP 节点执行器 (~2,350 行)
-├── plugin.rs              # NodePlugin 实现 (131 行)
-└── http/                  # HTTP 客户端栈
-    ├── mod.rs
-    ├── client.rs          # HttpClient 实现
-    ├── request.rs         # 请求构建
-    ├── response.rs        # 响应处理
-    ├── body.rs            # 请求体 (none/json/form-data/binary)
-    ├── timing.rs          # 性能计时 (TimingConnector HTTP/2 ALPN)
-    ├── connector.rs       # TLS 连接器 (rustls)
-    └── error.rs           # HTTP 错误类型
+src/
+├── lib.rs               # Crate root, 3 mod declarations
+├── http_executor.rs     # HTTP node executor (~2,800 lines)
+├── plugin.rs            # HttpPlugin: type_id, ports, config_schema, resolve_port, execute dispatch
+└── http/
+    ├── mod.rs           # Re-exports public API
+    ├── client.rs        # HttpClient: hyper dispatch, timing capture
+    ├── request.rs       # RequestBuilder: raw HTTP byte serialization
+    ├── response.rs      # Response parser: status, headers, body extraction
+    ├── body.rs          # BodyType enum + multipart/form-data builder
+    ├── connector.rs     # TlsOptions, TimingConnector, DNS resolution
+    ├── timing.rs        # HttpTiming: DNS/TCP/TLS/TTFB/download phases
+    ├── cookie.rs        # Cookie jar for session persistence
+    ├── proxy.rs         # HTTP proxy via tokio-socks
+    └── error.rs         # HttpError: DNS/TCP/TLS/protocol error types
 ```
 
-## 快速定位
+## WHERE TO LOOK
 
-| 任务 | 文件 |
+| Task | File |
 |------|------|
-| HTTP 执行逻辑 | `http_executor.rs` |
-| NodePlugin 注册 | `plugin.rs` |
-| HTTP 客户端 | `http/client.rs` |
-| 请求体处理 | `http/body.rs` |
-| TLS 配置 | `http/connector.rs` |
-| 响应处理 | `http/response.rs` |
-| 超时/计时/HTTP2 | `http/timing.rs` |
+| HTTP node execution / variable resolution / response handling | `http_executor.rs` |
+| NodePlugin registration, config schema, port resolution | `plugin.rs` |
+| Low-level hyper client, request dispatch | `http/client.rs` |
+| Body type construction (JSON, form-data, urlencoded, binary) | `http/body.rs` |
+| TLS options, proxy configuration, stream wrapping | `http/connector.rs`, `http/proxy.rs` |
+| Phase-level timing instrumentation | `http/timing.rs`, `http/connector.rs` |
 
-## HTTP Body 类型
+## BODY TYPES
 
-支持 `none`、`body` (JSON)、`form-data` (文件上传)、`x-www-form-urlencoded`、`binary`。
-Content-Type 自动设置，用户手动设置优先。超时 `timeout_ms` 默认 30000ms (范围 1000-300000ms)。
+`BodyType` enum: `None`, `Body` (raw JSON string), `FormData` (multipart/form-data with boundary), `UrlEncoded` (x-www-form-urlencoded), `Binary` (base64-decoded bytes). Content-Type auto-set per type. Manual override via `content_type` config field or explicit `Content-Type` header in the headers map.
 
-## 编译影响
+## COMPILE IMPACT
 
-修改此 crate → `flow-engine-executor` → `flow-engine` → `app` (~3 crate)
-
-```bash
-cd src-tauri
-cargo test -p flow-engine-http          # 仅测 HTTP
-cargo clippy -p flow-engine-http        # 仅 Lint HTTP
-```
+Modifying this crate triggers rebuild of `flow-engine-executor` → `flow-engine` → `app` (~3 crates). Fast iteration: `cargo build -p flow-engine-http`.

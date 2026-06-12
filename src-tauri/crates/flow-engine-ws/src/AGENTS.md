@@ -1,62 +1,46 @@
 # flow-engine-ws
 
-**Layer 1** | 6 文件 | ~5,500 行 | 依赖 core
+**Generated:** 2026-06-12 | **6 files**, ~5,500 LOC | tokio-tungstenite 0.28
 
-## 概述
+WebSocket 协议 crate。实现 3 个 WebSocket 节点类型的执行逻辑，基于 tokio-tungstenite + rustls 构建。
 
-WebSocket 连接管理 + 3 种节点执行器 + NodePlugin 实现。基于 tokio-tungstenite。
+## 文件职责
 
-## 结构
+| 文件 | 行数 | 职责 |
+|------|------|------|
+| `lib.rs` | 14 | 模块声明，crate 入口 |
+| `plugin.rs` | 398 | 3 个 NodePlugin trait 实现 + WsPluginGroup 批量注册 |
+| `websocket_manager.rs` | 2,786 | 连接池管理，TLS 配置，消息收发，ping/pong 保活 |
+| `ws_connect_executor.rs` | 994 | WsConnect 节点执行器 — 建立连接 + 可选响应采集 |
+| `ws_send_collect_executor.rs` | 1,449 | WsSendCollect 节点执行器 — 发送消息 + 采集响应 |
+| `ws_close_executor.rs` | 486 | WsClose 节点执行器 — 按 connection_id 关闭连接 |
 
-```
-flow-engine-ws/src/
-├── lib.rs                      # 模块导出
-├── plugin.rs                   # NodePlugin 实现 (253 行)
-├── websocket_manager.rs        # 连接池管理 (~2,268 行)
-├── ws_connect_executor.rs      # 连接执行器 (~978 行)
-├── ws_send_collect_executor.rs # 发送收集执行器 (~1,429 行)
-└── ws_close_executor.rs        # 关闭连接执行器 (~449 行)
-```
+## 3 个节点类型
 
-## 快速定位
+- **WsConnect** — 建立 WebSocket 连接，支持自定义 headers/subprotocols/TLS 跳过验证，可配置 connect_timeout/collect_mode/collect_timeout
+- **WsSendCollect** — 向指定 connection_id 发送消息（text/binary），支持 FirstMatch/All/RegexMatch/JsonPathMatch/NoCollect 五种采集模式
+- **WsClose** — 关闭指定 connection_id 的连接，可配置 close_code/reason/timeout
 
-| 任务 | 文件 |
-|------|------|
-| NodePlugin 注册 | `plugin.rs` |
-| WebSocket 连接管理 | `websocket_manager.rs` |
-| 连接节点逻辑 | `ws_connect_executor.rs` |
-| 发送收集逻辑 | `ws_send_collect_executor.rs` |
-| 关闭连接逻辑 | `ws_close_executor.rs` |
+连接端口: 3 个节点均输出 true（成功）/ false（失败）双端口。
 
-## 节点类型 (3 种)
+## 连接池
 
-| 类型 | 执行器 | 端口 | 用途 |
-|------|--------|------|------|
-| WsConnect | `ws_connect_executor.rs` | true/false | 建立连接 |
-| WsSendCollect | `ws_send_collect_executor.rs` | true/false | 发送消息并收集响应 |
-| WsClose | `ws_close_executor.rs` | out | 关闭连接 |
+`WebSocketConnectionManager` 提供流程级别连接复用。执行器通过 `WsProvider` trait 与连接池交互，每个连接由 UUID 标识，支持并发消息收发和超时控制。
 
-## 关键特性
+## 采集模式
 
-- **连接池**: `WebSocketConnectionManager` 在流程级别共享连接
-- **Collect 模式**: 支持 connect/collect/both 三种收集模式
-- **消息流**: 通过 `ws_stream.rs` (core crate) 的数据结构支持调试模式消息查看
+WsConnect 和 WsSendCollect 共享采集逻辑:
+- **connect** — 仅建立连接不采集
+- **collect** — 采集但不发消息（仅 WsSendCollect 支持）
+- **both** — 发送后采集匹配响应
+- **NoCollect** — 不等待任何响应
 
-## 输出数据字段
+匹配方式: 首条匹配、全部匹配、正则匹配、JsonPath 匹配。
 
-WsSendCollect 节点输出:
-- `collected_messages`: 收集到的消息列表 (Array of `{data, type, parsed?}`)
-- `matched_message`: 匹配的消息对象或 null
-- `message_count`: 收集到的消息总数
-- `collect_timed_out`: 是否收集超时
-- `collect_response_ms`: 收集响应耗时 (ms)
+## 关键依赖
 
-## 编译影响
+tokio-tungstenite, futures-util, tokio, rustls, webpki-roots, serde_json_path, regex, evalexpr。
 
-修改此 crate → `flow-engine-executor` → `flow-engine` → `app` (~3 crate)
+## 关键入口
 
-```bash
-cd src-tauri
-cargo test -p flow-engine-ws            # 仅测 WS
-cargo clippy -p flow-engine-ws          # 仅 Lint WS
-```
+`WsPluginGroup::register_all(registry)` — 3 个插件的批量注册函数，供 flow-engine-executor 在初始化时调用。
