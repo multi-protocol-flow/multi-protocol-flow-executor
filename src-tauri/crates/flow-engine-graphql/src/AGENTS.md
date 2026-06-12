@@ -1,38 +1,29 @@
 # flow-engine-graphql
 
-GraphQL 协议支持 crate (内省/查询/变更/订阅/WebSocket)。
+**Layer 1 (Protocol)** | **~6,100 LOC** | **9 .rs files** | **Optional feature: `protocol-graphql`**
 
-## 结构
+## Overview
 
-```
-src/
-├── lib.rs                           # Crate 入口，模块导出
-├── plugin.rs                        # 6 个 NodePlugin 实现 + GraphqlPluginGroup 批量注册
-├── graphql_client.rs                # reqwest HTTP 客户端 + WebSocket 订阅
-├── graphql_connection_manager.rs    # 连接池管理 + GraphqlProvider trait 实现
-├── graphql_connect_executor.rs      # graphql_connect 节点执行器
-├── graphql_disconnect_executor.rs   # graphql_disconnect 节点执行器
-├── graphql_introspect_executor.rs   # graphql_introspect 节点执行器
-├── graphql_query_executor.rs        # graphql_query 节点执行器
-├── graphql_subscribe_executor.rs    # graphql_subscribe 节点执行器
-└── graphql_unsubscribe_executor.rs  # graphql_unsubscribe 节点执行器
-```
+GraphQL protocol support covering Query/Mutation via HTTP POST (multipart), Subscription via `graphql-transport-ws` (WebSocket), and standard Introspection. Auth supports Bearer, Cookie, and API Key header injection. Connection lifecycle is managed by `GraphqlConnectionManager` for multiple concurrent endpoints.
 
-## 定位
+## Structure
 
-| 节点类型 | 功能 | 执行器文件 |
-|----------|------|-----------|
-| `graphql_connect` | 建立 HTTP 连接，验证端点可达性 | `graphql_connect_executor.rs` |
-| `graphql_query` | 执行 Query/Mutation，支持文件上传 | `graphql_query_executor.rs` |
-| `graphql_subscribe` | WebSocket 订阅，流式接收事件 | `graphql_subscribe_executor.rs` |
-| `graphql_unsubscribe` | 取消指定订阅 | `graphql_unsubscribe_executor.rs` |
-| `graphql_introspect` | Schema 内省，生成查询模板 | `graphql_introspect_executor.rs` |
-| `graphql_disconnect` | 断开连接，清理资源 | `graphql_disconnect_executor.rs` |
+| File | Role |
+|------|------|
+| `lib.rs` | Module declarations, re-exports of `GraphqlClient`, `GraphqlConnectionManager`, response types |
+| `plugin.rs` | 5 `NodePlugin` impls (Connect/Query/Subscribe/Introspect/Disconnect) + `GraphqlPluginGroup` batch registration |
+| `graphql_client.rs` | Low-level HTTP+WS client: multipart POST, `graphql-transport-ws` framing, timing capture |
+| `graphql_connection_manager.rs` | `GraphqlConnectionManager` + `GraphqlConnection` — connection pool, lifecycle tracking |
+| `graphql_connect_executor.rs` | Connects to endpoint, stores connection handle |
+| `graphql_disconnect_executor.rs` | Cleans up and disconnects |
+| `graphql_introspect_executor.rs` | Runs `__schema` introspection, returns full schema metadata |
+| `graphql_query_executor.rs` | Executes query/mutation with variables, returns `data` + `errors` |
+| `graphql_subscribe_executor.rs` | Opens subscription, streams events back |
 
-## 特性
+## Node Types (5)
 
-- Query/Mutation: HTTP POST + multipart 文件上传
-- Subscription: WebSocket (graphql-transport-ws)
-- Introspection: 标准 GraphQL 内省查询
-- 认证: Bearer / Cookie / API Key
-- 压测: `new_shared()` 共享模式避免互斥关闭
+`graphql_connect`, `graphql_query`, `graphql_subscribe`, `graphql_introspect`, `graphql_disconnect`
+
+## Key Dependencies
+
+`flow-engine-core`, `reqwest` (json/stream/multipart), `tokio-tungstenite` (rustls), `futures-util`, `tokio`, `serde`, `serde_json`, `chrono`, `log`

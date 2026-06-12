@@ -1,35 +1,41 @@
 # flow-engine-kafka
 
-**概述**: Apache Kafka 协议支持 crate。基于 `rdkafka` 实现客户端，支持 Schema Registry HTTP 接口。
+## Overview
 
-**结构**: 双子系统设计
-- Kafka 核心子系统: `rdkafka` 客户端 + 连接池管理
-- Schema Registry 子系统: 独立 HTTP 客户端
+Apache Kafka integration crate using **rdkafka** for cluster communication and a lightweight HTTP client for **Schema Registry** interactions. Dual-subsystem design separates core Kafka operations from schema management.
 
-## 节点类型 → 执行器映射
+## Subsystems
 
-| 节点类型 | 执行器文件 | 说明 |
-|---------|-----------|------|
-| `kafka_connect` | `kafka_connect_executor.rs` | 连接 broker，支持 SASL/SSL |
-| `kafka_produce` | `kafka_produce_executor.rs` | 生产消息，支持压缩/序列化 |
-| `kafka_consume` | `kafka_consume_executor.rs` | 消费消息，支持手动提交 offset |
-| `kafka_consume_batch` | `kafka_consume_batch_executor.rs` | 批量消费，count_timeout 策略 |
-| `kafka_admin` | `kafka_admin_executor.rs` | Topic/分区/配置管理 |
-| `kafka_schema_registry` | `kafka_schema_registry_executor.rs` | Schema 注册/查询/兼容性 |
-| `kafka_close` | `kafka_close_executor.rs` | 关闭连接释放资源 |
+### Kafka Core (rdkafka)
+Producer / consumer / admin operations via `rdkafka`. Manages connections, topic metadata, consumer group offsets, and partition assignments.
 
-## 核心模块
+### Schema Registry (HTTP)
+Interacts with Confluent Schema Registry REST API. Supports subject lookups, schema registration, compatibility checks, and Avro/Protobuf/JSON Schema serialization.
 
-| 文件 | 职责 |
+## Node Types (7)
+
+| Node | Executor | Purpose |
+|------|----------|---------|
+| `kafka_connect` | `kafka_connect_executor.rs` | Bootstrap connection to a Kafka cluster |
+| `kafka_produce` | `kafka_produce_executor.rs` | Publish messages to a topic |
+| `kafka_consume` | `kafka_consume_executor.rs` | Consume a single message (poll) |
+| `kafka_consume_batch` | `kafka_consume_batch_executor.rs` | Consume multiple messages in one batch |
+| `kafka_admin` | `kafka_admin_executor.rs` | Admin operations (list topics, describe groups, alter configs) |
+| `kafka_schema_registry` | `kafka_schema_registry_executor.rs` | Schema Registry CRUD and compatibility checks |
+| `kafka_close` | `kafka_close_executor.rs` | Gracefully tear down a Kafka connection |
+
+## Key Files
+
+| File | Role |
 |------|------|
-| `kafka_client.rs` | `rdkafka` Producer/Consumer 封装 |
-| `kafka_connection_manager.rs` | 连接生命周期管理 + 连接池 |
-| `schema_registry_client.rs` | Schema Registry REST API 客户端 |
-| `plugin.rs` | 7 个 NodePlugin 注册 + KafkaPluginGroup |
+| `kafka_client.rs` | Wraps `rdkafka::BaseConsumer` and `FutureProducer`, handles partition assignment and offset commits |
+| `kafka_connection_manager.rs` | Manages a map of named Kafka connections, connection pooling and lifecycle |
+| `schema_registry_client.rs` | HTTP client for Schema Registry REST API (subjects, schemas, compatibility) |
+| `plugin.rs` | Registers all 7 node executors into the flow engine's plugin system |
+| `lib.rs` | Crate entry point, re-exports plugin and public types |
 
-## 快速定位
+## Crate Info
 
-- 修改序列化/压缩逻辑 → `kafka_produce_executor.rs`
-- 修改 offset 管理 → `kafka_consume_executor.rs`
-- 添加 admin 操作 → `kafka_admin_executor.rs`
-- Schema 兼容性问题 → `schema_registry_client.rs`
+- **Layer:** 1 (protocol), depends on `flow-engine-core`
+- **Size:** 12 files, ~3,600 lines
+- **Feature flag:** `protocol-kafka` (included in `all-protocols`)
