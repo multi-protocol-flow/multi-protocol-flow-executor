@@ -1,113 +1,66 @@
-# Rust Workspace 总览
+# Workspace Crates
+**Generated:** 2026-06-12 | **Branch:** dev | **Crates:** 20
 
-**生成时间:** 2026-06-09
-**Branch:** dev
+## OVERVIEW
+21 dirs, 20 Rust crates across 4 layers:
+- **L0 (Leaves):** `flow-engine-core`, `flow-engine-crypto`
+- **L1 (Protocols):** 16 optional crates (http, ws, db, script, assertion, grpc, mcp, tcp, mqtt, kafka, sse, graphql, amqp, smtp, imap, redis)
+- **L2 (Orchestration):** `flow-engine-executor`
+- **L3 (Facade):** `flow-engine`
+- **Extra:** `workspace-hack` (cargo-hakari)
 
-## 概述
+All L1 crates are feature-gated (`protocol-*`). Default `all-protocols` enables all 16.
 
-20 个 crate 组成的 Rust Workspace。`flow-engine` 为门面 crate (re-export 全部)，`app` (src-tauri/src/) 仅依赖 `flow-engine`。
-新增 `workspace-hack` crate（自动管理，统一所有外部依赖的 feature 集）。
-
-## 依赖图
-
+## DEPENDENCY GRAPH
 ```
-Layer 0 (叶子):   flow-engine-core, flow-engine-crypto
-Layer 1 (协议):   flow-engine-http, flow-engine-ws, flow-engine-db,
-                  flow-engine-script, flow-engine-assertion,
-                  flow-engine-grpc, flow-engine-mcp, flow-engine-tcp,
-                  flow-engine-mqtt, flow-engine-amqp, flow-engine-graphql,
-                  flow-engine-imap, flow-engine-kafka, flow-engine-smtp,
-                  flow-engine-sse  (→ core)
-Layer 2 (编排):   flow-engine-executor                          (→ core + (optional) 16 protocol crates + crypto)
-Layer 3 (门面):   flow-engine                                   (re-export 全部)
-Layer 4 (应用):   app (src-tauri/)                              (→ flow-engine)
-Extra (工具):     workspace-hack                                (所有 crate 依赖)
+app/mpe -> flow-engine -> flow-engine-executor -> 16 L1 crates -> flow-engine-core
+                     \-> flow-engine-crypto
 ```
+`smtp` and `imap` also depend on `flow-engine-crypto`.
 
-**增量编译关键**: 修改 Layer N 的 crate 会触发 Layer N+1 及以上重编译。
+## CRATE + WHERE TO LOOK
+| Crate | L | .rs | LOC | Purpose | Key deps |
+|-------|---|-----|-----|---------|----------|
+| flow-engine-core | 0 | 46 | 17,485 | Node types, traits, flow structs | serde, regex, jsonpath |
+| flow-engine-crypto | 0 | 2 | 461 | Encryption, keychain | aes-gcm, keyring |
+| flow-engine-http | 1 | 13 | 5,571 | HTTP request nodes | hyper, rustls |
+| flow-engine-ws | 1 | 6 | 5,461 | WebSocket client nodes | tokio-tungstenite |
+| flow-engine-db | 1 | 15 | 8,224 | DB (SQLite/MySQL/PG) nodes | sqlx |
+| flow-engine-script | 1 | 5 | 3,710 | JS script execution | rquickjs |
+| flow-engine-assertion | 1 | 7 | 3,105 | Assertion/validation | regex, jsonpath |
+| flow-engine-grpc | 1 | 12 | 7,141 | gRPC client + reflection | tonic, prost |
+| flow-engine-mcp | 1 | 9 | 3,963 | MCP client nodes | rmcp |
+| flow-engine-tcp | 1 | 18 | 10,702 | TCP/UDP socket nodes | tokio, rustls |
+| flow-engine-mqtt | 1 | 11 | 6,633 | MQTT pub/sub | rumqttc-next |
+| flow-engine-kafka | 1 | 12 | 6,383 | Kafka producer/consumer | rdkafka |
+| flow-engine-sse | 1 | 7 | 3,003 | Server-Sent Events | reqwest |
+| flow-engine-graphql | 1 | 9 | 6,111 | GraphQL query/sub | reqwest, tungstenite |
+| flow-engine-amqp | 1 | 26 | 16,380 | AMQP 0-9-1 / 1.0 | lapin, fe2o3 |
+| flow-engine-smtp | 1 | 8 | 4,056 | SMTP email send | lettre |
+| flow-engine-imap | 1 | 16 | 3,810 | IMAP email fetch | async-imap |
+| flow-engine-redis | 1 | 6 | 1,328 | Redis commands | redis-rs |
+| flow-engine-executor | 2 | 39 | 18,557 | Execution engine, plugin sys | evalexpr, csv |
+| flow-engine | 3 | 2 | 286 | Facade / re-exports | - |
+| workspace-hack | X | 1 | 1 | Dep unification | - |
+**Total: ~263 .rs files, ~141,700+ LOC.**
 
-| Crate | Layer | 依赖的 Workspace Crate | 源文件数 | 行数 |
-|-------|-------|----------------------|---------|------|
-| flow-engine-core | 0 | *(无)* | 30 | ~8,300 |
-| flow-engine-crypto | 0 | *(无)* | 2 | 461 |
-| flow-engine-http | 1 | core | 12 | ~5,100 |
-| flow-engine-ws | 1 | core | 6 | ~5,500 |
-| flow-engine-db | 1 | core | 16 | ~8,400 |
-| flow-engine-script | 1 | core | 5 | ~3,500 |
-| flow-engine-assertion | 1 | core | 7 | ~3,000 |
-| flow-engine-grpc | 1 | core | 7 | ~4,365 |
-| flow-engine-mcp | 1 | core | 9 | ~4,000 |
-| flow-engine-tcp | 1 | core | 15 | ~5,000 |
-| flow-engine-mqtt | 1 | core | 10 | ~3,200 |
-| flow-engine-amqp | 1 | core | 26 | ~8,500 |
-| flow-engine-graphql | 1 | core | 10 | ~3,200 |
-| flow-engine-imap | 1 | core | 16 | ~4,800 |
-| flow-engine-kafka | 1 | core | 12 | ~3,600 |
-| flow-engine-smtp | 1 | core | 8 | ~2,400 |
-| flow-engine-sse | 1 | core | 7 | ~2,100 |
-| flow-engine-executor | 2 | core + (optional) 16 protocol crates + crypto | 28 | ~15,717 |
-| flow-engine | 3 | 全部 18 个 crate | 2 | ~205 |
-
-## 快速定位
-
-| 任务 | Crate | 位置 |
-|------|-------|------|
-| 基础类型 (Node, Flow, Error) | flow-engine-core | `core/src/` |
-| HTTP 执行器 | flow-engine-http | `http/src/` |
-| WebSocket 执行器 | flow-engine-ws | `ws/src/` |
-| 数据库执行器 | flow-engine-db | `db/src/` |
-| 脚本节点 | flow-engine-script | `script/src/` |
-| 断言节点 | flow-engine-assertion | `assertion/src/` |
-| gRPC 执行器 | flow-engine-grpc | `grpc/src/` |
-| MCP 执行器 | flow-engine-mcp | `mcp/src/` |
-| TCP/UDP 执行器 | flow-engine-tcp | `tcp/src/` |
-| MQTT 执行器 | flow-engine-mqtt | `mqtt/src/` |
-| AMQP 执行器 | flow-engine-amqp | `amqp/src/` |
-| GraphQL 执行器 | flow-engine-graphql | `graphql/src/` |
-| IMAP 执行器 | flow-engine-imap | `imap/src/` |
-| Kafka 执行器 | flow-engine-kafka | `kafka/src/` |
-| SMTP 执行器 | flow-engine-smtp | `smtp/src/` |
-| SSE 执行器 | flow-engine-sse | `sse/src/` |
-| 主执行器 / 调试 / 压测 | flow-engine-executor | `executor/src/` |
-| 加密 / Keychain | flow-engine-crypto | `crypto/src/` |
-
-## 增量编译
-
+## BUILD COMMANDS
 ```bash
-cd src-tauri
-cargo build -p flow-engine-http          # 仅 core + http
-cargo test -p flow-engine-grpc           # 仅测 gRPC
-cargo clippy -p flow-engine-db           # 仅 Lint DB
+cargo build -p flow-engine-http         # single crate
+cargo test -p flow-engine-executor      # single crate test
+cargo build -p flow-engine --no-default-features  # no protocols
+cargo check --workspace                 # full workspace
 ```
 
-## 修改影响分析
+## COMPILE IMPACT
+| Modified | Recompiled |
+|----------|-----------|
+| core | all 20 crates + app |
+| crypto | executor, smtp, imap, facade, app |
+| Any L1 | executor, facade, app |
+| executor | facade, app |
+| facade | app only |
+| workspace-hack | full rebuild |
 
-| 修改的 crate | 重编译范围 | 编译量 |
-|-------------|-----------|--------|
-| `flow-engine-core` | 全部 crate (级联) | **全量** |
-| `flow-engine-crypto` | executor → flow-engine → app | ~3 crate |
-| `flow-engine-http/ws/db/script/assertion/grpc/mcp/tcp/mqtt/amqp/graphql/imap/kafka/smtp/sse` | executor → flow-engine → app | ~3 crate |
-| `flow-engine-executor` | flow-engine → app | ~2 crate |
-| `flow-engine` (门面) | app | ~1 crate |
-
-## 子目录知识库
-
-- [flow-engine/src/AGENTS.md](./flow-engine/src/AGENTS.md) - 门面 crate
-- [flow-engine-core/src/AGENTS.md](./flow-engine-core/src/AGENTS.md) - 基础类型
-- [flow-engine-crypto/src/AGENTS.md](./flow-engine-crypto/src/AGENTS.md) - 加密/Keychain
-- [flow-engine-executor/src/AGENTS.md](./flow-engine-executor/src/AGENTS.md) - 执行器
-- [flow-engine-http/src/AGENTS.md](./flow-engine-http/src/AGENTS.md) - HTTP
-- [flow-engine-db/src/AGENTS.md](./flow-engine-db/src/AGENTS.md) - 数据库
-- [flow-engine-ws/src/AGENTS.md](./flow-engine-ws/src/AGENTS.md) - WebSocket
-- [flow-engine-script/src/AGENTS.md](./flow-engine-script/src/AGENTS.md) - 脚本
-- [flow-engine-assertion/src/AGENTS.md](./flow-engine-assertion/src/AGENTS.md) - 断言
-- [flow-engine-grpc/src/AGENTS.md](./flow-engine-grpc/src/AGENTS.md) - gRPC
-- [flow-engine-mcp/src/AGENTS.md](./flow-engine-mcp/src/AGENTS.md) - MCP
-- [flow-engine-tcp/src/AGENTS.md](./flow-engine-tcp/src/AGENTS.md) - TCP/UDP
-- [flow-engine-mqtt/src/AGENTS.md](./flow-engine-mqtt/src/AGENTS.md) - MQTT
-- [flow-engine-amqp/src/AGENTS.md](./flow-engine-amqp/src/AGENTS.md) - AMQP
-- [flow-engine-graphql/src/AGENTS.md](./flow-engine-graphql/src/AGENTS.md) - GraphQL
-- [flow-engine-imap/src/AGENTS.md](./flow-engine-imap/src/AGENTS.md) - IMAP
-- [flow-engine-kafka/src/AGENTS.md](./flow-engine-kafka/src/AGENTS.md) - Kafka
-- [flow-engine-smtp/src/AGENTS.md](./flow-engine-smtp/src/AGENTS.md) - SMTP
-- [flow-engine-sse/src/AGENTS.md](./flow-engine-sse/src/AGENTS.md) - SSE
+## SUBDIRECTORY AGENTS.MD
+No per-crate AGENTS.md files exist. Entry point: each crate's `src/lib.rs`.
