@@ -1,44 +1,50 @@
-# flow-engine-mcp Crate
+# flow-engine-mcp
 
-**MCP (Model Context Protocol) 协议 crate**
+**Layer 1 (Protocol)** | 9 source files | ~3,963 LOC | Dep: rmcp 1.5, flow-engine-core
 
-封装 rmcp SDK，提供 MCP 客户端连接管理与工具调用能力。
+## Overview
 
-## 结构
+MCP (Model Context Protocol) client crate. Wraps the `rmcp` SDK to provide MCP connectivity as flow nodes. Supports Streamable HTTP and Stdio transport modes. All rmcp types stay internal; the public API exposes only `flow-engine-core` types through 5 node types.
 
-```
-src/
-├── lib.rs                      # 模块导出
-├── mcp_client.rs               # MCP 协议客户端 (Streamable HTTP)
-├── mcp_connection_manager.rs   # 连接池管理
-├── mcp_connect_executor.rs     # mcp_connect 执行器
-├── mcp_call_tool_executor.rs   # mcp_call_tool 执行器
-├── mcp_read_resource_executor.rs   # mcp_read_resource 执行器
-├── mcp_get_prompt_executor.rs  # mcp_get_prompt 执行器
-├── mcp_close_executor.rs       # mcp_close 执行器
-└── plugin.rs                   # NodePlugin 实现 + McpPluginGroup
-```
+## Structure
 
-## 5 种节点类型
-
-| 类型 | 执行器文件 | 功能 |
-|------|-----------|------|
-| `mcp_connect` | `mcp_connect_executor.rs` | 建立 MCP 连接 (Streamable HTTP / stdio) |
-| `mcp_call_tool` | `mcp_call_tool_executor.rs` | 调用 MCP 工具 |
-| `mcp_read_resource` | `mcp_read_resource_executor.rs` | 读取 MCP 资源 |
-| `mcp_get_prompt` | `mcp_get_prompt_executor.rs` | 获取提示词模板 |
-| `mcp_close` | `mcp_close_executor.rs` | 关闭连接 |
-
-## 快速定位
-
-| 任务 | 位置 |
+| File | Role |
 |------|------|
-| 修改连接逻辑 | `mcp_client.rs` |
-| 修改连接池 | `mcp_connection_manager.rs` |
-| 添加节点类型 | `plugin.rs` (插件定义) + 新建 `mcp_*_executor.rs` |
-| 工具发现 | 前端调用 `mcp_discover_tools` IPC 命令 |
+| `lib.rs` | Module declarations, re-exports `McpConnection`, `McpConnectionManager`, and all 5 plugin types |
+| `mcp_client.rs` | `create_mcp_client()` - builds a connected `RunningService` from `McpConnectConfig`, handles HTTP headers, transport selection, server metadata extraction |
+| `mcp_connection_manager.rs` | `McpConnectionManager` + `McpConnection` - connection pool via `RwLock<HashMap>`, implements `McpProvider` trait for tool/resource/prompt operations |
+| `mcp_connect_executor.rs` | `McpConnectExecutor` - establishes MCP connection, stores `McpConnection` into context provider |
+| `mcp_call_tool_executor.rs` | `McpCallToolExecutor` - finds connection by ID, calls `mcp_call_tool` on the server |
+| `mcp_read_resource_executor.rs` | `McpReadResourceExecutor` - reads a resource URI from connected server |
+| `mcp_get_prompt_executor.rs` | `McpGetPromptExecutor` - retrieves a prompt template by name |
+| `mcp_close_executor.rs` | `McpCloseExecutor` - cancels the `RunningService` and removes connection from pool |
+| `plugin.rs` | 5 `NodePlugin` impls + `McpPluginGroup::register_all()` + comprehensive unit tests |
 
-## 依赖
+## Node Types
 
-- `rmcp`: MCP SDK (client + streamable-http + stdio)
-- `flow-engine-core`: 基础类型 + NodePlugin trait
+| Type ID | Display Name | Ports | Key Config |
+|---------|-------------|-------|------------|
+| `mcp_connect` | MCP 连接 | true/false | url, protocol_version, transport (streamable_http/stdio), command, headers |
+| `mcp_call_tool` | MCP 调用工具 | true/false | connection_id, tool_name, arguments |
+| `mcp_read_resource` | MCP 读取资源 | true/false | connection_id, resource_uri |
+| `mcp_get_prompt` | MCP 获取提示词 | true/false | connection_id, prompt_name, arguments |
+| `mcp_close` | MCP 关闭 | out | connection_id |
+
+All protocol nodes are amber (`#F59E0B`). The first 4 use `success` boolean to resolve ports; `mcp_close` always routes to `out`.
+
+## Where to Look
+
+| Task | File |
+|------|------|
+| Add a new MCP node type | `plugin.rs` + new executor file |
+| Modify transport / client init | `mcp_client.rs` |
+| Change connection lifecycle | `mcp_connection_manager.rs` |
+| Register/unregister plugins | `McpPluginGroup::register_all()` in `plugin.rs` |
+| Understand the McpProvider trait contract | `flow-engine-core::traits` |
+
+## Dependencies
+
+- `rmcp` 1.5 (client + streamable-http + child-process features)
+- `reqwest` (for custom HTTP headers on connect)
+- `flow-engine-core` (node_config types, traits, plugin system)
+- `async-trait`, `serde`, `serde_json`, `tokio`, `log`

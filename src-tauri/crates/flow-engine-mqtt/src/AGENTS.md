@@ -1,106 +1,52 @@
 # flow-engine-mqtt
 
-**Layer 1** | 11 文件 | ~4,300 行 | 依赖 core
+**Layer:** 1 (Protocol) | **Depends on:** flow-engine-core | **Feature:** `protocol-mqtt`
 
-## 概述
+## OVERVIEW
 
-MQTT 5.0 客户端 (rumqttc-next 0.30) + 7 种节点执行器 + NodePlugin 实现。支持 TCP、TLS (rustls)、WebSocket、WSS 四种传输，QoS 0/1/2，遗嘱消息 (LWT)，请求/响应模式。
+MQTT 5.0 protocol crate. Uses `rumqttc-next` 0.30 with rustls TLS and native WebSocket transport. Provides 7 node types for MQTT connection lifecycle and messaging. Supports TCP (`mqtt://`), TLS (`mqtts://`), WebSocket (`ws://`), and secure WebSocket (`wss://`) transports with configurable TLS modes (skip verify, custom CA). LWT (Last Will) with full MQTT 5.0 properties is supported on connect. 11 files, ~6,600 lines.
 
-## 结构
+## STRUCTURE
 
-```
-flow-engine-mqtt/src/
-├── lib.rs                           # 模块导出
-├── mqtt_client.rs                   # MQTT 客户端封装 (490 行)
-├── mqtt_connection_manager.rs       # 连接池管理 + MqttProvider 实现 (900 行)
-├── mqtt_connect_executor.rs         # 连接执行器 (611 行)
-├── mqtt_publish_executor.rs         # 发布执行器
-├── mqtt_subscribe_executor.rs       # 订阅执行器
-├── mqtt_unsubscribe_executor.rs     # 取消订阅执行器
-├── mqtt_disconnect_executor.rs      # 断开连接执行器
-├── mqtt_wait_message_executor.rs    # 等待消息执行器
-├── mqtt_request_executor.rs         # 请求/响应执行器
-└── plugin.rs                        # NodePlugin 实现 (1,107 行)
-```
+| File | Lines | Role |
+|------|-------|------|
+| `lib.rs` | 25 | Module declarations, re-exports `MqttConnection`, `MqttConnectionManager`, `MqttPluginGroup` |
+| `mqtt_client.rs` | 426 | Client factory — URL parsing, transport selection, TLS config, LWT, MQTT 5.0 options |
+| `mqtt_connection_manager.rs` | 804 | Connection pool — background eventloop polling, per-flow connection lifecycle |
+| `mqtt_connect_executor.rs` | 553 | `mqtt_connect` — create client, handshake, store connection in manager |
+| `mqtt_publish_executor.rs` | 812 | `mqtt_publish` — publish to topic with QoS/retain/PayloadFormatIndicator |
+| `mqtt_subscribe_executor.rs` | 785 | `mqtt_subscribe` — subscribe with topic filter, collect messages (first/all) |
+| `mqtt_unsubscribe_executor.rs` | 374 | `mqtt_unsubscribe` — unsubscribe from topic filter |
+| `mqtt_disconnect_executor.rs` | 311 | `mqtt_disconnect` — cleanly disconnect and remove connection |
+| `mqtt_wait_message_executor.rs` | 702 | `mqtt_wait_message` — block on topic filter with timeout, single or batch |
+| `mqtt_request_executor.rs` | 883 | `mqtt_request` — combined publish + subscribe wait (request/response pattern) |
+| `plugin.rs` | 958 | 7 `NodePlugin` impls + `MqttPluginGroup` (batch register) + unit tests |
 
-## 快速定位
+## NODE TYPES
 
-| 任务 | 文件 |
-|------|------|
-| NodePlugin 注册 | `plugin.rs` |
-| MQTT 客户端创建 | `mqtt_client.rs` |
-| 连接池管理 | `mqtt_connection_manager.rs` |
-| 连接节点逻辑 | `mqtt_connect_executor.rs` |
-| 发布节点逻辑 | `mqtt_publish_executor.rs` |
-| 订阅节点逻辑 | `mqtt_subscribe_executor.rs` |
-| 取消订阅节点逻辑 | `mqtt_unsubscribe_executor.rs` |
-| 断开连接节点逻辑 | `mqtt_disconnect_executor.rs` |
-| 等待消息节点逻辑 | `mqtt_wait_message_executor.rs` |
-| 请求/响应节点逻辑 | `mqtt_request_executor.rs` |
+| Type | Ports | Port logic |
+|------|-------|------------|
+| `mqtt_connect` | true / false | `$.success` bool |
+| `mqtt_publish` | true / false | `$.success` bool |
+| `mqtt_subscribe` | true / false | `$.success` bool |
+| `mqtt_unsubscribe` | true / false | `$.success` bool |
+| `mqtt_disconnect` | out (single) | Always `"out"` |
+| `mqtt_wait_message` | true / false | `$.success` bool |
+| `mqtt_request` | true / false | `$.success` bool |
 
-## 节点类型 (7 种)
+All nodes share color `#06b6d4` (cyan) and category `"mqtt"`.
 
-| 类型 | 执行器 | 端口 | 用途 |
-|------|--------|------|------|
-| MqttConnect | `mqtt_connect_executor.rs` | true/false | 建立 MQTT 连接 |
-| MqttPublish | `mqtt_publish_executor.rs` | true/false | 发布消息到主题 |
-| MqttSubscribe | `mqtt_subscribe_executor.rs` | true/false | 订阅主题，可选收集消息 |
-| MqttUnsubscribe | `mqtt_unsubscribe_executor.rs` | true/false | 取消订阅主题 |
-| MqttDisconnect | `mqtt_disconnect_executor.rs` | out | 断开 MQTT 连接 |
-| MqttWaitMessage | `mqtt_wait_message_executor.rs` | true/false | 等待匹配主题的消息 |
-| MqttRequest | `mqtt_request_executor.rs` | true/false | 请求/响应模式 (发布+订阅+等待) |
+## TRANSPORT & TLS
 
-## 关键类型
+| URL Scheme | Transport | TLS |
+|------------|-----------|-----|
+| `mqtt://host:port` | TCP | None |
+| `mqtts://host:port` | TCP | rustls + webpki-roots (skip_verify opt) |
+| `ws://host:port/path` | WebSocket | None |
+| `wss://host:port/path` | WebSocket | rustls + webpki-roots (skip_verify opt) |
 
-| 类型 | 文件 | 用途 |
-|------|------|------|
-| `MqttProvider` trait | core/traits.rs | MQTT 操作抽象接口 |
-| `MqttConnectionManager` | `mqtt_connection_manager.rs` | 连接池，实现 MqttProvider |
-| `MqttConnection` | `mqtt_connection_manager.rs` | 单个 MQTT 连接 (client + EventLoop) |
-| `MqttConnectionStatus` | `mqtt_connection_manager.rs` | 连接状态枚举 |
-| `MqttClientResult` | `mqtt_client.rs` | 客户端创建结果 |
-| `MqttPluginGroup` | `plugin.rs` | 批量注册 7 个 MQTT 插件 |
+## KEY PATTERNS
 
-## 关键设计
-
-### 传输方式 (4 种)
-- **mqtt://** → 明文 TCP (默认端口 1883)
-- **mqtts://** → TLS (rustls，默认端口 8883)
-- **ws://** → WebSocket
-- **wss://** → 安全 WebSocket
-
-### TLS 模式 (2 种)
-- **standard**: 使用 webpki-roots Mozilla 根证书验证
-- **skip-verify**: 跳过证书验证 (仅开发/测试)
-
-### 连接管理
-- `MqttConnectionManager` 使用 `Arc<RwLock<HashMap>>` 保护连接池
-- 后台 tokio 任务持续 poll `EventLoop` 分发消息
-- 消息通过 `broadcast` 通道分发给多个消费者
-- 共享模式 (`new_shared`) 适用于压力测试，disconnect 为 no-op
-
-### 遗嘱消息 (LWT)
-- 支持配置遗嘱主题、payload、QoS、retain
-- MQTT 5.0 遗嘱属性：delay_interval
-
-### 请求/响应模式
-- `mqtt_request` 节点：订阅响应主题 → 发布请求 → 等待响应 → 取消订阅
-
-## 依赖
-
-| 依赖 | 版本 | 用途 |
-|------|------|------|
-| rumqttc-next | 0.30 | MQTT 5.0 客户端 (pure Rust) |
-| rustls | 0.23 | TLS 加密 |
-| webpki-roots | 0.26 | 根证书集合 |
-| flow-engine-core | workspace | 基础类型、traits |
-
-## 编译影响
-
-修改此 crate → `flow-engine-executor` → `flow-engine` → `app` (~3 crate)
-
-```bash
-cd src-tauri
-cargo test -p flow-engine-mqtt           # 仅测 MQTT
-cargo clippy -p flow-engine-mqtt         # 仅 Lint MQTT
-```
+- **Request/Response:** `mqtt_request` publishes on `request_topic` and waits on `response_topic` with timeout, implementing the MQTT 5.0 request-response pattern.
+- **Connection Management:** `MqttConnectionManager` is registered as a context provider (`"mqtt"`) and shared across all MQTT executors within a flow execution.
+- **Plugin Registration:** `MqttPluginGroup::register_all(&mut registry)` registers all 7 plugins at once.

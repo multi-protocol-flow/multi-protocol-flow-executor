@@ -1,104 +1,73 @@
-# TCP/UDP Crate
+# flow-engine-tcp
 
-**Layer:** 1 → flow-engine-core
+**Layer 1 (Protocol)** | LOC: ~10,700 | 18 .rs files | Deps: tokio, rustls, tokio-rustls, base64
 
-## Overview
+## OVERVIEW
 
-TCP + UDP protocol clients with TLS support, framing protocols, and message recording.
-8 node types: 4 TCP nodes + 4 UDP nodes.
+TCP/UDP protocol crate providing TCP and UDP client execution with TLS, message framing, flow recording, and binary protocol parsing. 8 node types registered via `TcpPluginGroup` and `UdpPluginGroup`:
 
-## Structure
+- **TCP** (4, green `#10B981`): `tcp_connect`, `tcp_send`, `tcp_receive`, `tcp_close`
+- **UDP** (4, orange `#F97316`): `udp_bind`, `udp_send_to`, `udp_recv_from`, `udp_close`
 
-```
-src/
-├── lib.rs                      # Crate entry, module exports
-├── plugin.rs                   # 8 NodePlugin implementations
-├── tls.rs                      # TLS connector (rustls)
-├── framing.rs                  # Frame protocols (5 modes)
-├── encoding.rs                 # Base64 + UTF-8 utilities
-├── recording.rs                # Message recording
-├── parser.rs, templates.rs     # Parser utilities & flow templates
-├── tcp_connection_manager.rs   # Connection pool for TCP
-├── tcp_connect_executor.rs     # Node: tcp_connect
-├── tcp_send_executor.rs        # Node: tcp_send
-├── tcp_receive_executor.rs     # Node: tcp_receive
-├── tcp_close_executor.rs       # Node: tcp_close
-├── udp_socket_manager.rs       # Socket management for UDP
-├── udp_bind_executor.rs        # Node: udp_bind
-├── udp_send_to_executor.rs     # Node: udp_send_to
-├── udp_recv_from_executor.rs   # Node: udp_recv_from
-└── udp_close_executor.rs       # Node: udp_close
-```
+All nodes have true/false output ports. The TCP connection manager (`TcpConnectionManager`) is stored as a flow-level provider accessible by all TCP send/receive/close executors in the same flow.
 
-## Node Types
+## STRUCTURE
 
-### TCP Nodes
+| File | Responsibility |
+|------|---------------|
+| `lib.rs` | Module declarations (18 modules) |
+| `plugin.rs` | `NodePlugin` trait impls for all 8 node types + `TcpPluginGroup`/`UdpPluginGroup` batch registration |
+| `tcp_connection_manager.rs` | Connection pool (`HashMap<uuid, ActiveTcpConnection>`), `TcpProvider` trait impl, TLS connect/send/receive/close |
+| `tcp_connect_executor.rs` | TCP connect node executor |
+| `tcp_send_executor.rs` | TCP send node executor |
+| `tcp_receive_executor.rs` | TCP receive node executor |
+| `tcp_close_executor.rs` | TCP close node executor |
+| `udp_socket_manager.rs` | UDP socket pool, `UdpProvider` trait impl |
+| `udp_bind_executor.rs` | UDP bind node executor |
+| `udp_send_to_executor.rs` | UDP sendto node executor |
+| `udp_recv_from_executor.rs` | UDP recvfrom node executor |
+| `udp_close_executor.rs` | UDP close node executor |
+| `framing.rs` | `TcpFramingEngine` — 5 framing modes |
+| `parser.rs` | `ProtocolParser` trait + 3 built-in parsers (LengthPrefix, Delimiter, TLV) |
+| `encoding.rs` | Base64 encode/decode, UTF-8 text preview, `build_binary_output()` |
+| `recording.rs` | `RecordingManager` + `TcpRecording` — record send/receive, save/load JSON + external .bin files |
+| `tls.rs` | 3 TLS modes: plaintext, standard (webpki-roots), skip-verify (NoVerifier) |
+| `templates.rs` | 5 protocol templates: Redis RESP, Custom TLV, Fixed Header, HTTP-like, Blank |
 
-| Node | Type ID | File | Purpose |
-|------|---------|------|---------|
-| TCP Connect | `tcp_connect` | `tcp_connect_executor.rs` | Connect to host:port, optional TLS |
-| TCP Send | `tcp_send` | `tcp_send_executor.rs` | Send data with framing |
-| TCP Receive | `tcp_receive` | `tcp_receive_executor.rs` | Receive data with framing |
-| TCP Close | `tcp_close` | `tcp_close_executor.rs` | Close connection |
+## FRAMING MODES
 
-### UDP Nodes
+| Mode | Description |
+|------|-------------|
+| `LengthPrefix` | N-byte big-endian length prefix (1/2/4/8 bytes) |
+| `Delimiter` | String delimiter boundary (e.g. `\r\n`, `<EOF>`) |
+| `FixedLength` | Exact fixed-size frames (truncates or errors on mismatch) |
+| `Timeout` | Read all available data until timeout |
+| `Manual` | Passthrough, no framing applied |
 
-| Node | Type ID | File | Purpose |
-|------|---------|------|---------|
-| UDP Bind | `udp_bind` | `udp_bind_executor.rs` | Bind to local address/port |
-| UDP SendTo | `udp_send_to` | `udp_send_to_executor.rs` | Send to target address |
-| UDP RecvFrom | `udp_recv_from` | `udp_recv_from_executor.rs` | Receive with peer info |
-| UDP Close | `udp_close` | `udp_close_executor.rs` | Close socket |
+## TLS MODES
 
-## Conventions
+Configured via `use_tls` + `tls_skip_verify` + optional `tls_ca_cert` (PEM):
 
-### Framing Modes (`framing.rs`)
+- **Plaintext** (`use_tls=false`): Unencrypted TCP
+- **Standard** (`use_tls=true`, `tls_skip_verify=false`): rustls with webpki-roots + optional custom CA
+- **Skip-verify** (`use_tls=true`, `tls_skip_verify=true`): No certificate validation (dev/test only)
 
-5 frame protocols supported:
+## ENCODING
 
-1. **LengthPrefix** - N-byte length prefix (big-endian)
-2. **Delimiter** - Boundary marker (e.g., `\r\n`)
-3. **FixedLength** - Fixed-size frames
-4. **Timeout** - Read until timeout
-5. **Manual** - Raw data passthrough
+- `data_encoding: "base64"`: Decode Base64 before sending
+- `data_encoding: "text"` / empty: Send raw bytes directly
+- Output format: `{ data: "<base64>", encoding: "base64", size: N, text_preview: "<utf8 or null>" }`
 
-### TLS Config (`tls.rs`)
-
-3 TLS modes:
-- `plaintext` - No TLS
-- `standard` - Verify with webpki-roots
-- `skip-verify` - Skip cert verification (dev only)
-
-Custom CA cert support via `tls_ca_cert` field.
-
-### Encoding (`encoding.rs`)
-
-- Data encoded as Base64 for JSON output
-- UTF-8 text preview (truncated at 1024 bytes)
-- Standard binary output: `{data, encoding, size, text_preview}`
-
-### Connection Management
-
-- TCP: `TcpConnectionManager` - connection pool keyed by node UUID
-- UDP: `UdpSocketManager` - socket pool keyed by node UUID
-- Both stored in `ExecutionContext` for cross-node reuse
-
-## Where to Look
+## WHERE TO LOOK
 
 | Task | File |
 |------|------|
-| Add TCP node | `plugin.rs` → impl NodePlugin + executor |
-| Modify framing | `framing.rs` - TcpFramingEngine |
-| Add TLS feature | `tls.rs` - create_tls_connector* |
-| Change encoding | `encoding.rs` - build_binary_output |
-| Connection pool | `tcp_connection_manager.rs` |
-| UDP multicast | `udp_bind_executor.rs` - multicast options |
-| Message recording | `recording.rs` - RecordingSession |
-
-## Testing
-
-```bash
-cd src-tauri
-cargo test -p flow-engine-tcp
-cargo clippy -p flow-engine-tcp
-```
+| New TCP node type | `plugin.rs` + corresponding executor + config in core |
+| Framing logic | `framing.rs` |
+| Binary protocol parsing | `parser.rs` |
+| TLS config | `tls.rs` |
+| Connection pool internals | `tcp_connection_manager.rs` |
+| UDP socket management | `udp_socket_manager.rs` |
+| Flow recording | `recording.rs` |
+| Built-in protocol templates | `templates.rs` |
+| Data encoding | `encoding.rs` |
