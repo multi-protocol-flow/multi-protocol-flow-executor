@@ -1,31 +1,27 @@
-# flow-engine (门面 crate)
+# flow-engine (src/)
 
-**Layer 3 (门面)** | 2 文件 | ~205 行 | 依赖全部 9 个 crate
+**Generated:** 2026-06-12 | **Branch:** dev | **Layer:** L3 (Facade)
 
-## 概述
+## OVERVIEW
 
-纯 re-export 门面 crate，无自身业务逻辑。`app` (src-tauri/) 仅依赖此 crate。
-Re-export 全部 9 个子 crate: core, crypto, http, ws, db, script, assertion, grpc, executor。
+Layer 3 facade crate. Pure re-export layer with zero business logic. The `app` crate (src-tauri/) depends only on this crate. All sub-crates are re-exported here so consumers never import Layer 0/1/2 directly.
 
-## 结构
+## STRUCTURE
 
-```
-flow-engine/src/
-├── lib.rs         # re-export 全部子 crate (203 行)
-└── context.rs     # re-export ExecutionContext from core
-```
+- **`lib.rs`** — Massive re-export file (~150 lines). Re-exports from `flow-engine-core` (18 modules), `flow-engine-crypto` (encryption), `flow-engine-executor` (commands, executor, storage, validator, debug, stress_test, hooks, dataset, default_registry, test_utils), and all 16 protocol crates (feature-gated behind `protocol-*`). Also conditionally re-exports per-protocol types (Db, Ws, etc.) under the same feature gates.
+- **`context.rs`** — Thin re-export of `ExecutionContext` and `VariableStorage` from `flow-engine-core::context` (2 lines, 2 types).
 
-## 约定
+## CONVENTIONS
 
-- 此 crate 不应有自身业务逻辑
-- 仅做 re-export，保持 API 表面稳定
-- 新增子 crate 时需在此处添加 re-export
+- No business logic. No new types, traits, or implementations.
+- Every `pub use` must originate from a sub-crate (core, crypto, or executor).
+- Adding a new protocol crate? Add a feature-gated re-export block in `lib.rs` using the `protocol-{name}` feature flag pattern.
+- `#[cfg(test)]` blocks are acceptable for test utilities (see `test_utils`).
 
-## 编译影响
+## COMPILE IMPACT
 
-修改此 crate → 仅 `app` 重编译 (~1 crate)
+| Modified | Rebuilt |
+|----------|---------|
+| `flow-engine/src/lib.rs` or `context.rs` | app only (~1 crate) |
 
-```bash
-cd src-tauri
-cargo build -p flow-engine             # 编译门面 (触发全部依赖)
-```
+Changing this crate never triggers recompilation of executor, protocol crates, core, or crypto. Fastest possible rebuild surface.

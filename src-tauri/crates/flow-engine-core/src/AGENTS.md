@@ -1,78 +1,80 @@
-# flow-engine-core
+# flow-engine-core AGENTS.md
 
-**Layer 0 (叶子)** | ~30 文件 | ~8,300 行 | 无 workspace 依赖
+**生成时间:** 2026-06-12 | **Branch:** dev | **Lines:** ~17,500 | **Files:** 46
 
-## 概述
+## OVERVIEW
 
-基础类型、traits、共享数据结构。所有其他 crate 均依赖此 crate。**修改此 crate 会触发全部 crate 重编译。**
+Layer 0 leaf crate. Foundation of the entire workspace every other crate depends on. No workspace crate dependencies (only serde, serde_json, async-trait, tokio, regex, serde_json_path, base64, log, workspace-hack). Contains all shared type definitions, abstract traits (provider/executor/plugin), error classification, variable system, and node configuration structures. No protocol client implementations live here.
 
-## 结构
+## STRUCTURE
 
 ```
-flow-engine-core/src/
-├── lib.rs                 # 模块导出
-├── node.rs                # Node/NodeType/Port 定义 (16 variants)
-├── node_config.rs         # NodeData 配置枚举 (30 种节点 + Plugin 兜底, ~1,771 行)
-├── node_types.rs          # 辅助节点类型
-├── flow.rs                # Flow 结构体
-├── connection.rs          # Connection 定义
-├── context.rs             # ExecutionContext + VariableStorage + grpc_manager (~967 行)
-├── variable.rs            # 变量系统 (模板替换 {{path.to.value}})
-├── error.rs               # ErrorDetail + ErrorKind (致命/可恢复 + 5 gRPC 变体)
-├── executor.rs            # NodeExecutor trait 定义
-├── plugin.rs              # NodePlugin trait (插件架构)
-├── registry.rs            # NodeRegistry (插件注册表)
-├── report.rs              # 执行报告结构
-├── statistics.rs          # 流程统计
-├── execution_event.rs     # ExecutionEvent 执行事件
-├── execution_event_sender.rs # ExecutionEventSender trait
-├── log_event.rs           # 日志事件类型
-├── ws_stream.rs           # WsMessage/WsConnectionStream (~808 行)
-├── db_types.rs            # DbConnection/DbDriver/DbConnectionStatus
-├── debug_types.rs         # DebugEvent/DebugCommand/DebugSessionState
-├── utils.rs               # 共享工具函数
-├── app_dir.rs             # AppDir 实现
-└── traits/                # 抽象接口 (解耦 Tauri)
-    ├── mod.rs
-    ├── app_dir.rs         # AppDirProvider
-    ├── directory_opener.rs # DirectoryOpener
-    ├── log_sender.rs      # LogSender
-    ├── execution_event_sender.rs # ExecutionEventSender
-    ├── ws_provider.rs     # WebSocketProvider
-    ├── db_provider.rs     # DatabaseProvider
-    ├── grpc_provider.rs   # GrpcProvider trait + gRPC 类型
-    └── debug_event_sender.rs # DebugEventSender
+src/
+├── lib.rs              # Module declarations + re-exports
+├── node.rs             # NodeType enum (89+ variants), Node struct, Port, PortType
+├── node_config.rs      # NodeData enum (~14 protocol config structs + Entry/End/Conditional/Script/Assertion/VariableExtractor)
+├── node_types.rs       # Node type string constants
+├── flow.rs             # Flow struct (nodes + connections + initial_variables)
+├── connection.rs       # Connection struct (source/target node references)
+├── context.rs          # ExecutionContext (runtime variable store, proxy state)
+├── variable.rs         # Variable / VariablePool / InitialVariable / OutputMapping
+├── error.rs            # ErrorKind enum (fatal vs recoverable), ErrorDetail
+├── executor.rs         # NodeExecutor trait (the core execution interface)
+├── plugin.rs           # NodePlugin trait (validation + metadata + port definitions)
+├── registry.rs         # NodeRegistry (maps NodeType to Box<dyn NodePlugin>)
+├── report.rs           # FlowExecutionReport, NodeExecutionReport, ExecutionStatus
+├── statistics.rs       # FlowStatistics (timing, node count, etc.)
+├── execution_event.rs  # ExecutionEvent enum (real-time frontend push events)
+├── ws_stream.rs        # WsConnectionStream, WsMessage, WsStreamSegment
+├── db_types.rs         # DbDriver, DbConnection, DbConnectionStatus
+├── debug_types.rs      # DebugSessionState, DebugCommand, DebugEvent, PauseReason
+├── dataset.rs          # DatasetConfig, DataPickStrategy, DatasetExecutionReport
+├── hook.rs             # FlowHook, HookAction, HookTrigger, HookContext
+├── log_event.rs        # LogLevel, LogEvent
+├── email_types.rs      # SmtpConfig, ImapConfig, EmailAuthConfig, EmailProvider
+├── email_auth.rs       # EmailProviderPreset, OAuth2/SASL builders
+├── utils.rs            # Shared utility functions
+└── traits/             # 22 provider trait files (db, ws, tcp, udp, mqtt, kafka, ...)
+    ├── mod.rs          # Re-exports all traits + ProviderKey pattern
+    ├── provider_key.rs # ProviderKey trait + marker types (Ws, Db, Grpc, ...)
+    ├── log_sender.rs   # LogSender, QueuedLogSender, ConsoleLogSender
+    ├── *provider.rs    # One file per protocol: DbProvider, WsProvider, GrpcProvider, etc.
+    └── app_dir.rs / debug_event_sender.rs / execution_event_sender.rs / directory_opener.rs / hook_executor.rs
 ```
 
-## 快速定位
+## WHERE TO LOOK
 
-| 任务 | 文件 |
+| Task | File |
 |------|------|
-| 添加新节点类型 | `node.rs` (NodeType) + `node_config.rs` (NodeData) + `plugin.rs` (NodePlugin) |
-| 修改变量替换 | `variable.rs` |
-| 修改错误分类 | `error.rs` → ErrorKind |
-| 添加新 Trait | `traits/mod.rs` |
-| 插件注册表 | `registry.rs` (NodeRegistry) |
-| NodePlugin trait | `plugin.rs` |
-| gRPC Provider | `traits/grpc_provider.rs` |
-| 执行报告格式 | `report.rs` |
-| 数据库类型 | `db_types.rs` |
-| WebSocket 消息流 | `ws_stream.rs` |
-| 调试类型 | `debug_types.rs` |
-| 执行事件 | `execution_event.rs` |
+| Add new node type | `node.rs` (NodeType variant) + `node_config.rs` (NodeData variant + config struct) + `node_types.rs` (string constant) + `registry.rs` (register plugin) |
+| Modify variable replacement | `variable.rs` (VariablePool, template resolution) + `context.rs` (ExecutionContext variable scopes) |
+| Modify error classification | `error.rs` (ErrorKind + ErrorDetail) |
+| Add/modify provider trait | `traits/` — create or edit `<protocol>_provider.rs` |
+| Understand execution flow | `executor.rs` (NodeExecutor trait) + `plugin.rs` (NodePlugin trait) |
+| Add runtime event for frontend | `execution_event.rs` (ExecutionEvent) |
+| Modify report structure | `report.rs` (FlowExecutionReport, NodeExecutionReport) |
+| Add debug feature | `debug_types.rs` (DebugCommand, DebugEvent, DebugSessionState) |
+| Add flow hook | `hook.rs` (HookTrigger, HookAction, FlowHook) |
 
-## 关键类型
+## KEY TYPES
 
-- **NodeExecutor trait**: 所有执行器的接口，定义在 `executor.rs`
-- **NodePlugin trait**: 插件架构接口，定义在 `plugin.rs`，替代旧 match 分发
-- **NodeRegistry**: 插件注册表，定义在 `registry.rs`
-- **ErrorKind**: 区分致命错误 (`Configuration`, `ConditionSyntax`) 和可恢复错误，含 5 个 gRPC 变体
-- **ExecutionContext**: 流程执行上下文，包含 VariableStorage + grpc_manager
-- **NodeData**: 29 种节点配置 + Plugin 兜底的判别联合
-- **NodeType**: 27 个枚举变体 (注意: NodeData 29 种 + Plugin 兜底可处理未知类型)
+- **NodeExecutor** (`executor.rs`): `async fn execute(...)` — the per-node execution contract. Takes node + context + connections, returns next node UUIDs + optional output.
+- **NodePlugin** (`plugin.rs`): Defines node metadata, ports, and validation. Used for registration, not execution.
+- **NodeRegistry** (`registry.rs`): `HashMap<String, Box<dyn NodePlugin>>` — maps node type name to plugin instance.
+- **ErrorKind** (`error.rs`): Two-tier classification — `Fatal` (stops flow) vs `Recoverable` (continues). Includes typed error codes.
+- **ExecutionContext** (`context.rs`): Runtime variable store with scoped resolution. Holds flow inputs, node outputs, proxy state.
+- **NodeData** (`node_config.rs`): 14-protocol enum with ~120 config struct variants. All protocol-specific configuration.
+- **NodeType** (`node.rs`): `#[serde(rename_all = "snake_case")]` enum with 89+ variants. Serialized with frontend.
 
-## 约定
+## CONVENTIONS
 
-- 此 crate 不得依赖任何其他 workspace crate（保持叶子状态）
-- 类型定义需与前端 `src/types/` 同步
-- 新增公共类型必须添加 `#[serde(...)]` 派生
+- **No workspace crate dependencies.** Only external crates + workspace-hack.
+- **Serde derives** (`Serialize`/`Deserialize`, `rename_all = "snake_case"`) on all public types for IPC serialization.
+- **Types must be kept in sync** with `src/types/*.ts` on the frontend. Adding/removing fields requires paired changes.
+- **ProviderKey pattern** (`traits/provider_key.rs`): Zero-sized marker types for protocol identification.
+- **Abstract providers** (`traits/*.rs`): All protocol-specific operations are trait-based, keeping this crate free of runtime client dependencies.
+- **Re-exports** in `lib.rs`: Critical types re-exported at crate root for ergonomic access.
+
+## COMPILE IMPACT
+
+**Full workspace rebuild.** Because every other crate depends on this one, any change here invalidates the entire dependency graph. Plan Core changes during off-peak hours or batch them to minimize iteration cycles.
