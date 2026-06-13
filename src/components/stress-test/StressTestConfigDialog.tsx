@@ -84,11 +84,14 @@ const ENCODING_OPTIONS = [
 // 策略选项
 // ============================================================================
 
-const STRATEGY_OPTIONS: { value: DataPickStrategy; label: string; description: string }[] = [
-  { value: 'round_robin', label: 'RoundRobin（轮询）', description: '均匀循环使用每一行' },
-  { value: 'random', label: 'Random（随机）', description: '每次迭代随机取一行' },
-  { value: 'unique', label: 'Unique（独占）', description: '每个虚拟用户绑定固定行' },
-];
+function getStrategyOptions(): { value: DataPickStrategy; label: string; description: string }[] {
+  const ll = getLL();
+  return [
+    { value: 'round_robin', label: ll.flow.strategy_round_robin(), description: ll.flow.strategy_round_robin_desc() },
+    { value: 'random', label: ll.flow.strategy_random(), description: ll.flow.strategy_random_desc() },
+    { value: 'unique', label: ll.flow.strategy_unique(), description: ll.flow.strategy_unique_desc() },
+  ];
+}
 
 // ============================================================================
 // 组件
@@ -223,7 +226,7 @@ export function StressTestConfigDialog({
       await startStressTest(flow, config);
 
       // 锁定流程
-      lockFlow('压测进行中');
+      lockFlow(getLL().flow.stress_locked_reason());
 
       // 关闭对话框
       handleClose();
@@ -395,7 +398,7 @@ export function StressTestConfigDialog({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {STRATEGY_OPTIONS.map((opt) => (
+                          {getStrategyOptions().map((opt) => (
                             <SelectItem key={opt.value} value={opt.value}>
                               <div className="flex flex-col">
                                 <span>{opt.label}</span>

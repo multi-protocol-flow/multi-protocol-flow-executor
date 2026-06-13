@@ -5,6 +5,13 @@
 import { useState, useCallback, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getLL } from '@/i18n/i18n-lazy';
+
+const BADGE_LABELS: Record<string, () => string> = {
+  required: () => getLL().panels.badge_required(),
+  advanced: () => getLL().panels.badge_advanced(),
+  optional: () => getLL().panels.badge_optional(),
+};
 
 interface ConfigSectionProps {
   /** 区域标题 */
@@ -13,8 +20,8 @@ interface ConfigSectionProps {
   defaultOpen?: boolean;
   /** 区域内容 */
   children: ReactNode;
-  /** 可选徽标，如"必填""高级""可选" */
-  badge?: string;
+  /** 可选徽标变体，控制颜色和文本 */
+  badge?: 'required' | 'advanced' | 'optional';
   /** localStorage 持久化 key，格式 config-section-${nodeType}-${sectionKey} */
   storageKey?: string;
   /** 外部控制展开状态（优先级高于 internal） */
@@ -24,6 +31,12 @@ interface ConfigSectionProps {
   /** 额外的 className */
   className?: string;
 }
+
+const BADGE_STYLES: Record<string, { className: string }> = {
+  required: { className: 'bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400' },
+  advanced: { className: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400' },
+  optional: { className: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' },
+};
 
 /**
  * 从 localStorage 读取折叠状态
@@ -105,12 +118,10 @@ export function ConfigSection({
           <span
             className={cn(
               'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
-              badge === '必填' && 'bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400',
-              badge === '高级' && 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
-              badge === '可选' && 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
+              BADGE_STYLES[badge]?.className,
             )}
           >
-            {badge}
+            {BADGE_LABELS[badge]?.() ?? badge}
           </span>
         )}
       </button>
