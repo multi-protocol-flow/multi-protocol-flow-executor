@@ -14,6 +14,7 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::{KafkaConsumeConfig, NodeData};
 use flow_engine_core::traits::KafkaProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// Kafka 消费节点执行器
@@ -214,6 +215,18 @@ impl NodeExecutor for KafkaConsumeExecutor {
                     .await;
 
                 // 10. 端口路由
+                if !output.success
+                    && !node.on_error.as_ref().map_or(true, |s| {
+                        *s == ExecutionErrorStrategy::RouteToFalse
+                    })
+                {
+                    let error_msg = output
+                        .error
+                        .as_deref()
+                        .unwrap_or("Kafka 消费失败")
+                        .to_string();
+                    return Err(error_msg);
+                }
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = route_to_port(node, connections, port);
                 Ok((next_node_ids, Some(output_data)))
@@ -256,6 +269,13 @@ impl NodeExecutor for KafkaConsumeExecutor {
                     },
                     "error": e,
                 });
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| {
+                    *s == ExecutionErrorStrategy::RouteToFalse
+                }) {
+                    return Err(e);
+                }
 
                 let next_node_ids = route_to_port(node, connections, "false");
                 Ok((next_node_ids, Some(error_output)))

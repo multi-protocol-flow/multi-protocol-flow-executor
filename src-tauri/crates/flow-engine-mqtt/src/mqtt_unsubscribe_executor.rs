@@ -10,6 +10,7 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::MqttProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -204,6 +205,13 @@ impl NodeExecutor for MqttUnsubscribeExecutor {
                     },
                     "error": e,
                 });
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| {
+                    *s == ExecutionErrorStrategy::RouteToFalse
+                }) {
+                    return Err(e);
+                }
 
                 // 失败时走 false 端口
                 let next_node_ids: Vec<String> = {

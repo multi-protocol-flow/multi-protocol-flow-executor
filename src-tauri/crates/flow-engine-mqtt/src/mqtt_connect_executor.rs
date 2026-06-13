@@ -9,6 +9,7 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::MqttProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -203,6 +204,18 @@ impl NodeExecutor for MqttConnectExecutor {
                     .await;
 
                 // 8. 路由：成功走 true 端口，失败走 false 端口
+                if !output.success
+                    && !node.on_error.as_ref().map_or(true, |s| {
+                        *s == ExecutionErrorStrategy::RouteToFalse
+                    })
+                {
+                    let error_msg = output
+                        .error
+                        .as_deref()
+                        .unwrap_or("MQTT 连接失败")
+                        .to_string();
+                    return Err(error_msg);
+                }
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids: Vec<String> = {
                     let filtered: Vec<String> = connections
@@ -263,6 +276,13 @@ impl NodeExecutor for MqttConnectExecutor {
                     },
                     "error": e,
                 });
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| {
+                    *s == ExecutionErrorStrategy::RouteToFalse
+                }) {
+                    return Err(e);
+                }
 
                 // 返回 false 端口
                 let next_node_ids: Vec<String> = {

@@ -14,6 +14,7 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::{NodeData, SseListenConfig};
 use flow_engine_core::traits::SseProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// SSE 监听节点执行器
@@ -138,6 +139,19 @@ impl NodeExecutor for SseListenExecutor {
                 });
 
                 // 7. 路由：成功且有事件 → true，否则 → false
+                if !output.success || event_count == 0 {
+                    // 检查 on_error 策略
+                    if !node.on_error.as_ref().map_or(true, |s| {
+                        *s == ExecutionErrorStrategy::RouteToFalse
+                    }) {
+                        let error_msg = output_data
+                            .get("error")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("SSE 监听无事件或失败")
+                            .to_string();
+                        return Err(error_msg);
+                    }
+                }
                 let (port, is_success) = if output.success && event_count > 0 {
                     ("true", true)
                 } else {
@@ -251,6 +265,13 @@ impl NodeExecutor for SseListenExecutor {
                         "timeout_ms": config.timeout_ms,
                     },
                 });
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| {
+                    *s == ExecutionErrorStrategy::RouteToFalse
+                }) {
+                    return Err(e);
+                }
 
                 // 失败时走 false 端口
                 let next_node_ids: Vec<String> = {

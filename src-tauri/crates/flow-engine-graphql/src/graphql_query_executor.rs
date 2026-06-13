@@ -13,6 +13,7 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::{GraphqlQueryConfig, NodeData};
 use flow_engine_core::traits::GraphqlProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// GraphQL 查询/变更节点执行器
@@ -254,6 +255,18 @@ impl NodeExecutor for GraphqlQueryExecutor {
                     .await;
 
                 // 9. 路由：网络错误走 false，其他走 true
+                if is_network_error
+                    && !node.on_error.as_ref().map_or(true, |s| {
+                        *s == ExecutionErrorStrategy::RouteToFalse
+                    })
+                {
+                    let error_msg = output
+                        .error
+                        .as_deref()
+                        .unwrap_or("GraphQL 查询失败")
+                        .to_string();
+                    return Err(error_msg);
+                }
                 let port = if is_network_error { "false" } else { "true" };
                 let next_node_ids = Self::resolve_port_targets(&node.uuid, port, connections);
 
@@ -300,6 +313,13 @@ impl NodeExecutor for GraphqlQueryExecutor {
                     },
                     "error": e,
                 });
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| {
+                    *s == ExecutionErrorStrategy::RouteToFalse
+                }) {
+                    return Err(e);
+                }
 
                 // 走 false 端口
                 let next_node_ids =

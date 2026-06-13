@@ -13,6 +13,7 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::{KafkaConsumeBatchConfig, NodeData};
 use flow_engine_core::traits::KafkaProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -213,6 +214,18 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                     .await;
 
                 // 8. 路由端口: success → "true", failure → "false"
+                if !success
+                    && !node.on_error.as_ref().map_or(true, |s| {
+                        *s == ExecutionErrorStrategy::RouteToFalse
+                    })
+                {
+                    let error_msg = output_data
+                        .get("error")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Kafka 批量消费失败")
+                        .to_string();
+                    return Err(error_msg);
+                }
                 let port = if success { "true" } else { "false" };
                 let next_node_ids = resolve_port_connections(connections, &node.uuid, port);
 
@@ -250,6 +263,13 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                     },
                     "error": e,
                 });
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| {
+                    *s == ExecutionErrorStrategy::RouteToFalse
+                }) {
+                    return Err(e);
+                }
 
                 let next_node_ids = resolve_port_connections(connections, &node.uuid, "false");
 

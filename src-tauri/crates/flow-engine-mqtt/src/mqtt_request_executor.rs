@@ -17,6 +17,7 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::{MqttRequestConfig, NodeData};
 use flow_engine_core::traits::{MqttProvider, MqttReceivedMessage};
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// MQTT 请求/响应节点执行器
@@ -381,6 +382,16 @@ fn route_to_false(
     connections: &[Connection],
     output_data: serde_json::Value,
 ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
+    // 检查 on_error 策略
+    if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+        let error_msg = output_data
+            .get("error")
+            .and_then(|v| v.as_str())
+            .unwrap_or("节点执行失败 (AbortFlow)")
+            .to_string();
+        return Err(error_msg);
+    }
+
     let filtered: Vec<String> = connections
         .iter()
         .filter(|conn| {

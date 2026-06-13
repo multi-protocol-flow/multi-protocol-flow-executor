@@ -15,6 +15,7 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::{MqttWaitMessageConfig, NodeData};
 use flow_engine_core::traits::MqttProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// MQTT 等待消息节点执行器
@@ -208,6 +209,18 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                         })
                         .await;
 
+                    // 检查 on_error 策略
+                    if !node.on_error.as_ref().map_or(true, |s| {
+                        *s == ExecutionErrorStrategy::RouteToFalse
+                    }) {
+                        let error_msg = output_data
+                            .get("error")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("等待消息超时或无匹配")
+                            .to_string();
+                        return Err(error_msg);
+                    }
+
                     let next_node_ids: Vec<String> = {
                         let filtered: Vec<String> = connections
                             .iter()
@@ -270,6 +283,13 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                     },
                     "error": e,
                 });
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| {
+                    *s == ExecutionErrorStrategy::RouteToFalse
+                }) {
+                    return Err(e);
+                }
 
                 // 失败时走 false 端口
                 let next_node_ids: Vec<String> = {

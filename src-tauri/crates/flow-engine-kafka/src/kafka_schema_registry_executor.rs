@@ -10,6 +10,7 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::KafkaProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -162,6 +163,18 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
                     .await;
 
                 // 8. 根据成功/失败选择端口
+                if !output.success
+                    && !node.on_error.as_ref().map_or(true, |s| {
+                        *s == ExecutionErrorStrategy::RouteToFalse
+                    })
+                {
+                    let error_msg = output
+                        .error
+                        .as_deref()
+                        .unwrap_or("Schema Registry 操作失败")
+                        .to_string();
+                    return Err(error_msg);
+                }
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids: Vec<String> = connections
                     .iter()
@@ -208,6 +221,13 @@ impl NodeExecutor for KafkaSchemaRegistryExecutor {
                     "connection_id": config.connection_id,
                     "error": e,
                 });
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| {
+                    *s == ExecutionErrorStrategy::RouteToFalse
+                }) {
+                    return Err(e);
+                }
 
                 // 异常走 false 端口
                 let next_node_ids: Vec<String> = connections

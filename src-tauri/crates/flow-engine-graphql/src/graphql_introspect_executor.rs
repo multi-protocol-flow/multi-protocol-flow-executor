@@ -13,6 +13,7 @@ use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::{GraphqlIntrospectConfig, NodeData};
 use flow_engine_core::traits::GraphqlProvider;
+use flow_engine_core::ExecutionErrorStrategy;
 use serde_json::json;
 
 /// GraphQL Schema 探索节点执行器
@@ -217,6 +218,18 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                     .await;
 
                 // 8. 路由：成功走 true 端口，失败走 false 端口
+                if !output.success
+                    && !node.on_error.as_ref().map_or(true, |s| {
+                        *s == ExecutionErrorStrategy::RouteToFalse
+                    })
+                {
+                    let error_msg = output
+                        .error
+                        .as_deref()
+                        .unwrap_or("GraphQL 内省查询失败")
+                        .to_string();
+                    return Err(error_msg);
+                }
                 let port = if output.success { "true" } else { "false" };
                 let next_node_ids = Self::resolve_port_targets(&node.uuid, port, connections);
 
@@ -261,6 +274,13 @@ impl NodeExecutor for GraphqlIntrospectExecutor {
                     },
                     "error": e,
                 });
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| {
+                    *s == ExecutionErrorStrategy::RouteToFalse
+                }) {
+                    return Err(e);
+                }
 
                 // 走 false 端口
                 let next_node_ids =
