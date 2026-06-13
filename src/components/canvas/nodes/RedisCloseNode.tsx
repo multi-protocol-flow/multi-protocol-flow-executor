@@ -19,7 +19,7 @@ export interface RedisCloseNodeData {
 
 /**
  * RedisClose 节点 - Redis 关闭
- * 输入端口 "in"，两个输出端口 "true"(上) 和 "false"(下)
+ * 输入端口 "in"，单输出端口 "out"
  */
 export const RedisCloseNode = memo(function RedisCloseNode({ id, data, selected }: NodeProps) {
   const nodeData = data as RedisCloseNodeData;
@@ -82,26 +82,13 @@ export const RedisCloseNode = memo(function RedisCloseNode({ id, data, selected 
       <Handle
         type="source"
         position={Position.Right}
-        id="true"
+        id="out"
         className={cn(
-          '!w-3.5 !h-3.5 !top-[30%]',
-          '!bg-background !border-2 !border-emerald-500 dark:!border-emerald-400',
+          '!w-3.5 !h-3.5',
+          '!bg-background !border-2 !border-border',
           'hover:!scale-125',
           'transition-transform duration-150',
-          "before:content-[''] before:absolute before:inset-[3px] before:bg-emerald-600 dark:before:bg-emerald-500 before:rounded-full"
-        )}
-      />
-
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="false"
-        className={cn(
-          '!w-3.5 !h-3.5 !top-[70%]',
-          '!bg-background !border-2 !border-red-500 dark:!border-red-400',
-          'hover:!scale-125',
-          'transition-transform duration-150',
-          "before:content-[''] before:absolute before:inset-[3px] before:bg-red-600 dark:before:bg-red-500 before:rounded-full"
+          "before:content-[''] before:absolute before:inset-[3px] before:bg-red-500 before:rounded-full"
         )}
       /></div>
   );
