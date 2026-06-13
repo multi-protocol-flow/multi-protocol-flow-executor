@@ -72,9 +72,18 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 | Dataset | 8 | 数据集执行 |
 | 其他 | 16 | MCP/GraphQL/TCP/CSV/Registry 等 |
 
-### 节点类型 (89+ variants)
+### 节点类型 (92 variants)
 
-定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), db(6), script, assertion, grpc(3), mcp(5), tcp(4), udp(4), mqtt(7), kafka(6), sse(3), graphql(5), amqp(13), smtp(3), imap(12), redis(3), variable_extractor, proxy。
+定义在 `flow-engine-core/src/node.rs`。涵盖：entry, end, http, conditional, ws(3), db(6), script, assertion, grpc(3), mcp(5), tcp(4), udp(4), mqtt(7), kafka(7), sse(3), graphql(5), amqp(18), smtp(3), imap(13), redis(3), variable_extractor, proxy。
+
+### 执行错误策略 (on_error)
+
+`Node.on_error` 字段定义执行失败时的行为策略（定义在 `flow-engine-core/src/node.rs`）。三个选项：
+- **`RouteToFalse`** (默认) — 路由到 `false` 端口，若无 `false` 连线则终止流程
+- **`Ignore`** — 忽略错误，继续执行（路由到 `true` 端口）
+- **`AbortFlow`** — 立即中止整个流程
+
+新增节点需在 `Node` 结构体初始化时设置 `on_error: None`。前端通过 `OnErrorSection` 组件统一配置。
 
 新增节点类型需: NodeType + NodeData + NodePlugin trait 实现 + 前端 NodeRegistry + configPanel + viewer。
 
