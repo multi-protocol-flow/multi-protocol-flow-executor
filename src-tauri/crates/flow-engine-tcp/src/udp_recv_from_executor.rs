@@ -8,6 +8,7 @@ use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
+use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::traits::UdpProvider;
 use serde_json::json;
 use std::collections::HashMap;
@@ -153,6 +154,13 @@ impl NodeExecutor for UdpRecvFromExecutor {
             }
             Ok(None) => {
                 // 超时无数据，走 false 端口
+                let error_msg = format!("接收超时 ({}ms)", config.receive_timeout_ms);
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", error_msg));
+                }
+
                 log::debug!(
                     "[UDP] 接收超时: connection_id={}, timeout={}ms",
                     connection_id,
@@ -164,10 +172,7 @@ impl NodeExecutor for UdpRecvFromExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Warn,
-                        message: format!(
-                            "UDP 接收超时 ({}ms)",
-                            config.receive_timeout_ms
-                        ),
+                        message: error_msg.clone(),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .expect("系统时间错误")
@@ -186,13 +191,18 @@ impl NodeExecutor for UdpRecvFromExecutor {
                         "recv_ms": recv_duration_ms,
                         "total_ms": total_ms,
                     },
-                    "error": format!("接收超时 ({}ms)", config.receive_timeout_ms),
+                    "error": error_msg,
                 });
 
                 let next_node_ids = route_to_port(node, connections, "false");
                 Ok((next_node_ids, Some(output_data)))
             }
             Err(e) => {
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", e));
+                }
+
                 log::error!(
                     "[UDP] 接收失败: connection_id={}, error={}",
                     connection_id,

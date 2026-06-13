@@ -9,6 +9,7 @@ use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
+use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::traits::TcpProvider;
 use serde_json::json;
 use std::collections::HashMap;
@@ -188,6 +189,11 @@ impl NodeExecutor for TcpReceiveExecutor {
                 Ok((next_node_ids, Some(output_data)))
             }
             Err(e) => {
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", e));
+                }
+
                 log::error!(
                     "[TCP] 接收数据失败: connection_id={}, error={}",
                     connection_id,

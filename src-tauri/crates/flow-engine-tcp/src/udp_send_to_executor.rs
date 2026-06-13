@@ -9,6 +9,7 @@ use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
+use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::traits::UdpProvider;
 use serde_json::json;
 use std::collections::HashMap;
@@ -134,6 +135,11 @@ impl NodeExecutor for UdpSendToExecutor {
         let raw_data = match Self::decode_user_data(&data_str, &config.data_encoding) {
             Ok(data) => data,
             Err(e) => {
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", e));
+                }
+
                 let total_ms = start_time.elapsed().as_millis() as u64;
                 let error_output = build_error_output(&connection_id, &e, None, total_ms);
 
@@ -243,6 +249,11 @@ impl NodeExecutor for UdpSendToExecutor {
                         flow_uuid: context.flow_uuid.clone(),
                     })
                     .await;
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", e));
+                }
 
                 let error_output =
                     build_error_output(&connection_id, &e, Some(send_duration_ms), total_ms);

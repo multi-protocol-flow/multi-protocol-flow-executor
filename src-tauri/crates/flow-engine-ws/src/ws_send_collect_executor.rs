@@ -8,6 +8,7 @@ use flow_engine_core::debug_types::DebugEvent;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
+use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{NodeData, WsCollectMode, WsMessageType, WsSendCollectConfig};
 use flow_engine_core::traits::WsProvider;
 use flow_engine_core::ws_stream::{MessageContent, MessageDirection, WsMessage};
@@ -114,6 +115,12 @@ impl NodeExecutor for WsSendCollectExecutor {
                     "连接状态不是 Connected（当前状态: {}）: {}",
                     status, connection_id
                 );
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", error_msg));
+                }
+
                 log::error!(
                     "[WebSocket] 连接状态错误: uuid={}, status={}",
                     connection_id,
@@ -140,6 +147,12 @@ impl NodeExecutor for WsSendCollectExecutor {
             }
             None => {
                 let error_msg = format!("连接不存在: {}", connection_id);
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", error_msg));
+                }
+
                 log::error!("[WebSocket] 连接不存在: uuid={}", connection_id);
 
                 context
@@ -364,6 +377,11 @@ impl NodeExecutor for WsSendCollectExecutor {
                 ("true", output_data)
             }
             Err(e) => {
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", e));
+                }
+
                 log::error!(
                     "[WebSocket] 消息发送失败: connection_id={}, error={}",
                     connection_id,
@@ -889,6 +907,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -974,7 +993,8 @@ mod tests {
                 collect_timeout_ms: 5000,
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -1016,7 +1036,8 @@ mod tests {
                 collect_timeout_ms: 5000,
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -1055,7 +1076,8 @@ mod tests {
                 collect_timeout_ms: 2000, // 2 秒
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -1094,7 +1116,8 @@ mod tests {
                 collect_timeout_ms: 10000,
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -1211,10 +1234,11 @@ mod tests {
                     collect_response: true,
                     collect_mode: WsCollectMode::FirstMatch,
                     collect_condition: None,
-                collect_timeout_ms: 10000,
-            }),
-            ports: None,
-            has_breakpoint: None,
+                    collect_timeout_ms: 10000,
+                }),
+                ports: None,
+                has_breakpoint: None,
+                on_error: None,
             };
             let mut context = create_context("test-flow");
 

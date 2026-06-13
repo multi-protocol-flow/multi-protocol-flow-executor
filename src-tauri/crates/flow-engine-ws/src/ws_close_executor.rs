@@ -8,6 +8,7 @@ use flow_engine_core::debug_types::DebugEvent;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
+use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::WsProvider;
 use serde_json::json;
@@ -211,6 +212,11 @@ impl NodeExecutor for WsCloseExecutor {
                     "error": e,
                 });
 
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", e));
+                }
+
                 // 关闭失败走 false 端口
                 let next_node_ids: Vec<String> = connections
                     .iter()
@@ -248,7 +254,8 @@ mod tests {
                 close_timeout_ms: 5000,
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -335,7 +342,8 @@ mod tests {
                 close_timeout_ms: 5000,
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -446,14 +454,15 @@ mod tests {
                 node_type: "ws_close".to_string(),
                 name: "关闭原因测试".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
-                data: NodeData::WsClose(WsCloseConfig {
-                    connection_id: "close-reason-conn".to_string(),
-                    close_code: 1000,
-                    close_reason: Some("测试完成".to_string()),
-                    close_timeout_ms: 5000,
-                }),
-                ports: None,
+            data: NodeData::WsClose(WsCloseConfig {
+                connection_id: "close-reason-conn".to_string(),
+                close_code: 1000,
+                close_reason: Some("测试完成".to_string()),
+                close_timeout_ms: 5000,
+            }),
+            ports: None,
             has_breakpoint: None,
+            on_error: None,
             };
             let mut context = create_context("test-flow");
             

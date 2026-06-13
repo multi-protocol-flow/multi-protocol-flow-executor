@@ -8,6 +8,7 @@ use flow_engine_core::debug_types::DebugEvent;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
+use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{NodeData, WsCollectMode, WsConnectConfig};
 use flow_engine_core::traits::WsProvider;
 use flow_engine_core::ws_stream::{MessageContent, MessageDirection, WsMessage};
@@ -264,6 +265,11 @@ impl NodeExecutor for WsConnectExecutor {
                     "collect_timed_out": false,
                     "error": e
                 });
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", e));
+                }
 
                 // 返回 false 端口
                 let next_node_ids: Vec<String> = {
@@ -677,7 +683,8 @@ mod tests {
                 ping_timeout_ms: None,
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -723,7 +730,8 @@ mod tests {
                 ..Default::default()
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -787,7 +795,8 @@ mod tests {
                 ..Default::default()
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -825,7 +834,8 @@ mod tests {
                 ..Default::default()
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -859,7 +869,8 @@ mod tests {
                 ..Default::default()
             }),
             ports: None,
-        has_breakpoint: None,
+            has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
