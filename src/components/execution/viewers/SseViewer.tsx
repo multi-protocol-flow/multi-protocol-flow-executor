@@ -238,8 +238,8 @@ function SseConnectView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.sse.status_connected()} failText={ll.viewer.sse.status_connection_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'SSE 连接建立成功'
-                : output?.error ?? '无法建立 SSE 连接'}
+                ? ll.viewer.sse.connect_success()
+                : output?.error ?? ll.viewer.sse.connect_error()}
             </span>
           </div>
 
@@ -269,8 +269,8 @@ function SseConnectView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="连接耗时" value={connectDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_connect()} value={connectDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -331,8 +331,8 @@ function SseListenView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.sse.status_listening()} failText={ll.viewer.sse.status_listen_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `收到 ${eventCount} 个事件`
-                : output?.error ?? 'SSE 监听失败'}
+                ? ll.viewer.sse.listen_success({ count: eventCount })
+                : output?.error ?? ll.viewer.sse.listen_error()}
             </span>
           </div>
 
@@ -348,7 +348,7 @@ function SseListenView({ report }: { report: NodeExecutionReport }) {
           defaultOpen={false}
           extra={
             <Badge variant="outline" className="font-mono text-xs">
-              {eventCount} 个事件
+              {ll.viewer.sse.events_count({ count: eventCount })}
             </Badge>
           }
         >
@@ -373,8 +373,8 @@ function SseListenView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="监听耗时" value={listenDuration ?? output?.duration_ms} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_listen()} value={listenDuration ?? output?.duration_ms} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -409,8 +409,8 @@ function SseDisconnectView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.sse.status_disconnected()} failText={ll.viewer.sse.status_disconnect_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'SSE 连接已成功断开'
-                : output?.error ?? '断开连接失败'}
+                ? ll.viewer.sse.disconnect_success()
+                : output?.error ?? ll.viewer.sse.disconnect_error()}
             </span>
           </div>
 
@@ -440,8 +440,8 @@ function SseDisconnectView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="断开耗时" value={disconnectDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_disconnect()} value={disconnectDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}

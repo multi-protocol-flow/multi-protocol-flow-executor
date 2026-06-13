@@ -256,7 +256,7 @@ function ImageBlockContent({ block }: { block: Record<string, unknown> }) {
       )}
       {data && (
         <p className="text-xs text-muted-foreground italic">
-          Base64 数据 ({data.length} 字符)
+          {getLL().viewer.mcp.label_base64()} ({data.length} 字符)
         </p>
       )}
       {url && (
@@ -356,11 +356,12 @@ function ContentBlockIcon({ type }: { type: ContentBlockType }) {
 }
 
 function ContentBlockLabel({ type }: { type: ContentBlockType }) {
+  const ll = getLL();
   switch (type) {
-    case 'text': return '文本';
-    case 'image': return '图片';
-    case 'resource': return '资源';
-    default: return '内容';
+    case 'text': return ll.viewer.mcp.label_content_type_text();
+    case 'image': return ll.viewer.mcp.label_content_type_image();
+    case 'resource': return ll.viewer.mcp.label_content_type_resource();
+    default: return ll.viewer.mcp.label_content_type_text();
   }
 }
 
@@ -614,8 +615,8 @@ function McpConnectSection({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="连接耗时" value={connectDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={getLL().viewer.common.timing_connect()} value={connectDuration} />
+            <TimingMetric label={getLL().viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -699,7 +700,7 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess && !isError
                 ? `${toolName} 调用成功`
-                : output?.error ?? '工具调用失败'}
+                : output?.error ?? getLL().viewer.mcp.call_tool_error()}
             </span>
           </div>
 
@@ -740,8 +741,8 @@ function McpCallToolSection({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="调用耗时" value={callDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={getLL().viewer.common.timing_call()} value={callDuration} />
+            <TimingMetric label={getLL().viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -807,7 +808,7 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `资源读取成功，${contents.length} 个内容块`
-                : output?.error ?? '资源读取失败'}
+                : output?.error ?? getLL().viewer.mcp.read_resource_error()}
             </span>
           </div>
 
@@ -858,7 +859,7 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
                 {/* Base64/Blob 数据 */}
                 {typeof content.data === 'string' && content.text === undefined && (
                   <p className="text-xs text-muted-foreground italic">
-                    二进制数据 ({content.data.length} 字符)
+                    {getLL().viewer.mcp.label_content_type_blob()} ({content.data.length} 字符)
                   </p>
                 )}
 
@@ -887,8 +888,8 @@ function McpReadResourceSection({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="读取耗时" value={readDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={getLL().viewer.common.timing_read()} value={readDuration} />
+            <TimingMetric label={getLL().viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -965,7 +966,7 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `提示词获取成功，${messages.length} 条消息`
-                : output?.error ?? '提示词获取失败'}
+                : output?.error ?? getLL().viewer.mcp.get_prompt_error()}
             </span>
           </div>
 
@@ -1046,8 +1047,8 @@ function McpGetPromptSection({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="调用耗时" value={callDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={getLL().viewer.common.timing_call()} value={callDuration} />
+            <TimingMetric label={getLL().viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -1125,8 +1126,8 @@ function McpCloseSection({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="关闭耗时" value={closeDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={getLL().viewer.common.timing_close()} value={closeDuration} />
+            <TimingMetric label={getLL().viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}

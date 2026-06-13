@@ -191,8 +191,8 @@ function RedisConnectView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.redis.status_connected()} failText={ll.viewer.redis.status_connection_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'Redis 连接建立成功'
-                : output?.error ?? '无法建立 Redis 连接'}
+                ? ll.viewer.redis.connect_success()
+                : output?.error ?? ll.viewer.redis.connect_error()}
             </span>
           </div>
 
@@ -255,8 +255,8 @@ function RedisConnectView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="连接耗时" value={connectDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_connect()} value={connectDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -317,8 +317,8 @@ function RedisCommandView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.redis.status_success()} failText={ll.viewer.redis.status_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `命令 ${output?.command ?? ''} 执行成功`
-                : output?.error ?? '命令执行失败'}
+                ? ll.viewer.redis.command_success()
+                : output?.error ?? ll.viewer.redis.command_error()}
             </span>
           </div>
 
@@ -354,8 +354,8 @@ function RedisCommandView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="命令耗时" value={commandDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_command()} value={commandDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -390,8 +390,8 @@ function RedisCloseView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.redis.status_closed()} failText={ll.viewer.redis.status_close_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'Redis 连接已成功关闭'
-                : output?.error ?? '关闭连接失败'}
+                ? ll.viewer.redis.close_success()
+                : output?.error ?? ll.viewer.redis.close_error()}
             </span>
           </div>
 
@@ -422,8 +422,8 @@ function RedisCloseView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="关闭耗时" value={closeDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_close()} value={closeDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
