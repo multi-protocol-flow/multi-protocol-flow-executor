@@ -131,6 +131,11 @@ const zh_CN_nodes = {
     route: '路由',
     throw: '抛出',
   },
+  /** 断言节点执行错误处理标签 */
+  assertion_on_error: {
+    route_to_false: '路由',
+    abort_flow: '终止',
+  },
   /** 代理节点模式标签 */
   proxy_mode: {
     clear: '清除',

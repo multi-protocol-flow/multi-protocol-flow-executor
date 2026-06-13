@@ -597,6 +597,16 @@ type RootTranslation = {
 			 */
 			'throw': string
 		}
+		assertion_on_error: {
+			/**
+			 * 路​由
+			 */
+			route_to_false: string
+			/**
+			 * 终​止
+			 */
+			abort_flow: string
+		}
 		proxy_mode: {
 			/**
 			 * 清​除
@@ -971,12 +981,9 @@ type RootTranslation = {
 		 */
 		graphqlSubscriptionUrl: string
 		/**
-		 * 输​入​ ​S​c​h​e​m​a​ ​定​义​（​J​S​O​N​ ​格​式​）​
-	​e​.​g​.​:​
-	​{​"​t​y​p​e​"​}
-		 * @param {"record", "name"} "type"
+		 * 输​入​ ​S​c​h​e​m​a​ ​定​义​（​J​S​O​N​ ​格​式​）
 		 */
-		schemaDefinitionHint: RequiredParams<'"type"'>
+		schemaDefinitionHint: string
 		/**
 		 * 可​选​，​如​ ​g​r​o​u​p​1
 		 */
@@ -1588,7 +1595,7 @@ type RootTranslation = {
 			 */
 			errorHandlingPlaceholder: string
 			/**
-			 * 断​言​失​败​时
+			 * 断​言​处​理
 			 */
 			assertionFail: string
 			/**
@@ -2327,6 +2334,36 @@ type RootTranslation = {
 				 */
 				response_fast: string
 			}
+		}
+		on_error_section: {
+			/**
+			 * 执​行​错​误​处​理
+			 */
+			title: string
+			/**
+			 * 路​由​到​ ​f​a​l​s​e​ ​分​支
+			 */
+			route_to_false: string
+			/**
+			 * 节​点​执​行​失​败​时​路​由​到​ ​f​a​l​s​e​ ​分​支​，​流​程​继​续​执​行
+			 */
+			route_to_false_desc: string
+			/**
+			 * 终​止​流​程
+			 */
+			abort_flow: string
+			/**
+			 * 节​点​执​行​失​败​时​停​止​流​程​并​报​错
+			 */
+			abort_flow_desc: string
+		/**
+		 * 忽​略​错​误
+		 */
+		ignore: string
+		/**
+		 * 忽​略​错​误​，​继​续​正​常​执​行
+		 */
+		ignore_desc: string
 		}
 		conditional: {
 			/**
@@ -5359,15 +5396,15 @@ type RootTranslation = {
 			 */
 			required: string
 			/**
-			 * Query
+			 * Q​u​e​r​y
 			 */
 			query_type: string
 			/**
-			 * Mutation
+			 * M​u​t​a​t​i​o​n
 			 */
 			mutation_type: string
 			/**
-			 * Subscription
+			 * S​u​b​s​c​r​i​p​t​i​o​n
 			 */
 			subscription_type: string
 		}
@@ -10762,18 +10799,18 @@ type RootTranslation = {
 		}
 	}
 	flow: {
-			/**
-			 * 未​保​存
-			 */
-			unsaved: string
-			/**
-			 * 快​捷​键
-			 */
-			keyboard_shortcuts: string
-			/**
-			 * 运​行
-			 */
-			run: string
+		/**
+		 * 未​保​存
+		 */
+		unsaved: string
+		/**
+		 * 快​捷​键
+		 */
+		keyboard_shortcuts: string
+		/**
+		 * 运​行
+		 */
+		run: string
 		/**
 		 * 新​建​流​程
 		 */
@@ -15353,23 +15390,23 @@ type RootTranslation = {
 			 */
 			label_body_preview: string
 			/**
-			 * HTML 内容
+			 * H​T​M​L​ ​内​容
 			 */
 			label_html_content: string
 			/**
-			 * 纯文本
+			 * 纯​文​本
 			 */
 			label_plain_text: string
 			/**
-			 * 隐藏渲染
+			 * 隐​藏​渲​染
 			 */
 			label_hide_render: string
 			/**
-			 * 渲染 HTML
+			 * 渲​染​ ​H​T​M​L
 			 */
 			label_render_html: string
 			/**
-			 * SMTP 服务器
+			 * S​M​T​P​ ​服​务​器
 			 */
 			label_smtp_host: string
 			/**
@@ -17230,6 +17267,16 @@ export type TranslationFunctions = {
 			 */
 			'throw': () => LocalizedString
 		}
+		assertion_on_error: {
+			/**
+			 * 路由
+			 */
+			route_to_false: () => LocalizedString
+			/**
+			 * 终止
+			 */
+			abort_flow: () => LocalizedString
+		}
 		proxy_mode: {
 			/**
 			 * 清除
@@ -18207,7 +18254,7 @@ export type TranslationFunctions = {
 			 */
 			errorHandlingPlaceholder: () => LocalizedString
 			/**
-			 * 断言失败时
+			 * 断言处理
 			 */
 			assertionFail: () => LocalizedString
 			/**
@@ -18945,6 +18992,36 @@ export type TranslationFunctions = {
 				 */
 				response_fast: () => LocalizedString
 			}
+		}
+		on_error_section: {
+			/**
+			 * 执行错误处理
+			 */
+			title: () => LocalizedString
+			/**
+			 * 路由到 false 分支
+			 */
+			route_to_false: () => LocalizedString
+			/**
+			 * 节点执行失败时路由到 false 分支，流程继续执行
+			 */
+			route_to_false_desc: () => LocalizedString
+			/**
+			 * 终止流程
+			 */
+			abort_flow: () => LocalizedString
+			/**
+			 * 节点执行失败时停止流程并报错
+			 */
+			abort_flow_desc: () => LocalizedString
+		/**
+		 * 忽略错误
+		 */
+		ignore: () => LocalizedString
+		/**
+		 * 忽略错误，继续正常执行
+		 */
+		ignore_desc: () => LocalizedString
 		}
 		conditional: {
 			/**
@@ -27300,18 +27377,18 @@ export type TranslationFunctions = {
 		}
 	}
 	flow: {
-			/**
-			 * 未保存
-			 */
-			unsaved: () => LocalizedString
-			/**
-			 * 快捷键
-			 */
-			keyboard_shortcuts: () => LocalizedString
-			/**
-			 * 运行
-			 */
-			run: () => LocalizedString
+		/**
+		 * 未保存
+		 */
+		unsaved: () => LocalizedString
+		/**
+		 * 快捷键
+		 */
+		keyboard_shortcuts: () => LocalizedString
+		/**
+		 * 运行
+		 */
+		run: () => LocalizedString
 		/**
 		 * 新建流程
 		 */

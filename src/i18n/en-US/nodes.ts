@@ -131,6 +131,11 @@ const en_US_nodes = {
     route: 'Route',
     throw: 'Throw',
   },
+  /** Assertion node on-error labels (execution crash/timeout) */
+  assertion_on_error: {
+    route_to_false: 'Route',
+    abort_flow: 'Abort',
+  },
   /** Proxy node mode labels */
   proxy_mode: {
     clear: 'Clear',

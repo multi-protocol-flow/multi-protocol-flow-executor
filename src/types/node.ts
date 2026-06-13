@@ -377,6 +377,11 @@ export type AssertionMode = 'all' | 'any';
 export type OnFailureMode = 'route_false' | 'throw';
 
 /**
+ * 节点执行失败处理策略
+ */
+export type ExecutionErrorStrategy = 'route_to_false' | 'abort_flow' | 'ignore';
+
+/**
  * 单条断言配置
  */
 export interface Assertion {
@@ -2246,8 +2251,11 @@ export interface ScriptNodeConfig {
   execution_phase?: ScriptExecutionPhase;
   /** 错误处理策略 */
   on_error?: ScriptErrorStrategy;
-  /** 断言失败时的行为 */
-  on_assertion_fail?: AssertionFailStrategy;
+  /**
+   * @deprecated on_error (Node level) unified by OnErrorSection with 'ignore' option.
+   * Kept for backward compat with existing flow files.
+   */
+  // on_assertion_fail?: AssertionFailStrategy;
 }
 
 // ============================================================================
@@ -2426,6 +2434,8 @@ export interface Node {
   ports?: Port[];
   /** 是否设置断点（可选，默认 false） */
   hasBreakpoint?: boolean;
+  /** 节点执行失败处理策略（可选） */
+  on_error?: ExecutionErrorStrategy;
 }
 
 // ============================================================================

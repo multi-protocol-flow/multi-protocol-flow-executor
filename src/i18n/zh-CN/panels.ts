@@ -91,7 +91,7 @@ const zh_CN_panels: BaseTranslation = {
   latestVersionHint: '-1 = 最新版本',
   hostExample: '192.168.1.100 或 example.com',
   graphqlSubscriptionUrl: 'wss://api.example.com/graphql（用于订阅）',
-  schemaDefinitionHint: '输入 Schema 定义（JSON 格式）\ne.g.:\n{"type": "record", "name": "User", "fields": [...]}',
+  schemaDefinitionHint: '输入 Schema 定义（JSON 格式）',
   groupIdExample: '可选，如 group1',
 
   http: {
@@ -259,7 +259,7 @@ const zh_CN_panels: BaseTranslation = {
     memoryLimitHint: 'MB (1-100)',
     errorHandling: '错误处理',
     errorHandlingPlaceholder: '选择错误处理策略',
-    assertionFail: '断言失败时',
+    assertionFail: '断言处理',
     assertionFailPlaceholder: '选择断言失败策略',
     phasePostRequest: '请求后执行 (Post-Request)',
     phasePreRequest: '请求前执行 (Pre-Request)',
@@ -454,6 +454,16 @@ const zh_CN_panels: BaseTranslation = {
       json_response: 'JSON 响应格式',
       response_fast: '快速响应 (<1s)',
     },
+  },
+
+  on_error_section: {
+    title: '执行错误处理',
+    route_to_false: '路由到 false 分支',
+    route_to_false_desc: '节点执行失败时路由到 false 分支，流程继续执行',
+    abort_flow: '终止流程',
+    abort_flow_desc: '节点执行失败时停止流程并报错',
+    ignore: '忽略错误',
+    ignore_desc: '忽略错误，继续正常执行',
   },
 
   conditional: {

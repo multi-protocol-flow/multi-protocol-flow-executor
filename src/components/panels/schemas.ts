@@ -407,6 +407,12 @@ export const assertionModeSchema = z.enum(['all', 'any']);
 export type AssertionMode = z.infer<typeof assertionModeSchema>;
 
 /**
+ * 节点执行失败处理策略枚举
+ */
+export const executionErrorStrategySchema = z.enum(['route_to_false', 'abort_flow', 'ignore']);
+export type ExecutionErrorStrategy = z.infer<typeof executionErrorStrategySchema>;
+
+/**
  * 失败处理模式枚举
  */
 export const onFailureModeSchema = z.enum(['route_false', 'throw']);
@@ -553,12 +559,6 @@ export const scriptExecutionPhaseSchema = z.enum(['post_request', 'pre_request',
 export type ScriptExecutionPhaseFormData = z.infer<typeof scriptExecutionPhaseSchema>;
 
 /**
- * 脚本错误处理策略枚举
- */
-export const scriptErrorStrategySchema = z.enum(['recoverable', 'fatal']);
-export type ScriptErrorStrategyFormData = z.infer<typeof scriptErrorStrategySchema>;
-
-/**
  * 断言失败处理策略枚举
  */
 export const assertionFailStrategySchema = z.enum(['route_false', 'ignore', 'abort']);
@@ -566,6 +566,10 @@ export type AssertionFailStrategyFormData = z.infer<typeof assertionFailStrategy
 
 /**
  * Script 配置表单 Schema
+ *
+ * NOTE: `on_error` (ScriptErrorStrategy) 和 `on_assertion_fail` 均已废弃，
+ *       由 Node.on_error (ExecutionErrorStrategy) 统一替代。
+ *       `assertionFailStrategySchema` type definition kept for backward compat.
  */
 export const scriptConfigSchema = z.object({
   type: z.literal('script'),
@@ -573,8 +577,6 @@ export const scriptConfigSchema = z.object({
   timeout_ms: z.number().min(100).max(60000).optional(),
   memory_limit_mb: z.number().min(1).max(100).optional(),
   execution_phase: scriptExecutionPhaseSchema.optional(),
-  on_error: scriptErrorStrategySchema.optional(),
-  on_assertion_fail: assertionFailStrategySchema.optional(),
 });
 
 export type ScriptConfigFormData = z.infer<typeof scriptConfigSchema>;

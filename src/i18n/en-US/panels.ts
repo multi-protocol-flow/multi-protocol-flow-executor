@@ -89,7 +89,7 @@
   latestVersionHint: '-1 = Latest version',
   hostExample: '192.168.1.100 or example.com',
   graphqlSubscriptionUrl: 'wss://api.example.com/graphql (for subscriptions)',
-  schemaDefinitionHint: 'Enter Schema definition (JSON format)\ne.g.:\n{"type": "record", "name": "User", "fields": [...]}',
+  schemaDefinitionHint: 'Enter Schema definition (JSON format)',
   groupIdExample: 'Optional, e.g. group1',
 
   http: {
@@ -257,7 +257,7 @@
     memoryLimitHint: 'MB (1-100)',
     errorHandling: 'Error Handling',
     errorHandlingPlaceholder: 'Select error handling strategy',
-    assertionFail: 'On Assertion Fail',
+    assertionFail: 'Assertion Handling',
     assertionFailPlaceholder: 'Select assertion fail strategy',
     phasePostRequest: 'Post-Request',
     phasePreRequest: 'Pre-Request',
@@ -452,6 +452,16 @@
       json_response: 'JSON Response Format',
       response_fast: 'Fast Response (<1s)',
     },
+  },
+
+  on_error_section: {
+    title: 'Error Handling on Failure',
+    route_to_false: 'Route to False Branch',
+    route_to_false_desc: 'When node execution fails, route to the false branch and continue the flow',
+    abort_flow: 'Abort Flow',
+    abort_flow_desc: 'Stop the flow and report an error when the node fails',
+    ignore: 'Ignore Error',
+    ignore_desc: 'Ignore the error and continue execution normally',
   },
 
   conditional: {
