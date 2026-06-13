@@ -251,10 +251,10 @@ export function UdpRecvFromConfig({ data, onSave }: UdpRecvFromConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">接收说明：</p>
-          <p>UDP 接收是阻塞操作，超时后会返回错误</p>
-          <p>接收到的数据报包含发送方的地址和端口信息</p>
-          <p>超过最大接收大小的数据报会被截断</p>
+          <p className="font-medium text-foreground">{getLL().panels.udpRecvFrom.help_title()}</p>
+          <p>{getLL().panels.udpRecvFrom.help_line1()}</p>
+          <p>{getLL().panels.udpRecvFrom.help_line2()}</p>
+          <p>{getLL().panels.udpRecvFrom.help_line3()}</p>
         </div>
       </div>
     </form>

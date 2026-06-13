@@ -26,14 +26,15 @@ interface UdpSendToConfigProps {
   onSave: (data: UdpSendToConfigType) => void;
 }
 
-/**
- * 数据编码方式选项
- */
-const DATA_ENCODING_OPTIONS = [
-  { value: 'text', label: '文本 (Text)' },
-  { value: 'hex', label: '十六进制 (Hex)' },
-  { value: 'base64', label: 'Base64' },
-] as const;
+/** 数据编码方式选项 */
+function getDataEncodingOptions(): Array<{ value: string; label: string }> {
+  const ll = getLL().panels.udpSendTo;
+  return [
+    { value: 'text', label: ll.encodingText_option() },
+    { value: 'hex', label: ll.encodingHex_option() },
+    { value: 'base64', label: 'Base64' },
+  ];
+}
 
 /**
  * 将 UdpSendToConfigType 转换为表单数据
@@ -250,7 +251,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
         {errors.target_addr && (
           <p className="text-xs text-rose-500">{errors.target_addr.message}</p>
         )}
-        <p className="text-xs text-muted-foreground">数据报发送的目标主机地址</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.udpSendTo.targetAddr_help()}</p>
       </div>
 
       {/* 目标端口 */}
@@ -269,7 +270,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
         {errors.target_port && (
           <p className="text-xs text-rose-500">{errors.target_port.message}</p>
         )}
-        <p className="text-xs text-muted-foreground">范围 1-65535</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.udpSendTo.portRange_help()}</p>
       </div>
 
       {/* 数据编码方式 */}
@@ -288,7 +289,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {DATA_ENCODING_OPTIONS.map((opt) => (
+            {getDataEncodingOptions().map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>
@@ -296,7 +297,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          选择数据的编码格式，发送前会自动解码为原始字节
+          {getLL().panels.udpSendTo.encoding_help()}
         </p>
       </div>
 
@@ -313,7 +314,7 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
               ? '48656C6C6F20576F726C64'
               : watch('data_encoding') === 'base64'
                 ? 'SGVsbG8gV29ybGQ='
-                : '输入要发送的数据...'
+                : getLL().panels.udpSendTo.dataPlaceholder()
           }
           className="min-h-[120px] resize-y font-mono text-sm"
           rows={5}
@@ -323,10 +324,10 @@ export function UdpSendToConfig({ data, onSave }: UdpSendToConfigProps) {
         )}
         <p className="text-xs text-muted-foreground">
           {watch('data_encoding') === 'hex'
-            ? '十六进制格式，如 48656C6C6F'
+            ? getLL().panels.udpSendTo.hexFormat_help()
             : watch('data_encoding') === 'base64'
-              ? 'Base64 编码的字符串'
-              : '纯文本数据，支持变量引用 {{variable}}'}
+              ? getLL().panels.udpSendTo.base64Format_help()
+              : getLL().panels.udpSendTo.textFormat_help()}
         </p>
       </div>
 

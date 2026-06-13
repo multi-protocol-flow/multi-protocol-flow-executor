@@ -19,16 +19,17 @@ import type { TcpFramingConfigFormData } from './schemas';
 import { useFlowStore } from '@/stores';
 import { isTcpConnectConfig } from '@/types/node';
 
-/**
- * 成帧模式选项
- */
-const FRAMING_MODE_OPTIONS = [
-  { value: 'length_prefix', label: '长度前缀 (Length Prefix)' },
-  { value: 'delimiter', label: '分隔符 (Delimiter)' },
-  { value: 'fixed_length', label: '固定长度 (Fixed Length)' },
-  { value: 'timeout', label: '超时读取 (Timeout)' },
-  { value: 'manual', label: '手动控制 (Manual)' },
-] as const;
+/** 成帧模式选项 */
+function getFramingModeOptions(): Array<{ value: string; label: string }> {
+  const ll = getLL().panels.tcpReceive;
+  return [
+    { value: 'length_prefix', label: ll.lengthPrefix_option() },
+    { value: 'delimiter', label: ll.delimiter_option() },
+    { value: 'fixed_length', label: ll.fixedLength_option() },
+    { value: 'timeout', label: ll.timeoutRead_option() },
+    { value: 'manual', label: ll.manualControl_option() },
+  ];
+}
 
 interface TcpReceiveConfigProps {
   /** 当前节点数据 */
@@ -68,7 +69,7 @@ function fromFormData(formData: TcpReceiveConfigFormData): TcpReceiveConfigType 
  */
 function getFramingModeLabel(mode: TcpFramingMode | undefined): string {
   if (!mode) return getLL().panels.tcpConnect.notSet();
-  return FRAMING_MODE_OPTIONS.find(o => o.value === mode.type)?.label ?? mode.type;
+  return getFramingModeOptions().find(o => o.value === mode.type)?.label ?? mode.type;
 }
 
 export function TcpReceiveConfig({ data, onSave }: TcpReceiveConfigProps) {
@@ -325,7 +326,7 @@ export function TcpReceiveConfig({ data, onSave }: TcpReceiveConfigProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">{getLL().panels.tcpConnect.noFraming()}</SelectItem>
-                {FRAMING_MODE_OPTIONS.map((opt) => (
+                {getFramingModeOptions().map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>
@@ -406,7 +407,7 @@ export function TcpReceiveConfig({ data, onSave }: TcpReceiveConfigProps) {
         <div className="text-xs text-muted-foreground space-y-1">
           <p className="font-medium text-foreground">{getLL().panels.connection()}</p>
           <p>{getLL().panels.tcpReceive.connectionDesc()}</p>
-          <p>接收到的数据将存入变量供后续节点使用</p>
+          <p>{getLL().panels.tcpReceive.receiveData_help()}</p>
           <p>{getLL().panels.tcpReceive.currentFraming()} <code className="rounded bg-muted px-1">{getFramingModeLabel(currentFramingMode)}</code></p>
         </div>
       </div>

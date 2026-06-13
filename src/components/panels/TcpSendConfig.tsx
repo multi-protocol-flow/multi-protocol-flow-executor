@@ -19,61 +19,60 @@ import type { TcpSendConfig as TcpSendConfigType, TcpFramingMode } from '@/types
 import { useFlowStore } from '@/stores';
 import { isTcpConnectConfig } from '@/types/node';
 
-/**
- * 协议模板预设
- * 包含成帧配置和解析器配置，与后端 templates.rs 保持同步
- */
 interface ProtocolTemplate {
   id: string;
   name: string;
-  description: string;
+  description: () => string;
   category: string;
   framingMode?: TcpFramingMode;
   parserConfig?: Record<string, unknown>;
 }
 
-const PROTOCOL_TEMPLATES: ProtocolTemplate[] = [
-  {
-    id: 'redis_resp',
-    name: 'Redis RESP',
-    description: 'Redis 序列化协议',
-    category: 'cache',
-    framingMode: { type: 'delimiter', delimiter: '\r\n' },
-    parserConfig: { type: 'delimiter', delimiter_hex: '0d0a', keep_delimiter: false },
-  },
-  {
-    id: 'custom_tlv',
-    name: 'Custom TLV',
-    description: '自定义 Tag-Length-Value 协议',
-    category: 'binary',
-    framingMode: { type: 'length_prefix', prefix_bytes: 4 },
-    parserConfig: { type: 'tlv', tag_bytes: 1, length_bytes: 2, byte_order: 'big' },
-  },
-  {
-    id: 'fixed_header',
-    name: 'Fixed Header',
-    description: '固定头部长度协议',
-    category: 'binary',
-    framingMode: { type: 'length_prefix', prefix_bytes: 4 },
-    parserConfig: { type: 'length_prefix', prefix_bytes: 4, byte_order: 'big', includes_self: false },
-  },
-  {
-    id: 'http_like',
-    name: 'HTTP-like',
-    description: '类 HTTP 头部结束协议',
-    category: 'text',
-    framingMode: { type: 'delimiter', delimiter: '\r\n\r\n' },
-    parserConfig: { type: 'delimiter', delimiter_hex: '0d0a', keep_delimiter: false },
-  },
-  {
-    id: 'blank',
-    name: 'Blank',
-    description: '空白模板',
-    category: 'custom',
-    framingMode: undefined,
-    parserConfig: undefined,
-  },
-];
+function getProtocolTemplates(): ProtocolTemplate[] {
+  const ll = getLL().panels.tcpSend;
+  return [
+    {
+      id: 'redis_resp',
+      name: 'Redis RESP',
+      description: () => ll.redisResp_desc(),
+      category: 'cache',
+      framingMode: { type: 'delimiter', delimiter: '\r\n' },
+      parserConfig: { type: 'delimiter', delimiter_hex: '0d0a', keep_delimiter: false },
+    },
+    {
+      id: 'custom_tlv',
+      name: 'Custom TLV',
+      description: () => ll.customTLV_desc(),
+      category: 'binary',
+      framingMode: { type: 'length_prefix', prefix_bytes: 4 },
+      parserConfig: { type: 'tlv', tag_bytes: 1, length_bytes: 2, byte_order: 'big' },
+    },
+    {
+      id: 'fixed_header',
+      name: 'Fixed Header',
+      description: () => ll.fixedHeader_desc(),
+      category: 'binary',
+      framingMode: { type: 'length_prefix', prefix_bytes: 4 },
+      parserConfig: { type: 'length_prefix', prefix_bytes: 4, byte_order: 'big', includes_self: false },
+    },
+    {
+      id: 'http_like',
+      name: 'HTTP-like',
+      description: () => ll.httpLike_desc(),
+      category: 'text',
+      framingMode: { type: 'delimiter', delimiter: '\r\n\r\n' },
+      parserConfig: { type: 'delimiter', delimiter_hex: '0d0a', keep_delimiter: false },
+    },
+    {
+      id: 'blank',
+      name: 'Blank',
+      description: () => ll.blankTemplate_desc(),
+      category: 'custom',
+      framingMode: undefined,
+      parserConfig: undefined,
+    },
+  ];
+}
 
 interface TcpSendConfigProps {
   /** 当前节点数据 */
@@ -82,25 +81,27 @@ interface TcpSendConfigProps {
   onSave: (data: TcpSendConfigType) => void;
 }
 
-/**
- * 成帧模式选项
- */
-const FRAMING_MODE_OPTIONS = [
-  { value: 'length_prefix', label: '长度前缀 (Length Prefix)' },
-  { value: 'delimiter', label: '分隔符 (Delimiter)' },
-  { value: 'fixed_length', label: '固定长度 (Fixed Length)' },
-  { value: 'timeout', label: '超时读取 (Timeout)' },
-  { value: 'manual', label: '手动控制 (Manual)' },
-] as const;
+/** 成帧模式选项 */
+function getFramingModeOptions(): Array<{ value: string; label: string }> {
+  const ll = getLL().panels.tcpSend;
+  return [
+    { value: 'length_prefix', label: ll.lengthPrefix_option() },
+    { value: 'delimiter', label: ll.delimiter_option() },
+    { value: 'fixed_length', label: ll.fixedLength_option() },
+    { value: 'timeout', label: ll.timeoutRead_option() },
+    { value: 'manual', label: ll.manualControl_option() },
+  ];
+}
 
-/**
- * 数据编码方式选项
- */
-const DATA_ENCODING_OPTIONS = [
-  { value: 'text', label: '文本 (Text)' },
-  { value: 'hex', label: '十六进制 (Hex)' },
-  { value: 'base64', label: 'Base64' },
-] as const;
+/** 数据编码方式选项 */
+function getDataEncodingOptions(): Array<{ value: string; label: string }> {
+  const ll = getLL().panels.tcpSend;
+  return [
+    { value: 'text', label: ll.encodingText_option() },
+    { value: 'hex', label: ll.encodingHex_option() },
+    { value: 'base64', label: 'Base64' },
+  ];
+}
 
 /**
  * 将 TcpSendConfigType 转换为表单数据
@@ -139,7 +140,7 @@ function fromFormData(formData: TcpSendConfigFormData): TcpSendConfigType {
  */
 function getFramingModeLabel(mode: TcpFramingMode | undefined): string {
   if (!mode) return getLL().panels.tcpConnect.notSet();
-  return FRAMING_MODE_OPTIONS.find(o => o.value === mode.type)?.label ?? mode.type;
+  return getFramingModeOptions().find(o => o.value === mode.type)?.label ?? mode.type;
 }
 
 export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
@@ -308,7 +309,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
    */
   const handleTemplateChange = useCallback((templateId: string) => {
     setSelectedTemplate(templateId);
-    const template = PROTOCOL_TEMPLATES.find(t => t.id === templateId);
+    const template = getProtocolTemplates().find(t => t.id === templateId);
     if (!template) return;
     // 填充成帧配置
     if (template.framingMode) {
@@ -452,7 +453,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {DATA_ENCODING_OPTIONS.map((opt) => (
+            {getDataEncodingOptions().map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>
@@ -501,7 +502,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
           {getLL().panels.tcpSend.protocolTemplate()}
         </Label>
         <div className="grid grid-cols-2 gap-2">
-          {PROTOCOL_TEMPLATES.map((tpl) => {
+          {getProtocolTemplates().map((tpl) => {
             const isSelected = selectedTemplate === tpl.id;
             return (
               <button
@@ -522,7 +523,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
                 <span className={`text-[11px] leading-snug ${
                   isSelected ? 'text-emerald-600' : 'text-muted-foreground'
                 }`}>
-                  {tpl.description}
+                  {tpl.description()}
                 </span>
               </button>
             );
@@ -552,7 +553,7 @@ export function TcpSendConfig({ data, onSave }: TcpSendConfigProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">{getLL().panels.tcpSend.noFraming()}</SelectItem>
-                {FRAMING_MODE_OPTIONS.map((opt) => (
+                {getFramingModeOptions().map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>

@@ -25,16 +25,17 @@ interface TcpConnectConfigProps {
   onSave: (data: TcpConnectConfigType) => void;
 }
 
-/**
- * 成帧模式选项
- */
-const FRAMING_MODE_OPTIONS = [
-  { value: 'length_prefix', label: '长度前缀 (Length Prefix)' },
-  { value: 'delimiter', label: '分隔符 (Delimiter)' },
-  { value: 'fixed_length', label: '固定长度 (Fixed Length)' },
-  { value: 'timeout', label: '超时读取 (Timeout)' },
-  { value: 'manual', label: '手动控制 (Manual)' },
-] as const;
+/** 成帧模式选项 */
+function getFramingModeOptions(): Array<{ value: string; label: string }> {
+  const ll = getLL().panels.tcpConnect;
+  return [
+    { value: 'length_prefix', label: ll.lengthPrefix_option() },
+    { value: 'delimiter', label: ll.delimiter_option() },
+    { value: 'fixed_length', label: ll.fixedLength_option() },
+    { value: 'timeout', label: ll.timeoutRead_option() },
+    { value: 'manual', label: ll.manualControl_option() },
+  ];
+}
 
 /**
  * 将 TcpConnectConfigType 转换为表单数据
@@ -83,7 +84,7 @@ function fromFormData(formData: TcpConnectConfigFormData): TcpConnectConfigType 
  */
 function getFramingModeLabel(mode: TcpFramingMode | undefined): string {
   if (!mode) return getLL().panels.tcpConnect.notSet();
-  return FRAMING_MODE_OPTIONS.find(o => o.value === mode.type)?.label ?? mode.type;
+  return getFramingModeOptions().find(o => o.value === mode.type)?.label ?? mode.type;
 }
 
 export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
@@ -482,7 +483,7 @@ export function TcpConnectConfig({ data, onSave }: TcpConnectConfigProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">{getLL().panels.tcpConnect.noFraming()}</SelectItem>
-                {FRAMING_MODE_OPTIONS.map((opt) => (
+                {getFramingModeOptions().map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>
