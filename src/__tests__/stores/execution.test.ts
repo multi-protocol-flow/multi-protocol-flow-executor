@@ -474,8 +474,12 @@ describe('ExecutionStore', () => {
         total_nodes: 1,
         executed_count: 1,
         status: 'success',
-        node_reports: [],
-        statistics: { success_count: 0, failed_count: 0 },
+        node_reports: [{
+          node_uuid: 'n1', node_type: 'entry', node_name: 'Entry',
+          start_time: 1000, end_time: 1100, duration_ms: 100,
+          status: 'success', input_data: null, output_data: null,
+        }],
+        statistics: { success_count: 1, failed_count: 0 },
       };
 
       useExecutionStore.getState().handleExecutionEvent({
@@ -486,6 +490,9 @@ describe('ExecutionStore', () => {
       expect(state.isExecuting).toBe(false);
       expect(state.report).toBeDefined();
       expect(state.report!.uuid).toBe('r1');
+      // 验证完成计数已从报告同步
+      expect(state.completedNodeCount).toBe(1);
+      expect(state.totalNodes).toBe(1);
     });
 
     it('should handle full event sequence', () => {
@@ -523,18 +530,34 @@ describe('ExecutionStore', () => {
       expect(useExecutionStore.getState().completedNodeCount).toBe(2);
       expect(useExecutionStore.getState().nodeReportsMap['n2'].status).toBe('failed');
 
-      // FlowCompleted
+      // FlowCompleted — 使用包含之前已完成节点报告的 node_reports
       handleExecutionEvent({
         flowCompleted: {
           report: {
             uuid: 'r1', flow_uuid: 'f1', flow_name: 'Test',
             start_time: 1000, end_time: 1500, duration_ms: 500,
             total_nodes: 2, executed_count: 2, status: 'failed',
-            node_reports: [], statistics: { success_count: 0, failed_count: 0 },
+            node_reports: [
+              {
+                node_uuid: 'n1', node_type: 'entry', node_name: 'Entry',
+                start_time: 1000, end_time: 1100, duration_ms: 100,
+                status: 'success', input_data: null, output_data: null,
+              },
+              {
+                node_uuid: 'n2', node_type: 'http', node_name: 'HTTP',
+                start_time: 1100, end_time: 1500, duration_ms: 400,
+                status: 'failed', input_data: null, output_data: null,
+                error: { error_kind: 'connection', message: 'Connection refused' },
+              },
+            ],
+            statistics: { success_count: 1, failed_count: 1 },
           },
         },
       });
       expect(useExecutionStore.getState().isExecuting).toBe(false);
+      // 验证完成计数已从报告同步（覆盖之前的增量值）
+      expect(useExecutionStore.getState().completedNodeCount).toBe(2);
+      expect(useExecutionStore.getState().totalNodes).toBe(2);
     });
 
     it('FlowStarted should clear previous incremental state', () => {

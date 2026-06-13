@@ -149,6 +149,9 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
           isExecuting: false,
           report,
           history: newHistory,
+          // 从最终报告同步增量计数器，确保面板计数与报告一致
+          completedNodeCount: report?.node_reports.length ?? state.completedNodeCount,
+          totalNodes: report?.total_nodes ?? state.totalNodes,
         };
       }),
 
@@ -211,6 +214,9 @@ export const useExecutionStore = create<ExecutionState>((set, get) => {
             isExecuting: false,
             report,
             history: newHistory,
+            // 从最终报告同步增量计数器，保证面板计数与报告保持一致
+            completedNodeCount: report.node_reports.length,
+            totalNodes: report.total_nodes,
           };
         });
       } else if ('flowCancelled' in event) {
