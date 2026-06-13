@@ -256,11 +256,18 @@ impl NodePlugin for GrpcClosePlugin {
     }
 
     fn ports(&self) -> Vec<PortDef> {
-        vec![PortDef {
-            id: "out".into(),
-            label: "输出".into(),
-            position: "right".into(),
-        }]
+        vec![
+            PortDef {
+                id: "true".into(),
+                label: "成功".into(),
+                position: "right".into(),
+            },
+            PortDef {
+                id: "false".into(),
+                label: "失败".into(),
+                position: "bottom".into(),
+            },
+        ]
     }
 
     fn default_config(&self) -> serde_json::Value {
@@ -376,8 +383,9 @@ mod tests {
         assert!(plugin.supports_false_port());
 
         let ports = plugin.ports();
-        assert_eq!(ports.len(), 1);
-        assert_eq!(ports[0].id, "out");
+        assert_eq!(ports.len(), 2);
+        assert_eq!(ports[0].id, "true");
+        assert_eq!(ports[1].id, "false");
     }
 
     #[test]
