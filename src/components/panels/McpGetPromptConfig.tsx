@@ -343,7 +343,7 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
             </Select>
             <div className="flex items-center gap-1.5">
               <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                {discoveredPrompts.length} 个提示词
+                {getLL().panels.mcpGetPrompt.promptCount({ count: discoveredPrompts.length })}
               </span>
             </div>
           </div>
@@ -392,7 +392,7 @@ export function McpGetPromptConfig({ data, onSave }: McpGetPromptConfigProps) {
       {selectedPrompt?.arguments && selectedPrompt.arguments.length > 0 && (
         <div className="space-y-2">
           <Label className="text-sm font-medium text-foreground">
-            提示词参数
+            {getLL().panels.mcpGetPrompt.argsLabel()}
           </Label>
           <div className="space-y-3">
             {selectedPrompt.arguments.map((arg) => (

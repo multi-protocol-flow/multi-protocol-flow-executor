@@ -104,9 +104,9 @@ export function RedisConnectConfig({ data, onSave }: RedisConnectConfigProps) {
       });
 
       if (result) {
-        setTestResult({ success: true, message: `Redis 连接成功 (${resolvedHost}:${formData.port}, db=${formData.db_index})` });
+        setTestResult({ success: true, message: getLL().panels.redisConnect.testSuccess_msg() });
       } else {
-        setTestResult({ success: false, message: '连接失败，请检查配置' });
+        setTestResult({ success: false, message: getLL().panels.redisConnect.testFailed_msg() });
       }
     } catch (error) {
       setTestResult({

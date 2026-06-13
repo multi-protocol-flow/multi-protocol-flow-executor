@@ -583,8 +583,8 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
           </div>
           <p className="text-xs text-muted-foreground pl-2">
             {enableReflection
-              ? '{getLL().panels.grpcConnect.reflectionDescription()}'
-              : '{getLL().panels.grpcConnect.manualProtoDescription()}'}
+              ? getLL().panels.grpcConnect.reflectionDescription()
+              : getLL().panels.grpcConnect.manualProtoDescription()}
           </p>
 
           {/* Reflection 认证 Metadata（仅 Reflection 模式显示） */}
@@ -600,7 +600,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                   className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
                 >
                   <Plus className="h-3 w-3" />
-                  添加
+                  {getLL().panels.add()}
                 </Button>
               </div>
               <p className="text-[11px] text-muted-foreground/70">
@@ -866,7 +866,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
             <div className="flex items-center justify-between">
               <Label className="text-xs text-muted-foreground">{getLL().panels.grpcConnect.discoveredServices()}</Label>
               <span className="inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300">
-                {displayServices.length} 个服务
+                {getLL().panels.grpcConnect.servicesUnit({ count: displayServices.length })}
               </span>
             </div>
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
@@ -891,7 +891,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                       </span>
                       <div className="flex items-center gap-2 shrink-0 ml-2">
                         <span className="text-xs text-muted-foreground">
-                          {service.methods.length} 个方法
+                          {getLL().panels.grpcConnect.methodUnit({ count: service.methods.length })}
                         </span>
                         <ChevronDown className={cn(
                           "h-3.5 w-3.5 text-muted-foreground transition-transform",
@@ -920,7 +920,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
                               </span>
                             ) : (
                               <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-300">
-                                Unary
+                                {getLL().panels.grpcConnect.unary()}
                               </span>
                             )}
                           </div>
@@ -947,7 +947,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加
+            {getLL().panels.add()}
           </Button>
         </div>
         <div className="space-y-2">
@@ -1136,7 +1136,7 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
             ) : (
               <RefreshCw className="h-4 w-4" />
             )}
-            {isChannelzLoading ? '{getLL().panels.grpcConnect.channelzQuerying()}' : '查询连接状态'}
+            {isChannelzLoading ? getLL().panels.grpcConnect.channelzQuerying() : getLL().panels.grpcConnect.queryState()}
           </Button>
 
           {/* Channelz 结果 */}
@@ -1256,10 +1256,10 @@ export function GrpcConnectConfig({ data, onSave }: GrpcConnectConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">{getLL().panels.grpcConnect.protoSource()}说明：</p>
+          <p className="font-medium text-foreground">{getLL().panels.grpcConnect.protoSource()}{getLL().panels.grpcConnect.helpSuffix()}</p>
           <p><code className="rounded bg-muted px-1">Server Reflection</code> {getLL().panels.grpcConnect.reflectionExplanation()}</p>
-          <p><code className="rounded bg-muted px-1">手动上传</code> {getLL().panels.grpcConnect.manualUploadExplanation()}</p>
-          <p><code className="rounded bg-muted px-1">测试连接</code> {getLL().panels.grpcConnect.testConnectionExplanation()}</p>
+          <p><code className="rounded bg-muted px-1">{getLL().panels.grpcConnect.manualUploadLabel()}</code> {getLL().panels.grpcConnect.manualUploadExplanation()}</p>
+          <p><code className="rounded bg-muted px-1">{getLL().panels.grpcConnect.testConnectionLabel()}</code> {getLL().panels.grpcConnect.testConnectionExplanation()}</p>
         </div>
       </div>
     </form>

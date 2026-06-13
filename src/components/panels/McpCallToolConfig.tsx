@@ -519,7 +519,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
             </Select>
             <div className="flex items-center gap-1.5">
               <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                {discoveredTools.length} 个工具
+                {getLL().panels.mcpCallTool.toolCount({ count: discoveredTools.length })}
               </span>
             </div>
           </div>
@@ -594,7 +594,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label className="text-sm font-medium text-foreground">
-            工具参数
+            {getLL().panels.mcpCallTool.argsLabel()}
           </Label>
           {selectedTool?.input_schema && schemaAnalysis.isSimple && schemaAnalysis.fields.length > 0 && (
             <button
@@ -642,7 +642,7 @@ export function McpCallToolConfig({ data, onSave }: McpCallToolConfigProps) {
                       onCheckedChange={(checked) => handleFormValueChange(field.name, checked)}
                     />
                     <span className="text-xs text-muted-foreground">
-                      {formValues[field.name] ? '是' : '否'}
+                      {formValues[field.name] ? getLL().panels.mcpCallTool.booleanYes() : getLL().panels.mcpCallTool.booleanNo()}
                     </span>
                   </div>
                 ) : field.type === 'number' ? (

@@ -660,7 +660,7 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
         {discoveredServices.length === 0 && (
           <p className="text-xs text-muted-foreground">
             {getLL().panels.grpcCall.fullServiceName()} <code className="rounded bg-muted px-1">mypackage.MyService</code>
-            {currentConnectionId && '{getLL().panels.grpcCall.noDiscoveredServices()}'}
+            {currentConnectionId && getLL().panels.grpcCall.noDiscoveredServices()}
           </p>
         )}
       </div>
@@ -811,7 +811,7 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
               onClick={() => setGrpcurlCommand(null)}
               className="text-xs text-muted-foreground hover:text-foreground"
             >
-              关闭
+              {getLL().panels.close()}
             </button>
           </div>
         )}
@@ -837,7 +837,7 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
           </div>
           {messageFields.fields.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">点击"{getLL().panels.grpcCall.addMessage()}"按钮添加请求消息</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.grpcCall.clickAddMessageHint()}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -910,7 +910,7 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
                       try {
                         JSON.parse(currentJson);
                       } catch {
-                        setModeSwitchError('{getLL().panels.grpcCall.jsonFormatError()}');
+                        setModeSwitchError(getLL().panels.grpcCall.jsonFormatError());
                         return;
                       }
                     }
@@ -926,7 +926,7 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
                   }`}
                 >
                   <FileText className="h-3 w-3" />
-                  表单
+                  {getLL().panels.grpcCall.formMode()}
                 </button>
               </div>
               {/* {getLL().panels.grpcCall.generateSkeleton()}按钮（仅 JSON 模式显示） */}
@@ -984,7 +984,7 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5 text-xs text-amber-600">
                     <XCircle className="h-3 w-3" />
-                    <span>发现 {validationErrors.length} 个问题{getLL().panels.grpcCall.validationWarning({ count: validationErrors.length })}</span>
+                    <span>{getLL().panels.grpcCall.validationWarning({ count: validationErrors.length })}</span>
                   </div>
                   <div className="max-h-[120px] overflow-y-auto rounded border border-amber-200 bg-amber-50/50 p-2">
                     {validationErrors.map((err, idx) => (
@@ -1020,8 +1020,8 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
               {!hasSchemaForForm && (
                 <p className="text-xs text-muted-foreground">
                   {protoFiles.length === 0
-                    ? '{getLL().panels.grpcCall.noProtoFileHint()}'
-                    : '{getLL().panels.grpcCall.noMessageDefHint()}'}
+                    ? getLL().panels.grpcCall.noProtoFileHint()
+                    : getLL().panels.grpcCall.noMessageDefHint()}
                 </p>
               )}
             </>
@@ -1041,7 +1041,7 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加
+            {getLL().panels.add()}
           </Button>
         </div>
         <div className="space-y-2">
@@ -1108,7 +1108,7 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
           }}
         >
           <SelectTrigger id="call_compression_encoding" className="font-mono text-sm">
-            <SelectValue placeholder="{getLL().panels.grpcCall.inheritDefault()}" />
+              <SelectValue placeholder={getLL().panels.grpcCall.inheritDefault()} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="inherit">{getLL().panels.grpcCall.inheritDefault()}</SelectItem>
@@ -1127,7 +1127,7 @@ export function GrpcCallConfig({ data, onSave }: GrpcCallConfigProps) {
         <div className="text-xs text-muted-foreground space-y-1">
           <p className="font-medium text-foreground">{getLL().panels.grpcCall.callExplanation()}</p>
           <p>{getLL().panels.grpcCall.callExplanation1()}</p>
-          <p>请求 JSON 会根据方法的 Input Type {getLL().panels.grpcCall.generateSkeleton()}结构</p>
+          <p>{getLL().panels.grpcCall.callExplanation2()}</p>
           <p>{getLL().panels.grpcCall.callExplanation3()}</p>
         </div>
       </div>

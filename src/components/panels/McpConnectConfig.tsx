@@ -396,7 +396,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
       {/* 传输模式选择 */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-foreground">
-          传输模式
+          {getLL().panels.mcpConnect.transportMode()}
         </Label>
         <Select
           value={currentTransport}
@@ -412,8 +412,8 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
         </Select>
         <p className="text-xs text-muted-foreground">
           {currentTransport === 'streamable_http'
-            ? '{getLL().panels.mcpConnect.transportHttpDesc()}'
-            : '{getLL().panels.mcpConnect.transportStdioDesc()}'}
+            ? getLL().panels.mcpConnect.transportHttpDesc()
+            : getLL().panels.mcpConnect.transportStdioDesc()}
         </p>
       </div>
 
@@ -456,7 +456,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
                 className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
               >
                 <Plus className="h-3 w-3" />
-                添加
+                {getLL().panels.add()}
               </Button>
             </div>
             <div className="space-y-2">
@@ -521,7 +521,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           {/* Args */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-foreground">{getLL().panels.mcpConnect.command()}参数（可选）</Label>
+              <Label className="text-sm font-medium text-foreground">{getLL().panels.mcpConnect.command()} {getLL().panels.mcpConnect.argsOptional()}</Label>
               <Button
                 type="button"
                 variant="ghost"
@@ -533,7 +533,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
                 className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
               >
                 <Plus className="h-3 w-3" />
-                添加
+                {getLL().panels.add()}
               </Button>
             </div>
             <div className="space-y-2">
@@ -585,7 +585,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
                 className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
               >
                 <Plus className="h-3 w-3" />
-                添加
+                {getLL().panels.add()}
               </Button>
             </div>
             <div className="space-y-2">
@@ -660,7 +660,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
         {/* 发现成功摘要 */}
         {hasDiscoveredData && !discoveryError && (
           <div className="rounded-md border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
-            <p>getLL().panels.mcpConnect.discoverySummary(displayTools.length, displayResources.length, displayPrompts.length)</p>
+            <p>{getLL().panels.mcpConnect.discoverySummary({ tools: displayTools.length, resources: displayResources.length, prompts: displayPrompts.length })}</p>
           </div>
         )}
       </div>
@@ -828,7 +828,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
                   </div>
                   {prompt.arguments && prompt.arguments.length > 0 && (
                     <Badge variant="outline" className="shrink-0 h-5 px-1.5 text-[10px]">
-                      getLL().panels.mcpConnect.argCount()
+                      {getLL().panels.mcpConnect.argCount({ count: prompt.arguments.length })}
                     </Badge>
                   )}
                 </div>
@@ -850,7 +850,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          MCP {getLL().panels.mcpConnect.protocolVersion()}号，默认 2025-11-25
+          {getLL().panels.mcpConnect.protocolVersionHint({ version: '2025-11-25' })}
         </p>
       </div>
 
@@ -861,7 +861,7 @@ export function McpConnectConfig({ data, onSave }: McpConnectConfigProps) {
           <p className="font-medium text-foreground">{getLL().panels.mcpConnect.protocolExplanation()}</p>
           <p>{getLL().panels.mcpConnect.protocolExplanation1()}</p>
           <p>{getLL().panels.mcpConnect.protocolExplanation2()}</p>
-          <p><code className="rounded bg-muted px-1">测试连接</code> 验证连接并发现可用工具、资源和提示词，结果自动缓存供下游节点使用</p>
+          <p>{getLL().panels.mcpConnect.testConnectionHelp()}</p>
         </div>
       </div>
     </form>
