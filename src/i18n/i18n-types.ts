@@ -988,6 +988,18 @@ type RootTranslation = {
 		 * 可​选​，​如​ ​g​r​o​u​p​1
 		 */
 		groupIdExample: string
+		/**
+		 * 必​填
+		 */
+		badge_required: string
+		/**
+		 * 高​级
+		 */
+		badge_advanced: string
+		/**
+		 * 可​选
+		 */
+		badge_optional: string
 		http: {
 			/**
 			 * 请​求​方​法
@@ -2356,14 +2368,14 @@ type RootTranslation = {
 			 * 节​点​执​行​失​败​时​停​止​流​程​并​报​错
 			 */
 			abort_flow_desc: string
-		/**
-		 * 忽​略​错​误
-		 */
-		ignore: string
-		/**
-		 * 忽​略​错​误​，​继​续​正​常​执​行
-		 */
-		ignore_desc: string
+			/**
+			 * 忽​略​错​误
+			 */
+			ignore: string
+			/**
+			 * 忽​略​错​误​，​继​续​正​常​执​行
+			 */
+			ignore_desc: string
 		}
 		conditional: {
 			/**
@@ -2946,6 +2958,26 @@ type RootTranslation = {
 			 * 未​设​置
 			 */
 			notSet: string
+			/**
+			 * 长​度​前​缀​ ​(​L​e​n​g​t​h​ ​P​r​e​f​i​x​)
+			 */
+			lengthPrefix_option: string
+			/**
+			 * 分​隔​符​ ​(​D​e​l​i​m​i​t​e​r​)
+			 */
+			delimiter_option: string
+			/**
+			 * 固​定​长​度​ ​(​F​i​x​e​d​ ​L​e​n​g​t​h​)
+			 */
+			fixedLength_option: string
+			/**
+			 * 超​时​读​取​ ​(​T​i​m​e​o​u​t​)
+			 */
+			timeoutRead_option: string
+			/**
+			 * 手​动​控​制​ ​(​M​a​n​u​a​l​)
+			 */
+			manualControl_option: string
 		}
 		tcpSend: {
 			/**
@@ -3130,6 +3162,54 @@ type RootTranslation = {
 			 * 小​端​序​ ​(​L​i​t​t​l​e​ ​E​n​d​i​a​n​)
 			 */
 			littleEndian: string
+			/**
+			 * R​e​d​i​s​ ​序​列​化​协​议
+			 */
+			redisResp_desc: string
+			/**
+			 * 自​定​义​ ​T​a​g​-​L​e​n​g​t​h​-​V​a​l​u​e​ ​协​议
+			 */
+			customTLV_desc: string
+			/**
+			 * 固​定​头​部​长​度​协​议
+			 */
+			fixedHeader_desc: string
+			/**
+			 * 类​ ​H​T​T​P​ ​头​部​结​束​协​议
+			 */
+			httpLike_desc: string
+			/**
+			 * 空​白​模​板
+			 */
+			blankTemplate_desc: string
+			/**
+			 * 长​度​前​缀​ ​(​L​e​n​g​t​h​ ​P​r​e​f​i​x​)
+			 */
+			lengthPrefix_option: string
+			/**
+			 * 分​隔​符​ ​(​D​e​l​i​m​i​t​e​r​)
+			 */
+			delimiter_option: string
+			/**
+			 * 固​定​长​度​ ​(​F​i​x​e​d​ ​L​e​n​g​t​h​)
+			 */
+			fixedLength_option: string
+			/**
+			 * 超​时​读​取​ ​(​T​i​m​e​o​u​t​)
+			 */
+			timeoutRead_option: string
+			/**
+			 * 手​动​控​制​ ​(​M​a​n​u​a​l​)
+			 */
+			manualControl_option: string
+			/**
+			 * 文​本​ ​(​T​e​x​t​)
+			 */
+			encodingText_option: string
+			/**
+			 * 十​六​进​制​ ​(​H​e​x​)
+			 */
+			encodingHex_option: string
 		}
 		tcpClose: {
 			/**
@@ -3243,6 +3323,30 @@ type RootTranslation = {
 			 * 超​时​后​视​为​一​帧​结​束
 			 */
 			readTimeoutDesc: string
+			/**
+			 * 长​度​前​缀​ ​(​L​e​n​g​t​h​ ​P​r​e​f​i​x​)
+			 */
+			lengthPrefix_option: string
+			/**
+			 * 分​隔​符​ ​(​D​e​l​i​m​i​t​e​r​)
+			 */
+			delimiter_option: string
+			/**
+			 * 固​定​长​度​ ​(​F​i​x​e​d​ ​L​e​n​g​t​h​)
+			 */
+			fixedLength_option: string
+			/**
+			 * 超​时​读​取​ ​(​T​i​m​e​o​u​t​)
+			 */
+			timeoutRead_option: string
+			/**
+			 * 手​动​控​制​ ​(​M​a​n​u​a​l​)
+			 */
+			manualControl_option: string
+			/**
+			 * 接​收​到​的​数​据​将​存​入​变​量​供​后​续​节​点​使​用
+			 */
+			receiveData_help: string
 		}
 		udpBind: {
 			/**
@@ -3391,6 +3495,42 @@ type RootTranslation = {
 			 * B​a​s​e​6​4
 			 */
 			base64Encoding: string
+			/**
+			 * 文​本​ ​(​T​e​x​t​)
+			 */
+			encodingText_option: string
+			/**
+			 * 十​六​进​制​ ​(​H​e​x​)
+			 */
+			encodingHex_option: string
+			/**
+			 * 数​据​报​发​送​的​目​标​主​机​地​址
+			 */
+			targetAddr_help: string
+			/**
+			 * 范​围​ ​1​-​6​5​5​3​5
+			 */
+			portRange_help: string
+			/**
+			 * 选​择​数​据​的​编​码​格​式​，​发​送​前​会​自​动​解​码​为​原​始​字​节
+			 */
+			encoding_help: string
+			/**
+			 * 输​入​要​发​送​的​数​据​.​.​.
+			 */
+			dataPlaceholder: string
+			/**
+			 * 十​六​进​制​格​式​，​如​ ​4​8​6​5​6​C​6​C​6​F
+			 */
+			hexFormat_help: string
+			/**
+			 * B​a​s​e​6​4​ ​编​码​的​字​符​串
+			 */
+			base64Format_help: string
+			/**
+			 * 纯​文​本​数​据​，​支​持​变​量​引​用​ ​{​{​v​a​r​i​a​b​l​e​}​}
+			 */
+			textFormat_help: string
 		}
 		udpRecvFrom: {
 			/**
@@ -3421,6 +3561,22 @@ type RootTranslation = {
 			 * 字​节​，​最​大​ ​6​5​5​3​6
 			 */
 			maxSizeHint: string
+			/**
+			 * 接​收​说​明​：
+			 */
+			help_title: string
+			/**
+			 * U​D​P​ ​接​收​是​阻​塞​操​作​，​超​时​会​返​回​错​误
+			 */
+			help_line1: string
+			/**
+			 * 接​收​到​的​数​据​报​包​含​发​送​方​的​地​址​和​端​口​信​息
+			 */
+			help_line2: string
+			/**
+			 * 超​过​最​大​接​收​大​小​的​数​据​报​会​被​截​断
+			 */
+			help_line3: string
 			/**
 			 * 未​检​测​到​ ​U​D​P​ ​B​i​n​d​ ​节​点​，​请​手​动​输​入​连​接​ ​I​D
 			 */
@@ -3799,6 +3955,38 @@ type RootTranslation = {
 			 * 配​置​ ​O​A​u​t​h​2​ ​认​证​令​牌
 			 */
 			oauth2Desc: string
+			/**
+			 * 连​接​成​功
+			 */
+			testSuccess_msg: string
+			/**
+			 * 连​接​失​败​，​未​知​错​误
+			 */
+			testFailed_msg: string
+			/**
+			 * 自​定​义
+			 */
+			custom_option: string
+			/**
+			 * 留​空​时​执​行​器​将​自​动​生​成​唯​一​连​接​ ​I​D
+			 */
+			connectionId_help: string
+			/**
+			 * S​M​T​P​ ​连​接​说​明​：
+			 */
+			help_title: string
+			/**
+			 * S​T​A​R​T​T​L​S​ ​模​式​通​常​使​用​端​口​ ​5​8​7​，​隐​式​ ​T​L​S​ ​使​用​端​口​ ​4​6​5
+			 */
+			help_line1: string
+			/**
+			 * P​L​A​I​N​ ​和​ ​L​O​G​I​N​ ​是​最​常​见​的​认​证​方​式
+			 */
+			help_line2: string
+			/**
+			 * X​O​A​U​T​H​2​ ​支​持​ ​G​m​a​i​l​、​O​u​t​l​o​o​k​ ​等​服​务​商​的​ ​O​A​u​t​h​2​ ​令​牌
+			 */
+			help_line3: string
 		}
 		smtpSend: {
 			/**
@@ -3929,6 +4117,10 @@ type RootTranslation = {
 			 * 暂​无​自​定​义​头
 			 */
 			noCustomHeaders_text: string
+			/**
+			 * 暂​无​自​定​义​头
+			 */
+			noCustomHeaders: string
 		}
 		smtpClose: {
 			/**
@@ -4878,6 +5070,86 @@ type RootTranslation = {
 			 * 遗​嘱​ ​Q​o​S
 			 */
 			willQos_label: string
+			/**
+			 * Q​o​S​ ​0​ ​—​ ​最​多​一​次
+			 */
+			qos0_option: string
+			/**
+			 * Q​o​S​ ​1​ ​—​ ​至​少​一​次
+			 */
+			qos1_option: string
+			/**
+			 * Q​o​S​ ​2​ ​—​ ​恰​好​一​次
+			 */
+			qos2_option: string
+			/**
+			 * 遗​嘱​保​留
+			 */
+			willRetain_label: string
+			/**
+			 * 启​用​ ​T​L​S
+			 */
+			enableTls_label: string
+			/**
+			 * 使​用​ ​T​L​S​ ​加​密​连​接​ ​(​m​q​t​t​s​:​/​/​)
+			 */
+			enableTls_desc: string
+			/**
+			 * 不​验​证​服​务​器​ ​T​L​S​ ​证​书
+			 */
+			skipCertVerify_desc: string
+			/**
+			 * M​Q​T​T​ ​5​.​0​ ​高​级​选​项
+			 */
+			mqtt5_sectionTitle: string
+			/**
+			 * 会​话​过​期​间​隔​（​秒​）
+			 */
+			sessionExpiry_label: string
+			/**
+			 * 遗​嘱​延​迟​间​隔​（​秒​）
+			 */
+			willDelayInterval_label: string
+			/**
+			 * 接​收​最​大​值
+			 */
+			receiveMaximum_label: string
+			/**
+			 * 主​题​别​名​最​大​值
+			 */
+			topicAliasMaximum_label: string
+			/**
+			 * 最​大​报​文​大​小​（​字​节​）
+			 */
+			maxPacketSize_label: string
+			/**
+			 * 用​户​属​性​（​可​选​）
+			 */
+			userProperties_label: string
+			/**
+			 * M​Q​T​T​ ​连​接​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 支​持​ ​M​Q​T​T​ ​5​.​0​ ​和​ ​3​.​1​.​1​ ​协​议​版​本
+			 */
+			help_line1: string
+			/**
+			 * 遗​嘱​消​息​在​连​接​异​常​断​开​时​由​ ​B​r​o​k​e​r​ ​自​动​发​布
+			 */
+			help_line2: string
+			/**
+			 * M​Q​T​T​ ​5​.​0​ ​高​级​选​项​仅​在​协​议​版​本​为​ ​5​.​0​ ​时​可​用
+			 */
+			help_line3: string
+			/**
+			 * 连​接​成​功
+			 */
+			testSuccess_msg: string
+			/**
+			 * 连​接​失​败​，​未​知​错​误
+			 */
+			testFailed_msg: string
 		}
 		mqttPublish: {
 			/**
@@ -4900,6 +5172,90 @@ type RootTranslation = {
 			 * 未​检​测​到​ ​M​Q​T​T​ ​C​o​n​n​e​c​t​ ​节​点​，​请​手​动​输​入​连​接​ ​I​D
 			 */
 			noConnectNode: string
+			/**
+			 * 载​荷​格​式
+			 */
+			payloadFormat_label: string
+			/**
+			 * 文​本​ ​(​T​e​x​t​)
+			 */
+			text_option: string
+			/**
+			 * 十​六​进​制​ ​(​H​e​x​)
+			 */
+			hex_option: string
+			/**
+			 * Q​o​S​ ​等​级
+			 */
+			qos_label: string
+			/**
+			 * Q​o​S​ ​0​ ​—​ ​最​多​一​次
+			 */
+			qos0_option: string
+			/**
+			 * Q​o​S​ ​1​ ​—​ ​至​少​一​次
+			 */
+			qos1_option: string
+			/**
+			 * Q​o​S​ ​2​ ​—​ ​恰​好​一​次
+			 */
+			qos2_option: string
+			/**
+			 * 保​留​消​息
+			 */
+			retain_label: string
+			/**
+			 * B​r​o​k​e​r​ ​保​留​此​消​息​的​最​后​一​条
+			 */
+			retain_desc: string
+			/**
+			 * M​Q​T​T​ ​5​.​0​ ​选​项
+			 */
+			mqtt5_sectionTitle: string
+			/**
+			 * 内​容​类​型
+			 */
+			contentType_label: string
+			/**
+			 * 消​息​过​期​间​隔​（​秒​）
+			 */
+			messageExpiry_label: string
+			/**
+			 * 响​应​主​题
+			 */
+			responseTopic_label: string
+			/**
+			 * 关​联​数​据
+			 */
+			correlationData_label: string
+			/**
+			 * 主​题​别​名
+			 */
+			topicAlias_label: string
+			/**
+			 * 用​户​属​性​（​可​选​）
+			 */
+			userProperties_label: string
+			/**
+			 * 暂​无​用​户​属​性
+			 */
+			noUserProperties: string
+			/**
+			 * 发​布​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 选​择​已​建​立​的​ ​M​Q​T​T​ ​连​接​，​指​定​发​布​主​题​和​载​荷
+			 */
+			help_line1: string
+			/**
+			 * Q​o​S​ ​等​级​越​高​可​靠​性​越​好​，​但​延​迟​和​带​宽​开​销​也​越​大
+			 */
+			help_line2: string
+			/**
+			 * 连​接
+			 */
+			connection_label: string
 		}
 		mqttSubscribe: {
 			/**
@@ -4918,6 +5274,106 @@ type RootTranslation = {
 			 * 共​享​订​阅​组​名
 			 */
 			shareGroup: string
+			/**
+			 * 连​接
+			 */
+			connection_label: string
+			/**
+			 * Q​o​S​ ​等​级
+			 */
+			qos_label: string
+			/**
+			 * Q​o​S​ ​0​ ​—​ ​最​多​一​次
+			 */
+			qos0_option: string
+			/**
+			 * Q​o​S​ ​1​ ​—​ ​至​少​一​次
+			 */
+			qos1_option: string
+			/**
+			 * Q​o​S​ ​2​ ​—​ ​恰​好​一​次
+			 */
+			qos2_option: string
+			/**
+			 * 输​出​模​式
+			 */
+			outputMode_label: string
+			/**
+			 * 首​条​消​息
+			 */
+			firstMessage_option: string
+			/**
+			 * 全​部​消​息
+			 */
+			allMessages_option: string
+			/**
+			 * 采​集​配​置
+			 */
+			collectConfig_sectionTitle: string
+			/**
+			 * 最​大​消​息​数
+			 */
+			maxMessages_label: string
+			/**
+			 * 采​集​超​时​（​毫​秒​）
+			 */
+			collectTimeout_label: string
+			/**
+			 * 设​置​后​将​使​用​共​享​订​阅​：
+			 */
+			shareSubscription_help: string
+			/**
+			 * M​Q​T​T​ ​5​.​0​ ​选​项
+			 */
+			mqtt5_sectionTitle: string
+			/**
+			 * 不​接​收​自​身​消​息
+			 */
+			noLocal_label: string
+			/**
+			 * n​o​_​l​o​c​a​l​:​ ​不​转​发​自​己​发​布​的​消​息
+			 */
+			noLocal_desc: string
+			/**
+			 * 保​留​消​息​按​原​样​发​布
+			 */
+			retainAsPublished_label: string
+			/**
+			 * 保​留​消​息​处​理​策​略
+			 */
+			retainHandling_label: string
+			/**
+			 * 0​ ​—​ ​发​送​保​留​消​息
+			 */
+			retainHandling0: string
+			/**
+			 * 1​ ​—​ ​仅​新​订​阅​时​发​送
+			 */
+			retainHandling1: string
+			/**
+			 * 2​ ​—​ ​不​发​送​保​留​消​息
+			 */
+			retainHandling2: string
+			/**
+			 * 订​阅​标​识​符
+			 */
+			subscriptionId_label: string
+			/**
+			 * 订​阅​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 主​题​支​持​ ​M​Q​T​T​ ​通​配​符​：​+​ ​匹​配​单​层​，​#​ ​匹​配​多​层​（​必​须​在​末​尾​）
+			 */
+			help_line1: string
+			/**
+			 * 输​出​模​式​「​首​条​消​息​」​等​待​第​一​条​即​完​成​，​「​全​部​消​息​」​需​配​合​采​集​超​时​使​用
+			 */
+			help_line2: string
+			/**
+			 * 共​享​订​阅​需​要​ ​B​r​o​k​e​r​ ​支​持​此​特​性
+			 */
+			help_line3: string
 		}
 		mqttUnsubscribe: {
 			/**
@@ -4932,6 +5388,18 @@ type RootTranslation = {
 			 * 主​题
 			 */
 			topicLabel: string
+			/**
+			 * 连​接
+			 */
+			connection_label: string
+			/**
+			 * 取​消​订​阅​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 取​消​订​阅​后​，​该​连​接​将​不​再​接​收​对​应​主​题​的​消​息
+			 */
+			help_line1: string
 		}
 		mqttDisconnect: {
 			/**
@@ -4942,6 +5410,38 @@ type RootTranslation = {
 			 * 断​开​指​定​的​ ​M​Q​T​T​ ​连​接​，​释​放​会​话​资​源​。
 			 */
 			description: string
+			/**
+			 * 连​接
+			 */
+			connection_label: string
+			/**
+			 * M​Q​T​T​ ​5​.​0​ ​断​开​选​项​（​可​选​）
+			 */
+			mqtt5_sectionTitle: string
+			/**
+			 * 原​因​码
+			 */
+			reasonCode_label: string
+			/**
+			 * 会​话​过​期​间​隔​（​秒​）
+			 */
+			sessionExpiry_label: string
+			/**
+			 * 断​开​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 断​开​连​接​后​将​释​放​ ​M​Q​T​T​ ​会​话​资​源
+			 */
+			help_line1: string
+			/**
+			 * 后​续​订​阅​/​发​布​操​作​将​无​法​使​用​该​连​接​，​需​重​新​建​立
+			 */
+			help_line2: string
+			/**
+			 * 原​因​码​和​会​话​过​期​间​隔​为​ ​M​Q​T​T​ ​5​.​0​ ​特​有​选​项
+			 */
+			help_line3: string
 		}
 		mqttWaitMessage: {
 			/**
@@ -4968,6 +5468,30 @@ type RootTranslation = {
 			 * 最​大​等​待​消​息​数
 			 */
 			maxMessages: string
+			/**
+			 * 连​接
+			 */
+			connection_label: string
+			/**
+			 * 匹​配​条​件​（​可​选​）
+			 */
+			matchCondition_sectionTitle: string
+			/**
+			 * 等​待​消​息​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 等​待​指​定​主​题​上​的​ ​M​Q​T​T​ ​消​息​到​达
+			 */
+			help_line1: string
+			/**
+			 * 匹​配​条​件​支​持​ ​j​s​o​n​_​p​a​t​h​、​r​e​g​e​x​、​e​x​p​r​e​s​s​i​o​n​ ​等​模​式
+			 */
+			help_line2: string
+			/**
+			 * 超​时​后​未​收​到​消​息​将​返​回​超​时​错​误
+			 */
+			help_line3: string
 		}
 		mqttRequest: {
 			/**
@@ -5006,6 +5530,42 @@ type RootTranslation = {
 			 * 响​应​超​时​（​毫​秒​）
 			 */
 			responseTimeout: string
+			/**
+			 * 连​接
+			 */
+			connection_label: string
+			/**
+			 * Q​o​S​ ​等​级
+			 */
+			qos_label: string
+			/**
+			 * Q​o​S​ ​0​ ​—​ ​最​多​一​次
+			 */
+			qos0_option: string
+			/**
+			 * Q​o​S​ ​1​ ​—​ ​至​少​一​次
+			 */
+			qos1_option: string
+			/**
+			 * Q​o​S​ ​2​ ​—​ ​恰​好​一​次
+			 */
+			qos2_option: string
+			/**
+			 * 请​求​-​响​应​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 向​请​求​主​题​发​送​消​息​，​同​时​订​阅​响​应​主​题​等​待​回​复
+			 */
+			help_line1: string
+			/**
+			 * 关​联​数​据​用​于​匹​配​请​求​和​响​应​，​确​保​不​混​淆
+			 */
+			help_line2: string
+			/**
+			 * 超​时​后​未​收​到​响​应​将​返​回​超​时​错​误
+			 */
+			help_line3: string
 		}
 		wsConnect: {
 			/**
@@ -5080,6 +5640,86 @@ type RootTranslation = {
 			 * 匹​配​表​达​式​不​能​为​空
 			 */
 			matchExpressionRequired: string
+			/**
+			 * 请​求​头​（​可​选​）
+			 */
+			headers_label: string
+			/**
+			 * 暂​无​自​定​义​ ​H​e​a​d​e​r​s
+			 */
+			noHeaders: string
+			/**
+			 * 毫​秒​ ​(​m​s​)​，​范​围​ ​1​0​0​0​-​3​0​0​0​0​0
+			 */
+			timeoutRange: string
+			/**
+			 * 采​集​首​条​即​停
+			 */
+			collectFirstStop_option: string
+			/**
+			 * 匹​配​条​件​即​停
+			 */
+			matchConditionStop_option: string
+			/**
+			 * 持​续​采​集
+			 */
+			continuousCollect_option: string
+			/**
+			 * 采​集​条​件
+			 */
+			condition_sectionTitle: string
+			/**
+			 * 匹​配​类​型​说​明​：
+			 */
+			help_matchType_title: string
+			/**
+			 * �​�​ ​J​S​O​N​P​a​t​h​ ​—​ ​检​查​字​段​是​否​存​在
+			 */
+			jsonpath_title: string
+			/**
+			 * $​.​m​s​g​ ​检​查​ ​m​s​g​ ​字​段​是​否​存​在
+			 */
+			jsonpath_line1: string
+			/**
+			 * $​.​d​a​t​a​.​s​t​a​t​u​s​ ​检​查​嵌​套​字​段
+			 */
+			jsonpath_line2: string
+			/**
+			 * ⚠​️​ ​仅​检​查​字​段​存​在​，​不​支​持​值​比​较
+			 */
+			jsonpath_warning: string
+			/**
+			 * �​�​ ​正​则​表​达​式​ ​—​ ​匹​配​消​息​文​本
+			 */
+			regex_title: string
+			/**
+			 * a​u​t​h​e​n​t​i​c​a​t​e​d​ ​包​含​该​文​本
+			 */
+			regex_line1: string
+			/**
+			 * s​u​c​c​e​s​s​|​o​k​ ​多​选​一
+			 */
+			regex_line2: string
+			/**
+			 * ⚠​️​ ​对​整​个​消​息​文​本​进​行​正​则​匹​配
+			 */
+			regex_warning: string
+			/**
+			 * �​�​ ​表​达​式​ ​—​ ​值​比​较​（​推​荐​）
+			 */
+			expression_title: string
+			/**
+			 * m​s​g​ ​=​=​ ​"​a​u​t​h​e​n​t​i​c​a​t​e​d​"​ ​字​符​串​比​较
+			 */
+			expression_line1: string
+			/**
+			 * c​o​d​e​ ​=​=​ ​1​ ​数​字​比​较
+			 */
+			expression_line2: string
+			/**
+			 * ✅​ ​J​S​O​N​ ​顶​层​字​段​自​动​注​入​，​无​需​ ​$​.​ ​前​缀
+			 */
+			expression_note: string
 		}
 		wsSendCollect: {
 			/**
@@ -5250,6 +5890,78 @@ type RootTranslation = {
 			 * 未​检​测​到​ ​W​S​ ​C​o​n​n​e​c​t​ ​节​点​，​请​手​动​输​入​连​接​ ​I​D​ ​或​使​用​变​量​引​用
 			 */
 			noConnectNode: string
+			/**
+			 * 匹​配​表​达​式​不​能​为​空
+			 */
+			matchExpression_required: string
+			/**
+			 * 匹​配​类​型​说​明​：
+			 */
+			help_matchType_title: string
+			/**
+			 * �​�​ ​J​S​O​N​P​a​t​h​ ​—​ ​检​查​字​段​是​否​存​在
+			 */
+			jsonpath_title: string
+			/**
+			 * $​.​m​s​g​ ​检​查​ ​m​s​g​ ​字​段​是​否​存​在
+			 */
+			jsonpath_line1: string
+			/**
+			 * $​.​d​a​t​a​.​s​t​a​t​u​s​ ​检​查​嵌​套​字​段
+			 */
+			jsonpath_line2: string
+			/**
+			 * ⚠​️​ ​仅​检​查​字​段​存​在​，​不​支​持​值​比​较
+			 */
+			jsonpath_warning: string
+			/**
+			 * �​�​ ​正​则​表​达​式​ ​—​ ​匹​配​消​息​文​本
+			 */
+			regex_title: string
+			/**
+			 * a​u​t​h​e​n​t​i​c​a​t​e​d​ ​包​含​该​文​本
+			 */
+			regex_line1: string
+			/**
+			 * s​u​c​c​e​s​s​|​o​k​ ​多​选​一
+			 */
+			regex_line2: string
+			/**
+			 * ⚠​️​ ​对​整​个​消​息​文​本​进​行​正​则​匹​配
+			 */
+			regex_warning: string
+			/**
+			 * �​�​ ​多​条​件​表​达​式​ ​—​ ​值​比​较​（​推​荐​）
+			 */
+			expression_title: string
+			/**
+			 * 支​持​多​条​件​组​合​：
+			 */
+			expression_support: string
+			/**
+			 * &​&​ ​与​ ​|​|​ ​或​ ​!​ ​非
+			 */
+			expression_operators: string
+			/**
+			 * >​ ​<​ ​>​=​ ​<​=​ ​=​=​ ​!​=
+			 */
+			expression_comparison: string
+			/**
+			 * 例​：​a​ ​=​=​ ​"​"​ ​&​&​ ​b​ ​!​=​ ​"​"
+			 */
+			expression_example: string
+			/**
+			 * m​s​g​ ​=​=​ ​"​a​u​t​h​e​n​t​i​c​a​t​e​d​"​ ​字​符​串​比​较
+			 */
+			expression_line1: string
+			/**
+			 * c​o​d​e​ ​=​=​ ​1​ ​数​字​比​较
+			 */
+			expression_line2: string
+			/**
+			 * ✅​ ​J​S​O​N​ ​顶​层​字​段​自​动​注​入​，​无​需​ ​$​.​ ​前​缀
+			 */
+			expression_note: string
 		}
 		graphqlConnect: {
 			/**
@@ -5273,6 +5985,71 @@ type RootTranslation = {
 			 */
 			headers: string
 			/**
+			 * 暂​无​自​定​义​请​求​头
+			 */
+			noHeaders: string
+			/**
+			 * W​e​b​S​o​c​k​e​t​ ​端​点​ ​U​R​L
+			 */
+			wsUrl_label: string
+			/**
+			 * 用​于​ ​G​r​a​p​h​Q​L​ ​订​阅​的​ ​W​e​b​S​o​c​k​e​t​ ​端​点​，​留​空​则​使​用​ ​H​T​T​P​ ​端​点
+			 */
+			wsUrl_help: string
+			/**
+			 * 连​接​ ​I​D
+			 */
+			connectionId_label: string
+			/**
+			 * 留​空​将​自​动​生​成​连​接​ ​I​D
+			 */
+			connectionId_help: string
+			/**
+			 * S​c​h​e​m​a​ ​探​索
+			 */
+			schemaExplore_sectionTitle: string
+			/**
+			 * 获​取​ ​S​c​h​e​m​a
+			 */
+			explore_button: string
+			/**
+			 * 探​索​中​.​.​.
+			 */
+			exploring_button: string
+			/**
+			 * 向​已​配​置​的​端​点​发​送​内​省​查​询​，​获​取​可​用​的​ ​Q​u​e​r​y​ ​和​ ​M​u​t​a​t​i​o​n​ ​列​表
+			 */
+			introspect_help: string
+			/**
+			 * 请​先​配​置​ ​G​r​a​p​h​Q​L​ ​端​点​ ​U​R​L
+			 */
+			introspect_error: string
+			/**
+			 * S​c​h​e​m​a​ ​探​索​成​功​（​{​t​y​p​e​C​o​u​n​t​}​ ​个​类​型​）
+			 * @param {unknown} typeCount
+			 */
+			introspect_success: RequiredParams<'typeCount'>
+			/**
+			 * S​c​h​e​m​a​ ​探​索​失​败
+			 */
+			introspect_failed: string
+			/**
+			 * G​r​a​p​h​Q​L​ ​连​接​说​明​：
+			 */
+			help_title: string
+			/**
+			 * H​T​T​P​ ​端​点​用​于​查​询​ ​(​Q​u​e​r​y​)​ ​和​变​更​ ​(​M​u​t​a​t​i​o​n​)
+			 */
+			help_line1: string
+			/**
+			 * W​e​b​S​o​c​k​e​t​ ​端​点​用​于​实​时​订​阅​ ​(​S​u​b​s​c​r​i​p​t​i​o​n​)
+			 */
+			help_line2: string
+			/**
+			 * 可​在​请​求​头​中​配​置​认​证​信​息​ ​(​A​u​t​h​o​r​i​z​a​t​i​o​n​)
+			 */
+			help_line3: string
+			/**
 			 * 连​接​超​时
 			 */
 			timeout: string
@@ -5294,6 +6071,22 @@ type RootTranslation = {
 			 * 连​接​ ​I​D
 			 */
 			connectionId: string
+			/**
+			 * G​r​a​p​h​Q​L​ ​内​省​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 内​省​查​询​将​获​取​服​务​端​的​完​整​ ​S​c​h​e​m​a​ ​定​义
+			 */
+			help_line1: string
+			/**
+			 * 包​括​所​有​可​用​的​ ​Q​u​e​r​y​、​M​u​t​a​t​i​o​n​、​T​y​p​e​ ​和​字​段
+			 */
+			help_line2: string
+			/**
+			 * 可​用​于​自​动​生​成​查​询​模​板​或​验​证​ ​S​c​h​e​m​a​ ​兼​容​性
+			 */
+			help_line3: string
 			/**
 			 * 未​检​测​到​ ​G​r​a​p​h​Q​L​ ​C​o​n​n​e​c​t​ ​节​点​，​请​手​动​输​入​连​接​ ​I​D
 			 */
@@ -5325,6 +6118,54 @@ type RootTranslation = {
 			 */
 			variables: string
 			/**
+			 * S​c​h​e​m​a​ ​字​段​浏​览​器
+			 */
+			schemaFieldBrowser_sectionTitle: string
+			/**
+			 * 勾​选​需​要​的​字​段​，​点​击​"​生​成​查​询​"​自​动​填​充​查​询​编​辑​器
+			 */
+			schemaFieldBrowser_help: string
+			/**
+			 * 操​作​名​称
+			 */
+			operationName_label: string
+			/**
+			 * 当​查​询​包​含​多​个​操​作​时​，​指​定​要​执​行​的​操​作​名​称
+			 */
+			operationName_help: string
+			/**
+			 * 文​件​上​传​（​可​选​）
+			 */
+			fileUpload_sectionTitle: string
+			/**
+			 * 暂​无​文​件​上​传
+			 */
+			noFileUpload: string
+			/**
+			 * 超​时​（​毫​秒​）
+			 */
+			timeout_label: string
+			/**
+			 * G​r​a​p​h​Q​L​ ​查​询​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 支​持​ ​Q​u​e​r​y​、​M​u​t​a​t​i​o​n​ ​操​作
+			 */
+			help_line1: string
+			/**
+			 * 变​量​需​以​ ​J​S​O​N​ ​格​式​输​入
+			 */
+			help_line2: string
+			/**
+			 * 文​件​上​传​使​用​ ​G​r​a​p​h​Q​L​ ​m​u​l​t​i​p​a​r​t​ ​规​范
+			 */
+			help_line3: string
+			/**
+			 * J​S​O​N​ ​格​式​无​效
+			 */
+			variables_error: string
+			/**
 			 * 未​检​测​到​ ​G​r​a​p​h​Q​L​ ​C​o​n​n​e​c​t​ ​节​点​，​请​手​动​输​入​连​接​ ​I​D
 			 */
 			noConnectNode: string
@@ -5350,6 +6191,50 @@ type RootTranslation = {
 			 * 输​入​ ​G​r​a​p​h​Q​L​ ​订​阅​.​.​.
 			 */
 			subscriptionPlaceholder: string
+			/**
+			 * S​c​h​e​m​a​ ​字​段​浏​览​器
+			 */
+			schemaFieldBrowser_sectionTitle: string
+			/**
+			 * 勾​选​需​要​的​订​阅​字​段​，​点​击​"​生​成​订​阅​"​自​动​填​充​订​阅​编​辑​器
+			 */
+			schemaFieldBrowser_help: string
+			/**
+			 * 操​作​名​称
+			 */
+			operationName_label: string
+			/**
+			 * 最​大​事​件​数
+			 */
+			maxEvents_label: string
+			/**
+			 * 达​到​最​大​事​件​数​后​自​动​停​止​订​阅​，​0​ ​表​示​不​限​制
+			 */
+			maxEvents_help: string
+			/**
+			 * 超​时​（​毫​秒​）
+			 */
+			timeout_label: string
+			/**
+			 * G​r​a​p​h​Q​L​ ​订​阅​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 订​阅​需​要​连​接​配​置​了​ ​W​e​b​S​o​c​k​e​t​ ​端​点
+			 */
+			help_line1: string
+			/**
+			 * 实​时​接​收​服​务​端​推​送​的​订​阅​事​件
+			 */
+			help_line2: string
+			/**
+			 * 设​置​最​大​事​件​数​或​超​时​时​间​可​自​动​结​束​订​阅
+			 */
+			help_line3: string
+			/**
+			 * J​S​O​N​ ​格​式​无​效
+			 */
+			variables_error: string
 			/**
 			 * 未​检​测​到​ ​G​r​a​p​h​Q​L​ ​C​o​n​n​e​c​t​ ​节​点​，​请​手​动​输​入​连​接​ ​I​D
 			 */
@@ -5477,6 +6362,50 @@ type RootTranslation = {
 			 * 多​个​ ​B​r​o​k​e​r​ ​用​逗​号​分​隔​，​例​如​ ​h​o​s​t​1​:​9​0​9​2​,​h​o​s​t​2​:​9​0​9​2
 			 */
 			bootstrapHint: string
+			/**
+			 * T​L​S​ ​配​置
+			 */
+			sslSection_title: string
+			/**
+			 * 不​验​证​服​务​器​ ​T​L​S​ ​证​书
+			 */
+			sslSkipVerify_desc: string
+			/**
+			 * C​A​ ​证​书​路​径
+			 */
+			sslCaCertPath_label: string
+			/**
+			 * 客​户​端​证​书​路​径
+			 */
+			sslClientCertPath_label: string
+			/**
+			 * 客​户​端​密​钥​路​径
+			 */
+			sslClientKeyPath_label: string
+			/**
+			 * 用​户​名
+			 */
+			username_label: string
+			/**
+			 * 密​码
+			 */
+			password_label: string
+			/**
+			 * K​a​f​k​a​ ​连​接​说​明​：
+			 */
+			help_title: string
+			/**
+			 * B​o​o​t​s​t​r​a​p​ ​S​e​r​v​e​r​s​ ​支​持​多​个​地​址​，​用​逗​号​分​隔​以​实​现​高​可​用
+			 */
+			help_line1: string
+			/**
+			 * S​A​S​L​ ​认​证​仅​在​安​全​协​议​为​ ​S​A​S​L​_​P​L​A​I​N​T​E​X​T​ ​或​ ​S​A​S​L​_​S​S​L​ ​时​可​用
+			 */
+			help_line2: string
+			/**
+			 * S​c​h​e​m​a​ ​R​e​g​i​s​t​r​y​ ​用​于​ ​A​v​r​o​/​P​r​o​t​o​b​u​f​ ​序​列​化​格​式​的​消​息​验​证
+			 */
+			help_line3: string
 		}
 		kafkaClose: {
 			/**
@@ -5499,6 +6428,14 @@ type RootTranslation = {
 			 * 关​闭​连​接​后​将​释​放​ ​K​a​f​k​a​ ​连​接​资​源
 			 */
 			closeInfoLine1: string
+			/**
+			 * 建​议​在​流​程​结​束​时​关​闭​不​再​使​用​的​连​接
+			 */
+			help_line3: string
+			/**
+			 * 连​接​ ​I​D​ ​不​能​为​空
+			 */
+			error_connectionIdRequired: string
 		}
 		kafkaProduce: {
 			/**
@@ -5537,6 +6474,70 @@ type RootTranslation = {
 			 * 未​检​测​到​ ​K​a​f​k​a​ ​C​o​n​n​e​c​t​ ​节​点​，​请​手​动​输​入​连​接​ ​I​D
 			 */
 			noConnectNode: string
+			/**
+			 * 暂​无​消​息​头
+			 */
+			noHeaders: string
+			/**
+			 * 序​列​化
+			 */
+			serialization_sectionTitle: string
+			/**
+			 * 序​列​化​格​式
+			 */
+			serialization_label: string
+			/**
+			 * R​a​w​ ​(​原​始​字​节​)
+			 */
+			raw_option: string
+			/**
+			 * S​c​h​e​m​a​ ​R​e​g​i​s​t​r​y​ ​中​的​ ​S​u​b​j​e​c​t​ ​名​称
+			 */
+			schemaSubject_help: string
+			/**
+			 * 设​为​ ​-​1​ ​或​留​空​由​ ​K​a​f​k​a​ ​自​动​选​择​分​区
+			 */
+			partition_help: string
+			/**
+			 * 确​认​超​时​（​毫​秒​）
+			 */
+			ackTimeout_label: string
+			/**
+			 * 压​缩​算​法
+			 */
+			compression_label: string
+			/**
+			 * 无​压​缩
+			 */
+			noCompression_option: string
+			/**
+			 * 生​产​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 消​息​键​为​空​时​，​消​息​将​按​轮​询​策​略​分​配​到​分​区
+			 */
+			help_line1: string
+			/**
+			 * 使​用​ ​A​v​r​o​/​P​r​o​t​o​b​u​f​ ​序​列​化​时​需​先​配​置​ ​S​c​h​e​m​a​ ​R​e​g​i​s​t​r​y​ ​连​接
+			 */
+			help_line2: string
+			/**
+			 * 压​缩​算​法​需​ ​B​r​o​k​e​r​ ​端​支​持​对​应​解​码​器
+			 */
+			help_line3: string
+			/**
+			 * 连​接​ ​I​D​ ​不​能​为​空
+			 */
+			error_connectionIdRequired: string
+			/**
+			 * 主​题​不​能​为​空
+			 */
+			error_topicRequired: string
+			/**
+			 * 消​息​配​置
+			 */
+			msgConfig_sectionTitle: string
 		}
 		kafkaConsume: {
 			/**
@@ -5571,6 +6572,122 @@ type RootTranslation = {
 			 * 未​检​测​到​ ​K​a​f​k​a​ ​C​o​n​n​e​c​t​ ​节​点​，​请​手​动​输​入​连​接​ ​I​D
 			 */
 			noConnectNode: string
+			/**
+			 * 消​费​配​置
+			 */
+			consumerConfig_sectionTitle: string
+			/**
+			 * 主​题
+			 */
+			topic_label: string
+			/**
+			 * 分​区
+			 */
+			partition_label: string
+			/**
+			 * 设​为​ ​-​1​ ​订​阅​主​题​的​所​有​分​区
+			 */
+			partition_help: string
+			/**
+			 * 起​始​偏​移​量
+			 */
+			offset_label: string
+			/**
+			 * 偏​移​重​置​策​略
+			 */
+			offsetReset_label: string
+			/**
+			 * e​a​r​l​i​e​s​t​ ​—​ ​从​最​早​消​息​开​始
+			 */
+			earliest_option: string
+			/**
+			 * l​a​t​e​s​t​ ​—​ ​从​最​新​消​息​开​始
+			 */
+			latest_option: string
+			/**
+			 * 当​消​费​者​组​无​已​提​交​偏​移​量​时​生​效
+			 */
+			offsetReset_help: string
+			/**
+			 * 消​费​者​组
+			 */
+			consumerGroup_sectionTitle: string
+			/**
+			 * 消​费​者​组​ ​I​D
+			 */
+			groupId_label: string
+			/**
+			 * 同​一​消​费​者​组​内​的​消​费​者​共​同​分​担​主​题​分​区
+			 */
+			groupId_help: string
+			/**
+			 * 自​动​提​交​偏​移​量
+			 */
+			autoCommit_label: string
+			/**
+			 * 自​动​周​期​性​提​交​已​消​费​的​偏​移​量
+			 */
+			autoCommit_desc: string
+			/**
+			 * 反​序​列​化
+			 */
+			deserialization_sectionTitle: string
+			/**
+			 * 反​序​列​化​格​式
+			 */
+			deserialization_label: string
+			/**
+			 * R​a​w​ ​(​原​始​字​节​)
+			 */
+			raw_option: string
+			/**
+			 * S​c​h​e​m​a​ ​R​e​g​i​s​t​r​y​ ​中​的​ ​S​u​b​j​e​c​t​ ​名​称
+			 */
+			schemaSubject_help: string
+			/**
+			 * 消​费​的​最​大​消​息​数​量​，​达​到​后​自​动​停​止
+			 */
+			maxRecords_help: string
+			/**
+			 * 最​小​拉​取​字​节​数
+			 */
+			fetchMinBytes_label: string
+			/**
+			 * F​e​t​c​h​ ​请​求​的​最​小​字​节​数​，​减​小​可​降​低​延​迟
+			 */
+			fetchMinBytes_help: string
+			/**
+			 * 最​大​拉​取​等​待​（​毫​秒​）
+			 */
+			fetchMaxWait_label: string
+			/**
+			 * 无​足​够​数​据​时​ ​B​r​o​k​e​r​ ​最​大​等​待​时​间
+			 */
+			fetchMaxWait_help: string
+			/**
+			 * 消​费​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 消​费​者​组​ ​I​D​ ​为​空​时​使​用​自​动​分​配​的​临​时​组
+			 */
+			help_line1: string
+			/**
+			 * 偏​移​重​置​策​略​仅​在​消​费​者​组​首​次​启​动​或​偏​移​量​过​期​时​生​效
+			 */
+			help_line2: string
+			/**
+			 * 使​用​ ​A​v​r​o​/​P​r​o​t​o​b​u​f​ ​反​序​列​化​时​需​先​配​置​ ​S​c​h​e​m​a​ ​R​e​g​i​s​t​r​y​ ​连​接
+			 */
+			help_line3: string
+			/**
+			 * 连​接​ ​I​D​ ​不​能​为​空
+			 */
+			error_connectionIdRequired: string
+			/**
+			 * 主​题​不​能​为​空
+			 */
+			error_topicRequired: string
 		}
 		kafkaConsumeBatch: {
 			/**
@@ -5609,6 +6726,134 @@ type RootTranslation = {
 			 * 未​检​测​到​ ​K​a​f​k​a​ ​C​o​n​n​e​c​t​ ​节​点​，​请​手​动​输​入​连​接​ ​I​D
 			 */
 			noConnectNode: string
+			/**
+			 * 消​费​配​置
+			 */
+			consumerConfig_sectionTitle: string
+			/**
+			 * 主​题
+			 */
+			topic_label: string
+			/**
+			 * 分​区
+			 */
+			partition_label: string
+			/**
+			 * 设​为​ ​-​1​ ​订​阅​主​题​的​所​有​分​区
+			 */
+			partition_help: string
+			/**
+			 * 起​始​偏​移​量
+			 */
+			offset_label: string
+			/**
+			 * 偏​移​重​置​策​略
+			 */
+			offsetReset_label: string
+			/**
+			 * e​a​r​l​i​e​s​t​ ​—​ ​从​最​早​消​息​开​始
+			 */
+			earliest_option: string
+			/**
+			 * l​a​t​e​s​t​ ​—​ ​从​最​新​消​息​开​始
+			 */
+			latest_option: string
+			/**
+			 * 当​消​费​者​组​无​已​提​交​偏​移​量​时​生​效
+			 */
+			offsetReset_help: string
+			/**
+			 * 消​费​者​组
+			 */
+			consumerGroup_sectionTitle: string
+			/**
+			 * 消​费​者​组​ ​I​D
+			 */
+			groupId_label: string
+			/**
+			 * 同​一​消​费​者​组​内​的​消​费​者​共​同​分​担​主​题​分​区
+			 */
+			groupId_help: string
+			/**
+			 * 自​动​提​交​偏​移​量
+			 */
+			autoCommit_label: string
+			/**
+			 * 自​动​周​期​性​提​交​已​消​费​的​偏​移​量
+			 */
+			autoCommit_desc: string
+			/**
+			 * 反​序​列​化
+			 */
+			deserialization_sectionTitle: string
+			/**
+			 * 反​序​列​化​格​式
+			 */
+			deserialization_label: string
+			/**
+			 * R​a​w​ ​(​原​始​字​节​)
+			 */
+			raw_option: string
+			/**
+			 * S​c​h​e​m​a​ ​R​e​g​i​s​t​r​y​ ​中​的​ ​S​u​b​j​e​c​t​ ​名​称
+			 */
+			schemaSubject_help: string
+			/**
+			 * 批​量​消​费​的​最​大​消​息​数​量​，​达​到​后​自​动​停​止
+			 */
+			maxRecords_help: string
+			/**
+			 * 批​量​策​略
+			 */
+			batchStrategy_label: string
+			/**
+			 * c​o​u​n​t​_​t​i​m​e​o​u​t​ ​—​ ​消​息​数​ ​+​ ​超​时
+			 */
+			countTimeout_option: string
+			/**
+			 * c​o​u​n​t​_​o​n​l​y​ ​—​ ​仅​消​息​数
+			 */
+			countOnly_option: string
+			/**
+			 * t​i​m​e​o​u​t​_​o​n​l​y​ ​—​ ​仅​超​时
+			 */
+			timeoutOnly_option: string
+			/**
+			 * 控​制​批​量​消​费​的​结​束​条​件
+			 */
+			batchStrategy_help: string
+			/**
+			 * 批​量​消​费​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 默​认​最​大​消​费​ ​1​0​ ​条​消​息​（​与​单​条​消​费​的​默​认​ ​1​ ​条​不​同​）
+			 */
+			help_line1: string
+			/**
+			 * c​o​u​n​t​_​t​i​m​e​o​u​t​ ​策​略​：​达​到​消​息​数​或​超​时​即​返​回
+			 */
+			help_line2: string
+			/**
+			 * c​o​u​n​t​_​o​n​l​y​ ​策​略​：​仅​按​消​息​数​判​断
+			 */
+			help_line3: string
+			/**
+			 * t​i​m​e​o​u​t​_​o​n​l​y​ ​策​略​：​仅​按​超​时​时​间​判​断
+			 */
+			help_line4: string
+			/**
+			 * 使​用​ ​A​v​r​o​/​P​r​o​t​o​b​u​f​ ​反​序​列​化​时​需​先​配​置​ ​S​c​h​e​m​a​ ​R​e​g​i​s​t​r​y​ ​连​接
+			 */
+			help_line5: string
+			/**
+			 * 连​接​ ​I​D​ ​不​能​为​空
+			 */
+			error_connectionIdRequired: string
+			/**
+			 * 主​题​不​能​为​空
+			 */
+			error_topicRequired: string
 		}
 		kafkaAdmin: {
 			/**
@@ -5715,6 +6960,98 @@ type RootTranslation = {
 			 * 列​出​ ​A​C​L
 			 */
 			operations_listAcls: string
+			/**
+			 * 主​题​配​置
+			 */
+			topicConfig_sectionTitle: string
+			/**
+			 * 主​题​配​置
+			 */
+			topicConfig_label: string
+			/**
+			 * 每​行​一​个​键​值​对​，​格​式​:​ ​k​e​y​=​v​a​l​u​e
+			 */
+			topicConfig_help: string
+			/**
+			 * 消​费​者​组
+			 */
+			consumerGroup_sectionTitle: string
+			/**
+			 * 消​费​者​组​ ​I​D
+			 */
+			groupId_label: string
+			/**
+			 * 指​定​要​操​作​的​消​费​者​组​ ​I​D
+			 */
+			groupId_help: string
+			/**
+			 * A​C​L​ ​配​置
+			 */
+			aclConfig_sectionTitle: string
+			/**
+			 * 主​体​ ​(​P​r​i​n​c​i​p​a​l​)
+			 */
+			aclPrincipal_label: string
+			/**
+			 * 主​机
+			 */
+			aclHost_label: string
+			/**
+			 * 操​作
+			 */
+			aclOperation_label: string
+			/**
+			 * 权​限​类​型
+			 */
+			aclPermissionType_label: string
+			/**
+			 * 资​源​类​型
+			 */
+			aclResourceType_label: string
+			/**
+			 * 资​源​名​称
+			 */
+			aclResourceName_label: string
+			/**
+			 * 选​项
+			 */
+			options_sectionTitle: string
+			/**
+			 * 试​运​行​ ​(​D​r​y​ ​R​u​n​)
+			 */
+			dryRun_label: string
+			/**
+			 * 仅​验​证​操​作​而​不​实​际​执​行
+			 */
+			dryRun_desc: string
+			/**
+			 * 管​理​操​作​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 主​题​管​理​：​创​建​、​删​除​、​查​看​和​修​改​主​题​配​置
+			 */
+			help_line1: string
+			/**
+			 * 消​费​者​组​管​理​：​列​出​、​查​看​消​费​者​组​和​重​置​偏​移​量
+			 */
+			help_line2: string
+			/**
+			 * B​r​o​k​e​r​ ​管​理​：​查​看​ ​B​r​o​k​e​r​ ​列​表​和​配​置​信​息
+			 */
+			help_line3: string
+			/**
+			 * A​C​L​ ​管​理​：​创​建​、​删​除​和​查​看​访​问​控​制​列​表
+			 */
+			help_line4: string
+			/**
+			 * 开​启​ ​D​r​y​ ​R​u​n​ ​可​在​不​实​际​执​行​的​情​况​下​验​证​操​作​参​数
+			 */
+			help_line5: string
+			/**
+			 * 连​接​ ​I​D​ ​不​能​为​空
+			 */
+			error_connectionIdRequired: string
 		}
 		kafkaSchemaRegistry: {
 			/**
@@ -5781,6 +7118,58 @@ type RootTranslation = {
 			 * 设​为​ ​-​1​ ​获​取​最​新​版​本
 			 */
 			versionHint: string
+			/**
+			 * S​c​h​e​m​a​ ​内​容
+			 */
+			schemaDefinition_label: string
+			/**
+			 * S​c​h​e​m​a​ ​类​型
+			 */
+			schemaType_sectionTitle: string
+			/**
+			 * 兼​容​性​检​查
+			 */
+			compatCheck_sectionTitle: string
+			/**
+			 * B​A​C​K​W​A​R​D​ ​—​ ​向​后​兼​容
+			 */
+			backward_option: string
+			/**
+			 * F​O​R​W​A​R​D​ ​—​ ​向​前​兼​容
+			 */
+			forward_option: string
+			/**
+			 * F​U​L​L​ ​—​ ​完​全​兼​容
+			 */
+			full_option: string
+			/**
+			 * N​O​N​E​ ​—​ ​无​兼​容​性​要​求
+			 */
+			none_option: string
+			/**
+			 * S​c​h​e​m​a​ ​R​e​g​i​s​t​r​y​ ​说​明​：
+			 */
+			help_title: string
+			/**
+			 * 需​先​在​ ​K​a​f​k​a​ ​C​o​n​n​e​c​t​ ​节​点​中​配​置​ ​S​c​h​e​m​a​ ​R​e​g​i​s​t​r​y​ ​U​R​L
+			 */
+			help_line1: string
+			/**
+			 * 列​出​ ​S​u​b​j​e​c​t​s​ ​操​作​无​需​指​定​ ​S​u​b​j​e​c​t​ ​名​称
+			 */
+			help_line2: string
+			/**
+			 * 注​册​ ​S​c​h​e​m​a​ ​时​需​提​供​完​整​的​ ​S​c​h​e​m​a​ ​定​义​和​格​式
+			 */
+			help_line3: string
+			/**
+			 * 兼​容​性​检​查​会​验​证​新​ ​S​c​h​e​m​a​ ​是​否​与​现​有​版​本​兼​容
+			 */
+			help_line4: string
+			/**
+			 * 连​接​ ​I​D​ ​不​能​为​空
+			 */
+			error_connectionIdRequired: string
 		}
 		imapConnect: {
 			/**
@@ -7823,6 +9212,26 @@ type RootTranslation = {
 			 * 1​0​1​5​ ​T​L​S​ ​握​手​失​败
 			 */
 			closeCode1015: string
+			/**
+			 * 关​闭​码​说​明​：
+			 */
+			closeCodeInfo_title: string
+			/**
+			 * 正​常​关​闭
+			 */
+			closeCodeInfo_1000: string
+			/**
+			 * 端​点​离​开​（​如​页​面​关​闭​）
+			 */
+			closeCodeInfo_1001: string
+			/**
+			 * 协​议​错​误
+			 */
+			closeCodeInfo_1002: string
+			/**
+			 * 异​常​关​闭​（​无​关​闭​帧​）
+			 */
+			closeCodeInfo_1006: string
 		}
 		redisConnect: {
 			/**
@@ -11931,6 +13340,30 @@ type RootTranslation = {
 		 */
 		stress_strategy: string
 		/**
+		 * R​o​u​n​d​R​o​b​i​n​（​轮​询​）
+		 */
+		strategy_round_robin: string
+		/**
+		 * 均​匀​循​环​使​用​每​一​行
+		 */
+		strategy_round_robin_desc: string
+		/**
+		 * R​a​n​d​o​m​（​随​机​）
+		 */
+		strategy_random: string
+		/**
+		 * 每​次​迭​代​随​机​取​一​行
+		 */
+		strategy_random_desc: string
+		/**
+		 * U​n​i​q​u​e​（​独​占​）
+		 */
+		strategy_unique: string
+		/**
+		 * 每​个​虚​拟​用​户​绑​定​固​定​行
+		 */
+		strategy_unique_desc: string
+		/**
 		 * {​c​o​u​n​t​}​ ​行​数​据​ ​·​ ​检​测​编​码​:​ ​{​e​n​c​o​d​i​n​g​}
 		 * @param {unknown} count
 		 * @param {unknown} encoding
@@ -11962,6 +13395,10 @@ type RootTranslation = {
 		 * 启​动​中​.​.​.
 		 */
 		stress_starting: string
+		/**
+		 * 压​测​进​行​中
+		 */
+		stress_locked_reason: string
 		/**
 		 * 开​始​压​测
 		 */
@@ -13025,6 +14462,14 @@ type RootTranslation = {
 			 */
 			none: string
 			/**
+			 * 是
+			 */
+			yes: string
+			/**
+			 * 否
+			 */
+			no: string
+			/**
 			 * 导​出
 			 */
 			'export': string
@@ -13129,6 +14574,42 @@ type RootTranslation = {
 			 */
 			confirm_clear_desc: string
 			/**
+			 * 条​件​语​法​错​误
+			 */
+			error_kind_condition_syntax: string
+			/**
+			 * 条​件​评​估​错​误
+			 */
+			error_kind_condition_evaluation: string
+			/**
+			 * 配​置​错​误
+			 */
+			error_kind_configuration: string
+			/**
+			 * 执​行​错​误
+			 */
+			error_kind_execution: string
+			/**
+			 * 连​接​错​误
+			 */
+			error_kind_connection: string
+			/**
+			 * 超​时​错​误
+			 */
+			error_kind_timeout: string
+			/**
+			 * 验​证​错​误
+			 */
+			error_kind_validation: string
+			/**
+			 * 解​析​错​误
+			 */
+			error_kind_parse: string
+			/**
+			 * 原​始​数​据​ ​(​h​e​x​)
+			 */
+			label_raw_data: string
+			/**
 			 * 耗​时​分​解
 			 */
 			duration_decomposition: string
@@ -13136,6 +14617,82 @@ type RootTranslation = {
 			 * 执​行​状​态
 			 */
 			section_execution_status: string
+			/**
+			 * 总​耗​时
+			 */
+			timing_total: string
+			/**
+			 * 连​接​耗​时
+			 */
+			timing_connect: string
+			/**
+			 * 发​送​耗​时
+			 */
+			timing_send: string
+			/**
+			 * 接​收​耗​时
+			 */
+			timing_receive: string
+			/**
+			 * 调​用​耗​时
+			 */
+			timing_call: string
+			/**
+			 * 读​取​耗​时
+			 */
+			timing_read: string
+			/**
+			 * 关​闭​耗​时
+			 */
+			timing_close: string
+			/**
+			 * 监​听​耗​时
+			 */
+			timing_listen: string
+			/**
+			 * 等​待​耗​时
+			 */
+			timing_wait: string
+			/**
+			 * 订​阅​耗​时
+			 */
+			timing_subscribe: string
+			/**
+			 * 发​布​耗​时
+			 */
+			timing_publish: string
+			/**
+			 * 断​开​耗​时
+			 */
+			timing_disconnect: string
+			/**
+			 * 命​令​耗​时
+			 */
+			timing_command: string
+			/**
+			 * 操​作​耗​时
+			 */
+			timing_operation: string
+			/**
+			 * 请​求​耗​时
+			 */
+			timing_request: string
+			/**
+			 * 消​费​耗​时
+			 */
+			timing_consume: string
+			/**
+			 * D​N​S​ ​解​析
+			 */
+			timing_dns: string
+			/**
+			 * T​L​S​ ​握​手
+			 */
+			timing_tls: string
+			/**
+			 * 服​务​器​处​理
+			 */
+			timing_server: string
 		}
 		amqp: {
 			/**
@@ -13828,6 +15385,23 @@ type RootTranslation = {
 			 * 查​看​录​制
 			 */
 			section_view_recording: string
+			/**
+			 * 数​据​发​送​完​成
+			 */
+			send_complete: string
+			/**
+			 * 数​据​发​送​并​接​收​完​成
+			 */
+			send_receive_complete: string
+			/**
+			 * U​D​P​ ​数​据​包​已​发​送
+			 */
+			udp_sent: string
+			/**
+			 * U​D​P​ ​数​据​包​已​发​送​至​ ​{​t​a​r​g​e​t​}
+			 * @param {unknown} target
+			 */
+			udp_sent_to: RequiredParams<'target'>
 		}
 		mcp: {
 			/**
@@ -14007,6 +15581,10 @@ type RootTranslation = {
 			 */
 			label_arguments: string
 			/**
+			 * B​a​s​e​6​4​ ​数​据
+			 */
+			label_base64: string
+			/**
 			 * 结​果
 			 */
 			label_result: string
@@ -14014,6 +15592,22 @@ type RootTranslation = {
 			 * 内​容​类​型
 			 */
 			label_content_type: string
+			/**
+			 * 二​进​制​数​据
+			 */
+			label_content_type_blob: string
+			/**
+			 * 图​片
+			 */
+			label_content_type_image: string
+			/**
+			 * 资​源
+			 */
+			label_content_type_resource: string
+			/**
+			 * 文​本
+			 */
+			label_content_type_text: string
 			/**
 			 * 文​本
 			 */
@@ -14785,15 +16379,15 @@ type RootTranslation = {
 			 */
 			unary_call: string
 			/**
-			 * S​e​r​v​e​r​ ​S​t​r​e​a​m​i​n​g
+			 * 服​务​端​流​式
 			 */
 			server_streaming: string
 			/**
-			 * C​l​i​e​n​t​ ​S​t​r​e​a​m​i​n​g
+			 * 客​户​端​流​式
 			 */
 			client_streaming: string
 			/**
-			 * B​i​d​i​r​e​c​t​i​o​n​a​l​ ​S​t​r​e​a​m​i​n​g
+			 * 双​向​流​式
 			 */
 			bidi_streaming: string
 			/**
@@ -15015,6 +16609,21 @@ type RootTranslation = {
 			 * @param {unknown} type
 			 */
 			unknown_node_type: RequiredParams<'type'>
+			/**
+			 * 收​到​ ​{​c​o​u​n​t​}​ ​个​事​件
+			 * @param {unknown} count
+			 */
+			events_received: RequiredParams<'count'>
+			/**
+			 * 请​求​成​功​，​但​返​回​ ​{​c​o​u​n​t​}​ ​个​ ​G​r​a​p​h​Q​L​ ​错​误
+			 * @param {unknown} count
+			 */
+			query_success_with_errors: RequiredParams<'count'>
+			/**
+			 * 发​现​ ​{​c​o​u​n​t​}​ ​个​查​询​模​板
+			 * @param {unknown} count
+			 */
+			templates_found: RequiredParams<'count'>
 		}
 		ws: {
 			/**
@@ -15633,6 +17242,14 @@ type RootTranslation = {
 			 * @param {unknown} type
 			 */
 			unknown_node_type: RequiredParams<'type'>
+			/**
+			 * 简​单​条​件
+			 */
+			label_simple_condition: string
+			/**
+			 * 高​级​表​达​式
+			 */
+			label_advanced_expression: string
 		}
 		assert: {
 			/**
@@ -15798,6 +17415,14 @@ type RootTranslation = {
 			 * 未​录​制
 			 */
 			inactive: string
+			/**
+			 * 折​叠
+			 */
+			collapse: string
+			/**
+			 * 展​开
+			 */
+			expand: string
 		}
 		generic: {
 			/**
@@ -17652,6 +19277,18 @@ export type TranslationFunctions = {
 		 * 可选，如 group1
 		 */
 		groupIdExample: () => LocalizedString
+		/**
+		 * 必填
+		 */
+		badge_required: () => LocalizedString
+		/**
+		 * 高级
+		 */
+		badge_advanced: () => LocalizedString
+		/**
+		 * 可选
+		 */
+		badge_optional: () => LocalizedString
 		http: {
 			/**
 			 * 请求方法
@@ -19014,14 +20651,14 @@ export type TranslationFunctions = {
 			 * 节点执行失败时停止流程并报错
 			 */
 			abort_flow_desc: () => LocalizedString
-		/**
-		 * 忽略错误
-		 */
-		ignore: () => LocalizedString
-		/**
-		 * 忽略错误，继续正常执行
-		 */
-		ignore_desc: () => LocalizedString
+			/**
+			 * 忽略错误
+			 */
+			ignore: () => LocalizedString
+			/**
+			 * 忽略错误，继续正常执行
+			 */
+			ignore_desc: () => LocalizedString
 		}
 		conditional: {
 			/**
@@ -19596,6 +21233,26 @@ export type TranslationFunctions = {
 			 * 未设置
 			 */
 			notSet: () => LocalizedString
+			/**
+			 * 长度前缀 (Length Prefix)
+			 */
+			lengthPrefix_option: () => LocalizedString
+			/**
+			 * 分隔符 (Delimiter)
+			 */
+			delimiter_option: () => LocalizedString
+			/**
+			 * 固定长度 (Fixed Length)
+			 */
+			fixedLength_option: () => LocalizedString
+			/**
+			 * 超时读取 (Timeout)
+			 */
+			timeoutRead_option: () => LocalizedString
+			/**
+			 * 手动控制 (Manual)
+			 */
+			manualControl_option: () => LocalizedString
 		}
 		tcpSend: {
 			/**
@@ -19778,6 +21435,54 @@ export type TranslationFunctions = {
 			 * 小端序 (Little Endian)
 			 */
 			littleEndian: () => LocalizedString
+			/**
+			 * Redis 序列化协议
+			 */
+			redisResp_desc: () => LocalizedString
+			/**
+			 * 自定义 Tag-Length-Value 协议
+			 */
+			customTLV_desc: () => LocalizedString
+			/**
+			 * 固定头部长度协议
+			 */
+			fixedHeader_desc: () => LocalizedString
+			/**
+			 * 类 HTTP 头部结束协议
+			 */
+			httpLike_desc: () => LocalizedString
+			/**
+			 * 空白模板
+			 */
+			blankTemplate_desc: () => LocalizedString
+			/**
+			 * 长度前缀 (Length Prefix)
+			 */
+			lengthPrefix_option: () => LocalizedString
+			/**
+			 * 分隔符 (Delimiter)
+			 */
+			delimiter_option: () => LocalizedString
+			/**
+			 * 固定长度 (Fixed Length)
+			 */
+			fixedLength_option: () => LocalizedString
+			/**
+			 * 超时读取 (Timeout)
+			 */
+			timeoutRead_option: () => LocalizedString
+			/**
+			 * 手动控制 (Manual)
+			 */
+			manualControl_option: () => LocalizedString
+			/**
+			 * 文本 (Text)
+			 */
+			encodingText_option: () => LocalizedString
+			/**
+			 * 十六进制 (Hex)
+			 */
+			encodingHex_option: () => LocalizedString
 		}
 		tcpClose: {
 			/**
@@ -19890,6 +21595,30 @@ export type TranslationFunctions = {
 			 * 超时后视为一帧结束
 			 */
 			readTimeoutDesc: () => LocalizedString
+			/**
+			 * 长度前缀 (Length Prefix)
+			 */
+			lengthPrefix_option: () => LocalizedString
+			/**
+			 * 分隔符 (Delimiter)
+			 */
+			delimiter_option: () => LocalizedString
+			/**
+			 * 固定长度 (Fixed Length)
+			 */
+			fixedLength_option: () => LocalizedString
+			/**
+			 * 超时读取 (Timeout)
+			 */
+			timeoutRead_option: () => LocalizedString
+			/**
+			 * 手动控制 (Manual)
+			 */
+			manualControl_option: () => LocalizedString
+			/**
+			 * 接收到的数据将存入变量供后续节点使用
+			 */
+			receiveData_help: () => LocalizedString
 		}
 		udpBind: {
 			/**
@@ -20038,6 +21767,42 @@ export type TranslationFunctions = {
 			 * Base64
 			 */
 			base64Encoding: () => LocalizedString
+			/**
+			 * 文本 (Text)
+			 */
+			encodingText_option: () => LocalizedString
+			/**
+			 * 十六进制 (Hex)
+			 */
+			encodingHex_option: () => LocalizedString
+			/**
+			 * 数据报发送的目标主机地址
+			 */
+			targetAddr_help: () => LocalizedString
+			/**
+			 * 范围 1-65535
+			 */
+			portRange_help: () => LocalizedString
+			/**
+			 * 选择数据的编码格式，发送前会自动解码为原始字节
+			 */
+			encoding_help: () => LocalizedString
+			/**
+			 * 输入要发送的数据...
+			 */
+			dataPlaceholder: () => LocalizedString
+			/**
+			 * 十六进制格式，如 48656C6C6F
+			 */
+			hexFormat_help: () => LocalizedString
+			/**
+			 * Base64 编码的字符串
+			 */
+			base64Format_help: () => LocalizedString
+			/**
+			 * 纯文本数据，支持变量引用 {{variable}}
+			 */
+			textFormat_help: (arg0: number | string | boolean) => LocalizedString
 		}
 		udpRecvFrom: {
 			/**
@@ -20068,6 +21833,22 @@ export type TranslationFunctions = {
 			 * 字节，最大 65536
 			 */
 			maxSizeHint: () => LocalizedString
+			/**
+			 * 接收说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * UDP 接收是阻塞操作，超时会返回错误
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * 接收到的数据报包含发送方的地址和端口信息
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * 超过最大接收大小的数据报会被截断
+			 */
+			help_line3: () => LocalizedString
 			/**
 			 * 未检测到 UDP Bind 节点，请手动输入连接 ID
 			 */
@@ -20446,6 +22227,38 @@ export type TranslationFunctions = {
 			 * 配置 OAuth2 认证令牌
 			 */
 			oauth2Desc: () => LocalizedString
+			/**
+			 * 连接成功
+			 */
+			testSuccess_msg: () => LocalizedString
+			/**
+			 * 连接失败，未知错误
+			 */
+			testFailed_msg: () => LocalizedString
+			/**
+			 * 自定义
+			 */
+			custom_option: () => LocalizedString
+			/**
+			 * 留空时执行器将自动生成唯一连接 ID
+			 */
+			connectionId_help: () => LocalizedString
+			/**
+			 * SMTP 连接说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * STARTTLS 模式通常使用端口 587，隐式 TLS 使用端口 465
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * PLAIN 和 LOGIN 是最常见的认证方式
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * XOAUTH2 支持 Gmail、Outlook 等服务商的 OAuth2 令牌
+			 */
+			help_line3: () => LocalizedString
 		}
 		smtpSend: {
 			/**
@@ -20576,6 +22389,10 @@ export type TranslationFunctions = {
 			 * 暂无自定义头
 			 */
 			noCustomHeaders_text: () => LocalizedString
+			/**
+			 * 暂无自定义头
+			 */
+			noCustomHeaders: () => LocalizedString
 		}
 		smtpClose: {
 			/**
@@ -21508,6 +23325,86 @@ export type TranslationFunctions = {
 			 * 遗嘱 QoS
 			 */
 			willQos_label: () => LocalizedString
+			/**
+			 * QoS 0 — 最多一次
+			 */
+			qos0_option: () => LocalizedString
+			/**
+			 * QoS 1 — 至少一次
+			 */
+			qos1_option: () => LocalizedString
+			/**
+			 * QoS 2 — 恰好一次
+			 */
+			qos2_option: () => LocalizedString
+			/**
+			 * 遗嘱保留
+			 */
+			willRetain_label: () => LocalizedString
+			/**
+			 * 启用 TLS
+			 */
+			enableTls_label: () => LocalizedString
+			/**
+			 * 使用 TLS 加密连接 (mqtts://)
+			 */
+			enableTls_desc: () => LocalizedString
+			/**
+			 * 不验证服务器 TLS 证书
+			 */
+			skipCertVerify_desc: () => LocalizedString
+			/**
+			 * MQTT 5.0 高级选项
+			 */
+			mqtt5_sectionTitle: () => LocalizedString
+			/**
+			 * 会话过期间隔（秒）
+			 */
+			sessionExpiry_label: () => LocalizedString
+			/**
+			 * 遗嘱延迟间隔（秒）
+			 */
+			willDelayInterval_label: () => LocalizedString
+			/**
+			 * 接收最大值
+			 */
+			receiveMaximum_label: () => LocalizedString
+			/**
+			 * 主题别名最大值
+			 */
+			topicAliasMaximum_label: () => LocalizedString
+			/**
+			 * 最大报文大小（字节）
+			 */
+			maxPacketSize_label: () => LocalizedString
+			/**
+			 * 用户属性（可选）
+			 */
+			userProperties_label: () => LocalizedString
+			/**
+			 * MQTT 连接说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 支持 MQTT 5.0 和 3.1.1 协议版本
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * 遗嘱消息在连接异常断开时由 Broker 自动发布
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * MQTT 5.0 高级选项仅在协议版本为 5.0 时可用
+			 */
+			help_line3: () => LocalizedString
+			/**
+			 * 连接成功
+			 */
+			testSuccess_msg: () => LocalizedString
+			/**
+			 * 连接失败，未知错误
+			 */
+			testFailed_msg: () => LocalizedString
 		}
 		mqttPublish: {
 			/**
@@ -21530,6 +23427,90 @@ export type TranslationFunctions = {
 			 * 未检测到 MQTT Connect 节点，请手动输入连接 ID
 			 */
 			noConnectNode: () => LocalizedString
+			/**
+			 * 载荷格式
+			 */
+			payloadFormat_label: () => LocalizedString
+			/**
+			 * 文本 (Text)
+			 */
+			text_option: () => LocalizedString
+			/**
+			 * 十六进制 (Hex)
+			 */
+			hex_option: () => LocalizedString
+			/**
+			 * QoS 等级
+			 */
+			qos_label: () => LocalizedString
+			/**
+			 * QoS 0 — 最多一次
+			 */
+			qos0_option: () => LocalizedString
+			/**
+			 * QoS 1 — 至少一次
+			 */
+			qos1_option: () => LocalizedString
+			/**
+			 * QoS 2 — 恰好一次
+			 */
+			qos2_option: () => LocalizedString
+			/**
+			 * 保留消息
+			 */
+			retain_label: () => LocalizedString
+			/**
+			 * Broker 保留此消息的最后一条
+			 */
+			retain_desc: () => LocalizedString
+			/**
+			 * MQTT 5.0 选项
+			 */
+			mqtt5_sectionTitle: () => LocalizedString
+			/**
+			 * 内容类型
+			 */
+			contentType_label: () => LocalizedString
+			/**
+			 * 消息过期间隔（秒）
+			 */
+			messageExpiry_label: () => LocalizedString
+			/**
+			 * 响应主题
+			 */
+			responseTopic_label: () => LocalizedString
+			/**
+			 * 关联数据
+			 */
+			correlationData_label: () => LocalizedString
+			/**
+			 * 主题别名
+			 */
+			topicAlias_label: () => LocalizedString
+			/**
+			 * 用户属性（可选）
+			 */
+			userProperties_label: () => LocalizedString
+			/**
+			 * 暂无用户属性
+			 */
+			noUserProperties: () => LocalizedString
+			/**
+			 * 发布说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 选择已建立的 MQTT 连接，指定发布主题和载荷
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * QoS 等级越高可靠性越好，但延迟和带宽开销也越大
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * 连接
+			 */
+			connection_label: () => LocalizedString
 		}
 		mqttSubscribe: {
 			/**
@@ -21548,6 +23529,106 @@ export type TranslationFunctions = {
 			 * 共享订阅组名
 			 */
 			shareGroup: () => LocalizedString
+			/**
+			 * 连接
+			 */
+			connection_label: () => LocalizedString
+			/**
+			 * QoS 等级
+			 */
+			qos_label: () => LocalizedString
+			/**
+			 * QoS 0 — 最多一次
+			 */
+			qos0_option: () => LocalizedString
+			/**
+			 * QoS 1 — 至少一次
+			 */
+			qos1_option: () => LocalizedString
+			/**
+			 * QoS 2 — 恰好一次
+			 */
+			qos2_option: () => LocalizedString
+			/**
+			 * 输出模式
+			 */
+			outputMode_label: () => LocalizedString
+			/**
+			 * 首条消息
+			 */
+			firstMessage_option: () => LocalizedString
+			/**
+			 * 全部消息
+			 */
+			allMessages_option: () => LocalizedString
+			/**
+			 * 采集配置
+			 */
+			collectConfig_sectionTitle: () => LocalizedString
+			/**
+			 * 最大消息数
+			 */
+			maxMessages_label: () => LocalizedString
+			/**
+			 * 采集超时（毫秒）
+			 */
+			collectTimeout_label: () => LocalizedString
+			/**
+			 * 设置后将使用共享订阅：
+			 */
+			shareSubscription_help: () => LocalizedString
+			/**
+			 * MQTT 5.0 选项
+			 */
+			mqtt5_sectionTitle: () => LocalizedString
+			/**
+			 * 不接收自身消息
+			 */
+			noLocal_label: () => LocalizedString
+			/**
+			 * no_local: 不转发自己发布的消息
+			 */
+			noLocal_desc: () => LocalizedString
+			/**
+			 * 保留消息按原样发布
+			 */
+			retainAsPublished_label: () => LocalizedString
+			/**
+			 * 保留消息处理策略
+			 */
+			retainHandling_label: () => LocalizedString
+			/**
+			 * 0 — 发送保留消息
+			 */
+			retainHandling0: () => LocalizedString
+			/**
+			 * 1 — 仅新订阅时发送
+			 */
+			retainHandling1: () => LocalizedString
+			/**
+			 * 2 — 不发送保留消息
+			 */
+			retainHandling2: () => LocalizedString
+			/**
+			 * 订阅标识符
+			 */
+			subscriptionId_label: () => LocalizedString
+			/**
+			 * 订阅说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 主题支持 MQTT 通配符：+ 匹配单层，# 匹配多层（必须在末尾）
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * 输出模式「首条消息」等待第一条即完成，「全部消息」需配合采集超时使用
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * 共享订阅需要 Broker 支持此特性
+			 */
+			help_line3: () => LocalizedString
 		}
 		mqttUnsubscribe: {
 			/**
@@ -21562,6 +23643,18 @@ export type TranslationFunctions = {
 			 * 主题
 			 */
 			topicLabel: () => LocalizedString
+			/**
+			 * 连接
+			 */
+			connection_label: () => LocalizedString
+			/**
+			 * 取消订阅说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 取消订阅后，该连接将不再接收对应主题的消息
+			 */
+			help_line1: () => LocalizedString
 		}
 		mqttDisconnect: {
 			/**
@@ -21572,6 +23665,38 @@ export type TranslationFunctions = {
 			 * 断开指定的 MQTT 连接，释放会话资源。
 			 */
 			description: () => LocalizedString
+			/**
+			 * 连接
+			 */
+			connection_label: () => LocalizedString
+			/**
+			 * MQTT 5.0 断开选项（可选）
+			 */
+			mqtt5_sectionTitle: () => LocalizedString
+			/**
+			 * 原因码
+			 */
+			reasonCode_label: () => LocalizedString
+			/**
+			 * 会话过期间隔（秒）
+			 */
+			sessionExpiry_label: () => LocalizedString
+			/**
+			 * 断开说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 断开连接后将释放 MQTT 会话资源
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * 后续订阅/发布操作将无法使用该连接，需重新建立
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * 原因码和会话过期间隔为 MQTT 5.0 特有选项
+			 */
+			help_line3: () => LocalizedString
 		}
 		mqttWaitMessage: {
 			/**
@@ -21598,6 +23723,30 @@ export type TranslationFunctions = {
 			 * 最大等待消息数
 			 */
 			maxMessages: () => LocalizedString
+			/**
+			 * 连接
+			 */
+			connection_label: () => LocalizedString
+			/**
+			 * 匹配条件（可选）
+			 */
+			matchCondition_sectionTitle: () => LocalizedString
+			/**
+			 * 等待消息说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 等待指定主题上的 MQTT 消息到达
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * 匹配条件支持 json_path、regex、expression 等模式
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * 超时后未收到消息将返回超时错误
+			 */
+			help_line3: () => LocalizedString
 		}
 		mqttRequest: {
 			/**
@@ -21636,6 +23785,42 @@ export type TranslationFunctions = {
 			 * 响应超时（毫秒）
 			 */
 			responseTimeout: () => LocalizedString
+			/**
+			 * 连接
+			 */
+			connection_label: () => LocalizedString
+			/**
+			 * QoS 等级
+			 */
+			qos_label: () => LocalizedString
+			/**
+			 * QoS 0 — 最多一次
+			 */
+			qos0_option: () => LocalizedString
+			/**
+			 * QoS 1 — 至少一次
+			 */
+			qos1_option: () => LocalizedString
+			/**
+			 * QoS 2 — 恰好一次
+			 */
+			qos2_option: () => LocalizedString
+			/**
+			 * 请求-响应说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 向请求主题发送消息，同时订阅响应主题等待回复
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * 关联数据用于匹配请求和响应，确保不混淆
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * 超时后未收到响应将返回超时错误
+			 */
+			help_line3: () => LocalizedString
 		}
 		wsConnect: {
 			/**
@@ -21710,6 +23895,86 @@ export type TranslationFunctions = {
 			 * 匹配表达式不能为空
 			 */
 			matchExpressionRequired: () => LocalizedString
+			/**
+			 * 请求头（可选）
+			 */
+			headers_label: () => LocalizedString
+			/**
+			 * 暂无自定义 Headers
+			 */
+			noHeaders: () => LocalizedString
+			/**
+			 * 毫秒 (ms)，范围 1000-300000
+			 */
+			timeoutRange: () => LocalizedString
+			/**
+			 * 采集首条即停
+			 */
+			collectFirstStop_option: () => LocalizedString
+			/**
+			 * 匹配条件即停
+			 */
+			matchConditionStop_option: () => LocalizedString
+			/**
+			 * 持续采集
+			 */
+			continuousCollect_option: () => LocalizedString
+			/**
+			 * 采集条件
+			 */
+			condition_sectionTitle: () => LocalizedString
+			/**
+			 * 匹配类型说明：
+			 */
+			help_matchType_title: () => LocalizedString
+			/**
+			 * 📌 JSONPath — 检查字段是否存在
+			 */
+			jsonpath_title: () => LocalizedString
+			/**
+			 * $.msg 检查 msg 字段是否存在
+			 */
+			jsonpath_line1: () => LocalizedString
+			/**
+			 * $.data.status 检查嵌套字段
+			 */
+			jsonpath_line2: () => LocalizedString
+			/**
+			 * ⚠️ 仅检查字段存在，不支持值比较
+			 */
+			jsonpath_warning: () => LocalizedString
+			/**
+			 * 🔍 正则表达式 — 匹配消息文本
+			 */
+			regex_title: () => LocalizedString
+			/**
+			 * authenticated 包含该文本
+			 */
+			regex_line1: () => LocalizedString
+			/**
+			 * success|ok 多选一
+			 */
+			regex_line2: () => LocalizedString
+			/**
+			 * ⚠️ 对整个消息文本进行正则匹配
+			 */
+			regex_warning: () => LocalizedString
+			/**
+			 * 🧮 表达式 — 值比较（推荐）
+			 */
+			expression_title: () => LocalizedString
+			/**
+			 * msg == "authenticated" 字符串比较
+			 */
+			expression_line1: () => LocalizedString
+			/**
+			 * code == 1 数字比较
+			 */
+			expression_line2: () => LocalizedString
+			/**
+			 * ✅ JSON 顶层字段自动注入，无需 $. 前缀
+			 */
+			expression_note: () => LocalizedString
 		}
 		wsSendCollect: {
 			/**
@@ -21880,6 +24145,78 @@ export type TranslationFunctions = {
 			 * 未检测到 WS Connect 节点，请手动输入连接 ID 或使用变量引用
 			 */
 			noConnectNode: () => LocalizedString
+			/**
+			 * 匹配表达式不能为空
+			 */
+			matchExpression_required: () => LocalizedString
+			/**
+			 * 匹配类型说明：
+			 */
+			help_matchType_title: () => LocalizedString
+			/**
+			 * 📌 JSONPath — 检查字段是否存在
+			 */
+			jsonpath_title: () => LocalizedString
+			/**
+			 * $.msg 检查 msg 字段是否存在
+			 */
+			jsonpath_line1: () => LocalizedString
+			/**
+			 * $.data.status 检查嵌套字段
+			 */
+			jsonpath_line2: () => LocalizedString
+			/**
+			 * ⚠️ 仅检查字段存在，不支持值比较
+			 */
+			jsonpath_warning: () => LocalizedString
+			/**
+			 * 🔍 正则表达式 — 匹配消息文本
+			 */
+			regex_title: () => LocalizedString
+			/**
+			 * authenticated 包含该文本
+			 */
+			regex_line1: () => LocalizedString
+			/**
+			 * success|ok 多选一
+			 */
+			regex_line2: () => LocalizedString
+			/**
+			 * ⚠️ 对整个消息文本进行正则匹配
+			 */
+			regex_warning: () => LocalizedString
+			/**
+			 * 🧮 多条件表达式 — 值比较（推荐）
+			 */
+			expression_title: () => LocalizedString
+			/**
+			 * 支持多条件组合：
+			 */
+			expression_support: () => LocalizedString
+			/**
+			 * && 与 || 或 ! 非
+			 */
+			expression_operators: () => LocalizedString
+			/**
+			 * > < >= <= == !=
+			 */
+			expression_comparison: () => LocalizedString
+			/**
+			 * 例：a == "" && b != ""
+			 */
+			expression_example: () => LocalizedString
+			/**
+			 * msg == "authenticated" 字符串比较
+			 */
+			expression_line1: () => LocalizedString
+			/**
+			 * code == 1 数字比较
+			 */
+			expression_line2: () => LocalizedString
+			/**
+			 * ✅ JSON 顶层字段自动注入，无需 $. 前缀
+			 */
+			expression_note: () => LocalizedString
 		}
 		graphqlConnect: {
 			/**
@@ -21903,6 +24240,70 @@ export type TranslationFunctions = {
 			 */
 			headers: () => LocalizedString
 			/**
+			 * 暂无自定义请求头
+			 */
+			noHeaders: () => LocalizedString
+			/**
+			 * WebSocket 端点 URL
+			 */
+			wsUrl_label: () => LocalizedString
+			/**
+			 * 用于 GraphQL 订阅的 WebSocket 端点，留空则使用 HTTP 端点
+			 */
+			wsUrl_help: () => LocalizedString
+			/**
+			 * 连接 ID
+			 */
+			connectionId_label: () => LocalizedString
+			/**
+			 * 留空将自动生成连接 ID
+			 */
+			connectionId_help: () => LocalizedString
+			/**
+			 * Schema 探索
+			 */
+			schemaExplore_sectionTitle: () => LocalizedString
+			/**
+			 * 获取 Schema
+			 */
+			explore_button: () => LocalizedString
+			/**
+			 * 探索中...
+			 */
+			exploring_button: () => LocalizedString
+			/**
+			 * 向已配置的端点发送内省查询，获取可用的 Query 和 Mutation 列表
+			 */
+			introspect_help: () => LocalizedString
+			/**
+			 * 请先配置 GraphQL 端点 URL
+			 */
+			introspect_error: () => LocalizedString
+			/**
+			 * Schema 探索成功（{typeCount} 个类型）
+			 */
+			introspect_success: (arg: { typeCount: unknown }) => LocalizedString
+			/**
+			 * Schema 探索失败
+			 */
+			introspect_failed: () => LocalizedString
+			/**
+			 * GraphQL 连接说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * HTTP 端点用于查询 (Query) 和变更 (Mutation)
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * WebSocket 端点用于实时订阅 (Subscription)
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * 可在请求头中配置认证信息 (Authorization)
+			 */
+			help_line3: () => LocalizedString
+			/**
 			 * 连接超时
 			 */
 			timeout: () => LocalizedString
@@ -21924,6 +24325,22 @@ export type TranslationFunctions = {
 			 * 连接 ID
 			 */
 			connectionId: () => LocalizedString
+			/**
+			 * GraphQL 内省说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 内省查询将获取服务端的完整 Schema 定义
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * 包括所有可用的 Query、Mutation、Type 和字段
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * 可用于自动生成查询模板或验证 Schema 兼容性
+			 */
+			help_line3: () => LocalizedString
 			/**
 			 * 未检测到 GraphQL Connect 节点，请手动输入连接 ID
 			 */
@@ -21955,6 +24372,54 @@ export type TranslationFunctions = {
 			 */
 			variables: () => LocalizedString
 			/**
+			 * Schema 字段浏览器
+			 */
+			schemaFieldBrowser_sectionTitle: () => LocalizedString
+			/**
+			 * 勾选需要的字段，点击"生成查询"自动填充查询编辑器
+			 */
+			schemaFieldBrowser_help: () => LocalizedString
+			/**
+			 * 操作名称
+			 */
+			operationName_label: () => LocalizedString
+			/**
+			 * 当查询包含多个操作时，指定要执行的操作名称
+			 */
+			operationName_help: () => LocalizedString
+			/**
+			 * 文件上传（可选）
+			 */
+			fileUpload_sectionTitle: () => LocalizedString
+			/**
+			 * 暂无文件上传
+			 */
+			noFileUpload: () => LocalizedString
+			/**
+			 * 超时（毫秒）
+			 */
+			timeout_label: () => LocalizedString
+			/**
+			 * GraphQL 查询说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 支持 Query、Mutation 操作
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * 变量需以 JSON 格式输入
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * 文件上传使用 GraphQL multipart 规范
+			 */
+			help_line3: () => LocalizedString
+			/**
+			 * JSON 格式无效
+			 */
+			variables_error: () => LocalizedString
+			/**
 			 * 未检测到 GraphQL Connect 节点，请手动输入连接 ID
 			 */
 			noConnectNode: () => LocalizedString
@@ -21980,6 +24445,50 @@ export type TranslationFunctions = {
 			 * 输入 GraphQL 订阅...
 			 */
 			subscriptionPlaceholder: () => LocalizedString
+			/**
+			 * Schema 字段浏览器
+			 */
+			schemaFieldBrowser_sectionTitle: () => LocalizedString
+			/**
+			 * 勾选需要的订阅字段，点击"生成订阅"自动填充订阅编辑器
+			 */
+			schemaFieldBrowser_help: () => LocalizedString
+			/**
+			 * 操作名称
+			 */
+			operationName_label: () => LocalizedString
+			/**
+			 * 最大事件数
+			 */
+			maxEvents_label: () => LocalizedString
+			/**
+			 * 达到最大事件数后自动停止订阅，0 表示不限制
+			 */
+			maxEvents_help: () => LocalizedString
+			/**
+			 * 超时（毫秒）
+			 */
+			timeout_label: () => LocalizedString
+			/**
+			 * GraphQL 订阅说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 订阅需要连接配置了 WebSocket 端点
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * 实时接收服务端推送的订阅事件
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * 设置最大事件数或超时时间可自动结束订阅
+			 */
+			help_line3: () => LocalizedString
+			/**
+			 * JSON 格式无效
+			 */
+			variables_error: () => LocalizedString
 			/**
 			 * 未检测到 GraphQL Connect 节点，请手动输入连接 ID
 			 */
@@ -22106,6 +24615,50 @@ export type TranslationFunctions = {
 			 * 多个 Broker 用逗号分隔，例如 host1:9092,host2:9092
 			 */
 			bootstrapHint: () => LocalizedString
+			/**
+			 * TLS 配置
+			 */
+			sslSection_title: () => LocalizedString
+			/**
+			 * 不验证服务器 TLS 证书
+			 */
+			sslSkipVerify_desc: () => LocalizedString
+			/**
+			 * CA 证书路径
+			 */
+			sslCaCertPath_label: () => LocalizedString
+			/**
+			 * 客户端证书路径
+			 */
+			sslClientCertPath_label: () => LocalizedString
+			/**
+			 * 客户端密钥路径
+			 */
+			sslClientKeyPath_label: () => LocalizedString
+			/**
+			 * 用户名
+			 */
+			username_label: () => LocalizedString
+			/**
+			 * 密码
+			 */
+			password_label: () => LocalizedString
+			/**
+			 * Kafka 连接说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * Bootstrap Servers 支持多个地址，用逗号分隔以实现高可用
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * SASL 认证仅在安全协议为 SASL_PLAINTEXT 或 SASL_SSL 时可用
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * Schema Registry 用于 Avro/Protobuf 序列化格式的消息验证
+			 */
+			help_line3: () => LocalizedString
 		}
 		kafkaClose: {
 			/**
@@ -22128,6 +24681,14 @@ export type TranslationFunctions = {
 			 * 关闭连接后将释放 Kafka 连接资源
 			 */
 			closeInfoLine1: () => LocalizedString
+			/**
+			 * 建议在流程结束时关闭不再使用的连接
+			 */
+			help_line3: () => LocalizedString
+			/**
+			 * 连接 ID 不能为空
+			 */
+			error_connectionIdRequired: () => LocalizedString
 		}
 		kafkaProduce: {
 			/**
@@ -22166,6 +24727,70 @@ export type TranslationFunctions = {
 			 * 未检测到 Kafka Connect 节点，请手动输入连接 ID
 			 */
 			noConnectNode: () => LocalizedString
+			/**
+			 * 暂无消息头
+			 */
+			noHeaders: () => LocalizedString
+			/**
+			 * 序列化
+			 */
+			serialization_sectionTitle: () => LocalizedString
+			/**
+			 * 序列化格式
+			 */
+			serialization_label: () => LocalizedString
+			/**
+			 * Raw (原始字节)
+			 */
+			raw_option: () => LocalizedString
+			/**
+			 * Schema Registry 中的 Subject 名称
+			 */
+			schemaSubject_help: () => LocalizedString
+			/**
+			 * 设为 -1 或留空由 Kafka 自动选择分区
+			 */
+			partition_help: () => LocalizedString
+			/**
+			 * 确认超时（毫秒）
+			 */
+			ackTimeout_label: () => LocalizedString
+			/**
+			 * 压缩算法
+			 */
+			compression_label: () => LocalizedString
+			/**
+			 * 无压缩
+			 */
+			noCompression_option: () => LocalizedString
+			/**
+			 * 生产说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 消息键为空时，消息将按轮询策略分配到分区
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * 使用 Avro/Protobuf 序列化时需先配置 Schema Registry 连接
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * 压缩算法需 Broker 端支持对应解码器
+			 */
+			help_line3: () => LocalizedString
+			/**
+			 * 连接 ID 不能为空
+			 */
+			error_connectionIdRequired: () => LocalizedString
+			/**
+			 * 主题不能为空
+			 */
+			error_topicRequired: () => LocalizedString
+			/**
+			 * 消息配置
+			 */
+			msgConfig_sectionTitle: () => LocalizedString
 		}
 		kafkaConsume: {
 			/**
@@ -22200,6 +24825,122 @@ export type TranslationFunctions = {
 			 * 未检测到 Kafka Connect 节点，请手动输入连接 ID
 			 */
 			noConnectNode: () => LocalizedString
+			/**
+			 * 消费配置
+			 */
+			consumerConfig_sectionTitle: () => LocalizedString
+			/**
+			 * 主题
+			 */
+			topic_label: () => LocalizedString
+			/**
+			 * 分区
+			 */
+			partition_label: () => LocalizedString
+			/**
+			 * 设为 -1 订阅主题的所有分区
+			 */
+			partition_help: () => LocalizedString
+			/**
+			 * 起始偏移量
+			 */
+			offset_label: () => LocalizedString
+			/**
+			 * 偏移重置策略
+			 */
+			offsetReset_label: () => LocalizedString
+			/**
+			 * earliest — 从最早消息开始
+			 */
+			earliest_option: () => LocalizedString
+			/**
+			 * latest — 从最新消息开始
+			 */
+			latest_option: () => LocalizedString
+			/**
+			 * 当消费者组无已提交偏移量时生效
+			 */
+			offsetReset_help: () => LocalizedString
+			/**
+			 * 消费者组
+			 */
+			consumerGroup_sectionTitle: () => LocalizedString
+			/**
+			 * 消费者组 ID
+			 */
+			groupId_label: () => LocalizedString
+			/**
+			 * 同一消费者组内的消费者共同分担主题分区
+			 */
+			groupId_help: () => LocalizedString
+			/**
+			 * 自动提交偏移量
+			 */
+			autoCommit_label: () => LocalizedString
+			/**
+			 * 自动周期性提交已消费的偏移量
+			 */
+			autoCommit_desc: () => LocalizedString
+			/**
+			 * 反序列化
+			 */
+			deserialization_sectionTitle: () => LocalizedString
+			/**
+			 * 反序列化格式
+			 */
+			deserialization_label: () => LocalizedString
+			/**
+			 * Raw (原始字节)
+			 */
+			raw_option: () => LocalizedString
+			/**
+			 * Schema Registry 中的 Subject 名称
+			 */
+			schemaSubject_help: () => LocalizedString
+			/**
+			 * 消费的最大消息数量，达到后自动停止
+			 */
+			maxRecords_help: () => LocalizedString
+			/**
+			 * 最小拉取字节数
+			 */
+			fetchMinBytes_label: () => LocalizedString
+			/**
+			 * Fetch 请求的最小字节数，减小可降低延迟
+			 */
+			fetchMinBytes_help: () => LocalizedString
+			/**
+			 * 最大拉取等待（毫秒）
+			 */
+			fetchMaxWait_label: () => LocalizedString
+			/**
+			 * 无足够数据时 Broker 最大等待时间
+			 */
+			fetchMaxWait_help: () => LocalizedString
+			/**
+			 * 消费说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 消费者组 ID 为空时使用自动分配的临时组
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * 偏移重置策略仅在消费者组首次启动或偏移量过期时生效
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * 使用 Avro/Protobuf 反序列化时需先配置 Schema Registry 连接
+			 */
+			help_line3: () => LocalizedString
+			/**
+			 * 连接 ID 不能为空
+			 */
+			error_connectionIdRequired: () => LocalizedString
+			/**
+			 * 主题不能为空
+			 */
+			error_topicRequired: () => LocalizedString
 		}
 		kafkaConsumeBatch: {
 			/**
@@ -22238,6 +24979,134 @@ export type TranslationFunctions = {
 			 * 未检测到 Kafka Connect 节点，请手动输入连接 ID
 			 */
 			noConnectNode: () => LocalizedString
+			/**
+			 * 消费配置
+			 */
+			consumerConfig_sectionTitle: () => LocalizedString
+			/**
+			 * 主题
+			 */
+			topic_label: () => LocalizedString
+			/**
+			 * 分区
+			 */
+			partition_label: () => LocalizedString
+			/**
+			 * 设为 -1 订阅主题的所有分区
+			 */
+			partition_help: () => LocalizedString
+			/**
+			 * 起始偏移量
+			 */
+			offset_label: () => LocalizedString
+			/**
+			 * 偏移重置策略
+			 */
+			offsetReset_label: () => LocalizedString
+			/**
+			 * earliest — 从最早消息开始
+			 */
+			earliest_option: () => LocalizedString
+			/**
+			 * latest — 从最新消息开始
+			 */
+			latest_option: () => LocalizedString
+			/**
+			 * 当消费者组无已提交偏移量时生效
+			 */
+			offsetReset_help: () => LocalizedString
+			/**
+			 * 消费者组
+			 */
+			consumerGroup_sectionTitle: () => LocalizedString
+			/**
+			 * 消费者组 ID
+			 */
+			groupId_label: () => LocalizedString
+			/**
+			 * 同一消费者组内的消费者共同分担主题分区
+			 */
+			groupId_help: () => LocalizedString
+			/**
+			 * 自动提交偏移量
+			 */
+			autoCommit_label: () => LocalizedString
+			/**
+			 * 自动周期性提交已消费的偏移量
+			 */
+			autoCommit_desc: () => LocalizedString
+			/**
+			 * 反序列化
+			 */
+			deserialization_sectionTitle: () => LocalizedString
+			/**
+			 * 反序列化格式
+			 */
+			deserialization_label: () => LocalizedString
+			/**
+			 * Raw (原始字节)
+			 */
+			raw_option: () => LocalizedString
+			/**
+			 * Schema Registry 中的 Subject 名称
+			 */
+			schemaSubject_help: () => LocalizedString
+			/**
+			 * 批量消费的最大消息数量，达到后自动停止
+			 */
+			maxRecords_help: () => LocalizedString
+			/**
+			 * 批量策略
+			 */
+			batchStrategy_label: () => LocalizedString
+			/**
+			 * count_timeout — 消息数 + 超时
+			 */
+			countTimeout_option: () => LocalizedString
+			/**
+			 * count_only — 仅消息数
+			 */
+			countOnly_option: () => LocalizedString
+			/**
+			 * timeout_only — 仅超时
+			 */
+			timeoutOnly_option: () => LocalizedString
+			/**
+			 * 控制批量消费的结束条件
+			 */
+			batchStrategy_help: () => LocalizedString
+			/**
+			 * 批量消费说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 默认最大消费 10 条消息（与单条消费的默认 1 条不同）
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * count_timeout 策略：达到消息数或超时即返回
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * count_only 策略：仅按消息数判断
+			 */
+			help_line3: () => LocalizedString
+			/**
+			 * timeout_only 策略：仅按超时时间判断
+			 */
+			help_line4: () => LocalizedString
+			/**
+			 * 使用 Avro/Protobuf 反序列化时需先配置 Schema Registry 连接
+			 */
+			help_line5: () => LocalizedString
+			/**
+			 * 连接 ID 不能为空
+			 */
+			error_connectionIdRequired: () => LocalizedString
+			/**
+			 * 主题不能为空
+			 */
+			error_topicRequired: () => LocalizedString
 		}
 		kafkaAdmin: {
 			/**
@@ -22344,6 +25213,98 @@ export type TranslationFunctions = {
 			 * 列出 ACL
 			 */
 			operations_listAcls: () => LocalizedString
+			/**
+			 * 主题配置
+			 */
+			topicConfig_sectionTitle: () => LocalizedString
+			/**
+			 * 主题配置
+			 */
+			topicConfig_label: () => LocalizedString
+			/**
+			 * 每行一个键值对，格式: key=value
+			 */
+			topicConfig_help: () => LocalizedString
+			/**
+			 * 消费者组
+			 */
+			consumerGroup_sectionTitle: () => LocalizedString
+			/**
+			 * 消费者组 ID
+			 */
+			groupId_label: () => LocalizedString
+			/**
+			 * 指定要操作的消费者组 ID
+			 */
+			groupId_help: () => LocalizedString
+			/**
+			 * ACL 配置
+			 */
+			aclConfig_sectionTitle: () => LocalizedString
+			/**
+			 * 主体 (Principal)
+			 */
+			aclPrincipal_label: () => LocalizedString
+			/**
+			 * 主机
+			 */
+			aclHost_label: () => LocalizedString
+			/**
+			 * 操作
+			 */
+			aclOperation_label: () => LocalizedString
+			/**
+			 * 权限类型
+			 */
+			aclPermissionType_label: () => LocalizedString
+			/**
+			 * 资源类型
+			 */
+			aclResourceType_label: () => LocalizedString
+			/**
+			 * 资源名称
+			 */
+			aclResourceName_label: () => LocalizedString
+			/**
+			 * 选项
+			 */
+			options_sectionTitle: () => LocalizedString
+			/**
+			 * 试运行 (Dry Run)
+			 */
+			dryRun_label: () => LocalizedString
+			/**
+			 * 仅验证操作而不实际执行
+			 */
+			dryRun_desc: () => LocalizedString
+			/**
+			 * 管理操作说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 主题管理：创建、删除、查看和修改主题配置
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * 消费者组管理：列出、查看消费者组和重置偏移量
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * Broker 管理：查看 Broker 列表和配置信息
+			 */
+			help_line3: () => LocalizedString
+			/**
+			 * ACL 管理：创建、删除和查看访问控制列表
+			 */
+			help_line4: () => LocalizedString
+			/**
+			 * 开启 Dry Run 可在不实际执行的情况下验证操作参数
+			 */
+			help_line5: () => LocalizedString
+			/**
+			 * 连接 ID 不能为空
+			 */
+			error_connectionIdRequired: () => LocalizedString
 		}
 		kafkaSchemaRegistry: {
 			/**
@@ -22410,6 +25371,58 @@ export type TranslationFunctions = {
 			 * 设为 -1 获取最新版本
 			 */
 			versionHint: () => LocalizedString
+			/**
+			 * Schema 内容
+			 */
+			schemaDefinition_label: () => LocalizedString
+			/**
+			 * Schema 类型
+			 */
+			schemaType_sectionTitle: () => LocalizedString
+			/**
+			 * 兼容性检查
+			 */
+			compatCheck_sectionTitle: () => LocalizedString
+			/**
+			 * BACKWARD — 向后兼容
+			 */
+			backward_option: () => LocalizedString
+			/**
+			 * FORWARD — 向前兼容
+			 */
+			forward_option: () => LocalizedString
+			/**
+			 * FULL — 完全兼容
+			 */
+			full_option: () => LocalizedString
+			/**
+			 * NONE — 无兼容性要求
+			 */
+			none_option: () => LocalizedString
+			/**
+			 * Schema Registry 说明：
+			 */
+			help_title: () => LocalizedString
+			/**
+			 * 需先在 Kafka Connect 节点中配置 Schema Registry URL
+			 */
+			help_line1: () => LocalizedString
+			/**
+			 * 列出 Subjects 操作无需指定 Subject 名称
+			 */
+			help_line2: () => LocalizedString
+			/**
+			 * 注册 Schema 时需提供完整的 Schema 定义和格式
+			 */
+			help_line3: () => LocalizedString
+			/**
+			 * 兼容性检查会验证新 Schema 是否与现有版本兼容
+			 */
+			help_line4: () => LocalizedString
+			/**
+			 * 连接 ID 不能为空
+			 */
+			error_connectionIdRequired: () => LocalizedString
 		}
 		imapConnect: {
 			/**
@@ -24452,6 +27465,26 @@ export type TranslationFunctions = {
 			 * 1015 TLS 握手失败
 			 */
 			closeCode1015: () => LocalizedString
+			/**
+			 * 关闭码说明：
+			 */
+			closeCodeInfo_title: () => LocalizedString
+			/**
+			 * 正常关闭
+			 */
+			closeCodeInfo_1000: () => LocalizedString
+			/**
+			 * 端点离开（如页面关闭）
+			 */
+			closeCodeInfo_1001: () => LocalizedString
+			/**
+			 * 协议错误
+			 */
+			closeCodeInfo_1002: () => LocalizedString
+			/**
+			 * 异常关闭（无关闭帧）
+			 */
+			closeCodeInfo_1006: () => LocalizedString
 		}
 		redisConnect: {
 			/**
@@ -28502,6 +31535,30 @@ export type TranslationFunctions = {
 		 */
 		stress_strategy: () => LocalizedString
 		/**
+		 * RoundRobin（轮询）
+		 */
+		strategy_round_robin: () => LocalizedString
+		/**
+		 * 均匀循环使用每一行
+		 */
+		strategy_round_robin_desc: () => LocalizedString
+		/**
+		 * Random（随机）
+		 */
+		strategy_random: () => LocalizedString
+		/**
+		 * 每次迭代随机取一行
+		 */
+		strategy_random_desc: () => LocalizedString
+		/**
+		 * Unique（独占）
+		 */
+		strategy_unique: () => LocalizedString
+		/**
+		 * 每个虚拟用户绑定固定行
+		 */
+		strategy_unique_desc: () => LocalizedString
+		/**
 		 * {count} 行数据 · 检测编码: {encoding}
 		 */
 		stress_rows_info: (arg: { count: unknown, encoding: unknown }) => LocalizedString
@@ -28529,6 +31586,10 @@ export type TranslationFunctions = {
 		 * 启动中...
 		 */
 		stress_starting: () => LocalizedString
+		/**
+		 * 压测进行中
+		 */
+		stress_locked_reason: () => LocalizedString
 		/**
 		 * 开始压测
 		 */
@@ -29581,6 +32642,14 @@ export type TranslationFunctions = {
 			 */
 			none: () => LocalizedString
 			/**
+			 * 是
+			 */
+			yes: () => LocalizedString
+			/**
+			 * 否
+			 */
+			no: () => LocalizedString
+			/**
 			 * 导出
 			 */
 			'export': () => LocalizedString
@@ -29681,6 +32750,42 @@ export type TranslationFunctions = {
 			 */
 			confirm_clear_desc: () => LocalizedString
 			/**
+			 * 条件语法错误
+			 */
+			error_kind_condition_syntax: () => LocalizedString
+			/**
+			 * 条件评估错误
+			 */
+			error_kind_condition_evaluation: () => LocalizedString
+			/**
+			 * 配置错误
+			 */
+			error_kind_configuration: () => LocalizedString
+			/**
+			 * 执行错误
+			 */
+			error_kind_execution: () => LocalizedString
+			/**
+			 * 连接错误
+			 */
+			error_kind_connection: () => LocalizedString
+			/**
+			 * 超时错误
+			 */
+			error_kind_timeout: () => LocalizedString
+			/**
+			 * 验证错误
+			 */
+			error_kind_validation: () => LocalizedString
+			/**
+			 * 解析错误
+			 */
+			error_kind_parse: () => LocalizedString
+			/**
+			 * 原始数据 (hex)
+			 */
+			label_raw_data: () => LocalizedString
+			/**
 			 * 耗时分解
 			 */
 			duration_decomposition: () => LocalizedString
@@ -29688,6 +32793,82 @@ export type TranslationFunctions = {
 			 * 执行状态
 			 */
 			section_execution_status: () => LocalizedString
+			/**
+			 * 总耗时
+			 */
+			timing_total: () => LocalizedString
+			/**
+			 * 连接耗时
+			 */
+			timing_connect: () => LocalizedString
+			/**
+			 * 发送耗时
+			 */
+			timing_send: () => LocalizedString
+			/**
+			 * 接收耗时
+			 */
+			timing_receive: () => LocalizedString
+			/**
+			 * 调用耗时
+			 */
+			timing_call: () => LocalizedString
+			/**
+			 * 读取耗时
+			 */
+			timing_read: () => LocalizedString
+			/**
+			 * 关闭耗时
+			 */
+			timing_close: () => LocalizedString
+			/**
+			 * 监听耗时
+			 */
+			timing_listen: () => LocalizedString
+			/**
+			 * 等待耗时
+			 */
+			timing_wait: () => LocalizedString
+			/**
+			 * 订阅耗时
+			 */
+			timing_subscribe: () => LocalizedString
+			/**
+			 * 发布耗时
+			 */
+			timing_publish: () => LocalizedString
+			/**
+			 * 断开耗时
+			 */
+			timing_disconnect: () => LocalizedString
+			/**
+			 * 命令耗时
+			 */
+			timing_command: () => LocalizedString
+			/**
+			 * 操作耗时
+			 */
+			timing_operation: () => LocalizedString
+			/**
+			 * 请求耗时
+			 */
+			timing_request: () => LocalizedString
+			/**
+			 * 消费耗时
+			 */
+			timing_consume: () => LocalizedString
+			/**
+			 * DNS 解析
+			 */
+			timing_dns: () => LocalizedString
+			/**
+			 * TLS 握手
+			 */
+			timing_tls: () => LocalizedString
+			/**
+			 * 服务器处理
+			 */
+			timing_server: () => LocalizedString
 		}
 		amqp: {
 			/**
@@ -30368,6 +33549,22 @@ export type TranslationFunctions = {
 			 * 查看录制
 			 */
 			section_view_recording: () => LocalizedString
+			/**
+			 * 数据发送完成
+			 */
+			send_complete: () => LocalizedString
+			/**
+			 * 数据发送并接收完成
+			 */
+			send_receive_complete: () => LocalizedString
+			/**
+			 * UDP 数据包已发送
+			 */
+			udp_sent: () => LocalizedString
+			/**
+			 * UDP 数据包已发送至 {target}
+			 */
+			udp_sent_to: (arg: { target: unknown }) => LocalizedString
 		}
 		mcp: {
 			/**
@@ -30547,6 +33744,10 @@ export type TranslationFunctions = {
 			 */
 			label_arguments: () => LocalizedString
 			/**
+			 * Base64 数据
+			 */
+			label_base64: () => LocalizedString
+			/**
 			 * 结果
 			 */
 			label_result: () => LocalizedString
@@ -30554,6 +33755,22 @@ export type TranslationFunctions = {
 			 * 内容类型
 			 */
 			label_content_type: () => LocalizedString
+			/**
+			 * 二进制数据
+			 */
+			label_content_type_blob: () => LocalizedString
+			/**
+			 * 图片
+			 */
+			label_content_type_image: () => LocalizedString
+			/**
+			 * 资源
+			 */
+			label_content_type_resource: () => LocalizedString
+			/**
+			 * 文本
+			 */
+			label_content_type_text: () => LocalizedString
 			/**
 			 * 文本
 			 */
@@ -31315,15 +34532,15 @@ export type TranslationFunctions = {
 			 */
 			unary_call: () => LocalizedString
 			/**
-			 * Server Streaming
+			 * 服务端流式
 			 */
 			server_streaming: () => LocalizedString
 			/**
-			 * Client Streaming
+			 * 客户端流式
 			 */
 			client_streaming: () => LocalizedString
 			/**
-			 * Bidirectional Streaming
+			 * 双向流式
 			 */
 			bidi_streaming: () => LocalizedString
 			/**
@@ -31540,6 +34757,18 @@ export type TranslationFunctions = {
 			 * 未知 GraphQL 节点类型: {type}
 			 */
 			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+			/**
+			 * 收到 {count} 个事件
+			 */
+			events_received: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 请求成功，但返回 {count} 个 GraphQL 错误
+			 */
+			query_success_with_errors: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 发现 {count} 个查询模板
+			 */
+			templates_found: (arg: { count: unknown }) => LocalizedString
 		}
 		ws: {
 			/**
@@ -32146,6 +35375,14 @@ export type TranslationFunctions = {
 			 * 未知条件节点类型: {type}
 			 */
 			unknown_node_type: (arg: { type: unknown }) => LocalizedString
+			/**
+			 * 简单条件
+			 */
+			label_simple_condition: () => LocalizedString
+			/**
+			 * 高级表达式
+			 */
+			label_advanced_expression: () => LocalizedString
 		}
 		assert: {
 			/**
@@ -32308,6 +35545,14 @@ export type TranslationFunctions = {
 			 * 未录制
 			 */
 			inactive: () => LocalizedString
+			/**
+			 * 折叠
+			 */
+			collapse: () => LocalizedString
+			/**
+			 * 展开
+			 */
+			expand: () => LocalizedString
 		}
 		generic: {
 			/**
