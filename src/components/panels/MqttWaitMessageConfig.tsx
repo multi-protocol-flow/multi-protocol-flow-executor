@@ -188,7 +188,7 @@ export function MqttWaitMessageConfig({ data, onSave }: MqttWaitMessageConfigPro
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.mqttWaitMessage.connection_label()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -255,7 +255,7 @@ export function MqttWaitMessageConfig({ data, onSave }: MqttWaitMessageConfigPro
         >
           <div className="flex items-center gap-2">
             <Info className="h-4 w-4 text-cyan-600" />
-            <span className="text-sm font-medium text-foreground">匹配条件（可选）</span>
+            <span className="text-sm font-medium text-foreground">{getLL().panels.mqttWaitMessage.matchCondition_sectionTitle()}</span>
           </div>
           <ChevronDown className={cn(
             "h-3.5 w-3.5 text-muted-foreground transition-transform",
@@ -321,10 +321,10 @@ export function MqttWaitMessageConfig({ data, onSave }: MqttWaitMessageConfigPro
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">等待消息说明：</p>
-          <p>等待指定主题上的 MQTT 消息到达</p>
-          <p>匹配条件支持 json_path、regex、expression 等模式</p>
-          <p>超时后未收到消息将返回超时错误</p>
+          <p className="font-medium text-foreground">{getLL().panels.mqttWaitMessage.help_title()}</p>
+          <p>{getLL().panels.mqttWaitMessage.help_line1()}</p>
+          <p>{getLL().panels.mqttWaitMessage.help_line2()}</p>
+          <p>{getLL().panels.mqttWaitMessage.help_line3()}</p>
         </div>
       </div>
     </form>

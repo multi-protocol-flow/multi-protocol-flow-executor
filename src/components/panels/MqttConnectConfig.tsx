@@ -269,9 +269,9 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
         const info = result.broker_info;
         const version = info?.version ? ` (v${info.version})` : '';
         const clientId = info?.assigned_client_id ? ` — Client ID: ${info.assigned_client_id}` : '';
-        setTestResult({ success: true, message: `连接成功${version}${clientId}` });
+        setTestResult({ success: true, message: `${getLL().panels.mqttConnect.testSuccess_msg()}${version}${clientId}` });
       } else {
-        setTestResult({ success: false, message: result.error || '连接失败，未知错误' });
+        setTestResult({ success: false, message: result.error || getLL().panels.mqttConnect.testFailed_msg() });
       }
     } catch (error) {
       setTestResult({
@@ -491,14 +491,14 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">QoS 0 — 最多一次</SelectItem>
-                  <SelectItem value="1">QoS 1 — 至少一次</SelectItem>
-                  <SelectItem value="2">QoS 2 — 恰好一次</SelectItem>
+                  <SelectItem value="0">{getLL().panels.mqttConnect.qos0_option()}</SelectItem>
+                  <SelectItem value="1">{getLL().panels.mqttConnect.qos1_option()}</SelectItem>
+                  <SelectItem value="2">{getLL().panels.mqttConnect.qos2_option()}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium text-foreground">遗嘱保留</Label>
+              <Label className="text-xs font-medium text-foreground">{getLL().panels.mqttConnect.willRetain_label()}</Label>
               <Switch
                 checked={watch('will_retain') ?? false}
                 onCheckedChange={(checked) => {
@@ -531,8 +531,8 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
           <div className="border-t bg-muted/20 px-3 py-3 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-xs font-medium text-foreground">启用 TLS</Label>
-                <p className="text-[10px] text-muted-foreground">使用 TLS 加密连接 (mqtts://)</p>
+                <Label className="text-xs font-medium text-foreground">{getLL().panels.mqttConnect.enableTls_label()}</Label>
+                <p className="text-[10px] text-muted-foreground">{getLL().panels.mqttConnect.enableTls_desc()}</p>
               </div>
               <Switch
                 checked={watch('use_tls') ?? false}
@@ -544,8 +544,8 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-xs font-medium text-foreground">跳过证书验证</Label>
-                <p className="text-[10px] text-muted-foreground">不验证服务器 TLS 证书</p>
+                <Label className="text-xs font-medium text-foreground">{getLL().panels.skipCertVerify()}</Label>
+                <p className="text-[10px] text-muted-foreground">{getLL().panels.mqttConnect.skipCertVerify_desc()}</p>
               </div>
               <Switch
                 checked={watch('tls_skip_verify') ?? false}
@@ -569,7 +569,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
           >
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-cyan-600" />
-              <span className="text-sm font-medium text-foreground">MQTT 5.0 高级选项</span>
+              <span className="text-sm font-medium text-foreground">{getLL().panels.mqttConnect.mqtt5_sectionTitle()}</span>
             </div>
             <ChevronDown className={cn(
               "h-3.5 w-3.5 text-muted-foreground transition-transform",
@@ -579,7 +579,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
           {expandedSections.has('mqtt5') && (
             <div className="border-t bg-muted/20 px-3 py-3 space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="session_expiry_interval" className="text-xs font-medium text-foreground">会话过期间隔（秒）</Label>
+                <Label htmlFor="session_expiry_interval" className="text-xs font-medium text-foreground">{getLL().panels.mqttConnect.sessionExpiry_label()}</Label>
                 <Input
                   id="session_expiry_interval"
                   type="number"
@@ -589,7 +589,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="will_delay_interval" className="text-xs font-medium text-foreground">遗嘱延迟间隔（秒）</Label>
+                <Label htmlFor="will_delay_interval" className="text-xs font-medium text-foreground">{getLL().panels.mqttConnect.willDelayInterval_label()}</Label>
                 <Input
                   id="will_delay_interval"
                   type="number"
@@ -599,7 +599,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="receive_maximum" className="text-xs font-medium text-foreground">接收最大值</Label>
+                <Label htmlFor="receive_maximum" className="text-xs font-medium text-foreground">{getLL().panels.mqttConnect.receiveMaximum_label()}</Label>
                 <Input
                   id="receive_maximum"
                   type="number"
@@ -609,7 +609,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="topic_alias_maximum" className="text-xs font-medium text-foreground">主题别名最大值</Label>
+                <Label htmlFor="topic_alias_maximum" className="text-xs font-medium text-foreground">{getLL().panels.mqttConnect.topicAliasMaximum_label()}</Label>
                 <Input
                   id="topic_alias_maximum"
                   type="number"
@@ -619,7 +619,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="max_packet_size" className="text-xs font-medium text-foreground">最大报文大小（字节）</Label>
+                <Label htmlFor="max_packet_size" className="text-xs font-medium text-foreground">{getLL().panels.mqttConnect.maxPacketSize_label()}</Label>
                 <Input
                   id="max_packet_size"
                   type="number"
@@ -636,7 +636,7 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
       {/* 用户属性 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">用户属性（可选）</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.mqttConnect.userProperties_label()}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -719,10 +719,10 @@ export function MqttConnectConfig({ data, onSave }: MqttConnectConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">MQTT 连接说明：</p>
-          <p>支持 MQTT 5.0 和 3.1.1 协议版本</p>
-          <p>遗嘱消息在连接异常断开时由 Broker 自动发布</p>
-          <p>MQTT 5.0 高级选项仅在协议版本为 5.0 时可用</p>
+          <p className="font-medium text-foreground">{getLL().panels.mqttConnect.help_title()}</p>
+          <p>{getLL().panels.mqttConnect.help_line1()}</p>
+          <p>{getLL().panels.mqttConnect.help_line2()}</p>
+          <p>{getLL().panels.mqttConnect.help_line3()}</p>
         </div>
       </div>
     </form>

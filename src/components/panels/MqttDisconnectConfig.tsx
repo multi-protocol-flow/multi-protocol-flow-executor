@@ -146,7 +146,7 @@ export function MqttDisconnectConfig({ data, onSave }: MqttDisconnectConfigProps
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.mqttDisconnect.connection_label()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -190,9 +190,9 @@ export function MqttDisconnectConfig({ data, onSave }: MqttDisconnectConfigProps
 
       {/* MQTT 5.0 断开选项 */}
       <div className="space-y-3 rounded-md border bg-muted/20 p-3">
-        <p className="text-xs font-medium text-foreground">MQTT 5.0 断开选项（可选）</p>
+        <p className="text-xs font-medium text-foreground">{getLL().panels.mqttDisconnect.mqtt5_sectionTitle()}</p>
         <div className="space-y-2">
-          <Label htmlFor="reason_code" className="text-xs font-medium text-foreground">原因码</Label>
+          <Label htmlFor="reason_code" className="text-xs font-medium text-foreground">{getLL().panels.mqttDisconnect.reasonCode_label()}</Label>
           <Input
             id="reason_code"
             type="number"
@@ -202,7 +202,7 @@ export function MqttDisconnectConfig({ data, onSave }: MqttDisconnectConfigProps
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="session_expiry_interval" className="text-xs font-medium text-foreground">会话过期间隔（秒）</Label>
+          <Label htmlFor="session_expiry_interval" className="text-xs font-medium text-foreground">{getLL().panels.mqttDisconnect.sessionExpiry_label()}</Label>
           <Input
             id="session_expiry_interval"
             type="number"
@@ -217,10 +217,10 @@ export function MqttDisconnectConfig({ data, onSave }: MqttDisconnectConfigProps
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">断开说明：</p>
-          <p>断开连接后将释放 MQTT 会话资源</p>
-          <p>后续订阅/发布操作将无法使用该连接，需重新建立</p>
-          <p>原因码和会话过期间隔为 MQTT 5.0 特有选项</p>
+          <p className="font-medium text-foreground">{getLL().panels.mqttDisconnect.help_title()}</p>
+          <p>{getLL().panels.mqttDisconnect.help_line1()}</p>
+          <p>{getLL().panels.mqttDisconnect.help_line2()}</p>
+          <p>{getLL().panels.mqttDisconnect.help_line3()}</p>
         </div>
       </div>
     </form>

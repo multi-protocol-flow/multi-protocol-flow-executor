@@ -219,7 +219,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.mqttPublish.connection_label()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -293,7 +293,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
 
       {/* 载荷格式 */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">载荷格式</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.mqttPublish.payloadFormat_label()}</Label>
         <Select
           value={watch('payload_format') || 'text'}
           onValueChange={(value) => {
@@ -305,9 +305,9 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="text">文本 (Text)</SelectItem>
+            <SelectItem value="text">{getLL().panels.mqttPublish.text_option()}</SelectItem>
             <SelectItem value="json">JSON</SelectItem>
-            <SelectItem value="hex">十六进制 (Hex)</SelectItem>
+            <SelectItem value="hex">{getLL().panels.mqttPublish.hex_option()}</SelectItem>
             <SelectItem value="base64">Base64</SelectItem>
           </SelectContent>
         </Select>
@@ -315,7 +315,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
 
       {/* QoS */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">QoS 等级</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.mqttPublish.qos_label()}</Label>
         <Select
           value={String(watch('qos') ?? 0)}
           onValueChange={(value) => {
@@ -327,9 +327,9 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">QoS 0 — 最多一次</SelectItem>
-            <SelectItem value="1">QoS 1 — 至少一次</SelectItem>
-            <SelectItem value="2">QoS 2 — 恰好一次</SelectItem>
+            <SelectItem value="0">{getLL().panels.mqttPublish.qos0_option()}</SelectItem>
+            <SelectItem value="1">{getLL().panels.mqttPublish.qos1_option()}</SelectItem>
+            <SelectItem value="2">{getLL().panels.mqttPublish.qos2_option()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -337,8 +337,8 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
       {/* 保留标志 */}
       <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
         <div>
-          <Label className="text-sm font-medium text-foreground">保留消息</Label>
-          <p className="text-xs text-muted-foreground">Broker 保留此消息的最后一条</p>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.mqttPublish.retain_label()}</Label>
+          <p className="text-xs text-muted-foreground">{getLL().panels.mqttPublish.retain_desc()}</p>
         </div>
         <Switch
           checked={watch('retain') ?? false}
@@ -358,7 +358,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
         >
           <div className="flex items-center gap-2">
             <Info className="h-4 w-4 text-cyan-600" />
-            <span className="text-sm font-medium text-foreground">MQTT 5.0 选项</span>
+            <span className="text-sm font-medium text-foreground">{getLL().panels.mqttPublish.mqtt5_sectionTitle()}</span>
           </div>
           <ChevronDown className={cn(
             "h-3.5 w-3.5 text-muted-foreground transition-transform",
@@ -368,7 +368,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
         {expandedSections.has('mqtt5') && (
           <div className="border-t bg-muted/20 px-3 py-3 space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="content_type" className="text-xs font-medium text-foreground">内容类型</Label>
+              <Label htmlFor="content_type" className="text-xs font-medium text-foreground">{getLL().panels.mqttPublish.contentType_label()}</Label>
               <Input
                 id="content_type"
                 {...register('content_type')}
@@ -377,7 +377,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="message_expiry_interval" className="text-xs font-medium text-foreground">消息过期间隔（秒）</Label>
+              <Label htmlFor="message_expiry_interval" className="text-xs font-medium text-foreground">{getLL().panels.mqttPublish.messageExpiry_label()}</Label>
               <Input
                 id="message_expiry_interval"
                 type="number"
@@ -387,7 +387,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="response_topic" className="text-xs font-medium text-foreground">响应主题</Label>
+              <Label htmlFor="response_topic" className="text-xs font-medium text-foreground">{getLL().panels.mqttPublish.responseTopic_label()}</Label>
               <Input
                 id="response_topic"
                 {...register('response_topic')}
@@ -396,7 +396,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="correlation_data" className="text-xs font-medium text-foreground">关联数据</Label>
+              <Label htmlFor="correlation_data" className="text-xs font-medium text-foreground">{getLL().panels.mqttPublish.correlationData_label()}</Label>
               <Input
                 id="correlation_data"
                 {...register('correlation_data')}
@@ -405,7 +405,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="topic_alias" className="text-xs font-medium text-foreground">主题别名</Label>
+              <Label htmlFor="topic_alias" className="text-xs font-medium text-foreground">{getLL().panels.mqttPublish.topicAlias_label()}</Label>
               <Input
                 id="topic_alias"
                 type="number"
@@ -421,7 +421,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
       {/* 用户属性 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">用户属性（可选）</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.mqttPublish.userProperties_label()}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -436,7 +436,7 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
         <div className="space-y-2">
           {userProps.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无用户属性</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.mqttPublish.noUserProperties()}</p>
             </div>
           ) : (
             userProps.map((pair, index) => (
@@ -474,9 +474,9 @@ export function MqttPublishConfig({ data, onSave }: MqttPublishConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">发布说明：</p>
-          <p>选择已建立的 MQTT 连接，指定发布主题和载荷</p>
-          <p>QoS 等级越高可靠性越好，但延迟和带宽开销也越大</p>
+          <p className="font-medium text-foreground">{getLL().panels.mqttPublish.help_title()}</p>
+          <p>{getLL().panels.mqttPublish.help_line1()}</p>
+          <p>{getLL().panels.mqttPublish.help_line2()}</p>
         </div>
       </div>
     </form>

@@ -175,7 +175,7 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.mqttSubscribe.connection_label()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -238,7 +238,7 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
 
       {/* QoS */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">QoS 等级</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.mqttSubscribe.qos_label()}</Label>
         <Select
           value={String(watch('qos') ?? 0)}
           onValueChange={(value) => {
@@ -250,16 +250,16 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">QoS 0 — 最多一次</SelectItem>
-            <SelectItem value="1">QoS 1 — 至少一次</SelectItem>
-            <SelectItem value="2">QoS 2 — 恰好一次</SelectItem>
+            <SelectItem value="0">{getLL().panels.mqttSubscribe.qos0_option()}</SelectItem>
+            <SelectItem value="1">{getLL().panels.mqttSubscribe.qos1_option()}</SelectItem>
+            <SelectItem value="2">{getLL().panels.mqttSubscribe.qos2_option()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* 输出模式 */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">输出模式</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.mqttSubscribe.outputMode_label()}</Label>
         <Select
           value={watch('output_mode') || 'first'}
           onValueChange={(value) => {
@@ -271,17 +271,17 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="first">首条消息</SelectItem>
-            <SelectItem value="all">全部消息</SelectItem>
+            <SelectItem value="first">{getLL().panels.mqttSubscribe.firstMessage_option()}</SelectItem>
+            <SelectItem value="all">{getLL().panels.mqttSubscribe.allMessages_option()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* 采集配置 */}
       <div className="space-y-3 rounded-md border bg-muted/20 p-3">
-        <p className="text-xs font-medium text-foreground">采集配置</p>
+        <p className="text-xs font-medium text-foreground">{getLL().panels.mqttSubscribe.collectConfig_sectionTitle()}</p>
         <div className="space-y-2">
-          <Label htmlFor="max_messages" className="text-xs font-medium text-foreground">最大消息数</Label>
+          <Label htmlFor="max_messages" className="text-xs font-medium text-foreground">{getLL().panels.mqttSubscribe.maxMessages_label()}</Label>
           <Input
             id="max_messages"
             type="number"
@@ -291,7 +291,7 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="collect_timeout_ms" className="text-xs font-medium text-foreground">采集超时（毫秒）</Label>
+          <Label htmlFor="collect_timeout_ms" className="text-xs font-medium text-foreground">{getLL().panels.mqttSubscribe.collectTimeout_label()}</Label>
           <Input
             id="collect_timeout_ms"
             type="number"
@@ -314,7 +314,7 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          设置后将使用共享订阅：<code className="rounded bg-muted px-1">$share/{'{'}group{'}'}/{'{'}topic{'}'}</code>
+          {getLL().panels.mqttSubscribe.shareSubscription_help()}<code className="rounded bg-muted px-1">$share/{'{'}group{'}'}/{'{'}topic{'}'}</code>
         </p>
       </div>
 
@@ -327,7 +327,7 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
         >
           <div className="flex items-center gap-2">
             <Info className="h-4 w-4 text-cyan-600" />
-            <span className="text-sm font-medium text-foreground">MQTT 5.0 选项</span>
+            <span className="text-sm font-medium text-foreground">{getLL().panels.mqttSubscribe.mqtt5_sectionTitle()}</span>
           </div>
           <ChevronDown className={cn(
             "h-3.5 w-3.5 text-muted-foreground transition-transform",
@@ -338,8 +338,8 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
           <div className="border-t bg-muted/20 px-3 py-3 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-xs font-medium text-foreground">不接收自身消息</Label>
-                <p className="text-[10px] text-muted-foreground">no_local: 不转发自己发布的消息</p>
+                <Label className="text-xs font-medium text-foreground">{getLL().panels.mqttSubscribe.noLocal_label()}</Label>
+                <p className="text-[10px] text-muted-foreground">{getLL().panels.mqttSubscribe.noLocal_desc()}</p>
               </div>
               <Switch
                 checked={watch('no_local') ?? false}
@@ -351,7 +351,7 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-xs font-medium text-foreground">保留消息按原样发布</Label>
+                <Label className="text-xs font-medium text-foreground">{getLL().panels.mqttSubscribe.retainAsPublished_label()}</Label>
                 <p className="text-[10px] text-muted-foreground">retain_as_published</p>
               </div>
               <Switch
@@ -363,7 +363,7 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-foreground">保留消息处理策略</Label>
+              <Label className="text-xs font-medium text-foreground">{getLL().panels.mqttSubscribe.retainHandling_label()}</Label>
               <Select
                 value={String(watch('retain_handling') ?? 0)}
                 onValueChange={(value) => {
@@ -375,14 +375,14 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">0 — 发送保留消息</SelectItem>
-                  <SelectItem value="1">1 — 仅新订阅时发送</SelectItem>
-                  <SelectItem value="2">2 — 不发送保留消息</SelectItem>
+                  <SelectItem value="0">{getLL().panels.mqttSubscribe.retainHandling0()}</SelectItem>
+                  <SelectItem value="1">{getLL().panels.mqttSubscribe.retainHandling1()}</SelectItem>
+                  <SelectItem value="2">{getLL().panels.mqttSubscribe.retainHandling2()}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="subscription_identifier" className="text-xs font-medium text-foreground">订阅标识符</Label>
+              <Label htmlFor="subscription_identifier" className="text-xs font-medium text-foreground">{getLL().panels.mqttSubscribe.subscriptionId_label()}</Label>
               <Input
                 id="subscription_identifier"
                 type="number"
@@ -399,10 +399,10 @@ export function MqttSubscribeConfig({ data, onSave }: MqttSubscribeConfigProps) 
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">订阅说明：</p>
-          <p>主题支持 MQTT 通配符：+ 匹配单层，# 匹配多层（必须在末尾）</p>
-          <p>输出模式「首条消息」等待第一条即完成，「全部消息」需配合采集超时使用</p>
-          <p>共享订阅需要 Broker 支持此特性</p>
+          <p className="font-medium text-foreground">{getLL().panels.mqttSubscribe.help_title()}</p>
+          <p>{getLL().panels.mqttSubscribe.help_line1()}</p>
+          <p>{getLL().panels.mqttSubscribe.help_line2()}</p>
+          <p>{getLL().panels.mqttSubscribe.help_line3()}</p>
         </div>
       </div>
     </form>

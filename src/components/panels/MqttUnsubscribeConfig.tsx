@@ -144,7 +144,7 @@ export function MqttUnsubscribeConfig({ data, onSave }: MqttUnsubscribeConfigPro
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.mqttUnsubscribe.connection_label()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -206,8 +206,8 @@ export function MqttUnsubscribeConfig({ data, onSave }: MqttUnsubscribeConfigPro
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">取消订阅说明：</p>
-          <p>取消订阅后，该连接将不再接收对应主题的消息</p>
+          <p className="font-medium text-foreground">{getLL().panels.mqttUnsubscribe.help_title()}</p>
+          <p>{getLL().panels.mqttUnsubscribe.help_line1()}</p>
         </div>
       </div>
     </form>

@@ -155,7 +155,7 @@ export function MqttRequestConfig({ data, onSave }: MqttRequestConfigProps) {
       {/* 连接选择 */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 <span className="text-rose-500">*</span>
+          {getLL().panels.mqttRequest.connection_label()} <span className="text-rose-500">*</span>
         </Label>
         {availableConnections.length > 0 ? (
           <Select
@@ -245,7 +245,7 @@ export function MqttRequestConfig({ data, onSave }: MqttRequestConfigProps) {
 
       {/* QoS */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-foreground">QoS 等级</Label>
+        <Label className="text-sm font-medium text-foreground">{getLL().panels.mqttRequest.qos_label()}</Label>
         <Select
           value={String(watch('qos') ?? 0)}
           onValueChange={(value) => {
@@ -257,9 +257,9 @@ export function MqttRequestConfig({ data, onSave }: MqttRequestConfigProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">QoS 0 — 最多一次</SelectItem>
-            <SelectItem value="1">QoS 1 — 至少一次</SelectItem>
-            <SelectItem value="2">QoS 2 — 恰好一次</SelectItem>
+            <SelectItem value="0">{getLL().panels.mqttRequest.qos0_option()}</SelectItem>
+            <SelectItem value="1">{getLL().panels.mqttRequest.qos1_option()}</SelectItem>
+            <SelectItem value="2">{getLL().panels.mqttRequest.qos2_option()}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -298,10 +298,10 @@ export function MqttRequestConfig({ data, onSave }: MqttRequestConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">请求-响应说明：</p>
-          <p>向请求主题发送消息，同时订阅响应主题等待回复</p>
-          <p>关联数据用于匹配请求和响应，确保不混淆</p>
-          <p>超时后未收到响应将返回超时错误</p>
+          <p className="font-medium text-foreground">{getLL().panels.mqttRequest.help_title()}</p>
+          <p>{getLL().panels.mqttRequest.help_line1()}</p>
+          <p>{getLL().panels.mqttRequest.help_line2()}</p>
+          <p>{getLL().panels.mqttRequest.help_line3()}</p>
         </div>
       </div>
     </form>
