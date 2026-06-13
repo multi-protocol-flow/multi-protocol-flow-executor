@@ -13,6 +13,7 @@ use crate::db::types::{DbConnection, DbConnectionStatus, DbDriver};
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
+use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{DbConnectConfig, NodeData};
 use flow_engine_core::traits::DbProvider;
 use serde_json::json;
@@ -84,6 +85,12 @@ impl NodeExecutor for DbConnectExecutor {
         // 3. 验证 driver（必填字段）
         if config.driver.is_none() {
             let error_msg = "driver 不能为空".to_string();
+
+            // 检查 on_error 策略
+            if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                return Err(format!("Flow aborted: {}", error_msg));
+            }
+
             log::error!(
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid,
@@ -169,6 +176,13 @@ impl NodeExecutor for DbConnectExecutor {
                         Arc::new(conn) as Arc<dyn DatabasePool>
                     }
                     Err(e) => {
+                        let error_msg = format!("SQLite 连接失败: {}", e);
+
+                        // 检查 on_error 策略
+                        if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                            return Err(format!("Flow aborted: {}", error_msg));
+                        }
+
                         log::error!(
                             "[Database] SQLite 连接池创建失败: uuid={}, error={}",
                             pool_key,
@@ -196,7 +210,7 @@ impl NodeExecutor for DbConnectExecutor {
                             Some(self.build_error_output(
                                 &config,
                                 &pool_key,
-                                &format!("SQLite 连接失败: {}", e),
+                                &error_msg,
                                 start_time.elapsed().as_millis() as u64,
                             )),
                         ));
@@ -242,6 +256,13 @@ impl NodeExecutor for DbConnectExecutor {
                         Arc::new(conn) as Arc<dyn DatabasePool>
                     }
                     Err(e) => {
+                        let error_msg = format!("MySQL 连接失败: {}", e);
+
+                        // 检查 on_error 策略
+                        if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                            return Err(format!("Flow aborted: {}", error_msg));
+                        }
+
                         log::error!(
                             "[Database] MySQL 连接池创建失败: uuid={}, error={}",
                             pool_key,
@@ -267,7 +288,7 @@ impl NodeExecutor for DbConnectExecutor {
                             Some(self.build_error_output(
                                 &config,
                                 &pool_key,
-                                &format!("MySQL 连接失败: {}", e),
+                                &error_msg,
                                 start_time.elapsed().as_millis() as u64,
                             )),
                         ));
@@ -312,6 +333,13 @@ impl NodeExecutor for DbConnectExecutor {
                         Arc::new(conn) as Arc<dyn DatabasePool>
                     }
                     Err(e) => {
+                        let error_msg = format!("PostgreSQL 连接失败: {}", e);
+
+                        // 检查 on_error 策略
+                        if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                            return Err(format!("Flow aborted: {}", error_msg));
+                        }
+
                         log::error!(
                             "[Database] PostgreSQL 连接池创建失败: uuid={}, error={}",
                             pool_key,
@@ -337,7 +365,7 @@ impl NodeExecutor for DbConnectExecutor {
                             Some(self.build_error_output(
                                 &config,
                                 &pool_key,
-                                &format!("PostgreSQL 连接失败: {}", e),
+                                &error_msg,
                                 start_time.elapsed().as_millis() as u64,
                             )),
                         ));
@@ -446,6 +474,13 @@ impl NodeExecutor for DbConnectExecutor {
                         ))
                     }
                     Err(e) => {
+                        let error_msg = format!("测试查询失败: {}", e);
+
+                        // 检查 on_error 策略
+                        if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                            return Err(format!("Flow aborted: {}", error_msg));
+                        }
+
                         // 测试查询失败
                         log::error!(
                             "[Database] 测试查询失败: uuid={}, error={}",
@@ -477,7 +512,7 @@ impl NodeExecutor for DbConnectExecutor {
                             Some(self.build_error_output(
                                 &config,
                                 &pool_key,
-                                &format!("测试查询失败: {}", e),
+                                &error_msg,
                                 start_time.elapsed().as_millis() as u64,
                             )),
                         ))
@@ -485,6 +520,13 @@ impl NodeExecutor for DbConnectExecutor {
                 }
             }
             Err(e) => {
+                let error_msg = format!("数据库连接池创建失败: {}", e);
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", error_msg));
+                }
+
                 // 连接池创建失败
                 log::error!(
                     "[Database] 连接池创建失败: uuid={}, error={}",
@@ -510,7 +552,7 @@ impl NodeExecutor for DbConnectExecutor {
                 // 返回 false 端口
                 Ok((
                     self.get_false_port_nodes(node, connections),
-                    Some(self.build_error_output(&config, &pool_key, &e, start_time.elapsed().as_millis() as u64)),
+                    Some(self.build_error_output(&config, &pool_key, &error_msg, start_time.elapsed().as_millis() as u64)),
                 ))
             }
         }
@@ -659,6 +701,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -689,6 +732,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -715,6 +759,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -731,21 +776,8 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
-            ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None, redis_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -924,6 +956,7 @@ mod tests {
             data: NodeData::entry(), // 错误：使用 Entry 配置
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 
@@ -963,6 +996,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -993,6 +1027,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -1078,6 +1113,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 

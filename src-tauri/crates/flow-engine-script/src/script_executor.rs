@@ -534,7 +534,7 @@ impl ScriptNodeExecutor {
 mod tests {
     use super::*;
     use flow_engine_core::node::{NodePosition};
-    use flow_engine_core::node_config::{AssertionFailStrategy, ScriptExecutionPhase};
+    use flow_engine_core::node_config::ScriptExecutionPhase;
 
     /// 创建测试用的脚本节点
     fn create_test_node(uuid: &str, script: &str, timeout_ms: u64) -> Node {
@@ -549,10 +549,10 @@ mod tests {
                 memory_limit_mb: 10,
                 execution_phase: ScriptExecutionPhase::Standalone,
                 on_error: ScriptErrorStrategy::Recoverable,
-                on_assertion_fail: AssertionFailStrategy::RouteFalse,
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -731,10 +731,10 @@ mod tests {
                 memory_limit_mb: 10,
                 execution_phase: ScriptExecutionPhase::Standalone,
                 on_error: ScriptErrorStrategy::Fatal, // 致命错误
-                on_assertion_fail: AssertionFailStrategy::RouteFalse,
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = create_test_context("test-flow");

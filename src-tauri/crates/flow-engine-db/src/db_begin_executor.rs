@@ -11,6 +11,7 @@ use crate::db::traits::IsolationLevel;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
+use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{DbBeginConfig, NodeData};
 use flow_engine_core::traits::DbProvider;
 use serde_json::json;
@@ -51,6 +52,12 @@ impl NodeExecutor for DbBeginExecutor {
         // 2. 验证 connection_uuid
         if config.connection_uuid.is_empty() {
             let error_msg = "connection_uuid 不能为空".to_string();
+
+            // 检查 on_error 策略
+            if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                return Err(format!("Flow aborted: {}", error_msg));
+            }
+
             log::error!(
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid,
@@ -118,6 +125,11 @@ impl NodeExecutor for DbBeginExecutor {
                         })
                         .await;
 
+                    // 检查 on_error 策略
+                    if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                        return Err(format!("Flow aborted: {}", error_msg));
+                    }
+
                     // 返回 false 端口
                     return Ok((
                         self.get_false_port_nodes(node, connections),
@@ -174,6 +186,13 @@ impl NodeExecutor for DbBeginExecutor {
                 ))
             }
             Err(e) => {
+                let error_msg = format!("事务开始失败: {}", e);
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", error_msg));
+                }
+
                 // 事务开始失败
                 log::error!(
                     "[Database] 事务开始失败: uuid={}, error={}",
@@ -199,7 +218,7 @@ impl NodeExecutor for DbBeginExecutor {
                 // 返回 false 端口
                 Ok((
                     self.get_false_port_nodes(node, connections),
-                    Some(self.build_error_output(&config, &e, start_time.elapsed().as_millis() as u64)),
+                    Some(self.build_error_output(&config, &error_msg, start_time.elapsed().as_millis() as u64)),
                 ))
             }
         }
@@ -317,6 +336,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -338,6 +358,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -354,21 +375,8 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
-            ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None, redis_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -579,6 +587,7 @@ mod tests {
             data: NodeData::entry(), // 错误：使用 Entry 配置
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 

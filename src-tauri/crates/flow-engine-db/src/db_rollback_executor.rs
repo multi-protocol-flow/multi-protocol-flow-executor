@@ -7,7 +7,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::log_event::{LogEvent, LogLevel};
-use flow_engine_core::node::Node;
+use flow_engine_core::node::{ExecutionErrorStrategy, Node};
 use flow_engine_core::node_config::{DbRollbackConfig, NodeData};
 use flow_engine_core::traits::DbProvider;
 use serde_json::json;
@@ -73,8 +73,9 @@ impl NodeExecutor for DbRollbackExecutor {
                 })
                 .await;
 
-            // 返回单一输出端口
-            return Ok((self.get_output_port_nodes(node, connections), Some(output_data)));
+            // 返回 true 端口（跳过也视为成功）
+            let next_nodes = get_nodes_by_port(node, connections, "true");
+            return Ok((next_nodes, Some(output_data)));
         }
 
         // 3. 日志：开始回滚
@@ -137,67 +138,80 @@ impl NodeExecutor for DbRollbackExecutor {
                     })
                     .await;
 
-                // 7. 返回单一输出端口
-                Ok((self.get_output_port_nodes(node, connections), Some(output_data)))
+                // 7. 返回 true 端口（回滚成功）
+                let next_nodes = get_nodes_by_port(node, connections, "true");
+                Ok((next_nodes, Some(output_data)))
             }
             Err(e) => {
-                // 没有活跃事务时也返回成功（幂等操作）
+                let error_msg = format!("事务回滚失败: {}", e);
                 log::warn!(
-                    "[Database] 事务回滚失败（可能无活跃事务）: uuid={}, error={}",
+                    "[Database] 事务回滚失败: uuid={}, error={}",
                     config.connection_uuid,
                     e
                 );
 
-                // 构建输出数据（仍视为成功，幂等操作）
-                let output_data = self.build_success_output(
-                    &config,
-                    duration.as_millis() as u64,
-                );
+                // 根据 on_error 策略决定路由行为
+                match node.on_error {
+                    Some(ExecutionErrorStrategy::AbortFlow) => {
+                        // 中止流程
+                        context
+                            .emit_log(LogEvent {
+                                level: LogLevel::Error,
+                                message: error_msg.clone(),
+                                timestamp: std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .expect("系统时间错误")
+                                    .as_millis() as u64,
+                                node_uuid: Some(node.uuid.clone()),
+                                node_name: Some(node.name.clone()),
+                                flow_uuid: context.flow_uuid.clone(),
+                            })
+                            .await;
 
-                // 日志：回滚完成（警告）
-                context
-                    .emit_log(LogEvent {
-                        level: LogLevel::Warn,
-                        message: format!(
-                            "数据库事务回滚完成 ({}ms) - 可能无活跃事务",
-                            duration.as_millis()
-                        ),
-                        timestamp: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
-                            .as_millis() as u64,
-                        node_uuid: Some(node.uuid.clone()),
-                        node_name: Some(node.name.clone()),
-                        flow_uuid: context.flow_uuid.clone(),
-                    })
-                    .await;
+                        return Err(error_msg);
+                    }
+                    _ => {
+                        // RouteToFalse（或 None）：路由到 false 端口，仍视为幂等成功
+                        log::warn!(
+                            "[Database] 事务回滚失败，路由到 false 端口: uuid={}, error={}",
+                            config.connection_uuid,
+                            e
+                        );
 
-                // 返回单一输出端口（回滚总是成功）
-                Ok((self.get_output_port_nodes(node, connections), Some(output_data)))
+                        // 构建输出数据（仍视为成功，幂等操作）
+                        let output_data = self.build_success_output(
+                            &config,
+                            duration.as_millis() as u64,
+                        );
+
+                        // 日志：回滚失败（警告）
+                        context
+                            .emit_log(LogEvent {
+                                level: LogLevel::Warn,
+                                message: format!(
+                                    "数据库事务回滚失败，路由到 false 端口 ({}ms)",
+                                    duration.as_millis()
+                                ),
+                                timestamp: std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .expect("系统时间错误")
+                                    .as_millis() as u64,
+                                node_uuid: Some(node.uuid.clone()),
+                                node_name: Some(node.name.clone()),
+                                flow_uuid: context.flow_uuid.clone(),
+                            })
+                            .await;
+
+                        let next_nodes = get_nodes_by_port(node, connections, "false");
+                        Ok((next_nodes, Some(output_data)))
+                    }
+                }
             }
         }
     }
 }
 
 impl DbRollbackExecutor {
-    /// 获取输出端口连接的目标节点
-    fn get_output_port_nodes(&self, node: &Node, connections: &[Connection]) -> Vec<String> {
-        let filtered: Vec<String> = connections
-            .iter()
-            .filter(|conn| {
-                conn.source_node_uuid == node.uuid && conn.source_port_id == "output"
-            })
-            .map(|conn| conn.target_node_uuid.clone())
-            .collect();
-
-        // 如果没有连接，返回端口名称（用于测试）
-        if filtered.is_empty() {
-            vec!["output".to_string()]
-        } else {
-            filtered
-        }
-    }
-
     /// 构建成功输出数据
     fn build_success_output(
         &self,
@@ -243,6 +257,19 @@ impl DbRollbackExecutor {
 }
 
 // ============================================================================
+// 端口路由辅助函数
+// ============================================================================
+
+/// 根据端口 ID 过滤连接，返回目标节点 UUID 列表
+fn get_nodes_by_port(node: &Node, connections: &[Connection], port_id: &str) -> Vec<String> {
+    connections
+        .iter()
+        .filter(|conn| conn.source_node_uuid == node.uuid && conn.source_port_id == port_id)
+        .map(|conn| conn.target_node_uuid.clone())
+        .collect()
+}
+
+// ============================================================================
 // 单元测试
 // ============================================================================
 
@@ -265,6 +292,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -281,21 +309,8 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
-            ws_manager: None,
             ws_connection_urls: std::collections::HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None, redis_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -330,10 +345,10 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 应该返回单一输出端口（成功）
+        // 应该返回 true 端口（成功）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        assert_eq!(next_nodes, vec!["output"]);
+        assert!(next_nodes.is_empty());
         assert!(output_data.is_some());
 
         let data = output_data.unwrap();
@@ -358,10 +373,10 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 回滚不存在的活跃事务也应该成功（幂等操作）
+        // 回滚不存在的活跃事务，路由到 false 端口（幂等操作）
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        assert_eq!(next_nodes, vec!["output"]);
+        assert!(next_nodes.is_empty());
         assert!(output_data.is_some());
 
         let data = output_data.unwrap();
@@ -380,10 +395,10 @@ mod tests {
             .execute(&node, &mut context, &[], &HashMap::new())
             .await;
 
-        // 空 UUID 时跳过回滚，返回成功
+        // 空 UUID 时跳过回滚，路由到 true 端口
         assert!(result.is_ok());
         let (next_nodes, output_data) = result.unwrap();
-        assert_eq!(next_nodes, vec!["output"]);
+        assert!(next_nodes.is_empty());
         assert!(output_data.is_some());
 
         let data = output_data.unwrap();
@@ -409,12 +424,12 @@ mod tests {
         let node = create_test_node("test-4", "端口路由测试", "conn-004");
         let mut context = create_context("test-flow");
 
-        // 创建输出端口连接
+        // 创建 true 端口连接（成功路由）
         let connections = vec![Connection {
             id: "conn-1".to_string(),
             source_node_uuid: "test-4".to_string(),
             target_node_uuid: "target-node".to_string(),
-            source_port_id: "output".to_string(),
+            source_port_id: "true".to_string(),
             target_port_id: "input".to_string(),
         }];
 
@@ -422,10 +437,42 @@ mod tests {
             .execute(&node, &mut context, &connections, &HashMap::new())
             .await;
 
-        // 应该返回输出端口连接的目标节点
+        // 应该返回 true 端口连接的目标节点
         assert!(result.is_ok());
         let (next_nodes, _) = result.unwrap();
         assert_eq!(next_nodes, vec!["target-node"]);
+    }
+
+    #[tokio::test]
+    async fn test_rollback_with_false_port_routing() {
+        let db_manager = Arc::new(DatabaseConnectionManager::new());
+        let executor = DbRollbackExecutor::new(db_manager);
+
+        // 创建节点（conn-xxx 不存在，回滚会失败）
+        let node = create_test_node("test-false", "false 端口路由测试", "conn-nonexistent");
+        let mut context = create_context("test-flow");
+
+        // 创建 false 端口连接（失败路由）
+        let connections = vec![Connection {
+            id: "conn-false".to_string(),
+            source_node_uuid: "test-false".to_string(),
+            target_node_uuid: "error-handler".to_string(),
+            source_port_id: "false".to_string(),
+            target_port_id: "input".to_string(),
+        }];
+
+        let result = executor
+            .execute(&node, &mut context, &connections, &HashMap::new())
+            .await;
+
+        // 应该返回 false 端口连接的目标节点（幂等但不阻断）
+        assert!(result.is_ok());
+        let (next_nodes, output_data) = result.unwrap();
+        assert_eq!(next_nodes, vec!["error-handler"]);
+        assert!(output_data.is_some());
+
+        let data = output_data.unwrap();
+        assert_eq!(data["success"], true);
     }
 
     #[tokio::test]
@@ -462,6 +509,7 @@ mod tests {
             data: NodeData::entry(), // 错误：使用 Entry 配置
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
         let mut context = create_context("test-flow");
 

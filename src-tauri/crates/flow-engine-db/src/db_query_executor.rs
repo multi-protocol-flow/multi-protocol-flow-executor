@@ -8,6 +8,7 @@ use crate::db::traits::DatabasePool;
 use flow_engine_core::executor::{NodeExecutor, replace_variables};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
+use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::DbProvider;
 use std::collections::HashMap;
@@ -112,6 +113,12 @@ impl NodeExecutor for DbQueryNodeExecutor {
         let connection_uuid = db_config.connection_uuid.clone();
         if connection_uuid.is_empty() {
             let error_msg = "connection_uuid 不能为空".to_string();
+
+            // 检查 on_error 策略
+            if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                return Err(format!("Flow aborted: {}", error_msg));
+            }
+
             log::error!(
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid,
@@ -133,6 +140,12 @@ impl NodeExecutor for DbQueryNodeExecutor {
                     Ok(replaced) => replaced,
                     Err(e) => {
                         let error_msg = format!("SQL 变量替换失败: {}", e);
+
+                        // 检查 on_error 策略
+if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                            return Err(format!("Flow aborted: {}", error_msg));
+                        }
+
                         log::error!(
                             "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                             context.flow_uuid,
@@ -149,6 +162,12 @@ impl NodeExecutor for DbQueryNodeExecutor {
             }
             None => {
                 let error_msg = "SQL 语句不能为空".to_string();
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", error_msg));
+                }
+
                 log::error!(
                     "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                     context.flow_uuid,
@@ -199,6 +218,12 @@ impl NodeExecutor for DbQueryNodeExecutor {
                         }
                         Err(e) => {
                             let error_msg = format!("参数变量替换失败: {}", e);
+
+                            // 检查 on_error 策略
+                            if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                                return Err(format!("Flow aborted: {}", error_msg));
+                            }
+
                             log::error!(
                                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                                 context.flow_uuid,
@@ -228,6 +253,12 @@ impl NodeExecutor for DbQueryNodeExecutor {
                 Some(pool) => pool,
                 None => {
                     let error_msg = format!("连接池不存在: {}", connection_uuid);
+
+                    // 检查 on_error 策略
+                    if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                        return Err(format!("Flow aborted: {}", error_msg));
+                    }
+
                     log::error!(
                         "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                         context.flow_uuid,
@@ -302,6 +333,11 @@ impl NodeExecutor for DbQueryNodeExecutor {
                         flow_uuid: context.flow_uuid.clone(),
                     })
                     .await;
+
+                // 检查 on_error 策略
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Flow aborted: {}", error_msg));
+                }
 
                 // 返回失败输出，走 false 端口
                 let timing = DbQueryTiming {
@@ -522,6 +558,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 
@@ -545,21 +582,8 @@ mod tests {
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
-            ws_manager: None,
             ws_connection_urls: HashMap::new(),
             ws_streams: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            db_manager: None,
-            grpc_manager: None,
-            mcp_manager: None,
-            tcp_manager: None,
-            udp_manager: None,
-            mqtt_manager: None,
-            kafka_manager: None,
-            sse_manager: None,
-            graphql_manager: None,
-            amqp_manager: None,
-            smtp_manager: None,
-            imap_manager: None, redis_manager: None,
             last_node_output: None,
             debug_event_sender: None,
             execution_event_sender: None,
@@ -656,6 +680,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let mut context = create_context("test-flow", json!({}));
@@ -1032,6 +1057,7 @@ mod tests {
             data: NodeData::DbQuery(DbQueryConfig::default()),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let connections = vec![

@@ -11,7 +11,7 @@ use crate::debug::{
 use flow_engine_core::flow::Flow;
 use flow_engine_core::report::{ExecutionStatus, NodeExecutionReport};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
-use flow_engine_core::node::Node;
+use flow_engine_core::node::{ExecutionErrorStrategy, Node};
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::node_types;
 use flow_engine_core::traits::LogSender;
@@ -639,13 +639,11 @@ impl DebuggableFlowExecutor {
                         .unwrap()
                         .as_millis() as u64;
 
-                    // 检查节点是否支持 false 端口，以及是否有 false 端口的连接
-                    let type_id = node.data.type_name();
-                    let supports_false_port = self.registry.get(&type_id)
-                        .map(|p| p.supports_false_port())
-                        .unwrap_or(false);
+                    // 根据节点 on_error 策略决定执行行为
+                    let route_to_false = node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse);
+                    let is_ignore = node.on_error.as_ref().map_or(false, |s| *s == ExecutionErrorStrategy::Ignore);
 
-                    let false_port_next_node = if supports_false_port {
+                    let false_port_next_node = if route_to_false {
                         // 查找 false 端口的连接
                         flow.connections
                             .iter()
@@ -686,20 +684,46 @@ impl DebuggableFlowExecutor {
                         log::error!("[调试 {}] 发送 NodeExecuted 事件失败 (节点 {} 失败): {}", context.flow_uuid, node.uuid, e);
                     }
 
-                    if let Some(next_node_uuid) = false_port_next_node {
-                        // 有 false 端口连接，继续执行 false 分支
-                        log::info!(
-                            "[调试 {}] 节点 {} 执行失败，但有 false 端口连接，继续执行节点 {}",
-                            context.flow_uuid,
-                            node.name,
-                            next_node_uuid
-                        );
+                    // RouteToFalse（默认）: 如果有 false 端口连接，继续执行 false 分支
+                    if route_to_false {
+                        if let Some(next_node_uuid) = false_port_next_node {
+                            log::info!(
+                                "[调试 {}] 节点 {} 执行失败，但有 false 端口连接，继续执行节点 {}",
+                                context.flow_uuid,
+                                node.name,
+                                next_node_uuid
+                            );
 
-                        current_node_id = next_node_uuid;
-                        continue;
+                            current_node_id = next_node_uuid;
+                            continue;
+                        }
                     }
 
-                    // 没有 false 端口连接或节点不支持，结束调试
+                    // Ignore 策略: 忽略错误，继续 true/out 端口执行（如同成功）
+                    if is_ignore {
+                        let next_node_id = flow.connections
+                            .iter()
+                            .find(|conn| {
+                                conn.source_node_uuid == node.uuid && 
+                                (conn.source_port_id == "true" || conn.source_port_id == "out")
+                            })
+                            .map(|conn| conn.target_node_uuid.clone());
+
+                        if let Some(next_uuid) = next_node_id {
+                            log::info!(
+                                "[调试 {}] 节点 {} 执行失败，但 on_error=Ignore，继续执行节点 {}",
+                                context.flow_uuid,
+                                node.name,
+                                next_uuid
+                            );
+                            current_node_id = next_uuid;
+                            continue;
+                        }
+                        // 没有后续连接，正常终止调试会话
+                        break;
+                    }
+
+                    // 没有 false 端口连接或 on_error=AbortFlow，结束调试
                     // 发送错误事件
                     if let Err(e) = event_sender.send(DebugEvent::Error {
                         message: error.clone(),
@@ -1200,6 +1224,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
@@ -1227,6 +1252,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: Some(true),
+        on_error: None,
         };
 
         let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node.clone()], connections: vec![], hooks: None };
@@ -1280,6 +1306,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: Some(true), // 第一个节点有断点
+        on_error: None,
         };
 
         let second_node = Node {
@@ -1290,6 +1317,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None, // 第二个节点没有断点！
+        on_error: None,
         };
 
         let connection = Connection {
@@ -1401,6 +1429,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: Some(true), // 第一个节点有断点
+        on_error: None,
         };
 
         let second_node = Node {
@@ -1411,6 +1440,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let connection = Connection {
@@ -1516,6 +1546,7 @@ mod tests {
             ], dataset_path: None, dataset_encoding: None, hooks: None }),
             ports: None,
             has_breakpoint: Some(true), // 设置断点，以便暂停
+        on_error: None,
         };
 
         let second_node = Node {
@@ -1526,6 +1557,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: Some(true), // 第二个节点也设置断点
+        on_error: None,
         };
 
         let connection = Connection {
@@ -1645,6 +1677,7 @@ mod tests {
             ], dataset_path: None, dataset_encoding: None, hooks: None }),
             ports: None,
             has_breakpoint: Some(true), // 设置断点，以便暂停
+        on_error: None,
         };
 
         let second_node = Node {
@@ -1655,6 +1688,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let connection = Connection {
@@ -1783,6 +1817,7 @@ mod tests {
             ], dataset_path: None, dataset_encoding: None, hooks: None }),
             ports: None,
             has_breakpoint: Some(true), // 设置断点，以便暂停
+        on_error: None,
         };
 
         let flow = Flow {
@@ -1888,6 +1923,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: Some(true), // 第一个节点有断点
+        on_error: None,
         };
 
         let second_node = Node {
@@ -1898,6 +1934,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None, // 第二个节点初始没有断点
+        on_error: None,
         };
 
         let third_node = Node {
@@ -1908,6 +1945,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let connection1 = Connection {
@@ -2020,6 +2058,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: Some(true),
+        on_error: None,
         };
 
         let second_node = Node {
@@ -2030,6 +2069,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: Some(true), // 初始有断点
+        on_error: None,
         };
 
         let connection = Connection {
