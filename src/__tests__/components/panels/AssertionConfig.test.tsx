@@ -131,9 +131,12 @@ describe('AssertionConfig', () => {
       expect(screen.getByRole('button', { name: /任一通过/i })).toBeDefined();
     });
 
-    it('应该渲染失败行为按钮', () => {
+    it('应该渲染失败行为按钮（表单区域）', () => {
       render(<AssertionConfig data={defaultData} onSave={mockOnSave} />);
-      expect(screen.getByRole('button', { name: /路由到 false 分支/i })).toBeDefined();
+      // "路由到 false 分支" 仅在表单的断言失败行为区域作为按钮出现
+      // OnErrorSection 现在是 Select 下拉框，不再是按钮
+      const routeButtons = screen.getAllByRole('button', { name: /路由到 false 分支/i });
+      expect(routeButtons.length).toBe(1);
       expect(screen.getByRole('button', { name: /抛出异常/i })).toBeDefined();
     });
 
@@ -228,6 +231,19 @@ describe('AssertionConfig', () => {
     });
   });
 
+  describe('执行错误处理 (OnErrorSection)', () => {
+    // 注意: OnErrorSection 未直接在 AssertionConfig 中渲染
+    // 由 NodeConfigPanel 统一处理（通过 hasFalsePort 条件显示在 AssertionConfig 下方）
+    // 此处只验证视觉分隔线存在
+
+    it('应该渲染视觉分隔线（为 OnErrorSection 预留位置）', () => {
+      const { container } = render(<AssertionConfig data={defaultData} onSave={mockOnSave} />);
+      // 分隔线由 border-t 实现
+      const dividers = container.querySelectorAll('.border-t');
+      expect(dividers.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
   describe('全局配置', () => {
     it('应该显示当前组合模式状态', () => {
       render(<AssertionConfig data={defaultData} onSave={mockOnSave} />);
@@ -238,9 +254,10 @@ describe('AssertionConfig', () => {
 
     it('应该显示当前失败行为状态', () => {
       render(<AssertionConfig data={defaultData} onSave={mockOnSave} />);
-      // 默认 on_failure 是 'route_false'，所以 "路由到 false 分支" 按钮应该是选中状态
-      const routeButton = screen.getByRole('button', { name: /路由到 false 分支/i });
-      expect(routeButton.classList.contains('border-amber-500')).toBe(true);
+      // 默认 on_failure 是 'route_false'，所以断言逻辑区域的 "路由到 false 分支" 按钮应该是选中状态
+      const routeButtons = screen.getAllByRole('button', { name: /路由到 false 分支/i });
+      // 第一个是表单中的断言失败行为按钮，第二个是 OnErrorSection 的执行错误按钮
+      expect(routeButtons[0].classList.contains('border-amber-500')).toBe(true);
     });
   });
 });

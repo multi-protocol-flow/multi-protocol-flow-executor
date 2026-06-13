@@ -19,7 +19,9 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Trash2, CheckCircle, XCircle, Zap } from "lucide-react";
 import type { AssertionNodeConfig, Assertion, AssertionOperator } from "@/types";
+
 import { useFlowStore } from "@/stores";
+
 import { getLL } from "@/i18n/i18n-lazy";
 
 /**
@@ -424,7 +426,9 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
   }, []);
 
   return (
-    <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
+    <div className="w-full space-y-5">
+    {/* Section 1: Assertion Logic */}
+    <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="space-y-5">
       {/* 数据来源选择 */}
       <div className="space-y-2">
         <Label htmlFor="source_node_id" className="text-sm font-medium text-foreground">
@@ -681,5 +685,13 @@ export function AssertionConfig({ data, onSave }: AssertionConfigProps) {
         )}
       </div>
     </form>
-  );
+
+    {/* Visual divider between assertion logic and on-error sections */}
+    <div className="relative py-1">
+      <div className="absolute inset-0 flex items-center">
+        <div className="w-full border-t border-border/50" />
+      </div>
+    </div>
+  </div>
+);
 }

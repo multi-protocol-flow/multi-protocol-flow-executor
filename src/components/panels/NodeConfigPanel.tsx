@@ -33,12 +33,14 @@ import { SchemaConfigPanel } from '@/components/panels/SchemaConfigPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { NodeData, Node } from '@/types';
+import type { NodeData, Node, NodeType } from '@/types';
 import { MousePointerClick, PencilLine, CircleHelp } from 'lucide-react';
 import { HelpDrawer } from './HelpDrawer';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
 import { toast } from 'sonner';
+import { OnErrorSection } from '@/components/panels/shared/OnErrorSection';
+import { getCachedNodeMeta } from '@/lib/NodeRegistry';
 
 interface NodeConfigPanelProps {
   /** 只读模式（调试时查看节点配置） */
@@ -125,6 +127,31 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
       setPanelBounds({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
     }
   }, [isHelpDrawerOpen]);
+
+  // 单端口节点类型（无 false 输出端口）— 必须在所有条件 return 之前声明（hook 规则）
+  const SINGLE_PORT_TYPES = new Set<NodeType>([
+    'entry', 'end', 'db_close', 'ws_close', 'grpc_close', 'mcp_close',
+    'tcp_close', 'udp_close', 'kafka_close', 'sse_disconnect',
+    'graphql_disconnect', 'amqp_close', 'amqp10_disconnect',
+    'smtp_disconnect', 'imap_close', 'redis_close', 'proxy',
+    'variable_extractor',
+  ]);
+
+  // 判断节点是否有 false 输出端口 — 必须在所有条件 return 之前声明（hook 规则）
+  const hasFalsePort = useMemo(() => {
+    if (!selectedNode) return true; // 没有选中节点时默认显示（选中后有值后重新计算）
+    // 优先检查节点自带的 ports 数组
+    if (selectedNode.ports && selectedNode.ports.length > 0) {
+      return selectedNode.ports.some((p) => p.id === 'false');
+    }
+    // 其次从缓存的后端元数据中查找
+    const meta = getCachedNodeMeta(selectedNode.type);
+    if (meta?.ports && meta.ports.length > 0) {
+      return meta.ports.some((p) => p.id === 'false');
+    }
+    // 最终回退到已知的单端口类型列表
+    return !SINGLE_PORT_TYPES.has(selectedNode.type);
+  }, [selectedNode?.ports, selectedNode?.type]);
 
   // 右键复制标题
   const handleCopyTitle = useCallback((e: React.MouseEvent) => {
@@ -255,6 +282,18 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
                 />
               );
             })()}
+
+            {/* 节点执行错误处理策略（仅双端口节点显示，Assertion 节点自身已包含 OnErrorSection） */}
+            {hasFalsePort && (
+              <div className="mt-4">
+                <OnErrorSection
+                  value={selectedNode.on_error}
+                  onChange={(v) => {
+                    useFlowStore.getState().updateNode(selectedNode.uuid, { on_error: v });
+                  }}
+                />
+              </div>
+            )}
           </div>
         </ScrollArea>
       </CardContent>

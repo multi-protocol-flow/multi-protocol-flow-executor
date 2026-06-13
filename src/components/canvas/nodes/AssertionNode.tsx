@@ -30,6 +30,9 @@ export const AssertionNode = memo(function AssertionNode({ id, data, selected }:
   const onFailure = config?.on_failure ?? 'route_false';
   const LL = getLL();
   
+  const onError = useFlowStore(
+    (state) => state.flow?.nodes.find((n) => n.uuid === id)?.on_error,
+  );
   const hasBreakpoint = useFlowStore((state) => state.hasBreakpoint(id));
   const toggleBreakpoint = useFlowStore((state) => state.toggleBreakpoint);
   const isRunning = useExecutionStore(selectIsNodeRunning(id));
@@ -89,7 +92,7 @@ export const AssertionNode = memo(function AssertionNode({ id, data, selected }:
             {nodeData.label || getNodeDisplayName('assertion')}
           </span>
           {/* 显示模式信息 */}
-          <div className="flex items-center gap-1 mt-0.5">
+          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             <span className={cn(
               'text-[10px] px-1 py-0.5 rounded',
               mode === 'all' ? 'bg-purple-100 text-purple-700' : 'bg-purple-100 text-purple-700'
@@ -102,6 +105,19 @@ export const AssertionNode = memo(function AssertionNode({ id, data, selected }:
             )}>
               {onFailure === 'route_false' ? LL.nodes.assertion_on_failure.route() : LL.nodes.assertion_on_failure.throw()}
             </span>
+            {/* 执行错误处理策略指示器 */}
+            {onError && (
+              <span className={cn(
+                'text-[10px] px-1 py-0.5 rounded',
+                onError === 'route_to_false'
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-rose-100 text-rose-600'
+              )}>
+                {onError === 'route_to_false'
+                  ? LL.nodes.assertion_on_error.route_to_false()
+                  : LL.nodes.assertion_on_error.abort_flow()}
+              </span>
+            )}
           </div>
         </div>
       </div>

@@ -14,7 +14,7 @@ import { scriptConfigSchema, type ScriptConfigFormData } from './schemas';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Clock, Database, AlertTriangle, CheckCircle, BookOpen } from 'lucide-react';
+import { Clock, Database, BookOpen } from 'lucide-react';
 import type { ScriptNodeConfig } from '@/types/node';
 import { ScriptHelpDialog } from '@/components/dialogs/ScriptHelpDialog';
 import { getLL } from '@/i18n/i18n-lazy';
@@ -36,8 +36,6 @@ function toFormData(data: ScriptNodeConfig): ScriptConfigFormData {
     timeout_ms: data.timeout_ms ?? 5000,
     memory_limit_mb: data.memory_limit_mb ?? 10,
     execution_phase: data.execution_phase ?? 'post_request',
-    on_error: data.on_error ?? 'recoverable',
-    on_assertion_fail: data.on_assertion_fail ?? 'route_false',
   };
 }
 
@@ -51,8 +49,6 @@ function fromFormData(formData: ScriptConfigFormData): ScriptNodeConfig {
     timeout_ms: formData.timeout_ms,
     memory_limit_mb: formData.memory_limit_mb,
     execution_phase: formData.execution_phase,
-    on_error: formData.on_error,
-    on_assertion_fail: formData.on_assertion_fail,
   };
 }
 
@@ -63,25 +59,6 @@ function getExecutionPhaseOptions() {
     { value: 'post_request', label: ll.phasePostRequest(), description: ll.phasePostRequestDesc() },
     { value: 'pre_request', label: ll.phasePreRequest(), description: ll.phasePreRequestDesc() },
     { value: 'standalone', label: ll.phaseStandalone(), description: ll.phaseStandaloneDesc() },
-  ] as const;
-}
-
-/** 错误处理策略选项 */
-function getOnErrorOptions() {
-  const ll = getLL().panels.script;
-  return [
-    { value: 'recoverable', label: ll.errorRecoverable(), description: ll.errorRecoverableDesc() },
-    { value: 'fatal', label: ll.errorFatal(), description: ll.errorFatalDesc() },
-  ] as const;
-}
-
-/** 断言失败策略选项 */
-function getOnAssertionFailOptions() {
-  const ll = getLL().panels.script;
-  return [
-    { value: 'route_false', label: ll.assertionFailRouteFalse(), description: ll.assertionFailRouteFalseDesc() },
-    { value: 'ignore', label: ll.assertionFailIgnore(), description: ll.assertionFailIgnoreDesc() },
-    { value: 'abort', label: ll.assertionFailAbort(), description: ll.assertionFailAbortDesc() },
   ] as const;
 }
 
@@ -259,8 +236,6 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
   // 监听表单值
   const watchedScript = watch('script');
   const watchedExecutionPhase = watch('execution_phase');
-  const watchedOnError = watch('on_error');
-  const watchedOnAssertionFail = watch('on_assertion_fail');
 
   // 当外部数据变化时，重置表单
   useEffect(() => {
@@ -269,8 +244,6 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
 
   // i18n option arrays
   const executionPhaseOptions = getExecutionPhaseOptions();
-  const onErrorOptions = getOnErrorOptions();
-  const onAssertionFailOptions = getOnAssertionFailOptions();
 
   /**
    * 保存表单数据
@@ -433,68 +406,6 @@ export function ScriptConfig({ data, onSave }: ScriptConfigProps) {
             <p className="text-xs text-rose-500">{errors.memory_limit_mb.message}</p>
           )}
         </div>
-      </div>
-
-      {/* 错误处理策略 */}
-      <div className="space-y-2">
-        <Label htmlFor="on_error" className="text-sm font-medium text-foreground flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-500" />
-          {ll.errorHandling()}
-        </Label>
-        <Select
-          value={watchedOnError || 'recoverable'}
-          onValueChange={(value) => {
-            setValue('on_error', value as ScriptConfigFormData['on_error'], { shouldDirty: true });
-            saveData();
-          }}
-        >
-          <SelectTrigger id="on_error" className="font-mono">
-            <SelectValue placeholder={ll.errorHandlingPlaceholder()} />
-          </SelectTrigger>
-          <SelectContent>
-            {onErrorOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                <div className="flex flex-col">
-                  <span>{option.label}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          {onErrorOptions.find(o => o.value === watchedOnError)?.description}
-        </p>
-      </div>
-
-      {/* 断言失败策略 */}
-      <div className="space-y-2">
-        <Label htmlFor="on_assertion_fail" className="text-sm font-medium text-foreground flex items-center gap-2">
-          <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          {ll.assertionFail()}
-        </Label>
-        <Select
-          value={watchedOnAssertionFail || 'route_false'}
-          onValueChange={(value) => {
-            setValue('on_assertion_fail', value as ScriptConfigFormData['on_assertion_fail'], { shouldDirty: true });
-            saveData();
-          }}
-        >
-          <SelectTrigger id="on_assertion_fail" className="font-mono">
-            <SelectValue placeholder={ll.assertionFailPlaceholder()} />
-          </SelectTrigger>
-          <SelectContent>
-            {onAssertionFailOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                <div className="flex flex-col">
-                  <span>{option.label}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          {onAssertionFailOptions.find(o => o.value === watchedOnAssertionFail)?.description}
-        </p>
       </div>
 
       {/* API 参考弹窗 */}
