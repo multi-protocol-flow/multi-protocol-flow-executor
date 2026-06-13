@@ -315,8 +315,8 @@ function MqttConnectView({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.mqtt.status_connected()} failText={ll.viewer.mqtt.status_connection_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'MQTT 连接建立成功'
-                : output?.error ?? '无法建立 MQTT 连接'}
+                ? ll.viewer.mqtt.connect_success()
+                : output?.error ?? ll.viewer.mqtt.connect_error()}
             </span>
           </div>
 
@@ -379,8 +379,8 @@ function MqttConnectView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="连接耗时" value={connectDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_connect()} value={connectDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -428,7 +428,7 @@ function MqttPublishView({ report }: { report: NodeExecutionReport }) {
             )}
             {output?.retain !== undefined && (
               <Badge variant="outline" className="font-mono text-xs">
-                Retain: {output.retain ? '是' : '否'}
+                {ll.viewer.mqtt.label_retain()}: {output.retain ? '是' : '否'}
               </Badge>
             )}
             {output?.payload_size !== undefined && (
@@ -452,7 +452,7 @@ function MqttPublishView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `消息已成功发布到 ${output?.topic ?? 'topic'}`
-                : output?.error ?? '消息发布失败'}
+                : output?.error ?? ll.viewer.mqtt.publish_error()}
             </span>
           </div>
 
@@ -483,8 +483,8 @@ function MqttPublishView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="发布耗时" value={publishDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_publish()} value={publishDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -547,7 +547,7 @@ function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `订阅成功，收到 ${messageCount} 条消息`
-                : output?.error ?? '订阅失败'}
+                : output?.error ?? ll.viewer.mqtt.subscribe_error()}
             </span>
           </div>
 
@@ -588,8 +588,8 @@ function MqttSubscribeView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="订阅耗时" value={subscribeDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_subscribe()} value={subscribeDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -637,7 +637,7 @@ function MqttUnsubscribeView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `已成功取消订阅 ${output?.topic ?? 'topic'}`
-                : output?.error ?? '取消订阅失败'}
+                : output?.error ?? ll.viewer.mqtt.unsubscribe_error()}
             </span>
           </div>
 
@@ -677,8 +677,8 @@ function MqttDisconnectView({ report }: { report: NodeExecutionReport }) {
               {isSuccess
                 ? output?.reason
                   ? `已断开连接: ${output.reason}`
-                  : 'MQTT 连接已成功断开'
-                : output?.error ?? '断开连接失败'}
+                  : ll.viewer.mqtt.disconnect_success()
+                : output?.error ?? ll.viewer.mqtt.disconnect_error()}
             </span>
           </div>
 
@@ -709,8 +709,8 @@ function MqttDisconnectView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="断开耗时" value={disconnectDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_disconnect()} value={disconnectDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -773,7 +773,7 @@ function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `匹配到 ${matchedCount} 条消息`
-                : output?.error ?? '等待消息失败'}
+                : output?.error ?? ll.viewer.mqtt.status_wait_failed()}
             </span>
           </div>
 
@@ -814,8 +814,8 @@ function MqttWaitMessageView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="等待耗时" value={waitDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_wait()} value={waitDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -884,7 +884,7 @@ function MqttRequestView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `请求-响应完成，收到 ${responseCount} 条响应`
-                : output?.error ?? '请求失败'}
+                : output?.error ?? ll.viewer.mqtt.status_request_failed()}
             </span>
           </div>
 
@@ -925,8 +925,8 @@ function MqttRequestView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="请求耗时" value={requestDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_request()} value={requestDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}

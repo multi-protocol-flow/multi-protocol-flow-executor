@@ -339,7 +339,7 @@ function KafkaConnectView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? 'Kafka 连接建立成功'
-                : output?.error ?? '无法建立 Kafka 连接'}
+                : output?.error ?? ll.viewer.kafka.status_connection_failed()}
             </span>
           </div>
 
@@ -402,8 +402,8 @@ function KafkaConnectView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="连接耗时" value={connectDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_connect()} value={connectDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -480,7 +480,7 @@ function KafkaProduceView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `消息已成功发送到 ${output?.topic ?? 'topic'} [P${output?.partition ?? 0}@${output?.offset ?? 0}]`
-                : output?.error ?? '消息发送失败'}
+                : output?.error ?? ll.viewer.kafka.produce_error()}
             </span>
           </div>
 
@@ -511,8 +511,8 @@ function KafkaProduceView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="发送耗时" value={produceDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_send()} value={produceDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -575,7 +575,7 @@ function KafkaConsumeView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `消费成功，收到 ${messageCount} 条消息`
-                : output?.error ?? '消费失败'}
+                : output?.error ?? ll.viewer.kafka.consume_error()}
             </span>
           </div>
 
@@ -616,8 +616,8 @@ function KafkaConsumeView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="消费耗时" value={consumeDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_consume()} value={consumeDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -680,7 +680,7 @@ function KafkaConsumeBatchView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `批量消费成功，共 ${messageCount} 条消息`
-                : output?.error ?? '批量消费失败'}
+                : output?.error ?? ll.viewer.kafka.consume_error()}
             </span>
           </div>
 
@@ -721,8 +721,8 @@ function KafkaConsumeBatchView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="消费耗时" value={consumeDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_consume()} value={consumeDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -758,7 +758,7 @@ function KafkaAdminView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `管理操作${output?.operation ? ` (${output.operation})` : ''}执行成功`
-                : output?.error ?? '管理操作执行失败'}
+                : output?.error ?? ll.viewer.kafka.admin_error()}
             </span>
           </div>
 
@@ -801,8 +801,8 @@ function KafkaAdminView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="操作耗时" value={adminDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_operation()} value={adminDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -881,8 +881,8 @@ function KafkaSchemaRegistryView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="操作耗时" value={registryDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_operation()} value={registryDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -918,7 +918,7 @@ function KafkaCloseView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? 'Kafka 连接已成功关闭'
-                : output?.error ?? '关闭连接失败'}
+                : output?.error ?? ll.viewer.kafka.status_close_failed()}
             </span>
           </div>
 
@@ -949,8 +949,8 @@ function KafkaCloseView({ report }: { report: NodeExecutionReport }) {
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="关闭耗时" value={closeDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_close()} value={closeDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
