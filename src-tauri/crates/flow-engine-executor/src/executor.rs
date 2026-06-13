@@ -494,7 +494,12 @@ impl FlowExecutor {
                         start_time: node_start_ms,
                         end_time: node_end_ms,
                         duration_ms: node_duration,
-                        status: flow_engine_core::report::ExecutionStatus::Success,
+                        // 只要 used_port_id 为 "false"，即使 executor 返回 Ok 也视为失败
+                        status: if used_port_id.as_deref() == Some("false") {
+                            flow_engine_core::report::ExecutionStatus::Failed
+                        } else {
+                            flow_engine_core::report::ExecutionStatus::Success
+                        },
                         input_data,
                         output_data: output_data.clone(),
                         used_port_id,
@@ -607,7 +612,7 @@ impl FlowExecutor {
                             node.name
                         );
 
-                        // 创建节点执行报告（Success状态 - 条件评估完成）
+                        // 创建节点执行报告（Failed状态 - 条件评估为 false）
                         // 解析 resolved_config：递归替换节点配置中的变量占位符
                         let raw_config = serde_json::to_value(&node.data).unwrap_or(json!(null));
                         let resolved_config = Some(
@@ -621,11 +626,14 @@ impl FlowExecutor {
                             start_time: node_start_ms,
                             end_time: node_end_ms,
                             duration_ms: node_duration,
-                            status: flow_engine_core::report::ExecutionStatus::Success,
+                            status: flow_engine_core::report::ExecutionStatus::Failed,
                             input_data: Some(json!(context.variables.get_merged_variables())),
                             output_data: None,
                             used_port_id: Some("false".to_string()),
-                            error: None,
+                            error: Some(flow_engine_core::error::ErrorDetail::new(
+                                flow_engine_core::error::ErrorKind::Execution,
+                                "条件评估为false，流程终止".to_string(),
+                            )),
                             // 新增字段（Task 13）
                             resolved_config,
                             variable_changes: None,
