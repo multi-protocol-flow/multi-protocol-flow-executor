@@ -249,18 +249,18 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
           />
         )}
         {errors.connection_id && (
-          <p className="text-xs text-rose-500">连接 ID 不能为空</p>
+          <p className="text-xs text-rose-500">{getLL().panels.kafkaProduce.error_connectionIdRequired()}</p>
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 Kafka Connect 节点，请手动输入连接 ID
+            {getLL().panels.kafkaProduce.noConnectNode()}
           </p>
         )}
       </div>
 
       {/* 消息配置 */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">消息配置</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaProduce.msgConfig_sectionTitle()}</p>
 
         <div className="space-y-2">
           <Label htmlFor="topic" className="text-sm font-medium text-foreground">{getLL().panels.kafkaProduce.topic()} <span className="text-rose-500">*</span>
@@ -272,7 +272,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
             className="font-mono text-sm"
           />
           {errors.topic && (
-            <p className="text-xs text-rose-500">主题不能为空</p>
+            <p className="text-xs text-rose-500">{getLL().panels.kafkaProduce.error_topicRequired()}</p>
           )}
         </div>
 
@@ -318,7 +318,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
         <div className="space-y-2">
           {headerPairs.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无消息头</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.kafkaProduce.noHeaders()}</p>
             </div>
           ) : (
             headerPairs.map((pair, index) => (
@@ -354,10 +354,10 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
 
       {/* 序列化 */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">序列化</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaProduce.serialization_sectionTitle()}</p>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-foreground">序列化格式</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaProduce.serialization_label()}</Label>
           <Select
             value={serializationFormat}
             onValueChange={(value) => {
@@ -372,7 +372,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
               <SelectItem value="json">JSON</SelectItem>
               <SelectItem value="avro">Avro</SelectItem>
               <SelectItem value="protobuf">Protobuf</SelectItem>
-              <SelectItem value="raw">Raw (原始字节)</SelectItem>
+              <SelectItem value="raw">{getLL().panels.kafkaProduce.raw_option()}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -387,7 +387,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
               className="h-8 text-xs font-mono"
             />
             <p className="text-xs text-muted-foreground">
-              Schema Registry 中的 Subject 名称
+              {getLL().panels.kafkaProduce.schemaSubject_help()}
             </p>
           </div>
         )}
@@ -409,13 +409,13 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            设为 -1 或留空由 Kafka 自动选择分区
+            {getLL().panels.kafkaProduce.partition_help()}
           </p>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="ack_timeout_ms" className="text-sm font-medium text-foreground">
-            确认超时（毫秒）
+            {getLL().panels.kafkaProduce.ackTimeout_label()}
           </Label>
           <Input
             id="ack_timeout_ms"
@@ -427,7 +427,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-foreground">压缩算法</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaProduce.compression_label()}</Label>
           <Select
             value={watch('compression') || 'none'}
             onValueChange={(value) => {
@@ -439,7 +439,7 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">无压缩</SelectItem>
+              <SelectItem value="none">{getLL().panels.kafkaProduce.noCompression_option()}</SelectItem>
               <SelectItem value="gzip">Gzip</SelectItem>
               <SelectItem value="snappy">Snappy</SelectItem>
               <SelectItem value="lz4">LZ4</SelectItem>
@@ -453,10 +453,10 @@ export function KafkaProduceConfig({ data, onSave }: KafkaProduceConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">生产说明：</p>
-          <p>消息键为空时，消息将按轮询策略分配到分区</p>
-          <p>使用 Avro/Protobuf 序列化时需先配置 Schema Registry 连接</p>
-          <p>压缩算法需 Broker 端支持对应解码器</p>
+          <p className="font-medium text-foreground">{getLL().panels.kafkaProduce.help_title()}</p>
+          <p>{getLL().panels.kafkaProduce.help_line1()}</p>
+          <p>{getLL().panels.kafkaProduce.help_line2()}</p>
+          <p>{getLL().panels.kafkaProduce.help_line3()}</p>
         </div>
       </div>
     </form>

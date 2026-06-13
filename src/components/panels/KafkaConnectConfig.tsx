@@ -193,7 +193,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
 
       {/* 连接配置 */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">连接配置</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaConnect.connectConfig_title()}</p>
 
         <div className="space-y-2">
           <Label htmlFor="bootstrap_servers" className="text-sm font-medium text-foreground">
@@ -209,7 +209,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            多个 Broker 用逗号分隔，例如 host1:9092,host2:9092
+            {getLL().panels.kafkaConnect.bootstrapHint()}
           </p>
         </div>
 
@@ -325,7 +325,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
           >
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-orange-600" />
-              <span className="text-sm font-medium text-foreground">TLS 配置</span>
+              <span className="text-sm font-medium text-foreground">{getLL().panels.kafkaConnect.sslSection_title()}</span>
             </div>
             <ChevronDown className={cn(
               "h-3.5 w-3.5 text-muted-foreground transition-transform",
@@ -337,7 +337,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-xs font-medium text-foreground">{getLL().panels.skipCertVerify()}</Label>
-                  <p className="text-[10px] text-muted-foreground">不验证服务器 TLS 证书</p>
+                  <p className="text-[10px] text-muted-foreground">{getLL().panels.kafkaConnect.sslSkipVerify_desc()}</p>
                 </div>
                 <Switch
                   checked={watch('ssl_skip_verify') ?? false}
@@ -348,7 +348,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ssl_ca_cert_path" className="text-xs font-medium text-foreground">CA 证书路径</Label>
+                <Label htmlFor="ssl_ca_cert_path" className="text-xs font-medium text-foreground">{getLL().panels.kafkaConnect.sslCaCertPath_label()}</Label>
                 <Input
                   id="ssl_ca_cert_path"
                   {...register('ssl_ca_cert_path')}
@@ -357,7 +357,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ssl_client_cert_path" className="text-xs font-medium text-foreground">客户端证书路径</Label>
+                <Label htmlFor="ssl_client_cert_path" className="text-xs font-medium text-foreground">{getLL().panels.kafkaConnect.sslClientCertPath_label()}</Label>
                 <Input
                   id="ssl_client_cert_path"
                   {...register('ssl_client_cert_path')}
@@ -366,7 +366,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ssl_client_key_path" className="text-xs font-medium text-foreground">客户端密钥路径</Label>
+                <Label htmlFor="ssl_client_key_path" className="text-xs font-medium text-foreground">{getLL().panels.kafkaConnect.sslClientKeyPath_label()}</Label>
                 <Input
                   id="ssl_client_key_path"
                   {...register('ssl_client_key_path')}
@@ -401,7 +401,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
         {schemaRegistryUrl.trim() && (
           <>
             <div className="space-y-2">
-              <Label htmlFor="schema_registry_username" className="text-xs font-medium text-foreground">用户名</Label>
+              <Label htmlFor="schema_registry_username" className="text-xs font-medium text-foreground">{getLL().panels.kafkaConnect.username_label()}</Label>
                 <Input
                     id="schema_registry_username"
                     {...register('schema_registry_username')}
@@ -410,7 +410,7 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="schema_registry_password" className="text-xs font-medium text-foreground">密码</Label>
+                  <Label htmlFor="schema_registry_password" className="text-xs font-medium text-foreground">{getLL().panels.kafkaConnect.password_label()}</Label>
                   <Input
                     id="schema_registry_password"
                     type="password"
@@ -445,10 +445,10 @@ export function KafkaConnectConfig({ data, onSave }: KafkaConnectConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">Kafka 连接说明：</p>
-          <p>Bootstrap Servers 支持多个地址，用逗号分隔以实现高可用</p>
-          <p>SASL 认证仅在安全协议为 SASL_PLAINTEXT 或 SASL_SSL 时可用</p>
-          <p>Schema Registry 用于 Avro/Protobuf 序列化格式的消息验证</p>
+          <p className="font-medium text-foreground">{getLL().panels.kafkaConnect.help_title()}</p>
+          <p>{getLL().panels.kafkaConnect.help_line1()}</p>
+          <p>{getLL().panels.kafkaConnect.help_line2()}</p>
+          <p>{getLL().panels.kafkaConnect.help_line3()}</p>
         </div>
       </div>
     </form>

@@ -336,7 +336,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
       {/* 主题配置 — 仅 topic_* 操作显示 */}
       {isTopicOp && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">主题配置</p>
+          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaAdmin.topicConfig_sectionTitle()}</p>
 
           {showTopicFields && (
             <div className="space-y-2">
@@ -377,7 +377,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
 
           {showTopicConfig && (
             <div className="space-y-2">
-              <Label htmlFor="topic_config" className="text-sm font-medium text-foreground">主题配置</Label>
+              <Label htmlFor="topic_config" className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.topicConfig_label()}</Label>
               <textarea
                 id="topic_config"
                 {...register('topic_config')}
@@ -386,7 +386,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
                 rows={4}
               />
               <p className="text-xs text-muted-foreground">
-                每行一个键值对，格式: key=value
+                {getLL().panels.kafkaAdmin.topicConfig_help()}
               </p>
             </div>
           )}
@@ -396,10 +396,10 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
       {/* 消费者组 — 仅 consumer_group_* 操作显示 */}
       {isConsumerGroupOp && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">消费者组</p>
+          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaAdmin.consumerGroup_sectionTitle()}</p>
 
           <div className="space-y-2">
-            <Label htmlFor="consumer_group_id" className="text-sm font-medium text-foreground">消费者组 ID</Label>
+            <Label htmlFor="consumer_group_id" className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.groupId_label()}</Label>
             <Input
               id="consumer_group_id"
               {...register('consumer_group_id')}
@@ -408,7 +408,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
             />
             {operation !== 'consumer_group_list' && (
               <p className="text-xs text-muted-foreground">
-                指定要操作的消费者组 ID
+                {getLL().panels.kafkaAdmin.groupId_help()}
               </p>
             )}
           </div>
@@ -418,10 +418,10 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
       {/* ACL 配置 — 仅 acl_* 操作显示 */}
       {isAclOp && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">ACL 配置</p>
+          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaAdmin.aclConfig_sectionTitle()}</p>
 
           <div className="space-y-2">
-            <Label htmlFor="acl_principal" className="text-sm font-medium text-foreground">主体 (Principal)</Label>
+            <Label htmlFor="acl_principal" className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.aclPrincipal_label()}</Label>
             <Input
               id="acl_principal"
               {...register('acl_principal')}
@@ -431,7 +431,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="acl_host" className="text-sm font-medium text-foreground">主机</Label>
+            <Label htmlFor="acl_host" className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.aclHost_label()}</Label>
             <Input
               id="acl_host"
               {...register('acl_host')}
@@ -441,7 +441,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">操作</Label>
+            <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.aclOperation_label()}</Label>
             <Select
               value={watch('acl_operation') || ''}
               onValueChange={(value) => {
@@ -465,7 +465,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">权限类型</Label>
+            <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.aclPermissionType_label()}</Label>
             <Select
               value={watch('acl_permission_type') || ''}
               onValueChange={(value) => {
@@ -484,7 +484,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-foreground">资源类型</Label>
+            <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.aclResourceType_label()}</Label>
             <Select
               value={watch('acl_resource_type') || ''}
               onValueChange={(value) => {
@@ -505,7 +505,7 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="acl_resource_name" className="text-sm font-medium text-foreground">资源名称</Label>
+            <Label htmlFor="acl_resource_name" className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.aclResourceName_label()}</Label>
             <Input
               id="acl_resource_name"
               {...register('acl_resource_name')}
@@ -519,11 +519,11 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
       {/* 选项 */}
       {showDryRun && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">选项</p>
+          <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaAdmin.options_sectionTitle()}</p>
           <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
             <div>
-              <Label className="text-sm font-medium text-foreground">试运行 (Dry Run)</Label>
-              <p className="text-xs text-muted-foreground">仅验证操作而不实际执行</p>
+              <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaAdmin.dryRun_label()}</Label>
+              <p className="text-xs text-muted-foreground">{getLL().panels.kafkaAdmin.dryRun_desc()}</p>
             </div>
             <Switch
               checked={watch('dry_run') ?? false}
@@ -540,12 +540,12 @@ export function KafkaAdminConfig({ data, onSave }: KafkaAdminConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">管理操作说明：</p>
-          <p>主题管理：创建、删除、查看和修改主题配置</p>
-          <p>消费者组管理：列出、查看消费者组和重置偏移量</p>
-          <p>Broker 管理：查看 Broker 列表和配置信息</p>
-          <p>ACL 管理：创建、删除和查看访问控制列表</p>
-          <p>开启 Dry Run 可在不实际执行的情况下验证操作参数</p>
+          <p className="font-medium text-foreground">{getLL().panels.kafkaAdmin.help_title()}</p>
+          <p>{getLL().panels.kafkaAdmin.help_line1()}</p>
+          <p>{getLL().panels.kafkaAdmin.help_line2()}</p>
+          <p>{getLL().panels.kafkaAdmin.help_line3()}</p>
+          <p>{getLL().panels.kafkaAdmin.help_line4()}</p>
+          <p>{getLL().panels.kafkaAdmin.help_line5()}</p>
         </div>
       </div>
     </form>

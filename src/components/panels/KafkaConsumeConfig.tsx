@@ -219,22 +219,22 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
           />
         )}
         {errors.connection_id && (
-          <p className="text-xs text-rose-500">连接 ID 不能为空</p>
+          <p className="text-xs text-rose-500">{getLL().panels.kafkaConsume.error_connectionIdRequired()}</p>
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 Kafka Connect 节点，请手动输入连接 ID
+            {getLL().panels.kafkaConsume.noConnectNode()}
           </p>
         )}
       </div>
 
       {/* 消费配置 */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">消费配置</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaConsume.consumerConfig_sectionTitle()}</p>
 
         <div className="space-y-2">
           <Label htmlFor="topic" className="text-sm font-medium text-foreground">
-            主题 <span className="text-rose-500">*</span>
+            {getLL().panels.kafkaConsume.topic_label()} <span className="text-rose-500">*</span>
           </Label>
           <Input
             id="topic"
@@ -243,13 +243,13 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
             className="font-mono text-sm"
           />
           {errors.topic && (
-            <p className="text-xs text-rose-500">主题不能为空</p>
+            <p className="text-xs text-rose-500">{getLL().panels.kafkaConsume.error_topicRequired()}</p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="partition" className="text-sm font-medium text-foreground">
-            分区
+            {getLL().panels.kafkaConsume.partition_label()}
           </Label>
           <Input
             id="partition"
@@ -259,13 +259,13 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            设为 -1 订阅主题的所有分区
+            {getLL().panels.kafkaConsume.partition_help()}
           </p>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="offset" className="text-sm font-medium text-foreground">
-            起始偏移量
+            {getLL().panels.kafkaConsume.offset_label()}
           </Label>
           <Input
             id="offset"
@@ -277,7 +277,7 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-foreground">偏移重置策略</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaConsume.offsetReset_label()}</Label>
           <Select
             value={watch('offset_reset') || 'latest'}
             onValueChange={(value) => {
@@ -289,23 +289,23 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="earliest">earliest — 从最早消息开始</SelectItem>
-              <SelectItem value="latest">latest — 从最新消息开始</SelectItem>
+              <SelectItem value="earliest">{getLL().panels.kafkaConsume.earliest_option()}</SelectItem>
+              <SelectItem value="latest">{getLL().panels.kafkaConsume.latest_option()}</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            当消费者组无已提交偏移量时生效
+            {getLL().panels.kafkaConsume.offsetReset_help()}
           </p>
         </div>
       </div>
 
       {/* 消费者组 */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">消费者组</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaConsume.consumerGroup_sectionTitle()}</p>
 
         <div className="space-y-2">
           <Label htmlFor="group_id" className="text-sm font-medium text-foreground">
-            消费者组 ID
+            {getLL().panels.kafkaConsume.groupId_label()}
           </Label>
           <Input
             id="group_id"
@@ -314,14 +314,14 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            同一消费者组内的消费者共同分担主题分区
+            {getLL().panels.kafkaConsume.groupId_help()}
           </p>
         </div>
 
         <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
           <div>
-            <Label className="text-sm font-medium text-foreground">自动提交偏移量</Label>
-            <p className="text-xs text-muted-foreground">自动周期性提交已消费的偏移量</p>
+            <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaConsume.autoCommit_label()}</Label>
+            <p className="text-xs text-muted-foreground">{getLL().panels.kafkaConsume.autoCommit_desc()}</p>
           </div>
           <Switch
             checked={watch('enable_auto_commit') ?? false}
@@ -335,10 +335,10 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
 
       {/* 反序列化 */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">反序列化</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">{getLL().panels.kafkaConsume.deserialization_sectionTitle()}</p>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-foreground">反序列化格式</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.kafkaConsume.deserialization_label()}</Label>
           <Select
             value={deserializationFormat}
             onValueChange={(value) => {
@@ -353,7 +353,7 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
               <SelectItem value="json">JSON</SelectItem>
               <SelectItem value="avro">Avro</SelectItem>
               <SelectItem value="protobuf">Protobuf</SelectItem>
-              <SelectItem value="raw">Raw (原始字节)</SelectItem>
+              <SelectItem value="raw">{getLL().panels.kafkaConsume.raw_option()}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -368,7 +368,7 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
               className="h-8 text-xs font-mono"
             />
             <p className="text-xs text-muted-foreground">
-              Schema Registry 中的 Subject 名称
+              {getLL().panels.kafkaConsume.schemaSubject_help()}
             </p>
           </div>
         )}
@@ -390,7 +390,7 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            消费的最大消息数量，达到后自动停止
+            {getLL().panels.kafkaConsume.maxRecords_help()}
           </p>
         </div>
 
@@ -409,7 +409,7 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
 
         <div className="space-y-2">
           <Label htmlFor="fetch_min_bytes" className="text-sm font-medium text-foreground">
-            最小拉取字节数
+            {getLL().panels.kafkaConsume.fetchMinBytes_label()}
           </Label>
           <Input
             id="fetch_min_bytes"
@@ -419,13 +419,13 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            Fetch 请求的最小字节数，减小可降低延迟
+            {getLL().panels.kafkaConsume.fetchMinBytes_help()}
           </p>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="fetch_max_wait_ms" className="text-sm font-medium text-foreground">
-            最大拉取等待（毫秒）
+            {getLL().panels.kafkaConsume.fetchMaxWait_label()}
           </Label>
           <Input
             id="fetch_max_wait_ms"
@@ -435,7 +435,7 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
             className="font-mono text-sm"
           />
           <p className="text-xs text-muted-foreground">
-            无足够数据时 Broker 最大等待时间
+            {getLL().panels.kafkaConsume.fetchMaxWait_help()}
           </p>
         </div>
       </div>
@@ -444,10 +444,10 @@ export function KafkaConsumeConfig({ data, onSave }: KafkaConsumeConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">消费说明：</p>
-          <p>消费者组 ID 为空时使用自动分配的临时组</p>
-          <p>偏移重置策略仅在消费者组首次启动或偏移量过期时生效</p>
-          <p>使用 Avro/Protobuf 反序列化时需先配置 Schema Registry 连接</p>
+          <p className="font-medium text-foreground">{getLL().panels.kafkaConsume.help_title()}</p>
+          <p>{getLL().panels.kafkaConsume.help_line1()}</p>
+          <p>{getLL().panels.kafkaConsume.help_line2()}</p>
+          <p>{getLL().panels.kafkaConsume.help_line3()}</p>
         </div>
       </div>
     </form>

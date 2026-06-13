@@ -216,11 +216,11 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
           />
         )}
         {errors.connection_id && (
-          <p className="text-xs text-rose-500">连接 ID 不能为空</p>
+          <p className="text-xs text-rose-500">{getLL().panels.kafkaConsumeBatch.error_connectionIdRequired()}</p>
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 Kafka Connect 节点，请手动输入连接 ID
+            {getLL().panels.kafkaConsumeBatch.noConnectNode()}
           </p>
         )}
       </div>
@@ -432,12 +432,12 @@ export function KafkaConsumeBatchConfig({ data, onSave }: KafkaConsumeBatchConfi
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">批量消费说明：</p>
-          <p>默认最大消费 10 条消息（与单条消费的默认 1 条不同）</p>
-          <p>count_timeout 策略：达到消息数或超时即返回</p>
-          <p>count_only 策略：仅按消息数判断</p>
-          <p>timeout_only 策略：仅按超时时间判断</p>
-          <p>使用 Avro/Protobuf 反序列化时需先配置 Schema Registry 连接</p>
+          <p className="font-medium text-foreground">{getLL().panels.kafkaConsumeBatch.help_title()}</p>
+          <p>{getLL().panels.kafkaConsumeBatch.help_line1()}</p>
+          <p>{getLL().panels.kafkaConsumeBatch.help_line2()}</p>
+          <p>{getLL().panels.kafkaConsumeBatch.help_line3()}</p>
+          <p>{getLL().panels.kafkaConsumeBatch.help_line4()}</p>
+          <p>{getLL().panels.kafkaConsumeBatch.help_line5()}</p>
         </div>
       </div>
     </form>

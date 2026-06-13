@@ -178,11 +178,11 @@ export function KafkaCloseConfig({ data, onSave }: KafkaCloseConfigProps) {
           />
         )}
         {errors.connection_id && (
-          <p className="text-xs text-rose-500">连接 ID 不能为空</p>
+          <p className="text-xs text-rose-500">{getLL().panels.kafkaClose.error_connectionIdRequired()}</p>
         )}
         {availableConnections.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            未检测到 Kafka Connect 节点，请手动输入连接 ID
+            {getLL().panels.kafkaClose.noConnectNode()}
           </p>
         )}
       </div>
@@ -194,7 +194,7 @@ export function KafkaCloseConfig({ data, onSave }: KafkaCloseConfigProps) {
           <p className="font-medium text-foreground">{getLL().panels.closeInfo()}</p>
           <p>{getLL().panels.kafkaClose.closeInfoLine1()}</p>
           <p>{getLL().panels.closeInfoLine2()}</p>
-          <p>建议在流程结束时关闭不再使用的连接</p>
+          <p>{getLL().panels.kafkaClose.help_line3()}</p>
         </div>
       </div>
     </form>

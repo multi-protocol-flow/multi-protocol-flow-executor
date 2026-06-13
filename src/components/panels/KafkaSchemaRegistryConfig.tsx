@@ -350,10 +350,10 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="BACKWARD">BACKWARD — 向后兼容</SelectItem>
-                <SelectItem value="FORWARD">FORWARD — 向前兼容</SelectItem>
-                <SelectItem value="FULL">FULL — 完全兼容</SelectItem>
-                <SelectItem value="NONE">NONE — 无兼容性要求</SelectItem>
+                <SelectItem value="BACKWARD">{getLL().panels.kafkaSchemaRegistry.backward_option()}</SelectItem>
+                <SelectItem value="FORWARD">{getLL().panels.kafkaSchemaRegistry.forward_option()}</SelectItem>
+                <SelectItem value="FULL">{getLL().panels.kafkaSchemaRegistry.full_option()}</SelectItem>
+                <SelectItem value="NONE">{getLL().panels.kafkaSchemaRegistry.none_option()}</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
@@ -367,11 +367,11 @@ export function KafkaSchemaRegistryConfig({ data, onSave }: KafkaSchemaRegistryC
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">Schema Registry 说明：</p>
-          <p>需先在 Kafka Connect 节点中配置 Schema Registry URL</p>
-          <p>列出 Subjects 操作无需指定 Subject 名称</p>
-          <p>注册 Schema 时需提供完整的 Schema 定义和格式</p>
-          <p>兼容性检查会验证新 Schema 是否与现有版本兼容</p>
+          <p className="font-medium text-foreground">{getLL().panels.kafkaSchemaRegistry.help_title()}</p>
+          <p>{getLL().panels.kafkaSchemaRegistry.help_line1()}</p>
+          <p>{getLL().panels.kafkaSchemaRegistry.help_line2()}</p>
+          <p>{getLL().panels.kafkaSchemaRegistry.help_line3()}</p>
+          <p>{getLL().panels.kafkaSchemaRegistry.help_line4()}</p>
         </div>
       </div>
     </form>
