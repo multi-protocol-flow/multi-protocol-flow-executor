@@ -97,3 +97,6 @@ pub use email_types::{
 
 // Re-export email auth
 pub use email_auth::{EmailProviderPreset, get_provider_preset, xoauth2_string, plain_string, login_strings};
+
+// Re-export node types
+pub use node::{ExecutionErrorStrategy};

@@ -321,6 +321,19 @@ pub struct Port {
     pub label: Option<String>,
 }
 
+/// 执行错误策略
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionErrorStrategy {
+    /// 路由到 false 端口（默认行为）
+    #[default]
+    RouteToFalse,
+    /// 忽略错误，继续执行（如同成功，路由到 true 端口）
+    Ignore,
+    /// 中止整个流程
+    AbortFlow,
+}
+
 /// 节点数据结构
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Node {
@@ -340,6 +353,9 @@ pub struct Node {
     /// 是否设置断点（可选，默认 false）
     #[serde(default)]
     pub has_breakpoint: Option<bool>,
+    /// 执行错误策略（可选，默认 RouteToFalse）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_error: Option<ExecutionErrorStrategy>,
 }
 
 impl Default for Node {
@@ -352,6 +368,7 @@ impl Default for Node {
             data: NodeData::default(),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }
     }
 }
@@ -372,6 +389,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         assert_eq!(node.uuid, "node-uuid-123");
@@ -391,6 +409,7 @@ mod tests {
             data: NodeData::http("https://api.example.com"),
             ports: None,
             has_breakpoint: Some(true),
+            on_error: None,
         };
 
         let json = serde_json::to_string(&node).unwrap();
@@ -471,6 +490,7 @@ mod tests {
             data: NodeData::conditional_simple("field", ConditionOperator::Equal, json!(1)),
             ports: Some(ports),
             has_breakpoint: Some(false),
+            on_error: None,
         };
 
         assert_eq!(node.uuid, "node-uuid-999");

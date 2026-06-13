@@ -99,6 +99,7 @@ impl NodePlugin for AmqpConnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -180,6 +181,7 @@ impl NodePlugin for AmqpClosePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         false
     }
@@ -278,6 +280,7 @@ impl NodePlugin for AmqpExchangeDeclarePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -375,6 +378,7 @@ impl NodePlugin for AmqpExchangeDeletePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -474,6 +478,7 @@ impl NodePlugin for AmqpQueueDeclarePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -570,6 +575,7 @@ impl NodePlugin for AmqpQueueDeletePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -668,6 +674,7 @@ impl NodePlugin for AmqpQueueBindPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -770,6 +777,7 @@ impl NodePlugin for AmqpPublishPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -872,6 +880,7 @@ impl NodePlugin for AmqpConsumePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -970,6 +979,7 @@ impl NodePlugin for AmqpGetPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -1067,6 +1077,7 @@ impl NodePlugin for AmqpAckPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -1169,6 +1180,7 @@ impl NodePlugin for AmqpManagementPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -1238,6 +1250,7 @@ impl NodePlugin for Amqp10ConnectPlugin {
     }
 
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
@@ -1295,6 +1308,7 @@ impl NodePlugin for Amqp10SendPlugin {
     }
 
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
@@ -1352,6 +1366,7 @@ impl NodePlugin for Amqp10ReceivePlugin {
     }
 
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
@@ -1408,6 +1423,7 @@ impl NodePlugin for Amqp10AcceptPlugin {
     }
 
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
@@ -1463,6 +1479,7 @@ impl NodePlugin for Amqp10RejectPlugin {
     }
 
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
@@ -1508,6 +1525,7 @@ impl NodePlugin for Amqp10DisconnectPlugin {
     fn resolve_port(&self, _output: &Option<serde_json::Value>) -> String { "out".to_string() }
 
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { false }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {

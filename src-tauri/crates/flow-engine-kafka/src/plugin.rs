@@ -88,6 +88,7 @@ impl NodePlugin for KafkaConnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -192,6 +193,7 @@ impl NodePlugin for KafkaProducePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -297,6 +299,7 @@ impl NodePlugin for KafkaConsumePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -402,6 +405,7 @@ impl NodePlugin for KafkaConsumeBatchPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -507,6 +511,7 @@ impl NodePlugin for KafkaAdminPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -611,6 +616,7 @@ impl NodePlugin for KafkaSchemaRegistryPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -694,6 +700,7 @@ impl NodePlugin for KafkaClosePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         false
     }

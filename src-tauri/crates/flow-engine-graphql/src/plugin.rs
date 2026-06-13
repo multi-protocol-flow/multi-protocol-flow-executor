@@ -86,6 +86,7 @@ impl NodePlugin for GraphqlConnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -183,6 +184,7 @@ impl NodePlugin for GraphqlQueryPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -280,6 +282,7 @@ impl NodePlugin for GraphqlSubscribePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -376,6 +379,7 @@ impl NodePlugin for GraphqlIntrospectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -455,6 +459,7 @@ impl NodePlugin for GraphqlDisconnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         false
     }

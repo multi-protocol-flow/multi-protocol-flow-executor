@@ -84,6 +84,7 @@ impl NodePlugin for GrpcConnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -191,6 +192,7 @@ impl NodePlugin for GrpcCallPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -281,6 +283,7 @@ impl NodePlugin for GrpcClosePlugin {
         }
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }

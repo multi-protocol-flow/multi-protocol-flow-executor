@@ -87,6 +87,7 @@ impl NodePlugin for McpConnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -186,6 +187,7 @@ impl NodePlugin for McpCallToolPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -280,6 +282,7 @@ impl NodePlugin for McpReadResourcePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -356,6 +359,7 @@ impl NodePlugin for McpClosePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -449,6 +453,7 @@ impl NodePlugin for McpGetPromptPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }

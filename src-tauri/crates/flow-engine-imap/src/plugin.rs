@@ -83,6 +83,7 @@ impl NodePlugin for ImapConnectPlugin {
     }
 
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
@@ -119,6 +120,7 @@ impl NodePlugin for ImapSelectPlugin {
     }
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "mailbox": config.get("mailbox") }))
@@ -152,6 +154,7 @@ impl NodePlugin for ImapSearchPlugin {
     }
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "criteria": config.get("criteria") }))
@@ -185,6 +188,7 @@ impl NodePlugin for ImapFetchPlugin {
     }
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "uids": config.get("uids") }))
@@ -218,6 +222,7 @@ impl NodePlugin for ImapStoreFlagsPlugin {
     }
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "uids": config.get("uids"), "operation": config.get("operation") }))
@@ -251,6 +256,7 @@ impl NodePlugin for ImapCopyPlugin {
     }
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "target_mailbox": config.get("target_mailbox") }))
@@ -284,6 +290,7 @@ impl NodePlugin for ImapMovePlugin {
     }
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "target_mailbox": config.get("target_mailbox") }))
@@ -317,6 +324,7 @@ impl NodePlugin for ImapExpungePlugin {
     }
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id") }))
@@ -350,6 +358,7 @@ impl NodePlugin for ImapListPlugin {
     }
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "pattern": config.get("pattern") }))
@@ -383,6 +392,7 @@ impl NodePlugin for ImapFolderCreatePlugin {
     }
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "folder_name": config.get("folder_name") }))
@@ -416,6 +426,7 @@ impl NodePlugin for ImapFolderDeletePlugin {
     }
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "folder_name": config.get("folder_name") }))
@@ -449,6 +460,7 @@ impl NodePlugin for ImapIdlePlugin {
     }
     fn resolve_port(&self, output: &Option<serde_json::Value>) -> String { resolve_success_port(output) }
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "timeout_seconds": config.get("timeout_seconds") }))
@@ -489,6 +501,7 @@ impl NodePlugin for ImapClosePlugin {
     fn resolve_port(&self, _output: &Option<serde_json::Value>) -> String { "out".to_string() }
 
     fn is_protocol_node(&self) -> bool { true }
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool { false }
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {

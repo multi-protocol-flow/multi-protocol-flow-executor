@@ -1111,9 +1111,6 @@ pub struct ScriptNodeConfig {
     /// 错误处理策略
     #[serde(default)]
     pub on_error: ScriptErrorStrategy,
-    /// 断言失败时的行为
-    #[serde(default)]
-    pub on_assertion_fail: AssertionFailStrategy,
 }
 
 fn default_script_timeout() -> u64 {
@@ -1131,7 +1128,6 @@ impl Default for ScriptNodeConfig {
             memory_limit_mb: default_memory_limit(),
             execution_phase: ScriptExecutionPhase::default(),
             on_error: ScriptErrorStrategy::default(),
-            on_assertion_fail: AssertionFailStrategy::default(),
         }
     }
 }
@@ -4811,7 +4807,6 @@ mod tests {
         assert_eq!(config.memory_limit_mb, 10);
         assert_eq!(config.execution_phase, ScriptExecutionPhase::PostRequest);
         assert_eq!(config.on_error, ScriptErrorStrategy::Recoverable);
-        assert_eq!(config.on_assertion_fail, AssertionFailStrategy::RouteFalse);
     }
 
     #[test]
@@ -4822,7 +4817,6 @@ mod tests {
             memory_limit_mb: 20,
             execution_phase: ScriptExecutionPhase::Standalone,
             on_error: ScriptErrorStrategy::Fatal,
-            on_assertion_fail: AssertionFailStrategy::Abort,
         };
 
         let json = serde_json::to_string_pretty(&config).unwrap();
@@ -4831,7 +4825,6 @@ mod tests {
         assert!(json.contains("20"));
         assert!(json.contains("standalone"));
         assert!(json.contains("fatal"));
-        assert!(json.contains("abort"));
 
         let deserialized: ScriptNodeConfig = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.script, "return status === 200;");
@@ -4842,7 +4835,6 @@ mod tests {
             ScriptExecutionPhase::Standalone
         );
         assert_eq!(deserialized.on_error, ScriptErrorStrategy::Fatal);
-        assert_eq!(deserialized.on_assertion_fail, AssertionFailStrategy::Abort);
     }
 
     #[test]
@@ -4995,6 +4987,7 @@ mod tests {
             })),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         // 序列化
@@ -5025,6 +5018,7 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let json = serde_json::to_string(&node).unwrap();

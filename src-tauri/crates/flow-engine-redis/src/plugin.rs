@@ -83,6 +83,7 @@ impl NodePlugin for RedisConnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -180,6 +181,7 @@ impl NodePlugin for RedisCommandPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -258,6 +260,7 @@ impl NodePlugin for RedisClosePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         false
     }

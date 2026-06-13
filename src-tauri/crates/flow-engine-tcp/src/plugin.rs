@@ -88,6 +88,7 @@ impl NodePlugin for TcpConnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -295,6 +296,7 @@ impl NodePlugin for TcpSendPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -391,6 +393,7 @@ impl NodePlugin for TcpReceivePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -490,6 +493,7 @@ impl NodePlugin for TcpClosePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -608,6 +612,7 @@ impl NodePlugin for UdpBindPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -710,6 +715,7 @@ impl NodePlugin for UdpSendToPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -809,6 +815,7 @@ impl NodePlugin for UdpRecvFromPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -904,6 +911,7 @@ impl NodePlugin for UdpClosePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }

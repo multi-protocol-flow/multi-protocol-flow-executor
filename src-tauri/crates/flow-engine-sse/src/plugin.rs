@@ -84,6 +84,7 @@ impl NodePlugin for SseConnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -182,6 +183,7 @@ impl NodePlugin for SseListenPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -263,6 +265,7 @@ impl NodePlugin for SseDisconnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         false
     }

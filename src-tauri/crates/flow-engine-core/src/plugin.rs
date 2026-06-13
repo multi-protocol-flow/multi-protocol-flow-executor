@@ -98,6 +98,7 @@ pub trait NodePlugin: Send + Sync {
     }
 
     /// 是否支持 false 端口错误路由（默认 false）
+    #[deprecated(note = "Use Node.on_error instead")]
     fn supports_false_port(&self) -> bool {
         false
     }

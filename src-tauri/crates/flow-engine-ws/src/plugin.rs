@@ -88,6 +88,7 @@ impl NodePlugin for WsConnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -191,6 +192,7 @@ impl NodePlugin for WsSendCollectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -287,6 +289,7 @@ impl NodePlugin for WsClosePlugin {
         }
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }

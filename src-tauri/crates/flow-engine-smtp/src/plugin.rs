@@ -84,6 +84,7 @@ impl NodePlugin for SmtpConnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -190,6 +191,7 @@ impl NodePlugin for SmtpSendPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -273,6 +275,7 @@ impl NodePlugin for SmtpDisconnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         false
     }

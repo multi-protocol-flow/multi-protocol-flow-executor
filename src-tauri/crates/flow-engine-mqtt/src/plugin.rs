@@ -90,6 +90,7 @@ impl NodePlugin for MqttConnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -193,6 +194,7 @@ impl NodePlugin for MqttPublishPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -297,6 +299,7 @@ impl NodePlugin for MqttSubscribePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -397,6 +400,7 @@ impl NodePlugin for MqttUnsubscribePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -477,6 +481,7 @@ impl NodePlugin for MqttDisconnectPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         false
     }
@@ -575,6 +580,7 @@ impl NodePlugin for MqttWaitMessagePlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }
@@ -678,6 +684,7 @@ impl NodePlugin for MqttRequestPlugin {
         true
     }
 
+    #[allow(deprecated)]
     fn supports_false_port(&self) -> bool {
         true
     }

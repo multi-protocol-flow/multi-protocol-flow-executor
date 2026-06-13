@@ -56,7 +56,6 @@ impl NodePlugin for ScriptPlugin {
             "memory_limit_mb": 10,
             "execution_phase": "post_request",
             "on_error": "recoverable",
-            "on_assertion_fail": "route_false",
         })
     }
 
@@ -81,7 +80,6 @@ impl NodePlugin for ScriptPlugin {
             "memory_limit_mb": config.get("memory_limit_mb"),
             "execution_phase": config.get("execution_phase"),
             "on_error": config.get("on_error"),
-            "on_assertion_fail": config.get("on_assertion_fail"),
         }))
     }
 
