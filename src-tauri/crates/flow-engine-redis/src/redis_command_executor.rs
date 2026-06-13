@@ -6,6 +6,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::executor::{NodeExecutor, replace_variables};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
+use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::RedisProvider;
 use serde_json::json;
@@ -63,10 +64,41 @@ impl NodeExecutor for RedisCommandExecutor {
             })
             .await;
 
-        let result = self
+        let result = match self
             .redis_manager
             .command(&connection_id, &command, &args)
-            .await?;
+            .await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Redis 命令执行失败: {}", e));
+                }
+                let elapsed = start_time.elapsed().as_millis() as u64;
+                let error_output = json!({
+                    "success": false,
+                    "command": command,
+                    "row_count": 0,
+                    "data": serde_json::Value::Null,
+                    "columns": serde_json::Value::Null,
+                    "affected_rows": serde_json::Value::Null,
+                    "truncated": false,
+                    "error": e,
+                    "timing_ms": elapsed,
+                });
+                context
+                    .emit_log(LogEvent {
+                        level: LogLevel::Error,
+                        message: format!("Redis 命令执行失败: {}", e),
+                        node_uuid: Some(node.uuid.clone()),
+                        ..Default::default()
+                    })
+                    .await;
+                let next_node_ids = route_to_port(node, _connections, "false");
+                return Ok((next_node_ids, Some(error_output)));
+            }
+        };
 
         let elapsed = start_time.elapsed().as_millis() as u64;
 

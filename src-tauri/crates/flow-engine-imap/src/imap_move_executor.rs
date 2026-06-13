@@ -5,6 +5,7 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
+use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::ImapProvider;
 use serde_json::json;
@@ -80,6 +81,11 @@ impl NodeExecutor for ImapMoveExecutor {
                 let err_out = json!({ "success": false, "moved_count": 0,
                     "request": { "connection_id": connection_id, "uids": uids, "target_mailbox": target_mailbox },
                     "timing": { "move_ms": duration.as_millis() as u64, "total_ms": duration.as_millis() as u64 }, "error": e });
+                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("IMAP move 失败: {}", e));
+                }
+
                 Ok((Self::resolve_next_nodes(&node.uuid, "false", connections), Some(err_out)))
             }
         }

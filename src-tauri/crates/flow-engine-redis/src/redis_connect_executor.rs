@@ -6,6 +6,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::executor::{NodeExecutor, replace_variables};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
+use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::traits::RedisProvider;
 use serde_json::json;
@@ -62,10 +63,29 @@ impl NodeExecutor for RedisConnectExecutor {
             })
             .await;
 
-        let result = self
+        let result = match self
             .redis_manager
             .connect(&node.uuid, &host, config.port, password.as_deref(), config.db_index, config.connect_timeout_ms)
-            .await?;
+            .await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("Redis 连接失败: {}", e));
+                }
+                let elapsed = start_time.elapsed().as_millis() as u64;
+                let error_output = json!({
+                    "success": false,
+                    "connection_id": serde_json::Value::Null,
+                    "server_info": serde_json::Value::Null,
+                    "error": e,
+                    "timing_ms": elapsed,
+                });
+                let next_node_ids = route_to_port(node, _connections, "false");
+                return Ok((next_node_ids, Some(error_output)));
+            }
+        };
 
         let elapsed = start_time.elapsed().as_millis() as u64;
 

@@ -13,6 +13,7 @@ use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::{replace_variables, NodeExecutor};
 use flow_engine_core::log_event::{LogEvent, LogLevel};
 use flow_engine_core::node::Node;
+use flow_engine_core::ExecutionErrorStrategy;
 use flow_engine_core::node_config::{AmqpAckConfig, NodeData};
 use flow_engine_core::traits::AmqpProvider;
 use serde_json::json;
@@ -259,6 +260,11 @@ impl NodeExecutor for AmqpAckExecutor {
                 });
 
                 // 返回 false 端口
+                // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
+                if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
+                    return Err(format!("AMQP ack 失败: {}", e));
+                }
+
                 let next_node_ids = resolve_port_targets(connections, &node.uuid, "false");
 
                 Ok((next_node_ids, Some(error_output)))
