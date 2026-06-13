@@ -260,9 +260,9 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
    */
   const binaryPlaceholder = useMemo(() => {
     switch (binaryInputMode) {
-      case 'hex': return '输入十六进制字节 (如: 010203 或 0x48656c6c6f)';
-      case 'base64': return '输入 Base64 编码字符串 (如: SGVsbG8=)';
-      case 'text': return '输入文本，将按 UTF-8 字节编码后以二进制帧发送';
+      case 'hex': return getLL().panels.wsSendCollect.binaryPlaceholder_hex();
+      case 'base64': return getLL().panels.wsSendCollect.binaryPlaceholder_base64();
+      case 'text': return getLL().panels.wsSendCollect.binaryPlaceholder_text();
       default: return '';
     }
   }, [binaryInputMode]);
@@ -450,7 +450,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
           max={300000}
           {...register('send_timeout_ms', { valueAsNumber: true })}
         />
-        <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.wsSendCollect.timeout_desc()}</p>
       </div>
 
       {/* 采集响应开关 */}
@@ -515,7 +515,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
                 {/* 匹配类型 */}
                 <div className="space-y-2">
                   <Label htmlFor="collect_condition.match_type" className="text-xs text-muted-foreground">
-                    匹配类型
+                    {getLL().panels.wsSendCollect.matchType_label()}
                   </Label>
                   <Select
                     value={watch('collect_condition.match_type') || 'json_path'}
@@ -529,8 +529,8 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="json_path">JSONPath</SelectItem>
-                      <SelectItem value="regex">正则表达式</SelectItem>
-                      <SelectItem value="expression">表达式</SelectItem>
+                      <SelectItem value="regex">{getLL().panels.wsSendCollect.regex_option()}</SelectItem>
+                      <SelectItem value="expression">{getLL().panels.wsSendCollect.expression_option()}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -538,11 +538,11 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
                 {/* 匹配表达式 */}
                 <div className="space-y-2">
                   <Label htmlFor="collect_condition.expression" className="text-xs text-muted-foreground">
-                    匹配表达式 <span className="text-rose-500">*</span>
+                    {getLL().panels.wsSendCollect.matchExpression_label()} <span className="text-rose-500">*</span>
                   </Label>
                   <Textarea
                     id="collect_condition.expression"
-                    {...register('collect_condition.expression', { required: '匹配表达式不能为空' })}
+                    {...register('collect_condition.expression', { required: getLL().panels.wsSendCollect.matchExpression_required() })}
                     placeholder={watch('collect_condition.match_type') === 'expression' ? 'msg == "authenticated"' : watch('collect_condition.match_type') === 'regex' ? 'authenticated|success' : '$.msg'}
                     className={`min-h-[80px] resize-y font-mono text-xs ${
                       errors.collect_condition?.expression ? 'border-rose-500 focus-visible:ring-rose-500' : ''
@@ -562,54 +562,42 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
                   <div className="flex items-start gap-2 rounded-md bg-sky-50/60 dark:bg-sky-950/40 border border-sky-200/50 dark:border-sky-700/40 p-3 w-full">
                     <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500 dark:text-sky-400" />
                     <div className="text-xs text-sky-700/90 dark:text-sky-300/90 space-y-2 min-w-0 flex-1">
-                      <p className="font-medium text-sky-800 dark:text-sky-200">匹配类型说明：</p>
+                      <p className="font-medium text-sky-800 dark:text-sky-200">{getLL().panels.wsSendCollect.help_matchType_title()}</p>
                       <div className="space-y-1.5">
                         {/* JSONPath */}
                         <div className="p-2 rounded bg-white/60 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-700/30 w-full">
-                          <p className="font-medium text-sky-800 dark:text-sky-200">📌 JSONPath — 检查字段是否存在</p>
-                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400 mt-1">
-                            <code className="bg-sky-100/50 dark:bg-sky-800/60 px-1 rounded">$.msg</code> 检查 msg 字段是否存在
-                          </p>
-                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400">
-                            <code className="bg-sky-100/50 dark:bg-sky-800/60 px-1 rounded">$.data.status</code> 检查嵌套字段
-                          </p>
-                          <p className="text-[10px] text-sky-500 dark:text-sky-400 mt-1">⚠️ 仅检查字段存在，不支持值比较</p>
+                          <p className="font-medium text-sky-800 dark:text-sky-200">{getLL().panels.wsSendCollect.jsonpath_help_title()}</p>
+                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400 mt-1">{getLL().panels.wsSendCollect.jsonpath_help_line1()}</p>
+                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400">{getLL().panels.wsSendCollect.jsonpath_help_line2()}</p>
+                          <p className="text-[10px] text-sky-500 dark:text-sky-400 mt-1">{getLL().panels.wsSendCollect.jsonpath_help_line3()}</p>
                         </div>
                         {/* Regex */}
                         <div className="p-2 rounded bg-white/60 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-700/30 w-full">
-                          <p className="font-medium text-sky-800 dark:text-sky-200">🔍 正则表达式 — 匹配消息文本</p>
-                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400 mt-1">
-                            <code className="bg-sky-100/50 dark:bg-sky-800/60 px-1 rounded">authenticated</code> 包含该文本
-                          </p>
-                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400">
-                            <code className="bg-sky-100/50 dark:bg-sky-800/60 px-1 rounded">success|ok</code> 多选一
-                          </p>
-                          <p className="text-[10px] text-sky-500 dark:text-sky-400 mt-1">⚠️ 对整个消息文本进行正则匹配</p>
+                          <p className="font-medium text-sky-800 dark:text-sky-200">{getLL().panels.wsSendCollect.regex_help_title()}</p>
+                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400 mt-1">{getLL().panels.wsSendCollect.regex_help_line1()}</p>
+                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400">{getLL().panels.wsSendCollect.regex_help_line2()}</p>
+                          <p className="text-[10px] text-sky-500 dark:text-sky-400 mt-1">{getLL().panels.wsSendCollect.regex_warning()}</p>
                         </div>
                         {/* Expression */}
                         <div className="p-2 rounded bg-white/60 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-700/30 w-full">
                           <div className="flex items-center gap-1">
-                            <p className="font-medium text-sky-800 dark:text-sky-200">🧮 多条件表达式 — 值比较（推荐）</p>
+                            <p className="font-medium text-sky-800 dark:text-sky-200">{getLL().panels.wsSendCollect.multiCondition_help_title()}</p>
                             <span className="relative group inline-flex">
                               <Info className="h-3.5 w-3.5 text-sky-500 dark:text-sky-400 cursor-help" />
                               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-[11px] whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity pointer-events-none z-10 shadow-lg">
                                 <div className="space-y-1">
-                                  <p>支持多条件组合：</p>
-                                  <p><code className="font-mono">&&</code> 与 &nbsp; <code className="font-mono">||</code> 或 &nbsp; <code className="font-mono">!</code> 非</p>
-                                  <p><code className="font-mono">&gt; &lt; &gt;= &lt;= == !=</code></p>
-                                  <p className="text-[10px] opacity-80">例：a == "" && b != ""</p>
+                                  <p>{getLL().panels.wsSendCollect.expression_support()}</p>
+                                  <p className="font-mono">{getLL().panels.wsSendCollect.expression_operators()}</p>
+                                  <p className="font-mono">{getLL().panels.wsSendCollect.expression_comparison()}</p>
+                                  <p className="text-[10px] opacity-80">{getLL().panels.wsSendCollect.expression_example()}</p>
                                 </div>
                                 <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900 dark:border-t-gray-100" />
                               </span>
                             </span>
                           </div>
-                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400 mt-1">
-                            <code className="bg-sky-100/50 dark:bg-sky-800/60 px-1 rounded">msg == "authenticated"</code> 字符串比较
-                          </p>
-                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400">
-                            <code className="bg-sky-100/50 dark:bg-sky-800/60 px-1 rounded">code == 1</code> 数字比较
-                          </p>
-                          <p className="text-[10px] text-sky-500 dark:text-sky-400 mt-1">✅ JSON 顶层字段自动注入，无需 $. 前缀</p>
+                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400 mt-1">{getLL().panels.wsSendCollect.multiCondition_help_line1()}</p>
+                          <p className="font-mono text-[11px] text-sky-600 dark:text-sky-400">{getLL().panels.wsSendCollect.multiCondition_help_line2()}</p>
+                          <p className="text-[10px] text-sky-500 dark:text-sky-400 mt-1">{getLL().panels.wsSendCollect.multiCondition_help_line3()}</p>
                         </div>
                       </div>
                     </div>
@@ -622,7 +610,7 @@ export function WsSendCollectConfig({ data, onSave }: WsSendCollectConfigProps) 
           {/* 采集超时 */}
           <div className="space-y-2">
             <Label htmlFor="collect_timeout_ms" className="text-sm font-medium text-foreground">
-              采集超时
+              {getLL().panels.wsSendCollect.collectTimeout_label()}
             </Label>
             <Input
               id="collect_timeout_ms"

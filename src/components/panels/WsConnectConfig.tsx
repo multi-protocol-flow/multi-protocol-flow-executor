@@ -242,7 +242,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
       {/* Headers 编辑器 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">请求头（可选）</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.wsConnect.headers_label()}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -257,7 +257,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
         <div className="space-y-2">
           {fields.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无自定义 Headers</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.wsConnect.noHeaders()}</p>
             </div>
           ) : (
             fields.map((field, index) => (
@@ -327,7 +327,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
           max={300000}
           {...register('connect_timeout_ms', { valueAsNumber: true })}
         />
-        <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+        <p className="text-xs text-muted-foreground">{getLL().panels.wsConnect.timeoutRange()}</p>
       </div>
 
       {/* TLS 配置 */}
@@ -412,7 +412,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                   max={300000}
                   {...register('ping_interval_ms', { valueAsNumber: true })}
                 />
-                <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+                <p className="text-xs text-muted-foreground">{getLL().panels.wsConnect.timeoutRange()}</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ping_timeout_ms" className="text-sm font-medium text-foreground">
@@ -425,7 +425,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                   max={300000}
                   {...register('ping_timeout_ms', { valueAsNumber: true })}
                 />
-                <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+                <p className="text-xs text-muted-foreground">{getLL().panels.wsConnect.timeoutRange()}</p>
               </div>
             </>
           )}
@@ -479,9 +479,9 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="first_match">采集首条即停</SelectItem>
-                <SelectItem value="condition_match">匹配条件即停</SelectItem>
-                <SelectItem value="duration_collect">持续采集</SelectItem>
+                <SelectItem value="first_match">{getLL().panels.wsConnect.collectFirstStop_option()}</SelectItem>
+                <SelectItem value="condition_match">{getLL().panels.wsConnect.matchConditionStop_option()}</SelectItem>
+                <SelectItem value="duration_collect">{getLL().panels.wsConnect.continuousCollect_option()}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -489,7 +489,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
           {/* 采集条件（仅当 collect_mode 为 'condition_match' 时显示） */}
           {collectMode === 'condition_match' && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">采集条件</Label>
+              <Label className="text-sm font-medium text-foreground">{getLL().panels.wsConnect.condition_sectionTitle()}</Label>
               <div className="space-y-2 p-3 rounded-md border bg-muted/30">
                 {/* 匹配类型 */}
                 <div className="space-y-2">
@@ -508,8 +508,8 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="json_path">JSONPath</SelectItem>
-                      <SelectItem value="regex">正则表达式</SelectItem>
-                      <SelectItem value="expression">表达式</SelectItem>
+                      <SelectItem value="regex">{getLL().panels.wsConnect.regex_option()}</SelectItem>
+                      <SelectItem value="expression">{getLL().panels.wsConnect.expression_option()}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -541,40 +541,28 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
                   <div className="flex items-start gap-2 rounded-md bg-sky-50/50 border border-sky-200/50 p-3">
                     <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
                     <div className="text-xs text-sky-700/90 space-y-2">
-                      <p className="font-medium text-sky-800">匹配类型说明：</p>
+                      <p className="font-medium text-sky-800">{getLL().panels.wsConnect.help_matchType_title()}</p>
                       <div className="space-y-1.5">
                         {/* JSONPath */}
                         <div className="p-2 rounded bg-background/50 border border-sky-100">
-                          <p className="font-medium text-sky-800">📌 JSONPath — 检查字段是否存在</p>
-                          <p className="font-mono text-[11px] text-sky-600 mt-1">
-                            <code className="bg-sky-100/50 px-1 rounded">$.msg</code> 检查 msg 字段是否存在
-                          </p>
-                          <p className="font-mono text-[11px] text-sky-600">
-                            <code className="bg-sky-100/50 px-1 rounded">$.data.status</code> 检查嵌套字段
-                          </p>
-                          <p className="text-[10px] text-sky-500 mt-1">⚠️ 仅检查字段存在，不支持值比较</p>
+                          <p className="font-medium text-sky-800">{getLL().panels.wsConnect.jsonpath_title()}</p>
+                          <p className="font-mono text-[11px] text-sky-600 mt-1">{getLL().panels.wsConnect.jsonpath_line1()}</p>
+                          <p className="font-mono text-[11px] text-sky-600">{getLL().panels.wsConnect.jsonpath_line2()}</p>
+                          <p className="text-[10px] text-sky-500 mt-1">{getLL().panels.wsConnect.jsonpath_warning()}</p>
                         </div>
                         {/* Regex */}
                         <div className="p-2 rounded bg-background/50 border border-sky-100">
-                          <p className="font-medium text-sky-800">🔍 正则表达式 — 匹配消息文本</p>
-                          <p className="font-mono text-[11px] text-sky-600 mt-1">
-                            <code className="bg-sky-100/50 px-1 rounded">authenticated</code> 包含该文本
-                          </p>
-                          <p className="font-mono text-[11px] text-sky-600">
-                            <code className="bg-sky-100/50 px-1 rounded">success|ok</code> 多选一
-                          </p>
-                          <p className="text-[10px] text-sky-500 mt-1">⚠️ 对整个消息文本进行正则匹配</p>
+                          <p className="font-medium text-sky-800">{getLL().panels.wsConnect.regex_title()}</p>
+                          <p className="font-mono text-[11px] text-sky-600 mt-1">{getLL().panels.wsConnect.regex_line1()}</p>
+                          <p className="font-mono text-[11px] text-sky-600">{getLL().panels.wsConnect.regex_line2()}</p>
+                          <p className="text-[10px] text-sky-500 mt-1">{getLL().panels.wsConnect.regex_warning()}</p>
                         </div>
                         {/* Expression */}
                         <div className="p-2 rounded bg-background/50 border border-sky-100">
-                          <p className="font-medium text-sky-800">🧮 表达式 — 值比较（推荐）</p>
-                          <p className="font-mono text-[11px] text-sky-600 mt-1">
-                            <code className="bg-sky-100/50 px-1 rounded">msg == "authenticated"</code> 字符串比较
-                          </p>
-                          <p className="font-mono text-[11px] text-sky-600">
-                            <code className="bg-sky-100/50 px-1 rounded">code == 1</code> 数字比较
-                          </p>
-                          <p className="text-[10px] text-sky-500 mt-1">✅ JSON 顶层字段自动注入，无需 $. 前缀</p>
+                          <p className="font-medium text-sky-800">{getLL().panels.wsConnect.expression_title()}</p>
+                          <p className="font-mono text-[11px] text-sky-600 mt-1">{getLL().panels.wsConnect.expression_line1()}</p>
+                          <p className="font-mono text-[11px] text-sky-600">{getLL().panels.wsConnect.expression_line2()}</p>
+                          <p className="text-[10px] text-sky-500 mt-1">{getLL().panels.wsConnect.expression_note()}</p>
                         </div>
                       </div>
                     </div>
@@ -596,7 +584,7 @@ export function WsConnectConfig({ data, onSave }: WsConnectConfigProps) {
               max={300000}
               {...register('collect_timeout_ms', { valueAsNumber: true })}
             />
-            <p className="text-xs text-muted-foreground">毫秒 (ms)，范围 1000-300000</p>
+            <p className="text-xs text-muted-foreground">{getLL().panels.wsConnect.timeoutRange()}</p>
           </div>
         </>
       )}
