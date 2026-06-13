@@ -113,7 +113,7 @@ export function CanvasToolbar() {
     try {
       const result = await executeFlowWithChannel(flow, handleLog, handleExecutionEvent, handleWsEvent);
 
-      if (result.success && result.flow_report) {
+      if (result.flow_report) {
         setReport(result.flow_report);
 
         // 显式保存报告到后端（分离关注点：UI 显示和数据持久化分开）
@@ -128,14 +128,27 @@ export function CanvasToolbar() {
           });
         }
 
-        toast.success(ll.execution.toast.flow_completed(), {
-          description: `${ll.execution.report.total_duration()}: ${result.flow_report.duration_ms}ms | ${ll.execution.toast.success_nodes()}: ${result.flow_report.statistics.success_count}/${result.flow_report.total_nodes}`,
-          duration: 10000,
-          action: {
-            label: ll.execution.toast.view_report(),
-            onClick: () => useExecutionStore.getState().openReportDialog(),
-          },
-        });
+        const report = result.flow_report;
+        if (result.success) {
+          toast.success(ll.execution.toast.flow_completed(), {
+            description: `${ll.execution.report.total_duration()}: ${report.duration_ms}ms | ${ll.execution.toast.success_nodes()}: ${report.statistics.success_count}/${report.total_nodes}`,
+            duration: 10000,
+            action: {
+              label: ll.execution.toast.view_report(),
+              onClick: () => useExecutionStore.getState().openReportDialog(),
+            },
+          });
+        } else {
+          setError(result.error || ll.execution.viewers.execution_failed());
+          toast.error(ll.execution.toast.flow_failed(), {
+            description: `${ll.execution.report.total_duration()}: ${report.duration_ms}ms | ${ll.execution.toast.success_nodes()}: ${report.statistics.success_count}/${report.total_nodes}`,
+            action: {
+              label: ll.execution.toast.view_report(),
+              onClick: () => useExecutionStore.getState().openReportDialog(),
+            },
+            duration: 10000,
+          });
+        }
       } else {
         setError(result.error || ll.execution.viewers.execution_failed());
         toast.error(ll.execution.toast.flow_failed(), {

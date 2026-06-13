@@ -61,7 +61,7 @@ export function ExecuteButton() {
     try {
       const result = await executeFlowWithChannel(flow, handleLog, handleExecutionEvent, handleWsEvent);
 
-      if (result.success && result.flow_report) {
+      if (result.flow_report) {
         setReport(result.flow_report);
 
         // 显式保存报告到后端（分离关注点：UI 显示和数据持久化分开）
@@ -76,13 +76,23 @@ export function ExecuteButton() {
           });
         }
 
-        toast.success(ll.execution.toast.flow_completed(), {
-          description: `${result.flow_report.flow_name} · ${ll.execution.toast.duration_label()} ${result.flow_report.duration_ms}ms · ${result.flow_report.statistics.success_count} ${ll.execution.status.success()} · ${result.flow_report.statistics.failed_count} ${ll.execution.status.failed()}`,
-          action: { label: ll.execution.toast.view_report(), onClick: () => useExecutionStore.getState().openReportDialog() },
-          duration: 10000,
-        });
+        const report = result.flow_report;
+        if (result.success) {
+          toast.success(ll.execution.toast.flow_completed(), {
+            description: `${report.flow_name} · ${ll.execution.toast.duration_label()} ${report.duration_ms}ms · ${report.statistics.success_count} ${ll.execution.status.success()} · ${report.statistics.failed_count} ${ll.execution.status.failed()}`,
+            action: { label: ll.execution.toast.view_report(), onClick: () => useExecutionStore.getState().openReportDialog() },
+            duration: 10000,
+          });
+        } else {
+          setError(result.error || ll.execution.viewers.execution_failed());
+          toast.error(ll.execution.toast.flow_failed(), {
+            description: `${report.flow_name} · ${ll.execution.toast.duration_label()} ${report.duration_ms}ms · ${report.statistics.failed_count} ${ll.execution.status.failed()}`,
+            action: { label: ll.execution.toast.view_report(), onClick: () => useExecutionStore.getState().openReportDialog() },
+            duration: 10000,
+          });
+        }
       } else {
-        setError(result.error || '执行失败');
+        setError(result.error || ll.execution.viewers.execution_failed());
         toast.error(ll.execution.toast.flow_failed(), {
           description: result.error || ll.execution.toast.unknown_error(),
           duration: 10000,
