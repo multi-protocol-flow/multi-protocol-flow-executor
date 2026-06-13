@@ -1,6 +1,6 @@
 # 项目知识库
 
-**生成时间:** 2026-06-12 | **Branch:** dev
+**生成时间:** 2026-06-13 | **Branch:** dev
 
 ## 概述
 
@@ -109,11 +109,19 @@ Extra:              workspace-hack (cargo-hakari 自动管理)
 
 ## 反模式 (本项目禁止)
 
+### 代码质量
+
 - 非 Bridge 组件使用 `useI18nContext()` → 翻译不随 locale 切换
 - 跳过任一注册表 (`NodeRegistry`/`configPanelRegistry`/`viewerRegistry`) → 节点无法完整渲染
 - 类型断言 (`as any`) → 破坏 TypeScript 严格性
 - `unwrap()` 在生产 Rust 代码中 → 应传播错误
 - 新增翻译 key 不更新 `i18n-types.ts` → 编译错误
+
+### 工作流纪律
+
+- 回滚非自己修改过的代码 → 可能覆盖他人的变更，必须确认后再操作
+- 未完全理解需求就修改代码 → 必须先在 AGENTS.md/文档/代码中确认理解后再动手
+- 修改完代码直接提交 → 修改后必须验证（lint/typecheck/test），确认无误后再提交
 
 ## 命令
 
