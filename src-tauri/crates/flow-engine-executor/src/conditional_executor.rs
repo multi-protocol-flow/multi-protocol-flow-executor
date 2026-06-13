@@ -880,6 +880,7 @@ mod tests {
             data: NodeData::Conditional(config),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         }
     }
 

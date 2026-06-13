@@ -142,6 +142,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
@@ -177,6 +178,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "变量测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
@@ -224,6 +226,7 @@ mod tests {
             }),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         };
 
         let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "无效流程".to_string(), nodes: vec![http_node], connections: vec![], hooks: None };
@@ -257,6 +260,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "日志测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
@@ -288,6 +292,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let end_node = Node {
@@ -298,6 +303,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let connection = Connection {
@@ -336,6 +342,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "时间测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
@@ -370,6 +377,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: flow_name.clone(), nodes: vec![start_node], connections: vec![], hooks: None };
@@ -402,6 +410,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "空变量测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };
@@ -438,6 +447,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let flow = Flow { uuid: flow_id.clone(), initial_variables: None, environments: vec![], active_environment: None, name: "状态测试流程".to_string(), nodes: vec![start_node], connections: vec![], hooks: None };

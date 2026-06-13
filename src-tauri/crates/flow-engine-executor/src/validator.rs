@@ -430,6 +430,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         }
     }
 
@@ -443,6 +444,7 @@ mod tests {
             data: NodeData::end(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         }
     }
 
@@ -501,6 +503,7 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node], connections: vec![], hooks: None };
@@ -544,6 +547,7 @@ mod tests {
             data: NodeData::http("https://example.com/1"),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
         let http_node2 = Node {
             uuid: Uuid::new_v4().to_string(),
@@ -553,6 +557,7 @@ mod tests {
             data: NodeData::http("https://example.com/2"),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node1, http_node2], connections: vec![], hooks: None };
@@ -609,6 +614,7 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
         let end_node = create_end_node();
 
@@ -638,6 +644,7 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
         let end_node = create_end_node();
 
@@ -690,6 +697,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
         let end_node = create_end_node();
 
@@ -702,6 +710,7 @@ mod tests {
             data: NodeData::http("https://example.com/other"),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let connection = Connection {
@@ -745,6 +754,7 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let flow = Flow { uuid: Uuid::new_v4().to_string(), name: "错误测试流程".to_string(), initial_variables: None, environments: vec![], active_environment: None, nodes: vec![http_node], connections: vec![], hooks: None };
@@ -791,6 +801,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let end_node = Node {
@@ -801,6 +812,7 @@ mod tests {
             data: NodeData::end(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         // 使用特定 UUID 创建连接
@@ -837,6 +849,7 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let flow = Flow {
@@ -900,6 +913,7 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let flow = Flow {
@@ -971,6 +985,7 @@ mod tests {
             data: NodeData::conditional_simple("status", flow_engine_core::node_config::ConditionOperator::Equal, serde_json::json!("ok")),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
         let http_node = Node {
             uuid: Uuid::new_v4().to_string(),
@@ -980,6 +995,7 @@ mod tests {
             data: NodeData::http("https://example.com/success"),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
         let end_node = create_end_node();
 
@@ -1031,6 +1047,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
         let node_b = Node {
             uuid: "node-b".to_string(),
@@ -1040,6 +1057,7 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
 
         let conn1 = create_connection(&node_a.uuid, &node_b.uuid);
@@ -1075,6 +1093,7 @@ mod tests {
             data: NodeData::http("https://example.com"),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         };
         let node_c = create_end_node();
 
@@ -1113,6 +1132,7 @@ mod tests {
                 data: if i == 0 { NodeData::entry() } else { NodeData::http("https://example.com") },
                 ports: None,
                 has_breakpoint: None,
+            on_error: None,
             })
             .collect();
 

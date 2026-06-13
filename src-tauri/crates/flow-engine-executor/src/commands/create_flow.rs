@@ -28,6 +28,7 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
         data: NodeData::entry(),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     // 创建结束节点
@@ -39,6 +40,7 @@ pub fn create_flow(input: CreateFlowCommandInput) -> CreateFlowCommandOutput {
         data: NodeData::end(),
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     // 创建流程对象

@@ -88,6 +88,7 @@ mod tests {
             data: NodeData::VariableExtractor(config),
             ports: None,
             has_breakpoint: None,
+        on_error: None,
         }
     }
 

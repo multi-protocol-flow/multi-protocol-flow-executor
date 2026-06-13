@@ -260,6 +260,7 @@ mod tests {
                 label: Some("Output".to_string()),
             }]),
             has_breakpoint: None,
+            on_error: None,
         }], connections: vec![], initial_variables: None, environments: vec![], active_environment: None, hooks: None }
     }
 
@@ -550,6 +551,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }], connections: vec![], initial_variables: None, environments: vec![], active_environment: None, hooks: None };
         let config2 = StressTestConfig {
             concurrent_users: 10,
@@ -706,6 +708,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }], connections: vec![], initial_variables: None, environments: vec![], active_environment: None, hooks: None };
         let config2 = StressTestConfig {
             concurrent_users: 5,

@@ -139,6 +139,7 @@ async fn execute_node_add(
         data,
         ports: None,
         has_breakpoint: None,
+        on_error: None,
     };
 
     flow.nodes.push(node);

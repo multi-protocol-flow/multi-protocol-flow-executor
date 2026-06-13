@@ -175,6 +175,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         };
 
         let next_node = Node {
@@ -185,6 +186,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         };
 
         let connection = Connection {
@@ -250,6 +252,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         };
 
         let mut context = ExecutionContext {
@@ -294,6 +297,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         };
 
         let next_node_1 = Node {
@@ -304,6 +308,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         };
 
         let next_node_2 = Node {
@@ -314,6 +319,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         };
 
         let connection_1 = Connection {
@@ -385,6 +391,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         };
 
         let next_node = Node {
@@ -395,6 +402,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         };
 
         let connection = Connection {
@@ -458,6 +466,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         };
 
         let next_node = Node {
@@ -468,6 +477,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         };
 
         // 连接使用 node.uuid 作为 source_node_uuid
@@ -522,6 +532,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         };
 
         let next_node = Node {
@@ -532,6 +543,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         };
 
         let connection = Connection {
@@ -609,6 +621,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
         has_breakpoint: None,
+        on_error: None,
         };
 
         let mut context = ExecutionContext {

@@ -582,6 +582,7 @@ mod tests {
             data: NodeData::entry(),
             ports: None,
             has_breakpoint: None,
+            on_error: None,
         }], connections: vec![], hooks: None }
     }
 
