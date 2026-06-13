@@ -124,7 +124,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
     if (!endpoint) {
       setIntrospectResult({
         success: false,
-        message: '请先配置 GraphQL 端点 URL',
+        message: getLL().panels.graphqlConnect.introspect_error(),
       });
       return;
     }
@@ -139,7 +139,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
         const typeCount = result.schema ? Object.keys(result.schema).length : 0;
         setIntrospectResult({
           success: true,
-          message: `Schema 探索成功（${typeCount} 个类型）`,
+          message: getLL().panels.graphqlConnect.introspect_success({ typeCount }),
           schema: result.schema || undefined,
         });
         // 保存发现的 Schema 和查询模板到节点配置
@@ -157,7 +157,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
       } else {
         setIntrospectResult({
           success: false,
-          message: result.error || 'Schema 探索失败',
+          message: result.error || getLL().panels.graphqlConnect.introspect_failed(),
         });
       }
     } catch (error) {
@@ -271,7 +271,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
       {/* WebSocket 端点 */}
       <div className="space-y-2">
         <Label htmlFor="ws_endpoint" className="text-sm font-medium text-foreground">
-          WebSocket 端点 URL
+          {getLL().panels.graphqlConnect.wsUrl_label()}
         </Label>
         <Input
           id="ws_endpoint"
@@ -280,7 +280,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          用于 GraphQL 订阅的 WebSocket 端点，留空则使用 HTTP 端点
+          {getLL().panels.graphqlConnect.wsUrl_help()}
         </p>
       </div>
 
@@ -302,7 +302,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
         <div className="space-y-2">
           {headerEntries.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无自定义请求头</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.graphqlConnect.noHeaders()}</p>
             </div>
           ) : (
             headerEntries.map((entry, index) => (
@@ -353,7 +353,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
       {/* 连接 ID */}
       <div className="space-y-2">
         <Label htmlFor="connection_id" className="text-sm font-medium text-foreground">
-          连接 ID
+          {getLL().panels.graphqlConnect.connectionId_label()}
         </Label>
         <Input
           id="connection_id"
@@ -362,7 +362,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          留空将自动生成连接 ID
+          {getLL().panels.graphqlConnect.connectionId_help()}
         </p>
       </div>
 
@@ -370,7 +370,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <Label className="text-sm font-medium text-foreground">
-            Schema 探索
+            {getLL().panels.graphqlConnect.schemaExplore_sectionTitle()}
           </Label>
           <Button
             type="button"
@@ -385,7 +385,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
             ) : (
               <FileJson className="h-3.5 w-3.5" />
             )}
-            {isIntrospecting ? '探索中...' : '获取 Schema'}
+            {isIntrospecting ? getLL().panels.graphqlConnect.exploring_button() : getLL().panels.graphqlConnect.explore_button()}
           </Button>
         </div>
 
@@ -401,7 +401,7 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
         )}
 
         <p className="text-xs text-muted-foreground">
-          向已配置的端点发送内省查询，获取可用的 Query 和 Mutation 列表
+          {getLL().panels.graphqlConnect.introspect_help()}
         </p>
       </div>
 
@@ -409,10 +409,10 @@ export function GraphqlConnectConfig({ data, onSave }: GraphqlConnectConfigProps
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">GraphQL 连接说明：</p>
-          <p>HTTP 端点用于查询 (Query) 和变更 (Mutation)</p>
-          <p>WebSocket 端点用于实时订阅 (Subscription)</p>
-          <p>可在请求头中配置认证信息 (Authorization)</p>
+          <p className="font-medium text-foreground">{getLL().panels.graphqlConnect.help_title()}</p>
+          <p>{getLL().panels.graphqlConnect.help_line1()}</p>
+          <p>{getLL().panels.graphqlConnect.help_line2()}</p>
+          <p>{getLL().panels.graphqlConnect.help_line3()}</p>
         </div>
       </div>
     </form>

@@ -207,10 +207,10 @@ export function GraphqlIntrospectConfig({ data, onSave }: GraphqlIntrospectConfi
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">GraphQL 内省说明：</p>
-          <p>内省查询将获取服务端的完整 Schema 定义</p>
-          <p>包括所有可用的 Query、Mutation、Type 和字段</p>
-          <p>可用于自动生成查询模板或验证 Schema 兼容性</p>
+          <p className="font-medium text-foreground">{getLL().panels.graphqlIntrospect.help_title()}</p>
+          <p>{getLL().panels.graphqlIntrospect.help_line1()}</p>
+          <p>{getLL().panels.graphqlIntrospect.help_line2()}</p>
+          <p>{getLL().panels.graphqlIntrospect.help_line3()}</p>
         </div>
       </div>
     </form>

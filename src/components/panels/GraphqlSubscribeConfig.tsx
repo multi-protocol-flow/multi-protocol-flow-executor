@@ -190,7 +190,7 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
         JSON.parse(val);
         setVariablesError(null);
       } catch {
-        setVariablesError('JSON 格式无效');
+        setVariablesError(getLL().panels.graphqlSubscribe.variables_error());
         return;
       }
     } else {
@@ -266,10 +266,10 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
       {selectedSchema.hasSchema && selectedSchema.subscriptionFields.length > 0 && (
         <div className="space-y-3">
           <Label className="text-sm font-medium text-foreground">
-            Schema 字段浏览器
+            {getLL().panels.graphqlSubscribe.schemaFieldBrowser_sectionTitle()}
           </Label>
           <p className="text-xs text-muted-foreground">
-            勾选需要的订阅字段，点击"生成订阅"自动填充订阅编辑器
+            {getLL().panels.graphqlSubscribe.schemaFieldBrowser_help()}
           </p>
           <GraphqlFieldTree
             title="subscription"
@@ -324,7 +324,7 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
       {/* 操作名称 */}
       <div className="space-y-2">
         <Label htmlFor="operation_name" className="text-sm font-medium text-foreground">
-          操作名称
+          {getLL().panels.graphqlSubscribe.operationName_label()}
         </Label>
         <Input
           id="operation_name"
@@ -337,7 +337,7 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
       {/* 最大事件数 */}
       <div className="space-y-2">
         <Label htmlFor="max_events" className="text-sm font-medium text-foreground">
-          最大事件数
+          {getLL().panels.graphqlSubscribe.maxEvents_label()}
         </Label>
         <Input
           id="max_events"
@@ -347,14 +347,14 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          达到最大事件数后自动停止订阅，0 表示不限制
+          {getLL().panels.graphqlSubscribe.maxEvents_help()}
         </p>
       </div>
 
       {/* 超时 */}
       <div className="space-y-2">
         <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">
-          超时（毫秒）
+          {getLL().panels.graphqlSubscribe.timeout_label()}
         </Label>
         <Input
           id="timeout_ms"
@@ -369,10 +369,10 @@ export function GraphqlSubscribeConfig({ data, onSave }: GraphqlSubscribeConfigP
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">GraphQL 订阅说明：</p>
-          <p>订阅需要连接配置了 WebSocket 端点</p>
-          <p>实时接收服务端推送的订阅事件</p>
-          <p>设置最大事件数或超时时间可自动结束订阅</p>
+          <p className="font-medium text-foreground">{getLL().panels.graphqlSubscribe.help_title()}</p>
+          <p>{getLL().panels.graphqlSubscribe.help_line1()}</p>
+          <p>{getLL().panels.graphqlSubscribe.help_line2()}</p>
+          <p>{getLL().panels.graphqlSubscribe.help_line3()}</p>
         </div>
       </div>
     </form>

@@ -201,7 +201,7 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
         JSON.parse(val);
         setVariablesError(null);
       } catch {
-        setVariablesError('JSON 格式无效');
+        setVariablesError(getLL().panels.graphqlQuery.variables_error());
         return;
       }
     } else {
@@ -293,10 +293,10 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
       {selectedSchema.hasSchema && (selectedSchema.queryFields.length > 0 || selectedSchema.mutationFields.length > 0) && (
         <div className="space-y-3">
           <Label className="text-sm font-medium text-foreground">
-            Schema 字段浏览器
+            {getLL().panels.graphqlQuery.schemaFieldBrowser_sectionTitle()}
           </Label>
           <p className="text-xs text-muted-foreground">
-            勾选需要的字段，点击"生成查询"自动填充查询编辑器
+            {getLL().panels.graphqlQuery.schemaFieldBrowser_help()}
           </p>
 
           {/* Query 字段 */}
@@ -373,7 +373,7 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
       {/* 操作名称 */}
       <div className="space-y-2">
         <Label htmlFor="operation_name" className="text-sm font-medium text-foreground">
-          操作名称
+          {getLL().panels.graphqlQuery.operationName_label()}
         </Label>
         <Input
           id="operation_name"
@@ -382,14 +382,14 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          当查询包含多个操作时，指定要执行的操作名称
+          {getLL().panels.graphqlQuery.operationName_help()}
         </p>
       </div>
 
       {/* 文件上传 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-foreground">文件上传（可选）</Label>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.graphqlQuery.fileUpload_sectionTitle()}</Label>
           <Button
             type="button"
             variant="ghost"
@@ -404,7 +404,7 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
         <div className="space-y-2">
           {fileEntries.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无文件上传</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.graphqlQuery.noFileUpload()}</p>
             </div>
           ) : (
             fileEntries.map((entry, index) => (
@@ -441,7 +441,7 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
       {/* 超时 */}
       <div className="space-y-2">
         <Label htmlFor="timeout_ms" className="text-sm font-medium text-foreground">
-          超时（毫秒）
+          {getLL().panels.graphqlQuery.timeout_label()}
         </Label>
         <Input
           id="timeout_ms"
@@ -456,10 +456,10 @@ export function GraphqlQueryConfig({ data, onSave }: GraphqlQueryConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">GraphQL 查询说明：</p>
-          <p>支持 Query、Mutation 操作</p>
-          <p>变量需以 JSON 格式输入</p>
-          <p>文件上传使用 GraphQL multipart 规范</p>
+          <p className="font-medium text-foreground">{getLL().panels.graphqlQuery.help_title()}</p>
+          <p>{getLL().panels.graphqlQuery.help_line1()}</p>
+          <p>{getLL().panels.graphqlQuery.help_line2()}</p>
+          <p>{getLL().panels.graphqlQuery.help_line3()}</p>
         </div>
       </div>
     </form>
