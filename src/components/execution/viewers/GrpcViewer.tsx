@@ -75,7 +75,7 @@ interface KeyValueListProps {
 
 function KeyValueList({ data }: KeyValueListProps) {
   if (!data || Object.keys(data).length === 0) {
-    return <p className="text-sm text-muted-foreground italic">无数据</p>;
+    return <p className="text-sm text-muted-foreground italic">{getLL().viewer.common.no_data()}</p>;
   }
 
   return (
@@ -572,7 +572,7 @@ function GrpcErrorDetailsCard({ details }: { details: GrpcErrorDetail[] }) {
                   </div>
                 ) : detail.raw_hex ? (
                   <div>
-                    <div className="text-xs text-muted-foreground mb-1">原始数据 (hex)</div>
+                    <div className="text-xs text-muted-foreground mb-1">{ll.viewer.common.label_raw_data()}</div>
                     <code className="text-xs font-mono text-foreground break-all bg-muted rounded p-2 block">
                       {detail.raw_hex.length > 512
                         ? `${detail.raw_hex.slice(0, 512)}...`
@@ -648,13 +648,13 @@ function GrpcCallSection({ report }: { report: NodeExecutionReport }) {
   // Determine pattern label and color
   const patternLabel = (() => {
     switch (output?.pattern) {
-      case 'unary': return { text: 'Unary', color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/50' };
-      case 'server_streaming': return { text: '服务端流式', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50' };
-      case 'client_streaming': return { text: '客户端流式', color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50' };
-      case 'bidi_streaming': return { text: '双向流式', color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50' };
+      case 'unary': return { text: ll.viewer.grpc.unary_call(), color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/50' };
+      case 'server_streaming': return { text: ll.viewer.grpc.server_streaming(), color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50' };
+      case 'client_streaming': return { text: ll.viewer.grpc.client_streaming(), color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50' };
+      case 'bidi_streaming': return { text: ll.viewer.grpc.bidi_streaming(), color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50' };
       default: return isStreaming
-        ? { text: '服务端流式', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50' }
-        : { text: 'Unary', color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/50' };
+        ? { text: ll.viewer.grpc.server_streaming(), color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50' }
+        : { text: ll.viewer.grpc.unary_call(), color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/50' };
     }
   })();
 

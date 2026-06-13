@@ -112,15 +112,16 @@ function ValueDisplay({ label, value }: ValueDisplayProps) {
  * 错误类型映射为中文
  */
 function getErrorKindLabel(errorKind: string): string {
+  const ll = getLL();
   const labels: Record<string, string> = {
-    'condition_syntax': '条件语法错误',
-    'condition_evaluation': '条件评估错误',
-    'configuration': '配置错误',
-    'execution': '执行错误',
-    'connection': '连接错误',
-    'timeout': '超时错误',
-    'validation': '验证错误',
-    'parse': '解析错误',
+    'condition_syntax': ll.viewer.common.error_kind_condition_syntax(),
+    'condition_evaluation': ll.viewer.common.error_kind_condition_evaluation(),
+    'configuration': ll.viewer.common.error_kind_configuration(),
+    'execution': ll.viewer.common.error_kind_execution(),
+    'connection': ll.viewer.common.error_kind_connection(),
+    'timeout': ll.viewer.common.error_kind_timeout(),
+    'validation': ll.viewer.common.error_kind_validation(),
+    'parse': ll.viewer.common.error_kind_parse(),
   };
   return labels[errorKind] || errorKind;
 }
@@ -180,7 +181,7 @@ function ErrorCard({ error, configData }: { error: ErrorDetail; configData?: Con
               <div className="flex gap-2">
                 <span className="text-muted-foreground shrink-0">{getLL().execution.viewers.condition_result()}:</span>
                 <span className="font-mono text-red-700 dark:text-red-300">
-                  {configData.condition_type === 'simple' ? '简单条件' : '高级表达式'}
+                  {configData.condition_type === 'simple' ? getLL().viewer.cond.label_simple_condition() : getLL().viewer.cond.label_advanced_expression()}
                 </span>
               </div>
             )}

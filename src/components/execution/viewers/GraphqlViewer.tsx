@@ -256,8 +256,8 @@ function GraphqlConnectView({ report }: { report: NodeExecutionReport }) {
             <GraphqlBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'GraphQL 端点连接成功'
-                : output?.error ?? '无法连接 GraphQL 端点'}
+                ? ll.viewer.graphql.status_connected()
+                : output?.error ?? ll.viewer.graphql.status_connection_failed()}
             </span>
           </div>
 
@@ -330,9 +330,9 @@ function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? hasErrors
-                  ? `请求成功，但返回 ${output.errors!.length} 个 GraphQL 错误`
-                  : '请求成功'
-                : output?.error ?? 'GraphQL 请求失败'}
+                  ? ll.viewer.graphql.query_success_with_errors({ count: output.errors!.length })
+                  : ll.viewer.graphql.status_success()
+                : output?.error ?? ll.viewer.graphql.query_error()}
             </span>
           </div>
 
@@ -401,11 +401,11 @@ function GraphqlQueryView({ report }: { report: NodeExecutionReport }) {
           }
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="DNS 解析" value={timing.dns_ms} />
-            <TimingMetric label="连接耗时" value={timing.connect_ms} />
-            <TimingMetric label="TLS 握手" value={timing.tls_ms} />
-            <TimingMetric label="服务器处理" value={timing.server_ms} />
-            <TimingMetric label="总耗时" value={timing.total_ms} />
+            <TimingMetric label={ll.viewer.common.timing_dns()} value={timing.dns_ms} />
+            <TimingMetric label={ll.viewer.common.timing_connect()} value={timing.connect_ms} />
+            <TimingMetric label={ll.viewer.common.timing_tls()} value={timing.tls_ms} />
+            <TimingMetric label={ll.viewer.common.timing_server()} value={timing.server_ms} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={timing.total_ms} />
           </div>
         </CollapsibleSection>
       )}
@@ -441,8 +441,8 @@ function GraphqlSubscribeView({ report }: { report: NodeExecutionReport }) {
             <GraphqlBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `收到 ${eventCount} 个事件`
-                : output?.error ?? 'GraphQL 订阅失败'}
+                ? ll.viewer.graphql.events_received({ count: eventCount })
+                : output?.error ?? ll.viewer.graphql.subscribe_error()}
             </span>
           </div>
 
@@ -509,9 +509,9 @@ function GraphqlIntrospectView({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? templates.length > 0
-                  ? `发现 ${templates.length} 个查询模板`
-                  : 'Schema 探索完成'
-                : output?.error ?? 'Schema 探索失败'}
+                  ? ll.viewer.graphql.templates_found({ count: templates.length })
+                  : ll.viewer.graphql.explore_success()
+                : output?.error ?? ll.viewer.graphql.explore_error()}
             </span>
           </div>
 
@@ -603,8 +603,8 @@ function GraphqlDisconnectView({ report }: { report: NodeExecutionReport }) {
             <GraphqlBadge />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? 'GraphQL 连接已成功断开'
-                : output?.error ?? '断开连接失败'}
+                ? ll.viewer.graphql.status_disconnected()
+                : output?.error ?? ll.viewer.graphql.status_disconnect_failed()}
             </span>
           </div>
 

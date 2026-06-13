@@ -319,7 +319,7 @@ function TcpConnectSection({ report }: { report: NodeExecutionReport }) {
           <div className="flex flex-wrap gap-2">
             {output?.use_tls !== undefined && (
               <Badge variant="outline" className="font-mono text-xs">
-                TLS: {output.use_tls ? '启用' : '关闭'}
+                TLS: {output.use_tls ? ll.viewer.tcp.label_enabled() : ll.viewer.tcp.label_disabled()}
               </Badge>
             )}
             {output?.connection_id && (
@@ -374,7 +374,7 @@ function TcpConnectSection({ report }: { report: NodeExecutionReport }) {
           }
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -503,8 +503,8 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.tcp.status_sent()} failText={ll.viewer.tcp.status_send_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `数据发送${receivedData ? '并接收' : ''}完成`
-                : output?.error ?? '发送失败'}
+                ? receivedData ? ll.viewer.tcp.send_receive_complete() : ll.viewer.tcp.send_complete()
+                : output?.error ?? ll.viewer.tcp.status_send_failed()}
             </span>
           </div>
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -524,9 +524,9 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="发送耗时" value={sendDuration} />
-            <TimingMetric label="接收耗时" value={receiveDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_send()} value={sendDuration} />
+            <TimingMetric label={ll.viewer.common.timing_receive()} value={receiveDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -546,7 +546,7 @@ function TcpSendSection({ report, recording }: { report: NodeExecutionReport; re
               onClick={(e) => { e.stopPropagation(); setShowRecording(!showRecording); }}
               className="text-xs text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300"
             >
-              {showRecording ? '折叠' : '展开'}
+              {showRecording ? ll.viewer.recording.collapse() : ll.viewer.recording.expand()}
             </button>
           }
         >
@@ -647,7 +647,7 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
                 ? receivedData
                   ? `TCP 数据接收成功 (${receivedData.size ?? 0} bytes)`
                   : 'TCP 接收完成（超时无数据）'
-                : output?.error ?? '接收失败'}
+                : output?.error ?? ll.viewer.tcp.status_receive_failed()}
             </span>
           </div>
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -667,8 +667,8 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
           )}
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="接收耗时" value={receiveDuration} />
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_receive()} value={receiveDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -688,7 +688,7 @@ function TcpReceiveSection({ report, recording }: { report: NodeExecutionReport;
               onClick={(e) => { e.stopPropagation(); setShowRecording(!showRecording); }}
               className="text-xs text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300"
             >
-              {showRecording ? '折叠' : '展开'}
+              {showRecording ? ll.viewer.recording.collapse() : ll.viewer.recording.expand()}
             </button>
           }
         >
@@ -767,7 +767,7 @@ function TcpCloseSection({ report }: { report: NodeExecutionReport }) {
           }
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -861,7 +861,7 @@ function UdpBindSection({ report }: { report: NodeExecutionReport }) {
           }
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -948,8 +948,10 @@ function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
             <StatusBadge isSuccess={isSuccess} successText={ll.viewer.tcp.status_sent()} failText={ll.viewer.tcp.status_send_failed()} />
             <span className="text-sm text-muted-foreground">
               {isSuccess
-                ? `UDP 数据包已发送${sentData?.target ? `至 ${sentData.target}` : ''}`
-                : output?.error ?? '发送失败'}
+                ? sentData?.target
+                  ? ll.viewer.tcp.udp_sent_to({ target: sentData.target })
+                  : ll.viewer.tcp.udp_sent()
+                : output?.error ?? ll.viewer.tcp.status_send_failed()}
             </span>
           </div>
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -969,7 +971,7 @@ function UdpSendToSection({ report }: { report: NodeExecutionReport }) {
           }
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -1063,7 +1065,7 @@ function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
             <span className="text-sm text-muted-foreground">
               {isSuccess
                 ? `UDP 数据包接收成功${sourceAddr ? ` (来自 ${sourceAddr})` : ''}`
-                : output?.error ?? '接收失败'}
+                : output?.error ?? ll.viewer.tcp.status_receive_failed()}
             </span>
           </div>
           <ErrorBlock error={!isSuccess ? output?.error : undefined} />
@@ -1083,7 +1085,7 @@ function UdpRecvFromSection({ report }: { report: NodeExecutionReport }) {
           }
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
@@ -1156,7 +1158,7 @@ function UdpCloseSection({ report }: { report: NodeExecutionReport }) {
           }
         >
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <TimingMetric label="总耗时" value={totalDuration} />
+            <TimingMetric label={ll.viewer.common.timing_total()} value={totalDuration} />
           </div>
         </CollapsibleSection>
       )}
