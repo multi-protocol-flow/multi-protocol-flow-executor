@@ -3528,7 +3528,7 @@ type RootTranslation = {
 			 */
 			base64Format_help: string
 			/**
-			 * 纯​文​本​数​据​，​支​持​变​量​引​用​ ​{​{​v​a​r​i​a​b​l​e​}​}
+			 * 纯​文​本​数​据​，​支​持​变​量​引​用
 			 */
 			textFormat_help: string
 		}
@@ -4316,6 +4316,10 @@ type RootTranslation = {
 			 */
 			clientStreaming: string
 			/**
+			 * U​n​a​r​y
+			 */
+			unary: string
+			/**
 			 * 默​认​ ​M​e​t​a​d​a​t​a​（​可​选​）
 			 */
 			defaultMetadata: string
@@ -4441,6 +4445,22 @@ type RootTranslation = {
 			 * 验​证​连​接​并​发​现​可​用​服​务​，​结​果​自​动​缓​存​供​ ​g​R​P​C​ ​C​a​l​l​ ​节​点​使​用
 			 */
 			testConnectionExplanation: string
+			/**
+			 * 查​询​连​接​状​态
+			 */
+			queryState: string
+			/**
+			 * 说​明​：
+			 */
+			helpSuffix: string
+			/**
+			 * 手​动​上​传
+			 */
+			manualUploadLabel: string
+			/**
+			 * 测​试​连​接
+			 */
+			testConnectionLabel: string
 		}
 		grpcCall: {
 			/**
@@ -4569,6 +4589,10 @@ type RootTranslation = {
 			 */
 			callExplanation1: string
 			/**
+			 * 请​求​ ​J​S​O​N​ ​会​根​据​方​法​的​ ​I​n​p​u​t​ ​T​y​p​e​ ​生​成​骨​架​结​构
+			 */
+			callExplanation2: string
+			/**
 			 * 调​用​级​ ​M​e​t​a​d​a​t​a​ ​会​覆​盖​连​接​默​认​的​同​名​条​目
 			 */
 			callExplanation3: string
@@ -4660,6 +4684,14 @@ type RootTranslation = {
 			 * @param {unknown} count
 			 */
 			form_field_count: RequiredParams<'count'>
+			/**
+			 * 表​单
+			 */
+			formMode: string
+			/**
+			 * 点​击​"​添​加​消​息​"​按​钮​添​加​请​求​消​息
+			 */
+			clickAddMessageHint: string
 		}
 		grpcClose: {
 			/**
@@ -4800,6 +4832,23 @@ type RootTranslation = {
 			 * 支​持​ ​S​t​r​e​a​m​a​b​l​e​ ​H​T​T​P​ ​和​ ​S​t​d​i​o​ ​两​种​传​输​模​式​，​兼​容​标​准​ ​M​C​P​ ​服​务​器
 			 */
 			protocolExplanation2: string
+			/**
+			 * 传​输​模​式
+			 */
+			transportMode: string
+			/**
+			 * 参​数​（​可​选​）
+			 */
+			argsOptional: string
+			/**
+			 * M​C​P​ ​协​议​版​本​号​，​默​认​ ​{​v​e​r​s​i​o​n​}
+			 * @param {unknown} version
+			 */
+			protocolVersionHint: RequiredParams<'version'>
+			/**
+			 * 验​证​连​接​并​发​现​可​用​工​具​、​资​源​和​提​示​词​，​结​果​自​动​缓​存​供​下​游​节​点​使​用
+			 */
+			testConnectionHelp: string
 		}
 		mcpCallTool: {
 			/**
@@ -4862,6 +4911,23 @@ type RootTranslation = {
 			 * 参​数​以​ ​J​S​O​N​ ​格​式​传​入​，​结​构​取​决​于​工​具​定​义
 			 */
 			callExplanation2: string
+			/**
+			 * {​c​o​u​n​t​}​ ​个​工​具
+			 * @param {unknown} count
+			 */
+			toolCount: RequiredParams<'count'>
+			/**
+			 * 工​具​参​数
+			 */
+			argsLabel: string
+			/**
+			 * 是
+			 */
+			booleanYes: string
+			/**
+			 * 否
+			 */
+			booleanNo: string
 			/**
 			 * 提​示​：​连​接​节​点​尚​未​发​现​工​具​，​请​先​在​连​接​节​点​中​执​行​工​具​发​现
 			 */
@@ -4954,6 +5020,15 @@ type RootTranslation = {
 			 * 参​数​以​键​值​对​形​式​传​入​，​具​体​参​数​取​决​于​提​示​词​定​义
 			 */
 			promptExplanation2: string
+			/**
+			 * {​c​o​u​n​t​}​ ​个​提​示​词
+			 * @param {unknown} count
+			 */
+			promptCount: RequiredParams<'count'>
+			/**
+			 * 提​示​词​参​数
+			 */
+			argsLabel: string
 			/**
 			 * 提​示​：​连​接​节​点​尚​未​发​现​提​示​词​，​请​先​在​连​接​节​点​中​执​行​提​示​词​发​现
 			 */
@@ -5720,6 +5795,14 @@ type RootTranslation = {
 			 * ✅​ ​J​S​O​N​ ​顶​层​字​段​自​动​注​入​，​无​需​ ​$​.​ ​前​缀
 			 */
 			expression_note: string
+			/**
+			 * 正​则​表​达​式
+			 */
+			regex_option: string
+			/**
+			 * 表​达​式
+			 */
+			expression_option: string
 		}
 		wsSendCollect: {
 			/**
@@ -5774,6 +5857,18 @@ type RootTranslation = {
 			 * 文​本​转​二​进​制​ ​(​U​T​F​-​8​ ​字​节​)
 			 */
 			textToBinary_option: string
+			/**
+			 * 输​入​十​六​进​制​字​节​ ​(​如​:​ ​0​1​0​2​0​3​ ​或​ ​0​x​4​8​6​5​6​c​6​c​6​f​)
+			 */
+			binaryPlaceholder_hex: string
+			/**
+			 * 输​入​ ​B​a​s​e​6​4​ ​编​码​字​符​串​ ​(​如​:​ ​S​G​V​s​b​G​8​=​)
+			 */
+			binaryPlaceholder_base64: string
+			/**
+			 * 输​入​文​本​，​将​按​ ​U​T​F​-​8​ ​字​节​编​码​后​以​二​进​制​帧​发​送
+			 */
+			binaryPlaceholder_text: string
 			/**
 			 * 从​文​件​读​取​二​进​制​内​容​（​自​动​转​换​为​ ​H​e​x​）
 			 */
@@ -9262,6 +9357,14 @@ type RootTranslation = {
 			 * 连​接​超​时​（​毫​秒​）
 			 */
 			connectTimeout: string
+			/**
+			 * 连​接​成​功
+			 */
+			testSuccess_msg: string
+			/**
+			 * 连​接​失​败​，​请​检​查​配​置
+			 */
+			testFailed_msg: string
 		}
 		redisCommand: {
 			/**
@@ -21800,9 +21903,9 @@ export type TranslationFunctions = {
 			 */
 			base64Format_help: () => LocalizedString
 			/**
-			 * 纯文本数据，支持变量引用 {{variable}}
+			 * 纯文本数据，支持变量引用
 			 */
-			textFormat_help: (arg0: number | string | boolean) => LocalizedString
+			textFormat_help: () => LocalizedString
 		}
 		udpRecvFrom: {
 			/**
@@ -22586,6 +22689,10 @@ export type TranslationFunctions = {
 			 */
 			clientStreaming: () => LocalizedString
 			/**
+			 * Unary
+			 */
+			unary: () => LocalizedString
+			/**
 			 * 默认 Metadata（可选）
 			 */
 			defaultMetadata: () => LocalizedString
@@ -22709,6 +22816,22 @@ export type TranslationFunctions = {
 			 * 验证连接并发现可用服务，结果自动缓存供 gRPC Call 节点使用
 			 */
 			testConnectionExplanation: () => LocalizedString
+			/**
+			 * 查询连接状态
+			 */
+			queryState: () => LocalizedString
+			/**
+			 * 说明：
+			 */
+			helpSuffix: () => LocalizedString
+			/**
+			 * 手动上传
+			 */
+			manualUploadLabel: () => LocalizedString
+			/**
+			 * 测试连接
+			 */
+			testConnectionLabel: () => LocalizedString
 		}
 		grpcCall: {
 			/**
@@ -22836,6 +22959,10 @@ export type TranslationFunctions = {
 			 */
 			callExplanation1: () => LocalizedString
 			/**
+			 * 请求 JSON 会根据方法的 Input Type 生成骨架结构
+			 */
+			callExplanation2: () => LocalizedString
+			/**
 			 * 调用级 Metadata 会覆盖连接默认的同名条目
 			 */
 			callExplanation3: () => LocalizedString
@@ -22919,6 +23046,14 @@ export type TranslationFunctions = {
 			 * ({count} 个字段)
 			 */
 			form_field_count: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 表单
+			 */
+			formMode: () => LocalizedString
+			/**
+			 * 点击"添加消息"按钮添加请求消息
+			 */
+			clickAddMessageHint: () => LocalizedString
 		}
 		grpcClose: {
 			/**
@@ -23055,6 +23190,22 @@ export type TranslationFunctions = {
 			 * 支持 Streamable HTTP 和 Stdio 两种传输模式，兼容标准 MCP 服务器
 			 */
 			protocolExplanation2: () => LocalizedString
+			/**
+			 * 传输模式
+			 */
+			transportMode: () => LocalizedString
+			/**
+			 * 参数（可选）
+			 */
+			argsOptional: () => LocalizedString
+			/**
+			 * MCP 协议版本号，默认 {version}
+			 */
+			protocolVersionHint: (arg: { version: unknown }) => LocalizedString
+			/**
+			 * 验证连接并发现可用工具、资源和提示词，结果自动缓存供下游节点使用
+			 */
+			testConnectionHelp: () => LocalizedString
 		}
 		mcpCallTool: {
 			/**
@@ -23117,6 +23268,22 @@ export type TranslationFunctions = {
 			 * 参数以 JSON 格式传入，结构取决于工具定义
 			 */
 			callExplanation2: () => LocalizedString
+			/**
+			 * {count} 个工具
+			 */
+			toolCount: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 工具参数
+			 */
+			argsLabel: () => LocalizedString
+			/**
+			 * 是
+			 */
+			booleanYes: () => LocalizedString
+			/**
+			 * 否
+			 */
+			booleanNo: () => LocalizedString
 			/**
 			 * 提示：连接节点尚未发现工具，请先在连接节点中执行工具发现
 			 */
@@ -23209,6 +23376,14 @@ export type TranslationFunctions = {
 			 * 参数以键值对形式传入，具体参数取决于提示词定义
 			 */
 			promptExplanation2: () => LocalizedString
+			/**
+			 * {count} 个提示词
+			 */
+			promptCount: (arg: { count: unknown }) => LocalizedString
+			/**
+			 * 提示词参数
+			 */
+			argsLabel: () => LocalizedString
 			/**
 			 * 提示：连接节点尚未发现提示词，请先在连接节点中执行提示词发现
 			 */
@@ -23975,6 +24150,14 @@ export type TranslationFunctions = {
 			 * ✅ JSON 顶层字段自动注入，无需 $. 前缀
 			 */
 			expression_note: () => LocalizedString
+			/**
+			 * 正则表达式
+			 */
+			regex_option: () => LocalizedString
+			/**
+			 * 表达式
+			 */
+			expression_option: () => LocalizedString
 		}
 		wsSendCollect: {
 			/**
@@ -24029,6 +24212,18 @@ export type TranslationFunctions = {
 			 * 文本转二进制 (UTF-8 字节)
 			 */
 			textToBinary_option: () => LocalizedString
+			/**
+			 * 输入十六进制字节 (如: 010203 或 0x48656c6c6f)
+			 */
+			binaryPlaceholder_hex: () => LocalizedString
+			/**
+			 * 输入 Base64 编码字符串 (如: SGVsbG8=)
+			 */
+			binaryPlaceholder_base64: () => LocalizedString
+			/**
+			 * 输入文本，将按 UTF-8 字节编码后以二进制帧发送
+			 */
+			binaryPlaceholder_text: () => LocalizedString
 			/**
 			 * 从文件读取二进制内容（自动转换为 Hex）
 			 */
@@ -27515,6 +27710,14 @@ export type TranslationFunctions = {
 			 * 连接超时（毫秒）
 			 */
 			connectTimeout: () => LocalizedString
+			/**
+			 * 连接成功
+			 */
+			testSuccess_msg: () => LocalizedString
+			/**
+			 * 连接失败，请检查配置
+			 */
+			testFailed_msg: () => LocalizedString
 		}
 		redisCommand: {
 			/**
