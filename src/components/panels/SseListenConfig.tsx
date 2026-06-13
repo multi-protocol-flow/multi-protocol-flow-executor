@@ -251,8 +251,8 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
       {/* 包含数据 */}
       <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
         <div>
-          <Label className="text-sm font-medium text-foreground">包含事件数据</Label>
-          <p className="text-xs text-muted-foreground">记录事件的 data 字段内容</p>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.sseListen.includeEventData_label()}</Label>
+          <p className="text-xs text-muted-foreground">{getLL().panels.sseListen.includeEventData_desc()}</p>
         </div>
         <Switch
           checked={watch('include_data') ?? true}
@@ -266,8 +266,8 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
       {/* JSON 解码 */}
       <div className="flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2.5">
         <div>
-          <Label className="text-sm font-medium text-foreground">自动解码 JSON</Label>
-          <p className="text-xs text-muted-foreground">自动将 data 字段解析为 JSON 对象</p>
+          <Label className="text-sm font-medium text-foreground">{getLL().panels.sseListen.decodeJson_label()}</Label>
+          <p className="text-xs text-muted-foreground">{getLL().panels.sseListen.decodeJson_desc()}</p>
         </div>
         <Switch
           checked={watch('decode_json') ?? false}
@@ -282,10 +282,10 @@ export function SseListenConfig({ data, onSave }: SseListenConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">SSE 监听说明：</p>
-          <p>监听指定 SSE 连接上的实时事件</p>
-          <p>事件过滤器对应 SSE 协议中的 event 字段</p>
-          <p>设置最大事件数或超时时间可自动结束监听</p>
+          <p className="font-medium text-foreground">{getLL().panels.sseListen.listenInfo_title()}</p>
+          <p>{getLL().panels.sseListen.listenInfo_line1()}</p>
+          <p>{getLL().panels.sseListen.listenInfo_line2()}</p>
+          <p>{getLL().panels.sseListen.listenInfo_line3()}</p>
         </div>
       </div>
     </form>

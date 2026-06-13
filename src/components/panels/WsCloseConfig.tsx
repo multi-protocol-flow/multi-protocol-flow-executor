@@ -317,11 +317,11 @@ export function WsCloseConfig({ data, onSave }: WsCloseConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">关闭码说明：</p>
-          <p><code className="rounded bg-muted px-1">1000</code> 正常关闭</p>
-          <p><code className="rounded bg-muted px-1">1001</code> 端点离开（如页面关闭）</p>
-          <p><code className="rounded bg-muted px-1">1002</code> 协议错误</p>
-          <p><code className="rounded bg-muted px-1">1006</code> 异常关闭（无关闭帧）</p>
+          <p className="font-medium text-foreground">{getLL().panels.wsClose.closeCodeInfo_title()}</p>
+          <p><code className="rounded bg-muted px-1">1000</code> {getLL().panels.wsClose.closeCodeInfo_1000()}</p>
+          <p><code className="rounded bg-muted px-1">1001</code> {getLL().panels.wsClose.closeCodeInfo_1001()}</p>
+          <p><code className="rounded bg-muted px-1">1002</code> {getLL().panels.wsClose.closeCodeInfo_1002()}</p>
+          <p><code className="rounded bg-muted px-1">1006</code> {getLL().panels.wsClose.closeCodeInfo_1006()}</p>
         </div>
       </div>
     </form>

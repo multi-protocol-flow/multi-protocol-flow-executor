@@ -208,9 +208,9 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
       });
 
       if (result.success) {
-        setTestResult({ success: true, message: `连接成功${result.server_info ? ` — ${result.server_info}` : ''}` });
+        setTestResult({ success: true, message: getLL().panels.smtpConnect.testSuccess_msg() + (result.server_info ? ` — ${result.server_info}` : '') });
       } else {
-        setTestResult({ success: false, message: result.error || '连接失败，未知错误' });
+        setTestResult({ success: false, message: result.error || getLL().panels.smtpConnect.testFailed_msg() });
       }
     } catch (error) {
       setTestResult({
@@ -402,7 +402,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
                       <SelectItem value="gmail">Gmail</SelectItem>
                       <SelectItem value="outlook">Outlook</SelectItem>
                       <SelectItem value="yahoo">Yahoo</SelectItem>
-                      <SelectItem value="custom">自定义</SelectItem>
+                      <SelectItem value="custom">{getLL().panels.smtpConnect.custom_option()}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -424,7 +424,7 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          留空时执行器将自动生成唯一连接 ID
+          {getLL().panels.smtpConnect.connectionId_help()}
         </p>
       </div>
 
@@ -462,10 +462,10 @@ export function SmtpConnectConfig({ data, onSave }: SmtpConnectConfigProps) {
       <div className="flex items-start gap-2 rounded-md bg-muted/30 p-3">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">SMTP 连接说明：</p>
-          <p>STARTTLS 模式通常使用端口 587，隐式 TLS 使用端口 465</p>
-          <p>PLAIN 和 LOGIN 是最常见的认证方式</p>
-          <p>XOAUTH2 支持 Gmail、Outlook 等服务商的 OAuth2 令牌</p>
+          <p className="font-medium text-foreground">{getLL().panels.smtpConnect.help_title()}</p>
+          <p>{getLL().panels.smtpConnect.help_line1()}</p>
+          <p>{getLL().panels.smtpConnect.help_line2()}</p>
+          <p>{getLL().panels.smtpConnect.help_line3()}</p>
         </div>
       </div>
     </form>

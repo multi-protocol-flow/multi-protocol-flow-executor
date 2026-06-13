@@ -451,13 +451,13 @@ export function SmtpSendConfig({ data, onSave }: SmtpSendConfigProps) {
             className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" />
-            添加
+            {getLL().panels.add()}
           </Button>
         </div>
         <div className="space-y-2">
           {customHeaders.length === 0 ? (
             <div className="rounded-md border border-dashed border-muted-foreground/30 bg-muted/20 px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">暂无自定义头</p>
+              <p className="text-xs text-muted-foreground">{getLL().panels.smtpSend.noCustomHeaders()}</p>
             </div>
           ) : (
             customHeaders.map((pair, index) => (
