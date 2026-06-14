@@ -1,5 +1,7 @@
 // 错误模块 - 错误详情和错误类型
 
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 /// 错误详情结构（用于执行调试）
@@ -12,7 +14,10 @@ pub struct ErrorDetail {
     pub error_kind: ErrorKind,
 
     /// 错误代码（可选，用于程序化处理）
-    pub error_code: Option<String>,
+    pub error_code: Option<ErrorCode>,
+
+    /// i18n 翻译参数（可选，用于前端错误消息展示）
+    pub i18n_args: Option<HashMap<String, String>>,
 
     /// 错误消息（人类可读）
     pub message: String,
@@ -39,24 +44,80 @@ impl ErrorDetail {
         Self {
             error_kind,
             error_code: None,
+            i18n_args: None,
             message,
             stack_trace: None,
             context: None,
         }
     }
 
-    /// 设置错误代码
+    /// 设置错误代码（向后兼容，接受字符串）
+    ///
+    /// 尝试将字符串解析为 ErrorCode 变体名称（如 "E_EXECUTION_ERROR"），
+    /// 如果无法识别则回退到 `ErrorCode::E_EXECUTION_ERROR`。
+    /// 此方法将在后续版本中移除，请使用 `with_error_code_typed` 代替。
     ///
     /// # 参数
     ///
-    /// * `code` - 错误代码
+    /// * `code` - 错误代码字符串
     ///
     /// # 返回
     ///
     /// 自身的可变引用，支持链式调用
     pub fn with_error_code(mut self, code: String) -> Self {
+        self.error_code = Some(
+            serde_json::from_str::<ErrorCode>(&format!("\"{}\"", code))
+                .unwrap_or(ErrorCode::E_EXECUTION_ERROR),
+        );
+        self
+    }
+
+    /// 设置类型化错误代码
+    ///
+    /// # 参数
+    ///
+    /// * `code` - ErrorCode 枚举值
+    ///
+    /// # 返回
+    ///
+    /// 自身的可变引用，支持链式调用
+    pub fn with_error_code_typed(mut self, code: ErrorCode) -> Self {
         self.error_code = Some(code);
         self
+    }
+
+    /// 添加 i18n 翻译参数
+    ///
+    /// 用于前端错误消息的翻译插值。例如：`with_i18n_arg("url", "https://example.com")`
+    ///
+    /// # 参数
+    ///
+    /// * `key` - 参数键名
+    /// * `value` - 参数值
+    ///
+    /// # 返回
+    ///
+    /// 自身的可变引用，支持链式调用
+    pub fn with_i18n_arg(mut self, key: &str, value: String) -> Self {
+        self.i18n_args
+            .get_or_insert_with(HashMap::new)
+            .insert(key.to_string(), value);
+        self
+    }
+
+    /// 创建通用执行错误
+    ///
+    /// 使用 `ErrorKind::Execution` 和给定的消息快速创建错误详情。
+    ///
+    /// # 参数
+    ///
+    /// * `message` - 错误消息
+    ///
+    /// # 返回
+    ///
+    /// 新的错误详情
+    pub fn execution_error(message: String) -> Self {
+        Self::new(ErrorKind::Execution, message)
     }
 
     /// 设置堆栈跟踪
@@ -865,6 +926,7 @@ mod tests {
         assert_eq!(error.error_kind, ErrorKind::Execution);
         assert_eq!(error.message, "执行失败");
         assert!(error.error_code.is_none());
+        assert!(error.i18n_args.is_none());
         assert!(error.stack_trace.is_none());
         assert!(error.context.is_none());
     }
@@ -872,12 +934,15 @@ mod tests {
     #[test]
     fn test_error_detail_builder_pattern() {
         let error = ErrorDetail::new(ErrorKind::Validation, "验证失败".to_string())
-            .with_error_code("VAL001".to_string())
+            .with_error_code_typed(ErrorCode::E_VAL_PORT_DUPLICATE)
             .with_stack_trace("at line 42".to_string())
             .with_context(serde_json::json!({"field": "email"}));
 
         assert_eq!(error.error_kind, ErrorKind::Validation);
-        assert_eq!(error.error_code, Some("VAL001".to_string()));
+        assert_eq!(
+            error.error_code,
+            Some(ErrorCode::E_VAL_PORT_DUPLICATE)
+        );
         assert_eq!(error.stack_trace, Some("at line 42".to_string()));
         assert_eq!(error.context, Some(serde_json::json!({"field": "email"})));
     }
@@ -885,18 +950,69 @@ mod tests {
     #[test]
     fn test_error_detail_serialization() {
         let error = ErrorDetail::new(ErrorKind::Connection, "连接失败".to_string())
-            .with_error_code("CONN001".to_string());
+            .with_error_code_typed(ErrorCode::E_CONN_REFUSED);
 
         // 序列化
         let json = serde_json::to_string(&error).expect("序列化失败");
         assert!(json.contains(r#""connection""#));
         assert!(json.contains("连接失败"));
+        assert!(json.contains("E_CONN_REFUSED"));
 
         // 反序列化
         let deserialized: ErrorDetail = serde_json::from_str(&json).expect("反序列化失败");
         assert_eq!(deserialized.error_kind, ErrorKind::Connection);
         assert_eq!(deserialized.message, "连接失败");
-        assert_eq!(deserialized.error_code, Some("CONN001".to_string()));
+        assert_eq!(deserialized.error_code, Some(ErrorCode::E_CONN_REFUSED));
+    }
+
+    #[test]
+    fn test_error_detail_with_i18n_arg() {
+        let error = ErrorDetail::new(ErrorKind::Connection, "连接失败".to_string())
+            .with_error_code_typed(ErrorCode::E_CONN_REFUSED)
+            .with_i18n_arg("host", "example.com".to_string())
+            .with_i18n_arg("port", "443".to_string());
+
+        assert_eq!(error.error_kind, ErrorKind::Connection);
+        assert_eq!(error.error_code, Some(ErrorCode::E_CONN_REFUSED));
+        let args = error.i18n_args.expect("i18n_args should be Some");
+        assert_eq!(args.get("host").unwrap(), "example.com");
+        assert_eq!(args.get("port").unwrap(), "443");
+        assert_eq!(args.len(), 2);
+    }
+
+    #[test]
+    fn test_error_detail_i18n_args_is_none_by_default() {
+        let error = ErrorDetail::new(ErrorKind::Execution, "test".to_string());
+        assert!(error.i18n_args.is_none());
+    }
+
+    #[test]
+    fn test_error_detail_execution_error() {
+        let error = ErrorDetail::execution_error("something went wrong".to_string());
+        assert_eq!(error.error_kind, ErrorKind::Execution);
+        assert_eq!(error.message, "something went wrong");
+        assert!(error.error_code.is_none());
+        assert!(error.i18n_args.is_none());
+    }
+
+    #[test]
+    fn test_error_detail_backward_compat_with_error_code() {
+        // with_error_code(String) should accept a string matching an ErrorCode name
+        let error = ErrorDetail::new(ErrorKind::Execution, "test".to_string())
+            .with_error_code("E_HTTP_REQUEST_FAILED".to_string());
+        assert_eq!(error.error_code, Some(ErrorCode::E_HTTP_REQUEST_FAILED));
+
+        // Unknown string falls back to E_EXECUTION_ERROR
+        let error2 = ErrorDetail::new(ErrorKind::Execution, "test".to_string())
+            .with_error_code("UNKNOWN_CODE_123".to_string());
+        assert_eq!(error2.error_code, Some(ErrorCode::E_EXECUTION_ERROR));
+    }
+
+    #[test]
+    fn test_error_detail_with_error_code_typed() {
+        let error = ErrorDetail::new(ErrorKind::Timeout, "超时".to_string())
+            .with_error_code_typed(ErrorCode::E_CONN_TIMEOUT);
+        assert_eq!(error.error_code, Some(ErrorCode::E_CONN_TIMEOUT));
     }
 
     #[test]
