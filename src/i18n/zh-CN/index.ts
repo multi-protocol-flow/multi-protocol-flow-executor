@@ -9,6 +9,7 @@ import validation from './validation';
 import welcome from './welcome';
 import shortcuts from './shortcuts';
 import viewer from './viewer';
+import errors from './errors';
 
 const zh_CN = {
   common,
@@ -20,7 +21,8 @@ const zh_CN = {
   validation,
   welcome,
   shortcuts,
-  viewer
+  viewer,
+  errors,
 } as BaseTranslation;
 
 export default zh_CN;

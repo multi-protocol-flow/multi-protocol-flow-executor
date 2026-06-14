@@ -9,6 +9,7 @@ import validation from './validation';
 import welcome from './welcome';
 import shortcuts from './shortcuts';
 import viewer from './viewer';
+import errors from './errors';
 
 const en_US: Translation = {
   common,
@@ -21,6 +22,7 @@ const en_US: Translation = {
   welcome,
   shortcuts,
   viewer,
+  errors,
 } as Translation;
 
 export default en_US;
