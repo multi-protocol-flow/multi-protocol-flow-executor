@@ -1,10 +1,10 @@
 // IMAP 节点插件 — NodePlugin trait 实现
 //
-// 提供 13 个 IMAP 节点的元数据、端口定义、配置验证和执行能力：
-// - ImapConnectPlugin: IMAP 连接
-// - ImapSelectPlugin: 选择邮箱
+// 提供 13 mailboxes IMAP 节点的元数据、端口定义、配置验证和执行能力：
+// - ImapConnectPlugin: IMAP Connect
+// - ImapSelectPlugin: select mailbox
 // - ImapSearchPlugin: 搜索邮件
-// - ImapFetchPlugin: 获取邮件
+// - ImapFetchPlugin: fetch邮件
 // - ImapStoreFlagsPlugin: 设置邮件标志
 // - ImapCopyPlugin: 复制邮件
 // - ImapMovePlugin: 移动邮件
@@ -24,7 +24,7 @@ use flow_engine_core::plugin::{NodePlugin, PortDef};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-/// 获取 IMAP manager 的辅助宏
+/// fetch IMAP manager 的辅助宏
 macro_rules! get_imap_manager {
     ($context:expr) => {
         $context
@@ -59,19 +59,19 @@ fn resolve_success_port(output: &Option<serde_json::Value>) -> String {
 // ImapConnectPlugin
 // ---------------------------------------------------------------------------
 
-/// IMAP 连接节点插件
+/// IMAP Connect节点插件
 pub struct ImapConnectPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapConnectPlugin {
     fn type_id(&self) -> &str { "imap_connect" }
-    fn display_name(&self) -> &str { "IMAP 连接" }
+    fn display_name(&self) -> &str { "IMAP Connect" }
     fn category(&self) -> &str { "email" }
     fn icon(&self) -> &str { "mail" }
     fn color(&self) -> &str { "#2563eb" }
 
     fn ports(&self) -> Vec<PortDef> {
-        true_false_ports("连接成功", "连接失败")
+        true_false_ports("Success", "Failure")
     }
 
     fn default_config(&self) -> serde_json::Value {
@@ -103,18 +103,18 @@ impl NodePlugin for ImapConnectPlugin {
 // ImapSelectPlugin
 // ---------------------------------------------------------------------------
 
-/// IMAP 选择邮箱节点插件
+/// IMAP Select Mailbox节点插件
 pub struct ImapSelectPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapSelectPlugin {
     fn type_id(&self) -> &str { "imap_select" }
-    fn display_name(&self) -> &str { "IMAP 选择邮箱" }
+    fn display_name(&self) -> &str { "IMAP Select Mailbox" }
     fn category(&self) -> &str { "email" }
     fn icon(&self) -> &str { "mail" }
     fn color(&self) -> &str { "#2563eb" }
 
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("选择成功", "选择失败") }
+    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "mailbox": "INBOX", "readonly": false })
     }
@@ -138,17 +138,17 @@ impl NodePlugin for ImapSelectPlugin {
 // ImapSearchPlugin
 // ---------------------------------------------------------------------------
 
-/// IMAP 搜索邮件节点插件
+/// IMAP Search邮件节点插件
 pub struct ImapSearchPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapSearchPlugin {
     fn type_id(&self) -> &str { "imap_search" }
-    fn display_name(&self) -> &str { "IMAP 搜索" }
+    fn display_name(&self) -> &str { "IMAP Search" }
     fn category(&self) -> &str { "email" }
     fn icon(&self) -> &str { "mail" }
     fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("搜索成功", "搜索失败") }
+    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "criteria": "ALL" })
     }
@@ -172,17 +172,17 @@ impl NodePlugin for ImapSearchPlugin {
 // ImapFetchPlugin
 // ---------------------------------------------------------------------------
 
-/// IMAP 获取邮件节点插件
+/// IMAP Fetch邮件节点插件
 pub struct ImapFetchPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapFetchPlugin {
     fn type_id(&self) -> &str { "imap_fetch" }
-    fn display_name(&self) -> &str { "IMAP 获取" }
+    fn display_name(&self) -> &str { "IMAP Fetch" }
     fn category(&self) -> &str { "email" }
     fn icon(&self) -> &str { "mail" }
     fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("获取成功", "获取失败") }
+    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "uids": "1:*", "fetch_items": "(ENVELOPE BODY.PEEK[] FLAGS)", "max_fetch_count": 50, "max_size_bytes": 5242880 })
     }
@@ -212,11 +212,11 @@ pub struct ImapStoreFlagsPlugin;
 #[async_trait::async_trait]
 impl NodePlugin for ImapStoreFlagsPlugin {
     fn type_id(&self) -> &str { "imap_store_flags" }
-    fn display_name(&self) -> &str { "IMAP 设置标志" }
+    fn display_name(&self) -> &str { "IMAP Set Flags" }
     fn category(&self) -> &str { "email" }
     fn icon(&self) -> &str { "mail" }
     fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("设置成功", "设置失败") }
+    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "uids": "", "operation": "add", "flags": [] })
     }
@@ -240,17 +240,17 @@ impl NodePlugin for ImapStoreFlagsPlugin {
 // ImapCopyPlugin
 // ---------------------------------------------------------------------------
 
-/// IMAP 复制邮件节点插件
+/// IMAP Copy邮件节点插件
 pub struct ImapCopyPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapCopyPlugin {
     fn type_id(&self) -> &str { "imap_copy" }
-    fn display_name(&self) -> &str { "IMAP 复制" }
+    fn display_name(&self) -> &str { "IMAP Copy" }
     fn category(&self) -> &str { "email" }
     fn icon(&self) -> &str { "mail" }
     fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("复制成功", "复制失败") }
+    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "uids": "", "target_mailbox": "" })
     }
@@ -274,17 +274,17 @@ impl NodePlugin for ImapCopyPlugin {
 // ImapMovePlugin
 // ---------------------------------------------------------------------------
 
-/// IMAP 移动邮件节点插件
+/// IMAP Move邮件节点插件
 pub struct ImapMovePlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapMovePlugin {
     fn type_id(&self) -> &str { "imap_move" }
-    fn display_name(&self) -> &str { "IMAP 移动" }
+    fn display_name(&self) -> &str { "IMAP Move" }
     fn category(&self) -> &str { "email" }
     fn icon(&self) -> &str { "mail" }
     fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("移动成功", "移动失败") }
+    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "uids": "", "target_mailbox": "" })
     }
@@ -314,11 +314,11 @@ pub struct ImapExpungePlugin;
 #[async_trait::async_trait]
 impl NodePlugin for ImapExpungePlugin {
     fn type_id(&self) -> &str { "imap_expunge" }
-    fn display_name(&self) -> &str { "IMAP 清除" }
+    fn display_name(&self) -> &str { "IMAP Expunge" }
     fn category(&self) -> &str { "email" }
     fn icon(&self) -> &str { "mail" }
     fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("清除成功", "清除失败") }
+    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "" })
     }
@@ -342,17 +342,17 @@ impl NodePlugin for ImapExpungePlugin {
 // ImapListPlugin
 // ---------------------------------------------------------------------------
 
-/// IMAP 列出邮箱节点插件
+/// IMAP List Mailboxes节点插件
 pub struct ImapListPlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapListPlugin {
     fn type_id(&self) -> &str { "imap_list" }
-    fn display_name(&self) -> &str { "IMAP 列出邮箱" }
+    fn display_name(&self) -> &str { "IMAP List Mailboxes" }
     fn category(&self) -> &str { "email" }
     fn icon(&self) -> &str { "mail" }
     fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("列出成功", "列出失败") }
+    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "reference_name": "", "pattern": "*" })
     }
@@ -376,17 +376,17 @@ impl NodePlugin for ImapListPlugin {
 // ImapFolderCreatePlugin
 // ---------------------------------------------------------------------------
 
-/// IMAP 创建文件夹节点插件
+/// IMAP Create Folder节点插件
 pub struct ImapFolderCreatePlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapFolderCreatePlugin {
     fn type_id(&self) -> &str { "imap_folder_create" }
-    fn display_name(&self) -> &str { "IMAP 创建文件夹" }
+    fn display_name(&self) -> &str { "IMAP Create Folder" }
     fn category(&self) -> &str { "email" }
     fn icon(&self) -> &str { "mail" }
     fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("创建成功", "创建失败") }
+    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "folder_name": "" })
     }
@@ -410,17 +410,17 @@ impl NodePlugin for ImapFolderCreatePlugin {
 // ImapFolderDeletePlugin
 // ---------------------------------------------------------------------------
 
-/// IMAP 删除文件夹节点插件
+/// IMAP Delete Folder节点插件
 pub struct ImapFolderDeletePlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapFolderDeletePlugin {
     fn type_id(&self) -> &str { "imap_folder_delete" }
-    fn display_name(&self) -> &str { "IMAP 删除文件夹" }
+    fn display_name(&self) -> &str { "IMAP Delete Folder" }
     fn category(&self) -> &str { "email" }
     fn icon(&self) -> &str { "mail" }
     fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("删除成功", "删除失败") }
+    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "folder_name": "" })
     }
@@ -454,7 +454,7 @@ impl NodePlugin for ImapIdlePlugin {
     fn category(&self) -> &str { "email" }
     fn icon(&self) -> &str { "mail" }
     fn color(&self) -> &str { "#2563eb" }
-    fn ports(&self) -> Vec<PortDef> { true_false_ports("监听成功", "监听失败") }
+    fn ports(&self) -> Vec<PortDef> { true_false_ports("Success", "Failure") }
     fn default_config(&self) -> serde_json::Value {
         serde_json::json!({ "connection_id": "", "mailbox": null, "timeout_seconds": 300 })
     }
@@ -478,19 +478,19 @@ impl NodePlugin for ImapIdlePlugin {
 // ImapClosePlugin
 // ---------------------------------------------------------------------------
 
-/// IMAP 关闭连接节点插件
+/// IMAP Close连接节点插件
 pub struct ImapClosePlugin;
 
 #[async_trait::async_trait]
 impl NodePlugin for ImapClosePlugin {
     fn type_id(&self) -> &str { "imap_close" }
-    fn display_name(&self) -> &str { "IMAP 关闭" }
+    fn display_name(&self) -> &str { "IMAP Close" }
     fn category(&self) -> &str { "email" }
     fn icon(&self) -> &str { "mail" }
     fn color(&self) -> &str { "#2563eb" }
 
     fn ports(&self) -> Vec<PortDef> {
-        vec![PortDef { id: "out".into(), label: "输出".into(), position: "right".into() }]
+        vec![PortDef { id: "out".into(), label: "Output".into(), position: "right".into() }]
     }
 
     fn default_config(&self) -> serde_json::Value {
@@ -557,7 +557,7 @@ mod tests {
     fn test_imap_connect_plugin_metadata() {
         let p = ImapConnectPlugin;
         assert_eq!(p.type_id(), "imap_connect");
-        assert_eq!(p.display_name(), "IMAP 连接");
+        assert_eq!(p.display_name(), "IMAP Connect");
         assert_eq!(p.category(), "email");
         assert_eq!(p.icon(), "mail");
         assert_eq!(p.color(), "#2563eb");
@@ -573,7 +573,7 @@ mod tests {
     fn test_imap_close_plugin_metadata() {
         let p = ImapClosePlugin;
         assert_eq!(p.type_id(), "imap_close");
-        assert_eq!(p.display_name(), "IMAP 关闭");
+        assert_eq!(p.display_name(), "IMAP Close");
         assert!(p.is_protocol_node());
         assert!(!p.supports_false_port());
         let ports = p.ports();

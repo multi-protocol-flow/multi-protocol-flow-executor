@@ -1,4 +1,4 @@
-//! IMAP 搜索邮件节点执行器
+//! IMAP 搜索messages节点执行器
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -13,13 +13,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-/// IMAP 搜索邮件节点执行器
+/// IMAP 搜索messages节点执行器
 pub struct ImapSearchExecutor {
     imap_manager: Arc<dyn ImapProvider>,
 }
 
 impl ImapSearchExecutor {
-    /// 创建新的 IMAP 搜索邮件执行器
+    /// 创建新的 IMAP 搜索messages执行器
     pub fn new(imap_manager: Arc<dyn ImapProvider>) -> Self {
         Self { imap_manager }
     }
@@ -32,7 +32,7 @@ impl ImapSearchExecutor {
     }
 
     fn current_timestamp() -> u64 {
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("system time went backwards").as_millis() as u64
     }
 }
 
@@ -44,7 +44,7 @@ impl NodeExecutor for ImapSearchExecutor {
         let start_time = Instant::now();
         let config = match &node.data {
             NodeData::ImapSearch(c) => c.clone(),
-            _ => return Err(format!("节点数据类型不是 ImapSearchConfig: {}", node.uuid)),
+            _ => return Err(format!("[E_IMAP_SEARCH] Node data is not ImapSearchConfig: {}", node.uuid)),
         };
         let connection_id = replace_variables(&config.connection_id, context)?;
         let criteria = replace_variables(&config.criteria, context)?;
@@ -52,8 +52,8 @@ impl NodeExecutor for ImapSearchExecutor {
             Some(m) => Some(replace_variables(m, context)?),
             None => None,
         };
-        log::info!("[流程 {}] [开始] 节点ID: {}, 类型: imap_search", context.flow_uuid, node.uuid);
-        context.emit_log(LogEvent { level: LogLevel::Info, message: format!("IMAP Search 节点 {} 开始执行", node.name),
+        log::info!("[Flow {}] [Start] nodeID: {}, type: imap_search", context.flow_uuid, node.uuid);
+        context.emit_log(LogEvent { level: LogLevel::Info, message: format!("IMAP Search 节点 {} started execution", node.name),
             timestamp: Self::current_timestamp(), node_uuid: Some(node.uuid.clone()),
             node_name: Some(node.name.clone()), flow_uuid: context.flow_uuid.clone() }).await;
 
@@ -71,16 +71,16 @@ impl NodeExecutor for ImapSearchExecutor {
                 });
                 let ll = if output.success { LogLevel::Info } else { LogLevel::Error };
                 let msg = if output.success {
-                    format!("IMAP 搜索成功，找到 {} 条 ({}ms)", output.uids.len(), duration.as_millis())
+                    format!("IMAP search succeeded，found {} items ({}ms)", output.uids.len(), duration.as_millis())
                 } else {
-                    format!("IMAP 搜索失败: {} ({}ms)", output.error.as_deref().unwrap_or("未知错误"), duration.as_millis())
+                    format!("IMAP search failed: {} ({}ms)", output.error.as_deref().unwrap_or("unknown error"), duration.as_millis())
                 };
                 context.emit_log(LogEvent { level: ll, message: msg, timestamp: Self::current_timestamp(),
                     node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()), flow_uuid: context.flow_uuid.clone() }).await;
                 Ok((Self::resolve_next_nodes(&node.uuid, port, connections), Some(output_data)))
             }
             Err(e) => {
-                context.emit_log(LogEvent { level: LogLevel::Error, message: format!("IMAP 搜索异常: {}", e),
+                context.emit_log(LogEvent { level: LogLevel::Error, message: format!("IMAP search exception: {}", e),
                     timestamp: Self::current_timestamp(), node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()), flow_uuid: context.flow_uuid.clone() }).await;
                 let err_out = json!({ "success": false, "uids": [], "messages": [],
@@ -88,7 +88,7 @@ impl NodeExecutor for ImapSearchExecutor {
                     "timing": { "search_ms": duration.as_millis() as u64, "total_ms": duration.as_millis() as u64 }, "error": e });
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("IMAP search 失败: {}", e));
+                    return Err(format!("IMAP search failed: {}", e));
                 }
 
                 Ok((Self::resolve_next_nodes(&node.uuid, "false", connections), Some(err_out)))
@@ -106,7 +106,7 @@ mod tests {
     use flow_engine_core::node_config::ImapSearchConfig;
 
     fn create_test_node(uuid: &str) -> Node {
-        Node { uuid: uuid.to_string(), node_type: "imap_search".to_string(), name: "搜索".to_string(),
+        Node { uuid: uuid.to_string(), node_type: "imap_search".to_string(), name: "search".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::ImapSearch(ImapSearchConfig { connection_id: "conn-1".to_string(), mailbox: None, criteria: "ALL".to_string(), max_results: None }),
             ports: None, has_breakpoint: None }

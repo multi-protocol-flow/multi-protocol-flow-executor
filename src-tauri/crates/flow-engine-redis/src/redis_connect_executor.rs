@@ -43,7 +43,7 @@ impl NodeExecutor for RedisConnectExecutor {
 
         let config = match &node.data {
             NodeData::RedisConnect(config) => config.clone(),
-            _ => return Err("节点数据不是 RedisConnectConfig".to_string()),
+            _ => return Err("[E_REDIS_CONNECTION] Node data is not RedisConnectConfig".to_string()),
         };
 
         // 变量替换
@@ -57,7 +57,7 @@ impl NodeExecutor for RedisConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("连接 Redis: {}:{} (db: {})", host, config.port, config.db_index),
+                message: format!("Connecting to Redis: {}:{} (db: {})", host, config.port, config.db_index),
                 node_uuid: Some(node.uuid.clone()),
                 ..Default::default()
             })
@@ -72,7 +72,7 @@ impl NodeExecutor for RedisConnectExecutor {
             Err(e) => {
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Redis 连接失败: {}", e));
+                    return Err(format!("[E_REDIS_CONNECTION] Redis connection failed: {}", e));
                 }
                 let elapsed = start_time.elapsed().as_millis() as u64;
                 let error_output = json!({

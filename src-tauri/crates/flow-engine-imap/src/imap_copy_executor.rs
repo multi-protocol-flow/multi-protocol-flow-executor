@@ -1,4 +1,4 @@
-//! IMAP 复制邮件节点执行器
+//! IMAP copied messages节点执行器
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -13,13 +13,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-/// IMAP 复制邮件节点执行器
+/// IMAP copied messages节点执行器
 pub struct ImapCopyExecutor {
     imap_manager: Arc<dyn ImapProvider>,
 }
 
 impl ImapCopyExecutor {
-    /// 创建新的 IMAP 复制邮件执行器
+    /// 创建新的 IMAP copied messages执行器
     pub fn new(imap_manager: Arc<dyn ImapProvider>) -> Self {
         Self { imap_manager }
     }
@@ -34,7 +34,7 @@ impl ImapCopyExecutor {
     }
 
     fn current_timestamp() -> u64 {
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("system time went backwards").as_millis() as u64
     }
 }
 
@@ -48,7 +48,7 @@ impl NodeExecutor for ImapCopyExecutor {
 
         let config = match &node.data {
             NodeData::ImapCopy(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 ImapCopyConfig: {}", node.uuid)),
+            _ => return Err(format!("[E_IMAP_FETCH] Node data is not ImapCopyConfig: {}", node.uuid)),
         };
 
         let connection_id = replace_variables(&config.connection_id, context)?;
@@ -56,12 +56,12 @@ impl NodeExecutor for ImapCopyExecutor {
         let target_mailbox = replace_variables(&config.target_mailbox, context)?;
 
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: imap_copy",
+            "[Flow {}] [Start] nodeID: {}, nodeName: {}, type: imap_copy",
             context.flow_uuid, node.uuid, node.name
         );
         context.emit_log(LogEvent {
             level: LogLevel::Info,
-            message: format!("IMAP Copy 节点 {} 开始执行", node.name),
+            message: format!("IMAP Copy 节点 {} started execution", node.name),
             timestamp: Self::current_timestamp(),
             node_uuid: Some(node.uuid.clone()),
             node_name: Some(node.name.clone()),
@@ -90,9 +90,9 @@ impl NodeExecutor for ImapCopyExecutor {
 
                 let log_level = if output.success { LogLevel::Info } else { LogLevel::Error };
                 let log_msg = if output.success {
-                    format!("IMAP 复制成功，复制 {} 封 ({}ms)", output.copied_count, duration.as_millis())
+                    format!("IMAP copy succeeded，copied  {} items ({}ms)", output.copied_count, duration.as_millis())
                 } else {
-                    format!("IMAP 复制失败: {} ({}ms)", output.error.as_deref().unwrap_or("未知错误"), duration.as_millis())
+                    format!("IMAP copy failed: {} ({}ms)", output.error.as_deref().unwrap_or("unknown error"), duration.as_millis())
                 };
                 context.emit_log(LogEvent {
                     level: log_level, message: log_msg, timestamp: Self::current_timestamp(),
@@ -105,7 +105,7 @@ impl NodeExecutor for ImapCopyExecutor {
             }
             Err(e) => {
                 context.emit_log(LogEvent {
-                    level: LogLevel::Error, message: format!("IMAP 复制异常: {}", e),
+                    level: LogLevel::Error, message: format!("IMAP copy exception: {}", e),
                     timestamp: Self::current_timestamp(), node_uuid: Some(node.uuid.clone()),
                     node_name: Some(node.name.clone()), flow_uuid: context.flow_uuid.clone(),
                 }).await;
@@ -117,7 +117,7 @@ impl NodeExecutor for ImapCopyExecutor {
                 });
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("IMAP copy 失败: {}", e));
+                    return Err(format!("IMAP copy failed: {}", e));
                 }
 
                 let next = Self::resolve_next_nodes(&node.uuid, "false", connections);
@@ -138,7 +138,7 @@ mod tests {
     fn create_test_node(uuid: &str) -> Node {
         Node {
             uuid: uuid.to_string(), node_type: "imap_copy".to_string(),
-            name: "复制".to_string(), position: NodePosition { x: 0.0, y: 0.0 },
+            name: "copy".to_string(), position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::ImapCopy(ImapCopyConfig {
                 connection_id: "conn-1".to_string(), uids: "1".to_string(),
                 target_mailbox: "Archive".to_string(),
@@ -182,7 +182,7 @@ mod tests {
         let executor = ImapCopyExecutor::new(imap_manager);
         let node = Node {
             uuid: "test-wrong".to_string(), node_type: "http".to_string(),
-            name: "错误类型".to_string(), position: NodePosition { x: 0.0, y: 0.0 },
+            name: "wrong-type".to_string(), position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None, has_breakpoint: None,
         };

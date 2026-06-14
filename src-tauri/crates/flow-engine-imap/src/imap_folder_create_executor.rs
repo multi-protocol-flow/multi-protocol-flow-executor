@@ -30,7 +30,7 @@ impl ImapFolderCreateExecutor {
     }
 
     fn ts() -> u64 {
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("system time went backwards").as_millis() as u64
     }
 }
 
@@ -42,13 +42,13 @@ impl NodeExecutor for ImapFolderCreateExecutor {
         let start_time = Instant::now();
         let config = match &node.data {
             NodeData::ImapFolderCreate(c) => c.clone(),
-            _ => return Err(format!("节点数据类型不是 ImapFolderCreateConfig: {}", node.uuid)),
+            _ => return Err(format!("[E_IMAP_FETCH] Node data is not ImapFolderCreateConfig: {}", node.uuid)),
         };
         let connection_id = replace_variables(&config.connection_id, context)?;
         let folder_name = replace_variables(&config.folder_name, context)?;
 
-        log::info!("[流程 {}] [开始] 节点ID: {}, 类型: imap_folder_create", context.flow_uuid, node.uuid);
-        context.emit_log(LogEvent { level: LogLevel::Info, message: format!("IMAP FolderCreate 节点 {} 开始执行", node.name),
+        log::info!("[Flow {}] [Start] nodeID: {}, type: imap_folder_create", context.flow_uuid, node.uuid);
+        context.emit_log(LogEvent { level: LogLevel::Info, message: format!("IMAP FolderCreate 节点 {} started execution", node.name),
             timestamp: Self::ts(), node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
             flow_uuid: context.flow_uuid.clone() }).await;
 
@@ -65,14 +65,14 @@ impl NodeExecutor for ImapFolderCreateExecutor {
                     "error": output.error,
                 });
                 let ll = if output.success { LogLevel::Info } else { LogLevel::Error };
-                let msg = if output.success { format!("IMAP 创建文件夹 {} 成功 ({}ms)", folder_name, duration.as_millis()) }
-                    else { format!("IMAP 创建文件夹失败: {} ({}ms)", output.error.as_deref().unwrap_or("未知错误"), duration.as_millis()) };
+                let msg = if output.success {                     format!("IMAP create folder {} succeeded ({}ms)", folder_name, duration.as_millis()) }
+                    else { format!("IMAP create folder failed: {} ({}ms)", output.error.as_deref().unwrap_or("unknown error"), duration.as_millis()) };
                 context.emit_log(LogEvent { level: ll, message: msg, timestamp: Self::ts(),
                     node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()), flow_uuid: context.flow_uuid.clone() }).await;
                 Ok((Self::resolve_next_nodes(&node.uuid, port, connections), Some(output_data)))
             }
             Err(e) => {
-                context.emit_log(LogEvent { level: LogLevel::Error, message: format!("IMAP 创建文件夹异常: {}", e),
+                context.emit_log(LogEvent { level: LogLevel::Error, message: format!("IMAP folder create exception: {}", e),
                     timestamp: Self::ts(), node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone() }).await;
                 let err_out = json!({ "success": false, "folder_name": folder_name,
@@ -80,7 +80,7 @@ impl NodeExecutor for ImapFolderCreateExecutor {
                     "timing": { "create_ms": duration.as_millis() as u64, "total_ms": duration.as_millis() as u64 }, "error": e });
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("IMAP folder_create 失败: {}", e));
+                    return Err(format!("IMAP folder_create failed: {}", e));
                 }
 
                 Ok((Self::resolve_next_nodes(&node.uuid, "false", connections), Some(err_out)))
@@ -98,7 +98,7 @@ mod tests {
     use flow_engine_core::node_config::ImapFolderCreateConfig;
 
     fn create_node(uuid: &str) -> Node {
-        Node { uuid: uuid.to_string(), node_type: "imap_folder_create".to_string(), name: "创建文件夹".to_string(),
+        Node { uuid: uuid.to_string(), node_type: "imap_folder_create".to_string(), name: "create-folder".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::ImapFolderCreate(ImapFolderCreateConfig { connection_id: "c1".to_string(), folder_name: "NewFolder".to_string() }),
             ports: None, has_breakpoint: None }

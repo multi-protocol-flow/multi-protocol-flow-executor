@@ -1,4 +1,4 @@
-//! IMAP IDLE 监听节点执行器
+//! IMAP IDLE idle node执行器
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-/// IMAP IDLE 监听节点执行器
+/// IMAP IDLE idle node执行器
 pub struct ImapIdleExecutor {
     imap_manager: Arc<dyn ImapProvider>,
 }
@@ -30,7 +30,7 @@ impl ImapIdleExecutor {
     }
 
     fn ts() -> u64 {
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("system time went backwards").as_millis() as u64
     }
 }
 
@@ -42,7 +42,7 @@ impl NodeExecutor for ImapIdleExecutor {
         let start_time = Instant::now();
         let config = match &node.data {
             NodeData::ImapIdle(c) => c.clone(),
-            _ => return Err(format!("节点数据类型不是 ImapIdleConfig: {}", node.uuid)),
+            _ => return Err(format!("[E_IMAP_FETCH] Node data is not ImapIdleConfig: {}", node.uuid)),
         };
         let connection_id = replace_variables(&config.connection_id, context)?;
         let mailbox = match &config.mailbox {
@@ -50,8 +50,8 @@ impl NodeExecutor for ImapIdleExecutor {
             None => None,
         };
 
-        log::info!("[流程 {}] [开始] 节点ID: {}, 类型: imap_idle", context.flow_uuid, node.uuid);
-        context.emit_log(LogEvent { level: LogLevel::Info, message: format!("IMAP IDLE 节点 {} 开始执行", node.name),
+        log::info!("[Flow {}] [Start] nodeID: {}, type: imap_idle", context.flow_uuid, node.uuid);
+        context.emit_log(LogEvent { level: LogLevel::Info, message: format!("IMAP IDLE 节点 {} started execution", node.name),
             timestamp: Self::ts(), node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
             flow_uuid: context.flow_uuid.clone() }).await;
 
@@ -68,14 +68,14 @@ impl NodeExecutor for ImapIdleExecutor {
                     "error": output.error,
                 });
                 let ll = if output.success { LogLevel::Info } else { LogLevel::Error };
-                let msg = if output.success { format!("IMAP IDLE 完成，检测到 {} 个事件 ({}ms)", output.events.len(), duration.as_millis()) }
-                    else { format!("IMAP IDLE 失败: {} ({}ms)", output.error.as_deref().unwrap_or("未知错误"), duration.as_millis()) };
+                let msg = if output.success { format!("IMAP IDLE completed, detected {} events ({}ms)", output.events.len(), duration.as_millis()) }
+                    else { format!("IMAP IDLE failed: {} ({}ms)", output.error.as_deref().unwrap_or("unknown error"), duration.as_millis()) };
                 context.emit_log(LogEvent { level: ll, message: msg, timestamp: Self::ts(),
                     node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()), flow_uuid: context.flow_uuid.clone() }).await;
                 Ok((Self::resolve_next_nodes(&node.uuid, port, connections), Some(output_data)))
             }
             Err(e) => {
-                context.emit_log(LogEvent { level: LogLevel::Error, message: format!("IMAP IDLE 异常: {}", e),
+                context.emit_log(LogEvent { level: LogLevel::Error, message: format!("IMAP IDLE exception: {}", e),
                     timestamp: Self::ts(), node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone() }).await;
                 let err_out = json!({ "success": false, "events": [], "duration_ms": 0,
@@ -83,7 +83,7 @@ impl NodeExecutor for ImapIdleExecutor {
                     "timing": { "idle_ms": duration.as_millis() as u64, "total_ms": duration.as_millis() as u64 }, "error": e });
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("IMAP idle 失败: {}", e));
+                    return Err(format!("IMAP idle failed: {}", e));
                 }
 
                 Ok((Self::resolve_next_nodes(&node.uuid, "false", connections), Some(err_out)))
@@ -101,7 +101,7 @@ mod tests {
     use flow_engine_core::node_config::ImapIdleConfig;
 
     fn create_node(uuid: &str) -> Node {
-        Node { uuid: uuid.to_string(), node_type: "imap_idle".to_string(), name: "IDLE".to_string(),
+        Node { uuid: uuid.to_string(), node_type: "imap_idle".to_string(), name: "idle".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::ImapIdle(ImapIdleConfig { connection_id: "c1".to_string(), mailbox: None, timeout_seconds: 300 }),
             ports: None, has_breakpoint: None }

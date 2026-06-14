@@ -43,7 +43,7 @@ impl NodeExecutor for MqttDisconnectExecutor {
             NodeData::MqttDisconnect(config) => config.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 MqttDisconnectConfig: {}",
+                    "Node data type is not MqttDisconnectConfig: {}",
                     node.uuid
                 ))
             }
@@ -77,7 +77,7 @@ impl NodeExecutor for MqttDisconnectExecutor {
                 message: format!("MQTT Disconnect 节点 {} 开始执行", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("System time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -149,7 +149,7 @@ impl NodeExecutor for MqttDisconnectExecutor {
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("System time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -173,7 +173,7 @@ impl NodeExecutor for MqttDisconnectExecutor {
                         message: format!("MQTT 连接断开失败: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("System time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -237,7 +237,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("System time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

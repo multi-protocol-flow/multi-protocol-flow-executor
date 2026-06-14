@@ -43,7 +43,7 @@ impl NodeExecutor for RedisCommandExecutor {
 
         let config = match &node.data {
             NodeData::RedisCommand(config) => config.clone(),
-            _ => return Err("节点数据不是 RedisCommandConfig".to_string()),
+            _ => return Err("[E_REDIS_COMMAND] Node data is not RedisCommandConfig".to_string()),
         };
 
         // 变量替换
@@ -58,7 +58,7 @@ impl NodeExecutor for RedisCommandExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("执行 Redis 命令: {} {:?}", command, args),
+                message: format!("Executing Redis command: {} {:?}", command, args),
                 node_uuid: Some(node.uuid.clone()),
                 ..Default::default()
             })
@@ -73,7 +73,7 @@ impl NodeExecutor for RedisCommandExecutor {
             Err(e) => {
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("Redis 命令执行失败: {}", e));
+                    return Err(format!("[E_REDIS_COMMAND] Redis command execution failed: {}", e));
                 }
                 let elapsed = start_time.elapsed().as_millis() as u64;
                 let error_output = json!({
@@ -90,7 +90,7 @@ impl NodeExecutor for RedisCommandExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("Redis 命令执行失败: {}", e),
+                        message: format!("[E_REDIS_COMMAND] Redis command execution failed: {}", e),
                         node_uuid: Some(node.uuid.clone()),
                         ..Default::default()
                     })
@@ -119,7 +119,7 @@ impl NodeExecutor for RedisCommandExecutor {
             context
                 .emit_log(LogEvent {
                     level: LogLevel::Error,
-                    message: format!("Redis 命令失败: {}", err),
+                    message: format!("Redis command failed: {}", err),
                     node_uuid: Some(node.uuid.clone()),
                     ..Default::default()
                 })

@@ -140,7 +140,7 @@ impl NodeExecutor for MqttPublishExecutor {
             NodeData::MqttPublish(config) => config.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 MqttPublishConfig: {}",
+                    "Node data type is not MqttPublishConfig: {}",
                     node.uuid
                 ))
             }
@@ -161,7 +161,7 @@ impl NodeExecutor for MqttPublishExecutor {
             })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
-            let error_msg = format!("主题变量替换失败: {}", e);
+            let error_msg = format!("Topic variable substitution failed: {}", e);
             log::error!(
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid,
@@ -174,7 +174,7 @@ impl NodeExecutor for MqttPublishExecutor {
 
         let resolved_payload = match &config.payload {
             Some(p) => Some(replace_variables(p, context).map_err(|e| {
-                let error_msg = format!("载荷变量替换失败: {}", e);
+                let error_msg = format!("Payload variable substitution failed: {}", e);
                 log::error!(
                     "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                     context.flow_uuid,
@@ -206,7 +206,7 @@ impl NodeExecutor for MqttPublishExecutor {
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("System time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -234,7 +234,7 @@ impl NodeExecutor for MqttPublishExecutor {
                         message: format!("MQTT Payload 编码失败: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("System time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -335,8 +335,8 @@ impl NodeExecutor for MqttPublishExecutor {
                         duration.as_millis()
                     )
                 } else {
-                    let err = output.error.as_deref().unwrap_or("未知错误");
-                    format!("MQTT 发布失败: {} - {}", topic, err)
+                    let err = output.error.as_deref().unwrap_or("Unknown error");
+                    format!("MQTT publish failed: {} - {}", topic, err)
                 };
 
                 context
@@ -345,7 +345,7 @@ impl NodeExecutor for MqttPublishExecutor {
                         message: log_msg,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("System time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -372,10 +372,10 @@ impl NodeExecutor for MqttPublishExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("MQTT 发布失败: {}", e),
+                        message: format!("MQTT publish failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("System time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -526,7 +526,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("System time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

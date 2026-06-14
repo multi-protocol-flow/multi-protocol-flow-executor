@@ -1,4 +1,4 @@
-//! IMAP 永久删除已标记邮件节点执行器
+//! IMAP 永久删除已标记messages节点执行器
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -13,13 +13,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-/// IMAP 永久删除节点执行器
+/// IMAP 永久delete node执行器
 pub struct ImapExpungeExecutor {
     imap_manager: Arc<dyn ImapProvider>,
 }
 
 impl ImapExpungeExecutor {
-    /// 创建新的 IMAP 永久删除已标记邮件执行器
+    /// 创建新的 IMAP 永久删除已标记messages执行器
     pub fn new(imap_manager: Arc<dyn ImapProvider>) -> Self { Self { imap_manager } }
 
     fn resolve_next_nodes(node_uuid: &str, port: &str, connections: &[Connection]) -> Vec<String> {
@@ -30,7 +30,7 @@ impl ImapExpungeExecutor {
     }
 
     fn ts() -> u64 {
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("system time went backwards").as_millis() as u64
     }
 }
 
@@ -42,12 +42,12 @@ impl NodeExecutor for ImapExpungeExecutor {
         let start_time = Instant::now();
         let config = match &node.data {
             NodeData::ImapExpunge(c) => c.clone(),
-            _ => return Err(format!("节点数据类型不是 ImapExpungeConfig: {}", node.uuid)),
+            _ => return Err(format!("[E_IMAP_FETCH] Node data is not ImapExpungeConfig: {}", node.uuid)),
         };
         let connection_id = replace_variables(&config.connection_id, context)?;
 
-        log::info!("[流程 {}] [开始] 节点ID: {}, 类型: imap_expunge", context.flow_uuid, node.uuid);
-        context.emit_log(LogEvent { level: LogLevel::Info, message: format!("IMAP Expunge 节点 {} 开始执行", node.name),
+        log::info!("[Flow {}] [Start] nodeID: {}, type: imap_expunge", context.flow_uuid, node.uuid);
+        context.emit_log(LogEvent { level: LogLevel::Info, message: format!("IMAP Expunge 节点 {} started execution", node.name),
             timestamp: Self::ts(), node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
             flow_uuid: context.flow_uuid.clone() }).await;
 
@@ -65,14 +65,14 @@ impl NodeExecutor for ImapExpungeExecutor {
                 });
                 let ll = if output.success { LogLevel::Info } else { LogLevel::Error };
                 let msg = if output.success {
-                    format!("IMAP 清除成功，删除 {} 条 ({}ms)", output.expunged_seqs.len(), duration.as_millis())
-                } else { format!("IMAP 清除失败: {} ({}ms)", output.error.as_deref().unwrap_or("未知错误"), duration.as_millis()) };
+                    format!("IMAP expunge succeeded, deleted {} items ({}ms)", output.expunged_seqs.len(), duration.as_millis())
+                } else { format!("IMAP expunge failed: {} ({}ms)", output.error.as_deref().unwrap_or("unknown error"), duration.as_millis()) };
                 context.emit_log(LogEvent { level: ll, message: msg, timestamp: Self::ts(),
                     node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()), flow_uuid: context.flow_uuid.clone() }).await;
                 Ok((Self::resolve_next_nodes(&node.uuid, port, connections), Some(output_data)))
             }
             Err(e) => {
-                context.emit_log(LogEvent { level: LogLevel::Error, message: format!("IMAP 清除异常: {}", e),
+                context.emit_log(LogEvent { level: LogLevel::Error, message: format!("IMAP expungeexception: {}", e),
                     timestamp: Self::ts(), node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone() }).await;
                 let err_out = json!({ "success": false, "expunged_seqs": [],
@@ -80,7 +80,7 @@ impl NodeExecutor for ImapExpungeExecutor {
                     "timing": { "expunge_ms": duration.as_millis() as u64, "total_ms": duration.as_millis() as u64 }, "error": e });
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("IMAP expunge 失败: {}", e));
+                    return Err(format!("IMAP expunge failed: {}", e));
                 }
 
                 Ok((Self::resolve_next_nodes(&node.uuid, "false", connections), Some(err_out)))
@@ -98,7 +98,7 @@ mod tests {
     use flow_engine_core::node_config::ImapExpungeConfig;
 
     fn create_node(uuid: &str) -> Node {
-        Node { uuid: uuid.to_string(), node_type: "imap_expunge".to_string(), name: "清除".to_string(),
+        Node { uuid: uuid.to_string(), node_type: "imap_expunge".to_string(), name: "expunge".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::ImapExpunge(ImapExpungeConfig { connection_id: "c1".to_string() }),
             ports: None, has_breakpoint: None }

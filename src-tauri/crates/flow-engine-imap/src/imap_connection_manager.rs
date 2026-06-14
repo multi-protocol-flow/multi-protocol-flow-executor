@@ -21,7 +21,7 @@ use flow_engine_core::traits::*;
 /// 组合 `AsyncRead` + `AsyncWrite` + Debug 的辅助 trait
 ///
 /// async-imap 要求底层流实现 `Read + Write + Unpin + Debug`，
-/// 通过辅助 trait 可以将这些约束打包到一个 dyn trait 中。
+/// 通过辅助 trait 可以将这些约束打包到一 dyn trait 中。
 trait ImapStream: AsyncRead + AsyncWrite + Send + Unpin {}
 impl<T: AsyncRead + AsyncWrite + Send + Unpin> ImapStream for T {}
 
@@ -68,7 +68,7 @@ impl async_imap::Authenticator for &XOAuth2Authenticator {
 // IMAP 连接包装
 // ────────────────────────────────────────────────────────────────────────────
 
-/// 单个 IMAP 连接
+/// 单 IMAP 连接
 pub struct ImapConnection {
     /// 底层 IMAP Session
     #[allow(dead_code)]
@@ -138,7 +138,7 @@ fn root_extend(root_store: &mut rustls::RootCertStore) {
 /// 解析服务器名称
 fn parse_server_name(host: &str) -> Result<rustls::pki_types::ServerName<'static>, String> {
     let dns_name = rustls::pki_types::DnsName::try_from(host.to_string())
-        .map_err(|e| format!("无效服务器名 '{}': {:?}", host, e))?;
+        .map_err(|e| format!("[E_IMAP_CONNECTION] Invalid server name '{}': {:?}", host, e))?;
     Ok(rustls::pki_types::ServerName::from(dns_name))
 }
 
@@ -154,18 +154,18 @@ impl ImapProvider for ImapConnectionManager {
         connection_id: &str,
         config: &ImapConfig,
     ) -> Result<ImapConnectOutput, String> {
-        // 1. 检查连接是否已存在
+        // 1. 检查连接是否already exists
         {
             let conns = self.connections.lock().await;
             if conns.contains_key(connection_id) {
-                return Err(format!("IMAP 连接 '{}' 已存在", connection_id));
+                return Err(format!("IMAP 连接 '{}' already exists", connection_id));
             }
         }
 
         // 2. TCP 连接
         let tcp = tokio::net::TcpStream::connect((config.host.as_str(), config.port))
             .await
-            .map_err(|e| format!("IMAP 连接失败 {}:{}: {}", config.host, config.port, e))?;
+            .map_err(|e| format!("IMAP connect failed {}:{}: {}", config.host, config.port, e))?;
 
         // 3. 根据 TLS 模式创建 Client
         let client = match config.tls_mode {
@@ -175,14 +175,14 @@ impl ImapProvider for ImapConnectionManager {
                 let tls_stream = connector
                     .connect(server_name, tcp)
                     .await
-                    .map_err(|e| format!("TLS 握手失败: {}", e))?;
+                    .map_err(|e| format!("[E_IMAP_CONNECTION] TLS handshake failed: {}", e))?;
                 async_imap::Client::new(box_stream(tls_stream))
             }
             TlsMode::StartTls => {
                 // async-imap 0.11 无内置 STARTTLS 支持，
                 // 需要手动: 创建 plaintext client → 发送 STARTTLS 命令 → TLS 握手
                 // 此处暂未实现，返回错误
-                return Err("IMAP STARTTLS 模式暂未实现".into());
+                return Err("[E_IMAP_CONNECTION] IMAP STARTTLS mode not yet implemented".into());
             }
             TlsMode::None => async_imap::Client::new(box_stream(tcp)),
         };
@@ -191,7 +191,7 @@ impl ImapProvider for ImapConnectionManager {
         let auth = config
             .auth
             .as_ref()
-            .ok_or_else(|| "IMAP 需要认证配置".to_string())?;
+            .ok_or_else(|| "IMAP [E_IMAP_AUTH] authentication configuration required".to_string())?;
 
         let session = match auth {
             EmailAuthConfig::Plain {
@@ -202,7 +202,7 @@ impl ImapProvider for ImapConnectionManager {
                 client
                     .login(username.as_str(), password.as_str())
                     .await
-                    .map_err(|(e, _)| format!("IMAP 登录失败: {}", e))?
+                    .map_err(|(e, _)| format!("IMAP [E_IMAP_AUTH] login failed: {}", e))?
             }
             EmailAuthConfig::Login {
                 username,
@@ -212,7 +212,7 @@ impl ImapProvider for ImapConnectionManager {
                 client
                     .login(username.as_str(), password.as_str())
                     .await
-                    .map_err(|(e, _)| format!("IMAP 登录失败: {}", e))?
+                    .map_err(|(e, _)| format!("IMAP [E_IMAP_AUTH] login failed: {}", e))?
             }
             EmailAuthConfig::OAuth2 {
                 encrypted_tokens,
@@ -220,9 +220,9 @@ impl ImapProvider for ImapConnectionManager {
             } => {
                 // 解密 tokens
                 let tokens_json = flow_engine_crypto::encryption::decrypt(encrypted_tokens)
-                    .map_err(|e| format!("OAuth Token 解密失败: {}", e))?;
+                    .map_err(|e| format!("[E_IMAP_AUTH] OAuth token decryption failed: {}", e))?;
                 let tokens: EmailOAuthTokens = serde_json::from_str(&tokens_json)
-                    .map_err(|e| format!("OAuth Token 解析失败: {}", e))?;
+                    .map_err(|e| format!("[E_IMAP_AUTH] OAuth token parse failed: {}", e))?;
 
                 let user_name = extract_oauth_username(&tokens_json);
 
@@ -231,7 +231,7 @@ impl ImapProvider for ImapConnectionManager {
                 client
                     .authenticate("XOAUTH2", &authenticator)
                     .await
-                    .map_err(|(e, _)| format!("OAuth2 认证失败: {}", e))?
+                    .map_err(|(e, _)| format!("[E_IMAP_AUTH] OAuth2 authentication failed: {}", e))?
             }
         };
 
@@ -253,7 +253,7 @@ impl ImapProvider for ImapConnectionManager {
         })
     }
 
-    /// 选择邮箱
+    /// select mailbox
     async fn select(
         &self,
         connection_id: &str,
@@ -263,19 +263,19 @@ impl ImapProvider for ImapConnectionManager {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .get_mut(connection_id)
-            .ok_or_else(|| format!("IMAP 连接 '{}' 不存在", connection_id))?;
+            .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
 
         let mailbox_name = mailbox.to_string();
         let mailbox_info = if readonly {
             conn.session
                 .examine(mailbox)
                 .await
-                .map_err(|e| format!("IMAP examine 失败: {}", e))?
+                .map_err(|e| format!("IMAP [E_IMAP_FETCH] examine failed: {}", e))?
         } else {
             conn.session
                 .select(mailbox)
                 .await
-                .map_err(|e| format!("IMAP select 失败: {}", e))?
+                .map_err(|e| format!("IMAP [E_IMAP_FETCH] select failed: {}", e))?
         };
 
         conn.selected_mailbox = Some(mailbox_name.clone());
@@ -303,13 +303,13 @@ impl ImapProvider for ImapConnectionManager {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .get_mut(connection_id)
-            .ok_or_else(|| format!("IMAP 连接 '{}' 不存在", connection_id))?;
+            .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
 
         if let Some(mb) = mailbox {
             conn.session
                 .select(mb)
                 .await
-                .map_err(|e| format!("IMAP select 失败: {}", e))?;
+                .map_err(|e| format!("IMAP [E_IMAP_FETCH] select failed: {}", e))?;
             conn.selected_mailbox = Some(mb.to_string());
         }
 
@@ -318,7 +318,7 @@ impl ImapProvider for ImapConnectionManager {
             .session
             .uid_search(criteria)
             .await
-            .map_err(|e| format!("IMAP search 失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_SEARCH] search failed: {}", e))?;
 
         let uids: Vec<u32> = result.into_iter().collect();
 
@@ -330,7 +330,7 @@ impl ImapProvider for ImapConnectionManager {
         })
     }
 
-    /// 获取邮件
+    /// fetch邮件
     async fn fetch(
         &self,
         connection_id: &str,
@@ -342,19 +342,19 @@ impl ImapProvider for ImapConnectionManager {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .get_mut(connection_id)
-            .ok_or_else(|| format!("IMAP 连接 '{}' 不存在", connection_id))?;
+            .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
 
         // uid_fetch 返回 Stream<Item = Result<Fetch, Error>>
         let stream = conn
             .session
             .uid_fetch(uids, fetch_items)
             .await
-            .map_err(|e| format!("IMAP fetch 失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_FETCH] fetch failed: {}", e))?;
 
         let all_fetches: Vec<async_imap::types::Fetch> = stream
             .try_collect()
             .await
-            .map_err(|e| format!("IMAP fetch 流收集失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_FETCH] fetch stream collection failed: {}", e))?;
 
         let mut messages = Vec::new();
         let mut skipped_count = 0usize;
@@ -475,7 +475,7 @@ impl ImapProvider for ImapConnectionManager {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .get_mut(connection_id)
-            .ok_or_else(|| format!("IMAP 连接 '{}' 不存在", connection_id))?;
+            .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
 
         // 构建标志字符串
         let flags_str = flags
@@ -494,7 +494,7 @@ impl ImapProvider for ImapConnectionManager {
             "set" => format!("FLAGS ({})", flags_str),
             "add" => format!("+FLAGS ({})", flags_str),
             "remove" => format!("-FLAGS ({})", flags_str),
-            _ => return Err(format!("IMAP store_flags 不支持的操作: {}", operation)),
+            _ => return Err(format!("IMAP [E_IMAP_STORE] store_flags unsupported operation: {}", operation)),
         };
 
         // uid_store 返回 Stream<Item = Result<Fetch, Error>>
@@ -502,12 +502,12 @@ impl ImapProvider for ImapConnectionManager {
             .session
             .uid_store(uids, &store_command)
             .await
-            .map_err(|e| format!("IMAP store_flags 失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_STORE] store_flags failed: {}", e))?;
 
         let results: Vec<async_imap::types::Fetch> = stream
             .try_collect()
             .await
-            .map_err(|e| format!("IMAP store_flags 流收集失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_STORE] store_flags stream collection failed: {}", e))?;
 
         let affected_uids: Vec<u32> = results
             .iter()
@@ -532,7 +532,7 @@ impl ImapProvider for ImapConnectionManager {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .get_mut(connection_id)
-            .ok_or_else(|| format!("IMAP 连接 '{}' 不存在", connection_id))?;
+            .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
 
         let current_mailbox = conn.selected_mailbox.clone().unwrap_or_else(|| "?".to_string());
 
@@ -540,7 +540,7 @@ impl ImapProvider for ImapConnectionManager {
         conn.session
             .uid_copy(uids, target_mailbox)
             .await
-            .map_err(|e| format!("IMAP copy 失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_FETCH] copy failed: {}", e))?;
 
         Ok(ImapCopyOutput {
             success: true,
@@ -561,7 +561,7 @@ impl ImapProvider for ImapConnectionManager {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .get_mut(connection_id)
-            .ok_or_else(|| format!("IMAP 连接 '{}' 不存在", connection_id))?;
+            .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
 
         let current_mailbox = conn.selected_mailbox.clone().unwrap_or_else(|| "?".to_string());
 
@@ -569,32 +569,32 @@ impl ImapProvider for ImapConnectionManager {
         conn.session
             .uid_copy(uids, target_mailbox)
             .await
-            .map_err(|e| format!("IMAP move 复制失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_FETCH] move copy failed: {}", e))?;
 
         // 2. 源邮箱标记删除 — uid_store 返回 Stream，消耗之
         let del_stream = conn
             .session
             .uid_store(uids, "+FLAGS (\\Deleted)")
             .await
-            .map_err(|e| format!("IMAP move 标记删除失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_STORE] move delete-flag failed: {}", e))?;
 
         // 消耗流以等待命令完成
         let _: Vec<async_imap::types::Fetch> = del_stream
             .try_collect()
             .await
-            .map_err(|e| format!("IMAP move store 流收集失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_STORE] move store stream collection failed: {}", e))?;
 
         // 3. expunge — 返回 Stream<Item = Result<Seq>>，消耗之
         let expunge_stream = conn
             .session
             .expunge()
             .await
-            .map_err(|e| format!("IMAP move expunge 失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_FETCH] move expunge failed: {}", e))?;
 
         let _: Vec<u32> = expunge_stream
             .try_collect()
             .await
-            .map_err(|e| format!("IMAP move expunge 流收集失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_FETCH] move expunge stream collection failed: {}", e))?;
 
         Ok(ImapMoveOutput {
             success: true,
@@ -613,19 +613,19 @@ impl ImapProvider for ImapConnectionManager {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .get_mut(connection_id)
-            .ok_or_else(|| format!("IMAP 连接 '{}' 不存在", connection_id))?;
+            .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
 
         // expunge 返回 Stream<Item = Result<Seq>>，其中 Seq = NonZeroU32
         let stream = conn
             .session
             .expunge()
             .await
-            .map_err(|e| format!("IMAP expunge 失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_FETCH] expunge failed: {}", e))?;
 
         let expunged_seqs: Vec<u32> = stream
             .try_collect()
             .await
-            .map_err(|e| format!("IMAP expunge 流收集失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_FETCH] expunge stream collection failed: {}", e))?;
 
         Ok(ImapExpungeOutput {
             success: true,
@@ -644,7 +644,7 @@ impl ImapProvider for ImapConnectionManager {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .get_mut(connection_id)
-            .ok_or_else(|| format!("IMAP 连接 '{}' 不存在", connection_id))?;
+            .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
 
         let ref_name: Option<&str> = if reference_name.is_empty() {
             None
@@ -657,12 +657,12 @@ impl ImapProvider for ImapConnectionManager {
             .session
             .list(ref_name, Some(pattern))
             .await
-            .map_err(|e| format!("IMAP list 失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_FETCH] list failed: {}", e))?;
 
         let names: Vec<async_imap::types::Name> = stream
             .try_collect()
             .await
-            .map_err(|e| format!("IMAP list 流收集失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_FETCH] list stream collection failed: {}", e))?;
 
         let mailboxes: Vec<ImapMailboxInfo> = names
             .iter()
@@ -693,12 +693,12 @@ impl ImapProvider for ImapConnectionManager {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .get_mut(connection_id)
-            .ok_or_else(|| format!("IMAP 连接 '{}' 不存在", connection_id))?;
+            .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
 
         conn.session
             .create(folder_name)
             .await
-            .map_err(|e| format!("IMAP create_folder 失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_FETCH] create_folder failed: {}", e))?;
 
         Ok(ImapFolderCreateOutput {
             success: true,
@@ -716,12 +716,12 @@ impl ImapProvider for ImapConnectionManager {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .get_mut(connection_id)
-            .ok_or_else(|| format!("IMAP 连接 '{}' 不存在", connection_id))?;
+            .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
 
         conn.session
             .delete(folder_name)
             .await
-            .map_err(|e| format!("IMAP delete_folder 失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_FETCH] delete_folder failed: {}", e))?;
 
         Ok(ImapFolderDeleteOutput {
             success: true,
@@ -744,13 +744,13 @@ impl ImapProvider for ImapConnectionManager {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .get_mut(connection_id)
-            .ok_or_else(|| format!("IMAP 连接 '{}' 不存在", connection_id))?;
+            .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
 
         if let Some(mb) = mailbox {
             conn.session
                 .select(mb)
                 .await
-                .map_err(|e| format!("IMAP select 失败: {}", e))?;
+                .map_err(|e| format!("IMAP [E_IMAP_FETCH] select failed: {}", e))?;
             conn.selected_mailbox = Some(mb.to_string());
         }
 
@@ -760,7 +760,7 @@ impl ImapProvider for ImapConnectionManager {
         conn.session
             .noop()
             .await
-            .map_err(|e| format!("IMAP idle noop 失败: {}", e))?;
+            .map_err(|e| format!("IMAP [E_IMAP_FETCH] idle noop failed: {}", e))?;
 
         // 等待指定时长（模拟 idle 等待）
         let wait_duration = tokio::time::Duration::from_secs(timeout_seconds);
@@ -784,7 +784,7 @@ impl ImapProvider for ImapConnectionManager {
         let mut conns = self.connections.lock().await;
         let conn = conns
             .remove(connection_id)
-            .ok_or_else(|| format!("IMAP 连接 '{}' 不存在", connection_id))?;
+            .ok_or_else(|| format!("IMAP 连接 '{}' does not exist", connection_id))?;
         drop(conn);
         Ok(ImapCloseOutput {
             success: true,
@@ -809,15 +809,15 @@ impl ImapProvider for ImapConnectionManager {
                 let _ = self.close(&temp_id).await;
                 Ok(true)
             }
-            Err(e) => Err(format!("IMAP 连接测试失败: {}", e)),
+            Err(e) => Err(format!("IMAP connection test failed: {}", e)),
         }
     }
 }
 
 /// 从 OAuth tokens JSON 中尝试提取用户名
 ///
-/// 尝试从 token JSON 的 `email` 或 `username` 字段获取用户名，
-/// 如果都不存在则返回空字符串。
+/// 尝试从 token JSON 的 `email` 或 `username` 字段fetch用户名，
+/// 如果都does not exist则返回空字符串。
 fn extract_oauth_username(tokens_json: &str) -> String {
     if let Ok(val) = serde_json::from_str::<serde_json::Value>(tokens_json) {
         if let Some(email) = val.get("email").and_then(|v| v.as_str()) {
@@ -897,7 +897,7 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.close("nonexistent").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("does not exist"));
     }
 
     #[tokio::test]
@@ -905,7 +905,7 @@ mod tests {
         let manager = ImapConnectionManager::new();
         // 手动插入一个假连接来测试重复检测
         // (我们无法真正创建 ImapConnection 因为需要真实的 IMAP Session)
-        // 改为测试 close 对不存在的连接返回错误
+        // 改为测试 close 对does not exist的连接返回错误
         let result = manager.close("dup_id").await;
         assert!(result.is_err());
     }
@@ -915,7 +915,7 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.select("conn1", "INBOX", false).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("does not exist"));
     }
 
     #[tokio::test]
@@ -923,7 +923,7 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.search("conn1", None, "ALL", None).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("does not exist"));
     }
 
     #[tokio::test]
@@ -933,7 +933,7 @@ mod tests {
             .fetch("conn1", "1:*", "RFC822", 100, 1024 * 1024)
             .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("does not exist"));
     }
 
     #[tokio::test]
@@ -943,7 +943,7 @@ mod tests {
             .store_flags("conn1", "1", "+FLAGS", &["\\Seen".to_string()])
             .await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("does not exist"));
     }
 
     #[tokio::test]
@@ -951,7 +951,7 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.copy("conn1", "1", "Archive").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("does not exist"));
     }
 
     #[tokio::test]
@@ -959,7 +959,7 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.r#move("conn1", "1", "Trash").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("does not exist"));
     }
 
     #[tokio::test]
@@ -967,7 +967,7 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.expunge("conn1").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("does not exist"));
     }
 
     #[tokio::test]
@@ -975,7 +975,7 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.list("conn1", "", "*").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("does not exist"));
     }
 
     #[tokio::test]
@@ -983,7 +983,7 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.create_folder("conn1", "NewFolder").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("does not exist"));
     }
 
     #[tokio::test]
@@ -991,7 +991,7 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.delete_folder("conn1", "OldFolder").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("does not exist"));
     }
 
     #[tokio::test]
@@ -999,6 +999,6 @@ mod tests {
         let manager = ImapConnectionManager::new();
         let result = manager.idle("conn1", Some("INBOX"), 30).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("does not exist"));
     }
 }

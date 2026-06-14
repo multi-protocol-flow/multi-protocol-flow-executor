@@ -46,7 +46,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
             NodeData::MqttWaitMessage(cfg) => cfg.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 MqttWaitMessageConfig: {}",
+                    "Node data type is not MqttWaitMessageConfig: {}",
                     node.uuid
                 ))
             }
@@ -54,11 +54,11 @@ impl NodeExecutor for MqttWaitMessageExecutor {
 
         // 2. 变量替换：connection_id 和 topic
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            format!("connection_id 变量替换失败: {}", e)
+            format!("connection_id variable substitution failed: {}", e)
         })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
-            format!("topic 变量替换失败: {}", e)
+            format!("topic variable substitution failed: {}", e)
         })?;
 
         // 3. 日志：开始等待
@@ -185,7 +185,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                 } else {
                     // 成功但无匹配消息（超时）→ 走 false 端口
                     log::warn!(
-                        "[MQTT] 等待消息超时或无匹配: topic={}, 匹配 {} 条消息, 耗时={}ms",
+                        "[MQTT] Wait message timed out or no match: topic={}, 匹配 {} 条消息, 耗时={}ms",
                         wait_config.topic,
                         matched_count,
                         duration.as_millis()
@@ -195,7 +195,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                         .emit_log(LogEvent {
                             level: LogLevel::Warn,
                             message: format!(
-                                "MQTT 等待消息超时或无匹配: topic={}, 耗时={}ms",
+                                "MQTT Wait message timed out or no match: topic={}, 耗时={}ms",
                                 wait_config.topic,
                                 duration.as_millis()
                             ),
@@ -216,7 +216,7 @@ impl NodeExecutor for MqttWaitMessageExecutor {
                         let error_msg = output_data
                             .get("error")
                             .and_then(|v| v.as_str())
-                            .unwrap_or("等待消息超时或无匹配")
+                            .unwrap_or("Wait message timed out or no match")
                             .to_string();
                         return Err(error_msg);
                     }

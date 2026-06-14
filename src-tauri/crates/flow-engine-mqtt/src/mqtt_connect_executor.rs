@@ -41,12 +41,12 @@ impl NodeExecutor for MqttConnectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::MqttConnect(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 MqttConnectConfig: {}", node.uuid)),
+            _ => return Err(format!("Node data type is not MqttConnectConfig: {}", node.uuid)),
         };
 
         // 2. 变量替换（url, client_id, username, password）
         let url = replace_variables(&config.url, context).map_err(|e| {
-            let error_msg = format!("URL 变量替换失败: {}", e);
+            let error_msg = format!("URL variable substitution failed: {}", e);
             log::error!(
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid,
@@ -59,21 +59,21 @@ impl NodeExecutor for MqttConnectExecutor {
 
         let client_id = match &config.client_id {
             Some(id) => Some(replace_variables(id, context).map_err(|e| {
-                format!("client_id 变量替换失败: {}", e)
+                format!("client_id variable substitution failed: {}", e)
             })?),
             None => None,
         };
 
         let username = match &config.username {
             Some(u) => Some(replace_variables(u, context).map_err(|e| {
-                format!("username 变量替换失败: {}", e)
+                format!("username variable substitution failed: {}", e)
             })?),
             None => None,
         };
 
         let password = match &config.password {
             Some(p) => Some(replace_variables(p, context).map_err(|e| {
-                format!("password 变量替换失败: {}", e)
+                format!("password variable substitution failed: {}", e)
             })?),
             None => None,
         };
@@ -93,7 +93,7 @@ impl NodeExecutor for MqttConnectExecutor {
                 message: format!("MQTT 连接节点 {} 开始执行", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("System time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -184,7 +184,7 @@ impl NodeExecutor for MqttConnectExecutor {
                 } else {
                     format!(
                         "MQTT 连接失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        output.error.as_deref().unwrap_or("Unknown error"),
                         duration.as_millis()
                     )
                 };
@@ -195,7 +195,7 @@ impl NodeExecutor for MqttConnectExecutor {
                         message: log_message,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("System time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -250,7 +250,7 @@ impl NodeExecutor for MqttConnectExecutor {
                         message: format!("MQTT 连接异常: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("System time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -451,7 +451,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("System time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

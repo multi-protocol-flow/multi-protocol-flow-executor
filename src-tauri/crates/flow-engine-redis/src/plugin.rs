@@ -16,7 +16,7 @@ use std::sync::Arc;
 // RedisConnectPlugin
 // ---------------------------------------------------------------------------
 
-/// Redis 连接节点插件
+/// Redis Connect节点插件
 pub struct RedisConnectPlugin;
 
 #[async_trait]
@@ -26,7 +26,7 @@ impl NodePlugin for RedisConnectPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "Redis 连接"
+        "Redis Connect"
     }
 
     fn category(&self) -> &str {
@@ -45,12 +45,12 @@ impl NodePlugin for RedisConnectPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "连接成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "连接失败".into(),
+                label: "Failure".into(),
                 position: "bottom".into(),
             },
         ]
@@ -116,7 +116,7 @@ impl NodePlugin for RedisConnectPlugin {
 // RedisCommandPlugin
 // ---------------------------------------------------------------------------
 
-/// Redis 命令节点插件
+/// Redis Command节点插件
 pub struct RedisCommandPlugin;
 
 #[async_trait]
@@ -126,7 +126,7 @@ impl NodePlugin for RedisCommandPlugin {
     }
 
     fn display_name(&self) -> &str {
-        "Redis 命令"
+        "Redis Command"
     }
 
     fn category(&self) -> &str {
@@ -145,12 +145,12 @@ impl NodePlugin for RedisCommandPlugin {
         vec![
             PortDef {
                 id: "true".into(),
-                label: "成功".into(),
+                label: "Success".into(),
                 position: "right".into(),
             },
             PortDef {
                 id: "false".into(),
-                label: "失败".into(),
+                label: "Failure".into(),
                 position: "bottom".into(),
             },
         ]
@@ -213,7 +213,7 @@ impl NodePlugin for RedisCommandPlugin {
 // RedisClosePlugin
 // ---------------------------------------------------------------------------
 
-/// Redis 关闭连接节点插件
+/// Redis Close连接节点插件
 pub struct RedisClosePlugin;
 
 #[async_trait]
@@ -223,7 +223,7 @@ impl NodePlugin for RedisClosePlugin {
     }
 
     fn display_name(&self) -> &str {
-        "Redis 关闭"
+        "Redis Close"
     }
 
     fn category(&self) -> &str {
@@ -241,7 +241,7 @@ impl NodePlugin for RedisClosePlugin {
     fn ports(&self) -> Vec<PortDef> {
         vec![PortDef {
             id: "out".into(),
-            label: "输出".into(),
+            label: "Output".into(),
             position: "right".into(),
         }]
     }
@@ -314,7 +314,7 @@ mod tests {
     fn test_redis_connect_plugin_metadata() {
         let plugin = RedisConnectPlugin;
         assert_eq!(plugin.type_id(), "redis_connect");
-        assert_eq!(plugin.display_name(), "Redis 连接");
+        assert_eq!(plugin.display_name(), "Redis Connect");
         assert_eq!(plugin.category(), "redis");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -325,7 +325,7 @@ mod tests {
     fn test_redis_command_plugin_metadata() {
         let plugin = RedisCommandPlugin;
         assert_eq!(plugin.type_id(), "redis_command");
-        assert_eq!(plugin.display_name(), "Redis 命令");
+        assert_eq!(plugin.display_name(), "Redis Command");
         assert_eq!(plugin.category(), "redis");
         assert!(plugin.is_protocol_node());
         assert!(plugin.supports_false_port());
@@ -336,7 +336,7 @@ mod tests {
     fn test_redis_close_plugin_metadata() {
         let plugin = RedisClosePlugin;
         assert_eq!(plugin.type_id(), "redis_close");
-        assert_eq!(plugin.display_name(), "Redis 关闭");
+        assert_eq!(plugin.display_name(), "Redis Close");
         assert_eq!(plugin.category(), "redis");
         assert!(plugin.is_protocol_node());
         assert!(!plugin.supports_false_port());

@@ -30,7 +30,7 @@ impl ImapFolderDeleteExecutor {
     }
 
     fn ts() -> u64 {
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("system time went backwards").as_millis() as u64
     }
 }
 
@@ -42,13 +42,13 @@ impl NodeExecutor for ImapFolderDeleteExecutor {
         let start_time = Instant::now();
         let config = match &node.data {
             NodeData::ImapFolderDelete(c) => c.clone(),
-            _ => return Err(format!("节点数据类型不是 ImapFolderDeleteConfig: {}", node.uuid)),
+            _ => return Err(format!("[E_IMAP_FETCH] Node data is not ImapFolderDeleteConfig: {}", node.uuid)),
         };
         let connection_id = replace_variables(&config.connection_id, context)?;
         let folder_name = replace_variables(&config.folder_name, context)?;
 
-        log::info!("[流程 {}] [开始] 节点ID: {}, 类型: imap_folder_delete", context.flow_uuid, node.uuid);
-        context.emit_log(LogEvent { level: LogLevel::Info, message: format!("IMAP FolderDelete 节点 {} 开始执行", node.name),
+        log::info!("[Flow {}] [Start] nodeID: {}, type: imap_folder_delete", context.flow_uuid, node.uuid);
+        context.emit_log(LogEvent { level: LogLevel::Info, message: format!("IMAP FolderDelete 节点 {} started execution", node.name),
             timestamp: Self::ts(), node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
             flow_uuid: context.flow_uuid.clone() }).await;
 
@@ -65,14 +65,14 @@ impl NodeExecutor for ImapFolderDeleteExecutor {
                     "error": output.error,
                 });
                 let ll = if output.success { LogLevel::Info } else { LogLevel::Error };
-                let msg = if output.success { format!("IMAP 删除文件夹 {} 成功 ({}ms)", folder_name, duration.as_millis()) }
-                    else { format!("IMAP 删除文件夹失败: {} ({}ms)", output.error.as_deref().unwrap_or("未知错误"), duration.as_millis()) };
+                let msg = if output.success {                     format!("IMAP delete folder {} succeeded ({}ms)", folder_name, duration.as_millis()) }
+                    else { format!("IMAP delete folder failed: {} ({}ms)", output.error.as_deref().unwrap_or("unknown error"), duration.as_millis()) };
                 context.emit_log(LogEvent { level: ll, message: msg, timestamp: Self::ts(),
                     node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()), flow_uuid: context.flow_uuid.clone() }).await;
                 Ok((Self::resolve_next_nodes(&node.uuid, port, connections), Some(output_data)))
             }
             Err(e) => {
-                context.emit_log(LogEvent { level: LogLevel::Error, message: format!("IMAP 删除文件夹异常: {}", e),
+                context.emit_log(LogEvent { level: LogLevel::Error, message: format!("IMAP folder delete exception: {}", e),
                     timestamp: Self::ts(), node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone() }).await;
                 let err_out = json!({ "success": false, "folder_name": folder_name,
@@ -80,7 +80,7 @@ impl NodeExecutor for ImapFolderDeleteExecutor {
                     "timing": { "delete_ms": duration.as_millis() as u64, "total_ms": duration.as_millis() as u64 }, "error": e });
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("IMAP folder_delete 失败: {}", e));
+                    return Err(format!("IMAP folder_delete failed: {}", e));
                 }
 
                 Ok((Self::resolve_next_nodes(&node.uuid, "false", connections), Some(err_out)))
@@ -98,7 +98,7 @@ mod tests {
     use flow_engine_core::node_config::ImapFolderDeleteConfig;
 
     fn create_node(uuid: &str) -> Node {
-        Node { uuid: uuid.to_string(), node_type: "imap_folder_delete".to_string(), name: "删除文件夹".to_string(),
+        Node { uuid: uuid.to_string(), node_type: "imap_folder_delete".to_string(), name: "delete-folder".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::ImapFolderDelete(ImapFolderDeleteConfig { connection_id: "c1".to_string(), folder_name: "OldFolder".to_string() }),
             ports: None, has_breakpoint: None }

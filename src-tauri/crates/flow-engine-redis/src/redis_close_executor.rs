@@ -42,7 +42,7 @@ impl NodeExecutor for RedisCloseExecutor {
 
         let config = match &node.data {
             NodeData::RedisClose(config) => config.clone(),
-            _ => return Err("节点数据不是 RedisCloseConfig".to_string()),
+            _ => return Err("[E_REDIS_CONNECTION] Node data is not RedisCloseConfig".to_string()),
         };
 
         let connection_id = replace_variables(&config.connection_id, context)?;
@@ -50,7 +50,7 @@ impl NodeExecutor for RedisCloseExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("关闭 Redis 连接: {}", connection_id),
+                message: format!("Closing Redis connection: {}", connection_id),
                 node_uuid: Some(node.uuid.clone()),
                 ..Default::default()
             })

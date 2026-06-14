@@ -45,7 +45,7 @@ impl NodeExecutor for KafkaProduceExecutor {
             NodeData::KafkaProduce(config) => config.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 KafkaProduceConfig: {}",
+                    "Node data type is not KafkaProduceConfig: {}",
                     node.uuid
                 ))
             }
@@ -54,7 +54,7 @@ impl NodeExecutor for KafkaProduceExecutor {
         // 2. 变量替换: connection_id, topic, key, value
         let connection_id =
             replace_variables(&config.connection_id, context).map_err(|e| {
-                let error_msg = format!("连接 ID 变量替换失败: {}", e);
+                let error_msg = format!("Connection ID variable substitution failed: {}", e);
                 log::error!(
                     "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                     context.flow_uuid,
@@ -200,7 +200,7 @@ impl NodeExecutor for KafkaProduceExecutor {
                         duration.as_millis()
                     )
                 } else {
-                    let err = output.error.as_deref().unwrap_or("未知错误");
+                    let err = output.error.as_deref().unwrap_or("Unknown error");
                     format!("Kafka 生产失败: {} - {}", topic, err)
                 };
 

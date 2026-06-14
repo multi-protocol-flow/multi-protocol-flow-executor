@@ -47,7 +47,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
             NodeData::KafkaConsumeBatch(config) => config.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 KafkaConsumeBatchConfig: {}",
+                    "Node data type is not KafkaConsumeBatchConfig: {}",
                     node.uuid
                 ))
             }
@@ -62,13 +62,13 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
             );
             return Ok((vec!["false".to_string()], Some(json!({
                 "success": false,
-                "error": "执行已被取消",
+                "error": "Execution cancelled",
             }))));
         }
 
         // 3. 变量替换: connection_id、topic、group_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid,
@@ -80,7 +80,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
         })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
-            let error_msg = format!("Topic 变量替换失败: {}", e);
+            let error_msg = format!("Topic variable substitution failed: {}", e);
             log::error!(
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid,
@@ -93,7 +93,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
 
         let group_id = match &config.group_id {
             Some(gid) => Some(replace_variables(gid, context).map_err(|e| {
-                let error_msg = format!("Group ID 变量替换失败: {}", e);
+                let error_msg = format!("Group ID variable substitution failed: {}", e);
                 log::error!(
                     "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                     context.flow_uuid,
@@ -125,7 +125,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("System time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -184,7 +184,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                 let output_data = serde_json::to_value(&output).unwrap_or_else(|_| {
                     json!({
                         "success": false,
-                        "error": "序列化批量消费输出失败",
+                        "error": "Failed to serialize batch consume output",
                     })
                 });
 
@@ -205,7 +205,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("System time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -246,7 +246,7 @@ impl NodeExecutor for KafkaConsumeBatchExecutor {
                         message: format!("Kafka 批量消费异常: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("System time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -341,7 +341,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("System time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

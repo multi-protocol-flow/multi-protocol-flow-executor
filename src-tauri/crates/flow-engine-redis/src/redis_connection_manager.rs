@@ -51,13 +51,13 @@ impl RedisConnectionManager {
         match command {
             "GET" => {
                 if args.is_empty() {
-                    return Err("GET 命令需要指定 key".to_string());
+                    return Err("[E_REDIS_COMMAND] GET command requires a key".to_string());
                 }
                 let key = &args[0];
                 let result: Option<String> = manager
                     .get(key)
                     .await
-                    .map_err(|e| format!("Redis GET 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis GET command failed: {}", e))?;
 
                 match result {
                     Some(value) => Ok(RedisCommandOutput {
@@ -84,7 +84,7 @@ impl RedisConnectionManager {
             }
             "SET" => {
                 if args.len() < 2 {
-                    return Err("SET 命令需要指定 key 和 value".to_string());
+                    return Err("[E_REDIS_COMMAND] SET command requires key and value".to_string());
                 }
                 let key = &args[0];
                 let value = &args[1];
@@ -132,7 +132,7 @@ impl RedisConnectionManager {
                 let result: String = cmd
                     .query_async(manager)
                     .await
-                    .map_err(|e| format!("Redis SET 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis SET command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -147,12 +147,12 @@ impl RedisConnectionManager {
             }
             "DEL" => {
                 if args.is_empty() {
-                    return Err("DEL 命令需要指定 key".to_string());
+                    return Err("[E_REDIS_COMMAND] DEL command requires a key".to_string());
                 }
                 let count: i64 = manager
                     .del(args)
                     .await
-                    .map_err(|e| format!("Redis DEL 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis DEL command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -167,14 +167,14 @@ impl RedisConnectionManager {
             }
             "HGET" => {
                 if args.len() < 2 {
-                    return Err("HGET 命令需要指定 key 和 field".to_string());
+                    return Err("[E_REDIS_COMMAND] HGET command requires key and field".to_string());
                 }
                 let key = &args[0];
                 let field = &args[1];
                 let result: Option<String> = manager
                     .hget(key, field)
                     .await
-                    .map_err(|e| format!("Redis HGET 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis HGET command failed: {}", e))?;
 
                 match result {
                     Some(value) => Ok(RedisCommandOutput {
@@ -201,7 +201,7 @@ impl RedisConnectionManager {
             }
             "HSET" => {
                 if args.len() < 3 {
-                    return Err("HSET 命令需要指定 key、field 和 value".to_string());
+                    return Err("[E_REDIS_COMMAND] HSET command requires key, field, and value".to_string());
                 }
                 let key = &args[0];
                 let field = &args[1];
@@ -210,7 +210,7 @@ impl RedisConnectionManager {
                 let result: i64 = manager
                     .hset(key, field, value)
                     .await
-                    .map_err(|e| format!("Redis HSET 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis HSET command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -225,7 +225,7 @@ impl RedisConnectionManager {
             }
             "HDEL" => {
                 if args.len() < 2 {
-                    return Err("HDEL 命令需要指定 key 和 field".to_string());
+                    return Err("[E_REDIS_COMMAND] HDEL command requires key and field".to_string());
                 }
                 let key = &args[0];
                 let fields: Vec<&str> = args[1..].iter().map(|s| s.as_str()).collect();
@@ -233,7 +233,7 @@ impl RedisConnectionManager {
                 let count: i64 = manager
                     .hdel(key, &fields[..])
                     .await
-                    .map_err(|e| format!("Redis HDEL 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis HDEL command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -248,13 +248,13 @@ impl RedisConnectionManager {
             }
             "HGETALL" => {
                 if args.is_empty() {
-                    return Err("HGETALL 命令需要指定 key".to_string());
+                    return Err("[E_REDIS_COMMAND] HGETALL command requires a key".to_string());
                 }
                 let key = &args[0];
                 let result: HashMap<String, String> = manager
                     .hgetall(key)
                     .await
-                    .map_err(|e| format!("Redis HGETALL 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis HGETALL command failed: {}", e))?;
 
                 if result.is_empty() {
                     return Ok(RedisCommandOutput {
@@ -287,13 +287,13 @@ impl RedisConnectionManager {
             }
             "TTL" => {
                 if args.is_empty() {
-                    return Err("TTL 命令需要指定 key".to_string());
+                    return Err("[E_REDIS_COMMAND] TTL command requires a key".to_string());
                 }
                 let key = &args[0];
                 let ttl: i64 = manager
                     .ttl(key)
                     .await
-                    .map_err(|e| format!("Redis TTL 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis TTL command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -308,17 +308,17 @@ impl RedisConnectionManager {
             }
             "EXPIRE" => {
                 if args.len() < 2 {
-                    return Err("EXPIRE 命令需要指定 key 和 seconds".to_string());
+                    return Err("[E_REDIS_COMMAND] EXPIRE command requires key and seconds".to_string());
                 }
                 let key = &args[0];
                 let seconds: i64 = args[1]
                     .parse()
-                    .map_err(|_| "EXPIRE 的 seconds 必须是整数".to_string())?;
+                    .map_err(|_| "[E_REDIS_COMMAND] EXPIRE seconds must be an integer".to_string())?;
 
                 let result: i64 = manager
                     .expire(key, seconds)
                     .await
-                    .map_err(|e| format!("Redis EXPIRE 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis EXPIRE command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -333,13 +333,13 @@ impl RedisConnectionManager {
             }
             "KEYS" => {
                 if args.is_empty() {
-                    return Err("KEYS 命令需要指定 pattern".to_string());
+                    return Err("[E_REDIS_COMMAND] KEYS command requires a pattern".to_string());
                 }
                 let pattern = &args[0];
                 let keys: Vec<String> = manager
                     .keys(pattern)
                     .await
-                    .map_err(|e| format!("Redis KEYS 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis KEYS command failed: {}", e))?;
 
                 if keys.is_empty() {
                     return Ok(RedisCommandOutput {
@@ -379,7 +379,7 @@ impl RedisConnectionManager {
             }
             "INCR" => {
                 if args.is_empty() {
-                    return Err("INCR 命令需要指定 key".to_string());
+                    return Err("[E_REDIS_COMMAND] INCR command requires a key".to_string());
                 }
                 let key = &args[0];
                 let mut delta: i64 = 1;
@@ -387,13 +387,13 @@ impl RedisConnectionManager {
                     if let Ok(d) = args[1].parse::<i64>() {
                         delta = d;
                     } else {
-                        return Err("INCR 命令的 delta 必须是整数".to_string());
+                        return Err("[E_REDIS_COMMAND] INCR delta must be an integer".to_string());
                     }
                 }
                 let result: i64 = manager
                     .incr(key, delta)
                     .await
-                    .map_err(|e| format!("Redis INCR 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis INCR command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -408,7 +408,7 @@ impl RedisConnectionManager {
             }
             "DECR" => {
                 if args.is_empty() {
-                    return Err("DECR 命令需要指定 key".to_string());
+                    return Err("[E_REDIS_COMMAND] DECR command requires a key".to_string());
                 }
                 let key = &args[0];
                 let mut delta: i64 = 1;
@@ -416,13 +416,13 @@ impl RedisConnectionManager {
                     if let Ok(d) = args[1].parse::<i64>() {
                         delta = d;
                     } else {
-                        return Err("DECR 命令的 delta 必须是整数".to_string());
+                        return Err("[E_REDIS_COMMAND] DECR delta must be an integer".to_string());
                     }
                 }
                 let result: i64 = manager
                     .decr(key, delta)
                     .await
-                    .map_err(|e| format!("Redis DECR 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis DECR command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -437,7 +437,7 @@ impl RedisConnectionManager {
             }
             "LPUSH" => {
                 if args.len() < 2 {
-                    return Err("LPUSH 命令需要指定 key 和 value".to_string());
+                    return Err("[E_REDIS_COMMAND] LPUSH command requires key and value".to_string());
                 }
                 let key = &args[0];
                 let values: Vec<&str> = args[1..].iter().map(|s| s.as_str()).collect();
@@ -445,7 +445,7 @@ impl RedisConnectionManager {
                 let result: i64 = manager
                     .lpush(key, &values[..])
                     .await
-                    .map_err(|e| format!("Redis LPUSH 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis LPUSH command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -460,7 +460,7 @@ impl RedisConnectionManager {
             }
             "RPUSH" => {
                 if args.len() < 2 {
-                    return Err("RPUSH 命令需要指定 key 和 value".to_string());
+                    return Err("[E_REDIS_COMMAND] RPUSH command requires key and value".to_string());
                 }
                 let key = &args[0];
                 let values: Vec<&str> = args[1..].iter().map(|s| s.as_str()).collect();
@@ -468,7 +468,7 @@ impl RedisConnectionManager {
                 let result: i64 = manager
                     .rpush(key, &values[..])
                     .await
-                    .map_err(|e| format!("Redis RPUSH 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis RPUSH command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -483,20 +483,20 @@ impl RedisConnectionManager {
             }
             "LRANGE" => {
                 if args.len() < 3 {
-                    return Err("LRANGE 命令需要指定 key、start 和 stop".to_string());
+                    return Err("[E_REDIS_COMMAND] LRANGE command requires key, start, and stop".to_string());
                 }
                 let key = &args[0];
                 let start: isize = args[1]
                     .parse()
-                    .map_err(|_| "LRANGE 的 start 必须是整数".to_string())?;
+                    .map_err(|_| "[E_REDIS_COMMAND] LRANGE start must be an integer".to_string())?;
                 let stop: isize = args[2]
                     .parse()
-                    .map_err(|_| "LRANGE 的 stop 必须是整数".to_string())?;
+                    .map_err(|_| "[E_REDIS_COMMAND] LRANGE stop must be an integer".to_string())?;
 
                 let result: Vec<String> = manager
                     .lrange(key, start, stop)
                     .await
-                    .map_err(|e| format!("Redis LRANGE 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis LRANGE command failed: {}", e))?;
 
                 if result.is_empty() {
                     return Ok(RedisCommandOutput {
@@ -532,7 +532,7 @@ impl RedisConnectionManager {
                 let result: String = manager
                     .ping()
                     .await
-                    .map_err(|e| format!("Redis PING 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis PING command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -549,7 +549,7 @@ impl RedisConnectionManager {
                 let result: String = redis::cmd("INFO")
                     .query_async(manager)
                     .await
-                    .map_err(|e| format!("Redis INFO 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis INFO command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -566,7 +566,7 @@ impl RedisConnectionManager {
                 let result: i64 = redis::cmd("DBSIZE")
                     .query_async(manager)
                     .await
-                    .map_err(|e| format!("Redis DBSIZE 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis DBSIZE command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -582,14 +582,14 @@ impl RedisConnectionManager {
             // Set 类型命令
             "SADD" => {
                 if args.len() < 2 {
-                    return Err("SADD 命令需要指定 key 和至少一个 member".to_string());
+                    return Err("[E_REDIS_COMMAND] SADD command requires key and at least one member".to_string());
                 }
                 let key = &args[0];
                 let members: Vec<&str> = args[1..].iter().map(|s| s.as_str()).collect();
                 let count: i64 = manager
                     .sadd(key, &members[..])
                     .await
-                    .map_err(|e| format!("Redis SADD 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis SADD command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -604,13 +604,13 @@ impl RedisConnectionManager {
             }
             "SMEMBERS" => {
                 if args.is_empty() {
-                    return Err("SMEMBERS 命令需要指定 key".to_string());
+                    return Err("[E_REDIS_COMMAND] SMEMBERS command requires a key".to_string());
                 }
                 let key = &args[0];
                 let members: Vec<String> = manager
                     .smembers(key)
                     .await
-                    .map_err(|e| format!("Redis SMEMBERS 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis SMEMBERS command failed: {}", e))?;
 
                 if members.is_empty() {
                     return Ok(RedisCommandOutput {
@@ -643,14 +643,14 @@ impl RedisConnectionManager {
             }
             "SREM" => {
                 if args.len() < 2 {
-                    return Err("SREM 命令需要指定 key 和至少一个 member".to_string());
+                    return Err("[E_REDIS_COMMAND] SREM command requires key and at least one member".to_string());
                 }
                 let key = &args[0];
                 let members: Vec<&str> = args[1..].iter().map(|s| s.as_str()).collect();
                 let count: i64 = manager
                     .srem(key, &members[..])
                     .await
-                    .map_err(|e| format!("Redis SREM 命令失败: {}", e))?;
+                    .map_err(|e| format!("[E_REDIS_COMMAND] Redis SREM command failed: {}", e))?;
 
                 Ok(RedisCommandOutput {
                     success: true,
@@ -664,7 +664,7 @@ impl RedisConnectionManager {
                 })
             }
             _ => Err(format!(
-                "不支持的 Redis 命令: {}。支持的命令: GET, SET, DEL, HGET, HSET, HDEL, HGETALL, TTL, EXPIRE, KEYS, INCR, DECR, LPUSH, RPUSH, LRANGE, PING, INFO, DBSIZE, SADD, SMEMBERS, SREM",
+                "[E_REDIS_COMMAND] Unsupported Redis command: {}. Supported commands: GET, SET, DEL, HGET, HSET, HDEL, HGETALL, TTL, EXPIRE, KEYS, INCR, DECR, LPUSH, RPUSH, LRANGE, PING, INFO, DBSIZE, SADD, SMEMBERS, SREM",
                 command
             )),
         }
@@ -689,7 +689,7 @@ impl RedisProvider for RedisConnectionManager {
         connect_timeout_ms: u64,
     ) -> Result<RedisConnectOutput, String> {
         log::info!(
-            "[Redis] 创建连接: id={}, host={}, port={}, db={}",
+            "[Redis] Creating connection: id={}, host={}, port={}, db={}",
             connection_id,
             host,
             port,
@@ -708,7 +708,7 @@ impl RedisProvider for RedisConnectionManager {
             },
         };
         let client = redis::Client::open(connection_info)
-            .map_err(|e| format!("Redis 客户端创建失败: {}", e))?;
+            .map_err(|e| format!("[E_REDIS_CONNECTION] Redis client creation failed: {}", e))?;
 
         let config = redis::aio::ConnectionManagerConfig::new()
             .set_connection_timeout(Duration::from_millis(connect_timeout_ms))
@@ -718,7 +718,7 @@ impl RedisProvider for RedisConnectionManager {
 
         let mut manager = ConnectionManager::new_with_config(client, config)
             .await
-            .map_err(|e| format!("Redis 连接失败: {}", e))?;
+            .map_err(|e| format!("[E_REDIS_CONNECTION] Redis connection failed: {}", e))?;
 
         // 选库
         if db_index != 0 {
@@ -726,7 +726,7 @@ impl RedisProvider for RedisConnectionManager {
             cmd.arg(db_index);
             cmd.query_async::<()>(&mut manager)
                 .await
-                .map_err(|e| format!("Redis SELECT {} 失败: {}", db_index, e))?;
+                .map_err(|e| format!("[E_REDIS_COMMAND] [E_REDIS_COMMAND] [E_REDIS_COMMAND] Redis SELECT {} failed: {}", db_index, e))?;
         }
 
         let conn = RedisConnection {
@@ -741,7 +741,7 @@ impl RedisProvider for RedisConnectionManager {
             .await
             .insert(connection_id.to_string(), conn);
 
-        log::info!("[Redis] 连接成功: id={}", connection_id);
+        log::info!("[Redis] Connection succeeded: id={}", connection_id);
 
         Ok(RedisConnectOutput {
             success: true,
@@ -760,7 +760,7 @@ impl RedisProvider for RedisConnectionManager {
         let mut connections = self.connections.write().await;
         let conn = connections
             .get_mut(connection_id)
-            .ok_or_else(|| format!("Redis 连接不存在: {}", connection_id))?;
+            .ok_or_else(|| format!("[E_REDIS_CONNECTION] Redis connection does not exist: {}", connection_id))?;
 
         Self::execute_command_inner(&mut conn.manager, command, args).await
     }
@@ -769,9 +769,9 @@ impl RedisProvider for RedisConnectionManager {
         let mut connections = self.connections.write().await;
         connections
             .remove(connection_id)
-            .ok_or_else(|| format!("Redis 连接不存在: {}", connection_id))?;
+            .ok_or_else(|| format!("[E_REDIS_CONNECTION] Redis connection does not exist: {}", connection_id))?;
 
-        log::info!("[Redis] 连接关闭: id={}", connection_id);
+        log::info!("[Redis] Connection closed: id={}", connection_id);
 
         Ok(RedisCloseOutput {
             success: true,

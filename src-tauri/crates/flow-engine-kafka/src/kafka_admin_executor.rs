@@ -42,12 +42,12 @@ impl NodeExecutor for KafkaAdminExecutor {
         // 1. 提取配置
         let mut config = match &node.data {
             NodeData::KafkaAdmin(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 KafkaAdminConfig: {}", node.uuid)),
+            _ => return Err(format!("Node data type is not KafkaAdminConfig: {}", node.uuid)),
         };
 
         // 2. 变量替换 connection_id
         config.connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid,
@@ -107,7 +107,7 @@ impl NodeExecutor for KafkaAdminExecutor {
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("System time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -135,7 +135,7 @@ impl NodeExecutor for KafkaAdminExecutor {
 
                 // 7. 构建输出数据
                 let output_data = serde_json::to_value(&output)
-                    .map_err(|e| format!("序列化管理操作输出失败: {}", e))?;
+                    .map_err(|e| format!("Failed to serialize admin operation output: {}", e))?;
 
                 // 8. 日志：执行完成
                 let log_level = if output.success {
@@ -153,7 +153,7 @@ impl NodeExecutor for KafkaAdminExecutor {
                     format!(
                         "Kafka 管理操作失败: {} - {}",
                         config.operation,
-                        output.error.as_deref().unwrap_or("未知错误")
+                        output.error.as_deref().unwrap_or("Unknown error")
                     )
                 };
 
@@ -163,7 +163,7 @@ impl NodeExecutor for KafkaAdminExecutor {
                         message: log_message,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("System time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -212,7 +212,7 @@ impl NodeExecutor for KafkaAdminExecutor {
                         message: format!("Kafka 管理操作异常: {} - {}", config.operation, e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("System time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -296,7 +296,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("System time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

@@ -45,7 +45,7 @@ impl NodeExecutor for KafkaConnectExecutor {
             NodeData::KafkaConnect(config) => config.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 KafkaConnectConfig: {}",
+                    "Node data type is not KafkaConnectConfig: {}",
                     node.uuid
                 ))
             }
@@ -182,7 +182,7 @@ impl NodeExecutor for KafkaConnectExecutor {
                 } else {
                     format!(
                         "Kafka 连接失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        output.error.as_deref().unwrap_or("Unknown error"),
                         duration.as_millis()
                     )
                 };

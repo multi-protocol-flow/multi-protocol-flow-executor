@@ -1,4 +1,4 @@
-//! IMAP 选择邮箱节点执行器
+//! IMAP select mailbox节点执行器
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -13,13 +13,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-/// IMAP 选择邮箱节点执行器
+/// IMAP select mailbox节点执行器
 pub struct ImapSelectExecutor {
     imap_manager: Arc<dyn ImapProvider>,
 }
 
 impl ImapSelectExecutor {
-    /// 创建新的 IMAP 选择邮箱执行器
+    /// 创建新的 IMAP select mailbox执行器
     pub fn new(imap_manager: Arc<dyn ImapProvider>) -> Self {
         Self { imap_manager }
     }
@@ -44,7 +44,7 @@ impl ImapSelectExecutor {
     fn current_timestamp() -> u64 {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .expect("系统时间错误")
+            .expect("system time went backwards")
             .as_millis() as u64
     }
 }
@@ -63,22 +63,22 @@ impl NodeExecutor for ImapSelectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::ImapSelect(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 ImapSelectConfig: {}", node.uuid)),
+            _ => return Err(format!("[E_IMAP_FETCH] Node data is not ImapSelectConfig: {}", node.uuid)),
         };
 
-        // 2. 变量替换
+        // 2. variable substitution
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("连接 ID variable substitutionfailed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] nodeID: {}, nodeName: {}, error: {}",
                 context.flow_uuid, node.uuid, node.name, error_msg
             );
             error_msg
         })?;
         let mailbox = replace_variables(&config.mailbox, context).map_err(|e| {
-            let error_msg = format!("邮箱名称变量替换失败: {}", e);
+            let error_msg = format!("[E_IMAP_FETCH] mailbox name variable substitutionfailed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] nodeID: {}, nodeName: {}, error: {}",
                 context.flow_uuid, node.uuid, node.name, error_msg
             );
             error_msg
@@ -86,13 +86,13 @@ impl NodeExecutor for ImapSelectExecutor {
 
         // 3. 日志
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: imap_select, 邮箱: {}",
+            "[Flow {}] [Start] nodeID: {}, nodeName: {}, type: imap_select, mailbox: {}",
             context.flow_uuid, node.uuid, node.name, mailbox
         );
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("IMAP Select 节点 {} 开始执行", node.name),
+                message: format!("IMAP Select 节点 {} started execution", node.name),
                 timestamp: Self::current_timestamp(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -135,12 +135,12 @@ impl NodeExecutor for ImapSelectExecutor {
 
                 let log_level = if success { LogLevel::Info } else { LogLevel::Error };
                 let log_message = if success {
-                    format!("IMAP 选择邮箱 {} 成功 ({}ms)", mailbox, duration.as_millis())
+                    format!("IMAP select mailbox {} succeeded ({}ms)", mailbox, duration.as_millis())
                 } else {
                     format!(
-                        "IMAP 选择邮箱 {} 失败: {} ({}ms)",
+                        "IMAP select mailbox {} failed: {} ({}ms)",
                         mailbox,
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        output.error.as_deref().unwrap_or("unknown error"),
                         duration.as_millis()
                     )
                 };
@@ -161,13 +161,13 @@ impl NodeExecutor for ImapSelectExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[IMAP] Select 异常: connection_id={}, mailbox={}, error={}",
+                    "[IMAP] Select exception: connection_id={}, mailbox={}, error={}",
                     connection_id, mailbox, e
                 );
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("IMAP 选择邮箱异常: {}", e),
+                        message: format!("IMAP select mailbox exception: {}", e),
                         timestamp: Self::current_timestamp(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -193,7 +193,7 @@ impl NodeExecutor for ImapSelectExecutor {
                 });
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("IMAP select 失败: {}", e));
+                    return Err(format!("IMAP select failed: {}", e));
                 }
 
                 let next_node_ids =
@@ -338,7 +338,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("system time went backwards")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -369,7 +369,7 @@ mod tests {
     async fn test_select_success() {
         let imap_manager = Arc::new(MockImapProvider::new_success());
         let executor = ImapSelectExecutor::new(imap_manager);
-        let node = create_test_node("test-1", "选择邮箱", "conn-1", "INBOX");
+        let node = create_test_node("test-1", "select-mailbox", "conn-1", "INBOX");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -392,7 +392,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "wrong-type".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

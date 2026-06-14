@@ -1,6 +1,6 @@
-//! IMAP 连接节点执行器
+//! IMAP connect node执行器
 //!
-//! 实现 IMAP 连接建立、变量替换和输出构建功能。
+//! 实现 IMAP 连接建立、variable substitution和输出构建功能。
 
 use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-/// IMAP 连接节点执行器
+/// IMAP connect node执行器
 pub struct ImapConnectExecutor {
     imap_manager: Arc<dyn ImapProvider>,
 }
@@ -43,7 +43,7 @@ impl ImapConnectExecutor {
         }
         let auth: EmailAuthConfig =
             serde_json::from_value(auth_value.clone())
-                .map_err(|e| format!("解析认证配置失败: {}", e))?;
+                .map_err(|e| format!("[E_IMAP_CONNECTION] auth config parsefailed: {}", e))?;
         Ok(Some(auth))
     }
 
@@ -70,7 +70,7 @@ impl ImapConnectExecutor {
     fn current_timestamp() -> u64 {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .expect("系统时间错误")
+            .expect("system time went backwards")
             .as_millis() as u64
     }
 }
@@ -89,14 +89,14 @@ impl NodeExecutor for ImapConnectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::ImapConnect(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 ImapConnectConfig: {}", node.uuid)),
+            _ => return Err(format!("[E_IMAP_CONNECTION] Node data is not ImapConnectConfig: {}", node.uuid)),
         };
 
-        // 2. 变量替换（host）
+        // 2. variable substitution（host）
         let host = replace_variables(&config.host, context).map_err(|e| {
-            let error_msg = format!("host 变量替换失败: {}", e);
+            let error_msg = format!("host variable substitutionfailed: {}", e);
             log::error!(
-                "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
+                "[Flow {}] [Error] nodeID: {}, nodeName: {}, error: {}",
                 context.flow_uuid, node.uuid, node.name, error_msg
             );
             error_msg
@@ -105,7 +105,7 @@ impl NodeExecutor for ImapConnectExecutor {
         // 3. 解析 TLS 模式
         let tls_mode = Self::parse_tls_mode(&config.tls_mode);
 
-        // 4. 解析认证配置
+        // 4. [E_IMAP_CONNECTION] auth config parse
         let auth = match &config.auth {
             Some(auth_value) => Self::parse_auth(auth_value)?,
             None => None,
@@ -121,14 +121,14 @@ impl NodeExecutor for ImapConnectExecutor {
 
         // 6. 日志：开始连接
         log::info!(
-            "[流程 {}] [开始] 节点ID: {}, 节点名称: {}, 类型: imap_connect, host: {}:{}",
+            "[Flow {}] [Start] nodeID: {}, nodeName: {}, type: imap_connect, host: {}:{}",
             context.flow_uuid, node.uuid, node.name, imap_config.host, imap_config.port
         );
 
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("IMAP 连接节点 {} 开始执行", node.name),
+                message: format!("IMAP connect node {} started execution", node.name),
                 timestamp: Self::current_timestamp(),
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -148,15 +148,15 @@ impl NodeExecutor for ImapConnectExecutor {
 
                 if output.success {
                     log::info!(
-                        "[IMAP] 连接成功: uuid={}, host={}:{}, connection_id={}",
+                        "[IMAP] connect succeeded: uuid={}, host={}:{}, connection_id={}",
                         node.uuid, imap_config.host, imap_config.port,
                         output.connection_id.as_deref().unwrap_or("unknown")
                     );
                 } else {
                     log::warn!(
-                        "[IMAP] 连接失败: uuid={}, host={}:{}, error={}",
+                        "[IMAP] connect failed: uuid={}, host={}:{}, error={}",
                         node.uuid, imap_config.host, imap_config.port,
-                        output.error.as_deref().unwrap_or("未知错误")
+                        output.error.as_deref().unwrap_or("unknown error")
                     );
                 }
 
@@ -185,11 +185,11 @@ impl NodeExecutor for ImapConnectExecutor {
                     LogLevel::Error
                 };
                 let log_message = if output.success {
-                    format!("IMAP 连接成功 ({}ms)", duration.as_millis())
+                    format!("IMAP connect succeeded ({}ms)", duration.as_millis())
                 } else {
                     format!(
-                        "IMAP 连接失败: {} ({}ms)",
-                        output.error.as_deref().unwrap_or("未知错误"),
+                        "IMAP connect failed: {} ({}ms)",
+                        output.error.as_deref().unwrap_or("unknown error"),
                         duration.as_millis()
                     )
                 };
@@ -213,14 +213,14 @@ impl NodeExecutor for ImapConnectExecutor {
             }
             Err(e) => {
                 log::error!(
-                    "[IMAP] 连接异常: uuid={}, host={}:{}, error={}",
+                    "[IMAP] connection exception: uuid={}, host={}:{}, error={}",
                     node.uuid, imap_config.host, imap_config.port, e
                 );
 
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("IMAP 连接异常: {}", e),
+                        message: format!("IMAP connect exception: {}", e),
                         timestamp: Self::current_timestamp(),
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -248,7 +248,7 @@ impl NodeExecutor for ImapConnectExecutor {
 
                 // 检查 on_error 策略：AbortFlow 时返回错误而不是路由到 false 端口
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
-                    return Err(format!("IMAP connect 失败: {}", e));
+                    return Err(format!("IMAP connect failed: {}", e));
                 }
 
                 let next_node_ids =
@@ -420,7 +420,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("system time went backwards")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,
@@ -452,7 +452,7 @@ mod tests {
     async fn test_connect_success_routes_to_true() {
         let imap_manager = Arc::new(MockImapProvider::new_success());
         let executor = ImapConnectExecutor::new(imap_manager);
-        let node = create_test_node("test-1", "测试连接", "imap.gmail.com", 993);
+        let node = create_test_node("test-1", "test-connect", "imap.gmail.com", 993);
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -475,7 +475,7 @@ mod tests {
     async fn test_connect_failure_routes_to_false() {
         let imap_manager = Arc::new(MockImapProvider::new_failure("Connection refused"));
         let executor = ImapConnectExecutor::new(imap_manager);
-        let node = create_test_node("test-2", "失败测试", "unreachable.host", 993);
+        let node = create_test_node("test-2", "failure-test", "unreachable.host", 993);
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -499,7 +499,7 @@ mod tests {
         let node = Node {
             uuid: "test-wrong".to_string(),
             node_type: "http".to_string(),
-            name: "错误类型".to_string(),
+            name: "wrong-type".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::Entry(flow_engine_core::node_config::EntryConfig::default()),
             ports: None,

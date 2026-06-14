@@ -21,51 +21,51 @@ use thiserror::Error;
 // 错误类型
 // ---------------------------------------------------------------------------
 
-/// Kafka 操作错误类型
+/// Kafka error type
 #[derive(Debug, Error)]
 pub enum KafkaError {
-    /// 连接失败
-    #[error("连接失败: {0}")]
+    /// Connection failed
+    #[error("Connection failed: {0}")]
     ConnectionFailed(String),
 
-    /// 生产失败
-    #[error("生产失败: {0}")]
+    /// Produce failed
+    #[error("Produce failed: {0}")]
     ProduceFailed(String),
 
-    /// 消费失败
-    #[error("消费失败: {0}")]
+    /// Consume failed
+    #[error("Consume failed: {0}")]
     ConsumeFailed(String),
 
-    /// 管理操作失败
-    #[error("管理操作失败: {0}")]
+    /// Admin operation failed
+    #[error("Admin operation failed: {0}")]
     AdminFailed(String),
 
-    /// 超时
-    #[error("超时: {0}")]
+    /// Timeout
+    #[error("Timeout: {0}")]
     Timeout(String),
 
-    /// 认证失败
-    #[error("认证失败: {0}")]
+    /// Authentication failed
+    #[error("Authentication failed: {0}")]
     AuthFailed(String),
 
-    /// 主题不存在
-    #[error("主题不存在: {0}")]
+    /// Topic not found
+    #[error("Topic not found: {0}")]
     TopicNotFound(String),
 
-    /// 配置错误
-    #[error("配置错误: {0}")]
+    /// Configuration error
+    #[error("Configuration error: {0}")]
     ConfigError(String),
 
-    /// 序列化失败
-    #[error("序列化失败: {0}")]
+    /// Serialization failed
+    #[error("Serialization failed: {0}")]
     SerializationFailed(String),
 
-    /// 反序列化失败
-    #[error("反序列化失败: {0}")]
+    /// Deserialization failed
+    #[error("Deserialization failed: {0}")]
     DeserializationFailed(String),
 
-    /// 其他错误
-    #[error("其他: {0}")]
+    /// Other error
+    #[error("Other error: {0}")]
     Other(String),
 }
 

@@ -1,4 +1,4 @@
-//! IMAP 关闭连接节点执行器
+//! IMAP 关闭connect node执行器
 //!
 //! 断开 IMAP 连接，始终走 "out" 端口（失败不阻塞流程）。
 
@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-/// IMAP 关闭连接节点执行器
+/// IMAP 关闭connect node执行器
 pub struct ImapCloseExecutor {
     imap_manager: Arc<dyn ImapProvider>,
 }
@@ -24,7 +24,7 @@ impl ImapCloseExecutor {
     pub fn new(imap_manager: Arc<dyn ImapProvider>) -> Self { Self { imap_manager } }
 
     fn ts() -> u64 {
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("系统时间错误").as_millis() as u64
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("system time went backwards").as_millis() as u64
     }
 }
 
@@ -36,12 +36,12 @@ impl NodeExecutor for ImapCloseExecutor {
         let start_time = Instant::now();
         let config = match &node.data {
             NodeData::ImapClose(c) => c.clone(),
-            _ => return Err(format!("节点数据类型不是 ImapCloseConfig: {}", node.uuid)),
+            _ => return Err(format!("[E_IMAP_CONNECTION] Node data is not ImapCloseConfig: {}", node.uuid)),
         };
         let connection_id = replace_variables(&config.connection_id, context)?;
 
-        log::info!("[流程 {}] [开始] 节点ID: {}, 类型: imap_close", context.flow_uuid, node.uuid);
-        context.emit_log(LogEvent { level: LogLevel::Info, message: format!("IMAP Close 节点 {} 开始执行", node.name),
+        log::info!("[Flow {}] [Start] nodeID: {}, type: imap_close", context.flow_uuid, node.uuid);
+        context.emit_log(LogEvent { level: LogLevel::Info,                 message: format!("IMAP Close node {} started execution", node.name),
             timestamp: Self::ts(), node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
             flow_uuid: context.flow_uuid.clone() }).await;
 
@@ -59,21 +59,21 @@ impl NodeExecutor for ImapCloseExecutor {
 
         match result {
             Ok(output) => {
-                log::info!("[IMAP] 连接关闭成功: connection_id={}", connection_id);
+                log::info!("[IMAP] connection closed successfully: connection_id={}", connection_id);
                 let output_data = json!({
                     "success": output.success, "connection_id": connection_id,
                     "request": { "connection_id": connection_id },
                     "timing": { "close_ms": duration.as_millis() as u64, "total_ms": duration.as_millis() as u64 },
                 });
                 context.emit_log(LogEvent { level: LogLevel::Info,
-                    message: format!("IMAP 连接关闭成功 ({}ms)", duration.as_millis()),
+                    message: format!("IMAP connection closesucceeded ({}ms)", duration.as_millis()),
                     timestamp: Self::ts(), node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone() }).await;
                 Ok((next_node_ids, Some(output_data)))
             }
             Err(e) => {
-                log::error!("[IMAP] 连接关闭失败: connection_id={}, error={}", connection_id, e);
-                context.emit_log(LogEvent { level: LogLevel::Error, message: format!("IMAP 连接关闭失败: {}", e),
+                log::error!("[IMAP] connection closefailed: connection_id={}, error={}", connection_id, e);
+                context.emit_log(LogEvent { level: LogLevel::Error, message: format!("IMAP connection closefailed: {}", e),
                     timestamp: Self::ts(), node_uuid: Some(node.uuid.clone()), node_name: Some(node.name.clone()),
                     flow_uuid: context.flow_uuid.clone() }).await;
                 let error_output = json!({
@@ -97,7 +97,7 @@ mod tests {
     use flow_engine_core::node_config::ImapCloseConfig;
 
     fn create_test_node(uuid: &str, connection_id: &str) -> Node {
-        Node { uuid: uuid.to_string(), node_type: "imap_close".to_string(), name: "关闭".to_string(),
+        Node { uuid: uuid.to_string(), node_type: "imap_close".to_string(), name: "close".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::ImapClose(ImapCloseConfig { connection_id: connection_id.to_string() }),
             ports: None, has_breakpoint: None }

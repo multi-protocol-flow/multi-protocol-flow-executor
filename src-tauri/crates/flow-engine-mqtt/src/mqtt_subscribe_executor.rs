@@ -75,7 +75,7 @@ impl NodeExecutor for MqttSubscribeExecutor {
             NodeData::MqttSubscribe(cfg) => cfg.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 MqttSubscribeConfig: {}",
+                    "Node data type is not MqttSubscribeConfig: {}",
                     node.uuid
                 ))
             }
@@ -83,11 +83,11 @@ impl NodeExecutor for MqttSubscribeExecutor {
 
         // 2. 变量替换：connection_id 和 topic
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            format!("connection_id 变量替换失败: {}", e)
+            format!("connection_id variable substitution failed: {}", e)
         })?;
 
         let topic = replace_variables(&config.topic, context).map_err(|e| {
-            format!("topic 变量替换失败: {}", e)
+            format!("topic variable substitution failed: {}", e)
         })?;
 
         // 3. 构建共享订阅 topic
@@ -240,7 +240,7 @@ impl NodeExecutor for MqttSubscribeExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("MQTT 订阅失败: {}", e),
+                        message: format!("MQTT subscribe failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
                             .map(|d| d.as_millis() as u64)

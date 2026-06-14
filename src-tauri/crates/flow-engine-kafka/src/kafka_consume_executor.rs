@@ -54,7 +54,7 @@ impl NodeExecutor for KafkaConsumeExecutor {
             NodeData::KafkaConsume(config) => config.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 KafkaConsumeConfig: {}",
+                    "Node data type is not KafkaConsumeConfig: {}",
                     node.uuid
                 ))
             }
@@ -196,7 +196,7 @@ impl NodeExecutor for KafkaConsumeExecutor {
                         duration.as_millis()
                     )
                 } else {
-                    let err = output.error.as_deref().unwrap_or("未知错误");
+                    let err = output.error.as_deref().unwrap_or("Unknown error");
                     format!("Kafka 消费失败: {} - {}", topic, err)
                 };
 
@@ -453,7 +453,7 @@ mod tests {
                     .consume_output
                     .error
                     .clone()
-                    .unwrap_or_else(|| "未知错误".to_string()))
+                    .unwrap_or_else(|| "Unknown error".to_string()))
             }
         }
 

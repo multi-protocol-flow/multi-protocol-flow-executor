@@ -48,7 +48,7 @@ impl NodeExecutor for MqttRequestExecutor {
             NodeData::MqttRequest(config) => config.clone(),
             _ => {
                 return Err(format!(
-                    "节点数据类型不是 MqttRequestConfig: {}",
+                    "Node data type is not MqttRequestConfig: {}",
                     node.uuid
                 ))
             }
@@ -96,7 +96,7 @@ impl NodeExecutor for MqttRequestExecutor {
 
         let resolved_payload = match &config.payload {
             Some(p) => Some(replace_variables(p, context).map_err(|e| {
-                let error_msg = format!("载荷变量替换失败: {}", e);
+                let error_msg = format!("Payload variable substitution failed: {}", e);
                 log::error!(
                     "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                     context.flow_uuid,
@@ -145,7 +145,7 @@ impl NodeExecutor for MqttRequestExecutor {
                 ),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("System time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -230,9 +230,9 @@ impl NodeExecutor for MqttRequestExecutor {
                         duration.as_millis()
                     )
                 } else {
-                    let err = output.error.as_deref().unwrap_or("未知错误");
+                    let err = output.error.as_deref().unwrap_or("Unknown error");
                     format!(
-                        "MQTT 请求/响应失败: {} → {} - {} ({}ms)",
+                        "MQTT request/response failed: {} → {} - {} ({}ms)",
                         request_topic, response_topic, err, duration.as_millis()
                     )
                 };
@@ -243,7 +243,7 @@ impl NodeExecutor for MqttRequestExecutor {
                         message: log_msg,
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("System time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -270,10 +270,10 @@ impl NodeExecutor for MqttRequestExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("MQTT 请求/响应失败: {}", e),
+                        message: format!("MQTT request/response failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("System time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -714,7 +714,7 @@ mod tests {
             node_reports: vec![],
             flow_trigger_time: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .expect("系统时间错误")
+                .expect("System time error")
                 .as_millis() as u64,
             log_sender: None,
             flow_file_path: None,

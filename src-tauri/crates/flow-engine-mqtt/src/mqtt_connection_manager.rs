@@ -405,7 +405,7 @@ impl MqttProvider for MqttConnectionManager {
             let conns = self.connections.read().await;
             let conn = conns
                 .get(uuid)
-                .ok_or_else(|| format!("MQTT 连接 '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("MQTT connection '{}' not found", uuid))?;
             conn.client.clone()
         }; // 读锁释放
 
@@ -424,7 +424,7 @@ impl MqttProvider for MqttConnectionManager {
         client
             .publish(topic, qos, retain, payload)
             .await
-            .map_err(|e| format!("MQTT 发布失败: {}", e))?;
+            .map_err(|e| format!("MQTT publish failed: {}", e))?;
 
         info!("MQTT 发布成功: topic={}, qos={}", topic, config.qos.unwrap_or(0));
 
@@ -448,7 +448,7 @@ impl MqttProvider for MqttConnectionManager {
             let conns = self.connections.read().await;
             let conn = conns
                 .get(uuid)
-                .ok_or_else(|| format!("MQTT 连接 '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("MQTT connection '{}' not found", uuid))?;
             (conn.client.clone(), Arc::clone(&conn.message_rx))
         };
 
@@ -459,7 +459,7 @@ impl MqttProvider for MqttConnectionManager {
         client
             .subscribe(topic, qos)
             .await
-            .map_err(|e| format!("MQTT 订阅失败: {}", e))?;
+            .map_err(|e| format!("MQTT subscribe failed: {}", e))?;
 
         info!("MQTT 订阅成功: topic={}, qos={}", topic, config.qos.unwrap_or(0));
 
@@ -503,14 +503,14 @@ impl MqttProvider for MqttConnectionManager {
             let conns = self.connections.read().await;
             let conn = conns
                 .get(uuid)
-                .ok_or_else(|| format!("MQTT 连接 '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("MQTT connection '{}' not found", uuid))?;
             conn.client.clone()
         };
 
         client
             .unsubscribe(topic)
             .await
-            .map_err(|e| format!("MQTT 取消订阅失败: {}", e))?;
+            .map_err(|e| format!("MQTT unsubscribe failed: {}", e))?;
 
         info!("MQTT 取消订阅成功: topic={}", topic);
         Ok(())
@@ -528,7 +528,7 @@ impl MqttProvider for MqttConnectionManager {
             let conns = self.connections.read().await;
             let conn = conns
                 .get(uuid)
-                .ok_or_else(|| format!("MQTT 连接 '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("MQTT connection '{}' not found", uuid))?;
             Arc::clone(&conn.message_rx)
         };
 
@@ -560,7 +560,7 @@ impl MqttProvider for MqttConnectionManager {
                 first_message_ms,
             }),
             error: if is_empty {
-                Some(format!("等待消息超时（{}ms）", timeout_ms))
+                Some(format!("Wait message timed out（{}ms）", timeout_ms))
             } else {
                 None
             },
@@ -579,7 +579,7 @@ impl MqttProvider for MqttConnectionManager {
             let conns = self.connections.read().await;
             let conn = conns
                 .get(uuid)
-                .ok_or_else(|| format!("MQTT 连接 '{}' 不存在", uuid))?;
+                .ok_or_else(|| format!("MQTT connection '{}' not found", uuid))?;
             (conn.client.clone(), Arc::clone(&conn.message_rx))
         };
 
@@ -594,7 +594,7 @@ impl MqttProvider for MqttConnectionManager {
         client
             .subscribe(response_topic, QoS::AtLeastOnce)
             .await
-            .map_err(|e| format!("MQTT 请求订阅响应主题失败: {}", e))?;
+            .map_err(|e| format!("MQTT request subscribe response topic failed: {}", e))?;
 
         // 发布请求
         let payload = config
@@ -607,7 +607,7 @@ impl MqttProvider for MqttConnectionManager {
         client
             .publish(request_topic, qos, false, payload)
             .await
-            .map_err(|e| format!("MQTT 请求发布失败: {}", e))?;
+            .map_err(|e| format!("MQTT request publish failed: {}", e))?;
 
         // 等待响应消息
         let messages = Self::collect_messages(&message_rx_arc, 1, timeout_ms).await;
@@ -631,7 +631,7 @@ impl MqttProvider for MqttConnectionManager {
                 first_message_ms,
             }),
             error: if is_empty {
-                Some(format!("请求-响应超时（{}ms）", timeout_ms))
+                Some(format!("Request-response timed out（{}ms）", timeout_ms))
             } else {
                 None
             },
@@ -664,8 +664,8 @@ impl MqttProvider for MqttConnectionManager {
                 Ok(())
             }
             None => {
-                warn!("MQTT 断开连接失败: 连接 '{}' 不存在", uuid);
-                Err(format!("MQTT 连接 '{}' 不存在", uuid))
+                warn!("MQTT 断开连接失败: 连接 '{}' not found", uuid);
+                Err(format!("MQTT connection '{}' not found", uuid))
             }
         }
     }
@@ -790,14 +790,14 @@ mod tests {
         let config = MqttDisconnectConfig::default();
         let result = manager.disconnect("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("not found"));
     }
 
     #[tokio::test]
     async fn test_shared_mode_disconnect_is_noop() {
         let manager = MqttConnectionManager::new_shared();
         let config = MqttDisconnectConfig::default();
-        // 共享模式下 disconnect 不存在的连接也返回 Ok
+        // 共享模式下 disconnect not found的连接也返回 Ok
         let result = manager.disconnect("non-existent", &config).await;
         assert!(result.is_ok());
     }
@@ -821,7 +821,7 @@ mod tests {
         let config = MqttPublishConfig::default();
         let result = manager.publish("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("not found"));
     }
 
     #[tokio::test]
@@ -830,7 +830,7 @@ mod tests {
         let config = MqttSubscribeConfig::default();
         let result = manager.subscribe("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("not found"));
     }
 
     #[tokio::test]
@@ -838,7 +838,7 @@ mod tests {
         let manager = MqttConnectionManager::new();
         let result = manager.unsubscribe("non-existent", "conn-1", "test/topic").await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("not found"));
     }
 
     #[tokio::test]
@@ -847,7 +847,7 @@ mod tests {
         let config = MqttWaitMessageConfig::default();
         let result = manager.wait_message("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("not found"));
     }
 
     #[tokio::test]
@@ -856,7 +856,7 @@ mod tests {
         let config = MqttRequestConfig::default();
         let result = manager.request("non-existent", &config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不存在"));
+        assert!(result.unwrap_err().contains("not found"));
     }
 
     // ---- 状态显示测试 ----
