@@ -42,29 +42,29 @@ fn create_test_report(uuid: &str, flow_name: &str) -> flow_engine::report::FlowE
 
 #[test]
 fn test_save_report_success() {
-    let temp_dir = TempDir::new().expect("创建临时目录失败");
+    let temp_dir = TempDir::new().expect("failed to create temp dir");
     let reports_dir = temp_dir.path();
 
     let report = create_test_report("test-uuid-1", "测试流程");
 
     let result = flow_engine::storage::save_report(&report, reports_dir);
-    assert!(result.is_ok(), "保存报告失败: {:?}", result.err());
+    assert!(result.is_ok(), "save report failed: {:?}", result.err());
 
     // 验证文件存在
     let file_path = reports_dir.join("test-uuid-1.json");
-    assert!(file_path.exists(), "报告文件未创建");
+    assert!(file_path.exists(), "report file not created");
 }
 
 #[test]
 fn test_load_report_success() {
-    let temp_dir = TempDir::new().expect("创建临时目录失败");
+    let temp_dir = TempDir::new().expect("failed to create temp dir");
     let reports_dir = temp_dir.path();
 
     let report = create_test_report("test-uuid-2", "测试流程");
-    flow_engine::storage::save_report(&report, reports_dir).expect("保存报告失败");
+    flow_engine::storage::save_report(&report, reports_dir).expect("failed to save report");
 
     let loaded = flow_engine::storage::load_report("test-uuid-2", reports_dir);
-    assert!(loaded.is_ok(), "加载报告失败: {:?}", loaded.err());
+    assert!(loaded.is_ok(), "load report failed: {:?}", loaded.err());
 
     let loaded_report = loaded.unwrap();
     assert_eq!(loaded_report.uuid, "test-uuid-2");
@@ -73,34 +73,34 @@ fn test_load_report_success() {
 
 #[test]
 fn test_load_report_not_found() {
-    let temp_dir = TempDir::new().expect("创建临时目录失败");
+    let temp_dir = TempDir::new().expect("failed to create temp dir");
     let reports_dir = temp_dir.path();
 
     let result = flow_engine::storage::load_report("non-existent-uuid", reports_dir);
-    assert!(result.is_err(), "加载不存在的报告应该返回错误");
-    assert!(result.unwrap_err().contains("不存在"));
+    assert!(result.is_err(), "loading non-existent report should return error");
+    assert!(result.unwrap_err().contains("not found"));
 }
 
 #[test]
 fn test_list_reports_sorted() {
-    let temp_dir = TempDir::new().expect("创建临时目录失败");
+    let temp_dir = TempDir::new().expect("failed to create temp dir");
     let reports_dir = temp_dir.path();
 
     // 创建多个报告，不同时间戳
     let mut report1 = create_test_report("uuid-1", "流程1");
     report1.start_time = 1000;
-    flow_engine::storage::save_report(&report1, reports_dir).expect("保存失败");
+    flow_engine::storage::save_report(&report1, reports_dir).expect("save failed");
 
     let mut report2 = create_test_report("uuid-2", "流程2");
     report2.start_time = 3000;
-    flow_engine::storage::save_report(&report2, reports_dir).expect("保存失败");
+    flow_engine::storage::save_report(&report2, reports_dir).expect("save failed");
 
     let mut report3 = create_test_report("uuid-3", "流程3");
     report3.start_time = 2000;
-    flow_engine::storage::save_report(&report3, reports_dir).expect("保存失败");
+    flow_engine::storage::save_report(&report3, reports_dir).expect("save failed");
 
     let result = flow_engine::storage::list_reports(reports_dir);
-    assert!(result.is_ok(), "列出报告失败: {:?}", result.err());
+    assert!(result.is_ok(), "list reports failed: {:?}", result.err());
 
     let reports = result.unwrap();
     assert_eq!(reports.len(), 3);
@@ -113,36 +113,36 @@ fn test_list_reports_sorted() {
 
 #[test]
 fn test_delete_report_success() {
-    let temp_dir = TempDir::new().expect("创建临时目录失败");
+    let temp_dir = TempDir::new().expect("failed to create temp dir");
     let reports_dir = temp_dir.path();
 
     let report = create_test_report("test-uuid-delete", "测试流程");
-    flow_engine::storage::save_report(&report, reports_dir).expect("保存失败");
+    flow_engine::storage::save_report(&report, reports_dir).expect("save failed");
 
     let result = flow_engine::storage::delete_report("test-uuid-delete", reports_dir);
-    assert!(result.is_ok(), "删除报告失败: {:?}", result.err());
+    assert!(result.is_ok(), "delete report failed: {:?}", result.err());
 
     // 验证文件不存在
     let file_path = reports_dir.join("test-uuid-delete.json");
-    assert!(!file_path.exists(), "报告文件应该被删除");
+    assert!(!file_path.exists(), "report file should have been deleted");
 }
 
 #[test]
 fn test_delete_report_not_found() {
-    let temp_dir = TempDir::new().expect("创建临时目录失败");
+    let temp_dir = TempDir::new().expect("failed to create temp dir");
     let reports_dir = temp_dir.path();
 
     let result = flow_engine::storage::delete_report("non-existent-uuid", reports_dir);
-    assert!(result.is_err(), "删除不存在的报告应该返回错误");
-    assert!(result.unwrap_err().contains("不存在"));
+    assert!(result.is_err(), "deleting non-existent report should return error");
+    assert!(result.unwrap_err().contains("not found"));
 }
 
 #[test]
 fn test_list_reports_empty_directory() {
-    let temp_dir = TempDir::new().expect("创建临时目录失败");
+    let temp_dir = TempDir::new().expect("failed to create temp dir");
     let reports_dir = temp_dir.path();
 
     let result = flow_engine::storage::list_reports(reports_dir);
-    assert!(result.is_ok(), "列出空目录应该成功");
+    assert!(result.is_ok(), "listing empty directory should succeed");
     assert_eq!(result.unwrap().len(), 0);
 }

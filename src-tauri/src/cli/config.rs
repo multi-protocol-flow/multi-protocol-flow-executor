@@ -164,9 +164,9 @@ mod tests {
 
         // 在无配置文件的情况下应成功加载默认值
         let config = AppConfig::load();
-        assert!(config.is_ok(), "无配置文件时应使用默认值，不应报错");
+        assert!(config.is_ok(), "should use defaults when no config file, no error expected");
 
-        let config = config.expect("已确认 is_ok，不应失败");
+        let config = config.expect("confirmed is_ok, should not fail");
         assert!(config.flows_dir.to_string_lossy().contains("flows"));
         assert!(config.reports_dir.to_string_lossy().contains("reports"));
     }
@@ -185,7 +185,7 @@ mod tests {
         std::env::set_var("MPE_FLOWS_DIR", temp.to_string_lossy().as_ref());
         std::env::set_var("MPE_REPORTS_DIR", temp.to_string_lossy().as_ref());
 
-        let config = AppConfig::load().expect("应成功加载");
+        let config = AppConfig::load().expect("should load successfully");
 
         assert_eq!(config.flows_dir, temp);
         assert_eq!(config.reports_dir, temp);
@@ -208,7 +208,7 @@ mod tests {
 
         let result = AppConfig::load();
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("不是绝对路径"));
+        assert!(result.unwrap_err().contains("absolute path"));
 
         std::env::remove_var("MPE_FLOWS_DIR");
     }
@@ -217,29 +217,29 @@ mod tests {
     fn test_config_file_with_storage_section() {
         let _lock = ENV_TEST_MUTEX.lock().unwrap();
 
-        let temp_dir = tempfile::tempdir().expect("创建临时目录失败");
+        let temp_dir = tempfile::tempdir().expect("failed to create temp dir");
         let config_path = temp_dir.path().join("config.toml");
 
         let flows = temp_dir.path().join("my_flows");
         let reports = temp_dir.path().join("my_reports");
 
         // 创建目录以使用绝对路径
-        std::fs::create_dir_all(&flows).expect("创建目录失败");
-        std::fs::create_dir_all(&reports).expect("创建目录失败");
+        std::fs::create_dir_all(&flows).expect("failed to create dir");
+        std::fs::create_dir_all(&reports).expect("failed to create dir");
 
         let toml_content = format!(
             "[storage]\nflows_dir = \"{}\"\nreports_dir = \"{}\"\n",
             flows.to_string_lossy().replace('\\', "\\\\"),
             reports.to_string_lossy().replace('\\', "\\\\")
         );
-        std::fs::write(&config_path, toml_content).expect("写入配置文件失败");
+        std::fs::write(&config_path, toml_content).expect("failed to write config file");
 
         // 清除环境变量，使用配置文件
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
         std::env::set_var("MPE_CONFIG", config_path.to_string_lossy().as_ref());
 
-        let config = AppConfig::load().expect("应成功加载配置文件");
+        let config = AppConfig::load().expect("should load config file successfully");
         assert_eq!(config.flows_dir, flows);
         assert_eq!(config.reports_dir, reports);
 

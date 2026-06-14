@@ -374,7 +374,7 @@ async fn test_all_nodes_have_resolved_config() {
     for node_report in &flow_report.node_reports {
         assert!(
             node_report.resolved_config.is_some(),
-            "节点 {} 缺少 resolved_config",
+            "node {} missing resolved_config",
             node_report.node_name
         );
     }

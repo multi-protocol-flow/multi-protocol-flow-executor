@@ -64,7 +64,7 @@ async fn test_input_data_timing_basic() {
     assert!(result.success, "流程执行失败: {:?}", result.error);
 
     // 验证有流程报告
-    let flow_report = result.flow_report.expect("应该有流程报告");
+    let flow_report = result.flow_report.expect("should have flow report");
     assert_eq!(flow_report.node_reports.len(), 1, "应该有 1 个节点报告");
 
     // 验证 Entry 节点的 input_data
@@ -132,7 +132,7 @@ async fn test_input_data_timing_with_initial_variables() {
     assert!(result.success, "流程执行失败: {:?}", result.error);
 
     // 验证有流程报告
-    let flow_report = result.flow_report.expect("应该有流程报告");
+    let flow_report = result.flow_report.expect("should have flow report");
     assert_eq!(flow_report.node_reports.len(), 1, "应该有 1 个节点报告");
 
     // 验证 Entry 节点的 input_data 是 None（Entry 节点无输入）
@@ -242,7 +242,7 @@ async fn test_input_data_timing_http_node() {
     assert!(result.success, "流程执行失败: {:?}", result.error);
 
     // 验证有流程报告
-    let flow_report = result.flow_report.expect("应该有流程报告");
+    let flow_report = result.flow_report.expect("should have flow report");
     assert_eq!(flow_report.node_reports.len(), 2, "应该有 2 个节点报告");
 
     // 验证 HTTP 节点的 input_data 是请求配置
@@ -250,7 +250,7 @@ async fn test_input_data_timing_http_node() {
         .node_reports
         .iter()
         .find(|r| r.node_uuid == "http-3")
-        .expect("应该有 HTTP 节点报告");
+        .expect("should have HTTP node report");
 
     let input_data = http_report.input_data.as_ref().expect("input_data 应该存在");
     let input_obj = input_data.as_object().expect("input_data 应该是对象");

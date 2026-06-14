@@ -73,24 +73,24 @@ impl GrpcCancelSessionManager {
 
     /// 设置当前活跃的 gRPC manager
     pub fn set_manager(&self, manager: Arc<dyn GrpcProvider>) {
-        let mut guard = self.grpc_manager.lock().expect("锁不应失败");
+        let mut guard = self.grpc_manager.lock().expect("lock should not fail");
         *guard = Some(manager);
     }
 
     /// 设置当前活跃的具体类型 GrpcConnectionManager（用于 Channelz）
     pub fn set_channelz_manager(&self, manager: Arc<flow_engine::grpc_connection_manager::GrpcConnectionManager>) {
-        let mut guard = self.channelz_manager.lock().expect("锁不应失败");
+        let mut guard = self.channelz_manager.lock().expect("lock should not fail");
         *guard = Some(manager);
     }
 
     /// 清除当前活跃的 gRPC manager（执行结束时清理）
     pub fn clear(&self) {
         {
-            let mut guard = self.grpc_manager.lock().expect("锁不应失败");
+            let mut guard = self.grpc_manager.lock().expect("lock should not fail");
             *guard = None;
         }
         {
-            let mut guard = self.channelz_manager.lock().expect("锁不应失败");
+            let mut guard = self.channelz_manager.lock().expect("lock should not fail");
             *guard = None;
         }
     }
@@ -1152,13 +1152,13 @@ message GetUserResponse {
 
         let output = grpc_generate_request_skeleton(input).await;
 
-        assert!(output.success, "应成功生成骨架");
-        assert!(output.skeleton.is_some(), "应返回骨架内容");
-        assert!(output.error.is_none(), "不应有错误");
+        assert!(output.success, "should successfully generate skeleton");
+        assert!(output.skeleton.is_some(), "should return skeleton content");
+        assert!(output.error.is_none(), "should have no error");
 
-        let skeleton = output.skeleton.expect("骨架应存在");
-        assert!(skeleton.contains("user_id"), "骨架应包含 user_id 字段");
-        assert!(skeleton.contains("page"), "骨架应包含 page 字段");
+        let skeleton = output.skeleton.expect("skeleton should exist");
+        assert!(skeleton.contains("user_id"), "skeleton should contain user_id field");
+        assert!(skeleton.contains("page"), "skeleton should contain page field");
     }
 
     /// 测试无效服务名
@@ -1172,9 +1172,9 @@ message GetUserResponse {
 
         let output = grpc_generate_request_skeleton(input).await;
 
-        assert!(!output.success, "应失败");
-        assert!(output.error.is_some(), "应返回错误信息");
-        assert!(output.skeleton.is_none(), "不应返回骨架");
+        assert!(!output.success, "should fail");
+        assert!(output.error.is_some(), "should return error info");
+        assert!(output.skeleton.is_none(), "should not return skeleton");
     }
 
     /// 测试无效方法名
@@ -1188,8 +1188,8 @@ message GetUserResponse {
 
         let output = grpc_generate_request_skeleton(input).await;
 
-        assert!(!output.success, "应失败");
-        assert!(output.error.is_some(), "应返回错误信息");
+        assert!(!output.success, "should fail");
+        assert!(output.error.is_some(), "should return error info");
     }
 
     /// 测试无效 proto 文件
@@ -1203,8 +1203,8 @@ message GetUserResponse {
 
         let output = grpc_generate_request_skeleton(input).await;
 
-        assert!(!output.success, "应失败");
-        assert!(output.error.is_some(), "应返回错误信息");
+        assert!(!output.success, "should fail");
+        assert!(output.error.is_some(), "should return error info");
     }
 }
 
@@ -3839,13 +3839,13 @@ mod tests {
         let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行成功
-        assert!(result.success, "流程应该执行成功");
-        assert!(result.error.is_none(), "成功时不应该有错误信息");
-        assert!(result.data.is_some(), "成功时应该有返回数据");
+        assert!(result.success, "flow should execute successfully");
+        assert!(result.error.is_none(), "should have no error on success");
+        assert!(result.data.is_some(), "should have data on success");
         assert_eq!(
             result.data.unwrap()["flow_id"],
             flow_id,
-            "返回数据应该包含流程 ID"
+            "return data should contain flow ID"
         );
     }
 
@@ -3876,8 +3876,8 @@ mod tests {
         let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 真实执行器认为没有连接是正常终止，不是错误
-        assert!(result.success, "流程应该执行成功（Entry 节点无连接是正常终止）");
-        assert!(result.error.is_none(), "成功时不应该有错误信息");
+        assert!(result.success, "flow should succeed (Entry with no connections is normal termination)");
+        assert!(result.error.is_none(), "should have no error on success");
     }
 
     #[tokio::test]
@@ -3906,11 +3906,11 @@ mod tests {
         let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证执行失败
-        assert!(!result.success, "流程应该执行失败（无开始节点）");
-        assert!(result.error.is_some(), "失败时应该有错误信息");
+        assert!(!result.success, "flow should fail (no start node)");
+        assert!(result.error.is_some(), "should have error on failure");
         assert!(
-            result.error.unwrap().contains("缺少开始节点"),
-            "错误信息应该包含 '缺少开始节点'"
+            result.error.unwrap().contains("missing start node"),
+            "error should contain 'missing start node'"
         );
     }
 
@@ -3945,17 +3945,17 @@ mod tests {
         let output = update_node(input, flow);
 
         // 验证更新失败（持久化未实现）
-        assert!(!output.success, "update_node 应该返回失败");
-        assert!(output.error.is_some(), "应该有错误信息");
+        assert!(!output.success, "update_node should return failure");
+        assert!(output.error.is_some(), "should have error info");
         let error = output.error.unwrap();
         assert!(
-            error.contains("暂未实现持久化"),
-            "错误信息应该包含 '暂未实现持久化'，实际: {}",
+            error.contains("persistence not yet implemented"),
+            "error should contain 'persistence not yet implemented', got: {}",
             error
         );
         assert!(
-            error.contains("update_node 需要先加载流程、更新节点、再保存流程"),
-            "错误信息应该说明原因"
+            error.contains("update_node needs to load flow, update node, then save flow"),
+            "error should explain the reason"
         );
     }
 
@@ -3989,12 +3989,12 @@ mod tests {
         let output = delete_node(input, flow);
 
         // 验证删除失败
-        assert!(!output.success, "删除开始节点应该失败");
-        assert!(output.error.is_some(), "应该有错误信息");
+        assert!(!output.success, "deleting start node should fail");
+        assert!(output.error.is_some(), "should have error info");
         let error = output.error.unwrap();
         assert!(
-            error.contains("不能删除开始节点"),
-            "错误信息应该包含 '不能删除开始节点'，实际: {}",
+            error.contains("cannot delete start node"),
+            "error should contain 'cannot delete start node', got: {}",
             error
         );
     }
@@ -4038,17 +4038,17 @@ mod tests {
         let output = delete_node(input, flow);
 
         // 验证删除失败（持久化未实现）
-        assert!(!output.success, "delete_node 应该返回失败");
-        assert!(output.error.is_some(), "应该有错误信息");
+        assert!(!output.success, "delete_node should return failure");
+        assert!(output.error.is_some(), "should have error info");
         let error = output.error.unwrap();
         assert!(
-            error.contains("暂未实现持久化"),
-            "错误信息应该包含 '暂未实现持久化'，实际: {}",
+            error.contains("persistence not yet implemented"),
+            "error should contain 'persistence not yet implemented', got: {}",
             error
         );
         assert!(
-            error.contains("delete_node 需要先加载流程、删除节点和相关连接、再保存流程"),
-            "错误信息应该说明原因"
+            error.contains("delete_node needs to load flow, delete node and connections, then save flow"),
+            "error should explain the reason"
         );
     }
 
@@ -4060,18 +4060,18 @@ mod tests {
 
         let output = create_flow(input);
 
-        // 验证 flow.uuid 是有效的 UUID 格式
+        // verify flow.uuid is valid UUID format
         let parsed_uuid = Uuid::parse_str(&output.flow.uuid);
-        assert!(parsed_uuid.is_ok(), "flow.uuid 应该是有效的 UUID 格式");
+        assert!(parsed_uuid.is_ok(), "flow.uuid should be valid UUID format");
 
-        // 验证 start_node.uuid 基于 flow.uuid
+        // verify start_node.uuid based on flow.uuid
         assert!(
             output.flow.nodes[0].uuid.starts_with("start-"),
-            "start_node.uuid 应该以 'start-' 开头"
+            "start_node.uuid should start with 'start-'"
         );
         assert!(
             output.flow.nodes[0].uuid.contains(&output.flow.uuid),
-            "start_node.uuid 应该包含 flow.uuid"
+            "start_node.uuid should contain flow.uuid"
         );
     }
 
@@ -4118,7 +4118,7 @@ mod tests {
         let result = executor.execute_flow(&flow, None, None, None).await;
 
         // 验证使用 conn.source_node_uuid 检查连接
-        assert!(result.success, "流程应该执行成功");
+        assert!(result.success, "flow should execute successfully");
     }
 
     #[test]
@@ -4146,13 +4146,13 @@ mod tests {
             node_id: format!("http-{}", flow_id),
         };
 
-        // 验证 delete_node 使用 node.uuid 字段查找节点
+        // verify delete_node uses node.uuid field to find node
         let output = delete_node(input, flow);
 
-        // 验证找到了节点（通过 uuid）
+        // verify node was found (by uuid)
         assert!(
-            !output.error.unwrap().contains("不存在"),
-            "应该通过 uuid 找到节点"
+            !output.error.unwrap().contains("not found"),
+            "should find node by uuid"
         );
     }
 
@@ -4184,10 +4184,10 @@ mod tests {
         let output = delete_node(input, flow);
 
         // 验证找不到节点（通过 uuid）
-        assert!(!output.success, "删除不存在的节点应该失败");
+        assert!(!output.success, "deleting non-existent node should fail");
         assert!(
-            output.error.unwrap().contains("不存在"),
-            "错误信息应该包含 '不存在'"
+            output.error.unwrap().contains("not found"),
+            "error should contain 'not found'"
         );
     }
 

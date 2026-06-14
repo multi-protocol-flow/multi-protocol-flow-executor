@@ -43,11 +43,11 @@ fn test_report_structure_variable_change() {
         new_value: json!("new"),
     };
 
-    let json_str = serde_json::to_string(&modified_var).expect("序列化失败");
+    let json_str = serde_json::to_string(&modified_var).expect("serialization failed");
     assert!(json_str.contains("old_value"));
     assert!(json_str.contains("modified_var"));
 
-    let deserialized: VariableChange = serde_json::from_str(&json_str).expect("反序列化失败");
+    let deserialized: VariableChange = serde_json::from_str(&json_str).expect("deserialization failed");
     assert_eq!(deserialized.old_value, Some(json!("old")));
     assert_eq!(deserialized.new_value, json!("new"));
 }
@@ -105,22 +105,22 @@ fn test_report_structure_variable_change_value_types() {
 fn test_report_structure_skipped_node_info() {
     let info = SkippedNodeInfo {
         node_uuid: "skipped-uuid-123".to_string(),
-        node_name: "被跳过的节点".to_string(),
-        reason: "上游条件不满足".to_string(),
+        node_name: "skipped node".to_string(),
+        reason: "upstream condition not met".to_string(),
     };
 
     // 序列化
-    let json_str = serde_json::to_string(&info).expect("SkippedNodeInfo 序列化失败");
+    let json_str = serde_json::to_string(&info).expect("SkippedNodeInfo serialization failed");
     assert!(json_str.contains("skipped-uuid-123"));
-    assert!(json_str.contains("被跳过的节点"));
-    assert!(json_str.contains("上游条件不满足"));
+    assert!(json_str.contains("skipped node"));
+    assert!(json_str.contains("upstream condition not met"));
 
     // 反序列化
     let deserialized: SkippedNodeInfo =
-        serde_json::from_str(&json_str).expect("SkippedNodeInfo 反序列化失败");
+        serde_json::from_str(&json_str).expect("SkippedNodeInfo deserialization failed");
     assert_eq!(deserialized.node_uuid, "skipped-uuid-123");
-    assert_eq!(deserialized.node_name, "被跳过的节点");
-    assert_eq!(deserialized.reason, "上游条件不满足");
+    assert_eq!(deserialized.node_name, "skipped node");
+    assert_eq!(deserialized.reason, "upstream condition not met");
 
     // 从 JSON 值反序列化
     let json_value = json!({
@@ -129,7 +129,7 @@ fn test_report_structure_skipped_node_info() {
         "reason": "Conditional branch not taken"
     });
     let from_value: SkippedNodeInfo =
-        serde_json::from_value(json_value).expect("从 JSON 值反序列化失败");
+        serde_json::from_value(json_value).expect("deserialize from json_value failed");
     assert_eq!(from_value.node_uuid, "node-456");
 }
 
@@ -144,7 +144,7 @@ fn test_report_structure_node_execution_report() {
     let report = NodeExecutionReport {
         node_uuid: "node-uuid-full".to_string(),
         node_type: "http".to_string(),
-        node_name: "完整测试节点".to_string(),
+        node_name: "full test node".to_string(),
         start_time: 1700000000000,
         end_time: 1700000001000,
         duration_ms: 1000,
@@ -203,7 +203,7 @@ fn test_report_structure_node_execution_report() {
     // 验证所有字段
     assert_eq!(deserialized.node_uuid, "node-uuid-full");
     assert_eq!(deserialized.node_type, "http");
-    assert_eq!(deserialized.node_name, "完整测试节点");
+    assert_eq!(deserialized.node_name, "full test node");
     assert_eq!(deserialized.start_time, 1700000000000);
     assert_eq!(deserialized.end_time, 1700000001000);
     assert_eq!(deserialized.duration_ms, 1000);
@@ -227,7 +227,7 @@ fn test_report_structure_node_execution_report_failed() {
     let report = NodeExecutionReport {
         node_uuid: "failed-node".to_string(),
         node_type: "http".to_string(),
-        node_name: "失败的 HTTP 请求".to_string(),
+        node_name: "failed HTTP request".to_string(),
         start_time: 1000,
         end_time: 5000,
         duration_ms: 4000,
@@ -237,7 +237,7 @@ fn test_report_structure_node_execution_report_failed() {
         used_port_id: None,
         error: Some(ErrorDetail::new(
             ErrorKind::Connection,
-            "连接超时".to_string(),
+            "connection timeout".to_string(),
         )),
         resolved_config: Some(json!({"url": "https://invalid.example.com"})),
         variable_changes: None,
@@ -245,14 +245,14 @@ fn test_report_structure_node_execution_report_failed() {
         wait_duration_ms: None,
     };
 
-    let json_str = serde_json::to_string(&report).expect("序列化失败");
+    let json_str = serde_json::to_string(&report).expect("serialization failed");
     assert!(json_str.contains("failed"));
-    assert!(json_str.contains("连接超时"));
+    assert!(json_str.contains("connection timeout"));
 
-    let deserialized: NodeExecutionReport = serde_json::from_str(&json_str).expect("反序列化失败");
+    let deserialized: NodeExecutionReport = serde_json::from_str(&json_str).expect("deserialization failed");
     assert_eq!(deserialized.status, ExecutionStatus::Failed);
     assert!(deserialized.error.is_some());
-    assert_eq!(deserialized.error.as_ref().unwrap().message, "连接超时");
+    assert_eq!(deserialized.error.as_ref().unwrap().message, "connection timeout");
 }
 
 /// 测试 NodeExecutionReport 跳过状态
@@ -261,7 +261,7 @@ fn test_report_structure_node_execution_report_skipped() {
     let report = NodeExecutionReport {
         node_uuid: "skipped-node".to_string(),
         node_type: "http".to_string(),
-        node_name: "跳过的节点".to_string(),
+        node_name: "skipped node".to_string(),
         start_time: 1000,
         end_time: 1000,
         duration_ms: 0,
@@ -272,20 +272,20 @@ fn test_report_structure_node_execution_report_skipped() {
         error: None,
         resolved_config: None,
         variable_changes: None,
-        skip_reason: Some("条件表达式评估为 false".to_string()),
+        skip_reason: Some("condition expression evaluated to false".to_string()),
         wait_duration_ms: None,
     };
 
-    let json_str = serde_json::to_string(&report).expect("序列化失败");
+    let json_str = serde_json::to_string(&report).expect("serialization failed");
     assert!(json_str.contains("skipped"));
     assert!(json_str.contains("skip_reason"));
-    assert!(json_str.contains("条件表达式评估为 false"));
+    assert!(json_str.contains("condition expression evaluated to false"));
 
-    let deserialized: NodeExecutionReport = serde_json::from_str(&json_str).expect("反序列化失败");
+    let deserialized: NodeExecutionReport = serde_json::from_str(&json_str).expect("deserialization failed");
     assert_eq!(deserialized.status, ExecutionStatus::Skipped);
     assert_eq!(
         deserialized.skip_reason,
-        Some("条件表达式评估为 false".to_string())
+        Some("condition expression evaluated to false".to_string())
     );
 }
 
@@ -322,7 +322,7 @@ fn test_report_structure_flow_execution_report() {
         NodeExecutionReport {
             node_uuid: "http-1".to_string(),
             node_type: "http".to_string(),
-            node_name: "API 请求".to_string(),
+            node_name: "API request".to_string(),
             start_time: 1001,
             end_time: 2500,
             duration_ms: 1499,
@@ -345,15 +345,15 @@ fn test_report_structure_flow_execution_report() {
     // 创建跳过节点信息
     let skipped_nodes = vec![SkippedNodeInfo {
         node_uuid: "http-2".to_string(),
-        node_name: "备用 API".to_string(),
-        reason: "条件分支未命中".to_string(),
+        node_name: "backup API".to_string(),
+        reason: "conditional branch not taken".to_string(),
     }];
 
     // 创建完整报告
     let report = FlowExecutionReport {
         uuid: "report-uuid-12345".to_string(),
         flow_uuid: "flow-uuid-abc".to_string(),
-        flow_name: "完整测试流程".to_string(),
+        flow_name: "full test flow".to_string(),
         start_time: 1000,
         end_time: 3000,
         duration_ms: 2000,
@@ -394,7 +394,7 @@ fn test_report_structure_flow_execution_report() {
     };
 
     // 序列化
-    let json_str = serde_json::to_string(&report).expect("FlowExecutionReport 序列化失败");
+    let json_str = serde_json::to_string(&report).expect("FlowExecutionReport serialization failed");
 
     // 验证所有字段
     assert!(json_str.contains("uuid"));
@@ -418,11 +418,11 @@ fn test_report_structure_flow_execution_report() {
 
     // 反序列化
     let deserialized: FlowExecutionReport =
-        serde_json::from_str(&json_str).expect("FlowExecutionReport 反序列化失败");
+        serde_json::from_str(&json_str).expect("FlowExecutionReport deserialization failed");
 
     assert_eq!(deserialized.uuid, "report-uuid-12345");
     assert_eq!(deserialized.flow_uuid, "flow-uuid-abc");
-    assert_eq!(deserialized.flow_name, "完整测试流程");
+    assert_eq!(deserialized.flow_name, "full test flow");
     assert_eq!(deserialized.total_nodes, 3);
     assert_eq!(deserialized.executed_count, 2);
     assert_eq!(deserialized.status, ExecutionStatus::Success);
@@ -443,7 +443,7 @@ fn test_report_structure_flow_execution_report_failed() {
     let report = FlowExecutionReport {
         uuid: "failed-report".to_string(),
         flow_uuid: "flow-failed".to_string(),
-        flow_name: "失败的流程".to_string(),
+        flow_name: "failed flow".to_string(),
         start_time: 1000,
         end_time: 5000,
         duration_ms: 4000,
@@ -464,7 +464,7 @@ fn test_report_structure_flow_execution_report_failed() {
         },
         flow_error: Some(ErrorDetail::new(
             ErrorKind::Execution,
-            "流程执行失败".to_string(),
+            "flow execution failed".to_string(),
         )),
         execution_mode: ExecutionMode::Normal,
         initial_variables: Some(json!({})),
@@ -477,11 +477,11 @@ fn test_report_structure_flow_execution_report_failed() {
         flow_warning: None,
     };
 
-    let json_str = serde_json::to_string(&report).expect("序列化失败");
+    let json_str = serde_json::to_string(&report).expect("serialization failed");
     assert!(json_str.contains("failed"));
     assert!(json_str.contains("flow_error"));
 
-    let deserialized: FlowExecutionReport = serde_json::from_str(&json_str).expect("反序列化失败");
+    let deserialized: FlowExecutionReport = serde_json::from_str(&json_str).expect("deserialization failed");
     assert_eq!(deserialized.status, ExecutionStatus::Failed);
     assert!(deserialized.flow_error.is_some());
 }
@@ -492,7 +492,7 @@ fn test_report_structure_flow_execution_report_debug_mode() {
     let report = FlowExecutionReport {
         uuid: "debug-report".to_string(),
         flow_uuid: "flow-debug".to_string(),
-        flow_name: "调试流程".to_string(),
+        flow_name: "debug flow".to_string(),
         start_time: 1000,
         end_time: 2000,
         duration_ms: 1000,
@@ -513,9 +513,9 @@ fn test_report_structure_flow_execution_report_debug_mode() {
         flow_warning: None,
     };
 
-    let json_str = serde_json::to_string(&report).expect("序列化失败");
+    let json_str = serde_json::to_string(&report).expect("serialization failed");
 
-    let deserialized: FlowExecutionReport = serde_json::from_str(&json_str).expect("反序列化失败");
+    let deserialized: FlowExecutionReport = serde_json::from_str(&json_str).expect("deserialization failed");
     assert_eq!(deserialized.execution_mode, ExecutionMode::Debug);
 }
 
@@ -530,7 +530,7 @@ fn test_report_structure_backward_compat_node_report() {
     let old_json = json!({
         "node_uuid": "old-node-uuid",
         "node_type": "entry",
-        "node_name": "旧版入口节点",
+        "node_name": "legacy entry node",
         "start_time": 1000,
         "end_time": 2000,
         "duration_ms": 1000,
@@ -543,12 +543,12 @@ fn test_report_structure_backward_compat_node_report() {
 
     // 反序列化应该成功
     let report: NodeExecutionReport =
-        serde_json::from_value(old_json).expect("旧版 NodeExecutionReport JSON 反序列化失败");
+        serde_json::from_value(old_json).expect("legacy NodeExecutionReport JSON deserialization failed");
 
     // 验证基本字段
     assert_eq!(report.node_uuid, "old-node-uuid");
     assert_eq!(report.node_type, "entry");
-    assert_eq!(report.node_name, "旧版入口节点");
+    assert_eq!(report.node_name, "legacy entry node");
     assert_eq!(report.status, ExecutionStatus::Success);
 
     // 验证新字段使用默认值
@@ -565,7 +565,7 @@ fn test_report_structure_backward_compat_flow_report() {
     let old_json = json!({
         "uuid": "old-report-uuid",
         "flow_uuid": "old-flow-uuid",
-        "flow_name": "旧版流程",
+        "flow_name": "legacy flow",
         "start_time": 1000,
         "end_time": 3000,
         "duration_ms": 2000,
@@ -576,7 +576,7 @@ fn test_report_structure_backward_compat_flow_report() {
             {
                 "node_uuid": "node-1",
                 "node_type": "entry",
-                "node_name": "入口",
+                "node_name": "entry",
                 "start_time": 1000,
                 "end_time": 1001,
                 "duration_ms": 1,
@@ -604,12 +604,12 @@ fn test_report_structure_backward_compat_flow_report() {
 
     // 反序列化应该成功
     let report: FlowExecutionReport =
-        serde_json::from_value(old_json).expect("旧版 FlowExecutionReport JSON 反序列化失败");
+        serde_json::from_value(old_json).expect("legacy FlowExecutionReport JSON deserialization failed");
 
     // 验证基本字段
     assert_eq!(report.uuid, "old-report-uuid");
     assert_eq!(report.flow_uuid, "old-flow-uuid");
-    assert_eq!(report.flow_name, "旧版流程");
+    assert_eq!(report.flow_name, "legacy flow");
     assert_eq!(report.status, ExecutionStatus::Success);
     assert_eq!(report.node_reports.len(), 1);
 
@@ -627,7 +627,7 @@ fn test_report_structure_backward_compat_partial_fields() {
     let partial_json = json!({
         "uuid": "partial-report",
         "flow_uuid": "flow-uuid",
-        "flow_name": "部分字段流程",
+        "flow_name": "partial fields flow",
         "start_time": 1000,
         "end_time": 2000,
         "duration_ms": 1000,
@@ -646,7 +646,7 @@ fn test_report_structure_backward_compat_partial_fields() {
     });
 
     let report: FlowExecutionReport =
-        serde_json::from_value(partial_json).expect("部分字段 JSON 反序列化失败");
+        serde_json::from_value(partial_json).expect("partial fields JSON deserialization failed");
 
     assert!(report.initial_variables.is_some());
     assert!(report.final_variables.is_none());
@@ -721,7 +721,7 @@ fn test_report_structure_full_roundtrip() {
     let original = FlowExecutionReport {
         uuid: "roundtrip-test".to_string(),
         flow_uuid: "flow-roundtrip".to_string(),
-        flow_name: "完整往返测试".to_string(),
+        flow_name: "full roundtrip test".to_string(),
         start_time: 1700000000000,
         end_time: 1700000010000,
         duration_ms: 10000,
@@ -732,7 +732,7 @@ fn test_report_structure_full_roundtrip() {
             NodeExecutionReport {
                 node_uuid: "entry".to_string(),
                 node_type: "entry".to_string(),
-                node_name: "入口".to_string(),
+            node_name: "entry".to_string(),
                 start_time: 0,
                 end_time: 1,
                 duration_ms: 1,
@@ -749,7 +749,7 @@ fn test_report_structure_full_roundtrip() {
             NodeExecutionReport {
                 node_uuid: "http-1".to_string(),
                 node_type: "http".to_string(),
-                node_name: "获取用户".to_string(),
+                node_name: "fetch users".to_string(),
                 start_time: 1,
                 end_time: 500,
                 duration_ms: 499,
@@ -770,7 +770,7 @@ fn test_report_structure_full_roundtrip() {
             NodeExecutionReport {
                 node_uuid: "cond-1".to_string(),
                 node_type: "conditional".to_string(),
-                node_name: "检查用户数".to_string(),
+                node_name: "check user count".to_string(),
                 start_time: 500,
                 end_time: 501,
                 duration_ms: 1,
@@ -808,13 +808,13 @@ fn test_report_structure_full_roundtrip() {
         skipped_nodes: vec![
             SkippedNodeInfo {
                 node_uuid: "http-2".to_string(),
-                node_name: "备用 API".to_string(),
-                reason: "条件分支未命中".to_string(),
+                node_name: "backup API".to_string(),
+                reason: "conditional branch not taken".to_string(),
             },
             SkippedNodeInfo {
                 node_uuid: "http-3".to_string(),
-                node_name: "其他 API".to_string(),
-                reason: "上游节点未执行".to_string(),
+                node_name: "other API".to_string(),
+                reason: "upstream node not executed".to_string(),
             },
         ],
         ws_streams: vec![],
@@ -824,10 +824,10 @@ fn test_report_structure_full_roundtrip() {
     };
 
     // 序列化
-    let json_str = serde_json::to_string(&original).expect("序列化失败");
+    let json_str = serde_json::to_string(&original).expect("serialization failed");
 
-    // 反序列化
-    let restored: FlowExecutionReport = serde_json::from_str(&json_str).expect("反序列化失败");
+    // deserialize
+    let restored: FlowExecutionReport = serde_json::from_str(&json_str).expect("deserialization failed");
 
     // 验证关键字段
     assert_eq!(restored.uuid, original.uuid);

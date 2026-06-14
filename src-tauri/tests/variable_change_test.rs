@@ -13,11 +13,11 @@ fn test_variable_change_serde() {
     };
 
     // 序列化
-    let json_str = serde_json::to_string(&change).expect("序列化失败");
+    let json_str = serde_json::to_string(&change).expect("serialization failed");
 
     // 反序列化
     let deserialized: flow_engine::report::VariableChange =
-        serde_json::from_str(&json_str).expect("反序列化失败");
+        serde_json::from_str(&json_str).expect("deserialization failed");
 
     assert_eq!(change, deserialized);
 }
@@ -32,12 +32,12 @@ fn test_variable_change_new_var() {
     };
 
     // 序列化后检查 JSON 不包含 old_value 字段
-    let json_str = serde_json::to_string(&change).expect("序列化失败");
+    let json_str = serde_json::to_string(&change).expect("serialization failed");
     assert!(!json_str.contains("\"old_value\":null"));
 
     // 反序列化
     let deserialized: flow_engine::report::VariableChange =
-        serde_json::from_str(&json_str).expect("反序列化失败");
+        serde_json::from_str(&json_str).expect("deserialization failed");
 
     assert_eq!(change.key, deserialized.key);
     assert_eq!(change.old_value, None);
@@ -54,11 +54,11 @@ fn test_variable_change_with_old_value() {
     };
 
     // 序列化
-    let json_str = serde_json::to_string(&change).expect("序列化失败");
+    let json_str = serde_json::to_string(&change).expect("serialization failed");
 
     // 反序列化
     let deserialized: flow_engine::report::VariableChange =
-        serde_json::from_str(&json_str).expect("反序列化失败");
+        serde_json::from_str(&json_str).expect("deserialization failed");
 
     assert_eq!(change.key, deserialized.key);
     assert_eq!(change.old_value, Some(json!(1)));

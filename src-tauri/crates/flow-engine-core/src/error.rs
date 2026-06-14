@@ -921,10 +921,10 @@ mod tests {
 
     #[test]
     fn test_error_detail_creation() {
-        let error = ErrorDetail::new(ErrorKind::Execution, "执行失败".to_string());
+        let error = ErrorDetail::new(ErrorKind::Execution, "execution failed".to_string());
 
         assert_eq!(error.error_kind, ErrorKind::Execution);
-        assert_eq!(error.message, "执行失败");
+        assert_eq!(error.message, "execution failed");
         assert!(error.error_code.is_none());
         assert!(error.i18n_args.is_none());
         assert!(error.stack_trace.is_none());
@@ -933,7 +933,7 @@ mod tests {
 
     #[test]
     fn test_error_detail_builder_pattern() {
-        let error = ErrorDetail::new(ErrorKind::Validation, "验证失败".to_string())
+        let error = ErrorDetail::new(ErrorKind::Validation, "validation failed".to_string())
             .with_error_code_typed(ErrorCode::E_VAL_PORT_DUPLICATE)
             .with_stack_trace("at line 42".to_string())
             .with_context(serde_json::json!({"field": "email"}));
@@ -949,35 +949,47 @@ mod tests {
 
     #[test]
     fn test_error_detail_serialization() {
-        let error = ErrorDetail::new(ErrorKind::Connection, "连接失败".to_string())
+        let error = ErrorDetail::new(ErrorKind::Connection, "connection failed".to_string())
             .with_error_code_typed(ErrorCode::E_CONN_REFUSED);
 
-        // 序列化
-        let json = serde_json::to_string(&error).expect("序列化失败");
+        // serialize
+        let json = serde_json::to_string(&error).expect("serialization failed");
         assert!(json.contains(r#""connection""#));
-        assert!(json.contains("连接失败"));
+        assert!(json.contains("connection failed"));
         assert!(json.contains("E_CONN_REFUSED"));
 
-        // 反序列化
-        let deserialized: ErrorDetail = serde_json::from_str(&json).expect("反序列化失败");
+        // deserialize
+        let deserialized: ErrorDetail = serde_json::from_str(&json).expect("deserialization failed");
         assert_eq!(deserialized.error_kind, ErrorKind::Connection);
-        assert_eq!(deserialized.message, "连接失败");
+        assert_eq!(deserialized.message, "connection failed");
         assert_eq!(deserialized.error_code, Some(ErrorCode::E_CONN_REFUSED));
     }
 
     #[test]
     fn test_error_detail_with_i18n_arg() {
-        let error = ErrorDetail::new(ErrorKind::Connection, "连接失败".to_string())
+        let error = ErrorDetail::new(ErrorKind::Connection, "connection failed".to_string())
             .with_error_code_typed(ErrorCode::E_CONN_REFUSED)
             .with_i18n_arg("host", "example.com".to_string())
             .with_i18n_arg("port", "443".to_string());
 
         assert_eq!(error.error_kind, ErrorKind::Connection);
         assert_eq!(error.error_code, Some(ErrorCode::E_CONN_REFUSED));
-        let args = error.i18n_args.expect("i18n_args should be Some");
+        let args = error.i18n_args.as_ref().expect("i18n_args should be Some");
         assert_eq!(args.get("host").unwrap(), "example.com");
         assert_eq!(args.get("port").unwrap(), "443");
         assert_eq!(args.len(), 2);
+
+        // Serialize and verify roundtrip with i18n_args
+        let json = serde_json::to_string(&error).unwrap();
+        assert!(json.contains("E_CONN_REFUSED"));
+        assert!(json.contains("example.com"));
+        assert!(json.contains("443"));
+
+        let deserialized: ErrorDetail = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.error_code, Some(ErrorCode::E_CONN_REFUSED));
+        let deserialized_args = deserialized.i18n_args.as_ref().unwrap();
+        assert_eq!(deserialized_args.get("host").unwrap(), "example.com");
+        assert_eq!(deserialized_args.get("port").unwrap(), "443");
     }
 
     #[test]
@@ -1010,14 +1022,22 @@ mod tests {
 
     #[test]
     fn test_error_detail_with_error_code_typed() {
-        let error = ErrorDetail::new(ErrorKind::Timeout, "超时".to_string())
+        let error = ErrorDetail::new(ErrorKind::Timeout, "timeout".to_string())
             .with_error_code_typed(ErrorCode::E_CONN_TIMEOUT);
         assert_eq!(error.error_code, Some(ErrorCode::E_CONN_TIMEOUT));
+
+        // Serialize and verify SCREAMING_SNAKE_CASE
+        let json = serde_json::to_string(&error).unwrap();
+        assert!(json.contains("E_CONN_TIMEOUT"));
+
+        // Deserialize and verify roundtrip
+        let deserialized: ErrorDetail = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.error_code, Some(ErrorCode::E_CONN_TIMEOUT));
     }
 
     #[test]
     fn test_error_kind_is_fatal() {
-        // 致命错误
+        // fatal errors
         assert!(ErrorKind::Configuration.is_fatal());
         assert!(ErrorKind::ConditionSyntax.is_fatal());
         assert!(!ErrorKind::Execution.is_fatal());
@@ -1026,19 +1046,19 @@ mod tests {
         assert!(!ErrorKind::ConditionEvaluation.is_fatal());
         assert!(!ErrorKind::Validation.is_fatal());
         assert!(!ErrorKind::Parse.is_fatal());
-        // WebSocket 错误非致命
+        // WebSocket errors are non-fatal
         assert!(!ErrorKind::WebSocketConnection.is_fatal());
         assert!(!ErrorKind::WebSocketTimeout.is_fatal());
         assert!(!ErrorKind::WebSocketMessage.is_fatal());
         assert!(!ErrorKind::WebSocketClose.is_fatal());
         assert!(!ErrorKind::WebSocketProtocol.is_fatal());
-        // 脚本错误非致命（根据配置决定）
+        // Script errors are non-fatal (config-dependent)
         assert!(!ErrorKind::ScriptSyntax.is_fatal());
         assert!(!ErrorKind::ScriptRuntime.is_fatal());
         assert!(!ErrorKind::ScriptTimeout.is_fatal());
         assert!(!ErrorKind::ScriptAssertion.is_fatal());
         assert!(!ErrorKind::ScriptAbort.is_fatal());
-        // TCP/UDP 错误非致命
+        // TCP/UDP errors are non-fatal
         assert!(!ErrorKind::TcpConnection.is_fatal());
         assert!(!ErrorKind::TcpTimeout.is_fatal());
         assert!(!ErrorKind::TcpSend.is_fatal());
@@ -1048,17 +1068,17 @@ mod tests {
         assert!(!ErrorKind::UdpSend.is_fatal());
         assert!(!ErrorKind::UdpReceive.is_fatal());
         assert!(!ErrorKind::UdpClose.is_fatal());
-        // SSE 错误非致命
+        // SSE errors are non-fatal
         assert!(!ErrorKind::SseConnection.is_fatal());
         assert!(!ErrorKind::SseTimeout.is_fatal());
         assert!(!ErrorKind::SseEvent.is_fatal());
-        // GraphQL 错误非致命
+        // GraphQL errors are non-fatal
         assert!(!ErrorKind::GraphqlConnection.is_fatal());
         assert!(!ErrorKind::GraphqlQuery.is_fatal());
         assert!(!ErrorKind::GraphqlSubscription.is_fatal());
         assert!(!ErrorKind::GraphqlIntrospection.is_fatal());
         assert!(!ErrorKind::GraphqlClose.is_fatal());
-        // AMQP 错误非致命
+        // AMQP errors are non-fatal
         assert!(!ErrorKind::AmqpConnection.is_fatal());
         assert!(!ErrorKind::AmqpChannel.is_fatal());
         assert!(!ErrorKind::AmqpPublish.is_fatal());
@@ -1072,7 +1092,7 @@ mod tests {
 
     #[test]
     fn test_error_kind_serialization_lowercase() {
-        // 测试序列化使用小写形式
+        // verify serialization uses lowercase
         let kinds = vec![
             ErrorKind::Configuration,
             ErrorKind::ConditionSyntax,
@@ -1126,11 +1146,11 @@ mod tests {
         ];
 
         for kind in kinds {
-            let json = serde_json::to_string(&kind).expect("序列化失败");
-            let deserialized: ErrorKind = serde_json::from_str(&json).expect("反序列化失败");
+            let json = serde_json::to_string(&kind).expect("serialization failed");
+            let deserialized: ErrorKind = serde_json::from_str(&json).expect("deserialization failed");
             assert_eq!(kind, deserialized);
 
-            // 验证是小写形式
+            // verify lowercase format
             let json_str = json.to_lowercase();
             assert_eq!(json, json_str);
         }
@@ -1138,16 +1158,16 @@ mod tests {
 
     #[test]
     fn test_error_detail_is_fatal() {
-        let fatal_error = ErrorDetail::new(ErrorKind::Configuration, "配置错误".to_string());
+        let fatal_error = ErrorDetail::new(ErrorKind::Configuration, "configuration error".to_string());
         assert!(fatal_error.is_fatal());
 
-        let recoverable_error = ErrorDetail::new(ErrorKind::Execution, "执行错误".to_string());
+        let recoverable_error = ErrorDetail::new(ErrorKind::Execution, "execution error".to_string());
         assert!(!recoverable_error.is_fatal());
     }
 
     #[test]
     fn test_all_error_kinds() {
-        // 验证所有错误类型都能正常创建和序列化
+        // verify all error kinds can be created and serialized
         let kinds = [
             ErrorKind::Configuration,
             ErrorKind::ConditionSyntax,
@@ -1203,10 +1223,10 @@ mod tests {
         ];
 
         for kind in kinds {
-            let error = ErrorDetail::new(kind.clone(), format!("{:?} 错误", kind));
+            let error = ErrorDetail::new(kind.clone(), format!("{:?} error", kind));
 
-            let json = serde_json::to_string(&error).expect("序列化失败");
-            let deserialized: ErrorDetail = serde_json::from_str(&json).expect("反序列化失败");
+            let json = serde_json::to_string(&error).expect("serialization failed");
+            let deserialized: ErrorDetail = serde_json::from_str(&json).expect("deserialization failed");
 
             assert_eq!(error.error_kind, deserialized.error_kind);
             assert_eq!(error.message, deserialized.message);
@@ -1215,115 +1235,114 @@ mod tests {
 
     #[test]
     fn test_websocket_error_kinds() {
-        // 测试 WebSocket 错误类型的创建和序列化
+        // test WebSocket error kind creation and serialization
         let ws_errors = vec![
-            (ErrorKind::WebSocketConnection, "WebSocket 连接失败"),
-            (ErrorKind::WebSocketTimeout, "WebSocket 操作超时"),
-            (ErrorKind::WebSocketMessage, "WebSocket 消息发送失败"),
-            (ErrorKind::WebSocketClose, "WebSocket 连接异常关闭"),
-            (ErrorKind::WebSocketProtocol, "WebSocket 协议错误"),
+            (ErrorKind::WebSocketConnection, "WebSocket connection failed"),
+            (ErrorKind::WebSocketTimeout, "WebSocket operation timed out"),
+            (ErrorKind::WebSocketMessage, "WebSocket message send failed"),
+            (ErrorKind::WebSocketClose, "WebSocket connection closed abnormally"),
+            (ErrorKind::WebSocketProtocol, "WebSocket protocol error"),
         ];
 
         for (kind, msg) in ws_errors {
             let error = ErrorDetail::new(kind.clone(), msg.to_string());
 
-            // 验证非致命
-            assert!(!error.is_fatal(), "{:?} 不应为致命错误", kind);
+            // verify non-fatal
+            assert!(!error.is_fatal(), "{:?} should not be fatal", kind);
 
-            // 验证序列化和反序列化
-            let json = serde_json::to_string(&error).expect("序列化失败");
-            let deserialized: ErrorDetail = serde_json::from_str(&json).expect("反序列化失败");
+            // verify serialization roundtrip
+            let json = serde_json::to_string(&error).expect("serialization failed");
+            let deserialized: ErrorDetail = serde_json::from_str(&json).expect("deserialization failed");
 
             assert_eq!(error.error_kind, deserialized.error_kind);
             assert_eq!(error.message, deserialized.message);
 
-            // 验证 JSON 中使用小写形式
+            // verify JSON uses lowercase
             assert!(
                 json.contains(&format!("{:?}", kind).to_lowercase()),
-                "JSON 应包含小写形式的错误类型"
+                "JSON should contain lowercase error kind"
             );
         }
     }
 
     #[test]
     fn test_script_error_kinds() {
-        // 测试脚本错误类型的创建和序列化
+        // test script error kind creation and serialization
         let script_errors = vec![
-            (ErrorKind::ScriptSyntax, "脚本语法错误"),
-            (ErrorKind::ScriptRuntime, "脚本运行时错误"),
-            (ErrorKind::ScriptTimeout, "脚本执行超时"),
-            (ErrorKind::ScriptAssertion, "断言失败"),
-            (ErrorKind::ScriptAbort, "用户调用 abort()"),
+            (ErrorKind::ScriptSyntax, "script syntax error"),
+            (ErrorKind::ScriptRuntime, "script runtime error"),
+            (ErrorKind::ScriptTimeout, "script execution timed out"),
+            (ErrorKind::ScriptAssertion, "assertion failed"),
+            (ErrorKind::ScriptAbort, "user called abort()"),
         ];
 
         for (kind, msg) in script_errors {
             let error = ErrorDetail::new(kind.clone(), msg.to_string());
 
-            // 验证非致命（脚本错误根据配置决定）
-            assert!(!error.is_fatal(), "{:?} 不应为致命错误", kind);
+            // verify non-fatal (script errors depend on configuration)
+            assert!(!error.is_fatal(), "{:?} should not be fatal", kind);
 
-            // 验证序列化和反序列化
-            let json = serde_json::to_string(&error).expect("序列化失败");
-            let deserialized: ErrorDetail = serde_json::from_str(&json).expect("反序列化失败");
+            // verify serialization roundtrip
+            let json = serde_json::to_string(&error).expect("serialization failed");
+            let deserialized: ErrorDetail = serde_json::from_str(&json).expect("deserialization failed");
 
             assert_eq!(error.error_kind, deserialized.error_kind);
             assert_eq!(error.message, deserialized.message);
 
-            // 验证 JSON 中使用小写形式
+            // verify JSON uses lowercase
             assert!(
                 json.contains(&format!("{:?}", kind).to_lowercase()),
-                "JSON 应包含小写形式的错误类型"
+                "JSON should contain lowercase error kind"
             );
         }
     }
 
-    /// 测试 ErrorKind::Cancelled 非致命且序列化正确
     #[test]
     fn test_error_kind_cancelled() {
-        assert!(!ErrorKind::Cancelled.is_fatal(), "Cancelled 不应为致命错误");
+        assert!(!ErrorKind::Cancelled.is_fatal(), "Cancelled should not be fatal");
 
-        let error = ErrorDetail::new(ErrorKind::Cancelled, "执行被取消".to_string());
+        let error = ErrorDetail::new(ErrorKind::Cancelled, "execution cancelled".to_string());
         assert!(!error.is_fatal());
 
-        let json = serde_json::to_string(&error).expect("序列化失败");
-        assert!(json.contains("cancelled"), "应序列化为 'cancelled'");
+        let json = serde_json::to_string(&error).expect("serialization failed");
+        assert!(json.contains("cancelled"), "should serialize as 'cancelled'");
 
-        let deserialized: ErrorDetail = serde_json::from_str(&json).expect("反序列化失败");
+        let deserialized: ErrorDetail = serde_json::from_str(&json).expect("deserialization failed");
         assert_eq!(error.error_kind, deserialized.error_kind);
     }
 
     #[test]
     fn test_tcp_udp_error_kinds() {
-        // 测试 TCP/UDP 错误类型的创建和序列化
+        // test TCP/UDP error kind creation and serialization
         let tcp_udp_errors = vec![
-            (ErrorKind::TcpConnection, "TCP 连接失败"),
-            (ErrorKind::TcpTimeout, "TCP 操作超时"),
-            (ErrorKind::TcpSend, "TCP 发送数据失败"),
-            (ErrorKind::TcpReceive, "TCP 接收数据失败"),
-            (ErrorKind::TcpClose, "TCP 连接关闭错误"),
-            (ErrorKind::UdpBind, "UDP 绑定失败"),
-            (ErrorKind::UdpSend, "UDP 发送数据失败"),
-            (ErrorKind::UdpReceive, "UDP 接收数据失败"),
-            (ErrorKind::UdpClose, "UDP 连接关闭错误"),
+            (ErrorKind::TcpConnection, "TCP connection failed"),
+            (ErrorKind::TcpTimeout, "TCP operation timed out"),
+            (ErrorKind::TcpSend, "TCP send failed"),
+            (ErrorKind::TcpReceive, "TCP receive failed"),
+            (ErrorKind::TcpClose, "TCP close error"),
+            (ErrorKind::UdpBind, "UDP bind failed"),
+            (ErrorKind::UdpSend, "UDP send failed"),
+            (ErrorKind::UdpReceive, "UDP receive failed"),
+            (ErrorKind::UdpClose, "UDP close error"),
         ];
 
         for (kind, msg) in tcp_udp_errors {
             let error = ErrorDetail::new(kind.clone(), msg.to_string());
 
-            // 验证非致命
-            assert!(!error.is_fatal(), "{:?} 不应为致命错误", kind);
+            // verify non-fatal
+            assert!(!error.is_fatal(), "{:?} should not be fatal", kind);
 
-            // 验证序列化和反序列化
-            let json = serde_json::to_string(&error).expect("序列化失败");
-            let deserialized: ErrorDetail = serde_json::from_str(&json).expect("反序列化失败");
+            // verify serialization roundtrip
+            let json = serde_json::to_string(&error).expect("serialization failed");
+            let deserialized: ErrorDetail = serde_json::from_str(&json).expect("deserialization failed");
 
             assert_eq!(error.error_kind, deserialized.error_kind);
             assert_eq!(error.message, deserialized.message);
 
-            // 验证 JSON 中使用小写形式
+            // verify JSON uses lowercase
             assert!(
                 json.contains(&format!("{:?}", kind).to_lowercase()),
-                "JSON 应包含小写形式的错误类型"
+                "JSON should contain lowercase error kind"
             );
         }
     }
@@ -1545,5 +1564,63 @@ mod tests {
         assert_eq!(json, "\"E_HTTP_REQUEST_FAILED\"");
         assert_ne!(json, "\"e_http_request_failed\"");
         assert_ne!(json, "\"http_request_failed\"");
+    }
+
+    #[test]
+    fn test_error_detail_serde_roundtrip_with_error_code() {
+        // Comprehensive roundtrip test with multiple ErrorCode variants in ErrorDetail
+        let test_cases = vec![
+            (ErrorKind::Execution, "execution error", ErrorCode::E_EXECUTION_ERROR),
+            (ErrorKind::Connection, "connection refused", ErrorCode::E_CONN_REFUSED),
+            (ErrorKind::Timeout, "operation timed out", ErrorCode::E_TIMEOUT),
+            (ErrorKind::Validation, "port duplicate", ErrorCode::E_VAL_PORT_DUPLICATE),
+            (ErrorKind::WebSocketConnection, "ws connection failed", ErrorCode::E_WS_CONNECTION),
+            (ErrorKind::ScriptRuntime, "script error", ErrorCode::E_SCRIPT_RUNTIME),
+        ];
+
+        for (kind, msg, code) in test_cases {
+            let error = ErrorDetail::new(kind.clone(), msg.to_string())
+                .with_error_code_typed(code.clone());
+
+            let json = serde_json::to_string(&error).expect("serialization failed");
+            assert!(
+                json.contains(&serde_json::to_string(&code).unwrap().trim_matches('"')),
+                "JSON should contain ErrorCode variant name for {:?}",
+                code
+            );
+
+            let deserialized: ErrorDetail =
+                serde_json::from_str(&json).expect("deserialization failed");
+            assert_eq!(deserialized.error_kind, kind);
+            assert_eq!(deserialized.error_code, Some(code));
+            assert_eq!(deserialized.message, msg);
+        }
+    }
+
+    #[test]
+    fn test_error_detail_i18n_args_serialization() {
+        // Verify i18n_args JSON format and roundtrip
+        let error = ErrorDetail::new(ErrorKind::Execution, "test".to_string())
+            .with_error_code_typed(ErrorCode::E_HTTP_REQUEST_FAILED)
+            .with_i18n_arg("url", "https://example.com/api".to_string())
+            .with_i18n_arg("method", "POST".to_string())
+            .with_i18n_arg("status", "500".to_string());
+
+        let json = serde_json::to_string_pretty(&error).unwrap();
+
+        // Verify JSON structure has i18n_args as an object with string values
+        assert!(json.contains("\"i18n_args\": {"));
+        assert!(json.contains("\"url\": \"https://example.com/api\""));
+        assert!(json.contains("\"method\": \"POST\""));
+        assert!(json.contains("\"status\": \"500\""));
+        assert!(json.contains("\"E_HTTP_REQUEST_FAILED\""));
+
+        // Roundtrip
+        let deserialized: ErrorDetail = serde_json::from_str(&json).unwrap();
+        let args = deserialized.i18n_args.unwrap();
+        assert_eq!(args.get("url").unwrap(), "https://example.com/api");
+        assert_eq!(args.get("method").unwrap(), "POST");
+        assert_eq!(args.get("status").unwrap(), "500");
+        assert_eq!(args.len(), 3);
     }
 }

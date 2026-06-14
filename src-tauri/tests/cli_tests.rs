@@ -178,7 +178,7 @@ fn test_help() {
         .assert()
         .success()
         .stdout(predicate::str::contains("mpe"))
-        .stdout(predicate::str::contains("多协议流程编排与执行引擎"));
+        .stdout(predicate::str::contains("multi-protocol flow execution engine"));
 }
 
 #[test]
@@ -188,7 +188,7 @@ fn test_run_subcommand_help() {
         .arg("--help")
         .assert()
         .success()
-        .stdout(predicate::str::contains("执行流程"))
+        .stdout(predicate::str::contains("execute flow"))
         .stdout(predicate::str::contains("--flow"));
 }
 
@@ -214,7 +214,7 @@ fn test_run_file_not_found() {
         .arg("/nonexistent/file.json")
         .assert()
         .failure()
-        .stdout(predicate::str::contains("流程文件不存在").or(predicate::str::contains("error")));
+        .stdout(predicate::str::contains("flow file not found").or(predicate::str::contains("error")));
 }
 
 #[test]
@@ -226,7 +226,7 @@ fn test_run_invalid_json_file() {
         .arg(file.path())
         .assert()
         .failure()
-        .stdout(predicate::str::contains("加载流程失败").or(predicate::str::contains("error")));
+        .stdout(predicate::str::contains("failed to load flow").or(predicate::str::contains("error")));
 }
 
 #[test]
@@ -325,10 +325,10 @@ fn test_cli_output_has_success_data_error_fields() {
     let json: serde_json::Value = serde_json::from_str(&output_str).unwrap();
 
     // 验证统一输出格式: { success, data, error }
-    assert!(json["success"].is_boolean(), "缺少 success 字段");
+    assert!(json["success"].is_boolean(), "missing success field");
     assert!(
         json["data"].is_object() || json["data"].is_null(),
-        "缺少 data 字段"
+        "missing data field"
     );
 }
 
@@ -554,7 +554,7 @@ fn test_error_handling_invalid_json_file() {
         .arg(file.path())
         .assert()
         .failure()
-        .stdout(predicate::str::contains("加载流程失败").or(predicate::str::contains("error")));
+        .stdout(predicate::str::contains("failed to load flow").or(predicate::str::contains("error")));
 }
 
 #[test]
@@ -659,7 +659,7 @@ fn test_validate_nonexistent_file() {
         .arg("/nonexistent/file.json")
         .assert()
         .failure()
-        .stdout(predicate::str::contains("流程文件不存在").or(predicate::str::contains("error")));
+        .stdout(predicate::str::contains("flow file not found").or(predicate::str::contains("error")));
 }
 
 #[test]
@@ -1065,7 +1065,7 @@ fn test_log_output_contains_execution_info() {
         .assert()
         .success()
         // 验证日志包含执行相关信息（匹配实际的日志消息）
-        .stderr(predicate::str::contains("执行开始节点").or(predicate::str::contains("[完成]")));
+        .stderr(predicate::str::contains("executing start node").or(predicate::str::contains("[done]")));
 }
 
 #[test]

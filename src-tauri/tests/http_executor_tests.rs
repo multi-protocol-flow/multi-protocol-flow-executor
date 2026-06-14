@@ -34,7 +34,7 @@ fn create_context(flow_id: &str) -> ExecutionContext {
         node_reports: Vec::new(),
         flow_trigger_time: std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .expect("系统时间错误")
+            .expect("system time error")
             .as_millis() as u64,
         log_sender: None,
         flow_file_path: None,
@@ -106,10 +106,10 @@ fn create_timeout_node(uuid: &str, url: &str, timeout_ms: u64) -> Node {
 async fn test_form_data_file_upload_success() {
     ensure_crypto_provider();
     // 创建测试文件
-    let mut test_file = NamedTempFile::new().expect("无法创建临时文件");
+    let mut test_file = NamedTempFile::new().expect("failed to create temp file");
     let file_content = b"Hello, this is test file content!";
-    test_file.write_all(file_content).expect("无法写入测试文件");
-    test_file.flush().expect("无法刷新文件");
+    test_file.write_all(file_content).expect("failed to write test file");
+    test_file.flush().expect("failed to flush file");
     let file_path = test_file.path().to_string_lossy().to_string();
 
     // 创建 mock 服务器
@@ -149,12 +149,12 @@ async fn test_form_data_file_upload_success() {
 
     // 预期: 测试应该成功，因为文件上传功能已实现
     // 当前状态: 如果文件上传未实现，此测试将失败 (RED)
-    assert!(result.is_ok(), "文件上传应该成功: {:?}", result.err());
+    assert!(result.is_ok(), "file upload should succeed: {:?}", result.err());
     
     let output_data = result.unwrap().1;
-    assert!(output_data.is_some(), "应该有输出数据");
+    assert!(output_data.is_some(), "should have output data");
     let output = output_data.unwrap();
-    assert_eq!(output["status"], 200, "状态码应该是 200");
+    assert_eq!(output["status"], 200, "status code should be 200");
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -186,13 +186,13 @@ async fn test_form_data_file_not_found() {
     let result = executor.execute(&node, &mut context, &[], &std::collections::HashMap::new()).await;
 
     // 预期: 应该返回错误，因为文件不存在
-    assert!(result.is_err(), "文件不存在应该返回错误");
+    assert!(result.is_err(), "non-existent file should return error");
     let error = result.unwrap_err();
     
-    // 错误信息应该包含文件路径相关信息
+    // error message should contain file path related info
     assert!(
-        error.contains("文件") || error.contains("file") || error.contains("读取"),
-        "错误信息应该包含文件相关描述: {}",
+        error.contains("file") || error.contains("read"),
+        "error message should contain file-related description: {}",
         error
     );
 }
@@ -203,16 +203,16 @@ async fn test_form_data_file_not_found() {
 async fn test_form_data_mime_type_detection() {
     ensure_crypto_provider();
     // 创建不同类型的测试文件
-    let mut json_file = NamedTempFile::with_suffix(".json").expect("无法创建临时文件");
-    json_file.write_all(b"{\"test\": true}").expect("无法写入文件");
+    let mut json_file = NamedTempFile::with_suffix(".json").expect("failed to create temp file");
+    json_file.write_all(b"{\"test\": true}").expect("failed to write file");
     let json_path = json_file.path().to_string_lossy().to_string();
 
-    let mut png_file = NamedTempFile::with_suffix(".png").expect("无法创建临时文件");
-    png_file.write_all(&[0x89, 0x50, 0x4E, 0x47]).expect("无法写入文件");
+    let mut png_file = NamedTempFile::with_suffix(".png").expect("failed to create temp file");
+    png_file.write_all(&[0x89, 0x50, 0x4E, 0x47]).expect("failed to write file");
     let png_path = png_file.path().to_string_lossy().to_string();
 
-    let mut txt_file = NamedTempFile::with_suffix(".txt").expect("无法创建临时文件");
-    txt_file.write_all(b"plain text").expect("无法写入文件");
+    let mut txt_file = NamedTempFile::with_suffix(".txt").expect("failed to create temp file");
+    txt_file.write_all(b"plain text").expect("failed to write file");
     let txt_path = txt_file.path().to_string_lossy().to_string();
 
     // 创建 mock 服务器
@@ -257,7 +257,7 @@ async fn test_form_data_mime_type_detection() {
     mock.assert();
 
     // 验证: MIME 类型检测功能已实现
-    assert!(result.is_ok(), "多文件上传应该成功: {:?}", result.err());
+    assert!(result.is_ok(), "multi-file upload should succeed: {:?}", result.err());
     
     let output_data = result.unwrap().1;
     assert!(output_data.is_some());
@@ -270,8 +270,8 @@ async fn test_form_data_mime_type_detection() {
 async fn test_form_data_mixed_fields() {
     ensure_crypto_provider();
     // 创建测试文件
-    let mut test_file = NamedTempFile::new().expect("无法创建临时文件");
-    test_file.write_all(b"file content here").expect("无法写入文件");
+    let mut test_file = NamedTempFile::new().expect("failed to create temp file");
+    test_file.write_all(b"file content here").expect("failed to write file");
     let file_path = test_file.path().to_string_lossy().to_string();
 
     // 创建 mock 服务器
@@ -321,7 +321,7 @@ async fn test_form_data_mixed_fields() {
     mock.assert();
 
     // 预期: 混合字段上传应该成功
-    assert!(result.is_ok(), "混合字段上传应该成功: {:?}", result.err());
+    assert!(result.is_ok(), "mixed field upload should succeed: {:?}", result.err());
     
     let output_data = result.unwrap().1;
     assert!(output_data.is_some());
@@ -366,25 +366,25 @@ async fn test_timeout_config_custom() {
     // 验证超时配置生效 - 应该在 3 秒内返回（考虑网络延迟）
     assert!(
         elapsed < std::time::Duration::from_secs(3),
-        "超时应该在 3 秒内触发，实际耗时: {:?}",
+            "timeout should trigger within 3 seconds, actual: {:?}",
         elapsed
     );
 
     // HTTP 执行器捕获错误并返回在响应对象中（success: false），而不是返回 Err
-    assert!(result.is_ok(), "应该返回 Ok，错误信息在响应对象中: {:?}", result.err());
+    assert!(result.is_ok(), "should return Ok, error in response object: {:?}", result.err());
     let (_next_ids, output_data) = result.unwrap();
-    let output = output_data.expect("应该有输出数据");
+    let output = output_data.expect("should have output data");
     
-    // 验证 success 为 false
-    assert_eq!(output.get("success").and_then(|v| v.as_bool()), Some(false), "success 应该为 false");
+    // verify success is false
+    assert_eq!(output.get("success").and_then(|v| v.as_bool()), Some(false), "success should be false");
     
-    // 验证错误信息存在
-    let error_msg = output.get("error").and_then(|v| v.as_str()).expect("应该有错误信息");
+    // verify error message exists
+    let error_msg = output.get("error").and_then(|v| v.as_str()).expect("should have error message");
     assert!(
-        error_msg.contains("timeout") || error_msg.contains("超时") || 
-        error_msg.contains("timed out") || error_msg.contains("HTTP请求失败") ||
+        error_msg.contains("timeout") || 
+        error_msg.contains("timed out") ||
         error_msg.contains("error sending request"),
-        "错误信息应该包含请求失败相关描述: {}",
+        "error message should contain request failure description: {}",
         error_msg
     );
 }
@@ -433,7 +433,7 @@ async fn test_timeout_config_default() {
     mock.assert();
     
     // 预期: 快速响应应该成功
-    assert!(result.is_ok(), "快速响应应该成功: {:?}", result.err());
+    assert!(result.is_ok(), "fast response should succeed: {:?}", result.err());
     
     let output_data = result.unwrap().1;
     assert!(output_data.is_some());
@@ -468,7 +468,7 @@ async fn test_timeout_config_sufficient() {
     let result = executor.execute(&node, &mut context, &[], &std::collections::HashMap::new()).await;
 
     // 预期: 请求应该成功，因为超时足够长
-    assert!(result.is_ok(), "超时足够时应该成功: {:?}", result.err());
+    assert!(result.is_ok(), "should succeed with sufficient timeout: {:?}", result.err());
     
     let output_data = result.unwrap().1;
     assert!(output_data.is_some());
@@ -506,14 +506,14 @@ async fn test_timeout_config_zero() {
         Ok(output_data) => {
             // 如果成功，说明超时配置未生效（使用了默认值）
             // 这是一个 RED 状态的指示
-            println!("警告: 0ms 超时应该失败，但请求成功了");
+            println!("WARNING: 0ms timeout should fail, but request succeeded");
             assert!(output_data.1.is_some());
         }
         Err(error) => {
-            // 如果失败，验证是超时相关的错误
+            // if failed, verify it's a timeout-related error
             assert!(
-                error.contains("timeout") || error.contains("超时"),
-                "错误应该是超时相关: {}",
+                error.contains("timeout"),
+                "error should be timeout related: {}",
                 error
             );
         }
@@ -529,8 +529,8 @@ async fn test_timeout_config_zero() {
 async fn test_file_path_variable_replacement() {
     ensure_crypto_provider();
     // 创建测试文件
-    let mut test_file = NamedTempFile::new().expect("无法创建临时文件");
-    test_file.write_all(b"variable test content").expect("无法写入文件");
+    let mut test_file = NamedTempFile::new().expect("failed to create temp file");
+    test_file.write_all(b"variable test content").expect("failed to write file");
     let file_path = test_file.path().to_string_lossy().to_string();
 
     // 创建 mock 服务器
@@ -566,7 +566,7 @@ async fn test_file_path_variable_replacement() {
     mock.assert();
 
     // 预期: 变量替换应该生效
-    assert!(result.is_ok(), "变量替换应该生效: {:?}", result.err());
+    assert!(result.is_ok(), "variable replacement should work: {:?}", result.err());
     
     let output_data = result.unwrap().1;
     assert!(output_data.is_some());
@@ -583,10 +583,10 @@ async fn test_file_path_variable_replacement() {
 async fn test_large_file_upload() {
     ensure_crypto_provider();
     // 创建 2MB 的测试文件
-    let mut large_file = NamedTempFile::new().expect("无法创建临时文件");
+    let mut large_file = NamedTempFile::new().expect("failed to create temp file");
     let content = vec![0u8; 2 * 1024 * 1024]; // 2MB
-    large_file.write_all(&content).expect("无法写入文件");
-    large_file.flush().expect("无法刷新文件");
+    large_file.write_all(&content).expect("failed to write file");
+    large_file.flush().expect("failed to flush file");
     let file_path = large_file.path().to_string_lossy().to_string();
 
     // 创建 mock 服务器
@@ -617,7 +617,7 @@ async fn test_large_file_upload() {
     mock.assert();
 
     // 预期: 大文件上传应该成功
-    assert!(result.is_ok(), "大文件上传应该成功: {:?}", result.err());
+    assert!(result.is_ok(), "large file upload should succeed: {:?}", result.err());
     
     let output_data = result.unwrap().1;
     assert!(output_data.is_some());

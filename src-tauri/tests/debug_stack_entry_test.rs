@@ -34,22 +34,22 @@ fn test_debug_stack_entry_fields_exist() {
                 new_value: json!({"new": "data"}),
             },
         ]),
-        skip_reason: Some("条件不满足".to_string()),
+        skip_reason: Some("condition not met".to_string()),
     };
 
-    // 序列化
-    let json_str = serde_json::to_string(&entry).expect("序列化失败");
+    // serialize
+    let json_str = serde_json::to_string(&entry).expect("serialization failed");
 
-    // 验证新字段存在于 JSON 中
+    // verify new fields exist in JSON
     assert!(json_str.contains("resolved_config"));
     assert!(json_str.contains("variable_changes"));
     assert!(json_str.contains("skip_reason"));
-    assert!(json_str.contains("条件不满足"));
+    assert!(json_str.contains("condition not met"));
 
-    // 反序列化
-    let deserialized: ExecutionStackEntry = serde_json::from_str(&json_str).expect("反序列化失败");
+    // deserialize
+    let deserialized: ExecutionStackEntry = serde_json::from_str(&json_str).expect("deserialization failed");
 
-    // 验证新字段值
+    // verify new field values
     assert!(deserialized.resolved_config.is_some());
     assert!(deserialized.variable_changes.is_some());
     assert!(deserialized.skip_reason.is_some());
@@ -59,7 +59,7 @@ fn test_debug_stack_entry_fields_exist() {
     assert_eq!(changes[0].key, "status");
     assert_eq!(changes[1].key, "body");
 
-    assert_eq!(deserialized.skip_reason, Some("条件不满足".to_string()));
+    assert_eq!(deserialized.skip_reason, Some("condition not met".to_string()));
 }
 
 /// 测试向后兼容性：旧版 JSON（不包含新字段）可正常反序列化
@@ -81,7 +81,7 @@ fn test_debug_stack_entry_backward_compat() {
 
     // 反序列化应该成功，新字段使用默认值
     let entry: ExecutionStackEntry =
-        serde_json::from_str(old_json).expect("旧版 JSON 反序列化失败");
+        serde_json::from_str(old_json).expect("legacy JSON deserialization failed");
 
     // 验证基本字段
     assert_eq!(entry.node_uuid, "node-001");
@@ -115,10 +115,10 @@ fn test_debug_stack_entry_skip_serializing_if() {
         skip_reason: None,
     };
 
-    let json_str = serde_json::to_string(&entry).expect("序列化失败");
+    let json_str = serde_json::to_string(&entry).expect("serialization failed");
 
-    // None 值的新字段不应出现在 JSON 中
-    // 注意：used_port_id 使用 #[serde(default)]，不是 skip_serializing_if，所以会出现在 JSON 中
+    // None-valued new fields should not appear in JSON
+    // Note: used_port_id uses #[serde(default)], not skip_serializing_if, so it appears in JSON
     assert!(!json_str.contains("resolved_config"));
     assert!(!json_str.contains("variable_changes"));
     assert!(!json_str.contains("skip_reason"));
@@ -144,16 +144,16 @@ fn test_debug_stack_entry_partial_fields() {
         skip_reason: None,
     };
 
-    let json_str = serde_json::to_string(&entry).expect("序列化失败");
+    let json_str = serde_json::to_string(&entry).expect("serialization failed");
 
-    // resolved_config 应该出现
+    // resolved_config should appear
     assert!(json_str.contains("resolved_config"));
-    // variable_changes 和 skip_reason 不应该出现（None）
+    // variable_changes and skip_reason should not appear (None)
     assert!(!json_str.contains("variable_changes"));
     assert!(!json_str.contains("skip_reason"));
 
-    // 反序列化验证
-    let deserialized: ExecutionStackEntry = serde_json::from_str(&json_str).expect("反序列化失败");
+    // verify deserialization
+    let deserialized: ExecutionStackEntry = serde_json::from_str(&json_str).expect("deserialization failed");
 
     assert!(deserialized.resolved_config.is_some());
     assert!(deserialized.variable_changes.is_none());
@@ -184,10 +184,10 @@ fn test_debug_stack_entry_full_scenario() {
     };
 
     // 完整往返测试
-    let json_str = serde_json::to_string(&entry).expect("序列化失败");
-    let deserialized: ExecutionStackEntry = serde_json::from_str(&json_str).expect("反序列化失败");
+    let json_str = serde_json::to_string(&entry).expect("serialization failed");
+    let deserialized: ExecutionStackEntry = serde_json::from_str(&json_str).expect("deserialization failed");
 
-    // 验证所有字段
+    // verify all fields
     assert_eq!(deserialized.node_uuid, "node-003");
     assert_eq!(deserialized.node_name, "Set Variable");
     assert_eq!(deserialized.node_type, "set_variable");

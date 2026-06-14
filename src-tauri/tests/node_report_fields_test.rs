@@ -39,7 +39,7 @@ fn test_node_report_fields_exist() {
     assert_eq!(report.wait_duration_ms, Some(500));
 
     // 验证序列化包含新字段
-    let json_str = serde_json::to_string(&report).expect("序列化失败");
+    let json_str = serde_json::to_string(&report).expect("serialization failed");
     assert!(json_str.contains("resolved_config"));
     assert!(json_str.contains("variable_changes"));
     assert!(json_str.contains("wait_duration_ms"));
@@ -65,7 +65,7 @@ fn test_node_report_backward_compat() {
 
     // 反序列化应该成功，新字段使用默认值
     let report: NodeExecutionReport =
-        serde_json::from_value(old_json).expect("旧版 JSON 反序列化失败");
+        serde_json::from_value(old_json).expect("legacy JSON deserialization failed");
 
     // 验证基本字段
     assert_eq!(report.node_uuid, "old-uuid");
@@ -104,7 +104,7 @@ fn test_node_report_skip_serializing_if() {
     };
 
     // 序列化
-    let json_str = serde_json::to_string(&report).expect("序列化失败");
+    let json_str = serde_json::to_string(&report).expect("serialization failed");
 
     // 新字段不应出现在 JSON 中
     assert!(!json_str.contains("resolved_config"));
@@ -130,16 +130,16 @@ fn test_node_report_skipped_with_reason() {
         error: None,
         resolved_config: None,
         variable_changes: None,
-        skip_reason: Some("条件不满足".to_string()),
+        skip_reason: Some("condition not met".to_string()),
         wait_duration_ms: None,
     };
 
     // 验证序列化包含 skip_reason
-    let json_str = serde_json::to_string(&report).expect("序列化失败");
+    let json_str = serde_json::to_string(&report).expect("serialization failed");
     assert!(json_str.contains("skip_reason"));
-    assert!(json_str.contains("条件不满足"));
+    assert!(json_str.contains("condition not met"));
 
     // 反序列化验证
-    let deserialized: NodeExecutionReport = serde_json::from_str(&json_str).expect("反序列化失败");
-    assert_eq!(deserialized.skip_reason, Some("条件不满足".to_string()));
+    let deserialized: NodeExecutionReport = serde_json::from_str(&json_str).expect("deserialization failed");
+    assert_eq!(deserialized.skip_reason, Some("condition not met".to_string()));
 }

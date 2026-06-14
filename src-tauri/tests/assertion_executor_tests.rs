@@ -25,7 +25,7 @@ fn create_context(flow_id: &str) -> ExecutionContext {
         node_reports: Vec::new(),
         flow_trigger_time: std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .expect("系统时间错误")
+            .expect("system time error")
             .as_millis() as u64,
         log_sender: None,
         flow_file_path: None,
@@ -91,9 +91,9 @@ async fn execute_assertion(
     let result = executor
         .execute(node, context, connections, &std::collections::HashMap::new())
         .await;
-    assert!(result.is_ok(), "执行应该成功");
+    assert!(result.is_ok(), "execution should succeed");
     let (next_nodes, output) = result.unwrap();
-    let output: AssertionOutput = serde_json::from_value(output.unwrap()).expect("输出反序列化失败");
+    let output: AssertionOutput = serde_json::from_value(output.unwrap()).expect("output deserialization failed");
     (next_nodes, output)
 }
 
@@ -117,7 +117,7 @@ async fn test_operator_eq_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
     assert_eq!(output.passed_count, 1);
 }
 
@@ -137,7 +137,7 @@ async fn test_operator_eq_fail() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(!output.passed, "断言应该失败");
+    assert!(!output.passed, "assertion should fail");
     assert_eq!(output.failed_count, 1);
 }
 
@@ -157,7 +157,7 @@ async fn test_operator_ne_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -176,7 +176,7 @@ async fn test_operator_gt_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -195,7 +195,7 @@ async fn test_operator_gte_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -214,7 +214,7 @@ async fn test_operator_lt_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -233,7 +233,7 @@ async fn test_operator_lte_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -252,7 +252,7 @@ async fn test_operator_contains_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -271,7 +271,7 @@ async fn test_operator_not_contains_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -290,7 +290,7 @@ async fn test_operator_matches_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -309,7 +309,7 @@ async fn test_operator_exists_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -328,7 +328,7 @@ async fn test_operator_not_exists_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -347,7 +347,7 @@ async fn test_operator_in_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -366,7 +366,7 @@ async fn test_operator_not_in_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -385,7 +385,7 @@ async fn test_operator_type_is_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -404,7 +404,7 @@ async fn test_operator_between_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 // ============================================================================
@@ -436,7 +436,7 @@ async fn test_jsonpath_nested_path() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -461,7 +461,7 @@ async fn test_jsonpath_wildcard() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "断言应该通过");
+    assert!(output.passed, "assertion should pass");
 }
 
 #[tokio::test]
@@ -481,8 +481,8 @@ async fn test_jsonpath_syntax_error() {
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
     // JSONPath 语法错误会导致断言失败
-    assert!(!output.passed, "JSONPath 语法错误应该导致失败");
-    assert!(output.results[0].error.is_some(), "应该有错误信息");
+    assert!(!output.passed, "JSONPath syntax error should cause failure");
+    assert!(output.results[0].error.is_some(), "should have error info");
 }
 
 // ============================================================================
@@ -510,7 +510,7 @@ async fn test_mode_all_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "all 模式，全部通过");
+    assert!(output.passed, "all mode, all passed");
 }
 
 #[tokio::test]
@@ -534,7 +534,7 @@ async fn test_mode_all_partial_fail() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(!output.passed, "all 模式，有一失败则失败");
+    assert!(!output.passed, "all mode, one fails then fails");
 }
 
 #[tokio::test]
@@ -558,7 +558,7 @@ async fn test_mode_any_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "any 模式，有一通过则通过");
+    assert!(output.passed, "any mode, one passes then passes");
 }
 
 // ============================================================================
@@ -582,7 +582,7 @@ async fn test_preset_http_success() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "http_success 预设应该通过");
+    assert!(output.passed, "http_success preset should pass");
 }
 
 #[tokio::test]
@@ -602,7 +602,7 @@ async fn test_preset_http_client_error() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "http_client_error 预设应该通过");
+    assert!(output.passed, "http_client_error preset should pass");
 }
 
 #[tokio::test]
@@ -622,7 +622,7 @@ async fn test_preset_http_server_error() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "http_server_error 预设应该通过");
+    assert!(output.passed, "http_server_error preset should pass");
 }
 
 #[tokio::test]
@@ -645,7 +645,7 @@ async fn test_preset_json_response() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "json_response 预设应该通过");
+    assert!(output.passed, "json_response preset should pass");
 }
 
 #[tokio::test]
@@ -665,7 +665,7 @@ async fn test_preset_response_fast() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "response_fast 预设应该通过");
+    assert!(output.passed, "response_fast preset should pass");
 }
 
 // ============================================================================
@@ -689,7 +689,7 @@ async fn test_empty_assertions_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "空断言列表应该通过");
+    assert!(output.passed, "empty assertion list should pass");
     assert_eq!(output.total, 0);
 }
 
@@ -713,8 +713,8 @@ async fn test_all_disabled_assertions_pass() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(output.passed, "全禁用断言应该通过");
-    assert_eq!(output.total, 0); // 禁用的不计入
+    assert!(output.passed, "all disabled assertions should pass");
+    assert_eq!(output.total, 0); // disabled ones not counted
 }
 
 #[tokio::test]
@@ -733,7 +733,7 @@ async fn test_type_mismatch_strict_comparison() {
     let node = create_assertion_node("assertion-1", config);
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
-    assert!(!output.passed, "严格比较，类型不同应该失败");
+    assert!(!output.passed, "strict comparison, different types should fail");
 }
 
 #[tokio::test]
@@ -776,8 +776,8 @@ async fn test_on_failure_route_false() {
     ];
 
     let (next_nodes, output) = execute_assertion(&node, &mut context, &connections).await;
-    assert!(!output.passed, "断言应该失败");
-    assert_eq!(next_nodes, vec!["next-false"], "应该路由到 false 端口");
+    assert!(!output.passed, "assertion should fail");
+    assert_eq!(next_nodes, vec!["next-false"], "should route to false port");
 }
 
 #[tokio::test]
@@ -807,9 +807,9 @@ async fn test_on_failure_throw() {
         .execute(&node, &mut context, &[], &std::collections::HashMap::new())
         .await;
 
-    assert!(result.is_err(), "on_failure=throw 应该返回错误");
+    assert!(result.is_err(), "on_failure=throw should return error");
     let error = result.unwrap_err();
-    assert!(error.contains("断言失败"), "错误消息应该包含 '断言失败'");
+    assert!(error.contains("assertion failed"), "error message should contain 'assertion failed'");
 }
 
 #[tokio::test]
@@ -834,7 +834,7 @@ async fn test_continue_on_failure() {
 
     let (_, output) = execute_assertion(&node, &mut context, &[]).await;
     // 两个断言都执行了
-    assert_eq!(output.total, 2, "应该执行所有断言");
+    assert_eq!(output.total, 2, "should execute all assertions");
     assert_eq!(output.passed_count, 1);
     assert_eq!(output.failed_count, 1);
 }
@@ -872,8 +872,8 @@ async fn test_dual_routing_true_port() {
     ];
 
     let (next_nodes, output) = execute_assertion(&node, &mut context, &connections).await;
-    assert!(output.passed, "断言应该通过");
-    assert_eq!(next_nodes, vec!["next-true"], "应该路由到 true 端口");
+    assert!(output.passed, "assertion should pass");
+    assert_eq!(next_nodes, vec!["next-true"], "should route to true port");
 }
 
 #[tokio::test]
@@ -901,8 +901,8 @@ async fn test_regex_dos_protection() {
     ).await;
 
     // 应该在 5 秒内完成（即使触发 ReDoS 防护）
-    assert!(result.is_ok(), "正则匹配应该在超时前完成");
+    assert!(result.is_ok(), "regex match should complete before timeout");
     let (_, output) = result.unwrap();
     // ReDoS 模式不应该匹配带 ! 的字符串
-    assert!(!output.passed, "ReDoS 模式不应该匹配");
+    assert!(!output.passed, "ReDoS pattern should not match");
 }
