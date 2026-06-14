@@ -191,7 +191,7 @@ async fn test_form_data_file_not_found() {
     
     // error message should contain file path related info
     assert!(
-        error.contains("file") || error.contains("read"),
+        error.find("file").is_some() || error.find("read").is_some(),
         "error message should contain file-related description: {}",
         error
     );
@@ -512,7 +512,7 @@ async fn test_timeout_config_zero() {
         Err(error) => {
             // if failed, verify it's a timeout-related error
             assert!(
-                error.contains("timeout"),
+                error.find("timeout").is_some(),
                 "error should be timeout related: {}",
                 error
             );

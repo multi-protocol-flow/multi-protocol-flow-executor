@@ -809,7 +809,7 @@ async fn test_on_failure_throw() {
 
     assert!(result.is_err(), "on_failure=throw should return error");
     let error = result.unwrap_err();
-    assert!(error.contains("assertion failed"), "error message should contain 'assertion failed'");
+    assert!(error.find("assertion failed").is_some(), "error message should contain 'assertion failed'");
 }
 
 #[tokio::test]

@@ -427,7 +427,7 @@ mod tests {
         assert_eq!(data["port"], 9999);
         assert!(data.get("error").is_some());
         let error = data["error"].as_str().expect("error 应为字符串");
-        assert!(error.contains("连接失败"));
+        assert!(error.find("连接失败").is_some());
     }
 
     #[tokio::test]

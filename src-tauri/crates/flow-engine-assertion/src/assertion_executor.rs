@@ -840,7 +840,7 @@ mod tests {
 
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(error.contains("断言失败"));
+        assert!(error.find("断言失败").is_some());
     }
 
     // ========================================================================

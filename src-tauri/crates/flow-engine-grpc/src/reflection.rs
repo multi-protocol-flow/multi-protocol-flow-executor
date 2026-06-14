@@ -644,20 +644,9 @@ pub(crate) async fn reflect_services(
 }
 
 /// 判断 v1 错误是否可以回退到 v1alpha
-fn is_fallback_eligible_error(error: &str) -> bool {
-    // UNIMPLEMENTED 表示服务端不支持 v1
-    if error.contains("unimplemented") || error.contains("Unimplemented") {
-        return true;
-    }
-    // 连接失败类错误（可能 v1 路径不响应，但 v1alpha 可以）
-    if error.contains("连接失败") || error.contains("连接超时") {
-        return true;
-    }
-    // 意外的响应类型（可能服务端返回了 v1alpha 格式）
-    if error.contains("意外的响应类型") {
-        return true;
-    }
-    // 默认回退 — 绝大多数错误都可以尝试 v1alpha
+///
+/// 默认回退 — 绝大多数错误都可以尝试 v1alpha
+fn is_fallback_eligible_error(_error: &str) -> bool {
     true
 }
 

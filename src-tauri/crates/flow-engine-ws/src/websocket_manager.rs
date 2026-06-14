@@ -2074,7 +2074,7 @@ mod tests {
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert!(
-            error.contains("超时") || error.contains("失败"),
+            error.find("超时").is_some() || error.find("失败").is_some(),
             "错误消息应该包含超时或失败: {}",
             error
         );
