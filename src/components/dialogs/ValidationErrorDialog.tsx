@@ -15,7 +15,8 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, FileX2, AlertCircle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getLL } from '@/i18n/i18n-lazy';
-import type { ValidationErrorItem } from '@/types/ipc';
+import type { ValidationEntry } from '@/types/ipc';
+import { resolveErrorCode } from '@/services/tauri/flow';
 
 export interface ValidationErrorDialogProps {
   /** 是否显示对话框 */
@@ -29,23 +30,9 @@ export interface ValidationErrorDialogProps {
   /** 错误描述（可选，默认使用 i18n） */
   description?: string;
   /** 结构化错误列表（含 code + message） */
-  errors: ValidationErrorItem[];
+  errors: ValidationEntry[];
   /** 警告信息列表（可选） */
   warnings?: string[];
-}
-
-/**
- * 根据错误码返回对应的 i18n 翻译摘要
- * 如果未找到映射，返回 null 表示使用原始消息
- */
-function getLocalizedSummary(code: string, ll: ReturnType<typeof getLL>): string | null {
-  const map: Record<string, string> = {
-    port_duplicate: ll.flow.validation_port_duplicate(),
-    cycle_detected: ll.flow.validation_cycle_detected(),
-    missing_entry: 'Missing entry node',
-    ws_config_error: 'WebSocket configuration error',
-  };
-  return map[code] ?? null;
 }
 
 export function ValidationErrorDialog({
@@ -103,7 +90,7 @@ export function ValidationErrorDialog({
             <div className="p-3 space-y-3">
               {/* 错误列表 */}
               {errors.map((error, index) => {
-                const localizedSummary = getLocalizedSummary(error.code, ll);
+                const localizedSummary = resolveErrorCode(error.code);
                 return (
                   <div key={index} className="flex items-start gap-2 text-sm">
                     <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />

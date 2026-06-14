@@ -14,15 +14,19 @@ import type {
 } from '@/types/ipc';
 import type { LogEvent } from '@/types/events';
 import type { ExecutionEvent } from '@/types/execution_event';
+import { getLL } from '@/i18n/i18n-lazy';
 
 /**
  * IPC 错误类
+ * 包含命令名称、错误码和原始错误原因
  */
 export class IpcError extends Error {
   constructor(
     message: string,
     public readonly command: string,
-    public readonly cause?: unknown
+    public readonly cause?: unknown,
+    /** 可选错误码（如 E_TIMEOUT），用于 i18n 本地化 */
+    public readonly code?: string
   ) {
     super(message);
     this.name = 'IpcError';
@@ -30,7 +34,33 @@ export class IpcError extends Error {
 }
 
 /**
+ * 根据错误码解析本地化错误消息
+ * 调用 LL().errors[code](args) 获取翻译后的消息
+ * 若错误码不存在或查询失败，返回原始 error code 作为 fallback
+ *
+ * @param code - 错误码（如 E_TIMEOUT、E_HTTP_REQUEST_FAILED）
+ * @param args - 模板参数（如 { url, status }），与 errors.ts 中的 RequiredParams 对齐
+ * @returns 本地化错误消息
+ */
+export function resolveErrorCode(code: string, args?: Record<string, string>): string {
+  try {
+    // LL.errors exists at runtime via custom-types.ts augmentation on RootTranslation,
+    // but TranslationFunctions (auto-generated type alias) does not have the `errors` key.
+    // We cast through unknown to access it at runtime with minimal type assertion surface.
+    const LL = getLL() as unknown as { errors: Record<string, (a?: Record<string, string>) => string> };
+    const fn = LL.errors[code];
+    if (typeof fn === 'function') {
+      return fn(args);
+    }
+  } catch {
+    // 忽略异常，返回 code 作为 fallback
+  }
+  return code;
+}
+
+/**
  * 格式化错误信息
+ * 检测 IPC 返回的结构化错误（含 error_code），自动提取并传递
  * @internal 导出供其他 IPC 模块使用
  */
 export function formatError(error: unknown, command: string): IpcError {
@@ -39,6 +69,18 @@ export function formatError(error: unknown, command: string): IpcError {
   }
   if (error instanceof Error) {
     return new IpcError(error.message, command, error);
+  }
+  // 结构化错误：检查 error_code 字段
+  if (error && typeof error === 'object') {
+    const errObj = error as Record<string, unknown>;
+    const errorCode = typeof errObj.error_code === 'string' ? errObj.error_code : undefined;
+    const message =
+      typeof errObj.message === 'string'
+        ? errObj.message
+        : errorCode
+          ? `Error: ${errorCode}`
+          : `Unknown error: ${String(error)}`;
+    return new IpcError(message, command, error, errorCode);
   }
   return new IpcError(`Unknown error: ${String(error)}`, command, error);
 }

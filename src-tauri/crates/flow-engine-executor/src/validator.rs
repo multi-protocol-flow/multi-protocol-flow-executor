@@ -152,7 +152,7 @@ impl FlowValidator {
                 .any(|n| n.node_type == node_types::ENTRY);
             if has_entry {
                 warnings.push(
-                    "流程没有 End 节点，执行完成后的状态始终为 success。建议添加 End 节点来明确流程终点。"
+                    "Flow has no End node; execution status will remain 'success' on completion. Consider adding an End node to explicitly terminate the flow."
                         .to_string(),
                 );
             }
@@ -355,7 +355,7 @@ impl FlowValidator {
                     .iter()
                     .find(|n| n.uuid == conn.source_node_uuid)
                     .map(|n| n.name.as_str())
-                    .unwrap_or("未知节点");
+                    .unwrap_or("unknown node");
                 errors.push(ValidationEntry {
                     code: ErrorCode::E_VAL_PORT_DUPLICATE,
                     message: format!(
@@ -946,7 +946,7 @@ mod tests {
         assert!(result.errors.is_empty());
         assert!(!result.warnings.is_empty());
         eprintln!("Warning: {}", result.warnings[0]);
-        assert!(result.warnings[0].contains("End 节点"));
+        assert!(result.warnings[0].contains("End node"));
     }
 
     #[test]
