@@ -84,8 +84,8 @@ mod tests {
         let result = config.validate();
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(error.contains("并发用户数必须大于等于 1"));
-        assert!(error.contains("当前值: 0"));
+        assert!(error.find("并发用户数必须大于等于 1").is_some());
+        assert!(error.find("当前值: 0").is_some());
     }
 
     #[test]
@@ -100,7 +100,7 @@ mod tests {
         let result = config.validate();
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(error.contains("预热时长(120秒)不能超过总时长(60秒)"));
+        assert!(error.find("预热时长(120秒)不能超过总时长(60秒)").is_some());
     }
 
     #[test]
@@ -155,7 +155,7 @@ mod tests {
         let result = config.validate();
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(error.contains("预热时长(10秒)不能超过总时长(0秒)"));
+        assert!(error.find("预热时长(10秒)不能超过总时长(0秒)").is_some());
     }
 
     #[test]

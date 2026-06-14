@@ -38,9 +38,9 @@ pub async fn execute(
         let cli_output = CliOutput {
             success: false,
             data: Some(output_data),
-            error: Some(format!("验证失败: {} 个错误", result.errors.len())),
+            error: Some(format!("Validation failed: {} error(s)", result.errors.len())),
         };
         output::output_json(&cli_output);
-        Err(super::CliError::Execution("流程验证失败".to_string()))
+        Err(super::CliError::Execution("Flow validation failed".to_string()))
     }
 }

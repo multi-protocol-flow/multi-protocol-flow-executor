@@ -261,34 +261,20 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
 /// 验证流程
 ///
 /// 检查流程结构是否正确，返回带有错误码的结构化验证结果。
-/// 每个错误项包含 `code`（错误码，前端用于 i18n 映射）和 `message`（详细描述）。
+/// 每个错误项包含 `code`（错误码，前端用于 i18n 映射）、`message`（详细描述）和可选的 `field`。
 #[tauri::command]
 pub fn validate_flow(flow: Flow) -> serde_json::Value {
     let validator = flow_engine::validator::FlowValidator::new();
     let result = validator.validate(&flow);
 
-    /// 根据错误消息内容推断错误码
-    fn infer_error_code(msg: &str) -> &str {
-        if msg.contains("只能连接一个下游节点") {
-            "port_duplicate"
-        } else if msg.contains("循环依赖") {
-            "cycle_detected"
-        } else if msg.contains("缺少 Entry") || msg.contains("缺少开始节点") {
-            "missing_entry"
-        } else if msg.contains("URL") || msg.contains("超时") {
-            "ws_config_error"
-        } else {
-            "unknown"
-        }
-    }
-
     let structured_errors: Vec<serde_json::Value> = result
         .errors
         .iter()
-        .map(|msg| {
+        .map(|entry| {
             serde_json::json!({
-                "code": infer_error_code(msg),
-                "message": msg,
+                "code": entry.code,
+                "message": entry.message,
+                "field": entry.field,
             })
         })
         .collect();
@@ -3949,12 +3935,12 @@ mod tests {
         assert!(output.error.is_some(), "should have error info");
         let error = output.error.unwrap();
         assert!(
-            error.contains("persistence not yet implemented"),
+            error.find("persistence not yet implemented").is_some(),
             "error should contain 'persistence not yet implemented', got: {}",
             error
         );
         assert!(
-            error.contains("update_node needs to load flow, update node, then save flow"),
+            error.find("update_node needs to load flow, update node, then save flow").is_some(),
             "error should explain the reason"
         );
     }
@@ -3993,7 +3979,7 @@ mod tests {
         assert!(output.error.is_some(), "should have error info");
         let error = output.error.unwrap();
         assert!(
-            error.contains("cannot delete start node"),
+            error.find("cannot delete start node").is_some(),
             "error should contain 'cannot delete start node', got: {}",
             error
         );
@@ -4042,12 +4028,12 @@ mod tests {
         assert!(output.error.is_some(), "should have error info");
         let error = output.error.unwrap();
         assert!(
-            error.contains("persistence not yet implemented"),
+            error.find("persistence not yet implemented").is_some(),
             "error should contain 'persistence not yet implemented', got: {}",
             error
         );
         assert!(
-            error.contains("delete_node needs to load flow, delete node and connections, then save flow"),
+            error.find("delete_node needs to load flow, delete node and connections, then save flow").is_some(),
             "error should explain the reason"
         );
     }

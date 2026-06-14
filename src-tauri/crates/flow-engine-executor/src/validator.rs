@@ -1,17 +1,29 @@
 // 流程验证器模块 - FlowValidator 实现
 
+use flow_engine_core::error::ErrorCode;
 use flow_engine_core::flow::Flow;
 use flow_engine_core::node::Node;
 use flow_engine_core::node_config::NodeData;
 use flow_engine_core::node_types;
+
+/// 结构化验证错误条目
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ValidationEntry {
+    /// 错误代码（如 E_VAL_MISSING_ENTRY）
+    pub code: ErrorCode,
+    /// 人类可读的错误描述
+    pub message: String,
+    /// 相关的字段或属性名（可选）
+    pub field: Option<String>,
+}
 
 /// 验证结果
 #[derive(Debug, Clone)]
 pub struct ValidationResult {
     /// 验证是否通过
     pub valid: bool,
-    /// 错误信息列表
-    pub errors: Vec<String>,
+    /// 结构化错误信息列表
+    pub errors: Vec<ValidationEntry>,
     /// 警告信息列表（不影响 valid 状态）
     pub warnings: Vec<String>,
 }
@@ -26,20 +38,24 @@ impl ValidationResult {
         }
     }
 
-    /// 创建失败的验证结果
-    pub fn error(message: impl Into<String>) -> Self {
+    /// 创建包含单个结构化错误的验证结果
+    pub fn error(code: ErrorCode, message: impl Into<String>, field: Option<String>) -> Self {
         ValidationResult {
             valid: false,
-            errors: vec![message.into()],
+            errors: vec![ValidationEntry {
+                code,
+                message: message.into(),
+                field,
+            }],
             warnings: Vec::new(),
         }
     }
 
     /// 创建多个错误的验证结果
-    pub fn errors(messages: Vec<String>) -> Self {
+    pub fn errors(errors: Vec<ValidationEntry>) -> Self {
         ValidationResult {
             valid: false,
-            errors: messages,
+            errors,
             warnings: Vec::new(),
         }
     }
@@ -81,7 +97,7 @@ impl FlowValidator {
     /// # 返回
     /// - `ValidationResult`: 验证结果
     pub fn validate(&self, flow: &Flow) -> ValidationResult {
-        let mut errors = Vec::new();
+        let mut errors: Vec<ValidationEntry> = Vec::new();
         let mut warnings = Vec::new();
 
         // 规则 1: 必须有至少一个 Entry 节点（流程入口）
@@ -92,7 +108,11 @@ impl FlowValidator {
             .collect();
 
         if entry_nodes.is_empty() {
-            errors.push("流程缺少 Entry 节点（流程入口）".to_string());
+            errors.push(ValidationEntry {
+                code: ErrorCode::E_VAL_MISSING_ENTRY,
+                message: "Flow is missing an Entry node".to_string(),
+                field: None,
+            });
         }
         // 注意：不再检查 Entry 节点数量限制或输出连接要求
         // 新架构允许：
@@ -176,14 +196,18 @@ impl FlowValidator {
     /// # 返回
     /// - `ValidationResult`: 验证结果
     pub fn validate_ws_nodes(&self, flow: &Flow) -> ValidationResult {
-        let mut errors = Vec::new();
+        let mut errors: Vec<ValidationEntry> = Vec::new();
 
         for node in &flow.nodes {
             match &node.data {
                 NodeData::WsConnect(config) => {
                     // 验证 URL 不为空
                     if config.url.is_empty() {
-                        errors.push(format!("节点 {} URL 不能为空", node.name));
+                        errors.push(ValidationEntry {
+                            code: ErrorCode::E_HTTP_INVALID_URL,
+                            message: format!("Node '{}' URL cannot be empty", node.name),
+                            field: Some("url".to_string()),
+                        });
                     }
 
                     // 验证 URL 格式
@@ -191,70 +215,113 @@ impl FlowValidator {
                         && !config.url.starts_with("ws://")
                         && !config.url.starts_with("wss://")
                     {
-                        errors.push(format!(
-                            "节点 {} URL 格式无效（必须以 ws:// 或 wss:// 开头）",
-                            node.name
-                        ));
+                        errors.push(ValidationEntry {
+                            code: ErrorCode::E_HTTP_INVALID_URL,
+                            message: format!(
+                                "Node '{}' URL format is invalid (must start with ws:// or wss://)",
+                                node.name
+                            ),
+                            field: Some("url".to_string()),
+                        });
                     }
 
                     // 验证超时配置
                     if config.connect_timeout_ms < 1000 || config.connect_timeout_ms > 60000 {
-                        errors.push(format!(
-                            "节点 {} 连接超时必须在 1000-60000ms 范围内",
-                            node.name
-                        ));
+                        errors.push(ValidationEntry {
+                            code: ErrorCode::E_CONFIG_ERROR,
+                            message: format!(
+                                "Node '{}' connect timeout must be between 1000-60000ms",
+                                node.name
+                            ),
+                            field: Some("connect_timeout_ms".to_string()),
+                        });
                     }
 
                     if config.collect_timeout_ms < 1000 || config.collect_timeout_ms > 300000 {
-                        errors.push(format!(
-                            "节点 {} 采集超时必须在 1000-300000ms 范围内",
-                            node.name
-                        ));
+                        errors.push(ValidationEntry {
+                            code: ErrorCode::E_CONFIG_ERROR,
+                            message: format!(
+                                "Node '{}' collect timeout must be between 1000-300000ms",
+                                node.name
+                            ),
+                            field: Some("collect_timeout_ms".to_string()),
+                        });
                     }
                 }
                 NodeData::WsSendCollect(config) => {
                     // 验证 connection_id 不为空
                     if config.connection_id.is_empty() {
-                        errors.push(format!("节点 {} connection_id 不能为空", node.name));
+                        errors.push(ValidationEntry {
+                            code: ErrorCode::E_CONFIG_ERROR,
+                            message: format!("Node '{}' connection_id cannot be empty", node.name),
+                            field: Some("connection_id".to_string()),
+                        });
                     }
 
                     // 验证消息不为空
                     if config.message.is_empty() {
-                        errors.push(format!("节点 {} 消息内容不能为空", node.name));
+                        errors.push(ValidationEntry {
+                            code: ErrorCode::E_CONFIG_ERROR,
+                            message: format!("Node '{}' message cannot be empty", node.name),
+                            field: Some("message".to_string()),
+                        });
                     }
 
                     // 验证超时配置
                     if config.send_timeout_ms < 1000 || config.send_timeout_ms > 30000 {
-                        errors.push(format!(
-                            "节点 {} 发送超时必须在 1000-30000ms 范围内",
-                            node.name
-                        ));
+                        errors.push(ValidationEntry {
+                            code: ErrorCode::E_CONFIG_ERROR,
+                            message: format!(
+                                "Node '{}' send timeout must be between 1000-30000ms",
+                                node.name
+                            ),
+                            field: Some("send_timeout_ms".to_string()),
+                        });
                     }
 
                     if config.collect_timeout_ms < 1000 || config.collect_timeout_ms > 300000 {
-                        errors.push(format!(
-                            "节点 {} 采集超时必须在 1000-300000ms 范围内",
-                            node.name
-                        ));
+                        errors.push(ValidationEntry {
+                            code: ErrorCode::E_CONFIG_ERROR,
+                            message: format!(
+                                "Node '{}' collect timeout must be between 1000-300000ms",
+                                node.name
+                            ),
+                            field: Some("collect_timeout_ms".to_string()),
+                        });
                     }
                 }
                 NodeData::WsClose(config) => {
                     // 验证 connection_id 不为空
                     if config.connection_id.is_empty() {
-                        errors.push(format!("节点 {} connection_id 不能为空", node.name));
+                        errors.push(ValidationEntry {
+                            code: ErrorCode::E_CONFIG_ERROR,
+                            message: format!("Node '{}' connection_id cannot be empty", node.name),
+                            field: Some("connection_id".to_string()),
+                        });
                     }
 
                     // 验证关闭码
                     if config.close_code < 1000 || config.close_code > 4999 {
-                        errors.push(format!("节点 {} 关闭码必须在 1000-4999 范围内", node.name));
+                        errors.push(ValidationEntry {
+                            code: ErrorCode::E_CONFIG_ERROR,
+                            message: format!(
+                                "Node '{}' close code must be between 1000-4999",
+                                node.name
+                            ),
+                            field: Some("close_code".to_string()),
+                        });
                     }
 
                     // 验证关闭超时
                     if config.close_timeout_ms < 1000 || config.close_timeout_ms > 30000 {
-                        errors.push(format!(
-                            "节点 {} 关闭超时必须在 1000-30000ms 范围内",
-                            node.name
-                        ));
+                        errors.push(ValidationEntry {
+                            code: ErrorCode::E_CONFIG_ERROR,
+                            message: format!(
+                                "Node '{}' close timeout must be between 1000-30000ms",
+                                node.name
+                            ),
+                            field: Some("close_timeout_ms".to_string()),
+                        });
                     }
                 }
                 _ => {}
@@ -289,10 +356,14 @@ impl FlowValidator {
                     .find(|n| n.uuid == conn.source_node_uuid)
                     .map(|n| n.name.as_str())
                     .unwrap_or("未知节点");
-                errors.push(format!(
-                    "节点「{}」的「{}」端口只能连接一个下游节点，检测到重复连接",
-                    node_name, conn.source_port_id
-                ));
+                errors.push(ValidationEntry {
+                    code: ErrorCode::E_VAL_PORT_DUPLICATE,
+                    message: format!(
+                        "Node '{}' port '{}' can only connect to one downstream node, duplicate connection detected",
+                        node_name, conn.source_port_id
+                    ),
+                    field: Some(conn.source_port_id.clone()),
+                });
             }
         }
 
@@ -309,7 +380,7 @@ impl FlowValidator {
     /// 白色（未访问）、灰色（正在访问）、黑色（已访问完成）。
     /// 如果在遍历过程中遇到灰色节点，说明存在环。
     pub fn validate_no_cycles(&self, flow: &Flow) -> ValidationResult {
-        let mut errors = Vec::new();
+        let mut errors: Vec<ValidationEntry> = Vec::new();
 
         if flow.nodes.is_empty() || flow.connections.is_empty() {
             return ValidationResult::success();
@@ -363,7 +434,7 @@ impl FlowValidator {
             color: &mut Vec<u8>,
             node_names: &[&str],
             path: &mut Vec<usize>,
-        ) -> Option<String> {
+        ) -> Option<ValidationEntry> {
             color[u] = 1; // 灰色：正在访问
             path.push(u);
 
@@ -377,7 +448,11 @@ impl FlowValidator {
                             .map(|&idx| node_names[idx])
                             .collect();
                         let cycle_str = cycle_path.join(" → ");
-                        return Some(format!("流程中存在循环依赖：{}", cycle_str));
+                        return Some(ValidationEntry {
+                            code: ErrorCode::E_VAL_CYCLE_DETECTED,
+                            message: format!("Flow contains a cycle: {}", cycle_str),
+                            field: None,
+                        });
                     }
                     0 => {
                         if let Some(err) = dfs_idx(v, adj, color, node_names, path) {
@@ -470,10 +545,9 @@ mod tests {
         // 验证检测到错误
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
-        eprintln!("Error: {}", result.errors[0]);
+        eprintln!("Error: {}", result.errors[0].message);
         assert!(
-            result.errors[0].contains("缺少开始节点")
-                || result.errors[0].contains("缺少 Entry 节点")
+            result.errors[0].message.contains("missing an Entry node")
         );
     }
 
@@ -514,8 +588,8 @@ mod tests {
         // 验证检测到错误（缺少 Entry 节点）
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
-        eprintln!("Error: {}", result.errors[0]);
-        assert!(result.errors[0].contains("缺少 Entry 节点"));
+        eprintln!("Error: {}", result.errors[0].message);
+        assert!(result.errors[0].message.contains("missing an Entry node"));
     }
 
     #[test]
@@ -568,7 +642,7 @@ mod tests {
         // 验证检测到错误（缺少 Entry 节点）
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
-        assert!(result.errors[0].contains("缺少 Entry 节点"));
+        assert!(result.errors[0].message.contains("missing an Entry node"));
     }
 
     #[test]
@@ -598,8 +672,8 @@ mod tests {
         // 验证检测到错误（缺少 Entry 节点）
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
-        eprintln!("Empty flow error: {}", result.errors[0]);
-        assert!(result.errors[0].contains("缺少 Entry 节点"));
+        eprintln!("Empty flow error: {}", result.errors[0].message);
+        assert!(result.errors[0].message.contains("missing an Entry node"));
     }
 
     #[test]
@@ -765,9 +839,10 @@ mod tests {
         // 验证错误消息正确
         assert!(!result.valid);
         assert_eq!(result.errors.len(), 1);
-        let error_msg = &result.errors[0];
-        eprintln!("Error message: {}", error_msg);
-        assert!(error_msg.contains("缺少 Entry 节点"));
+        let error_entry = &result.errors[0];
+        eprintln!("Error message: {}", error_entry.message);
+        assert_eq!(error_entry.code, ErrorCode::E_VAL_MISSING_ENTRY);
+        assert!(error_entry.message.contains("missing an Entry node"));
     }
 
     #[test]
@@ -787,7 +862,7 @@ mod tests {
 
         // 新规则：同一输出端口只能有一条出边
         assert!(!result.valid);
-        assert!(result.errors.iter().any(|e| e.contains("只能连接一个下游节点")));
+        assert!(result.errors.iter().any(|e| e.message.contains("can only connect to one downstream node")));
     }
 
     #[test]
@@ -970,7 +1045,7 @@ mod tests {
         let result = validator.validate(&flow);
 
         assert!(!result.valid);
-        assert!(result.errors.iter().any(|e| e.contains("只能连接一个下游节点")));
+        assert!(result.errors.iter().any(|e| e.message.contains("can only connect to one downstream node")));
     }
 
     #[test]
@@ -1029,7 +1104,7 @@ mod tests {
         let result = validator.validate(&flow);
 
         // 应该通过（不同端口各自出边是允许的）
-        assert!(result.valid, "不同端口各自出边应该允许，但错误: {:?}", result.errors);
+        assert!(result.valid, "Different ports should each allow one edge, but errors: {:?}", result.errors);
     }
 
     // ========================================================================
@@ -1078,7 +1153,7 @@ mod tests {
         let result = validator.validate(&flow);
 
         assert!(!result.valid);
-        assert!(result.errors.iter().any(|e| e.contains("循环依赖")));
+        assert!(result.errors.iter().any(|e| e.message.contains("cycle")));
     }
 
     #[test]
@@ -1114,7 +1189,7 @@ mod tests {
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        assert!(result.valid, "线性流程不应有循环，但错误: {:?}", result.errors);
+        assert!(result.valid, "Linear flow should have no cycles, but errors: {:?}", result.errors);
     }
 
     #[test]
@@ -1158,6 +1233,6 @@ mod tests {
         let result = validator.validate(&flow);
 
         assert!(!result.valid);
-        assert!(result.errors.iter().any(|e| e.contains("循环依赖")));
+        assert!(result.errors.iter().any(|e| e.message.contains("cycle")));
     }
 }

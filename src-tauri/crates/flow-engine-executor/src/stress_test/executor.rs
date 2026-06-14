@@ -823,7 +823,7 @@ mod tests {
         let result = executor.start().await;
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(error.contains("并发用户数"));
+        assert!(error.find("并发用户数").is_some());
     }
 
     /// 测试停止未运行的压测失败

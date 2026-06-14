@@ -165,13 +165,16 @@ export interface DeleteNodeCommandOutput {
 // ============================================================================
 
 /**
- * 验证错误项（结构化，含错误码和详细消息）
+ * 验证错误条目（结构化，含错误码、详细消息和可选字段名）
+ * 对应后端 flow-engine-executor 中的 ValidationEntry
  */
-export interface ValidationErrorItem {
-  /** 错误码（用于前端 i18n 映射） */
+export interface ValidationEntry {
+  /** 错误码（如 E_VAL_MISSING_ENTRY，用于前端 i18n 映射） */
   code: string;
-  /** 详细错误消息（后端原始描述） */
+  /** 详细错误消息（后端英文原始描述） */
   message: string;
+  /** 相关字段名（可选） */
+  field?: string;
 }
 
 /**
@@ -181,7 +184,7 @@ export interface ValidationResult {
   /** 验证是否通过 */
   valid: boolean;
   /** 结构化错误列表 */
-  errors: ValidationErrorItem[];
+  errors: ValidationEntry[];
   /** 警告信息列表 */
   warnings: string[];
 }

@@ -1866,7 +1866,7 @@ mod tests {
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "旧语法应该返回错误");
         let error = result.unwrap_err();
-        assert!(error.contains("不支持的语法"), "错误信息应该包含 '不支持的语法': {}", error);
+        assert!(error.find("不支持的语法").is_some(), "错误信息应该包含 '不支持的语法': {}", error);
     }
 
     #[tokio::test]
@@ -1888,7 +1888,7 @@ mod tests {
         let result = executor.execute(&node, &mut context, &[], &HashMap::new()).await;
         assert!(result.is_err(), "空 field_path 应该返回错误");
         let error = result.unwrap_err();
-        assert!(error.contains("不能为空"), "错误信息应该包含 '不能为空': {}", error);
+        assert!(error.find("不能为空").is_some(), "错误信息应该包含 '不能为空': {}", error);
     }
 
     #[tokio::test]

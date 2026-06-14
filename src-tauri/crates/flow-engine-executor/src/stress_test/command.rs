@@ -568,7 +568,7 @@ mod tests {
         let result2 = handle_start_stress_test(input2, event_sender2, manager.clone()).await;
         assert!(result2.is_err(), "第二次启动应该失败");
         let error = result2.unwrap_err();
-        assert!(error.contains("已有压测会话在运行"));
+        assert!(error.find("已有压测会话在运行").is_some());
 
         // 清理
         let _ = handle_stop_stress_test(manager).await;
@@ -594,7 +594,7 @@ mod tests {
         let result = handle_start_stress_test(input, event_sender, manager.clone()).await;
         assert!(result.is_err(), "无效配置应该失败");
         let error = result.unwrap_err();
-        assert!(error.contains("并发用户数"));
+        assert!(error.find("并发用户数").is_some());
 
         assert!(!manager.is_running().await);
     }

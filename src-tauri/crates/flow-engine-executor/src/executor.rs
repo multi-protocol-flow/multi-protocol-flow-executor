@@ -97,47 +97,14 @@ fn build_input_data_from_node_config(
     }
 }
 
-/// 从字符串错误解析错误详情
+/// 从字符串错误创建 ErrorDetail
 ///
-/// 尝试从错误消息中识别错误类型，并创建对应的 `ErrorDetail`
+/// ErrorKind 现由 ErrorCode 通过 error_kind_hint() 推导，
+/// 不应再通过消息子串匹配判断错误类型。
+/// 所有协议执行器应在各自返回的 ErrorDetail 中设置正确的 ErrorCode。
 fn parse_error_to_detail(error: &str) -> ErrorDetail {
-    // 识别条件语法错误
-    if error.contains("条件") && (error.contains("语法") || error.contains("配置")) {
-        return ErrorDetail::new(ErrorKind::ConditionSyntax, error.to_string());
-    }
-    
-    // 识别配置错误
-    if error.contains("配置") || error.contains("缺少") || error.contains("无效") {
-        return ErrorDetail::new(ErrorKind::Configuration, error.to_string());
-    }
-    
-    // 识别连接错误
-    if error.contains("连接") || error.contains("网络") {
-        return ErrorDetail::new(ErrorKind::Connection, error.to_string());
-    }
-    
-    // 识别超时错误
-    if error.contains("超时") || error.contains("timeout") {
-        return ErrorDetail::new(ErrorKind::Timeout, error.to_string());
-    }
-    
-    // 识别验证错误
-    if error.contains("验证") || error.contains("参数") {
-        return ErrorDetail::new(ErrorKind::Validation, error.to_string());
-    }
-    
-    // 识别解析错误
-    if error.contains("解析") || error.contains("JSON") || error.contains("格式") {
-        return ErrorDetail::new(ErrorKind::Parse, error.to_string());
-    }
-    
-    // 识别条件评估错误
-    if error.contains("条件评估") || error.contains("评估") {
-        return ErrorDetail::new(ErrorKind::ConditionEvaluation, error.to_string());
-    }
-    
-    // 默认为通用执行错误
-    ErrorDetail::new(ErrorKind::Execution, error.to_string())
+    // 默认使用 Execution 类型；具体 ErrorKind 应由 ErrorCode 推导
+    ErrorDetail::execution_error(error.to_string())
 }
 
 /// Flow executor
@@ -282,7 +249,7 @@ impl FlowExecutor {
             return ExecutionResult {
                 success: false,
                 data: None,
-                error: Some(format!("流程验证失败: {}", validation.errors.join("; "))),
+                error: Some(format!("Flow validation failed: {}", validation.errors.iter().map(|e| &e.message[..]).collect::<Vec<&str>>().join("; "))),
                 executed_count: 0,
                 node_reports: vec![],
                 flow_report: None,
@@ -652,54 +619,8 @@ impl FlowExecutor {
                         break;
                     }
 
-                    // 如果节点尚未实现（占位符），优雅终止流程
-                    // 检查错误消息是否包含"尚未实现"
-                    if error.contains("尚未实现") {
-                        // 遇到占位符节点，表示流程已到达未实现部分
-                        log::info!(
-                            "[流程 {}] 节点 {} 尚未实现，流程终止",
-                            context.flow_uuid,
-                            node.name
-                        );
-
-                        // 创建节点执行报告（Success状态 - 优雅终止）
-                        // 解析 resolved_config：递归替换节点配置中的变量占位符
-                        let raw_config = serde_json::to_value(&node.data).unwrap_or(json!(null));
-                        let resolved_config = Some(
-                            flow_engine_core::executor::resolve_variables_in_json(&raw_config, &context)
-                        );
-
-                        let node_report = flow_engine_core::report::NodeExecutionReport {
-                            node_uuid: node.uuid.clone(),
-                            node_type: node.node_type.clone(),
-                            node_name: node.name.clone(),
-                            start_time: node_start_ms,
-                            end_time: node_end_ms,
-                            duration_ms: node_duration,
-                            status: flow_engine_core::report::ExecutionStatus::Success,
-                            input_data: Some(json!(context.variables.get_merged_variables())),
-                            output_data: None,
-                            used_port_id: None,
-                            error: None,
-                            // 新增字段（Task 13）
-                            resolved_config,
-                            variable_changes: None,
-                            skip_reason: None,
-                            wait_duration_ms: None,
-                        };
-                        node_reports.push(node_report.clone());
-                        context.node_reports.push(node_report);
-
-                        // 发送节点完成事件
-                        context.emit_execution_event(ExecutionEvent::NodeCompleted {
-                            report: Box::new(node_reports.last().unwrap().clone()),
-                        }).await;
-
-                        // 返回成功，已执行的节点都成功完成
-                        break;
-                    } else {
                     // === 容错模式错误处理 ===
-                    // 解析错误类型
+                    // ErrorKind 由 ErrorCode 通过 error_kind_hint() 推导
                     let error_detail = parse_error_to_detail(&error);
                     
                     // 查找节点插件用于后续 registry 查询
@@ -921,7 +842,6 @@ impl FlowExecutor {
 
                         // 终止当前分支
                         break;
-                    }
                     }
                 }
             }
