@@ -2,7 +2,7 @@
   "_version": 1,
   "flow": {
     "uuid": "empty-flow",
-    "name": "空流程",
+    "name": "Empty Flow",
     "nodes": [],
     "connections": []
   },

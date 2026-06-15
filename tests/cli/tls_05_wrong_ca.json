@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "tls-wrong-ca",
-    "name": "TLS 错误的 CA 证书（预期失败）",
-    "description": "配了错误的 CA 证书（用 ca-wrong.pem 验证 server.pem）。预期: TLS 握手失败 — unknown issuer",
+    "name": "TLS Wrong CA Certificate (Expected Failure)",
+    "description": "Configured with wrong CA certificate (using ca-wrong.pem to validate server.pem). Expected: TLS handshake failure - unknown issuer",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "TLS 错误 CA",
+        "name": "TLS Wrong CA",
         "position": {
           "x": 250,
           "y": 0

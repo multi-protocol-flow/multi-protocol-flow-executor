@@ -2,7 +2,7 @@
   "_version": 1,
   "flow": {
     "uuid": "multi-http-chain",
-    "name": "多HTTP链式调用",
+    "name": "Multi-HTTP Chain",
     "initial_variables": {
       "api_base": "https://httpbin.org"
     },
@@ -10,7 +10,7 @@
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -23,7 +23,7 @@
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "第一步：获取UUID",
+        "name": "Step 1: Get UUID",
         "position": {
           "x": 100,
           "y": 0
@@ -38,7 +38,7 @@
       {
         "uuid": "http-002",
         "type": "http",
-        "name": "第二步：使用UUID请求",
+        "name": "Step 2: Request with UUID",
         "position": {
           "x": 200,
           "y": 0
@@ -56,7 +56,7 @@
       {
         "uuid": "http-003",
         "type": "http",
-        "name": "第三步：最终确认",
+        "name": "Step 3: Final Confirmation",
         "position": {
           "x": 300,
           "y": 0

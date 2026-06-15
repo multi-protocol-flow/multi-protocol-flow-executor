@@ -2,12 +2,12 @@
   "_version": 1,
   "flow": {
     "uuid": "conditional-simple",
-    "name": "简单条件判断",
+    "name": "Simple Conditional",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -20,7 +20,7 @@
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "获取数据",
+        "name": "Fetch Data",
         "position": {
           "x": 100,
           "y": 0
@@ -35,7 +35,7 @@
       {
         "uuid": "conditional-001",
         "type": "conditional",
-        "name": "检查状态",
+        "name": "Check Status",
         "position": {
           "x": 200,
           "y": 0

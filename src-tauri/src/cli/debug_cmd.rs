@@ -30,7 +30,7 @@ fn parse_vars(vars: &[String]) -> Result<HashMap<String, serde_json::Value>, sup
     let mut map = HashMap::new();
     for v in vars {
         let (key, val) = v.split_once('=').ok_or_else(|| {
-            super::CliError::InvalidArgs(format!("--var 格式错误 (需要 key=value): {}", v))
+            super::CliError::InvalidArgs(format!("--var invalid format (expected key=value): {}", v))
         })?;
         let json_val =
             serde_json::from_str(val).unwrap_or(serde_json::Value::String(val.to_string()));
@@ -61,14 +61,14 @@ pub async fn execute(
     let path = PathBuf::from(flow_path);
     if !path.exists() {
         return Err(super::CliError::InvalidArgs(format!(
-            "流程文件不存在: {}",
+            "Flow file not found: {}",
             flow_path
         )));
     }
 
     // 2. 加载流程
     let flow = crate::load_flow(flow_path)
-        .map_err(|e| super::CliError::Execution(format!("加载流程失败: {}", e)))?;
+        .map_err(|e| super::CliError::Execution(format!("Failed to load flow: {}", e)))?;
 
     // 3. 解析变量
     let variables: Option<serde_json::Value> = if vars.is_empty() {
@@ -148,7 +148,7 @@ pub async fn execute(
                             }
                             Err(e) => {
                                 // 输出解析错误到 stderr，保持 stdout 仅输出事件
-                                eprintln!("无效的命令 JSON: {}", e);
+                                eprintln!("Invalid command JSON: {}", e);
                             }
                         }
                     }
@@ -159,7 +159,7 @@ pub async fn execute(
                     }
                     Err(e) => {
                         // stdin 读取错误
-                        eprintln!("stdin 读取错误: {}", e);
+                        eprintln!("stdin read error: {}", e);
                         let _ = debug_cmd_tx.send(crate::debug::DebugCommand::EndDebug);
                     }
                 }

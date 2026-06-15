@@ -2,7 +2,7 @@
   "_version": 1,
   "flow": {
     "uuid": "full-workflow",
-    "name": "完整工作流示例",
+    "name": "Full Workflow Example",
     "initial_variables": {
       "api_base": "https://httpbin.org",
       "token": "test-token-xyz"
@@ -11,7 +11,7 @@
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -24,7 +24,7 @@
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "获取用户数据",
+        "name": "Fetch User Data",
         "position": {
           "x": 100,
           "y": 0
@@ -42,7 +42,7 @@
       {
         "uuid": "conditional-001",
         "type": "conditional",
-        "name": "验证响应状态",
+        "name": "Validate Response Status",
         "position": {
           "x": 200,
           "y": 0
@@ -57,7 +57,7 @@
       {
         "uuid": "http-002",
         "type": "http",
-        "name": "处理成功-发送确认",
+        "name": "Success Handler",
         "position": {
           "x": 300,
           "y": -50
@@ -76,7 +76,7 @@
       {
         "uuid": "http-003",
         "type": "http",
-        "name": "处理失败-记录错误",
+        "name": "Error Handler",
         "position": {
           "x": 300,
           "y": 50

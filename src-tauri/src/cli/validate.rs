@@ -1,11 +1,11 @@
-//! mpe validate 子命令
+//! mpe validate subcommand
 
 use std::path::PathBuf;
 
 use super::output;
 use super::output::CliOutput;
 
-/// 验证流程
+/// Validate flow
 pub async fn execute(
     _format: &str,
     flow_path: &str,
@@ -13,16 +13,16 @@ pub async fn execute(
     let path = PathBuf::from(flow_path);
     if !path.exists() {
         return Err(super::CliError::InvalidArgs(format!(
-            "流程文件不存在: {}",
+            "Flow file not found: {}",
             flow_path
         )));
     }
 
-    // 加载流程
+    // Load flow
     let flow = crate::load_flow(flow_path)
-        .map_err(|e| super::CliError::Execution(format!("加载流程失败: {}", e)))?;
+        .map_err(|e| super::CliError::Execution(format!("Failed to load flow: {}", e)))?;
 
-    // 验证流程
+    // Validate flow
     let result = crate::validator::FlowValidator::new().validate(&flow);
 
     let output_data = serde_json::json!({

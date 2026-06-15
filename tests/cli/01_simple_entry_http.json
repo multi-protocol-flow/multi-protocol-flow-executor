@@ -2,12 +2,12 @@
   "_version": 1,
   "flow": {
     "uuid": "simple-entry-http",
-    "name": "简单 Entry-HTTP 流程",
+    "name": "Simple Entry-HTTP Flow",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -20,7 +20,7 @@
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "HTTP GET 请求",
+        "name": "HTTP GET Request",
         "position": {
           "x": 100,
           "y": 0

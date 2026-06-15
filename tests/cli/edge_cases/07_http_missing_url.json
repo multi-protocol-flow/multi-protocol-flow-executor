@@ -2,12 +2,12 @@
   "_version": 1,
   "flow": {
     "uuid": "http-missing-url",
-    "name": "HTTP缺少URL",
+    "name": "HTTP Missing URL",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -20,7 +20,7 @@
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "无URL的HTTP",
+        "name": "HTTP without URL",
         "position": {
           "x": 100,
           "y": 0

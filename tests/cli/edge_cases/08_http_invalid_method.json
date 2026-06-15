@@ -2,12 +2,12 @@
   "_version": 1,
   "flow": {
     "uuid": "http-invalid-method",
-    "name": "无效HTTP方法",
+    "name": "Invalid HTTP Method",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -20,7 +20,7 @@
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "无效方法",
+        "name": "Invalid Method",
         "position": {
           "x": 100,
           "y": 0

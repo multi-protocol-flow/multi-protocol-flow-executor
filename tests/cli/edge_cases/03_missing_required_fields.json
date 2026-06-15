@@ -1,9 +1,9 @@
 {
-  "name": "缺少必需字段",
+  "name": "Missing Required Fields",
   "nodes": [
     {
       "type": "entry",
-      "name": "入口",
+      "name": "Entry",
       "position": { "x": 0.0, "y": 0.0 },
       "data": { "type": "entry" },
       "ports": null

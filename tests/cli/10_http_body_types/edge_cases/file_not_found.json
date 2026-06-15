@@ -1,11 +1,11 @@
 {
   "uuid": "http-binary-file-not-found",
-  "name": "HTTP 二进制文件不存在测试",
+  "name": "HTTP Binary File Not Found Test",
   "nodes": [
     {
       "uuid": "entry-001",
       "type": "entry",
-      "name": "入口",
+      "name": "Entry",
       "position": { "x": 0.0, "y": 0.0 },
       "data": { "type": "entry" },
       "ports": null
@@ -13,7 +13,7 @@
     {
       "uuid": "http-001",
       "type": "http",
-      "name": "HTTP POST 文件不存在",
+      "name": "HTTP POST File Not Found",
       "position": { "x": 100.0, "y": 0.0 },
       "data": {
         "type": "http",

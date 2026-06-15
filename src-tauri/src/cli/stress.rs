@@ -36,14 +36,14 @@ async fn execute_run(
     let path = PathBuf::from(flow_path);
     if !path.exists() {
         return Err(CliError::InvalidArgs(format!(
-            "流程文件不存在: {}",
+            "Flow file not found: {}",
             flow_path
         )));
     }
 
     // 加载流程文件（使用统一 FlowFile 格式）
     let flow = crate::load_flow(flow_path)
-        .map_err(|e| CliError::Execution(format!("加载流程文件失败: {}", e)))?;
+        .map_err(|e| CliError::Execution(format!("Failed to load flow file: {}", e)))?;
 
     // 创建压测配置
     let stress_config = crate::stress_test::StressTestConfig {
@@ -70,7 +70,7 @@ async fn execute_run(
     executor
         .start()
         .await
-        .map_err(|e| CliError::Execution(format!("启动压力测试失败: {}", e)))?;
+        .map_err(|e| CliError::Execution(format!("Failed to start stress test: {}", e)))?;
 
     // 流式输出事件 (NDJSON)，同时监听取消信号
     let mut final_report: Option<crate::stress_test::StressTestReport> = None;
@@ -90,7 +90,7 @@ async fn execute_run(
             }
             _ = cancel_rx.changed() => {
                 // Ctrl+C: 输出取消事件并退出
-                eprintln!("\n压力测试被用户取消，正在停止...");
+                eprintln!("\nStress test cancelled by user, stopping...");
                 // drop executor 停止所有任务
                 drop(executor);
                 break;
@@ -108,9 +108,9 @@ async fn execute_run(
     if let Some(path) = output_path {
         if let Some(report) = final_report {
             let json = serde_json::to_string_pretty(&report)
-                .map_err(|e| CliError::Execution(format!("序列化报告失败: {}", e)))?;
+                .map_err(|e| CliError::Execution(format!("Failed to serialize report: {}", e)))?;
             std::fs::write(path, json)
-                .map_err(|e| CliError::Io(format!("写入报告失败: {}", e)))?;
+                .map_err(|e| CliError::Io(format!("Failed to write report: {}", e)))?;
         }
     }
 
@@ -123,10 +123,10 @@ async fn execute_report(command: StressReportCommands, format: &str) -> Result<(
         StressReportCommands::List => {
             let app_config = config::AppConfig::load().map_err(CliError::Config)?;
             let reports = crate::storage::list_stress_reports(&app_config.reports_dir)
-                .map_err(|e| CliError::Execution(format!("列出压测报告失败: {}", e)))?;
+                .map_err(|e| CliError::Execution(format!("Failed to list stress reports: {}", e)))?;
 
             if format == "table" {
-                let headers = ["UUID", "流程名称", "开始时间"];
+                let headers = ["UUID", "Flow Name", "Start Time"];
                 let rows: Vec<Vec<String>> = reports
                     .iter()
                     .map(|r| {
@@ -148,13 +148,13 @@ async fn execute_report(command: StressReportCommands, format: &str) -> Result<(
         }
         StressReportCommands::Show { file_path } => {
             let report = crate::storage::load_stress_report(&PathBuf::from(&file_path))
-                .map_err(|e| CliError::Execution(format!("加载压测报告失败: {}", e)))?;
+                .map_err(|e| CliError::Execution(format!("Failed to load stress report: {}", e)))?;
             output::output_json(&CliOutput::success(&report));
             Ok(())
         }
         StressReportCommands::Delete { file_path } => {
             crate::storage::delete_stress_report(&PathBuf::from(&file_path))
-                .map_err(|e| CliError::Execution(format!("删除压测报告失败: {}", e)))?;
+                .map_err(|e| CliError::Execution(format!("Failed to delete stress report: {}", e)))?;
             output::output_json(&CliOutput::success(serde_json::json!({"deleted": file_path})));
             Ok(())
         }

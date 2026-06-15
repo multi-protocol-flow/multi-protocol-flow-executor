@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "tls-basic-ca-verify",
-    "name": "TLS 基础验证 — 正确 CA 证书",
-    "description": "用自定义 CA 证书验证 localhost HTTPS 服务器的身份。预期: 200 成功",
+    "name": "TLS Basic Verification - Correct CA Certificate",
+    "description": "Verify localhost HTTPS server with a custom CA certificate. Expected: 200 success",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "TLS CA 验证",
+        "name": "TLS CA Verification",
         "position": {
           "x": 250,
           "y": 0

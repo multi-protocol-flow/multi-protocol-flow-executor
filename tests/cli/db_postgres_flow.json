@@ -2,12 +2,12 @@
   "_version": 1,
   "flow": {
     "uuid": "db-postgres-flow",
-    "name": "PostgreSQL 数据库流程",
+    "name": "PostgreSQL Database Flow",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -20,7 +20,7 @@
       {
         "uuid": "db-connect-001",
         "type": "db_connect",
-        "name": "连接 PostgreSQL",
+        "name": "Connect PostgreSQL",
         "position": {
           "x": 100,
           "y": 0
@@ -44,7 +44,7 @@
       {
         "uuid": "db-query-001",
         "type": "db_query",
-        "name": "查询用户表",
+        "name": "Query Users",
         "position": {
           "x": 200,
           "y": 0
@@ -65,7 +65,7 @@
       {
         "uuid": "db-close-001",
         "type": "db_close",
-        "name": "关闭连接",
+        "name": "Close Connection",
         "position": {
           "x": 300,
           "y": 0

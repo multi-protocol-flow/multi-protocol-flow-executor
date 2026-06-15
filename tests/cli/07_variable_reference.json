@@ -2,7 +2,7 @@
   "_version": 1,
   "flow": {
     "uuid": "variable-reference",
-    "name": "变量引用示例",
+    "name": "Variable Reference Example",
     "initial_variables": {
       "user_id": "12345",
       "api_key": "test-api-key-abc",
@@ -12,7 +12,7 @@
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -25,7 +25,7 @@
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "使用变量请求",
+        "name": "Request with Variables",
         "position": {
           "x": 100,
           "y": 0
@@ -43,7 +43,7 @@
       {
         "uuid": "conditional-001",
         "type": "conditional",
-        "name": "检查响应",
+        "name": "Check Response",
         "position": {
           "x": 200,
           "y": 0

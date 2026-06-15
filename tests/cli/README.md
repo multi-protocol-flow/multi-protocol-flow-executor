@@ -1,27 +1,27 @@
-# CLI 测试数据
+# CLI Test Data
 
-本目录包含 CLI 工具的测试数据文件，用于验证多协议流程执行器的功能。
+This directory contains test data files for the CLI tool, used to verify the multi-protocol flow executor functionality.
 
-## Schema 说明
+## Schema Reference
 
-### 节点类型
+### Node Types
 
-| 类型 | 说明 | data 配置 |
-|------|------|----------|
-| `entry` | 入口节点 | 空对象 `{}` |
-| `http` | HTTP 请求节点 | url, method, headers, body |
-| `conditional` | 条件分支节点 | condition_type, field_path, operator, expected_value / advanced_expression |
+| Type | Description | data Config |
+|------|-------------|-------------|
+| `entry` | Entry node | Empty object `{}` |
+| `http` | HTTP request node | url, method, headers, body |
+| `conditional` | Conditional branch node | condition_type, field_path, operator, expected_value / advanced_expression |
 
-### 流程结构
+### Flow Structure
 
-流程文件使用 **FlowFile 包装格式**：
+Flow files use the **FlowFile wrapping format**:
 
 ```json
 {
   "_version": 1,
   "flow": {
     "uuid": "flow-identifier",
-    "name": "流程名称",
+    "name": "Flow Name",
     "initial_variables": { ... },
     "nodes": [...],
     "connections": [...]
@@ -30,20 +30,20 @@
 }
 ```
 
-### 节点结构
+### Node Structure
 
 ```json
 {
   "uuid": "node-001",
   "type": "entry|http|conditional",
-  "name": "节点名称",
+  "name": "Node Name",
   "position": { "x": 0.0, "y": 0.0 },
   "data": { ... },
   "ports": null
 }
 ```
 
-### 连接结构
+### Connection Structure
 
 ```json
 {
@@ -55,83 +55,83 @@
 }
 ```
 
-### 条件操作符
+### Condition Operators
 
-| 操作符 | 说明 | 适用类型 |
-|--------|------|----------|
-| `equal` | 等于 | 所有类型 |
-| `not_equal` | 不等于 | 所有类型 |
-| `greater` | 大于 | 数字 |
-| `greater_or_equal` | 大于等于 | 数字 |
-| `less` | 小于 | 数字 |
-| `less_or_equal` | 小于等于 | 数字 |
-| `contains` | 包含 | 字符串、数组 |
-| `starts_with` | 以...开始 | 字符串 |
-| `ends_with` | 以...结束 | 字符串 |
-| `exists` | 存在 | 所有类型 |
+| Operator | Description | Applicable Types |
+|----------|-------------|------------------|
+| `equal` | Equal to | All types |
+| `not_equal` | Not equal to | All types |
+| `greater` | Greater than | Numbers |
+| `greater_or_equal` | Greater than or equal to | Numbers |
+| `less` | Less than | Numbers |
+| `less_or_equal` | Less than or equal to | Numbers |
+| `contains` | Contains | Strings, Arrays |
+| `starts_with` | Starts with | Strings |
+| `ends_with` | Ends with | Strings |
+| `exists` | Exists | All types |
 
-### 变量引用
+### Variable References
 
-- `{{xxx}}` - 引用流程初始变量（变量已拍平为顶级 key）
-- `{{http_response.data.xxx}}` - 引用HTTP响应数据
-- `{{http_response.status}}` - 引用HTTP状态码
+- `{{xxx}}` - Reference flow initial variables (flattened to top-level keys)
+- `{{http_response.data.xxx}}` - Reference HTTP response data
+- `{{http_response.status}}` - Reference HTTP status code
 
-## 正常场景测试文件
+## Normal Scenario Test Files
 
-| 文件 | 说明 | 覆盖功能 |
-|------|------|----------|
-| `01_simple_entry_http.json` | 简单流程 | Entry → HTTP GET 基础链路 |
-| `02_http_all_methods.json` | HTTP方法 | GET/POST/PUT/DELETE/PATCH |
-| `03_http_with_headers_body.json` | HTTP配置 | Headers、嵌套JSON body |
-| `04_conditional_simple.json` | 简单条件 | Entry → HTTP → Conditional |
-| `05_conditional_all_operators.json` | 所有操作符 | 10种条件操作符 |
-| `06_conditional_advanced.json` | 高级条件 | advanced_expression |
-| `07_variable_reference.json` | 变量引用 | initial_variables 在 URL/Headers 中 |
-| `08_multi_http_chain.json` | HTTP链 | 3个HTTP请求链式调用 |
-| `09_full_workflow.json` | 完整流程 | Entry → HTTP → Conditional → HTTP (分支) |
+| File | Description | Coverage |
+|------|-------------|----------|
+| `01_simple_entry_http.json` | Simple flow | Entry → HTTP GET basic path |
+| `02_http_all_methods.json` | HTTP methods | GET/POST/PUT/DELETE/PATCH |
+| `03_http_with_headers_body.json` | HTTP config | Headers, nested JSON body |
+| `04_conditional_simple.json` | Simple conditional | Entry → HTTP → Conditional |
+| `05_conditional_all_operators.json` | All operators | 10 condition operators |
+| `06_conditional_advanced.json` | Advanced conditional | advanced_expression |
+| `07_variable_reference.json` | Variable reference | initial_variables in URL/Headers |
+| `08_multi_http_chain.json` | HTTP chain | 3 HTTP requests chained |
+| `09_full_workflow.json` | Full workflow | Entry → HTTP → Conditional → HTTP (branches) |
 
-## 边界情况测试文件
+## Edge Case Test Files
 
-| 文件 | 说明 | 预期行为 |
-|------|------|----------|
-| `01_empty_flow.json` | 空流程 | 无节点执行 |
-| `02_no_entry_node.json` | 无Entry节点 | 验证器报错 |
-| `03_missing_required_fields.json` | 缺少必需字段 | 反序列化失败 |
-| `04_invalid_json_syntax.json` | 无效JSON语法 | JSON解析失败 |
-| `05_invalid_node_type.json` | 无效节点类型 | 反序列化失败 |
-| `06_orphan_node.json` | 孤立节点 | 节点不被执行 |
-| `07_http_missing_url.json` | HTTP缺少URL | 执行失败 |
-| `08_http_invalid_method.json` | 无效HTTP方法 | 反序列化失败 |
-| `09_http_empty_body_for_post.json` | POST无body | 发送空body |
-| `10_conditional_missing_operator.json` | 条件缺少operator | 使用默认值 |
-| `11_conditional_empty_expression.json` | 空条件表达式 | 求值失败 |
-| `12_connection_invalid_reference.json` | 无效连接引用 | 找不到节点 |
+| File | Description | Expected Behavior |
+|------|-------------|-------------------|
+| `01_empty_flow.json` | Empty flow | No nodes executed |
+| `02_no_entry_node.json` | No Entry node | Validator error |
+| `03_missing_required_fields.json` | Missing required fields | Deserialization failure |
+| `04_invalid_json_syntax.json` | Invalid JSON syntax | JSON parse failure |
+| `05_invalid_node_type.json` | Invalid node type | Deserialization failure |
+| `06_orphan_node.json` | Orphan node | Node not executed |
+| `07_http_missing_url.json` | HTTP missing URL | Execution failure |
+| `08_http_invalid_method.json` | Invalid HTTP method | Deserialization failure |
+| `09_http_empty_body_for_post.json` | POST without body | Send empty body |
+| `10_conditional_missing_operator.json` | Conditional missing operator | Uses default value |
+| `11_conditional_empty_expression.json` | Empty condition expression | Evaluation failure |
+| `12_connection_invalid_reference.json` | Invalid connection reference | Node not found |
 
-## 使用方法
+## Usage
 
-### 编译 CLI 工具
+### Build CLI Tool
 
 ```bash
 cd src-tauri
 cargo build --release
 ```
 
-### 执行测试文件
+### Execute Test Files
 
 ```bash
 ./target/release/mpe run -f ../tests/cli/01_simple_entry_http.json
 ```
 
-### 验证 JSON 语法
+### Validate JSON Syntax
 
 ```bash
 for f in tests/cli/*.json tests/cli/edge_cases/*.json; do
-  jq . "$f" > /dev/null && echo "✓ $f" || echo "✗ $f"
+  jq . "$f" > /dev/null && echo "PASS $f" || echo "FAIL $f"
 done
 ```
 
-## 注意事项
+## Notes
 
-1. **Schema 版本**: 使用 `entry` 类型，而非旧的 `start`/`end`
-2. **网络依赖**: 部分测试使用 httpbin.org
-3. **边界情况**: edge_cases/ 中的文件设计为触发错误
+1. **Schema Version**: Uses `entry` type, not the legacy `start`/`end`
+2. **Network Dependency**: Some tests use httpbin.org
+3. **Edge Cases**: Files in edge_cases/ are designed to trigger errors

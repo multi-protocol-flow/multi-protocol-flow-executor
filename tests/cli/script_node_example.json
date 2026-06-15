@@ -8,7 +8,7 @@
       {
         "uuid": "entry-1",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "http-1",
         "type": "http",
-        "name": "获取 JSON 数据",
+        "name": "Fetch JSON Data",
         "position": {
           "x": 200,
           "y": 0
@@ -36,14 +36,14 @@
       {
         "uuid": "script-1",
         "type": "script",
-        "name": "脚本处理",
+        "name": "Script Processing",
         "position": {
           "x": 400,
           "y": 0
         },
         "data": {
           "type": "script",
-          "script": "// 获取响应状态码\nvar status = fn.response.code;\n\n// 获取响应体（JSON 字符串，需要解析）\nvar bodyStr = fn.response.body;\nvar data = JSON.parse(bodyStr);\n\n// 提取 slideshow.title 并存储到变量\nvar title = data.slideshow.title;\nfn.variables.set('extracted_title', title);\n\n// 存储状态码\nfn.variables.set('response_status', status.toString());\n\n// 返回成功\ntrue;",
+          "script": "// Get response status code\nvar status = fn.response.code;\n\n// Get response body (JSON string, needs parsing)\nvar bodyStr = fn.response.body;\nvar data = JSON.parse(bodyStr);\n\n// Extract slideshow.title and store to variable\nvar title = data.slideshow.title;\nfn.variables.set('extracted_title', title);\n\n// Store status code\nfn.variables.set('response_status', status.toString());\n\n// Return success\ntrue;",
           "timeout_ms": 5000,
           "memory_limit_mb": 10,
           "execution_phase": "post_request",
@@ -55,7 +55,7 @@
       {
         "uuid": "cond-1",
         "type": "conditional",
-        "name": "验证提取的变量",
+        "name": "Verify Extracted Variable",
         "position": {
           "x": 600,
           "y": 0
@@ -72,7 +72,7 @@
       {
         "uuid": "http-success",
         "type": "http",
-        "name": "成功-确认",
+        "name": "Success-Confirm",
         "position": {
           "x": 800,
           "y": -50
@@ -87,7 +87,7 @@
       {
         "uuid": "http-fail",
         "type": "http",
-        "name": "失败-记录",
+        "name": "Failure-Log",
         "position": {
           "x": 800,
           "y": 50

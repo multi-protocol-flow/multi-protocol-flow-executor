@@ -2,12 +2,12 @@
   "_version": 1,
   "flow": {
     "uuid": "http-all-methods",
-    "name": "HTTP 所有方法示例",
+    "name": "HTTP All Methods Example",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -20,7 +20,7 @@
       {
         "uuid": "http-get-001",
         "type": "http",
-        "name": "GET 请求",
+        "name": "GET Request",
         "position": {
           "x": 100,
           "y": -100
@@ -35,7 +35,7 @@
       {
         "uuid": "http-post-001",
         "type": "http",
-        "name": "POST 请求",
+        "name": "POST Request",
         "position": {
           "x": 100,
           "y": -50
@@ -53,7 +53,7 @@
       {
         "uuid": "http-put-001",
         "type": "http",
-        "name": "PUT 请求",
+        "name": "PUT Request",
         "position": {
           "x": 100,
           "y": 0
@@ -71,7 +71,7 @@
       {
         "uuid": "http-delete-001",
         "type": "http",
-        "name": "DELETE 请求",
+        "name": "DELETE Request",
         "position": {
           "x": 100,
           "y": 50
@@ -86,7 +86,7 @@
       {
         "uuid": "http-patch-001",
         "type": "http",
-        "name": "PATCH 请求",
+        "name": "PATCH Request",
         "position": {
           "x": 100,
           "y": 100

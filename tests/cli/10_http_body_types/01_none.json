@@ -1,11 +1,11 @@
 {
   "uuid": "http-body-none",
-  "name": "HTTP 无请求体测试",
+  "name": "HTTP No Body Test",
   "nodes": [
     {
       "uuid": "entry-001",
       "type": "entry",
-      "name": "入口",
+      "name": "Entry",
       "position": { "x": 0.0, "y": 0.0 },
       "data": { "type": "entry" },
       "ports": null
@@ -13,7 +13,7 @@
     {
       "uuid": "http-001",
       "type": "http",
-      "name": "HTTP POST 无请求体",
+      "name": "HTTP POST No Body",
       "position": { "x": 100.0, "y": 0.0 },
       "data": {
         "type": "http",

@@ -1,24 +1,24 @@
-//! CLI 输出模块 - 统一 JSON 输出格式
+//! CLI output module - unified JSON output format
 //!
-//! 提供三种输出模式:
-//! - `output_json` — 格式化 JSON 输出 (默认模式)
-//! - `output_error` — 错误 JSON 输出
-//! - `output_ndjson` — 单行 JSON 输出 + flush (NDJSON 流式模式)
+//! Provides three output modes:
+//! - `output_json` — formatted JSON output (default mode)
+//! - `output_error` — error JSON output
+//! - `output_ndjson` — single-line JSON output with flush (NDJSON streaming mode)
 
 use std::io::Write;
 
-// ── 退出码常量 ──────────────────────────────────────────────────────
+// ── Exit code constants ─────────────────────────────────────────────
 
-/// CLI 退出码：成功
+/// CLI exit code: success
 pub const EXIT_SUCCESS: i32 = 0;
-/// CLI 退出码：执行错误
+/// CLI exit code: execution error
 pub const EXIT_FAILURE: i32 = 1;
-/// CLI 退出码：参数错误
+/// CLI exit code: invalid arguments
 pub const EXIT_INVALID_ARGS: i32 = 2;
 
-// ── 统一输出结构体 ──────────────────────────────────────────────────
+// ── Unified output struct ───────────────────────────────────────────
 
-/// CLI 统一输出格式
+/// CLI unified output format
 ///
 /// ```json
 /// { "success": true,  "data": { ... } }
@@ -26,18 +26,18 @@ pub const EXIT_INVALID_ARGS: i32 = 2;
 /// ```
 #[derive(serde::Serialize)]
 pub struct CliOutput<T: serde::Serialize> {
-    /// 执行是否成功
+    /// Whether execution was successful
     pub success: bool,
-    /// 成功时的输出数据
+    /// Output data on success
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<T>,
-    /// 失败时的错误信息
+    /// Error message on failure
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
 
 impl<T: serde::Serialize> CliOutput<T> {
-    /// 创建成功输出
+    /// Create success output
     pub fn success(data: T) -> Self {
         Self {
             success: true,
@@ -48,7 +48,7 @@ impl<T: serde::Serialize> CliOutput<T> {
 }
 
 impl CliOutput<()> {
-    /// 创建错误输出 (无数据，只有错误信息)
+    /// Create error output (no data, only error message)
     pub fn error(msg: impl Into<String>) -> Self {
         Self {
             success: false,
@@ -58,50 +58,50 @@ impl CliOutput<()> {
     }
 }
 
-// ── 输出函数 ────────────────────────────────────────────────────────
+// ── Output functions ────────────────────────────────────────────────
 
-/// 输出格式化 JSON 到 stdout
+/// Output formatted JSON to stdout
 pub fn output_json<T: serde::Serialize>(output: &CliOutput<T>) {
     match serde_json::to_string_pretty(output) {
         Ok(json) => println!("{}", json),
-        Err(e) => eprintln!("序列化输出失败: {}", e),
+        Err(e) => eprintln!("Output serialization failed: {}", e),
     }
 }
 
-/// 输出错误 JSON 到 stdout
+/// Output error JSON to stdout
 pub fn output_error(message: impl Into<String>) {
     let output = CliOutput::error(message);
     output_json(&output);
 }
 
-/// 输出单行 JSON 到 stdout 并 flush (NDJSON 模式)
+/// Output single-line JSON to stdout with flush (NDJSON mode)
 pub fn output_ndjson<T: serde::Serialize>(value: &T) {
     match serde_json::to_string(value) {
         Ok(json) => {
             println!("{}", json);
-            // flush 失败不影响主流程，仅记录日志
+            // flush failure does not affect main flow, log only
             if let Err(e) = flush_stdout() {
                 eprintln!("{}", e);
             }
         }
-        Err(e) => eprintln!("序列化事件失败: {}", e),
+        Err(e) => eprintln!("Event serialization failed: {}", e),
     }
 }
 
-/// 刷新 stdout 缓冲区
+/// Flush stdout buffer
 pub fn flush_stdout() -> Result<(), String> {
     std::io::stdout()
         .flush()
-        .map_err(|e| format!("flush 失败: {}", e))
+        .map_err(|e| format!("flush failed: {}", e))
 }
 
-// ── 表格格式化 ──────────────────────────────────────────────────────
+// ── Table formatting ─────────────────────────────────────────────────
 
-/// 将数据格式化为文本表格
+/// Format data as a text table
 ///
-/// 列宽自适应，列间用两个空格分隔，表头下方添加分隔线。
+/// Columns auto-resize, separated by two spaces, with a separator line below headers.
 pub fn format_table(headers: &[&str], rows: &[Vec<String>]) -> String {
-    // 计算列宽
+    // Calculate column widths
     let mut widths: Vec<usize> = headers.iter().map(|h| h.len()).collect();
     for row in rows {
         for (i, cell) in row.iter().enumerate() {
@@ -113,7 +113,7 @@ pub fn format_table(headers: &[&str], rows: &[Vec<String>]) -> String {
 
     let mut result = String::new();
 
-    // 表头
+    // Headers
     for (i, h) in headers.iter().enumerate() {
         if i > 0 {
             result.push_str("  ");
@@ -122,7 +122,7 @@ pub fn format_table(headers: &[&str], rows: &[Vec<String>]) -> String {
     }
     result.push('\n');
 
-    // 分隔线
+    // Separator
     for (i, w) in widths.iter().enumerate() {
         if i > 0 {
             result.push_str("  ");
@@ -131,7 +131,7 @@ pub fn format_table(headers: &[&str], rows: &[Vec<String>]) -> String {
     }
     result.push('\n');
 
-    // 数据行
+    // Data rows
     for row in rows {
         for (i, cell) in row.iter().enumerate() {
             if i > 0 {

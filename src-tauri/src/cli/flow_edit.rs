@@ -1,4 +1,4 @@
-//! mpe flow edit 子命令 — 节点/连接/变量的增删改操作
+//! mpe flow edit subcommand — node/connection/variable CRUD operations
 
 use super::config::AppConfig;
 use super::output::CliOutput;
@@ -11,7 +11,7 @@ use crate::connection::Connection;
 use crate::node_types;
 use std::collections::HashMap;
 
-/// 执行 flow edit 子命令
+/// Execute flow edit subcommand
 pub async fn execute(
     _format: &str,
     command: FlowEditCommands,
@@ -56,32 +56,32 @@ pub async fn execute(
     }
 }
 
-/// 解析字符串为 `NodeType`
+/// Parse string as `NodeType`
 fn parse_node_type(type_str: &str) -> Result<String, CliError> {
-    // 验证节点类型字符串是否合法（通过 serde 反序列化到 NodeType 验证）
+    // Validate node type string (via serde deserialization into NodeType)
     let _node_type: crate::node::NodeType = serde_json::from_value(serde_json::Value::String(type_str.to_string()))
-        .map_err(|e| CliError::InvalidArgs(format!("无效的节点类型 '{}': {}", type_str, e)))?;
+        .map_err(|e| CliError::InvalidArgs(format!("invalid node type '{}': {}", type_str, e)))?;
     Ok(type_str.to_string())
 }
 
-/// 根据节点类型和可选配置 JSON 创建 `NodeData`
+/// Create `NodeData` from node type and optional config JSON
 fn create_node_data(
     node_type: &str,
     config_json: Option<&str>,
 ) -> Result<NodeData, CliError> {
-    // 如果提供了配置 JSON，直接解析为 NodeData（带 type tag）
+    // If config JSON provided, parse as NodeData (with type tag)
     if let Some(json_str) = config_json {
-        // 尝试带 type tag 解析
+        // Try parsing with type tag
         let data: NodeData = serde_json::from_str(json_str)
-            .map_err(|e| CliError::InvalidArgs(format!("解析节点配置失败: {}", e)))?;
+            .map_err(|e| CliError::InvalidArgs(format!("failed to parse node config: {}", e)))?;
         return Ok(data);
     }
 
-    // 无配置时使用默认值
+    // Use default when no config
     Ok(default_node_data(node_type))
 }
 
-/// 根据节点类型字符串返回默认 `NodeData`
+/// Return default `NodeData` for given node type string
 fn default_node_data(node_type: &str) -> NodeData {
     match node_type {
         node_types::ENTRY => NodeData::entry(),
@@ -106,7 +106,7 @@ fn default_node_data(node_type: &str) -> NodeData {
     }
 }
 
-/// 计算新节点的自动位置（现有节点最大 x + 250）
+/// Calculate auto position for new node (max x + 250)
 fn auto_position(nodes: &[Node]) -> NodePosition {
     let max_x = nodes.iter().map(|n| n.position.x).fold(0.0_f64, f64::max);
     NodePosition {
@@ -115,9 +115,9 @@ fn auto_position(nodes: &[Node]) -> NodePosition {
     }
 }
 
-// ── 节点操作 ──────────────────────────────────────────────────────
+// ── Node operations ─────────────────────────────────────────────────────
 
-/// 添加节点
+/// Add node
 async fn execute_node_add(
     flows_dir: &std::path::Path,
     flow_uuid: &str,
@@ -157,7 +157,7 @@ async fn execute_node_add(
     Ok(())
 }
 
-/// 移除节点（同时移除关联连接）
+/// Remove node (also removes associated connections)
 async fn execute_node_remove(
     flows_dir: &std::path::Path,
     flow_uuid: &str,
@@ -166,17 +166,17 @@ async fn execute_node_remove(
     let mut flow = crate::storage::load_flow_file(flow_uuid, flows_dir)
         .map_err(CliError::Execution)?;
 
-    // 检查节点是否存在
+    // Check if node exists
     let node_idx = flow
         .nodes
         .iter()
         .position(|n| n.uuid == node_uuid)
-        .ok_or_else(|| CliError::InvalidArgs(format!("节点不存在: {}", node_uuid)))?;
+        .ok_or_else(|| CliError::InvalidArgs(format!("node not found: {}", node_uuid)))?;
 
-    // 移除节点
+    // Remove node
     flow.nodes.remove(node_idx);
 
-    // 移除所有引用该节点的连接
+    // Remove all connections referencing this node
     flow.connections
         .retain(|c| c.source_node_uuid != node_uuid && c.target_node_uuid != node_uuid);
 
@@ -193,7 +193,7 @@ async fn execute_node_remove(
     Ok(())
 }
 
-/// 更新节点配置
+/// Update node config
 async fn execute_node_update(
     flows_dir: &std::path::Path,
     flow_uuid: &str,
@@ -207,15 +207,15 @@ async fn execute_node_update(
         .nodes
         .iter_mut()
         .find(|n| n.uuid == node_uuid)
-        .ok_or_else(|| CliError::InvalidArgs(format!("节点不存在: {}", node_uuid)))?;
+        .ok_or_else(|| CliError::InvalidArgs(format!("node not found: {}", node_uuid)))?;
 
     if let Some(json_str) = config_json {
-        // 解析为 NodeData（带 type tag）
+        // Parse as NodeData (with type tag)
         let new_data: NodeData = serde_json::from_str(json_str)
-            .map_err(|e| CliError::InvalidArgs(format!("解析节点配置失败: {}", e)))?;
+            .map_err(|e| CliError::InvalidArgs(format!("failed to parse node config: {}", e)))?;
         node.data = new_data;
     }
-    // config 为 None 时不做任何修改
+    // No modification when config is None
 
     crate::storage::save_flow_file(&flow, flows_dir)
         .map_err(CliError::Execution)?;
@@ -230,9 +230,9 @@ async fn execute_node_update(
     Ok(())
 }
 
-// ── 连接操作 ──────────────────────────────────────────────────────
+// ── Connection operations ──────────────────────────────────────────────
 
-/// 添加连接
+/// Add connection
 async fn execute_connection_add(
     flows_dir: &std::path::Path,
     flow_uuid: &str,
@@ -244,18 +244,18 @@ async fn execute_connection_add(
     let mut flow = crate::storage::load_flow_file(flow_uuid, flows_dir)
         .map_err(CliError::Execution)?;
 
-    // 验证源节点存在
+    // Validate source node exists
     if !flow.nodes.iter().any(|n| n.uuid == source_uuid) {
         return Err(CliError::InvalidArgs(format!(
-            "源节点不存在: {}",
+            "source node not found: {}",
             source_uuid
         )));
     }
 
-    // 验证目标节点存在
+    // Validate target node exists
     if !flow.nodes.iter().any(|n| n.uuid == target_uuid) {
         return Err(CliError::InvalidArgs(format!(
-            "目标节点不存在: {}",
+            "target node not found: {}",
             target_uuid
         )));
     }
@@ -283,7 +283,7 @@ async fn execute_connection_add(
     Ok(())
 }
 
-/// 移除连接
+/// Remove connection
 async fn execute_connection_remove(
     flows_dir: &std::path::Path,
     flow_uuid: &str,
@@ -297,7 +297,7 @@ async fn execute_connection_remove(
 
     if flow.connections.len() == before {
         return Err(CliError::InvalidArgs(format!(
-            "连接不存在: {}",
+            "connection not found: {}",
             connection_id
         )));
     }
@@ -315,9 +315,9 @@ async fn execute_connection_remove(
     Ok(())
 }
 
-// ── 变量操作 ──────────────────────────────────────────────────────
+// ── Variable operations ───────────────────────────────────────────────
 
-/// 设置变量
+/// Set variable
 async fn execute_variable_set(
     flows_dir: &std::path::Path,
     flow_uuid: &str,
@@ -327,11 +327,11 @@ async fn execute_variable_set(
     let mut flow = crate::storage::load_flow_file(flow_uuid, flows_dir)
         .map_err(CliError::Execution)?;
 
-    // 尝试解析为 JSON 值，失败则作为字符串
+    // Try parsing as JSON value, fallback to string
     let json_value: serde_json::Value =
         serde_json::from_str(value).unwrap_or(serde_json::Value::String(value.to_string()));
 
-    // 确保 initial_variables 存在
+    // Ensure initial_variables exists
     if flow.initial_variables.is_none() {
         flow.initial_variables = Some(HashMap::new());
     }
@@ -353,7 +353,7 @@ async fn execute_variable_set(
     Ok(())
 }
 
-/// 移除变量
+/// Remove variable
 async fn execute_variable_remove(
     flows_dir: &std::path::Path,
     flow_uuid: &str,
@@ -366,18 +366,18 @@ async fn execute_variable_remove(
         Some(ref mut vars) => {
             if vars.remove(key).is_none() {
                 return Err(CliError::InvalidArgs(format!(
-                    "变量不存在: {}",
+                    "variable not found: {}",
                     key
                 )));
             }
-            // 变量清空后设为 None
+            // Set to None after clearing all variables
             if vars.is_empty() {
                 flow.initial_variables = None;
             }
         }
         None => {
             return Err(CliError::InvalidArgs(format!(
-                "变量不存在: {}",
+                "variable not found: {}",
                 key
             )));
         }

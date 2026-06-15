@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "tls-ca-missing",
-    "name": "TLS 缺少 CA 证书（预期失败）",
-    "description": "不配 CA 证书也不跳过验证。预期: TLS 握手失败 — unknown issuer",
+    "name": "TLS Missing CA Certificate (Expected Failure)",
+    "description": "No CA certificate and no skip verification. Expected: TLS handshake failure - unknown issuer",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "TLS 无 CA 证书",
+        "name": "TLS No CA Certificate",
         "position": {
           "x": 250,
           "y": 0

@@ -2,12 +2,12 @@
   "_version": 1,
   "flow": {
     "uuid": "no-entry-node",
-    "name": "缺少Entry节点",
+    "name": "Missing Entry Node",
     "nodes": [
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "HTTP请求",
+        "name": "HTTP Request",
         "position": {
           "x": 0,
           "y": 0

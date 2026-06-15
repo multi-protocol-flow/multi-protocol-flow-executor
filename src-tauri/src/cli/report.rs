@@ -18,10 +18,10 @@ pub async fn execute(
 async fn execute_list(format: &str) -> Result<(), CliError> {
     let app_config = config::AppConfig::load().map_err(CliError::Config)?;
     let reports = crate::list_reports(&app_config.reports_dir)
-        .map_err(|e| CliError::Execution(format!("列出报告失败: {}", e)))?;
+        .map_err(|e| CliError::Execution(format!("Failed to list reports: {}", e)))?;
 
     if format == "table" {
-        let headers = ["UUID", "流程名称", "状态", "执行时间", "耗时(ms)"];
+        let headers = ["UUID", "Flow Name", "Status", "Execution Time", "Duration(ms)"];
         let rows: Vec<Vec<String>> = reports
             .iter()
             .map(|r| {
@@ -48,7 +48,7 @@ async fn execute_list(format: &str) -> Result<(), CliError> {
 async fn execute_show(uuid: &str) -> Result<(), CliError> {
     let app_config = config::AppConfig::load().map_err(CliError::Config)?;
     let report = crate::load_report(uuid, &app_config.reports_dir)
-        .map_err(|e| CliError::Execution(format!("加载报告失败: {}", e)))?;
+        .map_err(|e| CliError::Execution(format!("Failed to load report: {}", e)))?;
     let cli_output = CliOutput::success(&report);
     output::output_json(&cli_output);
     Ok(())
@@ -57,7 +57,7 @@ async fn execute_show(uuid: &str) -> Result<(), CliError> {
 async fn execute_delete(uuid: &str) -> Result<(), CliError> {
     let app_config = config::AppConfig::load().map_err(CliError::Config)?;
     crate::delete_report(uuid, &app_config.reports_dir)
-        .map_err(|e| CliError::Execution(format!("删除报告失败: {}", e)))?;
+        .map_err(|e| CliError::Execution(format!("Failed to delete report: {}", e)))?;
     let cli_output = CliOutput::success(serde_json::json!({"deleted": uuid}));
     output::output_json(&cli_output);
     Ok(())

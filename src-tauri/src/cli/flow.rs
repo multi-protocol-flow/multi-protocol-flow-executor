@@ -1,4 +1,4 @@
-//! mpe flow 子命令 — 流程管理 (list/show/create/copy/delete/import/edit)
+//! mpe flow subcommand — flow management (list/show/create/copy/delete/import/edit)
 
 use std::path::Path;
 
@@ -7,7 +7,7 @@ use super::output::CliOutput;
 use super::FlowCommands;
 use super::CliError;
 
-/// 执行 flow 管理子命令
+/// Execute flow management subcommand
 pub async fn execute(
     _format: &str,
     command: FlowCommands,
@@ -20,13 +20,13 @@ pub async fn execute(
         FlowCommands::Delete { uuid } => execute_delete(&uuid).await,
         FlowCommands::Import { flow, name } => execute_import(&flow, &name).await,
         FlowCommands::Edit { command } => {
-            // 委托给 flow_edit 模块
+            // Delegate to flow_edit module
             super::flow_edit::execute(_format, command).await
         }
     }
 }
 
-/// 列出流程
+/// List flows
 async fn execute_list(
     search: Option<String>,
     sort: &str,
@@ -38,20 +38,20 @@ async fn execute_list(
     let mut list = crate::storage::list_flow_files(flows_dir)
         .map_err(CliError::Execution)?;
 
-    // 搜索过滤
+    // Search filter
     if let Some(ref keyword) = search {
         let kw = keyword.to_lowercase();
         list.retain(|m| m.name.to_lowercase().contains(&kw));
     }
 
-    // 排序
+    // Sort
     match sort {
         "name" => list.sort_by(|a, b| a.name.cmp(&b.name)),
         _ => list.sort_by(|a, b| b.updated_at.cmp(&a.updated_at)),
     }
 
     if format == "table" {
-        let headers = ["UUID", "名称", "更新时间"];
+        let headers = ["UUID", "Name", "Updated"];
         let rows: Vec<Vec<String>> = list
             .iter()
             .map(|m| {
@@ -73,17 +73,17 @@ async fn execute_list(
     Ok(())
 }
 
-/// 查看流程详情
+/// Show flow details
 async fn execute_show(uuid_or_path: &str) -> Result<(), CliError> {
     let config = AppConfig::load().map_err(CliError::Config)?;
     let flows_dir = &config.flows_dir;
 
     let flow = if is_file_path(uuid_or_path) {
-        // 文件路径直接加载
+        // Direct load from file path
         crate::storage::load_flow(uuid_or_path)
             .map_err(CliError::Execution)?
     } else {
-        // UUID 加载
+        // Load by UUID
         crate::storage::load_flow_file(uuid_or_path, flows_dir)
             .map_err(CliError::Execution)?
     };
@@ -98,14 +98,14 @@ async fn execute_show(uuid_or_path: &str) -> Result<(), CliError> {
     Ok(())
 }
 
-/// 创建流程
+/// Create flow
 async fn execute_create(name: &str) -> Result<(), CliError> {
     let config = AppConfig::load().map_err(CliError::Config)?;
     let flows_dir = &config.flows_dir;
 
-    // 确保目录存在
+    // Ensure directory exists
     std::fs::create_dir_all(flows_dir)
-        .map_err(|e| CliError::Io(format!("创建流程目录失败: {}", e)))?;
+        .map_err(|e| CliError::Io(format!("failed to create flow directory: {}", e)))?;
 
     let input = crate::command::CreateFlowCommandInput {
         name: name.to_string(),
@@ -125,7 +125,7 @@ async fn execute_create(name: &str) -> Result<(), CliError> {
     Ok(())
 }
 
-/// 复制流程
+/// Copy flow
 async fn execute_copy(uuid: &str) -> Result<(), CliError> {
     let config = AppConfig::load().map_err(CliError::Config)?;
     let flows_dir = &config.flows_dir;
@@ -143,7 +143,7 @@ async fn execute_copy(uuid: &str) -> Result<(), CliError> {
     Ok(())
 }
 
-/// 删除流程
+/// Delete flow
 async fn execute_delete(uuid: &str) -> Result<(), CliError> {
     let config = AppConfig::load().map_err(CliError::Config)?;
     let flows_dir = &config.flows_dir;
@@ -163,24 +163,24 @@ async fn execute_delete(uuid: &str) -> Result<(), CliError> {
     Ok(())
 }
 
-/// 导入流程文件
+/// Import flow file
 async fn execute_import(flow_path: &str, name: &str) -> Result<(), CliError> {
     let config = AppConfig::load().map_err(CliError::Config)?;
     let flows_dir = &config.flows_dir;
 
-    // 确保目录存在
+    // Ensure directory exists
     std::fs::create_dir_all(flows_dir)
-        .map_err(|e| CliError::Io(format!("创建流程目录失败: {}", e)))?;
+        .map_err(|e| CliError::Io(format!("failed to create flow directory: {}", e)))?;
 
-    // 加载外部流程文件
+    // Load external flow file
     let mut flow = crate::storage::load_flow(flow_path)
         .map_err(CliError::Execution)?;
 
-    // 修改名称，生成新 UUID
+    // Update name, generate new UUID
     flow.name = name.to_string();
     flow.uuid = uuid::Uuid::new_v4().to_string();
 
-    // 保存到 flows_dir
+    // Save to flows_dir
     crate::storage::save_flow_file(&flow, flows_dir)
         .map_err(CliError::Execution)?;
 
@@ -194,7 +194,7 @@ async fn execute_import(flow_path: &str, name: &str) -> Result<(), CliError> {
     Ok(())
 }
 
-/// 判断字符串是否为文件路径（而非 UUID）
+/// Check if string is a file path (not UUID)
 fn is_file_path(s: &str) -> bool {
     s.contains('/') || s.contains('\\') || s.ends_with(".mpf")
         || Path::new(s).extension().is_some()

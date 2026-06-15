@@ -2,12 +2,12 @@
   "_version": 1,
   "flow": {
     "uuid": "conditional-missing-operator",
-    "name": "条件缺少Operator",
+    "name": "Conditional Missing Operator",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -20,7 +20,7 @@
       {
         "uuid": "conditional-001",
         "type": "conditional",
-        "name": "缺少Operator",
+        "name": "Missing Operator",
         "position": {
           "x": 100,
           "y": 0

@@ -7,7 +7,7 @@
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -20,7 +20,7 @@
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "HTTP POST 文件上传",
+        "name": "HTTP POST File Upload",
         "position": {
           "x": 100,
           "y": 0
@@ -49,7 +49,7 @@
       {
         "uuid": "end-001",
         "type": "end",
-        "name": "结束",
+        "name": "End",
         "position": {
           "x": 200,
           "y": 0

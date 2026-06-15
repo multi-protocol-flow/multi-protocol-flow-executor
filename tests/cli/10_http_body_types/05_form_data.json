@@ -1,11 +1,11 @@
 {
   "uuid": "http-form-data",
-  "name": "HTTP 多部分表单测试",
+  "name": "HTTP Multipart Form Test",
   "nodes": [
     {
       "uuid": "entry-001",
       "type": "entry",
-      "name": "入口",
+      "name": "Entry",
       "position": { "x": 0.0, "y": 0.0 },
       "data": { "type": "entry" },
       "ports": null
@@ -13,7 +13,7 @@
     {
       "uuid": "http-001",
       "type": "http",
-      "name": "HTTP POST 多部分表单",
+      "name": "HTTP POST Multipart Form",
       "position": { "x": 100.0, "y": 0.0 },
       "data": {
         "type": "http",
@@ -21,8 +21,8 @@
         "method": "post",
         "body_type": "form-data",
         "form_fields": [
-          { "key": "title", "value": "测试标题", "field_type": "text" },
-          { "key": "description", "value": "这是一段描述文本", "field_type": "text" },
+          { "key": "title", "value": "Test Title", "field_type": "text" },
+          { "key": "description", "value": "This is a description", "field_type": "text" },
           { "key": "category", "value": "test", "field_type": "text" }
         ]
       },

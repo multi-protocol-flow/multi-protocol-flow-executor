@@ -2,12 +2,12 @@
   "_version": 1,
   "flow": {
     "uuid": "conditional-empty-expression",
-    "name": "空条件表达式",
+    "name": "Empty Condition Expression",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -20,7 +20,7 @@
       {
         "uuid": "conditional-001",
         "type": "conditional",
-        "name": "空表达式",
+        "name": "Empty Expression",
         "position": {
           "x": 100,
           "y": 0

@@ -2,12 +2,12 @@
   "_version": 1,
   "flow": {
     "uuid": "db-sqlite-flow",
-    "name": "SQLite 内存数据库流程",
+    "name": "SQLite In-Memory Flow",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -20,7 +20,7 @@
       {
         "uuid": "db-connect-001",
         "type": "db_connect",
-        "name": "连接 SQLite",
+        "name": "Connect SQLite",
         "position": {
           "x": 100,
           "y": 0
@@ -39,7 +39,7 @@
       {
         "uuid": "db-query-001",
         "type": "db_query",
-        "name": "创建测试表",
+        "name": "Create Test Table",
         "position": {
           "x": 200,
           "y": 0
@@ -56,7 +56,7 @@
       {
         "uuid": "db-query-002",
         "type": "db_query",
-        "name": "插入测试数据",
+        "name": "Insert Test Data",
         "position": {
           "x": 300,
           "y": 0
@@ -77,7 +77,7 @@
       {
         "uuid": "db-query-003",
         "type": "db_query",
-        "name": "查询测试数据",
+        "name": "Query Test Data",
         "position": {
           "x": 400,
           "y": 0
@@ -95,7 +95,7 @@
       {
         "uuid": "db-close-001",
         "type": "db_close",
-        "name": "关闭连接",
+        "name": "Close Connection",
         "position": {
           "x": 500,
           "y": 0

@@ -2,12 +2,12 @@
   "_version": 1,
   "flow": {
     "uuid": "invalid-node-type",
-    "name": "无效节点类型",
+    "name": "Invalid Node Type",
     "nodes": [
       {
         "uuid": "start-001",
         "type": "entry",
-        "name": "旧版Start节点",
+        "name": "Legacy Start Node",
         "position": {
           "x": 0,
           "y": 0

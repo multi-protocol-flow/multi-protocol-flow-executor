@@ -1,11 +1,11 @@
-//! CLI 配置模块 - 多层级配置加载
+//! CLI config module — multi-level configuration loading
 //!
-//! 配置优先级（从高到低）:
-//! 1. 环境变量 (`MPE_FLOWS_DIR`, `MPE_REPORTS_DIR`)
-//! 2. 配置文件 (`<data_dir>/config.toml` 或 `$MPE_CONFIG`)
-//! 3. 引擎默认值 (`crate::get_flows_dir()` 等)
+//! Configuration priority (highest to lowest):
+//! 1. Environment variables (`MPE_FLOWS_DIR`, `MPE_REPORTS_DIR`)
+//! 2. Config file (`<data_dir>/config.toml` or `$MPE_CONFIG`)
+//! 3. Engine defaults (`crate::get_flows_dir()` etc.)
 //!
-//! 配置文件格式:
+//! Config file format:
 //! ```toml
 //! [storage]
 //! flows_dir = "/path/to/flows"
@@ -16,53 +16,53 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 
-// ── 配置文件结构 ──────────────────────────────────────────────────
+// ── Config file structure ──────────────────────────────────────────────
 
-/// 配置文件顶层结构
+/// Top-level config file structure
 #[derive(Debug, Default, Deserialize)]
 struct ConfigFile {
-    /// 存储相关配置
+    /// Storage-related configuration
     #[serde(default)]
     storage: StorageConfig,
 }
 
-/// 配置文件中的存储配置
+/// Storage configuration from config file
 ///
-/// 所有字段均为可选，缺失时回退到环境变量或引擎默认值。
+/// All fields are optional, fall back to env vars or engine defaults when missing.
 #[derive(Debug, Default, Deserialize)]
 struct StorageConfig {
-    /// 流程文件存储目录
+    /// Flow file storage directory
     #[serde(default)]
     flows_dir: Option<PathBuf>,
-    /// 报告存储目录
+    /// Report storage directory
     #[serde(default)]
     reports_dir: Option<PathBuf>,
 }
 
-// ── 解析后的配置 ──────────────────────────────────────────────────
+// ── Resolved config ────────────────────────────────────────────────────
 
-/// CLI 应用配置（所有路径已解析，不包含 Option）
+/// CLI application config (all paths resolved, no Option)
 #[derive(Debug, Clone)]
 pub struct AppConfig {
-    /// 流程文件存储目录
+    /// Flow file storage directory
     pub flows_dir: PathBuf,
-    /// 报告存储目录
+    /// Report storage directory
     pub reports_dir: PathBuf,
 }
 
 impl AppConfig {
-    /// 从多层级来源加载配置
+    /// Load config from multi-level sources
     ///
-    /// 解析优先级: 环境变量 > 配置文件 > 引擎默认值。
-    /// 配置文件不存在时不报错，静默使用默认值。
+    /// Resolution priority: env vars > config file > engine defaults.
+    /// No error if config file doesn't exist, silently use defaults.
     ///
-    /// # 错误
-    /// 仅在引擎默认路径无法确定时返回错误（如 HOME 环境变量缺失）。
+    /// # Errors
+    /// Returns error only when engine default paths cannot be determined (e.g., HOME env var missing).
     pub fn load() -> Result<AppConfig, String> {
-        // 1. 尝试加载配置文件
+        // 1. Try loading config file
         let config_file = Self::load_config_file()?;
 
-        // 2. 逐字段解析: 环境变量 > 配置文件 > 引擎默认值
+        // 2. Resolve field by field: env vars > config file > engine defaults
         let flows_dir = Self::resolve_path(
             "MPE_FLOWS_DIR",
             config_file
@@ -85,63 +85,63 @@ impl AppConfig {
         })
     }
 
-    /// 尝试加载并解析配置文件
+    /// Try to load and parse config file
     ///
-    /// 配置文件路径: `$MPE_CONFIG` 环境变量，或 `<data_dir>/config.toml`
-    /// 文件不存在时返回 `Ok(None)`，不报错。
+    /// Config file path: `$MPE_CONFIG` env var, or `<data_dir>/config.toml`
+    /// Returns `Ok(None)` when file doesn't exist, no error.
     fn load_config_file() -> Result<Option<ConfigFile>, String> {
         let config_path = match std::env::var("MPE_CONFIG") {
             Ok(p) => PathBuf::from(p),
             Err(_) => crate::get_data_dir()?.join("config.toml"),
         };
 
-        // 配置文件不存在时静默返回 None
+        // Silently return None when config file doesn't exist
         if !config_path
             .try_exists()
-            .map_err(|e| format!("检查配置文件失败 ({}): {}", config_path.display(), e))?
+            .map_err(|e| format!("failed to check config file ({}): {}", config_path.display(), e))?
         {
             return Ok(None);
         }
 
         let content = std::fs::read_to_string(&config_path)
-            .map_err(|e| format!("读取配置文件失败 ({}): {}", config_path.display(), e))?;
+            .map_err(|e| format!("failed to read config file ({}): {}", config_path.display(), e))?;
 
         let config: ConfigFile = toml::from_str(&content)
-            .map_err(|e| format!("解析配置文件失败 ({}): {}", config_path.display(), e))?;
+            .map_err(|e| format!("failed to parse config file ({}): {}", config_path.display(), e))?;
 
         Ok(Some(config))
     }
 
-    /// 按优先级解析单个路径字段
+    /// Resolve a single path field by priority
     ///
-    /// 优先级: 环境变量 > 配置文件值 > 引擎默认值
+    /// Priority: env var > config file value > engine default
     fn resolve_path(
         env_var: &str,
         file_value: Option<PathBuf>,
         default_fn: &dyn Fn() -> Result<PathBuf, String>,
     ) -> Result<PathBuf, String> {
-        // 最高优先级: 环境变量
+        // Highest priority: env var
         if let Ok(val) = std::env::var(env_var) {
             let path = PathBuf::from(val);
             if path.is_absolute() {
                 return Ok(path);
             }
             return Err(format!(
-                "环境变量 {} 的值不是绝对路径: {}",
+                "value of env var {} is not an absolute path: {}",
                 env_var,
                 path.display()
             ));
         }
 
-        // 次高优先级: 配置文件
+        // Second priority: config file
         if let Some(path) = file_value {
             if path.is_absolute() {
                 return Ok(path);
             }
-            return Err(format!("配置文件中的路径不是绝对路径: {}", path.display()));
+            return Err(format!("path in config file is not absolute: {}", path.display()));
         }
 
-        // 最低优先级: 引擎默认值
+        // Lowest priority: engine default
         default_fn()
     }
 }
@@ -151,18 +151,18 @@ mod tests {
     use super::*;
     use std::sync::{LazyLock, Mutex};
 
-    /// 全局互斥锁，序列化所有涉及环境变量的测试，避免并行竞争
+    /// Global mutex to serialize all env-var-related tests, avoid parallel race
     static ENV_TEST_MUTEX: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
     #[test]
     fn test_load_config_returns_defaults_when_no_file() {
         let _lock = ENV_TEST_MUTEX.lock().unwrap();
-        // 清除可能存在的环境变量，确保测试隔离
+        // Clear any existing env vars for test isolation
         std::env::remove_var("MPE_CONFIG");
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
 
-        // 在无配置文件的情况下应成功加载默认值
+        // Should successfully load defaults without config file
         let config = AppConfig::load();
         assert!(config.is_ok(), "should use defaults when no config file, no error expected");
 
@@ -175,7 +175,7 @@ mod tests {
     fn test_env_var_overrides_default() {
         let _lock = ENV_TEST_MUTEX.lock().unwrap();
 
-        // 清除所有相关环境变量，确保测试隔离
+        // Clear all related env vars for test isolation
         std::env::remove_var("MPE_CONFIG");
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
@@ -190,7 +190,7 @@ mod tests {
         assert_eq!(config.flows_dir, temp);
         assert_eq!(config.reports_dir, temp);
 
-        // 清理
+        // Cleanup
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
     }
@@ -199,7 +199,7 @@ mod tests {
     fn test_relative_path_in_env_var_fails() {
         let _lock = ENV_TEST_MUTEX.lock().unwrap();
 
-        // 清除所有相关环境变量，避免并行测试竞争
+        // Clear all related env vars to avoid parallel test race
         std::env::remove_var("MPE_CONFIG");
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
@@ -223,7 +223,7 @@ mod tests {
         let flows = temp_dir.path().join("my_flows");
         let reports = temp_dir.path().join("my_reports");
 
-        // 创建目录以使用绝对路径
+        // Create directories to use absolute paths
         std::fs::create_dir_all(&flows).expect("failed to create dir");
         std::fs::create_dir_all(&reports).expect("failed to create dir");
 
@@ -234,7 +234,7 @@ mod tests {
         );
         std::fs::write(&config_path, toml_content).expect("failed to write config file");
 
-        // 清除环境变量，使用配置文件
+        // Clear env vars, use config file
         std::env::remove_var("MPE_FLOWS_DIR");
         std::env::remove_var("MPE_REPORTS_DIR");
         std::env::set_var("MPE_CONFIG", config_path.to_string_lossy().as_ref());
@@ -243,7 +243,7 @@ mod tests {
         assert_eq!(config.flows_dir, flows);
         assert_eq!(config.reports_dir, reports);
 
-        // 清理
+        // Cleanup
         std::env::remove_var("MPE_CONFIG");
     }
 }

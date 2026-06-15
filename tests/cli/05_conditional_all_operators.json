@@ -2,12 +2,12 @@
   "_version": 1,
   "flow": {
     "uuid": "conditional-all-operators",
-    "name": "所有条件操作符示例",
+    "name": "All Operators Example",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -20,7 +20,7 @@
       {
         "uuid": "conditional-equal",
         "type": "conditional",
-        "name": "equal 操作符",
+        "name": "equal Operator",
         "position": {
           "x": 100,
           "y": -225
@@ -37,7 +37,7 @@
       {
         "uuid": "conditional-not-equal",
         "type": "conditional",
-        "name": "not_equal 操作符",
+        "name": "not_equal Operator",
         "position": {
           "x": 100,
           "y": -175
@@ -54,7 +54,7 @@
       {
         "uuid": "conditional-greater",
         "type": "conditional",
-        "name": "greater 操作符",
+        "name": "greater Operator",
         "position": {
           "x": 100,
           "y": -125
@@ -71,7 +71,7 @@
       {
         "uuid": "conditional-greater-or-equal",
         "type": "conditional",
-        "name": "greater_or_equal 操作符",
+        "name": "greater_or_equal Operator",
         "position": {
           "x": 100,
           "y": -75
@@ -88,7 +88,7 @@
       {
         "uuid": "conditional-less",
         "type": "conditional",
-        "name": "less 操作符",
+        "name": "less Operator",
         "position": {
           "x": 100,
           "y": -25
@@ -105,7 +105,7 @@
       {
         "uuid": "conditional-less-or-equal",
         "type": "conditional",
-        "name": "less_or_equal 操作符",
+        "name": "less_or_equal Operator",
         "position": {
           "x": 100,
           "y": 25
@@ -122,7 +122,7 @@
       {
         "uuid": "conditional-contains",
         "type": "conditional",
-        "name": "contains 操作符",
+        "name": "contains Operator",
         "position": {
           "x": 100,
           "y": 75
@@ -139,7 +139,7 @@
       {
         "uuid": "conditional-starts-with",
         "type": "conditional",
-        "name": "starts_with 操作符",
+        "name": "starts_with Operator",
         "position": {
           "x": 100,
           "y": 125
@@ -156,7 +156,7 @@
       {
         "uuid": "conditional-ends-with",
         "type": "conditional",
-        "name": "ends_with 操作符",
+        "name": "ends_with Operator",
         "position": {
           "x": 100,
           "y": 175
@@ -173,7 +173,7 @@
       {
         "uuid": "conditional-exists",
         "type": "conditional",
-        "name": "exists 操作符",
+        "name": "exists Operator",
         "position": {
           "x": 100,
           "y": 225

@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "tls-skip-verify",
-    "name": "TLS 跳过证书验证",
-    "description": "不配 CA 证书，但开启跳过验证。预期: 200 成功（手动信任）",
+    "name": "TLS Skip Certificate Verification",
+    "description": "No CA certificate configured, skip verification enabled. Expected: 200 success (manually trusted)",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "TLS 跳过验证",
+        "name": "TLS Skip Verify",
         "position": {
           "x": 250,
           "y": 0

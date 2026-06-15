@@ -2,13 +2,13 @@
   "_version": 1,
   "flow": {
     "uuid": "tls-mtls-auth",
-    "name": "TLS mTLS 双向认证",
-    "description": "mTLS 模式：服务端要求客户端证书。同时配 CA + 客户端证书+密钥。预期: 200 成功\n需要先启动服务器: node tests/https-test-server.mjs --mtls",
+    "name": "TLS mTLS Mutual Authentication",
+    "description": "mTLS mode: server requires client certificate. Configured with CA + client cert + key. Expected: 200 success\nServer must be started first: node tests/https-test-server.mjs --mtls",
     "nodes": [
       {
         "uuid": "entry-001",
         "type": "entry",
-        "name": "入口",
+        "name": "Entry",
         "position": {
           "x": 0,
           "y": 0
@@ -21,7 +21,7 @@
       {
         "uuid": "http-001",
         "type": "http",
-        "name": "mTLS 验证",
+        "name": "mTLS Verification",
         "position": {
           "x": 250,
           "y": 0

@@ -1,11 +1,11 @@
 {
   "uuid": "http-binary",
-  "name": "HTTP 二进制文件上传测试",
+  "name": "HTTP Binary File Upload Test",
   "nodes": [
     {
       "uuid": "entry-001",
       "type": "entry",
-      "name": "入口",
+      "name": "Entry",
       "position": { "x": 0.0, "y": 0.0 },
       "data": { "type": "entry" },
       "ports": null
@@ -13,7 +13,7 @@
     {
       "uuid": "http-001",
       "type": "http",
-      "name": "HTTP POST 二进制文件",
+      "name": "HTTP POST Binary File",
       "position": { "x": 100.0, "y": 0.0 },
       "data": {
         "type": "http",
