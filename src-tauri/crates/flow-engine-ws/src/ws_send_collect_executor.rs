@@ -51,12 +51,12 @@ impl NodeExecutor for WsSendCollectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::WsSendCollect(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 WsSendCollectConfig: {}", node.uuid)),
+            _ => return Err(format!("Node data type is not WsSendCollectConfig: {}", node.uuid)),
         };
 
         // 2. 变量替换 connection_id 和 message
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid,
@@ -68,7 +68,7 @@ impl NodeExecutor for WsSendCollectExecutor {
         })?;
 
         let message = replace_variables(&config.message, context).map_err(|e| {
-            let error_msg = format!("消息变量替换失败: {}", e);
+            let error_msg = format!("Message variable substitution failed: {}", e);
             log::error!(
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid,
@@ -92,10 +92,10 @@ impl NodeExecutor for WsSendCollectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("WebSocket Send+Collect 节点 {} 开始执行", node.name),
+                message: format!("WebSocket Send+Collect node {} started", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -112,7 +112,7 @@ impl NodeExecutor for WsSendCollectExecutor {
             }
             Some(status) => {
                 let error_msg = format!(
-                    "连接状态不是 Connected（当前状态: {}）: {}",
+                    "Connection status is not Connected (current: {}): {}",
                     status, connection_id
                 );
 
@@ -133,7 +133,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                         message: error_msg.clone(),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -146,7 +146,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                 Some(self.build_error_output_data(&connection_id, &error_msg, url))
             }
             None => {
-                let error_msg = format!("连接不存在: {}", connection_id);
+                let error_msg = format!("Connection not found: {}", connection_id);
 
                 // 检查 on_error 策略
                 if !node.on_error.as_ref().map_or(true, |s| *s == ExecutionErrorStrategy::RouteToFalse) {
@@ -161,7 +161,7 @@ impl NodeExecutor for WsSendCollectExecutor {
                         message: error_msg.clone(),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -316,10 +316,10 @@ impl NodeExecutor for WsSendCollectExecutor {
                             context
                                 .emit_log(LogEvent {
                                     level: LogLevel::Error,
-                                    message: format!("采集响应失败: {}", e),
+                                    message: format!("Collect response failed: {}", e),
                                     timestamp: std::time::SystemTime::now()
                                         .duration_since(std::time::UNIX_EPOCH)
-                                        .expect("系统时间错误")
+                                        .expect("system time error")
                                         .as_millis() as u64,
                                     node_uuid: Some(node.uuid.clone()),
                                     node_name: Some(node.name.clone()),
@@ -363,10 +363,10 @@ impl NodeExecutor for WsSendCollectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!("WebSocket Send+Collect 完成 ({}ms)", duration.as_millis()),
+                        message: format!("WebSocket Send+Collect completed ({}ms)", duration.as_millis()),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -391,10 +391,10 @@ impl NodeExecutor for WsSendCollectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("消息发送失败: {}", e),
+                        message: format!("Message send failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -441,7 +441,7 @@ impl WsSendCollectExecutor {
             WsCollectMode::FirstMatch => {
                 // 取消检查
                 if context.is_cancelled() {
-                    return Err("流程已取消".to_string());
+                    return Err("Flow cancelled".to_string());
                 }
 
                 // 使用 tokio::select! 监听取消信号
@@ -449,7 +449,7 @@ impl WsSendCollectExecutor {
                     tokio::select! {
                         res = self.ws_manager.receive(connection_id, config.collect_timeout_ms) => res?,
                         _ = rx.changed() => {
-                            return Err("流程已取消".to_string());
+                            return Err("Flow cancelled".to_string());
                         }
                     }
                 } else {
@@ -493,10 +493,10 @@ impl WsSendCollectExecutor {
                     context
                         .emit_log(LogEvent {
                             level: LogLevel::Info,
-                            message: format!("收到响应消息: {}", message),
+                                message: format!("Response message received: {}", message),
                             timestamp: std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
-                                .expect("系统时间错误")
+                                .expect("system time error")
                                 .as_millis() as u64,
                             node_uuid: Some(node.uuid.clone()),
                             node_name: Some(node.name.clone()),
@@ -525,7 +525,7 @@ impl WsSendCollectExecutor {
                         loop {
                             // 取消检查
                             if context.is_cancelled() {
-                                return Err("流程已取消".to_string());
+                                return Err("Flow cancelled".to_string());
                             }
 
                             let elapsed = start.elapsed().as_millis() as u64;
@@ -539,7 +539,7 @@ impl WsSendCollectExecutor {
                                 tokio::select! {
                                     res = self.ws_manager.receive(connection_id, remaining.min(5000)) => res?,
                                     _ = rx.changed() => {
-                                        return Err("流程已取消".to_string());
+                                        return Err("Flow cancelled".to_string());
                                     }
                                 }
                             } else {
@@ -587,10 +587,10 @@ impl WsSendCollectExecutor {
                                         context
                                             .emit_log(LogEvent {
                                                 level: LogLevel::Info,
-                                                message: format!("响应匹配成功: {}", message),
+                                                message: format!("Response matched: {}", message),
                                                 timestamp: std::time::SystemTime::now()
                                                     .duration_since(std::time::UNIX_EPOCH)
-                                                    .expect("系统时间错误")
+                                                    .expect("system time error")
                                                     .as_millis() as u64,
                                                 node_uuid: Some(node.uuid.clone()),
                                                 node_name: Some(node.name.clone()),
@@ -618,10 +618,10 @@ impl WsSendCollectExecutor {
                                         context
                                             .emit_log(LogEvent {
                                                 level: LogLevel::Warn,
-                                                message: format!("条件匹配出错（继续等待）: {}", e),
+                                                message: format!("Condition match error (continuing to wait): {}", e),
                                                 timestamp: std::time::SystemTime::now()
                                                     .duration_since(std::time::UNIX_EPOCH)
-                                                    .expect("系统时间错误")
+                                                    .expect("system time error")
                                                     .as_millis() as u64,
                                                 node_uuid: Some(node.uuid.clone()),
                                                 node_name: Some(node.name.clone()),
@@ -635,8 +635,8 @@ impl WsSendCollectExecutor {
                     }
                     Some(condition) => {
                         let error_msg = format!(
-                            "条件匹配模式需要填写匹配表达式（当前表达式为空）: match_type={:?}",
-                            condition.match_type
+                        "Condition match mode requires a match expression (current expression is empty): match_type={:?}",
+                        condition.match_type
                         );
                         log::error!(
                             "[WebSocket] 条件匹配配置错误: connection_id={}, expression 为空",
@@ -649,7 +649,7 @@ impl WsSendCollectExecutor {
                                 message: error_msg.clone(),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间错误")
+                                    .expect("system time error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -660,7 +660,7 @@ impl WsSendCollectExecutor {
                         Err(error_msg)
                     }
                     None => {
-                        let error_msg = "条件匹配模式需要配置匹配条件（collect_condition 未设置）".to_string();
+                        let error_msg = "Condition match mode requires collect_condition to be configured".to_string();
                         log::error!(
                             "[WebSocket] 条件匹配配置错误: connection_id={}, collect_condition 为 None",
                             connection_id
@@ -672,7 +672,7 @@ impl WsSendCollectExecutor {
                                 message: error_msg.clone(),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间错误")
+                                    .expect("system time error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -693,7 +693,7 @@ impl WsSendCollectExecutor {
                 while start.elapsed().as_millis() < duration_ms as u128 {
                     // 取消检查
                     if context.is_cancelled() {
-                        return Err("流程已取消".to_string());
+                        return Err("Flow cancelled".to_string());
                     }
 
                     // 使用 tokio::select! 监听取消信号
@@ -701,7 +701,7 @@ impl WsSendCollectExecutor {
                         tokio::select! {
                             res = self.ws_manager.receive(connection_id, 1000) => res?,
                             _ = rx.changed() => {
-                                return Err("流程已取消".to_string());
+                                return Err("Flow cancelled".to_string());
                             }
                         }
                     } else {
@@ -753,10 +753,10 @@ impl WsSendCollectExecutor {
                     context
                         .emit_log(LogEvent {
                             level: LogLevel::Info,
-                            message: format!("DurationCollect 模式最后消息: {}", collected[idx]),
+                            message: format!("DurationCollect last message: {}", collected[idx]),
                             timestamp: std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
-                                .expect("系统时间错误")
+                                .expect("system time error")
                                 .as_millis() as u64,
                             node_uuid: Some(node.uuid.clone()),
                             node_name: Some(node.name.clone()),
@@ -915,7 +915,7 @@ mod tests {
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext::new(flow_id.to_string(), std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .expect("系统时间错误")
+            .expect("system time error")
             .as_millis() as u64)
     }
 
@@ -923,7 +923,7 @@ mod tests {
     async fn test_send_wait_connection_not_found() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsSendCollectExecutor::new(ws_manager);
-        let node = create_test_node("test-1", "测试发送", "nonexistent-conn", "Hello");
+        let node = create_test_node("test-1", "test send", "nonexistent-conn", "Hello");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -936,7 +936,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
         let data = output_data.unwrap();
-        assert!(data["error"].as_str().unwrap().contains("连接不存在"));
+        assert!(data["error"].as_str().unwrap().contains("Connection not found"));
     }
     #[tokio::test]
     async fn test_send_wait_with_variable_replacement() {
@@ -944,7 +944,7 @@ mod tests {
         let executor = WsSendCollectExecutor::new(ws_manager);
 
         // 创建带变量的节点
-        let node = create_test_node("test-var", "变量替换测试", "{{conn_id}}", "Message: {{msg}}");
+        let node = create_test_node("test-var", "variable substitution test", "{{conn_id}}", "Message: {{msg}}");
 
         // 创建上下文并设置变量
         let mut context = create_context("test-flow");
@@ -969,7 +969,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
         let data = output_data.unwrap();
-        assert!(data["error"].as_str().unwrap().contains("连接不存在"));
+        assert!(data["error"].as_str().unwrap().contains("Connection not found"));
     }
     #[tokio::test]
     async fn test_send_wait_collect_mode_first_message() {
@@ -980,7 +980,7 @@ mod tests {
         let node = Node {
             uuid: "test-wait-first".to_string(),
             node_type: "ws_send_collect".to_string(),
-            name: "等待第一条消息".to_string(),
+            name: "Wait for first message".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsSendCollect(WsSendCollectConfig {
                 connection_id: "test-conn".to_string(),
@@ -1009,7 +1009,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
         let data = output_data.unwrap();
-        assert!(data["error"].as_str().unwrap().contains("连接不存在"));
+        assert!(data["error"].as_str().unwrap().contains("Connection not found"));
     }
     #[tokio::test]
     async fn test_send_wait_collect_mode_condition() {
@@ -1020,7 +1020,7 @@ mod tests {
         let node = Node {
             uuid: "test-wait-condition".to_string(),
             node_type: "ws_send_collect".to_string(),
-            name: "条件等待".to_string(),
+            name: "Condition wait".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsSendCollect(WsSendCollectConfig {
                 connection_id: "test-conn".to_string(),
@@ -1052,7 +1052,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
         let data = output_data.unwrap();
-        assert!(data["error"].as_str().unwrap().contains("连接不存在"));
+        assert!(data["error"].as_str().unwrap().contains("Connection not found"));
     }
     #[tokio::test]
     async fn test_send_wait_collect_mode_duration() {
@@ -1063,7 +1063,7 @@ mod tests {
         let node = Node {
             uuid: "test-wait-duration".to_string(),
             node_type: "ws_send_collect".to_string(),
-            name: "时长等待".to_string(),
+            name: "Duration wait".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsSendCollect(WsSendCollectConfig {
                 connection_id: "test-conn".to_string(),
@@ -1092,7 +1092,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
         let data = output_data.unwrap();
-        assert!(data["error"].as_str().unwrap().contains("连接不存在"));
+        assert!(data["error"].as_str().unwrap().contains("Connection not found"));
     }
     #[tokio::test]
     async fn test_send_binary_message() {
@@ -1103,7 +1103,7 @@ mod tests {
         let node = Node {
             uuid: "test-binary".to_string(),
             node_type: "ws_send_collect".to_string(),
-            name: "二进制消息".to_string(),
+            name: "Binary message".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsSendCollect(WsSendCollectConfig {
                 connection_id: "test-conn".to_string(),
@@ -1132,7 +1132,7 @@ mod tests {
         assert_eq!(next_nodes, vec!["false".to_string()]);
         assert!(output_data.is_some());
         let data = output_data.unwrap();
-        assert!(data["error"].as_str().unwrap().contains("连接不存在"));
+        assert!(data["error"].as_str().unwrap().contains("Connection not found"));
     }
     #[tokio::test]
     async fn test_send_wait_to_echo_server() {
@@ -1143,7 +1143,7 @@ mod tests {
         let connect_result = ws_manager
             .connect(
                 "echo-conn".to_string(),
-                "Echo 连接".to_string(),
+                "Echo Connection".to_string(),
                 "wss://echo.websocket.org".to_string(),
                 vec![],
                 vec![],
@@ -1161,7 +1161,7 @@ mod tests {
             let _ = ws_manager.receive("echo-conn", 3000).await;
 
             // 创建发送节点
-            let node = create_test_node("echo-test", "Echo 测试", "echo-conn", "Hello, WebSocket!");
+            let node = create_test_node("echo-test", "Echo Test", "echo-conn", "Hello, WebSocket!");
             let mut context = create_context("test-flow");
 
             let result = executor
@@ -1181,16 +1181,16 @@ mod tests {
 
                     // 清理：关闭连接
                     let _ = ws_manager
-                        .close("echo-conn", 1000, Some("测试完成".to_string()), 5000)
+                        .close("echo-conn", 1000, Some("test complete".to_string()), 5000)
                         .await;
                 }
                 Err(e) => {
                     // 不应该发生错误
-                    panic!("执行器返回错误: {}", e);
+                    panic!("Executor returned error: {}", e);
                 }
             }
         } else {
-            println!("跳过测试：无法连接到 echo 服务器");
+            println!("Skipping test: unable to connect to echo server");
         }
     }
 
@@ -1203,7 +1203,7 @@ mod tests {
         let connect_result = ws_manager
             .connect(
                 "echo-conn-2".to_string(),
-                "Echo 连接 2".to_string(),
+                "Echo Connection 2".to_string(),
                 "wss://echo.websocket.org".to_string(),
                 vec![],
                 vec![],
@@ -1224,7 +1224,7 @@ mod tests {
             let node = Node {
                 uuid: "echo-test-2".to_string(),
                 node_type: "ws_send_collect".to_string(),
-                name: "Echo 测试 2".to_string(),
+                name: "Echo Test 2".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
                 data: NodeData::WsSendCollect(WsSendCollectConfig {
                     connection_id: "echo-conn-2".to_string(),
@@ -1259,15 +1259,15 @@ mod tests {
 
                     // 清理：关闭连接
                     let _ = ws_manager
-                        .close("echo-conn-2", 1000, Some("测试完成".to_string()), 5000)
+                        .close("echo-conn-2", 1000, Some("test complete".to_string()), 5000)
                         .await;
                 }
                 Err(e) => {
-                    panic!("执行器返回错误: {}", e);
+                    panic!("Executor returned error: {}", e);
                 }
             }
         } else {
-            println!("跳过测试：无法连接到 echo 服务器");
+            println!("Skipping test: unable to connect to echo server");
         }
     }
 
@@ -1292,10 +1292,10 @@ mod tests {
             Some("wss://example.com"),
             10,
             Some(5),
-        ).expect("构建输出数据失败").expect("应返回 Some");
+        ).expect("Failed to build output data").expect("Should return Some");
 
         // 验证 collected_messages 数组
-        let collected_arr = result["collected_messages"].as_array().expect("应为数组");
+        let collected_arr = result["collected_messages"].as_array().expect("Should be an array");
         assert_eq!(collected_arr.len(), 1, "FirstMatch 应返回 1 条消息");
         assert_eq!(collected_arr[0]["data"], "hello world");
         assert_eq!(collected_arr[0]["type"], "text");
@@ -1333,10 +1333,10 @@ mod tests {
             Some("wss://example.com"),
             10,
             Some(50),
-        ).expect("构建输出数据失败").expect("应返回 Some");
+        ).expect("Failed to build output data").expect("Should return Some");
 
         // 验证 collected_messages 包含所有消息
-        let collected_arr = result["collected_messages"].as_array().expect("应为数组");
+        let collected_arr = result["collected_messages"].as_array().expect("Should be an array");
         assert_eq!(collected_arr.len(), 3, "ConditionMatch 应返回所有消息");
         assert_eq!(collected_arr[0]["data"], r#"{"type":"info","msg":"connecting"}"#);
         assert_eq!(collected_arr[1]["data"], r#"{"type":"info","msg":"connected"}"#);
@@ -1378,10 +1378,10 @@ mod tests {
             Some("wss://example.com"),
             5,
             Some(2000),
-        ).expect("构建输出数据失败").expect("应返回 Some");
+        ).expect("Failed to build output data").expect("Should return Some");
 
         // 验证 collected_messages 包含所有 4 条消息
-        let collected_arr = result["collected_messages"].as_array().expect("应为数组");
+        let collected_arr = result["collected_messages"].as_array().expect("Should be an array");
         assert_eq!(collected_arr.len(), 4, "DurationCollect 应返回所有消息");
         assert_eq!(collected_arr[0]["data"], "msg1");
         assert_eq!(collected_arr[1]["data"], "msg2");
@@ -1411,10 +1411,10 @@ mod tests {
             Some("wss://example.com"),
             10,
             Some(10000),
-        ).expect("构建输出数据失败").expect("应返回 Some");
+        ).expect("Failed to build output data").expect("Should return Some");
 
         // 验证 collected_messages 为空数组
-        let collected_arr = result["collected_messages"].as_array().expect("应为数组");
+        let collected_arr = result["collected_messages"].as_array().expect("Should be an array");
         assert_eq!(collected_arr.len(), 0, "超时时应返回空数组");
 
         // 验证 matched_message 为 null
@@ -1448,26 +1448,26 @@ mod tests {
             Some("wss://example.com"),
             10,
             Some(5),
-        ).expect("构建输出数据失败").expect("应返回 Some");
+        ).expect("Failed to build output data").expect("Should return Some");
 
         // 验证 $.collected_messages[0].data 路径可以提取值
         let value = flow_engine_core::utils::extract_value_by_path(&output_data, "$.collected_messages[0].data");
         assert!(value.is_some(), "$.collected_messages[0].data 应该能提取到值");
-        assert_eq!(value.expect("值不存在"), r#"{"status":"ok"}"#);
+        assert_eq!(value.expect("Value does not exist"), r#"{"status":"ok"}"#);
 
         // 验证 $.collected_messages[1].data 路径
         let value2 = flow_engine_core::utils::extract_value_by_path(&output_data, "$.collected_messages[1].data");
         assert!(value2.is_some(), "$.collected_messages[1].data 应该能提取到值");
-        assert_eq!(value2.expect("值不存在"), r#"{"status":"done"}"#);
+        assert_eq!(value2.expect("Value does not exist"), r#"{"status":"done"}"#);
 
         // 验证 $.message_count 路径
         let count = flow_engine_core::utils::extract_value_by_path(&output_data, "$.message_count");
         assert!(count.is_some());
-        assert_eq!(count.expect("值不存在"), 2);
+        assert_eq!(count.expect("Value does not exist"), 2);
 
         // 验证 $.matched_message.data 路径
         let matched = flow_engine_core::utils::extract_value_by_path(&output_data, "$.matched_message.data");
         assert!(matched.is_some());
-        assert_eq!(matched.expect("值不存在"), r#"{"status":"done"}"#);
+        assert_eq!(matched.expect("Value does not exist"), r#"{"status":"done"}"#);
     }
 }

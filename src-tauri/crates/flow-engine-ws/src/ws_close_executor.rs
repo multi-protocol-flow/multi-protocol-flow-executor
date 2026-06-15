@@ -42,12 +42,12 @@ impl NodeExecutor for WsCloseExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::WsClose(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 WsCloseConfig: {}", node.uuid)),
+            _ => return Err(format!("Node data type is not WsCloseConfig: {}", node.uuid)),
         };
 
         // 2. 变量替换 connection_id
         let connection_id = replace_variables(&config.connection_id, context).map_err(|e| {
-            let error_msg = format!("连接 ID 变量替换失败: {}", e);
+            let error_msg = format!("Connection ID variable substitution failed: {}", e);
             log::error!(
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid,
@@ -71,10 +71,10 @@ impl NodeExecutor for WsCloseExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("WebSocket Close 节点 {} 开始执行", node.name),
+                message: format!("WebSocket Close node {} started", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -143,13 +143,13 @@ impl NodeExecutor for WsCloseExecutor {
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
                         message: format!(
-                            "WebSocket 连接关闭成功 ({}ms), code={}",
+                            "WebSocket connection closed successfully ({}ms), code={}",
                             duration.as_millis(),
                             config.close_code
                         ),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -179,10 +179,10 @@ impl NodeExecutor for WsCloseExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("WebSocket 连接关闭失败: {}", e),
+                        message: format!("WebSocket connection close failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -263,7 +263,7 @@ mod tests {
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext::new(flow_id.to_string(), std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .expect("系统时间错误")
+            .expect("system time error")
             .as_millis() as u64)
     }
 
@@ -271,7 +271,7 @@ mod tests {
     async fn test_close_connection_not_found() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsCloseExecutor::new(ws_manager);
-        let node = create_test_node("test-1", "测试关闭", "nonexistent-conn");
+        let node = create_test_node("test-1", "test close", "nonexistent-conn");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -296,7 +296,7 @@ mod tests {
         let executor = WsCloseExecutor::new(ws_manager);
 
         // 创建带变量的节点
-        let node = create_test_node("test-var", "变量替换测试", "{{conn_id}}");
+        let node = create_test_node("test-var", "variable substitution test", "{{conn_id}}");
 
         // 创建上下文并设置变量
         let mut context = create_context("test-flow");
@@ -333,12 +333,12 @@ mod tests {
         let node = Node {
             uuid: "test-custom-code".to_string(),
             node_type: "ws_close".to_string(),
-            name: "自定义关闭码".to_string(),
+            name: "custom close code".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsClose(WsCloseConfig {
                 connection_id: "test-conn".to_string(),
                 close_code: 1001, // Going Away
-                close_reason: Some("用户离开".to_string()),
+                close_reason: Some("user left".to_string()),
                 close_timeout_ms: 5000,
             }),
             ports: None,
@@ -373,7 +373,7 @@ mod tests {
         let connect_result = ws_manager
             .connect(
                 "echo-close-conn".to_string(),
-                "Echo 关闭测试".to_string(),
+                "Echo Close Test".to_string(),
                 "wss://echo.websocket.org".to_string(),
                 vec![],
                 vec![],
@@ -391,7 +391,7 @@ mod tests {
             let _ = ws_manager.receive("echo-close-conn", 3000).await;
 
             // 创建关闭节点
-            let node = create_test_node("close-test", "关闭测试", "echo-close-conn");
+            let node = create_test_node("close-test", "close test", "echo-close-conn");
             let mut context = create_context("test-flow");
             
             // 设置 URL 映射
@@ -414,11 +414,11 @@ mod tests {
                 }
                 Err(e) => {
                     // 不应该发生错误
-                    panic!("执行器返回错误: {}", e);
+                    panic!("Executor returned error: {}", e);
                 }
             }
         } else {
-            println!("跳过测试：无法连接到 echo 服务器");
+            println!("Skipping test: unable to connect to echo server");
         }
     }
 
@@ -431,7 +431,7 @@ mod tests {
         let connect_result = ws_manager
             .connect(
                 "close-reason-conn".to_string(),
-                "关闭原因测试".to_string(),
+                "close reason test".to_string(),
                 "wss://echo.websocket.org".to_string(),
                 vec![],
                 vec![],
@@ -452,12 +452,12 @@ mod tests {
             let node = Node {
                 uuid: "close-reason-test".to_string(),
                 node_type: "ws_close".to_string(),
-                name: "关闭原因测试".to_string(),
+                name: "close reason test".to_string(),
                 position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsClose(WsCloseConfig {
                 connection_id: "close-reason-conn".to_string(),
                 close_code: 1000,
-                close_reason: Some("测试完成".to_string()),
+                close_reason: Some("test complete".to_string()),
                 close_timeout_ms: 5000,
             }),
             ports: None,
@@ -480,16 +480,16 @@ mod tests {
                     assert!(output_data.is_some());
                     let data = output_data.unwrap();
                     assert_eq!(data["connection_id"], "close-reason-conn");
-                    assert_eq!(data["close_reason"], "测试完成");
+                    assert_eq!(data["close_reason"], "test complete");
                     assert_eq!(data["url"], "wss://echo.websocket.org");
                 }
                 Err(e) => {
                     // 不应该发生错误
-                    panic!("执行器返回错误: {}", e);
+                    panic!("Executor returned error: {}", e);
                 }
             }
         } else {
-            println!("跳过测试：无法连接到 echo 服务器");
+            println!("Skipping test: unable to connect to echo server");
         }
     }
 }

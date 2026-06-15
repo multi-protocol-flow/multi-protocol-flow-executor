@@ -383,7 +383,7 @@ pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionRes
             }
         }
         _ => {
-            return TestDbConnectionResult::failure(format!("不支持的数据库驱动"));
+            return TestDbConnectionResult::failure("Unsupported database driver".to_string());
         }
     };
 

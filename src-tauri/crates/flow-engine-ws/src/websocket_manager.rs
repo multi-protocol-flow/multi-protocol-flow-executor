@@ -370,7 +370,7 @@ impl WebSocketConnectionManager {
 
         // 2. 验证 URL 格式
         if !url.starts_with("ws://") && !url.starts_with("wss://") {
-            let error_msg = format!("无效的 WebSocket URL（必须以 ws:// 或 wss:// 开头）: {}", url);
+            let error_msg = format!("Invalid WebSocket URL (must start with ws:// or wss://): {}", url);
             connection.set_error(error_msg.clone());
             self.upsert_connection(connection);
             return Err(error_msg);
@@ -428,7 +428,7 @@ impl WebSocketConnectionManager {
 
                 // 9. 更新连接状态
                 let mut connections = self.connections.lock().map_err(|e| {
-                    format!("获取连接锁失败: {}", e)
+                    format!("Failed to acquire connection lock: {}", e)
                 })?;
 
                 if let Some(conn) = connections.get_mut(&uuid) {
@@ -462,14 +462,14 @@ impl WebSocketConnectionManager {
             }
             Ok(Err(e)) => {
                 // 连接失败（网络错误、TLS 错误等）
-                let error_msg = format!("WebSocket 连接失败 ({}): {}", url, e);
+                let error_msg = format!("WebSocket connection failed ({}): {}", url, e);
                 self.update_connection_error(&uuid, &error_msg);
                 Err(error_msg)
             }
             Err(_) => {
                 // 连接超时
                 let error_msg = format!(
-                    "WebSocket 连接超时 ({}ms): {}",
+                    "WebSocket connection timeout ({}ms): {}",
                     connect_timeout_ms, url
                 );
                 self.update_connection_error(&uuid, &error_msg);
@@ -496,9 +496,9 @@ impl WebSocketConnectionManager {
         subprotocols: &[String],
     ) -> Result<Request<()>, String> {
         // 1. 解析 URL 获取 host 和 port
-        let uri: http::Uri = url.parse().map_err(|e| format!("解析 URL 失败: {}", e))?;
+        let uri: http::Uri = url.parse().map_err(|e| format!("Failed to parse URL: {}", e))?;
 
-        let host = uri.host().ok_or("URL 缺少 host")?;
+        let host = uri.host().ok_or("URL missing host")?;
         let default_port = if uri.scheme_str() == Some("wss") {
             443
         } else {
@@ -527,7 +527,7 @@ impl WebSocketConnectionManager {
         }
 
         // 5. 构建请求体
-        builder.body(()).map_err(|e| format!("构建 WebSocket 请求失败: {}", e))
+        builder.body(()).map_err(|e| format!("Failed to build WebSocket request: {}", e))
     }
 
     /// 关闭 WebSocket 连接
@@ -553,24 +553,24 @@ impl WebSocketConnectionManager {
         // 1. 获取连接，检查是否存在
         let sender = {
             let connections = self.connections.lock().map_err(|e| {
-                format!("获取连接锁失败: {}", e)
+                format!("Failed to acquire connection lock: {}", e)
             })?;
 
             let conn = connections.get(uuid).ok_or_else(|| {
-                format!("连接不存在: {}", uuid)
+                format!("Connection not found: {}", uuid)
             })?;
 
             // 2. 检查连接状态
             if conn.status != ConnectionStatus::Connected {
                 return Err(format!(
-                    "连接状态不是 Connected（当前状态: {:?}）: {}",
+                    "Connection status is not Connected (current: {:?}): {}",
                     conn.status, uuid
                 ));
             }
 
             // 3. 获取发送端克隆
             conn.get_sender().ok_or_else(|| {
-                format!("连接没有活跃的 WebSocket 流: {}", uuid)
+                format!("Connection has no active WebSocket stream: {}", uuid)
             })?
         };
 
@@ -588,7 +588,7 @@ impl WebSocketConnectionManager {
         {
             let mut sender_guard = sender.lock().await;
             if let Err(e) = sender_guard.send(close_msg).await {
-                let error_msg = format!("发送关闭消息失败: {}", e);
+                let error_msg = format!("Failed to send close message: {}", e);
                 self.update_connection_error(uuid, &error_msg);
                 return Err(error_msg);
             }
@@ -597,7 +597,7 @@ impl WebSocketConnectionManager {
         // 6. 等待服务器确认关闭（超时控制）
         let receiver = {
             let connections = self.connections.lock().map_err(|e| {
-                format!("获取连接锁失败: {}", e)
+                format!("Failed to acquire connection lock: {}", e)
             })?;
             connections
                 .get(uuid)
@@ -637,7 +637,7 @@ impl WebSocketConnectionManager {
         // 8. 清理资源
         {
             let mut connections = self.connections.lock().map_err(|e| {
-                format!("获取连接锁失败: {}", e)
+                format!("Failed to acquire connection lock: {}", e)
             })?;
             if let Some(conn) = connections.get_mut(uuid) {
                 conn.clear_stream();
@@ -671,22 +671,22 @@ impl WebSocketConnectionManager {
         // 1. 获取连接，检查状态是否为 Connected
         let sender = {
             let connections = self.connections.lock().map_err(|e| {
-                format!("获取连接锁失败: {}", e)
+                format!("Failed to acquire connection lock: {}", e)
             })?;
 
             let conn = connections.get(uuid).ok_or_else(|| {
-                format!("连接不存在: {}", uuid)
+                format!("Connection not found: {}", uuid)
             })?;
 
             if conn.status != ConnectionStatus::Connected {
                 return Err(format!(
-                    "连接状态不是 Connected（当前状态: {:?}）: {}",
+                    "Connection status is not Connected (current: {:?}): {}",
                     conn.status, uuid
                 ));
             }
 
             conn.get_sender().ok_or_else(|| {
-                format!("连接没有活跃的 WebSocket 流: {}", uuid)
+                format!("Connection has no active WebSocket stream: {}", uuid)
             })?
         };
 
@@ -709,12 +709,12 @@ impl WebSocketConnectionManager {
                 Ok(())
             }
             Ok(Err(e)) => {
-                let error_msg = format!("发送消息失败: {}", e);
+                let error_msg = format!("Failed to send message: {}", e);
                 self.update_connection_error(uuid, &error_msg);
                 Err(error_msg)
             }
             Err(_) => {
-                let error_msg = format!("发送消息超时 ({}ms)", send_timeout_ms);
+                let error_msg = format!("Send message timeout ({}ms)", send_timeout_ms);
                 self.update_connection_error(uuid, &error_msg);
                 Err(error_msg)
             }
@@ -744,22 +744,22 @@ impl WebSocketConnectionManager {
         // 1. 获取连接，检查状态是否为 Connected
         let (receiver, sender) = {
             let connections = self.connections.lock().map_err(|e| {
-                format!("获取连接锁失败: {}", e)
+                format!("Failed to acquire connection lock: {}", e)
             })?;
 
             let conn = connections.get(uuid).ok_or_else(|| {
-                format!("连接不存在: {}", uuid)
+                format!("Connection not found: {}", uuid)
             })?;
 
             if conn.status != ConnectionStatus::Connected {
                 return Err(format!(
-                    "连接状态不是 Connected（当前状态: {:?}）: {}",
+                    "Connection status is not Connected (current: {:?}): {}",
                     conn.status, uuid
                 ));
             }
 
             let receiver = conn.get_receiver().ok_or_else(|| {
-                format!("连接没有活跃的 WebSocket 流: {}", uuid)
+                format!("Connection has no active WebSocket stream: {}", uuid)
             })?;
 
             // 获取 sender 用于回复 Ping
@@ -850,7 +850,7 @@ impl WebSocketConnectionManager {
                     }
                 }
                 Ok(Some(Err(e))) => {
-                    let error_msg = format!("接收消息失败: {}", e);
+                    let error_msg = format!("Failed to receive message: {}", e);
                     self.update_connection_error(uuid, &error_msg);
                     return Err(error_msg);
                 }
@@ -890,22 +890,22 @@ impl WebSocketConnectionManager {
         // 1. 获取连接，检查状态是否为 Connected
         let (receiver, sender) = {
             let connections = self.connections.lock().map_err(|e| {
-                format!("获取连接锁失败: {}", e)
+                format!("Failed to acquire connection lock: {}", e)
             })?;
 
             let conn = connections.get(uuid).ok_or_else(|| {
-                format!("连接不存在: {}", uuid)
+                format!("Connection not found: {}", uuid)
             })?;
 
             if conn.status != ConnectionStatus::Connected {
                 return Err(format!(
-                    "连接状态不是 Connected（当前状态: {:?}）: {}",
+                    "Connection status is not Connected (current: {:?}): {}",
                     conn.status, uuid
                 ));
             }
 
             let receiver = conn.get_receiver().ok_or_else(|| {
-                format!("连接没有活跃的 WebSocket 流: {}", uuid)
+                format!("Connection has no active WebSocket stream: {}", uuid)
             })?;
 
             let sender = conn.get_sender();
@@ -1101,13 +1101,13 @@ impl WebSocketConnectionManager {
     /// 操作是否成功（连接是否存在）
     pub fn update_status(&self, uuid: &str, status: ConnectionStatus) -> Result<(), String> {
         let mut connections = self.connections.lock().map_err(|e| {
-            format!("获取连接锁失败: {}", e)
+            format!("Failed to acquire connection lock: {}", e)
         })?;
         if let Some(conn) = connections.get_mut(uuid) {
             conn.set_status(status);
             Ok(())
         } else {
-            Err(format!("连接不存在: {}", uuid))
+            Err(format!("Connection not found: {}", uuid))
         }
     }
 
@@ -1212,11 +1212,11 @@ impl WebSocketConnectionManager {
     fn match_jsonpath(&self, message: &str, expression: &str) -> Result<bool, String> {
         // 1. 解析 JSON
         let json: serde_json::Value = serde_json::from_str(message)
-            .map_err(|e| format!("JSON 解析失败: {}", e))?;
+            .map_err(|e| format!("JSON parse failed: {}", e))?;
 
         // 2. 编译 JSONPath 表达式
         let path = JsonPath::parse(expression)
-            .map_err(|e| format!("JSONPath 语法错误: {}", e))?;
+            .map_err(|e| format!("JSONPath syntax error: {}", e))?;
 
         // 3. 查询 JSON
         let result = path.query(&json);
@@ -1242,7 +1242,7 @@ impl WebSocketConnectionManager {
     fn match_regex(&self, message: &str, pattern: &str) -> Result<bool, String> {
         // 1. 编译正则表达式
         let regex = Regex::new(pattern)
-            .map_err(|e| format!("正则表达式语法错误: {}", e))?;
+            .map_err(|e| format!("Regex syntax error: {}", e))?;
 
         // 2. 匹配消息
         Ok(regex.is_match(message))
@@ -1279,7 +1279,7 @@ impl WebSocketConnectionManager {
         // 消息文本
         context
             .set_value("message".to_string(), Value::String(message.to_string()))
-            .map_err(|e| format!("设置变量失败: {}", e))?;
+            .map_err(|e| format!("Failed to set variable: {}", e))?;
 
         // 如果是 JSON，添加解析后的字段
         if let Some(serde_json::Value::Object(map)) = json_value {
@@ -1288,7 +1288,7 @@ impl WebSocketConnectionManager {
                 let evalexpr_value = json_to_evalexpr_value(value);
                 context
                     .set_value(key.clone(), evalexpr_value)
-                    .map_err(|e| format!("设置变量失败: {}", e))?;
+                    .map_err(|e| format!("Failed to set variable: {}", e))?;
             }
 
             // 递归展开嵌套字段为扁平路径（支持 data.stepKey 访问方式）
@@ -1304,7 +1304,7 @@ impl WebSocketConnectionManager {
 
         // 5. 求值表达式
         let eval_result = evalexpr::eval_with_context(&processed_expression, &context)
-            .map_err(|e| format!("表达式求值失败: {}", e))?;
+            .map_err(|e| format!("Expression evaluation failed: {}", e))?;
 
         // 6. 转换为布尔值
         let result = match eval_result {
@@ -1314,7 +1314,7 @@ impl WebSocketConnectionManager {
             Value::String(s) => !s.is_empty(),
             Value::Empty => false,
             _ => {
-                return Err(format!("表达式返回不支持的类型: {:?}", eval_result));
+                return Err(format!("Expression returned unsupported type: {:?}", eval_result));
             }
         };
 
@@ -1450,14 +1450,14 @@ fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, String> {
     let hex = hex.strip_prefix("0x").unwrap_or(hex);
 
     if !hex.len().is_multiple_of(2) {
-        return Err("十六进制字符串长度必须是偶数".to_string());
+        return Err("Hex string length must be even".to_string());
     }
 
     (0..hex.len())
         .step_by(2)
         .map(|i| {
             u8::from_str_radix(&hex[i..i + 2], 16)
-                .map_err(|e| format!("解析十六进制失败: {}", e))
+                .map_err(|e| format!("Failed to parse hex: {}", e))
         })
         .collect()
 }
@@ -1524,7 +1524,7 @@ fn flatten_json_to_context(
                     let eval_value = json_to_evalexpr_value(value);
                     context
                         .set_value(flat_key, eval_value)
-                        .map_err(|e| format!("设置变量失败: {}", e))?;
+                        .map_err(|e| format!("Failed to set variable: {}", e))?;
                 }
                 serde_json::Value::Array(arr) => {
                     // 展开数组元素（支持索引访问，如 items.0.name）
@@ -1538,7 +1538,7 @@ fn flatten_json_to_context(
                                 let eval_value = json_to_evalexpr_value(item);
                                 context
                                     .set_value(item_key, eval_value)
-                                    .map_err(|e| format!("设置变量失败: {}", e))?;
+                                    .map_err(|e| format!("Failed to set variable: {}", e))?;
                             }
                         }
                     }
@@ -1546,13 +1546,13 @@ fn flatten_json_to_context(
                     let eval_value = json_to_evalexpr_value(value);
                     context
                         .set_value(flat_key, eval_value)
-                        .map_err(|e| format!("设置变量失败: {}", e))?;
+                        .map_err(|e| format!("Failed to set variable: {}", e))?;
                 }
                 _ => {
                     let eval_value = json_to_evalexpr_value(value);
                     context
                         .set_value(flat_key, eval_value)
-                        .map_err(|e| format!("设置变量失败: {}", e))?;
+                        .map_err(|e| format!("Failed to set variable: {}", e))?;
                 }
             }
         }
@@ -1643,20 +1643,20 @@ mod tests {
     #[test]
     fn test_connection_status_serialization() {
         let status = ConnectionStatus::Connected;
-        let json = serde_json::to_string(&status).expect("序列化失败");
+        let json = serde_json::to_string(&status).expect("Serialization failed");
         assert_eq!(json, r#""connected""#);
 
         let deserialized: ConnectionStatus =
-            serde_json::from_str(&json).expect("反序列化失败");
+            serde_json::from_str(&json).expect("Deserialization failed");
         assert_eq!(deserialized, ConnectionStatus::Connected);
     }
 
     #[test]
     fn test_active_connection_creation() {
-        let conn = create_test_connection("uuid-1", "测试连接", "wss://example.com/ws");
+        let conn = create_test_connection("uuid-1", "test connection", "wss://example.com/ws");
 
         assert_eq!(conn.uuid, "uuid-1");
-        assert_eq!(conn.name, "测试连接");
+        assert_eq!(conn.name, "test connection");
         assert_eq!(conn.url, "wss://example.com/ws");
         assert_eq!(conn.status, ConnectionStatus::Connecting);
         assert!(conn.buffer_size() == 0);
@@ -1666,7 +1666,7 @@ mod tests {
 
     #[test]
     fn test_active_connection_set_status() {
-        let mut conn = create_test_connection("uuid-1", "测试", "wss://example.com/ws");
+        let mut conn = create_test_connection("uuid-1", "test", "wss://example.com/ws");
 
         conn.set_status(ConnectionStatus::Connected);
         assert_eq!(conn.status, ConnectionStatus::Connected);
@@ -1677,11 +1677,11 @@ mod tests {
 
     #[test]
     fn test_active_connection_set_error() {
-        let mut conn = create_test_connection("uuid-1", "测试", "wss://example.com/ws");
+        let mut conn = create_test_connection("uuid-1", "test", "wss://example.com/ws");
 
-        conn.set_error("连接失败".to_string());
+        conn.set_error("Connection failed".to_string());
         assert_eq!(conn.status, ConnectionStatus::Error);
-        assert_eq!(conn.last_error, Some("连接失败".to_string()));
+        assert_eq!(conn.last_error, Some("Connection failed".to_string()));
     }
 
     #[test]
@@ -1749,7 +1749,7 @@ mod tests {
 
     #[test]
     fn test_active_connection_meta_ownership() {
-        let mut conn = create_test_connection("uuid-1", "测试", "wss://example.com/ws");
+        let mut conn = create_test_connection("uuid-1", "test", "wss://example.com/ws");
         conn.set_owner("node-123", "segment-456");
 
         // 测试 From<ActiveConnection> for ActiveConnectionMeta
@@ -1782,7 +1782,7 @@ mod tests {
     #[test]
     fn test_manager_upsert_connection() {
         let manager = WebSocketConnectionManager::new();
-        let conn1 = create_test_connection("uuid-1", "连接1", "wss://example.com/ws1");
+        let conn1 = create_test_connection("uuid-1", "conn1", "wss://example.com/ws1");
 
         // 添加新连接
         let result = manager.upsert_connection(conn1);
@@ -1790,29 +1790,29 @@ mod tests {
         assert_eq!(manager.connection_count(), 1);
 
         // 更新已存在的连接
-        let conn2 = create_test_connection("uuid-1", "连接1更新", "wss://example.com/ws2");
+        let conn2 = create_test_connection("uuid-1", "conn1-updated", "wss://example.com/ws2");
         let old = manager.upsert_connection(conn2);
         assert!(old.is_some());
-        assert_eq!(old.unwrap().name, "连接1");
+        assert_eq!(old.unwrap().name, "conn1");
         assert_eq!(manager.connection_count(), 1);
 
         // 验证更新成功
         let current = manager.get_connection("uuid-1").unwrap();
-        assert_eq!(current.name, "连接1更新");
+        assert_eq!(current.name, "conn1-updated");
         assert_eq!(current.url, "wss://example.com/ws2");
     }
 
     #[test]
     fn test_manager_get_connection() {
         let manager = WebSocketConnectionManager::new();
-        let conn = create_test_connection("uuid-1", "连接1", "wss://example.com/ws");
+        let conn = create_test_connection("uuid-1", "conn1", "wss://example.com/ws");
 
         manager.upsert_connection(conn);
 
         // 存在的连接
         let found = manager.get_connection("uuid-1");
         assert!(found.is_some());
-        assert_eq!(found.unwrap().name, "连接1");
+        assert_eq!(found.unwrap().name, "conn1");
 
         // 不存在的连接
         let not_found = manager.get_connection("uuid-999");
@@ -1825,17 +1825,17 @@ mod tests {
 
         manager.upsert_connection(create_test_connection(
             "uuid-1",
-            "连接1",
+            "conn1",
             "wss://a.com",
         ));
         manager.upsert_connection(create_test_connection(
             "uuid-2",
-            "连接2",
+            "conn2",
             "wss://b.com",
         ));
         manager.upsert_connection(create_test_connection(
             "uuid-3",
-            "连接3",
+            "conn3",
             "wss://c.com",
         ));
 
@@ -1843,9 +1843,9 @@ mod tests {
         assert_eq!(all.len(), 3);
 
         let names: Vec<&str> = all.iter().map(|c| c.name.as_str()).collect();
-        assert!(names.contains(&"连接1"));
-        assert!(names.contains(&"连接2"));
-        assert!(names.contains(&"连接3"));
+        assert!(names.contains(&"conn1"));
+        assert!(names.contains(&"conn2"));
+        assert!(names.contains(&"conn3"));
     }
 
     #[test]
@@ -1853,7 +1853,7 @@ mod tests {
         let manager = WebSocketConnectionManager::new();
         manager.upsert_connection(create_test_connection(
             "uuid-1",
-            "连接1",
+            "conn1",
             "wss://a.com",
         ));
 
@@ -1872,7 +1872,7 @@ mod tests {
         let manager = WebSocketConnectionManager::new();
         manager.upsert_connection(create_test_connection(
             "uuid-1",
-            "连接1",
+            "conn1",
             "wss://a.com",
         ));
 
@@ -1893,12 +1893,12 @@ mod tests {
         let manager = WebSocketConnectionManager::new();
         manager.upsert_connection(create_test_connection(
             "uuid-1",
-            "连接1",
+            "conn1",
             "wss://a.com",
         ));
         manager.upsert_connection(create_test_connection(
             "uuid-2",
-            "连接2",
+            "conn2",
             "wss://b.com",
         ));
 
@@ -1915,7 +1915,7 @@ mod tests {
         let manager1 = WebSocketConnectionManager::new();
         manager1.upsert_connection(create_test_connection(
             "uuid-1",
-            "连接1",
+            "conn1",
             "wss://a.com",
         ));
 
@@ -1925,7 +1925,7 @@ mod tests {
         // 通过 manager2 修改
         manager2.upsert_connection(create_test_connection(
             "uuid-2",
-            "连接2",
+            "conn2",
             "wss://b.com",
         ));
 
@@ -1941,12 +1941,12 @@ mod tests {
         // 添加连接
         manager.upsert_connection(create_test_connection(
             "uuid-1",
-            "连接1",
+            "conn1",
             "wss://a.com",
         ));
         manager.upsert_connection(create_test_connection(
             "uuid-2",
-            "连接2",
+            "conn2",
             "wss://b.com",
         ));
 
@@ -1971,12 +1971,12 @@ mod tests {
 
         manager.upsert_connection(create_test_connection(
             "uuid-1",
-            "连接1",
+            "conn1",
             "wss://a.com",
         ));
         manager.upsert_connection(create_test_connection(
             "uuid-2",
-            "连接2",
+            "conn2",
             "wss://b.com",
         ));
 
@@ -2030,7 +2030,7 @@ mod tests {
         let result = manager
             .connect(
                 "conn-1".to_string(),
-                "测试连接".to_string(),
+                "test connection".to_string(),
                 "http://invalid.com".to_string(), // 无效协议
                 vec![],                           // headers
                 vec![],                           // subprotocols
@@ -2043,7 +2043,7 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("无效的 WebSocket URL"));
+        assert!(result.unwrap_err().contains("Invalid WebSocket URL"));
 
         // 验证连接状态为 Error
         let conn = manager.get_connection("conn-1").unwrap();
@@ -2059,7 +2059,7 @@ mod tests {
         let result = manager
             .connect(
                 "conn-timeout".to_string(),
-                "超时测试".to_string(),
+                "timeout test".to_string(),
                 "ws://192.0.2.1:81/ws".to_string(), // RFC 3330 测试地址，不可路由
                 vec![],                            // headers
                 vec![],                            // subprotocols
@@ -2074,7 +2074,7 @@ mod tests {
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert!(
-            error.find("超时").is_some() || error.find("失败").is_some(),
+            error.find("timeout").is_some() || error.find("failed").is_some(),
             "错误消息应该包含超时或失败: {}",
             error
         );
@@ -2087,7 +2087,7 @@ mod tests {
         let result = manager.close("nonexistent", 1000, None, 5000).await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("连接不存在"));
+        assert!(result.unwrap_err().contains("Connection not found"));
     }
 
     #[tokio::test]
@@ -2099,7 +2099,7 @@ mod tests {
             .await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("连接不存在"));
+        assert!(result.unwrap_err().contains("Connection not found"));
     }
 
     #[tokio::test]
@@ -2109,7 +2109,7 @@ mod tests {
         let result = manager.receive("nonexistent", 5000).await;
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("连接不存在"));
+        assert!(result.unwrap_err().contains("Connection not found"));
     }
 
     #[tokio::test]
@@ -2120,7 +2120,7 @@ mod tests {
         let result = manager
             .connect(
                 "echo-conn".to_string(),
-                "Echo 测试".to_string(),
+                "Echo Test".to_string(),
                 "wss://echo.websocket.org".to_string(),
                 vec![], // headers
                 vec![], // subprotocols
@@ -2165,7 +2165,7 @@ mod tests {
             }
             Err(e) => {
                 // 网络不可用时跳过测试
-                println!("跳过测试：无法连接到 echo 服务器: {}", e);
+                println!("Skipping test: unable to connect to echo server: {}", e);
             }
         }
     }
@@ -2178,7 +2178,7 @@ mod tests {
         let result = manager
             .connect(
                 "binary-conn".to_string(),
-                "二进制测试".to_string(),
+                "binary test".to_string(),
                 "wss://echo.websocket.org".to_string(),
                 vec![], // headers
                 vec![], // subprotocols
@@ -2212,7 +2212,7 @@ mod tests {
             // 清理
             let _ = manager.close("binary-conn", 1000, None, 5000).await;
         } else {
-            println!("跳过测试：无法连接到 echo 服务器");
+            println!("Skipping test: unable to connect to echo server");
         }
     }
 
@@ -2224,7 +2224,7 @@ mod tests {
         let result = manager
             .connect(
                 "timeout-conn".to_string(),
-                "超时测试".to_string(),
+                "timeout test".to_string(),
                 "wss://echo.websocket.org".to_string(),
                 vec![], // headers
                 vec![], // subprotocols
@@ -2250,7 +2250,7 @@ mod tests {
             // 清理
             let _ = manager.close("timeout-conn", 1000, None, 5000).await;
         } else {
-            println!("跳过测试：无法连接到 echo 服务器");
+            println!("Skipping test: unable to connect to echo server");
         }
     }
 
@@ -2260,7 +2260,7 @@ mod tests {
 
         manager.upsert_connection(create_test_connection(
             "track-1",
-            "跟踪测试",
+                "tracking test",
             "wss://a.com",
         ));
 
@@ -2353,7 +2353,7 @@ mod tests {
 
         let result = manager.match_message(message, &condition);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("JSON 解析失败"));
+        assert!(result.unwrap_err().contains("JSON parse failed"));
     }
 
     #[test]
@@ -2367,7 +2367,7 @@ mod tests {
 
         let result = manager.match_message(message, &condition);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("JSONPath 语法错误"));
+        assert!(result.unwrap_err().contains("JSONPath syntax error"));
     }
 
     #[test]
@@ -2423,7 +2423,7 @@ mod tests {
 
         let result = manager.match_message(message, &condition);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("正则表达式语法错误"));
+        assert!(result.unwrap_err().contains("Regex syntax error"));
     }
 
     #[test]
@@ -2535,7 +2535,7 @@ mod tests {
 
         let result = manager.match_message(message, &condition);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("表达式求值失败"));
+        assert!(result.unwrap_err().contains("Expression evaluation failed"));
     }
 
     #[test]

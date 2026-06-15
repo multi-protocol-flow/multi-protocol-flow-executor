@@ -51,12 +51,12 @@ impl NodeExecutor for WsConnectExecutor {
         // 1. 提取配置
         let config = match &node.data {
             NodeData::WsConnect(config) => config.clone(),
-            _ => return Err(format!("节点数据类型不是 WsConnectConfig: {}", node.uuid)),
+            _ => return Err(format!("Node data type is not WsConnectConfig: {}", node.uuid)),
         };
 
         // 2. 变量替换 URL
         let url = replace_variables(&config.url, context).map_err(|e| {
-            let error_msg = format!("URL 变量替换失败: {}", e);
+            let error_msg = format!("URL variable substitution failed: {}", e);
             log::error!(
                 "[流程 {}] [错误] 节点ID: {}, 节点名称: {}, 错误: {}",
                 context.flow_uuid,
@@ -79,10 +79,10 @@ impl NodeExecutor for WsConnectExecutor {
         context
             .emit_log(LogEvent {
                 level: LogLevel::Info,
-                message: format!("WebSocket 连接节点 {} 开始执行", node.name),
+                message: format!("WebSocket connect node {} started", node.name),
                 timestamp: std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .expect("系统时间错误")
+                    .expect("system time error")
                     .as_millis() as u64,
                 node_uuid: Some(node.uuid.clone()),
                 node_name: Some(node.name.clone()),
@@ -189,10 +189,10 @@ impl NodeExecutor for WsConnectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Info,
-                        message: format!("WebSocket 连接成功 ({}ms)", duration.as_millis()),
+                        message: format!("WebSocket connect succeeded ({}ms)", duration.as_millis()),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -231,10 +231,10 @@ impl NodeExecutor for WsConnectExecutor {
                 context
                     .emit_log(LogEvent {
                         level: LogLevel::Error,
-                        message: format!("WebSocket 连接失败: {}", e),
+                        message: format!("WebSocket connect failed: {}", e),
                         timestamp: std::time::SystemTime::now()
                             .duration_since(std::time::UNIX_EPOCH)
-                            .expect("系统时间错误")
+                            .expect("system time error")
                             .as_millis() as u64,
                         node_uuid: Some(node.uuid.clone()),
                         node_name: Some(node.name.clone()),
@@ -306,7 +306,7 @@ impl WsConnectExecutor {
             WsCollectMode::FirstMatch => {
                 // 取消检查
                 if context.is_cancelled() {
-                    return Err("流程已取消".to_string());
+                    return Err("Flow cancelled".to_string());
                 }
                 let timeout_ms = config.collect_timeout_ms;
                 // 使用 watch channel 监听取消信号
@@ -314,7 +314,7 @@ impl WsConnectExecutor {
                     let mut cancel_rx = rx.clone();
                     tokio::select! {
                         msg = self.ws_manager.receive(&node.uuid, timeout_ms) => msg,
-                        _ = cancel_rx.changed() => Err("流程已取消".to_string()),
+                        _ = cancel_rx.changed() => Err("Flow cancelled".to_string()),
                     }
                 } else {
                     self.ws_manager.receive(&node.uuid, timeout_ms).await
@@ -346,10 +346,10 @@ impl WsConnectExecutor {
                         context
                             .emit_log(LogEvent {
                                 level: LogLevel::Info,
-                                message: format!("收到初始消息: {}", message),
+                                message: format!("Initial message received: {}", message),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间错误")
+                                    .expect("system time error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -385,7 +385,7 @@ impl WsConnectExecutor {
                         loop {
                             // 取消检查
                             if context.is_cancelled() {
-                                return Err("流程已取消".to_string());
+                                return Err("Flow cancelled".to_string());
                             }
                             let elapsed = start.elapsed().as_millis() as u64;
                             if elapsed >= timeout_ms {
@@ -402,7 +402,7 @@ impl WsConnectExecutor {
                                 let mut cancel_rx = rx.clone();
                                 tokio::select! {
                                     msg = self.ws_manager.receive(&node.uuid, remaining.min(5000)) => msg,
-                                    _ = cancel_rx.changed() => Err("流程已取消".to_string()),
+                                    _ = cancel_rx.changed() => Err("Flow cancelled".to_string()),
                                 }
                             } else {
                                 self.ws_manager.receive(&node.uuid, remaining.min(5000)).await
@@ -436,10 +436,10 @@ impl WsConnectExecutor {
                                         context
                                             .emit_log(LogEvent {
                                                 level: LogLevel::Info,
-                                                message: format!("消息匹配成功: {}", message),
+                                                message: format!("Message matched: {}", message),
                                                 timestamp: std::time::SystemTime::now()
                                                     .duration_since(std::time::UNIX_EPOCH)
-                                                    .expect("系统时间错误")
+                                                    .expect("system time error")
                                                     .as_millis() as u64,
                                                 node_uuid: Some(node.uuid.clone()),
                                                 node_name: Some(node.name.clone()),
@@ -458,8 +458,8 @@ impl WsConnectExecutor {
                     }
                     Some(condition) => {
                         let error_msg = format!(
-                            "条件匹配模式需要填写匹配表达式（当前表达式为空）: match_type={:?}",
-                            condition.match_type
+                        "Condition match mode requires a match expression (current expression is empty): match_type={:?}",
+                        condition.match_type
                         );
                         log::error!(
                             "[WebSocket] 条件匹配配置错误: uuid={}, expression 为空",
@@ -472,7 +472,7 @@ impl WsConnectExecutor {
                                 message: error_msg.clone(),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间错误")
+                                    .expect("system time error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -483,7 +483,7 @@ impl WsConnectExecutor {
                         Err(error_msg)
                     }
                     None => {
-                        let error_msg = "条件匹配模式需要配置匹配条件（collect_condition 未设置）".to_string();
+                        let error_msg = "Condition match mode requires collect_condition to be configured".to_string();
                         log::error!(
                             "[WebSocket] 条件匹配配置错误: uuid={}, collect_condition 为 None",
                             node.uuid
@@ -495,7 +495,7 @@ impl WsConnectExecutor {
                                 message: error_msg.clone(),
                                 timestamp: std::time::SystemTime::now()
                                     .duration_since(std::time::UNIX_EPOCH)
-                                    .expect("系统时间错误")
+                                    .expect("system time error")
                                     .as_millis() as u64,
                                 node_uuid: Some(node.uuid.clone()),
                                 node_name: Some(node.name.clone()),
@@ -516,14 +516,14 @@ impl WsConnectExecutor {
                 while start.elapsed().as_millis() < duration_ms as u128 {
                     // 取消检查
                     if context.is_cancelled() {
-                        return Err("流程已取消".to_string());
+                        return Err("Flow cancelled".to_string());
                     }
                     // 使用 watch channel 监听取消信号
                     let receive_result = if let Some(ref rx) = context.cancel_receiver {
                         let mut cancel_rx = rx.clone();
                         tokio::select! {
                             msg = self.ws_manager.receive(&node.uuid, 1000) => msg,
-                            _ = cancel_rx.changed() => Err("流程已取消".to_string()),
+                            _ = cancel_rx.changed() => Err("Flow cancelled".to_string()),
                         }
                     } else {
                         self.ws_manager.receive(&node.uuid, 1000).await
@@ -692,7 +692,7 @@ mod tests {
     fn create_context(flow_id: &str) -> ExecutionContext {
         ExecutionContext::new(flow_id.to_string(), std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .expect("系统时间错误")
+            .expect("system time error")
             .as_millis() as u64)
     }
 
@@ -700,7 +700,7 @@ mod tests {
     async fn test_connect_invalid_url() {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager);
-        let node = create_test_node("test-1", "测试连接", "http://invalid.com");
+        let node = create_test_node("test-1", "test connection", "http://invalid.com");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -722,7 +722,7 @@ mod tests {
         let node = Node {
             uuid: "test-timeout".to_string(),
             node_type: "ws_connect".to_string(),
-            name: "超时测试".to_string(),
+            name: "timeout test".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
                 url: "ws://192.0.2.1:81/ws".to_string(), // RFC 3330 测试地址，不可路由
@@ -755,7 +755,7 @@ mod tests {
         let executor = WsConnectExecutor::new(ws_manager);
 
         // 创建带变量的节点
-        let node = create_test_node("test-var", "变量替换测试", "ws://{{host}}/ws");
+        let node = create_test_node("test-var", "variable substitution test", "ws://{{host}}/ws");
 
         // 创建上下文并设置变量
         let mut context = create_context("test-flow");
@@ -785,7 +785,7 @@ mod tests {
         let node = Node {
             uuid: "test-wait-first".to_string(),
             node_type: "ws_connect".to_string(),
-            name: "等待第一条消息".to_string(),
+            name: "Wait for first message".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
                 url: "wss://example.com/ws".to_string(),
@@ -820,7 +820,7 @@ mod tests {
         let node = Node {
             uuid: "test-wait-condition".to_string(),
             node_type: "ws_connect".to_string(),
-            name: "条件等待".to_string(),
+            name: "Condition wait".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
                 url: "wss://example.com/ws".to_string(),
@@ -859,7 +859,7 @@ mod tests {
         let node = Node {
             uuid: "test-wait-duration".to_string(),
             node_type: "ws_connect".to_string(),
-            name: "时长等待".to_string(),
+            name: "Duration wait".to_string(),
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::WsConnect(WsConnectConfig {
                 url: "wss://example.com/ws".to_string(),
@@ -892,7 +892,7 @@ mod tests {
         let executor = WsConnectExecutor::new(ws_manager.clone());
 
         // 连接到公共 WebSocket echo 服务器
-        let node = create_test_node("echo-test", "Echo 测试", "wss://echo.websocket.org");
+        let node = create_test_node("echo-test", "Echo Test", "wss://echo.websocket.org");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -913,7 +913,7 @@ mod tests {
                     let stream = context.get_ws_stream("echo-test").await;
                     assert!(
                         stream.is_some(),
-                        "连接成功后应该创建 WebSocket 消息流"
+                        "WebSocket stream should be created after successful connection"
                     );
                     let stream = stream.unwrap();
                     assert_eq!(stream.connection_id, "echo-test");
@@ -927,16 +927,16 @@ mod tests {
 
                     // 清理：关闭连接
                     let _ = ws_manager
-                        .close("echo-test", 1000, Some("测试完成".to_string()), 5000)
+                        .close("echo-test", 1000, Some("test complete".to_string()), 5000)
                         .await;
                 } else {
                     // 连接失败（网络问题），跳过测试
-                    println!("跳过测试：无法连接到 echo 服务器");
+                    println!("Skipping test: unable to connect to echo server");
                 }
             }
             Err(e) => {
                 // 不应该发生错误（应该返回 false 端口）
-                panic!("执行器返回错误而不是 false 端口: {}", e);
+                panic!("Executor returned error instead of false port: {}", e);
             }
         }
     }
@@ -947,7 +947,7 @@ mod tests {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager.clone());
 
-        let node = create_test_node("stream-test", "消息流测试", "wss://echo.websocket.org");
+        let node = create_test_node("stream-test", "stream test", "wss://echo.websocket.org");
         let mut context = create_context("test-flow");
 
         let result = executor
@@ -957,7 +957,7 @@ mod tests {
         if let Ok((next_nodes, _)) = result {
             if next_nodes == vec!["true"] {
                 let stream = context.get_ws_stream("stream-test").await;
-                assert!(stream.is_some(), "连接成功后应该创建 WebSocket 消息流");
+                assert!(stream.is_some(), "WebSocket stream should be created after successful connection");
 
                 let stream = stream.unwrap();
                 assert_eq!(stream.connection_id, "stream-test");
@@ -973,10 +973,10 @@ mod tests {
 
                 // 清理
                 let _ = ws_manager
-                    .close("stream-test", 1000, Some("测试完成".to_string()), 5000)
-                    .await;
+                        .close("stream-test", 1000, Some("test complete".to_string()), 5000)
+                        .await;
             } else {
-                println!("跳过测试：无法连接到 echo 服务器");
+                println!("Skipping test: unable to connect to echo server");
             }
         }
     }
@@ -987,7 +987,7 @@ mod tests {
         let ws_manager = Arc::new(WebSocketConnectionManager::new());
         let executor = WsConnectExecutor::new(ws_manager);
 
-        let node = create_test_node("fail-test", "失败测试", "ws://invalid.example.com:9999/ws");
+        let node = create_test_node("fail-test", "failure test", "ws://invalid.example.com:9999/ws");
         let mut context = create_context("test-flow");
 
         let result = executor
