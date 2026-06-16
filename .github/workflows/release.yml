@@ -120,7 +120,7 @@ jobs:
           releaseBody: 'See the assets below to download and install.'
           releaseDraft: false
           prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
-          args: --bundles dmg --config src-tauri/tauri.conf.ci.json
+          args: --target universal-apple-darwin --bundles dmg --config src-tauri/tauri.conf.ci.json
       - name: Upload to R2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
