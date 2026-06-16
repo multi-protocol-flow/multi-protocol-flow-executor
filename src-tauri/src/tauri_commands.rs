@@ -3793,6 +3793,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let end_node = Node {
@@ -3802,6 +3804,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let connection = Connection {
@@ -3818,6 +3822,9 @@ mod tests {
             nodes: vec![start_node, end_node],
             connections: vec![connection],
             initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
         };
 
         // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
@@ -3847,6 +3854,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let flow = Flow {
@@ -3855,6 +3864,9 @@ mod tests {
             nodes: vec![start_node],
             connections: vec![],
             initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
         };
 
         // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
@@ -3877,6 +3889,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let flow = Flow {
@@ -3885,6 +3899,9 @@ mod tests {
             nodes: vec![http_node],
             connections: vec![],
             initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
         };
 
         // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
@@ -3911,6 +3928,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let flow = Flow {
@@ -3919,6 +3938,9 @@ mod tests {
             nodes: vec![start_node],
             connections: vec![],
             initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
         };
 
         let input = UpdateNodeCommandInput {
@@ -3956,6 +3978,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let flow = Flow {
@@ -3964,6 +3988,9 @@ mod tests {
             nodes: vec![start_node],
             connections: vec![],
             initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
         };
 
         let input = DeleteNodeCommandInput {
@@ -3996,6 +4023,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let http_node = Node {
@@ -4005,6 +4034,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let flow = Flow {
@@ -4013,6 +4044,9 @@ mod tests {
             nodes: vec![start_node, http_node],
             connections: vec![],
             initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
         };
 
         let input = DeleteNodeCommandInput {
@@ -4071,6 +4105,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let end_node = Node {
@@ -4080,6 +4116,8 @@ mod tests {
             position: NodePosition { x: 100.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         // 验证 conn.source_node_uuid 使用正确的 uuid 字段
@@ -4097,6 +4135,9 @@ mod tests {
             nodes: vec![start_node, end_node],
             connections: vec![connection],
             initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
         };
 
         // 直接使用 FlowExecutor 测试（避免 Tauri Channel 依赖）
@@ -4117,6 +4158,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::http("https://example.com"),
             ports: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let flow = Flow {
@@ -4125,6 +4168,9 @@ mod tests {
             nodes: vec![http_node],
             connections: vec![],
             initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
         };
 
         let input = DeleteNodeCommandInput {
@@ -4152,6 +4198,8 @@ mod tests {
             position: NodePosition { x: 0.0, y: 0.0 },
             data: NodeData::entry(),
             ports: None,
+            has_breakpoint: None,
+            on_error: None,
         };
 
         let flow = Flow {
@@ -4160,6 +4208,9 @@ mod tests {
             nodes: vec![start_node],
             connections: vec![],
             initial_variables: None,
+            environments: vec![],
+            active_environment: None,
+            hooks: None,
         };
 
         let input = DeleteNodeCommandInput {
