@@ -327,6 +327,7 @@ pub fn delete_flow_report(
 // 数据库连接命令
 // ============================================================================
 
+#[cfg(feature = "protocol-db")]
 use flow_engine::db::{
     DbConnection, DatabasePool, DbDriver, PostgresConnection, MySqlConnection, SqliteConnection,
     TestDbConnectionResult,
@@ -335,6 +336,7 @@ use flow_engine::db::{
 /// 测试数据库连接
 ///
 /// 接收前端传来的数据库连接配置，根据驱动类型创建真实连接池并测试连接。
+#[cfg(feature = "protocol-db")]
 #[tauri::command]
 pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionResult {
     log::info!(
@@ -406,10 +408,13 @@ pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionRes
 // gRPC 服务发现命令
 // ============================================================================
 
+#[cfg(feature = "protocol-grpc")]
 use flow_engine::grpc_connection_manager;
+#[cfg(feature = "protocol-grpc")]
 use flow_engine::traits::{GrpcMethodInfo, GrpcProvider, GrpcServiceInfo};
 
 /// gRPC 服务发现请求参数
+#[cfg(feature = "protocol-grpc")]
 #[derive(serde::Deserialize)]
 pub struct GrpcDiscoverServicesInput {
     /// gRPC 服务器地址
@@ -437,6 +442,7 @@ pub struct GrpcDiscoverServicesInput {
 }
 
 /// gRPC 服务发现响应
+#[cfg(feature = "protocol-grpc")]
 #[derive(serde::Serialize)]
 pub struct GrpcDiscoverServicesOutput {
     /// 是否成功
@@ -451,6 +457,7 @@ pub struct GrpcDiscoverServicesOutput {
 ///
 /// 设计时调用：通过 Server Reflection 或解析 Proto 文件发现可用服务。
 /// 不创建持久连接，仅返回服务/方法列表供前端缓存。
+#[cfg(feature = "protocol-grpc")]
 #[tauri::command]
 pub async fn grpc_discover_services(
     input: GrpcDiscoverServicesInput,
@@ -526,6 +533,7 @@ use flow_engine::proto_parser;
 // ============================================================================
 
 /// Proto 文件信息（IPC 输出）
+#[cfg(feature = "protocol-grpc")]
 #[derive(Debug, serde::Serialize)]
 pub struct ProtoFileOutput {
     /// 文件名（相对路径）
@@ -535,6 +543,7 @@ pub struct ProtoFileOutput {
 }
 
 /// 扫描 Proto 目录响应
+#[cfg(feature = "protocol-grpc")]
 #[derive(Debug, serde::Serialize)]
 pub struct GrpcScanProtoDirectoryOutput {
     /// 是否成功
@@ -551,6 +560,7 @@ pub struct GrpcScanProtoDirectoryOutput {
 ///
 /// 递归遍历指定目录及其子目录，收集所有 `.proto` 文件。
 /// 跳过以 `.` 开头的隐藏目录。
+#[cfg(feature = "protocol-grpc")]
 #[tauri::command]
 pub async fn grpc_scan_proto_directory(
     dir_path: String,
@@ -583,6 +593,7 @@ pub async fn grpc_scan_proto_directory(
 }
 
 /// 读取 Proto 文件列表响应
+#[cfg(feature = "protocol-grpc")]
 #[derive(Debug, serde::Serialize)]
 pub struct GrpcReadProtoFilesOutput {
     /// 是否成功
@@ -597,6 +608,7 @@ pub struct GrpcReadProtoFilesOutput {
 ///
 /// 接收文件路径列表，读取每个文件的内容并返回。
 /// 用于文件选择器选择 .proto 文件后批量读取内容。
+#[cfg(feature = "protocol-grpc")]
 #[tauri::command]
 pub async fn grpc_read_proto_files(
     file_paths: Vec<String>,
@@ -637,6 +649,7 @@ pub async fn grpc_read_proto_files(
 }
 
 /// 解析 Descriptor Set 响应
+#[cfg(feature = "protocol-grpc")]
 #[derive(Debug, serde::Serialize)]
 pub struct GrpcParseDescriptorSetOutput {
     /// 是否成功
@@ -651,6 +664,7 @@ pub struct GrpcParseDescriptorSetOutput {
 ///
 /// 读取 `.pb` / `.fdset` / `.desc` 格式的 `FileDescriptorSet` 文件，
 /// 解析并返回其中的服务和方法信息。
+#[cfg(feature = "protocol-grpc")]
 #[tauri::command]
 pub async fn grpc_parse_descriptor_set(
     file_path: String,
@@ -724,6 +738,7 @@ pub async fn grpc_parse_descriptor_set(
 // ============================================================================
 
 /// gRPC Channelz 内省响应（EXPERIMENTAL）
+#[cfg(feature = "protocol-grpc")]
 #[derive(Debug, serde::Serialize)]
 pub struct GrpcChannelzOutput {
     /// 是否成功
@@ -738,6 +753,7 @@ pub struct GrpcChannelzOutput {
 ///
 /// 运行时调用：获取活跃 gRPC 连接的轻量级诊断信息。
 /// 包括连接状态、运行时长、活跃调用数等。
+#[cfg(feature = "protocol-grpc")]
 #[tauri::command]
 pub async fn grpc_channelz_info(
     connection_id: String,
@@ -806,6 +822,7 @@ pub async fn grpc_channelz_info(
 // ============================================================================
 
 /// gRPC 请求骨架生成请求参数
+#[cfg(feature = "protocol-grpc")]
 #[derive(serde::Deserialize)]
 pub struct GrpcGenerateRequestSkeletonInput {
     /// Proto 文件列表 (path, content)
@@ -817,6 +834,7 @@ pub struct GrpcGenerateRequestSkeletonInput {
 }
 
 /// gRPC 请求骨架生成响应
+#[cfg(feature = "protocol-grpc")]
 #[derive(serde::Serialize)]
 pub struct GrpcGenerateRequestSkeletonOutput {
     /// 是否成功
@@ -834,6 +852,7 @@ pub struct GrpcGenerateRequestSkeletonOutput {
 use flow_engine::proto_parser::ValidationResult;
 
 /// gRPC 请求 JSON 验证响应
+#[cfg(feature = "protocol-grpc")]
 #[derive(Debug, serde::Serialize)]
 pub struct GrpcValidateRequestOutput {
     /// 是否成功执行验证（不代表验证通过）
@@ -845,6 +864,7 @@ pub struct GrpcValidateRequestOutput {
 }
 
 /// gRPC 请求 JSON 验证请求参数
+#[cfg(feature = "protocol-grpc")]
 #[derive(serde::Deserialize)]
 pub struct GrpcValidateRequestInput {
     /// 待验证的 JSON 字符串
@@ -859,6 +879,7 @@ pub struct GrpcValidateRequestInput {
 ///
 /// 解析 proto 文件获取消息 schema，检查 JSON 字段名和类型是否匹配。
 /// 仅做建议性检查，不阻止发送。
+#[cfg(feature = "protocol-grpc")]
 #[tauri::command]
 pub async fn grpc_validate_request(
     input: GrpcValidateRequestInput,
@@ -931,6 +952,7 @@ pub async fn grpc_validate_request(
 ///
 /// 根据指定服务和方法的 Input Type，解析 proto 文件并生成占位 JSON。
 /// 用于帮助用户快速构造请求消息。
+#[cfg(feature = "protocol-grpc")]
 #[tauri::command]
 pub async fn grpc_generate_request_skeleton(
     input: GrpcGenerateRequestSkeletonInput,
@@ -1017,6 +1039,7 @@ pub async fn grpc_generate_request_skeleton(
 // ============================================================================
 
 /// gRPC Reflection 模式骨架生成请求参数
+#[cfg(feature = "protocol-grpc")]
 #[derive(serde::Deserialize)]
 pub struct GrpcGenerateRequestSkeletonFromReflectionInput {
     /// gRPC 服务器地址
@@ -1048,6 +1071,7 @@ pub struct GrpcGenerateRequestSkeletonFromReflectionInput {
 /// 创建临时连接，通过 Server Reflection 获取类型信息，
 /// 生成指定服务和方法的输入消息骨架。
 /// 适用于未提供 proto 文件的 Reflection 场景。
+#[cfg(feature = "protocol-grpc")]
 #[tauri::command]
 pub async fn grpc_generate_request_skeleton_from_reflection(
     input: GrpcGenerateRequestSkeletonFromReflectionInput,
@@ -1198,9 +1222,11 @@ message GetUserResponse {
 // MCP 工具发现命令
 // ============================================================================
 
+#[cfg(feature = "protocol-mcp")]
 use flow_engine::traits::McpProvider;
 
 /// MCP 工具发现请求参数
+#[cfg(feature = "protocol-mcp")]
 #[derive(Debug, serde::Deserialize)]
 pub struct McpDiscoverToolsInput {
     /// MCP 服务器地址
@@ -1220,6 +1246,7 @@ pub struct McpDiscoverToolsInput {
 }
 
 /// MCP 工具发现响应
+#[cfg(feature = "protocol-mcp")]
 #[derive(Debug, serde::Serialize)]
 pub struct McpDiscoverToolsOutput {
     /// 是否成功
@@ -1237,6 +1264,7 @@ pub struct McpDiscoverToolsOutput {
 }
 
 /// MCP 工具信息（IPC 输出）
+#[cfg(feature = "protocol-mcp")]
 #[derive(Debug, serde::Serialize)]
 pub struct McpToolInfoOutput {
     /// 工具名称
@@ -1248,6 +1276,7 @@ pub struct McpToolInfoOutput {
 }
 
 /// MCP 资源信息（IPC 输出）
+#[cfg(feature = "protocol-mcp")]
 #[derive(Debug, serde::Serialize)]
 pub struct McpResourceInfoOutput {
     /// 资源 URI
@@ -1261,6 +1290,7 @@ pub struct McpResourceInfoOutput {
 }
 
 /// MCP 服务器信息（IPC 输出）
+#[cfg(feature = "protocol-mcp")]
 #[derive(Debug, serde::Serialize)]
 pub struct McpServerInfoOutput {
     /// 服务器名称
@@ -1270,6 +1300,7 @@ pub struct McpServerInfoOutput {
 }
 
 /// MCP 提示词参数信息（IPC 输出）
+#[cfg(feature = "protocol-mcp")]
 #[derive(Debug, serde::Serialize)]
 pub struct McpPromptArgumentOutput {
     /// 参数名称
@@ -1281,6 +1312,7 @@ pub struct McpPromptArgumentOutput {
 }
 
 /// MCP 提示词信息（IPC 输出）
+#[cfg(feature = "protocol-mcp")]
 #[derive(Debug, serde::Serialize)]
 pub struct McpPromptInfoOutput {
     /// 提示词名称
@@ -1296,6 +1328,7 @@ pub struct McpPromptInfoOutput {
 /// 设计时调用：连接 MCP 服务器，获取可用工具和资源列表。
 /// 不创建持久连接，仅返回信息供前端缓存。
 /// 支持 Streamable HTTP 和 Stdio 两种传输模式。
+#[cfg(feature = "protocol-mcp")]
 #[tauri::command]
 pub async fn mcp_discover_tools(
     input: McpDiscoverToolsInput,
@@ -1396,13 +1429,19 @@ pub async fn mcp_discover_tools(
 // MQTT 连接测试命令
 // ============================================================================
 
+#[cfg(feature = "protocol-mqtt")]
 use flow_engine::mqtt_connection_manager::MqttConnectionManager;
+#[cfg(feature = "protocol-smtp")]
 use flow_engine::traits::SmtpProvider;
+#[cfg(feature = "protocol-imap")]
 use flow_engine::traits::ImapProvider;
+#[cfg(feature = "protocol-mqtt")]
 use flow_engine::traits::MqttProvider;
+#[cfg(feature = "protocol-mqtt")]
 use flow_engine::node_config::MqttConnectConfig;
 
 /// MQTT 连接测试请求参数
+#[cfg(feature = "protocol-mqtt")]
 #[derive(Debug, serde::Deserialize)]
 pub struct MqttTestConnectionInput {
     /// MQTT Broker 地址
@@ -1422,6 +1461,7 @@ pub struct MqttTestConnectionInput {
 }
 
 /// MQTT 连接测试响应
+#[cfg(feature = "protocol-mqtt")]
 #[derive(Debug, serde::Serialize)]
 pub struct MqttTestConnectionOutput {
     /// 是否成功
@@ -1435,6 +1475,7 @@ pub struct MqttTestConnectionOutput {
 /// 测试 MQTT 连接
 ///
 /// 设计时调用：创建临时 MQTT 连接验证 Broker 可达性，测试后立即断开。
+#[cfg(feature = "protocol-mqtt")]
 #[tauri::command]
 pub async fn mqtt_test_connection(
     input: MqttTestConnectionInput,
@@ -1503,6 +1544,7 @@ pub async fn mqtt_test_connection(
 /// 测试 SSE 连接
 ///
 /// 设计时调用：验证 SSE 端点 URL 格式有效性。
+#[cfg(feature = "protocol-sse")]
 #[tauri::command]
 pub async fn sse_test_connection(url: String) -> Result<bool, String> {
     // URL 格式验证
@@ -1523,6 +1565,7 @@ pub async fn sse_test_connection(url: String) -> Result<bool, String> {
 /// 测试 AMQP 连接
 ///
 /// 设计时调用：验证 AMQP Broker URL 格式有效性。
+#[cfg(feature = "protocol-amqp")]
 #[tauri::command]
 pub async fn amqp_test_connection(url: String) -> Result<bool, String> {
     // URL 格式验证
@@ -1609,6 +1652,7 @@ pub async fn test_redis_connection(
 // ============================================================================
 
 /// SMTP 连接测试输入
+#[cfg(feature = "protocol-smtp")]
 #[derive(Debug, serde::Deserialize)]
 pub struct SmtpTestConnectionInput {
     /// SMTP 服务器地址
@@ -1624,6 +1668,7 @@ pub struct SmtpTestConnectionInput {
 }
 
 /// SMTP 连接测试输出
+#[cfg(feature = "protocol-smtp")]
 #[derive(Debug, serde::Serialize)]
 pub struct SmtpTestConnectionOutput {
     /// 是否成功
@@ -1635,6 +1680,7 @@ pub struct SmtpTestConnectionOutput {
 /// 测试 SMTP 连接
 ///
 /// 设计时调用：创建临时 SMTP 连接验证服务器可达性，测试后不保留连接。
+#[cfg(feature = "protocol-smtp")]
 #[tauri::command]
 pub async fn test_smtp_connection(
     input: SmtpTestConnectionInput,
@@ -1701,6 +1747,7 @@ pub async fn test_smtp_connection(
 }
 
 /// IMAP 连接测试输入
+#[cfg(feature = "protocol-imap")]
 #[derive(Debug, serde::Deserialize)]
 pub struct ImapTestConnectionInput {
     /// IMAP 服务器地址
@@ -1716,6 +1763,7 @@ pub struct ImapTestConnectionInput {
 }
 
 /// IMAP 连接测试输出
+#[cfg(feature = "protocol-imap")]
 #[derive(Debug, serde::Serialize)]
 pub struct ImapTestConnectionOutput {
     /// 是否成功
@@ -1727,6 +1775,7 @@ pub struct ImapTestConnectionOutput {
 /// 测试 IMAP 连接
 ///
 /// 设计时调用：创建临时 IMAP 连接验证服务器可达性，测试后立即断开。
+#[cfg(feature = "protocol-imap")]
 #[tauri::command]
 pub async fn test_imap_connection(
     input: ImapTestConnectionInput,
@@ -1797,6 +1846,7 @@ pub async fn test_imap_connection(
 // ============================================================================
 
 /// `OAuth2` 授权输入
+#[cfg(feature = "protocol-smtp")]
 #[derive(serde::Deserialize)]
 pub struct EmailOAuth2AuthorizeInput {
     /// 邮件服务商: "gmail" | "outlook" | "yahoo" | "custom"
@@ -1810,6 +1860,7 @@ pub struct EmailOAuth2AuthorizeInput {
 }
 
 /// `OAuth2` 授权输出
+#[cfg(feature = "protocol-smtp")]
 #[derive(serde::Serialize)]
 pub struct EmailOAuth2AuthorizeOutput {
     /// 是否成功
@@ -1825,6 +1876,7 @@ pub struct EmailOAuth2AuthorizeOutput {
 /// 在浏览器中打开 `OAuth2` 授权页面，等待用户授权后获取 Token。
 /// 使用 PKCE 流程，无需 `client_secret`。
 /// Token 获取后自动加密存储并返回密文。
+#[cfg(feature = "protocol-smtp")]
 #[tauri::command]
 pub async fn email_oauth2_authorize(
     input: EmailOAuth2AuthorizeInput,
@@ -1941,6 +1993,7 @@ pub async fn email_oauth2_authorize(
 }
 
 /// `OAuth2` 刷新输入
+#[cfg(feature = "protocol-smtp")]
 #[derive(serde::Deserialize)]
 pub struct EmailOAuth2RefreshInput {
     /// 邮件服务商: "gmail" | "outlook" | "yahoo" | "custom"
@@ -1954,6 +2007,7 @@ pub struct EmailOAuth2RefreshInput {
 }
 
 /// `OAuth2` 刷新输出
+#[cfg(feature = "protocol-smtp")]
 #[derive(serde::Serialize)]
 pub struct EmailOAuth2RefreshOutput {
     /// 是否成功
@@ -1968,6 +2022,7 @@ pub struct EmailOAuth2RefreshOutput {
 ///
 /// 解密现有 Token，使用 `refresh_token` 获取新的 `access_token`，
 /// 加密后返回。
+#[cfg(feature = "protocol-smtp")]
 #[tauri::command]
 pub async fn email_oauth2_refresh(
     input: EmailOAuth2RefreshInput,
@@ -2071,6 +2126,7 @@ pub async fn email_oauth2_refresh(
 }
 
 /// `OAuth2` 撤销输入
+#[cfg(feature = "protocol-smtp")]
 #[derive(serde::Deserialize)]
 pub struct EmailOAuth2RevokeInput {
     /// 邮件服务商: "gmail" | "outlook" | "yahoo" | "custom"
@@ -2080,6 +2136,7 @@ pub struct EmailOAuth2RevokeInput {
 }
 
 /// `OAuth2` 撤销输出
+#[cfg(feature = "protocol-smtp")]
 #[derive(serde::Serialize)]
 pub struct EmailOAuth2RevokeOutput {
     /// 是否成功
@@ -2091,6 +2148,7 @@ pub struct EmailOAuth2RevokeOutput {
 /// 撤销 `OAuth2` 授权
 ///
 /// 解密 Token 并向服务商发送撤销请求，使 Token 失效。
+#[cfg(feature = "protocol-smtp")]
 #[tauri::command]
 pub async fn email_oauth2_revoke(
     input: EmailOAuth2RevokeInput,
@@ -2146,6 +2204,7 @@ pub async fn email_oauth2_revoke(
 /// 获取所有 TCP 协议内置模板
 ///
 /// 返回所有预置的协议模板（Redis RESP、TLV、固定头部等）。
+#[cfg(feature = "protocol-tcp")]
 #[tauri::command]
 pub fn tcp_list_templates() -> Vec<flow_engine::templates::ProtocolTemplate> {
     flow_engine::templates::builtin_templates()
@@ -2154,6 +2213,7 @@ pub fn tcp_list_templates() -> Vec<flow_engine::templates::ProtocolTemplate> {
 /// 根据 ID 获取指定 TCP 协议模板
 ///
 /// 返回与 ID 匹配的模板，不存在则返回 null。
+#[cfg(feature = "protocol-tcp")]
 #[tauri::command]
 pub fn tcp_get_template(id: String) -> Option<flow_engine::templates::ProtocolTemplate> {
     flow_engine::templates::get_template(&id)
@@ -2164,6 +2224,7 @@ pub fn tcp_get_template(id: String) -> Option<flow_engine::templates::ProtocolTe
 // ============================================================================
 
 /// GraphQL 内省请求参数
+#[cfg(feature = "protocol-graphql")]
 #[derive(Debug, serde::Deserialize)]
 pub struct GraphqlIntrospectInput {
     /// GraphQL 端点 URL
@@ -2173,6 +2234,7 @@ pub struct GraphqlIntrospectInput {
 }
 
 /// GraphQL 内省响应
+#[cfg(feature = "protocol-graphql")]
 #[derive(Debug, serde::Serialize)]
 pub struct GraphqlIntrospectOutput {
     /// 是否成功
@@ -2187,6 +2249,7 @@ pub struct GraphqlIntrospectOutput {
 }
 
 /// 从 Schema 类型定义中提取字段的嵌套子字段（递归，最大深度 2）
+#[cfg(feature = "protocol-graphql")]
 fn generate_nested_fields(
     type_name: &str,
     types_map: &std::collections::HashMap<&str, &serde_json::Value>,
@@ -2238,11 +2301,13 @@ fn generate_nested_fields(
 }
 
 /// 判断类型是否为叶子类型（SCALAR / ENUM）
+#[cfg(feature = "protocol-graphql")]
 fn is_leaf_type(name: &str) -> bool {
     matches!(name, "String" | "Int" | "Float" | "Boolean" | "ID")
 }
 
 /// 从 type 引用结构中提取实际类型名（剥掉 `NON_NULL` / LIST 包装）
+#[cfg(feature = "protocol-graphql")]
 fn resolve_type_name(type_ref: Option<&serde_json::Value>) -> Option<String> {
     let mut current = type_ref?;
     loop {
@@ -2259,6 +2324,7 @@ fn resolve_type_name(type_ref: Option<&serde_json::Value>) -> Option<String> {
 }
 
 /// 从 Schema 数据生成查询模板（含展开的子字段）
+#[cfg(feature = "protocol-graphql")]
 fn generate_graphql_templates(schema: &serde_json::Value) -> Option<Vec<flow_engine::traits::GraphqlQueryTemplate>> {
     let schema_obj = schema.get("__schema")?;
     let types = schema_obj.get("types").and_then(|t| t.as_array())?;
@@ -2345,6 +2411,7 @@ fn generate_graphql_templates(schema: &serde_json::Value) -> Option<Vec<flow_eng
 }
 
 /// 首字母大写
+#[cfg(feature = "protocol-graphql")]
 fn pascal_case(s: &str) -> String {
     let mut c = s.chars();
     match c.next() {
@@ -2354,6 +2421,7 @@ fn pascal_case(s: &str) -> String {
 }
 
 /// 缩进文本
+#[cfg(feature = "protocol-graphql")]
 fn indent(text: &str, spaces: usize) -> String {
     let prefix = " ".repeat(spaces);
     text.lines()
@@ -2365,6 +2433,7 @@ fn indent(text: &str, spaces: usize) -> String {
 /// GraphQL Schema 内省
 ///
 /// 设计时调用：向 GraphQL 端点发送内省查询，返回完整的 Schema 信息。
+#[cfg(feature = "protocol-graphql")]
 #[tauri::command]
 pub async fn graphql_introspect_schema(
     input: GraphqlIntrospectInput,
@@ -2538,11 +2607,15 @@ pub async fn graphql_introspect_schema(
 // Kafka IPC 命令
 // ============================================================================
 
+#[cfg(feature = "protocol-kafka")]
 use flow_engine::kafka_connection_manager::KafkaConnectionManager;
+#[cfg(feature = "protocol-kafka")]
 use flow_engine::traits::KafkaProvider;
+#[cfg(feature = "protocol-kafka")]
 use flow_engine::node_config::KafkaConnectConfig;
 
 /// Kafka 连接测试请求
+#[cfg(feature = "protocol-kafka")]
 #[derive(Debug, serde::Deserialize)]
 pub struct KafkaTestConnectionInput {
     /// Kafka Bootstrap Servers（逗号分隔）
@@ -2564,6 +2637,7 @@ pub struct KafkaTestConnectionInput {
 }
 
 /// Kafka 连接测试响应
+#[cfg(feature = "protocol-kafka")]
 #[derive(Debug, serde::Serialize)]
 pub struct KafkaTestConnectionOutput {
     /// 是否成功
@@ -2575,6 +2649,7 @@ pub struct KafkaTestConnectionOutput {
 }
 
 /// Kafka 列出 Topic 请求
+#[cfg(feature = "protocol-kafka")]
 #[derive(Debug, serde::Deserialize)]
 pub struct KafkaListTopicsInput {
     /// Kafka Bootstrap Servers
@@ -2592,6 +2667,7 @@ pub struct KafkaListTopicsInput {
 }
 
 /// Kafka 列出 Topic 响应
+#[cfg(feature = "protocol-kafka")]
 #[derive(Debug, serde::Serialize)]
 pub struct KafkaListTopicsOutput {
     /// 是否成功
@@ -2603,6 +2679,7 @@ pub struct KafkaListTopicsOutput {
 }
 
 /// Kafka 列出 Consumer Group 请求
+#[cfg(feature = "protocol-kafka")]
 #[derive(Debug, serde::Deserialize)]
 pub struct KafkaListConsumerGroupsInput {
     /// Kafka Bootstrap Servers
@@ -2620,6 +2697,7 @@ pub struct KafkaListConsumerGroupsInput {
 }
 
 /// Kafka 列出 Consumer Group 响应
+#[cfg(feature = "protocol-kafka")]
 #[derive(Debug, serde::Serialize)]
 pub struct KafkaListConsumerGroupsOutput {
     /// 是否成功
@@ -2631,6 +2709,7 @@ pub struct KafkaListConsumerGroupsOutput {
 }
 
 /// Kafka Schema 发现请求
+#[cfg(feature = "protocol-kafka")]
 #[derive(Debug, serde::Deserialize)]
 pub struct KafkaDiscoverSchemaInput {
     /// Schema Registry URL
@@ -2644,6 +2723,7 @@ pub struct KafkaDiscoverSchemaInput {
 }
 
 /// Kafka Schema 发现响应
+#[cfg(feature = "protocol-kafka")]
 #[derive(Debug, serde::Serialize)]
 pub struct KafkaDiscoverSchemaOutput {
     /// 是否成功
@@ -2657,6 +2737,7 @@ pub struct KafkaDiscoverSchemaOutput {
 /// 测试 Kafka 连接
 ///
 /// 设计时调用：创建临时 Kafka 连接，获取 Broker 信息后立即断开。
+#[cfg(feature = "protocol-kafka")]
 #[tauri::command]
 pub async fn kafka_test_connection(
     input: KafkaTestConnectionInput,
@@ -2737,6 +2818,7 @@ pub async fn kafka_test_connection(
 /// 列出 Kafka Topic
 ///
 /// 设计时调用：创建临时连接，列出所有 Topic 后立即断开。
+#[cfg(feature = "protocol-kafka")]
 #[tauri::command]
 pub async fn kafka_list_topics(
     input: KafkaListTopicsInput,
@@ -2814,6 +2896,7 @@ pub async fn kafka_list_topics(
 /// 列出 Kafka Consumer Group
 ///
 /// 设计时调用：创建临时连接，列出所有 Consumer Group 后立即断开。
+#[cfg(feature = "protocol-kafka")]
 #[tauri::command]
 pub async fn kafka_list_consumer_groups(
     input: KafkaListConsumerGroupsInput,
@@ -2891,6 +2974,7 @@ pub async fn kafka_list_consumer_groups(
 /// 发现 Kafka Schema Registry 中的 Subject
 ///
 /// 设计时调用：创建临时连接，列出所有 Schema Subject 后立即断开。
+#[cfg(feature = "protocol-kafka")]
 #[tauri::command]
 pub async fn kafka_discover_schema(
     input: KafkaDiscoverSchemaInput,
