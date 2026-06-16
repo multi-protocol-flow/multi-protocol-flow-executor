@@ -172,3 +172,32 @@ jobs:
           }
           MANIFEST
           aws s3 cp /tmp/manifest.json s3://$R2_BUCKET/manifest.json --endpoint-url $R2_ENDPOINT --cache-control "no-cache, must-revalidate"
+      - name: Update changelog.json
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          R2_ENDPOINT="https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
+          R2_BUCKET="${{ secrets.R2_BUCKET }}"
+          # Try to download existing changelog.json
+          aws s3 cp s3://$R2_BUCKET/changelog.json /tmp/changelog.json --endpoint-url $R2_ENDPOINT 2>/dev/null || echo "[]" > /tmp/changelog.json
+          # Build new release entry
+          RELEASE_NOTES="${{ github.event.release.body || format('Release v{0}', VERSION) }}"
+          cat > /tmp/new_entry.json << ENTRY
+          {
+            "version": "$VERSION",
+            "tag": "${{ github.ref_name }}",
+            "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "notes": "$RELEASE_NOTES",
+            "prerelease": $(echo "${{ github.ref_name }}" | grep -qE '(beta|alpha)' && echo 'true' || echo 'false'),
+            "downloads": {
+              "windows": "https://mpe-downloads.sunanzhi.com/releases/v$VERSION/mpe-$VERSION-x64-setup.exe",
+              "macos": "https://mpe-downloads.sunanzhi.com/releases/v$VERSION/mpe-$VERSION-universal.dmg"
+            }
+          }
+          ENTRY
+          # Prepend new entry to changelog
+          jq -s '.[1] + [.[0]]' /tmp/new_entry.json /tmp/changelog.json > /tmp/changelog_new.json
+          aws s3 cp /tmp/changelog_new.json s3://$R2_BUCKET/changelog.json --endpoint-url $R2_ENDPOINT --cache-control "no-cache, must-revalidate"
