@@ -3,6 +3,7 @@
  * 从 HttpConfig.tsx 提取的通用 output_mapping 编辑 UI
  */
 import { useFieldArray, type Control, type FieldErrors, type UseFormWatch, type UseFormRegister } from 'react-hook-form';
+import { useCallback, useEffect, useRef } from 'react';
 import { Plus, Trash2, ArrowRightFromLine, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,15 +51,36 @@ export function OutputMappingsEditor({
     name: 'output_mappings' as never,
   });
 
+  // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  /**
+   * 安全的延迟执行包装器，注册定时器以便卸载时清理
+   */
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
+
   const handleAdd = () => {
     append({ source: defaultSource, target: '', description: '' });
   };
 
-  const handleRemove = (index: number) => {
+  const handleRemove = useCallback((index: number) => {
     remove(index);
     // 删除后延迟保存，确保表单状态已更新
-    setTimeout(saveData, 100);
-  };
+    safeSetTimeout(saveData, 100);
+  }, [remove, safeSetTimeout, saveData]);
 
   // 监听当前映射值
   const outputMappingsList = watch('output_mappings') || [];

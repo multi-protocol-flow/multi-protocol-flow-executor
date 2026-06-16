@@ -261,8 +261,8 @@ export function DbQueryConfig({ data, onSave }: DbQueryConfigProps) {
    */
   const handleRemoveParam = useCallback((index: number) => {
     paramsFieldArray.remove(index);
-    setTimeout(saveData, 100);
-  }, [paramsFieldArray, saveData]);
+    safeSetTimeout(saveData, 100);
+  }, [paramsFieldArray, saveData, safeSetTimeout]);
 
   return (
     <form onBlur={handleBlur} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">

@@ -72,6 +72,27 @@ export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfi
   const isActuallyDirtyRef = useRef(false);
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
 
+  // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  /**
+   * 安全的延迟执行包装器，注册定时器以便卸载时清理
+   */
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
+
   // 获取当前流程节点列表和当前选中节点
   const flow = useFlowStore((state) => state.flow);
   const selectedNodeId = useFlowStore((state) => state.selectedNodeId);
@@ -155,11 +176,11 @@ export function VariableExtractorConfig({ data, onSave }: VariableExtractorConfi
   const handleSourceNodeChange = useCallback((value: string) => {
     setValue('source_node_id', value || undefined, { shouldDirty: true });
     // 延迟保存，确保表单值已更新
-    setTimeout(saveData, 100);
-  }, [setValue, saveData]);
+    safeSetTimeout(saveData, 100);
+  }, [setValue, saveData, safeSetTimeout]);
 
   return (
-    <form onBlur={() => { setTimeout(() => { if (isActuallyDirtyRef.current) saveData(); }, 100); }} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
+    <form onBlur={() => { safeSetTimeout(() => { if (isActuallyDirtyRef.current) saveData(); }, 100); }} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
       {/* 数据来源选择 */}
       <div className="space-y-2">
         <Label htmlFor="source_node_id" className="text-sm font-medium text-foreground">

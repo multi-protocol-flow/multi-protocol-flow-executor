@@ -74,6 +74,27 @@ export function ProxyConfig({ data, onSave }: ProxyConfigProps) {
   const isActuallyDirtyRef = useRef(false);
   useEffect(() => { isActuallyDirtyRef.current = isDirty; }, [isDirty]);
 
+  // 追踪待执行的 setTimeout，组件卸载时清除，防止保存到错误的节点
+  const pendingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      pendingTimersRef.current.forEach((id) => clearTimeout(id));
+      pendingTimersRef.current.clear();
+    };
+  }, []);
+
+  /**
+   * 安全的延迟执行包装器，注册定时器以便卸载时清理
+   */
+  const safeSetTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimersRef.current.delete(id);
+      fn();
+    }, ms);
+    pendingTimersRef.current.add(id);
+  }, []);
+
   const currentMode = watch('mode');
   const proxyModeOptions = getProxyModeOptions();
 
@@ -129,13 +150,13 @@ export function ProxyConfig({ data, onSave }: ProxyConfigProps) {
       setValue('username', undefined, { shouldDirty: true });
       setValue('password', undefined, { shouldDirty: true });
     }
-    setTimeout(saveData, 100);
-  }, [setValue, saveData]);
+    safeSetTimeout(saveData, 100);
+  }, [setValue, saveData, safeSetTimeout]);
 
   const showProxyFields = currentMode === 'http' || currentMode === 'socks5';
 
   return (
-    <form onBlur={() => { setTimeout(() => { if (isActuallyDirtyRef.current) saveData(); }, 100); }} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
+    <form onBlur={() => { safeSetTimeout(() => { if (isActuallyDirtyRef.current) saveData(); }, 100); }} onSubmit={(e) => e.preventDefault()} className="w-full space-y-5">
       {/* 代理模式选择 */}
       <div className="space-y-2">
         <Label htmlFor="proxy-mode" className="text-sm font-medium text-foreground">
