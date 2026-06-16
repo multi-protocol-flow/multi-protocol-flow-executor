@@ -21,6 +21,27 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+      - name: Inject version from tag
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Injecting version: $VERSION"
+          node -e "
+          const fs = require('fs');
+          const version = '$VERSION';
+          // package.json
+          let pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.version = version;
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          // tauri.conf.json
+          let tauri = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+          tauri.version = version;
+          fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(tauri, null, 2) + '\n');
+          // Cargo.toml
+          let cargo = fs.readFileSync('src-tauri/Cargo.toml', 'utf8');
+          cargo = cargo.replace(/(\[package\][\s\S]*?version = )\"[^\"]*\"/, '\$1\"' + version + '\"');
+          fs.writeFileSync('src-tauri/Cargo.toml', cargo);
+          "
       - run: npm ci
       - run: npm run typesafe-i18n
       - name: Build + Sign
@@ -59,6 +80,27 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+      - name: Inject version from tag
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Injecting version: $VERSION"
+          node -e "
+          const fs = require('fs');
+          const version = '$VERSION';
+          // package.json
+          let pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.version = version;
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          // tauri.conf.json
+          let tauri = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+          tauri.version = version;
+          fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(tauri, null, 2) + '\n');
+          // Cargo.toml
+          let cargo = fs.readFileSync('src-tauri/Cargo.toml', 'utf8');
+          cargo = cargo.replace(/(\[package\][\s\S]*?version = )\"[^\"]*\"/, '\$1\"' + version + '\"');
+          fs.writeFileSync('src-tauri/Cargo.toml', cargo);
+          "
       - run: npm ci
       - run: npm run typesafe-i18n
       - name: Build + Sign
