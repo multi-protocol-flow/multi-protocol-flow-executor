@@ -47,15 +47,21 @@ function computeEdgeVisualState(
 
   const isExecuting = execState.isExecuting;
   const execNodeUuid = execState.currentNodeUuid;
-  const sourceStatus = execState.nodeReportsMap[source]?.status;
+  const sourceReport = execState.nodeReportsMap[source];
+  const sourceStatus = sourceReport?.status;
+  const sourceUsedPortId = sourceReport?.used_port_id;
 
   const debugStatus = debugState.status;
   const executionStack = debugState.executionStack;
   const debugNodeUuid = debugState.currentNodeUuid;
 
   // 正常执行模式下：数据是否正在通过此边流动
+  // 对于已完成的节点，仅当边的端口与实际使用的端口匹配时才高亮
+  // used_port_id 未设置时（legacy 报告），向后兼容显示所有出边
+  const isPortMatched = sourceUsedPortId === undefined || sourceUsedPortId === sourceHandle;
   const isActiveEdge = isExecuting && (
-    execNodeUuid === source || sourceStatus === 'success'
+    execNodeUuid === source ||
+    (sourceStatus === 'success' && isPortMatched)
   );
 
   // 调试模式下：边是否在执行路径上
