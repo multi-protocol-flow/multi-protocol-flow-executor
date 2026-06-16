@@ -183,15 +183,19 @@ jobs:
           R2_BUCKET="${{ secrets.R2_BUCKET }}"
           # Try to download existing changelog.json
           aws s3 cp s3://$R2_BUCKET/changelog.json /tmp/changelog.json --endpoint-url $R2_ENDPOINT 2>/dev/null || echo "[]" > /tmp/changelog.json
+          # Determine if prerelease
+          IS_PRERELEASE="false"
+          if echo "${{ github.ref_name }}" | grep -qE '(beta|alpha)'; then
+            IS_PRERELEASE="true"
+          fi
           # Build new release entry
-          RELEASE_NOTES="${{ github.event.release.body || format('Release v{0}', VERSION) }}"
           cat > /tmp/new_entry.json << ENTRY
           {
             "version": "$VERSION",
             "tag": "${{ github.ref_name }}",
             "date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "notes": "$RELEASE_NOTES",
-            "prerelease": $(echo "${{ github.ref_name }}" | grep -qE '(beta|alpha)' && echo 'true' || echo 'false'),
+            "notes": "Release v$VERSION",
+            "prerelease": $IS_PRERELEASE,
             "downloads": {
               "windows": "https://mpe-downloads.sunanzhi.com/releases/v$VERSION/mpe-$VERSION-x64-setup.exe",
               "macos": "https://mpe-downloads.sunanzhi.com/releases/v$VERSION/mpe-$VERSION-universal.dmg"
