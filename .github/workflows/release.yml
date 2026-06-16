@@ -131,8 +131,8 @@ jobs:
         run: |
           VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
           R2_ENDPOINT="https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
-          aws s3 cp src-tauri/target/release/bundle/dmg/*.dmg s3://${{ secrets.R2_BUCKET }}/releases/v$VERSION/mpe-$VERSION-universal.dmg --endpoint-url $R2_ENDPOINT
-          aws s3 cp src-tauri/target/release/bundle/dmg/*.dmg.sig s3://${{ secrets.R2_BUCKET }}/releases/v$VERSION/mpe-$VERSION-universal.dmg.sig --endpoint-url $R2_ENDPOINT || true
+          aws s3 cp src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg s3://${{ secrets.R2_BUCKET }}/releases/v$VERSION/mpe-$VERSION-universal.dmg --endpoint-url $R2_ENDPOINT
+          aws s3 cp src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg.sig s3://${{ secrets.R2_BUCKET }}/releases/v$VERSION/mpe-$VERSION-universal.dmg.sig --endpoint-url $R2_ENDPOINT || true
 
   update-manifest:
     runs-on: ubuntu-latest
