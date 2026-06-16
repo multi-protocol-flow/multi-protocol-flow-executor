@@ -37,6 +37,7 @@ async fn test_input_data_timing_basic() {
             },
         ]),
         has_breakpoint: None,
+        on_error: None,
     };
 
     // 创建流程
@@ -101,6 +102,7 @@ async fn test_input_data_timing_with_initial_variables() {
             },
         ]),
         has_breakpoint: None,
+        on_error: None,
     };
 
     // 创建流程（带初始变量）
@@ -172,6 +174,7 @@ async fn test_input_data_timing_http_node() {
             },
         ]),
         has_breakpoint: None,
+        on_error: None,
     };
 
     // 创建 HTTP 节点（使用变量引用）
@@ -203,6 +206,7 @@ async fn test_input_data_timing_http_node() {
             },
         ]),
         has_breakpoint: None,
+        on_error: None,
     };
 
     // 创建连接

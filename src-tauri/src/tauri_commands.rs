@@ -410,8 +410,9 @@ pub async fn test_db_connection(connection: DbConnection) -> TestDbConnectionRes
 
 #[cfg(feature = "protocol-grpc")]
 use flow_engine::grpc_connection_manager;
+use flow_engine::traits::GrpcProvider;
 #[cfg(feature = "protocol-grpc")]
-use flow_engine::traits::{GrpcMethodInfo, GrpcProvider, GrpcServiceInfo};
+use flow_engine::traits::{GrpcMethodInfo, GrpcServiceInfo};
 
 /// gRPC 服务发现请求参数
 #[cfg(feature = "protocol-grpc")]
@@ -526,6 +527,7 @@ pub async fn grpc_discover_services(
 // gRPC 请求骨架生成命令
 // ============================================================================
 
+#[cfg(feature = "protocol-grpc")]
 use flow_engine::proto_parser;
 
 // ============================================================================
@@ -849,6 +851,7 @@ pub struct GrpcGenerateRequestSkeletonOutput {
 // gRPC 请求 JSON 预验证命令
 // ============================================================================
 
+#[cfg(feature = "protocol-grpc")]
 use flow_engine::proto_parser::ValidationResult;
 
 /// gRPC 请求 JSON 验证响应
@@ -1126,7 +1129,7 @@ pub async fn grpc_generate_request_skeleton_from_reflection(
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "protocol-grpc"))]
 mod grpc_skeleton_tests {
     use super::*;
 
