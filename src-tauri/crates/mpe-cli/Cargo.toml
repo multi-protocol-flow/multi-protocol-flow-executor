@@ -1,0 +1,58 @@
+[package]
+name = "mpe-cli"
+version = "0.1.0"
+description = "Multi-Protocol Executor CLI — standalone binary without GUI dependencies"
+edition = "2021"
+rust-version = "1.77.2"
+default-run = "mpe-cli"
+
+[[bin]]
+name = "mpe-cli"
+path = "src/main.rs"
+
+[lib]
+name = "mpe_cli"
+crate-type = ["lib"]
+
+[dependencies]
+# 业务逻辑引擎
+flow-engine = { path = "../flow-engine", default-features = false }
+
+# CLI 框架
+clap = { version = "4", features = ["derive"] }
+tokio = { workspace = true, features = ["signal"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+log = { workspace = true }
+fern = { version = "0.7", default-features = false }
+uuid = { workspace = true }
+toml = "0.8"
+rustls = { workspace = true, features = ["ring"] }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }
+
+# 协议特性开关
+[features]
+default = ["all-protocols"]
+all-protocols = [
+    "flow-engine/all-protocols",
+]
+protocol-http = ["flow-engine/protocol-http"]
+protocol-db = ["flow-engine/protocol-db"]
+protocol-ws = ["flow-engine/protocol-ws"]
+protocol-script = ["flow-engine/protocol-script"]
+protocol-assertion = ["flow-engine/protocol-assertion"]
+protocol-grpc = ["flow-engine/protocol-grpc"]
+protocol-mcp = ["flow-engine/protocol-mcp"]
+protocol-tcp = ["flow-engine/protocol-tcp"]
+protocol-mqtt = ["flow-engine/protocol-mqtt"]
+protocol-kafka = ["flow-engine/protocol-kafka"]
+protocol-sse = ["flow-engine/protocol-sse"]
+protocol-graphql = ["flow-engine/protocol-graphql"]
+protocol-amqp = ["flow-engine/protocol-amqp"]
+protocol-smtp = ["flow-engine/protocol-smtp"]
+protocol-imap = ["flow-engine/protocol-imap"]
+protocol-redis = ["flow-engine/protocol-redis"]
+
+[lints]
+workspace = true
