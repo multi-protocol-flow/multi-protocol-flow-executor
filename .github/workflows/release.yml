@@ -134,9 +134,44 @@ jobs:
           aws s3 cp src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg s3://${{ secrets.R2_BUCKET }}/releases/v$VERSION/mpe-$VERSION-universal.dmg --endpoint-url $R2_ENDPOINT
           aws s3 cp src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg.sig s3://${{ secrets.R2_BUCKET }}/releases/v$VERSION/mpe-$VERSION-universal.dmg.sig --endpoint-url $R2_ENDPOINT || true
 
+  build-linux-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Inject version from tag
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Injecting version: $VERSION"
+          cargo_file="src-tauri/Cargo.toml"
+          sed -i "s/^version = \"[^\"]*\"/version = \"$VERSION\"/" "$cargo_file"
+      - name: Build mpe-cli
+        run: cd src-tauri && cargo build -p mpe-cli --release --no-default-features
+      - name: Package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cd src-tauri/target/release
+          mv mpe-cli mpe
+          tar czf "mpe-v${VERSION}-linux-x86_64.tar.gz" mpe
+      - name: Upload to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          R2_ENDPOINT="https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
+          aws s3 cp src-tauri/target/release/mpe-v${VERSION}-linux-x86_64.tar.gz \
+            "s3://${{ secrets.R2_BUCKET }}/releases/v${VERSION}/mpe-v${VERSION}-linux-x86_64.tar.gz" \
+            --endpoint-url $R2_ENDPOINT
+
   update-manifest:
     runs-on: ubuntu-latest
-    needs: [build-windows, build-macos]
+    needs: [build-windows, build-macos, build-linux-cli]
     steps:
       - uses: actions/checkout@v4
       - name: Generate manifest.json
@@ -200,7 +235,8 @@ jobs:
             "prerelease": $IS_PRERELEASE,
             "downloads": {
               "windows": "https://mpe-downloads.sunanzhi.com/releases/v$VERSION/mpe-$VERSION-x64-setup.exe",
-              "macos": "https://mpe-downloads.sunanzhi.com/releases/v$VERSION/mpe-$VERSION-universal.dmg"
+              "macos": "https://mpe-downloads.sunanzhi.com/releases/v$VERSION/mpe-$VERSION-universal.dmg",
+              "linux": "https://mpe-downloads.sunanzhi.com/releases/v$VERSION/mpe-v$VERSION-linux-x86_64.tar.gz"
             }
           }
           ENTRY
