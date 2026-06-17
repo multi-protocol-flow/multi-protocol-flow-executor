@@ -21,6 +21,7 @@ members = [
     "crates/flow-engine-graphql",
     "crates/flow-engine-amqp",
     "crates/flow-engine-redis",
+    "crates/mpe-cli",
     "crates/workspace-hack",
 ]
 resolver = "2"
@@ -100,6 +101,9 @@ tauri-build = { version = "2.5.4", features = [] }
 [dependencies]
 # 业务逻辑引擎
 flow-engine = { path = "crates/flow-engine" }
+
+# CLI 模式（GUI + CLI 二合一模式依赖 mpe-cli）
+mpe-cli = { path = "crates/mpe-cli" }
 
 # TLS 加密后端（HTTP/gRPC 的 rustls 0.23 需要显式安装 CryptoProvider）
 rustls = { workspace = true, features = ["ring"] }

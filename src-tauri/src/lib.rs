@@ -9,8 +9,8 @@ use tauri::Manager;
 use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;
 
-// CLI 模块（供统一入口 main.rs 调用）
-pub mod cli;
+// CLI 模块（从 mpe-cli crate 导入，供统一入口 main.rs 调用）
+pub use mpe_cli::cli;
 
 // Tauri 特有模块
 mod tauri_adapters;

@@ -229,6 +229,7 @@ dependencies = [
  "futures-util",
  "log",
  "mockito",
+ "mpe-cli",
  "predicates",
  "proptest",
  "redis",
@@ -4215,6 +4216,24 @@ dependencies = [
  "smallvec",
  "tagptr",
  "uuid",
+]
+
+[[package]]
+name = "mpe-cli"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "fern",
+ "flow-engine",
+ "log",
+ "rustls",
+ "serde",
+ "serde_json",
+ "tokio",
+ "toml 0.8.2",
+ "uuid",
+ "workspace-hack",
 ]
 
 [[package]]
