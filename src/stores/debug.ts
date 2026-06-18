@@ -247,6 +247,7 @@ function syncStackToExecutionStore(
   }
 
   useExecutionStore.setState({
+    isExecuting: true, // debug 模式下始终标记为执行中
     nodeReportsMap,
     completedNodeCount: Object.keys(nodeReportsMap).length,
     currentNodeUuid: currentNodeUuid ?? null,
@@ -315,6 +316,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       set({ 
         isCommandPending: true, 
         previousStatus: currentStatus,
+        pauseReason: null,
         error: null 
       });
       
@@ -340,6 +342,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       set({ 
         isCommandPending: true, 
         previousStatus: currentStatus,
+        pauseReason: null,
         error: null 
       });
       
@@ -363,6 +366,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       set({ 
         isCommandPending: true, 
         previousStatus: currentStatus,
+        pauseReason: null,
         error: null 
       });
       
@@ -391,6 +395,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       set({ 
         isCommandPending: true, 
         previousStatus: currentStatus,
+        pauseReason: null,
         error: null 
       });
       
@@ -463,19 +468,21 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         healthStatus: 'healthy',
       });
 
-      // 桥接：初始化 executionStore 执行状态
-      // 使用动态导入避免循环依赖
+      // 桥接：同步初始化 executionStore 执行状态
+      // isExecuting 必须同步设置，否则 PausedAtNode 到达时面板仍认为未在执行
+      useExecutionStore.setState({
+        isExecuting: true,
+        nodeReportsMap: {},
+        completedNodeCount: 0,
+        currentNodeUuid: null,
+        report: null,
+        error: null,
+      });
+
+      // 异步获取 totalNodes（使用动态导入避免循环依赖）
       import('./flow').then(({ useFlowStore }) => {
         const totalNodes = useFlowStore.getState().flow?.nodes.length ?? 0;
-        useExecutionStore.setState({
-          isExecuting: true,
-          totalNodes,
-          nodeReportsMap: {},
-          completedNodeCount: 0,
-          currentNodeUuid: null,
-          report: null,
-          error: null,
-        });
+        useExecutionStore.setState({ totalNodes });
       });
     } else if ('PausedAtNode' in event) {
       // 收到暂停事件，清除命令超时
@@ -494,17 +501,21 @@ export const useDebugStore = create<DebugState>((set, get) => ({
         healthStatus: 'healthy',
       });
 
-      // 桥接：根据暂停原因决定 currentNodeUuid
-      // - breakpoint: 节点尚未执行，标记为 running（当前正在等待的节点）
-      // - step_complete: 节点刚执行完，已通过 execution_stack 同步到 nodeReportsMap
-      const isBreakpoint = reason.type === 'breakpoint';
-      syncStackToExecutionStore(
-        execution_stack,
-        isBreakpoint ? node_uuid : null,
-      );
+      // 桥接：将当前暂停节点标记为 executionStore 的 currentNodeUuid
+      // 无论是 breakpoint 还是 step_complete，暂停的节点都应该显示为 running
+      syncStackToExecutionStore(execution_stack, node_uuid);
     } else if ('NodeExecuted' in event) {
       const { entry } = event.NodeExecuted;
       set({ currentNodeOutput: entry.output });
+
+      // 将刚完成的节点追加到 executionStack（去重），使连续执行时边能实时更新
+      set((state) => {
+        const alreadyInStack = state.executionStack.some(
+          (e) => e.node_uuid === entry.node_uuid,
+        );
+        if (alreadyInStack) return {};
+        return { executionStack: [...state.executionStack, entry] };
+      });
 
       // 桥接：增量同步已完成节点到 executionStore
       // 使执行面板实时显示每个节点完成状态（而非等待 SessionEnded 批量更新）
@@ -517,10 +528,16 @@ export const useDebugStore = create<DebugState>((set, get) => ({
       const { status: debugStatus, pauseReason } = get();
       const isRunToEnd = debugStatus === 'running' && pauseReason === null;
 
+      // 在 debug 模式下，如果已经暂停且 executionStore 有 currentNodeUuid（断点节点），
+      // 不覆盖 currentNodeUuid，保留断点节点的 "running" 状态
+      // 解决事件顺序问题：PausedAtNode 先到达设置 currentNodeUuid，NodeExecuted 后到达不应覆盖
+      const currentExecutionUuid = useExecutionStore.getState().currentNodeUuid;
+      const shouldPreserveCurrentNode = debugStatus === 'paused' && currentExecutionUuid !== null;
+
       useExecutionStore.setState({
         nodeReportsMap: newMap,
         completedNodeCount: Object.keys(newMap).length,
-        ...(isRunToEnd ? {} : { currentNodeUuid: null }),
+        ...(isRunToEnd || shouldPreserveCurrentNode ? {} : { currentNodeUuid: null }),
       });
     } else if ('SessionEnded' in event) {
       // 会话结束，清理定时器

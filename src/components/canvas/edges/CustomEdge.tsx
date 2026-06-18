@@ -46,7 +46,6 @@ function computeEdgeVisualState(
   const debugState = useDebugStore.getState();
 
   const isExecuting = execState.isExecuting;
-  const execNodeUuid = execState.currentNodeUuid;
   const sourceReport = execState.nodeReportsMap[source];
   const sourceStatus = sourceReport?.status;
   const sourceUsedPortId = sourceReport?.used_port_id;
@@ -55,27 +54,37 @@ function computeEdgeVisualState(
   const executionStack = debugState.executionStack;
   const debugNodeUuid = debugState.currentNodeUuid;
 
-  // 正常执行模式下：数据是否正在通过此边流动
-  // 对于已完成的节点，仅当边的端口与实际使用的端口匹配时才高亮
-  // used_port_id 未设置时（legacy 报告），向后兼容显示所有出边
+  // 是否处于调试模式
+  const isDebugMode = debugStatus !== 'idle' && debugStatus !== 'ended';
+
+  // 正常执行模式下（非调试）：数据正在通过此边流动
+  // 仅在 source 节点执行成功且端口匹配时才激活（移除 execNodeUuid === source
+  // 检查，避免"先全亮再收敛"的闪烁问题）
   const isPortMatched = sourceUsedPortId === undefined || sourceUsedPortId === sourceHandle;
-  const isActiveEdge = isExecuting && (
-    execNodeUuid === source ||
-    (sourceStatus === 'success' && isPortMatched)
+  const isActiveEdge = !isDebugMode && isExecuting && (
+    sourceStatus === 'success' && isPortMatched
   );
 
   // 调试模式下：边是否在执行路径上
+  // 用执行栈顺序判断：边 source → target 是否真的被执行了
   const isExecutedEdge = (() => {
-    if (debugStatus === 'idle' || debugStatus === 'ended') {
-      return false;
-    }
-    const executedNodeUuids = new Set(executionStack.map((entry) => entry.node_uuid));
-    if (!executedNodeUuids.has(source)) {
-      return false;
-    }
-    return executedNodeUuids.has(target) || target === debugNodeUuid;
+    if (!isDebugMode) return false;
+
+    // source 必须在执行栈中
+    const sourceIndex = executionStack.findIndex((e) => e.node_uuid === source);
+    if (sourceIndex === -1) return false;
+
+    // 如果 target 是当前暂停节点，说明边刚被遍历
+    if (target === debugNodeUuid) return true;
+
+    // 检查 target 是否是 source 在栈中的下一个节点（直接后继）
+    // 这自然处理了 conditional 等多分支节点：只有实际走的分支目标
+    // 才会紧跟在 source 之后，另一分支的目标不会出现在紧邻位置
+    const nextEntry = executionStack[sourceIndex + 1];
+    return nextEntry?.node_uuid === target;
   })();
 
+  // debug 模式下全部走绿色路径，不走蓝/橙色活动边
   const edgeColor = isActiveEdge
     ? (sourceHandle === 'true' ? '#f97316' : '#3b82f6')
     : (isExecutedEdge ? EXECUTED_EDGE_COLOR : DEFAULT_EDGE_COLOR);
@@ -137,14 +146,18 @@ export const CustomEdge = memo(function CustomEdge({
     // 初始化
     update();
 
-    // 单订阅即可，computeEdgeVisualState 内部通过 getState() 读取两个 store
-    const unsub = useExecutionStore.subscribe(update);
+    // 同时订阅两个 store，调试模式下 debugStore 状态变化也需要触发重绘
+    const unsubExec = useExecutionStore.subscribe(update);
+    const unsubDebug = useDebugStore.subscribe(update);
     return () => {
-      unsub();
+      unsubExec();
+      unsubDebug();
     };
   }, [source, target, sourceHandle]);
 
-  const { isActive: isActiveEdge, edgeColor } = visualState;
+  const { isActive: isActiveEdge, isExecutedEdge, edgeColor } = visualState;
+  // 调试模式下的粒子使用绿色系
+  const isDebugParticle = isExecutedEdge;
 
   return (
     <>
@@ -158,26 +171,35 @@ export const CustomEdge = memo(function CustomEdge({
         }}
       />
 
-      {/* 数据流动画 - 执行中激活
+      {/* 数据流动画 - 执行中激活 / 调试已执行路径
           使用 CSS offset-path 动画替代 SVG animateMotion（运行在合成器线程，
           不占用主线程，不会影响画布拖拽和节点交互） */}
-      {isActiveEdge && (
+      {(isActiveEdge || isDebugParticle) && (
         <>
           <circle
             r="3"
-            fill={sourceHandle === 'true' ? '#f97316' : '#3b82f6'}
+            fill={isActiveEdge
+              ? (sourceHandle === 'true' ? '#f97316' : '#3b82f6')
+              : '#22c55e'
+            }
             className="edge-particle"
             style={{ offsetPath: `path("${edgePath}")`, offsetDistance: '0%' } as React.CSSProperties}
           />
           <circle
             r="2"
-            fill={sourceHandle === 'true' ? '#fbbf24' : '#60a5fa'}
+            fill={isActiveEdge
+              ? (sourceHandle === 'true' ? '#fbbf24' : '#60a5fa')
+              : '#4ade80'
+            }
             className="edge-particle"
             style={{ offsetPath: `path("${edgePath}")`, offsetDistance: '0%', animationDelay: '-0.33s' } as React.CSSProperties}
           />
           <circle
             r="2.5"
-            fill={sourceHandle === 'true' ? '#fed7aa' : '#93c5fd'}
+            fill={isActiveEdge
+              ? (sourceHandle === 'true' ? '#fed7aa' : '#93c5fd')
+              : '#86efac'
+            }
             className="edge-particle"
             style={{ offsetPath: `path("${edgePath}")`, offsetDistance: '0%', animationDelay: '-0.66s' } as React.CSSProperties}
           />
