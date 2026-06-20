@@ -75,3 +75,9 @@ src/i18n/i18n-react.tsx
 /website/
 
 .omo/
+
+# Local environment (secrets)
+.env
+.env.local
+
+dist-release/
