@@ -125,6 +125,7 @@ const en_US_flow = {
   context_paste_config: 'Paste Config',
   context_rename: 'Rename',
   context_delete_node: 'Delete Node',
+  context_test_node: 'Test this Node',
 
   // Confirm dialog
   delete_node_title: 'Delete Node',

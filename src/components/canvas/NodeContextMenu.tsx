@@ -2,10 +2,15 @@
  * NodeContextMenu - 节点右键上下文菜单
  * 在鼠标右键点击节点时显示，支持复制、重命名、删除、配置复制/粘贴操作
  */
-import { useEffect, useRef } from 'react';
-import { Copy, Trash2, Pencil, ClipboardCopy, ClipboardPaste } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Copy, Trash2, Pencil, ClipboardCopy, ClipboardPaste, Play } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getLL } from '@/i18n/i18n-lazy';
+import { executeSingleNode } from '@/services/tauri/flow';
+import { useFlowStore, useExecutionStore } from '@/stores';
+import { getActiveVariables } from '@/types/flow';
+import type { FlowExecutionReport } from '@/types';
 
 export interface NodeContextMenuProps {
   /** 菜单显示位置 (屏幕坐标) */
@@ -67,9 +72,63 @@ export function NodeContextMenu({
   hasClipboardConfig,
 }: NodeContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [testing, setTesting] = useState(false);
 
   // 构建菜单项
   const LL = getLL();
+
+  const handleTestNode = async () => {
+    setTesting(true);
+    try {
+      const flow = useFlowStore.getState().flow;
+      if (!flow) {
+        toast.error('No flow loaded');
+        return;
+      }
+      const node = flow.nodes.find((n) => n.uuid === nodeId);
+      if (!node) {
+        toast.error('Node not found in current flow');
+        return;
+      }
+      // Pass flow's active variables so {{variable}} references in node config are resolved
+      const flowVariables = getActiveVariables(flow);
+      const nodeReport = await executeSingleNode(node, flowVariables);
+
+      // Build a lightweight flow report for the dialog (no persistence)
+      const now = Date.now();
+      const flowReport: FlowExecutionReport = {
+        uuid: `test-${nodeId}-${now}`,
+        flow_uuid: flow.uuid,
+        flow_name: `Test: ${nodeName}`,
+        start_time: now - nodeReport.duration_ms,
+        end_time: now,
+        duration_ms: nodeReport.duration_ms,
+        total_nodes: 1,
+        executed_count: nodeReport.status === 'success' ? 1 : 0,
+        status: nodeReport.status,
+        node_reports: [nodeReport],
+        statistics: {
+          success_count: nodeReport.status === 'success' ? 1 : 0,
+          failed_count: nodeReport.status === 'failed' ? 1 : 0,
+          avg_node_duration_ms: nodeReport.duration_ms,
+          max_node_duration_ms: nodeReport.duration_ms,
+          min_node_duration_ms: nodeReport.duration_ms,
+        },
+        execution_mode: 'normal',
+      };
+
+      // Show in report dialog — no save, no history
+      useExecutionStore.getState().setReport(flowReport);
+      useExecutionStore.getState().openReportDialog(flowReport);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      toast.error(`Test failed: ${msg}`);
+    } finally {
+      setTesting(false);
+      onClose();
+    }
+  };
+
   const menuItems: MenuItem[] = [
     {
       key: 'copy',
@@ -97,6 +156,15 @@ export function NodeContextMenu({
       action: () => {
         onPasteConfig(nodeId);
         onClose();
+      },
+    },
+    {
+      key: 'test',
+      label: LL.flow.context_test_node(),
+      icon: <Play className="w-4 h-4" />,
+      disabled: testing,
+      action: () => {
+        handleTestNode();
       },
     },
     {

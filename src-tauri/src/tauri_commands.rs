@@ -17,7 +17,8 @@ use flow_engine::log_event::LogEvent;
 use flow_engine::execution_event::ExecutionEvent;
 use flow_engine::traits::ExecutionEventSender;
 use flow_engine::traits::DebugEventSender;
-use flow_engine::report::{FlowExecutionReport, ReportMetadata};
+use flow_engine::node::Node;
+use flow_engine::report::{FlowExecutionReport, NodeExecutionReport, ReportMetadata};
 use flow_engine::flow::Flow;
 use flow_engine::debug::DebugEvent;
 use flow_engine::plugin::NodeMetadata;
@@ -244,6 +245,63 @@ pub fn cancel_flow(state: State<'_, ExecutionSessionManager>) -> Result<(), Stri
         }
         None => Err("没有活跃的执行会话".to_string()),
     }
+}
+
+/// 执行单个节点（连接性验证）
+///
+/// 单独执行一个协议节点，用于前端"测试"功能验证连接性。
+/// 支持的节点类型与后端 `SUPPORTED_SINGLE_NODE_TYPES` 保持一致。
+/// 执行超时时间为 30 秒。
+#[tauri::command]
+pub async fn execute_single_node(
+    node: Node,
+    variables: Option<serde_json::Value>,
+    state: State<'_, ExecutionSessionManager>,
+) -> Result<NodeExecutionReport, String> {
+    // 白名单检查（纵深防御）
+    let supported = [
+        "http", "script", "assertion",
+        "redis_connect", "db_connect", "mqtt_connect", "kafka_connect",
+        "amqp_connect", "amqp10_connect", "smtp_connect", "imap_connect",
+        "ws_connect", "sse_connect", "grpc_connect", "mcp_connect",
+        "graphql_connect", "tcp_connect",
+    ];
+    let type_id = node.data.type_name();
+    if !supported.contains(&type_id.as_str()) {
+        return Err(format!("Unsupported node type for single-node execution: {}", type_id));
+    }
+
+    log::info!("[单节点] 执行: type={}, name={}, uuid={}", type_id, node.name, node.uuid);
+
+    // 创建取消信号通道
+    let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
+
+    // 存储 sender 到会话管理器（允许前端通过 cancel_flow 取消）
+    {
+        let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
+        *guard = Some(cancel_tx);
+    }
+
+    let executor = flow_engine::executor::FlowExecutor::new()
+        .with_cancel_receiver(cancel_rx)
+        .with_hook_executor(std::sync::Arc::new(
+            flow_engine::hook_runner::DefaultHookExecutor::new()
+        ));
+
+    let result = executor.execute_single_node(&node, variables, None).await;
+
+    // 执行完成后清理会话
+    {
+        let mut guard = state.cancel_sender.lock().map_err(|e| e.to_string())?;
+        *guard = None;
+    }
+
+    log::info!("[单节点] 完成: type={}, success={}", type_id, result.success);
+
+    result.node_reports
+        .into_iter()
+        .next()
+        .ok_or_else(|| "No execution result".to_string())
 }
 
 /// 更新节点命令（桩实现）

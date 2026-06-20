@@ -11,6 +11,7 @@ pub mod flow_edit;
 pub mod report;
 pub mod stress;
 pub mod debug_cmd;
+pub mod run_node;
 
 use clap::{Parser, Subcommand};
 
@@ -44,6 +45,14 @@ impl From<std::io::Error> for CliError {
     fn from(e: std::io::Error) -> Self {
         CliError::Io(e.to_string())
     }
+}
+
+/// Parse --var key=value pair into (String, String) tuple
+fn parse_var(s: &str) -> Result<(String, String), String> {
+    let (key, val) = s.split_once('=').ok_or_else(|| {
+        format!("--var format error (expected key=value): {}", s)
+    })?;
+    Ok((key.to_string(), val.to_string()))
 }
 
 // ── Clap 定义 ─────────────────────────────────────────────────────
@@ -114,6 +123,20 @@ pub enum Commands {
         /// 报告管理子命令
         #[command(subcommand)]
         command: ReportCommands,
+    },
+    /// Execute a single protocol node for connectivity verification
+    RunNode {
+        /// JSON configuration for the node
+        /// (e.g. '{"type":"redis_connect","host":"127.0.0.1","port":6379}')
+        node_json: String,
+
+        /// Flow variables (key=value or key=json)
+        #[arg(short, long = "var", value_parser = parse_var)]
+        var: Vec<(String, String)>,
+
+        /// Output format (json)
+        #[arg(short, long, default_value = "json")]
+        format: String,
     },
 }
 
@@ -398,6 +421,9 @@ async fn async_main() -> Result<(), CliError> {
         } => debug_cmd::execute(&cli.format, &flow, &r#break, &var, cancel_rx).await,
         Commands::Stress { command } => stress::execute(&cli.format, command, cancel_rx).await,
         Commands::Flow { command } => flow::execute(&cli.format, command).await,
+        Commands::RunNode { node_json, var, format } => {
+            run_node::execute(&format, &node_json, &var).await
+        },
         Commands::Report { command } => report::execute(&cli.format, command).await,
     }
 }

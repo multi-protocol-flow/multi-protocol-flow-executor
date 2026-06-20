@@ -81,6 +81,7 @@ mockito = "1.0"
 wiremock = "0.6"
 proptest = "1.4"
 futures-util = { workspace = true }
+rustls = { workspace = true }
 
 [lints]
 workspace = true

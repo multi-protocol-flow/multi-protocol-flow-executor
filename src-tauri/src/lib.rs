@@ -32,6 +32,7 @@ pub use tauri_commands::{
     test_redis_connection,
     create_flow,
     execute_flow,
+    execute_single_node,
     update_node,
     delete_node,
     save_flow_report,
@@ -238,6 +239,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             create_flow,
             execute_flow,
+            execute_single_node,
             update_node,
             delete_node,
             save_flow_report,

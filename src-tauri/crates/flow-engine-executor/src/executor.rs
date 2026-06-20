@@ -107,6 +107,15 @@ fn parse_error_to_detail(error: &str) -> ErrorDetail {
     ErrorDetail::execution_error(error.to_string())
 }
 
+/// Node types that can be executed standalone via `execute_single_node`
+const SUPPORTED_SINGLE_NODE_TYPES: &[&str] = &[
+    "http", "script", "assertion",
+    "redis_connect", "db_connect", "mqtt_connect", "kafka_connect",
+    "amqp_connect", "amqp10_connect", "smtp_connect", "imap_connect",
+    "ws_connect", "sse_connect", "grpc_connect", "mcp_connect",
+    "graphql_connect", "tcp_connect",
+];
+
 /// Flow executor
 pub struct FlowExecutor {
     /// Flow file path (used for resolving relative paths in CLI mode)
@@ -1040,17 +1049,220 @@ impl FlowExecutor {
             None => Err(format!("未注册的节点类型: {}", type_id)),
         }
     }
+
+    /// Execute a single node standalone (no flow traversal, no report persistence)
+    ///
+    /// Used by `mpe run node` CLI and Tauri "Test" command to verify
+    /// connectivity for protocol node types.
+    ///
+    /// # Arguments
+    /// - `node`: The node to execute (must have type in SUPPORTED_SINGLE_NODE_TYPES)
+    /// - `variables`: Optional JSON object with initial variables
+    /// - `log_sender`: Optional log sender (CLI mode = None)
+    ///
+    /// # Returns
+    /// `ExecutionResult` with a single-entry `node_reports` vector
+    pub async fn execute_single_node(
+        &self,
+        node: &Node,
+        variables: Option<serde_json::Value>,
+        _log_sender: Option<Arc<dyn LogSender>>,
+    ) -> ExecutionResult {
+        let now_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+
+        // 1. Get type_id and validate
+        let type_id = node.data.type_name();
+        if !SUPPORTED_SINGLE_NODE_TYPES.contains(&type_id.as_str()) {
+            return ExecutionResult {
+                success: false,
+                data: None,
+                error: Some(format!("Unsupported single-node type: {}", type_id)),
+                executed_count: 0,
+                node_reports: vec![],
+                flow_report: None,
+            };
+        }
+
+        // 2. Build execution context with unique flow id
+        let mut context = ExecutionContext::new("_single_node_".to_string(), now_ms)
+            .with_default_providers()
+            .with_default_providers_and_grpc(None);
+
+        // 3. Inject variables from JSON object
+        if let Some(serde_json::Value::Object(obj)) = variables {
+            for (key, value) in obj {
+                context.variables.set_variable(key, value, String::new());
+            }
+        }
+
+        // 4. Lookup plugin
+        let plugin = match self.registry.get(&type_id) {
+            Some(p) => p,
+            None => {
+                let end_ms = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis() as u64;
+                return ExecutionResult {
+                    success: false,
+                    data: None,
+                    error: Some(format!("Unregistered node type: {}", type_id)),
+                    executed_count: 0,
+                    node_reports: vec![flow_engine_core::report::NodeExecutionReport {
+                        node_uuid: node.uuid.clone(),
+                        node_type: node.node_type.clone(),
+                        node_name: node.name.clone(),
+                        start_time: now_ms,
+                        end_time: end_ms,
+                        duration_ms: end_ms.saturating_sub(now_ms),
+                        status: flow_engine_core::report::ExecutionStatus::Failed,
+                        input_data: None,
+                        output_data: None,
+                        used_port_id: None,
+                        error: Some(flow_engine_core::error::ErrorDetail::execution_error(
+                            format!("Unregistered node type: {}", type_id)
+                        )),
+                        resolved_config: None,
+                        variable_changes: None,
+                        skip_reason: None,
+                        wait_duration_ms: None,
+                    }],
+                    flow_report: None,
+                };
+            }
+        };
+
+        // 5. Build single-entry node_map
+        let node_map: std::collections::HashMap<String, &Node> =
+            [(node.uuid.clone(), node)].into_iter().collect();
+
+        // 6. Execute with 30s timeout
+        let empty_connections: Vec<flow_engine_core::connection::Connection> = vec![];
+        let execute_future = plugin.execute(node, &mut context, &empty_connections, &node_map);
+        let timeout_duration = std::time::Duration::from_secs(30);
+
+        let result = tokio::time::timeout(timeout_duration, execute_future).await;
+
+        let end_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+        let duration_ms = end_ms.saturating_sub(now_ms);
+
+        match result {
+            Ok(Ok((_next_ids, output_data))) => {
+                // Success
+                ExecutionResult {
+                    success: true,
+                    data: output_data.clone(),
+                    error: None,
+                    executed_count: 1,
+                    node_reports: vec![flow_engine_core::report::NodeExecutionReport {
+                        node_uuid: node.uuid.clone(),
+                        node_type: node.node_type.clone(),
+                        node_name: node.name.clone(),
+                        start_time: now_ms,
+                        end_time: end_ms,
+                        duration_ms,
+                        status: flow_engine_core::report::ExecutionStatus::Success,
+                        input_data: None,
+                        output_data,
+                        used_port_id: Some("out".to_string()),
+                        error: None,
+                        resolved_config: None,
+                        variable_changes: None,
+                        skip_reason: None,
+                        wait_duration_ms: None,
+                    }],
+                    flow_report: None,
+                }
+            }
+            Ok(Err(err_msg)) => {
+                // Plugin execution returned error
+                ExecutionResult {
+                    success: false,
+                    data: None,
+                    error: Some(err_msg.clone()),
+                    executed_count: 0,
+                    node_reports: vec![flow_engine_core::report::NodeExecutionReport {
+                        node_uuid: node.uuid.clone(),
+                        node_type: node.node_type.clone(),
+                        node_name: node.name.clone(),
+                        start_time: now_ms,
+                        end_time: end_ms,
+                        duration_ms,
+                        status: flow_engine_core::report::ExecutionStatus::Failed,
+                        input_data: None,
+                        output_data: None,
+                        used_port_id: None,
+                        error: Some(flow_engine_core::error::ErrorDetail::execution_error(err_msg)),
+                        resolved_config: None,
+                        variable_changes: None,
+                        skip_reason: None,
+                        wait_duration_ms: None,
+                    }],
+                    flow_report: None,
+                }
+            }
+            Err(_elapsed) => {
+                // Timeout
+                ExecutionResult {
+                    success: false,
+                    data: None,
+                    error: Some(format!("Execution timed out after 30s for node type: {}", type_id)),
+                    executed_count: 0,
+                    node_reports: vec![flow_engine_core::report::NodeExecutionReport {
+                        node_uuid: node.uuid.clone(),
+                        node_type: node.node_type.clone(),
+                        node_name: node.name.clone(),
+                        start_time: now_ms,
+                        end_time: end_ms,
+                        duration_ms,
+                        status: flow_engine_core::report::ExecutionStatus::Failed,
+                        input_data: None,
+                        output_data: None,
+                        used_port_id: None,
+                        error: Some(flow_engine_core::error::ErrorDetail::execution_error(
+                            format!("Execution timed out after 30s for node type: {}", type_id)
+                        )),
+                        resolved_config: None,
+                        variable_changes: None,
+                        skip_reason: None,
+                        wait_duration_ms: None,
+                    }],
+                    flow_report: None,
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use flow_engine_core::node_config::NodeData;
+    use flow_engine_core::node_config::ScriptErrorStrategy;
+    use flow_engine_core::node_config::ScriptExecutionPhase;
+    use flow_engine_core::node_config::ScriptNodeConfig;
     use flow_engine_core::node::NodePosition;
+    use flow_engine_core::report::ExecutionStatus;
 
     use serde_json::json;
+    use std::sync::Once;
     use std::time::Instant;
     use uuid::Uuid;
+
+    /// Initialize rustls crypto provider once for all tests.
+    /// Required because workspace-hack unifies reqwest features with rustls-no-provider.
+    fn init_crypto() {
+        static INIT: Once = Once::new();
+        INIT.call_once(|| {
+            let _ = rustls::crypto::ring::default_provider().install_default();
+        });
+    }
 
     #[tokio::test]
     async fn test_flow_executor_success() {
@@ -1959,4 +2171,127 @@ mod tests {
         // 不传 runtime_variables 时，Entry 节点的 initial_variables 保持不变
         assert_eq!(final_vars["host"], json!("default.com"), "不传 runtime_variables 时 host 应保持 Entry 节点的默认值");
     }
+
+    // ============================================================================
+    // execute_single_node 单元测试
+    // ============================================================================
+
+    #[tokio::test]
+    async fn test_execute_single_node_script() {
+        init_crypto();
+        // Script node returns success with correct ExecutionStatus::Success
+        let node = Node {
+            uuid: "test-script-node".to_string(),
+            node_type: "script".to_string(),
+            name: "Test Script".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::Script(ScriptNodeConfig {
+                script: "return 42;".into(),
+                timeout_ms: 5000,
+                memory_limit_mb: 10,
+                execution_phase: ScriptExecutionPhase::default(),
+                on_error: ScriptErrorStrategy::default(),
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_single_node(&node, None, None).await;
+
+        assert!(result.success, "Script node should succeed");
+        assert_eq!(result.executed_count, 1);
+        assert!(result.error.is_none());
+        assert_eq!(result.node_reports.len(), 1);
+        assert_eq!(result.node_reports[0].status, ExecutionStatus::Success);
+    }
+
+    #[tokio::test]
+    async fn test_execute_single_node_timeout() {
+        init_crypto();
+        // Infinite loop script triggers 5s script timeout.
+        // Use Fatal error strategy so the timeout propagates as an error
+        // (Recoverable would return Ok with "success": false and no error).
+        let node = Node {
+            uuid: "test-timeout-node".to_string(),
+            node_type: "script".to_string(),
+            name: "Test Timeout".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::Script(ScriptNodeConfig {
+                script: "while(true) {}".into(),
+                timeout_ms: 5000,
+                memory_limit_mb: 10,
+                execution_phase: ScriptExecutionPhase::default(),
+                on_error: ScriptErrorStrategy::Fatal,
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_single_node(&node, None, None).await;
+
+        assert!(!result.success, "Timeout should fail");
+        assert!(result.error.is_some());
+        let err = result.error.expect("error should be present");
+        assert!(err.contains("超时") || err.contains("timeout"),
+            "Error should mention timeout: {}", err);
+    }
+
+    #[tokio::test]
+    async fn test_execute_single_node_unsupported_type() {
+        // Entry node returns error mentioning "entry"
+        let node = Node {
+            uuid: "test-entry".to_string(),
+            node_type: "entry".to_string(),
+            name: "Test Entry".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::entry(),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_single_node(&node, None, None).await;
+
+        assert!(!result.success);
+        assert!(result.error.is_some());
+        let err = result.error.expect("error should be present");
+        assert!(err.contains("entry"), "Error should mention 'entry': {}", err);
+    }
+
+    #[tokio::test]
+    async fn test_execute_single_node_with_variables() {
+        // Script node reads injected variable from context
+        let node = Node {
+            uuid: "test-var-node".to_string(),
+            node_type: "script".to_string(),
+            name: "Test Variables".to_string(),
+            position: NodePosition::default(),
+            data: NodeData::Script(ScriptNodeConfig {
+                script: "return fn.variables.get('name');".into(),
+                timeout_ms: 5000,
+                memory_limit_mb: 10,
+                execution_phase: ScriptExecutionPhase::default(),
+                on_error: ScriptErrorStrategy::default(),
+            }),
+            ports: None,
+            has_breakpoint: None,
+            on_error: None,
+        };
+
+        let variables = serde_json::json!({
+            "name": "World"
+        });
+
+        let executor = FlowExecutor::new();
+        let result = executor.execute_single_node(&node, Some(variables), None).await;
+
+        assert!(result.success, "Script with variables should succeed");
+        assert_eq!(result.executed_count, 1);
+    }
+
 }

@@ -54,5 +54,8 @@ protocol-smtp = ["flow-engine/protocol-smtp"]
 protocol-imap = ["flow-engine/protocol-imap"]
 protocol-redis = ["flow-engine/protocol-redis"]
 
+[dev-dependencies]
+tempfile = "3.0"
+
 [lints]
 workspace = true

@@ -123,6 +123,7 @@ const zh_CN_flow: BaseTranslation = {
   context_paste_config: '粘贴配置',
   context_rename: '重命名',
   context_delete_node: '删除节点',
+  context_test_node: '测试此节点',
 
   // 复制/重命名
   duplicate_suffix: '副本',

@@ -12751,6 +12751,10 @@ type RootTranslation = {
 		 */
 		context_delete_node: string
 		/**
+		 * 测试此节点
+		 */
+		context_test_node: string
+		/**
 		 * 副​本
 		 */
 		duplicate_suffix: string
@@ -18408,6 +18412,416 @@ type RootTranslation = {
 			 */
 			copied: string
 		}
+	}
+	errors: {
+		/**
+		 * 配​置​错​误
+		 */
+		E_CONFIG_ERROR: string
+		/**
+		 * 条​件​语​法​错​误
+		 */
+		E_CONDITION_SYNTAX: string
+		/**
+		 * 执​行​错​误​:​ ​{​r​e​a​s​o​n​}
+		 * @param {unknown} reason
+		 */
+		E_EXECUTION_ERROR: RequiredParams<'reason'>
+		/**
+		 * 操​作​ ​"​{​o​p​e​r​a​t​i​o​n​}​"​ ​超​时​ ​(​{​m​s​}​m​s​)
+		 * @param {unknown} ms
+		 * @param {unknown} operation
+		 */
+		E_TIMEOUT: RequiredParams<'ms' | 'operation'>
+		/**
+		 * 条​件​评​估​错​误​:​ ​{​e​x​p​r​e​s​s​i​o​n​}
+		 * @param {unknown} expression
+		 */
+		E_CONDITION_EVALUATION: RequiredParams<'expression'>
+		/**
+		 * 未​知​错​误
+		 */
+		E_UNKNOWN: string
+		/**
+		 * 已​取​消
+		 */
+		E_CANCELLED: string
+		/**
+		 * 解​析​错​误​:​ ​{​v​a​l​u​e​}
+		 * @param {unknown} value
+		 */
+		E_PARSE: RequiredParams<'value'>
+		/**
+		 * 断​言​失​败
+		 */
+		E_ASSERTION: string
+		/**
+		 * 脚​本​已​中​止
+		 */
+		E_SCRIPT_ABORT: string
+		/**
+		 * 连​接​ ​{​h​o​s​t​}​ ​超​时​ ​(​{​m​s​}​m​s​)
+		 * @param {unknown} host
+		 * @param {unknown} ms
+		 */
+		E_CONN_TIMEOUT: RequiredParams<'host' | 'ms'>
+		/**
+		 * 连​接​ ​{​h​o​s​t​}​:​{​p​o​r​t​}​ ​被​拒​绝
+		 * @param {unknown} host
+		 * @param {unknown} port
+		 */
+		E_CONN_REFUSED: RequiredParams<'host' | 'port'>
+		/**
+		 * 与​ ​{​h​o​s​t​}​ ​的​连​接​已​关​闭
+		 * @param {unknown} host
+		 */
+		E_CONN_CLOSED: RequiredParams<'host'>
+		/**
+		 * 端​口​连​接​重​复
+		 */
+		E_VAL_PORT_DUPLICATE: string
+		/**
+		 * 检​测​到​流​程​中​存​在​循​环​依​赖
+		 */
+		E_VAL_CYCLE_DETECTED: string
+		/**
+		 * 缺​少​入​口​节​点
+		 */
+		E_VAL_MISSING_ENTRY: string
+		/**
+		 * H​T​T​P​ ​请​求​ ​{​u​r​l​}​ ​失​败​，​状​态​码​:​ ​{​s​t​a​t​u​s​}
+		 * @param {unknown} status
+		 * @param {unknown} url
+		 */
+		E_HTTP_REQUEST_FAILED: RequiredParams<'status' | 'url'>
+		/**
+		 * H​T​T​P​ ​错​误​ ​{​u​r​l​}​:​ ​{​s​t​a​t​u​s​}​ ​-​ ​{​b​o​d​y​}
+		 * @param {unknown} body
+		 * @param {unknown} status
+		 * @param {unknown} url
+		 */
+		E_HTTP_STATUS_ERROR: RequiredParams<'body' | 'status' | 'url'>
+		/**
+		 * 无​效​的​ ​U​R​L​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_HTTP_INVALID_URL: RequiredParams<'url'>
+		/**
+		 * W​e​b​S​o​c​k​e​t​ ​连​接​失​败​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_WS_CONNECTION: RequiredParams<'url'>
+		/**
+		 * W​e​b​S​o​c​k​e​t​ ​超​时​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_WS_TIMEOUT: RequiredParams<'url'>
+		/**
+		 * W​e​b​S​o​c​k​e​t​ ​消​息​错​误​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_WS_MESSAGE: RequiredParams<'url'>
+		/**
+		 * W​e​b​S​o​c​k​e​t​ ​连​接​已​关​闭​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_WS_CLOSE: RequiredParams<'url'>
+		/**
+		 * W​e​b​S​o​c​k​e​t​ ​协​议​错​误​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_WS_PROTOCOL: RequiredParams<'url'>
+		/**
+		 * 数​据​库​连​接​失​败​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_DB_CONNECTION: RequiredParams<'host'>
+		/**
+		 * 数​据​库​查​询​错​误​:​ ​{​q​u​e​r​y​}
+		 * @param {unknown} query
+		 */
+		E_DB_QUERY: RequiredParams<'query'>
+		/**
+		 * 数​据​库​超​时​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_DB_TIMEOUT: RequiredParams<'host'>
+		/**
+		 * 脚​本​语​法​错​误​:​ ​{​d​e​t​a​i​l​}
+		 * @param {unknown} detail
+		 */
+		E_SCRIPT_SYNTAX: RequiredParams<'detail'>
+		/**
+		 * 脚​本​运​行​时​错​误​:​ ​{​d​e​t​a​i​l​}
+		 * @param {unknown} detail
+		 */
+		E_SCRIPT_RUNTIME: RequiredParams<'detail'>
+		/**
+		 * 脚​本​执​行​超​时​ ​(​{​m​s​}​m​s​)
+		 * @param {unknown} ms
+		 */
+		E_SCRIPT_TIMEOUT: RequiredParams<'ms'>
+		/**
+		 * 脚​本​断​言​失​败​:​ ​{​d​e​t​a​i​l​}
+		 * @param {unknown} detail
+		 */
+		E_SCRIPT_ASSERTION: RequiredParams<'detail'>
+		/**
+		 * g​R​P​C​ ​连​接​失​败​:​ ​{​t​a​r​g​e​t​}
+		 * @param {unknown} target
+		 */
+		E_GRPC_CONNECTION: RequiredParams<'target'>
+		/**
+		 * g​R​P​C​ ​超​时​:​ ​{​t​a​r​g​e​t​}
+		 * @param {unknown} target
+		 */
+		E_GRPC_TIMEOUT: RequiredParams<'target'>
+		/**
+		 * g​R​P​C​ ​消​息​错​误​:​ ​{​t​a​r​g​e​t​}
+		 * @param {unknown} target
+		 */
+		E_GRPC_MESSAGE: RequiredParams<'target'>
+		/**
+		 * g​R​P​C​ ​错​误​ ​{​t​a​r​g​e​t​}​:​ ​状​态​码​ ​{​c​o​d​e​}
+		 * @param {unknown} code
+		 * @param {unknown} target
+		 */
+		E_GRPC_STATUS: RequiredParams<'code' | 'target'>
+		/**
+		 * g​R​P​C​ ​连​接​已​关​闭​:​ ​{​t​a​r​g​e​t​}
+		 * @param {unknown} target
+		 */
+		E_GRPC_CLOSE: RequiredParams<'target'>
+		/**
+		 * M​C​P​ ​连​接​失​败​:​ ​{​s​e​r​v​e​r​}
+		 * @param {unknown} server
+		 */
+		E_MCP_CONNECTION: RequiredParams<'server'>
+		/**
+		 * M​C​P​ ​工​具​调​用​失​败​:​ ​{​t​o​o​l​}
+		 * @param {unknown} tool
+		 */
+		E_MCP_TOOL_CALL: RequiredParams<'tool'>
+		/**
+		 * M​C​P​ ​资​源​读​取​失​败​:​ ​{​u​r​i​}
+		 * @param {unknown} uri
+		 */
+		E_MCP_RESOURCE_READ: RequiredParams<'uri'>
+		/**
+		 * 未​连​接​到​ ​M​C​P​ ​服​务​器​:​ ​{​s​e​r​v​e​r​}
+		 * @param {unknown} server
+		 */
+		E_MCP_NOT_CONNECTED: RequiredParams<'server'>
+		/**
+		 * T​C​P​ ​连​接​失​败​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_TCP_CONNECTION: RequiredParams<'addr'>
+		/**
+		 * T​C​P​ ​超​时​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_TCP_TIMEOUT: RequiredParams<'addr'>
+		/**
+		 * T​C​P​ ​发​送​错​误​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_TCP_SEND: RequiredParams<'addr'>
+		/**
+		 * T​C​P​ ​接​收​错​误​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_TCP_RECEIVE: RequiredParams<'addr'>
+		/**
+		 * T​C​P​ ​连​接​已​关​闭​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_TCP_CLOSE: RequiredParams<'addr'>
+		/**
+		 * U​D​P​ ​绑​定​失​败​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_UDP_BIND: RequiredParams<'addr'>
+		/**
+		 * U​D​P​ ​发​送​错​误​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_UDP_SEND: RequiredParams<'addr'>
+		/**
+		 * U​D​P​ ​接​收​错​误​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_UDP_RECEIVE: RequiredParams<'addr'>
+		/**
+		 * U​D​P​ ​套​接​字​已​关​闭​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_UDP_CLOSE: RequiredParams<'addr'>
+		/**
+		 * S​S​E​ ​连​接​失​败​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_SSE_CONNECTION: RequiredParams<'url'>
+		/**
+		 * S​S​E​ ​超​时​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_SSE_TIMEOUT: RequiredParams<'url'>
+		/**
+		 * S​S​E​ ​事​件​错​误​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_SSE_EVENT: RequiredParams<'url'>
+		/**
+		 * G​r​a​p​h​Q​L​ ​连​接​失​败​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_GRAPHQL_CONNECTION: RequiredParams<'url'>
+		/**
+		 * G​r​a​p​h​Q​L​ ​查​询​错​误​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_GRAPHQL_QUERY: RequiredParams<'url'>
+		/**
+		 * G​r​a​p​h​Q​L​ ​订​阅​错​误​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_GRAPHQL_SUBSCRIPTION: RequiredParams<'url'>
+		/**
+		 * G​r​a​p​h​Q​L​ ​内​省​失​败​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_GRAPHQL_INTROSPECTION: RequiredParams<'url'>
+		/**
+		 * G​r​a​p​h​Q​L​ ​连​接​已​关​闭​:​ ​{​u​r​l​}
+		 * @param {unknown} url
+		 */
+		E_GRAPHQL_CLOSE: RequiredParams<'url'>
+		/**
+		 * A​M​Q​P​ ​连​接​失​败​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_AMQP_CONNECTION: RequiredParams<'addr'>
+		/**
+		 * A​M​Q​P​ ​通​道​错​误​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_AMQP_CHANNEL: RequiredParams<'addr'>
+		/**
+		 * A​M​Q​P​ ​发​布​错​误​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_AMQP_PUBLISH: RequiredParams<'addr'>
+		/**
+		 * A​M​Q​P​ ​消​费​错​误​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_AMQP_CONSUME: RequiredParams<'addr'>
+		/**
+		 * A​M​Q​P​ ​队​列​错​误​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_AMQP_QUEUE: RequiredParams<'addr'>
+		/**
+		 * A​M​Q​P​ ​交​换​机​错​误​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_AMQP_EXCHANGE: RequiredParams<'addr'>
+		/**
+		 * A​M​Q​P​ ​确​认​错​误​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_AMQP_ACK: RequiredParams<'addr'>
+		/**
+		 * A​M​Q​P​ ​管​理​错​误​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_AMQP_MANAGEMENT: RequiredParams<'addr'>
+		/**
+		 * A​M​Q​P​ ​协​议​错​误​:​ ​{​a​d​d​r​}
+		 * @param {unknown} addr
+		 */
+		E_AMQP_PROTOCOL: RequiredParams<'addr'>
+		/**
+		 * R​e​d​i​s​ ​连​接​失​败​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_REDIS_CONNECTION: RequiredParams<'host'>
+		/**
+		 * R​e​d​i​s​ ​命​令​错​误​:​ ​{​c​m​d​}
+		 * @param {unknown} cmd
+		 */
+		E_REDIS_COMMAND: RequiredParams<'cmd'>
+		/**
+		 * R​e​d​i​s​ ​超​时​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_REDIS_TIMEOUT: RequiredParams<'host'>
+		/**
+		 * R​e​d​i​s​ ​认​证​失​败​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_REDIS_AUTH: RequiredParams<'host'>
+		/**
+		 * S​M​T​P​ ​连​接​失​败​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_SMTP_CONNECTION: RequiredParams<'host'>
+		/**
+		 * S​M​T​P​ ​发​送​错​误​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_SMTP_SEND: RequiredParams<'host'>
+		/**
+		 * S​M​T​P​ ​认​证​失​败​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_SMTP_AUTH: RequiredParams<'host'>
+		/**
+		 * S​M​T​P​ ​超​时​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_SMTP_TIMEOUT: RequiredParams<'host'>
+		/**
+		 * I​M​A​P​ ​连​接​失​败​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_IMAP_CONNECTION: RequiredParams<'host'>
+		/**
+		 * I​M​A​P​ ​获​取​错​误​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_IMAP_FETCH: RequiredParams<'host'>
+		/**
+		 * I​M​A​P​ ​搜​索​错​误​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_IMAP_SEARCH: RequiredParams<'host'>
+		/**
+		 * I​M​A​P​ ​认​证​失​败​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_IMAP_AUTH: RequiredParams<'host'>
+		/**
+		 * I​M​A​P​ ​存​储​错​误​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_IMAP_STORE: RequiredParams<'host'>
+		/**
+		 * I​M​A​P​ ​超​时​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_IMAP_TIMEOUT: RequiredParams<'host'>
+		/**
+		 * 变​量​提​取​失​败​:​ ​{​p​a​t​h​}
+		 * @param {unknown} path
+		 */
+		E_VARIABLE_EXTRACTOR_FAILED: RequiredParams<'path'>
+		/**
+		 * 代​理​失​败​:​ ​{​h​o​s​t​}
+		 * @param {unknown} host
+		 */
+		E_PROXY_FAILED: RequiredParams<'host'>
 	}
 }
 
@@ -31050,6 +31464,10 @@ export type TranslationFunctions = {
 		 */
 		context_delete_node: () => LocalizedString
 		/**
+		 * 测试此节点
+		 */
+		context_test_node: () => LocalizedString
+		/**
 		 * 副本
 		 */
 		duplicate_suffix: () => LocalizedString
@@ -36629,6 +37047,336 @@ export type TranslationFunctions = {
 			 */
 			copied: () => LocalizedString
 		}
+	}
+	errors: {
+		/**
+		 * 配置错误
+		 */
+		E_CONFIG_ERROR: () => LocalizedString
+		/**
+		 * 条件语法错误
+		 */
+		E_CONDITION_SYNTAX: () => LocalizedString
+		/**
+		 * 执行错误: {reason}
+		 */
+		E_EXECUTION_ERROR: (arg: { reason: unknown }) => LocalizedString
+		/**
+		 * 操作 "{operation}" 超时 ({ms}ms)
+		 */
+		E_TIMEOUT: (arg: { ms: unknown, operation: unknown }) => LocalizedString
+		/**
+		 * 条件评估错误: {expression}
+		 */
+		E_CONDITION_EVALUATION: (arg: { expression: unknown }) => LocalizedString
+		/**
+		 * 未知错误
+		 */
+		E_UNKNOWN: () => LocalizedString
+		/**
+		 * 已取消
+		 */
+		E_CANCELLED: () => LocalizedString
+		/**
+		 * 解析错误: {value}
+		 */
+		E_PARSE: (arg: { value: unknown }) => LocalizedString
+		/**
+		 * 断言失败
+		 */
+		E_ASSERTION: () => LocalizedString
+		/**
+		 * 脚本已中止
+		 */
+		E_SCRIPT_ABORT: () => LocalizedString
+		/**
+		 * 连接 {host} 超时 ({ms}ms)
+		 */
+		E_CONN_TIMEOUT: (arg: { host: unknown, ms: unknown }) => LocalizedString
+		/**
+		 * 连接 {host}:{port} 被拒绝
+		 */
+		E_CONN_REFUSED: (arg: { host: unknown, port: unknown }) => LocalizedString
+		/**
+		 * 与 {host} 的连接已关闭
+		 */
+		E_CONN_CLOSED: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * 端口连接重复
+		 */
+		E_VAL_PORT_DUPLICATE: () => LocalizedString
+		/**
+		 * 检测到流程中存在循环依赖
+		 */
+		E_VAL_CYCLE_DETECTED: () => LocalizedString
+		/**
+		 * 缺少入口节点
+		 */
+		E_VAL_MISSING_ENTRY: () => LocalizedString
+		/**
+		 * HTTP 请求 {url} 失败，状态码: {status}
+		 */
+		E_HTTP_REQUEST_FAILED: (arg: { status: unknown, url: unknown }) => LocalizedString
+		/**
+		 * HTTP 错误 {url}: {status} - {body}
+		 */
+		E_HTTP_STATUS_ERROR: (arg: { body: unknown, status: unknown, url: unknown }) => LocalizedString
+		/**
+		 * 无效的 URL: {url}
+		 */
+		E_HTTP_INVALID_URL: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * WebSocket 连接失败: {url}
+		 */
+		E_WS_CONNECTION: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * WebSocket 超时: {url}
+		 */
+		E_WS_TIMEOUT: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * WebSocket 消息错误: {url}
+		 */
+		E_WS_MESSAGE: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * WebSocket 连接已关闭: {url}
+		 */
+		E_WS_CLOSE: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * WebSocket 协议错误: {url}
+		 */
+		E_WS_PROTOCOL: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * 数据库连接失败: {host}
+		 */
+		E_DB_CONNECTION: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * 数据库查询错误: {query}
+		 */
+		E_DB_QUERY: (arg: { query: unknown }) => LocalizedString
+		/**
+		 * 数据库超时: {host}
+		 */
+		E_DB_TIMEOUT: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * 脚本语法错误: {detail}
+		 */
+		E_SCRIPT_SYNTAX: (arg: { detail: unknown }) => LocalizedString
+		/**
+		 * 脚本运行时错误: {detail}
+		 */
+		E_SCRIPT_RUNTIME: (arg: { detail: unknown }) => LocalizedString
+		/**
+		 * 脚本执行超时 ({ms}ms)
+		 */
+		E_SCRIPT_TIMEOUT: (arg: { ms: unknown }) => LocalizedString
+		/**
+		 * 脚本断言失败: {detail}
+		 */
+		E_SCRIPT_ASSERTION: (arg: { detail: unknown }) => LocalizedString
+		/**
+		 * gRPC 连接失败: {target}
+		 */
+		E_GRPC_CONNECTION: (arg: { target: unknown }) => LocalizedString
+		/**
+		 * gRPC 超时: {target}
+		 */
+		E_GRPC_TIMEOUT: (arg: { target: unknown }) => LocalizedString
+		/**
+		 * gRPC 消息错误: {target}
+		 */
+		E_GRPC_MESSAGE: (arg: { target: unknown }) => LocalizedString
+		/**
+		 * gRPC 错误 {target}: 状态码 {code}
+		 */
+		E_GRPC_STATUS: (arg: { code: unknown, target: unknown }) => LocalizedString
+		/**
+		 * gRPC 连接已关闭: {target}
+		 */
+		E_GRPC_CLOSE: (arg: { target: unknown }) => LocalizedString
+		/**
+		 * MCP 连接失败: {server}
+		 */
+		E_MCP_CONNECTION: (arg: { server: unknown }) => LocalizedString
+		/**
+		 * MCP 工具调用失败: {tool}
+		 */
+		E_MCP_TOOL_CALL: (arg: { tool: unknown }) => LocalizedString
+		/**
+		 * MCP 资源读取失败: {uri}
+		 */
+		E_MCP_RESOURCE_READ: (arg: { uri: unknown }) => LocalizedString
+		/**
+		 * 未连接到 MCP 服务器: {server}
+		 */
+		E_MCP_NOT_CONNECTED: (arg: { server: unknown }) => LocalizedString
+		/**
+		 * TCP 连接失败: {addr}
+		 */
+		E_TCP_CONNECTION: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * TCP 超时: {addr}
+		 */
+		E_TCP_TIMEOUT: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * TCP 发送错误: {addr}
+		 */
+		E_TCP_SEND: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * TCP 接收错误: {addr}
+		 */
+		E_TCP_RECEIVE: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * TCP 连接已关闭: {addr}
+		 */
+		E_TCP_CLOSE: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * UDP 绑定失败: {addr}
+		 */
+		E_UDP_BIND: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * UDP 发送错误: {addr}
+		 */
+		E_UDP_SEND: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * UDP 接收错误: {addr}
+		 */
+		E_UDP_RECEIVE: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * UDP 套接字已关闭: {addr}
+		 */
+		E_UDP_CLOSE: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * SSE 连接失败: {url}
+		 */
+		E_SSE_CONNECTION: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * SSE 超时: {url}
+		 */
+		E_SSE_TIMEOUT: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * SSE 事件错误: {url}
+		 */
+		E_SSE_EVENT: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * GraphQL 连接失败: {url}
+		 */
+		E_GRAPHQL_CONNECTION: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * GraphQL 查询错误: {url}
+		 */
+		E_GRAPHQL_QUERY: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * GraphQL 订阅错误: {url}
+		 */
+		E_GRAPHQL_SUBSCRIPTION: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * GraphQL 内省失败: {url}
+		 */
+		E_GRAPHQL_INTROSPECTION: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * GraphQL 连接已关闭: {url}
+		 */
+		E_GRAPHQL_CLOSE: (arg: { url: unknown }) => LocalizedString
+		/**
+		 * AMQP 连接失败: {addr}
+		 */
+		E_AMQP_CONNECTION: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * AMQP 通道错误: {addr}
+		 */
+		E_AMQP_CHANNEL: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * AMQP 发布错误: {addr}
+		 */
+		E_AMQP_PUBLISH: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * AMQP 消费错误: {addr}
+		 */
+		E_AMQP_CONSUME: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * AMQP 队列错误: {addr}
+		 */
+		E_AMQP_QUEUE: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * AMQP 交换机错误: {addr}
+		 */
+		E_AMQP_EXCHANGE: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * AMQP 确认错误: {addr}
+		 */
+		E_AMQP_ACK: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * AMQP 管理错误: {addr}
+		 */
+		E_AMQP_MANAGEMENT: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * AMQP 协议错误: {addr}
+		 */
+		E_AMQP_PROTOCOL: (arg: { addr: unknown }) => LocalizedString
+		/**
+		 * Redis 连接失败: {host}
+		 */
+		E_REDIS_CONNECTION: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * Redis 命令错误: {cmd}
+		 */
+		E_REDIS_COMMAND: (arg: { cmd: unknown }) => LocalizedString
+		/**
+		 * Redis 超时: {host}
+		 */
+		E_REDIS_TIMEOUT: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * Redis 认证失败: {host}
+		 */
+		E_REDIS_AUTH: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * SMTP 连接失败: {host}
+		 */
+		E_SMTP_CONNECTION: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * SMTP 发送错误: {host}
+		 */
+		E_SMTP_SEND: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * SMTP 认证失败: {host}
+		 */
+		E_SMTP_AUTH: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * SMTP 超时: {host}
+		 */
+		E_SMTP_TIMEOUT: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * IMAP 连接失败: {host}
+		 */
+		E_IMAP_CONNECTION: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * IMAP 获取错误: {host}
+		 */
+		E_IMAP_FETCH: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * IMAP 搜索错误: {host}
+		 */
+		E_IMAP_SEARCH: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * IMAP 认证失败: {host}
+		 */
+		E_IMAP_AUTH: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * IMAP 存储错误: {host}
+		 */
+		E_IMAP_STORE: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * IMAP 超时: {host}
+		 */
+		E_IMAP_TIMEOUT: (arg: { host: unknown }) => LocalizedString
+		/**
+		 * 变量提取失败: {path}
+		 */
+		E_VARIABLE_EXTRACTOR_FAILED: (arg: { path: unknown }) => LocalizedString
+		/**
+		 * 代理失败: {host}
+		 */
+		E_PROXY_FAILED: (arg: { host: unknown }) => LocalizedString
 	}
 }
 

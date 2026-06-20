@@ -5,6 +5,8 @@
 
 import { invoke, Channel } from '@tauri-apps/api/core';
 import type { Flow } from '@/types/flow';
+import type { Node } from '@/types/node';
+import type { NodeExecutionReport } from '@/types/report';
 import type {
   CreateFlowCommandInput,
   CreateFlowCommandOutput,
@@ -179,5 +181,33 @@ export async function validateFlow(flow: Flow): Promise<ValidationResult> {
     return await invoke<ValidationResult>('validate_flow', { flow });
   } catch (error) {
     throw formatError(error, 'validate_flow');
+  }
+}
+
+/**
+ * 执行单个节点（连接性验证）
+ * 调用后端 execute_single_node IPC 命令
+ *
+ * 支持的节点类型: http, script, assertion, redis_connect, db_connect,
+ * mqtt_connect, kafka_connect, amqp_connect, amqp10_connect,
+ * smtp_connect, imap_connect, ws_connect, sse_connect, grpc_connect,
+ * mcp_connect, graphql_connect, tcp_connect
+ *
+ * @param node - 要执行的节点
+ * @param variables - 可选的变量
+ * @returns 节点执行报告
+ * @throws IpcError 如果执行失败
+ */
+export async function executeSingleNode(
+  node: Node,
+  variables?: Record<string, unknown>
+): Promise<NodeExecutionReport> {
+  try {
+    return await invoke<NodeExecutionReport>('execute_single_node', {
+      node,
+      variables: variables ?? null,
+    });
+  } catch (error) {
+    throw formatError(error, 'execute_single_node');
   }
 }
