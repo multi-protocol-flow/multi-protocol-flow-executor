@@ -20,7 +20,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -90,6 +90,24 @@ impl NodePlugin for ImapConnectPlugin {
         Some(serde_json::json!({ "host": config.get("host"), "port": config.get("port"), "tls_mode": config.get("tls_mode") }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("host").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "host".into(),
+                message: "host must not be empty".into(),
+            });
+        }
+        let port = config.get("port").and_then(|v| v.as_u64());
+        if port.is_none() || port == Some(0) {
+            errors.push(ValidationError {
+                field: "port".into(),
+                message: "port must be greater than 0".into(),
+            });
+        }
+        errors
+    }
+
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
@@ -125,6 +143,22 @@ impl NodePlugin for ImapSelectPlugin {
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "mailbox": config.get("mailbox") }))
     }
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("mailbox").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "mailbox".into(),
+                message: "mailbox must not be empty".into(),
+            });
+        }
+        errors
+    }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
@@ -158,6 +192,22 @@ impl NodePlugin for ImapSearchPlugin {
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "criteria": config.get("criteria") }))
+    }
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("criteria").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "criteria".into(),
+                message: "criteria must not be empty".into(),
+            });
+        }
+        errors
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
@@ -193,6 +243,22 @@ impl NodePlugin for ImapFetchPlugin {
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "uids": config.get("uids") }))
     }
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("uids").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "uids".into(),
+                message: "uids must not be empty".into(),
+            });
+        }
+        errors
+    }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
@@ -226,6 +292,28 @@ impl NodePlugin for ImapStoreFlagsPlugin {
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "uids": config.get("uids"), "operation": config.get("operation") }))
+    }
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("uids").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "uids".into(),
+                message: "uids must not be empty".into(),
+            });
+        }
+        if config.get("flags").and_then(|v| v.as_array()).map_or(true, |a| a.is_empty()) {
+            errors.push(ValidationError {
+                field: "flags".into(),
+                message: "flags must not be empty".into(),
+            });
+        }
+        errors
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
@@ -261,6 +349,28 @@ impl NodePlugin for ImapCopyPlugin {
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "target_mailbox": config.get("target_mailbox") }))
     }
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("uids").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "uids".into(),
+                message: "uids must not be empty".into(),
+            });
+        }
+        if config.get("target_mailbox").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "target_mailbox".into(),
+                message: "target_mailbox must not be empty".into(),
+            });
+        }
+        errors
+    }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
@@ -294,6 +404,28 @@ impl NodePlugin for ImapMovePlugin {
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "target_mailbox": config.get("target_mailbox") }))
+    }
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("uids").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "uids".into(),
+                message: "uids must not be empty".into(),
+            });
+        }
+        if config.get("target_mailbox").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "target_mailbox".into(),
+                message: "target_mailbox must not be empty".into(),
+            });
+        }
+        errors
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
@@ -329,6 +461,16 @@ impl NodePlugin for ImapExpungePlugin {
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id") }))
     }
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        errors
+    }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
@@ -362,6 +504,16 @@ impl NodePlugin for ImapListPlugin {
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "pattern": config.get("pattern") }))
+    }
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        errors
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
@@ -397,6 +549,22 @@ impl NodePlugin for ImapFolderCreatePlugin {
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "folder_name": config.get("folder_name") }))
     }
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("folder_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "folder_name".into(),
+                message: "folder_name must not be empty".into(),
+            });
+        }
+        errors
+    }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
@@ -431,6 +599,22 @@ impl NodePlugin for ImapFolderDeletePlugin {
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "folder_name": config.get("folder_name") }))
     }
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("folder_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "folder_name".into(),
+                message: "folder_name must not be empty".into(),
+            });
+        }
+        errors
+    }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
@@ -464,6 +648,16 @@ impl NodePlugin for ImapIdlePlugin {
     fn supports_false_port(&self) -> bool { true }
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id"), "timeout_seconds": config.get("timeout_seconds") }))
+    }
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        errors
     }
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],
         node_map: &HashMap<String, &Node>,
@@ -506,6 +700,17 @@ impl NodePlugin for ImapClosePlugin {
 
     fn build_report_input(&self, config: &serde_json::Value) -> Option<serde_json::Value> {
         Some(serde_json::json!({ "connection_id": config.get("connection_id") }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        errors
     }
 
     async fn execute(&self, node: &Node, context: &mut ExecutionContext, connections: &[Connection],

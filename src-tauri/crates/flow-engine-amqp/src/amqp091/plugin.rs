@@ -25,7 +25,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -112,6 +112,17 @@ impl NodePlugin for AmqpConnectPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("url").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "url".into(),
+                message: "url must not be empty".into(),
+            });
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -190,6 +201,17 @@ impl NodePlugin for AmqpClosePlugin {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        errors
     }
 
     async fn execute(
@@ -293,6 +315,23 @@ impl NodePlugin for AmqpExchangeDeclarePlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("exchange_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "exchange_name".into(),
+                message: "exchange_name must not be empty".into(),
+            });
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -388,6 +427,23 @@ impl NodePlugin for AmqpExchangeDeletePlugin {
             "connection_id": config.get("connection_id"),
             "exchange_name": config.get("exchange_name"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("exchange_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "exchange_name".into(),
+                message: "exchange_name must not be empty".into(),
+            });
+        }
+        errors
     }
 
     async fn execute(
@@ -490,6 +546,17 @@ impl NodePlugin for AmqpQueueDeclarePlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -585,6 +652,23 @@ impl NodePlugin for AmqpQueueDeletePlugin {
             "connection_id": config.get("connection_id"),
             "queue_name": config.get("queue_name"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("queue_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "queue_name".into(),
+                message: "queue_name must not be empty".into(),
+            });
+        }
+        errors
     }
 
     async fn execute(
@@ -686,6 +770,29 @@ impl NodePlugin for AmqpQueueBindPlugin {
             "exchange_name": config.get("exchange_name"),
             "routing_key": config.get("routing_key"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("queue_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "queue_name".into(),
+                message: "queue_name must not be empty".into(),
+            });
+        }
+        if config.get("exchange_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "exchange_name".into(),
+                message: "exchange_name must not be empty".into(),
+            });
+        }
+        errors
     }
 
     async fn execute(
@@ -791,6 +898,17 @@ impl NodePlugin for AmqpPublishPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -893,6 +1011,23 @@ impl NodePlugin for AmqpConsumePlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("queue_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "queue_name".into(),
+                message: "queue_name must not be empty".into(),
+            });
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -989,6 +1124,23 @@ impl NodePlugin for AmqpGetPlugin {
             "connection_id": config.get("connection_id"),
             "queue_name": config.get("queue_name"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("queue_name").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "queue_name".into(),
+                message: "queue_name must not be empty".into(),
+            });
+        }
+        errors
     }
 
     async fn execute(
@@ -1088,6 +1240,17 @@ impl NodePlugin for AmqpAckPlugin {
             "delivery_tag": config.get("delivery_tag"),
             "ack_mode": config.get("ack_mode"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        errors
     }
 
     async fn execute(
@@ -1194,6 +1357,17 @@ impl NodePlugin for AmqpManagementPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("management_url").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "management_url".into(),
+                message: "management_url must not be empty".into(),
+            });
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -1261,6 +1435,17 @@ impl NodePlugin for Amqp10ConnectPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("url").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "url".into(),
+                message: "url must not be empty".into(),
+            });
+        }
+        errors
+    }
+
     async fn execute(
         &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
@@ -1316,6 +1501,23 @@ impl NodePlugin for Amqp10SendPlugin {
             "connection_id": config.get("connection_id"),
             "address": config.get("address"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("address").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "address".into(),
+                message: "address must not be empty".into(),
+            });
+        }
+        errors
     }
 
     async fn execute(
@@ -1377,6 +1579,23 @@ impl NodePlugin for Amqp10ReceivePlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        if config.get("address").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "address".into(),
+                message: "address must not be empty".into(),
+            });
+        }
+        errors
+    }
+
     async fn execute(
         &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
@@ -1431,6 +1650,17 @@ impl NodePlugin for Amqp10AcceptPlugin {
             "connection_id": config.get("connection_id"),
             "delivery_id": config.get("delivery_id"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        errors
     }
 
     async fn execute(
@@ -1489,6 +1719,17 @@ impl NodePlugin for Amqp10RejectPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        errors
+    }
+
     async fn execute(
         &self, node: &Node, context: &mut ExecutionContext, connections: &[Connection], node_map: &HashMap<String, &Node>,
     ) -> Result<(Vec<String>, Option<serde_json::Value>), String> {
@@ -1532,6 +1773,17 @@ impl NodePlugin for Amqp10DisconnectPlugin {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if config.get("connection_id").and_then(|v| v.as_str()).map_or(true, |s| s.is_empty()) {
+            errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "connection_id must not be empty".into(),
+            });
+        }
+        errors
     }
 
     async fn execute(
