@@ -9,7 +9,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -114,6 +114,31 @@ impl NodePlugin for TcpConnectPlugin {
             "framing_mode": config.get("framing_mode"),
             "framing_config": config.get("framing_config"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if !config.get("host").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "host".to_string(),
+                message: "host is required".to_string(),
+            });
+        }
+        if !config.get("port").and_then(|v| v.as_u64()).map(|p| p > 0).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "port".to_string(),
+                message: "port must be greater than 0".to_string(),
+            });
+        }
+        if let Some(timeout) = config.get("connect_timeout_ms").and_then(|v| v.as_u64()) {
+            if timeout < 1000 || timeout > 60000 {
+                errors.push(ValidationError {
+                    field: "connect_timeout_ms".to_string(),
+                    message: "connect_timeout_ms must be between 1000 and 60000".to_string(),
+                });
+            }
+        }
+        errors
     }
 
     async fn execute(
@@ -310,6 +335,23 @@ impl NodePlugin for TcpSendPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "connection_id".to_string(),
+                message: "connection_id is required".to_string(),
+            });
+        }
+        if !config.get("data").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "data".to_string(),
+                message: "data is required".to_string(),
+            });
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -404,6 +446,25 @@ impl NodePlugin for TcpReceivePlugin {
             "receive_timeout_ms": config.get("receive_timeout_ms"),
             "framing_mode": config.get("framing_mode"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "connection_id".to_string(),
+                message: "connection_id is required".to_string(),
+            });
+        }
+        if let Some(timeout) = config.get("receive_timeout_ms").and_then(|v| v.as_u64()) {
+            if timeout < 1000 || timeout > 300000 {
+                errors.push(ValidationError {
+                    field: "receive_timeout_ms".to_string(),
+                    message: "receive_timeout_ms must be between 1000 and 300000".to_string(),
+                });
+            }
+        }
+        errors
     }
 
     async fn execute(
@@ -503,6 +564,17 @@ impl NodePlugin for TcpClosePlugin {
             "connection_id": config.get("connection_id"),
             "close_timeout_ms": config.get("close_timeout_ms"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "connection_id".to_string(),
+                message: "connection_id is required".to_string(),
+            });
+        }
+        errors
     }
 
     async fn execute(
@@ -627,6 +699,23 @@ impl NodePlugin for UdpBindPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if !config.get("local_addr").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "local_addr".to_string(),
+                message: "local_addr is required".to_string(),
+            });
+        }
+        if !config.get("local_port").and_then(|v| v.as_u64()).map(|p| p > 0).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "local_port".to_string(),
+                message: "local_port must be greater than 0".to_string(),
+            });
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -730,6 +819,35 @@ impl NodePlugin for UdpSendToPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "connection_id".to_string(),
+                message: "connection_id is required".to_string(),
+            });
+        }
+        if !config.get("data").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "data".to_string(),
+                message: "data is required".to_string(),
+            });
+        }
+        if !config.get("target_addr").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "target_addr".to_string(),
+                message: "target_addr is required".to_string(),
+            });
+        }
+        if !config.get("target_port").and_then(|v| v.as_u64()).map(|p| p > 0).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "target_port".to_string(),
+                message: "target_port must be greater than 0".to_string(),
+            });
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -828,6 +946,25 @@ impl NodePlugin for UdpRecvFromPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "connection_id".to_string(),
+                message: "connection_id is required".to_string(),
+            });
+        }
+        if let Some(timeout) = config.get("receive_timeout_ms").and_then(|v| v.as_u64()) {
+            if timeout < 1000 || timeout > 300000 {
+                errors.push(ValidationError {
+                    field: "receive_timeout_ms".to_string(),
+                    message: "receive_timeout_ms must be between 1000 and 300000".to_string(),
+                });
+            }
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -920,6 +1057,17 @@ impl NodePlugin for UdpClosePlugin {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "connection_id".to_string(),
+                message: "connection_id is required".to_string(),
+            });
+        }
+        errors
     }
 
     async fn execute(

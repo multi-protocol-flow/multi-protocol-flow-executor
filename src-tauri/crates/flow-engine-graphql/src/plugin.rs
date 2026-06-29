@@ -13,7 +13,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -96,6 +96,18 @@ impl NodePlugin for GraphqlConnectPlugin {
             "endpoint": config.get("endpoint"),
             "headers": config.get("headers"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("endpoint").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "endpoint".into(),
+                message: "Endpoint 不能为空".into(),
+            }),
+        }
+        errors
     }
 
     async fn execute(
@@ -196,6 +208,25 @@ impl NodePlugin for GraphqlQueryPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        match config.get("query").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "query".into(),
+                message: "查询语句不能为空".into(),
+            }),
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -294,6 +325,25 @@ impl NodePlugin for GraphqlSubscribePlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        match config.get("subscription").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "subscription".into(),
+                message: "订阅语句不能为空".into(),
+            }),
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -390,6 +440,18 @@ impl NodePlugin for GraphqlIntrospectPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -468,6 +530,18 @@ impl NodePlugin for GraphqlDisconnectPlugin {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        errors
     }
 
     async fn execute(

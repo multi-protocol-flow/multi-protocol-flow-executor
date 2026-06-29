@@ -8,7 +8,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -168,6 +168,25 @@ impl NodePlugin for DbConnectPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        let has_conn_str = config
+            .get("connection_string")
+            .and_then(|v| v.as_str())
+            .map_or(false, |s| !s.is_empty());
+        let has_host = config
+            .get("host")
+            .and_then(|v| v.as_str())
+            .map_or(false, |s| !s.is_empty());
+        if !has_conn_str && !has_host {
+            errors.push(ValidationError {
+                field: "connection_string".into(),
+                message: "连接字符串或主机地址不能为空".into(),
+            });
+        }
+        errors
+    }
+
     async fn execute
         (&self,
         node: &Node,
@@ -266,6 +285,25 @@ impl NodePlugin for DbQueryPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_uuid").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_uuid".into(),
+                message: "连接 UUID 不能为空".into(),
+            }),
+        }
+        match config.get("sql").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "sql".into(),
+                message: "SQL 语句不能为空".into(),
+            }),
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -357,6 +395,18 @@ impl NodePlugin for DbBeginPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_uuid").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_uuid".into(),
+                message: "连接 UUID 不能为空".into(),
+            }),
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -443,6 +493,18 @@ impl NodePlugin for DbCommitPlugin {
         Some(serde_json::json!({
             "connection_uuid": config.get("connection_uuid"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_uuid").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_uuid".into(),
+                message: "连接 UUID 不能为空".into(),
+            }),
+        }
+        errors
     }
 
     async fn execute(
@@ -533,6 +595,18 @@ impl NodePlugin for DbRollbackPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_uuid").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_uuid".into(),
+                message: "连接 UUID 不能为空".into(),
+            }),
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -606,6 +680,18 @@ impl NodePlugin for DbClosePlugin {
         Some(serde_json::json!({
             "connection_uuid": config.get("connection_uuid"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_uuid").and_then(|v| v.as_str()) {
+            Some(s) if !s.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_uuid".into(),
+                message: "连接 UUID 不能为空".into(),
+            }),
+        }
+        errors
     }
 
     async fn execute(

@@ -10,7 +10,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -95,6 +95,23 @@ impl NodePlugin for SmtpConnectPlugin {
             "port": config.get("port"),
             "tls_mode": config.get("tls_mode"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if !config.get("host").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "host".to_string(),
+                message: "host is required".to_string(),
+            });
+        }
+        if !config.get("port").and_then(|v| v.as_u64()).map(|p| p > 0).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "port".to_string(),
+                message: "port must be greater than 0".to_string(),
+            });
+        }
+        errors
     }
 
     async fn execute(
@@ -206,6 +223,29 @@ impl NodePlugin for SmtpSendPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "connection_id".to_string(),
+                message: "connection_id is required".to_string(),
+            });
+        }
+        if !config.get("from").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "from".to_string(),
+                message: "from is required".to_string(),
+            });
+        }
+        if !config.get("to").and_then(|v| v.as_array()).map(|arr| !arr.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "to".to_string(),
+                message: "to must be a non-empty array".to_string(),
+            });
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -284,6 +324,17 @@ impl NodePlugin for SmtpDisconnectPlugin {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        if !config.get("connection_id").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false) {
+            errors.push(ValidationError {
+                field: "connection_id".to_string(),
+                message: "connection_id is required".to_string(),
+            });
+        }
+        errors
     }
 
     async fn execute(
