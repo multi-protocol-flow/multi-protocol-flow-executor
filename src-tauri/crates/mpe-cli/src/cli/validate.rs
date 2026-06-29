@@ -22,8 +22,9 @@ pub async fn execute(
     let flow = flow_engine::storage::load_flow(flow_path)
         .map_err(|e| super::CliError::Execution(format!("Failed to load flow: {}", e)))?;
 
-    // Validate flow
-    let result = flow_engine::validator::FlowValidator::new().validate(&flow);
+    // Validate flow with registry (structural + plugin-level validation)
+    let registry = flow_engine::default_registry::default_registry();
+    let result = flow_engine::validator::FlowValidator::new().validate_with_registry(&flow, &registry);
 
     let output_data = serde_json::json!({
         "valid": result.valid,

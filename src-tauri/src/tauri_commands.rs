@@ -323,7 +323,8 @@ pub fn delete_node(input: DeleteNodeCommandInput, flow: Flow) -> DeleteNodeComma
 #[tauri::command]
 pub fn validate_flow(flow: Flow) -> serde_json::Value {
     let validator = flow_engine::validator::FlowValidator::new();
-    let result = validator.validate(&flow);
+    let registry = flow_engine::default_registry::default_registry();
+    let result = validator.validate_with_registry(&flow, &registry);
 
     let structured_errors: Vec<serde_json::Value> = result
         .errors
