@@ -1,5 +1,7 @@
 // 流程验证器模块 - FlowValidator 实现
 
+use std::collections::HashSet;
+
 use flow_engine_core::error::ErrorCode;
 use flow_engine_core::flow::Flow;
 use flow_engine_core::node::Node;
@@ -137,7 +139,27 @@ impl FlowValidator {
             errors.extend(ws_validation.errors);
         }
 
-        // 规则 5: 检查 End 节点
+        // 规则 5: 节点 UUID 唯一性
+        let r = self.validate_node_uuid_uniqueness(flow);
+        errors.extend(r.errors);
+
+        // 规则 6: 连接引用验证
+        let r = self.validate_connection_references(flow);
+        errors.extend(r.errors);
+
+        // 规则 7: 端口存在性验证
+        let r = self.validate_port_existence(flow);
+        errors.extend(r.errors);
+
+        // 规则 8: 节点可达性（产生警告，不影响 valid）
+        let r = self.validate_node_reachability(flow);
+        warnings.extend(r.warnings);
+
+        // 规则 9: 必需字段验证
+        let r = self.validate_unknown_fields(flow);
+        errors.extend(r.errors);
+
+        // 规则 10: 检查 End 节点
         let end_nodes: Vec<&Node> = flow
             .nodes
             .iter()
@@ -186,6 +208,65 @@ impl FlowValidator {
     /// - `ValidationResult`: 验证结果
     pub fn execute(&self, flow: &Flow) -> ValidationResult {
         self.validate(flow)
+    }
+
+    // ========================================================================
+    // A3: Registry-aware validation (wires NodePlugin::validate)
+    // ========================================================================
+
+    /// Validate a flow with a node registry, including per-node plugin validation.
+    ///
+    /// This method extends `validate()` by checking each node's configuration data
+    /// against the registered `NodePlugin::validate()` method, producing additional
+    /// errors for unknown node types and plugin-specific config errors.
+    ///
+    /// # Parameters
+    ///
+    /// * `flow` - The flow to validate
+    /// * `registry` - The node registry containing all registered node plugins
+    ///
+    /// # Returns
+    ///
+    /// A `ValidationResult` that includes both structural and plugin-level errors.
+    pub fn validate_with_registry(
+        &self,
+        flow: &Flow,
+        registry: &flow_engine_core::registry::NodeRegistry,
+    ) -> ValidationResult {
+        let mut result = self.validate(flow);
+
+        for node in &flow.nodes {
+            if let Some(plugin) = registry.get(&node.node_type) {
+                if let Ok(config) = serde_json::to_value(&node.data) {
+                    let plugin_errors = plugin.validate(&config);
+                    for err in &plugin_errors {
+                        result.errors.push(ValidationEntry {
+                            code: ErrorCode::E_CONFIG_ERROR,
+                            message: format!(
+                                "Node '{}': {} ({})",
+                                node.name, err.message, err.field
+                            ),
+                            field: Some(err.field.clone()),
+                        });
+                    }
+                    if !plugin_errors.is_empty() {
+                        result.valid = false;
+                    }
+                }
+            } else {
+                result.errors.push(ValidationEntry {
+                    code: ErrorCode::E_VAL_UNKNOWN_NODE_TYPE,
+                    message: format!(
+                        "Node '{}' has unknown type '{}'",
+                        node.name, node.node_type
+                    ),
+                    field: Some("type".to_string()),
+                });
+                result.valid = false;
+            }
+        }
+
+        result
     }
 
     /// 验证 WebSocket 节点配置
@@ -475,6 +556,285 @@ impl FlowValidator {
                 if let Some(err) = dfs_idx(i, &adj_idx, &mut color, &node_names, &mut path) {
                     errors.push(err);
                 }
+            }
+        }
+
+        if errors.is_empty() {
+            ValidationResult::success()
+        } else {
+            ValidationResult::errors(errors)
+        }
+    }
+
+    // ========================================================================
+    // A2a: Node UUID uniqueness validation
+    // ========================================================================
+
+    /// Validate that all nodes have unique UUIDs.
+    ///
+    /// # Errors
+    ///
+    /// Returns `E_VAL_DUPLICATE_NODE_ID` if any two nodes share the same UUID.
+    pub fn validate_node_uuid_uniqueness(&self, flow: &Flow) -> ValidationResult {
+        let mut errors: Vec<ValidationEntry> = Vec::new();
+        let mut seen: HashSet<&str> = HashSet::new();
+
+        for node in &flow.nodes {
+            if !seen.insert(node.uuid.as_str()) {
+                errors.push(ValidationEntry {
+                    code: ErrorCode::E_VAL_DUPLICATE_NODE_ID,
+                    message: format!("Node '{}' has duplicate UUID: {}", node.name, node.uuid),
+                    field: Some("uuid".to_string()),
+                });
+            }
+        }
+
+        if errors.is_empty() {
+            ValidationResult::success()
+        } else {
+            ValidationResult::errors(errors)
+        }
+    }
+
+    // ========================================================================
+    // A2b: Connection reference validation
+    // ========================================================================
+
+    /// Validate that every connection references existing source and target nodes.
+    ///
+    /// # Errors
+    ///
+    /// Returns `E_VAL_CONN_NODE_NOT_FOUND` if a connection references a non-existent node UUID.
+    pub fn validate_connection_references(&self, flow: &Flow) -> ValidationResult {
+        let mut errors: Vec<ValidationEntry> = Vec::new();
+
+        // Build a set of all valid node UUIDs
+        let node_uuids: HashSet<&str> = flow.nodes.iter().map(|n| n.uuid.as_str()).collect();
+
+        for conn in &flow.connections {
+            if !node_uuids.contains(conn.source_node_uuid.as_str()) {
+                errors.push(ValidationEntry {
+                    code: ErrorCode::E_VAL_CONN_NODE_NOT_FOUND,
+                    message: format!(
+                        "Connection '{}' references non-existent node UUID: {}",
+                        conn.id, conn.source_node_uuid
+                    ),
+                    field: Some("source_node_uuid".to_string()),
+                });
+            }
+            if !node_uuids.contains(conn.target_node_uuid.as_str()) {
+                errors.push(ValidationEntry {
+                    code: ErrorCode::E_VAL_CONN_NODE_NOT_FOUND,
+                    message: format!(
+                        "Connection '{}' references non-existent node UUID: {}",
+                        conn.id, conn.target_node_uuid
+                    ),
+                    field: Some("target_node_uuid".to_string()),
+                });
+            }
+        }
+
+        if errors.is_empty() {
+            ValidationResult::success()
+        } else {
+            ValidationResult::errors(errors)
+        }
+    }
+
+    // ========================================================================
+    // A2c: Port existence validation
+    // ========================================================================
+
+    /// Validate that every connection's source/target port exists in the respective node's port list.
+    ///
+    /// If a node's `ports` field is `None` (no explicit ports defined), the check is skipped for that node.
+    ///
+    /// # Errors
+    ///
+    /// Returns `E_VAL_PORT_NOT_FOUND` if a port referenced by a connection does not exist on the node.
+    pub fn validate_port_existence(&self, flow: &Flow) -> ValidationResult {
+        let mut errors: Vec<ValidationEntry> = Vec::new();
+
+        // Build a map: node_uuid -> &Node
+        let node_map: std::collections::HashMap<&str, &Node> =
+            flow.nodes.iter().map(|n| (n.uuid.as_str(), n)).collect();
+
+        for conn in &flow.connections {
+            // Check source port
+            if let Some(source_node) = node_map.get(conn.source_node_uuid.as_str()) {
+                if let Some(ref ports) = source_node.ports {
+                    let port_ids: HashSet<&str> = ports.iter().map(|p| p.id.as_str()).collect();
+                    if !port_ids.contains(conn.source_port_id.as_str()) {
+                        errors.push(ValidationEntry {
+                            code: ErrorCode::E_VAL_PORT_NOT_FOUND,
+                            message: format!(
+                                "Node '{}' has no port '{}'",
+                                source_node.name, conn.source_port_id
+                            ),
+                            field: Some("source_port_id".to_string()),
+                        });
+                    }
+                }
+            }
+
+            // Check target port
+            if let Some(target_node) = node_map.get(conn.target_node_uuid.as_str()) {
+                if let Some(ref ports) = target_node.ports {
+                    let port_ids: HashSet<&str> = ports.iter().map(|p| p.id.as_str()).collect();
+                    if !port_ids.contains(conn.target_port_id.as_str()) {
+                        errors.push(ValidationEntry {
+                            code: ErrorCode::E_VAL_PORT_NOT_FOUND,
+                            message: format!(
+                                "Node '{}' has no port '{}'",
+                                target_node.name, conn.target_port_id
+                            ),
+                            field: Some("target_port_id".to_string()),
+                        });
+                    }
+                }
+            }
+        }
+
+        if errors.is_empty() {
+            ValidationResult::success()
+        } else {
+            ValidationResult::errors(errors)
+        }
+    }
+
+    // ========================================================================
+    // A2d: Node reachability validation
+    // ========================================================================
+
+    /// Validate that all nodes are reachable from at least one Entry node via BFS.
+    ///
+    /// Nodes not reachable from any Entry node produce warnings (not errors).
+    /// Also warns if an Entry node has no outgoing connections.
+    ///
+    /// # Warnings
+    ///
+    /// - Node not reachable from any Entry node
+    /// - Entry node has no outgoing connections
+    pub fn validate_node_reachability(&self, flow: &Flow) -> ValidationResult {
+        let mut warnings: Vec<String> = Vec::new();
+
+        // Find all Entry node UUIDs
+        let entry_uuids: Vec<&str> = flow
+            .nodes
+            .iter()
+            .filter(|n| n.node_type == node_types::ENTRY)
+            .map(|n| n.uuid.as_str())
+            .collect();
+
+        if entry_uuids.is_empty() {
+            // No Entry nodes at all — the missing-entry check covers this as an error.
+            // Don't produce duplicate warnings.
+            return ValidationResult {
+                valid: true,
+                errors: Vec::new(),
+                warnings,
+            };
+        }
+
+        // Build adjacency list: source_uuid -> Vec<target_uuid>
+        let mut adj: std::collections::HashMap<&str, Vec<&str>> =
+            std::collections::HashMap::new();
+        for conn in &flow.connections {
+            adj.entry(conn.source_node_uuid.as_str())
+                .or_default()
+                .push(conn.target_node_uuid.as_str());
+        }
+
+        // BFS from all Entry nodes
+        let mut reachable: HashSet<&str> = HashSet::new();
+        let mut queue: Vec<&str> = Vec::new();
+
+        for &entry_uuid in &entry_uuids {
+            // Check if Entry node has outgoing connections
+            let has_outgoing = flow
+                .connections
+                .iter()
+                .any(|c| c.source_node_uuid == entry_uuid);
+            if !has_outgoing {
+                let entry_name = flow
+                    .nodes
+                    .iter()
+                    .find(|n| n.uuid == entry_uuid)
+                    .map(|n| n.name.as_str())
+                    .unwrap_or("unknown");
+                warnings.push(format!(
+                    "Entry node '{}' has no outgoing connections",
+                    entry_name
+                ));
+            }
+
+            if reachable.insert(entry_uuid) {
+                queue.push(entry_uuid);
+            }
+        }
+
+        while let Some(current) = queue.pop() {
+            if let Some(neighbors) = adj.get(current) {
+                for &next in neighbors {
+                    if reachable.insert(next) {
+                        queue.push(next);
+                    }
+                }
+            }
+        }
+
+        // Check all nodes for reachability
+        for node in &flow.nodes {
+            if !reachable.contains(node.uuid.as_str()) {
+                warnings.push(format!(
+                    "Node '{}' is not reachable from any Entry node",
+                    node.name
+                ));
+            }
+        }
+
+        ValidationResult {
+            valid: true,
+            errors: Vec::new(),
+            warnings,
+        }
+    }
+
+    // ========================================================================
+    // A2e: Unknown fields / missing required fields validation
+    // ========================================================================
+
+    /// Validate that nodes have no missing required fields (uuid, name, node_type).
+    ///
+    /// Currently checks for empty uuid, empty name, and empty node_type.
+    ///
+    /// # Errors
+    ///
+    /// Returns `E_VAL_MISSING_REQUIRED_FIELD` for empty uuid, name, or node_type.
+    pub fn validate_unknown_fields(&self, flow: &Flow) -> ValidationResult {
+        let mut errors: Vec<ValidationEntry> = Vec::new();
+
+        for node in &flow.nodes {
+            if node.uuid.is_empty() {
+                errors.push(ValidationEntry {
+                    code: ErrorCode::E_VAL_MISSING_REQUIRED_FIELD,
+                    message: format!("Node '{}' has empty uuid", node.name),
+                    field: Some("uuid".to_string()),
+                });
+            }
+            if node.name.is_empty() {
+                errors.push(ValidationEntry {
+                    code: ErrorCode::E_VAL_MISSING_REQUIRED_FIELD,
+                    message: format!("Node '{}' has empty name", node.uuid),
+                    field: Some("name".to_string()),
+                });
+            }
+            if node.node_type.is_empty() {
+                errors.push(ValidationEntry {
+                    code: ErrorCode::E_VAL_MISSING_REQUIRED_FIELD,
+                    message: format!("Node '{}' has empty node_type", node.name),
+                    field: Some("node_type".to_string()),
+                });
             }
         }
 
@@ -941,12 +1301,15 @@ mod tests {
         let validator = FlowValidator::new();
         let result = validator.validate(&flow);
 
-        // 验证通过但有警告
+        // 验证通过但有警告（至少有一个关于 End 节点的警告）
         assert!(result.valid);
         assert!(result.errors.is_empty());
         assert!(!result.warnings.is_empty());
-        eprintln!("Warning: {}", result.warnings[0]);
-        assert!(result.warnings[0].contains("End node"));
+        assert!(
+            result.warnings.iter().any(|w| w.contains("End node")),
+            "Expected at least one warning about End node, got: {:?}",
+            result.warnings
+        );
     }
 
     #[test]
