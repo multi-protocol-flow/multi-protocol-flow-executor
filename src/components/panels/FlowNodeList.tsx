@@ -12,7 +12,9 @@ import { getLL } from '@/i18n/i18n-lazy';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Trash2, List, Check, Minus } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Trash2, List, Check, Minus, ChevronDown, ChevronRight, Eye, Pencil, Info } from 'lucide-react';
+import { MarkdownViewer } from '@/components/ui/MarkdownViewer';
 
 // ============================================================================
 // 类型定义
@@ -85,10 +87,15 @@ function NodeTypeIcon({ type }: { type: NodeType }) {
 // ============================================================================
 
 export function FlowNodeList({ readOnly = false }: FlowNodeListProps) {
-const ll = getLL().panels.flowNodeList;
+  const ll = getLL().panels.flowNodeList;
+  const flowLl = getLL().flow;
   // 按加入时间排序（flow.nodes 的顺序即为加入顺序）
   const nodes = useFlowStore(selectNodes);
+  const flow = useFlowStore((s) => s.flow);
+  const updateFlowDescription = useFlowStore((s) => s.updateFlowDescription);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [flowInfoExpanded, setFlowInfoExpanded] = useState(true);
+  const [descMode, setDescMode] = useState<'edit' | 'preview'>('edit');
 
   // 可选节点数量（排除 entry）
   const selectableCount = useMemo(
@@ -217,6 +224,80 @@ const ll = getLL().panels.flowNodeList;
 
       <CardContent className="flex-1 overflow-hidden p-0">
         <ScrollArea className="h-full">
+          {/* 流程信息区（可折叠） */}
+          {flow && (
+            <div className="border-b border-muted">
+              <button
+                type="button"
+                onClick={() => setFlowInfoExpanded(!flowInfoExpanded)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
+              >
+                {flowInfoExpanded ? (
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                )}
+                <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="truncate">{flowLl.flow_info_title()}</span>
+              </button>
+
+              {flowInfoExpanded && (
+                <div className="px-3 pb-3 space-y-3">
+                  {/* 流程名称（只读显示） */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground shrink-0">{flowLl.flow_info_title()}:</span>
+                    <span className="text-sm text-foreground truncate font-medium">{flow.name}</span>
+                  </div>
+
+                  {/* 流程描述（编辑/预览切换） */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        {flowLl.flow_info_description()}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setDescMode(descMode === 'edit' ? 'preview' : 'edit')}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {descMode === 'edit' ? (
+                          <>
+                            <Eye className="h-3 w-3" />
+                            {flowLl.flow_info_preview()}
+                          </>
+                        ) : (
+                          <>
+                            <Pencil className="h-3 w-3" />
+                            {flowLl.flow_info_edit()}
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {descMode === 'edit' ? (
+                      <Textarea
+                        value={flow.description ?? ''}
+                        onChange={(e) => updateFlowDescription(e.target.value)}
+                        placeholder={flowLl.flow_info_description_placeholder()}
+                        className="min-h-[72px] text-xs resize-y"
+                      />
+                    ) : (
+                      <div className="min-h-[72px] rounded-md border border-input bg-background px-3 py-2">
+                        {flow.description ? (
+                          <MarkdownViewer content={flow.description} compact />
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">
+                            {flowLl.flow_info_description_placeholder()}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="px-2 py-1.5 space-y-0.5">
             {nodes.map((node) => {
               const isEntry = node.type === 'entry';
