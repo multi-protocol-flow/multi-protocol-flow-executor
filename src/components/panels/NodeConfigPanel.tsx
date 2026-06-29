@@ -25,6 +25,34 @@ function deepEqual(a: unknown, b: unknown): boolean {
   }
   return false;
 }
+
+/** 检查是否为普通对象（非数组、非 null） */
+function isPlainObject(obj: unknown): boolean {
+  return typeof obj === 'object' && obj !== null && !Array.isArray(obj);
+}
+
+/**
+ * 合并面板输出与原始节点数据。
+ * `updates` 中的字段覆盖 `original`。
+ * `original` 中有但 `updates` 中没有的字段被保留。
+ * `updates` 中显式设为 `undefined` 的字段从结果中移除。
+ */
+function mergeNodeData<T extends Record<string, unknown>>(original: T, updates: Partial<T>): T {
+  const merged = { ...original } as T;
+  for (const key of Object.keys(updates) as Array<keyof T>) {
+    const val = updates[key];
+    if (val === undefined) {
+      // 显式删除: 从结果中移除该 key
+      delete merged[key];
+    } else if (isPlainObject(val) && isPlainObject(original[key])) {
+      // 深度合并嵌套的普通对象（不合并数组）
+      merged[key] = { ...(original[key] as object), ...(val as object) } as T[keyof T];
+    } else {
+      merged[key] = val as T[keyof T];
+    }
+  }
+  return merged;
+}
 import { useFlowStore, useDebugStore, selectHistoryVersion } from '@/stores';
 import { DebugNodeConfigDialog } from '@/components/dialogs/DebugNodeConfigDialog';
 import { FlowNodeList } from './FlowNodeList';
@@ -194,15 +222,20 @@ export function NodeConfigPanel({ readOnly = false, node: externalNode }: NodeCo
    * 处理配置保存
    * 使用 ref 持久化的 UUID，确保取消选中节点后仍能正确保存
    * 去重：使用深度比较（属性顺序无关），避免表单序列化差异触发无意义保存
+   *
+   * 合并策略：面板输出的 data 只包含该面板已知的字段，
+   * 通过 mergeNodeData 与原始节点数据合并，确保未知字段不被丢弃。
    */
   const handleSave = (data: NodeData) => {
     if (frozenNodeUuidRef.current) {
       // 从 flow 中按 UUID 查找节点（不用 getSelectedNode，因为卸载时选中状态可能已变）
       const node = flow?.nodes.find((n) => n.uuid === frozenNodeUuidRef.current);
-      if (node && deepEqual(node.data, data)) {
+      // 合并：面板输出覆盖原始值，但面板不认识的字段从原始值保留
+      const merged = node ? mergeNodeData(node.data as unknown as Record<string, unknown>, data as unknown as Record<string, unknown>) : data;
+      if (node && deepEqual(node.data, merged)) {
         return;
       }
-      updateNode(frozenNodeUuidRef.current, { data });
+      updateNode(frozenNodeUuidRef.current, { data: merged as NodeData });
     }
   };
 

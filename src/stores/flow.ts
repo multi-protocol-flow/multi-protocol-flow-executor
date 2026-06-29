@@ -2,7 +2,7 @@
  * 当前编辑流程状态管理
  */
 import { create } from 'zustand';
-import type { Flow, Node, Connection, NodeType, EnvironmentSet } from '@/types';
+import type { Flow, Node, NodeData, Connection, NodeType, EnvironmentSet } from '@/types';
 import { useExecutionStore } from './execution';
 import { useConsoleStore } from './console';
 
@@ -272,9 +272,13 @@ export const useFlowStore = create<FlowState>((set, get) => {
         if (!state.flow) return state;
         const newFlow = {
           ...state.flow,
-          nodes: state.flow.nodes.map((n) =>
-            n.uuid === uuid ? { ...n, ...updates } : n
-          ),
+          nodes: state.flow.nodes.map((n) => {
+            if (n.uuid !== uuid) return n;
+            // 如果 updates 包含 data，与现有 data 浅合并，保留不在 updates.data 中的字段
+            return updates.data && n.data
+              ? { ...n, ...updates, data: { ...n.data, ...updates.data } as NodeData }
+              : { ...n, ...updates };
+          }),
         };
         // 检查是否有实际变更，无变更则不标记 isDirty（避免选中/取消选中触发无意义保存）
         const history = pushHistory(state, newFlow);
