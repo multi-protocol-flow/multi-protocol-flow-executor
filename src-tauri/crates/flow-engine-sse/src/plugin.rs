@@ -10,7 +10,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -94,6 +94,18 @@ impl NodePlugin for SseConnectPlugin {
             "url": config.get("url"),
             "last_event_id": config.get("last_event_id"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("url").and_then(|v| v.as_str()) {
+            Some(url) if !url.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "url".into(),
+                message: "URL 不能为空".into(),
+            }),
+        }
+        errors
     }
 
     async fn execute(
@@ -196,6 +208,18 @@ impl NodePlugin for SseListenPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(id) if !id.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -274,6 +298,18 @@ impl NodePlugin for SseDisconnectPlugin {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(id) if !id.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        errors
     }
 
     async fn execute(

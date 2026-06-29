@@ -10,7 +10,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -99,6 +99,18 @@ impl NodePlugin for GrpcConnectPlugin {
             "default_metadata": config.get("default_metadata"),
             "connect_timeout_ms": config.get("connect_timeout_ms"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("url").and_then(|v| v.as_str()) {
+            Some(url) if !url.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "url".into(),
+                message: "URL 不能为空".into(),
+            }),
+        }
+        errors
     }
 
     async fn execute(
@@ -209,6 +221,32 @@ impl NodePlugin for GrpcCallPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(id) if !id.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        match config.get("service_name").and_then(|v| v.as_str()) {
+            Some(name) if !name.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "service_name".into(),
+                message: "服务名称不能为空".into(),
+            }),
+        }
+        match config.get("method_name").and_then(|v| v.as_str()) {
+            Some(name) if !name.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "method_name".into(),
+                message: "方法名称不能为空".into(),
+            }),
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -299,6 +337,18 @@ impl NodePlugin for GrpcClosePlugin {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(id) if !id.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        errors
     }
 
     async fn execute(

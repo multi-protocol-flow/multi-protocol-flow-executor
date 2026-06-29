@@ -6,7 +6,7 @@ use flow_engine_core::node::Node;
 use flow_engine_core::plugin::PortDef;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::connection::Connection;
-use flow_engine_core::plugin::NodePlugin;
+use flow_engine_core::plugin::{NodePlugin, ValidationError};
 use flow_engine_core::registry::NodeRegistry;
 use serde_json::json;
 use std::collections::HashMap;
@@ -95,6 +95,18 @@ impl NodePlugin for RedisConnectPlugin {
             "db_index": config.get("db_index"),
             "connect_timeout_ms": config.get("connect_timeout_ms"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("host").and_then(|v| v.as_str()) {
+            Some(host) if !host.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "host".into(),
+                message: "Host 不能为空".into(),
+            }),
+        }
+        errors
     }
 
     async fn execute(
@@ -194,6 +206,25 @@ impl NodePlugin for RedisCommandPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(id) if !id.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        match config.get("command").and_then(|v| v.as_str()) {
+            Some(cmd) if !cmd.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "command".into(),
+                message: "命令不能为空".into(),
+            }),
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -269,6 +300,18 @@ impl NodePlugin for RedisClosePlugin {
         Some(json!({
             "connection_id": config.get("connection_id"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(id) if !id.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        errors
     }
 
     async fn execute(

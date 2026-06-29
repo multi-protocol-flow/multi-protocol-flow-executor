@@ -12,7 +12,7 @@ use flow_engine_core::connection::Connection;
 use flow_engine_core::context::ExecutionContext;
 use flow_engine_core::executor::NodeExecutor;
 use flow_engine_core::node::Node;
-use flow_engine_core::plugin::{NodePlugin, PortDef};
+use flow_engine_core::plugin::{NodePlugin, PortDef, ValidationError};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -102,6 +102,18 @@ impl NodePlugin for McpConnectPlugin {
             "command": config.get("command"),
             "args": config.get("args"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("url").and_then(|v| v.as_str()) {
+            Some(url) if !url.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "url".into(),
+                message: "URL 不能为空".into(),
+            }),
+        }
+        errors
     }
 
     async fn execute(
@@ -200,6 +212,25 @@ impl NodePlugin for McpCallToolPlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(id) if !id.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        match config.get("tool_name").and_then(|v| v.as_str()) {
+            Some(name) if !name.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "tool_name".into(),
+                message: "工具名称不能为空".into(),
+            }),
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -294,6 +325,25 @@ impl NodePlugin for McpReadResourcePlugin {
         }))
     }
 
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(id) if !id.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        match config.get("resource_uri").and_then(|v| v.as_str()) {
+            Some(uri) if !uri.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "resource_uri".into(),
+                message: "资源 URI 不能为空".into(),
+            }),
+        }
+        errors
+    }
+
     async fn execute(
         &self,
         node: &Node,
@@ -368,6 +418,18 @@ impl NodePlugin for McpClosePlugin {
         Some(serde_json::json!({
             "connection_id": config.get("connection_id"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(id) if !id.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        errors
     }
 
     async fn execute(
@@ -464,6 +526,25 @@ impl NodePlugin for McpGetPromptPlugin {
             "prompt_name": config.get("prompt_name"),
             "arguments": config.get("arguments"),
         }))
+    }
+
+    fn validate(&self, config: &serde_json::Value) -> Vec<ValidationError> {
+        let mut errors = Vec::new();
+        match config.get("connection_id").and_then(|v| v.as_str()) {
+            Some(id) if !id.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "connection_id".into(),
+                message: "连接 ID 不能为空".into(),
+            }),
+        }
+        match config.get("prompt_name").and_then(|v| v.as_str()) {
+            Some(name) if !name.is_empty() => {}
+            _ => errors.push(ValidationError {
+                field: "prompt_name".into(),
+                message: "提示词名称不能为空".into(),
+            }),
+        }
+        errors
     }
 
     async fn execute(
